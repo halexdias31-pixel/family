@@ -8510,8 +8510,13 @@ function figWanted_(words, figured) {
   if (/<(svg|img|table)\b/i.test(h)) return false;
   return FIG_NAMED.test(h.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' '));
 }
+/* NOT FOR A PART THAT USES AN EARLIER PART'S DRAWING -- 3H Q3c "use your graph", AQA 1H Q2.6. The
+   figure its words name is the graph the child drew on (b), which is a page of its own in front of it
+   (the `uses` column); a "not drawn yet" page beside that one contradicted it. Read off the row as
+   well as the item, so it holds wherever `uses` is carried. */
+const usesNamed_ = x => String((x && (x.uses || (x.row && x.row.uses))) || '').trim();
 function figMissing_(x) {
-  if (!x || x.kind !== 'question' || padSurface_(x)) return false;
+  if (!x || x.kind !== 'question' || padSurface_(x) || usesNamed_(x)) return false;
   const own = p => !!(p && (p.diagram || figImgs_(p.images).length));
   let figured = own(x) || (x.stems || []).some(stemHasFig_);
   if (!figured) {
@@ -8612,7 +8617,9 @@ function questionAnsCard_(x) {
          reads too -- and the owner's word is that the two read the same thing. The page says what it
          is; whether to try first is the tutor's to say out loud, not the app's to say to one of them.
          Beside the tile rather than over it, so the row is the row's height whichever face it wears. */
-      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
+      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}${
+      /* AND THE WAY TO READ ONLY ANSWERS, or back -- see `answersOnly_`. */
+      ansOnlyTile_(k)}</div>
     ${open ? answerBlock_(x) : ''}
   </div>`;
 }
@@ -8723,8 +8730,22 @@ function figsBefore_(x) {
   const sib = k ? ((questionParts_()[k]) || []) : [];
   const at = sib.indexOf(x);
   const own = p => !!(p.diagram || figImgs_(p.images).length);
+  /* ---------- NOT THE PICTURE A PART THIS ONE USES WAS DRAWN ON ------------------------------------
+     THE REVIEW OF THE MERGE WITH THE PEN'S BRANCH: 2F Q24c "use your graph" offered Figure, and the
+     sheet held Q24b's grid with nothing on it -- the paper's blank squares, where the page in front
+     showed the child's graph. The figure that part reads is the child's own drawing, which is the
+     `uses` page's to show (marks and all); the paper's empty copy of it is not a figure of anything.
+     Followed down the chain (FSL2 Q3c uses b, b uses a, one scatter diagram), never round a loop. */
+  const bare = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const used = new Set();
+  for (let y = x, n = 0; y && usesNamed_(y) && n < 9; n++) {
+    const u = bare(usesNamed_(y));
+    if (used.has(u)) break;
+    used.add(u);
+    y = sib.find(p => bare(p.qPart) === u) || null;
+  }
   sib.slice(0, at < 0 ? 0 : at).forEach(p => {
-    if (own(p)) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')));
+    if (own(p) && !used.has(bare(p.qPart))) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')));
   });
   const plan = partPlan_(x);
   if (own(x) && plan.figAt >= 0 && plan.figAt < plan.chunks.length) pic(x, figLabel_(String(x.lead || '') + ' ' + String(x.html || '')));
@@ -10295,25 +10316,79 @@ function pageOnly_() {
   return f ? String(f.value) : '';
 }
 /* ---------- "JUST CLICK ANSWERS AND ONLY SEE ANSWERS" ------------------------------------------------
-   THE ANSWER PAGE'S KIND TAG IS THE DOOR. Tapping it narrows Find to the answer pages of whatever
-   is chosen -- one paper's answers, a topic's -- as the `Page: Answers` chip, so the ✕ on the chip
-   is the way back. A second tap does not stack a second chip. Through `go` when it is pressed on
-   Saved or Spotlight, because the strip it narrows is Find's.
+   A TILE ON EVERY ANSWER PAGE IS THE DOOR (`ansOnlyTile_`): `Answers only` narrows Find to the answer
+   pages of whatever is chosen -- one paper's answers, a topic's -- as the `Page: Answers` chip, and on
+   that view the same tile reads `Questions too` and takes the chip off again (so does its ✕). A second
+   press never stacks a second chip.
 
-   THE TAG ITSELF IS THE TAG ROW'S, built elsewhere (`qTagsHtml_`): this listens for a tap on a tag
-   reading "Answer" on an answer page, whatever element it is drawn as, so it needs nothing from the
-   row but its words. */
-function answersOnly_() {
+   IT WAS A TAP ON THE ANSWER PAGE'S KIND TAG, and the review found nobody could reach it: the tag row
+   carried no "Answer" tag, the header's "Q1 · answer" is not a tag, and the journey passed only because
+   it added the tag itself before tapping it -- a green check over a door nobody could see. A tag is a
+   label and not a control here (`qTags_`), so the door is a tile, as every action on a question's pages
+   is (CLAUDE.md). The tag row is free to become a second door the same way: anything carrying
+   `data-do="qa-only"` runs this, and no words are matched.
+
+   FROM SAVED OR SPOTLIGHT the strip it narrows is Find's, and what was chosen on Find has nothing to do
+   with the answer pressed -- so there it is THAT PAPER's answers, and the screen turns to Find.
+
+   AND THE ANSWERS ARE OPEN. Forty-one pages in a row each reading "Answer hidden", one Show per page, is
+   not *"only see answers"*. Choosing the view IS the person asking -- the one tap the owner's rule wants
+   (*"you should have to click to reveal the answer"*) -- so every answer in it is shown for this visit,
+   exactly as forty-one Shows would have shown them, and Hide on any one still hides it. */
+function answersOnly_(el) {
+  const k = el && el.getAttribute ? el.getAttribute('data-k') : '';
+  const scr = el && el.closest ? el.closest('.screen') : null;
+  const elsewhere = !!scr && scr.id !== 's-stuff';
+  if (elsewhere) {
+    const x = ansItem_(k);
+    const pid = x ? paperIdOf_(x.row) : '';
+    STUFF.q = '';
+    STUFF.filters = pid ? [{ field: 'paperId', value: pid }] : [];
+  }
   STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
   STUFF.filters.push({ field: 'pageKind', value: 'Answers' });
+  try { stuffPages_().forEach(pg => { if (pg.part === 'ans') ANS_SHOWN.add(ansKey_(pg.x)); }); } catch (e) {}
   if (typeof AT !== 'undefined' && AT !== 'stuff' && typeof go === 'function') go('stuff');
-  paintStuff();
+  if (typeof paintStuff === 'function') paintStuff();
 }
-if (typeof document !== 'undefined') {
-  document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target.closest('.qans-card .qtag') : null;
-    if (t && /^answers?$/i.test(String(t.textContent || '').trim())) answersOnly_();
-  });
+function answersAll_() {
+  STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
+  if (typeof paintStuff === 'function') paintStuff();
+}
+on('qa-only', el => answersOnly_(el));
+on('qa-all', () => answersAll_());
+/* THE TILE, ONE FACE PER VIEW. `funnel` because it is the funnel's own act -- a narrowing, with a chip. */
+function ansOnlyTile_(k) {
+  return pageOnly_() === 'Answers'
+    ? tile_({ icon: 'funnel', label: 'Questions too', note: 'back in order', act: 'qa-all', cls: 'qa-only' })
+    : tile_({ icon: 'funnel', label: 'Answers only', note: 'skip questions', act: 'qa-only', cls: 'qa-only', data: { k: k } });
+}
+
+/* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS -------------------------
+   IT COUNTED WHAT MATCHED, and the strip stopped being that when a part found alone began bringing its
+   whole question (`wholeQuestions_`): "q23b" said "its one question" over Q23a and Q23b -- right, one
+   question, by luck -- and "q8" said "its 2 questions" over the two parts of ONE. Answers only said
+   "its 41 questions" over forty-one answers. So it counts QUESTIONS, a question being one number on one
+   paper (`qId_`), over the strip as it is built; answers when the view is answers.
+
+   AND A SEARCH IS NOT "THE PAPER, IN ORDER". Inside a paper, "q23" is one question of it: the line names
+   it -- "Swipe up for Q23" -- rather than claiming the whole paper is below. */
+function paperEnd_(items) {
+  const seq = wholeQuestions_(items);
+  const qs = new Set(seq.map(x => qId_(x) || x)).size;
+  const searched = !!String(STUFF.q || '').trim();
+  if (pageOnly_() === 'Answers') {
+    const a = stuffPages_().length;
+    return `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
+        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>`;
+  }
+  const first = seq.find(x => qId_(x));
+  if (searched) {
+    return `<p class="find-end">In this paper:
+        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>`;
+  }
+  return `<p class="find-end">That is the paper, in order.
+        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>`;
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER ---------------------
@@ -12896,10 +12971,7 @@ function stuffQuestion() {
        stylesheet, in the faintest ink on the screen, for the one sentence that tells you where the
        results went. `.find-end` sits under the chips on the same rule the chips sit on, and the
        half that is an instruction — swipe up — is in ink, because that is the half you act on. */
-    if (funnelEnded_()) {
-      return `<p class="find-end">That is the paper, in order.
-        <b>Swipe up for ${items.length === 1 ? 'its one question' : 'its ' + n + ' questions'}.</b></p>` + adding;
-    }
+    if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
       <b>Swipe up for the ${n}.</b></p>` + adding;
   }

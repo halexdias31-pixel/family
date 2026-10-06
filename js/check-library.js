@@ -1624,6 +1624,9 @@ rows.forEach(r => {
 });
 const notDrawn = rows.filter(r => {
   if (!r || r.kind !== 'question') return false;
+  /* A PART THAT USES AN EARLIER PART'S DRAWING ("use your graph") names the child's own picture, not
+     one the paper prints -- the app's `figMissing_` stands down for it, and so does the count. */
+  if (String(r.uses || '').trim()) return false;
   if (padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r })) return false;
   const figured = picAt_['q|' + r.paper_id + '|' + String(r.question || '').trim()]
     || (r.section && picAt_['s|' + r.paper_id + '|' + r.section]) || picAt_['p|' + r.paper_id];
