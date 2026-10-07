@@ -1164,7 +1164,8 @@ if (MARKS.missing.length) {
     + '), so no `accept` cell was checked \u2014 which is not the same as their being fine');
 } else {
   /* eslint-disable no-eval */
-  const markOf = eval('(function () { ' + MARKS.source + '\n; return markAnswer_; })()');
+  const MK = eval('(function () { ' + MARKS.source + '\n; return { markAnswer_: markAnswer_, markNorm_: markNorm_ }; })()');
+  const markOf = MK.markAnswer_;
   rows.forEach(r => {
     const cell = String((r && r.accept) || '').trim();
     if (!cell) return;
@@ -1242,6 +1243,36 @@ if (MARKS.missing.length) {
   });
   note.push(unitsAsked + ' question(s) ask for the units and can mark themselves: '
     + (unitsAsked - unitsBare) + ' list only ways with the unit, ' + unitsBare + ' list a bare number');
+
+  /* ---------- A ROOT OR π WITH A UNIT NAMES THE UNIT ----------------------------------------------
+     THE MARKER TAKES A UNIT OFF A ROOT OR π ONLY WHEN THE CELL NAMES ONE (`markAnswer_` in find.js).
+     A bare `√3` beside `√3 cm` used to let any unit through — `√3 m` was Correct on exact-trig Q17,
+     `15πcm³` on an area, `2√3 kg` on "simplify √12" — so now the unit typed after a surd has to be one
+     the cell writes. That moves a duty onto the data: a surd or π answer to a question that HAS a
+     unit must write it, or the right unit typed is refused. Four 5-a-day circles did not — `37.7 |
+     12π` for a circle measured in metres, so `12π m` was "Not yet" — and nor did a tangent's
+     `20√5 units`. The model answer says which rows have one: its value is printed with the unit
+     (`37.7 m (3 s.f.)`, `48π cm²`), and that is what this reads. */
+  const ROOTY = /[√π]/;                     /* as the marker asks it of a typed answer */
+  /* a length (or `units`) after a number, a π, a root or a bracket — read the same way in the cell and the model answer */
+  const NAMES_UNIT = /(?:\d|π|\))\s*(?:mm|cm|km|m|units?)(?:\^?[23]|[²³])?(?![a-z])/;
+  const headOf = a => String((/<b>([\s\S]*?)<\/b>/.exec(String(a || '')) || [, String(a || '').split(/\u2014|&mdash;/)[0]])[1])
+    .replace(/&pi;/g, 'π').replace(/&radic;/g, '√').replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9]+;/g, ' ');
+  let rootUnit = 0, rootUnitBare = 0;
+  rows.forEach(r => {
+    if (!r || r.kind !== 'question' || !r.accept) return;
+    const ways = String(r.accept).split('|').map(w => MK.markNorm_(w.trim())).filter(Boolean);
+    if (!ways.some(w => ROOTY.test(w))) return;
+    if (!NAMES_UNIT.test(headOf(r.answer))) return;
+    rootUnit++;
+    if (ways.some(w => NAMES_UNIT.test(w))) return;
+    rootUnitBare++;
+    fail.push(r.row_id + ' answers with a root or π, its model answer gives a unit ('
+      + JSON.stringify(headOf(r.answer).replace(/\s+/g, ' ').trim()) + '), and its `accept` ('
+      + JSON.stringify(r.accept) + ') names none — so that unit, typed, is marked wrong');
+  });
+  note.push(rootUnit + ' question(s) answer with a root or π and a unit: ' + (rootUnit - rootUnitBare)
+    + ' name the unit in their cell, ' + rootUnitBare + ' do not');
 
   /* ---------- A ROOT OR π ANSWER GETS THE KEY FOR IT ----------------------------------------------
      `ansMaths_` (keypad.js) gives a calculation the maths keypad only when EVERY way in its cell is

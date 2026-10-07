@@ -245,6 +245,25 @@ const CASES = [
   ['48πcm²', '48π | 48pi | 48 pi | 48π cm²', true, 'a sector’s area, the unit closed up after π'],
   ['48 π', '48π', true, 'and the space a person leaves before π'],
 
+  /* ---------- AND ONLY THE UNIT ITS CELL NAMES -----------------------------------------------------
+     ROUND 2 TOOK A UNIT OFF A ROOT, AND THE BARE ROOT BESIDE IT LET ANY UNIT THROUGH. A bare way is
+     where a plain number's unit is "the sentence", and round 2 handed that to every surd and π row
+     with nobody having measured it there: `√3 m` was Correct on Q17, whose own cell says `√3 cm`;
+     `√3²` (3), `2√3²` (12) and `√3x` passed on every surd; `15πcm³`, a volume, on an area. orig and
+     round 1 refused every one. So a unit after a root or π now has to be one the cell names — on
+     any of its ways, because `37.7 cm | 12π` is one circumference written twice. */
+  ['√3 m', '√3 | sqrt3 | sqrt(3) | √3 cm', false, 'exact-trig Q17 as the library holds it: the bare √3 let a metre through'],
+  ['√3cm²', '√3 | sqrt3 | sqrt(3) | √3 cm', false, 'and an area where the cell says a length'],
+  ['√3x', '√3 | sqrt3 | sqrt(3) | √3 cm', false, 'a letter after a root is algebra, not a unit'],
+  ['√3²', '√3 | sqrt3 | sqrt(3)', false, 'and a power after one is a different number: √3² is 3'],
+  ['2√3²', '2√3 | 2sqrt3 | 2sqrt(3)', false, '"simplify √12": 2√3² is 12'],
+  ['2√3 kg', '2√3 | 2sqrt3 | 2sqrt(3)', false, 'a cell that names no unit takes none after a root'],
+  ['15πcm³', '15π | 15π cm^2 | 15π cm²', false, 'June 2024 Higher Q15: a volume, against an area'],
+  ['15π cm^2 m', '15π | 15π cm^2 | 15π cm²', false, 'and the right unit with another after it'],
+  ['48π cm', '48π | 48pi | 48 pi | 48π cm²', false, 'a sector’s area: a length is not an area'],
+  ['12π cm', '37.7 | 37.7 cm | 37.7cm | 12π | 12pi', true, 'a circumference whose cell names its unit on the decimal'],
+  ['12π m', '37.7 | 37.7 cm | 37.7cm | 12π | 12pi', false, 'and another unit on the same circumference'],
+
   /* ---------- `*` AND A LETTER `x` BETWEEN NUMBERS ARE `×` ----------------------------------------
      Prime factorisation Q1 (88): the cell lists `2^3*11` and `2^3 x 11`, and refused every other
      spacing — `2^3 * 11`, `2 * 2 * 2 * 11`, `2^3 x11`, `2³ x 11` — on all eleven rows. */
@@ -286,6 +305,38 @@ const CASES = [
   ['12km/h', '12 km/h', true, 'June 2024 Foundation Q14(a), the unit closed up'],
   ['1.01g/cm3', '1.01 g/cm^3', true, 'a density, its power spelled the other way'],
   ['12km/minute', '12 km/h', false, 'a different rate is a different unit'],
+  /* A COMPOUND CAME OFF IN ROUND 2 TOO, AND TOOK THE SAME GENEROSITY: `2 kg/m^3` passed on a density
+     listed `2 g/cm^3 | 2`, and `12 km/h m` on `12 km/h` because only the first word of a unit was
+     read. A compound has to be the cell's own when the cell names a unit; where it names none, a
+     compound after a plain number comes off as a plain unit does. */
+  ['2 kg/m^3', '2 g/cm^3 | 2', false, 'June 2024 Foundation Q26: a density in the other unit'],
+  ['12 km/h m', '12 km/h', false, 'a unit with another after it is not the unit'],
+  ['15 km/h', '15', true, 'a compound against a cell that names no unit, as `3.75 litres` against `3.75`'],
+  ['57.08 km/h', '57.1 km/h | 57.07 km/h | 57.07 to 57.1', true, 'and a rate inside the band printed beside its unit'],
+  /* A POWER IS NOT A UNIT, AND ONLY A LENGTH TAKES ONE. `²` alone was a unit word and so was `x²`. */
+  ['3²', '3', false, 'a power after a number is a different number: 3² is 9'],
+  ['3x²', '3', false, 'and a letter with a raised power is algebra'],
+  ['300 cm^3 of water', '300 cm³', true, 'the words after a unit are the sentence, its power on a caret'],
+  /* A PLAIN NUMBER WITH A PLAIN UNIT KEEPS WHAT IT HAD, its first word compared. Holding it to the
+     cell's units as well was measured and refused, because these are right and would have gone. */
+  ['2.5 cm long', '2.5 cm', true, 'a unit and a word after it'],
+  ['15 degrees', '15 | 15°C | 15 °C | 15C', true, 'the cell writes °C and the child writes degrees'],
+  ['7.25 pounds', '£7.25 | 7.25 | 725p', true, 'and the pence on the same cell do not bind the pounds'],
+
+  /* ---------- THE SPACE BETWEEN A NUMBER AND ITS LETTERS --------------------------------------------
+     ROUND 2 TOOK IT AWAY. `markBare_` used to cut both `185p` and `185 p` to `185`, so whichever way
+     round the cell and the child wrote it they met in the middle; once it stopped cutting a letter
+     glued to a number (`7m` is "simplify 9m − 2m"), `185 p` typed against `185p` matched nothing, and
+     43 spellings on 36 rows went from right to wrong. The library sweep below only ever typed the
+     OTHER direction — a spaced cell, closed up — so it stayed green. */
+  ['185 p', '1.85 | 185p', true, 'KS2 2019 Paper 3 Q16: pence with the space a child puts in'],
+  ['12 p', '12p', true, 'the smallest case of it'],
+  ['7 m', '7m', true, '"simplify 9m − 2m", spaced'],
+  ['3 a', '3a | a3', true, 'June 2024 Foundation Q4, spaced'],
+  ['6 cd', '6cd | 6dc', true, 'a product of two letters, spaced'],
+  ['10 xy', '10xy | 10yx', true, 'and another'],
+  ['6 w²', '6w^2 | 6w² | 6w2', true, 'and a letter with a power'],
+  ['75 g, 180 g, 300 g', '180g, 300g, 75g', true, 'and every part of a list, in another order'],
 
   /* ---------- THE NUMBER IN FRONT OF AN EXPRESSION IS NOT THE ANSWER -------------------------------
      `markBare_` TOOK EVERYTHING AFTER THE FIRST NUMBER AS ITS UNIT, so it cut `6w² − 10w` to `6`, and
@@ -394,28 +445,82 @@ NORMS.forEach(([s, want, why]) => {
    THE CASES ABOVE ARE THE FAULTS SOMEBODY THOUGHT OF, and every fault in this file was found the
    other way: by typing the library into itself. `6` against `6w² − 10w` was not one cell but 110, and
    `√3cm` was a right answer lost to a data edit that a sweep over one data set could not see. So the
-   library is marked here on every run, three ways, each a property that holds for EVERY row and
+   library is marked here on every run, seven ways, each a property that holds for EVERY row and
    needs nobody to list the rows:
 
      CLOSED UP   a way that is a number, a space and a unit — `√3 cm`, `12 km/h`, `80 y` — typed with
                  the space taken out is still right. A space is not an answer.
+     SPACED      and the other way round: `185p`, `7m`, `6cd` typed with a space in. Round 2 lost 43 of
+                 these and this sweep, typing only the first direction, stayed green over it.
      KEYPAD      a way typed the way the keypad stores it — every root, power and one-term
                  denominator in its own bracketed slot, `1/(√(2))` for `1/√2` — is still right.
      IN FRONT    the number in front of an EXPRESSION — letters and an operator after it, `4n − 1`,
                  `2y = 3x + 6`, `93.5 m ≤ length < 94.5 m` — is WRONG on its own. A unit is the
                  sentence; an expression is the answer.
+     AFTER √/π   a root or a multiple of π the cell lists bare takes the units the cell names, closed
+                 up or spaced, and nothing else: not a letter (`√3x`), not a power (`√3²`), not a unit
+                 the cell does not name, and not the right one with another after it.
+     A POWER     a number its cell lists, with `²` or `x²` after it, is wrong: a power is not a unit.
+     COMPOUND    a compound unit the cell does not name, typed after a value it gives one, is wrong,
+                 and so is the cell's own with another unit after it.
 
    The patterns that choose the rows are written out here and NOT borrowed from find.js: a check
    that asked the marker which ways have a unit would agree with the marker by construction. */
 const LIB = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8'))
   .filter(r => r && r.kind === 'question' && String(r.accept || '').trim());
+/* a way written with a space between the value and its unit — typed GLUED by the CLOSED UP sweep */
 const GLUED = /^(-?[\d.\/]*(?:√[\d.]*\d|π|\d))\s+([a-z°%][a-z0-9°%²³^\/]*)$/;
 const keyed = w => w.replace(/\/(√?[\d.]+|[a-z])(?![\d.(^a-z])/g, '/($1)')
   .replace(/√(\d+(?:\.\d+)?)/g, '√($1)').replace(/\^(-?\d+)/g, '^($1)');
-const lib = { glued: 0, keyed: 0, front: 0, bad: [] };
+/* a way written closed up — typed SPACED by the sweep of that name */
+const SPACED = /^(-?[\d.\/]*(?:√[\d.]*\d|π|\d))([a-z°%][a-z0-9°%²³^\/]*)$/;
+const ROOT = /^-?[\d.]*(?:√[\d.]*\d|π)$/;
+/* `cm^2`, `cm2` and `cm²` are one unit; written here and not borrowed, for the reason above */
+const fold = u => u.replace(/\^?2(?![\d])/g, '²').replace(/\^?3(?![\d])/g, '³');
+const lib = { glued: 0, spaced: 0, keyed: 0, front: 0, root: 0, power: 0, compound: 0, bad: [] };
+const want = (r, typed, right, why) => {
+  if (markAnswer_(typed, r.accept) !== right)
+    lib.bad.push(r.row_id + ': ' + JSON.stringify(typed) + ', ' + why + ', is marked ' + (right ? 'wrong' : 'right'));
+};
 LIB.forEach(r => {
-  String(r.accept).split('|').map(w => w.trim()).filter(Boolean).forEach(w => {
-    const n = markNorm_(w);
+  const ways = String(r.accept).split('|').map(w => w.trim()).filter(Boolean);
+  const norms = ways.map(markNorm_);
+  /* the units the cell writes after a number, each as one token */
+  const units = [...new Set(norms.map(n => (GLUED.exec(n) || SPACED.exec(n) || [])[2]).filter(Boolean))];
+  /* one value written one or more ways, and nothing else: only there is "x² is wrong" a fact */
+  const one = new Set(norms.map(n => (GLUED.exec(n) || SPACED.exec(n) || [, n])[1])).size === 1;
+  norms.forEach((n, i) => {
+    const w = ways[i];
+    const sp = SPACED.exec(n);
+    if (sp) {
+      lib.spaced++;
+      want(r, sp[1] + ' ' + sp[2], true, JSON.stringify(w) + ' with a space put in');
+    }
+    if (ROOT.test(n)) {
+      lib.root++;
+      want(r, n + 'x', false, 'the root of ' + JSON.stringify(w) + ' with a letter after it');
+      if (one) want(r, n + '²', false, 'the root of ' + JSON.stringify(w) + ' squared');
+      want(r, n + ' kg', false, JSON.stringify(w) + ' with a unit its cell never names');
+      units.forEach(u => {
+        want(r, n + ' ' + u, true, JSON.stringify(w) + ' with the unit its cell names');
+        want(r, n + u, true, JSON.stringify(w) + ' with the unit its cell names, closed up');
+        want(r, n + ' ' + u + ' m', false, JSON.stringify(w) + ' with its unit and another after it');
+      });
+      ['m', 'cm', 'cm²', 'cm³'].filter(o => units.every(u => fold(u) !== o))
+        .forEach(o => want(r, n + ' ' + o, false, JSON.stringify(w) + ' with ' + o + ', which its cell does not name'));
+    }
+    if (one && /^-?\d+(?:\.\d+)?$/.test(n) && Number(n) !== 0 && Number(n) !== 1) {
+      lib.power++;
+      want(r, n + '²', false, JSON.stringify(w) + ' squared');
+      want(r, n + 'x²', false, JSON.stringify(w) + ' with x² after it');
+    }
+    const cp = (GLUED.exec(n) || SPACED.exec(n));
+    if (cp && cp[2].indexOf('/') >= 0) {
+      lib.compound++;
+      const other = fold(cp[2]) === fold('kg/m^3') ? 'km/h' : 'kg/m^3';
+      want(r, cp[1] + ' ' + other, false, 'the value of ' + JSON.stringify(w) + ' in a rate its cell does not name');
+      want(r, cp[1] + ' ' + cp[2] + ' m', false, JSON.stringify(w) + ' with another unit after it');
+    }
     const g = GLUED.exec(n);
     if (g) {
       lib.glued++;
@@ -460,6 +565,27 @@ const ROWS = [
   ['Q-CBM-5AD-F-0630-5', '6w^(2)-10w', true, 'and the expansion off the keypad'],
   ['Q-1CM-area-of-shapes-1', '60 m²', false, 'the units are the question'],
   ['Q-1CM-area-of-shapes-2', '12 cm²', false, 'and the triangle is in metres'],
+  ['Q-1CM-exact-trig-values-17', '√3 m', false, 'a metre where its cell says centimetres'],
+  ['Q-1CM-exact-trig-values-17', '√3x', false, 'a letter after the root'],
+  ['Q-1CM-exact-trig-values-17', '√3²', false, 'a power after it, which is 3'],
+  ['Q-1CM-exact-trig-values-17', '√3cm²', false, 'an area'],
+  ['Q-1CM-calculating-with-surds-1', '2√3²', false, '12, for "simplify √12"'],
+  ['Q-1CM-calculating-with-surds-1', '2√3x', false, 'and the surd times x'],
+  ['Q-1CM-calculating-with-surds-1', '2√3 kg', false, 'and a unit the question never had'],
+  ['Q-1MA1-2406-1H-15', '15πcm³', false, 'a volume for an area'],
+  ['Q-1MA1-2406-1H-15', '15πcm²', true, 'and the area, closed up'],
+  ['Q-1CM-sectors-14', '48π cm', false, 'a length for a sector’s area'],
+  ['Q-1MA1-2406-3F-26', '2 kg/m^3', false, 'a density in the other unit'],
+  ['Q-STA-KS2-2019-P3-16', '185 p', true, 'pence, spaced, against `185p`'],
+  ['Q-CBM-5AD-F-1013-1', '725 p', true, 'and again'],
+  ['Q-CBM-5AD-F-0614-4', '7 m', true, '"simplify 9m − 2m", spaced'],
+  ['Q-1MA1-2406-3F-4', '3 a', true, 'June 2024 Foundation Q4, spaced'],
+  ['Q-1MA1-2406-2F-13a', '6 cd', true, 'a product, spaced'],
+  ['Q-CBM-5AD-F-1222-4', '10 xy', true, 'and another'],
+  ['Q-CBM-5AD-F-0609-3', '6 w²', true, 'and a power'],
+  ['Q-CBM-5AD-F-0620-5', '12π m', true, 'a circle measured in metres, now its cell says so'],
+  ['Q-CBM-5AD-F-0620-5', '12π cm', false, 'and not in centimetres'],
+  ['Q-1CM-equation-of-a-tangent-12', '20√5 units', true, 'the unit its model answer prints'],
 ];
 let rowBad = 0;
 ROWS.forEach(([id, typed, want, why]) => {
@@ -496,7 +622,9 @@ if (bad || normBad || lib.bad.length || rowBad || slow) {
   process.exit(1);
 }
 console.log('OK — all %d marking cases, %d markNorm_ cases and %d named rows: a right answer is marked\n' +
-  '     right, a wrong one wrong. And the library, %d questions: %d units closed up and %d keypad\n' +
-  '     spellings marked right, %d numbers in front of an expression marked wrong, and a long answer\n' +
-  '     marked in %d ms.',
-  CASES.length, NORMS.length, ROWS.length, LIB.length, lib.glued, lib.keyed, lib.front, took);
+  '     right, a wrong one wrong. And the library, %d questions: %d units closed up, %d spaced out and\n' +
+  '     %d keypad spellings marked right; %d numbers in front of an expression, %d roots and multiples\n' +
+  '     of π with what their cell does not name, %d numbers with a power and %d rates in another unit\n' +
+  '     marked wrong; and a long answer marked in %d ms.',
+  CASES.length, NORMS.length, ROWS.length, LIB.length, lib.glued, lib.spaced, lib.keyed, lib.front,
+  lib.root, lib.power, lib.compound, took);
