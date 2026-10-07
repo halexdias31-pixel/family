@@ -6687,6 +6687,7 @@ function doneMark_(k) {
      a minus sign in any of its three spellings -5, &minus;5, en dash
      a trailing zero on a decimal               8.50 for 8.5
      a list in a different order                10, 5, 2, 1 for 1, 2, 5, 10
+     a space between a number and its letters   185 p for 185p, 3 a for 3a
      "and" or "&" between parts of an answer    "4000 and 820000"
 
    WHAT IS NOT FORGIVEN is a different number. Everything above is notation; the value is the
@@ -6740,10 +6741,50 @@ function markNorm_(s) {
 
        AND `sqrt` AND `pi` ARE THE KEYBOARD'S SPELLINGS of the two signs it has no key for — the
        library already lists `12π|12pi` as two answers, and `sqrt(7)/7` beside `√` elsewhere. `pi`
-       only where it is not inside a word, so Jupiter stays Jupiter. */
-    .replace(/sqrt\s*/g, '√').replace(/(^|[^a-z])pi(?![a-z])/g, '$1π')
-    .replace(/\((-?[a-z0-9.π]+)\)(?=\/)/g, '$1')
-    .replace(/([\/^√])\((-?[a-z0-9.π]+)\)/g, '$1$2')
+       only where it is not inside a word, so Jupiter stays Jupiter.
+
+       `root` IS THE THIRD SPELLING, and it was being written into the DATA instead: the exact-trig
+       sheet listed `root3/2` beside `sqrt3/2` as one more way, so `root3/2` marked right and
+       `root 3/2` — the same answer with the space a person puts in — marked wrong, and the extra way
+       (`ro`, two letters in a row) sent four surd questions to the phone keyboard, which has no √
+       key, while the three beside them got the keypad. Folded here once instead. Only BEFORE A
+       DIGIT OR A BRACKET and never inside a word, so a plant's roots and "square root of" are left
+       as words. The `root` ways are out of the exact-trig cells now, and over the 5,220 distinct
+       `accept` ways left two change: `20root5` onto the `20√5` beside it, and `10 root 2 cm`, which
+       was a wrong answer marked right — `root 2 cm` read as a unit after the 10, so a bare `10`
+       passed for 10√2.
+
+       AND THE SPACE BETWEEN A NUMBER AND ITS ROOT OR π SAYS NOTHING. That same `10 root 2 cm` became
+       `10 √2 cm`, the space stayed, and the keypad's `10√(2)` — June 2023 Higher Q16, the answer
+       itself — matched nothing: the fix for the wrong answer left the right one refused. There is no
+       "mixed root" for the space to mean, the way `1 1/6` is a mixed number (see the fraction rule
+       above, which is why this is narrower than "take spaces out"): `3 √6` and `3√6` sit side by
+       side in one cell, `48 pi` beside `48π`. Over the library 7 ways change: six onto the closed-up
+       spelling their own cell lists beside them, and `10 root 2 cm`, which nothing matched before.
+
+       THE ROOT'S OWN SLOT FOLDS FIRST, AND THE FRACTION'S SLOT MAY THEN HOLD A ROOT. The keypad
+       writes 1/√2 as `1/(√(2))` — the fraction key after a number opens `/()`, the root key opens
+       `√()` — and when this was one pass the outer bracket was tried before the inner one had come
+       off, found `√(2)` in it rather than a single term, and stayed. So `1/(√2)` never equalled the
+       `1/√2` the exact-trig cells list, and a child who wrote sin 45° the way the model answer
+       prints it was told "Not yet". `√2` is still ONE term — the root binds tighter than anything
+       round it — so letting the slot hold it is the same rule, not a wider one. Three library ways
+       change (`(√3)/2` and its kind), each onto the `√3/2` its own cell lists beside it.
+
+       AND THE POWER'S SLOT FOLDS FIRST TOO, FOR THE SAME REASON ONE LEVEL UP. June 2020 Higher
+       Q12(a) is 3x²/((x + 2)(x − 4)), and begun with the fraction key the keypad writes
+       `(3x^(2))/(…)`: the numerator held `3x^(2)` while its power was still bracketed, so it was not
+       one term and kept its bracket — a third spelling of an answer the cell lists. A power binds
+       tighter than the division round it, so `3x^2` is one term and the slot may hold it. Nothing in
+       the library changes: no `accept` way is written with a bracket round a power over a line.
+       `check-marking.js` holds what this writes directly (NORMS), because `markParts_` runs it twice
+       and a second pass hides the order of the folds from any case marked through `markAnswer_`. */
+    .replace(/sqrt\s*/g, '√').replace(/(^|[^a-z])root\s*(?=[\d(])/g, '$1√')
+    .replace(/(^|[^a-z])pi(?![a-z])/g, '$1π')
+    .replace(/(\d)\s+(?=[√π])/g, '$1')
+    .replace(/([√^])\((-?[a-z0-9.π]+)\)/g, '$1$2')
+    .replace(/\((-?√?[a-z0-9.π]+(?:\^-?[a-z0-9.π]+)?)\)(?=\/)/g, '$1')
+    .replace(/([\/^√])\((-?√?[a-z0-9.π]+)\)/g, '$1$2')
     /* AND THE SPACES ROUND A COLON, FOR THE SAME REASON ONE LINE UP. A ratio is printed `2 : 3` on
        a mark scheme and typed `2:3` into a box, and those were two different strings -- so an
        `accept` written the way the scheme prints it marked the way a child writes it WRONG, which
@@ -6776,8 +6817,27 @@ function markNorm_(s) {
        AND A SIGN NO PHONE KEYBOARD HAS IS FOLDED TO THE ONE IT DOES. `≤` is on eleven cells and
        there is no way to type it — the inequality on this paper is `x ≤ −4`, and a student who
        has solved it correctly cannot enter the answer at all. `<=` is what a keyboard gives and is
-       not a legitimate spelling of anything else. */
+       not a legitimate spelling of anything else.
+
+       AND `*` AND A LETTER `x` BETWEEN TWO NUMBERS ARE THE KEYBOARD'S `×`. A product of primes was
+       marked right as `2^3*11` and WRONG as `2^3 * 11`, because the space rule above never knew `*`
+       was an operator — and the prime-factorisation sheet's cells, which list `2^3*11` and
+       `2^3 x 11`, refused all of `2 * 2 * 2 * 11`, `2^3 x11` and `2³ x 11` on every one of its
+       eleven rows. Listing each spacing in the data is how the older rows coped (`2^3 * 7 | 2 * 2 *
+       2 * 7`), and that is a list that is never finished. `*` has no other meaning anywhere. The
+       letter does, so it folds only with a NUMBER ON BOTH SIDES — a digit or a superscript power
+       before it, a digit after — which no algebra writes: `2x`, `3x^2` and `x = 3` are untouched.
+       Proved over the library's 5,220 distinct `accept` ways: 212 change, they fall into 105 sets
+       that become one spelling, and every set is ways a single cell already lists side by side.
+
+       AND IT CLOSED A HOLE THE OTHER WAY, which the same sweep found. Left as a letter, the `x` of
+       `2 x 3 x 3 x 5` or `6.3 x 10^7` read as a UNIT after the first number, so `markBare_` cut the
+       answer down to it: a bare `2` was marked RIGHT against `2 × 3 × 3 × 5` and every other
+       product-of-primes cell, and `6.3` against `6.3 × 10^7`. Typing every library way into every
+       cell, 343 verdicts go from right to wrong with this line, and not one of them is a way the
+       cell itself lists. */
     .replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/≠/g, '!=')
+    .replace(/\*/g, '×').replace(/([\d²³¹⁰⁴-⁹])\s*x\s*(?=\d)/g, '$1×')
     .replace(/\s*([-+×÷=<>!])\s*/g, '$1')
     .replace(/\band\b|&/g, ',')
     .replace(/[.\s]+$/, '')
@@ -6808,7 +6868,45 @@ function markNum_(p) {
 /* The solidus is in the leading class because a fraction is a number too: `1/2 km` is a value
    and a unit exactly as `70.5 kg` is, and without it the km stayed attached and a student
    typing `6/12` against it was marked wrong. */
-const markBare_ = s => markNorm_(s).replace(/^([-\d.,\/\s]+)\s*[a-z°%]+.*$/, '$1').trim();
+/* ---------- A UNIT, AND NOT EVERYTHING AFTER THE FIRST NUMBER ---------------------------------------
+   THIS WAS `^([-\d.,\/\s]+)\s*[a-z°%]+.*$` — the first number, then the first letter, then ANYTHING —
+   and it cut `6w² − 10w` to `6`. So a bare 6 was marked RIGHT for "expand 2w(3w − 5)", and typing the
+   library into itself found the same in 110 questions — 241 expressions whose leading number passed:
+   the 4 of every nth term `4n − 1`, the 2 of `2y = 3x + 6`, the 93.5 of an error interval
+   `93.5 m ≤ length < 94.5 m` — and, past the expressions, the 3 of `3a`, the 2 of `2 hours 45
+   minutes`, the 180 of a list of three masses. A wrong answer marked right, on the algebra sheets,
+   where the coefficient is exactly the half-answer a child stops at.
+
+   SO A UNIT IS NAMED, AND THEN THE ANSWER ENDS. After the number: a word of three letters or more
+   (`envelopes`, `mph`, `minutes`), or a symbol from `MARK_SYM`; a power (`cm²`, `m^3`, `cm3`); any
+   number of `/` and another (`km/h`, `g/cm^3`, `N/m²`); a `per hour`; a bracket of working after a
+   space, which is how the past papers write a worked answer (`8.5 cm (PQ = 45 ÷ 10 …)`). Then the
+   end. An operator, a second number or a second word means it was never a unit.
+
+   A SINGLE LETTER IS A UNIT ONLY AFTER A SPACE, AND ONLY ONE OF THESE: g m l p s h k j v n w.
+   Glued to a number, nothing tells a unit from algebra — `7m` is "simplify 9m − 2m" on one
+   5-a-day sheet and `6.27m` a length on the next, `4s/h` is s over h — and a lone `x`, `y` or `a`
+   after a space is algebra too (`80 y`, `6 x` are listed ways). Refusing them costs nothing that was
+   right: every glued metre, gram and second in the library has the bare number or the spaced unit
+   in the same cell, and the cells that list only `250p` are answers in POUNDS, where 250 alone is
+   £250. Two letters glued to a number are a product unless they are on the list: `6cd`, `10xy`.
+
+   THE NUMBER MAY END IN A ROOT OR IN π (`MARK_NUM`), because `√3 cm`, `10√2 cm` and `48π cm²` are a
+   value and a unit as much as `70.5 kg` is — and the typed side (`MARK_UNIT`) shares it. Round 1
+   took `√3cm` out of exact-trig Q17 so the row would get the keypad, and `√3cm` typed went from
+   Correct to "Not yet": a unit came off a bare number only, never off a surd. One rule for both
+   sides is the fix; the spelling stays out of the cell.
+
+   Strings, not literals, so the three patterns that read a number share one, and no `{n,}` — the
+   cutter in check-marks-load.js counts braces to find where a declaration ends. */
+const MARK_NUM = '(?:√[\\d.]*\\d|π|\\d)';
+const MARK_SYM = '(?:[a-z][a-z][a-z]+|[cmkd]m|kg|mg|ml|cl|hr|am|pm|pc|ly|kj|°[cf]?|%)';
+const MARK_POW = '(?:\\^-?\\d+|[²³]|[23](?!\\d))';
+const MARK_BARE = new RegExp('^(-?[\\d.,\\/\\s]*' + MARK_NUM + ')(?:' + MARK_SYM + MARK_POW + '?'
+  + '|\\s+(?:[gmlpshkjvnw]|' + MARK_SYM + ')' + MARK_POW + '?|\\s+[a-z]+(?=\\/))'
+  + '(?:\\/(?:[gmlpshkjvnw]|' + MARK_SYM + ')' + MARK_POW + '?)*'
+  + '(?:\\s+per\\s+(?:[gmlpshkjvnw]|' + MARK_SYM + '))?(?:\\s+\\(.*\\))?$');
+const markBare_ = s => markNorm_(s).replace(MARK_BARE, '$1').trim();
 
 /* A FRACTION IS A NUMBER, AND "OR EQUIVALENT" IS WHAT THE MARK SCHEME ACTUALLY SAYS.
    Q23(b) of the June 2024 Foundation paper is marked `5/9` and its scheme adds, in the same line,
@@ -6899,8 +6997,61 @@ function markRange_(w) {
    NARROW ON PURPOSE: a number followed by unit-like letters and NOTHING ELSE, per comma-separated
    part, so "5 and 24" is never reduced to "5". Brackets come off only when they enclose the whole
    answer. If nothing changes there is no second attempt, so this can only turn a refusal into a
-   tick where the bare number was already right. */
-const MARK_UNIT = /^(-?[\d.\/]+)\s*(?:[a-z\u00b0%\u00b2\u00b3][a-z0-9\u00b0%\u00b2\u00b3]*\.?\s*)+$/;
+   tick where the bare number was already right.
+
+   A CARET IS PART OF A UNIT, because a keyboard has no ³ key. `300cm³` was a unit and `300cm^3`
+   was not, so the pyramid sheet marked `300cm^3` wrong against a cell that lists `300 cm^3`, and
+   the keypad's own power key writes `cm^(3)` — a right answer the pad itself could not get marked
+   right. It is only safe together with `unitOf` in `markAnswer_` reading the POWER as part of the
+   unit (see there): stripping `cm^2` while still calling it `cm` would mark an area right against
+   a volume.
+
+   ONLY AFTER A LENGTH, squared or cubed: `mm`, `cm`, `dm`, `m`, `km`, `units` — every unit the
+   library writes with a caret. The first draft let a caret into ANY unit, and the sweep over the
+   whole library said what that costs: `3x^2` marked right against `3`, `6w^2` against `6`,
+   `2x^4y^2` against `2` — an algebra answer read as a coefficient with a unit after it, which is a
+   wrong answer marked right. A letter and a power is also how algebra is written, and only the
+   unit's own name tells the two apart.
+
+   ANY LETTERS STILL COUNT AS A UNIT HERE, where `markBare_` now names its units. The two sides fail
+   differently: a unit a child typed that this does not take off is a RIGHT answer refused ("5 N",
+   "60 W", "50 Hz" on the physics papers, a unit nobody listed), and a unit the cell lists that
+   `markBare_` wrongly takes off is a WRONG one passed. So the typed side stays generous, and a
+   cell's own unit still has to match (`unitOf`). What that leaves is the one known gap, written down
+   rather than closed: `3a` TYPED against a cell of a bare `3` passes, as `3.75 litres` against
+   `3.75` does, because a bare-number cell lets any unit through and here a letter is a unit. That
+   generosity is for a plain NUMBER and a plain unit, and only there — see `markAnswer_` for why a
+   root, π or a compound unit does not get it.
+
+   BUT A POWER IS NEVER A UNIT, AND ONLY A LENGTH TAKES ONE. The word began `[a-z°%²³]` and went on
+   `[a-z0-9°%²³]*`, so `²` alone was a unit and so was `x²`: `3²` (which is 9) and `3x²` passed
+   against a cell of `3`, and once a root could carry a unit, `√3²` (which is 3) against `√3`.
+   Measured over the library: 378 ways put a power on a length — `cm²`, `m^2`, `mm3`, `units²`,
+   `g/cm^3` — and 157 put one on another letter, every one of them algebra (`x^2`, `w²`, `n^3`). So
+   the power is read the way the caret already was: on `mm`, `cm`, `dm`, `km`, `m` and `units`, and
+   nowhere else.
+
+   A NUMBER MAY END IN A ROOT OR π (`MARK_NUM`, shared with `markBare_`): `√3cm`, `√(3)cm` and
+   `sqrt3cm` were "Not yet" on exact-trig Q17 once round 1 took the `√3cm` way out of its cell.
+
+   A UNIT MAY BE A COMPOUND, `km/h`, `g/cm^3`: the slash was not a unit letter, so `12km/h` stayed
+   whole against `12 km/h` and every speed and density typed closed up was refused — 23 ways the
+   library sweep in check-marking.js found the first time it ran.
+
+   AND A WORD IS READ ONE WAY. The unit was `[a-z][a-z0-9]*` repeated with nothing required between
+   repeats, so `because` was one unit, or `b` + `ecause`, or any of the 64 splits — exponential, and
+   2.8 s to mark "5 because the triangle is much bigger?" on a laptop, longer on a phone, on Check.
+   The lookahead says a unit ends where its letters do; that matches the same strings with one way
+   to read each, and the sentence takes 2 ms. */
+const MARK_WORD = '(?:(?:[mcdk]?m|units?)(?:\\^[23]|[23\u00b2\u00b3])|[a-z\u00b0%][a-z\u00b0%]*)';
+const MARK_UNIT = new RegExp('^(-?[\\d.\\/]*' + MARK_NUM + ')\\s*(?:' + MARK_WORD + '(?:\\/' + MARK_WORD
+  + ')*(?![a-z0-9\u00b0%\u00b2\u00b3^])\\.?\\s*)+$');
+/* The unit a way carries, for `unitOf` in `markAnswer_` — built once, not once a way. ALL OF IT,
+   every word up to the first thing that is not one: it read the first word only, so `12 km/h m`
+   carried `km/h`, matched the cell's `12 km/h` and passed, and so did `15π cm^2 m`. A word that
+   runs on into a power it may not take (`x²`) is no unit at all. */
+const MARK_UNIT_OF = new RegExp('^\\(?-?[\\d.,\\/\\s]*' + MARK_NUM + '\\s*(' + MARK_WORD + '(?:\\/' + MARK_WORD
+  + ')*(?:\\s+' + MARK_WORD + '(?:\\/' + MARK_WORD + ')*)*)(?![a-z0-9\u00b0%\u00b2\u00b3^])');
 function markUnitOff_(t) {
   let s = t.replace(/^\((.*)\)$/, '$1').trim();
   const parts = s.split(/\s*,\s*/);
@@ -6914,21 +7065,88 @@ function markAnswer_(typed, accept, again) {
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
   if (!again) {
-    const off = markUnitOff_(t);
-    /* ONLY AGAINST A WAY THAT HAS NO UNIT, OR THE SAME ONE: "1000 cats" is not "1,000 envelopes". */
-    const unitOf = v => ((/^\(?-?[\d.,\/\s]+\s*([a-z\u00b0%\u00b2\u00b3][a-z0-9\u00b0%\u00b2\u00b3]*)/.exec(markNorm_(v)) || [])[1] || '');
-    const tu = unitOf(t);
-    const ways = String(accept || '').split('|').map(w => w.trim())
-      .filter(w => w && (!unitOf(w) || unitOf(w) === tu)).join(' | ');
+    /* A NAME IN FRONT IS THE SENTENCE TOO. The pyramid sheet prints `h = ....... cm` as its answer
+       line and a child copies it: `h = 12.5 cm` was refused against a cell listing both `h=12.5`
+       and `12.5 cm`, because a unit came off only after a bare number and a name came off nowhere,
+       and `AB = 8.7 cm` the same against `8.7`. Taken off WHAT WAS TYPED, here, and only in front
+       of a number — never in `markNorm_`, where it would fold the `y =` off `y = 2x + 3` on BOTH
+       sides and make the equation of a line the same answer as the expression. So `h = 12.5`
+       marks exactly as `12.5` would: right where the bare number is right, and a wrong letter
+       still wrong against a cell that names its own (`y = 3` against `x = 3`). */
+    const named = t.replace(/^[a-z]+=(?=-?[\d.])/, '');
+    const off = markUnitOff_(named);
+    /* ONLY AGAINST A WAY THAT HAS NO UNIT, OR THE SAME ONE: "1000 cats" is not "1,000 envelopes".
+
+       AND THE POWER IS PART OF THE UNIT. This read `cm^2` and `cm^3` both as `cm`, so once a bare
+       `60` was out of Area of Shapes Q1 — whose question asks for the units, and where `60 m²` and
+       `60 mm²` were being marked Correct — `60 cm`, a LENGTH, still passed against the `60 cm^2` way.
+       The caret is read, and on a LENGTH `^3`, `³` and `3` are one power: `cm^3`, `cm³` and `cm3`
+       are the same unit and `cm^2` is a different one. Only on a length, for the reason MARK_UNIT
+       gives: folding `w²` onto `w2` marked `6w2` right against `6w² − 10w`.
+
+       A COMPOUND IS READ WHOLE, every part's power folded the same way: once `12km/h` could come
+       off, reading only its `km` would have let `12km/minute` through against `12 km/h`. And the
+       number in front may be a surd or a multiple of π, as `MARK_UNIT`'s is, or `√3 m` would carry
+       no unit to compare and pass against `√3 cm`. */
+    const unitOf = v => ((MARK_UNIT_OF.exec(markNorm_(v)) || [])[1] || '')
+      .replace(/(^|[\/\s])([mcdk]?m|units?)\^?([23\u00b2\u00b3])(?=[\/\s]|$)/g,
+        (m, at, u, p) => at + u + (p === '\u00b2' ? '2' : p === '\u00b3' ? '3' : p));
+    const tu = unitOf(named);
+    const all = String(accept || '').split('|').map(w => w.trim()).filter(Boolean);
+    /* ---------- A BARE WAY LETS A UNIT THROUGH AFTER A NUMBER, AND ONLY THERE ----------------------
+       THE GENEROSITY ABOVE WAS MEASURED ON A PLAIN NUMBER AND A PLAIN UNIT: the SATs cells leave the
+       unit out of a question that has one, so `3.75 litres` against `3.75` is a careful child, not a
+       wrong one. Round 2 let a unit come off two more things — a root or π (`√3cm`, exact-trig Q17)
+       and a compound (`12km/h`) — and the generosity came with them, where nobody had measured it.
+       The sweep over the library said what it cost: `√3 m` passed on Q17, whose own cell says
+       `√3 cm`, because the bare `√3` beside it let any unit through; `15πcm³`, a volume, passed on an
+       area that lists `15π cm²`; `48π cm`, a length, on a sector's area; `2 kg/m^3` on a density
+       listed `2 g/cm^3`; and `√3x`, `2√3²` (which is 12) and `3√5 kg` on every surd row. Wrong
+       answers marked right, on 64 surd and π rows, every one of which orig and round 1 refused.
+
+       SO WHAT ROUND 2 ADDED COMES OFF ONLY TO MATCH THE CELL. After a root or π, or as a compound,
+       the unit typed — all of it, so `12 km/h m` is not `km/h` — has to be one the cell names, on
+       any of its ways, and then every way is tried: `37.7 cm | 12π` is one circumference written
+       twice, so `12π cm` is right there, and `57.08 km/h` is inside the band `57.07 to 57.1` that
+       sits beside `57.1 km/h`. A cell that names no unit at all still takes a compound after a plain
+       number, as it takes a plain unit (`15 km/h` against a speed listed `15`); a root or π it does
+       not, which is what every version before round 2 did — `2√3 kg` is not an answer to "simplify
+       √12", and `√3x` and `2πr` are algebra.
+
+       A PLAIN NUMBER WITH A PLAIN UNIT KEEPS EXACTLY WHAT IT HAD, its first word compared, so
+       `2.5 cm long` is still `2.5 cm`. Holding it to the cell's units too was measured and refused:
+       the cell writes `°C` and the child writes `degrees`, the cell writes `£7.25 | 725p` and the
+       pence would bind the pounds — right answers refused, which is the worse failure. */
+    const exact = /[√π]/.test(off);
+    const strict = tu && (exact || tu.indexOf('/') >= 0);
+    const units = all.map(unitOf).filter(Boolean);
+    const first = u => u.split(' ')[0];
+    const ways = (strict ? (units.indexOf(tu) >= 0 ? all : units.length || exact ? [] : all)
+      : all.filter(w => !unitOf(w) || first(unitOf(w)) === first(tu))).join(' | ');
     if (off !== t && ways && markAnswer_(off, ways, true)) return true;
   }
+  /* ---------- AND THE SPACE BETWEEN A NUMBER AND ITS LETTERS SAYS NOTHING ----------------------------
+     `185 p` is `185p` and `7 m` is `7m`, whichever of the two the cell wrote. Typed the other way
+     round from the cell, they used to meet in the middle — `markBare_` cut every answer at its first
+     letter, so both became `185` — and when `markBare_` stopped cutting a single letter glued to a
+     number (that is `7m` in "simplify 9m − 2m"), nothing compared the two any more: 43 spellings on
+     36 rows went from right to wrong, eight of them pence (`725 p` against `£7.25 | 7.25 | 725p`)
+     and the rest algebra (`3 a`, `6 cd`, `10 xy`, `6 w²`). So the space is taken out, on both
+     sides, wherever a digit or π meets a letter — for this comparison only and never in
+     `markNorm_`, because `markBare_` reads the cell's own space to tell the unit in `6.27 m` from the
+     algebra in `7m`. The space that IS an answer, a mixed number's, sits between a digit and a
+     digit (`1 1/6`) and is left alone. Measured over the library's 7,041 ways: 1,006 change, they
+     fall into 314 sets that become one spelling, and every set is ways one cell lists side by side
+     — bar two, each the same value and unit on two different questions (`300 cm³`, `16 kmh`). */
+  const tight = s => s.replace(/([\dπ])\s+(?=[a-z\u00b0%])/g, '$1');
+  const tt = tight(t);
   const ways = String(accept || '').split('|').map(w => w.trim()).filter(Boolean);
   for (let i = 0; i < ways.length; i++) {
     const w = ways[i];
-    if (t === markNorm_(w)) return true;
+    if (tt === tight(markNorm_(w))) return true;
     if (markNum_(t) === markNum_(markNorm_(w))) return true;
     if (t === markBare_(w) || markNum_(t) === markNum_(markBare_(w))) return true;
-    const a = markParts_(t), b = markParts_(w);
+    const a = markParts_(t).map(tight).sort(), b = markParts_(w).map(tight).sort();
     if (a.length && a.length === b.length && a.join('|') === b.join('|')) return true;
     /* the same value written another way -- see `markFrac_` above */
     const p = markFrac_(t), q = markFrac_(markBare_(w));
