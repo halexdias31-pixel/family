@@ -6686,7 +6686,16 @@ function doneMark_(k) {
    answer. */
 function markNorm_(s) {
   return String(s == null ? '' : s)
-    .replace(/<[^>]*>/g, ' ')
+    /* ONLY A REAL TAG IS A TAG. This was `<[^>]*>`, which read the inequality a child types --
+       `4 < 7 > 2` -- as a tag and threw away its middle, so every Corbettmaths inequality-signs
+       question was unmarkable; the accept cells had to be emptied. A tag starts with a letter or
+       a slash; a comparison sign is followed by a space or a number. */
+    .replace(/<\/?[a-z][^>]*>/gi, ' ')
+    /* AND THE ENTITIES A CELL IS WRITTEN IN ARE THE CHARACTERS A CHILD TYPES. `&pound;5` stayed
+       `&pound;5`, lost its ampersand to nothing and was compared as ",pound;5" -- so the one
+       accept spelled the way the rest of the library spells money could never match. */
+    .replace(/&pound;/g, '£').replace(/&euro;/g, '€').replace(/&minus;/g, '−')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
     .replace(/&nbsp;/g, ' ')
     .toLowerCase()
     .replace(/[−–—]/g, '-')          /* minus, en dash, em dash */
