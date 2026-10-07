@@ -3,7 +3,7 @@ TWO FOUNDATION PAPER 1s AUDITED AGAINST THE PAPERS THEMSELVES, AND THE DIAGRAMS 
 
 Edexcel 1MA1/1F June 2024 (RS1786302107764-415) and 1MA1/1F May 2017 (RS1786302107764-481).
 
-ASKED FOR AS *"for theo i just do foundation maths papers with him. but last time the diagrams were
+ASKED FOR AS *"for [a student] i just do foundation maths papers with him. but last time the diagrams were
 bad or somehting ... the papers i do typically something is always wrong like your diagrams or
 something. i just want it to be good."*
 

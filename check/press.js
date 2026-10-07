@@ -1061,6 +1061,81 @@ for (const who of VISITORS) {
       swipes.push({ from: 'stuff · a tall question card, at its bottom', dir: 'touch up',
                     ok: end === tall.page + 1, got: 'page ' + end, want: 'page ' + (tall.page + 1) });
     }
+
+    /* ==================================================================================================
+       A GRID TAPPED AFTER SCROLLING IT OPENS THE NEXT QUESTION AT THE TOP, NOT WHERE THE FINGER WAS
+
+       FOUND BY THE REVIEW, ON THE BIBLE. Psalms's 150 chapters are taller than the question's pane on
+       this phone even at `PANE_ZOOM_MIN`, so you scroll the pane to reach 119 — and the tap rewrote the
+       question inside the same pane and kept its `scrollTop`. Psalm 119's 176 verses opened scrolled down
+       by as much: the search box, the chips with CHAPTER 119 on them and the first rows of verses above
+       the glass, and below it a grid of the same numbers in the same columns with `119` where it was.
+       Nothing visibly happened, the natural thing was to tap again, and that was Psalm 119:119.
+
+       NOTHING ELSE HERE COULD SEE IT. `check-flow.js` presses answers in jsdom, where nothing scrolls;
+       the states in `check/states.js` arrive at each grid by setting the chips, which never scrolls a
+       pane first; `check/ui.js` measures a screen at rest. It is a SEQUENCE — scroll, then tap — on a
+       phone short enough to need the scroll, so it is pressed here, with a real touch, at 320 x 568.
+
+       AN ADMIN'S, because only an admin is shown the Bible — `VISITORS[0]`, the visitor this page was
+       seeded as. And A CHECK THAT CANNOT REACH ITS SUBJECT SAYS SO: a grid that fits without scrolling
+       here has nothing to test, and that is "not measured", never a pass. Proved by mutation: without
+       the reset in `paintStuff`, Psalm 119's grid opened 496px down with the chips out of sight. */
+    {
+      const where = 'stuff · Psalms\'s chapter grid, 119 tapped after scrolling to it (320 x 568)';
+      const grid = await page.evaluate(async () => {
+        if (typeof bibleFor_ !== 'function' || !bibleFor_()) return { why: 'the visitor is not an admin' };
+        for (let i = 0; i < 40 && !BIBLE.index; i++) await new Promise(r => setTimeout(r, 50));
+        if (!BIBLE.index) return { why: 'the Bible\'s index never arrived' };
+        go('stuff', false, true);
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }];
+        paintStuff();
+        goPage('stuff', stuffQuestionPage_(), true);
+        /* `paneReach_` IS BOOKED AFTER THE PAINT, so the pane is measured, zoomed and given its scroll
+           a moment later, as on a phone. */
+        await new Promise(r => setTimeout(r, 700));
+        const pane = $('stuff-controls').closest('.pane');
+        const cell = document.querySelector('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"][data-value="119"]');
+        if (!pane || !cell) return { why: 'no Psalms chapter grid with a 119 in it' };
+        const pr = pane.getBoundingClientRect();
+        pane.scrollTop += cell.getBoundingClientRect().top - pr.top - pr.height / 2;
+        await new Promise(r => setTimeout(r, 120));
+        const cr = cell.getBoundingClientRect();
+        const x = Math.round(cr.left + cr.width / 2), y = Math.round(cr.top + cr.height / 2);
+        const hit = document.elementFromPoint(x, y);
+        const on = hit && hit.closest('[data-do="facet-pick"]');
+        return { top: Math.round(pane.scrollTop), x, y, aimed: !!on && on.dataset.value === '119' };
+      });
+      if (!grid || grid.why || !grid.top || !grid.aimed) {
+        swipes.push({ from: where, dir: 'tap', ok: false,
+                      got: grid && grid.why ? grid.why : !grid ? 'nothing came back'
+                         : !grid.top ? 'the grid fits its pane, so there was no scroll to test'
+                         : 'the finger would not land on 119',
+                      want: 'the grid scrolled to 119 and a finger on it' });
+      } else {
+        await touch(grid.x, grid.y, 0, 0);
+        const after = await page.evaluate(() => {
+          const pane = $('stuff-controls').closest('.pane');
+          const f = STUFF.filters[STUFF.filters.length - 1] || {};
+          const pr = pane.getBoundingClientRect(), chips = $('stuff-chips').getBoundingClientRect();
+          return { chose: f.field + ' ' + f.value, top: Math.round(pane.scrollTop),
+                   chips: chips.bottom > pr.top && chips.bottom <= pr.bottom + 1,
+                   /* `facet-pick`S, because "Doesn't matter" carries the field too (note 292). */
+                   verses: document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length };
+        });
+        swipes.push({ from: where, dir: 'tap',
+                      ok: after.chose === 'bibleChapter 119' && after.verses === 176 && after.top === 0 && after.chips,
+                      got: after.chose + ', ' + after.verses + ' verse cells, the pane ' + after.top + 'px down'
+                           + (after.chips ? '' : ', the chips out of sight'),
+                      want: 'bibleChapter 119, 176 verse cells, the pane at its top with the chips in sight' });
+      }
+      await page.evaluate(() => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0, true); });
+      await page.waitForTimeout(300);
+    }
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(400);
 

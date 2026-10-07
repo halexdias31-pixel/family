@@ -103,7 +103,7 @@ function boot() {
   try {
     w.eval(src + '\n;window.__b = { STUFF, stuffFiltered, bundleOf_, paintStuff, stuffFirstResult_,' +
       ' stuffPageCount, frontPages_, pageCount, go, goPage, initCart, cartCard_, orderText_,' +
-      ' printPrice, laminatePrice, money, docById_, bundlesBySitting_, stuffPages_, facetBy,' +
+      ' printPrice, laminatePrice, money, docById_, bundlesBySitting_, stuffPages_, facetBy, facetValues,' +
       ' CART: () => CART, setCart: v => { CART = v; }, USER: () => USER };');
   } catch (e) {
     return { err: 'the app did not load: ' + e.message };
@@ -116,15 +116,19 @@ function boot() {
    and whose paper is printable — the only paper-level fact that can keep a whole paper out of an
    order, and the one the bundle card names rather than drops. */
 const ON = v => String(v == null ? '' : v).trim().toLowerCase() === 'true';
+const DOCS = {};
+LIBRARY.forEach(r => { if (r.kind === 'document' && r.paper_id && !DOCS[r.paper_id]) DOCS[r.paper_id] = r; });
+/* THE DOCUMENT ROW SAYS NO — the paper-level cell, never the question row's own. 229 past-paper and
+   28 specimen question rows have no `printable` cell while their paper's row says FALSE, and reading
+   the question row is how `Bundles` came to offer Religious Studies (review of PR #130, finding 6). */
+const OFF = id => { const d = DOCS[id];
+  return !!d && String(d.printable == null ? '' : d.printable).trim().toLowerCase() === 'false'; };
 function papersIn(pick) {
-  const docs = {};
-  LIBRARY.forEach(r => { if (r.kind === 'document' && r.paper_id && !docs[r.paper_id]) docs[r.paper_id] = r; });
   const ids = new Set();
   LIBRARY.forEach(r => {
     if (r.kind !== 'question' || !ON(r.active) || !r.paper_id) return;
     if (!pick(r)) return;
-    const d = docs[r.paper_id];
-    if (d && String(d.printable == null ? '' : d.printable).trim().toLowerCase() === 'false') return;
+    if (OFF(r.paper_id)) return;
     ids.add(r.paper_id);
   });
   return ids;
@@ -278,8 +282,9 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
      past `BUNDLE_MAX`, so it would offer nothing even if wholeness were never asked — a case the
      bounds answer is not a case about wholeness. One sitting's algebra is three papers, inside
      every bound, and only the wholeness test keeps it out. */
-  [{ name: 'GCSE · Algebra', filters: DOORS.slice(0, 3).concat([{ field: 'level', value: 'GCSE' },
-                                                                   { field: 'topicArea', value: 'Algebra' }]) },
+  /* `GCSE · Algebra` WAS A `Topic area` CHIP, and that question is retired (find.js). The same
+     shape — every GCSE paper, none of them whole — is reached by typing it. */
+  [{ name: 'GCSE · "algebra"', filters: DOORS.slice(0, 3).concat([{ field: 'level', value: 'GCSE' }]), q: 'algebra' },
    /* BY THE SEARCH BOX, NOT BY QUESTION NUMBER AND NOT BY TOPIC. A past paper answers no topic
       question any more (see `topicShown_`), and this case was `Q1–10` until the owner retired the
       question number (*"no more asking for questions 1-10 or question part 1 or b."*) — a `qNumber`
@@ -379,6 +384,240 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
       const y = s => +((b.docById_(s.ids[0]) || {}).year || 0);
       if (y(sits[i]) > y(sits[i - 1])) { bad.push('`Bundles` are not newest first'); break; }
     }
+  }
+
+  /* ---------- 4c. ONE PAPER IS A SITTING TOO, AND IT GETS ITS CARD ---------------------------------
+     THE REVIEW OF PR #130, FINDING 5. `bundlesBySitting_` asks `bundleBuild_` with `min` 1, and the
+     first gate obeyed it while the second — how many papers are PRINTABLE — still asked for
+     `BUNDLE_MIN`. So every one-paper sitting came back null: Maths · GCSE · 2019 drew June and
+     November and left May out, and pressing `May` under Month drew "No whole sitting left on this
+     list to bundle" over the one whole paper it is. Every journey that answered `Paper` — which the
+     funnel always asks — ended on the same card. 4b only ever looked at sittings of several papers.
+
+     THE MONTHS ARE READ OFF THE FILE, and the bundles' months off their papers' document rows, so a
+     year's view is asked to draw a card for every month the file says that year was sat in. */
+  {
+    const BUNDLES = DOORS.map(f => f.field === 'kindLabel' ? { field: 'kindLabel', value: 'Bundles' } : f);
+    const Y2019 = r => MATHS(r) && r.level === 'GCSE' && String(r.year) === '2019';
+    /* BY ITS TITLE — the dead-end card is a `.card.bundle` too, and has none. */
+    const cardsDrawn = () => w.document.querySelectorAll('#s-stuff .card.bundle .bundle-title').length;
+    const deadEnd = () => /No whole/.test((w.document.querySelector('#s-stuff') || {}).textContent || '');
+
+    narrow(BUNDLES.concat([{ field: 'examYear', value: '2019' }]));
+    const wantMonths = new Set();
+    LIBRARY.forEach(r => {
+      if (r.kind === 'question' && ON(r.active) && Y2019(r) && !OFF(r.paper_id)) wantMonths.add(String(r.month));
+    });
+    const gotMonths = new Set(b.bundlesBySitting_().map(s => String((b.docById_(s.ids[0]) || {}).month)));
+    if (wantMonths.size < 2) {
+      bad.push('Bundles · GCSE · 2019: the file holds ' + wantMonths.size + ' month(s), so this case measures '
+               + 'nothing — NOT a pass');
+    } else if (!sameSet(gotMonths, wantMonths)) {
+      bad.push('Bundles · GCSE · 2019 draws bundles for month(s) [' + list(gotMonths) + '] where the file '
+               + 'sat it in [' + list(wantMonths) + '] — a one-paper sitting has no card');
+    }
+
+    const one = [
+      { name: 'Bundles · GCSE · May 2019',
+        filters: BUNDLES.concat([{ field: 'examYear', value: '2019' }, { field: 'examMonth', value: 'May' }]),
+        want: papersIn(r => Y2019(r) && String(r.month) === '5') },
+      /* THE END OF EVERY JOURNEY: the Paper question answered, which leaves one paper. */
+      { name: 'Bundles · GCSE · Higher · June 2019 · Paper 2',
+        filters: BUNDLES.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2019' },
+                                 { field: 'examMonth', value: 'June' },
+                                 { field: 'paperId', value: 'P-1MA1-1906-2H' }]),
+        want: papersIn(r => r.paper_id === 'P-1MA1-1906-2H') },
+    ];
+    one.forEach(c => {
+      if (c.want.size !== 1) {
+        bad.push(c.name + ': the file holds ' + c.want.size + ' printable paper(s), not one, so this case '
+                 + 'measures nothing — NOT a pass');
+        return;
+      }
+      narrow(c.filters);
+      const sits = b.bundlesBySitting_();
+      if (sits.length !== 1 || !sameSet(new Set(sits[0].ids), c.want)) {
+        bad.push(c.name + ': one whole printable paper (' + list(c.want) + ') gives ' + sits.length
+                 + ' bundle(s)' + (sits.length ? ' [' + sits.map(s => s.ids.join(' + ')).join(' | ') + ']' : ''));
+      }
+      if (cardsDrawn() !== 1 || deadEnd()) {
+        bad.push(c.name + ': the screen draws ' + cardsDrawn() + ' bundle card(s)'
+                 + (deadEnd() ? ' and the "No whole sitting" dead end' : '') + ' for one whole paper');
+      }
+    });
+  }
+
+  /* ---------- 4d. A PAPER THAT CANNOT BE PRINTED IS NOT A BUNDLE'S QUESTION ---------------------------
+     THE REVIEW OF PR #130, FINDING 6. `bundleable_` — which questions answer `What kind · Bundles` —
+     read `printable` off the QUESTION row while `bundleBuild_` read it off the PAPER's, through
+     `canPrint_`. Every AQA Religious Studies paper and both Greek ones say FALSE on the paper and
+     nothing on the question, so Bundles offered `Religious Studies 152` and `Greek 78` under Subject
+     and both led only to the "No whole sitting" card — blaming a topic or a paper nobody had chosen.
+
+     ASKED AT THE ROOT FIRST: every question `Bundles` holds sits on a paper the file says can be
+     printed. Then the symptom the owner would see: no subject whose every paper says FALSE is an
+     answer — and Religious Studies and Greek must be among those, or the case measures nothing. */
+  {
+    narrow([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Bundles' }]);
+    const items = b.stuffFiltered();
+    const off = items.filter(x => x && x.kind === 'question' && OFF(String((x.row || x).paper_id || '')));
+    if (!items.length) bad.push('`What kind · Bundles` holds nothing, so 4d measures nothing — NOT a pass');
+    if (off.length) {
+      bad.push('`Bundles` holds ' + off.length + ' question(s) on papers whose document row says not printable, '
+               + 'from [' + [...new Set(off.map(x => (x.row || x).subject))].join(', ') + ']');
+    }
+    const onPaper = new Set();
+    const canPrint = new Set();
+    LIBRARY.forEach(r => {
+      if (r.kind !== 'question' || !ON(r.active) || !/paper/i.test(String(r.document_type || ''))) return;
+      onPaper.add(r.subject);
+      if (!OFF(r.paper_id)) canPrint.add(r.subject);
+    });
+    const never = [...onPaper].filter(s => !canPrint.has(s));
+    const missing = ['Religious Studies', 'Greek'].filter(s => never.indexOf(s) === -1);
+    if (missing.length) {
+      bad.push('the file now has a printable paper for ' + missing.join(' and ') + ', so 4d no longer '
+               + 'measures the case it was written for — NOT a pass');
+    }
+    const facet = b.facetBy('subject');
+    const offered = facet ? b.facetValues(items, facet).map(v => String(v.value)) : [];
+    if (!offered.length) bad.push('`Bundles` offers no Subject answers at all, so 4d measures nothing — NOT a pass');
+    const dead = never.filter(s => offered.indexOf(s) !== -1);
+    if (dead.length) {
+      bad.push('`Bundles` offers ' + dead.join(', ') + ' under Subject, and not one of its papers can be printed');
+    }
+  }
+
+  /* ---------- 4e. THE LAST LINE UNDER THE FUNNEL SAYS BUNDLES WHEN BUNDLES ARE WHAT IS BELOW ---------
+     THE REVIEW OF PR #130, FINDING 7. `stuffPages_` draws no question pages under `Bundles`, and the
+     funnel's last line still said "That is the paper, in order. Swipe up for its 20 questions." — and,
+     with `Doesn't matter` pressed on Paper, "Nothing left to narrow. Swipe up for the 60." over one
+     bundle card. Read off the DOM, because the line is what somebody reads. */
+  /* ---------- AND ALL THREE OF ITS BRANCHES, NOT ONLY THE ONE THAT HAS ONE BUNDLE -------------------
+     THE ROUND-1 REVIEW OF THIS CASE FOUND IT ASKED ONLY STATES WITH EXACTLY ONE BUNDLE. `bundlesEnd_`
+     has three sentences — none, one, several — and the paper-or-not half in front of them, and three
+     mutations of the other branches stayed green: the zero-bundle line falling back to "Nothing left
+     to narrow. Swipe up for the 1." (finding 7's own fault, on the branch nobody asked), the plural
+     saying "the 3 questions", and "That is the paper." said after `Doesn't matter` on Paper. All
+     three branches are reachable — 368 journeys end on none and 432 on several — so all three are
+     asked, and the paper half is held to whether a paper was actually chosen.
+
+     THE COUNT IS MATCHED AS A WHOLE NUMBER. `includes('1')` would fail any line holding a 1 anywhere,
+     so the list's length is looked for between word boundaries, and only where it differs from the
+     bundle count — a line that says "the 3 bundles" over 3 items is not repeating the list. */
+  {
+    const BUNDLES = DOORS.map(f => f.field === 'kindLabel' ? { field: 'kindLabel', value: 'Bundles' } : f);
+    const JUNE19 = BUNDLES.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2019' },
+                                   { field: 'examMonth', value: 'June' }]);
+    const NOV19 = BUNDLES.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2019' },
+                                  { field: 'examMonth', value: 'November' }, { field: 'paperId', any: true }]);
+    /* THE NONE CASE IS FOUND, NOT NAMED. Each `What you need` answer the screen offers at Higher ·
+       November 2019 · Paper `Doesn't matter` is pressed — the button itself, through the app's own
+       handler — until one leaves no whole paper. Measured: `Compass` does, keeping one question. A
+       library where none does says so as a case that measures nothing, rather than passing. */
+    const needsPick = () => [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"][data-field="needs"]')];
+    narrow(NOV19);
+    const offered = needsPick().map(e => e.dataset.value);
+    let none = null;
+    for (const v of offered) {
+      narrow(NOV19);
+      const btn = needsPick().find(e => e.dataset.value === v);
+      if (!btn) continue;
+      btn.click();
+      if (!b.bundlesBySitting_().length && b.stuffFiltered().length) {
+        none = b.STUFF.filters.map(f => Object.assign({}, f));
+        break;
+      }
+    }
+    if (!none) {
+      bad.push('Bundles, Higher · November 2019: none of the ' + offered.length + ' `What you need` answer(s) ['
+               + offered.join(', ') + '] leaves no whole paper, so the no-bundle line was NOT asked — not a pass');
+    }
+    [{ name: 'a paper chosen', paper: true, filters: JUNE19.concat([{ field: 'paperId', value: 'P-1MA1-1906-2H' }]),
+       want: 1 },
+     { name: '`Doesn\'t matter` on Paper', filters: JUNE19.concat([{ field: 'paperId', any: true }]), want: 1 },
+     /* SEVERAL: a year with every month, every paper and every need left open. */
+     { name: '2019, every month, paper and need', want: 'several',
+       filters: BUNDLES.concat([{ field: 'examYear', value: '2019' }, { field: 'examMonth', any: true },
+                                { field: 'paperId', any: true }, { field: 'needs', any: true }]) },
+     ...(none ? [{ name: 'Higher · November 2019 · ' + (none[none.length - 1].value || '?') + ' under What you need',
+                   want: 0, filters: none }] : []),
+    ].forEach(t => {
+      narrow(t.filters);
+      const end = w.document.querySelector('#stuff-groups .find-end');
+      const text = end ? end.textContent.replace(/\s+/g, ' ').trim() : '';
+      const n = b.bundlesBySitting_().length;
+      const items = b.stuffFiltered().length;
+      if (!end) { bad.push('Bundles, ' + t.name + ': the funnel draws no last line at all'); return; }
+      const shape = t.want === 'several' ? n >= 2 : n === t.want;
+      if (!shape) {
+        bad.push('Bundles, ' + t.name + ': ' + n + ' bundle(s) formed where the case is for '
+                 + (t.want === 'several' ? 'several' : t.want) + ', so it measures nothing — NOT a pass');
+      }
+      const repeats = items !== n && new RegExp('\\b' + items + '\\b').test(text);
+      if (/question/i.test(text) || !/bundle/i.test(text) || repeats) {
+        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over ' + n + ' bundle card(s), '
+                 + items + ' item(s) and ' + b.stuffPages_().length + ' question pages');
+      }
+      /* NONE IS NOT A COUNT. The round-2 review deleted the zero branch and the line fell through to
+         "Nothing left to narrow. Swipe up for the 0 bundles." — which held every rule above: no
+         `question`, a `bundle`, and the list's 1 item never repeated. Over no bundle the line must
+         say there is none, and promise no number of anything to swipe to. */
+      if (n === 0 && (!/\bno bundles?\b/i.test(text) || /\d/.test(text) || /the bundles?\b/i.test(text))) {
+        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over no bundle card — it must '
+                 + 'say there is none, and promise nothing to swipe to');
+      }
+      if (n >= 2 && !new RegExp('\\b' + n + ' bundles\\b').test(text)) {
+        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over ' + n + ' bundle cards — it '
+                 + 'does not say how many');
+      }
+      if (/That is the paper/i.test(text) !== !!t.paper) {
+        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" and a paper was '
+                 + (t.paper ? '' : 'NOT ') + 'chosen');
+      }
+      said.push('Bundles, ' + t.name + ': ' + text);
+    });
+
+    /* ---------- THE DEAD END SAYS WHICH ANSWER TOOK THE PAPERS APART ---------------------------------
+       ROUND-1 REVIEW OF PR #130: the card read "a search or a topic narrows it past whole papers" over
+       a list nobody had searched and that offers no topic — every one of the 368 dead ends passes
+       through `What you need`. It names what was chosen now (`bundleCutBy_`), so it is asked both
+       ways: the `What you need` dead end found above must name that question and nothing else, and
+       a typed search that breaks the papers must name the search and nothing else. The card is read
+       off the DOM, because the sentence is what somebody reads. */
+    /* AND ONLY WHAT WAS CHOSEN. The sentence bolds each question it blames, the way the chip above
+       names it, so the names are read off those and compared as a list: a card that blamed every
+       answer on the row — `Subject`, `Year`, `Month` and all — would still contain the right one,
+       and "contains" is the test that let "a search or a topic" through over a list with neither. */
+    const dead = () => [...w.document.querySelectorAll('#s-stuff .card.bundle')].find(x => /No whole/.test(x.textContent));
+    const needsLabel = (b.facetBy('needs') || {}).label || 'What you need';
+    const deadEnds = [];
+    if (none) deadEnds.push({ name: 'a `' + needsLabel + '` answer', filters: none, q: '', named: [needsLabel] });
+    deadEnds.push({ name: 'a search, "work out"', filters: NOV19, q: 'work out', named: [], search: true });
+    deadEnds.forEach(t => {
+      narrow(t.filters, t.q);
+      if (b.bundlesBySitting_().length || !b.stuffFiltered().length) {
+        bad.push('Bundles dead end, ' + t.name + ': ' + b.bundlesBySitting_().length + ' bundle(s) over '
+                 + b.stuffFiltered().length + ' item(s), so this case measures nothing — NOT a pass');
+        return;
+      }
+      const card = dead();
+      if (!card) { bad.push('Bundles dead end, ' + t.name + ': no "No whole sitting" card is drawn'); return; }
+      const text = card.textContent.replace(/\s+/g, ' ').trim();
+      const named = [...card.querySelectorAll('.bundle-sub b')].map(x => x.textContent.trim());
+      const faults = [];
+      if (named.join(' | ') !== t.named.join(' | ')) {
+        faults.push('it names [' + named.join(', ') + '] where the answer that broke the papers is ['
+                    + t.named.join(', ') + ']');
+      }
+      if (/search/i.test(text) !== !!t.search) {
+        faults.push(t.search ? 'it does not name the search that was typed' : 'it blames a search nobody typed');
+      }
+      if (/topic/i.test(text)) faults.push('it blames a topic, and `Bundles` asks none');
+      if (faults.length) bad.push('Bundles dead end, ' + t.name + ': the card reads "' + text + '" — ' + faults.join('; '));
+      said.push('Bundles dead end, ' + t.name + ': ' + text);
+    });
+    narrow([]);
   }
 
   /* ---------- 5. A BASKET SAVED BEFORE BUNDLES STILL DRAWS, AND AN UNCOUNTED PAPER IS NOT FREE ----

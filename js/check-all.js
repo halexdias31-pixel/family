@@ -164,12 +164,14 @@ const SUITE = [
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN -----------------------------
-     "i want to add the bible to resources as a book. but only admin can see the bible." The split
-     out of `data/archive/bible.json` checked verse by verse against the archive, every `[word]`
-     drawn in italics by the real `bibleVerse_`, every chapter cut into whole verses by the real
-     `bibleCut_`, and the one gate read out of the source. What an admin sees and what a student
-     fetches is the journey in `check-flow`. */
-  { file: 'check-bible.js', what: 'the Bible: a lossless split, italics for [words], whole-verse pages, admin only' },
+     "i want to add the bible to resources as a book. but only admin can see the bible." — and then
+     "tags in finder ... each verse is a widget." The split out of `data/archive/bible.json` checked
+     verse by verse against the archive, the ten groups against the check's own copy, every chapter's
+     verse count against its file, every `[word]` drawn in italics by the real `bibleVerse_`, the
+     31,102 verse cards built by the real `bibleVerseList_`, and the gate, the six questions and their
+     chain read out of the source. What an admin sees and what a student fetches is the journey in
+     `check-flow`. */
+  { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
      gradient, so a missing file reads as the feature half-working rather than as a file nobody
@@ -207,6 +209,10 @@ const SUITE = [
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
+  /* AND THE ONE AFTER EACH SESSION, ON THE SAME ENGINE. *"2 hours after the end of each session"* —
+     every rule it has fails by emailing too: before the lesson ends, about another family's child,
+     about a lesson nobody paid for, or a second time. Same backend, same stubbed mail and clock. */
+  { file: 'check-recap.js', what: 'the email after a session: London due times, Booked seats only, the child’s own day, accepted parents, sent once' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
      images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the
@@ -323,8 +329,13 @@ const SUITE = [
      past fifteen minutes beside the other browser checks. `--part` deals the screens alternately
      into two runs that go side by side, each well inside the clock. The `file` carries the
      argument; see where it is split below. */
-  { file: 'check/ui.js --part=1/2', what: 'every screen, state, width and visitor, measured (half)', slow: true },
-  { file: 'check/ui.js --part=2/2', what: 'every screen, state, width and visitor, measured (half)', slow: true },
+  /* ---------- AND NOW IN THIRDS ---------------------------------------------------------------------
+     7 October: the fifth width (1920, the wide window) and the Bible's states took `--part=2/2` past
+     the fifteen-minute clock with nothing wrong in it — a timeout reported as a failure. Three runs
+     side by side, each a third of the screens, put every one back inside it. */
+  { file: 'check/ui.js --part=1/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
+  { file: 'check/ui.js --part=2/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
+  { file: 'check/ui.js --part=3/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
   /* ---------- AND WHICH CSS RULE ACTUALLY WINS ----------------------------------------------------
      THIS STYLESHEET HAS LOST THE SAME ARGUMENT SEVEN TIMES — `.price.faint`, `--fly-ink`,
      `.bk-row.is-blank`, `.rc-total`, an SVG `text-anchor`, `.gd-sec p`, and the docket's ＋ written

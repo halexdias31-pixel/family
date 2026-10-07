@@ -74,8 +74,9 @@ const BANNED = [
   { re: /\bwindow\s*\.\s*open\s*\(/g,            name: 'window.open', use: 'openSheet()' },
   { re: /(^|[^.\w$])alert\s*\(/g,                name: 'alert()',     use: 'toast()' },
   { re: /(^|[^.\w$])confirm\s*\(/g,              name: 'confirm()',   use: "sure_(el, 'Are you sure?')" },
-  /* `INSTALL_PROMPT.prompt()` IS THE BROWSER'S OWN INSTALL BANNER and not a dialogue this app wrote,
-     which is why the pattern requires the call to be bare rather than on an object. */
+  /* A `.prompt()` ON AN OBJECT IS SOMEBODY ELSE'S API, not `window.prompt` — it was the browser's own
+     install dialog, `INSTALL_PROMPT.prompt()`, until me.js stopped offering one — which is why the
+     pattern requires the call to be bare rather than on an object. */
   { re: /(^|[^.\w$])prompt\s*\(/g,               name: 'prompt()',    use: 'a sheet with a field' },
 ];
 

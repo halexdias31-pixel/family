@@ -2,7 +2,7 @@
 EDEXCEL 1MA1 HIGHER PAPER 2 (CALCULATOR), JUNE 2017 -- EVERY PICTURE THE PAPER PRINTS, AND THE
 FOUR ANSWER CELLS THAT MARKED A RIGHT ANSWER WRONG.
 
-ASKED FOR AS *"for lucca i like to do higher maths papers. im just scared as the papers i do
+ASKED FOR AS *"for [a student] i like to do higher maths papers. im just scared as the papers i do
 typically something is always wrong like your diagrams or something. i just want it to be good."*
 Measured first, against the question paper itself (`2017 Paper 2 Thursday 8 June.pdf` in Drive,
 P48148RA, the row's own `source_url`): 23 questions, 80 marks, every answer present -- and SEVENTEEN

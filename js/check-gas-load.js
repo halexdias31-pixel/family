@@ -146,8 +146,10 @@ function backend(extra) {
   Object.assign(sandbox, extra || {});
   sandbox.globalThis = sandbox;
   /* `digest` WITH THE REST — `digestPreview` in dopost.gs calls into it, and `check-digest.js` runs its
-     Sunday function on this same scope. */
-  const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'records', 'digest', 'doget', 'dopost'];
+     Sunday function on this same scope. `recap` beside it, for the same two reasons: `recapPreview`
+     calls into it, and `check-recap.js` runs its hourly function here — on `digestMail_`, which is
+     why it comes after `digest`. */
+  const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'records', 'digest', 'recap', 'doget', 'dopost'];
   const missing = ORDER.filter(n => !fs.existsSync(path.join(REPO, 'backend', n + '.gs')));
   if (missing.length) {
     console.log('backend/' + missing.join('.gs, backend/') + '.gs could not be read, so NOTHING was checked — not a pass.');

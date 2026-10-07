@@ -42,8 +42,9 @@
      node check/swipe.js --verbose  every gesture, not only the failures
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
-                                    field hold keypad widgets cost flicks reduced — for proving one rule by mutation
-                                    without waiting six minutes for all of them. A run narrowed
+                                    field hold keypad grow widgets cost flicks reduced wide
+                                    widepress — for proving one rule by mutation without waiting
+                                    six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
 ================================================================================================== */
@@ -244,8 +245,9 @@ function RECORDER() {
 }
 
 async function boot(browser, W, H, opts = {}) {
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2,
-    isMobile: true, hasTouch: true, serviceWorkers: 'block', reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
+  /* `desktop` IS A WINDOW WITH A MOUSE AND A KEYBOARD — rule 12, the only one about a wide window. */
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: opts.desktop ? 1 : 2,
+    isMobile: !opts.desktop, hasTouch: !opts.desktop, serviceWorkers: 'block', reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message).slice(0, 160)));
@@ -648,6 +650,52 @@ async function gesture(env, o) {
         const left = await page.evaluate(() => [...document.querySelectorAll('#screen .pane')].filter(g => g.style.willChange || g.style.filter).length);
         if (left) fail('OUT OF FOCUS', `${at} tools after a drag`, `${left} pane(s) kept an inline filter or will-change after the slide ended`);
       }
+
+      /* AND THE NEIGHBOUR IS WORKED OUT AGAINST THE CARD IN FRONT NOW, not the one that was in front
+         when the gesture first looked. FOUND BY THE REVIEW OF 6 OCTOBER: `softDrag_` kept the card it
+         eases toward on `SOFT_DRAG`, which a finger down keeps alive past any placement — so when the
+         last flick's release landed after the next finger had taken its axis, the cache still named
+         the old card in front and the new one as its neighbour, and the card under the finger was
+         eased to 1.8px of blur while the one it had left went sharp. ASKED OF THE MECHANISM, in one
+         task and two frames, because the order a finger needs is a main thread blocked across both
+         flicks: a drag frame, a placement that is not the finger's turning the page under it, and
+         the next drag frame — which must ease the card that is in front NOW, so it is nearly sharp
+         30px into a drag. Three cards in a row that blur rather than dim, so both drags have a
+         neighbour to ease toward. */
+      const cache = await page.evaluate(async () => {
+        const frame = () => new Promise(r => requestAnimationFrame(r));
+        let p0 = -1;
+        for (const p of [1, 4, 5, 2, 6]) {
+          await window.__sw.place('tools', p);
+          const a = document.querySelector('#s-tools > .page.on'), b = a && a.nextElementSibling, c = b && b.nextElementSibling;
+          if (c && c.classList.contains('page') && ![a, b, c].some(softDim_)) { p0 = p; break; }
+        }
+        if (p0 < 0) return null;
+        const host = document.getElementById('s-tools');
+        const blur = pg => { const g = pg.querySelector(':scope > .pane'); const m = /blur\(([\d.]+)px\)/.exec((g && g.style.filter) || ''); return m ? +m[1] : 0; };
+        const was = host.querySelector(':scope > .page.on');
+        const out = { p0 };
+        SWIPE.live = true; SWIPE.axis = 'y';
+        try {
+          placeCells('y', false, -30);
+          goPage('tools', p0 + 1);
+          await frame(); await frame();
+          const now = host.querySelector(':scope > .page.on');
+          out.moved = now !== was && PAGE.tools === p0 + 1;
+          placeCells('y', false, -30);
+          out.front = blur(now);
+          out.left = blur(was);
+        } finally { SWIPE.live = false; SWIPE.axis = null; placeCells('y'); }
+        await window.__sw.still();
+        return out;
+      });
+      reached++;
+      if (!cache) fail('REACH', `${at} tools next drag`, 'no three Tools cards in a row that blur rather than dim');
+      else if (!cache.moved) fail('REACH', `${at} tools/${cache.p0} next drag`, 'the placement under the finger did not turn the page — nothing was asked');
+      else {
+        note(`${at} a drag frame after the page turned under the finger: card in front blur ${cache.front}px, the card it left ${cache.left}px`);
+        if (cache.front > 1) fail('OUT OF FOCUS', `${at} tools/${cache.p0 + 1} next drag`, `30px into a drag the card in front is at blur ${cache.front}px — the drag eased toward the neighbour of the card that was in front before the page turned under it`);
+      }
     }
 
     /* ---------- 8. A FIELD ON A CARD THAT HAS GONE IS LET GO OF -----------------------------------
@@ -801,6 +849,102 @@ async function gesture(env, o) {
       if (pages.length && !asked) fail('REACH', `${at} keypad`, 'no answer box was on the screen to tap — nothing was asked');
       note(`${at} keypad: ${asked} answer box(es) tapped; closest to the pad ${isFinite(worst) ? worst.toFixed(1) + 'px' : '-'}`);
       await page.evaluate(() => { STUFF.filters = []; paintStuff(true); goPage('stuff', 0, true); });
+    }
+
+    /* ---------- 8d. A CARD ABOVE THAT CHANGES HEIGHT DOES NOT MOVE THE ONE IN FRONT ---------------
+       Cards are an ordinary CSS column, so a card ABOVE the one being read that grows pushes it down
+       — a post photograph landing in its own proportions is the first thing that does. `holdColumn_`
+       (shell.js) puts the column back inside the `ResizeObserver`'s delivery, so that no frame is
+       painted with the card moved. FOUND BY THE REVIEW OF 6 OCTOBER, two ways it did not:
+         · UNDER A FINGER it returned on `.dragging`, and since `DRAG_PLAN` nothing else measures until
+           the lift: 150px grown above Tools/2 left the card under the thumb 150px off for the whole
+           held drag, on both axes;
+         · AT REST it switched the vertical transition off with `'0s'`, which `colTransition_` cannot
+           read, so the correction slid back over a third of a second — the jump painted. Found while
+           fixing the first.
+       So a card above the one in front is grown by up to 120px — inside its pane's cap, so nothing is
+       zoomed and only the observer can answer — at rest, with a finger held part-way down, and with
+       one held part-way across. Three frames on, the card in front must be where it was, within a
+       pixel. Under a finger, once more after it moves one pixel, which is the next drag frame
+       reading the plan the correction wrote: a fix that moved the column once and left the plan
+       alone would put the card back off by the growth on the next move. */
+    if (want('grow')) {
+      let set = null;
+      for (const p of [2, 4, 5, 6, 7, 1]) {
+        await page.evaluate(p => window.__sw.place('tools', p), p);
+        set = await page.evaluate(() => {
+          const front = document.querySelector('#s-tools > .page.on');
+          const above = front && front.previousElementSibling;
+          const pane = above && above.classList.contains('page') && above.querySelector(':scope > .pane');
+          if (!pane || !pane.firstElementChild) return null;
+          const cap = parseFloat(getComputedStyle(pane).maxHeight);
+          const grow = Math.round(Math.min(120, (isFinite(cap) ? cap : innerHeight) - pane.offsetHeight - 8));
+          const spot = grow >= 40 && window.__sw.spot(null, [0.5, 0.6, 0.4, 0.7]);
+          return spot ? { grow, spot, p: PAGE.tools } : null;
+        });
+        if (set) break;
+      }
+      if (!set) fail('REACH', `${at} card above grows`, 'no Tools card with bare card to hold and a card above it with room to grow');
+      else {
+        /* GROWN, AND READ THREE FRAMES LATER: the observer answers in the first, so the second and
+           third are frames a person sees. `pushed` is how far the layout moved the card in its
+           column, which must be the growth — or nothing was asked. */
+        const grow = () => page.evaluate(async g => {
+          const frame = () => new Promise(r => requestAnimationFrame(r));
+          const front = document.querySelector('#s-tools > .page.on');
+          const card = front.previousElementSibling.querySelector(':scope > .pane').firstElementChild;
+          const t0 = front.getBoundingClientRect().top, o0 = front.offsetTop;
+          const add = document.createElement('div');
+          add.className = 'sw-grow'; add.style.cssText = `height:${g}px;flex:none`;
+          card.appendChild(add);
+          await frame(); await frame(); await frame();
+          window.__swFront = { el: front, t0 };
+          return { pushed: front.offsetTop - o0, off: front.getBoundingClientRect().top - t0,
+                   dragging: document.getElementById('s-tools').classList.contains('dragging') };
+        }, set.grow);
+        const again = () => page.evaluate(async () => {
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          const f = window.__swFront;
+          return f.el.getBoundingClientRect().top - f.t0;
+        });
+        const undo = () => page.evaluate(async () => {
+          document.querySelectorAll('.sw-grow').forEach(e => e.remove());
+          await window.__sw.still('tools');
+        });
+        const ask = (name, r, after) => {
+          reached++;
+          note(`${at} ${name}: a card above grew ${set.grow}px and pushed the one in front ${r.pushed}px; on the screen it is ${r.off.toFixed(1)}px off three frames later${after === undefined ? '' : ', ' + after.toFixed(1) + 'px after the finger moved a pixel'}`);
+          if (Math.abs(r.pushed) < set.grow / 2) return fail('REACH', `${at} ${name}`, `the growth moved the card in front ${r.pushed}px in its column — nothing was asked`);
+          if (Math.abs(r.off) > 1) fail('HELD ABOVE', `${at} tools/${set.p} ${name}`, `${set.grow}px grown in the card above left the card in front ${r.off.toFixed(1)}px off on the screen three frames later — the column was not put back in the observer's frame`);
+          else if (after !== undefined && Math.abs(after) > 2) fail('HELD ABOVE', `${at} tools/${set.p} ${name}`, `the card in front was put back, then sat ${after.toFixed(1)}px off once the finger moved a pixel — the drag's plan still had the old rest`);
+        };
+
+        ask('at rest', await grow());
+        await undo();
+
+        for (const axis of ['y', 'x']) {
+          const name = axis === 'y' ? 'under a finger held part-way down' : 'under a finger held part-way across';
+          await page.evaluate(p => window.__sw.place('tools', p), set.p);
+          const sp = set.spot, d = [axis === 'x' ? -40 : 0, axis === 'y' ? -40 : 0];
+          const h = await finger(cdp, { x0: sp.x, y0: sp.y, dur: 240, hold: 120, end: false, path: t => [d[0] * t, d[1] * t] });
+          const held = await page.evaluate(async axis => {
+            const wait = ms => new Promise(r => setTimeout(r, ms));
+            for (let k = 0; k < 40 && !(SWIPE.axis === axis && Math.abs(SWIPE.px || 0) >= 20); k++) await wait(50);
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            return SWIPE.axis === axis && Math.abs(SWIPE.px || 0) >= 20;
+          }, axis);
+          if (!held) { await h.lift(); await undo(); fail('REACH', `${at} ${name}`, 'the held drag was not the grid\'s'); continue; }
+          const r = await grow();
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove',
+            touchPoints: [{ x: sp.x + d[0] - (axis === 'x' ? 1 : 0), y: sp.y + d[1] - (axis === 'y' ? 1 : 0), id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
+          const after = await again();
+          await h.lift();
+          if (!r.dragging) fail('REACH', `${at} ${name}`, 'the column was not marked as under a finger when the card grew');
+          /* THE PIXEL THE FINGER MOVED is the finger's, not a fault: down, it moves the card with it. */
+          ask(name, r, after + (axis === 'y' ? 1 : 0));
+          await undo();
+        }
+      }
     }
 
     /* ---------- 9. ARRIVING AT A COLUMN OF WIDGETS STARTS THEM A FEW AT A TIME --------------------
@@ -1088,6 +1232,58 @@ async function gesture(env, o) {
           if (held < 5) fail('REACH', `${at} glide stopped`, `the card had not moved (${held}px) when the touch landed — nothing to stop`);
           else if (Math.abs(after - held) > 2) fail('GLIDE', `${at} glide stopped`, `the card went on ${after - held}px after a finger landed on it — a touch should stop a glide`);
           if (acts.length) fail('GLIDE', `${at} glide stopped`, `the touch that stopped the glide pressed ${acts.join(', ')}`);
+
+          /* AND ANYTHING ELSE THAT SCROLLS THE CARD, OR TAKES IT OUT OF FRONT, STOPS IT TOO. FOUND BY
+             THE REVIEW OF 6 OCTOBER: a finger was the only thing that could. A wheel notch during a
+             mouse's glide was written over on the next frame (412 → 420, 430 … 490), and an arrow key
+             during one left it scrolling a card that had gone, pushing `SLIDE_UNTIL` forward so the
+             first click on the new card was swallowed — 600ms after the turn's own slide had ended.
+             ASKED OF THE MECHANISM: a slow glide started on the card (0.2px/ms, which lasts about
+             1.1s over 90px, so it is still going when the key lands), then the pane set back to its
+             top as a wheel or `scrollIntoView` would — it must stay there — and then a real
+             ArrowRight, after which the glide must have stopped and nothing may still be holding
+             presses off. */
+          const g = await page.evaluate(async () => {
+            const wait = ms => new Promise(r => setTimeout(r, ms));
+            const frames = n => new Promise(r => { const f = k => k ? requestAnimationFrame(() => f(k - 1)) : r(); f(n); });
+            try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
+            const pane = document.querySelector('#s-stuff > .page.on > .pane');
+            const out = {};
+            pane.scrollTop = 0; await frames(2);
+            glide_(pane, 0.2);
+            await frames(4);
+            out.aGliding = GLIDE.el === pane && pane.scrollTop > 0;
+            pane.scrollTop = 0;
+            await wait(250);
+            out.aAfter = pane.scrollTop;
+            glideStop_();
+            pane.scrollTop = 0; await frames(2);
+            glide_(pane, 0.2);
+            await frames(4);
+            out.bGliding = GLIDE.el === pane;
+            window.__swPane = pane;
+            return out;
+          });
+          await page.keyboard.press('ArrowRight');
+          await sleep(500);
+          const k = await page.evaluate(async () => {
+            const pane = window.__swPane, a = pane.scrollTop;
+            await new Promise(r => setTimeout(r, 120));
+            const out = { at: AT, still: GLIDE.el === pane, moved: pane.scrollTop - a, held: SLIDE_UNTIL - performance.now() };
+            glideStop_();
+            return out;
+          });
+          reached++;
+          note(`${at} a glide met by something else: pane set to its top mid-glide read ${g.aAfter}px 250ms later; ArrowRight mid-glide left ${k.at} in front, glide ${k.still ? 'still running' : 'stopped'}, the old card moved ${k.moved}px more, presses held ${Math.max(0, k.held).toFixed(0)}ms`);
+          if (!g.aGliding) fail('REACH', `${at} glide met`, 'the slow glide was not running when the pane was scrolled — nothing was asked');
+          else if (g.aAfter > 2) fail('GLIDE', `${at} glide met by a scroll`, `the pane was set to its top mid-glide and read ${g.aAfter}px 250ms later — the glide wrote its own position over somebody else's scroll`);
+          if (!g.bGliding) fail('REACH', `${at} glide met`, 'the slow glide was not running when the key was pressed — nothing was asked');
+          else if (k.at === 'stuff') fail('REACH', `${at} glide met`, 'ArrowRight did not change the column — nothing was asked');
+          else {
+            if (k.still || k.moved) fail('GLIDE', `${at} glide met by a key`, `ArrowRight took Find out of front and its glide went on (${k.moved}px in 120ms) — a card that has gone is still being scrolled`);
+            if (k.held > 0) fail('GLIDE', `${at} glide met by a key`, `${k.held.toFixed(0)}ms of presses still held off 500ms after the turn — the glide of a card that has gone is swallowing the first press on the new one`);
+          }
+          await page.evaluate(() => window.__sw.place('stuff'));
         }
         await page.evaluate(() => { STUFF.filters = []; STUFF.q = ''; paintStuff(true); });
       }
@@ -1150,6 +1346,181 @@ async function gesture(env, o) {
     if (r.blurred) fail('OUT OF FOCUS', 'reduced motion', `${r.blurred} card(s) are blurred for somebody who asked for less motion`);
     if (r.n && r.dimmed < r.n) fail('OUT OF FOCUS', 'reduced motion', `${r.n - r.dimmed} out-of-focus card(s) are not even dimmed`);
     await env.ctx.close();
+  }
+
+  /* ---------- 12. A WIDE WINDOW: CENTRED AT BOTH ENDS, AND EVERY OTHER CARD OUT OF FOCUS ------------
+     The owner, 6 Oct, after the wide window first went in: *"what happened to widgets not in focus
+     should have the not in focus effect. also the widget in focus is always in centre not like how you
+     just did."* The first version slid the row to the window's edge at either end, so Feed sat a third
+     of the way in, and left every card beside the one in front sharp. Neither had a check, which is
+     how both went in; these are the two halves of that sentence. 1280x800 — three columns on the
+     glass — on the FIRST, a middle and the LAST screen, because the ends are where the slide was. */
+  if (want('wide')) {
+    const env = await boot(browser, 1280, 800, {});
+    const r = await env.page.evaluate(async () => {
+      const out = [];
+      const ids = [TABS[0].id, TABS[Math.floor(TABS.length / 2)].id, TABS[TABS.length - 1].id];
+      for (const id of ids) {
+        await window.__sw.place(id, 0);
+        const ti = TABS.findIndex(t => t.id === id);
+        const front = document.querySelector('#s-' + id + ' > .page.on');
+        const pane = front && front.querySelector(':scope > .pane');
+        const blur = p => { const m = /blur\(([\d.]+)px\)/.exec(getComputedStyle(p.querySelector(':scope > .pane')).filter); return m ? +m[1] : 0; };
+        const onGlass = el => { const b = el.getBoundingClientRect(); return b.right > 0 && b.left < innerWidth && b.bottom > 0 && b.top < innerHeight; };
+        /* EVERY OTHER CARD WHOSE PANE IS ON THE GLASS, in this column and the columns beside it. */
+        const others = [...document.querySelectorAll('#screen .page')].filter(p => p !== front
+          && getComputedStyle(p).visibility !== 'hidden' && +getComputedStyle(p.closest('.screen') || p).opacity > 0
+          && p.querySelector(':scope > .pane') && onGlass(p.querySelector(':scope > .pane')));
+        const r = pane && pane.getBoundingClientRect();
+        out.push({ id, wide: document.documentElement.classList.contains('wide'),
+          dx: r ? r.left + r.width / 2 - innerWidth / 2 : null,
+          frontSoft: !!(front && front.classList.contains('soft')), frontBlur: front ? blur(front) : 0,
+          others: others.length, sharp: others.filter(p => !p.classList.contains('soft-dim') && !(p.classList.contains('soft') && blur(p) > 0))
+            .map(p => (p.closest('.screen') || {}).id + '/' + [...p.parentNode.children].indexOf(p)).slice(0, 6),
+          beside: ti > 0 || ti < TABS.length - 1 });
+      }
+      return out;
+    });
+    reached++;
+    r.forEach(o => {
+      note(`1280x800 wide ${o.id}: ${o.dx == null ? 'no card' : o.dx.toFixed(1) + 'px off centre'}, ${o.others} other card(s) on the glass, ${o.sharp.length} sharp`);
+      if (!o.wide) return fail('REACH', `1280x800 ${o.id}`, 'the window was not treated as wide — nothing here was measured');
+      if (o.dx == null) return fail('CENTRED', `1280x800 ${o.id}`, 'there is no card in front to measure');
+      if (Math.abs(o.dx) > 1) fail('CENTRED', `1280x800 ${o.id}`, `the card in front is ${o.dx.toFixed(1)}px off the middle of the window — it is centred on every screen, the first and last included`);
+      if (o.frontSoft || o.frontBlur > 0) fail('OUT OF FOCUS', `1280x800 ${o.id}`, 'the card in front is blurred');
+      if (!o.others) fail('REACH', `1280x800 ${o.id}`, 'no other card is on the glass, so nothing out of focus was measured');
+      if (o.sharp.length) fail('OUT OF FOCUS', `1280x800 ${o.id}`, `${o.sharp.length} card(s) beside or under the one in front are sharp: ${o.sharp.join(', ')}`);
+    });
+    if (env.errs.length) fail('PAGE ERROR', '1280x800 wide', env.errs.slice(0, 3).join(' | '));
+    await env.ctx.close();
+  }
+
+  /* ---------- 13. A WIDE WINDOW: A PRESS BESIDE THE CARD IN FRONT BRINGS THAT CARD FORWARD, AND ONLY THAT
+     From 700px the columns beside the one in front are whole cards (THE GRID SHOWS MORE OF ITSELF,
+     shell.js), and a press over one is "bring that one forward" — `wideHit_`, by where the press
+     landed. Two ways that went wrong, both found on 6 October and both asked here:
+
+     A. A CLICK WITH NO POSITION. Enter on a focused control, or `el.click()`, arrives at 0,0 — and
+        0,0 was read as a place. At 768 with You a page down, You's page above covers that corner, so
+        Enter on a control in Settings' next card down sent the app to You. In check/ui.js it was
+        eight Settings states "NOT measured" in a full run and green in every narrower one, because
+        only You's own states, run just before, leave You a page down. So that is set up here on
+        purpose, and the corner is asked to be covered first — if it is not, nothing was tested.
+     B. A PRESS THAT WENT THROUGH. Every column's current card took presses (`d === 0`), so at 1280
+        a mouse on a button of the card beside Find ran that button AND brought its column forward. */
+  if (want('widepress')) {
+    const env = await boot(browser, 768, 1024, { desktop: true });
+    const { page } = env;
+    await page.evaluate(() => go('account', true)); await sleep(800);
+    await page.evaluate(() => goPage('account', 1)); await sleep(800);
+    await page.evaluate(() => go('settings', true)); await sleep(1200);
+    const a = await page.evaluate(() => {
+      const corner = wideHit_(0, 0);
+      const next = document.querySelectorAll('#s-settings > .page')[domIndex_('settings', (PAGE.settings || 0) + 1)];
+      const ctl = next && [...next.querySelectorAll('button[data-do]')].find(b => !b.disabled && b.getClientRects().length);
+      if (!WIDE || !corner || corner.id === AT || !ctl) return { reach: `wide ${WIDE}, the corner holds ${corner ? corner.id : 'nothing'}, a button on the next card: ${!!ctl}` };
+      ctl.setAttribute('data-sw-kb', '1'); ctl.focus();
+      return { at: AT, corner: corner.id, what: ctl.dataset.do, focused: document.activeElement === ctl };
+    });
+    reached++;
+    if (a.reach || !a.focused) fail('REACH', 'wide 768 keyboard', a.reach || 'the button on the next card would not take the focus');
+    else {
+      await page.keyboard.press('Enter'); await sleep(900);
+      const kb = await page.evaluate(() => AT);
+      /* AND FROM CODE, the same click the lab's states send. Settings put back on the page it was
+         on — the Enter's own handler may have turned to the button's page, and a click on the card
+         in front is that card's press whatever this rule is about — and the corner asked again. */
+      /* You a page down again too, so this half stands on its own when the first one failed: the
+         jump to You is what turned You back to its first page. */
+      await page.evaluate(() => { if (typeof meDropShut_ === 'function') meDropShut_(); goPage('account', 1); go('settings', true); goPage('settings', 0, true); });
+      await sleep(900);
+      const how = await page.evaluate(() => {
+        const b = document.querySelector('[data-sw-kb]');
+        if (AT !== 'settings' || !b || b.closest('.page.on') || !wideHit_(0, 0)) return false;
+        b.click(); return true;
+      });
+      await sleep(900);
+      const js = await page.evaluate(() => AT);
+      note(`wide 768: Enter on ${a.what} on Settings' next card left ${kb} in front; el.click() ${how ? 'left ' + js : 'was not reached'} (the corner holds ${a.corner})`);
+      if (kb !== 'settings') fail('WIDE PRESS', 'wide 768 keyboard', `Enter on "${a.what}" on Settings' next card sent the app to ${kb} — a click with no position, read as a press at the corner, where ${a.corner} is drawn`);
+      if (!how) fail('REACH', 'wide 768 el.click()', 'Settings was not in front with the button off its card and the corner covered, so a click from code was not asked');
+      else if (js !== 'settings') fail('WIDE PRESS', 'wide 768 el.click()', `a click from code on "${a.what}" sent the app to ${js} — the same corner`);
+    }
+    await env.ctx.close();
+
+    const env2 = await boot(browser, 1280, 800, { desktop: true });
+    const p2 = env2.page;
+    await p2.evaluate(() => go('stuff', true)); await sleep(1200);
+    const b = await p2.evaluate(() => {
+      window.__swRan = [];
+      for (const k of Object.keys(ACTIONS)) {
+        const f = ACTIONS[k];
+        ACTIONS[k] = function () { window.__swRan.push(k); return f.apply(this, arguments); };
+      }
+      const i = TABS.findIndex(t => t.id === AT);
+      for (const t of [TABS[i + 1], TABS[i - 1]]) {
+        const host = t && document.getElementById('s-' + t.id);
+        const pg = host && host.querySelectorAll(':scope > .page')[domIndex_(t.id, PAGE[t.id] || 0)];
+        if (!pg) continue;
+        const el = [...pg.querySelectorAll('button[data-do], .tile[data-do]')].find(x => {
+          const r = x.getBoundingClientRect();
+          return r.width > 0 && r.left > 0 && r.right < innerWidth && r.top > 0 && r.bottom < innerHeight;
+        });
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        return { col: t.id, what: el.dataset.do, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+      return null;
+    });
+    reached++;
+    if (!b) fail('REACH', 'wide 1280 mouse', 'no button on either card beside Find inside the window to press');
+    else {
+      await p2.mouse.click(b.x, b.y); await sleep(1000);
+      const r = await p2.evaluate(() => ({ at: AT, ran: window.__swRan.slice() }));
+      note(`wide 1280: a mouse press on ${b.what} on the ${b.col} card beside Find ran [${r.ran.join(', ')}] and left ${r.at} in front`);
+      if (r.ran.length) fail('WIDE PRESS', 'wide 1280 mouse', `a press on "${b.what}" on the ${b.col} card beside Find ran ${r.ran.join(', ')} — a card not in front took the press`);
+      if (r.at !== b.col) fail('WIDE PRESS', 'wide 1280 mouse', `a press on the ${b.col} card beside Find left ${r.at} in front — it should have come forward`);
+    }
+
+    /* C. THE HAND GOES WHEN THE WIDE WINDOW DOES. A mouse resting on a card beside the one in front
+       makes the pointer a hand (`#screen`'s cursor) and half-focuses that card (`.wide-over`). FOUND
+       BY THE REVIEW OF 6 OCTOBER: the one listener that writes either returns at once on a narrow
+       window, so a window snapped or zoomed below 700px with the mouse still — Win+Left, Ctrl+Plus —
+       kept the hand over every word of the phone layout for the rest of the session. So: the mouse
+       on a side card, the hand asked for first (or nothing was tested), then the window made 640
+       wide without the mouse moving. */
+    const spot = await p2.evaluate(() => {
+      const i = TABS.findIndex(t => t.id === AT);
+      for (const t of [TABS[i + 1], TABS[i - 1]]) {
+        const host = t && document.getElementById('s-' + t.id);
+        const pg = host && host.querySelectorAll(':scope > .page')[domIndex_(t.id, PAGE[t.id] || 0)];
+        if (!pg) continue;
+        const r = pg.getBoundingClientRect();
+        const x = Math.round(Math.max(r.left, 0) / 2 + Math.min(r.right, innerWidth) / 2);
+        const y = Math.round(Math.max(r.top, 0) / 2 + Math.min(r.bottom, innerHeight) / 2);
+        const el = document.elementFromPoint(x, y);
+        if (x > 4 && x < innerWidth - 4 && wideHit_(x, y) && !(el && el.closest && el.closest('#screen .page.on'))) return { x, y, col: t.id };
+      }
+      return null;
+    });
+    reached++;
+    if (!spot) fail('REACH', 'wide 1280 hover', 'no point over a card beside the one in front to rest the mouse on');
+    else {
+      await p2.mouse.move(spot.x - 6, spot.y); await p2.mouse.move(spot.x, spot.y); await sleep(300);
+      const on = await p2.evaluate(() => ({ cursor: document.getElementById('screen').style.cursor, over: document.querySelectorAll('.wide-over').length }));
+      await p2.setViewportSize({ width: 640, height: 800 }); await sleep(800);
+      const off = await p2.evaluate(() => ({ wide: WIDE, cursor: document.getElementById('screen').style.cursor,
+        over: document.querySelectorAll('.wide-over').length }));
+      note(`wide 1280 → 640, the mouse resting on the ${spot.col} card: cursor "${on.cursor}" (${on.over} half-focused) → "${off.cursor}" (${off.over}), wide ${off.wide}`);
+      if (on.cursor !== 'pointer' || !on.over) fail('REACH', 'wide 1280 hover', `the mouse on the ${spot.col} card beside the one in front did not bring the hand (cursor "${on.cursor}") — nothing was asked`);
+      else if (off.wide) fail('REACH', 'wide 640 hover', 'the window made 640 wide was still treated as wide — nothing was asked');
+      else {
+        if (off.cursor) fail('WIDE HOVER', 'wide 1280 → 640', `the window left wide mode with the mouse on a side card and #screen kept cursor "${off.cursor}" — a hand over the whole phone layout`);
+        if (off.over) fail('WIDE HOVER', 'wide 1280 → 640', `${off.over} card(s) kept .wide-over after the window left wide mode`);
+      }
+    }
+    if (env.errs.length || env2.errs.length) fail('PAGE ERROR', 'wide', env.errs.concat(env2.errs).slice(0, 3).join(' | '));
+    await env2.ctx.close();
   }
 
   await browser.close();

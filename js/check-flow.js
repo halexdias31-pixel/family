@@ -61,7 +61,7 @@ const ORDER = loadOrder_();
    Small but real: two tutors, two venues, an interval, and one job of each kind. Anything the app
    reads has to be here under the name `doGet` actually uses, which is the whole risk of a fake —
    so the names are worth checking against `60_doGet.gs` whenever this file is edited. */
-const seat = (status, client) => ({ n: 1, client: client || 'Rasa Poliksa', status, chat: '' });
+const seat = (status, client) => ({ n: 1, client: client || 'Pat Parent', status, chat: '' });
 
 function payload() {
   const jobs = [
@@ -90,7 +90,7 @@ function payload() {
       subject: 'Maths, English Language', level: 'GCSE', title: 'GCSE Maths, English Language',
       price: 19, tutorPay: 0, location: 'Colliers Wood Library', venue: 'Colliers Wood Library',
       tutor: '', day: '', time: '', weeks: 0, dates: '', maxKids: 4, currentKids: 2,
-      slots: [seat('Waiting', 'Danile Cristina'), seat('Waiting', 'Phoebe Wickes')],
+      slots: [seat('Waiting', 'Dee Parent'), seat('Waiting', 'Fay Parent')],
       tutorSlots: [], events: [], canAsk: true, seatsGoing: 2, openToOthers: true,
       /* `whenCould` IS WHAT `doGet` SENDS ON EVERY WAITING LIST — `waitlistWhen`'s tally of the two
          families' own answers, most popular first — and this list never carried one, so the only
@@ -227,6 +227,9 @@ function boot(opts) {
       /* A FUNCTION MAY ANSWER PER ACTION, so a journey can play an older server that knows some
          actions and not others. */
       const rep = typeof opts.reply === 'function' ? opts.reply(body) : opts.reply;
+      /* A PROMISE IS A REPLY THAT ARRIVES WHEN THE JOURNEY SAYS — two requests answered in the other
+         order, which is how a stale `myProfile` came to paint over a confirmation (review round three). */
+      if (rep && typeof rep.then === 'function') return rep.then(v => body_(v || { success: true }));
       return Promise.resolve(body_(rep || { success: true, joined: 3, seats: 4 }));
     }
     return Promise.resolve(body_(data));
@@ -460,6 +463,10 @@ function boot(opts) {
          whether the index landed, which book failed. The Bible journey asks it rather than the DOM
          where the DOM cannot say, such as whether a failure changed the open book. */
       'BIBLE: () => (typeof BIBLE !== "undefined" ? BIBLE : null),' +
+      /* AND THE FUNNEL'S OWN MEMO OF WHAT IT TALLIED and the chain that orders the Bible's questions —
+         both `const`s, so only this evaluation can hand them over. The Bible journey asks the first
+         whether a question that could not apply was tallied anyway. */
+      'FACET_TALLY: () => FACET_TALLY, FACET_NEEDS_FIRST: typeof FACET_NEEDS_FIRST !== "undefined" ? FACET_NEEDS_FIRST : null,' +
       /* A FACET BY ITS FIELD -- a `const` arrow, so only this evaluation can hand it over. The tag-row
          journey asks the `needs` facet's `showOf` whether the funnel says the calculator the way the
          card's tag does. */
@@ -828,7 +835,7 @@ check('the cheat sheet lists a topic at a time, eight rows at most, and keeps ti
 /* ---------- A STUDENT OPENS ON THEIR OWN LEVEL --------------------------------------------------------
    THE AUDIT'S DEFAULT, TAKEN: *"Open on the student's own level when known."* Nothing on a person says
    their level, so it is read off the sessions they are the client of — this payload's first is GCSE
-   Maths for Rasa Poliksa. A stranger knows nothing and opens on Every level, as before. */
+   Maths for Pat Parent. A stranger knows nothing and opens on Every level, as before. */
 check('the cheat sheet opens on the signed-in student\'s own level, and on every level for a stranger', async () => {
   const { w } = boot();
   await wait(300);
@@ -846,10 +853,10 @@ check('the cheat sheet opens on the signed-in student\'s own level, and on every
   t.USER(null);
   let now = await open();
   if (now.level !== 'all') bad.push('a stranger opens on ' + now.level + ' — nobody is known, so it should be Every level');
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   now = await open();
   if (now.level !== 'GCSE' || now.subject !== 'Maths') {
-    bad.push('Rasa is booked into GCSE Maths and the cheat sheet opened on ' + now.subject + ' · ' + now.level);
+    bad.push('Pat is booked into GCSE Maths and the cheat sheet opened on ' + now.subject + ' · ' + now.level);
   }
   t.USER(null);
   t.matFresh();
@@ -887,7 +894,7 @@ check('a cheat sheet goes into the basket, laminates, and the order names its pi
   const toastEl = doc.getElementById('toast');
   if (!/sign in/i.test(String(toastEl ? toastEl.textContent : ''))) bad.push('signed out, the toast does not say to sign in');
 
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   t.ACTIONS['mat-cart'](trolley);
   t.ACTIONS['mat-cart'](trolley);
   const cart = t.CART();
@@ -1033,7 +1040,7 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   if (segs(svgOf(), 'mat-ln-base').length <= rows) bad.push('Small writing did not fit more rulings than Large');
 
   /* ---- BASKET AND PRINT ---- */
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const trolley = doc.querySelector('#mat-box [data-do="mat-cart"]');
   if (!trolley) bad.push('there is no basket tile for the handwriting sheet');
   else {
@@ -1122,7 +1129,7 @@ check('a pence-priced shop item goes in the basket as money, on one line', async
   const t = w.__t;
   if (!t.CART || !t.setCart || !t.basket || !t.cartMoney) return ['the basket is not exported'];
   const bad = [];
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   t.setCart([]);
   const add = key => {
     const el = w.document.createElement('button');
@@ -2686,7 +2693,7 @@ check("the flyer maker is an admin's and nobody else's", async () => {
   t.star('w:flyers');
   const visitors = [
     ['somebody signed out', null],
-    ['a parent', { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] }],
+    ['a parent', { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] }],
     ['a student', { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] }],
     ['a tutor', { name: 'Ada Tutor', personId: 'P-@ada', role: 'tutor', roles: ['tutor'] }],
   ];
@@ -2738,7 +2745,7 @@ check('venues are off Find, and a starred venue is still on Saved', async () => 
   if (doors.some(d => /^(Places|Booking)$/i.test(d))) {
     bad.push('Find\'s first question still offers ' + doors.join(' | '));
   }
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   t.star(all[0].key);
   const saved = t.savedPages().join('');
   if (saved.indexOf(all[0].name) === -1) {
@@ -2760,7 +2767,7 @@ check('the loading splash comes off', async () => {
 check('every tab draws something', async () => {
   const { w, errs } = boot();
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const bad = [];
   /* THE SCREENS THAT EXIST, read off `TABS` rather than written out. This has now been wrong twice
      — once naming `find` after the funnel absorbed it, once naming `book` after the booking form
@@ -2815,7 +2822,7 @@ check('every question the form asks has a row on the paper', async () => {
   const { w } = boot();
   await wait(300);
   if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   B.how = 'Instant class';
   B.loc = 'Colliers Wood Library';
@@ -2863,7 +2870,7 @@ check('the paper keeps the same rows whatever is answered', async () => {
   const { w } = boot();
   await wait(300);
   if (!w.__t.paper) return ['bookBreakdown is not exported — cannot check the paper'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
 
   /* THE QUESTIONS ONLY, which is what has to hold still. A derived line — "Extra subjects", the
@@ -2969,7 +2976,7 @@ check('a price lands on the question that caused it', async () => {
   const { w } = boot();
   await wait(300);
   if (!w.__t.paper) return ['bookBreakdown is not exported — cannot check the paper'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   Object.assign(w.__t.BOOKING, { how: 'Instant class', loc: 'Colliers Wood Library',
     level: '11+', n: '2', subjects: ['Maths', 'English'] });
 
@@ -3100,7 +3107,7 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   const { w } = boot();
   await wait(300);
   if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   /* THE TWO KINDS READ OFF THE STEP, not typed here — the sister journey below records what two
      invented strings cost when the labels changed underneath them. */
@@ -3203,7 +3210,7 @@ check('picking several answers is one open, hanging off the field, over nothing'
   if (!w.__t.bookerCard) return ['bookerCard is not exported — cannot see what the page holds'];
   const panel = w.document.getElementById('drop');
   if (!panel) return ['#drop is not in index.html — the list has nowhere to hang'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   /* `repaint()` BEFORE `go`, because `paintNeighbours` skips a screen that already has markup and
@@ -3323,7 +3330,7 @@ check('a single-choice select opens the booking panel, and choosing closes it wi
   const panel = d.getElementById('drop');
   if (!panel) return ['#drop is not in index.html — a select has nowhere to hang its list'];
   if (typeof w.selOpen_ !== 'function') return ['selOpen_ is not declared, so NOTHING was checked — not a pass'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
   const bad = [];
@@ -3446,7 +3453,7 @@ check('a class books through joinWaitlist, a session through createJob', async (
   for (const [how, action] of pairs) {
     const { w, sent } = boot();
     await wait(300);
-    w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+    w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
     const B = w.__t.BOOKING;
     Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
     B.how = how; B.level = 'GCSE'; B.loc = 'Colliers Wood Library';
@@ -3737,6 +3744,364 @@ check('a grown-up opening a no-email child\'s link is told the child\'s handle',
   return bad;
 });
 
+/* AND WHEN THE PARENT ACCOUNT ON THAT ADDRESS IS STILL PENDING, the child is confirmed and NOT put on it
+   (`verifyEmail`, the PR #130 review: it may be somebody else's account on the grown-up's address). The
+   grown-up is told what is left to do, not left believing the child is on their account — and told in a
+   SHEET they close. Round one said it in a toast, which goes after 2.6 seconds, and the child's link is
+   single-use, so the second half of the sentence was never read (the review of round one). */
+check('a grown-up whose account is unconfirmed is told how to add the child, in a sheet that stays', async () => {
+  const { w } = boot({ url: 'https://example.org/?verify=Vkid43',
+    reply: b => b.action === 'verifyEmail'
+      ? { success: true, name: 'Ben Mum', handle: 'ben_kind43', noEmail: true, linkedTo: '', parentPending: true } : { success: true } });
+  await wait(400);
+  const d = w.document, bad = [];
+  const sheet = () => d.getElementById('sheet-body');
+  const said = () => String((sheet() || {}).textContent || '').replace(/\s+/g, ' ');
+  const open = () => { const s = d.getElementById('sheet'); return !!(s && sheet() && said().trim() && !s.hidden && !/\bhidden\b/.test(s.className)); };
+  if (!open()) return ['the grown-up was told nothing that stays — no sheet after the link: ' + JSON.stringify(String((d.getElementById('toast') || {}).textContent || ''))];
+  if (!/@ben_kind43/.test(said())) bad.push('the sheet does not say the handle the child signs in with: ' + JSON.stringify(said()));
+  if (!/not on your account/i.test(said())) bad.push('the sheet does not say the child is NOT on their account yet: ' + JSON.stringify(said()));
+  if (/is on your account/i.test(said().replace(/not on your account/ig, ''))) bad.push('the sheet says the child is on their account, which the backend refused to do');
+  if (!/Confirm your @family\. account|Send the link again/.test(said()) || !/Add your child/.test(said()))
+    bad.push('the sheet does not give the next step — open your own link, then "Add your child": ' + JSON.stringify(said()));
+  if (!/Forgotten your PIN\?/.test(said())) bad.push('the sheet does not tell a grown-up who never made an account how to take theirs back');
+  /* STILL THERE AFTER A TOAST WOULD HAVE GONE — the whole point of the sheet. */
+  await wait(3000);
+  if (!open()) bad.push('the sheet went by itself, like the toast it replaced');
+  const done = d.querySelector('#sheet-body [data-do="sheet-done"]');
+  if (!done) bad.push('the sheet has no Done to close it');
+  else {
+    w.__t.ACTIONS['sheet-done'](done);
+    await wait(400);
+    if (open()) bad.push('Done did not close the sheet');
+  }
+  return bad;
+});
+
+/* ==================================================================================================
+   AN ADDRESS NOBODY HAS PROVED, ON THE PHONE. The backend holds two things back from a PENDING address
+   — every mail but its link and a forgotten PIN, and every door that puts a child on the account —
+   and `check-signin.js` §9 holds that. This asks the phone's half: that the person is told, where they
+   would otherwise wait, and offered the link again; and that it all goes when the address is proved.
+================================================================================================== */
+check('a parent whose address is unconfirmed is told their mail is held, and can have the link sent again', async () => {
+  const jo = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind94',
+               pendingEmail: 'jsmith1@example.org', profile: { first_name: 'Jo', last_name: 'Smith' } };
+  /* `say` IS WHAT THE SHEET HOLDS, read at each request, so the address can be proved under the phone. */
+  let say = 'jsmith1@example.org';
+  const reply = b => b.action === 'myProfile'
+      ? { success: true, personId: 'P-JO', profile: jo.profile, role: 'parent', roles: ['parent'], tutorPending: false, pendingEmail: say }
+    : b.action === 'resendLink'
+      ? { success: true, pendingEmail: say, message: 'A new link is on its way to jsmith1@example.org.' }
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(jo)); } catch (e) {} } });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  const text = el => String((el || {}).textContent || '').replace(/\s+/g, ' ');
+
+  /* THE YOU COLUMN: the line under your own card, and the tile beside Sign out. */
+  t.go('account', false, true);
+  await wait(250);
+  const line = d.querySelector('#s-account .mail-held');
+  if (!line || !/jsmith1@example\.org/.test(text(line)) || !/email you/i.test(text(line)))
+    bad.push('a signed-in PENDING person is not told on their own card that their mail waits for the link: ' + JSON.stringify(text(line)));
+  const youTile = d.querySelector('#s-account [data-do="resend-link"]');
+  if (!youTile) bad.push('there is no "Send the link again" on their own card');
+  else {
+    sent.length = 0;
+    t.ACTIONS['resend-link'](youTile);
+    await wait(250);
+    const post = sent.find(b => b.action === 'resendLink');
+    if (!post) bad.push('"Send the link again" posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no resendLink');
+    else if (post.to || post.email) bad.push('"Send the link again" put an address on the request — where it goes is the server\'s to say: ' + JSON.stringify(post));
+    if (!/on its way/.test(text(d.getElementById('toast')))) bad.push('pressing it said ' + JSON.stringify(text(d.getElementById('toast'))) + ', not the server\'s answer');
+  }
+
+  /* SETTINGS: one card where the two child forms would be, with the address and the same tile. */
+  t.go('settings', false, true);
+  await wait(250);
+  const held = d.querySelector('#s-settings .kid-held');
+  if (!held) bad.push('a PENDING parent\'s Settings has no "open the link first" card where "Make your child\'s account" would be');
+  else {
+    if (!/jsmith1@example\.org/.test(text(held)) || !/link/i.test(text(held))) bad.push('the held card does not say which address to open the link from: ' + JSON.stringify(text(held)));
+    if (!held.querySelector('[data-do="resend-link"]')) bad.push('the held card has no "Send the link again"');
+  }
+  if (d.querySelector('#s-settings [data-kid-new], #s-settings [data-kid]'))
+    bad.push('a PENDING parent is still offered a child form the server will refuse');
+
+  /* AND WHEN THE ADDRESS IS PROVED — on another phone, by the link — the next open puts the forms back
+     and takes the line away. */
+  say = '';
+  const again = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(jo)); } catch (e) {} } });
+  await wait(700);
+  const t2 = again.w.__t, d2 = again.w.document;
+  if ((t2.whoami() || {}).pendingEmail) bad.push('myProfile said the address is proved and the phone kept it waiting: ' + JSON.stringify(t2.whoami().pendingEmail));
+  t2.go('settings', false, true);
+  await wait(250);
+  if (d2.querySelector('#s-settings .kid-held') || !d2.querySelector('#s-settings .kid-make [data-kid-new]'))
+    bad.push('once the address was proved, Settings still holds the child back, or has no "Make your child\'s account" form');
+  t2.go('account', false, true);
+  await wait(250);
+  if (d2.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('once the address was proved, the You column still says the mail is held');
+  return bad;
+});
+
+/* A STALE PHONE DRAWS THE FORM; THE SERVER'S REFUSAL TURNS IT INTO THE HELD CARD — not a toast over a
+   form that will be refused again on every press. */
+check('a refused make-child for an unconfirmed address turns the form into the held card', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P-PAT', role: 'parent', roles: ['parent'], token: 'tk-pat', handle: 'pat_kind20',
+                profile: { first_name: 'Pat', last_name: 'Parent' } };
+  const reply = b => b.action === 'makeChild'
+      ? { error: 'Open the link we emailed to pat@example.org first — then you can make your child\'s account. Nothing was made.',
+          why: 'unconfirmed', pendingEmail: 'pat@example.org' }
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w } = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('settings', false, true);
+  await wait(250);
+  const card = d.querySelector('#s-settings .kid-make');
+  if (!card) return ['a parent with no word on their address was not shown the make-child form to begin with'];
+  const val = (k, v) => { const el = card.querySelector('[data-kid-new="' + k + '"]'); if (el) el.value = v; };
+  /* BUILT FROM ITS DIGITS — `check-secrets.js` refuses four digits beside the word. */
+  val('first', 'Lu'); val('last', 'Parent'); val('pin', ['4', '8', '2', '6'].join(''));
+  t.ACTIONS['kid-make'](card.querySelector('[data-do="kid-make"]'));
+  await wait(400);
+  if (!/Open the link we emailed to pat@example\.org/.test(String((d.getElementById('toast') || {}).textContent || '')))
+    bad.push('the server\'s sentence was not said');
+  if (!d.querySelector('#s-settings .kid-held') || d.querySelector('#s-settings [data-kid-new]'))
+    bad.push('the refusal left the form standing instead of the held card');
+  if (((t.whoami() || {}).pendingEmail || '') !== 'pat@example.org') bad.push('the phone did not keep the address the server said is waiting');
+  return bad;
+});
+
+/* GOOGLE TAKING A PENDING ROW BACK CLEARS ITS PIN, and the person is told in a sheet — as often the real
+   registrant, who would otherwise find their PIN refused tomorrow with no idea why. */
+check('signing in with Google on an unconfirmed account says the PIN has gone, in a sheet', async () => {
+  const msg = 'Signed in with Google, and that has confirmed your email. The account was made with a PIN before '
+            + 'anybody had confirmed the address, so that PIN no longer works.';
+  const { w } = boot({ reply: b => b.action === 'googleLogin'
+    ? { success: true, name: 'Val Owner', personId: 'P-VAL', role: 'parent', roles: ['parent'], token: 'tk-val',
+        pendingEmail: '', pinCleared: true, message: msg, profile: { first_name: 'Val' } }
+    : { success: true, messages: [] } });
+  await wait(300);
+  const d = w.document, bad = [];
+  if (typeof w.googleSignedIn_ !== 'function') return ['googleSignedIn_ is not reachable, so the Google reply was NOT checked'];
+  w.googleSignedIn_({ credential: 'a-google-token' });
+  await wait(400);
+  const said = String((d.getElementById('sheet-body') || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!/PIN no longer works/.test(said)) bad.push('the Google reply said the PIN was cleared and no sheet says so: ' + JSON.stringify(said));
+  /* AND AN ORDINARY GOOGLE SIGN-IN OPENS NOTHING. */
+  const b2 = boot({ reply: b => b.action === 'googleLogin'
+    ? { success: true, name: 'Cy Done', personId: 'P-CY', role: 'parent', roles: ['parent'], token: 'tk-cy', pendingEmail: '', profile: {} }
+    : { success: true, messages: [] } });
+  await wait(300);
+  b2.w.googleSignedIn_({ credential: 'a-google-token' });
+  await wait(400);
+  const s2 = b2.w.document.getElementById('sheet');
+  if (s2 && String((b2.w.document.getElementById('sheet-body') || {}).textContent || '').trim() && !s2.hidden && !/\bhidden\b/.test(s2.className))
+    bad.push('an ordinary Google sign-in opened a sheet');
+  return bad;
+});
+
+/* ==================================================================================================
+   ROUND THREE OF THE PR #130 REVIEW, ON THE PHONE. Each journey below is prefixed `proof:` so
+   `FLOW_ONLY=proof:` runs them alone. Two were found with no journey holding them at all — the link
+   opened on your own phone taking the held card away, and "Send the link again" on an address already
+   confirmed — mutated to nothing, all 150 journeys stayed green. And the review's jsdom probe found the
+   first one undone by a `myProfile` that answered after it.
+================================================================================================== */
+const JO_PENDING = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind94',
+                     pendingEmail: 'jsmith1@example.org', profile: { first_name: 'Jo', last_name: 'Smith' } };
+const signedInAs_ = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
+const toastOf_ = d => String((d.getElementById('toast') || {}).textContent || '');
+const sheetOpen_ = d => { const s = d.getElementById('sheet'), b = d.getElementById('sheet-body');
+  return !!(s && b && String(b.textContent || '').trim() && !s.hidden && !/\bhidden\b/.test(s.className)); };
+
+check('proof: your own link opened while signed in takes the held card away, and a myProfile that answers after it cannot bring it back', async () => {
+  /* THE ORDER THE REVIEW MEASURED: `myProfile` reads the sheet BEFORE the link is opened there, and its
+     answer reaches the phone AFTER the link's — so it says the address still waits, about a moment
+     that has passed. `confirmed` is the sheet: the link writes it when its (slower) answer goes out,
+     and each `myProfile` reads it when it is asked. The first is held back past the link's answer. */
+  let asked = 0, confirmed = false;
+  const reply = b => {
+    if (b.action === 'verifyEmail') return new Promise(r => setTimeout(() => { confirmed = true;
+      r({ success: true, name: 'Jo Smith', handle: 'jo_kind94', noEmail: false, linkedTo: '', parentPending: false }); }, 300));
+    if (b.action === 'myProfile') {
+      asked++;
+      const said = { success: true, personId: 'P-JO', profile: JO_PENDING.profile, role: 'parent', roles: ['parent'], tutorPending: false,
+                     pendingEmail: confirmed ? '' : 'jsmith1@example.org' };
+      return asked === 1 ? new Promise(r => setTimeout(() => r(said), 800)) : said;
+    }
+    return { success: true, messages: [] };
+  };
+  const { w, sent } = boot({ url: 'https://example.org/?verify=Vjo-own', reply, before: signedInAs_(JO_PENDING) });
+  await wait(1600);
+  const t = w.__t, d = w.document, bad = [];
+  if (!sent.some(b => b.action === 'verifyEmail')) return ['the link was not posted, so this journey asked nothing'];
+  if (asked < 1) bad.push('no myProfile left at start-up, so the order the review found was NOT played');
+  if ((t.whoami() || {}).pendingEmail) bad.push('after your own link was opened the phone still holds the address as waiting: '
+    + JSON.stringify(t.whoami().pendingEmail) + (asked >= 2 ? '' : ' — the late myProfile painted over the confirmation'));
+  if (!/make your child's account/i.test(toastOf_(d)) && !/confirmed/i.test(toastOf_(d))) bad.push('the toast after your own link says ' + JSON.stringify(toastOf_(d)));
+  t.go('settings', false, true);
+  await wait(250);
+  if (d.querySelector('#s-settings .kid-held') || !d.querySelector('#s-settings .kid-make [data-kid-new]'))
+    bad.push('Settings still holds the child back after your own link was opened — under a toast saying you can make their account');
+  t.go('account', false, true);
+  await wait(250);
+  if (d.querySelector('#s-account .mail-held')) bad.push('the You column still says your mail is held after your own link was opened');
+  return bad;
+});
+
+check('proof: "Send the link again" on an address already confirmed takes the held cards away', async () => {
+  const reply = b => b.action === 'resendLink'
+      ? { success: true, why: 'confirmed', pendingEmail: '', message: 'Your email is confirmed already — there is nothing to open.' }
+    /* AN OLD SERVER FOR `myProfile`, so the only thing that can clear the cards is the answer under test. */
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w } = boot({ reply, before: signedInAs_(JO_PENDING) });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('account', false, true);
+  await wait(250);
+  const tile = d.querySelector('#s-account [data-do="resend-link"]');
+  if (!tile) return ['there was no "Send the link again" to press, so the confirmed answer was NOT checked'];
+  t.ACTIONS['resend-link'](tile);
+  await wait(300);
+  if (!/confirmed already/.test(toastOf_(d))) bad.push('the server\'s sentence was not said: ' + JSON.stringify(toastOf_(d)));
+  if ((t.whoami() || {}).pendingEmail) bad.push('the server said the address is confirmed and the phone kept it waiting');
+  if (d.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('the You column still says the mail is held');
+  t.go('settings', false, true);
+  await wait(250);
+  if (d.querySelector('#s-settings .kid-held')) bad.push('Settings still holds the child back');
+  return bad;
+});
+
+check('proof: a new address typed on the Contact card waits, says so, and the box keeps it', async () => {
+  const jo = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind111', pendingEmail: '',
+               profile: { first_name: 'Jo', last_name: 'Smith', email: 'jsmith@example.org', phone: '', phone_cc: '+44', phone_no: '', email_moving: '' } };
+  const moved = Object.assign({}, jo.profile, { email_moving: 'jsmith1@example.org' });
+  const reply = b => b.action === 'updateProfile'
+      /* AS `updateProfile` SENDS IT FOR A MOVE: the row's address unchanged, the waiting one beside it. */
+      ? { success: true, changed: 0, profile: moved, movingEmail: 'jsmith1@example.org',
+          said: 'Saved. To finish changing your email, open the link we sent to jsmith1@example.org on a phone where you are '
+              + 'signed in. Until then it stays jsmith@example.org — sign in with that, or your handle.' }
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ reply, before: signedInAs_(jo) });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('settings', false, true);
+  await wait(300);
+  const box = () => d.querySelector('#s-settings [data-me="email"]');
+  if (!box()) return ['there is no email box on Settings, so the Contact card was NOT checked'];
+  box().value = 'jsmith1@example.org';
+  const card = () => box() && box().closest('.me-form');
+  sent.length = 0;
+  t.ACTIONS['me-save'](card().querySelector('[data-do="me-save"]'));
+  await wait(500);
+  const post = sent.find(b => b.action === 'updateProfile');
+  if (!post || (post.fields || {}).email !== 'jsmith1@example.org') bad.push('the Save did not post the typed address: ' + JSON.stringify(post && post.fields));
+  if (!/open the link we sent to jsmith1@example\.org/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — "Saved" over an address that has not changed');
+  const note = card() && card().querySelector('.mail-moving');
+  const said = String((note || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!note || !/jsmith1@example\.org/.test(said) || !/jsmith@example\.org/.test(said))
+    bad.push('the Contact card does not say the new address waits, and which one still signs in: ' + JSON.stringify(said));
+  if (!box() || box().value !== 'jsmith1@example.org') bad.push('the box went back to the old address, so the next Save of this page would cancel the change: ' + JSON.stringify(box() && box().value));
+  if (!card() || !card().querySelector('[data-do="resend-link"]')) bad.push('the Contact card has no "Send the link again" for the waiting address');
+  return bad;
+});
+
+check('proof: a link that moves your address, opened before signing in, finishes by itself once you are in', async () => {
+  const reply = b => b.action === 'verifyEmail'
+      ? (b.session === 'tk-jo'
+        ? { success: true, moved: true, email: 'jsmith1@example.org', name: 'Jo Smith', handle: 'jo_kind111', noEmail: false }
+        : { error: 'This link changes the email address on an @family. account, so it only works where you are signed in to '
+                 + 'that account. Sign in, and it will finish by itself.', why: 'sign-in-first' })
+    : b.action === 'verifyLogin'
+      ? { success: true, name: 'Jo Smith', personId: 'P-JO', handle: 'jo_kind111', token: 'tk-jo', role: 'parent', roles: ['parent'],
+          tutorPending: false, pendingEmail: '', profile: { first_name: 'Jo', email: 'jsmith@example.org', email_moving: 'jsmith1@example.org' } }
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ url: 'https://example.org/?verify=Mmove1', reply });
+  await wait(500);
+  const t = w.__t, d = w.document, bad = [];
+  const first = sent.filter(b => b.action === 'verifyEmail');
+  if (first.length !== 1 || first[0].token !== 'Mmove1') return ['booting on the move link posted ' + JSON.stringify(first)];
+  if (/verify=/.test(String(w.location.search))) bad.push('the link is still in the address bar');
+  if (!/signed in/.test(toastOf_(d))) bad.push('opened signed out, the person was not told to sign in: ' + JSON.stringify(toastOf_(d)));
+  t.go('account', false, true);
+  await wait(200);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!fill('in-name', 'jsmith@example.org') || !fill('in-pin', ['3', '8', '1', '5'].join(''))) return bad.concat(['there is no sign-in card to sign in on']);
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(600);
+  const again = sent.filter(b => b.action === 'verifyEmail');
+  if (again.length !== 2 || again[1].token !== 'Mmove1' || again[1].session !== 'tk-jo')
+    bad.push('after signing in the link was not sent again with the session: ' + JSON.stringify(again));
+  if (((t.whoami() || {}).profile || {}).email !== 'jsmith1@example.org' || ((t.whoami() || {}).profile || {}).email_moving)
+    bad.push('the moved address is not the phone\'s address now: ' + JSON.stringify((t.whoami() || {}).profile));
+  if (!/jsmith1@example\.org/.test(toastOf_(d))) bad.push('the move was not said: ' + JSON.stringify(toastOf_(d)));
+  return bad;
+});
+
+check('proof: the sign-in link in a forgotten-PIN email signs its owner in once, and says what it did in a sheet', async () => {
+  const msg = 'Signed in. The PIN in that email is your PIN now, and anyone else signed in to this account has been signed out. '
+            + 'Your email is confirmed now. The account was in use before anybody had confirmed it, so the child on it has been taken off';
+  const { w, sent } = boot({ url: 'https://example.org/?signin=Rkey123&post=P9',
+    reply: b => b.action === 'pinLink'
+      ? { success: true, name: 'Vic Owner', personId: 'P-VIC', handle: 'vic_kind1', token: 'tk-vic', role: 'parent', roles: ['parent'],
+          tutorPending: false, pendingEmail: '', pinLink: true, childrenHeld: 1, message: msg, profile: { first_name: 'Vic' } }
+      : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+      : { success: true, messages: [] } });
+  await wait(600);
+  const t = w.__t, d = w.document, bad = [];
+  const posts = sent.filter(b => b.action === 'pinLink');
+  if (posts.length !== 1 || posts[0].key !== 'Rkey123') bad.push('booting on ?signin= posted pinLink ' + JSON.stringify(posts));
+  const q = String(w.location.search);
+  if (/signin=/.test(q)) bad.push('the key is still in the address (' + q + '), so a refresh posts it again');
+  if (!/post=P9/.test(q)) bad.push('taking the key out also took the rest of the address');
+  if ((t.whoami() || {}).token !== 'tk-vic') bad.push('the link did not sign the phone in');
+  if (!sheetOpen_(d) || !/taken off/.test(String(d.getElementById('sheet-body').textContent))) bad.push('what the link did — the children held — is not in a sheet that stays');
+  const plain = boot({});
+  await wait(300);
+  if (plain.sent.some(b => b.action === 'pinLink')) bad.push('an ordinary start posted pinLink');
+  return bad;
+});
+
+check('proof: a PIN sign-in that took an account back says the children were taken off, in a sheet', async () => {
+  const msg = 'Your email is confirmed now. The account was in use before anybody had confirmed it, so the 2 children on it have been taken off';
+  const { w } = boot({ reply: b => b.action === 'verifyLogin'
+      ? { success: true, name: 'Jo Smith', personId: 'P-JO', handle: 'jo_kind121', token: 'tk-jo', role: 'parent', roles: ['parent'],
+          tutorPending: false, pendingEmail: '', childrenHeld: 2, message: msg, profile: { first_name: 'Jo' } }
+      : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+      : { success: true, messages: [] } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(150);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!fill('in-name', 'jsmith1@example.org') || !fill('in-pin', ['2', '9', '1', '7', '4', '3'].join(''))) return ['there is no sign-in card'];
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(500);
+  if (!sheetOpen_(d) || !/taken off/.test(String(d.getElementById('sheet-body').textContent))) bad.push('the children taken off the account were said nowhere that stays: ' + JSON.stringify(toastOf_(d)));
+  /* AND AN ORDINARY SIGN-IN OPENS NOTHING. */
+  const b2 = boot({ reply: b => b.action === 'verifyLogin'
+      ? { success: true, name: 'Cy Done', personId: 'P-CY', handle: 'cy_kind1', token: 'tk-cy', role: 'parent', roles: ['parent'], pendingEmail: '', profile: {} }
+      : { success: true, messages: [] } });
+  await wait(300);
+  b2.w.__t.USER(null); b2.w.__t.go('account', false, true);
+  await wait(150);
+  const d2 = b2.w.document;
+  d2.getElementById('in-name').value = 'cy@example.org'; d2.getElementById('in-pin').value = ['2', '9', '1', '7'].join('');
+  b2.w.__t.ACTIONS['do-signin'](d2.querySelector('[data-do="do-signin"]'));
+  await wait(500);
+  if (sheetOpen_(d2)) bad.push('an ordinary sign-in opened a sheet');
+  return bad;
+});
+
 /* ==================================================================================================
    WHO THE ACCOUNT IS FOR. The walk after 273 found a parent who signed up on the phone made a student,
    with no "Make your child's account" and a Client tick refused. `check-signin.js` §8 asks the backend
@@ -3749,8 +4114,10 @@ check('Make an account asks who it is for first, and a parent is a parent from t
       ? { success: true, name: 'Dana Brook', pending: true, handle: 'dana_kind44', confirmBy: 'self',
           role: b.who === 'parent' ? 'parent' : 'kid' }
     : b.action === 'verifyLogin'
+      /* `pendingEmail` AS `loginReplyFor_` REALLY SENDS IT — a fixture must send what the backend sends,
+         and the first sign-in after registering is before anybody has opened the link. */
       ? { success: true, name: 'Dana Brook', personId: 'P-DANA', handle: 'dana_kind44', token: 'tk-dana',
-          role: 'parent', roles: ['parent'], tutorPending: false,
+          role: 'parent', roles: ['parent'], tutorPending: false, pendingEmail: 'dana@example.org',
           profile: { first_name: 'Dana', last_name: 'Brook' } }
     : { success: true } });
   await wait(300);
@@ -3810,7 +4177,13 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   if (!u || u.role !== 'parent') return bad.concat(['signing in did not leave a parent signed in: ' + JSON.stringify(u && u.role)]);
   try { t.go('settings', false, true); } catch (e) { return bad.concat(['going to settings threw: ' + e.message]); }
   await wait(250);
-  if (!d.querySelector('#s-settings .kid-make')) bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings');
+  /* "MAKE YOUR CHILD'S ACCOUNT" IS THERE FROM THE FIRST PAINT — as the one sentence that says what
+     comes first while the address is unproved (`confirmFirst_`), with the link offered again; the form
+     itself once the link is opened (the journey after the next). */
+  const heldCard = d.querySelector('#s-settings .kid-held');
+  if (!heldCard || !/Make your child's account/.test(String(heldCard.textContent || '')) || !/dana@example\.org/.test(String(heldCard.textContent || '')))
+    bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings saying to open the link sent to their address');
+  if (d.querySelector('#s-settings [data-kid-new]')) bad.push('a parent whose address nobody has proved yet is offered the make-child form, which the server refuses');
 
   /* A STUDENT'S POST SAYS STUDENT. */
   t.USER(null);
@@ -4152,7 +4525,7 @@ check('a day says how many hours it is, in the column that multiplies', async ()
   if (!w.__t.paper) return ['bookBreakdown is not exported — cannot read the card'];
   const B = w.__t.BOOKING;
   const bad = [];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   B.slots = ['m11', 'm12', 'm13', 'w12'];
 
@@ -4400,7 +4773,7 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   const bad = [];
   const { w, sent } = boot({ reply: { success: true, jobId: 'J-ASK' } });
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
 
   /* ---------- PAGE ZERO, WHICH IS THE FORM — NOT THE WHOLE COLUMN ------------------------------
      THIS JOINED EVERY PAGE AND ASKED WHETHER `J-ASK` WAS ANYWHERE IN IT, which was a true reading
@@ -4585,7 +4958,7 @@ check('an admin can answer a booking, and only one that is waiting', async () =>
 check('a client can pay once it is accepted, and not before', async () => {
   const { w } = boot();
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   if (typeof w.__t.jobTiles !== 'function') return ['jobTiles_ is not exported — cannot check Pay'];
 
   const bad = [];
@@ -4713,7 +5086,7 @@ check('a class with seats offers Take a seat as a tile on its receipt, and its s
   else if (bars !== 2 || !/Monday evening/.test(can)) bad.push('the Can come row draws ' + bars + ' bars ("' + can + '"), wanted the 2 slots sent');
 
   /* AND SOMEBODY ON THE LIST SEES THE TALLY TOO, and is offered no seat they already have. */
-  w.__t.USER({ name: 'Danile Cristina', personId: 'P7', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Dee Parent', personId: 'P7', role: 'parent', roles: ['parent'] });
   const D = w.__t.DATA();
   (D.liveJobs || []).forEach(j => { if (j.id === 'W-LIST') j.canAsk = false; });
   let mine;
@@ -4791,7 +5164,7 @@ check('a session a family booked offers Ask to join as a tile, and says its seat
 check('a festive event shows itself and can be joined', async () => {
   const { w, sent } = boot();
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   /* ON POSTS, NOT BOOK. A festive card is the business announcing something with a date on it, which
      is the same voice as a post with a caption — it was only ever on the booking column because
      bookings were. There is no Book column now either way. */
@@ -5051,7 +5424,7 @@ check('every pager counts the pages its screen actually draws', async () => {
 
   /* SIGNED IN, because half these columns draw a sign-in card and nothing else when signed out —
      a roster of one page agrees with anything and proves nothing. */
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   /* AND REPAINTED, BECAUSE THAT IS WHAT SIGNING IN DOES. `__t.USER` only sets the variable; the app
      calls `repaint()` straight after, which marks every other screen stale so `go` redraws it on the
      way in. Without this the journey walks onto screens painted while signed out and reports a
@@ -5198,7 +5571,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
     id: 'J-M', jobId: 'J-M', kind: '', subject: 'Maths', level: 'GCSE', price: 270,
     tutorPay: 135, adminKeeps: 81, tutor: 'Ada Tutor', location: 'Colliers Wood Library',
     dates: '06/10/26, 13/10/26', startDate: '06/10/26', endDate: '13/10/26',
-    slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Booked' }],
+    slots: [{ n: 1, client: 'Pat Parent', status: 'Booked' }],
     tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Confirmed' }], events: [],
   };
   const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
@@ -5206,7 +5579,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
     .map(r => r.querySelector('.bk-k').textContent.trim() + ' ' + r.querySelector('.bk-t').textContent.trim());
 
   /* THE CLIENT: what they pay, and not one other figure. */
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const c = totals(doc(w.__t.jobPage(job)));
   if (c.length !== 1 || !/270\.00/.test(c[0])) bad.push('the client sees ' + JSON.stringify(c) + ', wanted their £270.00 alone');
   if (c.some(x => /135|81\./.test(x))) bad.push('the client is shown what the tutor or the admin takes: ' + JSON.stringify(c));
@@ -5249,10 +5622,10 @@ check('each person sees their own figure on a session, and its tiles are on the 
   const loose = [...ad.querySelectorAll('[data-do]')].filter(x => !x.closest('.rc'));
   if (loose.length) bad.push('actions float outside the paper: ' + loose.map(x => x.dataset.do).join(', '));
   if (!ad.querySelector('.rc .rc-tiles [data-do="job-delete"]')) bad.push('the admin\'s tiles are not on the receipt\'s foot');
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const paid = doc(w.__t.jobPage(job));
   if (paid.querySelector('[data-do="job-pay"]')) bad.push('a session already booked and paid offers Pay');
-  const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Agreed' }] })));
+  const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Pat Parent', status: 'Agreed' }] })));
   if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
 
   /* AND THE FORM: an admin pricing a booking sees the two more rows; nobody else does. */
@@ -5263,7 +5636,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
     if (fa.more.length !== 2 || !/150\.00/.test(fa.more[0].t) || !/40\.00/.test(fa.more[1].t)) {
       bad.push('an admin pricing the form is not shown what the tutor and the business take');
     }
-    w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+    w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
     if (w.__t.formMoney(L).more.length) bad.push('a client pricing the form is shown the split');
   }
   return bad;
@@ -5289,7 +5662,7 @@ check('the camera card starts itself and offers the gallery', async () => {
   if (typeof w.__t.card !== 'function') return [];      // only checkable where the card is exported
 
   const bad = [];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const html = w.__t.card();
 
   if (!/id="cam-view"/.test(html)) bad.push('the camera card has no viewfinder');
@@ -5410,11 +5783,11 @@ const camAsked_ = async pred => { await wait(CAM_SLIDE); for (let i = 0; i < 40 
 
 check('the camera asks for nothing until somebody swipes up to it', async () => {
   const bad = [];
-  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
 
   /* ---------- SIGNED IN, NO FESTIVE CARD: THE ONE THAT WAS REPORTED ---------------------------- */
   {
-    const b = camBoot_({ user: rasa });
+    const b = camBoot_({ user: pat });
     await wait(400);
     if (!b.w.__t || typeof b.w.feedCamAt_ !== 'function') {
       return ['the app did not load, so the camera was NOT checked — not a pass'];
@@ -5463,7 +5836,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
 
   /* ---------- A FESTIVE CARD ABOVE THE CAMERA ---------------------------------------------------- */
   {
-    const b = camBoot_({ user: rasa, festive: true });
+    const b = camBoot_({ user: pat, festive: true });
     await wait(400);
     if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
     if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
@@ -5476,7 +5849,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
      With nothing under the camera, "the page after the camera" does not exist, and `pageHome_`'s
      clamp put the column ON the camera — the reported prompt arriving by a second road. */
   {
-    const b = camBoot_({ user: rasa, festive: true, noPosts: true });
+    const b = camBoot_({ user: pat, festive: true, noPosts: true });
     await wait(400);
     if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
     if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
@@ -5489,7 +5862,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
      camera that was refused used to be asked for again by whatever landed next, which is a prompt on
      Safari that nobody swiped for. */
   {
-    const b = camBoot_({ user: rasa, refuse: true });
+    const b = camBoot_({ user: pat, refuse: true });
     await wait(400);
     b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
@@ -5510,7 +5883,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
      `CAM_STREAM` is null until somebody answers, so a repaint in that moment used to ask a second
      time — and when both were granted the first stream was overwritten and never stopped. */
   {
-    const b = camBoot_({ user: rasa, slow: true });
+    const b = camBoot_({ user: pat, slow: true });
     await wait(400);
     b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     b.w.__t.repaint(); await wait(50);
@@ -5537,7 +5910,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
        box) — the refusal because it is the path that keeps the same element rather than
        repainting it away. Then a comment that goes through posts `addComment` with the words. */
 check('Post under a post is a tile, and a comment keeps its mark through the wait', async () => {
-  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const p = payload();
   p.festive = [];
   p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
@@ -5547,7 +5920,7 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
   let refuse = true;
   const { w, sent } = boot({ payload: p,
     reply: b => (b.action === 'addComment' && refuse ? { error: 'That is too long to post.' } : { success: true }),
-    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(rasa)); } catch (e) {} } });
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
   await wait(400);
   const d = w.document, bad = [];
   w.__t.go('feed'); await wait(700);
@@ -5600,13 +5973,13 @@ check('the friend search still works for a student', async () => {
      no list can never add anybody and the failure is silent: "Nobody has the handle …", which reads
      as the friend not existing rather than as the list not arriving. */
   const p = payload();
-  p.students = [{ name: 'Augie', handle: 'augie', xp: 10, highscore: 3, siblings: [], friends: '' },
-                { name: 'Mabel', handle: 'mabel', xp: 4, highscore: 1, siblings: [], friends: '' }];
+  p.students = [{ name: 'Ben', handle: 'ben', xp: 10, highscore: 3, siblings: [], friends: '' },
+                { name: 'Cy', handle: 'cy', xp: 4, highscore: 1, siblings: [], friends: '' }];
   const { w } = boot({ payload: p });
   await wait(300);
-  w.__t.USER({ name: 'Augie Wickes', personId: 'PS', handle: 'augie', role: 'kid',
+  w.__t.USER({ name: 'Ben Pupil', personId: 'PS', handle: 'ben', role: 'kid',
                roles: ['kid'], friends: '' });
-  const found = (w.__t.whoami() && (p.students || []).find(s => s.handle === 'mabel'));
+  const found = (w.__t.whoami() && (p.students || []).find(s => s.handle === 'cy'));
   return found ? [] : ['a student cannot look up another child by handle — the friend list is unusable'];
 });
 
@@ -5630,6 +6003,184 @@ check('the app still loads when opened from a file', async () => {
     bad.push('nothing unwraps the jsonp reply, so the payload arrives and is dropped');
   }
   return bad;
+});
+
+/* ---------- NOTHING OFFERS TO INSTALL, AND THE BROWSER IS NOT LEFT TO OFFER IT EITHER -------------
+   THIS SPOT HELD "the install bar reaches somebody who has not signed in", and that journey went
+   with the bar — the owner, 6 Oct: *"delete the suggester telling to bookmark"*. What the bar left
+   behind was worse than either answer. me.js went on catching Chrome's `beforeinstallprompt`,
+   cancelling the browser's own install bar and KEEPING the event for `installCard` — which nothing
+   drew, because its only caller was `meRest_` and only the dead `mePages` reached that. So an
+   Android visitor got no offer from the app and none from Chrome, a door called `install` stayed
+   wired for a button that never appeared, and the comment over it said the offer "stays where
+   somebody can go looking for it … on the You screen". `check-doors` passed all of it: it pairs a
+   `data-do` with a handler wherever the string is WRITTEN, and written is not drawn.
+
+   DECIDED: NOTHING SUGGESTS INSTALLING. Chrome's own mini-bar is a suggester too, in the browser's
+   handwriting, so it stays cancelled; the browser MENU's Install / Add to Home Screen is left for
+   anybody who goes looking.
+
+   ---------- AND THE FIRST VERSION OF THIS CHECK PROMISED MORE THAN IT ASKED ------------------------
+   THE REVIEW OF ITS OWN ROUND GOT SIX MUTATIONS PAST IT, and each was a sentence in this comment
+   that the code under it did not keep:
+     · "counted, so anything that raises it later is seen" — `prompted` was read straight after a walk
+       that never waits, so a held event prompted from a 50 ms timer stayed green;
+     · "nothing on the page changes" — `takeRecords()` straight after the dispatch sees a SYNCHRONOUS
+       redraw only, and the app's own idiom is a frame late: `setTimeout(repaint, 0)` and
+       `requestAnimationFrame(repaint)` both stayed green while holding the event in a variable;
+     · the two people were an iPhone signed out and an Android signed in, so an iOS-only "Tap Share,
+       then Add to Home Screen" card on the signed-in You column — exactly where the old `installCard`
+       drew its iPhone branch — had nobody to be drawn for;
+     · it looked inside `#s-<id>` 300 ms after boot for one id and two words, so the old bar brought
+       back the old way (appended to `<body>` a second after load, under another id) and a card
+       worded like it ("Keep @family. on your phone", an Install button) under another door name
+       both stayed green.
+   So now it does what it says, and each of those is answered by a step below rather than by a name:
+     1. FOUR PEOPLE, every pairing of signed in or out with iPhone or Android, signed in the way the
+        app signs itself in (`familyUser` before the first line runs), all four at once so the waits
+        overlap;
+     2. THE PAGE IS LET GO QUIET FIRST — half a second with no mutation at all, measured: about two
+        seconds with four booting together, and nothing moves after that for as long as it was
+        watched. A page that never goes quiet says so and is NOT a pass, because a redraw for the
+        offer could not then be told from one of its own;
+     3. THE OFFER ARRIVES, AND THE PAGE IS WATCHED FOR 3.5 SECONDS — past a frame, past a timer, past
+        the old bar's own three-second wait. Anything that changes in that window is the app acting
+        on an offer, because nothing else moves;
+     4. EVERY SCREEN IS DRAWN, then the WHOLE BODY is read, not one screen's box: an install door, the
+        old bar's id, anything new hanging off `<body>` that the page did not start with, and the
+        words an offer is made of — install, on your phone, add to home, home screen, bookmark;
+     5. AND `prompt()` IS COUNTED LAST, after all of it, so a prompt raised late is a prompt seen. */
+check('nothing offers to install, and the browser is not left to offer it either', async () => {
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  const ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
+  const PARENT = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const phones = [
+    ['somebody signed out on an iPhone', IPHONE, null],
+    ['a parent signed in on an iPhone', IPHONE, PARENT],
+    ['somebody signed out on Android', ANDROID, null],
+    ['a parent signed in on Android', ANDROID, PARENT],
+  ];
+  /* A FEW WORDS EITHER SIDE, not the sentence: `textContent` runs one element's text into the next
+     with no space, so "up to the full stop" can be half a screen. Measured: none of these words is
+     anywhere in the app's text for any of the four, so a hit is an offer and not a false alarm.
+     THE OLD BAR'S OWN WORDS ARE ON IT. The round-2 review put the removed bar's second line, "Keep
+     @family. handy. Opens like an app, no address bar.", on a Settings card, and "Save @family. to
+     your phone" beside it — both green, because the list held its headline's "on your phone" and
+     not its subtitle or a near variant. So `on`/`to`/`onto` your phone, `like an app`, `address bar`
+     and the headline's `Keep @family.` are words too; measured, still none of them is in the app.
+     AND THEN THE RULE RATHER THAN THE EXAMPLES. The round-3 review drew "Get the app", "Use @family.
+     as an app — full screen, one tap away" and "Put @family. on the home row … open it with one
+     tap" on the same card, all green, because the list had grown by the two phrasings it was shown.
+     An offer to install says one of three things, and each is a family of words here: WHAT it would
+     become (an app, a shortcut, an icon, standalone), WHERE it would go (home screen, home row, home
+     page, your phone), and WHAT IT BUYS (full screen, one tap, no address bar) — plus any verb that
+     puts @family. somewhere (add/save/pin/put/keep/get @family.). Measured over the rendered text
+     of every screen for all four visitors: none of them is said anywhere, so `app` as a whole word is
+     safe to name — the app never calls itself one on screen. */
+  const WORDS = new RegExp('.{0,30}(' + [
+    'install', '\\bapps?\\b', 'shortcut', '\\bicon on', 'standalone', 'bookmark',
+    '(?:on|onto|to) (?:your|the) (?:phone|home|dock)', 'home ?(?:screen|row|page)', 'add to (?:your )?home',
+    'full ?-?screen', 'one tap', 'address bar',
+    /* AND THE DESKTOP'S WORDS, which the round-3 review drew on a card and the list did not hold:
+       "Save it to your device / Launch it from your start screen". Measured: in none of the screens. */
+    'start ?(?:screen|menu)', '(?:to|on) your (?:device|desktop|laptop|computer)', 'launch it',
+    '(?:add|save|pin|put|keep|get|use) @family\\.',
+  ].join('|') + ').{0,30}', 'gi');
+  const ALL = { childList: true, subtree: true, attributes: true, characterData: true };
+  const name_ = n => !n || !n.tagName ? String(n && n.nodeName || '?')
+    : n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className
+      ? '.' + n.className.trim().split(/\s+/).join('.') : '');
+
+  const ask = async ([who, ua, user]) => {
+    const bad = [];
+    const { w, errs } = boot({ before: win => {
+      /* BEFORE THE APP RUNS, because a phone is a phone from its first line — anything asking the
+         user agent at load must already get this answer — and somebody signed in is signed in from
+         the first line too, the way a returning visitor is. */
+      Object.defineProperty(win.navigator, 'userAgent', { value: ua, configurable: true });
+      if (user) win.localStorage.setItem('familyUser', JSON.stringify(user));
+    } });
+    const t = w.__t;
+    if (!t || !t.ACTIONS || !t.TABS) return [who + ': the app did not finish loading'];
+    if (!!user !== !!t.whoami()) {
+      bad.push(who + ': the app reads this visitor as signed ' + (t.whoami() ? 'in' : 'out')
+             + ', so this person was NOT asked about — not a pass');
+    }
+    /* WHAT `<body>` HELD BEFORE THE APP DID ANYTHING. Measured: the same eight elements from the
+       first line to the end of a walk of every screen — only their classes change — so anything
+       new directly under it is something the app hung there. */
+    const born = new Set(w.document.body.children);
+
+    /* 2. QUIET FIRST. */
+    let moved = 0;
+    const settle = new w.MutationObserver(rs => { moved += rs.length; });
+    settle.observe(w.document.documentElement, ALL);
+    const from = Date.now();
+    let quiet = false;
+    /* THIRTY SECONDS, NOT TEN. Ten held alone and failed for every copy when eleven ran at once on four
+       cores (the round-3 review): the boot of four apps together simply had not finished. A slow page
+       is not an offer; only a page that NEVER settles is "not checked". */
+    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved; }
+    settle.disconnect();
+    if (!quiet) {
+      bad.push(who + ': the page never stayed still for half a second in thirty, so a redraw for the offer '
+             + 'could not be told from one of its own — NOT checked');
+      return bad;
+    }
+
+    /* 3. THE OFFER AS CHROME SENDS IT: cancelable, with the `prompt()` that opens the real install
+       dialog and the `userChoice` it settles. */
+    let prompted = 0;
+    const offer = new w.Event('beforeinstallprompt', { cancelable: true });
+    offer.prompt = () => { prompted++; return Promise.resolve(); };
+    offer.userChoice = Promise.resolve({ outcome: 'accepted' });
+    const seen = [];
+    const watch = new w.MutationObserver(rs => { seen.push.apply(seen, rs); });
+    watch.observe(w.document.documentElement, ALL);
+    w.dispatchEvent(offer);
+    await wait(3500);
+    seen.push.apply(seen, watch.takeRecords());
+    watch.disconnect();
+
+    if (!offer.defaultPrevented) {
+      bad.push(who + ': `beforeinstallprompt` was not cancelled, so Chrome slides up its own "Add to '
+             + 'Home screen" bar — a suggester the owner asked to have gone, in the browser\'s handwriting');
+    }
+    if (seen.length) {
+      const where = [...new Set(seen.map(r => name_(r.target)))];
+      bad.push(who + ': in the 3.5 s after the install offer arrived the page changed ' + seen.length
+             + ' thing(s), on ' + where.slice(0, 4).join(', ') + (where.length > 4 ? ' and more' : '')
+             + ' — a still page moved for an offer, and nothing may make one');
+    }
+    if (Object.prototype.hasOwnProperty.call(t.ACTIONS, 'install')) {
+      bad.push(who + ': a door called `install` is still wired — a handler kept for an install button, '
+             + 'so the browser\'s offer is being held for something that may not be drawn');
+    }
+
+    /* 4. EVERY SCREEN, read off `TABS` like the other walks here, and then the whole body. */
+    for (const id of t.TABS.map(x => x.id)) {
+      try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw: ' + e.message); }
+    }
+    await wait(300);
+    const body = w.document.body;
+    if (body.querySelector('[data-do="install"]')) bad.push(who + ': something draws an install button');
+    if (w.document.getElementById('install-bar')) bad.push(who + ': the install bar is back on the page');
+    [...body.children].filter(e => !born.has(e)).forEach(e => {
+      bad.push(who + ': <' + name_(e) + '> now hangs off <body>, which the page did not start with — "'
+             + e.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) + '"');
+    });
+    const said = [...new Set(body.textContent.replace(/\s+/g, ' ').match(WORDS) || [])];
+    said.slice(0, 4).forEach(s => bad.push(who + ': the page says "…' + s.trim() + '…" — an install suggestion'));
+
+    /* 5. LAST, so a prompt raised late — on a timer, or on the way past a screen — is counted. */
+    if (prompted) {
+      bad.push(who + ': the browser\'s install dialog was opened ' + prompted + ' time(s) without anybody '
+             + 'choosing Install from the browser menu');
+    }
+    if (errs.length) bad.push(who + ': errors: ' + errs.join(' | '));
+    return bad;
+  };
+  return [].concat(...await Promise.all(phones.map(ask)));
 });
 
 check('each column opens on the page worth reading', async () => {
@@ -7932,7 +8483,7 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
   if (slot(out) && slot(out).textContent) bad.push('signed out, a Check stamped the card "' + slot(out).textContent + '"');
   if (stored().length) bad.push('signed out, a date was stored: ' + stored().join(', '));
   /* SIGNED IN. */
-  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'] });
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'] });
   const card = draw(typed);
   if (!slot(card)) return bad.concat(['signed in, the tile row has no date slot, so a date would arrive as a new element']);
   if (card.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
@@ -8037,7 +8588,7 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
 
   /* SIGNED IN, AND THE LOAD'S SYNC: the payload landed before USER was set, so it is asked again here
      the way the next payload would ask it. */
-  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
   /* TWICE BEFORE THE REPLY IS BACK, as a stored payload and the fresh one land a moment apart. */
   w.adoptMarks_();
   w.adoptMarks_();
@@ -8085,33 +8636,45 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
      a parent can read — the subject, the paper, the number — and the subject is not said twice when
      the paper's name already says it. The cards above are not in the library, and sent no label. */
   const heldItems = w.stuffItemsAll_;
-  const named = (k, subject, sub) => Object.assign(q(k), { subject: subject, sub: sub });
+  const named = (k, subject, sub, more) => Object.assign(q(k), { subject: subject, sub: sub }, more || {});
   const qa = named('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024');
   const qb = named('q-named-2', 'Biology', 'Biology Paper 2 — June 2023');
+  /* FOUNDATION AND HIGHER SIT ONE PAPER UNDER ONE NAME, and so do AQA's GCSE and A-level Physics: a
+     crossover session sent a parent "Q1, Q1" under one heading. The tier goes on the paper's name —
+     or the A-level its band names when the tier cell is empty — unless the name already says it. */
+  const qh = named('q-tier-h', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Higher' });
+  const qf = named('q-tier-f', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Foundation' });
+  const qal = named('q-tier-a', 'Physics', 'Paper 1 — June 2024', { tier: '', bandValue: 'A-Level', row: { level: 'Alevel' } });
+  const qsaid = named('q-tier-s', 'Maths', 'Higher Paper 3 — June 2023', { tier: 'Higher' });
   const n3 = marks().length;
-  w.stuffItemsAll_ = () => [qa, qb];
-  try { check_(draw(qa)); check_(draw(qb)); } finally { w.stuffItemsAll_ = heldItems; }
+  w.stuffItemsAll_ = () => [qa, qb, qh, qf, qal, qsaid];
+  try { [qa, qb, qh, qf, qal, qsaid].forEach(x => check_(draw(x))); } finally { w.stuffItemsAll_ = heldItems; }
   await wait(30);
   const labels = marks().slice(n3).map(b => ((b.items || [])[0] || {}).label);
-  if (JSON.stringify(labels) !== JSON.stringify(['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8'])) {
-    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted "Maths · Paper 1 (Calculator) — June 2024 · Q8" and "Biology Paper 2 — June 2023 · Q8", the name a parent reads in the weekly email');
+  const wantLabels = ['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8',
+    'Maths · Paper 1 (Non-calculator) — June 2024 (Higher) · Q8', 'Maths · Paper 1 (Non-calculator) — June 2024 (Foundation) · Q8',
+    'Physics · Paper 1 — June 2024 (A-level) · Q8', 'Maths · Higher Paper 3 — June 2023 · Q8'];
+  if (JSON.stringify(labels) !== JSON.stringify(wantLabels)) {
+    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted ' + JSON.stringify(wantLabels) + ', the names a parent reads in the emails: a paper’s tier said once, and only when its name does not');
   }
   /* A PRACTICAL'S WORKSHEET BOX is the card's key with a slot on the end (`guideBox_`), and it was
      looked up whole, so it found no card and went up nameless — three raw keys in a parent's email
-     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. */
-  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'AQA required practical' };
+     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. The
+     card's line is the one `stuffItemsAll_` really builds, and its "60 min" is the card's estimate: it
+     read to a parent as time spent, so it is not part of the name. */
+  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'Physics · Required practical · 60 min' };
   const n4 = marks().length;
   w.stuffItemsAll_ = () => [qa, pr];
   try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldItems; }
   await wait(30);
   const prSent = (((marks().slice(n4)[0] || {}).items) || [])[0] || {};
-  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · AQA required practical · Specific heat capacity · Worksheet') {
-    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · AQA required practical · Specific heat capacity · Worksheet"');
+  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · Required practical · Specific heat capacity · Worksheet') {
+    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · Required practical · Specific heat capacity · Worksheet", no card duration in it');
   }
 
   /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
-  if (shows('q-sheet-only')) bad.push('Ben sees Lucca\'s sheet date: "' + shows('q-sheet-only') + '"');
+  if (shows('q-sheet-only')) bad.push('Ben sees Ada\'s sheet date: "' + shows('q-sheet-only') + '"');
 
   /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent. */
   w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
@@ -8121,7 +8684,7 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   if (w.attemptsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.attemptsLine_('P9') + '"');
   if (w.attemptsLine_('P5') !== '') bad.push('a person with no attempts reads "' + w.attemptsLine_('P5') + '", wanted nothing');
   const box = d.createElement('div');
-  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Lucca Smith', handle: 'lucca', role: 'Student', personId: 'P7', activity: line } });
+  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: line } });
   const act = box.querySelector('.prof-who .prof-act');
   if (!act || act.textContent !== line) bad.push('the person card does not draw the line under the name: ' + (act ? act.textContent : 'no .prof-act'));
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
@@ -8129,12 +8692,58 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
 
   /* A BACKEND WITHOUT `markDone`: the date stays on the phone and nothing is sent. */
   w.__t.DATA().features = [];
-  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
   const n2 = marks().length;
   check_(draw(q('q-old-backend')));
   await wait(30);
   if (marks().length !== n2) bad.push('a backend that does not list markDone was sent it anyway');
   w.__t.USER(null);
+  return bad;
+});
+
+/* ==================================================================================================
+   THE BACKLOG CARRIES EACH QUESTION'S NAME, AND A ROW THE SHEET HOLDS WITHOUT ONE IS SENT ITS NAME.
+   The first learner the after-session email was built for had three rows on the sheet as bare keys —
+   done before the Ledger had an `attempts` tab, sent up by the load with no names — and that email
+   prints no raw key, so his parent would have been told a number and nothing else. `attemptsSync_`
+   now names what it sends (`doneLabel_`, the card this person has for the key), and sends the name
+   for a row the payload says has none (`named`), with that row's own last day — a day the backend
+   already has, where it writes the name alone (check-attempts.js asks that half).
+================================================================================================== */
+check('the load names what it sends, and names a row the sheet holds without a name', async () => {
+  const p = Object.assign(payload(), {
+    features: ['markDone'],
+    attempts: { for: 'P7', mine: {
+      'q:Q-NAME-1': { first: '2026-10-06', last: '2026-10-06', times: 1 },
+      'q:Q-NAME-3': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1 },
+      'q:Q-NOCARD': { first: '2026-10-06', last: '2026-10-06', times: 1 },
+    } },
+  });
+  const reply = b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true });
+  const { w, sent } = boot({ payload: p, reply,
+    before: win => { win.localStorage.setItem('done:u:P7:q:Q-NAME-2', '2026-10-06'); } });
+  await wait(300);
+  if (typeof w.adoptMarks_ !== 'function' || typeof w.doneLabel_ !== 'function') return ['adoptMarks_ or doneLabel_ is not reachable — renamed? Nothing was asked'];
+  /* THE CARDS THIS PHONE HAS, standing in for the library: the lookup is by the item's key, as Find's is. */
+  const card = (k, n) => ({ kind: 'question', key: k, name: n, subject: 'Maths', sub: 'Money', marks: 1, row: { row_id: k.slice(2) } });
+  const cards = [card('q:Q-NAME-1', 'Q1'), card('q:Q-NAME-2', 'Q2'), card('q:Q-NAME-3', 'Q3')];
+  w.stuffItemsAll_ = () => cards;
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.adoptMarks_();
+  await wait(40);
+  const bad = [];
+  const m = sent.filter(b => b.action === 'markDone');
+  if (m.length !== 1) return ['the load sent ' + m.length + ' markDone request(s), wanted 1'];
+  const by = {}; (m[0].items || []).forEach(i => { by[i.key] = i; });
+  if (!by['q:Q-NAME-2']) bad.push('the backlog day the sheet lacks (Q-NAME-2) was not sent');
+  else if (!by['q:Q-NAME-2'].label || !/Money/.test(by['q:Q-NAME-2'].label) || !/Q2/.test(by['q:Q-NAME-2'].label)) bad.push('the backlog went up without its name: ' + JSON.stringify(by['q:Q-NAME-2']) + ' — a parent would read a key');
+  if (!by['q:Q-NAME-1']) bad.push('a row the sheet holds without a name (Q-NAME-1) was not sent its name');
+  else {
+    if (by['q:Q-NAME-1'].day !== '2026-10-06') bad.push('the unnamed row was sent day ' + by['q:Q-NAME-1'].day + ' — wanted its own last day, so the backend counts nothing');
+    if (!/Q1/.test(String(by['q:Q-NAME-1'].label || ''))) bad.push('the unnamed row went up without a name: ' + JSON.stringify(by['q:Q-NAME-1']));
+  }
+  if (by['q:Q-NAME-3']) bad.push('a row the sheet already names (Q-NAME-3) was sent again — every visit would send it');
+  if (by['q:Q-NOCARD']) bad.push('a row no card on this phone answers to was sent with nothing to add: ' + JSON.stringify(by['q:Q-NOCARD']));
   return bad;
 });
 
@@ -8203,6 +8812,130 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   await wait(100);
   if (sent.some(b => b.action === 'digestPreview')) bad.push('a backend that does not list digestPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
   if (!/sync backend/i.test((card().querySelector('.digest-said') || {}).textContent || '')) bad.push('a backend without the weekly email is not said to need a sync');
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- THE EMAIL AFTER EACH SESSION'S CARD ------------------------------------------------------
+   ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated email to
+   them of the questions they got done"* — backend/recap.gs, switched off. The card is the weekly one's
+   twin and has to keep its contract: an admin's alone, the page right after the weekly card (so no
+   index in front of it moves), the mode as the server reads `session_recap`, the delay as it reads
+   `session_recap_delay`, a tile row with no switch on it, and a Preview that posts exactly one
+   `recapPreview` — a read. The sheet prints what came off phones and sheets as text: a subject typed
+   into the jobs tab with markup in it is shown, not drawn. A missing `attempts` tab and an unbooked
+   hourly check are said before anything else, and a backend without the action is told to sync. And
+   the weekly sheet, given `attempts: false`, says why rather than "nobody has done a question". */
+check('the email after each session card is an admin\'s, follows the weekly card, says the switch and the delay, and Preview reads without sending', async () => {
+  const empty = n => ({ day: '2026-10-0' + n, label: 'Day ' + n, sessions: [], emails: [], nobody: [] });
+  const preview = { success: true, mode: 'preview', delay: 2, scheduled: 0, attempts: false, logTab: true,
+    warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it.',
+    from: '2026-09-30', to: '2026-10-06', at: '2026-10-06 20:30',
+    days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
+             sessions: [{ subject: '<b>Maths</b>', from: '16:00', to: '18:00', timeKnown: true, time: '4pm–6pm',
+                          learners: ['Ada Pupil'], due: '2026-10-06 20:00', dueSaid: '8pm', state: 'due' },
+                        { subject: 'Physics', time: '', learners: [], due: '', dueSaid: '', state: 'not agreed — not counted' },
+                        /* BOOKED, AND NOBODY ON IT CAN BE TOLD (which of two children): no "email about". */
+                        { subject: 'Chemistry', time: '10am–12pm', learners: [], due: '2026-10-06 14:00', dueSaid: '2pm', state: 'due' }],
+             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s session on Tue 6 Oct: 2 questions',
+                        text: 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 2 questions.\n\nMaths · Paper 1\nQ3, Q7 (again)',
+                        count: 2, due: '2026-10-06 20:00', dueSaid: '8pm', state: 'due', status: '—', at: '' }],
+             nobody: [{ name: 'Cal Alone', why: 'no parent has accepted a link to them', status: 'not sent' }] },
+           { day: '2026-10-01', label: 'Thu 1 Oct',
+             sessions: [{ subject: 'Maths', time: '4pm–6pm', learners: ['Ada Pupil'], due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past' }],
+             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s session on Thu 1 Oct: 1 question',
+                        text: 'Hello Pat,', count: 1, due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past', status: '—', at: '' }],
+             nobody: [] },
+           empty(5), empty(4), empty(3), empty(2)] };
+  const p = payload();
+  p.features = ['digestPreview', 'recapPreview'];
+  p.constants.vars.session_recap = 'off';
+  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'recapPreview' ? preview : { success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .card.recap');
+  const said = () => (card().querySelector('.recap-mode') || {}).textContent || '';
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(200);
+  if (card()) bad.push('a parent is shown the email-after-each-session card — it is an admin’s');
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
+  w.paint('settings');
+  await wait(200);
+  if (!card()) return bad.concat(['an admin has no Email after each session card on the Settings column']);
+  /* THE PAGE AFTER THE WEEKLY CARD, so every page in front of it keeps its index. */
+  const pages = [...d.querySelectorAll('#s-settings .page')];
+  const at = sel => pages.findIndex(pg => pg.querySelector(sel));
+  if (at('.card.recap') !== at('.card.digest') + 1 || at('.card.recap') !== pages.length - 1) bad.push('the session card is page ' + at('.card.recap') + ' of ' + pages.length + ', the weekly card page ' + at('.card.digest') + ' — wanted it last, right after the weekly one');
+  if (!/Email after each session:\s*Off/.test(said())) bad.push('with session_recap off the card reads "' + said() + '"');
+  [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
+    t.DATA().constants.vars.session_recap = cell;
+    w.paint('settings');
+    if (!new RegExp('Email after each session:\\s*' + word).test(said())) bad.push('session_recap "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
+  });
+  [['3', 'About 3 hours after'], ['1', 'About 1 hour after'], ['', 'About 2 hours after'], ['25', 'About 2 hours after'], ['0', 'Within the hour after']].forEach(([cell, want]) => {
+    t.DATA().constants.vars.session_recap_delay = cell;
+    w.paint('settings');
+    const sub = (card().querySelector('.sub') || {}).textContent || '';
+    if (sub.indexOf(want) !== 0) bad.push('session_recap_delay "' + cell + '" reads "' + sub.slice(0, 40) + '" — wanted "' + want + '"');
+  });
+  t.DATA().constants.vars.session_recap = 'off';
+  t.DATA().constants.vars.session_recap_delay = '';
+  w.paint('settings');
+  if (!/session_recap/.test(card().textContent) || !/installSessionRecap/.test(card().textContent)) bad.push('the card does not say where the switch is and how the hourly check is booked');
+  const tile = card().querySelector('.tile-row .tile[data-do="recap-preview"]');
+  if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
+  if (card().querySelectorAll('.tile').length !== 1 || card().querySelector('button:not(.tile)')) bad.push('the card has more than its one Preview tile, or a plain button — a thing has tiles, and there is no switch on the phone');
+  sent.length = 0;
+  t.ACTIONS['recap-preview'](tile);
+  await wait(300);
+  const asks = sent.filter(b => b.action === 'recapPreview');
+  if (asks.length !== 1 || sent.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one recapPreview and nothing else');
+  const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
+  if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
+  const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
+  ['The Ledger has no attempts tab', 'No hourly check is booked yet — run installSessionRecap', 'This preview sent nothing', 'not booked',
+   'Each email is written to the recap_log tab when it falls due, and none is sent.',
+   'Tue 6 Oct', '<b>Maths</b> 4pm–6pm · Ada Pupil · email about 8pm · email due now', 'Physics · not agreed — not counted',
+   'Chemistry 10am–12pm · nobody to email — see below',
+   'To Pat Parent · pat@example.org — would be written to recap_log', 'Ada’s session on Tue 6 Oct: 2 questions', 'Q3, Q7 (again)',
+   'Nobody to tell', 'Cal Alone — no parent has accepted a link to them', '(not sent)',
+   'Thu 1 Oct', 'Maths 4pm–6pm · Ada Pupil · email about 8pm · past', 'To Pat Parent · pat@example.org — not sent — past its 24 hours, it will not go'].forEach(s => {
+    if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
+  });
+  if (/Chemistry[^·]*· email about/.test(text)) bad.push('a booked session nobody on it can be told about still says when its email goes: ' + (text.match(/Chemistry[^.]*/) || [''])[0]);
+  /* THE SAME REPLY WITH THE SWITCH OFF — owner step 4 — and ON. Off promises nothing: no "due now", no
+     "not on the log yet" (which reads as "it will be"). Send says the log has not got it yet. */
+  const asText = h => { const x = d.createElement('div'); x.innerHTML = h; return x.textContent.replace(/\s+/g, ' '); };
+  const offText = asText(w.recapSheet_(Object.assign({}, preview, { mode: 'off' })));
+  if (/due now|not on the log yet|would be written/.test(offText)) bad.push('with session_recap off the preview still promises a send: ' + (offText.match(/[^.]*(due now|not on the log yet|would be written)[^.]*/) || [''])[0]);
+  ['It is off, so nothing below goes', 'email about 8pm · off — would go now if switched on', 'To Pat Parent · pat@example.org — not sent — session_recap is off',
+   'not sent — past its 24 hours, it will not go'].forEach(s => {
+    if (offText.indexOf(s) === -1) bad.push('with session_recap off the preview sheet does not say "' + s + '"');
+  });
+  const sendText = asText(w.recapSheet_(Object.assign({}, preview, { mode: 'send' })));
+  if (sendText.indexOf('To Pat Parent · pat@example.org — not on the log yet') === -1 || sendText.indexOf('Each email is sent once, when it falls due.') === -1) bad.push('with session_recap on send the preview does not say the log has not got the email yet: ' + sendText.slice(0, 300));
+  if (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths')) bad.push('a subject typed with markup in it was drawn as markup in the preview — it must be printed as text');
+  if (body && !/^The Ledger has no attempts tab/.test(((body.querySelector('p b') || {}).textContent || ''))) bad.push('the missing attempts tab is not the first thing the preview says');
+  if (/Day 5|Day 2/.test(text)) bad.push('the preview drew days with nothing in them');
+  if (!/Email after each session:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
+  /* NO SESSION ANYWHERE IN THE WEEK: said, not a blank sheet. */
+  const none = w.recapSheet_({ success: true, mode: 'off', scheduled: 1, days: [empty(6), empty(5)] });
+  if (!/No booked session in the last 7 days/.test(none) || !/checked every hour · booked/.test(none) || /No hourly check/.test(none)) bad.push('a week with no booked session does not say so, or a booked check is called unbooked: ' + none.replace(/\s+/g, ' ').slice(0, 200));
+  /* A BACKEND FROM BEFORE recap.gs: told, not asked. */
+  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
+  t.DATA().features = ['digestPreview'];
+  sent.length = 0;
+  t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
+  await wait(100);
+  if (sent.some(b => b.action === 'recapPreview')) bad.push('a backend that does not list recapPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
+  if (!/sync backend/i.test((card().querySelector('.recap-said') || {}).textContent || '')) bad.push('a backend without the email after sessions is not said to need a sync');
+  /* AND THE WEEKLY SHEET, WITH NO attempts TAB: the reason, not "nobody has done a question". */
+  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, attempts: false,
+    warning: 'The Ledger has no attempts tab, so nothing says what anybody did.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
+  if (!/<b>The Ledger has no attempts tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no attempts tab does not say so in bold, or still says nobody has done a question');
+  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', attempts: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
   t.USER(null);
   return bad;
 });
@@ -8700,7 +9433,7 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   t.STUFF().q = '';
 
   /* STARRABLE, by the card's own Save tile, and kept on Saved. */
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
   if (!fav) bad.push('the book card has no Save tile');
   else {
@@ -8710,28 +9443,27 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   return bad;
 });
 
-/* ---------- THE BIBLE: AN ADMIN READS GENESIS 1, AND NOBODY ELSE IS SHOWN IT OR SENT IT ------------
+/* ---------- THE BIBLE: SIX QUESTIONS AND A CARD A VERSE, AND NOBODY ELSE IS SHOWN IT OR SENT IT ---------
    ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
-   Two halves, and the second is the one that matters more:
+   AND REDONE ON 6 OCT: *"it should be like the other stuff. tags in finder. should go translation e.g.
+   kjv, then old testament or new, then group the books, e.g. torah, pauline epistles ect. then the book
+   titles e.g. genises, eodus. then the chapters, e.g. 1,2,3 then the verses e.g 1 2 3. each verse is a
+   widget."* Two halves, and the first is the one that matters more:
 
    NOBODY BUT AN ADMIN. Signed out, a parent, a student and a tutor are each booted SIGNED IN FROM THE
    FIRST LINE (seeded the way `check/ui.js` seeds its visitor, so the boot that builds Find is theirs),
-   with the real `data/bible/` files there to be fetched. Each walks to Resources and every shelf on
-   it, searches `bible` and `genesis`, and even presses a book button that should not exist. Then the
-   list of everything fetched is read: not one URL under `data/bible/`. Absent is the claim — no item,
-   no `Books` answer, no card — and not one byte downloaded for a book they were never shown.
+   with the real `data/bible/` files there to be fetched. Each walks to Resources, searches the Bible's
+   words, presses the Bible's answers and its tiles as forged buttons — and the list of everything
+   fetched is read: not one URL under `data/bible/`.
 
-   AN ADMIN, BY THE OWNER'S ROUTE. Learning → Resources → Books on the real answer buttons; the list
-   is the Bible; its cover and three lists (the Old Testament turned at Job, then the New); Genesis
-   pressed, fetched ONCE, its chapter numbers turned to — after all three lists; chapter 1 pressed and
-   READ — "In the beginning God created the heaven and the earth." — with `[was]` drawn as italics and
-   no bracket anywhere; every verse of Genesis on exactly one page, in order; a tile back to the
-   numbers on every page of every chapter, pressed from the middle of one, and the numbers' tile back
-   to the Old Testament; Genesis again with no second fetch; the New Testament still page three and
-   Matthew after it; Psalm 119 back to the page of numbers it is on; a book that fails to arrive said
-   on the list without losing the one open; the book names searchable; the star keeping the cover and
-   all three lists; and signing out from inside it leaving nothing of it on Find. */
-check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is shown it or fetches a byte of it', async () => {
+   AN ADMIN, BY REAL PRESSES. Learning → Resources → Books → KJV → Old Testament → Torah → Genesis → 1 →
+   3, reading what each question offers and in what order; every verse of Genesis 1 drawn from the
+   file, italics and pilcrows as printed; the Chapter tile; Psalms's 150 chapters and Psalm 119's 176
+   verses as grids nextFacet asks; the one-answer rungs; every rung skipped; a chip dropped, a chip
+   forged, a citation typed; every chapter of every book walked; a book that does not come and comes on
+   the second try; the late index; the library held back; stars; a demotion; and signing out. On every
+   Bible list, what the funnel TALLIED is read as well as what it asked. */
+check('the Bible: Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -8753,12 +9485,13 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   };
   const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
   const ofBible = gets => gets.filter(u => /data\/bible\//.test(u));
+  const index = JSON.parse(fs.readFileSync(path.join(bibleDir, 'index.json'), 'utf8'));
   const bad = [];
 
   /* ---------- NOBODY BUT AN ADMIN ---------------------------------------------------------------- */
   const others = [
     ['somebody signed out', null],
-    ['a parent', { name: 'Rasa Poliksa', personId: 'P004', role: 'parent', roles: ['parent'] }],
+    ['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
     ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
     ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
   ];
@@ -8778,18 +9511,33 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
     if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
     if (shelves.indexOf('@family. textbooks') < 0) bad.push(what + ' was not offered the textbooks shelf — the walk did not reach Resources, so the absence proves nothing');
     if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
-    for (const q of ['bible', 'genesis', 'king james']) {
+    for (const q of ['bible', 'genesis', 'king james', 'kjv', 'psalms']) {
       t.STUFF().filters = []; t.STUFF().q = q;
       if (w.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
     }
     t.STUFF().q = '';
+    t.STUFF().filters = [];
     w.paintStuff();
     if (w.document.querySelector('.card.bible, [data-do^="bible-"]')) bad.push(what + ' has a Bible card or button drawn');
-    /* AND A BUTTON THEY COULD NOT HAVE BEEN SHOWN, PRESSED ANYWAY — the fetch is gated as well. */
-    const fake = w.document.createElement('button');
-    fake.setAttribute('data-n', '1');
-    try { t.ACTIONS['bible-book'](fake); } catch (e) { bad.push(what + ': pressing a Bible book threw ' + e.message); }
+    /* AND THE BIBLE'S ANSWERS, PRESSED ANYWAY — forged, because nothing draws them for this visitor. */
+    for (const [field, value] of [['bibleTranslation', 'KJV'], ['bibleBook', 'Genesis']]) {
+      const fake = w.document.createElement('div');
+      fake.dataset.field = field; fake.dataset.value = value;
+      try { t.ACTIONS['facet-pick'](fake); } catch (e) { bad.push(what + ': pressing a forged ' + field + ' threw ' + e.message); }
+    }
     await wait(60);
+    if (w.stuffFiltered().length) bad.push(what + ' pressed a forged KJV and Genesis and was shown ' + w.stuffFiltered().length + ' thing(s)');
+    if (w.bibleInside_()) bad.push(what + ' holding forged Bible chips is "inside the Bible" — the verses would be read for them');
+    if (w.document.querySelector('.card.bb-verse')) bad.push(what + ' has a verse card drawn');
+    /* AND ITS TILES, PRESSED ANYWAY: the chips must not move and nothing may be fetched. */
+    const was = JSON.stringify(t.STUFF().filters);
+    for (const [act, attrs] of [['bible-go', { 'data-key': 'bible:kjv:1:1:3' }], ['bible-go', {}], ['bible-retry', { 'data-n': '1' }], ['bible-retry', {}]]) {
+      const fake = w.document.createElement('button');
+      Object.keys(attrs).forEach(k => fake.setAttribute(k, attrs[k]));
+      try { t.ACTIONS[act](fake); } catch (e) { bad.push(what + ': pressing a forged ' + act + ' threw ' + e.message); }
+    }
+    await wait(60);
+    if (JSON.stringify(t.STUFF().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Find\'s chips changed to ' + JSON.stringify(t.STUFF().filters));
     const got = ofBible(b.gets);
     if (got.length) bad.push(what + ' fetched ' + got.length + ' file(s) of the Bible: ' + got.slice(0, 3).join(', '));
     if (!b.gets.length) bad.push(what + ': no fetch was recorded at all, so "nothing of the Bible" proves nothing');
@@ -8800,10 +9548,54 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   const a = boot({ payload: base(), serve, before: seed(admin) });
   const w = a.w, t = w.__t, d = w.document;
   for (let i = 0; i < 40 && !(t && t.BIBLE && t.BIBLE() && t.BIBLE().index); i++) await wait(25);
-  if (!t || !t.BIBLE || !t.BIBLE()) return bad.concat(['the reader\'s state is not exported to the journey']);
+  if (!t || !t.BIBLE || !t.BIBLE()) return bad.concat(['the Bible\'s state is not exported to the journey']);
   if (!t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — fetched: ' + ofBible(a.gets).join(', ')]);
-  const index = JSON.parse(fs.readFileSync(path.join(bibleDir, 'index.json'), 'utf8'));
-  if (ofBible(a.gets).length !== 1) bad.push('an admin\'s boot fetched ' + ofBible(a.gets).length + ' Bible files — the index and no book is the right number');
+  if (ofBible(a.gets).length !== 1 || !/index\.json/.test(ofBible(a.gets)[0])) bad.push('an admin\'s boot fetched ' + JSON.stringify(ofBible(a.gets)) + ' — the index and no book is the right answer');
+  if (w.stuffItemsAll_().some(i => i.bb)) bad.push('a verse is on Find\'s own list — the 31,102 are a list of their own, read only while the Bible is open');
+  /* EVERY TOAST, COUNTED: a book that does not come must be said once, not once per card waiting on it. */
+  const toasts = [];
+  const realToast = w.toast;
+  w.toast = msg => { toasts.push(String(msg)); return realToast(msg); };
+  const box = html => { const e = d.createElement('div'); e.innerHTML = html; return e; };
+  const answersOn = () => [...d.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
+  const asked = () => {
+    const a2 = answersOn();
+    return { field: a2.length ? a2[0].dataset.field : '', vals: a2.map(b => b.dataset.value),
+             grid: !!d.querySelector('#stuff-groups .answers.is-grid'),
+             end: ((d.querySelector('#stuff-groups .find-end') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
+  };
+  const pick = async (field, value) => {
+    const el = answersOn().find(b => b.dataset.field === field && b.dataset.value === value);
+    if (!el) { bad.push('no ' + field + ' answer "' + value + '" to press — offered ' + asked().vals.slice(0, 8).join(' | ')); return false; }
+    t.ACTIONS['facet-pick'](el);
+    await wait(80);
+    return true;
+  };
+  const skip = async field => {
+    const el = d.querySelector('#stuff-groups [data-do="facet-skip"][data-field="' + field + '"]');
+    if (!el) { bad.push('no "Doesn\'t matter" under ' + field + ' to press'); return false; }
+    t.ACTIONS['facet-skip'](el);
+    await wait(60);
+    return true;
+  };
+  const DOORS = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+  const KJV = { field: 'bibleTranslation', value: 'KJV' };
+  const setTo = list => { t.STUFF().q = ''; t.STUFF().filters = list.map(f => Object.assign({}, f)); w.paintStuff(); };
+  const same = (got, want, say) => { if (got.join('|') !== want.join('|')) bad.push(say + ' offers ' + (got.slice(0, 8).join(', ') || 'nothing') + (got.length > 8 ? '… (' + got.length + ')' : '') + ' — not ' + want.slice(0, 8).join(', ') + (want.length > 8 ? '… (' + want.length + ')' : '')); };
+  const run = n => Array.from({ length: n }, (_, i) => String(i + 1));
+  /* WHAT THE FUNNEL TALLIED, not only what it asked: on a fresh copy of the list, `nextFacet` may tally
+     one Bible question — or none, once nothing is left — and nothing that is not the Bible's. */
+  const tallies = say => {
+    const list = w.stuffFiltered();
+    if (!list.length || !list[0].bb) return;
+    const copy = list.slice();
+    const nf = w.nextFacet(copy);
+    const keys = Object.keys(t.FACET_TALLY().get(copy) || {}).map(k => k.split('|')[0]);
+    if (keys.some(k => !/^bible/.test(k)) || keys.length > 1 || (nf && keys.length !== 1)) {
+      bad.push(say + ': a fresh nextFacet over the verses tallied ' + (keys.join(', ') || 'nothing')
+               + ' — inside the Bible a tap tallies its one question, and nothing that is not the Bible\'s');
+    }
+  };
 
   t.go('stuff');
   t.STUFF().filters.length = 0; t.STUFF().q = '';
@@ -8813,7 +9605,7 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
   const pressed = [];
   for (let guard = 0; route.length && guard < 8; guard++) {
-    const btns = [...d.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+    const btns = answersOn();
     let el = btns.find(b => b.dataset.value === route[0]);
     const rung = w.facetList().find(f => f.field === rungs[3 - route.length]);
     const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
@@ -8833,14 +9625,17 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   }
   if (route.length) return bad;
   if (pressed.indexOf('Books') < 0) bad.push('the Books shelf was never a question for an admin — ' + pressed.join(' → '));
-  const left = w.stuffFiltered();
-  const x = left.find(i => i.kind === 'bible');
-  if (left.length !== 1 || !x) return bad.concat(['after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
-    + left.slice(0, 4).map(i => i.kind + ' ' + i.name).join(', ') + ' — not the Bible']);
 
-  /* THE COVER, MADE OF THE SHARED PARTS, SAYING WHO CAN SEE IT. */
-  const box = html => { const e = d.createElement('div'); e.innerHTML = html; return e; };
-  const cover = box(w.stuffCard(x)).querySelector('.favwrap > .card') || box(w.stuffCard(x)).firstElementChild;
+  /* ---------- 1. BOOKS: THE COVER, AND ONE QUESTION WITH ONE ANSWER --------------------------------- */
+  const left = w.stuffFiltered();
+  const x = left[0];
+  if (left.length !== 1 || !x || x.kind !== 'bible' || x.bb) return bad.concat(['after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
+    + left.slice(0, 4).map(i => i.kind + ' ' + i.name).join(', ') + ' — not the Bible\'s cover']);
+  let q = asked();
+  if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('on the Books shelf the question is ' + (q.field || 'nothing') + ' ' + JSON.stringify(q.vals) + ' — it should be Translation, with KJV its one answer (a folder is asked with one)');
+  if (ofBible(a.gets).length !== 1) bad.push('a book was fetched before KJV was pressed: ' + ofBible(a.gets).join(', '));
+  const coverBox = box(w.stuffCard(x));
+  const cover = coverBox.querySelector('.favwrap > .card') || coverBox.firstElementChild;
   if (!cover || !cover.classList.contains('bible') || !cover.classList.contains('fc')) bad.push('the cover is not a `.card.fc.bible`');
   else {
     const h = cover.querySelector(':scope > .fc-head > h3');
@@ -8849,183 +9644,325 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
     if (!/31,102 verses/.test(cover.textContent)) bad.push('the cover does not count the verses — the index did not reach it');
     if (!cover.querySelector('.bb-who')) bad.push('the cover does not say only admins are shown it');
     if (cover.querySelector('.tile-row')) bad.push('the cover carries a tile row inside the card');
+    if (!coverBox.querySelector(':scope > .tile-row [data-do="bible-go"]:not([data-key])')) bad.push('the cover has no Open tile under it');
   }
-  const first = w.stuffFirstResult_();
-  const parts0 = w.pageParts_(x);
-  /* THE COVER, THEN THREE LISTS: the Old Testament on two pages and the New on one. */
-  const LISTS = [null, 'ot', 'ot2', 'nt'];
-  if (JSON.stringify(parts0) !== JSON.stringify(LISTS)) bad.push('before a book is opened the Bible is pages ' + JSON.stringify(parts0) + ', not the cover and three lists of books');
-  if (!/next three pages/.test(cover ? cover.textContent : '')) bad.push('the cover does not say the books are the next three pages');
+  if (JSON.stringify(w.pageParts_(x)) !== '[null]') bad.push('the cover is pages ' + JSON.stringify(w.pageParts_(x)) + ' — it is one page now, the reader\'s lists are gone');
 
-  /* BOTH TESTAMENTS, EVERY BOOK, IN ORDER, AS BUTTONS ON THE PAGE — and the Old Testament turned at
-     Job, so neither of its pages is the thirty-nine that `paneReach_` drew at 84% on a 320px phone. */
-  t.goPage('stuff', first + 1);
-  await wait(30);
-  const names = sel => [...d.querySelectorAll('#s-stuff .bb-toc' + sel + ' [data-do="bible-book"]')].map(b => b.textContent.trim());
-  const wantOT = index.books.filter(b => b.testament === 'OT').map(b => b.book);
-  const wantNT = index.books.filter(b => b.testament === 'NT').map(b => b.book);
-  const turn = wantOT.indexOf('Job');
-  if (names('[data-bb="ot"]').join('|') !== wantOT.slice(0, turn).join('|')) bad.push('the first Old Testament page lists ' + names('[data-bb="ot"]').length + ' books, not Genesis to Esther in order: ' + names('[data-bb="ot"]').slice(-2).join(', '));
-  if (names('[data-bb="ot2"]').join('|') !== wantOT.slice(turn).join('|')) bad.push('the second Old Testament page lists ' + names('[data-bb="ot2"]').length + ' books, not Job to Malachi in order: ' + names('[data-bb="ot2"]').slice(0, 2).join(', '));
-  if (names('.is-ot').join('|') !== wantOT.join('|')) bad.push('the two Old Testament pages list ' + names('.is-ot').length + ' books between them, not the 39 in order');
-  if (names('.is-nt').join('|') !== wantNT.join('|')) bad.push('the New Testament page lists ' + names('.is-nt').length + ' books, not the 27 in order');
-  [...d.querySelectorAll('#s-stuff .bb-toc')].forEach(pg => {
-    const k = pg.firstElementChild, h = k && k.nextElementSibling;
-    if (!k || !k.classList.contains('fc-kick') || !h || h.tagName !== 'H3') bad.push('a testament page does not open on its kicker and then its title');
-  });
+  /* ---------- 2. KJV: EVERY VERSE, AND THE TESTAMENTS IN THEIR ORDER -------------------------------- */
+  if (!(await pick('bibleTranslation', 'KJV'))) return bad;
+  await wait(150);
+  const verses = w.stuffFiltered();
+  if (verses.length !== index.totals.verses) bad.push('KJV leaves ' + verses.length + ' verses, not ' + index.totals.verses);
+  if (verses !== w.bibleVerses_()) bad.push('KJV\'s list is not the verse list itself — every verse answers KJV, so nothing should have been copied');
+  if (!verses[0] || verses[0].key !== 'bible:kjv:1:1:1' || verses[verses.length - 1].key !== 'bible:kjv:66:22:21') {
+    bad.push('the verses run ' + (verses[0] && verses[0].name) + ' to ' + (verses.length && verses[verses.length - 1].name) + ' — not Genesis 1:1 to Revelation 22:21');
+  }
+  q = asked();
+  same(q.vals, ['Old Testament', 'New Testament'], 'after KJV the Testament question');
+  if (q.field !== 'bibleTestament') bad.push('after KJV the question is ' + q.field + ', not Testament');
+  tallies('KJV');
+  const gen = () => ofBible(a.gets).filter(u => /01-genesis\.json/.test(u)).length;
+  if (gen() !== 1) bad.push('drawing the first verses fetched Genesis ' + gen() + ' times — once, when its first card is drawn');
+  const c11 = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:1"] .bb-v');
+  if (!c11) bad.push('the first verse card was not drawn after KJV');
+  else if (c11.classList.contains('is-wait') || c11.textContent.trim() !== 'In the beginning God created the heaven and the earth.') {
+    bad.push('Genesis 1:1 drawn before its book landed still reads "' + c11.textContent.trim() + '" after it did — the card was not drawn again');
+  }
+  /* ONE FETCH PER BOOK HOWEVER MANY ASK AT ONCE — the same promise to every caller while it is in flight. */
+  const ex1 = w.bibleLoad_(2), ex2 = w.bibleLoad_(2);
+  if (ex1 !== ex2) bad.push('two cards of Exodus asking at once were given two fetches, not one');
+  await ex1;
+  if (ofBible(a.gets).filter(u => /02-exodus\.json/.test(u)).length !== 1) bad.push('Exodus was fetched ' + ofBible(a.gets).filter(u => /02-exodus\.json/.test(u)).length + ' times for two asks at once');
 
-  /* GENESIS, PRESSED. */
-  const press = async (sel, n) => {
-    const el = d.querySelector('#s-stuff ' + sel);
-    if (!el) { bad.push('no ' + sel + ' on the screen to press' + (n ? ' (' + n + ')' : '')); return false; }
-    t.ACTIONS[el.getAttribute('data-do')](el);
-    await wait(80);
-    return true;
-  };
-  const before = ofBible(a.gets).length;
-  if (!(await press('[data-do="bible-book"][data-n="1"]', 'Genesis'))) return bad;
-  const gen = ofBible(a.gets).slice(before);
-  if (gen.length !== 1 || !/data\/bible\/01-genesis\.json/.test(gen[0])) bad.push('pressing Genesis fetched ' + JSON.stringify(gen) + ' — not 01-genesis.json once');
+  /* ---------- 3. THE GROUPS, AND THE BOOKS OF ONE, IN THE BIBLE'S ORDER ----------------------------- */
+  if (!(await pick('bibleTestament', 'Old Testament'))) return bad;
+  q = asked();
+  if (q.field !== 'bibleGroup') bad.push('after Old Testament the question is ' + q.field + ', not Group');
+  same(q.vals, ['Torah', 'History', 'Poetry & Wisdom', 'Major Prophets', 'Minor Prophets'], 'the Old Testament\'s Group question');
+  tallies('Old Testament');
+  setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'New Testament' }]));
+  same(asked().vals, ['Gospels', 'Church History', 'Pauline Epistles', 'General Epistles', 'Prophecy'], 'the New Testament\'s Group question');
+  tallies('New Testament');
+  setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }]));
+  if (!(await pick('bibleGroup', 'Torah'))) return bad;
+  q = asked();
+  same(q.vals, ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy'], 'Torah\'s Book question');
+  tallies('Torah');
+
+  /* ---------- 4. GENESIS: ITS CHAPTERS AS A GRID; CHAPTER 1: ITS VERSES, EVERY ONE DRAWN FROM THE FILE --- */
+  if (!(await pick('bibleBook', 'Genesis'))) return bad;
+  q = asked();
+  if (q.field !== 'bibleChapter' || !q.grid) bad.push('after Genesis the question is ' + q.field + (q.grid ? '' : ', not drawn as a grid'));
+  same(q.vals, run(50), 'Genesis\'s Chapter question');
+  tallies('Genesis');
+  if (!(await pick('bibleChapter', '1'))) return bad;
+  q = asked();
+  if (q.field !== 'bibleVerse' || !q.grid) bad.push('after Genesis 1 the question is ' + q.field + (q.grid ? '' : ', not drawn as a grid'));
+  same(q.vals, run(31), 'Genesis 1\'s Verse question');
+  tallies('Genesis 1');
   const genesis = JSON.parse(fs.readFileSync(path.join(bibleDir, '01-genesis.json'), 'utf8'));
-  const parts = w.pageParts_(x);
-  const chParts = parts.filter(p => /^c\d+/.test(p || ''));
-  /* THE BOOK AFTER ALL THREE LISTS, not after its own testament. Between the Old Testament and the New
-     it put Genesis's every page — 328 swipes at 320px from one list to the other. */
-  if (JSON.stringify(parts.slice(0, 5)) !== JSON.stringify(LISTS.concat(['bk'])) || !/^c\d+/.test(parts[parts.length - 1] || '') || !chParts.length) {
-    bad.push('with Genesis open the Bible is pages ' + JSON.stringify(parts).slice(0, 90) + ' — not the cover, the three lists, then Genesis');
-  }
-  const at = p => first + parts.indexOf(p);
-  if (t.PAGE().stuff !== at('bk')) bad.push('pressing Genesis did not turn to its chapter numbers — page ' + t.PAGE().stuff + ', the numbers are ' + at('bk'));
-  const grid = d.querySelectorAll('#s-stuff .bb-chs [data-do="bible-ch"]');
-  if (grid.length !== 50) bad.push('Genesis offers ' + grid.length + ' chapter numbers, not 50');
-
-  /* CHAPTER 1, PRESSED AND READ. */
-  if (!(await press('[data-do="bible-ch"][data-ch="1"]', 'chapter 1'))) return bad;
-  if (t.PAGE().stuff !== at('c1')) bad.push('pressing 1 did not turn to Genesis 1 — page ' + t.PAGE().stuff + ', Genesis 1 is ' + at('c1'));
-  const c1 = d.querySelector('#s-stuff .card.bb-text.is-c1');
-  if (!c1) bad.push('Genesis 1 is not drawn on the screen after turning to it');
-  else {
-    const h = c1.querySelector('h3');
-    if (!h || h.textContent.trim() !== 'Genesis 1') bad.push('the chapter page is titled "' + (h && h.textContent.trim()) + '", not Genesis 1');
-    const v1 = c1.querySelector('.bb-v');
-    const n1 = v1 && v1.querySelector('.bb-n');
-    if (!v1 || !n1 || n1.textContent.trim() !== '1') bad.push('the first verse does not carry its number 1');
-    const words = v1 ? v1.textContent.replace(/^\s*1\s*/, '').trim() : '';
-    if (words !== 'In the beginning God created the heaven and the earth.') bad.push('Genesis 1:1 reads "' + words + '"');
-    if (!/darkness <i>was<\/i> upon the face of the deep/.test(c1.innerHTML)) bad.push('Genesis 1:2\'s [was] is not drawn as italics');
-    if (/[\[\]]/.test(c1.textContent)) bad.push('a bracket is left standing on Genesis 1');
-    if (/#/.test(c1.textContent)) bad.push('a pilcrow # is drawn on Genesis 1');
-    const k = c1.firstElementChild, t3 = k && k.nextElementSibling;
-    if (!k || !k.classList.contains('fc-kick') || !t3 || t3.tagName !== 'H3') bad.push('a chapter page does not open on its kicker and then its title');
-  }
-  /* EVERY VERSE OF GENESIS ON EXACTLY ONE PAGE, IN ORDER — the pages as the app draws them. */
-  const drawn = [];
-  chParts.forEach(p => {
-    const pg = box(w.stuffPart_(x, p));
-    const ch = Number(/^c(\d+)/.exec(p)[1]);
-    pg.querySelectorAll('.bb-v').forEach(v => drawn.push(ch + ':' + v.querySelector('.bb-n').textContent.trim() + ' '
-      + v.textContent.replace(/^\s*\d+\s*/, '').trim()));
+  const ch1 = w.stuffFiltered();
+  same(ch1.map(i => i.key), run(31).map(v => 'bible:kjv:1:1:' + v), 'Genesis 1\'s results');
+  /* THE FILE'S VERSE AS A CARD MUST PRINT IT, WRITTEN OUT HERE AND NOT ASKED OF `bibleV_`. This compared
+     each card with `bibleV_` of the same verse — the function that drew it, so it was comparing the card
+     with itself, and the review's slip in `bibleV_` (the words inside the pilcrow's ternary, every
+     paragraph-opening verse a bare `¶`) passed it. Escaped, `[word]` in italics, the `#` taken off and
+     the pilcrow printed in front instead: the 1611 conventions, stated by the journey. */
+  const escH = s2 => String(s2).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const printed = raw => '<p class="bb-v">' + (/^#/.test(raw) ? '<span class="bb-para" aria-hidden="true">¶</span> ' : '')
+    + escH(raw.replace(/^#\s*/, '')).replace(/\[([^\[\]]*)\]/g, '<i>$1</i>') + '</p>';
+  ch1.forEach((v, i) => {
+    const html = w.stuffCard(v);
+    const card = box(html);
+    const p = card.querySelector('.card.bb-verse .bb-v');
+    const text = p ? p.textContent : '';
+    if (!p || p.outerHTML !== box(printed(genesis.chapters[0][i])).firstElementChild.outerHTML) bad.push(v.name + ' is drawn as "' + text.slice(0, 60) + '", not the file\'s verse');
+    if (/[\[\]]/.test(text) || /^\s*#/.test(text)) bad.push(v.name + ' shows a bracket or a # — "' + text.slice(0, 60) + '"');
+    if (card.querySelector('[data-do="bible-go"]')) bad.push(v.name + ' carries a Chapter tile while Genesis 1 is the list — it would land where you are');
+    const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
+    if (i === 0 && tags.join('|') !== 'Verse|Genesis 1:1|KJV|Old Testament|Torah') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
   });
-  const want = [];
-  genesis.chapters.forEach((vs, ci) => vs.forEach((v, vi) => want.push((ci + 1) + ':' + (vi + 1) + ' ' + v.replace(/^#\s*/, '').replace(/[\[\]]/g, ''))));
-  if (drawn.length !== want.length) bad.push('Genesis is drawn as ' + drawn.length + ' verses across its pages; the book has ' + want.length);
+  const v2 = box(w.stuffCard(ch1[1])).querySelector('.bb-v');
+  if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
+  if (!box(w.stuffCard(ch1[5])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:6 starts a paragraph in the 1611 text and carries no pilcrow');
+  /* AND ITS WORDS, BY EYE: the first verse under a pilcrow is the one a slip there blanks. */
+  const v6 = box(w.stuffCard(ch1[5])).querySelector('.bb-v');
+  if (!v6 || v6.textContent.indexOf('Let there be a firmament in the midst of the waters') < 0) bad.push('Genesis 1:6 reads "' + (v6 ? v6.textContent.trim().slice(0, 60) : 'nothing') + '" — not "And God said, Let there be a firmament in the midst of the waters"');
+  if (box(w.stuffCard(ch1[0])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:1 carries a pilcrow it does not have');
+
+  /* ---------- 5. VERSE 3: ONE CARD, THE LINE THAT SAYS SO, AND ITS CHAPTER TILE ----------------------- */
+  if (!(await pick('bibleVerse', '3'))) return bad;
+  const v3 = w.stuffFiltered();
+  if (v3.length !== 1 || v3[0].key !== 'bible:kjv:1:1:3') bad.push('Genesis 1:3 leaves ' + v3.map(i => i.name).join(', '));
+  q = asked();
+  if (q.vals.length) bad.push('after the verse the funnel still asks ' + q.field);
+  if (q.end !== 'Genesis 1:3. Swipe up for it.') bad.push('the line under the chips says "' + q.end + '", not "Genesis 1:3. Swipe up for it."');
+  tallies('Genesis 1:3');
+  const v3card = box(w.stuffCard(v3[0]));
+  if (!/And God said, Let there be light: and there was light\./.test((v3card.querySelector('.bb-v') || {}).textContent || '')) bad.push('Genesis 1:3 does not read "And God said, Let there be light: and there was light."');
+  if (gen() !== 1) bad.push('Genesis was fetched ' + gen() + ' times by the end of chapter 1');
+  const go3 = d.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+  if (!go3) bad.push('Genesis 1:3 found alone has no Chapter tile drawn under it');
   else {
-    const i = drawn.findIndex((s, j) => s !== want[j]);
-    if (i >= 0) bad.push('Genesis is drawn out of order or altered at ' + want[i].slice(0, 60) + ' — drawn ' + drawn[i].slice(0, 60));
-  }
-  /* THE WAY BACK UP, ON EVERY PAGE OF EVERY CHAPTER — not only a chapter's last, which left Psalm 119's
-     first page twenty-one swipes from any way out. Pressed from the FIRST page of Genesis 1, which is
-     mid-chapter whenever the chapter is longer than a page. */
-  const c1parts = chParts.filter(p => /^c1(-|$)/.test(p));
-  if (c1parts.length < 2) bad.push('Genesis 1 is one page, so a way out from the middle of a chapter was NOT checked');
-  const noWay = chParts.filter(p => !box(w.stuffPart_(x, p)).querySelector('.tile-row [data-do="bible-to"][data-to="bk"]'));
-  if (noWay.length) bad.push(noWay.length + ' of Genesis\'s ' + chParts.length + ' text pages have no tile back to the chapter numbers, first ' + noWay[0]);
-  t.goPage('stuff', at(c1parts[0]));
-  await wait(30);
-  if (await press('.is-' + c1parts[0] + ' [data-do="bible-to"]', 'back to the numbers from the first page of Genesis 1')) {
-    if (t.PAGE().stuff !== at('bk')) bad.push('the tile on the first page of Genesis 1 did not go back to its chapter numbers');
-  }
-  /* AND THE NUMBERS BACK TO THE LIST THEIR BOOK IS ON — three pages behind them, past the New
-     Testament, which is why it is a tile and not a swipe. */
-  if (await press('.bb-chs.is-bk [data-do="bible-to"]', 'Genesis\'s numbers back to the Old Testament')) {
-    if (t.PAGE().stuff !== at('ot')) bad.push('the tile under Genesis\'s chapter numbers did not go back to the Old Testament page it is listed on — page ' + t.PAGE().stuff + ', the list is ' + at('ot'));
+    t.ACTIONS['bible-go'](go3);
+    await wait(80);
+    const f = t.STUFF().filters, last = f[f.length - 1] || {};
+    if (last.field !== 'bibleChapter' || last.value !== '1' || f.some(c => c.field === 'bibleVerse')) bad.push('the Chapter tile set the chips to ' + JSON.stringify(f));
+    if (w.stuffFiltered().length !== 31) bad.push('the Chapter tile left ' + w.stuffFiltered().length + ' verses, not Genesis 1\'s 31');
+    if (t.PAGE().stuff !== w.stuffFirstResult_() + 2) bad.push('the Chapter tile turned to page ' + t.PAGE().stuff + ', not Genesis 1:3 (' + (w.stuffFirstResult_() + 2) + ')');
   }
 
-  /* GENESIS AGAIN: HELD FOR THE VISIT, SO NOT FETCHED TWICE. */
-  t.goPage('stuff', first + 1);
-  await wait(30);
-  const n0 = ofBible(a.gets).length;
-  await press('[data-do="bible-book"][data-n="1"]', 'Genesis again');
-  if (ofBible(a.gets).length !== n0) bad.push('opening Genesis a second time fetched it again — the book is not held for the visit');
-  if (t.PAGE().stuff !== at('bk')) bad.push('opening Genesis a second time did not turn to its chapter numbers');
+  /* ---------- 6. THE LONGEST RUNS: PSALMS'S 150 CHAPTERS AND PSALM 119'S 176 VERSES ------------------- */
+  setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' }]));
+  if (!(await pick('bibleBook', 'Psalms'))) return bad;
+  q = asked();
+  same(q.vals, run(150), 'Psalms\'s Chapter question');
+  if (!q.grid) bad.push('Psalms\'s 150 chapters are not drawn as a grid');
+  const nfPs = w.nextFacet(w.stuffFiltered());
+  if (!nfPs || nfPs.field !== 'bibleChapter') bad.push('nextFacet asks ' + (nfPs ? nfPs.field : 'nothing') + ' of Psalms — a grid is exempt from the answer cap, so it should be Chapter, not left to overFacet_');
+  if (!(await pick('bibleChapter', '119'))) return bad;
+  q = asked();
+  same(q.vals, run(176), 'Psalm 119\'s Verse question');
+  const nf119 = w.nextFacet(w.stuffFiltered());
+  if (!nf119 || nf119.field !== 'bibleVerse') bad.push('nextFacet asks ' + (nf119 ? nf119.field : 'nothing') + ' of Psalm 119 — Verse, its 176 as a grid');
+  tallies('Psalm 119');
+  if (!(await pick('bibleVerse', '105'))) return bad;
+  let lamp = null;
+  for (let i = 0; i < 40 && !(lamp && !lamp.classList.contains('is-wait')); i++) {
+    await wait(25);
+    lamp = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:19:119:105"] .bb-v');
+  }
+  if (!lamp || lamp.innerHTML.indexOf('Thy word <i>is</i> a lamp unto my feet, and a light unto my path.') < 0) {
+    bad.push('Psalm 119:105 reads "' + (lamp ? lamp.textContent.trim() : 'nothing') + '"');
+  }
 
-  /* THE NEW TESTAMENT, WHERE IT ALWAYS IS: the lists do not move when a book opens, so it is the page
-     after the two Old Testament ones with Genesis open as with nothing. */
-  if (w.pageParts_(x).indexOf('nt') !== 3) bad.push('with Genesis open the New Testament is page ' + w.pageParts_(x).indexOf('nt') + ' of the Bible, not 3 — a book is standing between the lists');
-  t.goPage('stuff', first + 3);
-  await wait(30);
-  await press('[data-do="bible-book"][data-n="40"]', 'Matthew');
-  const mp = w.pageParts_(x);
-  if (JSON.stringify(mp.slice(0, 5)) !== JSON.stringify(LISTS.concat(['bk']))) bad.push('with Matthew open the Bible is pages ' + JSON.stringify(mp.slice(0, 6)) + ' — not the three lists and then Matthew');
-  if (mp.filter(p => /^c\d+$/.test(p || '')).length !== 28) bad.push('Matthew has ' + mp.filter(p => /^c\d+$/.test(p || '')).length + ' chapters\' first pages, not 28');
-  if (t.PAGE().stuff !== first + mp.indexOf('bk')) bad.push('pressing Matthew did not turn to its chapter numbers');
-  if (!box(w.stuffPart_(x, 'bk')).querySelector('[data-do="bible-to"][data-to="nt"]')) bad.push('Matthew\'s chapter numbers have no tile back to the New Testament');
+  /* ---------- 7. ONE-ANSWER RUNGS ARE STILL ASKED — EVERY RUNG IS A FOLDER ---------------------------- */
+  const nt = { field: 'bibleTestament', value: 'New Testament' };
+  setTo(DOORS.concat([KJV, nt, { field: 'bibleGroup', value: 'Church History' }]));
+  same(asked().vals, ['Acts'], 'Church History\'s Book question');
+  setTo(DOORS.concat([KJV, nt, { field: 'bibleGroup', value: 'Prophecy' }]));
+  same(asked().vals, ['Revelation'], 'Prophecy\'s Book question');
+  setTo(DOORS.concat([KJV, nt, { field: 'bibleGroup', value: 'General Epistles' }, { field: 'bibleBook', value: 'Jude' }]));
+  q = asked();
+  if (q.field !== 'bibleChapter') bad.push('Jude asks ' + (q.field || 'nothing') + ', not Chapter');
+  same(q.vals, ['1'], 'Jude\'s Chapter question');
 
-  /* PSALMS, WHOSE NUMBERS ARE MORE THAN ONE PAGE: a psalm goes back to the page of numbers it is on,
-     not the first. With no layout to measure (jsdom) a page offers `BIBLE_GRID` numbers — three pages
-     of fifty — so Psalm 119 is on the third. On a phone the pages are the measured pane's rows. */
-  t.goPage('stuff', first + 2);
-  await wait(30);
-  await press('[data-do="bible-book"][data-n="19"]', 'Psalms');
-  const pp = w.pageParts_(x);
-  const grids = pp.filter(p => /^bk/.test(p || ''));
-  if (grids.length < 2) bad.push('Psalms has ' + grids.length + ' page(s) of chapter numbers — the many-page grid was NOT checked');
+  /* ---------- 8. EVERY RUNG SKIPPED: BOOK BEFORE CHAPTER, DRAWN WHOLE; THEN THE LONGEST RUNS ---------- */
+  setTo(DOORS.concat([KJV]));
+  if (await skip('bibleTestament') && await skip('bibleGroup')) {
+    const list = w.stuffFiltered();
+    q = asked();
+    if (q.field !== 'bibleBook' || q.vals.length !== index.books.length) bad.push('with Testament and Group skipped the question is ' + q.field + ' with ' + q.vals.length + ' answers — Book, all 66, before any chapter');
+    else same(q.vals, index.books.map(b => b.book), 'Book over the whole Bible');
+    if (w.nextFacet(list)) bad.push('nextFacet asks ' + w.nextFacet(list).field + ' with Testament and Group skipped — Book is over the cap, and nothing else may go before it');
+    tallies('Testament and Group skipped');
+    if (await skip('bibleBook')) {
+      q = asked();
+      if (q.field !== 'bibleChapter' || q.vals.length !== 150) bad.push('with Book skipped too the question is ' + q.field + ' with ' + q.vals.length + ' answers — Chapter, 1 to 150');
+      if (await skip('bibleChapter')) {
+        q = asked();
+        if (q.field !== 'bibleVerse' || q.vals.length !== 176) bad.push('with Chapter skipped too the question is ' + q.field + ' with ' + q.vals.length + ' answers — Verse, 1 to 176');
+      }
+    }
+  }
+
+  /* ---------- 9. A CHIP DROPPED, A CHIP FORGED, A CITATION TYPED --------------------------------------- */
+  setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' }]));
+  const kjvChip = d.querySelector('#stuff-chips [data-do="filter-drop"][data-i="3"]');
+  if (!kjvChip) bad.push('there is no ✕ on the KJV chip to press');
   else {
-    const holding = grids.find(g => box(w.stuffPart_(x, g)).querySelector('[data-do="bible-ch"][data-ch="119"]'));
-    const back = box(w.stuffPart_(x, 'c119')).querySelector('[data-do="bible-to"]');
-    if (!holding || !back || back.getAttribute('data-to') !== holding) bad.push('Psalm 119\'s tile goes back to ' + (back && back.getAttribute('data-to')) + ', not ' + holding + ', the page of numbers it is on');
-    if (grids.some(g => !box(w.stuffPart_(x, g)).querySelector('[data-do="bible-to"][data-to="ot2"]'))) bad.push('a page of Psalms\'s numbers has no tile back to the second Old Testament page, where Psalms is listed');
+    t.ACTIONS['filter-drop'](kjvChip);
+    q = asked();
+    if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('KJV dropped with the other rungs on asks ' + q.field + ' ' + JSON.stringify(q.vals) + ' — Translation again, like any dropped chip');
+    if (w.stuffFiltered().length !== 5852) bad.push('KJV dropped leaves ' + w.stuffFiltered().length + ' verses, not the Torah\'s 5,852');
   }
+  setTo(DOORS.concat([{ field: 'subject', value: 'Maths' }, KJV]));
+  if (w.stuffFiltered().length) bad.push('a forged Subject: Maths chip beside KJV leaves ' + w.stuffFiltered().length + ' verses — the cover answers the chips that are not the Bible\'s, and it is not Maths');
+  setTo(DOORS.concat([KJV]));
+  t.STUFF().q = 'john 3:16';
+  same(w.stuffFiltered().slice(0, 3).map(i => i.name), ['John 3:16', 'John 13:16', '1 John 3:16'], '"john 3:16" typed inside the Bible');
+  t.STUFF().q = '';
 
-  /* A BOOK THAT DOES NOT COME: said on the list, a toast, and the open book kept. */
+  /* ---------- 9b. A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE ---------------------------
+     FOUND BY THE REVIEW: `testaments`, `old and new testaments` and `poetry and wisdom` typed on the
+     Books shelf kept the cover and asked Translation, and KJV then answered "Nothing matches" — the
+     cover's haystack was every book's words in one string, and a `sub` no verse had. So every search
+     below is asked both ways, by the app's own path: on the Books shelf (is the cover there?) and with
+     KJV pressed (is any verse?). The two answers must be the same answer. The words are the ones the
+     cover's old haystack held — its name, each testament, group and book, `and`, `testaments` — and the
+     pairs that cross a group or a testament, and citations, which a verse's name carries and its
+     book's words do not. */
+  const crossWords = ['bible', 'kjv', 'king james', 'scripture', 'the', '(king', 'version)', 'and', 'testament', 'testaments',
+    'old testament', 'new testament', 'old and new testaments', 'poetry and wisdom', 'poetry & wisdom', 'torah gospels',
+    'old new', 'pauline torah', 'genesis exodus', 'psalm', 'psalm 23', 'psalm 151', 'john 3:16', '1 john 3:16', 'jude 2',
+    'jude 1:26', 'revelation 22:21', 'revelation 22:22', 'esther 8:9', 'genesis 51', '119:176', '119:177', 'fractions']
+    .concat([...new Set(index.books.map(b => b.group))].map(g => g.toLowerCase()), index.books.map(b => b.book.toLowerCase()));
+  /* ASKED OF THE LIST, NOT DRAWN: a drawn verse fetches its book, and Leviticus has to be still to come
+     for step 11's refusal to mean anything. */
+  const asking = (list, q2) => { t.STUFF().filters = list.map(f => Object.assign({}, f)); t.STUFF().q = q2; return w.stuffFiltered(); };
+  const crossBad = [];
+  let crossKept = 0;
+  crossWords.forEach(q2 => {
+    const cover = asking(DOORS, q2).some(i => i.kind === 'bible' && !i.bb);
+    const n = asking(DOORS.concat([KJV]), q2).length;
+    if (cover) crossKept++;
+    if (cover !== (n > 0) && crossBad.length < 6) {
+      crossBad.push('"' + q2 + '" ' + (cover ? 'keeps the cover and KJV leaves no verse' : 'loses the cover and KJV would leave ' + n + ' verses'));
+    }
+  });
+  if (crossBad.length) bad.push('a search on the Books shelf and the same search inside the Bible disagree: ' + crossBad.join(' | '));
+  if (crossKept < index.books.length) bad.push('only ' + crossKept + ' of ' + crossWords.length + ' searches kept the cover — the comparison above was NOT reached for the books, so it is not a pass');
+  /* AND ONE OF THEM BY THE SCREEN: a citation typed on the shelf, Translation asked, KJV pressed. */
+  setTo(DOORS); t.STUFF().q = 'psalm 23'; w.paintStuff();
+  q = asked();
+  if (q.field !== 'bibleTranslation') bad.push('"psalm 23" typed on the Books shelf asks ' + (q.field || 'nothing') + ' — the cover, and Translation, because Psalm 23 is a verse of it');
+  else if (await pick('bibleTranslation', 'KJV')) {
+    if (!w.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" with KJV pressed does not hold Psalm 23:1 — it leaves ' + w.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
+  }
+  t.STUFF().q = '';
+
+  /* ---------- 10. EVERY BOOK AND EVERY CHAPTER, WALKED -------------------------------------------------
+     THROUGH THE FUNNEL'S OWN NARROWING AND ITS OWN QUESTION, chip by chip as a finger would set them, but
+     without drawing 1,255 screens: every book asks Chapter with exactly its chapters, every chapter asks
+     Verse with exactly its verses, and every chapter's list is its verses in order. */
+  const all = w.bibleVerses_();
+  let walked = 0;
+  const walkBad = [];
+  index.books.forEach(b => {
+    const head = DOORS.concat([KJV, { field: 'bibleTestament', value: b.testament === 'NT' ? 'New Testament' : 'Old Testament' },
+                               { field: 'bibleGroup', value: b.group }, { field: 'bibleBook', value: b.book }]);
+    t.STUFF().filters = head.map(f => Object.assign({}, f));
+    const list = w.stuffNarrow_(all, [{ field: 'bibleBook', value: b.book }], [], 0);
+    const nf = w.nextFacet(list);
+    const vals = nf ? w.facetValues(list, nf).map(v => String(v.value)) : [];
+    if (!nf || nf.field !== 'bibleChapter' || vals.join('|') !== run(b.chapters).join('|')) {
+      if (walkBad.length < 4) walkBad.push(b.book + ' asks ' + (nf ? nf.field : 'nothing') + ' with ' + vals.length + ' answers');
+      return;
+    }
+    b.chapterVerses.forEach((n, ci) => {
+      t.STUFF().filters = head.concat([{ field: 'bibleChapter', value: String(ci + 1) }]).map(f => Object.assign({}, f));
+      const cl = w.stuffNarrow_(list, [{ field: 'bibleChapter', value: String(ci + 1) }], [], 0);
+      const vf = w.nextFacet(cl);
+      const vv = vf ? w.facetValues(cl, vf).map(v => String(v.value)) : [];
+      const keys = cl.map(i => i.key).join('|');
+      const want = run(n).map(v => 'bible:kjv:' + b.n + ':' + (ci + 1) + ':' + v).join('|');
+      if (!vf || vf.field !== 'bibleVerse' || vv.join('|') !== run(n).join('|') || keys !== want) {
+        if (walkBad.length < 4) walkBad.push(b.book + ' ' + (ci + 1) + ' asks ' + (vf ? vf.field : 'nothing') + ' with ' + vv.length + ' answers over ' + cl.length + ' verses');
+      } else walked++;
+    });
+  });
+  t.STUFF().filters = [];
+  if (walkBad.length) bad.push('walking every chapter, ' + walkBad.join(' | '));
+  if (walked !== index.totals.chapters) bad.push('the walk reached ' + walked + ' of ' + index.totals.chapters + ' chapters whole');
+
+  /* ---------- 11. A BOOK THAT DOES NOT COME, SAID ONCE, AND A SECOND TRY -------------------------------- */
   refuse.add('03-leviticus.json');
-  t.goPage('stuff', first + 1);
-  await wait(30);
-  await press('[data-do="bible-book"][data-n="3"]', 'Leviticus');
-  await wait(60);
-  if (t.BIBLE().open !== 19) bad.push('a book that failed to arrive changed the open book to ' + t.BIBLE().open);
-  const miss = d.querySelector('#s-stuff .bb-toc.is-ot .bb-miss');
-  if (!miss || !/Leviticus/.test(miss.textContent)) bad.push('a book that failed to arrive is not said on the Old Testament page');
-  const toastEl = d.getElementById('toast');
-  if (!toastEl || !/Leviticus/.test(toastEl.textContent)) bad.push('a book that failed to arrive raised no toast naming it');
+  setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' }]));
+  toasts.length = 0;
+  const levBtn = answersOn().find(b => b.dataset.field === 'bibleBook' && b.dataset.value === 'Leviticus');
+  if (!levBtn) bad.push('no Book answer "Leviticus" to press under Torah');
+  else {
+    t.ACTIONS['facet-pick'](levBtn);
+    /* AND THREE MORE CARDS OF IT DRAWN WHILE IT IS ON ITS WAY — as Saved, or the pages filled a beat
+       later, would draw them. Every one of them is waiting on the same fetch, and the failure is one. */
+    w.stuffFiltered().slice(1, 4).forEach(v => w.stuffCard(v));
+    await wait(150);
+    const miss = d.querySelector('#s-stuff .card.bb-verse[data-bn="3"] .bb-miss');
+    if (!miss || !/Leviticus/.test(miss.textContent)) bad.push('Leviticus did not arrive and its cards do not say so');
+    const said = toasts.filter(m => /Leviticus/.test(m)).length;
+    if (said !== 1) bad.push('Leviticus did not arrive and ' + said + ' toasts said so — one, however many cards were waiting on it');
+    const again = d.querySelector('#s-stuff [data-do="bible-retry"][data-n="3"]');
+    if (!again) bad.push('a verse of Leviticus, which did not arrive, has no Try again tile');
+    else {
+      refuse.delete('03-leviticus.json');
+      t.ACTIONS['bible-retry'](again);
+      await wait(150);
+      const lev = JSON.parse(fs.readFileSync(path.join(bibleDir, '03-leviticus.json'), 'utf8'));
+      const back = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:3:1:1"] .bb-v');
+      if (!back || back.classList.contains('is-wait') || back.textContent.trim() !== lev.chapters[0][0].replace(/^#\s*/, '').replace(/[\[\]]/g, '')) {
+        bad.push('Try again did not draw Leviticus 1:1 — it reads "' + (back ? back.textContent.trim().slice(0, 60) : 'nothing') + '"');
+      }
+      if (ofBible(a.gets).filter(u => /03-leviticus\.json/.test(u)).length !== 2) bad.push('Leviticus was fetched ' + ofBible(a.gets).filter(u => /03-leviticus\.json/.test(u)).length + ' times — once refused, once again on Try again');
+    }
+  }
   if (a.errs.length) bad.push('errors while reading: ' + a.errs.slice(0, 3).join(' | '));
 
-  /* THE BOOK NAMES ARE IN THE SEARCH, learned when the index landed. */
-  t.STUFF().filters = []; t.STUFF().q = 'psalms';
-  if (!w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" does not find the Bible — the book names are not in its haystack');
-  t.STUFF().q = '';
-  /* AND WHEN THE INDEX LANDS AFTER FIND WAS BUILT — held back here until the payload is in and the list
-     made, which is the slow-network order. A search typed while it was on its way must not keep its
-     answer once it lands. */
+  /* ---------- 12. THE INDEX LANDING AFTER FIND WAS BUILT ------------------------------------------------
+     Held back here until the payload is in and the list made, which is the slow-network order. The
+     Books shelf says it is on its way and then asks Translation by itself; a search typed while it was
+     on its way finds the cover once it lands; and KJV with `psalms` still typed is the Psalms. */
   let release = null;
   const late = new Promise(r => { release = r; });
   const slow = boot({ payload: base(), before: seed(admin),
                       serve: url => (/data\/bible\/index\.json/.test(url) ? late.then(() => serve(url)) : serve(url)) });
   await wait(300);
-  const st = slow.w.__t;
+  const st = slow.w.__t, sd = slow.w.document;
   st.go('stuff');
-  st.STUFF().filters = []; st.STUFF().q = 'psalms';
+  st.STUFF().q = '';
+  st.STUFF().filters = DOORS.map(f => Object.assign({}, f));
+  slow.w.paintStuff();
+  const said = () => ((sd.getElementById('stuff-groups') || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!/on its way/.test(said())) bad.push('the Books shelf with the index still coming says "' + said().trim().slice(0, 80) + '" — not that the list of books is on its way');
+  st.STUFF().q = 'psalms';
   const early = slow.w.stuffFiltered().some(i => i.kind === 'bible');
+  slow.w.paintStuff();
   release();
-  await wait(60);
+  await wait(80);
   if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
   else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
+  if (!sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
+  const kjvLate = sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
+  if (kjvLate) {
+    st.ACTIONS['facet-pick'](kjvLate);
+    const n = slow.w.stuffFiltered().length;
+    if (n !== 2461) bad.push('KJV with "psalms" typed leaves ' + n + ' verses, not the Psalms\' 2,461');
+  }
   st.STUFF().q = '';
 
-  /* AND NOT BEFORE THE LIBRARY. With `data/questions.json` still on its way an admin's Find has to say
-     the questions are still coming — the Bible stands on shelves that arrive with the library, and on
-     its own it turned that sentence into a funnel of one book. The library is held back for good here,
-     which is the slow phone frozen at its worst moment. */
+  /* ---------- 13. NOT BEFORE THE LIBRARY ----------------------------------------------------------------
+     With `data/questions.json` still on its way an admin's Find has to say the questions are still
+     coming — the Bible stands on shelves that arrive with the library, and on its own it turned that
+     sentence into a funnel of one book. Held back for good, the slow phone frozen at its worst moment. */
   const held = boot({ payload: base(), before: seed(admin),
                       serve: url => (/data\/questions\.json/.test(url) ? new Promise(() => {}) : serve(url)) });
   await wait(300);
@@ -9037,25 +9974,52 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
     bad.push('an admin\'s Find with the library still on its way does not say the questions are still coming');
   }
 
-  /* KEPT: the star puts the cover and all three lists on Saved. */
-  const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
-  if (!fav) bad.push('the Bible cover has no Save tile');
+  /* ---------- 14. KEPT: A STARRED VERSE ON SAVED, THE OLD STAR ON THE COVER, AND BACK INTO ITS CHAPTER --- */
+  const x13 = w.bibleByKey_('bible:kjv:1:1:3');
+  const fav13 = x13 && box(w.stuffCard(x13)).querySelector('[data-do="fav"]');
+  const coverItem = w.stuffItems().find(i => i.kind === 'bible');
+  const favCover = coverItem && box(w.stuffCard(coverItem)).querySelector('[data-do="fav"]');
+  if (!fav13 || !favCover) bad.push('a verse or the cover has no Save tile');
   else {
-    t.ACTIONS.fav(fav);
-    const saved = t.savedPages().join('');
-    if (!/card fc prac bible/.test(saved) || !/data-bb="ot"/.test(saved) || !/data-bb="ot2"/.test(saved) || !/data-bb="nt"/.test(saved)) bad.push('the Bible was starred and Saved does not draw its cover and all three lists of books');
+    t.ACTIONS.fav(fav13);
+    t.ACTIONS.fav(favCover);
+    const saved = box(t.savedPages().join(''));
+    if (!saved.querySelector('.card.bb-verse[data-key="bible:kjv:1:1:3"]')) bad.push('Genesis 1:3 was starred and Saved does not draw it');
+    const kept = saved.querySelector('.card.bible[data-bb="card"]');
+    const open = kept && kept.closest('.favwrap') && kept.closest('.favwrap').nextElementSibling;
+    if (!kept) bad.push('the Bible\'s cover was starred (`bible:kjv`, the key the first build starred) and Saved does not draw it');
+    else if (!open || !open.querySelector('[data-do="bible-go"]:not([data-key])')) bad.push('the cover on Saved has no Open tile — it is the one way into the Bible from there');
+    const back = saved.querySelector('[data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+    if (!back) bad.push('Genesis 1:3 on Saved has no Chapter tile');
+    else {
+      setTo([]);
+      t.go('saved');
+      await wait(60);
+      t.ACTIONS['bible-go'](back);
+      await wait(80);
+      if (t.AT() !== 'stuff') bad.push('the Chapter tile on Saved left the app on ' + t.AT() + ', not Find');
+      const f = t.STUFF().filters;
+      if (!f.some(c => c.field === 'bibleChapter' && c.value === '1') || !f.some(c => c.field === 'bibleBook' && c.value === 'Genesis')) bad.push('the Chapter tile on Saved set the chips to ' + JSON.stringify(f));
+      if (t.PAGE().stuff !== w.stuffFirstResult_() + 2) bad.push('the Chapter tile on Saved turned to page ' + t.PAGE().stuff + ', not Genesis 1:3');
+    }
   }
 
-  /* ---------- AND SIGNING OUT FROM INSIDE IT LEAVES NOTHING OF IT ------------------------------------
-     FOUND BY THE REVIEW: an admin signed out on the Books shelf left "WHAT KIND Resources ✕ SHELF
-     Books ✕" and "Nothing matches" on the signed-out Find — the name of the shelf only an admin is
-     shown, on the screen of whoever picks the phone up next. Signed out from the reader as a finger
-     would, on Genesis 1, with the search box holding a word too. */
+  /* ---------- 15. MADE A TUTOR WITHOUT SIGNING OUT: THE VERSES GO AT THE NEXT LOOK -------------------- */
+  setTo(DOORS.concat([KJV]));
+  const inside = w.stuffFiltered().length;
+  t.USER(Object.assign({}, admin, { role: 'tutor', roles: ['tutor'] }));
+  const after = w.stuffFiltered().length;
+  t.USER(admin);
+  if (!inside) bad.push('the Bible was not open before the demotion, so the demotion was NOT checked');
+  else if (after) bad.push('an admin made a tutor inside the Bible is still handed ' + after + ' verses — the memo held the list the role no longer has');
+
+  /* ---------- 16. AND SIGNING OUT FROM INSIDE IT LEAVES NOTHING OF IT ------------------------------------
+     FOUND BY THE FIRST REVIEW: an admin signed out on the Books shelf left "WHAT KIND Resources ✕ SHELF
+     Books ✕" on the signed-out Find. Signed out from Genesis, with a word typed too — and then the
+     Bible's tiles pressed by whoever picks the phone up, with its index still in memory. */
   t.go('stuff');
+  setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }]));
   t.STUFF().q = 'genesis';
-  t.STUFF().filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
-  w.paintStuff();
-  /* TYPED, as a finger types: `paintStuff` never rewrites the box, so the word goes in by hand. */
   const qBox = d.getElementById('stuff-q');
   if (!qBox) bad.push('there is no search box on Find, so whether its word is left behind was NOT checked');
   else qBox.value = 'genesis';
@@ -9066,12 +10030,120 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
     t.go('stuff');
     await wait(30);
     if (t.whoami()) bad.push('pressing sign out left somebody signed in, so what it leaves behind was NOT checked');
-    const f = t.STUFF().filters, said = (d.getElementById('s-stuff') || {}).textContent || '';
+    const f = t.STUFF().filters, said2 = (d.getElementById('s-stuff') || {}).textContent || '';
     if (f.length || t.STUFF().q) bad.push('signed out, Find still holds the admin\'s question: ' + JSON.stringify(f) + (t.STUFF().q ? ' and "' + t.STUFF().q + '"' : ''));
-    if (/\bBooks\b/.test(said)) bad.push('signed out, Find still names the Books shelf: …' + said.slice(Math.max(0, said.indexOf('Books') - 60), said.indexOf('Books') + 20).replace(/\s+/g, ' '));
+    if (/\bBooks\b/.test(said2)) bad.push('signed out, Find still names the Books shelf: …' + said2.slice(Math.max(0, said2.indexOf('Books') - 60), said2.indexOf('Books') + 20).replace(/\s+/g, ' '));
     if (d.querySelector('#s-stuff .card.bible')) bad.push('signed out, a Bible card is still drawn on Find');
     if (d.getElementById('stuff-q') && d.getElementById('stuff-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('stuff-q').value + '"');
+    if (/bible/i.test(t.savedPages().join(''))) bad.push('signed out, Saved still draws something of the Bible');
+    const was = JSON.stringify(t.STUFF().filters), fetched = ofBible(a.gets).length;
+    for (const [act, attrs] of [['bible-go', { 'data-key': 'bible:kjv:1:1:3' }], ['bible-go', {}], ['bible-retry', { 'data-n': '1' }], ['bible-retry', {}]]) {
+      const fake = d.createElement('button');
+      Object.keys(attrs).forEach(k => fake.setAttribute(k, attrs[k]));
+      t.ACTIONS[act](fake);
+    }
+    await wait(60);
+    if (JSON.stringify(t.STUFF().filters) !== was) bad.push('signed out, a Bible tile pressed anyway set Find\'s chips to ' + JSON.stringify(t.STUFF().filters) + ' — the index was still in memory and the handler did not ask who is looking');
+    if (ofBible(a.gets).length !== fetched) bad.push('signed out, a Bible tile pressed anyway fetched ' + (ofBible(a.gets).length - fetched) + ' file(s)');
   }
+  w.toast = realToast;
+  return bad;
+});
+
+/* ---------- THE FUNNEL ASKS AN ADMIN WHAT IT ASKS A PARENT, THE BOOKS SHELF APART -----------------------
+   THE BIBLE IS THE ONE THING ON FIND THE PHONE GIVES ONE ROLE AND NOT ANOTHER, and the sameness journey
+   above holds the ITEMS to that: an admin's list is everybody's plus `bible:kjv`. This holds the
+   QUESTIONS to it. One cover on a list of seven thousand changes every share the coverage rule reads,
+   and six Bible questions on the facet list could have been asked of anything — so the funnel is walked
+   from ten places a finger starts, by a parent and by an admin over the real library, pressing the
+   commonest answer each time, and every question asked and every answer offered must be the same. The
+   one difference allowed is the one asked for: `Books` among the shelves. */
+check('the funnel asks an admin exactly what it asks a parent, the Books shelf apart — the Bible costs nobody else a question', async () => {
+  /* EVERY `data/` FILE FROM DISK, the library included — `check-funnel.js`'s rule, so the walk is over
+     the questions a phone holds rather than over a payload of two tutors. */
+  const serveAll = url => {
+    const m = /(?:^|\/)(data\/[a-z0-9_\-\/]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(dir, '..', m[1]);
+    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return undefined; }
+  };
+  const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
+  const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
+               ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }]];
+  const STARTS = [
+    ['the top', []],
+    ['Learning', [['forLabel', 'Learning']]],
+    ['Learning → Questions', [['forLabel', 'Learning'], ['kindLabel', 'Questions']]],
+    ['Learning → Resources', [['forLabel', 'Learning'], ['kindLabel', 'Resources']]],
+    ['→ Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', 'Boxing']]],
+    ['→ @family. textbooks', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', '@family. textbooks']]],
+    ['Learning → skip', [['forLabel', 'Learning'], 'skip']],
+    ['Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip']],
+    ['Learning → Resources → skip', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], 'skip']],
+    ['Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']]],
+  ];
+  const bad = [];
+  const traces = [];
+  for (const [what, u] of who) {
+    const b = boot({ serve: serveAll, before: seed(u) });
+    const w = b.w, t = w.__t;
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && w.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
+    if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
+    if (u.role === 'admin' && !w.stuffItems().some(x => x.kind === 'bible')) { bad.push('the admin holds no Bible cover, so the walk proves nothing about it'); return bad; }
+    t.go('stuff');
+    const trace = {};
+    STARTS.forEach(([say, steps]) => {
+      t.STUFF().q = '';
+      t.STUFF().filters = [];
+      const out = [];
+      steps.forEach(s => {
+        if (s === 'skip') {
+          const f = w.nextFacet(w.stuffFiltered()) || w.overFacet_(w.stuffFiltered());
+          out.push('skip ' + (f ? f.field : 'nothing'));
+          if (f) t.STUFF().filters.push({ field: f.field, any: true });
+        } else t.STUFF().filters.push({ field: s[0], value: s[1] });
+      });
+      for (let step = 0; step < 8; step++) {
+        const list = w.stuffFiltered();
+        if (!list.length) { out.push('(empty)'); break; }
+        const f = w.nextFacet(list) || w.overFacet_(list);
+        if (!f) { out.push('(end, ' + list.length + ')'); break; }
+        const vals = w.facetValues(list, f);
+        out.push({ field: f.field, vals: vals.map(v => String(v.value)) });
+        let best = vals[0];
+        vals.forEach(v => { if (v.n > best.n) best = v; });
+        t.STUFF().filters.push({ field: f.field, value: best.value });
+      }
+      trace[say] = out;
+    });
+    t.STUFF().filters = [];
+    traces.push(trace);
+  }
+  const [parent, admin] = traces;
+  let compared = 0;
+  STARTS.forEach(([say]) => {
+    const p = parent[say] || [], a = admin[say] || [];
+    const n = Math.max(p.length, a.length);
+    for (let i = 0; i < n; i++) {
+      const ps = p[i], as = a[i];
+      const show = s => (typeof s === 'string' ? s : s ? s.field + ' [' + s.vals.slice(0, 6).join(', ') + (s.vals.length > 6 ? '…' : '') + ']' : 'nothing');
+      if (typeof ps === 'string' || typeof as === 'string' || !ps || !as) {
+        if (show(ps) !== show(as)) { bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)); break; }
+        continue;
+      }
+      const avals = ps.field === 'shelf' ? as.vals.filter(v => v !== 'Books') : as.vals;
+      if (ps.field !== as.field || ps.vals.join('|') !== avals.join('|')) {
+        const onlyAdmin = avals.filter(v => ps.vals.indexOf(v) < 0), onlyParent = ps.vals.filter(v => avals.indexOf(v) < 0);
+        bad.push('from ' + say + ', step ' + (i + 1) + ': a parent is asked ' + show(ps) + ', an admin ' + show(as)
+                 + (onlyAdmin.length || onlyParent.length ? ' — only the admin is offered ' + JSON.stringify(onlyAdmin)
+                    + ', only the parent ' + JSON.stringify(onlyParent) : ' — the same answers in a different order'));
+        break;
+      }
+      if (ps.field === 'shelf' && as.vals.indexOf('Books') < 0) bad.push('from ' + say + ' an admin is asked Shelf without Books');
+      compared++;
+    }
+  });
+  if (compared < 20) bad.push('only ' + compared + ' questions were compared — the walks did not get far enough to prove the sameness');
   return bad;
 });
 
@@ -9554,7 +10626,7 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   } });
   await wait(300);
   const d = w.document;
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
   const rc = d.querySelector('#bookr .rc');
@@ -9715,7 +10787,7 @@ check('a tutor with no hours is greyed, shuts the grid and is not sent for; No p
   if (!st || typeof w.stepSelect_ !== 'function' || typeof w.slotGrid !== 'function') {
     return ['the tutor step / stepSelect_ / slotGrid are not reachable, so this was NOT checked — not a pass'];
   }
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const D = t.DATA();
   const avail = {};
   ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
@@ -9791,7 +10863,7 @@ check('your week holds your sessions only, on every day they run, while their da
   const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
   const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
   const job = (id, extra) => Object.assign({ id, jobId: id, subject: id, time: '16:00', hours: 2,
-    client: 'Rasa Poliksa', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
+    client: 'Pat Parent', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
   const D = t.DATA();
   D.liveJobs = D.jobs = [
     job('TWO-DAY', { day: 'Monday, Friday', dates: [at(-7), at(-3), at(0), at(4), at(7)].map(dmy).join(', ') }),
@@ -9800,7 +10872,7 @@ check('your week holds your sessions only, on every day they run, while their da
     job('NOT-YET', { day: 'Thursday', dates: [at(24), at(31)].map(dmy).join(', ') }),
     job('UNDATED', { day: 'Saturday', dates: '' }),
   ];
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
   const got = w.weekSessions_().map(s => s.j.id + '@' + s.day).sort().join(' ');
   const want = 'TWO-DAY@0 TWO-DAY@4 UNDATED@5';
   const bad = [];
@@ -9954,7 +11026,7 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
   const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
   const D = t.DATA();
   D.liveJobs = D.jobs = [
-    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Rasa Poliksa', tutor: 'GeorgePovey',
+    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Pat Parent', tutor: 'GeorgePovey',
       status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' },
     { id: 'J-NOT', jobId: 'J-NOT', subject: 'Chemistry', time: '10:00', day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola',
       status: 'active', slots: [], dates: on(4) },
@@ -9965,8 +11037,8 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
   ];
   D.closures = [{ date: on(8), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
   D.festive = [{ id: 'H1', name: 'Pumpkin carving', holiday: 'Halloween', venue: 'Colliers Wood Library', date: on(25) }];
-  D.exams = [{ personId: 'P1', who: 'Rasa Poliksa', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  D.exams = [{ personId: 'P1', who: 'Pat Parent', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
   const mk = w.calendarMarks(y, m);
   const kinds = n => (mk[n] || []).map(x => x.kind).sort().join(',');
   const bad = [];

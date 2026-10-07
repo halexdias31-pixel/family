@@ -970,6 +970,8 @@ function wideSet_() {
   if (w !== WIDE || document.documentElement.classList.contains('wide') !== w) {
     WIDE = w;
     document.documentElement.classList.toggle('wide', w);
+    /* AND WHAT THE POINTER WAS SAYING ON A WIDE WINDOW GOES WITH IT — see `wideOverClear_`. */
+    if (!w) wideOverClear_();
   }
   return WIDE;
 }
@@ -986,28 +988,11 @@ function wideCard_() {
   return { card: Math.max(lo, card), k: k };
 }
 
-/* ---------- AND AT EITHER END OF THE ROW, THE ROW STOPS AT THE EDGE ---------------------------------
-   THE CARD IN FRONT IS CENTRED, AND ON A PHONE THAT IS THE WHOLE STORY: the first tab has a dark
-   sliver to its left and that sliver says "nothing that way". On a 1280 window the same rule put Feed
-   in the middle with a THIRD of the window empty to its left — measured, 440px of black beside the
-   first screen of the app, which reads as something that failed to draw rather than as an end.
-
-   So on a wide window the whole row is slid, by the same amount for every column, just far enough
-   that the first column starts where a full row of `k` cards would start, and the last one ends
-   where it would end. In the middle of the row this is nought and the card in front is centred as
-   before; at an end the card in front sits nearer that end, as the first item of any list does.
-   One number, added to every column's x by `placeGrid` — so nothing about the spacing changes, and
-   a drag still moves every column together. */
-function wideShift_(ti, n, stepX) {
-  if (!WIDE) return 0;
-  const W = appWidth_(), wc = wideCard_(), c = wc.card;
-  const m = Math.max(0, (W - (wc.k * c + (wc.k - 1) * CELL_GAP)) / 2);
-  const hi = m - W / 2 + c / 2 + ti * stepX;                 // the first column no further right than m
-  const lo = W / 2 - m - c / 2 - (n - 1 - ti) * stepX;       // the last column no further left than W − m
-  /* A ROW SHORTER THAN THE WINDOW has both bounds the wrong way round; it is simply centred. */
-  if (lo > hi) return (lo + hi) / 2;
-  return Math.min(hi, Math.max(lo, 0));
-}
+/* ---------- `wideShift_` WAS HERE: AT EITHER END OF THE ROW, THE ROW SLID TO THE EDGE ------------
+   So that Feed, first in the row, did not sit in the middle of a 1280 window with 440px of black to
+   its left. The owner, 6 Oct: *"the widget in focus is always in centre not like how you just
+   did."* The card in front is the middle of the window on every screen, the first and last
+   included — the empty side IS the end of the row, which is what the dark sliver says on a phone. */
 
 /* THESE TWO COME OUT OF THE SAME WIDTH, which is the whole thing to understand before changing
    either. Across the screen sits: an edge, a gap, the card, a gap, an edge —
@@ -1161,29 +1146,57 @@ function holdHere_(t) {
    and belongs to whoever placed the grid. AT REST THE TRANSITION IS SWITCHED OFF for the move, as an
    instant placement does: with it on, the layout would jump the page and the transform would then
    slide it back over a third of a second, which is the flicker wearing a different coat. MID-SLIDE
-   it is left alone, so the running animation simply retargets. And NEVER UNDER A FINGER — a drag
-   writes its own offset every frame, and `.dragging` (from `placeGrid`) is what says one is down.
+   it is left alone, so the running animation simply retargets.
    ONLY THE VERTICAL'S TRANSITION is switched off for it: the sideways one is a separate property
    now (`colWrite_`), and a column still sliding across must keep sliding.
+   AND IT WAS NEVER SWITCHED OFF AT ALL, because the call said `'0s'` where `colTransition_` takes
+   `{ d, tf, delay }`: the duration list came out as `.3s, , .22s`, which the browser refuses
+   whole, so the column kept its third of a second. Found on 6 October while fixing the drag case
+   below: 60px added to the card above Tools/2 at rest at 390x844, and the card in front read 60,
+   59, 56, 51, 43px off on the five frames after the observer had answered — the jump painted and
+   slid back, the very thing this exists to prevent. `SLIDE_NONE` now, and swipe.js 'grow' asks the
+   frame after.
+
    AND NEVER WHILE A SLIDE IS BOOKED: `PAGE` may already name the page an animated placement is
    about to go to, and moving the column there now, instantly, would be the slide cancelled a frame
    before it began — the collision `placeCells` exists to make unwriteable. An INSTANT placement
    booked for next frame is different and is not waited for: it would put the column exactly where
    this does, one frame later, and that frame is the jump. Measured at 320x568: waiting for the one
-   `paneReach_` books after a zoom changes painted the post 85px low for a frame. */
+   `paneReach_` books after a zoom changes painted the post 85px low for a frame.
+
+   ---------- AND UNDER A FINGER IT IS THE PLAN THAT IS CORRECTED ----------------------------------
+   THIS RETURNED ON `.dragging`, on the reasoning that a drag writes its own offset every frame.
+   It did once — every drag frame was a full placement that measured the column again. Since
+   `DRAG_PLAN` (below `SLIDE_UNTIL`), a drag frame writes the rest it worked out at the start of the
+   gesture plus the finger, and nothing measures until the lift: so a card above that grew mid-drag
+   left the card under the finger displaced by the whole growth until the finger let go. Measured
+   by the review of 6 October at 390x844, 150px grown inside Tools/0 with the finger on Tools/2:
+   150px off for every frame of a held drag, both axes, against 7 then 0 before the plan existed.
+   So the column's rest IN THE PLAN is moved to the new one, and the column written there plus
+   however far the finger has it — every frame after reads the corrected rest. */
 function holdColumn_(id) {
   try {
     const host = $('s-' + id);
-    if (!host || host.classList.contains('dragging')) return;
+    if (!host) return;
     if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return;
     const at = colPlaced_(host);
     if (!at) return;
+    /* A FINGER IS DOWN: this column's entry in this drag's plan, or nothing to correct — a plan
+       made for another card in front is one the next drag frame throws away and measures afresh. */
+    let plan = null;
+    if (host.classList.contains('dragging')) {
+      const p = DRAG_PLAN;
+      plan = p && p.at === AT && p.page === (PAGE[AT] || 0) ? p.cols.find(c => c.host === host) : null;
+      if (!plan) return;
+    }
     const want = columnShift_(host, domIndex_(id, PAGE[id] || 0));
-    if (!isFinite(want) || Math.abs(at[1] - want) < 0.5) return;
+    const rest = plan ? plan.y : at[1];
+    if (!isFinite(want) || Math.abs(rest - want) < 0.5) return;
     const moving = typeof host.getAnimations === 'function'
       && host.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === colProp_('y'));
-    if (!moving) colTransition_(host, null, '0s');
-    colWrite_(host, at[0], want);
+    if (!moving) colTransition_(host, null, SLIDE_NONE);
+    if (plan) plan.y = want;
+    colWrite_(host, at[0], want + (at[1] - rest));
   } catch (e) { /* a column left where it was is the behaviour before this existed */ }
 }
 
@@ -1470,15 +1483,23 @@ function softHold_(glass) {
 }
 
 function softDrag_(which, px, stepX) {
-  /* NOTHING IS BLURRED ON A WIDE WINDOW (see `placeGrid`), so nothing is eased either. */
-  if (!SOFT_DRAG) SOFT_DRAG = { ok: !WIDE && softMotion_(), b: null, keep: new Map() };
+  /* A WIDE WINDOW BLURS ITS NEIGHBOURS TOO NOW (see `placeGrid`), so the finger eases it there as well. */
+  if (!SOFT_DRAG) SOFT_DRAG = { ok: softMotion_(), b: null, keep: new Map() };
   if (!SOFT_DRAG.ok) return;
   /* THE NEIGHBOUR AND HOW FAR AWAY IT IS, WORKED OUT ONCE A DIRECTION. This read `offsetTop` and
      `offsetHeight` on every frame of a vertical drag, straight after `colWrite_` had written the
      column — a forced style-and-layout per frame for two numbers that cannot change while the finger
-     is down. Kept on `SOFT_DRAG`, which lives exactly as long as the gesture. */
+     is down.
+     KEPT ON THE DRAG'S PLAN, NOT ON `SOFT_DRAG`. It was on `SOFT_DRAG`, said to live exactly as long
+     as the gesture, and it does not: `softSettle_` will not clear it while a finger with an axis is
+     down, so when the last flick's release placement landed after the next finger had taken its axis
+     — two quick flicks on a busy phone — the cache still named the old card in front and the new
+     one as its neighbour. The review of 6 October measured the card under the finger blurred 1.8px
+     for the rest of that drag and the card it had left sharp. `DRAG_PLAN` is thrown away by exactly
+     the things that move a card in front — any placement that is not a drag, and a new finger — so
+     a direction worked out on it is one worked out against the cards that are there now. */
   const key = which + (px < 0 ? '+' : '-');
-  const seen = SOFT_DRAG.near || (SOFT_DRAG.near = new Map());
+  const seen = DRAG_PLAN ? DRAG_PLAN.near || (DRAG_PLAN.near = new Map()) : new Map();
   let a, b = null, step = 0;
   if (seen.has(key)) {
     ({ a, b, step } = seen.get(key));
@@ -1564,7 +1585,9 @@ let SLIDE_UNTIL = 0;
    16.7, so a quick swipe dropped a frame in three while the finger was still on the glass.
 
    NOTHING ON THAT LIST CAN CHANGE UNDER A FINGER. `PAGE` and `AT` move only on the release; a card
-   that grows mid-drag is `holdColumn_`'s, and it already refuses a column marked `.dragging`. So the
+   that grows mid-drag is `holdColumn_`'s, which corrects the column's rest IN THIS PLAN — it used to
+   refuse a column marked `.dragging`, and with nothing else measuring until the lift the card under
+   the finger stayed off by the whole growth for the rest of the gesture (see its note). So the
    first drag frame is the full placement it always was — it switches the finger's axis to no
    transition, marks `.dragging`, and works out every column's resting place — and that answer is
    kept as `DRAG_PLAN`. Every frame after it writes the columns the finger is moving (all of them
@@ -1579,7 +1602,7 @@ let SLIDE_UNTIL = 0;
    instead of after a whole placement (7–35ms at 4x, the first frame of every swipe). Only when a
    placement is still booked (`PLACE_FRAME`), or a column has never been placed, does the first
    frame fall back to the full one, because then the inline values are not where anything rests. */
-let DRAG_PLAN = null;    // { which, at, page, stepX, cols: [{ host, x, y, front }] } — this drag's sums
+let DRAG_PLAN = null;    // { which, at, page, stepX, cols: [{ host, x, y, front }], near } — this drag's sums
 function dragPlan_(drag) {
   if (PLACE_FRAME) return null;
   const cols = [];
@@ -1688,7 +1711,7 @@ function placeGrid(instant, drag) {
     hosts.forEach(({ i, host, shift }) => {
       const was = colPlaced_(host);
       if (!was) return;
-      const d = rel.axis === 'x' ? ((i - ti) * stepX + wideShift_(ti, tabs.length, stepX)) - was[0] : shift - was[1];
+      const d = rel.axis === 'x' ? (i - ti) * stepX - was[0] : shift - was[1];
       if (Math.abs(d) > Math.abs(D)) D = d;
     });
     const c = settleCurve_(D, rel.v);
@@ -1707,15 +1730,14 @@ function placeGrid(instant, drag) {
     ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
   const front = hosts.find(h => h.id === AT);
   const before = front && !instant && !drag ? colPlaced_(front.host) : null;
-  /* THE WHOLE ROW'S SLIDE AT ITS ENDS (nought on a phone) — see `wideShift_` — and, on a wide window,
-     how far from the middle a column can be and still have a card on the glass: half the window and
-     half a card, and one step more, so a column a drag is about to bring in is already drawn. */
-  const sx = wideShift_(ti, tabs.length, stepX);
+  /* ON A WIDE WINDOW, how far from the middle a column can be and still have a card on the glass:
+     half the window and half a card, and one step more, so a column a drag is about to bring in is
+     already drawn. */
   const glass = WIDE ? appWidth_() / 2 + stepX * 1.5 : 0;
   hosts.forEach(({ id, i, host, shift }) => {
     const dx = i - ti;
     const at = PAGE[id] || 0;
-    const x = dx * stepX + sx + dxPx;
+    const x = dx * stepX + dxPx;
 
     /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
        keeps whatever slide it is in the middle of. */
@@ -1745,7 +1767,7 @@ function placeGrid(instant, drag) {
        (THE BLUR THAT NOTE MEANS was a blur on the COLUMN, with nothing beside it to say which card
        was in front. `.soft` below blurs a CARD, by 2px, and the card in front is sharp beside it —
        a soft edge next to a sharp one is still an edge.) */
-    const onGlass = WIDE && Math.abs(dx * stepX + sx) < glass;
+    const onGlass = WIDE && Math.abs(dx * stepX) < glass;
     host.style.opacity = across === 0 ? '1' : WIDE ? (onGlass ? '1' : '0')
       : across === 1 ? '.92' : '0';
     /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
@@ -1777,12 +1799,14 @@ function placeGrid(instant, drag) {
       el.classList.toggle('far', d > 3);
       /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
          the cards ARE, and a finger has not moved the focus until it lets go. */
-      /* NOT ON A WIDE WINDOW. The blur says "this one is beside the one you are reading" on a
-         phone, where a neighbour is a sliver; on a window that shows whole screens side by side the
-         neighbours are there to BE read, and a blurred column of text is a column nobody can. The
-         focus is said by a lighter dim there instead (`.wide` in style.css). */
+      /* AND ON A WIDE WINDOW, EVERY CARD ON THE GLASS BUT ONE. It was left sharp there and dimmed a
+         little instead, on the reasoning that whole screens side by side are there to be read. The
+         owner, 6 Oct: *"what happened to widgets not in focus should have the not in focus effect."*
+         The blur is how this app says which card is in front, on every window; a card beside it is
+         a press away (`wideHit_`) and sharpens when it arrives. Which cards: every column on the
+         glass (`onGlass`) and, down each, the three either side that a tall window draws. */
       if (!drag) {
-        const soft = !WIDE && !focused && across <= 1 && d <= 2;
+        const soft = !focused && (WIDE ? (across === 0 || onGlass) && d <= 3 : across <= 1 && d <= 2);
         el.classList.toggle('soft', soft);
         if (soft) el.classList.toggle('soft-dim', softDim_(el));
       }
@@ -1794,11 +1818,20 @@ function placeGrid(instant, drag) {
          Barely dimmed instead. What says a card is behind rather than beside is its POSITION and
          its edge, both of which are already doing the work. */
       /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
-         it would be a hole in a column you can otherwise read. The focus is said by the stylesheet's
-         lighter dim on the panes instead (THE WIDE WINDOW, style.css). */
+         it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
       el.style.opacity = WIDE ? (d <= 3 ? '1' : '0')
         : d === 0 ? '1' : d === 1 ? '.9' : d === 2 ? '.75' : '0';
-      el.style.pointerEvents = d === 0 ? 'auto' : 'none';
+      /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD -----------------------------
+         THIS WAS `d === 0`, which is every column's current page, and the column's own `none` above
+         did not stop it: `pointer-events` is inherited, so an explicit `auto` on a child takes the
+         press back from a parent that refused it. On a phone that was a 23px sliver nobody aimed at.
+         On a wide window it is three or five whole cards — and measured at 1280 with Find in front,
+         a mouse press on the Sign in button of the You card beside it ran `do-signin` AND brought You
+         forward: the "presses a card that is about to slide under the pointer" that the note over
+         `wideHit_` says cannot happen. With only the focused page taking presses, a press over a
+         neighbour falls through to `#screen`, where `wideHit_` brings it forward and does nothing
+         else, which is what that note promised. */
+      el.style.pointerEvents = focused ? 'auto' : 'none';
       el.style.visibility = d > 3 ? 'hidden' : 'visible';
 
       /* A pane used to be measured here, to decide whether it had overflowed and should therefore
@@ -3238,6 +3271,27 @@ function wideHit_(x, y) {
 }
 addEventListener('click', e => {
   if (!WIDE || PRESS_MOVED || PRESS_SLIDING) return;
+  /* ---------- A CLICK WITH NO POINTER UNDER IT IS NOT A PRESS BESIDE THE CARD -------------------
+     `e.detail` IS HOW MANY TIMES A POINTER PRESSED, and it is 0 for the two clicks no pointer made:
+     Enter or Space on a focused control, and `el.click()` from code. Both arrive with clientX and
+     clientY at 0,0 — not where anything was pressed, just the top-left corner of the window — and
+     this handler read that corner as a place, asked `wideHit_` which card was drawn there, and
+     brought it to the front.
+
+     FOUND AS EIGHT SETTINGS STATES "NOT MEASURED" AT 768, and only in a full run of check/ui.js:
+     green with `--screen=settings`, green in either `--part`. The states turn a page and click a
+     control on it in the same tick, before the placement that marks that page `.on` — so the click
+     was "not on the card in front", and 0,0 at 768 is inside You, the column left of Settings.
+     Alone, You is on its first page and nothing of it covers that corner; after You's own states
+     have left it a page down, the page above does, and the first click sent the app to You. Every
+     Settings state after it measured a column that was no longer in front.
+
+     AND A PERSON CAN DO IT WITH A KEYBOARD, which is what makes it the app's and not the lab's:
+     Tab past the last control on the card in front, into the next card down (drawn, so tabbable),
+     and press Enter — measured at 768 with You a page down: `click x0 y0 detail0`, and Settings
+     swapped for You's first page. A keyboard press has a target and no position; the target's own
+     handler answers it, exactly as it does on a phone. */
+  if (!e.detail) return;
   const t = e.target;
   /* ONLY A PRESS THAT NOTHING IN FRONT TOOK — on the front card it is that card's press. */
   if (t && t.closest && t.closest('#screen .page.on')) return;
@@ -3253,7 +3307,7 @@ addEventListener('click', e => {
 }, true);
 
 /* AND THE POINTER SAYS SO BEFORE THE PRESS. One rect test a frame while a mouse moves over the grid,
-   and only on a wide window: the card under it comes up from its dim (`.wide-over` in style.css)
+   and only on a wide window: the card under it comes half into focus (`.wide-over` in style.css)
    and the pointer becomes a hand, which is how a desktop says "this can be pressed". */
 let WIDE_OVER = null, WIDE_OVER_F = 0;
 addEventListener('pointermove', e => {
@@ -3272,6 +3326,22 @@ addEventListener('pointermove', e => {
     if (scr) scr.style.cursor = el ? 'pointer' : '';
   });
 }, { passive: true });
+/* ---------- LEAVING A WIDE WINDOW TAKES THE HAND AWAY ---------------------------------------------
+   THE LISTENER ABOVE IS THE ONLY THING THAT WRITES THE CURSOR, and it returns at once when the
+   window is not wide — so a window snapped or zoomed below `WIDE_FROM` with the mouse resting on a
+   side card (Win+Left on a 1280 screen, Ctrl+Plus to 200%; neither moves the mouse) kept
+   `cursor: pointer` on `#screen` for the rest of the session: a phone layout with a hand over plain
+   text, every word looking pressable. Found by the review of 6 October. Cleared by `wideSet_` the
+   moment the window stops being wide, which is where the state stops meaning anything. A hover
+   frame already booked is harmless: `wideHit_` answers nothing on a narrow window, so it clears too. */
+function wideOverClear_() {
+  try {
+    if (WIDE_OVER) WIDE_OVER.classList.remove('wide-over');
+    WIDE_OVER = null;
+    const scr = $('screen');
+    if (scr) scr.style.cursor = '';
+  } catch (e) { /* before this file has finished loading there is nothing to clear */ }
+}
 
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */

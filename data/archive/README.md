@@ -29,9 +29,16 @@ distinction this folder draws is exactly "read by the app" against "kept so it i
 Asked for as *"i want to add the bible to resources as a book. but only admin can see the bible."*
 The app still reads nothing in this folder: `tools/bible-split.py` reads `bible.json` and writes
 `data/bible/` — one compact file per book (`{book, testament, chapters: [[verse, …], …]}`, one
-chapter per line) and a 7 KB `index.json` — and that is what an admin's Find fetches, a book at a
+chapter per line) and a 15 KB `index.json` — and that is what an admin's Find fetches, a book at a
 time. The ten megabytes here stay as the source; re-run the script after any change to it.
 `js/check-bible.js` compares every one of the 31,102 verses between the two, in order.
+
+Each book's line in `index.json` carries two fields the archive does not have as columns, both
+worked out by the script: **`group`** — Torah, History, Poetry & Wisdom, Major Prophets, Minor
+Prophets, Gospels, Church History, Pauline Epistles, General Epistles, Prophecy (`GROUPS` in the
+script says why each book is where it is) — and **`chapterVerses`**, how many verses each chapter
+holds. Find asks Translation → Testament → Group → Book → Chapter → Verse, and names every verse
+from those two before its book is downloaded (see docs/history/291).
 
 The text is copied as it is. `[was]` marks the KJV's italic (supplied) words, which the reader
 draws in italics, and a leading `# ` is the 1611 pilcrow, where the reader starts a paragraph.
@@ -47,6 +54,13 @@ It is wired up now: `data/topics.json`, loaded by `libraryExtras_`, read by `top
 offered as the **Topic area** facet one question before `Topic`. Measured, it resolves **4,112 of
 the library's 4,257 topic cells (96.6%)** into ten areas, of which a maths question only ever sees
 seven. Which is exactly what a card has room for.
+
+**And then the question went.** The owner, 6 Oct: *"why is there a topic area menu? like im fin
+with names of pdfs which are the names of the topics themselves right?"* `Topic area` is retired,
+`topicAreaOf_` and the boot's fetch of the file went after it, and nothing on the phone reads the
+tree now. The file stays in `data/` rather than coming back here, because three checks
+(`check-practicals`, `check-projects`, `check-textbooks`) hold a hand-written topic to its labels
+and aliases — a vocabulary that is read, just not by the app.
 
 **So this folder is what is kept, not what is unusable.** A tab in here is unread today; that is
 not the same as unusable, and `topicstuff` is the proof.

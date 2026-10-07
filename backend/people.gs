@@ -772,52 +772,11 @@ function acceptedLinks() {
   return read(TAB.family).rows.filter(r => norm(r.state) === 'accepted');
 }
 
-/**
- * WRITE THE FAMILIES WE ALREADY KNOW INTO THE FAMILY TAB.
- *
- * Idempotent, and careful about the one case that matters: a link that ALREADY EXISTS is left
- * exactly as it is, whatever it says. A child who refused stays refused — this is a seeder filling
- * in what nobody has answered, not a thing that overrules an answer.
- *
- * Reports what it could not match rather than skipping quietly. A name in `KNOWN_FAMILIES` that
- * matches nobody is a typo in a list I wrote by hand, and a seeder that silently does nothing is
- * the fault this whole file keeps producing.
- */
-function seedFamilies() {
-  const t = read(TAB.family);
-  if (!t.sheet) return { error: 'no family tab — run ensureSchema()' };
-
-  const made = [], had = [], missing = [];
-  Object.keys(KNOWN_FAMILIES).forEach(parentName => {
-    const parent = findPerson(parentName);
-    if (!parent) { missing.push('no parent called ' + parentName); return; }
-
-    KNOWN_FAMILIES[parentName].forEach(childName => {
-      const child = findPerson(childName);
-      if (!child) { missing.push('no child called ' + childName); return; }
-
-      const already = t.rows.find(r => S(r.parent_id) === S(parent.person_id)
-                                    && S(r.child_id) === S(child.person_id));
-      if (already) { had.push(childName + ' → ' + parentName + ' (' + S(already.state) + ')'); return; }
-
-      addRow(t, {
-        link_id: 'F' + Date.now() + '-' + made.length,
-        parent_id: S(parent.person_id),
-        child_id: S(child.person_id),
-        child_typed: personDisplayName(child),
-        state: 'accepted',
-        asked_on: new Date(),
-        answered_on: new Date(),
-      });
-      made.push(childName + ' → ' + parentName);
-    });
-  });
-
-  clearCache();
-  const out = { linked: made, alreadyThere: had, couldNotFind: missing };
-  Logger.log(JSON.stringify(out, null, 2));
-  return out;
-}
+/* `seedFamilies` WAS HERE. It wrote a hand-written list of real families (`KNOWN_FAMILIES`, in
+   constants.gs) into the family tab as accepted links, leaving any link that already existed
+   exactly as it was. It ran, the links are on the tab, and the list was children's names in a
+   public repository — so both went together. See the note where `KNOWN_FAMILIES` used to be. An
+   admin links a child from the app now, with `linkChild`, which writes the same accepted row. */
 
 /**
  * A PARENT'S CHILDREN, FROM THE ONE PLACE THAT HOLDS THEM.
@@ -828,9 +787,10 @@ function seedFamilies() {
  * or the reverse.
  *
  * The family tab wins and the cell is a FALLBACK, for a sheet that has names typed in and no links
- * made yet. Once `seedFamilies` has run there is nothing in the cell that is not on the tab, and
- * the fallback stops mattering — which is the right way for two sources to become one: the weaker
- * one goes quiet rather than being deleted out from under somebody.
+ * made yet. Once a family's links are on the tab — `linkChild`, `makeChild` or `claimChild` — there
+ * is nothing in the cell that is not on the tab, and the fallback stops mattering — which is the
+ * right way for two sources to become one: the weaker one goes quiet rather than being deleted out
+ * from under somebody.
  */
 /* ---------- RENAMED, BECAUSE THERE WERE TWO `childrenOf` AND THIS ONE NEVER RAN -------------------
    `people.gs` DECLARED `childrenOf` TWICE — this one at line 248 taking a person ROW and returning
@@ -914,12 +874,58 @@ function adminName_() {
   return other ? personDisplayName(other) : ADMIN_NAME;
 }
 
+/* ---------- AN ADDRESS NOBODY HAS PROVED REACHES THIS PERSON ------------------------------------------
+   `verified=PENDING` is a sign-up whose address nobody has proved yet — not by its link, not by Google,
+   not by typing back the emailed PIN. A typo'd address, as often as not, which is a stranger's inbox,
+   or somebody else's address typed by whoever wanted the account. Blank is a row from before
+   confirmation existed, and is not pending.
+
+   ONE READER, because the rule was kept in one place only. The digest skipped a PENDING address
+   (280); `notify`, the make-child email and the too-many-guesses warning did not — and once the owner
+   asked that *"dont make them have to need to verify their email to login"* (6 Oct), an account on a
+   mistyped address could sign in, book and make a child, and every booking notice, the child's handle
+   and "PIN changed" went to the stranger (PR #130 review). Every mail to a person's own address asks
+   this now, except the two that exist to reach an unproved one: the confirmation link (`register`,
+   `resendLink`) and "Forgotten your PIN?", which is how the address's owner proves it and takes the
+   account.
+
+   ---------- AND NO CHILD IS TIED TO AN ACCOUNT EXCEPT THROUGH A CONFIRMED ADDRESS ------------------
+   Holding the mail back was round one, and the review of it found the typo still worked: the parent
+   on jsmith1@ made a child, the stranger who owns jsmith1@ pressed "Forgotten your PIN?" — which must
+   go to a PENDING address, or the real owner of a squatted one could never take it back — signed in
+   as the parent and reset the child's PIN. Neither half can give way, so the CHILD is what waits:
+   `makeChild`, `claimChild`, a child's yes in `answerClaim`, a grown-up's link in `verifyEmail`, a
+   parent's `resetPin` and an admin's `linkChild` all ask this of the parent's row and refuse while it
+   is PENDING (`confirmFirst_`). An account on an unproved address signs in and books — it holds no child, so
+   whoever proves that address owns nothing of anybody else's. */
+function addressPending_(r) { return S(r && r.verified).toUpperCase() === 'PENDING'; }
+
+/* THE ADDRESS THE PHONE IS TOLD IS WAITING, or blank (`pendingEmail` on the sign-in reply and on
+   `myProfile`). Only the row's OWN address: a no-email child's PENDING is about the grown-up's address,
+   which is not theirs to be sent a link to, and no mail of theirs is held because they have none. */
+function pendingEmailOf_(r) { return addressPending_(r) ? S(r && r.email) : ''; }
+
+/* ---------- "OPEN THE LINK FIRST": THE ONE ANSWER TO A CHILD-BINDING ACTION FROM AN UNPROVED ADDRESS ------
+   One sentence for every refusal above, so a parent hears the same next step whichever door they
+   tried, with the address IN it — the address is the whole of what is wrong when it is a typo, and
+   "check your inbox" said to somebody whose inbox it is not is a sentence they cannot act on.
+   `why` and `pendingEmail` are for the phone: it draws the held card from them (me.js). */
+function confirmFirst_(r, then) {
+  const at = S(r && r.email);
+  return { error: 'Open the link we emailed to ' + (at || 'your address') + ' first — then ' + then
+                  + '. "Send the link again" is on your card if it never came.',
+           why: 'unconfirmed', pendingEmail: at };
+}
+
 /** Send an email. Skips silently when there's no address — a missing email must not break a move. */
 function notify(name, subject, body) {
   try {
     const p = findPerson(name);
     const to = p ? S(p.email) : '';
     if (!to) return false;
+    /* NOT TO AN ADDRESS NOBODY CONFIRMED — see `addressPending_`. False, as for no address: the caller
+       carries on either way, and a booking notice in a stranger's inbox is the worse of the two. */
+    if (addressPending_(p)) return false;
     MailApp.sendEmail({ to, subject, body, name: '@family.' });
     return true;
   } catch (err) {

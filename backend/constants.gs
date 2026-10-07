@@ -179,6 +179,9 @@ const WHERE = {
   /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
      `attempts`, which is what it reports on, and because the app writes it. */
   digest_log:     { file: 'ledger' },
+  /* WHAT THE EMAIL AFTER A SESSION SENT, OR WOULD HAVE, OR WHY NOT — see SCHEMA.recap_log. The Ledger
+     beside `digest_log`, for the same two reasons: what it reports on is here, and the app writes it. */
+  recap_log:      { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: question
      2 of the three-question test at the top of CLAUDE.md, and code cannot be written to at
      runtime. `data/settings/spotlight.json` is the FLOOR beneath it — see `spotNow_`. */
@@ -237,7 +240,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-06-c-noverifygate";
+const BACKEND_VERSION = "2026-10-07-b-merged";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -271,6 +274,8 @@ const TAB = {
   attempts: 'attempts',
   /* What the weekly parent email sent, or would have — see SCHEMA.digest_log. */
   digest_log: 'digest_log',
+  /* What the email after each session sent, or would have, or why not — see SCHEMA.recap_log. */
+  recap_log: 'recap_log',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -365,6 +370,12 @@ const SCHEMA = {
        starts. `no` (or anything that is not blank/yes/true/1, which is `ON_`) is this parent asking
        to stop, and it is the one cell that does it. Read on the PARENT's row, never the child's. */
     "weekly_email",
+    /* THE EMAIL AFTER A SESSION, PER PARENT — backend/recap.gs. Blank is on; `no` (anything not `ON_`)
+       is this parent asking to stop. Read on the PARENT's row. Separate from weekly_email, so stopping
+       one does not stop the other: a parent who wants Sunday's summary and not an email after every
+       lesson — or the other way round — has one cell for each. `ensureSchema` appends it at the end
+       of the live tab; its place here is only where it is read beside its sibling. */
+    "session_email",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
@@ -696,7 +707,20 @@ const SCHEMA = {
        filled in, so one column answers the question AND decides whether to ask it.
        A booking a parent made and one an admin made on their behalf were identical rows before
        this, and that is the fact you want on the day somebody says they never booked it. */
-    "booked_by"
+    "booked_by",
+    /* EVERY HOUR TICKED ON THE GRID, as its own codes — `m10,m16,m17`. `weekday`, `start_time` and
+       `hours_per_session` are the FIRST run (`bookSpec` on the phone names the session by it), so a
+       Monday 10-11 with a Monday 16-18 was stored as Monday 10:00 for one hour, and nothing on the row
+       said there was an afternoon. The email after a session read that as a lesson ending at 11:00
+       and went at 13:00, three hours before the second one started — and that day's receipt was then
+       spent. `recapEnd_` (recap.gs) reads this instead when it is there: the day's last ticked hour
+       plus one is when the day's teaching ends.
+       WRITTEN ONLY AS SENT. `createJob` stores what the phone ticked, never what `bookingCodes_`
+       derives for an older phone from the three cells — that derivation is the first run on every
+       named day, the very reading this column exists to correct. BLANK on every row made before it,
+       and on one an Edit move rewrote (the old hours no longer describe it); `recapEnd_` then takes
+       the latest the grid allows. */
+    "slot_codes"
   ],
   events: [
     "event_id", "at", "job_id", "actor",
@@ -1011,7 +1035,9 @@ const SCHEMA = {
      A row with a state rather than a name in a cell, because a cell has no room for "who asked",
      "when", or "did they agree" — and those are the whole point. A name typed into a list claims
      somebody silently, and claims the wrong person just as silently.
-     asked → accepted, or asked → refused. Only `accepted` is a link. */
+     asked → accepted, or asked → refused. Only `accepted` is a link.
+     AND → held, from either, when the parent row was PENDING and its address's owner took it back
+     (`authTakeBack_`): read as neither a link nor a request, and settled only by an admin's `linkChild`. */
   family: [
     "link_id", "parent_id", "child_id", "child_typed", "state", "asked_on", "answered_on",
   ],
@@ -1213,6 +1239,35 @@ const SCHEMA = {
      the log answers "who did NOT get one" as well as who did. */
   digest_log: [
     "week_of", "learner_id", "parent_id",
+    "to", "subject", "questions",
+    "status", "at", "note",
+  ],
+
+  /* ---------- THE EMAIL AFTER A SESSION: ITS RECEIPTS, AND EVERY REASON ONE DID NOT GO -----------------
+     ONE ROW PER PARENT PER LEARNER PER DAY, written by `sessionRecapRun` (backend/recap.gs) and by
+     nothing else. In `preview` it is the whole output; in `send` a row saying `sent` — or `sending`,
+     written and flushed just before the send — for this day, this learner and this parent is the
+     receipt that stops the next hourly check sending it again. `due` is not part of the key, so a
+     changed delay or a session moved an hour cannot send a second email about the same day.
+
+     TWO KINDS OF ROW WITH NO PARENT, so the log answers "who did NOT get one" as well as who did:
+       learner rows   `parent_id` blank — `not sent` (nobody can be told, and why) or `nothing done`
+                      (no question on `attempts` for that child that day, and whose account they
+                      might have been marked on instead)
+       job rows       `learner_id` blank, `job_ids` set — a booked session nobody could be placed on:
+                      not paid yet, a name on the booking that is nobody's child, a booker who is
+                      not on the people tab
+
+     `day` AND `due` ARE TEXT (`'2026-10-06`, `'2026-10-06 20:00`): both are compared as strings, and a
+     cell the sheet turned into a date would come back as one in whatever zone the file is set to —
+     the `week_of` rule. `job_ids` too, so `5,7` (two jobs that have only row numbers) stays two ids.
+
+     STATUSES. `sent` and `sending` are receipts. `preview`, `held` (the day's mail quota), `failed`
+     (the send threw), `opted out` (session_email says no), `not sent` and `nothing done` are not, so
+     the next hourly check acts on them again while the day is within 24 hours of due — and a note row
+     is rewritten only when what it says has changed. */
+  recap_log: [
+    "day", "learner_id", "parent_id", "job_ids", "due",
     "to", "subject", "questions",
     "status", "at", "note",
   ],
@@ -1488,7 +1543,21 @@ const CONFIG_DEFAULTS = [
      PIN at 21:00 on a Sunday must not find the day's quota spent on summaries. */
   ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
   ['weekly_digest_hour', 18, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
-  ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
+  ['weekly_digest_reserve', 10, 'emails a day kept back from both parent emails (weekly and after-session) for PIN resets and notices. Blank = 10'],
+
+  /* ---------- THE EMAIL AFTER EACH SESSION — see backend/recap.gs -------------------------------------
+     ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated email
+     to them of the questions they got done."* The switch arrives OFF for the weekly email's reasons,
+     and is the same three words: `off` returns before a tab is read, `preview` writes what would go
+     to `recap_log` and sends nothing, `send` emails parents, and anything else is off.
+
+     THE DELAY IS FROM THE END OF A CHILD'S LAST BOOKED SESSION THAT DAY, and the hourly check is what
+     notices it has passed — so "2" lands between two and three hours after. 0-12, because anything
+     longer is the next day's email and the Sunday one already covers that. The reserve is NOT its
+     own: `weekly_digest_reserve` above is one floor under both emails, because the PIN reset it
+     protects does not care which of them spent the quota. */
+  ['session_recap', 'off', 'the email to parents after each booked session: off, preview (written to the recap_log tab, nothing sent) or send. Anything else = off'],
+  ['session_recap_delay', 2, 'hours after a child’s last session of the day before their parents’ email goes, 0-12, blank = 2. Checked hourly, so it lands up to an hour later'],
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
@@ -1906,31 +1975,30 @@ const LISTED_PENDING = 'PENDING';
    The rest of the estate is not here because I could not verify it, and a guessed postcode puts a
    venue in the Thames — which looks like a venue rather than a mistake. Add them to the sheet and
    the geocoder picks them up. */
-/* ---------- WHO BELONGS TO WHOM, WHERE IT IS ALREADY KNOWN --------------------------------------
-   THE FAMILY TAB IS EMPTY, and so is every `children` cell on the people tab. Danile, Rasa and
-   Phoebe each have children on this system and nothing anywhere connects them — so a booking could
-   not say who it was for, the calendar could not show a child's exam to their own parent, and
-   `siblingsOf` returned nothing for everybody.
+/* ---------- `KNOWN_FAMILIES` WAS HERE, AND IT WAS REAL CHILDREN'S NAMES IN A PUBLIC REPOSITORY ----
+   A hand-written map of three real parents to their real children, each written out by first and
+   last name, in a file anybody can read. `seedFamilies` (people.gs) wrote it into the `family` tab
+   as ACCEPTED links, once, as the `seed-the-families` migration.
 
-   The proper mechanism is `claimChild`: a parent asks and the CHILD accepts, and nothing is true
-   until both have said so. That is right, and it is right for a stranger. It will not fill this
-   tab any time soon — several of these children have no email address, so the invitation they
-   would have to accept cannot reach them.
+   WHY IT EXISTED. The family tab was empty and every `children` cell on the people tab was blank,
+   so a booking could not say which child it was for, a parent could not see their own child's exam
+   on the calendar, and `siblingsOf` returned nothing for everybody. `claimChild` — a parent asks,
+   the CHILD accepts — could not fill it, because several of those children had no email address
+   for the invitation to reach. A surname rule was rejected too: one family's mother carries a
+   different surname from her children, so it would have missed them entirely.
 
-   YOU KNOW THESE FAMILIES. Written down here, by hand, from the people tab: a surname rule would
-   catch Poliksa and Wickes and miss the Marcondes children entirely, because their mother's row
-   says Cristina. An explicit list is longer and cannot be wrong in a way nobody notices.
+   WHY IT COULD GO WITHOUT CHANGING ANYTHING FOR ANYBODY. Nothing ever read the map at request
+   time — only the seeder did, and the seeder has run: the live `family` tab holds accepted rows
+   for all three families, and every reader (`acceptedLinks`, `childrenOf`, `siblingsOf`,
+   `acceptedParents`) reads that tab — `childNamesOf` falls back to the people tab's own `children`
+   cell, never to this file. And the job the map did by hand has an action of its own now: an
+   admin's `linkChild` writes the same accepted row from the app, a parent's `makeChild` writes it
+   for a child with no email, and `claimChild` covers the rest.
 
-   The seeder below writes them as ACCEPTED, which is the admin saying so rather than the parent
-   claiming. That is a different act from a stranger claiming a child, and for a business where you
-   know every family personally it is the honest one. Names are matched the way this whole file
-   matches names — ignoring case and punctuation — so "JPMarcondes" and "JP Marcondes" are one
-   person. A name that matches nobody is reported rather than skipped. */
-const KNOWN_FAMILIES = {
-  'Danile Cristina': ['LuccaMarcondes', 'TheoMarcondes', 'JPMarcondes'],
-  'RasaPoliksa':     ['JokubasPoliksa'],
-  'PhoebeWickes':    ['AugieWickes', 'MabelWickes'],
-};
+   THE RULE IT BROKE, so it does not come back: NO LEARNER'S NAME IN THIS REPOSITORY. A family is a
+   row in the Ledger, which is private; a fact about a real person is never a constant here. The
+   repository's history still holds the old lines — this removes them from the current files, and
+   that is all a commit can do. */
 
 const KNOWN_POSTCODES = {
   'Colliers Wood Library': 'SW19 2HR',
@@ -2019,6 +2087,19 @@ const DIGEST_LIST_MAX = 30;
    sentence or an address (`markDone` takes any 120 characters) is counted and not printed. Measured
    against every row_id in data/questions.json. The slot after a `#` is gone before this is asked. */
 const DIGEST_KEY_SHAPE = /^[a-z]{1,4}:[A-Za-z0-9][A-Za-z0-9()_-]{0,100}$/;
+
+/* ---------- THE EMAIL AFTER EACH SESSION — see backend/recap.gs ----------------------------------------
+   `RECAP_RUN` is the hourly trigger's handler by name, written once for `DIGEST_RUN`'s reason: the
+   trigger is found and deleted by this string. `RECAP_LATE_HOURS` is how long after it fell due an
+   email may still go — a held one the next morning, a session marked paid that evening, a child's
+   backlog that synced on the next load — and also the reason switching it on cannot email about last
+   month: nothing is acted on past it, so there is no watermark to keep. `RECAP_PREVIEW_DAYS` is how
+   far back the admin's Preview looks. `RECAP_UNNAMED` is the booking form's "Someone else" (`UNNAMED`
+   in js/book.js) — a seat for a child with no account, who has no attempts and no parent here. */
+const RECAP_RUN = 'sessionRecapRun';
+const RECAP_LATE_HOURS = 24;
+const RECAP_PREVIEW_DAYS = 7;
+const RECAP_UNNAMED = 'someone else';
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
    `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the
@@ -2603,9 +2684,8 @@ const RUNNABLE = {
   regeocode:         () => geocodeVenues(true),
   rename:            a => renameValue(a),
   seedOptions:       () => seedOptions(),
-  /* Write the known families into the family tab. Safe to run whenever — it never changes a link
-     that already exists. */
-  seedFamilies:      () => seedFamilies(),
+  /* `seedFamilies` WAS HERE, and went with the hand-written map it wrote — see where
+     `KNOWN_FAMILIES` used to be. An admin links a child to a parent from the app (`linkChild`). */
   /* Fill in the wearable prices the code already holds, for a sheet that ran `seedAvatarItems`
      before it knew which columns the merged tab had. Never overwrites a cell with anything in it,
      so it is safe to run whenever and tells you how many it left alone. */
@@ -2777,16 +2857,12 @@ const MIGRATIONS = [
     what: 'every venue with a postcode gets its coordinates',
     run: () => geocodeVenues() },
 
-  /* THE FAMILIES, WRITTEN DOWN AT LAST.
-     Three parents on this system have children on it and nothing connected them — the family tab
-     was empty and every `children` cell was blank. So a booking could not say which child it was
-     for, a parent could not see their own child's exam on the calendar, and every student had no
-     siblings.
-     Safe to repeat: an existing link is left exactly as it is, whatever it says. */
-  { id: 'seed-the-families',
-    retry: true,
-    what: 'the families we already know get their links, so a booking can say who it is for',
-    run: () => seedFamilies() },
+  /* ---------- `seed-the-families` WAS HERE, AND ITS ID STAYS SPENT ---------------------------------
+     It wrote three families' links into the `family` tab from a hand-written list of real
+     children's names — see where `KNOWN_FAMILIES` used to be for why the list is gone. It has run:
+     the links are on the live tab, and every reader reads them there.
+     THE ID IS NOT REUSED, for the reason the paper migrations below give: a new job under this name
+     would be marked done on every database that ran the old one, and would never run at all. */
 
   /* ---------- THREE PAPER MIGRATIONS WERE HERE, AND THEIR IDS STAY SPENT -------------------------
      `edexcel-maths-past-papers`, `drop-empty-alevel-papers` and `edexcel-alevel-maths-past-papers`
@@ -2846,6 +2922,9 @@ const ACTION_ACCESS = {
      it is used (`authResetUse_`), so a stranger's press is an email and nothing more. It says which
      case it was (no such account, nobody to send to, sent), as signing in has since 184. */
   forgotPin: 'anyone',
+  /* AND THE LINK IN THAT MAIL — `anyone`, for `forgotPin`'s reason: whoever opens it cannot sign in. What
+     stops it being a way in is the key, two UUIDs long and mailed to the account's own address only. */
+  pinLink: 'anyone',
   /* `broadcast: 'admin'` WAS HERE — one message to everybody — and went with its handler and its
      card on "remove the note to everyone button". An entry with no handler is a door onto nothing. */
   /* SIGNING IN WITH GOOGLE. `anyone` for the same reason as the two beside it — you cannot be
@@ -2920,6 +2999,10 @@ const ACTION_ACCESS = {
      and anybody who is not one — and only the handler can see both rows. The gate only proves who
      is asking, and writes them into `body.personId`; the child is `targetId` or does not exist yet. */
   makeChild: 'self', resetPin: 'self',
+  /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. `self`, so where it goes is the row the token
+     resolved to and nothing on the request; the handler sends only to that row's own address while it
+     is PENDING, or to the new address the row is waiting to move to, and once a quarter of an hour. */
+  resendLink: 'self',
   /* A NEW WORD FOR YOUR OWN HANDLE. `self`, and the handler acts on the row the token resolved to
      rather than on anything posted — the gate writes `body.personId` from the token. `changeHandle`,
      which took a typed handle, is gone: see `handleTrouble_`. */
@@ -2961,6 +3044,9 @@ const ACTION_ACCESS = {
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */
   digestPreview: 'admin',
+  /* WHAT THE EMAIL AFTER EACH SESSION WOULD SAY, FOR THE LAST SEVEN DAYS. Admin, for `digestPreview`'s
+     reason — every learner's day and every parent's address — and a read: see backend/recap.gs. */
+  recapPreview: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

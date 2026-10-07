@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-06-c-noverifygate";
+const BOOKING_VERSION = "2026-10-07-b-merged";
 
 
 /**
@@ -621,7 +621,7 @@ const DAY_CODE_ = { monday: 'm', mon: 'm', tuesday: 'tu', tue: 'tu', wednesday: 
                     thursday: 'th', thu: 'th', friday: 'f', fri: 'f',
                     saturday: 'sa', sat: 'sa', sunday: 'su', sun: 'su' };
 function bookingCodes_(body) {
-  const sent = S(body.slots).split(',').map(x => norm(x)).filter(x => /^(m|tu|w|th|f|sa|su)\d{2}$/.test(x));
+  const sent = slotCodes_(body.slots);
   if (sent.length) return sent;
   const from = Number(String(fmtTime(body.time)).split(':')[0]);
   if (!S(body.time) || !isFinite(from)) return [];
@@ -631,6 +631,21 @@ function bookingCodes_(body) {
     for (let h = from; h < from + hours; h++) out.push(d + String(h).padStart(2, '0'));
   });
   return out;
+}
+
+/* ---------- A LIST OF CODES, READ ONE WAY WHEREVER IT IS READ ---------------------------------------
+   THREE PLACES TAKE ONE: the request (`bookingCodes_`, above), the job row it is kept on
+   (`createJob` writes `slot_codes`) and the email after a session, which reads the row's back to know
+   when THIS date's lesson ends (`recapEnd_` in recap.gs). Lower case, a day prefix and a two-digit
+   hour of the clock, each once, in the order given. Anything else is dropped rather than guessed at —
+   a `99` or a `mon10` typed into a cell is not an hour anybody can be taught in. */
+function slotCodes_(v) {
+  const seen = {};
+  return S(v).split(',').map(x => norm(x)).filter(x => {
+    if (!/^(m|tu|w|th|f|sa|su)\d{2}$/.test(x) || Number(x.slice(-2)) > 23 || seen[x]) return false;
+    seen[x] = 1;
+    return true;
+  });
 }
 
 /* A CODE AS A PERSON SAYS IT — `m16` is `Monday 16:00`. */
@@ -1360,10 +1375,18 @@ const AUTH = {
   QUIET_HOURS: 24,
   /* A PIN SENT BY "Forgotten your PIN?" — see `authResetUse_`. It works beside the old one for a day
      and becomes the PIN when it is first used; one is sent per quarter of an hour at most; and five
-     wrong tries at it while the account is locked throw it away. */
+     wrong tries at it while the account is locked retire it — the typed PIN only, when the mail went to
+     the account's own address and carries a sign-in link beside it (`authResetKey_`). */
   RESET_HOURS: 24,
   RESET_GAP_MINS: 15,
-  RESET_MISSES: 5
+  RESET_MISSES: 5,
+  /* "SEND THE LINK AGAIN" — see `resendLink` in dopost.gs. A fresh confirmation link to the row's own
+     address at most once a quarter of an hour, the forgotten PIN's gap and for its reason: every press
+     is an email out of the same daily quota the booking notices are sent from. */
+  LINK_GAP_MINS: 15,
+  /* A NEW ADDRESS WAITING TO BE PROVED — see `authMove*_`. The link that moves it works for a week, and
+     only where the account is signed in; after that the change is forgotten and the old address stays. */
+  MOVE_DAYS: 7
 };
 
 function authProps_() { return PropertiesService.getScriptProperties(); }
@@ -1496,6 +1519,10 @@ function authWrong_(t, r) {
      account most likely to be guessed at by a classmate was the one nobody heard about. The same
      grown-ups "Forgotten your PIN?" writes to (`authGrownUps_`). */
   if (S(r.email)) return;
+  /* CONFIRMED GROWN-UPS ONLY — the rule `notify` keeps (`addressPending_`), read in `authGrownUps_`.
+     This mail names the child's handle, and an accepted parent whose own address was never proved can
+     be a typo, so the handle went to a stranger, who then had the one thing "Forgotten your PIN?" asks
+     for. The address a PENDING child typed as their grown-up's is the same kind of unproved. */
   const tos = authGrownUps_(r);
   if (!tos.length) return;
   try {
@@ -1508,11 +1535,27 @@ function authWrong_(t, r) {
 /* ---------- WHO IS WRITTEN TO FOR A CHILD WITH NO ADDRESS OF THEIR OWN -------------------------------
    Every parent who has ACCEPTED the link (an `asked` row is a claim, not a family), and the address a
    child gave as a grown-up's when they made their own account (`parent_email`). Read in one place,
-   because the forgotten-PIN mail and the too-many-guesses warning both ask it. */
+   because the forgotten-PIN mail and the too-many-guesses warning both ask it.
+
+   ---------- AND ONLY THE ONES WHOSE ADDRESS SOMEBODY HAS PROVED -------------------------------------
+   A PARENT WHOSE OWN ROW IS PENDING IS LEFT OUT (`addressPending_`), and so is the typed grown-up's
+   address while the CHILD's row is PENDING — that row is PENDING precisely because nobody has opened
+   the link sent there, so the address is as unproved as a parent's. Both are the same stranger when
+   they are typos: a parent who mistyped jsmith@ as jsmith1@ made a child, and "Forgotten your PIN?"
+   on the child's handle (printed on every card, and in the make-child mail) sent that child's PIN to
+   jsmith1@'s owner, who signed in as the child (PR #130 review, variant C; a child who mistyped
+   their grown-up's address was variant B, the same mail by the typed half).
+
+   THIS USED TO TAKE `confirmedOnly`, AND ONLY THE WARNING PASSED IT. Round one of that review kept
+   the forgotten-PIN mail going to an unproved parent on purpose, as the way an address's owner proves
+   it — which is true of an account's OWN address (`forgotPin` sends there whatever its state) and is
+   not true of a child's PIN sent to somebody else's. With every caller asking for the same answer the
+   flag was a second rule waiting for a third caller to forget it, so it went: this is the rule. */
 function authGrownUps_(r) {
-  const tos = acceptedParents(S(r && r.person_id)).map(p => S(p.email)).filter(Boolean);
+  const tos = acceptedParents(S(r && r.person_id))
+    .filter(p => !addressPending_(p)).map(p => S(p.email)).filter(Boolean);
   const typed = S(r && r.parent_email);
-  if (typed && tos.map(norm).indexOf(norm(typed)) === -1) tos.push(typed);
+  if (typed && !addressPending_(r) && tos.map(norm).indexOf(norm(typed)) === -1) tos.push(typed);
   return tos;
 }
 
@@ -1534,7 +1577,8 @@ function authClearThrottle_(t, r) {
    the PIN and sent it to nobody.
 
    NOW THE REQUEST CHANGES NOTHING ON THE ROW. The new PIN is kept here, in Script Properties beside
-   the throttle — `AUTH_RESET_<person_id>` → `{ pin, until, at, misses }` — and works BESIDE the old one
+   the throttle — `AUTH_RESET_<person_id>` → `{ pin, until, at, misses, to, key, dead }` (`to` and `key`
+   for a mail to the account's own address, see below) — and works BESIDE the old one
    for `AUTH.RESET_HOURS`. Whichever is typed signs you in; the new one, once used, becomes the PIN.
    A stranger's press costs the child nothing but an email to a grown-up.
 
@@ -1544,8 +1588,21 @@ function authClearThrottle_(t, r) {
 
    AND IT IS STILL THE WAY OUT OF A LOCKOUT (181). The lock is answered before the PIN is looked at,
    which would refuse the emailed PIN exactly when it was asked for — so while locked, the emailed PIN
-   alone is still compared, and five wrong tries at it throw it away (`RESET_MISSES`): a lock that let
-   a guesser try a six-digit code all day without moving the ladder would be no lock. */
+   alone is still compared, and five wrong tries at it retire it (`RESET_MISSES`): a lock that let a
+   guesser try a six-digit code all day without moving the ladder would be no lock.
+
+   ---------- AND THE MAIL TO AN ACCOUNT'S OWN ADDRESS CARRIES A LINK, WHICH NO GUESS CAN USE UP ----------
+   FOUND BY ROUND THREE OF THE PR #130 REVIEW: those five misses are anybody's to spend. A squatter on
+   Vic's address keeps their 30-day session and types fifteen wrong PINs at it — ten lock it, five more
+   retire the PIN Vic was just mailed — and does it again for every new one, so the takeover the whole
+   design rests on (`authResetUse_` below) never happens. Not counting misses would hand a guesser the
+   six digits for a day; counting them per requester needs an identity Apps Script does not give.
+   SO THE PROOF THAT CANNOT BE GUESSED GOES IN THE SAME MAIL. `key` is two UUIDs long, so it needs no
+   budget: `?signin=<key>` (`pinLink` in dopost.gs) does exactly what typing the PIN back does, lock or
+   no lock, misses or none. The misses now retire the TYPED PIN only (`dead`) and leave the link
+   working until the day is out. Only the account's OWN address is sent one: a link that signed the
+   reader in would sign a grown-up's phone in as the child, and a parent has "New PIN" on the child's
+   card for a PIN somebody has used up. */
 function authResetKey_(r) { return 'AUTH_RESET_' + S(r.person_id || personDisplayName(r)); }
 
 function authResetGet_(r) {
@@ -1564,23 +1621,93 @@ function authResetDrop_(r) {
   try { authProps_().deleteProperty(authResetKey_(r)); } catch (err) {}
 }
 
-/* DOES `given` MATCH THE EMAILED PIN — and if it does, it becomes the PIN. `locked` says the lock is
-   on, in which case a miss is counted against the emailed PIN rather than the ladder. */
+/* THE ROW A SIGN-IN LINK BELONGS TO, by its key and nothing else: `{ owner, held }`, `owner` being the
+   suffix of the property (a person_id, or a display name for a row from before ids). A scan, because
+   there is one property per person who asked in the last day and keying them by link as well would be
+   two records to keep in step. */
+function authResetFind_(key) {
+  const want = S(key);
+  if (!want) return null;
+  try {
+    const all = authProps_().getProperties();
+    const hit = Object.keys(all).filter(k => k.indexOf('AUTH_RESET_') === 0).map(k => {
+      let held = null;
+      try { held = JSON.parse(all[k]); } catch (err) {}
+      return { owner: k.slice('AUTH_RESET_'.length), held: held };
+    /* `e`, NOT `x`: `check-columns` reads `x.<word>` as a sheet row's column, and `held` is not one. */
+    }).find(e => e.held && S(e.held.key) && authSame_(S(e.held.key), want));
+    if (!hit || !S(hit.held.pin) || N(hit.held.until) < Date.now()) return null;
+    return hit;
+  } catch (err) { return null; }
+}
+
+/* DOES `given` MATCH THE EMAILED PIN — and if it does, it becomes the PIN (`authResetTake_`). `locked`
+   says the lock is on, in which case a miss is counted against the emailed PIN rather than the ladder.
+   False, or what `authResetTake_` answers, which is truthy. */
 function authResetUse_(t, r, given, locked) {
   const held = authResetGet_(r);
-  if (!held) return false;
-  if (S(given) && authSame_(S(held.pin), S(given))) {
-    authSetPin_(t, r, S(held.pin));
-    /* THE OLD PIN'S GUESSES SAY NOTHING ABOUT THIS ONE — `authClearThrottle_`'s own argument. */
-    authClearThrottle_(t, r);
-    authResetDrop_(r);
-    return true;
-  }
+  if (!held || held.dead) return false;
+  if (S(given) && authSame_(S(held.pin), S(given))) return authResetTake_(t, r, held);
   if (locked) {
     held.misses = N(held.misses) + 1;
-    if (held.misses >= AUTH.RESET_MISSES) authResetDrop_(r); else authResetPut_(r, held);
+    /* RETIRED, NOT THROWN AWAY, WHEN THERE IS A LINK BESIDE IT — see the note over `authResetKey_`. */
+    if (held.misses >= AUTH.RESET_MISSES) {
+      if (S(held.key)) { held.dead = true; authResetPut_(r, held); } else authResetDrop_(r);
+    } else authResetPut_(r, held);
   }
   return false;
+}
+
+/* THE EMAILED PIN, USED — typed back (`authResetUse_`) or by its link (`pinLink`). One body, so the two
+   cannot drift: the link is the same proof, only one nobody can guess. Answers `{ childrenHeld }`. */
+function authResetTake_(t, r, held) {
+  authSetPin_(t, r, S(held.pin));
+  /* THE OLD PIN'S GUESSES SAY NOTHING ABOUT THIS ONE — `authClearThrottle_`'s own argument. */
+  authClearThrottle_(t, r);
+  authResetDrop_(r);
+  /* ---------- EVERY OTHER SESSION ENDS, WHATEVER STATE THE ROW IS IN --------------------------------
+     THE ADDRESS'S OWNER CAN ALWAYS TAKE IT BACK, and this is the act that does it. Somebody who
+     registered Vic's address signs in at once (no gate since the owner's 6 Oct ask) and keeps a
+     30-day token; Vic, told "already registered", uses "Forgotten your PIN?", and the emailed PIN
+     replaces theirs — and round one of the PR #130 review ended their session only while the row
+     was still PENDING. So the squatter's route was to wait for Vic to open the "Confirm your
+     account" mail she was sent: the row went TRUE, the emailed PIN later ended nothing, and their
+     token read her profile and reset the PIN of the child she then made (round two, B5/B6).
+     An emailed PIN becoming the PIN IS a PIN changed — `authEndSession_`'s own rule and `changePin`'s
+     argument, that the act which removes an intruder must not leave them signed in — so it ends
+     every session here, PENDING or not. The caller makes the new one straight after, so the person
+     using it stays in. The REQUEST still ends nothing: anybody may make it (`forgotPin`). */
+  authEndSession_(t, r);
+  /* ---------- AND A CHANGE OF ADDRESS LEFT WAITING IS CANCELLED ---------------------------------------
+     FOUND BY THE REVIEW OF AUTH ROUND THREE: the sessions ended and the move one of them asked for did
+     not. The squatter, still signed in after Vic opened her confirmation link, typed sam@ in Settings
+     (`AUTH_MOVE_<id>`); Vic took the account back with the emailed PIN, and the move sat on — her
+     Contact card said "Your email changes to sam@", her "Send the link again" mailed a fresh move link
+     to the squatter, and the squatter's own link, forwarded and opened by Vic while signed in, moved
+     her account to sam@, where "Forgotten your PIN?" took it again, children and all. A move is asked
+     for by a session; the act that says every session on this row may have been somebody else's
+     cannot keep what one of them asked. Its owner types it again if it was theirs, and is told so
+     (`authMoveSaid_`). Google's taking back drops it for the same reason (`googleLogin`). */
+  const moving = S((authMoveGet_(r) || {}).to);
+  authMoveDrop_(r);
+  /* ---------- AND USING IT PROVES THE ADDRESS IT WENT TO ---------------------------------------------
+     ONLY THE ACCOUNT'S OWN ADDRESS, and only the one it was sent to (`held.to`, written by
+     `forgotPin`): a no-email child's PIN went to their grown-ups, which says nothing about the child's
+     row — and confirming it would put the address the child TYPED for a grown-up, which nobody has
+     opened, into every mail `authGrownUps_` sends. An address changed since the mail went is not the
+     one that was proved. A PENDING row proved this way is TAKEN BACK (`authTakeBack_`), which is
+     more than confirmed. */
+  const kept = (S(held.to) && norm(held.to) === norm(r.email) && addressPending_(r)) ? authTakeBack_(t, r) : 0;
+  return { childrenHeld: kept, moveDropped: moving };
+}
+
+/* WHAT THE PERSON TAKING A ROW BACK IS TOLD ABOUT A CHANGE OF ADDRESS THAT WAS WAITING — `authResetTake_`
+   cancels it. The address is named: this is the account's owner, and it is the one thing that tells
+   them whether it was a change they asked for or somebody else's. */
+function authMoveSaid_(to) {
+  if (!S(to)) return '';
+  return 'A change of this account\'s email to ' + S(to) + ' was waiting to be confirmed, and it has been '
+       + 'cancelled. If you asked for it, type the new address again in Settings.';
 }
 
 /* ---------- SESSIONS, KEPT OFF THE SHEET -------------------------------------------------------
@@ -1614,6 +1741,72 @@ function authWhoIs_(token) {
   return read(TAB.people).rows.find(x => S(x.person_id) === S(s.id)) || null;
 }
 
+/* ---------- A PENDING ADDRESS PROVED BY ITS OWNER: CONFIRMED, AND THE LINK RETIRED ----------------------
+   ONCE SIGNING IN STOPPED WAITING ON THE LINK (the owner, 6 Oct), A PENDING ROW COULD HOLD A SESSION —
+   and the PIN on a self-made row proves only who REGISTERED, not who owns the address. The emailed PIN
+   used (`authResetTake_`) and Google vouching for the inbox (`googleLogin`) are the two proofs that come
+   from the address and not from the registrant, so both TAKE THE ROW BACK (`authTakeBack_`), of which
+   this is the first half. Neither caller stops at this: each ends every session the row holds before
+   the caller's new one is made, and Google also takes away the PIN the registrant chose — see each for
+   why. NOT `verifyEmail`, which writes the same two cells itself and ends no session: opening your own
+   link is the registrant confirming their own account, and it must not sign them out of the phone they
+   made it on. (It was `authAddressProven_` and ended the sessions too, which tied the ending to the row
+   being PENDING — the squatter's way through, by waiting for the link to be opened.) */
+function authConfirmed_(t, r) {
+  setCell(t, r, 'verified', 'TRUE');
+  setCell(t, r, 'verify_token', '');
+  clearCache();
+}
+
+/* ---------- AND THE CHILDREN THE REGISTRANT PUT ON IT ARE HELD, NOT HANDED OVER ------------------------
+   FOUND BY ROUND THREE OF THE PR #130 REVIEW: `confirmFirst_` stops a PENDING parent row being GIVEN a
+   child, and that is only the links made after it. A link made before — the window between the owner's
+   6 Oct change and this, an admin's `linkChild`, a claim answered then — sits `accepted` on a PENDING row,
+   and `resetPin`'s refusal of it lasted exactly until somebody proved the address. Jo's typo jsmith1@
+   with Ned on it: the stranger who owns jsmith1@ pressed "Forgotten your PIN?", typed the PIN back, the
+   row went TRUE, and `resetPin` gave them Ned's PIN (measured: strangerIn, resetChild, signedInAsChild).
+   SO WHEN AN ADDRESS'S OWNER TAKES A PENDING ROW BACK, the links the registrant made go to `held`. Not
+   `asked`, which the review suggested and which is a trap: the claim would reach Ned from "Jo Smith" —
+   the name on the row the stranger now holds — and a child says yes to their mum's name. `held` is read
+   by nothing as a link or as a request; only an admin's `linkChild` settles it, because only a person
+   can tell which of the two people who touched this account the child belongs to. The same for an
+   unanswered `asked`: a yes to it later would be the same hand-over.
+   ONLY HERE, ON THE TAKING BACK. `verifyEmail` holds nothing: it is the registrant opening their own
+   link, the ordinary way a parent's account is confirmed, and a parent must not lose their children for
+   doing what the mail asked. Answers how many links were held, for the reply to say so. */
+function authTakeBack_(t, r) {
+  authConfirmed_(t, r);
+  return authHoldChildren_(r);
+}
+
+function authHoldChildren_(r) {
+  const id = S(r && r.person_id);
+  if (!id) return 0;
+  const fam = read(TAB.family);
+  let held = 0;
+  fam.rows.forEach(x => {
+    if (S(x.parent_id) !== id) return;
+    const st = norm(x.state);
+    if (st !== 'accepted' && st !== 'asked') return;
+    if (setCell(fam, x, 'state', 'held')) held++;
+    setCell(fam, x, 'answered_on', new Date());
+  });
+  if (held) clearCache();
+  return held;
+}
+
+/* WHAT THE PERSON WHO HAS JUST TAKEN A ROW BACK IS TOLD ABOUT ITS CHILDREN — laid over the sign-in reply
+   by each door that can take one back. It reads to either of the two people it can be: the address's
+   real owner, who never made those links, or the registrant who forgot their PIN, who did and needs
+   to know where they went. */
+function authHeldSaid_(n) {
+  if (!n) return '';
+  return 'Your email is confirmed now. The account was in use before anybody had confirmed it, so the '
+       + (n === 1 ? 'child' : n + ' children') + ' on it ' + (n === 1 ? 'has' : 'have')
+       + ' been taken off until we have checked who they belong to. Get in touch with us and we will put '
+       + 'them back.';
+}
+
 /* SIGNING OUT, or a PIN changed: every session that person holds ends here, not only on the phone. */
 function authEndSession_(t, r) {
   const id = S(r && r.person_id);
@@ -1625,4 +1818,79 @@ function authEndSession_(t, r) {
       try { if (S(JSON.parse(all[k]).id) === id) props.deleteProperty(k); } catch (err) {}
     });
   } catch (err) {}
+}
+
+/* ==================================================================================================
+   A NEW EMAIL ADDRESS WAITS BESIDE THE OLD ONE UNTIL IT IS PROVED — BY THE ACCOUNT, SIGNED IN
+   --------------------------------------------------------------------------------------------------
+   FOUND BY ROUND THREE OF THE PR #130 REVIEW, AND OLDER THAN IT: Settings → Contact → email wrote the
+   new address straight into `email` and left `verified` as it was. Jo, confirmed on jsmith@, typed
+   jsmith1@: the row stayed TRUE, so every booking notice went to jsmith1@'s owner (`notify`), who
+   pressed "Forgotten your PIN?", signed in as Jo and reset the PIN of Jo's child — every rule of
+   `confirmFirst_` and `addressPending_` stepped round by one Save. And a PENDING row edited kept its old
+   `verify_token`, so the link mailed to the OLD address confirmed the row while it held the NEW one.
+
+   WHY NOT SET IT BACK TO PENDING, which the review offered first: on a confirmed row that would hand
+   the row to whoever proves the new address, and the new address is exactly the one nobody has proved.
+   The typo's owner would take Jo's account — her address, her phone, her bookings — by the same
+   "Forgotten your PIN?" that is right for a squatted sign-up; and Google signing in on it would take
+   her PIN and her children. A confirmed row has an owner already, proved; the new address has to be
+   proved to BE theirs, not merely to be somebody's.
+
+   SO THE NEW ADDRESS IS KEPT ASIDE (`AUTH_MOVE_<person_id>` → `{ to, key, at, until }`), the row keeps
+   the address it has, and a link goes to the new one. Opening it moves the address — but only where the
+   ACCOUNT is signed in (`verifyEmail`), because the proof wanted is both halves at once: this inbox, and
+   this account. The typo's owner holds the first and never the second, so they cannot finish it; and
+   until it is finished nothing about the new address reaches anything — no door signs in by it, no
+   "Forgotten your PIN?" goes to it, no mail is sent to it but the link. A row that is PENDING on an
+   address of its own has nothing proved to keep, so its address is simply corrected there (`updateProfile`).
+================================================================================================== */
+function authMoveKey_(r) { return 'AUTH_MOVE_' + S(r && (r.person_id || personDisplayName(r))); }
+
+function authMoveGet_(r) {
+  let m = null;
+  try { m = JSON.parse(authProps_().getProperty(authMoveKey_(r)) || 'null'); } catch (err) {}
+  if (!m || !S(m.to) || !S(m.key) || N(m.until) < Date.now()) return null;
+  return m;
+}
+
+function authMovePut_(r, m) {
+  try { authProps_().setProperty(authMoveKey_(r), JSON.stringify(m)); return true; }
+  catch (err) { return false; }
+}
+
+function authMoveDrop_(r) {
+  try { authProps_().deleteProperty(authMoveKey_(r)); } catch (err) {}
+}
+
+/* THE MOVE A LINK BELONGS TO, by its key: `{ owner, move }` — `authResetFind_`'s shape and reason. */
+function authMoveFind_(key) {
+  const want = S(key);
+  if (!want) return null;
+  try {
+    const all = authProps_().getProperties();
+    const hit = Object.keys(all).filter(k => k.indexOf('AUTH_MOVE_') === 0).map(k => {
+      let move = null;
+      try { move = JSON.parse(all[k]); } catch (err) {}
+      return { owner: k.slice('AUTH_MOVE_'.length), move: move };
+    /* `e`, not `x` — the reason is over `authResetFind_`'s. */
+    }).find(e => e.move && S(e.move.key) && authSame_(S(e.move.key), want));
+    if (!hit || !S(hit.move.to) || N(hit.move.until) < Date.now()) return null;
+    return hit;
+  } catch (err) { return null; }
+}
+
+/* THE LINK TO THE NEW ADDRESS. It names nobody: the reader may be a stranger whose address was typed by
+   mistake, and the account's name and handle are not theirs to be told. Throws as `MailApp` does. */
+function moveMail_(to, key) {
+  MailApp.sendEmail({ to: S(to), name: '@family.',
+    subject: 'Confirm your new @family. email address',
+    body: 'Hello,\n\nSomebody signed in to an @family. account has asked to use this email address for it.'
+        + '\n\nIf that was you, open this link on a phone or computer where you are signed in to that account:'
+        + '\n\n' + SITE_URL + '?verify=' + key
+        + '\n\nUntil it is opened, the account keeps its old address — sign in with that, or with your handle.'
+        + ' The link works for ' + AUTH.MOVE_DAYS + ' days.'
+        + '\n\nIf it was not you, ignore this email. Nothing changes, and the link does nothing for anybody '
+        + 'who is not signed in to that account.'
+        + '\n\n— @family.' });
 }

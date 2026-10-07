@@ -1468,7 +1468,7 @@ const BOOK_STEPS = [
   /* ---------- WHOSE CHILDREN ARE THESE? -----------------------------------------------------
      A parent with three children on their account books three seats, and until now every one of
      those seats was anonymous — so the tutor arrived at a library knowing a booking existed and
-     not who was coming, and you could not tell one of Danile's bookings from another.
+     not who was coming, and you could not tell one of a parent's bookings from another.
 
      ONE TICKLIST, NOT A YES/NO EACH. Three children is three questions and six taps to say what
      one list says in one or two, and the ticklist has an answer the questions do not: ticking
@@ -1481,9 +1481,9 @@ const BOOK_STEPS = [
      and nothing has to remember that. */
   { id: 'kids', label: 'Which of your children is this for?', short: 'Child', multi: true,
     /* EVERY CHILD IS OFFERED. This used to hand back only as many names as there were seats —
-       so booking two seats showed Danile two of her three children and she could not choose WHICH
-       two. The seat count limits HOW MANY you may tick, and it has never had anything to say about
-       which names exist.
+       so booking two seats showed a mother of three two of her children and she could not choose
+       WHICH two. The seat count limits HOW MANY you may tick, and it has never had anything to say
+       about which names exist.
 
        That is the same mistake `why` was written to prevent, one line further down: an option that
        does not fit is MARKED with the reason and left on the list, because a list that quietly

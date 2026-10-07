@@ -142,8 +142,8 @@ const STATES = {
        THE EXPECT ASKS THE THINGS A SCREENSHOT SHOWED, because none is a measurement any rule in
        check/ui.js makes: no answer carries a month and a year together, no answer is a season, and at
        least two answers sit on one line — chips stacked one per row measure perfectly and are the
-       shape that was reported. Topic area and Topic are skipped, as a person who wants a sitting
-       would. */
+       shape that was reported. (`Topic area` and `Topic` were skipped here with Doesn't matter until
+       a past paper stopped answering either — see `topicArea WAS HERE` in find.js.) */
     { name: 'the year folder',
       enter: () => {
         STUFF.q = '';
@@ -152,8 +152,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' }];
         paintStuff();
         goPage('stuff', 0, true);
@@ -175,8 +173,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' }];
         paintStuff();
@@ -205,8 +201,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', any: true },
                          { field: 'examMonth', value: 'May' }];
@@ -236,8 +230,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' },
                          { field: 'examMonth', value: 'June' },
@@ -1383,69 +1375,97 @@ const STATES = {
        asking a stranger to reach it would report a fault about the check (check-flow proves the
        absence; this measures the presence).
 
-       EVERY PAGE OF IT IS CUT TO THE SCREEN, AND `check/ui.js` HOLDS IT TO THAT: a Bible page that
-       `paneReach_` had to draw smaller is a failure there, not a known cost (see `A PAGE CUT TO THE
-       SCREEN`). And `ui.js` measures every pane in the strip, not just the one in front, so each state
-       here is the page it names and the pages either side of it:
-         · the Old Testament — the cover and all three lists, which are the densest chip pages: the
-           thirty-nine were drawn at 84% at 320 until they became two pages.
-         · Genesis 1 — the reading page, the chapter numbers in front of it, and the pages after it,
-           every one cut in measured pixels when the book was opened (`bibleMeasure_`).
-         · Psalms's numbers — the one book whose numbers are several pages (five at 320x568), sized
-           to whole rows of the pane, each with a tile back to its list.
-       Each book is fetched by the app's own call from the local server, the way a tap fetches it. */
-    { name: 'the Bible, the Old Testament',
+       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
+       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
+       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
+       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
+       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
+       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
+       either side of it.
+       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
+       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
+       so the cards after it are drawn from memory as a second visit would draw them. */
+    { name: 'the Bible, the KJV question',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }];
         paintStuff();
-        const x = stuffFiltered().find(i => i.kind === 'bible');
-        if (!x) throw new Error('no Bible on the Books shelf for an admin');
-        goPage('stuff', stuffFirstResult_() + Math.max(0, pageParts_(x).indexOf('ot')), true);
-        /* GENESIS AND PSALMS ASKED FOR NOW, for the states after this one. Their `enter` has the
-           500ms every state gets, and on a machine running four suites at once a 204 KB fetch plus
-           the paint did not land inside it — the state was reported as not arriving at 1280 while it
-           arrived a moment later. Held for the visit, so the next states open them from memory, as a
-           second tap would. Nothing on THIS page changes: the list is only redrawn by a tap. */
+        goPage('stuff', stuffQuestionPage_(), true);
         bibleLoad_(1);
+        bibleLoad_(17);
         bibleLoad_(19);
       },
-      expect: () => document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot"] [data-do="bible-book"]').length === 17
-                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot2"] [data-do="bible-book"]').length === 22
-                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="nt"] [data-do="bible-book"]').length === 27,
-      wants: 'the Bible\'s three lists of books — Genesis to Esther, Job to Malachi, the New Testament — a button each' },
-    { name: 'the Bible, Genesis 1',
+      expect: () => {
+        const a = [...document.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
+        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
+               && !!document.querySelector('#s-stuff .card.bible[data-bb="card"]');
+      },
+      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+    { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }];
         paintStuff();
-        bibleLoad_(1).then(d => { if (d) { bibleSet_(1); bibleGo_('c1'); } });
+        goPage('stuff', stuffQuestionPage_(), true);
       },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .card.bb-text.is-c1');
-        return !!c && /In the beginning God created the heaven and the earth\./.test(c.textContent)
-               && !!c.querySelector('.bb-v i') && !/[\[\]]/.test(c.textContent)
-               && !!c.querySelector('.tile-row [data-do="bible-to"]')
-               && !!document.querySelector('#s-stuff .card.bb-chs [data-do="bible-ch"]');
-      },
-      wants: 'Genesis 1 drawn, "In the beginning…" with a supplied word in italics, no bracket, and its tile back to the chapter numbers beside it' },
-    { name: 'the Bible, Psalms\'s chapter numbers',
+      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
+      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
+    { name: 'the Bible, Psalm 119\'s verses',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
         paintStuff();
-        bibleLoad_(19).then(d => { if (d) { bibleSet_(19); bibleGo_('bk-1'); } });
+        goPage('stuff', stuffQuestionPage_(), true);
+      },
+      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
+      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
+    { name: 'the Bible, Genesis 1:3',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
+                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
+                         { field: 'bibleVerse', value: '3' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
       },
       expect: () => {
-        const g = document.querySelector('#s-stuff .card.bb-chs.is-bk-1');
-        return !!g && g.querySelectorAll('[data-do="bible-ch"]').length > 0
-               && !!g.querySelector('.tile-row [data-do="bible-to"][data-to="ot2"]');
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v:not(.is-wait)');
+        return !!v && /Let there be light/.test(v.textContent)
+               && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
       },
-      wants: 'the second page of Psalms\'s chapter numbers, with its tile back to Job to Malachi',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
+    { name: 'the Bible, Esther 8:9',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
+                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
+                         { field: 'bibleVerse', value: '9' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
+      expect: () => {
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
+        return !!v && !v.classList.contains('is-wait') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
+      },
+      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ==============================================================================================
        THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
 
@@ -2240,6 +2260,29 @@ const STATES = {
       /* `repaint(true)`, not `paint`: four pages leave the column (a sibling made it four), so it is placed again — a bare paint
          left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
       leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
+    /* ---------- YOUR OWN CARD WHILE YOUR EMAIL IS UNPROVED ---------------------------------------------
+       The PR #130 review: `notify` sends a PENDING address nothing, and nothing on the phone said so —
+       a parent whose link went to spam booked and heard nothing. Now a line under your own card says
+       the mail waits for the link, with "Send the link again" beside Sign out. `pendingEmail` is a key
+       of the sign-in reply the fixture visitor does not carry, so it is set here, and the address is a
+       long one with no space in it on purpose: it is the widest thing on the line. */
+    { name: 'your own card, your email not confirmed yet',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__PENDING_WAS = USER.pendingEmail;
+        USER.pendingEmail = 'philippa.parentington-smythe.family@example.org';
+        paint('account');
+        goPage('account', 0, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const line = pg && pg.querySelector('.mail-held');
+        return line && /philippa\.parentington-smythe\.family@example\.org/.test(line.textContent)
+          && pg.querySelectorAll('[data-do="resend-link"]').length === 1
+          && line.scrollWidth <= line.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the line under your own card naming the address, whole and not running off it, and one "Send the link again"',
+      leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); } },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
@@ -2283,6 +2326,63 @@ const STATES = {
           && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
       },
       wants: 'the make card with its three boxes, and the slip: the handle and the PIN, neither running off it' },
+    /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED ------------------------
+       The PR #130 review: no child is put on an account until its address is confirmed (`confirmFirst_`
+       in people.gs), so a PENDING parent's Settings draws ONE card where the two child forms would be —
+       the sentence and "Send the link again". Seeded through `USER.pendingEmail`, which the sign-in reply
+       carries and the fixture visitor does not, with a long address that has no space in it. */
+    { name: 'your child\'s account, held for the link',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
+      enter: () => {
+        window.__PENDING_WAS = USER.pendingEmail;
+        USER.pendingEmail = 'philippa.parentington-smythe.family@example.org';
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-held'));
+        if (at < 0) throw new Error('no held "Make your child\'s account" card on the settings column');
+        goPage('settings', at, true);
+      },
+      /* `repaint(true)`: one page becomes two again, so the column is placed afresh — see the family state. */
+      leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const card = pg && pg.querySelector('.kid-held');
+        return card && /philippa\.parentington-smythe\.family@example\.org/.test(card.textContent)
+          && card.querySelectorAll('[data-do="resend-link"]').length === 1
+          && !document.querySelector('#s-settings [data-kid-new], #s-settings [data-kid]')
+          && card.scrollWidth <= card.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'one card naming the address to open the link from, with "Send the link again", and no child form anywhere on the column' },
+    /* ---------- A NEW ADDRESS WAITING FOR ITS LINK, ON THE CONTACT CARD ----------------------------------
+       Round three of the PR #130 review: a new address typed in Settings is not written until the account,
+       signed in, opens the link sent to it (`authMove*_` in booking.gs). The box keeps the waiting address,
+       a line under the row names both — the new one and the one that still signs in — and "Send the link
+       again" sits beside Save. Seeded through `USER.profile.email_moving`, which `profileOf_` sends and the
+       fixture visitor does not, with two long addresses that have no space in them. */
+    { name: 'your new email, waiting for its link',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__MOVING_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          email: 'philippa.parentington-smythe.family@example.org',
+          email_moving: 'philippa.parentington-smythe.newaddress@example.org' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.mail-moving'));
+        if (at < 0) throw new Error('no Contact card saying a new address waits for its link');
+        goPage('settings', at, true);
+      },
+      leave: () => { USER.profile = window.__MOVING_WAS; repaint(true); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const note = pg && pg.querySelector('.mail-moving');
+        const box = pg && pg.querySelector('[data-me="email"]');
+        return note && /newaddress@example\.org/.test(note.textContent) && /family@example\.org/.test(note.textContent)
+          && box && box.value === 'philippa.parentington-smythe.newaddress@example.org'
+          && pg.querySelectorAll('[data-do="resend-link"]').length === 1
+          && note.scrollWidth <= note.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the Contact card with the waiting address in its box, a line naming both addresses whole, and one "Send the link again"' },
     /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT ------------------
        Eight boxes are IN the form whether or not they are drawn — `photosIn` rebuilds the whole cell
        from what arrives, so a box missing from the form is a photograph deleted on Save — and only
@@ -2610,6 +2710,70 @@ const STATES = {
         return /To Pat Parent/.test(t) && /Ada’s week: 3 questions/.test(t) && /Nobody to tell/.test(t);
       },
       wants: 'each email under its address, its plain body, and who nobody can tell' },
+
+    /* ---------- THE EMAIL AFTER EACH SESSION: ITS CARD, AND WHAT PREVIEW OPENS ------------------------
+       *"2 hours after the end of each session"* — backend/recap.gs, js/digest.js. The card is the last
+       page of an admin's Settings, after the weekly one. The preview is drawn from a reply shaped the
+       way `recapPreviewOut_` answers — a missing-tab warning, an unbooked check, a day with a session,
+       an email, a session counted for nobody and a learner nobody can tell — with an address and a
+       paper's name long enough to have to wrap at 320. */
+    { name: 'the email after each session card',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
+        if (at < 0) throw new Error('no email-after-each-session card on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return !!pg && /Email after each session:\s*(Off|Preview|Send)/.test((pg.querySelector('.recap-mode') || {}).textContent || '')
+          && !!pg.querySelector('.tile-row [data-do="recap-preview"]');
+      },
+      wants: 'the mode in its title, the delay, and one Preview tile' },
+    { name: 'the email after each session, previewed',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
+        if (at < 0) throw new Error('no email-after-each-session card on the settings column');
+        goPage('settings', at, true);
+        const body = 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 4 questions, 3 of them for the first time.\n\n'
+          + 'Biology · Required practical · Osmosis\nWorksheet\n\n'
+          + 'Maths · Paper 1 (Calculator) — June 2024\nQ3, Q7 (again), Q11\n\n'
+          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+          + 'You get this because you are Ada’s parent on @family. To stop the emails after sessions, reply to this one and say so.';
+        const empty = d => ({ day: d, label: d, sessions: [], emails: [], nobody: [] });
+        openSheet('Email after each session', recapSheet_({ success: true, mode: 'preview', delay: 2, scheduled: 0,
+          attempts: false, logTab: true,
+          warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it; questions marked from then on are what these emails report. Nothing was sent.',
+          days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
+                   /* WHAT `recapPreviewOut_` REALLY PUTS IN `sessions`: Booked sessions, and the QUIET reasons.
+                      A reason the log is told (agreed but not paid) is a job-level row in `nobody`, for
+                      another job — one job is never both a quiet line and a log row on one day. */
+                   sessions: [{ subject: 'Maths', time: '4pm–6pm', learners: ['Ada Pupil'], dueSaid: '8pm', state: 'due' },
+                              { subject: 'Physics', time: '', learners: [], dueSaid: '', state: 'nobody has a seat on it — cancelled, or never booked on the site' }],
+                   emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
+                              subject: 'Ada’s session on Tue 6 Oct: 4 questions', text: body, count: 4, dueSaid: '8pm', state: 'due', status: 'preview' }],
+                   nobody: [{ name: 'Ben Pupil', why: 'no question on the attempts tab for Ben Pupil on Tue 6 Oct — this email reports only questions marked while signed in as Ben Pupil; 9 were marked that day on Sam Tutor’s account (the tutor)', status: 'nothing done' },
+                            { name: 'Chemistry (J-3)', why: 'agreed with the tutor but nobody’s seat is Booked — mark it paid and the next hourly check sends it, while it is within 24 hours of due', status: 'not sent' }] },
+                 empty('2026-10-05'), empty('2026-10-04'), empty('2026-10-03'), empty('2026-10-02'), empty('2026-10-01'), empty('2026-09-30')] }));
+      },
+      leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
+      /* AND THE DAY OUTRANKS THE EMAIL. Each email's `h3` was the browser's 1.17em bold — the largest text
+         on the sheet — under a day drawn as the sheet's small dim marker, so the days that organise the
+         preview were the hardest thing on it to find. Asked of the drawn page: an email's heading is no
+         larger than the text under it, and the day is a divider with a rule above it. */
+      expect: () => {
+        const body = document.getElementById('sheet-body');
+        const t = (body || {}).textContent || '';
+        const h2 = body && body.querySelector('.recap-sheet h2'), h3 = body && body.querySelector('.recap-sheet h3');
+        const p = h3 && h3.nextElementSibling;
+        const px = el => parseFloat(getComputedStyle(el).fontSize);
+        return /To Pat Parent/.test(t) && /Ada’s session on Tue 6 Oct: 4 questions/.test(t) && /Nobody to tell/.test(t) && /No hourly check is booked/.test(t)
+          && !!h2 && !!h3 && !!p && px(h3) <= px(p) && parseFloat(getComputedStyle(h2).borderTopWidth) > 0;
+      },
+      wants: 'the warnings first, each session on a line, each email under its address, who nobody can tell, and each day a divider that outranks the email headings under it' },
 
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
        ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take

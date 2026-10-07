@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-06-c-noverifygate";
+const DOGET_VERSION = "2026-10-07-b-merged";
 
 
 function doGet(e) {
@@ -478,6 +478,8 @@ function doGet(e) {
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
                  'digestPreview',
+                 /* And the email after each session's — the same card column, the same reason. */
+                 'recapPreview',
                  /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
                  'checkUploads',
                  /* The site checks for this to decide whether it may offer the picker. */
@@ -510,7 +512,10 @@ function doGet(e) {
                  'approvePost',
                  /* The phone checks this before it sends a done question, so a phone ahead of the
                     deployment keeps the date to itself rather than being refused on every Check. */
-                 'markDone'],
+                 'markDone',
+                 /* "Send the link again", and the sign-in link in a forgotten-PIN mail — listed so a
+                    phone ahead of the deployment is told which file has not been pasted in. */
+                 'resendLink', 'pinLink'],
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
       /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
          id of the person it was built for, which the phone checks before drawing any of it. */
@@ -623,11 +628,12 @@ function doGet(e) {
          file that sends it. */
       films: filmsOut,
       cheatsheet: [],
-      /* `topicTree` IS THE FOURTH OF THESE and it is declared for the same reason as the three
-         above: `libraryExtras_` fills it from `data/topics.json` on the phone, and a key the site
-         reads that appears nowhere here is what `check-payload.js` fails on -- correctly, because
-         it cannot tell a key filled in the browser from one nobody sends. */
-      topicTree: [],
+      /* `topicTree: []` WAS THE FOURTH OF THESE, declared so `check-payload.js` would not report a
+         key the phone filled from `data/topics.json` as read-and-never-sent. Nothing reads it now —
+         the `Topic area` question and `topicAreaOf_` are retired (find.js, `THE TOPIC TREE WAS READ
+         HERE`) and the phone no longer fetches the file — so kept here it would be the same check's
+         other list, sent and never read. NO STAMP BUMP FOR IT: until the next sync the deployed copy
+         goes on sending an empty array nobody asks for, which is the whole of the difference. */
       /* AND `practicals` IS THE FIFTH, for exactly the same reason. `data/practicals.json` is
          41 experiments filled in on the phone by `libraryExtras_`; this line is what stops
          `check-payload.js` reporting the key as read-and-never-sent, which it would be right
@@ -2106,6 +2112,9 @@ function attemptsFor_(me, isAdmin) {
     const q = S(r.question_key);
     if (!q || key(r.person_id) !== key(pid)) return;
     out.mine[q] = { first: isoDate_(r.first_done), last: isoDate_(r.last_done), times: N(r.times) || 1 };
+    /* WHETHER THE ROW HAS A NAME, so the phone can send the one it knows (`attemptsSync_`). A flag and
+       not the name: the phone already has the name, and the payload is every visit's. */
+    if (S(r.label)) out.mine[q].named = 1;
   });
   if (isAdmin) {
     out.people = {};

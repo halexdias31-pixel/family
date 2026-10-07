@@ -32,7 +32,7 @@ const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*/g,'');
    source and all of them are alive. */
 const KEEP=new Set(['doGet','doPost','missingKeys','layout',
   'ensureSchema','checkEverything','checkPostsFolder','checkScopes','authoriseDrive',
-  'makeBrandAccount','migrateLikes','installTriggers','listTriggers','seedFamilies',
+  'makeBrandAccount','migrateLikes','installTriggers','listTriggers',
   'refreshPageCounts','closeFinishedJobs','geocodeVenues','fetchMap','renameValue',
   'seedOptions','ensureResourceIds','schemaGaps','dataProblems','autoMigrate',
   'seedConfig','seedAvatarItems','seedPostcodes','ensurePersonIds','gallery','landmarks']);

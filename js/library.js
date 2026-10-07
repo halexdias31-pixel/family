@@ -11,7 +11,7 @@
    and dates of birth, which cannot go in a public repository at any price.
 
    WHAT WAS LEFT BEHIND, and this is the whole of it: `ticks_1`, `ticks_2` and `ticks_3`. 529 cells
-   holding the handles of real people — `MabelW`, `HectorL`, `DanileC`, most of them children. They
+   holding the handles of real people — a first name and an initial each, most of them children. They
    are stripped from `data/questions.json` and they are the reason this file says so twice. A tick
    is a fact about a PERSON and a document; it was never library data, and if it comes back it comes
    back in `Ledger`.
@@ -189,11 +189,13 @@ async function libraryRows_() {
    one place that renames a column is the mapping below. Two spellings in two places is how
    `r.link` and `source_url` cost seven silent reads, recorded in CLAUDE.md.
 ================================================================================================== */
-/* ---------- `topics` IS THE FOURTH, AND IT IS A TREE RATHER THAN A TABLE -------------------------
-   269 LABELS UNDER 10 ROOTS, with an `aliases` column. It sat unread in `data/archive/` until the
-   funnel needed it: the `Topic` facet reads a free-text cell with 389 distinct values in it, folded
-   by a spelling vote at runtime, and 343 of them can be on one card. This is the curated version of
-   that question -- somebody wrote the tree down, so the app stops guessing. */
+/* ---------- `topics` WAS THE FOURTH, AND IT IS NOT FETCHED ANY MORE ------------------------------
+   269 LABELS UNDER 10 ROOTS, with an `aliases` column, fetched here for `topicAreaOf_` and the
+   `Topic area` question it answered. The owner retired that question on 6 Oct, and its reader
+   followed a round later (see `THE TOPIC TREE WAS READ HERE` in find.js) — in between, every boot
+   still fetched the file and built `DATA.topicTree` for nobody. The file stays in `data/`: the
+   practicals', projects' and textbooks' checks read it straight off disk to hold a hand-written
+   topic to a label or an alias, and none of them needs the phone to have it. */
 /* `practicals` JOINED THIS LIST LAST and is the first entry that is not a boxing row or a
    lookup table: 41 experiments, each naming the library's own topics, so a practical and a
    past-paper question about the same thing answer the same question in the funnel. */
@@ -208,7 +210,7 @@ async function libraryRows_() {
    will be in the resources tag in the finder." ONE FILE FOR EVERY BOOK, not one file per book, because
    a file is a name in this list and a name here is a deploy: the second book should be rows, not code.
    One row per chapter; see the mapper below and `check-textbooks.js`. */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'projects', 'textbooks'];
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'practicals', 'projects', 'textbooks'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
@@ -280,11 +282,8 @@ function libraryExtras_(d, extra) {
     d.cheatsheet = out;
   }
 
-  /* --- the topic tree --------------------------------------------------------------------------
-     PASSED THROUGH AS THE SHEET HAS IT. `topicAreaOf_` in find.js is the only reader and it wants
-     the parent links intact, so there is nothing to rename here -- the one mapping this file exists
-     to do is a mapping onto keys the phone already reads, and a tree has none. */
-  if (extra.topics && extra.topics.length) d.topicTree = extra.topics;
+  /* --- the topic tree WAS PASSED THROUGH HERE as `d.topicTree`, for `topicAreaOf_`; both went
+     with the `Topic area` question. See `topics` WAS THE FOURTH above. */
 
   /* --- the practicals --------------------------------------------------------------------------
      TWO COLUMNS ARE PIPE-SEPARATED AND THAT IS MEASURED, NOT PREFERRED. `asList_` splits on commas
