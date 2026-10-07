@@ -559,13 +559,16 @@ const STATES = {
       wants: 'the stem of Q5 on its own page, tagged Question and Q5 (1 of 2: its table makes it two), no marks, no box and no picture, saying what is next',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'its figure, the page after, with no question number',
+      /* THE VENN DIAGRAM IS PART (c)'S NOW, because that is where the paper prints it: after (b),
+         under the work-from-home bullets that (c) completes it from. It sat on the stem until the
+         library was read against the paper, and this state followed it there. */
       enter: () => {
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5a');
-        if (!it) throw new Error('Q-9MA031-2206-5a is not in the library');
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5c');
+        if (!it) throw new Error('Q-9MA031-2206-5c is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'sfig0'));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'));
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
