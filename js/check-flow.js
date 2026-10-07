@@ -6081,6 +6081,9 @@ check('nothing offers to install, and the browser is not left to offer it either
     'install', '\\bapps?\\b', 'shortcut', '\\bicon on', 'standalone', 'bookmark',
     '(?:on|onto|to) (?:your|the) (?:phone|home|dock)', 'home ?(?:screen|row|page)', 'add to (?:your )?home',
     'full ?-?screen', 'one tap', 'address bar',
+    /* AND THE DESKTOP'S WORDS, which the round-3 review drew on a card and the list did not hold:
+       "Save it to your device / Launch it from your start screen". Measured: in none of the screens. */
+    'start ?(?:screen|menu)', '(?:to|on) your (?:device|desktop|laptop|computer)', 'launch it',
     '(?:add|save|pin|put|keep|get|use) @family\\.',
   ].join('|') + ').{0,30}', 'gi');
   const ALL = { childList: true, subtree: true, attributes: true, characterData: true };
@@ -6114,10 +6117,13 @@ check('nothing offers to install, and the browser is not left to offer it either
     settle.observe(w.document.documentElement, ALL);
     const from = Date.now();
     let quiet = false;
-    while (!quiet && Date.now() - from < 10000) { moved = 0; await wait(500); quiet = !moved; }
+    /* THIRTY SECONDS, NOT TEN. Ten held alone and failed for every copy when eleven ran at once on four
+       cores (the round-3 review): the boot of four apps together simply had not finished. A slow page
+       is not an offer; only a page that NEVER settles is "not checked". */
+    while (!quiet && Date.now() - from < 30000) { moved = 0; await wait(500); quiet = !moved; }
     settle.disconnect();
     if (!quiet) {
-      bad.push(who + ': the page never stayed still for half a second in ten, so a redraw for the offer '
+      bad.push(who + ': the page never stayed still for half a second in thirty, so a redraw for the offer '
              + 'could not be told from one of its own — NOT checked');
       return bad;
     }
