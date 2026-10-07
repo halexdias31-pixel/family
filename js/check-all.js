@@ -329,8 +329,13 @@ const SUITE = [
      past fifteen minutes beside the other browser checks. `--part` deals the screens alternately
      into two runs that go side by side, each well inside the clock. The `file` carries the
      argument; see where it is split below. */
-  { file: 'check/ui.js --part=1/2', what: 'every screen, state, width and visitor, measured (half)', slow: true },
-  { file: 'check/ui.js --part=2/2', what: 'every screen, state, width and visitor, measured (half)', slow: true },
+  /* ---------- AND NOW IN THIRDS ---------------------------------------------------------------------
+     7 October: the fifth width (1920, the wide window) and the Bible's states took `--part=2/2` past
+     the fifteen-minute clock with nothing wrong in it — a timeout reported as a failure. Three runs
+     side by side, each a third of the screens, put every one back inside it. */
+  { file: 'check/ui.js --part=1/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
+  { file: 'check/ui.js --part=2/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
+  { file: 'check/ui.js --part=3/3', what: 'every screen, state, width and visitor, measured (a third)', slow: true },
   /* ---------- AND WHICH CSS RULE ACTUALLY WINS ----------------------------------------------------
      THIS STYLESHEET HAS LOST THE SAME ARGUMENT SEVEN TIMES — `.price.faint`, `--fly-ink`,
      `.bk-row.is-blank`, `.rc-total`, an SVG `text-anchor`, `.gd-sec p`, and the docket's ＋ written
