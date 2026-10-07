@@ -597,6 +597,14 @@ if (whoRules !== WHO_RULES && !bad.length) no('only ' + whoRules + ' of ' + WHO_
        guesses warning and a child's forgotten PIN skip a PENDING parent and a PENDING child's typed
        grown-up; an account's OWN pending address still gets its forgotten PIN;
    (d) "SEND THE LINK AGAIN" mails only the row's own pending address, a fresh link, once a quarter hour.
+   ROUND THREE OF THE REVIEW found each of those stepped round by a door none of them watched, so:
+   (e) A NEW ADDRESS TYPED IN SETTINGS is proved by the ACCOUNT before it is trusted — it waits beside a
+       confirmed row and only that account, signed in, can open its link; a PENDING row's corrected
+       address gets a fresh link and the old one (and any PIN mailed to the old address) dies;
+   (f) WHEN AN ADDRESS'S OWNER TAKES A PENDING ROW BACK, the children the registrant put on it — links
+       from before (a) — are `held`, and only an admin settles them; opening your own link holds none;
+   (g) A SQUATTER TYPING WRONG PINS CANNOT KEEP THE OWNER OUT — the mail to an account's own address
+       carries a sign-in link no miss can use up.
    ================================================================================================== */
 let proofRules = 0;
 {
@@ -769,8 +777,19 @@ let proofRules = 0;
     b.seed('people', [person('P-CON', 'client', 'Cy', 'Confirmed', { email: 'cy@example.org', handle: 'cy_kind98' })]);
     register(b, { who: 'parent', first_name: 'Sid', last_name: 'Squat', email: 'val@example.org', pin: P1 });
     const squat = signIn(b, 'val@example.org', P1);
+    /* A CHILD ON THE SQUATTED ROW from before the rule — Google taking it back holds them, as the PIN does. */
+    const sid = rowOf(b, r => r.email === 'val@example.org');
+    b.seed('people', [person('P-GKD', 'student', 'Gus', 'Kid', { handle: 'gus_kind109' })]);
+    b.seed('family', [{ link_id: 'L-GKD', parent_id: sid && sid.person_id, child_id: 'P-GKD', state: 'accepted' }]);
     if (!live(b, squat.token)) no('the squatter could not sign in, so the Google half of (b) was NOT checked', squat);
     else {
+      /* A PIN MAILED BEFORE GOOGLE PROVED THE ADDRESS — the squatter pressing "Forgotten your PIN?" is
+         enough to put one there — goes with the registrant's PIN: the reply names Google and a FRESH one
+         as the only ways in, and `googleLogin` drops it (`authResetDrop_`). Nothing else held this. */
+      const m0 = MAIL.length;
+      post(b, { action: 'forgotPin', who: 'val@example.org' });
+      const early = mailTo('val@example.org', m0)[0];
+      const earlyPin = pinIn(early), earlyLink = (S(early && early.body).match(/\?signin=(\w+)/) || [])[1] || '';
       const g = post(b, { action: 'googleLogin', credential: 'a-google-token' });
       const row = rowOf(b, r => r.email === 'val@example.org');
       rule(g.success && !PENDING(row) && g.pendingEmail === '', 'signing in with Google did not confirm the PENDING address',
@@ -780,7 +799,12 @@ let proofRules = 0;
         'the registrant\'s PIN still signs in after Google proved the address — the squatter is straight back in (review round two, A4)');
       rule(g.pinCleared === true && /PIN/.test(S(g.message)), 'the Google reply does not say the PIN the account was made with no longer works',
         { pinCleared: g.pinCleared, message: g.message });
+      const gus = famRow(b, sid && sid.person_id, 'P-GKD');
+      rule(gus && S(gus.state) === 'held' && g.childrenHeld === 1 && /taken off/.test(S(g.message)),
+        'Google taking a PENDING row back left the registrant\'s child on it, or did not say so', { state: gus && gus.state, childrenHeld: g.childrenHeld });
       rule(live(b, g.token), 'the Google sign-in\'s own session did not survive the others being ended');
+      rule(!!earlyPin && !!earlyLink && !signIn(b, 'val@example.org', earlyPin).success && !post(b, { action: 'pinLink', key: earlyLink }).success,
+        'a PIN (or its link) mailed before Google took the row back still signs in afterwards', { earlyPin: !!earlyPin, earlyLink: !!earlyLink });
       /* AND A FRESH EMAILED PIN IS STILL A WAY IN — the owner is not left with Google as the only door. */
       const m = MAIL.length;
       post(b, { action: 'forgotPin', who: 'val@example.org' });
@@ -921,8 +945,231 @@ let proofRules = 0;
       rule(yes.success && !PENDING(rowOf(b, r => r.person_id === 'P-KAY')), 'the link sent again does not confirm the address', yes);
     }
   }
+
+  /* ---------- (e) A NEW ADDRESS TYPED IN SETTINGS IS PROVED BY THE ACCOUNT BEFORE IT IS TRUSTED ------------
+     Round three of the review, older than every round: Settings → Contact → email wrote the address
+     straight in and left `verified` as it was. Jo is CONFIRMED on jsmith@ with Lu on her account; she
+     types jsmith1@. Measured on round two's backend: the row kept TRUE, `notify` mailed jsmith1@, its
+     owner's "Forgotten your PIN?" got Jo's account and `resetPin` handed them Lu. Now the new address
+     waits beside the row (`authMove*_`), and only Jo, signed in, can open its link. */
+  {
+    const b = fresh();
+    b.seed('people', [
+      person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind110' }),
+      person('P-JO', 'client', 'Jo', 'Smith', { email: 'jsmith@example.org', handle: 'jo_kind111' }),
+      person('P-LU', 'student', 'Lu', 'Smith', { handle: 'lu_kind112' }),
+      person('P-STR', 'client', 'Stu', 'Ranger', { email: 'stu@example.org', handle: 'stu_kind113' }),
+      /* PENDING ON AN ADDRESS OF ITS OWN, with a forgotten PIN already mailed there — block D. */
+      person('P-KAY', 'client', 'Kay', 'Typo', { email: 'kay1@example.org', handle: 'kay_kind114',
+                                                 verified: 'PENDING', verify_token: 'Vkay-e' }),
+    ]);
+    b.seed('family', [{ link_id: 'L-LU', parent_id: 'P-JO', child_id: 'P-LU', state: 'accepted' }]);
+    const jo = signIn(b, 'jsmith@example.org', PLACE);
+    if (!jo.token) no('Jo could not sign in, so (e) was NOT checked', jo);
+    else {
+      let m = MAIL.length;
+      const save = post(b, { action: 'updateProfile', token: jo.token, targetId: 'P-JO', fields: { email: 'jsmith1@example.org' } });
+      const row = rowOf(b, r => r.person_id === 'P-JO');
+      const sent = MAIL.slice(m);
+      rule(save.success && row.email === 'jsmith@example.org' && !PENDING(row) && save.movingEmail === 'jsmith1@example.org'
+           && save.profile && save.profile.email_moving === 'jsmith1@example.org',
+        'a new address typed in Settings went straight onto a confirmed row, or the reply does not say it is waiting',
+        { success: save.success, error: save.error, email: row.email, verified: row.verified, moving: save.movingEmail });
+      rule(sent.length === 1 && S(sent[0].to) === 'jsmith1@example.org' && /\?verify=M/.test(S(sent[0].body))
+           && !/Jo|Smith|jo_kind111/.test(S(sent[0].body)),
+        'the new address was not sent exactly one link, or the link names the account to an inbox nobody has proved',
+        sent.map(x => ({ to: x.to, body: x.body })));
+      /* NOTHING ELSE REACHES THE TYPO: not notify, not "Forgotten your PIN?", not Google. */
+      m = MAIL.length;
+      const said = b.ev('notify("Jo Smith", "A booking", "Tuesday at four")');
+      const fp = post(b, { action: 'forgotPin', who: 'jsmith1@example.org' });
+      rule(said === true && mailTo('jsmith@example.org', m).length === 1 && !mailTo('jsmith1@example.org', m).length && !fp.success,
+        'a notice or a forgotten PIN reached the new address before it was proved, or the proved one stopped getting notices',
+        { said, fp, mailed: MAIL.slice(m).map(x => x.to) });
+      /* A SAVE OF THE SAME PAGE AGAIN posts the waiting address again: no second mail. */
+      m = MAIL.length;
+      const again = post(b, { action: 'updateProfile', token: jo.token, targetId: 'P-JO', fields: { email: 'jsmith1@example.org', phone_no: '' } });
+      rule(again.success && MAIL.length === m, 'saving the Contact page again mailed the waiting address again', { again, mailed: MAIL.slice(m).map(x => x.to) });
+      /* "SEND THE LINK AGAIN" FOR A WAITING ADDRESS: its quarter hour counts from the Save that sent the
+         first, then a FRESH link to the waiting address only, and the first link stops working. */
+      const soon = post(b, { action: 'resendLink', token: jo.token });
+      b.props['AUTH_LINK_P-JO'] = String(Date.now() - 20 * 60000);
+      m = MAIL.length;
+      const re = post(b, { action: 'resendLink', token: jo.token });
+      const reMail = MAIL.slice(m);
+      const first = (S(sent[0] && sent[0].body).match(/\?verify=(M\w+)/) || [])[1] || '';
+      const key = (S(reMail[0] && reMail[0].body).match(/\?verify=(M\w+)/) || [])[1] || '';
+      rule(soon.why === 'already-sent' && re.success && re.movingEmail === 'jsmith1@example.org'
+           && reMail.length === 1 && S(reMail[0].to) === 'jsmith1@example.org' && !!key && key !== first
+           && !post(b, { action: 'verifyEmail', token: first, session: jo.token }).success,
+        '"Send the link again" for a waiting address was not throttled from the Save, went elsewhere, or left the first link working',
+        { soon, re, mailed: reMail.map(x => x.to) });
+      /* THE LINK, OPENED BY WHOEVER OWNS jsmith1@ — not signed in, or signed in as somebody else. */
+      const bare = post(b, { action: 'verifyEmail', token: key });
+      const stu = signIn(b, 'stu@example.org', PLACE);
+      const other = post(b, { action: 'verifyEmail', token: key, session: stu.token });
+      const still = rowOf(b, r => r.person_id === 'P-JO');
+      rule(!bare.success && bare.why === 'sign-in-first' && !other.success && still.email === 'jsmith@example.org',
+        'the new address\'s link moved the account for somebody not signed in to it — the typo\'s owner takes it', { bare, other, email: still.email });
+      /* THE ACCOUNT'S OWN PARENT DOOR STILL WORKS THROUGHOUT — nothing proved was taken away. */
+      const np = post(b, { action: 'resetPin', token: jo.token, targetId: 'P-LU' });
+      rule(np.success && !!np.pin, 'a confirmed parent who typed a new address lost their child\'s New PIN while it waits', np);
+      /* AND JO, SIGNED IN, MOVES IT. */
+      const mine = post(b, { action: 'verifyEmail', token: key, session: jo.token });
+      const moved = rowOf(b, r => r.person_id === 'P-JO');
+      rule(mine.success && mine.moved && moved.email === 'jsmith1@example.org' && !PENDING(moved) && live(b, jo.token),
+        'the account, signed in, could not finish moving to its new address (or was signed out by it)', { mine, email: moved.email });
+      rule(!post(b, { action: 'verifyEmail', token: key, session: jo.token }).success, 'the move link worked twice');
+      /* TYPING THE OLD ADDRESS BACK, while one waits, keeps the old one and kills the link. */
+      post(b, { action: 'updateProfile', token: jo.token, targetId: 'P-JO', fields: { email: 'jo.new@example.org' } });
+      const k2 = (S((mailTo('jo.new@example.org').slice(-1)[0] || {}).body).match(/\?verify=(M\w+)/) || [])[1] || '';
+      const keep = post(b, { action: 'updateProfile', token: jo.token, targetId: 'P-JO', fields: { email: 'JSMITH1@example.org' } });
+      const dead = post(b, { action: 'verifyEmail', token: k2, session: jo.token });
+      rule(!!k2 && keep.success && !(keep.profile || {}).email_moving && !dead.success && rowOf(b, r => r.person_id === 'P-JO').email === 'jsmith1@example.org',
+        'typing the current address back did not cancel the waiting one', { k2: !!k2, keep, dead });
+      /* AN ADDRESS SOMEBODY ELSE HAS TAKEN WHILE IT WAITED is refused at the link, not put on two rows. */
+      post(b, { action: 'updateProfile', token: jo.token, targetId: 'P-JO', fields: { email: 'jo.clash@example.org' } });
+      const k3 = (S((mailTo('jo.clash@example.org').slice(-1)[0] || {}).body).match(/\?verify=(M\w+)/) || [])[1] || '';
+      register(b, { who: 'parent', first_name: 'Cla', last_name: 'Sh', email: 'jo.clash@example.org', pin: P2 });
+      const clash = k3 ? post(b, { action: 'verifyEmail', token: k3, session: jo.token }) : { success: true };
+      rule(!!k3 && !clash.success && rowOf(b, r => r.person_id === 'P-JO').email === 'jsmith1@example.org'
+           && b.tabs.people.slice(1).filter(x => x[b.tabs.people[0].indexOf('email')] === 'jo.clash@example.org').length === 1,
+        'a waiting address that another account took in the meantime was moved onto this one as well', clash);
+      /* AN ADMIN TYPING SOMEBODY'S ADDRESS IS HELD THE SAME — the classic typo, and the person proves it. */
+      const hal = signIn(b, 'admin@example.org', PLACE);
+      const byAdmin = hal.token ? post(b, { action: 'updateProfile', token: hal.token, targetId: 'P-STR', fields: { email: 'stu2@example.org' } }) : {};
+      rule(byAdmin.success && rowOf(b, r => r.person_id === 'P-STR').email === 'stu@example.org' && byAdmin.movingEmail === 'stu2@example.org',
+        'an admin\'s edit put an unproved address straight onto somebody\'s confirmed row', byAdmin);
+    }
+
+    /* BLOCK D: A PENDING ROW CORRECTED. Nothing on it was proved, so the address is simply replaced — and
+       the old link, mailed to the old address, must not confirm the row holding the new one. Nor may a
+       PIN mailed to the old address still open it. */
+    const kay = signIn(b, 'kay1@example.org', PLACE);
+    post(b, { action: 'forgotPin', who: 'kay1@example.org' });
+    const oldPin = pinIn(mailTo('kay1@example.org').slice(-1)[0]);
+    let m = MAIL.length;
+    const fix = kay.token ? post(b, { action: 'updateProfile', token: kay.token, targetId: 'P-KAY', fields: { email: 'kay@example.org' } }) : {};
+    const k = rowOf(b, r => r.person_id === 'P-KAY');
+    const fixMail = MAIL.slice(m);
+    rule(fix.success && k.email === 'kay@example.org' && PENDING(k) && S(k.verify_token) && S(k.verify_token) !== 'Vkay-e'
+         && fixMail.length === 1 && S(fixMail[0].to) === 'kay@example.org' && S(fixMail[0].body).indexOf('?verify=' + S(k.verify_token)) !== -1,
+      'a PENDING row\'s corrected address kept the old link, or was not sent a fresh one', { fix, verified: k.verified, token: k.verify_token, mailed: fixMail.map(x => x.to) });
+    const oldLink = post(b, { action: 'verifyEmail', token: 'Vkay-e' });
+    rule(!oldLink.success && PENDING(rowOf(b, r => r.person_id === 'P-KAY')),
+      'the link mailed to the OLD address confirmed the row while it holds the new one (review round three, block D)', oldLink);
+    rule(!!oldPin && !signIn(b, 'kay@example.org', oldPin).success,
+      'a PIN mailed to the address the row has since left still signs in to it', { oldPin: !!oldPin });
+  }
+
+  /* ---------- (f) LINKS MADE BEFORE THE RULE GO TO `held` WHEN THE ADDRESS'S OWNER TAKES THE ROW BACK ----------
+     Round three: Jo PENDING on the typo jsmith1@ with Ned accepted (a link from before `confirmFirst_`)
+     and a claim to Pia unanswered. The stranger who owns jsmith1@ presses "Forgotten your PIN?", types
+     the PIN back, and the row is confirmed — measured on round two: resetPin on Ned, signed in as Ned. */
+  {
+    const b = fresh();
+    b.seed('people', [
+      person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind120' }),
+      person('P-JO', 'client', 'Jo', 'Smith', { email: 'jsmith1@example.org', handle: 'jo_kind121',
+                                                verified: 'PENDING', verify_token: 'Vjo-f' }),
+      /* NED MADE HIS OWN ACCOUNT WITH jsmith1@ AS HIS GROWN-UP'S, and that link has not been opened. */
+      person('P-NED', 'student', 'Ned', 'Smith', { handle: 'ned_kind122', parent_email: 'jsmith1@example.org',
+                                                   verified: 'PENDING', verify_token: 'Vned-f' }),
+      person('P-PIA', 'student', 'Pia', 'Smith', { email: 'pia@example.org', handle: 'pia_kind123' }),
+      person('P-RAY', 'client', 'Ray', 'Real', { email: 'ray@example.org', handle: 'ray_kind124',
+                                                 verified: 'PENDING', verify_token: 'Vray-f' }),
+      person('P-ROB', 'student', 'Rob', 'Real', { handle: 'rob_kind125' }),
+    ]);
+    b.seed('family', [{ link_id: 'L-NED', parent_id: 'P-JO', child_id: 'P-NED', state: 'accepted' },
+                      { link_id: 'L-PIA', parent_id: 'P-JO', child_id: 'P-PIA', state: 'asked' },
+                      { link_id: 'L-ROB', parent_id: 'P-RAY', child_id: 'P-ROB', state: 'accepted' }]);
+    const m = MAIL.length;
+    post(b, { action: 'forgotPin', who: 'jsmith1@example.org' });
+    const pin = pinIn(mailTo('jsmith1@example.org', m)[0]);
+    const stranger = pin ? signIn(b, 'jsmith1@example.org', pin) : {};
+    if (!stranger.token) no('the typo\'s owner could not sign in with the emailed PIN, so (f) was NOT checked', stranger);
+    else {
+      const ned = famRow(b, 'P-JO', 'P-NED'), pia = famRow(b, 'P-JO', 'P-PIA');
+      rule(S(ned.state) === 'held' && S(pia.state) === 'held' && stranger.childrenHeld === 2 && /taken off/.test(S(stranger.message)),
+        'taking a PENDING row back left the registrant\'s children (or their unanswered claim) on it, or did not say so',
+        { ned: ned.state, pia: pia.state, childrenHeld: stranger.childrenHeld, message: stranger.message });
+      const before = pinOf(b, 'P-NED');
+      const take = post(b, { action: 'resetPin', token: stranger.token, targetId: 'P-NED' });
+      rule(!take.success && pinOf(b, 'P-NED') === before, 'the typo\'s owner reset the PIN of a child the registrant had put on the account', take);
+      const piaIn = signIn(b, 'pia@example.org', PLACE);
+      const claimRow = b.tabs.family.findIndex(x => x[b.tabs.family[0].indexOf('link_id')] === 'L-PIA') + 1;
+      const yes = piaIn.token ? post(b, { action: 'answerClaim', token: piaIn.token, rowIndex: claimRow, accept: true }) : {};
+      const ask = post(b, { action: 'claimChild', token: stranger.token, firstName: 'Ned', lastName: 'Smith' });
+      /* AND NOT BY THE CHILD'S OWN LINK EITHER, which the typo's owner holds: it confirms Ned and links nothing. */
+      const nedLink = post(b, { action: 'verifyEmail', token: 'Vned-f' });
+      rule(!yes.success && !ask.success && nedLink.success && !nedLink.linkedTo
+           && S(famRow(b, 'P-JO', 'P-PIA').state) === 'held' && S(famRow(b, 'P-JO', 'P-NED').state) === 'held',
+        'a held link was turned back into a link by the child\'s yes, the new owner asking again, or the child\'s grown-up link', { yes, ask, nedLink });
+      /* ONLY AN ADMIN SETTLES IT. */
+      const hal = signIn(b, 'admin@example.org', PLACE);
+      const settle = hal.token ? post(b, { action: 'linkChild', token: hal.token, parentId: 'P-JO', childId: 'P-NED' }) : {};
+      rule(settle.success && S(famRow(b, 'P-JO', 'P-NED').state) === 'accepted', 'an admin could not settle a held link', settle);
+    }
+    /* THE REGISTRANT OPENING THEIR OWN LINK HOLDS NOTHING — the ordinary way a parent is confirmed. */
+    post(b, { action: 'verifyEmail', token: 'Vray-f' });
+    rule(S(famRow(b, 'P-RAY', 'P-ROB').state) === 'accepted' && !PENDING(rowOf(b, r => r.person_id === 'P-RAY')),
+      'opening your own confirmation link took your child off your account');
+  }
+
+  /* ---------- (g) A SQUATTER TYPING WRONG PINS CANNOT KEEP THE OWNER OUT ----------------------------------------
+     Round three: the squatter keeps their session and types wrong PINs at the address — eleven lock
+     it, five more used to throw away the PIN Vic had just been mailed, for every new one she asked
+     for. The typed PIN is still retired (a guesser gets five), and the link in the same mail is not. */
+  {
+    const b = fresh();
+    b.seed('people', [
+      person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind130' }),
+      person('P-PAT', 'client', 'Pat', 'Parent', { email: 'pat@example.org', handle: 'pat_kind131' }),
+      person('P-KIT', 'student', 'Kit', 'Parent', { handle: 'kit_kind132' }),
+    ]);
+    b.seed('family', [{ link_id: 'L-KIT', parent_id: 'P-PAT', child_id: 'P-KIT', state: 'accepted' }]);
+    register(b, { who: 'parent', first_name: 'Sam', last_name: 'Squat', email: 'vic@example.org', pin: P1 });
+    const squat = signIn(b, 'vic@example.org', P1);
+    let m = MAIL.length;
+    post(b, { action: 'forgotPin', who: 'vic@example.org' });
+    const mail = mailTo('vic@example.org', m)[0];
+    const emailed = pinIn(mail);
+    const link = (S(mail && mail.body).match(/\?signin=(\w+)/) || [])[1] || '';
+    rule(!!emailed && !!link, 'the forgotten-PIN mail to an account\'s own address carries no sign-in link', mail && mail.body);
+    /* ELEVEN TO LOCK IT AND FIVE MORE AT THE EMAILED PIN, with a few over, as the review typed them. */
+    for (let i = 0; i < 20; i++) signIn(b, 'vic@example.org', '9');
+    const typed = emailed ? signIn(b, 'vic@example.org', emailed) : {};
+    rule(!typed.success && /sign-in link/.test(S(typed.error)),
+      'the typed PIN survived twenty wrong tries (past a guesser\'s budget), or the owner refused is not pointed at the link', typed);
+    /* A KEY THAT WAS NEVER SENT, tried while a real one waits, opens nothing and spends nothing. */
+    const forged = link ? post(b, { action: 'pinLink', key: link.slice(0, -1) + (link.slice(-1) === 'a' ? 'b' : 'a') }) : { success: true };
+    const vic = link ? post(b, { action: 'pinLink', key: link }) : {};
+    const row = rowOf(b, r => r.email === 'vic@example.org');
+    rule(vic.success && live(b, vic.token) && !live(b, squat.token) && !PENDING(row),
+      'the link in the mail did not get the owner in past the squatter\'s wrong PINs, or left the squatter in',
+      { vic: vic.success, error: vic.error, squatterIn: live(b, squat.token), verified: row && row.verified });
+    rule(!signIn(b, 'vic@example.org', P1).success && signIn(b, 'vic@example.org', emailed).success,
+      'after the link, the squatter\'s PIN still works or the mailed PIN is not the PIN');
+    rule(!forged.success && !post(b, { action: 'pinLink', key: link }).success,
+      'a key that was never sent signed in while a real one waited, or a sign-in link worked twice', forged);
+    /* A LINK TO AN ADDRESS THE ROW HAS SINCE LEFT OPENS NOTHING — here the address changed by hand in the
+       sheet, the one way round `updateProfile`, which drops the mailed PIN itself. */
+    b.seed('people', [person('P-UNA', 'client', 'Una', 'Moved', { email: 'una@example.org', handle: 'una_kind133' })]);
+    m = MAIL.length;
+    post(b, { action: 'forgotPin', who: 'una@example.org' });
+    const unaLink = (S((mailTo('una@example.org', m)[0] || {}).body).match(/\?signin=(\w+)/) || [])[1] || '';
+    const ph = b.tabs.people[0], ur = b.tabs.people.find(x => x[ph.indexOf('person_id')] === 'P-UNA');
+    if (ur) ur[ph.indexOf('email')] = 'una.new@example.org';
+    const una = unaLink ? post(b, { action: 'pinLink', key: unaLink }) : { success: true };
+    rule(!!unaLink && !una.success, 'a sign-in link mailed to an address the account has since left still signed in to it', una);
+    /* A CHILD'S PIN MAILED TO THEIR GROWN-UP CARRIES NO LINK — it would sign the grown-up's phone in as the child. */
+    m = MAIL.length;
+    post(b, { action: 'forgotPin', who: 'kit_kind132' });
+    const kitMail = mailTo('pat@example.org', m)[0];
+    rule(!!pinIn(kitMail) && !/\?signin=/.test(S(kitMail && kitMail.body)), 'a child\'s forgotten PIN, mailed to a grown-up, carried a sign-in link', kitMail && kitMail.body);
+  }
 }
-const PROOF_RULES = 48;
+const PROOF_RULES = 77;
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 
 console.log('\nWRONG  (' + bad.length + ')');
@@ -940,5 +1187,7 @@ if (bad.length) {
             + 'and a parent or an admin can give them one. A parent who signs up as one is a parent from their '
             + 'first sign-in, and a student still cannot make themself one. An address nobody has proved signs in '
             + 'and holds no child until it is proved, is mailed nothing but its link and its own forgotten PIN, '
-            + 'and its owner can always take it back: the emailed PIN or Google signs everybody else out.');
+            + 'and its owner can always take it back: the emailed PIN, its link or Google signs everybody else out '
+            + 'and holds the children the registrant put on it. A new address typed in Settings is proved by the '
+            + 'account, signed in, before anything is trusted to it.');
 }

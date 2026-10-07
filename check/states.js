@@ -2325,6 +2325,36 @@ const STATES = {
           && card.scrollWidth <= card.clientWidth + 1 ? 2 : 0;
       },
       wants: 'one card naming the address to open the link from, with "Send the link again", and no child form anywhere on the column' },
+    /* ---------- A NEW ADDRESS WAITING FOR ITS LINK, ON THE CONTACT CARD ----------------------------------
+       Round three of the PR #130 review: a new address typed in Settings is not written until the account,
+       signed in, opens the link sent to it (`authMove*_` in booking.gs). The box keeps the waiting address,
+       a line under the row names both — the new one and the one that still signs in — and "Send the link
+       again" sits beside Save. Seeded through `USER.profile.email_moving`, which `profileOf_` sends and the
+       fixture visitor does not, with two long addresses that have no space in them. */
+    { name: 'your new email, waiting for its link',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__MOVING_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          email: 'philippa.parentington-smythe.family@example.org',
+          email_moving: 'philippa.parentington-smythe.newaddress@example.org' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.mail-moving'));
+        if (at < 0) throw new Error('no Contact card saying a new address waits for its link');
+        goPage('settings', at, true);
+      },
+      leave: () => { USER.profile = window.__MOVING_WAS; repaint(true); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const note = pg && pg.querySelector('.mail-moving');
+        const box = pg && pg.querySelector('[data-me="email"]');
+        return note && /newaddress@example\.org/.test(note.textContent) && /family@example\.org/.test(note.textContent)
+          && box && box.value === 'philippa.parentington-smythe.newaddress@example.org'
+          && pg.querySelectorAll('[data-do="resend-link"]').length === 1
+          && note.scrollWidth <= note.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the Contact card with the waiting address in its box, a line naming both addresses whole, and one "Send the link again"' },
     /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT ------------------
        Eight boxes are IN the form whether or not they are drawn — `photosIn` rebuilds the whole cell
        from what arrives, so a box missing from the form is a photograph deleted on Save — and only

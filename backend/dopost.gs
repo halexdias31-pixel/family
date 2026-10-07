@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-06-e-authfix2";
+const DOPOST_VERSION = "2026-10-06-f-authfix2";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -32,9 +32,12 @@ const DOPOST_VERSION = "2026-10-06-e-authfix2";
 function signInRow_(t0, r, body, by) {
   /* A PIN SENT BY "Forgotten your PIN?" IS A PIN THIS ROW HAS, for as long as it lasts — see
      `authResetUse_`. A row typed in with no PIN whose parent asked for one is exactly who it is for. */
+  /* ONE WHOSE TYPED HALF HAS BEEN RETIRED BY WRONG TRIES IS NOT ONE TO TYPE — its link still works
+     (`authResetKey_`), and the lock's sentence below says so. */
   const emailed = authResetGet_(r);
-  if (!hasPin_(r) && !emailed) return jsonOut({ success: false, why: 'no-pin',
-    error: 'That account has no PIN set yet — ask a parent or your tutor for one.' });
+  if (!hasPin_(r) && !(emailed && !emailed.dead)) return jsonOut({ success: false, why: 'no-pin',
+    error: emailed ? 'Too many wrong tries at the PIN we emailed — open the sign-in link in that email instead.'
+                   : 'That account has no PIN set yet — ask a parent or your tutor for one.' });
   /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
      guess was right or not — a lock that only applies to wrong answers tells a guesser when
      they have found the right one. */
@@ -43,17 +46,28 @@ function signInRow_(t0, r, body, by) {
      is keep pressing — which is what makes the wait longer. A number is a thing somebody can
      wait out. See `authWaitMins_`. */
   /* EXCEPT FOR THE PIN THAT WAS JUST EMAILED, which is the way out of the lock and would otherwise
-     be refused exactly when it was asked for (181). Five misses at it throw it away, so the lock
-     still holds against a guesser — see `authResetUse_`. */
+     be refused exactly when it was asked for (181). Five misses at it retire it, so the lock still
+     holds against a guesser — and a mail to the account's own address carries a link no miss can
+     retire, so a squatter typing wrong PINs on purpose cannot keep its owner out (`authResetKey_`). */
   const wait = authWaitMins_(r);
-  if (wait > 0 && !authResetUse_(t0, r, body.pin, true)) {
+  /* `took` IS WHAT USING THE EMAILED PIN DID (`authResetTake_`), when it was the emailed PIN that let
+     them in — the reply says what that changed. */
+  let took = null;
+  if (wait > 0) took = authResetUse_(t0, r, body.pin, true);
+  if (wait > 0 && !took) {
+    /* AND WHERE THE EMAILED PIN HAS BEEN USED UP BY SOMEBODY ELSE'S WRONG TRIES, the way that cannot be
+       — its link. Said only then: it is the one moment the owner, typing the right PIN, is refused. */
+    const now = authResetGet_(r);
     return jsonOut({ success: false,
-      error: wait === 1 ? 'Too many wrong PINs. Try again in a minute.'
-                        : 'Too many wrong PINs. Try again in ' + wait + ' minutes.' });
+      error: (wait === 1 ? 'Too many wrong PINs. Try again in a minute.'
+                         : 'Too many wrong PINs. Try again in ' + wait + ' minutes.')
+           + (now && now.dead ? ' If you asked for a new PIN, open the sign-in link in that email — it works now.' : '') });
   }
   /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. The emailed PIN is
      the second thing asked, and using it makes it the PIN. */
-  if (wait <= 0 && !authCheckPin_(t0, r, body.pin) && !authResetUse_(t0, r, body.pin, false)) {
+  const pinOk = wait <= 0 && authCheckPin_(t0, r, body.pin);
+  if (wait <= 0 && !pinOk) took = authResetUse_(t0, r, body.pin, false);
+  if (wait <= 0 && !pinOk && !took) {
     authWrong_(t0, r);
     /* ---------- A WRONG ADDRESS AND A WRONG PIN SAY DIFFERENT THINGS NOW ---------------------
        ASKED FOR AS *"make the error codes more specific. if its username not recognised then say
@@ -97,7 +111,10 @@ function signInRow_(t0, r, body, by) {
   /* ANYTHING ELSE IS SAID AS ITSELF, not folded into one of the sentences above — a sign-in
      that failed on our side must not read as a wrong PIN, or somebody retypes a right one until
      the throttle locks them out. */
-  try { return loginReplyFor_(r, authNewSession_(t0, r)); }
+  /* A PENDING ROW TAKEN BACK BY ITS EMAILED PIN HAD ITS CHILDREN HELD (`authTakeBack_`), and whoever
+     has just signed in is told — in the shape Google's reply already has, so the phone reads one. */
+  const heldSaid = authHeldSaid_(took ? N(took.childrenHeld) : 0);
+  try { return loginReplyFor_(r, authNewSession_(t0, r), heldSaid ? { childrenHeld: N(took.childrenHeld), message: heldSaid } : null); }
   catch (err) {
     return jsonOut({ success: false, why: 'server',
       error: 'Your details are right, but signing in failed on our side: '
@@ -455,6 +472,39 @@ function doPost(e) {
     if (action === 'verifyEmail') {
       const token = S(body.token);
       if (!token) return jsonOut({ error: 'No confirmation code.' });
+      /* ---------- A NEW ADDRESS FOR AN ACCOUNT THAT HAS ONE: MOVED ONLY WHERE THAT ACCOUNT IS SIGNED IN ----
+         The link `updateProfile` sends when a confirmed account asks for a new address (`authMove*_` in
+         booking.gs says why it waits aside). Opening it proves the inbox; `session` — the phone's own
+         token, sent beside this one because `token` is taken — proves the account. A link opened anywhere
+         else is told to sign in and open it again, and changes nothing: a stranger whose address was
+         typed by mistake holds the link and never the account. */
+      if (/^M/.test(token)) {
+        const hit = authMoveFind_(token);
+        if (!hit) return jsonOut({ error: 'That link has already been used, has expired, or a newer one has been sent.' });
+        const tm = read(TAB.people);
+        const who = authWhoIs_(body.session);
+        const mover = tm.rows.find(x => S(x.person_id || personDisplayName(x)) === hit.owner);
+        if (!mover) return jsonOut({ error: 'The account that link was for is not there any more.' });
+        if (!who || S(who.person_id) !== S(mover.person_id)) {
+          return jsonOut({ why: 'sign-in-first',
+            error: 'This link changes the email address on an @family. account, so it only works where you are '
+                 + 'signed in to that account. Sign in, and it will finish by itself.' });
+        }
+        /* AN ADDRESS THAT HAS GONE TO SOMEBODY ELSE SINCE is refused rather than put on two rows —
+           `verifyLogin` would then refuse both (`emailRefusal_`). */
+        const clash = emailRefusal_(hit.move.to, mover);
+        if (clash) { authMoveDrop_(mover); return jsonOut({ error: clash + ' Nothing was changed.' }); }
+        setCell(tm, mover, 'email', S(hit.move.to));
+        setCell(tm, mover, 'verified', 'TRUE');
+        setCell(tm, mover, 'verify_token', '');
+        authMoveDrop_(mover);
+        /* A PIN MAILED TO THE OLD ADDRESS IS NOT A WAY INTO THE ACCOUNT AT THE NEW ONE — the rule
+           `updateProfile` keeps for a corrected PENDING address. */
+        authResetDrop_(mover);
+        clearCache();
+        return jsonOut({ success: true, moved: true, email: S(hit.move.to), name: personDisplayName(mover),
+                         handle: S(mover.handle), noEmail: false, linkedTo: '', parentPending: false });
+      }
       const t = read(TAB.people);
       const r = t.rows.find(x => S(x.verify_token) === token);
       if (!r) return jsonOut({ error: 'That confirmation link has already been used, or has expired.' });
@@ -486,7 +536,10 @@ function doPost(e) {
           const fam = read(TAB.family);
           const was = fam.rows.find(x => S(x.parent_id) === S(par.person_id) && S(x.child_id) === S(r.person_id));
           let ok = !!was;
-          if (was && norm(was.state) !== 'accepted') {
+          /* A LINK `authTakeBack_` HELD STAYS HELD — only an admin settles who that child belongs to, and
+             a link opened from the child's mail is not that. */
+          if (was && norm(was.state) === 'held') ok = false;
+          else if (was && norm(was.state) !== 'accepted') {
             ok = setCell(fam, was, 'state', 'accepted'); setCell(fam, was, 'answered_on', new Date());
           } else if (!was) {
             ok = !!addRow(fam, { link_id: 'F' + Date.now(), parent_id: S(par.person_id), child_id: S(r.person_id),
@@ -520,26 +573,44 @@ function doPost(e) {
       const t = read(TAB.people);
       const me = t.rows.find(x => S(x.person_id) === S(body.personId));
       if (!me) return jsonOut({ error: 'We could not find your account.' });
+      /* ---------- OR THE LINK FOR A NEW ADDRESS WAITING TO BE PROVED (`authMove*_`) ------------------
+         The same button on the Contact card, for the same person: the one whose mail went to spam. The
+         same quarter hour, under the same key, so the two cannot be pressed in turn for twice the mail.
+         To the new address and nowhere else, with a fresh key, and the old link stops working. */
+      const move = authMoveGet_(me);
       const own = S(me.email);
-      if (!own) return jsonOut({ error: 'This account has no email address of its own, so there is no link to send.' });
-      if (!addressPending_(me)) {
+      if (!move && !own) return jsonOut({ error: 'This account has no email address of its own, so there is no link to send.' });
+      if (!move && !addressPending_(me)) {
         return jsonOut({ success: true, why: 'confirmed', pendingEmail: '',
                          message: 'Your email is confirmed already — there is nothing to open.' });
       }
       const key = 'AUTH_LINK_' + S(me.person_id);
+      const at = move ? S(move.to) : own;
       let last = 0;
       try { last = N(authProps_().getProperty(key)); } catch (err) { last = 0; }
       const since = Date.now() - last;
       if (last && since < AUTH.LINK_GAP_MINS * 60000) {
         const mins = Math.max(1, Math.ceil((AUTH.LINK_GAP_MINS * 60000 - since) / 60000));
-        return jsonOut({ success: true, why: 'already-sent', pendingEmail: own,
-          message: 'A link went to ' + own + ' a few minutes ago — look there, and in spam. You can ask again in '
+        return jsonOut({ success: true, why: 'already-sent', pendingEmail: move ? pendingEmailOf_(me) : own,
+          message: 'A link went to ' + at + ' a few minutes ago — look there, and in spam. You can ask again in '
                  + mins + (mins === 1 ? ' minute.' : ' minutes.') });
       }
       let quota = 1;
       try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
       const cannot = { why: 'no-mail', error: 'We could not send the email just now, so nothing has changed. Try again later.' };
       if (quota < 1) return jsonOut(cannot);
+      if (move) {
+        const fresh = 'M' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+        try { moveMail_(move.to, fresh); } catch (err) { return jsonOut(cannot); }
+        if (!authMovePut_(me, Object.assign({}, move, { key: fresh, at: Date.now() }))) {
+          return jsonOut({ error: 'We sent a new link but could not save it, so it will not work. The first link we '
+                                + 'sent still does — ask us if you cannot find it.' });
+        }
+        try { authProps_().setProperty(key, String(Date.now())); } catch (err) {}
+        return jsonOut({ success: true, movingEmail: S(move.to), pendingEmail: pendingEmailOf_(me),
+          message: 'A new link is on its way to ' + S(move.to) + '. Open it where you are signed in and your email '
+                 + 'changes — any link we sent before this one no longer works.' });
+      }
       const token = 'V' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
       try { linkMail_(me, token, hasRole(me, 'client')); } catch (err) { return jsonOut(cannot); }
       if (!setCell(t, me, 'verify_token', token)) {
@@ -626,16 +697,21 @@ function doPost(e) {
          ROUND ONE OF THE PR #130 REVIEW ENDED THEIR SESSIONS AND LEFT THEIR PIN, and measured, the
          squatter signed straight back in with it — onto a row now confirmed, so a later emailed PIN
          ended nothing either, and they read Vic's profile and reset the PIN of the child she made. So
-         on a PENDING row the PIN goes too, with the guesses at it and any emailed one waiting
-         (`check-backend`'s pair), and every session ends before this one is made: afterwards only
-         Google or a fresh "Forgotten your PIN?" gets in. Cleared rather than replaced with one drawn
-         here, because a PIN nobody is shown is a PIN nobody can use — and the reply SAYS so, because
-         the person this happens to is as often the real registrant, who would otherwise find their
-         own PIN refused tomorrow with no idea why. A CONFIRMED row is left alone: its PIN was proved
-         by whoever confirmed it, and signing in by Google must not sign its owner out elsewhere. */
+         on a PENDING row the PIN goes too, with the guesses at it (`check-backend`'s pair holds that
+         half) and any emailed PIN waiting — one asked for before Google proved the address, which
+         `check-signin` (b) holds: a PIN mailed while nobody had proved the row is the registrant's
+         era, and the reply below names only two ways in. Every session ends before this one is made:
+         afterwards only Google or a FRESH "Forgotten your PIN?" gets in. Cleared rather than replaced
+         with one drawn here, because a PIN nobody is shown is a PIN nobody can use — and the reply SAYS
+         so, because the person this happens to is as often the real registrant, who would otherwise
+         find their own PIN refused tomorrow with no idea why. The children the registrant put on it are
+         held, as the emailed PIN's taking back holds them (`authTakeBack_`). A CONFIRMED row is left
+         alone: its PIN was proved by whoever confirmed it, and signing in by Google must not sign its
+         owner out elsewhere. */
       const tookBack = addressPending_(r);
+      let kidsHeld = 0;
       if (tookBack) {
-        authConfirmed_(t, r);
+        kidsHeld = authTakeBack_(t, r);
         authSetPin_(t, r, '');
         authClearThrottle_(t, r);
         authResetDrop_(r);
@@ -644,11 +720,12 @@ function doPost(e) {
       logEvent({ jobId: '', actor: personDisplayName(r), role: toAppRole(mainRole(r)),
                  action: ACT.SAY, message: 'signed in with Google' });
       return loginReplyFor_(r, authNewSession_(t, r), tookBack ? {
-        pinCleared: true,
+        pinCleared: true, childrenHeld: kidsHeld,
         message: 'Signed in with Google, and that has confirmed your email. The account was made with a PIN '
                + 'before anybody had confirmed the address, so that PIN no longer works and anyone else signed '
                + 'in to it has been signed out. Sign in with Google from now on — or use "Forgotten your PIN?" '
-               + 'and we will email you a new PIN.' } : null);
+               + 'and we will email you a new PIN.'
+               + (kidsHeld ? ' ' + authHeldSaid_(kidsHeld).replace(/^Your email is confirmed now\. /, '') : '') } : null);
     }
 
     if (action === 'signOut') {
@@ -978,6 +1055,47 @@ function doPost(e) {
         const mailNo = emailRefusal_(fields.email, r);
         if (mailNo) return jsonOut({ error: mailNo });
       }
+      /* ---------- AND A NEW ADDRESS IS PROVED BEFORE IT IS TRUSTED -------------------------------------
+         THIS WROTE IT STRAIGHT INTO `email` AND LEFT `verified` AS IT WAS — round three of the PR #130
+         review: a confirmed parent who mistyped her new address handed every notice, "Forgotten your
+         PIN?" and so her child to whoever owns the typo, and a PENDING row's old link confirmed the new
+         address. Four answers, by what the row is and what was typed (`authMove*_` in booking.gs):
+           same      the address it has (any case) — nothing to prove; written as typed.
+           keep      the address it has, while a new one waits — the person changed their mind; the
+                     waiting one is forgotten and the row is untouched.
+           correct   the row is PENDING on an address of its own, so nothing about it was ever proved:
+                     the new address goes in, still PENDING, with a FRESH link sent to it — the old link
+                     dies with the old address, and so does any PIN mailed there.
+           move      anything else (confirmed, a legacy blank, or a row with no address yet): the row
+                     keeps what it has, the new address waits aside, and a link goes to it that only
+                     works where this account is signed in (`verifyEmail`).
+           waiting   the address already waiting — the form posts every box on every Save, so this is
+                     the Contact page saved again, not a second request; nothing is sent.
+         The mail goes BEFORE anything is written, and a mail that cannot go refuses the whole Save: a
+         new address recorded with no link sent is one nobody can ever prove. Applies to an admin's edit
+         too — an admin typing somebody's address is the classic typo, and the person proves it. */
+      const mailWant = (wanted.indexOf('email') !== -1 && fields.email !== undefined) ? S(fields.email) : '';
+      const moving = authMoveGet_(r);
+      const mailPlan = !mailWant ? ''
+        : norm(mailWant) === norm(r.email) ? (moving ? 'keep' : 'same')
+        : moving && norm(moving.to) === norm(mailWant) ? 'waiting'
+        : (S(r.email) && addressPending_(r)) ? 'correct' : 'move';
+      let mailKey = '';
+      if (mailPlan === 'correct' || mailPlan === 'move') {
+        let quota = 1;
+        try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
+        const cannot = 'We could not email ' + mailWant + ' just now, so nothing was saved. Try again later.';
+        if (quota < 1) return jsonOut({ why: 'no-mail', error: cannot });
+        try {
+          if (mailPlan === 'correct') {
+            mailKey = 'V' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+            linkMail_({ first_name: r.first_name, email: mailWant, handle: r.handle }, mailKey, hasRole(r, 'client'));
+          } else {
+            mailKey = 'M' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+            moveMail_(mailWant, mailKey);
+          }
+        } catch (err) { return jsonOut({ why: 'no-mail', error: cannot }); }
+      }
 
       /* ================================================================================================
          2. EVERY WRITE, COLLECTED INTO ONE OBJECT, THEN ONE CALL.
@@ -993,6 +1111,9 @@ function doPost(e) {
       if (phoneSent) put.phone = phoneIn(fields);
       if (dobSent) put.date_of_birth = dobIn(fields);
       wanted.forEach(f => { put[f] = fields[f]; });
+      /* THE ADDRESS, BY THE PLAN ABOVE: written only when it is the same one or a PENDING row's correction. */
+      if (mailPlan === 'keep' || mailPlan === 'waiting' || mailPlan === 'move') delete put.email;
+      if (mailPlan === 'correct') put.verify_token = mailKey;
       /* THE STAMP GOES ON WITH THE WRITE, NOT BEFORE IT: written earlier, a refusal would leave the
          clock started on a change that never happened. It is the same `pricingMoved_` the guard read,
          over the same object, so the two cannot disagree about whether anything moved. An admin's edit
@@ -1010,6 +1131,18 @@ function doPost(e) {
          visitor's stored payload — which is what made the `load()` after an untouched Save a full
          cold rebuild. See the note over it in core.gs. */
       const wrote = setCells(t, r, put);
+      /* AND WHAT WAITS BESIDE THE ROW. A corrected address retires any PIN mailed to the old one (a PIN
+         sent to an address the account no longer has is not a way into it) and anything waiting; a move
+         is recorded only now the row's own write has gone through, so a refused Save leaves none. */
+      if (mailPlan === 'correct' || mailPlan === 'keep') authMoveDrop_(r);
+      if (mailPlan === 'correct') authResetDrop_(r);
+      if (mailPlan === 'move') {
+        authMovePut_(r, { to: mailWant, key: mailKey, at: Date.now(), until: Date.now() + AUTH.MOVE_DAYS * 864e5 });
+      }
+      /* A LINK HAS JUST GONE, so "Send the link again" counts its quarter hour from now (`resendLink`). */
+      if (mailPlan === 'correct' || mailPlan === 'move') {
+        try { authProps_().setProperty('AUTH_LINK_' + S(r.person_id), String(Date.now())); } catch (err) {}
+      }
       let rowsMoved = 0;
       if (qualsSent) rowsMoved += writeOwnRows_(TAB.qualifications, S(r.person_id), qualsIn(fields), QUAL_COLS).changed;
       if (libSent) rowsMoved += writeOwnRows_(TAB.library_cards, S(r.person_id), libCardsIn(fields), LIB_COLS).changed;
@@ -1027,6 +1160,24 @@ function doPost(e) {
          an admin editing somebody else is shown that person's form elsewhere. */
       /* `changed` IS HOW MANY CELLS MOVED, so the phone can skip fetching a payload nothing altered. */
       const out = { success: true, changed: wrote.length + rowsMoved, profile: adminEditing ? null : profileOf_(r) };
+      /* WHAT HAPPENED TO THE ADDRESS, IN WORDS — "Saved" over an address that has not changed yet would be
+         read as the change being done. `pendingEmail` for the phone's held cards, as the sign-in reply. */
+      if (mailPlan === 'move') {
+        out.movingEmail = mailWant;
+        out.said = adminEditing
+          ? 'Saved. Their email changes once they open the link we sent to ' + mailWant + ', signed in as '
+            + 'themselves. Until then it stays ' + (S(r.email) || 'as it was') + '.'
+          : 'Saved. To finish changing your email, open the link we sent to ' + mailWant
+            + ' on a phone where you are signed in. Until then it stays ' + (S(r.email) || 'as it was')
+            + (S(r.email) ? ' — sign in with that, or your handle.' : '.');
+      } else if (mailPlan === 'correct') {
+        out.pendingEmail = pendingEmailOf_(r);
+        out.said = 'Saved. We have sent a new link to ' + mailWant + ' — open it to confirm '
+                 + (adminEditing ? 'the address.' : 'your email.');
+      } else if (mailPlan === 'keep') {
+        out.said = 'Saved. Your email stays ' + S(r.email) + ', and the link we sent to ' + S(moving.to)
+                 + ' no longer does anything.';
+      }
       // Only the person themselves needs their session renamed; an admin must not inherit it.
       if (renamed) out.name = adminEditing ? '' : full;
       return jsonOut(out);
@@ -1771,8 +1922,15 @@ function doPost(e) {
       if (quota < tos.length) return jsonOut(cannot);
 
       /* THE SAME PIN AGAIN if one is still waiting, so a grown-up holding two emails holds two copies
-         of one PIN rather than a dead one and a live one. */
-      const fresh = was ? S(was.pin) : authFreshPin_();
+         of one PIN rather than a dead one and a live one — unless wrong tries have retired it, when a
+         new one is drawn (its link, below, is kept: the first mail's link still works). */
+      const fresh = (was && !was.dead) ? S(was.pin) : authFreshPin_();
+      /* ---------- AND TO THE ACCOUNT'S OWN ADDRESS, A LINK BESIDE IT THAT NO WRONG GUESS CAN USE UP ------
+         See the note over `authResetKey_`: a squatter typing wrong PINs on purpose retires the typed
+         PIN, and this is how its owner gets in anyway. The same key for the life of the request, so
+         every copy of this mail carries a link that works. */
+      const linkKey = !own ? '' : (was && S(was.key)) ? S(was.key)
+        : 'R' + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
       const handleSaid = S(r.handle) ? '@' + S(r.handle) : '';
       /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
          second lookup on a name is a second chance to send somebody's PIN to somebody else. */
@@ -1786,6 +1944,8 @@ function doPost(e) {
                   + 'Sign in with ' + (handleSaid ? 'your handle, ' + handleSaid + ', or your email' : 'your email')
                   + ' and this PIN. It works for a day; your old PIN keeps working too until you use '
                   + 'this one. Change it under Settings → Signing in.\n\n'
+                  + 'Or open this link to sign in with it straight away — it works even if wrong PINs have '
+                  + 'locked the account:\n\n' + SITE_URL + '?signin=' + linkKey + '\n\n'
                   + 'If this was not you, do nothing — your PIN has not changed, and whoever asked '
                   + 'cannot read this email.' }
           : { to: tos.join(','), name: BRAND_NAME,
@@ -1800,12 +1960,53 @@ function doPost(e) {
          proof of that inbox, and a PENDING row is confirmed by it (`authResetUse_`). Blank for a PIN
          sent to a child's grown-ups, which proves nothing about the child's row. */
       if (!authResetPut_(r, { pin: fresh, at: Date.now(), until: Date.now() + AUTH.RESET_HOURS * 36e5,
-                              misses: was ? N(was.misses) : 0, to: own ? norm(own) : '' })) {
+                              misses: (was && !was.dead) ? N(was.misses) : 0, to: own ? norm(own) : '',
+                              key: linkKey })) {
         return jsonOut(cannot);
       }
       return jsonOut({ success: true,
         message: 'A new PIN is on its way to ' + where + '. Your old PIN still works until you use the new '
                + 'one. If nothing arrives, ask ' + (own ? 'your tutor.' : 'your parent or your tutor.') });
+    }
+
+    /* ---------- THE SIGN-IN LINK IN A FORGOTTEN-PIN MAIL -----------------------------------------------
+       `?signin=<key>` — see the note over `authResetKey_` in booking.gs. The emailed PIN used, by the one
+       copy of it nobody can guess: so no lock is asked about and no miss is counted, which is the whole
+       point (a squatter's wrong PINs retire the typed half, and this is the owner's way in regardless).
+       Everything else is what typing the PIN back does — `authResetTake_`, one body for both: it becomes
+       the PIN, every other session ends, a PENDING row is taken back and its children held — and then a
+       session for whoever opened it, as `signInRow_` makes one. Only for a mail to the account's OWN
+       address, and only while that is still the address it went to (`held.to`): a grown-up's mail never
+       carries one, and a link to an address the account has since left opens nothing. */
+    if (action === 'pinLink') {
+      const hit = authResetFind_(body.key);
+      const gone = { success: false, why: 'expired',
+        error: 'That sign-in link has been used, or has expired. Use "Forgotten your PIN?" for a new one.' };
+      if (!hit) return jsonOut(gone);
+      const t = read(TAB.people);
+      const r = t.rows.find(x => S(x.person_id || personDisplayName(x)) === hit.owner);
+      if (!r || !S(hit.held.to) || norm(hit.held.to) !== norm(r.email)) return jsonOut(gone);
+      /* TAKEN BEFORE A ROW WITH NO ID IS GIVEN ONE — `signInRow_`'s rule for a session — because the
+         record it drops is keyed by what the row is called NOW, and after the id it would be called
+         something else and the link would still work. */
+      const took = authResetTake_(t, r, hit.held);
+      if (!S(r.person_id)) {
+        const id = 'P' + Date.now() + '-' + r._row;
+        if (!setCell(t, r, 'person_id', id)) return jsonOut({ success: false, why: 'server',
+          error: 'Your PIN is the one in that email now, but this account has no id and one could not be written — ask us.' });
+      }
+      const said = authHeldSaid_(N(took.childrenHeld));
+      logEvent({ jobId: '', actor: personDisplayName(r), role: toAppRole(mainRole(r)),
+                 action: ACT.SAY, message: 'signed in with the link in a forgotten-PIN email' });
+      try {
+        return loginReplyFor_(r, authNewSession_(t, r), {
+          pinLink: true, childrenHeld: N(took.childrenHeld),
+          message: 'Signed in. The PIN in that email is your PIN now, and anyone else signed in to this account '
+                 + 'has been signed out.' + (said ? ' ' + said : '') });
+      } catch (err) {
+        return jsonOut({ success: false, why: 'server',
+          error: 'That link was right, but signing in failed on our side: ' + String(err && err.message || err) });
+      }
     }
 
     /* --- ONE MESSAGE TO EVERYBODY WAS HERE -------------------------------------------------------
@@ -2248,8 +2449,12 @@ function doPost(e) {
                                     && S(r.child_id) === S(child.person_id));
       if (already) {
         const st = norm(already.state);
+        /* `held` IS NOT ASKED AGAIN FROM HERE: asking would put a yes back in the child's hands for an
+           account whose address changed owner (`authTakeBack_`). A person settles it. */
         return jsonOut({ error: st === 'accepted' ? 'They are already on your account.'
                               : st === 'refused'  ? 'They declined that request.'
+                              : st === 'held'     ? 'They were taken off this account when its email was confirmed — '
+                                                    + 'get in touch with us and we will put them back.'
                               : 'They have a request from you waiting.' });
       }
 
@@ -4475,6 +4680,10 @@ function profileOf_(r) {
   DOB_FIELDS.forEach(f => { out[f] = S(dob[f]); });
   const ph = phoneOut(r.phone);
   PHONE_FIELDS.forEach(f => { out[f] = S(ph[f]); });
+  /* A NEW ADDRESS WAITING TO BE PROVED (`authMove*_`), or blank. Not a column: `email` stays the address
+     the row has, and the Contact box draws this one in its place so the next Save of that page posts it
+     again rather than the old one — which would read as "keep the old one" (`updateProfile`). */
+  out.email_moving = S((authMoveGet_(r) || {}).to);
   return out;
 }
 

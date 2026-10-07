@@ -456,12 +456,11 @@ function googleSignedIn_(res) {
          made with (`googleLogin` in dopost.gs — whoever chose it may not own the address) and signed
          everybody else out. Said in the server's words, in a sheet they close: the person this
          happens to is as often the real registrant, and a PIN that stops working tomorrow with no
-         sentence anywhere is a lock-out they cannot explain. A toast is gone in 2.6 seconds. */
-      if (d.pinCleared) {
-        openSheet('Your PIN has changed', `<p class="sub">${esc(d.message || 'The PIN this account was made '
-          + 'with no longer works. Sign in with Google, or use "Forgotten your PIN?" for a new one.')}</p>
-          <button class="btn quiet" data-do="sheet-done">Done</button>`);
-      }
+         sentence anywhere is a lock-out they cannot explain. A toast is gone in 2.6 seconds. The sheet is
+         `afterSignIn_`'s, which every door in shares — with the children held, when there were any. */
+      if (d.pinCleared && !d.message) d.message = 'The PIN this account was made with no longer works. Sign in '
+        + 'with Google, or use "Forgotten your PIN?" for a new one.';
+      afterSignIn_(d);
     })
     /* `send_` HAS ALREADY TOASTED IT — see the note over `do-signin`. */
     .catch(() => {});
@@ -575,6 +574,8 @@ on('do-signin', el => {
          lands. Two paints, and the first one is the one that matters. */
       repaint();
       load();
+      /* AND WHAT IS OWED ONCE IN — a sentence about held children, a move link waiting. */
+      afterSignIn_(d);
     })
     /* NO `.catch` THAT SPEAKS. `send_` has already toasted the sentence through `why_`, and a
        second copy here is what put the refusal on the screen twice. The rejection is swallowed
@@ -972,9 +973,9 @@ on('reg-send', el => {
    — a refusal on the screen of somebody whose account is fine.
 
    NO DATA NEEDED, so it does not wait for `load()`. The two requests run side by side. */
-function verifyFromLink_() {
-  let token = '';
-  try {
+function verifyFromLink_(again) {
+  let token = again || '';
+  if (!token) try {
     const q = new URLSearchParams(location.search);
     token = (q.get('verify') || '').trim();
     if (!token) return;
@@ -982,8 +983,26 @@ function verifyFromLink_() {
     const rest = q.toString();
     history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
   } catch (e) { if (!token) return; }
-  send_({ action: 'verifyEmail', token })
+  /* ---------- `session`: WHO THIS PHONE IS SIGNED IN AS, beside the link's own token ---------------------
+     A link that MOVES an account to a new address only works where that account is signed in
+     (`verifyEmail`, `authMove*_` in booking.gs) — the new address's inbox and the account, both. `token`
+     is the link's, so `api()` adds nothing, and the phone's own goes in a field of its own. A link that
+     only confirms ignores it. */
+  send_({ action: 'verifyEmail', token, session: (USER && USER.token) || '' })
     .then(d => {
+      /* ---------- A NEW ADDRESS, MOVED ----------------------------------------------------------------
+         The row has it now, confirmed. Said here and written into `USER` at once — the profile a
+         `myProfile` beside this may bring back is from before (`ACCOUNT_AT_`). */
+      if (d && d.moved) {
+        accountChanged_();
+        if (USER) {
+          USER.profile = Object.assign({}, USER.profile || {}, { email: String(d.email || ''), email_moving: '' });
+          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+          try { repaint(true); } catch (e) {}
+        }
+        toast('Your email is ' + (d.email || 'changed') + ' now — sign in with it from here on.');
+        return;
+      }
       /* A GROWN-UP SAYING YES FOR A CHILD WITH NO EMAIL is told the child's handle, not "sign in
          with it" — the address is theirs, and it signs nobody in for the child. */
       const first = d && d.name ? String(d.name).split(' ')[0] : '';
@@ -1022,6 +1041,10 @@ function verifyFromLink_() {
            address still waiting). Matched on the handle, which is one person's, or the name. */
         const me = !!(USER && d && ((d.handle && d.handle === USER.handle) || (d.name && d.name === USER.name)));
         if (me) {
+          /* AND A `myProfile` ASKED BEFORE THIS IS NOT ALLOWED TO PUT IT BACK (`ACCOUNT_AT_`) — measured
+             by round three of the review: the one boot fires beside this request landed after it, said
+             "still waiting", and the held card stayed under a toast saying the opposite. */
+          accountChanged_();
           USER.pendingEmail = '';
           try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
           try { repaint(true); } catch (e) {}
@@ -1032,6 +1055,68 @@ function verifyFromLink_() {
       }
       /* TO THE SIGN-IN CARD, which is where the next step is. */
       try { if (!USER) go('account'); } catch (e) {}
+    })
+    /* ---------- "SIGN IN, AND IT WILL FINISH BY ITSELF" ---------------------------------------------------
+       A move link opened where the account is not signed in. Kept on this phone, and `afterSignIn_` sends
+       it again the moment somebody signs in — if it is the right account it moves, and if not the server
+       says so again. Kept for the tab's life only: a link is single-use and a newer mail retires it. */
+    .catch(err => {
+      const d = err && err.reply;
+      if (!d || d.why !== 'sign-in-first') return;    // `send_` has already toasted the server's sentence
+      try { sessionStorage.setItem('familyVerify', token); } catch (e) {}
+      try { go('account'); } catch (e) {}
+    });
+}
+
+/* THE MOMENT SINCE WHICH THE PHONE KNOWS SOMETHING NEWER ABOUT THIS ACCOUNT'S ADDRESS than a `myProfile`
+   asked before it — see `profileRefresh_`, which asks again rather than paint an answer older than this. */
+let ACCOUNT_AT_ = 0;
+function accountChanged_() { ACCOUNT_AT_ = Date.now(); }
+
+/* ---------- WHAT EVERY DOOR IN DOES ONCE IT IS IN -----------------------------------------------------
+   The PIN, Google and the sign-in link each set `USER` from the same reply (`loginReplyFor_`), and then
+   two things are owed that none of them did on its own:
+   · A SENTENCE THE SERVER SAYS MUST BE READ — the children taken off a PENDING account its address's
+     owner has just taken back (`authTakeBack_`), or Google taking away the PIN. A sheet with Done, not a
+     2.6-second toast: it is about somebody's children, and nobody can ask for it again.
+   · A MOVE LINK THAT WAS WAITING FOR A SIGN-IN (`verifyFromLink_`), sent now. */
+function afterSignIn_(d) {
+  if (d && (d.childrenHeld || d.pinCleared || d.pinLink) && d.message) {
+    openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know' : 'Signed in',
+      `<p class="sub">${esc(d.message)}</p>
+       <button class="btn quiet" data-do="sheet-done">Done</button>`);
+  }
+  let waiting = '';
+  try { waiting = sessionStorage.getItem('familyVerify') || ''; sessionStorage.removeItem('familyVerify'); } catch (e) {}
+  if (waiting) verifyFromLink_(waiting);
+}
+
+/* ---------- AND THE SIGN-IN LINK IN A FORGOTTEN-PIN MAIL ----------------------------------------------
+   `?signin=<key>` — `pinLink` in dopost.gs: the emailed PIN used by the one copy of it nobody can guess,
+   so it gets its owner in even when somebody else's wrong PINs have locked the account and used up the
+   typed PIN (round three of the PR #130 review). Read once at start-up like `?verify=`, and taken out of
+   the address before anything is sent: it is single-use, and a refresh would post it again. */
+function pinFromLink_() {
+  let key = '';
+  try {
+    const q = new URLSearchParams(location.search);
+    key = (q.get('signin') || '').trim();
+    if (!key) return;
+    q.delete('signin');
+    const rest = q.toString();
+    history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+  } catch (e) { if (!key) return; }
+  send_({ action: 'pinLink', key })
+    .then(d => {
+      if (!d || !d.success) { toast((d && d.error) || 'That link did not work.'); return; }
+      /* THE PIN PATH'S LINES, for its reasons — see `do-signin`. */
+      USER = Object.assign({}, d);
+      if (!USER.name) USER.name = d.handle || '';
+      try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
+      toast('Signed in');
+      repaint();
+      load();
+      afterSignIn_(d);
     })
     .catch(() => {});      // `send_` has already toasted the server's sentence
 }
@@ -1985,6 +2070,23 @@ function mailHeldNote_() {
     we sent to <b style="overflow-wrap:anywhere">${esc(at)}</b>.</p>` : '';
 }
 
+/* ---------- A NEW ADDRESS WAITING TO BE PROVED, ON THE CARD IT WAS TYPED ON -----------------------------
+   A confirmed account's new address is not written until the account, signed in, opens the link sent to
+   it (`authMove*_` in booking.gs — a typo's owner holds the inbox and never the account). So the box shows
+   the address that is waiting, and this paragraph says the two facts a person needs: it is not done, and
+   which address still signs in. Under the row, as the house rule has it, beside "Send the link again" in
+   the row — the person this is for is the one whose link went to spam. Both addresses in it: when the new
+   one is a typo, seeing it written out is how it is caught. */
+function movingNote_(p) {
+  const to = p && p.email_moving ? String(p.email_moving) : '';
+  if (!to) return '';
+  const was = String((p && p.email) || '');
+  return `<p class="faint mail-moving" style="margin:.6rem 0 0">Your email changes to
+    <b style="overflow-wrap:anywhere">${esc(to)}</b> once you open the link we sent there, on a phone where you
+    are signed in.${was ? ` Until then it is still <b style="overflow-wrap:anywhere">${esc(was)}</b> — sign in
+    with that, or your handle. Type it back here to keep it.` : ''}</p>`;
+}
+
 /* WHERE "MAKE YOUR CHILD'S ACCOUNT" WOULD BE, for a parent whose address is still PENDING. Its own class
    and not `kid-make`: there is nothing to make on it, and what finds `.kid-make` is looking for the
    form. Drawn INSTEAD OF both child cards — the add-a-child form would be refused for the same reason,
@@ -2014,8 +2116,10 @@ on('resend-link', el => {
   send_({ action: 'resendLink', personId: USER.personId || '' }, { button: el })
     .then(d => {
       toast(d.message || 'A new link is on its way.');
-      /* ALREADY CONFIRMED — on another phone, or by Google. The cards go with it. */
+      /* ALREADY CONFIRMED — on another phone, or by Google. The cards go with it, and a `myProfile` asked
+         before this answer is not allowed to bring them back (`ACCOUNT_AT_`). */
       if (d.why === 'confirmed' && USER) {
+        accountChanged_();
         USER.pendingEmail = '';
         try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
         try { repaint(true); } catch (e) {}
@@ -2194,7 +2298,8 @@ function settingsPages_() {
          the group's name IS that card's title rather than a divider inside it. */
       head: 'h3',
       attr: 'data-me',
-      value: f => p[f] ?? '',
+      /* THE ADDRESS WAITING TO BE PROVED, in the address's box — see `movingNote_`. */
+      value: f => (f === 'email' && p.email_moving) ? p.email_moving : (p[f] ?? ''),
       raw: p,
       readonly: readonly,
       /* The backend says which fields have a fixed set of answers, and `FIELD_LISTS_` answers for
@@ -2206,7 +2311,9 @@ function settingsPages_() {
             would be a second way to keep a change already kept, and the one somebody would wait to
             press. Only a card that is nothing but the shelf. */
         (groups[g] || []).length && (groups[g] || []).every(isQualField_) ? ''
-        : `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>`}
+        : `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}${
+            (groups[g] || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
+      ${(groups[g] || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
       <p class="faint me-said"></p></div>
   </div>`);
 
@@ -4305,6 +4412,12 @@ function meSave_(el) {
          no profile, and the typed fields are merged as they always were. */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
       if (d && d.name) USER.name = d.name;
+      /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
+      if (d && d.pendingEmail !== undefined) { accountChanged_(); USER.pendingEmail = String(d.pendingEmail || ''); }
+      /* ---------- "SAVED" IS NOT THE WHOLE STORY WHEN AN ADDRESS WAS TYPED ---------------------------------
+         A new address waits to be proved, or was sent a fresh link (`updateProfile`), and "Saved" over a box
+         still showing it reads as done. The server's sentence, in the toast and on the line under the card. */
+      const word = (d && d.said) || 'Saved';
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       if (box.closest('#sheet-body')) closeSheet();
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_`. */
@@ -4316,17 +4429,23 @@ function meSave_(el) {
          receipt and the line is for a refusal only, so a success CLEARS it: the refusal from a save that
          failed is not left standing under the one that worked. */
       const quiet = !!box.querySelector('.q-shelf');
-      if (said) said.textContent = quiet ? '' : 'Saved';
-      toast('Saved');
+      if (said) said.textContent = quiet ? '' : word;
+      toast(word);
+      const at = [...document.querySelectorAll('#s-settings .me-form')].indexOf(form);
+      const lineAt = () => at < 0 ? null
+        : (document.querySelectorAll('#s-settings .me-form')[at] || {}).querySelector?.('.me-said');
+      /* THE CARD IS REDRAWN WHEN AN ADDRESS WAS TYPED — the line under the box and the tile beside Save
+         come and go with a waiting address, and nothing else repaints this card when the Save changed no
+         cell. The sentence is written again on the card that replaces this one. */
+      if (d && d.said) {
+        try { paint('settings'); placeCells('y', true, 0, 'settings'); } catch (e) {}
+        const el2 = lineAt(); if (el2) el2.textContent = word;
+      }
       /* THE PUBLIC CARD IS BUILT BY `doGet`, so it only moves when the payload does — but only when
          something was written. A Save that changed nothing writes nothing and leaves the stored
          payload alone, so fetching it again would be a full rebuild to learn nothing. `changed` is
          absent from an older backend, which is treated as "something changed", as before. */
-      if (!d || d.changed === undefined || d.changed > 0) {
-        const at = [...document.querySelectorAll('#s-settings .me-form')].indexOf(form);
-        sayAfterLoad_(() => at < 0 ? null
-          : (document.querySelectorAll('#s-settings .me-form')[at] || {}).querySelector?.('.me-said'), quiet ? '' : 'Saved');
-      }
+      if (!d || d.changed === undefined || d.changed > 0) sayAfterLoad_(lineAt, quiet ? '' : word);
       resolve(true);
     })
     .catch(() => { /* `send_` has already written the refusal under the card. */ resolve(false); });
@@ -4386,9 +4505,17 @@ function profileShapeOk_() {
 function profileRefresh_(loud, onOld) {
   if (!USER || !USER.token || PROFILE_ASKING) return;
   PROFILE_ASKING = true;
+  const askedAt = Date.now();
   api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
+      /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED -----------------------------
+         FOUND BY ROUND THREE OF THE PR #130 REVIEW: at start-up this request and the confirmation link's
+         run side by side, and when this one answered second it put back "still waiting" — the held card
+         stayed under a toast saying "you can make your child's account now", until the next refresh. The
+         link (or a sign-in, or a moved address) marks the moment (`accountChanged_`); a reply to a
+         question asked before it is asked again instead, and the second answer is the server's newer one. */
+      if (askedAt < ACCOUNT_AT_) { if (d && d.success) profileRefresh_(loud, onOld); return; }
       /* AN OLD SERVER, NOT A FAULT. "That action is not recognised" is the server saying it predates
          this site — remembered, so the next save does not ask again, and never shown raw. */
       if (d && d.error && /unknown action|not recognis/i.test(String(d.error))) {

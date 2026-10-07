@@ -237,7 +237,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-06-e-authfix2";
+const BACKEND_VERSION = "2026-10-06-f-authfix2";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1011,7 +1011,9 @@ const SCHEMA = {
      A row with a state rather than a name in a cell, because a cell has no room for "who asked",
      "when", or "did they agree" — and those are the whole point. A name typed into a list claims
      somebody silently, and claims the wrong person just as silently.
-     asked → accepted, or asked → refused. Only `accepted` is a link. */
+     asked → accepted, or asked → refused. Only `accepted` is a link.
+     AND → held, from either, when the parent row was PENDING and its address's owner took it back
+     (`authTakeBack_`): read as neither a link nor a request, and settled only by an admin's `linkChild`. */
   family: [
     "link_id", "parent_id", "child_id", "child_typed", "state", "asked_on", "answered_on",
   ],
@@ -2846,6 +2848,9 @@ const ACTION_ACCESS = {
      it is used (`authResetUse_`), so a stranger's press is an email and nothing more. It says which
      case it was (no such account, nobody to send to, sent), as signing in has since 184. */
   forgotPin: 'anyone',
+  /* AND THE LINK IN THAT MAIL — `anyone`, for `forgotPin`'s reason: whoever opens it cannot sign in. What
+     stops it being a way in is the key, two UUIDs long and mailed to the account's own address only. */
+  pinLink: 'anyone',
   /* `broadcast: 'admin'` WAS HERE — one message to everybody — and went with its handler and its
      card on "remove the note to everyone button". An entry with no handler is a door onto nothing. */
   /* SIGNING IN WITH GOOGLE. `anyone` for the same reason as the two beside it — you cannot be
@@ -2921,8 +2926,8 @@ const ACTION_ACCESS = {
      is asking, and writes them into `body.personId`; the child is `targetId` or does not exist yet. */
   makeChild: 'self', resetPin: 'self',
   /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. `self`, so where it goes is the row the token
-     resolved to and nothing on the request; the handler sends only to that row's own address, only
-     while it is PENDING, and once a quarter of an hour. */
+     resolved to and nothing on the request; the handler sends only to that row's own address while it
+     is PENDING, or to the new address the row is waiting to move to, and once a quarter of an hour. */
   resendLink: 'self',
   /* A NEW WORD FOR YOUR OWN HANDLE. `self`, and the handler acts on the row the token resolved to
      rather than on anything posted — the gate writes `body.personId` from the token. `changeHandle`,
