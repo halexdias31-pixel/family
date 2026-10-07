@@ -5694,8 +5694,22 @@ check('nothing offers to install, and the browser is not left to offer it either
      @family. handy. Opens like an app, no address bar.", on a Settings card, and "Save @family. to
      your phone" beside it — both green, because the list held its headline's "on your phone" and
      not its subtitle or a near variant. So `on`/`to`/`onto` your phone, `like an app`, `address bar`
-     and the headline's `Keep @family.` are words too; measured, still none of them is in the app. */
-  const WORDS = /.{0,30}(install|(?:on|onto|to) your (?:phone|home)|add to (?:your )?home|home ?screen|bookmark|like an app|address bar|keep @family\.).{0,30}/gi;
+     and the headline's `Keep @family.` are words too; measured, still none of them is in the app.
+     AND THEN THE RULE RATHER THAN THE EXAMPLES. The round-3 review drew "Get the app", "Use @family.
+     as an app — full screen, one tap away" and "Put @family. on the home row … open it with one
+     tap" on the same card, all green, because the list had grown by the two phrasings it was shown.
+     An offer to install says one of three things, and each is a family of words here: WHAT it would
+     become (an app, a shortcut, an icon, standalone), WHERE it would go (home screen, home row, home
+     page, your phone), and WHAT IT BUYS (full screen, one tap, no address bar) — plus any verb that
+     puts @family. somewhere (add/save/pin/put/keep/get @family.). Measured over the rendered text
+     of every screen for all four visitors: none of them is said anywhere, so `app` as a whole word is
+     safe to name — the app never calls itself one on screen. */
+  const WORDS = new RegExp('.{0,30}(' + [
+    'install', '\\bapps?\\b', 'shortcut', '\\bicon on', 'standalone', 'bookmark',
+    '(?:on|onto|to) (?:your|the) (?:phone|home|dock)', 'home ?(?:screen|row|page)', 'add to (?:your )?home',
+    'full ?-?screen', 'one tap', 'address bar',
+    '(?:add|save|pin|put|keep|get|use) @family\\.',
+  ].join('|') + ').{0,30}', 'gi');
   const ALL = { childList: true, subtree: true, attributes: true, characterData: true };
   const name_ = n => !n || !n.tagName ? String(n && n.nodeName || '?')
     : n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className
