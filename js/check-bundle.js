@@ -559,6 +559,14 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
         bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over ' + n + ' bundle card(s), '
                  + items + ' item(s) and ' + b.stuffPages_().length + ' question pages');
       }
+      /* NONE IS NOT A COUNT. The round-2 review deleted the zero branch and the line fell through to
+         "Nothing left to narrow. Swipe up for the 0 bundles." — which held every rule above: no
+         `question`, a `bundle`, and the list's 1 item never repeated. Over no bundle the line must
+         say there is none, and promise no number of anything to swipe to. */
+      if (n === 0 && (!/\bno bundles?\b/i.test(text) || /\d/.test(text) || /the bundles?\b/i.test(text))) {
+        bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over no bundle card — it must '
+                 + 'say there is none, and promise nothing to swipe to');
+      }
       if (n >= 2 && !new RegExp('\\b' + n + ' bundles\\b').test(text)) {
         bad.push('Bundles, ' + t.name + ': the last line reads "' + text + '" over ' + n + ' bundle cards — it '
                  + 'does not say how many');

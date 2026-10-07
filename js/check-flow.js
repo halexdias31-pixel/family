@@ -5689,8 +5689,13 @@ check('nothing offers to install, and the browser is not left to offer it either
   ];
   /* A FEW WORDS EITHER SIDE, not the sentence: `textContent` runs one element's text into the next
      with no space, so "up to the full stop" can be half a screen. Measured: none of these words is
-     anywhere in the app's text for any of the four, so a hit is an offer and not a false alarm. */
-  const WORDS = /.{0,30}(install|on your phone|add to (?:your )?home|home ?screen|bookmark).{0,30}/gi;
+     anywhere in the app's text for any of the four, so a hit is an offer and not a false alarm.
+     THE OLD BAR'S OWN WORDS ARE ON IT. The round-2 review put the removed bar's second line, "Keep
+     @family. handy. Opens like an app, no address bar.", on a Settings card, and "Save @family. to
+     your phone" beside it — both green, because the list held its headline's "on your phone" and
+     not its subtitle or a near variant. So `on`/`to`/`onto` your phone, `like an app`, `address bar`
+     and the headline's `Keep @family.` are words too; measured, still none of them is in the app. */
+  const WORDS = /.{0,30}(install|(?:on|onto|to) your (?:phone|home)|add to (?:your )?home|home ?screen|bookmark|like an app|address bar|keep @family\.).{0,30}/gi;
   const ALL = { childList: true, subtree: true, attributes: true, characterData: true };
   const name_ = n => !n || !n.tagName ? String(n && n.nodeName || '?')
     : n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className
