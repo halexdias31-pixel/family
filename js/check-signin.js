@@ -1168,8 +1168,62 @@ let proofRules = 0;
     const kitMail = mailTo('pat@example.org', m)[0];
     rule(!!pinIn(kitMail) && !/\?signin=/.test(S(kitMail && kitMail.body)), 'a child\'s forgotten PIN, mailed to a grown-up, carried a sign-in link', kitMail && kitMail.body);
   }
+
+  /* ---------- (h) TAKING IT BACK CANCELS A CHANGE OF ADDRESS THE SQUATTER LEFT WAITING -------------------
+     The review of round three, reproduced: Vic opens her confirmation link with the squatter still signed
+     in; the squatter types sam@ in Settings and is mailed its link; Vic takes the account back by the
+     emailed PIN — and the move sat on. Her Contact card said her email was changing to sam@, her "Send the
+     link again" mailed the squatter a fresh link, and the squatter's link, forwarded and opened by Vic
+     signed in, moved her account to sam@, where "Forgotten your PIN?" took it again. */
+  {
+    const b = fresh();
+    b.seed('people', [person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind140' })]);
+    register(b, { who: 'parent', first_name: 'Sam', last_name: 'Squat', email: 'vic@example.org', pin: P1 });
+    const squat = signIn(b, 'vic@example.org', P1);
+    const r0 = rowOf(b, r => r.email === 'vic@example.org');
+    post(b, { action: 'verifyEmail', token: r0 && r0.verify_token });
+    let m = MAIL.length;
+    const mv = squat.token ? post(b, { action: 'updateProfile', token: squat.token, targetId: r0 && r0.person_id,
+                                       fields: { email: 'sam@example.org' } }) : {};
+    const moveKey = (S((mailTo('sam@example.org', m)[0] || {}).body).match(/\?verify=(M\w+)/) || [])[1] || '';
+    if (!mv.success || !moveKey || PENDING(rowOf(b, r => r.email === 'vic@example.org')))
+      no('the squatter could not leave a move waiting on a confirmed row, so (h) was NOT checked', mv);
+    else {
+      m = MAIL.length;
+      post(b, { action: 'forgotPin', who: 'vic@example.org' });
+      const emailed = pinIn(mailTo('vic@example.org', m)[0]);
+      const vic = emailed ? signIn(b, 'vic@example.org', emailed) : {};
+      const prof = vic.token ? post(b, { action: 'myProfile', token: vic.token }) : {};
+      rule(vic.success && !live(b, squat.token) && vic.moveDropped === 'sam@example.org' && /sam@example\.org/.test(S(vic.message)) && /cancelled/.test(S(vic.message))
+           && !S((prof.profile || prof).email_moving),
+        'the owner took the account back and the squatter\'s waiting change of address survived, or she was not told it was cancelled',
+        { vic: vic.success, message: vic.message, moving: (prof.profile || prof).email_moving });
+      /* PAST THE QUARTER HOUR the squatter's Save started, or the throttle answers and this proves nothing. */
+      b.props['AUTH_LINK_' + r0.person_id] = String(Date.now() - 20 * 60000);
+      m = MAIL.length;
+      if (vic.token) post(b, { action: 'resendLink', token: vic.token });
+      rule(!mailTo('sam@example.org', m).length, '"Send the link again", pressed by the owner, mailed the squatter\'s waiting address a fresh move link');
+      const opened = vic.token ? post(b, { action: 'verifyEmail', token: moveKey, session: vic.token }) : { success: true };
+      rule(!opened.success && !!rowOf(b, r => r.email === 'vic@example.org') && !rowOf(b, r => r.email === 'sam@example.org'),
+        'the squatter\'s move link, opened by the owner signed in, still moved her account to the squatter\'s address', opened);
+    }
+    /* AND BY THE LINK IN THE SAME MAIL — `pinLink` is `authResetTake_` too. */
+    register(b, { who: 'parent', first_name: 'Sol', last_name: 'Squat', email: 'wyn@example.org', pin: P1 });
+    const sq2 = signIn(b, 'wyn@example.org', P1);
+    const w0 = rowOf(b, r => r.email === 'wyn@example.org');
+    post(b, { action: 'verifyEmail', token: w0 && w0.verify_token });
+    if (sq2.token) post(b, { action: 'updateProfile', token: sq2.token, targetId: w0 && w0.person_id, fields: { email: 'sol@example.org' } });
+    m = MAIL.length;
+    post(b, { action: 'forgotPin', who: 'wyn@example.org' });
+    const wl = (S((mailTo('wyn@example.org', m)[0] || {}).body).match(/\?signin=(\w+)/) || [])[1] || '';
+    const wyn = wl ? post(b, { action: 'pinLink', key: wl }) : {};
+    const wp = wyn.token ? post(b, { action: 'myProfile', token: wyn.token }) : {};
+    rule(wyn.success && /sol@example\.org/.test(S(wyn.message)) && !S((wp.profile || wp).email_moving),
+      'the forgotten-PIN link took the account back and left the squatter\'s waiting change of address in place',
+      { wyn: wyn.success, error: wyn.error, message: wyn.message, moving: (wp.profile || wp).email_moving });
+  }
 }
-const PROOF_RULES = 77;
+const PROOF_RULES = 81;
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 
 console.log('\nWRONG  (' + bad.length + ')');

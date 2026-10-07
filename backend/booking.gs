@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-06-f-authfix2";
+const BOOKING_VERSION = "2026-10-07-a-authfix2";
 
 
 /**
@@ -1619,7 +1619,8 @@ function authResetFind_(key) {
       let held = null;
       try { held = JSON.parse(all[k]); } catch (err) {}
       return { owner: k.slice('AUTH_RESET_'.length), held: held };
-    }).find(x => x.held && S(x.held.key) && authSame_(S(x.held.key), want));
+    /* `e`, NOT `x`: `check-columns` reads `x.<word>` as a sheet row's column, and `held` is not one. */
+    }).find(e => e.held && S(e.held.key) && authSame_(S(e.held.key), want));
     if (!hit || !S(hit.held.pin) || N(hit.held.until) < Date.now()) return null;
     return hit;
   } catch (err) { return null; }
@@ -1662,6 +1663,18 @@ function authResetTake_(t, r, held) {
      every session here, PENDING or not. The caller makes the new one straight after, so the person
      using it stays in. The REQUEST still ends nothing: anybody may make it (`forgotPin`). */
   authEndSession_(t, r);
+  /* ---------- AND A CHANGE OF ADDRESS LEFT WAITING IS CANCELLED ---------------------------------------
+     FOUND BY THE REVIEW OF AUTH ROUND THREE: the sessions ended and the move one of them asked for did
+     not. The squatter, still signed in after Vic opened her confirmation link, typed sam@ in Settings
+     (`AUTH_MOVE_<id>`); Vic took the account back with the emailed PIN, and the move sat on — her
+     Contact card said "Your email changes to sam@", her "Send the link again" mailed a fresh move link
+     to the squatter, and the squatter's own link, forwarded and opened by Vic while signed in, moved
+     her account to sam@, where "Forgotten your PIN?" took it again, children and all. A move is asked
+     for by a session; the act that says every session on this row may have been somebody else's
+     cannot keep what one of them asked. Its owner types it again if it was theirs, and is told so
+     (`authMoveSaid_`). Google's taking back drops it for the same reason (`googleLogin`). */
+  const moving = S((authMoveGet_(r) || {}).to);
+  authMoveDrop_(r);
   /* ---------- AND USING IT PROVES THE ADDRESS IT WENT TO ---------------------------------------------
      ONLY THE ACCOUNT'S OWN ADDRESS, and only the one it was sent to (`held.to`, written by
      `forgotPin`): a no-email child's PIN went to their grown-ups, which says nothing about the child's
@@ -1670,7 +1683,16 @@ function authResetTake_(t, r, held) {
      one that was proved. A PENDING row proved this way is TAKEN BACK (`authTakeBack_`), which is
      more than confirmed. */
   const kept = (S(held.to) && norm(held.to) === norm(r.email) && addressPending_(r)) ? authTakeBack_(t, r) : 0;
-  return { childrenHeld: kept };
+  return { childrenHeld: kept, moveDropped: moving };
+}
+
+/* WHAT THE PERSON TAKING A ROW BACK IS TOLD ABOUT A CHANGE OF ADDRESS THAT WAS WAITING — `authResetTake_`
+   cancels it. The address is named: this is the account's owner, and it is the one thing that tells
+   them whether it was a change they asked for or somebody else's. */
+function authMoveSaid_(to) {
+  if (!S(to)) return '';
+  return 'A change of this account\'s email to ' + S(to) + ' was waiting to be confirmed, and it has been '
+       + 'cancelled. If you asked for it, type the new address again in Settings.';
 }
 
 /* ---------- SESSIONS, KEPT OFF THE SHEET -------------------------------------------------------
@@ -1836,7 +1858,8 @@ function authMoveFind_(key) {
       let move = null;
       try { move = JSON.parse(all[k]); } catch (err) {}
       return { owner: k.slice('AUTH_MOVE_'.length), move: move };
-    }).find(x => x.move && S(x.move.key) && authSame_(S(x.move.key), want));
+    /* `e`, not `x` — the reason is over `authResetFind_`'s. */
+    }).find(e => e.move && S(e.move.key) && authSame_(S(e.move.key), want));
     if (!hit || !S(hit.move.to) || N(hit.move.until) < Date.now()) return null;
     return hit;
   } catch (err) { return null; }

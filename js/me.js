@@ -1078,10 +1078,12 @@ function accountChanged_() { ACCOUNT_AT_ = Date.now(); }
    two things are owed that none of them did on its own:
    · A SENTENCE THE SERVER SAYS MUST BE READ — the children taken off a PENDING account its address's
      owner has just taken back (`authTakeBack_`), or Google taking away the PIN. A sheet with Done, not a
-     2.6-second toast: it is about somebody's children, and nobody can ask for it again.
+     2.6-second toast: it is about somebody's children, and nobody can ask for it again. The same for a
+     change of address the taking back cancelled (`moveDropped`, `authResetTake_`): it may have been the
+     owner's own, and this sentence is the only place they learn to type it again.
    · A MOVE LINK THAT WAS WAITING FOR A SIGN-IN (`verifyFromLink_`), sent now. */
 function afterSignIn_(d) {
-  if (d && (d.childrenHeld || d.pinCleared || d.pinLink) && d.message) {
+  if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped) && d.message) {
     openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know' : 'Signed in',
       `<p class="sub">${esc(d.message)}</p>
        <button class="btn quiet" data-do="sheet-done">Done</button>`);

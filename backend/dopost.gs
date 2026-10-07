@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-06-f-authfix2";
+const DOPOST_VERSION = "2026-10-07-a-authfix2";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -113,8 +113,11 @@ function signInRow_(t0, r, body, by) {
      the throttle locks them out. */
   /* A PENDING ROW TAKEN BACK BY ITS EMAILED PIN HAD ITS CHILDREN HELD (`authTakeBack_`), and whoever
      has just signed in is told — in the shape Google's reply already has, so the phone reads one. */
-  const heldSaid = authHeldSaid_(took ? N(took.childrenHeld) : 0);
-  try { return loginReplyFor_(r, authNewSession_(t0, r), heldSaid ? { childrenHeld: N(took.childrenHeld), message: heldSaid } : null); }
+  /* AND A CHANGE OF ADDRESS IT CANCELLED (`authResetTake_`) is said beside it — one message, one sheet. */
+  const heldSaid = [authHeldSaid_(took ? N(took.childrenHeld) : 0), authMoveSaid_(took ? took.moveDropped : '')]
+    .filter(Boolean).join(' ');
+  try { return loginReplyFor_(r, authNewSession_(t0, r), heldSaid ? { childrenHeld: took ? N(took.childrenHeld) : 0,
+    moveDropped: took ? S(took.moveDropped) : '', message: heldSaid } : null); }
   catch (err) {
     return jsonOut({ success: false, why: 'server',
       error: 'Your details are right, but signing in failed on our side: '
@@ -709,23 +712,27 @@ function doPost(e) {
          alone: its PIN was proved by whoever confirmed it, and signing in by Google must not sign its
          owner out elsewhere. */
       const tookBack = addressPending_(r);
-      let kidsHeld = 0;
+      let kidsHeld = 0, moveDropped = '';
       if (tookBack) {
         kidsHeld = authTakeBack_(t, r);
         authSetPin_(t, r, '');
         authClearThrottle_(t, r);
         authResetDrop_(r);
         authEndSession_(t, r);
+        /* A CHANGE OF ADDRESS ONE OF THOSE SESSIONS ASKED FOR GOES WITH THEM — `authResetTake_`'s note. */
+        moveDropped = S((authMoveGet_(r) || {}).to);
+        authMoveDrop_(r);
       }
       logEvent({ jobId: '', actor: personDisplayName(r), role: toAppRole(mainRole(r)),
                  action: ACT.SAY, message: 'signed in with Google' });
       return loginReplyFor_(r, authNewSession_(t, r), tookBack ? {
-        pinCleared: true, childrenHeld: kidsHeld,
+        pinCleared: true, childrenHeld: kidsHeld, moveDropped: moveDropped,
         message: 'Signed in with Google, and that has confirmed your email. The account was made with a PIN '
                + 'before anybody had confirmed the address, so that PIN no longer works and anyone else signed '
                + 'in to it has been signed out. Sign in with Google from now on — or use "Forgotten your PIN?" '
                + 'and we will email you a new PIN.'
-               + (kidsHeld ? ' ' + authHeldSaid_(kidsHeld).replace(/^Your email is confirmed now\. /, '') : '') } : null);
+               + (kidsHeld ? ' ' + authHeldSaid_(kidsHeld).replace(/^Your email is confirmed now\. /, '') : '')
+               + (moveDropped ? ' ' + authMoveSaid_(moveDropped) : '') } : null);
     }
 
     if (action === 'signOut') {
@@ -2000,9 +2007,10 @@ function doPost(e) {
                  action: ACT.SAY, message: 'signed in with the link in a forgotten-PIN email' });
       try {
         return loginReplyFor_(r, authNewSession_(t, r), {
-          pinLink: true, childrenHeld: N(took.childrenHeld),
+          pinLink: true, childrenHeld: N(took.childrenHeld), moveDropped: S(took.moveDropped),
           message: 'Signed in. The PIN in that email is your PIN now, and anyone else signed in to this account '
-                 + 'has been signed out.' + (said ? ' ' + said : '') });
+                 + 'has been signed out.' + (said ? ' ' + said : '')
+                 + (took.moveDropped ? ' ' + authMoveSaid_(took.moveDropped) : '') });
       } catch (err) {
         return jsonOut({ success: false, why: 'server',
           error: 'That link was right, but signing in failed on our side: ' + String(err && err.message || err) });
