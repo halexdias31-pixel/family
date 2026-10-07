@@ -11224,6 +11224,11 @@ function accountPages_() {
     /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js. */
     typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
       : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`,
+    /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is
+       unproved, because `notify` sends it nothing until then and a booking with no email after it is
+       otherwise silence nobody can explain (the PR #130 review). On this page, not a page of its own,
+       so nothing after it on the column moves. See `mailHeldNote_` in me.js. */
+    typeof mailHeldNote_ === 'function' ? mailHeldNote_() : '',
   ].join('');
 
   /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON --

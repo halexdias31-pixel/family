@@ -212,8 +212,9 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look, o) {
            clicked — a typo'd address, as often as not, which is a stranger's inbox. An admin's
            `linkChild` writes `accepted` without asking the address anything, so the link alone is
            no proof, and every Sunday a stranger would be told about somebody's child. Blank is an
-           account from before verification existed, as at sign-in (dopost.gs), and is not pending. */
-        if (S(p.verified).toUpperCase() === 'PENDING') { L.skipped.push(Object.assign(who, { why: 'email not confirmed' })); return; }
+           account from before verification existed, and is not pending. `addressPending_` (people.gs)
+           is this rule for every mail now, so the digest and `notify` cannot disagree about it. */
+        if (addressPending_(p)) { L.skipped.push(Object.assign(who, { why: 'email not confirmed' })); return; }
         if (!ON_(p[optOut])) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
         /* ONE MAILBOX ONCE PER CHILD, if two parent rows share an address. */
         const m = norm(who.email);

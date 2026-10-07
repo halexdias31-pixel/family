@@ -1018,6 +1018,10 @@ function run() {
        under test stays which row a typed name lands on. */
     const authResetGet_ = () => null;
     const authResetUse_ = () => false;
+    /* AND SO NOTHING WAS TAKEN BACK, so there is nothing about held children to say. */
+    const authHeldSaid_ = () => '';
+    /* NOR ANY CHANGE OF ADDRESS CANCELLED by a taking back (\`authMoveSaid_\`, check-signin (h)). */
+    const authMoveSaid_ = () => '';
     const setCell = (t, r, f, v) => { r[f] = v; return true; };
     /* THE ONE READER BOTH DOORS USE, cut out of people.gs with what it reaches for. */
     ` + HANDLE_LOOKUP + `

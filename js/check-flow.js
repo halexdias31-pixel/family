@@ -227,6 +227,9 @@ function boot(opts) {
       /* A FUNCTION MAY ANSWER PER ACTION, so a journey can play an older server that knows some
          actions and not others. */
       const rep = typeof opts.reply === 'function' ? opts.reply(body) : opts.reply;
+      /* A PROMISE IS A REPLY THAT ARRIVES WHEN THE JOURNEY SAYS — two requests answered in the other
+         order, which is how a stale `myProfile` came to paint over a confirmation (review round three). */
+      if (rep && typeof rep.then === 'function') return rep.then(v => body_(v || { success: true }));
       return Promise.resolve(body_(rep || { success: true, joined: 3, seats: 4 }));
     }
     return Promise.resolve(body_(data));
@@ -3741,6 +3744,364 @@ check('a grown-up opening a no-email child\'s link is told the child\'s handle',
   return bad;
 });
 
+/* AND WHEN THE PARENT ACCOUNT ON THAT ADDRESS IS STILL PENDING, the child is confirmed and NOT put on it
+   (`verifyEmail`, the PR #130 review: it may be somebody else's account on the grown-up's address). The
+   grown-up is told what is left to do, not left believing the child is on their account — and told in a
+   SHEET they close. Round one said it in a toast, which goes after 2.6 seconds, and the child's link is
+   single-use, so the second half of the sentence was never read (the review of round one). */
+check('a grown-up whose account is unconfirmed is told how to add the child, in a sheet that stays', async () => {
+  const { w } = boot({ url: 'https://example.org/?verify=Vkid43',
+    reply: b => b.action === 'verifyEmail'
+      ? { success: true, name: 'Ben Mum', handle: 'ben_kind43', noEmail: true, linkedTo: '', parentPending: true } : { success: true } });
+  await wait(400);
+  const d = w.document, bad = [];
+  const sheet = () => d.getElementById('sheet-body');
+  const said = () => String((sheet() || {}).textContent || '').replace(/\s+/g, ' ');
+  const open = () => { const s = d.getElementById('sheet'); return !!(s && sheet() && said().trim() && !s.hidden && !/\bhidden\b/.test(s.className)); };
+  if (!open()) return ['the grown-up was told nothing that stays — no sheet after the link: ' + JSON.stringify(String((d.getElementById('toast') || {}).textContent || ''))];
+  if (!/@ben_kind43/.test(said())) bad.push('the sheet does not say the handle the child signs in with: ' + JSON.stringify(said()));
+  if (!/not on your account/i.test(said())) bad.push('the sheet does not say the child is NOT on their account yet: ' + JSON.stringify(said()));
+  if (/is on your account/i.test(said().replace(/not on your account/ig, ''))) bad.push('the sheet says the child is on their account, which the backend refused to do');
+  if (!/Confirm your @family\. account|Send the link again/.test(said()) || !/Add your child/.test(said()))
+    bad.push('the sheet does not give the next step — open your own link, then "Add your child": ' + JSON.stringify(said()));
+  if (!/Forgotten your PIN\?/.test(said())) bad.push('the sheet does not tell a grown-up who never made an account how to take theirs back');
+  /* STILL THERE AFTER A TOAST WOULD HAVE GONE — the whole point of the sheet. */
+  await wait(3000);
+  if (!open()) bad.push('the sheet went by itself, like the toast it replaced');
+  const done = d.querySelector('#sheet-body [data-do="sheet-done"]');
+  if (!done) bad.push('the sheet has no Done to close it');
+  else {
+    w.__t.ACTIONS['sheet-done'](done);
+    await wait(400);
+    if (open()) bad.push('Done did not close the sheet');
+  }
+  return bad;
+});
+
+/* ==================================================================================================
+   AN ADDRESS NOBODY HAS PROVED, ON THE PHONE. The backend holds two things back from a PENDING address
+   — every mail but its link and a forgotten PIN, and every door that puts a child on the account —
+   and `check-signin.js` §9 holds that. This asks the phone's half: that the person is told, where they
+   would otherwise wait, and offered the link again; and that it all goes when the address is proved.
+================================================================================================== */
+check('a parent whose address is unconfirmed is told their mail is held, and can have the link sent again', async () => {
+  const jo = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind94',
+               pendingEmail: 'jsmith1@example.org', profile: { first_name: 'Jo', last_name: 'Smith' } };
+  /* `say` IS WHAT THE SHEET HOLDS, read at each request, so the address can be proved under the phone. */
+  let say = 'jsmith1@example.org';
+  const reply = b => b.action === 'myProfile'
+      ? { success: true, personId: 'P-JO', profile: jo.profile, role: 'parent', roles: ['parent'], tutorPending: false, pendingEmail: say }
+    : b.action === 'resendLink'
+      ? { success: true, pendingEmail: say, message: 'A new link is on its way to jsmith1@example.org.' }
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(jo)); } catch (e) {} } });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  const text = el => String((el || {}).textContent || '').replace(/\s+/g, ' ');
+
+  /* THE YOU COLUMN: the line under your own card, and the tile beside Sign out. */
+  t.go('account', false, true);
+  await wait(250);
+  const line = d.querySelector('#s-account .mail-held');
+  if (!line || !/jsmith1@example\.org/.test(text(line)) || !/email you/i.test(text(line)))
+    bad.push('a signed-in PENDING person is not told on their own card that their mail waits for the link: ' + JSON.stringify(text(line)));
+  const youTile = d.querySelector('#s-account [data-do="resend-link"]');
+  if (!youTile) bad.push('there is no "Send the link again" on their own card');
+  else {
+    sent.length = 0;
+    t.ACTIONS['resend-link'](youTile);
+    await wait(250);
+    const post = sent.find(b => b.action === 'resendLink');
+    if (!post) bad.push('"Send the link again" posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no resendLink');
+    else if (post.to || post.email) bad.push('"Send the link again" put an address on the request — where it goes is the server\'s to say: ' + JSON.stringify(post));
+    if (!/on its way/.test(text(d.getElementById('toast')))) bad.push('pressing it said ' + JSON.stringify(text(d.getElementById('toast'))) + ', not the server\'s answer');
+  }
+
+  /* SETTINGS: one card where the two child forms would be, with the address and the same tile. */
+  t.go('settings', false, true);
+  await wait(250);
+  const held = d.querySelector('#s-settings .kid-held');
+  if (!held) bad.push('a PENDING parent\'s Settings has no "open the link first" card where "Make your child\'s account" would be');
+  else {
+    if (!/jsmith1@example\.org/.test(text(held)) || !/link/i.test(text(held))) bad.push('the held card does not say which address to open the link from: ' + JSON.stringify(text(held)));
+    if (!held.querySelector('[data-do="resend-link"]')) bad.push('the held card has no "Send the link again"');
+  }
+  if (d.querySelector('#s-settings [data-kid-new], #s-settings [data-kid]'))
+    bad.push('a PENDING parent is still offered a child form the server will refuse');
+
+  /* AND WHEN THE ADDRESS IS PROVED — on another phone, by the link — the next open puts the forms back
+     and takes the line away. */
+  say = '';
+  const again = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(jo)); } catch (e) {} } });
+  await wait(700);
+  const t2 = again.w.__t, d2 = again.w.document;
+  if ((t2.whoami() || {}).pendingEmail) bad.push('myProfile said the address is proved and the phone kept it waiting: ' + JSON.stringify(t2.whoami().pendingEmail));
+  t2.go('settings', false, true);
+  await wait(250);
+  if (d2.querySelector('#s-settings .kid-held') || !d2.querySelector('#s-settings .kid-make [data-kid-new]'))
+    bad.push('once the address was proved, Settings still holds the child back, or has no "Make your child\'s account" form');
+  t2.go('account', false, true);
+  await wait(250);
+  if (d2.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('once the address was proved, the You column still says the mail is held');
+  return bad;
+});
+
+/* A STALE PHONE DRAWS THE FORM; THE SERVER'S REFUSAL TURNS IT INTO THE HELD CARD — not a toast over a
+   form that will be refused again on every press. */
+check('a refused make-child for an unconfirmed address turns the form into the held card', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P-PAT', role: 'parent', roles: ['parent'], token: 'tk-pat', handle: 'pat_kind20',
+                profile: { first_name: 'Pat', last_name: 'Parent' } };
+  const reply = b => b.action === 'makeChild'
+      ? { error: 'Open the link we emailed to pat@example.org first — then you can make your child\'s account. Nothing was made.',
+          why: 'unconfirmed', pendingEmail: 'pat@example.org' }
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w } = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('settings', false, true);
+  await wait(250);
+  const card = d.querySelector('#s-settings .kid-make');
+  if (!card) return ['a parent with no word on their address was not shown the make-child form to begin with'];
+  const val = (k, v) => { const el = card.querySelector('[data-kid-new="' + k + '"]'); if (el) el.value = v; };
+  /* BUILT FROM ITS DIGITS — `check-secrets.js` refuses four digits beside the word. */
+  val('first', 'Lu'); val('last', 'Parent'); val('pin', ['4', '8', '2', '6'].join(''));
+  t.ACTIONS['kid-make'](card.querySelector('[data-do="kid-make"]'));
+  await wait(400);
+  if (!/Open the link we emailed to pat@example\.org/.test(String((d.getElementById('toast') || {}).textContent || '')))
+    bad.push('the server\'s sentence was not said');
+  if (!d.querySelector('#s-settings .kid-held') || d.querySelector('#s-settings [data-kid-new]'))
+    bad.push('the refusal left the form standing instead of the held card');
+  if (((t.whoami() || {}).pendingEmail || '') !== 'pat@example.org') bad.push('the phone did not keep the address the server said is waiting');
+  return bad;
+});
+
+/* GOOGLE TAKING A PENDING ROW BACK CLEARS ITS PIN, and the person is told in a sheet — as often the real
+   registrant, who would otherwise find their PIN refused tomorrow with no idea why. */
+check('signing in with Google on an unconfirmed account says the PIN has gone, in a sheet', async () => {
+  const msg = 'Signed in with Google, and that has confirmed your email. The account was made with a PIN before '
+            + 'anybody had confirmed the address, so that PIN no longer works.';
+  const { w } = boot({ reply: b => b.action === 'googleLogin'
+    ? { success: true, name: 'Val Owner', personId: 'P-VAL', role: 'parent', roles: ['parent'], token: 'tk-val',
+        pendingEmail: '', pinCleared: true, message: msg, profile: { first_name: 'Val' } }
+    : { success: true, messages: [] } });
+  await wait(300);
+  const d = w.document, bad = [];
+  if (typeof w.googleSignedIn_ !== 'function') return ['googleSignedIn_ is not reachable, so the Google reply was NOT checked'];
+  w.googleSignedIn_({ credential: 'a-google-token' });
+  await wait(400);
+  const said = String((d.getElementById('sheet-body') || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!/PIN no longer works/.test(said)) bad.push('the Google reply said the PIN was cleared and no sheet says so: ' + JSON.stringify(said));
+  /* AND AN ORDINARY GOOGLE SIGN-IN OPENS NOTHING. */
+  const b2 = boot({ reply: b => b.action === 'googleLogin'
+    ? { success: true, name: 'Cy Done', personId: 'P-CY', role: 'parent', roles: ['parent'], token: 'tk-cy', pendingEmail: '', profile: {} }
+    : { success: true, messages: [] } });
+  await wait(300);
+  b2.w.googleSignedIn_({ credential: 'a-google-token' });
+  await wait(400);
+  const s2 = b2.w.document.getElementById('sheet');
+  if (s2 && String((b2.w.document.getElementById('sheet-body') || {}).textContent || '').trim() && !s2.hidden && !/\bhidden\b/.test(s2.className))
+    bad.push('an ordinary Google sign-in opened a sheet');
+  return bad;
+});
+
+/* ==================================================================================================
+   ROUND THREE OF THE PR #130 REVIEW, ON THE PHONE. Each journey below is prefixed `proof:` so
+   `FLOW_ONLY=proof:` runs them alone. Two were found with no journey holding them at all — the link
+   opened on your own phone taking the held card away, and "Send the link again" on an address already
+   confirmed — mutated to nothing, all 150 journeys stayed green. And the review's jsdom probe found the
+   first one undone by a `myProfile` that answered after it.
+================================================================================================== */
+const JO_PENDING = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind94',
+                     pendingEmail: 'jsmith1@example.org', profile: { first_name: 'Jo', last_name: 'Smith' } };
+const signedInAs_ = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
+const toastOf_ = d => String((d.getElementById('toast') || {}).textContent || '');
+const sheetOpen_ = d => { const s = d.getElementById('sheet'), b = d.getElementById('sheet-body');
+  return !!(s && b && String(b.textContent || '').trim() && !s.hidden && !/\bhidden\b/.test(s.className)); };
+
+check('proof: your own link opened while signed in takes the held card away, and a myProfile that answers after it cannot bring it back', async () => {
+  /* THE ORDER THE REVIEW MEASURED: `myProfile` reads the sheet BEFORE the link is opened there, and its
+     answer reaches the phone AFTER the link's — so it says the address still waits, about a moment
+     that has passed. `confirmed` is the sheet: the link writes it when its (slower) answer goes out,
+     and each `myProfile` reads it when it is asked. The first is held back past the link's answer. */
+  let asked = 0, confirmed = false;
+  const reply = b => {
+    if (b.action === 'verifyEmail') return new Promise(r => setTimeout(() => { confirmed = true;
+      r({ success: true, name: 'Jo Smith', handle: 'jo_kind94', noEmail: false, linkedTo: '', parentPending: false }); }, 300));
+    if (b.action === 'myProfile') {
+      asked++;
+      const said = { success: true, personId: 'P-JO', profile: JO_PENDING.profile, role: 'parent', roles: ['parent'], tutorPending: false,
+                     pendingEmail: confirmed ? '' : 'jsmith1@example.org' };
+      return asked === 1 ? new Promise(r => setTimeout(() => r(said), 800)) : said;
+    }
+    return { success: true, messages: [] };
+  };
+  const { w, sent } = boot({ url: 'https://example.org/?verify=Vjo-own', reply, before: signedInAs_(JO_PENDING) });
+  await wait(1600);
+  const t = w.__t, d = w.document, bad = [];
+  if (!sent.some(b => b.action === 'verifyEmail')) return ['the link was not posted, so this journey asked nothing'];
+  if (asked < 1) bad.push('no myProfile left at start-up, so the order the review found was NOT played');
+  if ((t.whoami() || {}).pendingEmail) bad.push('after your own link was opened the phone still holds the address as waiting: '
+    + JSON.stringify(t.whoami().pendingEmail) + (asked >= 2 ? '' : ' — the late myProfile painted over the confirmation'));
+  if (!/make your child's account/i.test(toastOf_(d)) && !/confirmed/i.test(toastOf_(d))) bad.push('the toast after your own link says ' + JSON.stringify(toastOf_(d)));
+  t.go('settings', false, true);
+  await wait(250);
+  if (d.querySelector('#s-settings .kid-held') || !d.querySelector('#s-settings .kid-make [data-kid-new]'))
+    bad.push('Settings still holds the child back after your own link was opened — under a toast saying you can make their account');
+  t.go('account', false, true);
+  await wait(250);
+  if (d.querySelector('#s-account .mail-held')) bad.push('the You column still says your mail is held after your own link was opened');
+  return bad;
+});
+
+check('proof: "Send the link again" on an address already confirmed takes the held cards away', async () => {
+  const reply = b => b.action === 'resendLink'
+      ? { success: true, why: 'confirmed', pendingEmail: '', message: 'Your email is confirmed already — there is nothing to open.' }
+    /* AN OLD SERVER FOR `myProfile`, so the only thing that can clear the cards is the answer under test. */
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w } = boot({ reply, before: signedInAs_(JO_PENDING) });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('account', false, true);
+  await wait(250);
+  const tile = d.querySelector('#s-account [data-do="resend-link"]');
+  if (!tile) return ['there was no "Send the link again" to press, so the confirmed answer was NOT checked'];
+  t.ACTIONS['resend-link'](tile);
+  await wait(300);
+  if (!/confirmed already/.test(toastOf_(d))) bad.push('the server\'s sentence was not said: ' + JSON.stringify(toastOf_(d)));
+  if ((t.whoami() || {}).pendingEmail) bad.push('the server said the address is confirmed and the phone kept it waiting');
+  if (d.querySelector('#s-account .mail-held, #s-account [data-do="resend-link"]')) bad.push('the You column still says the mail is held');
+  t.go('settings', false, true);
+  await wait(250);
+  if (d.querySelector('#s-settings .kid-held')) bad.push('Settings still holds the child back');
+  return bad;
+});
+
+check('proof: a new address typed on the Contact card waits, says so, and the box keeps it', async () => {
+  const jo = { name: 'Jo Smith', personId: 'P-JO', role: 'parent', roles: ['parent'], token: 'tk-jo', handle: 'jo_kind111', pendingEmail: '',
+               profile: { first_name: 'Jo', last_name: 'Smith', email: 'jsmith@example.org', phone: '', phone_cc: '+44', phone_no: '', email_moving: '' } };
+  const moved = Object.assign({}, jo.profile, { email_moving: 'jsmith1@example.org' });
+  const reply = b => b.action === 'updateProfile'
+      /* AS `updateProfile` SENDS IT FOR A MOVE: the row's address unchanged, the waiting one beside it. */
+      ? { success: true, changed: 0, profile: moved, movingEmail: 'jsmith1@example.org',
+          said: 'Saved. To finish changing your email, open the link we sent to jsmith1@example.org on a phone where you are '
+              + 'signed in. Until then it stays jsmith@example.org — sign in with that, or your handle.' }
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ reply, before: signedInAs_(jo) });
+  await wait(700);
+  const t = w.__t, d = w.document, bad = [];
+  t.go('settings', false, true);
+  await wait(300);
+  const box = () => d.querySelector('#s-settings [data-me="email"]');
+  if (!box()) return ['there is no email box on Settings, so the Contact card was NOT checked'];
+  box().value = 'jsmith1@example.org';
+  const card = () => box() && box().closest('.me-form');
+  sent.length = 0;
+  t.ACTIONS['me-save'](card().querySelector('[data-do="me-save"]'));
+  await wait(500);
+  const post = sent.find(b => b.action === 'updateProfile');
+  if (!post || (post.fields || {}).email !== 'jsmith1@example.org') bad.push('the Save did not post the typed address: ' + JSON.stringify(post && post.fields));
+  if (!/open the link we sent to jsmith1@example\.org/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — "Saved" over an address that has not changed');
+  const note = card() && card().querySelector('.mail-moving');
+  const said = String((note || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!note || !/jsmith1@example\.org/.test(said) || !/jsmith@example\.org/.test(said))
+    bad.push('the Contact card does not say the new address waits, and which one still signs in: ' + JSON.stringify(said));
+  if (!box() || box().value !== 'jsmith1@example.org') bad.push('the box went back to the old address, so the next Save of this page would cancel the change: ' + JSON.stringify(box() && box().value));
+  if (!card() || !card().querySelector('[data-do="resend-link"]')) bad.push('the Contact card has no "Send the link again" for the waiting address');
+  return bad;
+});
+
+check('proof: a link that moves your address, opened before signing in, finishes by itself once you are in', async () => {
+  const reply = b => b.action === 'verifyEmail'
+      ? (b.session === 'tk-jo'
+        ? { success: true, moved: true, email: 'jsmith1@example.org', name: 'Jo Smith', handle: 'jo_kind111', noEmail: false }
+        : { error: 'This link changes the email address on an @family. account, so it only works where you are signed in to '
+                 + 'that account. Sign in, and it will finish by itself.', why: 'sign-in-first' })
+    : b.action === 'verifyLogin'
+      ? { success: true, name: 'Jo Smith', personId: 'P-JO', handle: 'jo_kind111', token: 'tk-jo', role: 'parent', roles: ['parent'],
+          tutorPending: false, pendingEmail: '', profile: { first_name: 'Jo', email: 'jsmith@example.org', email_moving: 'jsmith1@example.org' } }
+    : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ url: 'https://example.org/?verify=Mmove1', reply });
+  await wait(500);
+  const t = w.__t, d = w.document, bad = [];
+  const first = sent.filter(b => b.action === 'verifyEmail');
+  if (first.length !== 1 || first[0].token !== 'Mmove1') return ['booting on the move link posted ' + JSON.stringify(first)];
+  if (/verify=/.test(String(w.location.search))) bad.push('the link is still in the address bar');
+  if (!/signed in/.test(toastOf_(d))) bad.push('opened signed out, the person was not told to sign in: ' + JSON.stringify(toastOf_(d)));
+  t.go('account', false, true);
+  await wait(200);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!fill('in-name', 'jsmith@example.org') || !fill('in-pin', ['3', '8', '1', '5'].join(''))) return bad.concat(['there is no sign-in card to sign in on']);
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(600);
+  const again = sent.filter(b => b.action === 'verifyEmail');
+  if (again.length !== 2 || again[1].token !== 'Mmove1' || again[1].session !== 'tk-jo')
+    bad.push('after signing in the link was not sent again with the session: ' + JSON.stringify(again));
+  if (((t.whoami() || {}).profile || {}).email !== 'jsmith1@example.org' || ((t.whoami() || {}).profile || {}).email_moving)
+    bad.push('the moved address is not the phone\'s address now: ' + JSON.stringify((t.whoami() || {}).profile));
+  if (!/jsmith1@example\.org/.test(toastOf_(d))) bad.push('the move was not said: ' + JSON.stringify(toastOf_(d)));
+  return bad;
+});
+
+check('proof: the sign-in link in a forgotten-PIN email signs its owner in once, and says what it did in a sheet', async () => {
+  const msg = 'Signed in. The PIN in that email is your PIN now, and anyone else signed in to this account has been signed out. '
+            + 'Your email is confirmed now. The account was in use before anybody had confirmed it, so the child on it has been taken off';
+  const { w, sent } = boot({ url: 'https://example.org/?signin=Rkey123&post=P9',
+    reply: b => b.action === 'pinLink'
+      ? { success: true, name: 'Vic Owner', personId: 'P-VIC', handle: 'vic_kind1', token: 'tk-vic', role: 'parent', roles: ['parent'],
+          tutorPending: false, pendingEmail: '', pinLink: true, childrenHeld: 1, message: msg, profile: { first_name: 'Vic' } }
+      : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+      : { success: true, messages: [] } });
+  await wait(600);
+  const t = w.__t, d = w.document, bad = [];
+  const posts = sent.filter(b => b.action === 'pinLink');
+  if (posts.length !== 1 || posts[0].key !== 'Rkey123') bad.push('booting on ?signin= posted pinLink ' + JSON.stringify(posts));
+  const q = String(w.location.search);
+  if (/signin=/.test(q)) bad.push('the key is still in the address (' + q + '), so a refresh posts it again');
+  if (!/post=P9/.test(q)) bad.push('taking the key out also took the rest of the address');
+  if ((t.whoami() || {}).token !== 'tk-vic') bad.push('the link did not sign the phone in');
+  if (!sheetOpen_(d) || !/taken off/.test(String(d.getElementById('sheet-body').textContent))) bad.push('what the link did — the children held — is not in a sheet that stays');
+  const plain = boot({});
+  await wait(300);
+  if (plain.sent.some(b => b.action === 'pinLink')) bad.push('an ordinary start posted pinLink');
+  return bad;
+});
+
+check('proof: a PIN sign-in that took an account back says the children were taken off, in a sheet', async () => {
+  const msg = 'Your email is confirmed now. The account was in use before anybody had confirmed it, so the 2 children on it have been taken off';
+  const { w } = boot({ reply: b => b.action === 'verifyLogin'
+      ? { success: true, name: 'Jo Smith', personId: 'P-JO', handle: 'jo_kind121', token: 'tk-jo', role: 'parent', roles: ['parent'],
+          tutorPending: false, pendingEmail: '', childrenHeld: 2, message: msg, profile: { first_name: 'Jo' } }
+      : b.action === 'myProfile' ? { error: 'That action is not recognised.' }
+      : { success: true, messages: [] } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(150);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!fill('in-name', 'jsmith1@example.org') || !fill('in-pin', ['2', '9', '1', '7', '4', '3'].join(''))) return ['there is no sign-in card'];
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(500);
+  if (!sheetOpen_(d) || !/taken off/.test(String(d.getElementById('sheet-body').textContent))) bad.push('the children taken off the account were said nowhere that stays: ' + JSON.stringify(toastOf_(d)));
+  /* AND AN ORDINARY SIGN-IN OPENS NOTHING. */
+  const b2 = boot({ reply: b => b.action === 'verifyLogin'
+      ? { success: true, name: 'Cy Done', personId: 'P-CY', handle: 'cy_kind1', token: 'tk-cy', role: 'parent', roles: ['parent'], pendingEmail: '', profile: {} }
+      : { success: true, messages: [] } });
+  await wait(300);
+  b2.w.__t.USER(null); b2.w.__t.go('account', false, true);
+  await wait(150);
+  const d2 = b2.w.document;
+  d2.getElementById('in-name').value = 'cy@example.org'; d2.getElementById('in-pin').value = ['2', '9', '1', '7'].join('');
+  b2.w.__t.ACTIONS['do-signin'](d2.querySelector('[data-do="do-signin"]'));
+  await wait(500);
+  if (sheetOpen_(d2)) bad.push('an ordinary sign-in opened a sheet');
+  return bad;
+});
+
 /* ==================================================================================================
    WHO THE ACCOUNT IS FOR. The walk after 273 found a parent who signed up on the phone made a student,
    with no "Make your child's account" and a Client tick refused. `check-signin.js` §8 asks the backend
@@ -3753,8 +4114,10 @@ check('Make an account asks who it is for first, and a parent is a parent from t
       ? { success: true, name: 'Dana Brook', pending: true, handle: 'dana_kind44', confirmBy: 'self',
           role: b.who === 'parent' ? 'parent' : 'kid' }
     : b.action === 'verifyLogin'
+      /* `pendingEmail` AS `loginReplyFor_` REALLY SENDS IT — a fixture must send what the backend sends,
+         and the first sign-in after registering is before anybody has opened the link. */
       ? { success: true, name: 'Dana Brook', personId: 'P-DANA', handle: 'dana_kind44', token: 'tk-dana',
-          role: 'parent', roles: ['parent'], tutorPending: false,
+          role: 'parent', roles: ['parent'], tutorPending: false, pendingEmail: 'dana@example.org',
           profile: { first_name: 'Dana', last_name: 'Brook' } }
     : { success: true } });
   await wait(300);
@@ -3814,7 +4177,13 @@ check('Make an account asks who it is for first, and a parent is a parent from t
   if (!u || u.role !== 'parent') return bad.concat(['signing in did not leave a parent signed in: ' + JSON.stringify(u && u.role)]);
   try { t.go('settings', false, true); } catch (e) { return bad.concat(['going to settings threw: ' + e.message]); }
   await wait(250);
-  if (!d.querySelector('#s-settings .kid-make')) bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings');
+  /* "MAKE YOUR CHILD'S ACCOUNT" IS THERE FROM THE FIRST PAINT — as the one sentence that says what
+     comes first while the address is unproved (`confirmFirst_`), with the link offered again; the form
+     itself once the link is opened (the journey after the next). */
+  const heldCard = d.querySelector('#s-settings .kid-held');
+  if (!heldCard || !/Make your child's account/.test(String(heldCard.textContent || '')) || !/dana@example\.org/.test(String(heldCard.textContent || '')))
+    bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings saying to open the link sent to their address');
+  if (d.querySelector('#s-settings [data-kid-new]')) bad.push('a parent whose address nobody has proved yet is offered the make-child form, which the server refuses');
 
   /* A STUDENT'S POST SAYS STUDENT. */
   t.USER(null);

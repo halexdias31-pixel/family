@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-06-g-names";
+const DOGET_VERSION = "2026-10-07-b-merged";
 
 
 function doGet(e) {
@@ -512,7 +512,10 @@ function doGet(e) {
                  'approvePost',
                  /* The phone checks this before it sends a done question, so a phone ahead of the
                     deployment keeps the date to itself rather than being refused on every Check. */
-                 'markDone'],
+                 'markDone',
+                 /* "Send the link again", and the sign-in link in a forgotten-PIN mail — listed so a
+                    phone ahead of the deployment is told which file has not been pasted in. */
+                 'resendLink', 'pinLink'],
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
       /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
          id of the person it was built for, which the phone checks before drawing any of it. */

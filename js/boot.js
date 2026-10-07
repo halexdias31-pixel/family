@@ -63,3 +63,5 @@ try { watchBuild_(); } catch (e) {}
    above — the payload is what the app needs first — and it needs nothing from it, so it does not
    wait for it either. See `verifyFromLink_` in me.js. */
 try { verifyFromLink_(); } catch (e) {}
+/* AND `?signin=<key>`, the link in a forgotten-PIN email — see `pinFromLink_` in me.js. Same reasons. */
+try { pinFromLink_(); } catch (e) {}

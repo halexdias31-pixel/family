@@ -713,7 +713,11 @@ function cardActions_(x) {
      two rows of marks for no reason anybody could see. The old argument was that its own row kept it
      from being pressed on the way to another tile; the star is the only other one, and signing out
      by mistake costs a sign-in, not anything saved. */
-  if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' });
+  /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the
+     row says why (`mailHeldNote_` in me.js, drawn by `accountPages_`). A thing about your account, so a
+     tile in this row and not a button of its own. */
+  if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+    + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ONE ACTION IS ITS ANSWER, which is a page of its own now and this is the way to
      it — `questionTiles_` in find.js. It TURNS TO the answer page and reveals nothing. Every other
