@@ -55,6 +55,13 @@ offered as the **Topic area** facet one question before `Topic`. Measured, it re
 the library's 4,257 topic cells (96.6%)** into ten areas, of which a maths question only ever sees
 seven. Which is exactly what a card has room for.
 
+**And then the question went.** The owner, 6 Oct: *"why is there a topic area menu? like im fin
+with names of pdfs which are the names of the topics themselves right?"* `Topic area` is retired,
+`topicAreaOf_` and the boot's fetch of the file went after it, and nothing on the phone reads the
+tree now. The file stays in `data/` rather than coming back here, because three checks
+(`check-practicals`, `check-projects`, `check-textbooks`) hold a hand-written topic to its labels
+and aliases — a vocabulary that is read, just not by the app.
+
 **So this folder is what is kept, not what is unusable.** A tab in here is unread today; that is
 not the same as unusable, and `topicstuff` is the proof.
 

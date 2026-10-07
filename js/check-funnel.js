@@ -80,10 +80,12 @@ function boot(cb) {
        shape is: every other url fell through to the fixture. Two more files fall through it, and
        both decide what this check measures.
 
-       `data/topics.json` IS THE TOPIC TREE. `topicAreaOf_` is its only reader, so with the fixture
-       in its place `DATA.topicTree` is empty, `Topic area` resolves to NOTHING on all 5,119 items,
-       and a declared question with 13 answers and 84% coverage was invisible to every rule below.
-       Measured both ways: 0 distinct topic areas with the fixture, 13 with the file.
+       `data/topics.json` WAS THE TOPIC TREE. `topicAreaOf_` was its only reader, so with the
+       fixture in its place `DATA.topicTree` was empty, `Topic area` resolved to NOTHING on all
+       5,119 items, and a declared question with 13 answers and 84% coverage was invisible to every
+       rule below. Measured both ways: 0 distinct topic areas with the fixture, 13 with the file.
+       (The question, its reader and the app's fetch of that file are retired since — see `THE TOPIC
+       TREE WAS READ HERE` in find.js — and the rule below stands for the next file.)
 
        `data/settings/facets.json` IS THE FUNNEL'S OWN ORDER AND LABELS, and this is the half that
        matters most: **this check has never once measured the funnel the app draws.** The sheet
@@ -119,10 +121,9 @@ function boot(cb) {
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
          reference captured at eval time is the one from before the settings files landed, and the
          sheet reads as nought rows. Same trap `facetList`'s own memo is keyed against. */
-      /* THE TOPIC TREE AND ITS READER, so a rule can ask whether a branch a row was put in is one
-         the row can honestly be in. The tree is a thunk for the same reason the facets are. */
-      ' topicTree: () => (DATA && DATA.topicTree) || [], topicArea: topicAreaOf_,'
-      + ' levelOf: levelOf_, topicAtoms: topicAtoms_, topicIndex: topicIndex_,' +
+      /* THE TOPIC TREE, ITS READER AND `topicAtoms_` WERE EXPORTED HERE for rule 8, and went with
+         it — see the note where rule 8 was. `levelOf_` stays: the key-stage rule reads it. */
+      ' levelOf: levelOf_,' +
       ' facetsLive: () => (DATA && DATA.facets) || [], FACETS,' +
       /* THE FENCE AND THE TALLIES IT SPARES — so the rule below can ask what was TALLIED, not only
          what was asked. */
@@ -1731,168 +1732,20 @@ boot(f => {
   }
 
   /* ==================================================================================================
-     RULE 8 — A BRANCH A ROW CANNOT HONESTLY BE IN
+     RULE 8 WAS HERE — A BRANCH A ROW CANNOT HONESTLY BE IN
 
      REPORTED AS "sometimes in finder there are things which seem to appear in wrong menu. like i
-     remember seeing a level maths pure somewhere it shouldnt be ... this happens frequently."
+     remember seeing a level maths pure somewhere it shouldnt be ... this happens frequently." It
+     held every row's `Topic area` against the level and subject the tree's roots declare, read the
+     candidates off `data/topics.json` itself so it could not agree with the resolver by sharing its
+     mistake, and caught the two faults it was written for — 18 GCSE Higher questions in the A-level
+     branch, and `brackets` filing two KS2 grammar questions under Number (docs/history/180).
 
-     MEASURED, AND IT WAS TWO FAULTS. **18 Edexcel GCSE Higher questions were in the A-level
-     branch** — `proof`, `rates of change`, `coordinate geometry`, `arithmetic` are ordinary GCSE
-     Higher topics and the A-level subtree was the only place in the tree those words appeared. And
-     **2 KS2 GRAMMAR questions were under `Number`**, because `brackets` is a node in two roots and
-     `topicIndex_` took whichever sat higher in the file.
-
-     THE SECOND ONE IS WHY THIS IS A RULE AND NOT A ROW REPAIR. Nothing about either fault is
-     visible from a row: the markup is valid, the card draws, the chip is a real answer, and the
-     only way to see it is to compare the branch against what the row says about itself. That is
-     the `cost: 0` shape — repaired in the data, the shape comes back.
-
-     ONLY THE LEVEL, AND THAT NARROWNESS IS MEASURED. **97 practicals carry a science subject and
-     resolve to a MATHS area on purpose** — the resistance of a wire IS a straight-line graph — so a
-     subject rule here would report ninety-seven deliberate joins to catch two mistakes, which is
-     the 95-findings-with-2-real-ones this suite already records. In `topicPick_` the subject only
-     ever breaks a tie; here it is not asked at all. */
-  if (typeof f.topicArea === 'function' && typeof f.levelOf === 'function') {
-    const tree = f.topicTree() || [];
-    const roots = tree.filter(r => r && !String(r.parent_id || '').trim());
-    const lim = {};
-    roots.forEach(r => { lim[r.label] = (f.topicAtoms(r.only_level) || []).map(norm_); });
-
-    const wrong = [];
-    items.forEach(x => {
-      const lv = norm_(f.levelOf(x) || '');
-      if (!lv) return;                       /* absent is not a contradiction */
-      (f.topicArea(x) || []).forEach(a => {
-        if ((lim[a] || []).length && lim[a].indexOf(lv) < 0) {
-          wrong.push((x.key || x.name) + ' is ' + f.levelOf(x) + ' and was put in ' + a);
-        }
-      });
-    });
-    if (wrong.length) {
-      bad.push(wrong.length + ' item(s) are in a topic branch their own Level column says they '
-        + 'cannot be in — the "wrong menu" fault:');
-      wrong.slice(0, 8).forEach(t => bad.push('    ' + t));
-      if (wrong.length > 8) bad.push('    \u2026 and ' + (wrong.length - 8) + ' more');
-    }
-
-    /* ---------- AND THE WHOLE CHOICE, AGAINST THE TREE RATHER THAN AGAINST THE INDEX ----------
-       THE FIRST VERSION READ `topicIndex_.exact` FOR THE CANDIDATES AND COULD NOT FAIL ON THE
-       FAULT IT WAS WRITTEN FOR. That index is what the fix CHANGED — it used to keep the first
-       branch in file order and now keeps them all — so reverting it leaves one candidate per word,
-       the rule's own `length < 2` guard skips it, and the two grammar questions go back under
-       Number in silence. A check that reads the thing it is checking is not an oracle; proved by
-       mutation, which is the only way that was ever going to be known.
-
-       SO THE CANDIDATES COME FROM `data/topics.json` ITSELF, and what is asserted is the contract
-       rather than the code: of the branches a word names, the ones the row's LEVEL permits are the
-       ones available; if more than one is left the row's SUBJECT narrows it; and if exactly one
-       survives the app must give that one, no more and no fewer. */
-    const keys_ = nm => { const k = norm_(nm); return k ? [k, k.replace(/ies$/, 'y').replace(/s$/, '')] : []; };
-    const byId_ = {}; tree.forEach(r => { if (r && r.topic_id) byId_[r.topic_id] = r; });
-    const rootOf_ = r => { let cur = r, n = 0;
-      while (cur && String(cur.parent_id || '').trim() && byId_[cur.parent_id] && n++ < 8) cur = byId_[cur.parent_id];
-      return cur || r; };
-    const branches = {};                       /* word key -> [root label, ...] */
-    tree.forEach(r => {
-      if (!r || !r.label) return;
-      const area = rootOf_(r).label;
-      let names = [r.label, String(r.topic_id || '').replace(/-/g, ' ')].concat(f.topicAtoms(r.aliases));
-      if (!String(r.parent_id || '').trim()) names = names.concat(r.label.split(/[&/,]/));
-      names.forEach(nm => keys_(nm).forEach(k => {
-        (branches[k] = branches[k] || []);
-        if (branches[k].indexOf(area) < 0) branches[k].push(area);
-      }));
-    });
-    const subLim = {}, lvLim = {};
-    roots.forEach(r => { subLim[r.label] = (f.topicAtoms(r.only_subject) || []).map(norm_);
-                         lvLim[r.label]  = (f.topicAtoms(r.only_level)   || []).map(norm_); });
-
-    const crossed = [];
-    let decidedByLevel = 0;
-    items.forEach(x => {
-      const mine = norm_(String(x.subject || '')), lv = norm_(f.levelOf(x) || '');
-      f.topicAtoms((x.row && x.row.topics) || x.topics).forEach(t => {
-        const ks = keys_(t);
-        const cands = branches[ks[0]] || branches[ks[1]];
-        if (!cands || !cands.length) return;               /* the tree does not know the word */
-        let ok = cands.filter(a => !(lv && lvLim[a].length && lvLim[a].indexOf(lv) < 0));
-        if (ok.length > 1 && mine) {
-          const fits = ok.filter(a => !(subLim[a].length && subLim[a].indexOf(mine) < 0));
-          if (fits.length) ok = fits;
-        }
-        if (ok.length > 1 && lv) {
-          const named = ok.filter(a => lvLim[a].indexOf(lv) >= 0);
-          /* ---------- AND THIS STEP HAS NO DATA EXERCISING IT, WHICH IS WHY IT IS COUNTED ------
-             `topicPick_` prefers a branch the row POSITIVELY matches over one that says nothing —
-             what stops an A-level question tagged `proof` losing its area now that `proof` also
-             reaches GCSE `Algebraic Proof`. Measured: NOT ONE row in the library uses any of the
-             six shared words at A-level, so removing that step from the app changes nothing and
-             this rule cannot fail on it. A guard with no reader is the shape this repository
-             records under `resource_type` in `VOCAB`; it is kept because the row that exercises it
-             is one transcription away, and it is COUNTED so that is a number rather than a
-             silence. */
-          if (named.length) { ok = named; decidedByLevel++; }
-        }
-        /* ONE WORD, THROUGH THE APP'S OWN RESOLVER. Asking it of the whole item blames the wrong
-           word: a physics practical tagged `Reflection, Waves, Angles` is in Geometry because of
-           ANGLES, which is a deliberate join, and the first version reported that as a fault. */
-        const got = f.topicArea({ subject: x.subject, level: f.levelOf(x), topics: t })[0] || '';
-        const want = ok.length === 1 ? ok[0] : '';
-        if (got !== want) {
-          crossed.push((x.key || x.name) + ' is ' + (x.subject || '?') + ' / ' + (f.levelOf(x) || '?')
-            + ' and "' + t + '" names ' + cands.join(' + ') + ' \u2014 the tree allows it '
-            + (want ? want : 'no one branch') + ' and the app gave it ' + (got || 'none'));
-        }
-      });
-    });
-    console.log('topic words whose branch was decided by the row\'s level: ' + decidedByLevel);
-    if (crossed.length) {
-      bad.push(crossed.length + ' topic word(s) landed somewhere the tree does not allow \u2014 the '
-        + '"wrong menu" fault:');
-      crossed.slice(0, 8).forEach(t => bad.push('    ' + t));
-      if (crossed.length > 8) bad.push('    \u2026 and ' + (crossed.length - 8) + ' more');
-    }
-
-    /* ---------- CAN EITHER HALF OF THIS FIRE AT ALL -----------------------------------------------
-       THE LEVEL HALF IS ENFORCED BY A DECLARATION, so deleting every declaration would make it
-       silent rather than red — a check that cannot fail under a confident comment about what it
-       protects, which this repository has deleted one of. If no branch says what level it is, the
-       rule has no subject and says so. */
-    if (!roots.some(r => String(r.only_level || '').trim())) {
-      bad.push('no topic tree root declares `only_level`, so the branch-a-row-cannot-be-in rule '
-        + 'has nothing to enforce and was NOT checked — not a pass');
-    }
-
-    /* EVERY ROOT SAYS WHAT SUBJECT IT IS, or the tie-break silently stops working for it. A root
-       added without one is not a failure anybody would see: `brackets` resolved to the wrong one
-       of two for as long as that column did not exist. */
-    const noSubject = roots.filter(r => !String(r.only_subject || '').trim()).map(r => r.label);
-    if (noSubject.length) {
-      bad.push('topic tree root(s) with no `only_subject`, so nothing can tell which subject they '
-        + 'belong to when a topic word reaches two branches: ' + noSubject.join(', '));
-    }
-
-    /* AND WHAT THE TIE-BREAK COULD NOT SETTLE, printed rather than failed. A word in two branches
-       that the row cannot choose between gets NO area, which is the right answer and is still a
-       question somebody could answer by editing the tree.
-
-       READ OFF `topicIndex_` ITSELF rather than rebuilt here. A copy of that walk would have to
-       repeat `topicKey_`, the singular fold and the root-halves split — and a second reader of one
-       thing is a second chance to disagree about it, which is what this file records about
-       `documents_()` and `paperLabels_`. The first version did rebuild it and answered 4 where the
-       index says otherwise. */
-    const ix = typeof f.topicIndex === 'function' ? f.topicIndex() : null;
-    if (!ix || !ix.exact) {
-      bad.push('`topicIndex_` is not declared, so the ambiguous topic words were NOT counted');
-    } else {
-      const shared = Object.keys(ix.exact).filter(k => (ix.exact[k] || []).length > 1);
-      console.log('topic words that name more than one branch, so the row decides: ' + shared.length
-        + (shared.length ? '  (' + shared.slice(0, 10).join(', ') + ')' : ''));
-    }
-  } else {
-    bad.push('`topicAreaOf_` or `levelOf_` is not declared, so which branch a row was put in was '
-      + 'NOT checked — not a pass');
-  }
+     IT WENT WITH THE MENU IT GUARDED. The owner retired `Topic area` on 6 Oct, and from then on this
+     rule was the only caller `topicAreaOf_` had: green over a resolver no screen asks, which is a
+     check measuring itself. `check-dead.js` listed the function the day the facet went. Both are gone
+     now (find.js, `THE TOPIC TREE WAS READ HERE`). A topic menu that comes back brings this rule back
+     with it — the file's history has it whole. */
 
   /* ---------- LEVEL BEFORE KEY STAGE, AND A QUALIFICATION RATHER THAN A GREY AREA --------------------
      THE OWNER: *"key stage 3 and 4 shouldnt come before like the level … I prefer GCSE or SATs over

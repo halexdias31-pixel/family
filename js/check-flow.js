@@ -6018,82 +6018,163 @@ check('the app still loads when opened from a file', async () => {
 
    DECIDED: NOTHING SUGGESTS INSTALLING. Chrome's own mini-bar is a suggester too, in the browser's
    handwriting, so it stays cancelled; the browser MENU's Install / Add to Home Screen is left for
-   anybody who goes looking. So this asks the running app four things, as the two people the old
-   card was written for — somebody signed out on an iPhone, a parent on Android:
-     · the offer is cancelled, so the mini-bar stays down;
-     · nothing on the page changes when it arrives — a redraw is the app making room for an offer;
-     · no `install` door is wired, so the event has nothing to be kept for;
-     · and no screen draws an install button, the old bar, or the words "home screen". */
-check('nothing offers to install, and the browser is not left to offer it either', async () => {
-  const bad = [];
-  const phones = [
-    ['somebody signed out on an iPhone',
-     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-     null],
-    ['a parent on Android',
-     'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36',
-     { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] }],
-  ];
-  for (const [who, ua, user] of phones) {
-    /* BEFORE THE APP RUNS, because a phone is a phone from its first line — anything asking the
-       user agent at load must already get this answer. */
-    const { w, errs } = boot({ before: win => Object.defineProperty(win.navigator, 'userAgent',
-                                                 { value: ua, configurable: true }) });
-    await wait(300);
-    const t = w.__t;
-    if (!t || !t.ACTIONS || !t.TABS) { bad.push(who + ': the app did not finish loading'); continue; }
-    if (user) t.USER(user);
+   anybody who goes looking.
 
-    /* THE OFFER AS CHROME SENDS IT: cancelable, with the `prompt()` that opens the real install
-       dialog and the `userChoice` it settles. Counted, so anything that raises it later is seen. */
+   ---------- AND THE FIRST VERSION OF THIS CHECK PROMISED MORE THAN IT ASKED ------------------------
+   THE REVIEW OF ITS OWN ROUND GOT SIX MUTATIONS PAST IT, and each was a sentence in this comment
+   that the code under it did not keep:
+     · "counted, so anything that raises it later is seen" — `prompted` was read straight after a walk
+       that never waits, so a held event prompted from a 50 ms timer stayed green;
+     · "nothing on the page changes" — `takeRecords()` straight after the dispatch sees a SYNCHRONOUS
+       redraw only, and the app's own idiom is a frame late: `setTimeout(repaint, 0)` and
+       `requestAnimationFrame(repaint)` both stayed green while holding the event in a variable;
+     · the two people were an iPhone signed out and an Android signed in, so an iOS-only "Tap Share,
+       then Add to Home Screen" card on the signed-in You column — exactly where the old `installCard`
+       drew its iPhone branch — had nobody to be drawn for;
+     · it looked inside `#s-<id>` 300 ms after boot for one id and two words, so the old bar brought
+       back the old way (appended to `<body>` a second after load, under another id) and a card
+       worded like it ("Keep @family. on your phone", an Install button) under another door name
+       both stayed green.
+   So now it does what it says, and each of those is answered by a step below rather than by a name:
+     1. FOUR PEOPLE, every pairing of signed in or out with iPhone or Android, signed in the way the
+        app signs itself in (`familyUser` before the first line runs), all four at once so the waits
+        overlap;
+     2. THE PAGE IS LET GO QUIET FIRST — half a second with no mutation at all, measured: about two
+        seconds with four booting together, and nothing moves after that for as long as it was
+        watched. A page that never goes quiet says so and is NOT a pass, because a redraw for the
+        offer could not then be told from one of its own;
+     3. THE OFFER ARRIVES, AND THE PAGE IS WATCHED FOR 3.5 SECONDS — past a frame, past a timer, past
+        the old bar's own three-second wait. Anything that changes in that window is the app acting
+        on an offer, because nothing else moves;
+     4. EVERY SCREEN IS DRAWN, then the WHOLE BODY is read, not one screen's box: an install door, the
+        old bar's id, anything new hanging off `<body>` that the page did not start with, and the
+        words an offer is made of — install, on your phone, add to home, home screen, bookmark;
+     5. AND `prompt()` IS COUNTED LAST, after all of it, so a prompt raised late is a prompt seen. */
+check('nothing offers to install, and the browser is not left to offer it either', async () => {
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  const ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
+  const PARENT = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const phones = [
+    ['somebody signed out on an iPhone', IPHONE, null],
+    ['a parent signed in on an iPhone', IPHONE, PARENT],
+    ['somebody signed out on Android', ANDROID, null],
+    ['a parent signed in on Android', ANDROID, PARENT],
+  ];
+  /* A FEW WORDS EITHER SIDE, not the sentence: `textContent` runs one element's text into the next
+     with no space, so "up to the full stop" can be half a screen. Measured: none of these words is
+     anywhere in the app's text for any of the four, so a hit is an offer and not a false alarm.
+     THE OLD BAR'S OWN WORDS ARE ON IT. The round-2 review put the removed bar's second line, "Keep
+     @family. handy. Opens like an app, no address bar.", on a Settings card, and "Save @family. to
+     your phone" beside it — both green, because the list held its headline's "on your phone" and
+     not its subtitle or a near variant. So `on`/`to`/`onto` your phone, `like an app`, `address bar`
+     and the headline's `Keep @family.` are words too; measured, still none of them is in the app.
+     AND THEN THE RULE RATHER THAN THE EXAMPLES. The round-3 review drew "Get the app", "Use @family.
+     as an app — full screen, one tap away" and "Put @family. on the home row … open it with one
+     tap" on the same card, all green, because the list had grown by the two phrasings it was shown.
+     An offer to install says one of three things, and each is a family of words here: WHAT it would
+     become (an app, a shortcut, an icon, standalone), WHERE it would go (home screen, home row, home
+     page, your phone), and WHAT IT BUYS (full screen, one tap, no address bar) — plus any verb that
+     puts @family. somewhere (add/save/pin/put/keep/get @family.). Measured over the rendered text
+     of every screen for all four visitors: none of them is said anywhere, so `app` as a whole word is
+     safe to name — the app never calls itself one on screen. */
+  const WORDS = new RegExp('.{0,30}(' + [
+    'install', '\\bapps?\\b', 'shortcut', '\\bicon on', 'standalone', 'bookmark',
+    '(?:on|onto|to) (?:your|the) (?:phone|home|dock)', 'home ?(?:screen|row|page)', 'add to (?:your )?home',
+    'full ?-?screen', 'one tap', 'address bar',
+    '(?:add|save|pin|put|keep|get|use) @family\\.',
+  ].join('|') + ').{0,30}', 'gi');
+  const ALL = { childList: true, subtree: true, attributes: true, characterData: true };
+  const name_ = n => !n || !n.tagName ? String(n && n.nodeName || '?')
+    : n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className
+      ? '.' + n.className.trim().split(/\s+/).join('.') : '');
+
+  const ask = async ([who, ua, user]) => {
+    const bad = [];
+    const { w, errs } = boot({ before: win => {
+      /* BEFORE THE APP RUNS, because a phone is a phone from its first line — anything asking the
+         user agent at load must already get this answer — and somebody signed in is signed in from
+         the first line too, the way a returning visitor is. */
+      Object.defineProperty(win.navigator, 'userAgent', { value: ua, configurable: true });
+      if (user) win.localStorage.setItem('familyUser', JSON.stringify(user));
+    } });
+    const t = w.__t;
+    if (!t || !t.ACTIONS || !t.TABS) return [who + ': the app did not finish loading'];
+    if (!!user !== !!t.whoami()) {
+      bad.push(who + ': the app reads this visitor as signed ' + (t.whoami() ? 'in' : 'out')
+             + ', so this person was NOT asked about — not a pass');
+    }
+    /* WHAT `<body>` HELD BEFORE THE APP DID ANYTHING. Measured: the same eight elements from the
+       first line to the end of a walk of every screen — only their classes change — so anything
+       new directly under it is something the app hung there. */
+    const born = new Set(w.document.body.children);
+
+    /* 2. QUIET FIRST. */
+    let moved = 0;
+    const settle = new w.MutationObserver(rs => { moved += rs.length; });
+    settle.observe(w.document.documentElement, ALL);
+    const from = Date.now();
+    let quiet = false;
+    while (!quiet && Date.now() - from < 10000) { moved = 0; await wait(500); quiet = !moved; }
+    settle.disconnect();
+    if (!quiet) {
+      bad.push(who + ': the page never stayed still for half a second in ten, so a redraw for the offer '
+             + 'could not be told from one of its own — NOT checked');
+      return bad;
+    }
+
+    /* 3. THE OFFER AS CHROME SENDS IT: cancelable, with the `prompt()` that opens the real install
+       dialog and the `userChoice` it settles. */
     let prompted = 0;
     const offer = new w.Event('beforeinstallprompt', { cancelable: true });
     offer.prompt = () => { prompted++; return Promise.resolve(); };
     offer.userChoice = Promise.resolve({ outcome: 'accepted' });
-
-    /* WHAT THE PAGE DID ABOUT IT, read off the DOM rather than off a name. `takeRecords` straight
-       after a synchronous dispatch holds exactly the mutations the listeners made — no timer can
-       run in between — so a `repaint()` for an offer shows up here whatever it is called. */
-    const watch = new w.MutationObserver(() => {});
-    watch.observe(w.document.documentElement,
-                  { childList: true, subtree: true, attributes: true, characterData: true });
+    const seen = [];
+    const watch = new w.MutationObserver(rs => { seen.push.apply(seen, rs); });
+    watch.observe(w.document.documentElement, ALL);
     w.dispatchEvent(offer);
-    const changed = watch.takeRecords().length;
+    await wait(3500);
+    seen.push.apply(seen, watch.takeRecords());
     watch.disconnect();
 
     if (!offer.defaultPrevented) {
       bad.push(who + ': `beforeinstallprompt` was not cancelled, so Chrome slides up its own "Add to '
              + 'Home screen" bar — a suggester the owner asked to have gone, in the browser\'s handwriting');
     }
-    if (changed) {
-      bad.push(who + ': the install offer arriving changed ' + changed + ' thing(s) on the page — the '
-             + 'app redrew for an offer, and nothing may make one');
+    if (seen.length) {
+      const where = [...new Set(seen.map(r => name_(r.target)))];
+      bad.push(who + ': in the 3.5 s after the install offer arrived the page changed ' + seen.length
+             + ' thing(s), on ' + where.slice(0, 4).join(', ') + (where.length > 4 ? ' and more' : '')
+             + ' — a still page moved for an offer, and nothing may make one');
     }
     if (Object.prototype.hasOwnProperty.call(t.ACTIONS, 'install')) {
       bad.push(who + ': a door called `install` is still wired — a handler kept for an install button, '
              + 'so the browser\'s offer is being held for something that may not be drawn');
     }
 
-    /* EVERY SCREEN, read off `TABS` like the other walks here. Each one is drawn and then looked at
-       for the three shapes an offer has had: the button, the old bar, and the words. */
+    /* 4. EVERY SCREEN, read off `TABS` like the other walks here, and then the whole body. */
     for (const id of t.TABS.map(x => x.id)) {
-      try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw: ' + e.message); continue; }
-      const el = w.document.getElementById('s-' + id);
-      if (!el) continue;
-      if (el.querySelector('[data-do="install"]')) bad.push(who + ': ' + id + ' draws an install button');
-      /* A FEW WORDS EITHER SIDE, not the sentence: `textContent` runs one element's text into the
-         next with no space, so "up to the full stop" can be half a screen. */
-      const said = el.textContent.replace(/\s+/g, ' ').match(/.{0,30}home screen.{0,30}/i);
-      if (said) bad.push(who + ': ' + id + ' says "…' + said[0].trim() + '…" — an install suggestion');
+      try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw: ' + e.message); }
     }
+    await wait(300);
+    const body = w.document.body;
+    if (body.querySelector('[data-do="install"]')) bad.push(who + ': something draws an install button');
     if (w.document.getElementById('install-bar')) bad.push(who + ': the install bar is back on the page');
+    [...body.children].filter(e => !born.has(e)).forEach(e => {
+      bad.push(who + ': <' + name_(e) + '> now hangs off <body>, which the page did not start with — "'
+             + e.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) + '"');
+    });
+    const said = [...new Set(body.textContent.replace(/\s+/g, ' ').match(WORDS) || [])];
+    said.slice(0, 4).forEach(s => bad.push(who + ': the page says "…' + s.trim() + '…" — an install suggestion'));
+
+    /* 5. LAST, so a prompt raised late — on a timer, or on the way past a screen — is counted. */
     if (prompted) {
       bad.push(who + ': the browser\'s install dialog was opened ' + prompted + ' time(s) without anybody '
              + 'choosing Install from the browser menu');
     }
     if (errs.length) bad.push(who + ': errors: ' + errs.join(' | '));
-  }
-  return bad;
+    return bad;
+  };
+  return [].concat(...await Promise.all(phones.map(ask)));
 });
 
 check('each column opens on the page worth reading', async () => {

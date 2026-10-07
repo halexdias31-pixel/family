@@ -368,9 +368,11 @@ const mePages = () => {
    also rebuilt the manifest around the logo — but only when `installCard` was drawn, which since
    the You column went was never, so the manifest's own `icon.png` is what Chrome has installed.)
 
-   `check-flow`'s "nothing offers to install" holds the decision on the running app: the offer is
-   cancelled, nothing on the page changes for it, no `install` door is wired, and no screen says
-   "home screen". */
+   `check-flow`'s "nothing offers to install" holds the decision on the running app, as four people
+   (signed in or out, iPhone or Android): the offer is cancelled; once the page is still, nothing on
+   it moves in the 3.5 s after the offer — a frame-late redraw and a timer-late `prompt()` included;
+   no `install` door is wired; and once every screen is drawn, nothing new hangs off `<body>` and
+   nothing anywhere says install, on your phone, add to home, home screen or bookmark. */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
 
 /* ---------- `screen('me')` WAS HERE -----------------------------------------------------------------
