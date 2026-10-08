@@ -111,11 +111,25 @@ if (PAYLOAD_AT) {
 }
 const SHOTS = process.argv.includes('--shots');
 const ONLY  = arg('screen');
-/* `--part=1/2` MEASURES EVERY SECOND SCREEN, starting at the first. The note in js/check-all.js asked
-   for exactly this when the run outgrew its fifteen minutes: split the states across two runs rather
-   than raise the clock again. Screens are dealt alternately, so the two heavy columns (Find and
-   Tools) land in different halves. A run with no `--part` measures everything, as before. */
+/* `--part=1/3` MEASURES A THIRD OF THE SCREENS. The note in js/check-all.js asked for exactly this
+   when the run outgrew its fifteen minutes: split the states across runs rather than raise the clock
+   again. Which screens go in which part is `dealt_` below. A run with no `--part` measures everything,
+   as before. */
 const PART  = (/^(\d+)\/(\d+)$/.exec(arg('part') || '') || []).slice(1).map(Number);
+/* DEALT BY WEIGHT, NOT BY TURN. Every third screen in `TAB_ORDER` put Find, Games and Settings in one
+   part -- 98 of the 151 states -- and on 8 Oct that part took 796s alone against 224s for the first,
+   and ran past check-all's fifteen minutes whenever the other browser checks shared the machine. A
+   screen costs what its states cost (each is measured at every size, for both visitors), so: heaviest
+   first, each to the part with the least so far, and each part keeps the app's own order. The same
+   screens always land in the same part. Find is a part of its own now; when one screen outgrows a
+   part, it is that screen's states that want dividing, not the clock raising. */
+function dealt_(list, n) {
+  const parts = Array.from({ length: n }, () => ({ w: 0, ids: [] }));
+  list.map((id, i) => ({ id, i, w: 1 + statesOf(id).length }))
+    .sort((a, b) => b.w - a.w || a.i - b.i)
+    .forEach(x => { const p = parts.reduce((m, q) => (q.w < m.w ? q : m)); p.w += x.w; p.ids.push(x.id); });
+  return parts.map(p => list.filter(id => p.ids.indexOf(id) !== -1));
+}
 
 /* ---------- THE SCREENS, READ OFF THE APP RATHER THAN WRITTEN OUT HERE ---------------------------
    THIS WAS A LIST OF NINE AND ITS OWN NOTE NAMED THE FAULT: *"if you add a screen, add it here —
@@ -1251,7 +1265,7 @@ function inspect(opts) {
   }
   const SCREENS = found.length ? found : SCREENS_FALLBACK;
   const screens = ONLY ? [ONLY]
-    : PART.length === 2 ? SCREENS.filter((s, i) => i % PART[1] === PART[0] - 1) : SCREENS;
+    : PART.length === 2 ? dealt_(SCREENS, PART[1])[PART[0] - 1] || [] : SCREENS;
 
   if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
 
