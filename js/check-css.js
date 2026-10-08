@@ -332,6 +332,20 @@ const splashBad = [];
     if (!shown) splashBad.push('#splash-' + n + ' is never shown by any `.is-` rule — it can only '
       + 'ever be hidden');
   });
+  /* ---------- AND THE PICKER IS THE FIRST THING INSIDE IT ---------------------------------------
+     IT RAN AFTER EVERY SPLASH'S MARKUP, in the script below the splash, so a thousand lines of markup
+     were parsed under the no-script default `is-tag` before the class was chosen — and a browser may
+     paint in between. First in `#splash`, the element exists and nothing paintable has been parsed.
+     Read off the file, comments out: the first element after `<div id="splash"` must be the picker. */
+  const page = fs.existsSync(path.join(dir, 'index.html'))
+    ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '') : '';
+  const at = page.search(/<div id="splash"[^>]*>/);
+  if (at < 0) splashBad.push('index.html has no `<div id="splash">` — the picker\'s place was NOT checked');
+  else {
+    const first = (page.slice(at).replace(/^<div id="splash"[^>]*>/, '').match(/<[a-z][^>]*>/i) || [''])[0];
+    if (first !== '<script id="pick-splash">') splashBad.push('the first element inside #splash is `' + first.slice(0, 60)
+      + '`, not `<script id="pick-splash">` — the splash markup is parsed (and can be painted) under `is-tag` before the pick');
+  }
 }
 
 /* ---------- 7. EVERYTHING TAPPABLE MUST LOOK TAPPABLE --------------------------------------------
