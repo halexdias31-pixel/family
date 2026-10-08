@@ -910,12 +910,25 @@ const SUBJECT_BUCKET = bucketTable_([
      because a maths tutor is who teaches it and a maths student is who looks for it. Its own row
      would be a Subject answer holding one book. */
   ['Maths',             ['Maths', 'Statistics']],
-  ['English',           ['English Language']],
+  ['English',           ['English Language', 'English Literature']],
   ['Science',           ['Biology', 'Chemistry', 'Physics', 'Combined Science']],
-  ['Religious Studies', ['Religious Studies']],
+  /* ---------- THE REST OF THE GCSE TIMETABLE, ONE @family. TEXTBOOK EACH ---------------------------
+     "add a maths and English language+lit gcse text book in like the stats one … do physics and
+     chemistry and biology too. do geography too. do any other common gcse subjects too." Every book's
+     subject has to be placed here or the whole Subject grouping stands down (`check-textbooks.js`),
+     so the timetable arrived as rows rather than as a list of twenty-four answers. Grouped the way a
+     school's options booklet groups them, which is how a parent already thinks about the choice.
+     `Religious Studies` was a row of its own while it was the only humanity in the library; it is
+     one of three now, and a row of one beside a row of three reads as a mistake. */
+  ['Humanities',        ['Geography', 'History', 'Religious Studies']],
   /* A LANGUAGE IS NOT ENGLISH, which is the bucket it would otherwise have been guessed into. Greek
-     is the first; the next language joins this row rather than getting one of its own. */
-  ['Languages',         ['Greek']],
+     was the first; the next language joins this row rather than getting one of its own. */
+  ['Languages',         ['Greek', 'French', 'Spanish', 'German']],
+  ['Social sciences',   ['Psychology', 'Sociology']],
+  ['Business',          ['Business']],
+  ['Technology',        ['Computer Science', 'Design and Technology', 'Food Preparation and Nutrition']],
+  ['Arts',              ['Art and Design', 'Music', 'Drama', 'Media Studies']],
+  ['Physical Education', ['Physical Education']],
   ['Boxing',            ['Boxing']],
 ]);
 
@@ -1080,7 +1093,11 @@ const FACETS = [
      mappers. A shelf only some of the list had would fail the coverage rule and never be asked. */
   { field: 'shelf',     label: 'Shelf',       always: true, of: x => x.shelf || '' },
   /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
-     which is right — the list IS the book. The second book makes it a question with no deploy. */
+     which is right — the list IS the book. The second book makes it a question with no deploy.
+     ASKED AFTER `Subject` SINCE THE SHELF HOLDS A BOOK FOR EVERY GCSE: its row in
+     `data/settings/facets.json` sits below Subject's, so the shelf asks Maths / English / Science …
+     first and a subject with one book ends the funnel on it. Twenty-four book titles in one list
+     would be the reading the cap exists to spare. */
   { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
   /* ---------- THE BIBLE'S SIX QUESTIONS, IN THE OWNER'S ORDER -----------------------------------------
      *"tags in finder. should go translation e.g. kjv, then old testament or new, then group the books,

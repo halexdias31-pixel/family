@@ -431,11 +431,15 @@ const STATES = {
        ratio and a sideways scroll. */
     { name: 'a textbook chapter',
       enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
-        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
+           and the first one on it, or a chapter numbered like this one in another book, is not the
+           page this state was written about. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
         const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf }];
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
         paintStuff();
         const at = typeof stuffPages_ === 'function'
           ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
@@ -1608,10 +1612,13 @@ const STATES = {
        indent against the width of its widest number, set in the list's own font. */
     { name: "the textbook's contents, every number inside the card",
       enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
-        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
+           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf }];
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
