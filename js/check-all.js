@@ -243,7 +243,12 @@ const SUITE = [
      together once left SEVEN reads of `r.link` on rows that call the URL `source_url`, every
      checklist topic arriving with no link on it, and nothing throwing. */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
-  { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something' },
+  /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. The funnel walks the real library and took 283s
+     in a full run on 8 Oct, seventeen seconds inside the five-minute clock the file checks get; the
+     journeys below were killed at 300.4s the same evening, all of them passing alone. A check that
+     grows with the library and the app does not belong under a clock sized for "has it hung" — so
+     both run in the pool beside the browsers, each timed from its own start, with fifteen minutes. */
+  { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS --------------------------------
      A bundle is the whole papers on the list, a trolley that puts them in the basket, and a Send
      that tells the owner. `check-flow` cannot reach it — its fake backend answers the library with
@@ -252,7 +257,7 @@ const SUITE = [
      that empties the basket on a refusal. This runs the real library and works the right papers out
      from the file on its own. */
   { file: 'check-bundle.js', what: 'a bundle names its papers, and an order reaches the owner' },
-  { file: 'check-flow.js',    what: 'the app, actually running' },
+  { file: 'check-flow.js',    what: 'the app, actually running', slow: true },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT ---------------------------------------------------
      `check/ui.js` MEASURES THE APP AND SAMPLES THE LIBRARY. The Find screen's results are pages
      filled five either side of where you are, so one run renders about six question cards out of
