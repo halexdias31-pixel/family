@@ -1214,26 +1214,33 @@ async function gesture(env, o) {
         const tall = await page.evaluate(async () => {
           if (typeof stuffItems !== 'function') return null;
           await window.__sw.place('stuff');
-          const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
+          /* THE TALL CARD IS FOUND, NOT NAMED — see the same note in press.js. The longest
+             questions in the library, longest first, until one has a page with room to glide. */
           const facet = FACETS.find(f => f.field === 'paperId');
-          if (!want || !facet) return null;
-          STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
-          paintStuff(true);
-          await new Promise(r => setTimeout(r, 400));
-          const items = stuffFiltered();
-          const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
-          if (i < 0) return null;
-          /* ITS TALLEST PAGE — the probability-tree card this used stopped being tall when the 1st
-             Class Maths sheets were transcribed properly; see the same note in press.js. */
-          const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+          if (!facet) return null;
+          const plain = h => String(h || '').replace(/<[^>]*>/g, '').replace(/&[#a-z0-9]+;/gi, ' ').length;
+          const ranked = stuffItemsAll_().filter(x => x.row && x.row.html && x.row.kind !== 'preamble' && x.row.kind !== 'document')
+            .sort((a, b) => plain(b.row.html) - plain(a.row.html)).slice(0, 6);
           let best = null;
-          for (let p = at; p < at + 4; p++) {
-            goPage('stuff', p, true);
-            await window.__sw.still('stuff');
-            const pane = document.querySelector('#s-stuff > .page.on > .pane');
-            const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
-            if (!best || room > best.room) best = { page: PAGE.stuff, room };
+          for (const want of ranked) {
+            STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+            paintStuff(true);
+            await new Promise(r => setTimeout(r, 400));
+            const items = stuffFiltered();
+            const i = items.findIndex(x => x.row && x.row.row_id === want.row.row_id);
+            if (i < 0) continue;
+            const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+            best = null;
+            for (let p = at; p < at + 4; p++) {
+              goPage('stuff', p, true);
+              await window.__sw.still('stuff');
+              const pane = document.querySelector('#s-stuff > .page.on > .pane');
+              const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
+              if (!best || room > best.room) best = { page: PAGE.stuff, room, id: want.row.row_id };
+            }
+            if (best.room >= 120) break;
           }
+          if (!best) return null;
           goPage('stuff', best.page, true);
           await window.__sw.still('stuff');
           return best;

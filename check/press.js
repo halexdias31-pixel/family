@@ -995,40 +995,51 @@ for (const who of VISITORS) {
        in both. */
     /* ON THE NARROW PHONE. With stems on their own pages and long parts cut, no question page is
        tall enough at 390 x 844 to need the scroll: `paneReach_` draws a card down to 70% before it
-       scrolls, and the tallest left at 390 comes within a pixel of fitting. At 320 x 568 this one is
-       still 679px past the pane, so the scroll is there to test. Put back straight after. */
+       scrolls, and the tallest left at 390 comes within a pixel of fitting. At 320 x 568 the card found
+       below is hundreds of pixels past the pane, so the scroll is there to test. Put back straight after. */
     await page.setViewportSize({ width: 320, height: 568 });
     await page.waitForTimeout(400);
     const tall = await page.evaluate(async () => {
       if (typeof stuffItems !== 'function') return null;
       go('stuff', false, true);
-      /* A CARD THAT IS STILL TALL. 8464/B/1H Q02.4 was the one, and it stopped being tall when its
-         stem became a page of its own and a long part was cut between paragraphs (`partChunks_`).
-         The next was a probability-tree worksheet question, one 1,173-character paragraph -- until
-         the 1st Class Maths sheets were transcribed properly (6 Oct) and it fitted. This one is
-         `check/cards.js`'s tallest card: 521px past the pane at 320, and still past it at 390. */
-      const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
+      /* A CARD THAT IS STILL TALL, FOUND RATHER THAN NAMED. Four named rows have stopped being tall
+         under this check: 8464/B/1H Q02.4 when its stem became a page of its own and a long part was
+         cut between paragraphs (`partChunks_`); a probability-tree worksheet question when the 1st
+         Class Maths sheets were transcribed properly (6 Oct); and the 1st Class Maths cuboids Q9,
+         `check/cards.js`'s tallest card, when "one card, one answer" made it three parts (8 Oct).
+         A name is a bet on the library standing still. So: the longest questions in the library,
+         longest first, until one has a page with room to scroll.
+
+         BY PAGE, NOT BY RESULT — a practical is four pages, so a result's index is not its page
+         once one sorts ahead of it. `stuffPageOf_` is the app's own mapping. AND ITS TALLEST PAGE,
+         not its first: a question is a stem page, a card and its answers, and which of them
+         overflows is the transcription's business. Measured, then gone back to. */
       const facet = FACETS.find(f => f.field === 'paperId');
-      STUFF.q = ''; STUFF.filters = want && facet ? [{ field: 'paperId', value: facet.of(want) }] : [];
-      paintStuff(true);
-      await new Promise(r => setTimeout(r, 400));
-      const items = stuffFiltered();
-      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
-      if (i < 0) return null;
-      /* BY PAGE, NOT BY RESULT — a practical is four pages, so a result's index is not its page
-         once one sorts ahead of it. `stuffPageOf_` is the app's own mapping. */
-      /* AND ITS TALLEST PAGE, not its first: a question is a stem page, a card and its answers, and
-         which of them overflows is the transcription's business. Measured, then gone back to. */
-      const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+      if (!facet) return null;
+      const plain = h => String(h || '').replace(/<[^>]*>/g, '').replace(/&[#a-z0-9]+;/gi, ' ').length;
+      const ranked = stuffItemsAll_().filter(x => x.row && x.row.html && x.row.kind !== 'preamble' && x.row.kind !== 'document')
+        .sort((a, b) => plain(b.row.html) - plain(a.row.html)).slice(0, 6);
       let best = null;
-      for (let p = at; p < at + 4; p++) {
-        goPage('stuff', p, true);
+      for (const want of ranked) {
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+        paintStuff(true);
         await new Promise(r => setTimeout(r, 400));
-        const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
-          .querySelector('.pane');
-        const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
-        if (!best || room > best.room) best = { page: PAGE.stuff, room };
+        const items = stuffFiltered();
+        const i = items.findIndex(x => x.row && x.row.row_id === want.row.row_id);
+        if (i < 0) continue;
+        const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+        best = null;
+        for (let p = at; p < at + 4; p++) {
+          goPage('stuff', p, true);
+          await new Promise(r => setTimeout(r, 400));
+          const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
+            .querySelector('.pane');
+          const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
+          if (!best || room > best.room) best = { page: PAGE.stuff, room, id: want.row.row_id };
+        }
+        if (best.room >= 120) break;
       }
+      if (!best) return null;
       goPage('stuff', best.page, true);
       await new Promise(r => setTimeout(r, 600));
       return best;
