@@ -398,6 +398,13 @@ const CASES = [
   ['2x+3', 'y = 2x + 3', false, 'and the `y =` of a line is never taken off the EXPECTED side'],
   ['', '7', null, 'an empty box is not a mistake'],
   ['banana', '7', false, 'and a word is not a number'],
+  /* A COMPARISON SIGN IS NOT A TAG, AND AN ENTITY IS THE CHARACTER IT NAMES. Both were thrown away,
+     so the inequality-signs sheet and every `&pound;` accept could never mark right. */
+  ['<', '&lt; | <', true, 'the sign a child types for "less than"'],
+  ['4 < 7', '4 &lt; 7 | 4 < 7', true, 'a whole comparison, sign kept'],
+  ['4 > 7', '4 < 7', false, 'and the wrong sign is still wrong'],
+  ['£5.20', '&pound;5.20', true, 'money in the cell the way the library spells it'],
+  ['5.20', '&pound;5.20', true, 'and without the pound sign'],
 ];
 
 let bad = 0;

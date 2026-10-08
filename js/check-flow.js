@@ -9348,24 +9348,27 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   t.go('stuff');
   t.STUFF().filters.length = 0; t.STUFF().q = '';
   w.paintStuff();
-  const route = ['Learning', 'Resources', '@family. textbooks'];
-  const rungs = ['forLabel', 'kindLabel', 'shelf'];
-  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  /* AND `Subject` AFTER THE SHELF, now that the shelf holds a book for every GCSE: the book is found
+     by its subject's group and then its subject — Maths, then Statistics — before `Book`, which is
+     only asked if two books are left. With one book on the shelf the rung has one answer and is
+     skipped by the rule below, so this route is the claim either way. */
+  const route = ['Learning', 'Resources', '@family. textbooks', 'Statistics'];
+  const rungs = ['forLabel', 'kindLabel', 'shelf', 'subject'];
   const pressed = [];
-  for (let guard = 0; route.length && guard < 8; guard++) {
+  for (let guard = 0; route.length && guard < 10; guard++) {
     const btns = [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
     let el = btns.find(b => b.dataset.value === route[0]);
     /* A RUNG EVERYTHING LEFT ALREADY ANSWERS IS SKIPPED BY THE ONE-ANSWER RULE, and that is the
        route working rather than failing: the fixture has nothing under `What for` but Learning. The
        question is only allowed to be absent when its one answer IS the next word on the route. */
-    const rung = w.facetList().find(f => f.field === rungs[3 - route.length]);
+    const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
     const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
     if (!el && only.length === 1 && only[0] === route[0]) {
       pressed.push('(' + route.shift() + ')');
       continue;
     }
     if (!el) {
-      const grp = (() => { try { return kindFacet.bucketOf(route[0]); } catch (e) { return ''; } })();
+      const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
       el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
       if (!el) {
         bad.push('the funnel did not offer "' + route[0] + '" after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
@@ -9607,11 +9610,11 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   for (let guard = 0; route.length && guard < 8; guard++) {
     const btns = answersOn();
     let el = btns.find(b => b.dataset.value === route[0]);
-    const rung = w.facetList().find(f => f.field === rungs[3 - route.length]);
+    const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
     const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
     if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
     if (!el) {
-      const grp = (() => { try { return kindFacet.bucketOf(route[0]); } catch (e) { return ''; } })();
+      const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
       el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
       if (!el) {
         bad.push('the funnel did not offer "' + route[0] + '" to an admin after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '

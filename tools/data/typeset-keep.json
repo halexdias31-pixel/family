@@ -21,10 +21,6 @@
   "Q-AQA-7408-2306-3A-014": {
     "3 / 2": "truncated to 3 / 2 sf means three or two significant figures"
   },
-  "Q-AQA-8464P-2306-1H-4-6": {
-    "0/1568": "a count table flattened into a sentence: time 0 minutes, count-rate 1568",
-    "60/98": "the same table: time 60 minutes, count-rate 98"
-  },
   "Q-STA-KS2-2024-P3-19": {
     "r1": "remainder 1 in a bus-stop division, which is how KS2 writes a remainder -- not r to the power 1"
   }

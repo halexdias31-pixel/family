@@ -431,11 +431,15 @@ const STATES = {
        ratio and a sideways scroll. */
     { name: 'a textbook chapter',
       enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
-        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
+           and the first one on it, or a chapter numbered like this one in another book, is not the
+           page this state was written about. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
         const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf }];
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
         paintStuff();
         const at = typeof stuffPages_ === 'function'
           ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
@@ -559,13 +563,16 @@ const STATES = {
       wants: 'the stem of Q5 on its own page, tagged Question and Q5 (1 of 2: its table makes it two), no marks, no box and no picture, saying what is next',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'its figure, the page after, with no question number',
+      /* THE VENN DIAGRAM IS PART (c)'S NOW, because that is where the paper prints it: after (b),
+         under the work-from-home bullets that (c) completes it from. It sat on the stem until the
+         library was read against the paper, and this state followed it there. */
       enter: () => {
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5a');
-        if (!it) throw new Error('Q-9MA031-2206-5a is not in the library');
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5c');
+        if (!it) throw new Error('Q-9MA031-2206-5c is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'sfig0'));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'));
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
@@ -1605,10 +1612,13 @@ const STATES = {
        indent against the width of its widest number, set in the list's own font. */
     { name: "the textbook's contents, every number inside the card",
       enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
-        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
+           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf }];
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
