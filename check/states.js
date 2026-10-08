@@ -4293,6 +4293,114 @@ const STATES = {
       wants: 'the count, Yes and No, and no secret on the screen',
       leave: () => { PARTY.twq = null; twqPaint(); } },
 
+    /* ---------- IMPOSTER, EVERY SCREEN OF A ROUND -----------------------------------------------
+       The owner, 8 Oct: "info over load on the reading parts", and "so young ones who can’t read can
+       play. Like it will read it out for them." Every screen after Deal is past the one `go()` reaches,
+       and two of them — the switch and Listen — exist only with Read aloud on, so none of it had ever
+       been measured. Entered through the game's own handlers; then the LONGEST word and the LONGEST
+       category in `IMP_DECK` are put on the card, the Articulate states' rule, because the one worth
+       measuring is the one that wraps — and the big line is meant to hold two lines without moving the
+       button under it. A real Chromium has `speechSynthesis`, so the switch is drawn; a state that
+       finds no switch fails, which is what it should do on a browser with no voice.
+
+       READ ALOUD IS TURNED OFF AGAIN ON THE WAY OUT, because it is remembered on the device and every
+       state after these would otherwise be measured with it on. */
+    { name: 'imposter setup with read aloud on',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        ACTIONS['imp-players'](document.createElement('button'));
+        if (!impAloud_()) ACTIONS['imp-aloud'](document.createElement('button'));
+      },
+      expect: () => !!document.querySelector('#s-games #imp-card .imp-aloud[aria-pressed="true"]')
+                 && document.querySelectorAll('#s-games #imp-card .imp-step').length === 2,
+      wants: 'Players, the stepper, Read aloud switched on, and Deal',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter pass',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        /* WITH READ ALOUD ON, like the two cards after it, so the four screens a child presses alone
+           are measured — and photographed — at the one height `impFrame_` keeps them at. */
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+      },
+      expect: () => !!document.querySelector('#s-games #imp-card [data-do="imp-show"] .tile-i')
+                 && !!document.querySelector('#s-games #imp-card .imp-foot')
+                 && /^Pass to Player 1/.test((document.querySelector('#s-games #imp-card') || {}).textContent.replace(/\s+/g, ' ').trim()),
+      wants: 'Pass to, Player 1, and Show with its eye — nothing secret, and room kept for Listen',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter a players card with listen',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+        const all = [];
+        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push([c, w])));
+        const [c, w] = all.reduce((a, b) => (b[1].length > a[1].length ? b : a));
+        IMP.imp = 1; IMP.cat = c; IMP.word = w;
+        ACTIONS['imp-show'](document.createElement('button'));
+      },
+      expect: () => !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]')
+                 && !!document.querySelector('#s-games #imp-card [data-do="imp-hide"] .tile-i')
+                 && (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === IMP.word,
+      wants: 'the longest word in the deck, Hide with its shut eye, and the Listen speaker',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter the imposters card',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+        IMP.imp = 0;
+        IMP.cat = Object.keys(IMP_DECK).reduce((a, b) => (b.length > a.length ? b : a));
+        ACTIONS['imp-show'](document.createElement('button'));
+      },
+      expect: () => (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === 'Imposter'
+                 && (document.querySelector('#s-games #imp-card') || {}).textContent.indexOf('Hint: ' + IMP.cat) !== -1
+                 && !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]'),
+      wants: 'Imposter, the longest category as the hint, Hide and Listen',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter play',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+        for (let i = 0; i < IMP.n; i++) {
+          ACTIONS['imp-show'](document.createElement('button'));
+          ACTIONS['imp-hide'](document.createElement('button'));
+        }
+        IMP.cat = Object.keys(IMP_DECK).reduce((a, b) => (b.length > a.length ? b : a));
+        impPaint();
+      },
+      expect: () => IMP.phase === 'play'
+                 && !!document.querySelector('#s-games #imp-card [data-do="imp-reveal"]')
+                 && / starts$/.test((document.querySelector('#s-games #imp-card .imp-big') || {}).textContent || ''),
+      wants: 'the category, who starts, and Reveal — no word',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter reveal',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        ACTIONS['imp-start'](document.createElement('button'));
+        for (let i = 0; i < IMP.n; i++) {
+          ACTIONS['imp-show'](document.createElement('button'));
+          ACTIONS['imp-hide'](document.createElement('button'));
+        }
+        ACTIONS['imp-reveal'](document.createElement('button'));
+        const all = [];
+        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push(w)));
+        IMP.word = all.reduce((a, b) => (b.length > a.length ? b : a));
+        impPaint();
+      },
+      expect: () => IMP.phase === 'reveal'
+                 && !!document.querySelector('#s-games #imp-acts [data-do="imp-again"]')
+                 && !!document.querySelector('#s-games #imp-acts [data-do="imp-players"]'),
+      wants: 'Imposter and the player, Word and the longest word, Play again and Players',
+      leave: () => { ACTIONS['imp-players'](document.createElement('button')); } },
+
     /* `an alibi case card` AND `an alibi interview` WERE HERE, and went with the game ("delete alibi
        game.") — a state that enters a widget nobody can open fails loudly, which is right, and a
        state measuring nothing has no business being kept to say so. */

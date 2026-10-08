@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-flappy-page-no-select";
+  --css-version: "2026-10-08-imposter-reads-aloud";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -13686,7 +13686,7 @@ button.scr-sq { cursor: pointer; }
 
 /* ---------- IMPOSTER -------------------------------------------------------------------------------
    THE ARTICULATE CARD, BECAUSE IT IS THE SAME OBJECT: one thing read across a table, with a gold
-   button under it. What is new is the player count and the sentence that hands the phone on.
+   button under it. What is new is the player count, the Read aloud switch and the speaker.
 
    THE STEPPERS ARE 44px IN px, the one measurement here that does not scale, and a real circle so
    `−` and `+` read as controls rather than as the maths symbols they also are. */
@@ -13697,7 +13697,56 @@ button.scr-sq { cursor: pointer; }
   font: 600 1.3rem/1 var(--font); cursor: pointer;
 }
 .imp-step:disabled { opacity: .35; cursor: default; }
+/* `.imp-pass` IS THE PARTY GAMES' SENTENCE NOW AND NOT IMPOSTER'S. It was the line that handed this
+   card on ("Hand the phone to Player 2", "Nobody else knows. Blend in.", "goes first. One word each,
+   round the circle — then vote."), and the owner, 8 Oct: "info over load on the reading parts". No
+   sentence is written on this card any more; the timed games' paused card (`partyHeld_`) and 20
+   Questions' hand-over still borrow the rule, so it stays, under the name it was born with. */
 .imp-pass { margin: 0; font: 400 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
+/* ---------- THE BIG LINE AND THE BUTTON STAY WHERE THEY ARE ------------------------------------
+   PASS, CARD, IMPOSTER AND PLAY ARE ONE FRAME — small line, big line, small line, button and, with
+   Read aloud on, the speaker's room, drawn by `impFrame_` with a slot left empty rather than left
+   out — and these rules are what make an empty slot keep its height. It is the CARD'S height that
+   has to hold, not just the order inside it: the column centres the whole widget in the pane, so a
+   card 72px taller puts its button 36px higher on the glass. The first version hung the card from its
+   top instead, and the screenshots at 320 and 390 showed Hide 36px above where Show had been.
+
+   THE BIG LINE HOLDS TWO LINES' ROOM, centred in it, because "noughts and crosses" wraps on a 320px
+   phone and "pizza" does not — and a big line that grew with its word would move the button under
+   it between one player and the next. `em`, so it is two lines of whatever `.art-word`'s clamp made.
+   (The small lines are `.art-cat-of`, `.7rem/1`, so an empty one is held at exactly a full one.) */
+.imp-lab { min-height: .7rem; }
+.imp-big { min-height: 2.3em; display: flex; align-items: center; justify-content: center; }
+/* SHOW AND HIDE CARRY A MARK, an open eye and a shut one from `TILE_ICONS`, for the children who
+   know the button by picture. A floor on the width so the two are the same gold shape in the same
+   place, and a target that is a thumb whatever word is in it. */
+.imp-go { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-width: 148px; }
+.imp-go .tile-i { width: 22px; height: 22px; stroke-width: 1.8; }
+/* LISTEN IS THE BIGGEST THING A CHILD PRESSES HERE, and round, the speaker every phone puts on its
+   volume. 64px in px, under the button and never instead of it. Gold, because on this card it is the
+   one action a non-reader is looking for; tokens only (`check-css` refuses a `.tile` colour spelt out). */
+.tile.is-listen { width: 64px; height: 64px; border-radius: 50%; color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
+.tile.is-listen .tile-i { width: 30px; height: 30px; stroke-width: 1.6; }
+/* THE SPEAKER'S ROOM ON THE PASS AND PLAY SCREENS — Listen's own 64px, empty. See `impFrame_`. */
+.imp-foot { display: block; width: 64px; height: 64px; }
+/* ---------- THE READ ALOUD SWITCH ------------------------------------------------------------------
+   A SWITCH, NOT A TICK BOX: on and off is the whole of it, and a knob that has moved is readable
+   from across the table by whoever set the game up. 44px tall in px. On is gold, the app's one
+   colour for "this is doing something", and the speaker in front says what. */
+.imp-aloud {
+  display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: 0 .9rem;
+  border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--dim);
+  font: 600 .85rem/1 var(--font); cursor: pointer;
+}
+.imp-aloud .tile-i { width: 18px; height: 18px; }
+.imp-sw { position: relative; width: 30px; height: 18px; border-radius: 999px; background: var(--line);
+  transition: background var(--quick) ease; }
+.imp-sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--dim); transition: transform var(--quick) ease; }
+.imp-aloud.on { color: var(--ink); border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
+.imp-aloud.on .imp-sw { background: var(--gold); }
+.imp-aloud.on .imp-sw::after { transform: translateX(12px); background: var(--bg); }
 
 /* ---------- JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS ----------------------------------------------
    THE ARTICULATE CARD AGAIN, for Imposter's reason: one thing read across a room, with a gold button

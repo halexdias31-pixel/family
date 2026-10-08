@@ -301,4 +301,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The question page in the sun: Questions means questions, no ↓ tile, a chat bar with Send, a keypad you can see](297-the-question-page-in-the-sun.md)
 - [Find says only the answer, and keeps up with a fast thumb: value-only chips, Clear a tile, the glass filled to its edge](298-find-says-only-the-answer-and-keeps-up-with-a-fast-thumb.md)
 - [One card, one answer: every card that wanted several answers in one box is parts now](299-one-card-one-answer.md)
+- [Imposter says four words a screen, reads aloud for the ones who cannot read yet, and deals from 810 cards](300-imposter-says-less-and-knows-more-words.md)
 - [Flabby Pird does not light up under a thumb: the game's page is not text to select](301-flappy-does-not-light-up-under-a-thumb.md)

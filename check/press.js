@@ -164,6 +164,14 @@ const ACCEPTED_QUIET = {
                    + 'and this container has none, so there is nothing to switch to. The control is '
                    + 'drawn only where there are two, which is why this is quiet rather than absent.' },
 
+  /* ---------- A CONTROL WHOSE WHOLE JOB IS A SOUND -------------------------------------------------
+     IMPOSTER'S LISTEN SAYS THE CARD THROUGH THE PHONE'S OWN VOICE and changes nothing on the page, on
+     purpose: a card that changed when the word was spoken would be a tell from across the table. This
+     harness cannot hear, so it is quiet here by construction. check-flow stubs `speechSynthesis` and
+     asks what was said, to whom, and when it was cut off — that is where this press is proved. */
+  'imp-listen': { why: 'speaks the card quietly through speechSynthesis and draws nothing, so nobody across '
+                     + 'the table sees that anything happened; check-flow records the voice and proves it.' },
+
   /* ---------- AND ONE THAT IS THE FIXTURE RATHER THAN THE APP -------------------------------------- */
   'cmt-del': { only: 'signed out', why:
       'a stranger has no `USER`, so the handler returns. The button is only drawn where the SERVER '

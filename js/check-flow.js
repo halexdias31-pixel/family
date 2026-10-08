@@ -297,6 +297,13 @@ function boot(opts) {
          repaint kept the round, and only the state can say that the clock did not move while the
          column was away. */
       'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
+      /* IMPOSTER'S ROUND, AS A GETTER FOR THE SAME REASON — `impDeal_` replaces the object — so a
+         journey can hold each screen up against what was actually dealt rather than against what an
+         earlier screen said. AND A CARD ON TOP OF ITS PILE, put there the way `impDraw_` would find
+         it, so the read-aloud journey knows the word it is listening for: a random deal can be `ear`,
+         which is in the pass screen's own sentence ("Hold the phone to your ear"). */
+      'IMP: () => (typeof IMP !== "undefined" ? IMP : null),' +
+      'impStack: (c, wd) => { IMP_PILE.push([c, wd]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
@@ -1526,7 +1533,17 @@ check('removing a qualification: the bin saves at once, and only that one goes',
    two imposters, an imposter shown the word, a word left on the screen when the phone is handed on,
    a reveal naming somebody who was never told. So this deals a round of five through the app's own
    handlers and reads what each player would have seen — and what the NEXT player sees before they
-   press anything, which is the half that is easy to get wrong. */
+   press anything, which is the half that is easy to get wrong. Each screen is held up against what
+   was actually dealt (`__t.IMP`), not against what an earlier screen said.
+
+   THE CATEGORY IS THE IMPOSTER'S AND NOBODY ELSE'S. It was on every card, and the owner, 8 Oct:
+   "info over load on the reading parts like reading theme and word extra". A player with the word
+   is not told its category; the imposter is told nothing else; the table sees it on the play screen.
+
+   AND A SCREEN SAYS FOUR WORDS, counted, so the sentences cannot creep back one at a time — the way
+   they came: "Player 2 of 4", then "Hand the phone to", then "Nobody else looks" under it. A word is
+   a run of letters; the dealt word and its category are taken out first, because "Pets and farm
+   animals" is the hint and not the app talking, and a player's number is a name and not reading. */
 check('the imposter game tells everybody the word but one, and hides it between players', async () => {
   const { w } = boot();
   await wait(300);
@@ -1544,58 +1561,285 @@ check('the imposter game tells everybody the word but one, and hides it between 
   };
   const bad = [];
   const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
+  const html = () => String(card().innerHTML || '');
+  /* A WHOLE WORD OR PHRASE, ANY CASE. `star` is in Space and the play screen says "Player 3 starts";
+     a substring test would call that a leak and fail one deal in eight hundred. */
+  const lit = p => String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const has = (txt, p) => !!p && new RegExp('(^|[^A-Za-z])' + lit(p) + '($|[^A-Za-z])', 'i').test(txt);
+  const BUDGET = 4;
+  const budget = (where, drop) => {
+    const left = drop.filter(Boolean).reduce((x, p) => x.replace(new RegExp(lit(p), 'gi'), ' '), text());
+    const n = (left.match(/[A-Za-z’']+/g) || []).length;
+    if (n > BUDGET) bad.push(where + ' says ' + n + ' words, wanted ' + BUDGET + ' at most: "' + text() + '"');
+  };
   const N = 5;
   for (let i = 0; i < 12; i++) press('imp-count', { 'data-d': '-1' });
   for (let i = 0; i < N - 3; i++) press('imp-count', { 'data-d': '1' });
   if (!/\b5\b/.test(text())) bad.push('two presses up from three players does not read 5: "' + text() + '"');
   press('imp-start');
+  const S = t.IMP();
+  if (!S || S.phase !== 'deal' || !S.word || !S.cat) return bad.concat(['Deal did not deal a round: ' + JSON.stringify(S)]);
+  const word = S.word, cat = S.cat;
+  /* NOTHING ON THE HAND-OVER IS ANYBODY'S: not the word, not the hint, not the word "imposter" — and
+     the markup, not just the text, because a secret in a `title` is a secret on the screen. */
+  const secret = (where, h) => {
+    if (has(h, word)) bad.push(where + ' has the word "' + word + '" on it');
+    if (has(h, cat)) bad.push(where + ' has the category "' + cat + '" on it');
+    if (/imposter/i.test(h)) bad.push(where + ' says "imposter"');
+  };
   const seen = [];
+  let pass0 = null;
   for (let i = 0; i < N; i++) {
     const before = text();
-    if (before.indexOf('Player ' + (i + 1)) === -1 || !/Hand the phone/.test(before)) {
+    if (!has(before, 'Player ' + (i + 1)) || !/^Pass to\b/.test(before)) {
       bad.push('before player ' + (i + 1) + ' presses anything the card reads "' + before + '"');
     }
-    seen.forEach(s => {
-      if (s.word && before.indexOf(s.word) !== -1) bad.push('the word is on the screen when the phone reaches player ' + (i + 1));
-    });
+    secret('the screen handed to player ' + (i + 1), html());
+    /* AND IT IS THE SAME SCREEN FOR EVERYBODY bar the number, the imposter's included — a hand-over
+       that differed for one player would be the tell. */
+    const shape = html().replace(/Player \d+/g, 'Player #');
+    if (pass0 === null) pass0 = shape;
+    else if (shape !== pass0) bad.push('the screen handed to player ' + (i + 1) + ' is not the one handed to player 1');
+    budget('the hand-over to player ' + (i + 1), []);
     press('imp-show');
     const shown = text();
+    const big = String((card().querySelector('.imp-big') || {}).textContent || '').trim();
     const imposter = /imposter/i.test(shown);
-    /* THE WORD IS THE LARGE LINE, so it is read off the element that draws it rather than guessed
-       at from the text round it. */
-    const wordEl = card().querySelector('.art-word');
-    seen.push({ imposter: imposter,
-                word: imposter ? '' : String(wordEl ? wordEl.textContent : '').trim(),
-                cat: String((card().querySelector('.art-cat-of') || {}).textContent || '').trim() });
+    seen.push({ imposter: imposter, word: imposter ? '' : big });
+    if (i === S.imp) {
+      if (has(html(), word)) bad.push('the imposter, player ' + (i + 1) + ', was shown the word');
+      if (!/\bHint\b/.test(shown) || !has(shown, cat)) bad.push('the imposter was not given the category as a hint: "' + shown + '"');
+      budget("the imposter's card", [cat]);
+    } else {
+      if (big !== word) bad.push('player ' + (i + 1) + "'s big line is \"" + big + '", not the word dealt');
+      if (has(html(), cat)) bad.push('player ' + (i + 1) + ' was shown the category "' + cat + '" as well as the word');
+      if (/imposter/i.test(html())) bad.push('player ' + (i + 1) + ' has the word and was told "imposter" too');
+      budget('player ' + (i + 1) + "'s card", [word]);
+    }
     if (i === 1) {
       /* LEAVING THE COLUMN HIDES A WORD LEFT UP, and keeps whose turn it was. */
       const wd = t.allWidgets().find(x => x.id === 'wordgames');
       if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
       else wd.stop();
       t.go('games', false, true);
-      if (!/Hand the phone to Player 2/.test(text())) {
+      if (!/^Pass to Player 2\b/.test(text())) {
         bad.push('leaving the column with a word up does not hide it: the card reads "' + text() + '"');
       }
+      secret('the card after leaving the column', html());
       press('imp-show');
     }
     press('imp-hide');
   }
   const imps = seen.filter(s => s.imposter);
   if (imps.length !== 1) bad.push(imps.length + ' of ' + N + ' players were told they were the imposter');
+  else if (seen.findIndex(s => s.imposter) !== S.imp) bad.push('the player told they were the imposter is not the one dealt');
   const words = new Set(seen.filter(s => !s.imposter).map(s => s.word));
-  if (words.size !== 1 || [...words][0] === '') {
-    bad.push('the others were not all shown one word: ' + [...words].join(' / '));
+  if (words.size !== 1 || [...words][0] !== word) {
+    bad.push('the others were not all shown the one word dealt: ' + [...words].join(' / '));
   }
-  const cats = new Set(seen.map(s => s.cat));
-  if (cats.size !== 1 || [...cats][0] === '') bad.push('not everybody, imposter included, was shown one category');
+  /* THE PLAY SCREEN: the hint for everybody now, who starts, and still not the word. */
   const play = text();
-  if ([...words].some(wd => wd && play.indexOf(wd) !== -1)) bad.push('the word is on the screen once everybody has looked');
+  if (has(html(), word)) bad.push('the word is on the screen once everybody has looked');
+  if (!has(play, cat)) bad.push('the play screen does not show the category: "' + play + '"');
+  if (!has(play, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen does not say who starts: "' + play + '"');
+  budget('the play screen', [cat]);
   press('imp-reveal');
   const rev = text();
-  const who = seen.findIndex(s => s.imposter) + 1;
-  if (rev.indexOf('Player ' + who) === -1) bad.push('the reveal does not name player ' + who + ': "' + rev + '"');
-  if ([...words].some(wd => rev.indexOf(wd) === -1)) bad.push('the reveal does not say the word');
+  if (!has(rev, 'Player ' + (S.imp + 1))) bad.push('the reveal does not name player ' + (S.imp + 1) + ': "' + rev + '"');
+  if (!has(rev, word)) bad.push('the reveal does not say the word');
   press('imp-players');
+  return bad;
+});
+
+/* ---------- IMPOSTER READ ALOUD: SAID TO THE ONE HOLDING THE PHONE, AND ONLY WHEN THEY ASK -----------
+   The owner, 8 Oct: "For the imposter game can you have have it so young ones who can’t read can play.
+   Like it will read it out for them." A VOICE IS THE ONE OUTPUT THE WHOLE TABLE GETS, so every way
+   this can go wrong is a secret told to the room — and nothing about it is drawn, so nothing else
+   here would notice: the word said as the card comes up, a word still being said when the phone is
+   handed on, the pass screen naming the word, a repaint that talks.
+
+   SO THE BROWSER'S VOICE IS STOOD IN FOR, before the first line of the app runs, by one that writes
+   down what it was asked to say and when it was told to stop — and the journey writes down its own
+   presses in the same list, so "the first thing after Hide was a stop" is a question about one list.
+   jsdom has no `speechSynthesis`, which is the third half: with none, nothing about it is drawn. */
+check('imposter read aloud says whose turn it is, and the word only to the one who presses Listen', async () => {
+  const said = [];
+  const voiced = w => {
+    w.SpeechSynthesisUtterance = function (txt) {
+      this.text = String(txt); this.lang = ''; this.voice = null; this.rate = 1; this.volume = 1;
+    };
+    w.speechSynthesis = {
+      speak: u => said.push({ say: u.text, lang: u.lang, voice: u.voice && u.voice.lang, rate: u.rate, volume: u.volume }),
+      cancel: () => said.push({ cancel: true }),
+      getVoices: () => [{ name: 'American', lang: 'en-US' }, { name: 'British', lang: 'en-GB' }],
+    };
+  };
+  const { w } = boot({ before: w => { voiced(w); try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t;
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(700);
+  const d = w.document;
+  const card = () => d.getElementById('imp-card');
+  if (!card()) return ['the imposter game did not draw on the Games column'];
+  const bad = [];
+  /* A MARK IN THE LIST FOR EVERYTHING THE JOURNEY DOES, a press or not, so "what came after" always
+     means "after this". */
+  const mark = (what, note) => said.push(Object.assign({ press: what }, note || {}));
+  const press = (act, note) => { mark(act, note); t.ACTIONS[act](d.createElement('button')); };
+  const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
+  const lit = p => String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const has = (txt, p) => !!p && new RegExp('(^|[^A-Za-z])' + lit(p) + '($|[^A-Za-z])', 'i').test(txt);
+  /* WHAT CAME AFTER THE LAST MARK: everything said and stopped since the journey's last press. */
+  const since = () => { let i = said.length - 1; while (i >= 0 && !said[i].press) i--; return said.slice(i + 1); };
+  const says = list => list.filter(x => x.say !== undefined);
+  const sw = () => card().querySelector('[data-do="imp-aloud"]');
+  const listen = () => card().querySelector('[data-do="imp-listen"]');
+  /* `imp-count` reads `data-d`, so the presses that move it carry one. */
+  const step = dd => { const b = d.createElement('button'); b.setAttribute('data-d', String(dd)); t.ACTIONS['imp-count'](b); };
+  for (let i = 0; i < 12; i++) step(-1);
+  step(1);
+  const N = 4;
+
+  /* ---- OFF, WHICH IS HOW IT ARRIVES: a switch to turn it on, and not one word out of the phone. ---- */
+  if (!sw()) return bad.concat(['with a voice on the device there is no Read aloud switch on the setup screen']);
+  if (sw().getAttribute('aria-pressed') !== 'false') bad.push('Read aloud is not off until somebody turns it on');
+  press('imp-start');
+  for (let i = 0; i < N; i++) {
+    press('imp-show');
+    if (listen()) bad.push('with Read aloud off, player ' + (i + 1) + "'s card still has Listen on it");
+    press('imp-listen');
+    press('imp-hide');
+  }
+  press('imp-reveal');
+  press('imp-again');
+  press('imp-players');
+  if (says(said).length) bad.push('with Read aloud off the phone still said: ' + says(said).map(x => '"' + x.say + '"').join(', '));
+
+  /* ---- ON, AND REMEMBERED: the switch says so, the device keeps it, a repaint keeps it. ---- */
+  press('imp-aloud');
+  let kept = null;
+  try { kept = w.localStorage.getItem('imp-aloud'); } catch (e) {}
+  if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('pressing Read aloud did not turn it on');
+  if (kept !== '1') bad.push('Read aloud is not remembered on the device (imp-aloud is ' + JSON.stringify(kept) + ')');
+  t.repaint(true);
+  await wait(50);
+  if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('a repaint turned Read aloud off');
+
+  /* ---- A ROUND WITH THE SWITCH ON, two of them, with known words on top of the pile ---- */
+  const passes = [];
+  const passSaid = (who, list) => {
+    const s = says(list);
+    const line = s.find(x => /Player \d+/.test(x.say));
+    if (!line) { bad.push('nothing said ' + who + ' (heard: ' + JSON.stringify(s.map(x => x.say)) + ')'); return; }
+    passes.push(line.say);
+    if (!/hold the phone to your ear/i.test(line.say)) bad.push('the pass screen did not say to hold the phone to your ear: "' + line.say + '"');
+  };
+  const round = (cat, word) => {
+    const S = t.IMP();
+    if (!S || S.word !== word || S.cat !== cat) { bad.push('the round did not deal the card put on the pile: ' + JSON.stringify(S && [S.cat, S.word])); return null; }
+    passSaid('to player 1 when the round was dealt', since());
+    for (let i = 0; i < N; i++) {
+      const me = i === S.imp;
+      if (i === 2) {
+        /* A REPAINT IS NOBODY'S PRESS, so it says nothing — and keeps the round. */
+        mark('repaint');
+        t.repaint(true);
+        if (says(since()).length) bad.push('a repaint said: ' + says(since()).map(x => '"' + x.say + '"').join(', '));
+        if (!/^Pass to Player 3\b/.test(text())) bad.push('a repaint lost the round: "' + text() + '"');
+      }
+      press('imp-show', { i: i, me: me });
+      if (says(since()).length) bad.push("player " + (i + 1) + "'s card said something by itself: " + JSON.stringify(says(since()).map(x => x.say)));
+      if (!listen()) bad.push('with Read aloud on, player ' + (i + 1) + "'s card has no Listen");
+      press('imp-listen', { i: i, me: me });
+      const heard = says(since());
+      if (heard.length !== 1) bad.push('Listen for player ' + (i + 1) + ' said ' + heard.length + ' things');
+      else {
+        const h = heard[0];
+        if (me) {
+          if (!/imposter/i.test(h.say) || !has(h.say, cat)) bad.push("the imposter's Listen did not say imposter and the hint: \"" + h.say + '"');
+          if (has(h.say, word)) bad.push("the imposter's Listen said the word: \"" + h.say + '"');
+        } else if (!has(h.say, word)) bad.push('player ' + (i + 1) + "'s Listen did not say the word: \"" + h.say + '"');
+        if (!(h.volume <= 0.7)) bad.push('Listen was said at volume ' + h.volume + ', not quietly');
+        if (!(h.rate >= 0.8 && h.rate < 1)) bad.push('Listen was said at rate ' + h.rate + ', not a little slower');
+        if (h.lang !== 'en-GB' && h.voice !== 'en-GB') bad.push('Listen asked for no British voice (' + h.lang + ' / ' + h.voice + ')');
+        /* AND AGAIN, BECAUSE "WHAT WAS IT?" IS THE FIRST THING A SIX-YEAR-OLD ASKS. */
+        press('imp-listen', { i: i, me: me });
+        const again = says(since());
+        if (again.length !== 1 || again[0].say !== h.say) bad.push('a second Listen did not say it again: ' + JSON.stringify(again.map(x => x.say)));
+      }
+      if (i === 1) {
+        /* LEAVING THE COLUMN STOPS THE VOICE FIRST, and coming back says nothing. */
+        const wd = t.allWidgets().find(x => x.id === 'wordgames');
+        mark('stop');
+        if (wd && wd.stop) wd.stop();
+        else bad.push('the word games widget has no stop');
+        const first = since()[0];
+        if (!first || !first.cancel) bad.push('leaving the column did not stop the voice first (next: ' + JSON.stringify(first) + ')');
+        mark('go');
+        t.go('games', false, true);
+        if (says(since()).length) bad.push('coming back to the column said: ' + JSON.stringify(says(since()).map(x => x.say)));
+        press('imp-show', { i: i, me: me });
+      }
+      press('imp-hide', { i: i });
+      const after = since();
+      if (!after.length || !after[0].cancel) bad.push('Hide for player ' + (i + 1) + ' did not stop the voice before anything else (next: ' + JSON.stringify(after[0]) + ')');
+      if (i < N - 1) passSaid('to player ' + (i + 2) + ' when player ' + (i + 1) + ' pressed Hide', after);
+      else {
+        const p = says(after).map(x => x.say).join(' | ');
+        if (!has(p, cat) || !has(p, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen did not say the hint and who starts: "' + p + '"');
+        if (has(p, word)) bad.push('the play screen said the word: "' + p + '"');
+      }
+    }
+    press('imp-reveal');
+    const r = says(since()).map(x => x.say).join(' | ');
+    if (!/imposter was/i.test(r) || !has(r, 'Player ' + (S.imp + 1)) || !has(r, word)) bad.push('the reveal did not say who it was and the word: "' + r + '"');
+    return S;
+  };
+  t.impStack('Sea life', 'octopus');
+  press('imp-start');
+  round('Sea life', 'octopus');
+  t.impStack('Music', 'tambourine');
+  press('imp-again');
+  const again = since();
+  if (!again.length || !again[0].cancel) bad.push('Play again did not stop the voice before anything else (next: ' + JSON.stringify(again[0]) + ')');
+  round('Music', 'tambourine');
+  press('imp-players');
+  const back = since();
+  if (!back.length || !back[0].cancel) bad.push('Players did not stop the voice (next: ' + JSON.stringify(back[0]) + ')');
+  if (says(back).length) bad.push('Players said: ' + JSON.stringify(says(back).map(x => x.say)));
+
+  /* THE PASS SCREEN SAYS THE SAME SENTENCE TO EVERYBODY, bar the number, in both rounds — which is
+     the proof that nothing dealt is in it, the imposter's own hand-over included. */
+  const shapes = new Set(passes.map(p => p.replace(/Player \d+/, 'Player #')));
+  if (passes.length !== 2 * N || shapes.size !== 1) bad.push('the pass screen did not say one sentence to everybody: ' + JSON.stringify([...shapes]));
+  /* AND THE WORD WAS SAID ONLY TO A PLAYER WHO HAD IT AND PRESSED LISTEN: the press nearest before
+     every line that holds it is a Listen by somebody who is not the imposter — or Reveal, which says
+     it to the whole table once the round is over. */
+  let lastPress = null;
+  said.forEach(x => {
+    if (x.press) { lastPress = x; return; }
+    if (x.say === undefined) return;
+    const words = ['octopus', 'tambourine'].filter(wd => has(x.say, wd));
+    if (!words.length || (lastPress && lastPress.press === 'imp-reveal')) return;
+    if (!lastPress || lastPress.press !== 'imp-listen' || lastPress.me) {
+      bad.push('"' + x.say + '" was said after ' + JSON.stringify(lastPress) + ', not after a player with the word pressed Listen');
+    }
+  });
+
+  /* ---- AND ON A PHONE WITH NO VOICE, NONE OF IT IS DRAWN, even with the switch remembered on. ---- */
+  const quiet = boot({ before: w2 => { try { w2.localStorage.setItem('imp-aloud', '1'); w2.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  await wait(300);
+  const t2 = quiet.w.__t;
+  try { t2.go('games', false, true); } catch (e) { return bad.concat(['go("games") threw with no voice: ' + e.message]); }
+  await wait(700);
+  const card2 = quiet.w.document.getElementById('imp-card');
+  if (!card2) return bad.concat(['with no voice the imposter game did not draw']);
+  if (card2.querySelector('[data-do="imp-aloud"]')) bad.push('with no speechSynthesis the Read aloud switch is still drawn');
+  t2.ACTIONS['imp-start'](quiet.w.document.createElement('button'));
+  t2.ACTIONS['imp-show'](quiet.w.document.createElement('button'));
+  if (card2.querySelector('[data-do="imp-listen"]')) bad.push('with no speechSynthesis a card still has Listen on it');
+  if (!/Hide/.test(card2.textContent || '')) bad.push('with no speechSynthesis the card did not come up: "' + card2.textContent + '"');
   return bad;
 });
 /* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------

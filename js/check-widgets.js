@@ -383,6 +383,66 @@ if (acceptedEngine.length) {
   }
 }
 
+/* ---------- IMPOSTER'S DECK, WHICH IS LEFT OUT OF THE COMPARISON ABOVE AND NOT OUT OF EVERYTHING -------
+   ASKED FOR AS "more categories and words" (8 Oct), and it went from eleven categories of twenty-two to
+   twenty-seven of thirty. The note over `IMP_DECK` is the argument; this holds its shape, because every
+   fault in a deck draws perfectly — a word dealt twice is a card that comes round twice as often, and
+   nobody playing would ever say so.
+
+   AT LEAST 25 CATEGORIES AND 30 WORDS IN EACH. Below that the owner's "more" quietly shrinks again; and
+   the pile is every (category, word) pair, so a short category is a hint that comes up less for no
+   reason anybody chose.
+
+   NO WORD TWICE ANYWHERE, folded harder than the rule above: case, apostrophes, hyphens and a trailing
+   s all go, so `hairdresser` and `hairdresser’s`, `fry-up` and `fry up`, `seed` and `seeds` meet. The
+   old deck had the first pair, in Jobs and in Places, and passed every check there was.
+
+   NO WORD THAT SAYS ITS OWN CATEGORY. The category is the imposter's whole hint, so `school bus` under
+   School — the old deck had it, and `school trip` beside it — hands the imposter half of the answer. */
+{
+  const gsrc = fs.readFileSync(path.join(jsDir, 'games.js'), 'utf8');
+  const i = gsrc.indexOf('const IMP_DECK =');
+  const j = i < 0 ? -1 : gsrc.indexOf('\n};', i);
+  let D = null;
+  try { if (j > i) D = new Function(gsrc.slice(i, j + 3) + '\nreturn IMP_DECK;')(); } catch (e) { D = null; }
+  const impBad = [];
+  if (!D || typeof D !== 'object') {
+    impBad.push('COULD NOT READ IMP_DECK out of games.js, so Imposter\'s deck was NOT checked — not a pass');
+  } else {
+    const CATS = 25, PER = 30;
+    const fold = w => String(w).toLowerCase().replace(/[’']/g, '').split(/[\s-]+/).filter(Boolean)
+      .map(t => t.replace(/s$/, '')).join(' ');
+    const cats = Object.keys(D);
+    if (cats.length < CATS) impBad.push('IMP_DECK has ' + cats.length + ' categories — fewer than ' + CATS);
+    const where = new Map();
+    let total = 0;
+    cats.forEach(c => {
+      const list = Array.isArray(D[c]) ? D[c] : [];
+      total += list.length;
+      if (list.length < PER) impBad.push(c + ' holds ' + list.length + ' words — fewer than ' + PER);
+      const fc = fold(c);
+      list.forEach(w => {
+        const k = fold(w);
+        /* WHOLE WORDS, so `Sport` is not found in `transport` — but is in `sports day`. */
+        if ((' ' + k + ' ').indexOf(' ' + fc + ' ') !== -1) impBad.push(c + ' ' + JSON.stringify(w) + ' says its own category');
+        const hit = where.get(k.replace(/ /g, ''));
+        if (hit) impBad.push(c + ' ' + JSON.stringify(w) + '  is  ' + hit);
+        else where.set(k.replace(/ /g, ''), c + ' ' + JSON.stringify(w));
+      });
+    });
+    if (!impBad.length) {
+      console.log('');
+      console.log('  imposter: ' + cats.length + ' categories, ' + total + ' words, none twice, none naming its category');
+    }
+  }
+  if (impBad.length) {
+    console.log('');
+    console.log('IMPOSTER\'S DECK  (' + impBad.length + ')');
+    impBad.forEach(x => console.log('  ' + x));
+    bad = true;
+  }
+}
+
 /* ---------- THE SENTENCE SCRAMBLE'S SENTENCES AND THE WORD SEARCH'S WORDS ------------------------
    BOTH GAMES ARE ONLY AS GOOD AS THEIR LISTS, and every fault in a list draws perfectly: a sentence
    whose stated alternative uses a word the pool does not have is a right answer nobody can build; a
