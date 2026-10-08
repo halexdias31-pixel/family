@@ -10839,13 +10839,20 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   if (!tile) return ['the receipt has no Share tile on it'];
   rc.getBoundingClientRect = () => BOX;
   const press = () => w.__t.ACTIONS['book-share'](tile);
+  /* UNTIL IT HAPPENS, NOT FOR A FIXED BEAT. The picture is drawn from a clone of the receipt with
+     every element's style copied across, which is a few milliseconds alone and more than 120 under a
+     full suite with agents beside it — where this journey failed with "handed 0 shares" on 8 Oct and
+     passed alone. A wait that is long enough on a quiet machine is a race, so each step waits for
+     its own outcome, up to three seconds, and a press that truly does nothing still fails. */
+  const till = async ok => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < 3000) await wait(20); };
 
   /* ---------- 1. A PHONE: ONE PNG FILE, TO THE SHARE SHEET ----------------------------------------- */
   const shared = [];
   w.navigator.canShare = x => !!(x && x.files && x.files.length && x.files[0].type === 'image/png');
   w.navigator.share = x => { shared.push(x); return Promise.resolve(); };
   press();
-  await wait(120);
+  await till(() => shared.length);
+  await wait(30);
   if (shared.length !== 1) bad.push('a phone that shares files was handed ' + shared.length + ' shares, not 1');
   else {
     const f = (shared[0].files || [])[0];
@@ -10872,8 +10879,9 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   /* ---------- 2. A LAPTOP: NO FILE SHARING, SO A DOWNLOAD ------------------------------------------ */
   w.navigator.canShare = () => false;
   shared.length = 0;
+  const clicked = clicks.length;
   press();
-  await wait(120);
+  await till(() => clicks.length > clicked || shared.length);
   if (shared.length) bad.push('a browser that cannot share files was still sent to navigator.share');
   const dl = clicks[clicks.length - 1];
   if (!dl) bad.push('a browser that cannot share files was given no download');
@@ -10886,7 +10894,7 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   w.navigator.share = x => { shared.push(x); const e = new Error('no'); e.name = 'NotAllowedError'; return Promise.reject(e); };
   shared.length = 0;
   press();
-  await wait(150);
+  await till(() => { const t = d.getElementById('sheet'); return t && !t.classList.contains('hidden') && t.querySelector('img.rc-shot'); });
   const sheet = d.getElementById('sheet');
   const img = sheet && sheet.querySelector('img.rc-shot');
   if (!sheet || sheet.classList.contains('hidden') || !img) bad.push('a refused share sheet left nothing on the screen — the picture should be offered in a sheet');
