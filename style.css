@@ -6386,8 +6386,21 @@ textarea { touch-action: none; }
    · THE BIG SQUARE IS THE APP'S GOLD, var(--gold), because it is the answer; the two small ones
      are this drawing's own teal and blue, named on #splash-pyth and offered to nothing else.
    The base styles are the finished square, which is what reduced motion shows. */
+/* ---------- EVERY TEACHING SPLASH FITS THE BOX IT IS IN, NOT ONLY THE PHONE -------------------------
+   EACH WAS SIZED AGAINST THE PHONE (`vw`) AND A CEILING (`rem`), which is all a loading screen needs.
+   A textbook's chapter page draws the same markup inside a card, narrower than the phone by its
+   padding — Bayes came out at 288px in a 244px card at 320 wide — so each also stops at its box.
+   TWO WAYS, AND WHICH ONE IS NOT A MATTER OF TASTE. Where the size is on the drawing's own root (this
+   one and Bayes) `100%` is a third term of the `min()`: the root's box is the screen, a definite size,
+   and `100%` of it is never the smallest. Where the size is on something INSIDE the root — the svg,
+   the hundred square, the coin's bar — it is `max-width: 100%` instead. Written as a third term there
+   it was measured moving seventeen of them: the splash centres a root that is only as wide as what is
+   in it, so `100%` of it is a percentage of itself, the browser sized it as though it were `auto`, the
+   root grew to 300px and every drawing sat at its left edge. A cyclic `max-width` is set aside while
+   the root is measured and applied after, so the splash is pixel for pixel what it was (all 27, three
+   moments, two widths) and in a card the drawing stops at the card. */
 #splash-pyth { --py-a: #6fd8c4; --py-b: #6fa8dc; --py-c: var(--gold);
-               width: min(74vw, 18rem); text-align: center; }
+               width: min(74vw, 18rem, 100%); text-align: center; }
 .py-svg { display: block; width: 100%; height: auto; }
 /* ONE COLOUR PER SQUARE, set once and read by its outline, its grid, its cells, its number and its
    term in the sum — so nothing has to be joined to anything by a line. */
@@ -7030,7 +7043,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
           color: rgb(240 236 224 / .38); text-align: center; }
 
 /* ---------- ODD NUMBERS MAKE SQUARES ------------------------------------------------------------ */
-#splash-odds .od-svg { width: min(60vw, 13rem); height: auto; }
+#splash-odds .od-svg { width: min(60vw, 13rem); max-width: 100%; height: auto; }
 .od-svg rect { fill: #f0b45f; stroke: #1b1a17; stroke-width: 1.5; }
 .od-g1 rect { fill: #f0b45f; } .od-g2 rect { fill: #e08b3c; }
 .od-g3 rect { fill: #c9832f; } .od-g4 rect { fill: #a86a26; }
@@ -7053,7 +7066,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
           opacity: 0; animation: od-in .5s ease-out 1.9s forwards; }
 
 /* ---------- TRIANGLE NUMBERS -------------------------------------------------------------------- */
-#splash-tri .tn-svg { width: min(64vw, 15rem); height: auto; }
+#splash-tri .tn-svg { width: min(64vw, 15rem); max-width: 100%; height: auto; }
 .tn-svg rect { stroke: #1b1a17; stroke-width: 1.4; }
 .tn-up rect { fill: #6fa8dc; } .tn-dn rect { fill: #d98c3a; }
 .tn-up { animation: tn-up 1s cubic-bezier(.2,.9,.3,1) .2s both; }
@@ -7077,7 +7090,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    inside the circle is sin θ drawn where it lives. Everything moves by transform and nothing by
    `stroke-dashoffset`, which repainted the path every frame. The un-animated geometry is the frame
    at θ = 60°, so reduced motion shows a finished picture rather than a dot sitting on the axis. */
-#splash-sine .sn-svg { width: min(76vw, 18rem); height: auto; overflow: visible; }
+#splash-sine .sn-svg { width: min(76vw, 18rem); max-width: 100%; height: auto; overflow: visible; }
 .sn-ring, .sn-axis { fill: none; stroke: rgb(244 241 232 / .3); stroke-width: 1.1; }
 .sn-wave { fill: none; stroke: #6fd8c4; stroke-width: 2; stroke-linecap: round;
            animation: sn-roll 4s linear infinite; }
@@ -7117,7 +7130,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
      now share the box's middle, which tools/area.py asserts.
    The base styles are the finished strip with r and πr marked, which is what reduced motion shows. */
 #splash-area { --ar-top: var(--gold); --ar-bot: #6fd8c4; }
-#splash-area .ar-svg { display: block; width: min(72vw, 17rem); height: auto; margin: 0 auto; }
+#splash-area .ar-svg { display: block; width: min(72vw, 17rem); max-width: 100%; height: auto; margin: 0 auto; }
 .ar-top { --ar: var(--ar-top); } .ar-bot { --ar: var(--ar-bot); } .ar-r { --ar: var(--paper); }
 .ar-ring { fill: none; stroke: var(--paper); stroke-opacity: .22; stroke-width: .4; }
 .ar-slot { fill: var(--ar); fill-opacity: .07; stroke: var(--ar); stroke-opacity: .25; stroke-width: .3; }
@@ -7239,7 +7252,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 }
 
 /* ---------- HALVES ------------------------------------------------------------------------------ */
-#splash-half .hf-svg { width: min(64vw, 15rem); height: auto; }
+#splash-half .hf-svg { width: min(64vw, 15rem); max-width: 100%; height: auto; }
 /* NO STROKE. A 1.2 outline on a piece 3 wide is mostly outline — the last two halvings came out as
    black bars with a hint of blue in them, and the right-hand end of the strip read as a barcode
    rather than as halves getting smaller. The shades below already tell the pieces apart, and they
@@ -7263,7 +7276,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    ONE 6s CYCLE FOR EVERYTHING, so the pieces, the labels at the line and the caption cannot drift
    apart over a long load: the same duration, delays a fraction of it. The wedges leave a tenth of a
    second apart, the way three corners are torn off one at a time. */
-#splash-ang .ag-svg { width: min(70vw, 17rem); height: auto; overflow: visible; }
+#splash-ang .ag-svg { width: min(70vw, 17rem); max-width: 100%; height: auto; overflow: visible; }
 /* THE COLOURS, declared on the component: a splash's palette is that picture's and nobody else's. */
 #splash-ang { --ag-a: #f0b45f; --ag-b: #6fd8c4; --ag-c: #e0709a; --ag-edge: #6fa8dc; }
 .ag-tri { fill: rgb(111 168 220 / .14); stroke: var(--ag-edge); stroke-width: 2; stroke-linejoin: round;
@@ -7355,7 +7368,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
           text-align: center; }
 
 /* ---------- FIBONACCI --------------------------------------------------------------------------- */
-#splash-fib .fb-svg { width: min(72vw, 17rem); height: auto; }
+#splash-fib .fb-svg { width: min(72vw, 17rem); max-width: 100%; height: auto; }
 /* EIGHT SQUARES AT TWO UNITS where there were five at eight — see tools/fib.py — so the lines are
    thinner in proportion, or the 1-squares would be all stroke. The arc is 169.6 long. */
 .fb-sq { fill: none; stroke: #6fa8dc; stroke-width: .55; opacity: 0;
@@ -7387,7 +7400,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    computed from the peg grid, so a ball cannot miss its peg by a pixel somebody typed. Each circle
    sits at its LANDING spot and the animation is a translate away from it, so with motion switched
    off the bell simply stands there finished. Transform, opacity and fill only. */
-#splash-gal .gl-svg { width: min(58vw, 14rem); height: auto; overflow: visible; }
+#splash-gal .gl-svg { width: min(58vw, 14rem); max-width: 100%; height: auto; overflow: visible; }
 .gl-pegs circle { fill: rgb(244 241 232 / .42); }
 .gl-hop, .gl-bin { fill: none; stroke: rgb(244 241 232 / .22); stroke-width: .8; stroke-linecap: round; }
 .gl-b { fill: #f0b45f; opacity: 0; animation-duration: 10s; animation-iteration-count: infinite;
@@ -7521,7 +7534,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
           color: rgb(240 236 224 / .5); text-align: center; }
 
 /* ---------- THE PROTRACTOR ----------------------------------------------------------------------- */
-#splash-prot .pr-svg { width: min(66vw, 16rem); height: auto; }
+#splash-prot .pr-svg { width: min(66vw, 16rem); max-width: 100%; height: auto; }
 .pr-arc { fill: none; stroke: rgb(244 241 232 / .3); stroke-width: 1.6; }
 .pr-ticks line, .pr-base { stroke: rgb(244 241 232 / .4); stroke-width: 1.4; }
 /* ---------- THE ARM SWEEPS, AND NOW THE ANGLE IT MAKES IS FILLED IN ------------------------------
@@ -7657,7 +7670,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .cn-m.is-h { background: #e8c15f; color: #6b5420; }
 .cn-m.is-t { background: #6fd8c4; color: #1d5147; }
 /* THE LINE AT HALF is the thing the bar is converging on, so it is drawn rather than implied. */
-.cn-bar { position: relative; width: min(58vw, 13rem); height: .55rem; margin: .8rem auto 0;
+.cn-bar { position: relative; width: min(58vw, 13rem); max-width: 100%; height: .55rem; margin: .8rem auto 0;
           border-radius: 4px; background: #2a2c27; overflow: hidden; }
 .cn-bar::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
                  margin-left: -1px; background: rgb(244 241 232 / .55); }
@@ -7710,7 +7723,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    ring the test draws. No paper here — this is the black-and-gold screen, so tokens only.
    Transform and opacity only, one 9.6s clock, every animation infinite; check-css and
    check-splash-loops both hold it to that. */
-#splash-bayes { width: min(90vw, 20rem); }
+#splash-bayes { width: min(90vw, 20rem, 100%); }
 #splash-bayes .by-svg { display: block; width: min(66vw, 14rem); height: auto; margin: 0 auto;
                         overflow: visible; }
 .by-dot { fill: var(--ink); fill-opacity: .26; }
@@ -7766,7 +7779,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 }
 
 /* ---------- THE NUMBER LINE ---------------------------------------------------------------------- */
-#splash-nline .nl-svg { width: min(70vw, 17rem); height: auto; }
+#splash-nline .nl-svg { width: min(70vw, 17rem); max-width: 100%; height: auto; }
 .nl-axis, .nl-ticks line { stroke: rgb(244 241 232 / .4); stroke-width: 1.6; }
 /* STEPS RATHER THAN A GLIDE. A marker sliding smoothly along a number line says the numbers between
    the ticks are where you might land; stepping says they are the places there are. */
@@ -7829,7 +7842,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    THE BAR DOES NOT MOVE. It fills once and stays, and the three notations take turns underneath —
    the claim is that these are one quantity written three ways, so the quantity has to be the thing
    that holds still while the writing changes. A bar that re-filled for each would say the opposite. */
-#splash-half3 .h3-bar { width: min(58vw, 14rem); height: 1.6rem; margin: 0 auto;
+#splash-half3 .h3-bar { width: min(58vw, 14rem); max-width: 100%; height: 1.6rem; margin: 0 auto;
                         border: 2px solid rgb(244 241 232 / .35); border-radius: 4px; overflow: hidden; }
 .h3-bar span { display: block; height: 100%; width: 50%; background: #e8862c;
                animation: h3-fill 1s ease-out both; }
@@ -7876,7 +7889,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
      opacity; they were the paper colour written out as an rgb().
    · REDUCED MOTION is the base rules below: m = 2, the triangle at its tallest, c marked. */
 #splash-mxc { --mx-line: #6fa8dc; --mx-m: #6fd8a0; --mx-c: #e8862c; }
-#splash-mxc .mx-svg { display: block; width: min(62vw, 14.5rem); height: auto; margin: 0 auto; overflow: hidden; }
+#splash-mxc .mx-svg { display: block; width: min(62vw, 14.5rem); max-width: 100%; height: auto; margin: 0 auto; overflow: hidden; }
 .mx-grid { fill: none; stroke: var(--paper); stroke-opacity: .1; stroke-width: .6; }
 .mx-ax, .mx-ay { stroke: var(--paper); stroke-opacity: .55; stroke-width: 1.1; }
 .mx-arrow { fill: var(--paper); fill-opacity: .55; }
@@ -8354,6 +8367,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* ---------- STANDARD FORM --------------------------------------------------------------------------
    THE POINT WALKS AND THE POWER COUNTS ITS STEPS. Four hops, four numbers, in step — the exponent
    is not a fact about the number, it is a tally of a movement, and this is the only way to show it. */
+/* ROOM EITHER SIDE FOR THE POINT. It hops to `translateX(2.99rem)` from the middle of a row exactly as
+   wide as its five digits, so at its first stop it stands past the row's right edge — on the splash
+   that is open screen, and in a card at 320 wide it is the edge of the card, which then scrolls
+   sideways. Half a rem either side keeps it inside whatever box the drawing is in, and the splash
+   centres the drawing either way, so its pixels do not change. */
+#splash-sf { padding-inline: .5rem; }
 /* THE ROW IS THE THING THE POINT IS POSITIONED AGAINST, so it must be exactly as wide as its digits:
    a flex row that stretched to the splash would put `left: 50%` somewhere other than the middle of
    the numerals, and every hop would be measured from the wrong origin. */
@@ -8442,7 +8461,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
      opacity — it was the paper colour written out as an rgb().
    · REDUCED MOTION is the base rules below: P at the top of the circle, the textbook picture. */
 #splash-cent { --ct-cen: #e8862c; --ct-edge: #6fa8dc; }
-#splash-cent .ct-svg { display: block; width: min(62vw, 15rem); height: auto; margin: 0 auto; }
+#splash-cent .ct-svg { display: block; width: min(62vw, 15rem); max-width: 100%; height: auto; margin: 0 auto; }
 .ct-rim { fill: none; stroke: var(--paper); stroke-opacity: .3; stroke-width: 1.4; }
 .ct-arc { fill: none; stroke: var(--paper); stroke-opacity: .75; stroke-width: 2.2; stroke-linecap: round; }
 .ct-cen { fill: none; stroke: var(--ct-cen); stroke-width: 2; stroke-linejoin: round; }
@@ -8626,7 +8645,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    A′ — which leaves the lens unshaded — read as though the lens were shaded something else. And
    the letters carry a stroke of the page's own black under their fill, because they sit on the
    hatch and a hatch line through a letter makes it a different glyph. */
-#splash-venn .vn-svg { width: min(66vw, 16rem); height: auto; }
+#splash-venn .vn-svg { width: min(66vw, 16rem); max-width: 100%; height: auto; }
 .vn-box { fill: none; stroke: rgb(244 241 232 / .35); stroke-width: 1.2; }
 .vn-xi, .vn-l { stroke: var(--bg, #000); stroke-width: 3px; paint-order: stroke; stroke-linejoin: round; }
 .vn-xi { font: 400 11px var(--mono); fill: rgb(244 241 232 / .6); }
@@ -8664,7 +8683,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 }
 
 /* ---------- THE CLOCK ---------------------------------------------------------------------------- */
-#splash-clock .ck-svg { width: min(46vw, 11rem); height: auto; }
+#splash-clock .ck-svg { width: min(46vw, 11rem); max-width: 100%; height: auto; }
 .ck-face { fill: #22251f; stroke: rgb(244 241 232 / .35); stroke-width: 2; }
 .ck-ticks line { stroke: rgb(244 241 232 / .45); stroke-width: 2; }
 .ck-pin { fill: #f0b45f; }
@@ -10098,7 +10117,7 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    three half-drawn ones, which was the fault in half the splashes here before today. */
 #splash-mult { text-align: center; }
 .mu-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px;
-           width: min(62vw, 15rem); margin: 0 auto; }
+           width: min(62vw, 15rem); max-width: 100%; margin: 0 auto; }
 .mu-grid i { aspect-ratio: 1; border-radius: 2px; background: rgb(244 241 232 / .07); }
 .mu-say { margin-top: .8rem; font: 600 .8rem var(--mono); letter-spacing: .06em;
           color: rgb(240 236 224 / .55); text-align: center; }
