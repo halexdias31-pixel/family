@@ -7187,11 +7187,17 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 #splash-sieve { --sv-2: #f0b45f; --sv-3: #6cb6ff; --sv-p: #6fd8a0; }
 /* ONE LINE, OR IT IS NOT A RUN. At 1.05rem it wrapped with 17 alone underneath — an orphan that
    reads as a mistake and breaks the left-to-right sweep the line was chosen for. Sized in `vw` so
-   it shrinks to fit rather than wrapping, with `nowrap` to make that the only option. */
+   it shrinks to fit rather than wrapping, with `nowrap` to make that the only option.
+   AND IN `cqi` AS WELL, because the line is also a page of the Maths book now, inside a card. `vw` is
+   the phone, and the card is the phone less its padding: at 320 wide the seventeen numbers came out
+   at 264px in a 244px card, and the page scrolled sideways. The book's stage is a size container
+   (`.tb-an-stage`), so `cqi` there is the card; on the splash there is no container and `cqi` is the
+   phone again, the same size as `vw` — so the third term is never the smaller one there, and the
+   splash is pixel for pixel what it was. */
 #splash-sieve .sv-grid { display: flex; flex-wrap: nowrap; justify-content: center;
-                         gap: 0 min(1.6vw, .34rem); max-width: 94vw; }
+                         gap: 0 min(1.6vw, .34rem, 1.6cqi); max-width: 94vw; }
 .sv-grid i { position: relative; font-style: normal;
-             font: 700 min(4.4vw, 1.05rem)/1.7 var(--mono); }
+             font: 700 min(4.4vw, 1.05rem, 4.4cqi)/1.7 var(--mono); }
 .sv-grid b { display: block; font: inherit; color: var(--paper); }
 .sv-2 { --sv: var(--sv-2); } .sv-3 { --sv: var(--sv-3); } .sv-p { --sv: var(--sv-p); }
 /* `--kf` names each element's keyframes, and this rule animates them — see `.cn-m` for why the name
@@ -11150,8 +11156,10 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    later in the cascade than this file — so without it every page Find keeps filled either side of you
    ran its drawing out of sight, and the one you swiped to was already half way through its story.
    `tbAnimWatch_` puts `.is-on` on the page in front and restarts it there. The index laws light their
-   tiles with an `::after`, which `*` does not reach. */
-.tb-an-stage { display: grid; place-items: center; margin: .75rem 0; }
+   tiles with an `::after`, which `*` does not reach.
+   A SIZE CONTAINER, so a drawing sized to the phone can also be sized to the card: the sieve's line of
+   seventeen numbers is `min(… vw, … cqi)`, and `cqi` is this box. */
+.tb-an-stage { display: grid; place-items: center; margin: .75rem 0; container-type: inline-size; }
 .tb-an-stage:not(.is-on) *, .tb-an-stage:not(.is-on) *::before,
 .tb-an-stage:not(.is-on) *::after { animation-play-state: paused !important; }
 
