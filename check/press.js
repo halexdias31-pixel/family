@@ -1016,9 +1016,15 @@ for (const who of VISITORS) {
          overflows is the transcription's business. Measured, then gone back to. */
       const facet = FACETS.find(f => f.field === 'paperId');
       if (!facet) return null;
+      /* WHAT MAKES A PAGE TALL HERE IS OPTIONS, NOT WORDS. A long stem is cut between paragraphs
+         (`partChunks_`) and a long card is drawn smaller (`paneReach_`, down to `PANE_ZOOM_MIN`), so the
+         six longest questions all fitted (0px, measured 8 Oct). What cannot be cut or shrunk past the floor is
+         a row of full-width option buttons: `check/cards.js`'s tallest cards at 320 are all "choose the
+         true statements" with eight long options. So: most options first, then most words, and measured. */
       const plain = h => String(h || '').replace(/<[^>]*>/g, '').replace(/&[#a-z0-9]+;/gi, ' ').length;
+      const opts = r => String(r.choices || '').split(' | ').filter(Boolean).length;
       const ranked = stuffItemsAll_().filter(x => x.row && x.row.html && x.row.kind !== 'preamble' && x.row.kind !== 'document')
-        .sort((a, b) => plain(b.row.html) - plain(a.row.html)).slice(0, 6);
+        .sort((a, b) => (opts(b.row) - opts(a.row)) || (plain(b.row.html + b.row.choices) - plain(a.row.html + a.row.choices))).slice(0, 6);
       let best = null;
       for (const want of ranked) {
         STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
