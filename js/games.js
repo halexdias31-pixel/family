@@ -2866,6 +2866,13 @@ on('rg-again', el => {
    phone goes to children who cannot read the button yet, and "the gold one under the big word" has to
    be the same place every time. Show, Hide and Listen carry the app's own marks (`TILE_ICONS`): an open eye, a
    shut one and a speaker, so the three a child presses alone are known by picture as well as place.
+
+   AND THE SAME PLACE CUTS BOTH WAYS: a double tap lands its second tap on the button just drawn
+   there. Measured in Chromium with a touch double tap at 390, the review of 8 October: on Show it
+   flashed the card and passed the turn on unseen; on Hide it opened the NEXT player's card in this
+   player's hands; on the last Hide it went straight to Reveal before a word had been said. So Show,
+   Hide and Reveal ignore a press that comes within `IMP_GAP` of the card being drawn — see
+   `impTooSoon_`. The button stays where it is; it is the second tap that goes.
 ================================================================================================== */
 const IMP_MIN = 3, IMP_MAX = 12;
 
@@ -3105,8 +3112,13 @@ function impCount_(n) {
    THE SECRET IS NEVER SAID BY ITSELF. A phone that read the word out as the card came up would tell
    the whole table — the one thing this game cannot survive. So the card has LISTEN, pressed by the
    person holding it, said at a little over half volume, and pressable again for "say it again". The
-   pass screen is what tells them to hold the phone to their ear, and it TELLS them, out loud, because
-   a child who cannot read the card cannot read that sentence either.
+   pass screen is what tells them how, and it TELLS them, out loud, because a child who cannot read
+   the card cannot read that sentence either.
+
+   AND IT TELLS THEM IN THE ORDER THE PRESSES GO. It said "Hold the phone to your ear, then press
+   Show" — but Show makes no sound, so a child who did exactly that heard nothing, and the gold button
+   now under their thumb was Hide: the obvious next press, and it passed their turn on without them
+   ever hearing the word (the review of 8 October). So it names the speaker, and puts the ear last.
 
    WHAT EVERYBODY MAY HEAR IS SAID BY ITSELF — whose turn it is, who starts, who it was — and only on
    the press that brings that screen up. A browser lets a page talk in answer to a tap (Safari refuses
@@ -3152,7 +3164,7 @@ function impSay_(text, quiet) {
    nothing until Listen, which is `imp-listen` below and not here. */
 function impAnnounce_() {
   const s = IMP, player = i => 'Player ' + (i + 1);
-  if (s.phase === 'deal' && !s.shown) impSay_(player(s.at) + '. Hold the phone to your ear, then press Show.');
+  if (s.phase === 'deal' && !s.shown) impSay_(player(s.at) + '. Press Show, then the speaker, and hold the phone to your ear.');
   else if (s.phase === 'play') impSay_(s.cat + '. ' + player(s.first) + ' starts.');
   else if (s.phase === 'reveal') impSay_('The imposter was ' + player(s.imp) + '. The word was ' + s.word + '.');
 }
@@ -3162,6 +3174,33 @@ function impAnnounce_() {
    person holding the phone, which is what `impHide_` is for. */
 const IMP_IDLE = () => ({ phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' });
 let IMP = IMP_IDLE();
+
+/* ---------- A SECOND TAP IS NOT A SECOND PRESS -------------------------------------------------
+   SHOW, HIDE AND REVEAL ARE DRAWN ON THE SAME PIXELS, which is the design — and a double tap, the
+   most common thing a five-year-old does to a button, then presses two screens in one go. Measured
+   in Chromium with two touch taps 120ms apart: Show then Hide (the card flashed and the turn moved
+   on unseen), Hide then the next player's Show (Player 1 holding Player 2's card), the last Hide then
+   Reveal (the imposter named before anybody had played). Deal and Play again overlap Show's box too.
+
+   SO THOSE THREE IGNORE A PRESS WITHIN `IMP_GAP` OF THE CARD BEING DRAWN. Every deliberate press
+   here is further apart than that by a mile — a word is read, a phone is handed across a table, a
+   round is played — so the only press it can cost is a second tap, and a child whose press was
+   swallowed simply presses again. 600ms rather than a phone's own double-tap window (300–500ms),
+   because a small child's two taps are slower than an adult's.
+
+   `performance.now()` ON BOTH SIDES, rather than the event's `timeStamp`: one clock, and no browser's
+   idea of what `timeStamp` counts from to trust. NOT A CSS `pointer-events` FADE-IN either, which the
+   review prototyped and which works — but `prefers-reduced-motion` cuts every animation in style.css
+   to .01ms, so the guard would vanish for exactly the people who asked for less to happen.
+
+   ONLY FOR A PRESS THAT CAME WITH AN EVENT. The click listener in shell.js always passes one; a check
+   or a state calling `ACTIONS[...]` straight is not a finger, and walks a whole round in one tick. */
+const IMP_GAP = 600;
+let IMP_DREW = 0;
+function impTooSoon_(e) {
+  if (!e) return false;
+  try { return performance.now() - IMP_DREW < IMP_GAP; } catch (err) { return false; }
+}
 
 function impDeal_(n) {
   const [cat, word] = impDraw_();
@@ -3178,8 +3217,9 @@ function impDeal_(n) {
    its top, so that Listen under the button pushed nothing up inside the card — and the screenshots at
    320 and 390 still had Hide 36px above where Show had been, because the column centres the whole
    widget in the pane and a card 72px taller is centred 36px higher. So it is the card's HEIGHT that
-   has to be the same, and `foot` is Listen on a card and an empty 64px on the pass and play screens
-   while Read aloud is on; with it off there is no speaker anywhere and nothing to keep room for. */
+   has to be the same, and `foot` is Listen on a card and an empty 64px (with Listen's 20px over it)
+   on the pass and play screens while Read aloud is on; with it off there is no speaker anywhere and
+   nothing to keep room for. */
 function impFrame_(over, big, under, button, foot) {
   return `<p class="art-cat-of imp-lab">${esc(over)}</p>
     <p class="art-word imp-big">${esc(big)}</p>
@@ -3191,7 +3231,8 @@ function impFrame_(over, big, under, button, foot) {
    than built by a helper from its action's name: `check-doors.js` pairs every `data-do` it can read
    with a handler, and the first version here built three of them from a variable and left Show, Hide
    and Reveal as "a handler with no door". FUNCTIONS AND NOT STRINGS, because tiles.js loads after this
-   file: a `const` built at load would call `tileIcon_` before there is one. */
+   file: a `const` built at load would call `tileIcon_` before there is one — which `check.js` let
+   through when this was written, and reports now. */
 const impShow_ = () => `<button class="art-go imp-go" data-do="imp-show">${tileIcon_('show')}<span>Show</span></button>`;
 const impHideBtn_ = () => `<button class="art-go imp-go" data-do="imp-hide">${tileIcon_('hide')}<span>Hide</span></button>`;
 const impReveal_ = () => `<button class="art-go imp-go" data-do="imp-reveal"><span>Reveal</span></button>`;
@@ -3204,6 +3245,8 @@ const impReveal_ = () => `<button class="art-go imp-go" data-do="imp-reveal"><sp
 function impPaint() {
   const card = $('imp-card'), acts = $('imp-acts');
   if (!card) return;
+  /* WHEN THIS CARD WENT DOWN, for `impTooSoon_`: a button cannot be meant sooner than it existed. */
+  try { IMP_DREW = performance.now(); } catch (e) {}
   const s = IMP;
   const player = i => 'Player ' + (i + 1);
   if (acts) acts.innerHTML = '';
@@ -3274,32 +3317,53 @@ on('imp-count', el => {
 });
 on('imp-aloud', () => { impAloud_(!impAloud_()); impPaint(); });
 on('imp-start', () => { impHush_(); impDeal_(impCount_()); impPaint(); impAnnounce_(); });
-on('imp-show', () => {
-  if (IMP.phase !== 'deal') return;
+/* SHOW, HIDE AND REVEAL TAKE `(el, e)` FOR `impTooSoon_` — see "a second tap is not a second press". */
+on('imp-show', (el, e) => {
+  if (IMP.phase !== 'deal' || IMP.shown) return;
+  if (impTooSoon_(e)) return;
   IMP.shown = true;
   impPaint();
 });
 /* THE ONLY PLACE THE SECRET IS SPOKEN, and only with the card up — so only by the person who pressed
-   Show. Hushed first so a second press says it again rather than queueing a second copy behind it. */
+   Show. Hushed first so a second press says it again rather than queueing a second copy behind it.
+
+   THE TWO LINES ARE THE SAME SHAPE AND ABOUT THE SAME LENGTH, because the table can hear HOW LONG a
+   phone talks even where it cannot make out a word. It was "Pizza." (about 0.6s) against "You’re the
+   imposter. The hint is food." (about 3s), so whichever phone talked five times longer was the
+   imposter's — and in one round every player's line is the same length, so the odd one out stood
+   out. Counted in syllables over all 810 cards: 2 against 11 on average before; 10.6 against 10.6
+   now, and within two syllables of each other for 72% of cards. The word said TWICE is the other
+   half of it: the first is said while the phone is still going up, the second at the ear.
+
+   STARTED ON THE TAP AND NOT AFTER A PAUSE, though the review offered one (1.2–1.5s, so the phone is
+   at the ear first). Safari will only start speech in answer to a tap until something has spoken,
+   and a delayed line is not in answer to one; nothing here can try that on an iPhone, and a Listen
+   that says nothing on the family's own phone is worse than one that starts a moment early. */
 on('imp-listen', () => {
   if (IMP.phase !== 'deal' || !IMP.shown) return;
   impHush_();
   const w = String(IMP.word);
   impSay_(IMP.at === IMP.imp
-    ? 'You’re the imposter. The hint is ' + String(IMP.cat).toLowerCase() + '.'
-    : w.charAt(0).toUpperCase() + w.slice(1) + '.', true);
+    ? 'You’re the imposter. Your hint is ' + String(IMP.cat).toLowerCase() + '.'
+    : 'Your word is ' + w + '. Your word is ' + w + '.', true);
 });
-on('imp-hide', () => {
+/* HUSHED BEFORE THE GUARD, so a second tap that is ignored still stops the voice — which is never
+   wrong when the phone may be on its way to somebody else. */
+on('imp-hide', (el, e) => {
   impHush_();
-  if (IMP.phase !== 'deal') return;
+  if (IMP.phase !== 'deal' || !IMP.shown) return;
+  if (impTooSoon_(e)) return;
   IMP.shown = false;
   if (IMP.at < IMP.n - 1) IMP.at++;
   else IMP.phase = 'play';
   impPaint();
   impAnnounce_();
 });
-on('imp-reveal', () => {
+/* GUARDED BEFORE THE HUSH, the other way round from Hide: a second tap of the last Hide lands here,
+   and the line it would cut off is "Food. Player 3 starts." — which the table is meant to hear. */
+on('imp-reveal', (el, e) => {
   if (IMP.phase !== 'play') return;
+  if (impTooSoon_(e)) return;
   impHush_();
   IMP.phase = 'reveal';
   impPaint();

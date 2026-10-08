@@ -4400,6 +4400,88 @@ const STATES = {
                  && !!document.querySelector('#s-games #imp-acts [data-do="imp-players"]'),
       wants: 'Imposter and the player, Word and the longest word, Play again and Players',
       leave: () => { ACTIONS['imp-players'](document.createElement('button')); } },
+    /* THE BIG LINE AND THE BUTTON, MEASURED STAYING WHERE THEY ARE. "The gold one under the big word"
+       has to be one place on every screen a child presses alone, and the first build broke it — Hide
+       36px above where Show had been — where only a screenshot saw it. The six states above only ask
+       that each thing EXISTS: with `.imp-foot` set to `display: none` and `.imp-big`'s two-line floor
+       taken out, so Hide sat 36px above Show and a two-line word moved the button, they and the whole
+       of check/ui.js still said "nothing NEW to report" (the review of 8 October).
+
+       SO ONE ROUND IS WALKED THROUGH THE HANDLERS, the `Q0664` way above: the top of the big line and
+       of the gold button on the pass screen, a player's card holding the LONGEST word in the deck, the
+       next pass, the imposter's card holding the LONGEST category, and play — every one read in the
+       same tick, so nothing moves between them but the card itself. With Read aloud on, which is the
+       card with the speaker under it, and again with it off. Each top within 0.5px of the first. */
+    { name: 'imposter the big line and the button stay put',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        window.__impStill = null;
+        const b = () => document.createElement('button');
+        const words = [];
+        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => words.push(w)));
+        const word = words.reduce((a, x) => (x.length > a.length ? x : a));
+        const cat = Object.keys(IMP_DECK).reduce((a, x) => (x.length > a.length ? x : a));
+        /* EACH TOP READ TWO FRAMES AFTER ITS PRESS, NOT IN THE SAME TICK. A card that changes height is
+           put back in the middle of the pane by the `ResizeObserver` in find.js (`holdColumn_`), after
+           layout and before paint — so a reading taken straight after the press is the card before it
+           was re-centred, which no finger ever sees. The first version here read every screen in one
+           tick and had Read aloud on and off at identical heights: blind to exactly the 36px it is for. */
+        const frames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        /* AND AT REST: a slide the column is still running is a card on its way, not where it stops —
+           `settled` in check/ui.js asks the same of a whole screen. Bounded, and a card still moving
+           after it is measured where it is and fails, which is right. */
+        const moving = () => [...document.querySelectorAll('#s-games, #s-games .page')].some(el =>
+          typeof el.getAnimations === 'function' && el.getAnimations().some(a => a.playState === 'running'));
+        const rest = async () => {
+          await frames();
+          const t1 = performance.now();
+          while (moving() && performance.now() - t1 < 1500) await new Promise(r => setTimeout(r, 50));
+          await frames();
+        };
+        const at = where => {
+          const q = sel => document.querySelector('#s-games #imp-card ' + sel);
+          const big = q('.imp-big'), go = q('.imp-go');
+          return { where: where, big: big ? +big.getBoundingClientRect().top.toFixed(1) : NaN,
+                   go: go ? +go.getBoundingClientRect().top.toFixed(1) : NaN };
+        };
+        const walk = async aloud => {
+          const got = [];
+          const look = async where => { await rest(); got.push(at(where)); };
+          impAloud_(aloud);
+          ACTIONS['imp-players'](b());
+          ACTIONS['imp-start'](b());
+          IMP.imp = 1; IMP.word = word; IMP.cat = cat;
+          impPaint();
+          await look('pass to player 1');
+          ACTIONS['imp-show'](b()); await look('player 1, ' + word);
+          ACTIONS['imp-hide'](b()); await look('pass to player 2');
+          ACTIONS['imp-show'](b()); await look('player 2, the imposter, ' + cat);
+          ACTIONS['imp-hide'](b());
+          while (IMP.phase === 'deal') { ACTIONS['imp-show'](b()); ACTIONS['imp-hide'](b()); }
+          await look('play');
+          return got;
+        };
+        /* AND NOT UNTIL THE PAGE IS ON THE GLASS, with nothing booked: `goPage` places on a frame. */
+        const t0 = performance.now();
+        const settle = () => {
+          const card = document.querySelector('#s-games #imp-card');
+          const r = card && card.getBoundingClientRect();
+          const placed = r && r.top >= 0 && r.bottom <= innerHeight && !moving()
+            && !(typeof PLACE_FRAME !== 'undefined' && PLACE_FRAME);
+          if (!placed && performance.now() - t0 < 2000) { setTimeout(settle, 100); return; }
+          (async () => { const on = await walk(true); const off = await walk(false); window.__impStill = { on: on, off: off }; })();
+        };
+        setTimeout(settle, 100);
+      },
+      expect: () => {
+        const s = window.__impStill;
+        const still = list => list.length === 5 && list.every(r => Number.isFinite(r.big) && Number.isFinite(r.go)
+          && Math.abs(r.big - list[0].big) < 0.5 && Math.abs(r.go - list[0].go) < 0.5);
+        return !!s && still(s.on) && still(s.off);
+      },
+      wants: 'the big line and the gold button at one height on pass, the longest word, the imposter\'s longest hint and play — Read aloud on and off',
+      leave: () => { window.__impStill = null; impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
 
     /* `an alibi case card` AND `an alibi interview` WERE HERE, and went with the game ("delete alibi
        game.") — a state that enters a widget nobody can open fails loudly, which is right, and a

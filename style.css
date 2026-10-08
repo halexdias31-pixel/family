@@ -13724,12 +13724,18 @@ button.scr-sq { cursor: pointer; }
 .imp-go .tile-i { width: 22px; height: 22px; stroke-width: 1.8; }
 /* LISTEN IS THE BIGGEST THING A CHILD PRESSES HERE, and round, the speaker every phone puts on its
    volume. 64px in px, under the button and never instead of it. Gold, because on this card it is the
-   one action a non-reader is looking for; tokens only (`check-css` refuses a `.tile` colour spelt out). */
+   one action a non-reader is looking for; tokens only (`check-css` refuses a `.tile` colour spelt out).
+
+   20px CLEAR OF HIDE, IN px, because it is a gap between two fingertips and a fingertip does not
+   scale. It was the card's `.5rem` gap, 7.4px at 390 (Hide's bottom 559.9, Listen's top 567.3), and
+   Hide is the one press here that cannot be taken back — it hands the round to the next player. A
+   small finger aimed at the top of the speaker was a finger on Hide. */
 .tile.is-listen { width: 64px; height: 64px; border-radius: 50%; color: var(--gold);
-  border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
+  border-color: color-mix(in srgb, var(--gold) 45%, transparent); margin-top: 20px; }
 .tile.is-listen .tile-i { width: 30px; height: 30px; stroke-width: 1.6; }
-/* THE SPEAKER'S ROOM ON THE PASS AND PLAY SCREENS — Listen's own 64px, empty. See `impFrame_`. */
-.imp-foot { display: block; width: 64px; height: 64px; }
+/* THE SPEAKER'S ROOM ON THE PASS AND PLAY SCREENS — Listen's own 64px and its own 20px over it,
+   empty, so the card is one height with Listen or without. See `impFrame_`. */
+.imp-foot { display: block; width: 64px; height: 64px; margin-top: 20px; }
 /* ---------- THE READ ALOUD SWITCH ------------------------------------------------------------------
    A SWITCH, NOT A TICK BOX: on and off is the whole of it, and a knob that has moved is readable
    from across the table by whoever set the game up. 44px tall in px. On is gold, the app's one

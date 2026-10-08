@@ -1562,16 +1562,43 @@ check('the imposter game tells everybody the word but one, and hides it between 
   const bad = [];
   const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
   const html = () => String(card().innerHTML || '');
+  /* WHAT A PERSON HOLDING THE PHONE CAN SEE: the words, and every title, aria-label and alt, because a
+     secret in a `title` is a secret on the screen. NOT THE RAW MARKUP, which is what this read first —
+     and `cat` (Pets and farm animals) is a real card that matched the `art-cat-of` class on every
+     pass screen, so the journey failed eight ways on correct code about one deal in 810 (the review
+     of 8 October). Class names, `data-do` and an icon's path are the app's own, never the round's. */
+  const visible = () => [String(card().textContent || '')]
+    .concat([...card().querySelectorAll('[title], [aria-label], [alt]')]
+      .map(el => [el.getAttribute('title'), el.getAttribute('aria-label'), el.getAttribute('alt')].filter(Boolean).join(' ')))
+    .join(' ').replace(/\s+/g, ' ').trim();
   /* A WHOLE WORD OR PHRASE, ANY CASE. `star` is in Space and the play screen says "Player 3 starts";
      a substring test would call that a leak and fail one deal in eight hundred. */
   const lit = p => String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const has = (txt, p) => !!p && new RegExp('(^|[^A-Za-z])' + lit(p) + '($|[^A-Za-z])', 'i').test(txt);
+  /* THE BUDGET IS COUNTED OVER THE WHOLE GAME, not the card: everything Imposter draws in the widget
+     but its one `.sub` line. It read `#imp-card` alone, and three of the four sentences that went had
+     lived in the note line UNDER the card — put `#imp-said` back with "Nobody else looks." in it and
+     every check stayed green (the review of 8 October). */
+  const game = () => card().closest('.wg-game') || card().parentElement;
+  const said = () => {
+    const c = game().cloneNode(true);
+    c.querySelectorAll('.sub').forEach(x => x.remove());
+    return String(c.textContent || '').replace(/\s+/g, ' ').trim();
+  };
   const BUDGET = 4;
   const budget = (where, drop) => {
-    const left = drop.filter(Boolean).reduce((x, p) => x.replace(new RegExp(lit(p), 'gi'), ' '), text());
+    const left = drop.filter(Boolean).reduce((x, p) => x.replace(new RegExp(lit(p), 'gi'), ' '), said());
     const n = (left.match(/[A-Za-z’']+/g) || []).length;
-    if (n > BUDGET) bad.push(where + ' says ' + n + ' words, wanted ' + BUDGET + ' at most: "' + text() + '"');
+    if (n > BUDGET) bad.push(where + ' says ' + n + ' words, wanted ' + BUDGET + ' at most: "' + said() + '"');
   };
+  /* AND THE WIDGET'S OWN LINE IS THE DECIDED ONE, with no note line under the card to write a sentence
+     into — the old "Three or more, one phone…" could come back as quietly as `#imp-said` could. */
+  const SUB = 'Everyone gets the word but one. Find the imposter.';
+  const sub = game().querySelector('.sub');
+  if (!sub || String(sub.textContent).replace(/\s+/g, ' ').trim() !== SUB) {
+    bad.push('the line over the card is not "' + SUB + '": "' + (sub ? sub.textContent.trim() : '(none)') + '"');
+  }
+  if (game().querySelector('#imp-said, .note')) bad.push('the imposter game has a note line again (#imp-said or .note), where the sentences used to live');
   const N = 5;
   for (let i = 0; i < 12; i++) press('imp-count', { 'data-d': '-1' });
   for (let i = 0; i < N - 3; i++) press('imp-count', { 'data-d': '1' });
@@ -1580,8 +1607,8 @@ check('the imposter game tells everybody the word but one, and hides it between 
   const S = t.IMP();
   if (!S || S.phase !== 'deal' || !S.word || !S.cat) return bad.concat(['Deal did not deal a round: ' + JSON.stringify(S)]);
   const word = S.word, cat = S.cat;
-  /* NOTHING ON THE HAND-OVER IS ANYBODY'S: not the word, not the hint, not the word "imposter" — and
-     the markup, not just the text, because a secret in a `title` is a secret on the screen. */
+  /* NOTHING ON THE HAND-OVER IS ANYBODY'S: not the word, not the hint, not the word "imposter" — read
+     off `visible()`, so a `title` or an `aria-label` counts as much as the words do. */
   const secret = (where, h) => {
     if (has(h, word)) bad.push(where + ' has the word "' + word + '" on it');
     if (has(h, cat)) bad.push(where + ' has the category "' + cat + '" on it');
@@ -1594,7 +1621,7 @@ check('the imposter game tells everybody the word but one, and hides it between 
     if (!has(before, 'Player ' + (i + 1)) || !/^Pass to\b/.test(before)) {
       bad.push('before player ' + (i + 1) + ' presses anything the card reads "' + before + '"');
     }
-    secret('the screen handed to player ' + (i + 1), html());
+    secret('the screen handed to player ' + (i + 1), visible());
     /* AND IT IS THE SAME SCREEN FOR EVERYBODY bar the number, the imposter's included — a hand-over
        that differed for one player would be the tell. */
     const shape = html().replace(/Player \d+/g, 'Player #');
@@ -1607,13 +1634,13 @@ check('the imposter game tells everybody the word but one, and hides it between 
     const imposter = /imposter/i.test(shown);
     seen.push({ imposter: imposter, word: imposter ? '' : big });
     if (i === S.imp) {
-      if (has(html(), word)) bad.push('the imposter, player ' + (i + 1) + ', was shown the word');
+      if (has(visible(), word)) bad.push('the imposter, player ' + (i + 1) + ', was shown the word');
       if (!/\bHint\b/.test(shown) || !has(shown, cat)) bad.push('the imposter was not given the category as a hint: "' + shown + '"');
       budget("the imposter's card", [cat]);
     } else {
       if (big !== word) bad.push('player ' + (i + 1) + "'s big line is \"" + big + '", not the word dealt');
-      if (has(html(), cat)) bad.push('player ' + (i + 1) + ' was shown the category "' + cat + '" as well as the word');
-      if (/imposter/i.test(html())) bad.push('player ' + (i + 1) + ' has the word and was told "imposter" too');
+      if (has(visible(), cat)) bad.push('player ' + (i + 1) + ' was shown the category "' + cat + '" as well as the word');
+      if (/imposter/i.test(visible())) bad.push('player ' + (i + 1) + ' has the word and was told "imposter" too');
       budget('player ' + (i + 1) + "'s card", [word]);
     }
     if (i === 1) {
@@ -1625,7 +1652,7 @@ check('the imposter game tells everybody the word but one, and hides it between 
       if (!/^Pass to Player 2\b/.test(text())) {
         bad.push('leaving the column with a word up does not hide it: the card reads "' + text() + '"');
       }
-      secret('the card after leaving the column', html());
+      secret('the card after leaving the column', visible());
       press('imp-show');
     }
     press('imp-hide');
@@ -1639,7 +1666,7 @@ check('the imposter game tells everybody the word but one, and hides it between 
   }
   /* THE PLAY SCREEN: the hint for everybody now, who starts, and still not the word. */
   const play = text();
-  if (has(html(), word)) bad.push('the word is on the screen once everybody has looked');
+  if (has(visible(), word)) bad.push('the word is on the screen once everybody has looked');
   if (!has(play, cat)) bad.push('the play screen does not show the category: "' + play + '"');
   if (!has(play, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen does not say who starts: "' + play + '"');
   budget('the play screen', [cat]);
@@ -1733,10 +1760,20 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
     const line = s.find(x => /Player \d+/.test(x.say));
     if (!line) { bad.push('nothing said ' + who + ' (heard: ' + JSON.stringify(s.map(x => x.say)) + ')'); return; }
     passes.push(line.say);
-    if (!/hold the phone to your ear/i.test(line.say)) bad.push('the pass screen did not say to hold the phone to your ear: "' + line.say + '"');
+    /* SHOW, THEN THE SPEAKER, THEN THE EAR — the order the presses go. It said "Hold the phone to your
+       ear, then press Show", and Show makes no sound: a child who did exactly that heard nothing, and
+       the gold button under their thumb was Hide (the review of 8 October). */
+    if (!/press Show, then the speaker\b.*\bear\b/i.test(line.say)) bad.push('the pass screen did not say Show, then the speaker, then the ear: "' + line.say + '"');
   };
+  /* HOW LONG EACH LISTEN TALKED, per round. The table cannot make out a word said at 0.6 into an ear
+     and can hear how long a phone talks: "Pizza." against "You’re the imposter. The hint is food." was
+     five times longer for the imposter, and in one round every other player's line is the same length,
+     so the odd one out WAS the answer. Characters for duration — near enough for a rule whose old
+     failure was a factor of five. */
+  const LONGER = 1.5;
   const round = (cat, word) => {
     const S = t.IMP();
+    const lens = { me: 0, them: 0 };
     if (!S || S.word !== word || S.cat !== cat) { bad.push('the round did not deal the card put on the pile: ' + JSON.stringify(S && [S.cat, S.word])); return null; }
     passSaid('to player 1 when the round was dealt', since());
     for (let i = 0; i < N; i++) {
@@ -1756,6 +1793,7 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
       if (heard.length !== 1) bad.push('Listen for player ' + (i + 1) + ' said ' + heard.length + ' things');
       else {
         const h = heard[0];
+        lens[me ? 'me' : 'them'] = String(h.say).length;
         if (me) {
           if (!/imposter/i.test(h.say) || !has(h.say, cat)) bad.push("the imposter's Listen did not say imposter and the hint: \"" + h.say + '"');
           if (has(h.say, word)) bad.push("the imposter's Listen said the word: \"" + h.say + '"');
@@ -1790,6 +1828,11 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
         if (!has(p, cat) || !has(p, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen did not say the hint and who starts: "' + p + '"');
         if (has(p, word)) bad.push('the play screen said the word: "' + p + '"');
       }
+    }
+    if (!lens.me || !lens.them) bad.push('a round with no Listen heard from the imposter and from a player: ' + JSON.stringify(lens));
+    else if (Math.max(lens.me, lens.them) / Math.min(lens.me, lens.them) > LONGER) {
+      bad.push('the imposter\'s Listen and a player\'s are ' + lens.me + ' and ' + lens.them + ' characters, more than '
+               + LONGER + ' times apart — the table can hear which phone talked longer');
     }
     press('imp-reveal');
     const r = says(since()).map(x => x.say).join(' | ');
@@ -1840,6 +1883,69 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   t2.ACTIONS['imp-show'](quiet.w.document.createElement('button'));
   if (card2.querySelector('[data-do="imp-listen"]')) bad.push('with no speechSynthesis a card still has Listen on it');
   if (!/Hide/.test(card2.textContent || '')) bad.push('with no speechSynthesis the card did not come up: "' + card2.textContent + '"');
+  return bad;
+});
+
+/* ---------- IMPOSTER: A DOUBLE TAP IS ONE PRESS ------------------------------------------------------
+   SHOW, HIDE AND REVEAL ARE DRAWN ON THE SAME PIXELS, so the second tap of a double tap lands on the
+   button the first one drew. Measured in Chromium with two touch taps 120ms apart, the review of
+   8 October: Show then Hide (the card flashed and the turn moved on unseen), Hide then the next
+   player's Show (Player 1 holding Player 2's card), the last Hide then Reveal (the imposter named
+   before anybody had played). Nothing drawn tells these apart from a good round, so every other
+   journey here walked straight past them.
+
+   A FINGER IS A PRESS WITH AN EVENT — the click listener in shell.js always passes one — and a check
+   walking the round is a press without, which `impTooSoon_` lets through. So the second tap is
+   fired IN THE SAME TICK as the first, which is sooner than any double tap and cannot be made late
+   by a loaded machine; and each deliberate press waits past the gap first, which a loaded machine
+   can only make longer. Neither half depends on how fast this runs. */
+check('imposter takes a double tap on Show, Hide or Reveal as one press', async () => {
+  const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t;
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(700);
+  const d = w.document;
+  if (!d.getElementById('imp-card')) return ['the imposter game did not draw on the Games column'];
+  const bad = [];
+  const press = act => t.ACTIONS[act](d.createElement('button'));
+  const tap = act => t.ACTIONS[act](d.createElement('button'), { type: 'click' });
+  const PAST = 750;
+  const now = () => { const S = t.IMP(); return S.phase + ' ' + (S.at + 1) + (S.shown ? ' shown' : ''); };
+  const want = (is, why) => { if (now() !== is) bad.push(why + ' (the round is at "' + now() + '", wanted "' + is + '")'); };
+  press('imp-start');
+  await wait(PAST);
+
+  tap('imp-show');
+  want('deal 1 shown', 'Show pressed on its own did not bring up the card');
+  tap('imp-hide');
+  want('deal 1 shown', "a second tap straight after Show pressed Hide, and player 1's turn went by unseen");
+
+  await wait(PAST);
+  tap('imp-hide');
+  want('deal 2', 'Hide pressed on its own did not hand the phone on');
+  tap('imp-show');
+  want('deal 2', "a second tap straight after Hide pressed Show, and player 2's card opened in player 1's hands");
+
+  /* TO THE LAST PLAYER WITHOUT A FINGER, then the last Hide by one. */
+  const n = t.IMP().n;
+  while (t.IMP().phase === 'deal' && t.IMP().at < n - 1) { press('imp-show'); press('imp-hide'); }
+  press('imp-show');
+  await wait(PAST);
+  tap('imp-hide');
+  if (t.IMP().phase !== 'play') bad.push('the last Hide pressed on its own did not start play: "' + now() + '"');
+  tap('imp-reveal');
+  if (t.IMP().phase !== 'play') bad.push('a second tap straight after the last Hide pressed Reveal, and the imposter was named before anybody played');
+
+  await wait(PAST);
+  tap('imp-reveal');
+  if (t.IMP().phase !== 'reveal') bad.push('Reveal pressed on its own did not reveal: "' + now() + '"');
+
+  /* PLAY AGAIN AND DEAL OVERLAP SHOW'S BOX TOO, so a second tap on either is a card shown to whoever
+     dealt. */
+  tap('imp-again');
+  tap('imp-show');
+  want('deal 1', 'a second tap straight after Play again pressed Show');
   return bad;
 });
 /* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------

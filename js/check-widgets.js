@@ -398,7 +398,17 @@ if (acceptedEngine.length) {
    old deck had the first pair, in Jobs and in Places, and passed every check there was.
 
    NO WORD THAT SAYS ITS OWN CATEGORY. The category is the imposter's whole hint, so `school bus` under
-   School — the old deck had it, and `school trip` beside it — hands the imposter half of the answer. */
+   School — the old deck had it, and `school trip` beside it — hands the imposter half of the answer.
+
+   ANY WORD OF THE CATEGORY, NOT THE WHOLE OF IT. This tested for the whole phrase inside the card, and
+   15 of the 27 categories are more than one word: `kitchen sink` under In the kitchen, `garden gnome`
+   under In the garden and `toy box` under Toys and games were each put in and passed, with the line
+   "none naming its category" printed under them (the review of 8 October). So each word of the
+   category that carries meaning — not the, and, in, at or of — is held against each word of the card,
+   folded the same way. Whole words still, so `seahorse` is not `sea`.
+
+   `CAT_WORD_OK` IS THE ONE CARD LET THROUGH, with its reason, printed every run like the check's other
+   lists: a new one is a failure, not a line added to a list nobody reads. */
 {
   const gsrc = fs.readFileSync(path.join(jsDir, 'games.js'), 'utf8');
   const i = gsrc.indexOf('const IMP_DECK =');
@@ -410,6 +420,13 @@ if (acceptedEngine.length) {
     impBad.push('COULD NOT READ IMP_DECK out of games.js, so Imposter\'s deck was NOT checked — not a pass');
   } else {
     const CATS = 25, PER = 30;
+    const CAT_STOP = new Set(['the', 'and', 'in', 'at', 'of']);
+    const CAT_WORD_OK = {
+      'Sea life|sea urchin': 'it is the animal\'s name, and `urchin` alone is a word no six-year-old knows; '
+        + 'every card in Sea life lives in the sea, which the hint has already said, and `seahorse` and '
+        + '`seaweed` beside it carry the same three letters run together.',
+    };
+    const catOk = [];
     const fold = w => String(w).toLowerCase().replace(/[’']/g, '').split(/[\s-]+/).filter(Boolean)
       .map(t => t.replace(/s$/, '')).join(' ');
     const cats = Object.keys(D);
@@ -420,19 +437,32 @@ if (acceptedEngine.length) {
       const list = Array.isArray(D[c]) ? D[c] : [];
       total += list.length;
       if (list.length < PER) impBad.push(c + ' holds ' + list.length + ' words — fewer than ' + PER);
-      const fc = fold(c);
+      const cw = fold(c).split(' ').filter(t => t && !CAT_STOP.has(t));
       list.forEach(w => {
         const k = fold(w);
         /* WHOLE WORDS, so `Sport` is not found in `transport` — but is in `sports day`. */
-        if ((' ' + k + ' ').indexOf(' ' + fc + ' ') !== -1) impBad.push(c + ' ' + JSON.stringify(w) + ' says its own category');
-        const hit = where.get(k.replace(/ /g, ''));
-        if (hit) impBad.push(c + ' ' + JSON.stringify(w) + '  is  ' + hit);
+        const toks = k.split(' ');
+        const hit = cw.filter(t => toks.indexOf(t) !== -1);
+        if (hit.length) {
+          const ok = CAT_WORD_OK[c + '|' + w];
+          if (ok) catOk.push(c + ' ' + JSON.stringify(w) + ' — ' + ok);
+          else impBad.push(c + ' ' + JSON.stringify(w) + ' says its own category (' + hit.join(', ') + ')');
+        }
+        const twin = where.get(k.replace(/ /g, ''));
+        if (twin) impBad.push(c + ' ' + JSON.stringify(w) + '  is  ' + twin);
         else where.set(k.replace(/ /g, ''), c + ' ' + JSON.stringify(w));
       });
     });
+    /* AN ACCEPTED ENTRY THE DECK NO LONGER HOLDS IS SAID, so the list cannot outlive its cards. */
+    Object.keys(CAT_WORD_OK).forEach(key => {
+      const [c, w] = key.split('|');
+      if (!(D[c] || []).includes(w)) impBad.push('CAT_WORD_OK lets through ' + JSON.stringify(key) + ', which the deck no longer holds');
+    });
     if (!impBad.length) {
       console.log('');
-      console.log('  imposter: ' + cats.length + ' categories, ' + total + ' words, none twice, none naming its category');
+      console.log('  imposter: ' + cats.length + ' categories, ' + total + ' words, none twice, none naming its category'
+                  + (catOk.length ? ' but ' + catOk.length + ' let through:' : ''));
+      catOk.forEach(x => console.log('    ' + x));
     }
   }
   if (impBad.length) {
