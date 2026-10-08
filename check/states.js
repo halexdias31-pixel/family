@@ -534,8 +534,11 @@ const STATES = {
        measures perfectly and is the thing that was asked to stop. */
     { name: 'a multiple-choice question',
       enter: () => {
+        /* NOT AN ORDERING: it has `choices` and a `choiceRight` too, and draws a strip, not options
+           (`orderBox_`) -- it has states of its own below. */
         const mc = stuffItemsAll_().find(it => it.kind === 'question'
-          && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length);
+          && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length
+          && !orderIs_(it));
         if (!mc) throw new Error('no question in the list carries choices');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(mc) }];
@@ -1189,6 +1192,93 @@ const STATES = {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
         ANS_SHOWN.clear();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AN ORDERING, HALF PLACED, AND THEN SENT RIGHT -------------------------------------------
+       THE OWNER, 8 Oct: *"I would prefer it be like an ordering system?? … simpler to mark for a
+       machine."* (`orderBox_`, docs/history/303.) The real June 2024 1F Q4, its five numbers tapped by
+       CLICKS on the real buttons. Half placed is the strip with two items in it, two ghosts in the row
+       under it and three dashed slots -- the picture worth measuring at 320, where the strip wraps.
+       Then the whole row, right, and SEND: the question, the strip, the verdict's line and the card's
+       height measured before and after it, because marking moves nothing (261). */
+    { name: 'an ordering, half placed',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
+        if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
+        if (!orderIs_(it)) throw new Error('Q-1MA1-2406-1F-4 is not an ordering — its answer_type is ' + it.answerType);
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ORDER_SENT.clear();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
+        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const run = () => {
+          if (!box()) return false;
+          [3, 4].forEach(n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); });
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const card = box && box.closest('.qcard');
+        const full = box ? [...box.querySelectorAll('.qp-slot')].map(s => (s.classList.contains('is-full') ? s.getAttribute('data-n') : '_')).join(' ') : '';
+        return !!box && full === '3 4 _ _ _' && box.querySelectorAll('.qp-item.is-placed').length === 2
+               && box.querySelectorAll('.qp-item').length === 5 && !card.querySelector('textarea, .qp-ans-in, .qp-opt');
+      },
+      wants: 'the real 1F Q4 as an ordering: 0.03 and 0.1 in the first two slots, their ghosts in the row under it, three slots empty, no text box',
+      leave: () => {
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'an ordering, sent right, nothing moved',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
+        if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ORDER_SENT.clear();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
+        window.__qStable = null;
+        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const run = () => {
+          if (!box()) return false;
+          /* AND FILLING IT MOVES NOTHING EITHER: every slot, and the row of items where the finger is,
+             measured before the first tap and after the last -- the strip is one shape throughout. */
+          const shape = () => [...box().querySelectorAll('.qp-slot')].map(s => { const r = s.getBoundingClientRect(); return [r.left, r.top, r.width]; })
+            .concat([[0, box().querySelector('.qp-items').getBoundingClientRect().top, 0]]);
+          const shape0 = shape();
+          [3, 4, 5, 2, 1].forEach(n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); });
+          const card = box().closest('.qcard');
+          const at = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
+                            box().querySelector('.qp-slots').getBoundingClientRect().top,
+                            box().querySelector('.qp-verdict').getBoundingClientRect().top,
+                            card.getBoundingClientRect().height];
+          const a = at();
+          box().querySelector('.qp-order-send').click();
+          window.__qStable = { a, b: at(), fill: [shape0, shape()] };
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const s = window.__qStable;
+        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        return !!s && !!box && box.classList.contains('is-right')
+               && (box.querySelector('.qp-verdict') || {}).textContent === 'Correct'
+               && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5)
+               && s.fill[0].length === s.fill[1].length
+               && s.fill[0].every((p, i) => p.every((v, j) => Math.abs(v - s.fill[1][i][j]) < 0.5));
+      },
+      wants: 'the right order sent and marked Correct, with the question, the strip, the verdict line and the card\'s height where they were, and every slot and the items where they were before the first tap',
+      leave: () => {
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        ORDER_SENT.clear();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     { name: 'a tapped answer, not yet, nothing moved',

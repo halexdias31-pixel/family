@@ -604,6 +604,69 @@ ROWS.forEach(([id, typed, want, why]) => {
     id, typed, r ? r.accept : '', String(got), String(want), why);
 });
 
+/* ---------- AN ORDERING IS MARKED BY ITS ORDER --------------------------------------------------------
+   `markOrder_` IS THE OTHER MARKER, and it exists because `markAnswer_` cannot do this: it reads a typed
+   list as a set, so any order of the right items was right (docs/history/303). Cut out of find.js by
+   the same extractor and run on its own, for the reason at the top of this file -- a copy here would be
+   a second opinion about what a right order is. The row is positions, `3,4,5,2,1` the 3rd item first.
+
+   ITS ONE FAULT THAT MATTERS IS THE SAME ONE: an order that is right marked wrong. So the alternatives
+   a scheme allows where two values are equal are cases, and the library's own rows are swept below. */
+const { cutFrom } = require('./check-marks-load.js');
+const orderSrc = cutFrom(src, 'markOrder_');
+if (!orderSrc) {
+  console.log('check-marking: cannot find markOrder_ in find.js — renamed? No ordering was marked.');
+  process.exit(1);
+}
+eval(orderSrc);
+const Q4 = '3,4,5,2,1';   /* June 2024 1F Q4: 0.21 0.2 0.03 0.1 0.16, smallest first */
+const ORDERS = [
+  ['3,4,5,2,1', Q4, true, 'June 2024 1F Q4, smallest first: 0.03, 0.1, 0.16, 0.2, 0.21'],
+  ['1,2,5,4,3', Q4, false, 'the same row reversed, largest under "smallest"'],
+  ['4,3,5,2,1', Q4, false, 'one swap at the front: 0.1 before 0.03'],
+  ['3,4,2,5,1', Q4, false, 'one swap in the middle: 0.2 before 0.16, the trap the question sets'],
+  ['3,4,5,1,2', Q4, false, 'one swap at the end'],
+  ['1,2,3,4,5', Q4, false, 'the paper’s own order, untouched — what the set-marker passed'],
+  ['3,4,5,2', Q4, null, 'four of five placed is not an answer yet'],
+  ['3,,5,2,1', Q4, null, 'nor is a row with a hole in it'],
+  ['', Q4, null, 'nor an empty row'],
+  ['3,4,5,2,1', '', null, 'and with no right order there is nothing to mark against'],
+  ['1,2,3', '2,1,3 | 1,2,3', true, 'two equal values: the second order the scheme allows'],
+  ['2,1,3', '2,1,3 | 1,2,3', true, 'and the first'],
+  ['3,1,2', '2,1,3 | 1,2,3', false, 'and not a third'],
+  ['3,4,5,2,1', [[3, 4, 5, 2, 1]], true, 'the loader’s arrays (`choiceWays`)'],
+  ['2,1,3', [[2, 1, 3], [1, 2, 3]], true, 'and its alternatives'],
+  ['3,4,5,2,1', ' 3, 4, 5, 2, 1 ', true, 'a cell written with spaces'],
+];
+let orderBad = 0;
+ORDERS.forEach(([seq, ways, want, why]) => {
+  const got = markOrder_(seq, ways);
+  if (got === want) return;
+  orderBad++;
+  console.log('  markOrder_(%j, %j) — marked %s, should be %s   (%s)', seq, ways, String(got), String(want), why);
+});
+/* EVERY ORDERING IN THE LIBRARY, three ways: each order its cell lists is right; the row reversed is
+   wrong unless the cell lists it too; and every single swap of two neighbours is wrong unless the
+   cell lists that. A cell that cannot mark its own order right marks nobody right, ever. */
+const ORDER_ROWS = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'questions.json'), 'utf8'))
+  .filter(r => r && r.kind === 'question' && String(r.answer_type || '').trim() === 'order');
+const orderLib = { ways: 0, wrong: 0, bad: [] };
+ORDER_ROWS.forEach(r => {
+  const ways = String(r.choice_right || '').split('|').map(w => w.split(',').map(t => t.trim()).join(',')).filter(Boolean);
+  ways.forEach(w => {
+    orderLib.ways++;
+    if (markOrder_(w, r.choice_right) !== true) orderLib.bad.push(r.row_id + ': its own order ' + w + ' is marked ' + markOrder_(w, r.choice_right));
+    const p = w.split(',');
+    const tries = [p.slice().reverse()];
+    for (let i = 0; i + 1 < p.length; i++) { const s = p.slice(); [s[i], s[i + 1]] = [s[i + 1], s[i]]; tries.push(s); }
+    tries.map(t => t.join(',')).filter(t => ways.indexOf(t) === -1).forEach(t => {
+      orderLib.wrong++;
+      if (markOrder_(t, r.choice_right) !== false) orderLib.bad.push(r.row_id + ': ' + t + ', not an order its cell lists, is marked ' + markOrder_(t, r.choice_right));
+    });
+  });
+});
+orderLib.bad.slice(0, 20).forEach(x => console.log('  ' + x));
+
 /* ---------- AND IN TIME ------------------------------------------------------------------------------
    `MARK_UNIT` USED TO TAKE SECONDS OVER A SENTENCE. Its unit was `[a-z][a-z0-9]*` repeated with
    nothing required between repeats, so `because` could be read as one unit, or `b` + `ecause`, or
@@ -621,17 +684,20 @@ const took = Date.now() - t0;
 const slow = took > 400;
 if (slow) console.log('  marking %j took %d ms — a unit is being read more than one way again', SLOW, took);
 
-if (bad || normBad || lib.bad.length || rowBad || slow) {
+if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length) {
   console.log('\n%d of %d marking cases wrong, %d of %d markNorm_ cases, %d in the library sweep, %d of %d\n' +
-    'named rows, and the long answer took %d ms. Every one of these is a child being told the wrong\n' +
-    'thing about their own work, so this fails the build.',
-    bad, CASES.length, normBad, NORMS.length, lib.bad.length, rowBad, ROWS.length, took);
+    'named rows, %d of %d orderings and %d in the orderings sweep, and the long answer took %d ms. Every one\n' +
+    'of these is a child being told the wrong thing about their own work, so this fails the build.',
+    bad, CASES.length, normBad, NORMS.length, lib.bad.length, rowBad, ROWS.length,
+    orderBad, ORDERS.length, orderLib.bad.length, took);
   process.exit(1);
 }
 console.log('OK — all %d marking cases, %d markNorm_ cases and %d named rows: a right answer is marked\n' +
   '     right, a wrong one wrong. And the library, %d questions: %d units closed up, %d spaced out and\n' +
   '     %d keypad spellings marked right; %d numbers in front of an expression, %d roots and multiples\n' +
   '     of π with what their cell does not name, %d numbers with a power and %d rates in another unit\n' +
-  '     marked wrong; and a long answer marked in %d ms.',
+  '     marked wrong; and a long answer marked in %d ms.\n' +
+  '     Orderings: all %d cases, and the library\'s %d: %d listed orders marked right, %d\n' +
+  '     reversals and single swaps marked wrong.',
   CASES.length, NORMS.length, ROWS.length, LIB.length, lib.glued, lib.spaced, lib.keyed, lib.front,
-  lib.root, lib.power, lib.compound, took);
+  lib.root, lib.power, lib.compound, took, ORDERS.length, ORDER_ROWS.length, orderLib.ways, orderLib.wrong);

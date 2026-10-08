@@ -13337,6 +13337,143 @@ check('a second payload repaints the column in front and leaves the others for w
   return bad;
 });
 
+/* ---------- AN ORDERING IS TAPPED IN ORDER, ON THE REAL CARD ----------------------------------------
+   THE OWNER, 8 Oct, of June 2024 Foundation Paper 1 Q4: *"I would prefer it be like an ordering
+   system?? Idk. But simpler to mark for a machine."* (docs/history/303). The REAL row, out of
+   data/questions.json, through the real loader (library.js) and Find's own `questionItems`, drawn by
+   `questionCard_` and pressed by CLICKS, so the app's own dispatcher and the answers' "send at once"
+   listener are what run: tap, tap a placed one back out of its slot (a hole, nothing slides) and out
+   of its ghost, Clear, Send on an empty strip, the reversed row, one swap, the right row; the verdict
+   in its reserved line and the question not redrawn; the stored positions, on the account at once on
+   Send, the day it was done, drawn again from the store, and a row from another device redrawn where
+   it stands. jsdom lays nothing out -- that marking moves nothing in PIXELS is `check/states.js`'s. */
+check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order, kept on the account and drawn back', async () => {
+  const ID = 'Q-1MA1-2406-1F-4';
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const row = LIB.find(r => r.row_id === ID);
+  if (!row) return [ID + ' is not in data/questions.json — nothing was tapped'];
+  const paper = LIB.filter(r => r.paper_id === row.paper_id);
+  const server = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES.concat(['markDone']) }),
+    reply: ansBackend_(server), serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
+  await wait(300);
+  const need = ansNeed_(w).concat(['orderBox_', 'markOrder_', 'ansRefresh_', 'stuffItemsAll_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? No ordering was checked'];
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  ['qp-place', 'qp-order-clear', 'qp-order-send'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
+  if (bad.length) return bad;
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+  if (!x) return ['the real ' + ID + ' did not come through the loader into Find — nothing was tapped'];
+  /* THE LOADER CARRIED ALL FOUR COLUMNS */
+  const said = JSON.stringify({ t: x.answerType, c: x.choices, w: x.choiceWays, e: x.orderEnds });
+  if (said !== JSON.stringify({ t: 'order', c: ['0.21', '0.2', '0.03', '0.1', '0.16'], w: [[3, 4, 5, 2, 1]], e: ['smallest', 'largest'] })) {
+    bad.push('the loader made the row into ' + said);
+  }
+  const k = w.__t.ansKey(x);
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  let card = host.querySelector('.qcard');
+  const box = () => card.querySelector('.qp-order');
+  if (!box()) return bad.concat(['the card drew no order box: ' + card.innerHTML.replace(/\s+/g, ' ').slice(-240)]);
+  if (card.querySelector('.qp-ans-in, textarea, .qp-opt')) bad.push('the ordering drew a typed box or multiple-choice options as well');
+  const items = () => [...box().querySelectorAll('.qp-items > button.qp-item')];
+  const words = items().map(b => b.textContent.trim()).join(' ');
+  if (words !== '0.21 0.2 0.03 0.1 0.16') bad.push('the items read "' + words + '", wanted the paper\'s order as buttons');
+  const strip = [...box().querySelector('.qp-slots').children];
+  const ends = strip.filter(e => e.classList.contains('qp-end')).map(e => e.textContent.trim());
+  if (ends.join('|') !== 'smallest|largest' || !strip[0].classList.contains('qp-end') || !strip[strip.length - 1].classList.contains('qp-end')) {
+    bad.push('the strip\'s ends are ' + JSON.stringify(ends) + ' — wanted "smallest" before the first slot and "largest" after the last');
+  }
+  const slots = () => [...box().querySelectorAll('.qp-slots > .qp-slot')]
+    .map(s => (s.classList.contains('is-full') ? s.getAttribute('data-n') : '_')).join(' ');
+  const stored = () => w.localStorage.getItem(k) || '';
+  const verdict = () => (box().querySelector('.qp-mark > .qp-verdict') || {}).textContent;
+  const marked = () => ['is-right', 'is-near'].filter(c => box().classList.contains(c)).join(' ');
+  const press = el => { if (!el) { bad.push('a control to press is missing'); return; } el.click(); };
+  const tap = n => press(box().querySelector('.qp-item[data-n="' + n + '"]'));
+  const back = n => press(box().querySelector('.qp-slot.is-full[data-n="' + n + '"]'));
+  const clear = () => press(box().querySelector('.qp-order-clear'));
+  const send = () => press(box().querySelector('.qp-order-send'));
+  if (slots() !== '_ _ _ _ _') bad.push('a fresh card\'s strip reads ' + slots());
+  if (verdict() !== '') bad.push('no reserved verdict line under the items before marking — the verdict would arrive as a new line');
+  const sendT = box().querySelector('.qp-order-send');
+  if (!sendT || !sendT.matches('.qp-mark > .tile.is-send[data-do="qp-order-send"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not the gold send tile on the verdict line');
+  /* THE QUESTION ABOVE IS NEVER REDRAWN -- the nodes, their markup, and the card's blocks. */
+  const sheet = card.querySelector('.qsheet'), tags = card.querySelector('.qcard-tags');
+  const sheetHtml = sheet.outerHTML, blocks = [...card.children].map(c => c.classList[0]).join(',');
+  const unmoved = when => {
+    if (card.querySelector('.qsheet') !== sheet || sheet.outerHTML !== sheetHtml || card.querySelector('.qcard-tags') !== tags) bad.push(when + ': the question was redrawn');
+    if ([...card.children].map(c => c.classList[0]).join(',') !== blocks) bad.push(when + ': the card\'s blocks changed');
+  };
+  /* TAP: the first empty slot, and a ghost left where it was */
+  tap(3);
+  if (slots() !== '3 _ _ _ _' || stored() !== '3') bad.push('tapping 0.03 left the strip ' + slots() + ' and stored "' + stored() + '"');
+  const ghost = box().querySelector('.qp-item[data-n="3"]');
+  if (!ghost || !ghost.classList.contains('is-placed') || ghost.getAttribute('aria-pressed') !== 'true') bad.push('a placed item does not say so in the row under the strip');
+  if (items().length !== 5) bad.push('placing an item took it out of the row under the strip — the row closes up under the finger');
+  tap(4); tap(5);
+  if (slots() !== '3 4 5 _ _' || stored() !== '3,4,5') bad.push('three taps left ' + slots() + ', stored "' + stored() + '"');
+  /* UNTAP FROM ITS SLOT: a hole where it was, nothing slides, and the next tap fills the hole */
+  back(4);
+  if (slots() !== '3 _ 5 _ _' || stored() !== '3,,5') bad.push('taking 0.1 back out of its slot left ' + slots() + ', stored "' + stored() + '" — wanted a hole where it was, "3,,5"');
+  tap(4);
+  if (slots() !== '3 4 5 _ _') bad.push('the next tap did not fill the hole: ' + slots());
+  /* UNTAP FROM ITS GHOST */
+  tap(5);
+  if (slots() !== '3 4 _ _ _' || stored() !== '3,4') bad.push('tapping the ghost of 0.16 left ' + slots() + ', stored "' + stored() + '"');
+  /* CLEAR */
+  clear();
+  if (slots() !== '_ _ _ _ _' || stored() !== '' || box().querySelector('.qp-item.is-placed')) bad.push('Clear left ' + slots() + ', stored "' + stored() + '"');
+  if (!box().querySelector('.qp-order-clear[disabled]')) bad.push('Clear on an empty strip is still pressable — a control that does nothing');
+  /* SEND, EMPTY: not a verdict */
+  send();
+  if (!/^Put all 5 in the row first$/.test(verdict()) || marked()) bad.push('Send on an empty strip said "' + verdict() + '" (' + (marked() || 'unmarked') + ') — wanted "Put all 5 in the row first", which is not a verdict');
+  /* THE ROW REVERSED: largest under "smallest" */
+  [1, 2, 5, 4, 3].forEach(tap);
+  if (verdict()) bad.push('placing items left "' + verdict() + '" on a row that has changed');
+  send();
+  if (verdict() !== 'Not yet — have another go' || marked() !== 'is-near') bad.push('the reversed row was marked "' + verdict() + '" (' + marked() + ')');
+  unmoved('after a wrong Send');
+  /* MOVING ONE TAKES THE VERDICT OFF */
+  back(3);
+  if (verdict() || marked()) bad.push('taking an item back left the old verdict, "' + verdict() + '", on a row that has changed');
+  /* ONE SWAP */
+  clear();
+  [4, 3, 5, 2, 1].forEach(tap);
+  send();
+  if (verdict() !== 'Not yet — have another go') bad.push('one swap (0.1 before 0.03) was marked "' + verdict() + '"');
+  /* RIGHT */
+  clear();
+  const asked = sent.length;
+  [3, 4, 5, 2, 1].forEach(tap);
+  send();
+  if (verdict() !== 'Correct' || marked() !== 'is-right') bad.push('0.03, 0.1, 0.16, 0.2, 0.21 was marked "' + verdict() + '" (' + marked() + ')');
+  if (stored() !== '3,4,5,2,1') bad.push('the right row is stored as "' + stored() + '", wanted "3,4,5,2,1"');
+  unmoved('after a right Send');
+  if (card.querySelector('.qans')) bad.push('a right order put the answer on the question card');
+  /* ON THE ACCOUNT AT ONCE, AND THE DAY IT WAS DONE */
+  await wait(80);
+  const up = sent.slice(asked).filter(b => b.action === 'saveAnswers')
+    .map(b => (b.items || []).find(it => it.key === 'ans:q:' + ID)).filter(Boolean).pop();
+  if (!up || up.v !== '3,4,5,2,1') bad.push('Send did not put the row on the account at once: ' + JSON.stringify(up || null));
+  if (!sent.some(b => b.action === 'markDone' && JSON.stringify(b.items || []).indexOf(ID) !== -1)) bad.push('placing and sending the order did not record the day it was done (markDone)');
+  /* DRAWN AGAIN FROM THE STORE: the row and, while it is the row that was sent, its verdict */
+  host.innerHTML = w.questionCard_(x, 0);
+  card = host.querySelector('.qcard');
+  if (slots() !== '3 4 5 2 1' || verdict() !== 'Correct') bad.push('drawn again the strip reads ' + slots() + ' and "' + verdict() + '"');
+  /* A ROW FROM ANOTHER DEVICE, redrawn where it stands, and the old verdict goes with the old row */
+  server['ans:q:' + ID] = { v: '2,1', at: Date.now() + 60000 };
+  const ok = await w.answersPull_(true);
+  if (!ok) bad.push('the read from the account did not land');
+  if (slots() !== '2 1 _ _ _' || stored() !== '2,1') bad.push('the account\'s "2,1" did not reach the strip: ' + slots() + ', stored "' + stored() + '"');
+  if (verdict()) bad.push('a row from another device kept the verdict about the old one: "' + verdict() + '"');
+  if (host.querySelectorAll('.qp-saved[data-k="' + k + '"]').length !== 1) bad.push('a redraw left two saved lines under the strip');
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;

@@ -674,7 +674,18 @@ function libraryInto_(d, rows) {
          `choice_right` is the 1-based positions the mark scheme credits, a comma for "tick two".
          Positions rather than option text, so marking is exact and folds nothing. See `choiceBox_`. */
       choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
-      choiceRight: libS(r.choice_right).split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
+      /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE --------------------------------
+         `answer_type: order` (see `orderBox_`): `choices` are the items in the order the paper prints
+         them, and `choice_right` is the right ORDER -- `3,4,5,2,1`, the 3rd item first -- and, where
+         equal values make more than one order right, the others after a pipe: `2,1,3 | 1,2,3`.
+         `choiceRight` is the FIRST of them, so a multiple-choice row (which never has a pipe) reads
+         exactly as it did; `choiceWays` keeps every one, because an alternative dropped here is a
+         right answer marked wrong. `order_ends` is the row's two ends in the question's own words,
+         first end first -- "smallest | largest". */
+      choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
+      choiceWays: libS(r.choice_right).split('|')
+        .map(w => w.split(',').map(t => parseInt(t, 10)).filter(n => n > 0)).filter(w => w.length),
+      orderEnds: libS(r.order_ends).split('|').map(t => t.trim()).filter(Boolean),
       /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. `needs_print` is True on 252 rows and
          `print_required` on 104, and **not one row is True in both** — two imports over two
          subsets, neither ever given the other's rows. `find.js` noticed and said so where the

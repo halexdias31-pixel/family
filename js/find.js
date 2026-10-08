@@ -6329,6 +6329,8 @@ function questionItems() {
       uses: r.uses || '',
       accept: r.accept || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
+      /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
+      choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
       examinerNote: r.examinerNote || '',
       /* EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST — see `preamble_`. It was one stem or
          none; a list is what makes an AQA source text and a question's own scene-setting the same
@@ -7388,6 +7390,9 @@ function markAnswer_(typed, accept, again) {
    DRAWN FROM THE STORED PICK, never left on the element by the handler: a repaint rebuilds the
    card, and a mark the handler added would go while the answer stayed — the `REEL_HELD` fault. */
 function choiceBox_(x) {
+  /* AN ORDERING HAS `choices` TOO, and they are not options to pick one of: every one is used, and the
+     answer is the order. Its own box, below (`orderBox_`). */
+  if (orderIs_(x)) return orderBox_(x);
   const k = ansKey_(x);
   const right = (x.choiceRight || []).slice().sort((a, b) => a - b);
   const need = Math.max(1, right.length);
@@ -7457,6 +7462,206 @@ function choiceRedraw_(box) {
   }
   box.replaceWith(...wrap.childNodes);
 }
+
+/* ==================================================================================================
+   AN ORDERING IS TAPPED IN ORDER, NOT TYPED.
+
+   THE OWNER, 8 Oct, of June 2024 Foundation Paper 1 Q4 -- "Write these numbers in order of size. Start
+   with the smallest number. 0.21 0.2 0.03 0.1 0.16" -- after a pupil met it: *"as you can see there are
+   multiple answers. I would prefer it be like an ordering system?? Idk. But simpler to mark for a
+   machine."*
+
+   WHY A BOX COULD NOT DO IT. `markParts_` reads a typed list as a SET: right for "list the factors of
+   12", exactly wrong where the order IS the answer -- the question's own list, copied out unsorted, was
+   marked right. So 299 cleared the `accept` of every ordering (045's rule, "an ordering has no
+   accept"), and the card became words nobody could mark. And a list typed into a box has a dozen
+   spellings -- commas, spaces, "and", 0.10 for 0.1 -- each one a way for a marker to be wrong.
+
+   SO THE ITEMS ARE BUTTONS AND THE ANSWER IS THE ORDER THEY GO IN. A strip of numbered slots, the
+   question's own two ends written at its two ends ("smallest" ... "largest"), and the items under it in
+   the order the paper prints them. A tap puts an item in the first empty slot; a tap on a placed one --
+   in its slot, or the ghost it left in the row underneath -- takes it back and leaves its slot empty,
+   so nothing else slides under the finger. Clear puts them all back.
+
+   BUTTONS, NOT TILES, for the reason `choiceBox_`'s options are: an item is the answer being given, not
+   an action done to it (CLAUDE.md). Clear and Send ARE actions on it, so they are tiles.
+
+   MARKED ON SEND, POSITIONS AGAINST POSITIONS (`markOrder_`): right only when the row is one of the
+   orders `choice_right` lists, so nothing is folded and nothing is guessed. A row with a slot still
+   empty is not an answer, and Send says so rather than awarding a "not yet" -- the rule "Write
+   something first" makes for an empty box. A miss can be rearranged and sent again, as a typed answer
+   can: unlike three options, a hundred and twenty orders are not a thing anybody finds by elimination.
+
+   STORED AS ITS POSITIONS under the card's `ansKey_` -- `3,4,5,2,1`, or `3,,5` with a hole -- through
+   `ansStore_`, so it goes to the account and comes back on another device like a pick does
+   (`ansRefresh_` redraws it), the line under it says where it went, and the first item placed is the
+   day you did it (`doneMark_`), as the first letter typed is.
+
+   DRAWN FROM THE STORE, every time, never patched by the handler -- the `REEL_HELD` rule `choiceBox_`
+   keeps. The verdict is the one thing not in the store: what was SENT is held for the visit
+   (`ORDER_SENT`), and the verdict is drawn only while the row is still the row that was sent. Move one
+   item and it goes, the way typing takes a verdict off the box. */
+const ORDER_SENT = new Map();
+
+function orderIs_(x) {
+  return !!x && String(x.answerType || '').trim().toLowerCase() === 'order'
+    && Array.isArray(x.choices) && x.choices.length >= 2;
+}
+
+/* THE STORED ROW READ BACK AS n PLACES, 0 FOR AN EMPTY ONE. Anything that is not one of the n items, or
+   is an item already placed, is an empty place rather than a throw: the value came off a phone. */
+function orderSeq_(v, n) {
+  const out = [], seen = new Set();
+  String(v == null ? '' : v).split(',').slice(0, n).forEach(t => {
+    const m = parseInt(t, 10);
+    const ok = m >= 1 && m <= n && !seen.has(m);
+    if (ok) seen.add(m);
+    out.push(ok ? m : 0);
+  });
+  while (out.length < n) out.push(0);
+  return out;
+}
+/* AND WRITTEN: `3,,5` for a hole, nothing after the last placed item, '' for an empty row. */
+function orderSay_(seq) {
+  const s = seq.map(m => (m ? String(m) : ''));
+  while (s.length && s[s.length - 1] === '') s.pop();
+  return s.join(',');
+}
+/* EVERY RIGHT ORDER THE ROW KNOWS. `choiceWays` from the loader; a card built by hand with only
+   `choiceRight` is one order. */
+function orderWays_(x) {
+  const ways = (x && x.choiceWays) || [];
+  if (ways.length) return ways;
+  return x && (x.choiceRight || []).length ? [x.choiceRight] : [];
+}
+
+/* ---------- MARKING AN ORDER --------------------------------------------------------------------------
+   `seq` is the row as stored (`3,4,5,2,1`) and `ways` every order that is right -- a `choice_right`
+   cell (`2,1,3 | 1,2,3`) or the loader's arrays. TRUE when the row IS one of them; FALSE when every
+   place is filled and it is none of them; NULL when there is nothing to mark against or a place is
+   still empty, which is not an answer yet. Self-contained, so `check-marking.js` can cut it out and run
+   it, as it runs `markAnswer_`. */
+function markOrder_(seq, ways) {
+  const list = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split(',')).map(t => String(t).trim());
+  const alts = (Array.isArray(ways) ? ways : String(ways == null ? '' : ways).split('|'))
+    .map(w => list(w).filter(Boolean).map(t => String(parseInt(t, 10))).join(','))
+    .filter(Boolean);
+  if (!alts.length) return null;
+  const got = list(seq);
+  if (got.length < alts[0].split(',').length || got.some(t => t === '')) return null;
+  return alts.indexOf(got.map(t => String(parseInt(t, 10))).join(',')) !== -1;
+}
+
+function orderBox_(x) {
+  const k = ansKey_(x);
+  const n = x.choices.length;
+  const seq = orderSeq_(ansRead_(k), n);
+  const said = orderSay_(seq);
+  const ways = orderWays_(x);
+  /* THE QUESTION'S OWN WORDS FOR ITS ENDS, and a neutral pair where the row has none --
+     `check-library.js` fails such a row, and the box still has to make sense while it does. */
+  const ends = (x.orderEnds || []).length === 2 ? x.orderEnds : ['first', 'last'];
+  const sent = ORDER_SENT.get(k) === said;
+  const verdict = sent ? markOrder_(said, ways) : undefined;
+  const cls = verdict === true ? ' is-right' : verdict === false ? ' is-near' : '';
+  const say = !sent ? ''
+    : verdict === null ? 'Put all ' + n + ' in the row first'
+    : verdict ? 'Correct' : 'Not yet — have another go';
+  const placed = new Set(seq.filter(Boolean));
+  /* EVERY SLOT AS WIDE AS THE WIDEST ITEM, EMPTY OR FULL, so the strip is the same shape from the first
+     tap to the last. Sized to what it held, an empty slot was 44px and a full one as wide as its
+     number, so every tap pushed the slots after it along -- including the one the finger was going to
+     next -- and at 320 the strip wrapped one way empty and another way full, dropping the row of items
+     16px under the finger (measured, `check/states.js`). Counted in characters, because the face is
+     monospaced (`--font`); an entity counts as one, so a stacked fraction is over-counted, which only
+     errs wide. The stylesheet caps it at the strip's width. */
+  const wide = Math.max(1, ...x.choices.map(c => String(c).replace(/<[^>]*>/g, '')
+    .replace(/&[a-z0-9#]+;/gi, '_').replace(/\s+/g, ' ').trim().length));
+  /* A PLACED ITEM IS A BUTTON IN ITS SLOT, to take it back; an empty slot is a numbered space and not a
+     button, because pressing it does nothing. Its number stays on it once it is filled, small, so a row
+     that has wrapped at 320 still reads 1 to n. */
+  const slots = seq.map((m, i) => (m
+    ? `<button type="button" class="qp-slot is-full" data-do="qp-place" data-n="${m}"><span class="qp-slot-i">${i + 1}</span>${typeset_(x.choices[m - 1])}</button>`
+    : `<span class="qp-slot"><span class="qp-slot-i">${i + 1}</span></span>`)).join('');
+  /* THE ITEMS STAY WHERE THE PAPER PRINTS THEM. A placed one is a ghost of itself, the same size in the
+     same place, so the row under the finger never closes up -- and pressing the ghost takes it back. */
+  const items = x.choices.map((c, i) => {
+    const on = placed.has(i + 1);
+    return `<button type="button" class="qp-item${on ? ' is-placed' : ''}" data-do="qp-place" data-n="${i + 1}"
+      aria-pressed="${on}">${typeset_(c)}</button>`;
+  }).join('');
+  /* THE VERDICT'S LINE IS RESERVED AND THE TILES SIT IN IT, so "Correct" lands in a space that was already
+     there and marking moves nothing (261). No Send where no order is right: a Send that marks nothing is
+     the control that sometimes does nothing. */
+  const clear = tile_({ icon: 'bin', label: 'Clear', note: 'put them all back', act: 'qp-order-clear', cls: 'qp-order-clear', off: !placed.size });
+  const send = ways.length ? tile_({ icon: 'send', label: 'Send', note: 'mark the order', act: 'qp-order-send', cls: 'qp-order-send', tone: 'send' }) : '';
+  return `<div class="qp-order${cls}" data-k="${esc(k)}" data-n="${n}">
+    <div class="qp-slots" role="group" style="--qp-ch:${wide}" aria-label="${esc('Your order, ' + ends[0] + ' to ' + ends[1])}">
+      <span class="qp-end">${esc(ends[0])}</span>${slots}<span class="qp-end">${esc(ends[1])}</span>
+    </div>
+    <div class="qp-items">${items}</div>
+    <div class="qp-mark${cls}">
+      <span class="qp-verdict" role="status" aria-live="polite">${esc(say)}</span>${clear}${send}
+    </div>
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
+  </div>`;
+}
+
+/* DRAWN AGAIN FROM THE STORE, where it stands -- a tap, Clear and Send do this, and so does a row arriving
+   from the account on another device (`ansRefresh_`, js/answers.js). `focus` is the control to hand the
+   focus back to, so a keyboard is not dropped onto the page by the redraw. */
+function orderRedraw_(box, focus) {
+  const k = box && box.getAttribute('data-k');
+  const x = k && stuffItemsAll_().find(it => ansKey_(it) === k);
+  if (!x || !orderIs_(x)) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = orderBox_(x);
+  const next = wrap.firstElementChild;
+  box.replaceWith(next);
+  const f = focus && next.querySelector(focus);
+  if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} }
+}
+const orderOf_ = el => {
+  const box = el && el.closest('.qp-order');
+  const k = box && box.getAttribute('data-k');
+  const n = box ? +box.getAttribute('data-n') || 0 : 0;
+  return k && n ? { box, k, n, seq: orderSeq_(ansRead_(k), n), had: document.activeElement === el } : null;
+};
+
+on('qp-place', (el) => {
+  const o = orderOf_(el);
+  const m = +el.getAttribute('data-n');
+  if (!o || !(m >= 1 && m <= o.n)) return;
+  const at = o.seq.indexOf(m);
+  if (at !== -1) o.seq[at] = 0;
+  else {
+    const free = o.seq.indexOf(0);
+    if (free === -1) return;
+    o.seq[free] = m;
+  }
+  /* THROUGH `ansStore_`, the one writer -- kept here, and on the account a moment later. */
+  ansStore_(o.k, orderSay_(o.seq));
+  if (o.seq.some(Boolean)) doneMark_(o.k);
+  orderRedraw_(o.box, o.had ? '.qp-item[data-n="' + m + '"]' : '');
+});
+
+on('qp-order-clear', (el) => {
+  const o = orderOf_(el);
+  if (!o) return;
+  ansStore_(o.k, '');
+  orderRedraw_(o.box, o.had ? '.qp-item[data-n="1"]' : '');
+});
+
+on('qp-order-send', (el) => {
+  const o = orderOf_(el);
+  if (!o) return;
+  const said = orderSay_(o.seq);
+  ORDER_SENT.set(o.k, said);
+  /* MARKED IS DONE, right or not yet -- and a row with a place still empty is neither. */
+  const x = stuffItemsAll_().find(it => ansKey_(it) === o.k);
+  if (x && markOrder_(said, orderWays_(x)) !== null) doneMark_(o.k);
+  orderRedraw_(o.box, o.had ? '.qp-order-send' : '');
+});
 
 on('qp-choose', (el) => {
   const box = el.closest('.qp-choices');

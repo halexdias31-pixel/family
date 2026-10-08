@@ -100,7 +100,9 @@ const VOCAB = {
   exam_wave:     ['First wave', 'Second wave',
                   '2017-06-01', '2018-06-01', '2019-06-01', '2020-06-01',
                   '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
-  answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'proof', 'short', 'written'],
+  /* `order` IS AN ORDERING -- items tapped into slots, marked by their order (see the rule for it below
+     and `orderBox_` in find.js). A value of its own because it draws a different box. */
+  answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'order', 'proof', 'short', 'written'],
   /* WHAT A MARK IS MADE ON -- squared paper, axes, a blank space, or the passage itself. A closed list
      because each is a different drawing (`surfaceSvg_`) or a different behaviour (`circWords_`), and a
      fifth spelling would draw as nothing. */
@@ -1114,7 +1116,9 @@ let choiceRows = 0;
 rows.forEach(r => {
   if (!r || (!r.choices && !r.choice_right)) return;
   const ch = String(r.choices || '').split('|').map(t => t.trim()).filter(Boolean);
-  const right = String(r.choice_right || '').split(',').map(t => t.trim()).filter(Boolean);
+  /* BY COMMA AND BY PIPE: an ordering's `choice_right` may list more than one order (`2,1,3 | 1,2,3`),
+     and every position in every one of them must still be one of the taps. */
+  const right = String(r.choice_right || '').split(/[,|]/).map(t => t.trim()).filter(Boolean);
   if (r.choices) choiceRows++;
   if (r.kind !== 'question') fail.push(r.row_id + ' carries `choices` and is not a question row');
   else if (ch.length < 2) fail.push(r.row_id + ' has `choices` with fewer than two options, so there is nothing to choose between');
@@ -1125,6 +1129,45 @@ rows.forEach(r => {
   });
 });
 console.log('multiple-choice questions drawn as taps: ' + choiceRows);
+
+/* ---------- AN ORDERING IS ITS ITEMS, THE ORDERS THAT ARE RIGHT, AND ITS TWO ENDS --------------------
+   `answer_type: order` draws the items as buttons tapped into numbered slots and marks the ORDER
+   (`orderBox_`, `markOrder_`). Four things make one that nobody can get right, or that marks wrong:
+
+     fewer than two items       there is nothing to put in order
+     an order that is not each  `choice_right` names the places, first place first; an order with an
+     item exactly once          item missing, twice, or past the end is an order nobody can tap
+     not two ends               the strip's "smallest" ... "largest" is what says which way it reads,
+                                and a box with no ends is the question asked without its direction
+     an `accept`                `markParts_` reads a typed list as a SET, so it would mark any order of
+                                the right items right -- 045's "an ordering has no accept"
+
+   And the other way: `order_ends` on a row that is not an ordering is a column nothing draws. */
+let orderRows = 0;
+rows.forEach(r => {
+  if (!r) return;
+  const isOrder = String(r.answer_type || '').trim() === 'order';
+  if (!isOrder) {
+    if (String(r.order_ends || '').trim()) fail.push(r.row_id + ' has `order_ends` and is not an ordering (`answer_type: order`) — nothing draws them');
+    return;
+  }
+  orderRows++;
+  const ch = String(r.choices || '').split('|').map(t => t.trim()).filter(Boolean);
+  const ways = String(r.choice_right || '').split('|').map(w => w.trim()).filter(Boolean);
+  const ends = String(r.order_ends || '').split('|').map(t => t.trim()).filter(Boolean);
+  if (r.kind !== 'question') fail.push(r.row_id + ' is an ordering and not a question row');
+  if (ch.length < 2) fail.push(r.row_id + ' is an ordering of ' + ch.length + ' item(s) — there is nothing to put in order');
+  if (!ways.length) fail.push(r.row_id + ' is an ordering with no `choice_right` — no order is right, so nobody can be');
+  ways.forEach(w => {
+    const p = w.split(',').map(t => t.trim());
+    const whole = p.length === ch.length && p.every(t => /^\d+$/.test(t))
+      && p.map(Number).sort((a, b) => a - b).every((v, i) => v === i + 1);
+    if (!whole) fail.push(r.row_id + ' lists the order "' + w + '", which is not its ' + ch.length + ' items each once (1 to ' + ch.length + ')');
+  });
+  if (ends.length !== 2) fail.push(r.row_id + ' has `order_ends` "' + String(r.order_ends || '') + '" — wanted the two ends, first end first: "smallest | largest"');
+  if (String(r.accept || '').trim()) fail.push(r.row_id + ' is an ordering with an `accept` — the marker reads a typed list as a set, so any order of the right items would be marked right');
+});
+console.log('orderings tapped in order: ' + orderRows);
 
 /* ---------- SAY IT --------------------------------------------------------------------------------- */
 const say = (title, list, draw) => {

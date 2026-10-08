@@ -420,6 +420,10 @@ function ansRefresh_(keys) {
     document.querySelectorAll('.qp-choices[data-k]').forEach(box => {
       if (has(box.getAttribute('data-k')) && typeof choiceRedraw_ === 'function') choiceRedraw_(box);
     });
+    /* AN ORDERING'S ROW, drawn again from the store by `orderBox_` exactly as a tap does. */
+    document.querySelectorAll('.qp-order[data-k]').forEach(box => {
+      if (has(box.getAttribute('data-k')) && typeof orderRedraw_ === 'function') orderRedraw_(box, '');
+    });
     document.querySelectorAll('.qpad[data-k]').forEach(pad => {
       const k = pad.getAttribute('data-k');
       if (has(k) && typeof padRepaint_ === 'function') padRepaint_(pad, padRead_(k));
@@ -485,9 +489,9 @@ function padKeptSay_() {
 }
 
 /* ---------- WHEN IT SENDS AT ONCE ------------------------------------------------------------------------
-   LEAVING A BOX, which is the moment a child has finished with it. AFTER CHECK, A PICK OR "MARK WITH AI"
-   — this listener is added after the app's own click dispatcher (shell.js), so the handler has stored the
-   answer by the time this runs. AND THE APP GOING AWAY: `visibilitychange` to hidden is the last event an
+   LEAVING A BOX, which is the moment a child has finished with it. AFTER CHECK, A PICK, AN ORDER SENT OR
+   "MARK WITH AI" — this listener is added after the app's own click dispatcher (shell.js), so the handler
+   has stored the answer by the time this runs. AND THE APP GOING AWAY: `visibilitychange` to hidden is the last event an
    iPad reliably sends when the cover closes or the Home Screen is pressed, and `pagehide` is the one a
    tab closing sends — both with `keepalive`. */
 document.addEventListener('focusout', e => {
@@ -495,7 +499,7 @@ document.addEventListener('focusout', e => {
   if (el) answersPush_(true);
 });
 document.addEventListener('click', e => {
-  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-ai"]');
+  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-ai"]');
   if (t) answersPush_(true);
 });
 document.addEventListener('visibilitychange', () => {
