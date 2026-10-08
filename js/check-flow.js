@@ -13342,17 +13342,27 @@ check('a second payload repaints the column in front and leaves the others for w
    system?? Idk. But simpler to mark for a machine."* (docs/history/303). The REAL row, out of
    data/questions.json, through the real loader (library.js) and Find's own `questionItems`, drawn by
    `questionCard_` and pressed by CLICKS, so the app's own dispatcher and the answers' "send at once"
-   listener are what run: tap, tap a placed one back out of its slot (a hole, nothing slides) and out
-   of its ghost, Clear, Send on an empty strip, the reversed row, one swap, the right row; the verdict
-   in its reserved line and the question not redrawn; the stored positions, on the account at once on
-   Send, the day it was done, drawn again from the store, and a row from another device redrawn where
-   it stands. jsdom lays nothing out -- that marking moves nothing in PIXELS is `check/states.js`'s. */
+   listener are what run: tap, tap a placed one back out of its slot (a hole, nothing slides), its
+   ghost pressed and nothing happening (a double-tap undid itself), the keyboard's focus handed on,
+   Clear, Send on an empty strip, the reversed row, one swap, the right row; the verdict in its
+   reserved line and the question not redrawn; the stored positions, on the account at once on Send,
+   the day it was done, drawn again from the store, and a row from another device redrawn where it
+   stands. And a typed list left under the same key from before, which must draw an empty strip.
+
+   AND A SECOND, MADE-UP ROW WITH TWO RIGHT ORDERS (`2,1,3 | 1,2,3`), served beside Q4, because no
+   library row has two yet and so nothing proved the loader keeps the second: changed to keep only the
+   first, this journey, check-library and check-marking all stayed green (check-marking feeds
+   `markOrder_` hand-written arrays, never the loader's). The second order, tapped and sent, must say
+   "Correct". jsdom lays nothing out -- that marking moves nothing in PIXELS is `check/states.js`'s. */
 check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order, kept on the account and drawn back', async () => {
   const ID = 'Q-1MA1-2406-1F-4';
   const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
   const row = LIB.find(r => r.row_id === ID);
   if (!row) return [ID + ' is not in data/questions.json — nothing was tapped'];
-  const paper = LIB.filter(r => r.paper_id === row.paper_id);
+  const TIE = 'Q-1MA1-2406-1F-4-TIE';
+  const paper = LIB.filter(r => r.paper_id === row.paper_id).concat([Object.assign({}, row, {
+    row_id: TIE, question: '4x', html: '<p>Write these in order of size. Start with the smallest.</p>',
+    choices: '0.5 | <sup>1</sup>&frasl;<sub>2</sub> | 0.7', choice_right: '2,1,3 | 1,2,3', answer: '<b>0.5, &frac12;, 0.7</b>' })]);
   const server = {};
   const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES.concat(['markDone']) }),
     reply: ansBackend_(server), serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
@@ -13382,11 +13392,15 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   const items = () => [...box().querySelectorAll('.qp-items > button.qp-item')];
   const words = items().map(b => b.textContent.trim()).join(' ');
   if (words !== '0.21 0.2 0.03 0.1 0.16') bad.push('the items read "' + words + '", wanted the paper\'s order as buttons');
+  /* THE ENDS ARE A LINE OF THEIR OWN OVER THE SLOTS, first end first, in sentence case. */
   const strip = [...box().querySelector('.qp-slots').children];
-  const ends = strip.filter(e => e.classList.contains('qp-end')).map(e => e.textContent.trim());
-  if (ends.join('|') !== 'smallest|largest' || !strip[0].classList.contains('qp-end') || !strip[strip.length - 1].classList.contains('qp-end')) {
-    bad.push('the strip\'s ends are ' + JSON.stringify(ends) + ' — wanted "smallest" before the first slot and "largest" after the last');
+  const ends = [...box().querySelectorAll('.qp-slots > .qp-ends > .qp-end')].map(e => e.textContent.trim());
+  if (ends.join('|') !== 'Smallest|Largest' || !strip[0].classList.contains('qp-ends') || strip.slice(1).some(e => !e.classList.contains('qp-slot'))) {
+    bad.push('the strip\'s ends are ' + JSON.stringify(ends) + ' — wanted a line of "Smallest" and "Largest" over the slots, and only slots under it');
   }
+  /* A POWER IS ONE FACE: every item's words in one `.qp-face`, so a <sup> stays raised (it was a flex
+     item of its own, and 2² read as "22"). */
+  if (box().querySelectorAll('.qp-item').length !== box().querySelectorAll('.qp-item > .qp-face:only-child').length) bad.push('an item\'s face is not one `.qp-face` — a <sup> in it is a flex item and loses its raise');
   const slots = () => [...box().querySelectorAll('.qp-slots > .qp-slot')]
     .map(s => (s.classList.contains('is-full') ? s.getAttribute('data-n') : '_')).join(' ');
   const stored = () => w.localStorage.getItem(k) || '';
@@ -13421,9 +13435,22 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   if (slots() !== '3 _ 5 _ _' || stored() !== '3,,5') bad.push('taking 0.1 back out of its slot left ' + slots() + ', stored "' + stored() + '" — wanted a hole where it was, "3,,5"');
   tap(4);
   if (slots() !== '3 4 5 _ _') bad.push('the next tap did not fill the hole: ' + slots());
-  /* UNTAP FROM ITS GHOST */
+  /* THE GHOST DOES NOTHING -- a quick second tap on the item just placed undid it (two real touch taps
+     70ms apart on 0.2: in, and straight back out). `disabled`, so the press never arrives, and the
+     handler refuses it too, which is the half that does not depend on the browser: pressed directly. */
+  const ghost5 = box().querySelector('.qp-item[data-n="5"]');
+  if (!ghost5 || !ghost5.disabled) bad.push('the ghost of a placed item is still a live button — a double-tap undoes itself');
   tap(5);
-  if (slots() !== '3 4 _ _ _' || stored() !== '3,4') bad.push('tapping the ghost of 0.16 left ' + slots() + ', stored "' + stored() + '"');
+  A['qp-place'](box().querySelector('.qp-item[data-n="5"]'));
+  if (slots() !== '3 4 5 _ _' || stored() !== '3,4,5') bad.push('pressing the ghost of 0.16 changed the strip to ' + slots() + ', stored "' + stored() + '" — only its slot takes it back');
+  back(5);
+  if (slots() !== '3 4 _ _ _' || stored() !== '3,4') bad.push('taking 0.16 back out of its slot left ' + slots() + ', stored "' + stored() + '"');
+  /* THE KEYBOARD'S FOCUS GOES ON: placed from the keyboard, to the next item still to place, because
+     the ghost is disabled and cannot hold it; and to Send once every item is placed. */
+  const k5 = box().querySelector('.qp-item[data-n="5"]');
+  k5.focus(); k5.click();
+  if (!d.activeElement || d.activeElement.getAttribute('data-n') !== '1' || !d.activeElement.matches('.qp-item')) bad.push('placing 0.16 from the keyboard left the focus on ' + (d.activeElement ? d.activeElement.outerHTML.slice(0, 60) : 'nothing') + ' — wanted the next item to place, 0.21');
+  back(5);
   /* CLEAR */
   clear();
   if (slots() !== '_ _ _ _ _' || stored() !== '' || box().querySelector('.qp-item.is-placed')) bad.push('Clear left ' + slots() + ', stored "' + stored() + '"');
@@ -13471,6 +13498,37 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   if (slots() !== '2 1 _ _ _' || stored() !== '2,1') bad.push('the account\'s "2,1" did not reach the strip: ' + slots() + ', stored "' + stored() + '"');
   if (verdict()) bad.push('a row from another device kept the verdict about the old one: "' + verdict() + '"');
   if (host.querySelectorAll('.qp-saved[data-k="' + k + '"]').length !== 1) bad.push('a redraw left two saved lines under the strip');
+  /* A TYPED LIST LEFT UNDER THE SAME KEY, from before Q4 was an ordering, draws an empty strip -- read
+     piece by piece it drew a half-row nobody made, and the next tap wrote it to the account. */
+  w.localStorage.setItem(k, '0.03, 0.1, 0.16, 0.2, 0.21');
+  host.innerHTML = w.questionCard_(x, 0);
+  card = host.querySelector('.qcard');
+  if (slots() !== '_ _ _ _ _') bad.push('a typed list under the key drew the strip ' + slots() + ' — wanted it empty');
+  w.localStorage.setItem(k, '1, 2, 7');
+  host.innerHTML = w.questionCard_(x, 0);
+  card = host.querySelector('.qcard');
+  if (slots() !== '_ _ _ _ _') bad.push('"1, 2, 7", with 7 past the five items, drew the strip ' + slots() + ' — wanted it empty');
+  tap(3);
+  if (stored() !== '3') bad.push('the first tap over a typed list stored "' + stored() + '", wanted "3"');
+  /* TWO RIGHT ORDERS, THROUGH THE LOADER, AND THE SECOND ONE MARKED RIGHT */
+  const y = w.stuffItemsAll_().find(it => it.row && it.row.row_id === TIE);
+  if (!y) return bad.concat(['the made-up ordering with two right orders did not come through the loader']);
+  if (JSON.stringify(y.choiceWays) !== '[[2,1,3],[1,2,3]]') bad.push('the loader kept the orders ' + JSON.stringify(y.choiceWays) + ' of "2,1,3 | 1,2,3" — an order dropped here is a right answer marked wrong');
+  const ky = w.__t.ansKey(y);
+  try { w.localStorage.removeItem(ky); } catch (e) {}
+  host.innerHTML = w.questionCard_(y, 0);
+  card = host.querySelector('.qcard');
+  [1, 2, 3].forEach(tap);
+  send();
+  if (verdict() !== 'Correct' || marked() !== 'is-right') bad.push('0.5, ½, 0.7 -- the second order "2,1,3 | 1,2,3" lists -- was marked "' + verdict() + '" (' + (marked() || 'unmarked') + ')');
+  clear();
+  [2, 1, 3].forEach(tap);
+  send();
+  if (verdict() !== 'Correct') bad.push('½, 0.5, 0.7 -- the first order -- was marked "' + verdict() + '"');
+  clear();
+  [3, 1, 2].forEach(tap);
+  send();
+  if (verdict() !== 'Not yet — have another go') bad.push('0.7 first was marked "' + verdict() + '" on a row with two right orders');
   return bad;
 });
 

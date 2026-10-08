@@ -667,6 +667,53 @@ ORDER_ROWS.forEach(r => {
 });
 orderLib.bad.slice(0, 20).forEach(x => console.log('  ' + x));
 
+/* ---------- A TYPED LIST UNDER THE SAME KEY IS NOT A ROW -----------------------------------------------
+   `orderSeq_` READS THE STORED VALUE BACK AS THE STRIP, and before these cards were orderings 52 of them
+   drew the keypad and 16 a text box: what pupils typed is under the same `ansKey_`, on the device and
+   in the account. Read a piece at a time, "-3, -1, 2, 4, 7" on 2406-2F-1 became `_ _ −3 2 _` -- a strip
+   the pupil never made, and the next tap wrote it to the account. Cut out of find.js like `markOrder_`.
+   Every case is a value and the strip it must draw, 0 for an empty slot; and every ordering in the
+   library is swept with its own answer typed out the way a pupil would have (the `<b>` list, tags
+   out), which must draw an empty strip, not a half-filled one. */
+const seqSrc = cutFrom(src, 'orderSeq_');
+if (!seqSrc) {
+  console.log('check-marking: cannot find orderSeq_ in find.js — renamed? No stored row was read back.');
+  process.exit(1);
+}
+eval(seqSrc);
+const SEQS = [
+  ['3,4,5,2,1', 5, [3, 4, 5, 2, 1], 'a whole row, as `orderSay_` writes it'],
+  ['3,,5', 5, [3, 0, 5, 0, 0], 'a row with a hole, and nothing after the last placed item'],
+  ['', 5, [0, 0, 0, 0, 0], 'nothing stored'],
+  [' 3, 4 ', 5, [3, 4, 0, 0, 0], 'spaces round the numbers'],
+  ['-3, -1, 2, 4, 7', 5, [0, 0, 0, 0, 0], '2406-2F-1 typed before it was an ordering — drew `_ _ −3 2 _`'],
+  ['3/5, 65%, 2/3, 0.68, 7/10', 5, [0, 0, 0, 0, 0], '0617-5 typed — drew `0.68 _ 7/10 _ _`'],
+  ['1, 3, 4, 5', 4, [0, 0, 0, 0], '0603-1 typed as values — every piece a whole number, but 5 is past the 4 items'],
+  ['0.45, 0.59, 0.88, 1.24, 1.34', 5, [0, 0, 0, 0, 0], 'ordering-decimals-2 typed — put 0.59 in slot 4'],
+  ['3,3', 5, [0, 0, 0, 0, 0], 'an item twice is not a row this app wrote'],
+  ['0,1', 5, [0, 0, 0, 0, 0], 'nor a place numbered 0'],
+  ['1,2,3,4,5,6', 5, [0, 0, 0, 0, 0], 'nor more places than items'],
+  ['A, B, C, D', 4, [0, 0, 0, 0], 'nor letters'],
+];
+let seqBad = 0;
+SEQS.forEach(([v, n, want, why]) => {
+  const got = orderSeq_(v, n);
+  if (JSON.stringify(got) === JSON.stringify(want)) return;
+  seqBad++;
+  console.log('  orderSeq_(%j, %d) — drew %j, should be %j   (%s)', v, n, got, want, why);
+});
+const seqLib = { swept: 0, bad: [] };
+ORDER_ROWS.forEach(r => {
+  const head = /<b>([\s\S]*?)<\/b>/.exec(String(r.answer || ''));
+  if (!head) return;
+  const n = String(r.choices || '').split('|').filter(t => t.trim()).length;
+  const typed = head[1].replace(/<[^>]*>/g, '');
+  seqLib.swept++;
+  const got = orderSeq_(typed, n);
+  if (got.some(Boolean)) seqLib.bad.push(r.row_id + ': its answer typed out, "' + typed + '", draws the strip ' + JSON.stringify(got) + ' — a row nobody made');
+});
+seqLib.bad.slice(0, 20).forEach(x => console.log('  ' + x));
+
 /* ---------- AND IN TIME ------------------------------------------------------------------------------
    `MARK_UNIT` USED TO TAKE SECONDS OVER A SENTENCE. Its unit was `[a-z][a-z0-9]*` repeated with
    nothing required between repeats, so `because` could be read as one unit, or `b` + `ecause`, or
@@ -684,12 +731,13 @@ const took = Date.now() - t0;
 const slow = took > 400;
 if (slow) console.log('  marking %j took %d ms — a unit is being read more than one way again', SLOW, took);
 
-if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length) {
+if (bad || normBad || lib.bad.length || rowBad || slow || orderBad || orderLib.bad.length || seqBad || seqLib.bad.length) {
   console.log('\n%d of %d marking cases wrong, %d of %d markNorm_ cases, %d in the library sweep, %d of %d\n' +
-    'named rows, %d of %d orderings and %d in the orderings sweep, and the long answer took %d ms. Every one\n' +
-    'of these is a child being told the wrong thing about their own work, so this fails the build.',
+    'named rows, %d of %d orderings and %d in the orderings sweep, %d of %d stored rows read back wrong and\n' +
+    '%d typed answers drawn as a strip, and the long answer took %d ms. Every one of these is a child being\n' +
+    'told the wrong thing about their own work, so this fails the build.',
     bad, CASES.length, normBad, NORMS.length, lib.bad.length, rowBad, ROWS.length,
-    orderBad, ORDERS.length, orderLib.bad.length, took);
+    orderBad, ORDERS.length, orderLib.bad.length, seqBad, SEQS.length, seqLib.bad.length, took);
   process.exit(1);
 }
 console.log('OK — all %d marking cases, %d markNorm_ cases and %d named rows: a right answer is marked\n' +
@@ -698,6 +746,8 @@ console.log('OK — all %d marking cases, %d markNorm_ cases and %d named rows: 
   '     of π with what their cell does not name, %d numbers with a power and %d rates in another unit\n' +
   '     marked wrong; and a long answer marked in %d ms.\n' +
   '     Orderings: all %d cases, and the library\'s %d: %d listed orders marked right, %d\n' +
-  '     reversals and single swaps marked wrong.',
+  '     reversals and single swaps marked wrong. Stored rows: all %d read back as the strip they are,\n' +
+  '     and %d answers typed out as a list draw an empty strip.',
   CASES.length, NORMS.length, ROWS.length, LIB.length, lib.glued, lib.spaced, lib.keyed, lib.front,
-  lib.root, lib.power, lib.compound, took, ORDERS.length, ORDER_ROWS.length, orderLib.ways, orderLib.wrong);
+  lib.root, lib.power, lib.compound, took, ORDERS.length, ORDER_ROWS.length, orderLib.ways, orderLib.wrong,
+  SEQS.length, seqLib.swept);

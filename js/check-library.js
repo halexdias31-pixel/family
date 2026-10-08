@@ -1169,6 +1169,112 @@ rows.forEach(r => {
 });
 console.log('orderings tapped in order: ' + orderRows);
 
+/* ---------- AND THE ORDER IT LISTS IS THE RIGHT ONE ---------------------------------------------------
+   THE RULE ABOVE ASKS ONLY FOR THE SHAPE: two items or more, each order every place once, two ends,
+   no accept. A WRONG order that uses every place once passes it, and so does everything else here --
+   proved in a scratch copy: `Q-CBM-ordering-decimals-3`'s "4,5,3,2,1" changed to "5,4,3,2,1", which
+   puts 5.1 before 5.08 and contradicts the row's own answer, and check-library, check-marking,
+   check-answers, check-typeset and check-funnel all exited 0. `check-marking.js`'s sweep only asks
+   whether each listed order marks right against ITSELF. So the 67 conversions rested on one solve
+   made once, in a scratch file -- and the same batch found three answers that were already wrong
+   (0701-5, 0706-4, ordering-decimals-7).
+
+   TWO QUESTIONS, EACH ASKED OF SOMETHING WRITTEN APART FROM `choice_right`:
+
+   THE ANSWER. The first `<b>` of `answer` is the list a person reads under "Show the answer", and it
+   must name the items in one of the orders `choice_right` lists -- item for item, compared as text
+   (tags and spaces out, a thousands comma closed up, so "15,123" is one item and not two), split on
+   the commas or arrows the list is written with. Reordering `choices` without `choice_right`,
+   changing an order, or swapping the ends without the answer all fail it -- and it would have caught
+   the 0701-5 and 0706-4 answers that were fixed by hand.
+
+   THE NUMBERS. Where every item reads as a number -- a decimal, a minus sign, a fraction, a percentage,
+   pounds and pence, a power, a root, standard form, a recurring decimal, a Roman numeral, or one unit
+   of length, mass, volume or temperature -- each listed order must RUN the way `order_ends` says:
+   up from "smallest", "lowest", "shortest", "lightest"; down from "largest", "highest", "greatest".
+   And where two items are EQUAL, the order with those two swapped must be listed too, because both are
+   right and an order left out is a right answer marked wrong. Words, names and mixed time units
+   ("1 month" against "35 days") are not read; the answer rule above is what guards those. */
+const ORD_SEP = /,|&rarr;|→/;
+const ordText = s => String(s == null ? '' : s).replace(/<[^>]*>/g, '')
+  .replace(/(\d),(\d{3})\b/g, '$1$2').replace(/&nbsp;|&thinsp;|\s+/g, '').toLowerCase();
+const ORD_UNIT = { '': ['n', 1], '%': ['n', 0.01], '&pound;': ['money', 1], '£': ['money', 1], p: ['money', 0.01],
+  '&deg;c': ['temp', 1], '°c': ['temp', 1], m: ['length', 1], cm: ['length', 0.01], mm: ['length', 0.001],
+  km: ['length', 1000], kg: ['mass', 1], g: ['mass', 0.001], tonnes: ['mass', 1000], tonne: ['mass', 1000],
+  ml: ['volume', 0.001], litres: ['volume', 1], litre: ['volume', 1], l: ['volume', 1] };
+const ROMAN = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+/* AN ITEM AS [kind, value], or null where it does not read as one number. A card's letter in front of
+   it ("A &pound;250", where the items are lettered cards in a figure) is a name, not part of the value. */
+const ordValue = html => {
+  const s = String(html).replace(/^[A-Z]\s+(?=\S)/, '').replace(/&nbsp;|&thinsp;|\s+/g, '').replace(/&minus;|−/g, '-');
+  let m;
+  if ((m = /^<sup>(\d+)<\/sup>&frasl;<sub>(\d+)<\/sub>$/.exec(s))) return ['n', +m[1] / +m[2]];
+  if ((m = /^(-?\d*\.?\d+)&times;10<sup>(-?\d+)<\/sup>$/.exec(s))) return ['n', +m[1] * Math.pow(10, +m[2])];
+  if ((m = /^(\d+)<sup>(\d+)<\/sup>$/.exec(s))) return ['n', Math.pow(+m[1], +m[2])];
+  if ((m = /^(?:&radic;|√)(\d+(?:\.\d+)?)$/.exec(s))) return ['n', Math.sqrt(+m[1])];
+  if ((m = /^(?:&#8731;|∛)(\d+(?:\.\d+)?)$/.exec(s))) return ['n', Math.cbrt(+m[1])];
+  if (/^[IVXLCDM]+$/.test(s)) {
+    let v = 0;
+    for (let i = 0; i < s.length; i++) v += ROMAN[s[i]] < (ROMAN[s[i + 1]] || 0) ? -ROMAN[s[i]] : ROMAN[s[i]];
+    return ['n', v];
+  }
+  /* A RECURRING DECIMAL: each dotted digit is a span holding the digit and a `&bull;` over it. The block
+     from the first dotted digit to the last repeats, and it runs to the end of the number. */
+  if (/&bull;/.test(s)) {
+    const t = s.replace(/<span[^>]*>(\d)<span[^>]*>&bull;<\/span><\/span>/g, '[$1]');
+    const r = /^(-?\d*)\.((?:\d|\[\d\])+)$/.exec(t);
+    if (!r || !/\]$/.test(t)) return null;
+    const ds = [...r[2].matchAll(/\[(\d)\]|(\d)/g)].map(x => ({ d: x[1] || x[2], dot: !!x[1] }));
+    const at = ds.findIndex(x => x.dot);
+    const fixed = ds.slice(0, at).map(x => x.d).join(''), rep = ds.slice(at).map(x => x.d).join('');
+    return ['n', parseFloat(r[1] + '.' + fixed + rep.repeat(Math.ceil(18 / rep.length)))];
+  }
+  const u = /^(-?)(&pound;|£)?(\d+(?:\.\d+)?|\.\d+)([a-z%&;°]*)$/i.exec(s.replace(/(\d),(\d{3})\b/g, '$1$2'));
+  if (!u) return null;
+  const unit = (u[2] || u[4] || '').toLowerCase();
+  if (u[2] && u[4]) return null;
+  const k = ORD_UNIT[unit];
+  return k ? [k[0], (u[1] ? -1 : 1) * +u[3] * k[1]] : null;
+};
+const ORD_UP = /^(smallest|lowest|least|shortest|lightest|coldest|cheapest)$/i;
+const ORD_DOWN = /^(largest|highest|greatest|biggest|longest|heaviest|warmest|hottest|dearest)$/i;
+let ordAnswered = 0, ordRead = 0, ordUnread = 0;
+rows.forEach(r => {
+  if (!r || String(r.answer_type || '').trim() !== 'order') return;
+  const raw = String(r.choices || '').split('|').map(t => t.trim()).filter(Boolean);
+  const ch = raw.map(ordText);
+  const ways = String(r.choice_right || '').split('|').map(w => w.split(',').map(t => +t.trim())).filter(w => w.length && w.every(k => k >= 1 && k <= ch.length));
+  if (!ways.length) return;   /* the rule above has failed it already */
+  const head = /<b>([\s\S]*?)<\/b>/.exec(String(r.answer || ''));
+  if (!head) fail.push(r.row_id + ' is an ordering whose `answer` has no <b> list — nothing says which order its `choice_right` is meant to be');
+  else {
+    const said = ordText(head[1]).split(ORD_SEP);
+    if (ways.some(w => w.length === said.length && w.every((k, i) => said[i] === ch[k - 1]))) ordAnswered++;
+    else fail.push(r.row_id + ' answers "' + head[1].replace(/<[^>]*>/g, '') + '", which is not its items in any order `choice_right` lists (' + r.choice_right + ') — one of the two is wrong');
+  }
+  const vals = raw.map(ordValue);
+  const end = String(r.order_ends || '').split('|')[0].trim();
+  const dir = ORD_UP.test(end) ? 1 : ORD_DOWN.test(end) ? -1 : 0;
+  if (!dir || vals.some(v => !v) || new Set(vals.map(v => v[0])).size !== 1) { ordUnread++; return; }
+  ordRead++;
+  const listed = new Set(ways.map(w => w.join(',')));
+  ways.forEach(w => {
+    for (let i = 0; i + 1 < w.length; i++) {
+      const a = vals[w[i] - 1][1], b = vals[w[i + 1] - 1][1];
+      const same = Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+      if (!same && (b - a) * dir < 0) {
+        fail.push(r.row_id + ' lists the order ' + w.join(',') + ', which puts ' + raw[w[i] - 1].replace(/<[^>]*>/g, '') + ' (' + a + ') before ' + raw[w[i + 1] - 1].replace(/<[^>]*>/g, '') + ' (' + b + ') — not ' + end + ' first');
+        break;
+      }
+      if (same) {
+        const s = w.slice(); [s[i], s[i + 1]] = [s[i + 1], s[i]];
+        if (!listed.has(s.join(','))) fail.push(r.row_id + ': items ' + w[i] + ' and ' + w[i + 1] + ' are equal, and ' + s.join(',') + ' is not listed beside ' + w.join(',') + ' — a right order marked wrong');
+      }
+    }
+  });
+});
+console.log('orderings whose answer names their items in a listed order: ' + ordAnswered + '; read as numbers and running the way their ends say: ' + ordRead + ' (' + ordUnread + ' are words, names or mixed units and are not read)');
+
 /* ---------- SAY IT --------------------------------------------------------------------------------- */
 const say = (title, list, draw) => {
   console.log('\n' + title + '  (' + list.length + ')');

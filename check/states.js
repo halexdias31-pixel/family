@@ -1199,8 +1199,11 @@ const STATES = {
        machine."* (`orderBox_`, docs/history/303.) The real June 2024 1F Q4, its five numbers tapped by
        CLICKS on the real buttons. Half placed is the strip with two items in it, two ghosts in the row
        under it and three dashed slots -- the picture worth measuring at 320, where the strip wraps.
-       Then the whole row, right, and SEND: the question, the strip, the verdict's line and the card's
-       height measured before and after it, because marking moves nothing (261). */
+       Then the whole row WRONG, and Send, and then right, and Send: the question, the strip, the
+       verdict's line and the card's height measured before and after each, because marking moves
+       nothing (261) -- and Send and Clear too, because the long "Not yet — have another go" took room
+       from them: at 320 Send went from 48x48 to 39x48 and Clear from 44 to 36 wide, and they moved 9
+       and 17px. Only the short "Correct" had been measured, and it never squeezes the row. */
     { name: 'an ordering, half placed',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
@@ -1233,7 +1236,7 @@ const STATES = {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
-    { name: 'an ordering, sent right, nothing moved',
+    { name: 'an ordering, sent wrong then right, nothing moved',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
         if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
@@ -1253,15 +1256,30 @@ const STATES = {
           const shape = () => [...box().querySelectorAll('.qp-slot')].map(s => { const r = s.getBoundingClientRect(); return [r.left, r.top, r.width]; })
             .concat([[0, box().querySelector('.qp-items').getBoundingClientRect().top, 0]]);
           const shape0 = shape();
-          [3, 4, 5, 2, 1].forEach(n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); });
+          const tap = n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); };
           const card = box().closest('.qcard');
           const at = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
                             box().querySelector('.qp-slots').getBoundingClientRect().top,
                             box().querySelector('.qp-verdict').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
+          const tiles = () => ['.qp-order-send', '.qp-order-clear'].map(q => { const r = box().querySelector(q).getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
+          /* WRONG FIRST: the row reversed, its long verdict beside the two tiles. Measured by the verdict's
+             ROW (`.qp-mark`), its top and height, not the sentence's own top: "Not yet — have another go"
+             wraps to two lines INSIDE its slot at 320 and 390, as the typed bar's verdict does by design,
+             so its first line starts higher in a row that has not moved -- nothing else is there to move. */
+          const row = () => { const r = box().querySelector('.qp-mark').getBoundingClientRect(); return [r.top, r.height]; };
+          const atRow = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
+                               box().querySelector('.qp-slots').getBoundingClientRect().top,
+                               card.getBoundingClientRect().height].concat(row(), ...tiles());
+          [1, 2, 5, 4, 3].forEach(tap);
+          const w0 = atRow();
+          box().querySelector('.qp-order-send').click();
+          const wrong = { a: w0, b: atRow(), say: (box().querySelector('.qp-verdict') || {}).textContent };
+          box().querySelector('.qp-order-clear').click();
+          [3, 4, 5, 2, 1].forEach(tap);
           const a = at();
           box().querySelector('.qp-order-send').click();
-          window.__qStable = { a, b: at(), fill: [shape0, shape()] };
+          window.__qStable = { a, b: at(), fill: [shape0, shape()], wrong };
           return true;
         };
         if (!run()) setTimeout(run, 150);
@@ -1272,10 +1290,61 @@ const STATES = {
         return !!s && !!box && box.classList.contains('is-right')
                && (box.querySelector('.qp-verdict') || {}).textContent === 'Correct'
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5)
+               && s.wrong.say === 'Not yet — have another go'
+               && s.wrong.a.length === 13 && s.wrong.a.every((v, i) => Math.abs(v - s.wrong.b[i]) < 0.5)
                && s.fill[0].length === s.fill[1].length
                && s.fill[0].every((p, i) => p.every((v, j) => Math.abs(v - s.fill[1][i][j]) < 0.5));
       },
-      wants: 'the right order sent and marked Correct, with the question, the strip, the verdict line and the card\'s height where they were, and every slot and the items where they were before the first tap',
+      wants: 'the reversed order sent and marked Not yet, then the right one marked Correct, with the question, the strip, the verdict\'s row, the card\'s height and the Send and Clear tiles (place and size) where they were each time, and every slot and the items where they were before the first tap',
+      leave: () => {
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        ORDER_SENT.clear();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE ROW AS IT IS IN THE QUESTION ------------
+       5-a-day 3 June Q1, "2² ∛27 1³ √25". A slot and an item are `inline-flex`, and a bare `<sup>` in one
+       was a flex item of its own: not raised, centred beside its digit, so the row read "22 ∛27 13 √25"
+       -- and standard form "6 × 104" -- and a child who reads them that way orders them wrong. Measured
+       at 390 before the fix: the exponent level with its digit (sup 488-503, digit 487-504) where the
+       question prints it 6px up. 2² is placed, so a slot holds one too, and every `<sup>` in the strip
+       and the row must sit at least 2px above the bottom of the digit before it. Fractions never showed
+       it -- `typeset_` draws one as a single element -- which is why the first shots missed it. */
+    { name: 'an ordering of powers, raised as printed',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-5AD-F-0603-1');
+        if (!it) throw new Error('Q-CBM-5AD-F-0603-1 is not in the library');
+        if (!orderIs_(it)) throw new Error('Q-CBM-5AD-F-0603-1 is not an ordering — its answer_type is ' + it.answerType);
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ORDER_SENT.clear();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
+        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const run = () => {
+          if (!box()) return false;
+          const el = box().querySelector('.qp-item[data-n="1"]');
+          if (el) el.click();
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        if (!box || !box.querySelector('.qp-slot.is-full[data-n="1"]')) return false;
+        /* HOW FAR A <sup> SITS ABOVE THE BOTTOM OF THE TEXT JUST BEFORE IT, in px. */
+        const raise = sup => {
+          const t = sup.previousSibling;
+          if (!t || t.nodeType !== 3 || !t.textContent.trim()) return null;
+          const r = document.createRange(); r.selectNodeContents(t);
+          return r.getBoundingClientRect().bottom - sup.getBoundingClientRect().bottom;
+        };
+        const sups = [...box.querySelectorAll('.qp-slot sup, .qp-item sup')];
+        const q = box.closest('.qcard').querySelector('.qsheet sup');
+        return sups.length >= 3 && q && raise(q) > 2 && sups.every(x => raise(x) !== null && raise(x) >= 2);
+      },
+      wants: '2² placed in slot 1, and every power in the strip and the row (2² and 1³, the ghost included) raised at least 2px above its digit, as the question prints it',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
         ORDER_SENT.clear();

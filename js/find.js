@@ -7478,10 +7478,17 @@ function choiceRedraw_(box) {
    spellings -- commas, spaces, "and", 0.10 for 0.1 -- each one a way for a marker to be wrong.
 
    SO THE ITEMS ARE BUTTONS AND THE ANSWER IS THE ORDER THEY GO IN. A strip of numbered slots, the
-   question's own two ends written at its two ends ("smallest" ... "largest"), and the items under it in
-   the order the paper prints them. A tap puts an item in the first empty slot; a tap on a placed one --
-   in its slot, or the ghost it left in the row underneath -- takes it back and leaves its slot empty,
-   so nothing else slides under the finger. Clear puts them all back.
+   question's own two ends written over it, one at each edge with an arrow between ("Smallest ->
+   Largest"), and the items under it in the order the paper prints them. A tap puts an item in the
+   first empty slot; a tap on a placed one IN ITS SLOT takes it back and leaves its slot empty, so
+   nothing else slides under the finger. Clear puts them all back.
+
+   THE GHOST AN ITEM LEAVES IN THE ROW DOES NOTHING. It took the item back too, and it is the same size
+   in the same place as the item, so a quick second tap -- which children make all the time -- undid
+   the first: two real touch taps 70ms apart on 0.2 in Q4 put it in slot 2 and took it straight out
+   again, nothing placed (`#screen` is `touch-action: none`, so neither tap is eaten as a zoom). And it
+   is drawn dashed and faint, which reads as switched off, so what pressing it did was hidden. It is
+   `disabled` now, and the handler refuses one as well; the slot is where an item is taken back.
 
    BUTTONS, NOT TILES, for the reason `choiceBox_`'s options are: an item is the answer being given, not
    an action done to it (CLAUDE.md). Clear and Send ARE actions on it, so they are tiles.
@@ -7508,16 +7515,35 @@ function orderIs_(x) {
     && Array.isArray(x.choices) && x.choices.length >= 2;
 }
 
-/* THE STORED ROW READ BACK AS n PLACES, 0 FOR AN EMPTY ONE. Anything that is not one of the n items, or
-   is an item already placed, is an empty place rather than a throw: the value came off a phone. */
+/* THE STORED ROW READ BACK AS n PLACES, 0 FOR AN EMPTY ONE -- AND ONLY IF IT IS A ROW AT ALL.
+
+   A TYPED LIST IS UNDER THE SAME KEY. Before these were orderings, 52 of them drew the keypad and 16 a
+   text box, and what pupils typed is kept under this `ansKey_`, on the device and in the account's
+   answers tab, which `myAnswers` brings back. Read piece by piece with `parseInt`, a typed list became
+   a strip the pupil never made: 2406-2F-1's "-3, -1, 2, 4, 7" drew `_ _ −3 2 _`, 0617-5's "3/5, 65%,
+   2/3, 0.68, 7/10" drew `0.68 _ 7/10 _ _`, and the next tap wrote that half-row to the account. No
+   wrong verdict followed (a holed row is never marked), but a strip that opens already wrong is a
+   wrong strip.
+
+   SO THE WHOLE VALUE IS READ OR NONE OF IT: digits and commas only, at most n pieces, every piece that
+   is not empty a whole number from 1 to n, none twice -- the only shape `orderSay_` ever writes.
+   Anything else (a decimal, a fraction, a minus sign, %, a letter, a number past n) is an empty row,
+   and the first tap replaces it. */
 function orderSeq_(v, n) {
-  const out = [], seen = new Set();
-  String(v == null ? '' : v).split(',').slice(0, n).forEach(t => {
-    const m = parseInt(t, 10);
-    const ok = m >= 1 && m <= n && !seen.has(m);
-    if (ok) seen.add(m);
-    out.push(ok ? m : 0);
-  });
+  const out = [];
+  const s = String(v == null ? '' : v);
+  const parts = s.split(',');
+  const row = /^\s*\d*\s*(,\s*\d*\s*)*$/.test(s) && parts.length <= n;
+  const seen = new Set();
+  if (row) {
+    for (const t of parts) {
+      if (t.trim() === '') { out.push(0); continue; }
+      const m = parseInt(t, 10);
+      if (!(m >= 1 && m <= n) || seen.has(m)) { out.length = 0; break; }
+      seen.add(m);
+      out.push(m);
+    }
+  }
   while (out.length < n) out.push(0);
   return out;
 }
@@ -7577,27 +7603,45 @@ function orderBox_(x) {
      errs wide. The stylesheet caps it at the strip's width. */
   const wide = Math.max(1, ...x.choices.map(c => String(c).replace(/<[^>]*>/g, '')
     .replace(/&[a-z0-9#]+;/gi, '_').replace(/\s+/g, ' ').trim().length));
+  /* THE FACE IS ONE ELEMENT, `.qp-face`, IN THE SLOT AND IN THE ROW. A slot and an item are
+     `inline-flex`, and every child of a flex box is a flex item of its own: a bare `<sup>` stopped being
+     raised (`vertical-align` does not apply to a flex item) and was centred beside its digit, so 2² read
+     as "22", 1³ as "13" and 6 × 10⁴ as "6 × 104" -- measured at 390, the exponent level with the digit
+     where the question prints it 6px up. An ordering read that way is ordered wrong. Wrapped, the face
+     is one flex item with an ordinary line inside it, and a power is a power again. Fractions never
+     showed it: `typeset_` already draws one as a single element. */
+  const face = c => `<span class="qp-face">${typeset_(c)}</span>`;
   /* A PLACED ITEM IS A BUTTON IN ITS SLOT, to take it back; an empty slot is a numbered space and not a
      button, because pressing it does nothing. Its number stays on it once it is filled, small, so a row
      that has wrapped at 320 still reads 1 to n. */
   const slots = seq.map((m, i) => (m
-    ? `<button type="button" class="qp-slot is-full" data-do="qp-place" data-n="${m}"><span class="qp-slot-i">${i + 1}</span>${typeset_(x.choices[m - 1])}</button>`
+    ? `<button type="button" class="qp-slot is-full" data-do="qp-place" data-n="${m}"><span class="qp-slot-i">${i + 1}</span>${face(x.choices[m - 1])}</button>`
     : `<span class="qp-slot"><span class="qp-slot-i">${i + 1}</span></span>`)).join('');
   /* THE ITEMS STAY WHERE THE PAPER PRINTS THEM. A placed one is a ghost of itself, the same size in the
-     same place, so the row under the finger never closes up -- and pressing the ghost takes it back. */
+     same place, so the row under the finger never closes up -- and the ghost is `disabled`, because a
+     ghost that took the item back made a quick second tap undo the first (see the note over
+     `ORDER_SENT`). An item is taken back from its slot. */
   const items = x.choices.map((c, i) => {
     const on = placed.has(i + 1);
     return `<button type="button" class="qp-item${on ? ' is-placed' : ''}" data-do="qp-place" data-n="${i + 1}"
-      aria-pressed="${on}">${typeset_(c)}</button>`;
+      aria-pressed="${on}"${on ? ' disabled' : ''}>${face(c)}</button>`;
   }).join('');
   /* THE VERDICT'S LINE IS RESERVED AND THE TILES SIT IN IT, so "Correct" lands in a space that was already
      there and marking moves nothing (261). No Send where no order is right: a Send that marks nothing is
      the control that sometimes does nothing. */
   const clear = tile_({ icon: 'bin', label: 'Clear', note: 'put them all back', act: 'qp-order-clear', cls: 'qp-order-clear', off: !placed.size });
   const send = ways.length ? tile_({ icon: 'send', label: 'Send', note: 'mark the order', act: 'qp-order-send', cls: 'qp-order-send', tone: 'send' }) : '';
+  /* THE TWO ENDS ARE THE ONLY WORDS SAYING WHICH WAY THE ROW RUNS, so they are a line of their own over
+     the slots, one at each edge with an arrow between, at the verdict's size in the paper's own ink.
+     They were .62rem capitals in `--paper-dim` at the two ends of the slots' own row -- 9.2px at 390,
+     about 8.4px at 320, the smallest words on the card, for a KS1 child to read -- and as flex items in
+     that row they forced a wrap at every width: at 768 "LARGEST" sat alone on a line under slot 5.
+     Sentence case, because they are words to read and not a label. Hidden from a screen reader only
+     because the group's label already says them, in order. */
+  const word = e => String(e).charAt(0).toUpperCase() + String(e).slice(1);
   return `<div class="qp-order${cls}" data-k="${esc(k)}" data-n="${n}">
     <div class="qp-slots" role="group" style="--qp-ch:${wide}" aria-label="${esc('Your order, ' + ends[0] + ' to ' + ends[1])}">
-      <span class="qp-end">${esc(ends[0])}</span>${slots}<span class="qp-end">${esc(ends[1])}</span>
+      <div class="qp-ends" aria-hidden="true"><span class="qp-end">${esc(word(ends[0]))}</span><span class="qp-way"></span><span class="qp-end">${esc(word(ends[1]))}</span></div>${slots}
     </div>
     <div class="qp-items">${items}</div>
     <div class="qp-mark${cls}">
@@ -7633,16 +7677,29 @@ on('qp-place', (el) => {
   const m = +el.getAttribute('data-n');
   if (!o || !(m >= 1 && m <= o.n)) return;
   const at = o.seq.indexOf(m);
-  if (at !== -1) o.seq[at] = 0;
+  /* A SLOT TAKES BACK AND AN ITEM PLACES, AND NOTHING ELSE. An item already in the row -- its ghost,
+     pressed after all, or a strip on screen older than the store -- changes nothing: the stored row is
+     drawn again and the press is done. That refusal is what stops a double-tap undoing itself (the
+     ghost is `disabled` as well; this is the half that does not depend on the browser). */
+  const fromSlot = el.classList.contains('qp-slot');
+  if (fromSlot !== (at !== -1)) { orderRedraw_(o.box, ''); return; }
+  /* WHERE THE FOCUS GOES: taken back, to the item, live again in its row; placed, to the next item still
+     to place (its ghost is disabled and cannot hold it), and to Send once every one is placed. */
+  let focus = '.qp-item[data-n="' + m + '"]';
+  if (fromSlot) o.seq[at] = 0;
   else {
     const free = o.seq.indexOf(0);
     if (free === -1) return;
     o.seq[free] = m;
+    const left = [];
+    for (let i = 1; i <= o.n; i++) if (o.seq.indexOf(i) === -1) left.push(i);
+    const next = left.find(i => i > m) || left[0];
+    focus = next ? '.qp-item[data-n="' + next + '"]' : '.qp-order-send';
   }
   /* THROUGH `ansStore_`, the one writer -- kept here, and on the account a moment later. */
   ansStore_(o.k, orderSay_(o.seq));
   if (o.seq.some(Boolean)) doneMark_(o.k);
-  orderRedraw_(o.box, o.had ? '.qp-item[data-n="' + m + '"]' : '');
+  orderRedraw_(o.box, o.had ? focus : '');
 });
 
 on('qp-order-clear', (el) => {

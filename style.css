@@ -11309,18 +11309,26 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 
    THE ITEMS ARE ON THE CARD, as the options are, with a `--dim` edge rather than `--line`: an item is a
    thing to press and its plate has to be found in glare. A placed item is a ghost of itself -- dashed,
-   faint, the same size in the same place -- so the row never closes up under a finger.
+   faint, the same size in the same place, and `disabled` -- so the row never closes up under a finger
+   and a quick second tap on it does nothing.
 
    44px IN px, the one measurement here that does not scale (CLAUDE.md): every slot and every item, and
    `min-` both ways, because an item is as wide as its words. Both rows WRAP, so five numbers, or eight
-   fractions, fit 320 by going onto a second line, never sideways; the ends wrap with the slots, so the
-   row still reads "smallest 1 2 3 / 4 5 largest" in reading order.
+   fractions, fit 320 by going onto a second line, never sideways.
+
+   THE TWO ENDS ARE A LINE OVER THE SLOTS, "Smallest" at the left edge and "Largest" at the right with
+   an arrow between, at the verdict's .78rem in the paper's ink. They were .62rem capitals in
+   `--paper-dim` at the two ends of the slots' own row (9.2px at 390, 8.4px at 320 -- the smallest words
+   on the card, for KS1), and as flex items in that row they forced a wrap at every width: at 768
+   "LARGEST" sat alone on a line under slot 5. A line of their own costs its height and gives the slots
+   the whole width back, and over all 71 orderings at 320x568 it comes out about even (signed out: 24
+   cards drawn smaller and 2 scrolling, where it was 22 and 5; signed in, 48 and 8 where it was 52 and
+   8). Q4 is a line taller at 320 -- four slots and one, under the ends -- and signed in its card is
+   drawn at 92% where it was 95%.
 
    EVERY SLOT IS THE WIDEST ITEM'S WIDTH, empty or full (`--qp-ch`, the widest item's characters, set
    on the strip by `orderBox_`; the face is monospaced), so a tap never pushes the slots after it along.
-   Their side padding is 6px and the gap 5px so that at 320 three slots fit beside "smallest" and Q4's
-   strip is two lines, not three: signed in at 320, with the star and the done date under it, the card
-   still shrinks to fit its pane (`paneReach_`), to 95% where the third line made it 92%.
+   Side padding 6px and a 5px gap, so four of Q4's slots fit one line at 320.
 
    THE RING TAKES THE VERDICT'S COLOUR, as the chat bar's does -- green or amber 3px outside the strip,
    on the card. The verdict is the reserved `.qp-mark` line under the items, Clear and Send at its end,
@@ -11331,10 +11339,18 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
   padding: 8px; border-radius: 14px;
   background: var(--paper); color: var(--paper-ink);
 }
-.qp-end { font: 600 .62rem/1.2 var(--font); letter-spacing: .08em; text-transform: uppercase;
-          color: var(--paper-dim); }
-/* THE LAST END AT THE STRIP'S RIGHT EDGE, like the far end of a number line, whichever line it wraps to. */
-.qp-end:last-child { margin-left: auto; }
+/* THE ENDS ARE A LINE OF THEIR OWN, the first at the strip's left edge and the last at its right, like
+   the two ends of a number line, with an arrow between them pointing the way the row runs. The whole
+   width (`flex-basis: 100%`), so the slots under it start a line of their own and nothing wraps alone. */
+.qp-ends { flex: 0 0 100%; display: flex; align-items: center; gap: 8px; padding: 0 2px 1px; }
+.qp-end { font: 600 .78rem/1.2 var(--font); color: var(--paper-ink); }
+/* THE ARROW IS DRAWN INSIDE ITS OWN BOX -- the shaft a 1.5px band across the middle, the head a border
+   triangle at the right edge. Hung 6px past the end of a zero-height line, the head made the span
+   scroll sideways by 6px (`check/ui.js`, SIDEWAYS SCROLL, at 320 on every ordering). */
+.qp-way { flex: 1 1 auto; position: relative; min-width: 16px; height: 10px;
+          background: linear-gradient(var(--paper-dim), var(--paper-dim)) left center / calc(100% - 4px) 1.5px no-repeat; }
+.qp-way::after { content: ""; position: absolute; right: 0; top: .5px;
+                 border: 4.5px solid transparent; border-right: 0; border-left: 7px solid var(--paper-dim); }
 .qp-slot {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
   min-width: min(100%, max(44px, calc(var(--qp-ch, 1) * 1ch + 15px))); min-height: 44px;
@@ -11352,11 +11368,22 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
   border: 1.5px solid var(--dim); border-radius: 10px; background: var(--sunk);
   font: 600 1rem/1.2 var(--font); color: var(--ink); cursor: pointer;
 }
-.qp-item:active, .qp-slot.is-full:active { transform: translateY(1px); }
-.qp-item.is-placed { border-style: dashed; border-color: var(--faint); color: var(--faint); background: none; }
+/* THE FACE IS ONE ELEMENT (`orderBox_`): as flex items of the button itself, a `<sup>` lost its raise
+   and 2² read as "22". One block with an ordinary line inside, and a power sits where it is printed. */
+.qp-face { display: block; }
+.qp-item:not([disabled]):active, .qp-slot.is-full:active { transform: translateY(1px); }
+/* THE GHOST IS NOT A CONTROL -- `disabled`, so a quick second tap on it does nothing (`orderBox_`). */
+.qp-item.is-placed { border-style: dashed; border-color: var(--faint); color: var(--faint); background: none;
+                     cursor: default; }
 .qp-order.is-right > .qp-slots { box-shadow: 0 0 0 3px var(--good); }
 .qp-order.is-near > .qp-slots { box-shadow: 0 0 0 3px var(--warn); }
 .qp-order > .qp-mark { margin-top: .5rem; gap: 8px; }
+/* THE TILES DO NOT GIVE WAY TO THE VERDICT. "Not yet — have another go" is `flex: 1 1 auto`, and the
+   tiles could shrink, so marking a wrong order at 320 squeezed Send from 48x48 to 39x48 (the disc an
+   oval) and Clear from 44 to 36 wide, under the tap target, and moved them 9 and 17px -- marking moved
+   things after all, and only the short "Correct" had been measured. The verdict wraps inside its own
+   slot instead, as it does beside the typed bar's tiles (`.qp-bar > .tile`). */
+.qp-order > .qp-mark > .tile { flex: none; }
 /* ONE LINE TALL BEFORE IT SAYS ANYTHING: an empty span in a centred row is no height at all, and
    "Correct" arriving in it moved its own top by half a line -- measured, 7.5px at 390. */
 .qp-order > .qp-mark > .qp-verdict { min-height: 1.3em; }
