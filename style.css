@@ -13416,6 +13416,14 @@ button.scr-sq { cursor: pointer; }
 .kp-field.kp-words .kp-caret { vertical-align: text-bottom; height: 1.25em; }
 /* A LAPTOP'S CTRL+A, DRAWN, because the next key replaces it -- the paper's own rule colour. */
 .kp-sel { background: var(--paper-rule); color: inherit; }
+/* AND A MATHS ONE, which cannot be one `<mark>` -- half a fraction is not an element. Its two ends are
+   empty spans the height of the caret, and the band between them is laid over the drawing
+   (`kpSelBand_`, keypad.js) in the same rule colour, MULTIPLIED, so the ink under it stays ink. The
+   flex gap a direct child adds is taken back, so selecting does not move the answer sideways. */
+.kp-sel-a, .kp-sel-b { display: inline-block; width: 0; height: 1.15em; vertical-align: middle; }
+.kp-show > .kp-sel-a, .kp-show > .kp-sel-b { margin-right: -.1em; }
+.kp-sel-band { position: absolute; background: var(--paper-rule); mix-blend-mode: multiply;
+               border-radius: 2px; pointer-events: none; }
 /* A SLOT IS A DASHED BOX, the shape Hegarty draws for "something goes here". In `em` so it is the
    size of a digit whether it sits on the line or up in a power. In the paper's second voice, 5.3:1 on
    the cream -- `--dim` was drawn for the black box and is 2.6:1 there. */

@@ -7496,6 +7496,12 @@ function ansBox_(x) {
      `.qp-ans-in` with the same `data-k`, so Send, the save on `input` and every check that types into
      one are unchanged. */
   const maths = ansMaths_(x);
+  /* THE SIGNS ROW GOES BY THE SCHEME, WHATEVER KIND OF BOX IT IS. This passed `maths && kpSigns_(x)`,
+     and the review of 8 Oct found the eleven it shut out: `x < 4 or x > 5`, `93.5 ≤ length < 94.5`,
+     `6:18 pm` -- schemes with a word in them, so `ansMaths_` gives them a WORDS box, and every way
+     `markAnswer_` accepts needs a sign the letters do not have. Before 8 Oct the phone's keyboard typed
+     them; after it nothing did. On a worded box the row is on the `123` face (`kpLayout_`). */
+  const signs = kpSigns_(x);
   /* NO CAPTION OVER THE BOX. It said "<name>'s answer", and the owner: *"remove 'names answer'.
      that is redundant."* The name is still what the answer is filed under (`ansKey_`), and a screen
      reader still hears "Your answer" from `aria-label`. */
@@ -7536,7 +7542,7 @@ function ansBox_(x) {
   const ai = can ? '' : aiTile_(x);
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
-    ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', maths && kpSigns_(x))}
+    ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', signs)}
   </label>${fig}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;

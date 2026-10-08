@@ -49,7 +49,12 @@
    offer its edit menu, magnifier or selection handles on.
 
    WHAT WENT WITH THE PHONE'S KEYBOARD, said rather than buried: spelling help, autocorrect,
-   predictions, dictation, and copy-and-paste by touch on a worded answer. A laptop still pastes.
+   predictions, dictation, and copy-and-paste by touch on a worded answer. A laptop still pastes,
+   cuts, undoes and selects with ⇧ (`kpKeys_` -- `readonly` took all four and they were put back).
+   WHAT A LAPTOP STILL LOSES: selecting with the MOUSE (a drag or a double click on the drawing places
+   the caret, nothing more -- the box under it takes no pointer), the right-click menu's Cut and Paste
+   (the menu is the page's, over a drawing), and Enter for a new line in a worded box, which is ✓ now,
+   as it is on the pad; ⇧+Enter is the new line.
 
    WHAT IS STORED IS PLAIN TEXT, and that is the decision everything else rests on. A fraction is
    `(3)/(4)`, a power `x^(2)`, a root `√(11)`: each structure is typed with a slot to fill, because
@@ -143,7 +148,11 @@ function ansMaths_(x) {
    forms -- 1F Q23b's says "the right numbers in the wrong form, eg 5 : 9" -- so read whole it gave
    411 more boxes the row, and measured at 320 that sixth row lifted Q23b's card 11px off the top of
    the screen. The rarer signs (`≈` 3, `→` 2, `∝` 1) are left out: a key nobody presses is a smaller
-   key for everybody else. */
+   key for everybody else.
+
+   ON A BOX OF EITHER KIND. The first build drew the row on maths boxes only and fixed 146 of the 157;
+   the other eleven have a word in their scheme as well as a sign (`x < 4 or x > 5`, `6:18 pm`), so
+   they open on the letters, and the row is on their `123` face (`kpLayout_`). */
 const KP_SIGN_RE = /[<>\u2264\u2265\u00b1]|\d\s*:\s*\d/;
 function kpSigns_(x) {
   if (!x) return false;
@@ -261,8 +270,9 @@ const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="k
   data-v="${esc(k.v != null ? k.v : k.t)}"${k.a ? ` aria-label="${esc(k.a)}"` : ''}${
   k.span ? ` style="grid-column:${k.at ? k.at + ' / ' : ''}span ${k.span}"` : ''}>${
   k.icon ? tileIcon_(k.icon) : k.t}</button>`;
-/* THE PAD'S KEYS FOR A LAYOUT AND A BOX. The maths layout grows its signs row only for a maths box
-   that asked for one; the letters' bottom row knows whether it is under words (`kpBottom_`). */
+/* THE PAD'S KEYS FOR A LAYOUT AND A BOX. The maths layout grows its signs row only for a box that
+   asked for one -- a worded box too, on its `123` face (`kpLayout_`); the letters' bottom row knows
+   whether it is under words (`kpBottom_`). */
 function kpPadHtml_(layer, words, signs) {
   if (layer === 'abc') return KP_ABC.concat(kpBottom_(words)).map(kpKey_).join('');
   return (signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(kpKey_).join('');
@@ -307,10 +317,19 @@ function kpField_(k, val, kind, signs, name) {
    string, because they are characters it already treats as part of a term (its ATOM class takes the
    whole Greek block). A `<span>` put in first would be split from its numerator; a letter is part of
    it. They are swapped for their spans after, and any already in the value are stripped first, so a
-   pasted ϙ is not a slot. */
-function kpTypeset_(v, caret) {
-  let s = String(v == null ? '' : v).replace(/[\u03d9\u03db]/g, '');
-  if (caret >= 0) {
+   pasted ϙ is not a slot.
+
+   A SELECTION IS TWO MORE OF THEM, its two ends (`end` past `caret`): a laptop's Ctrl+A or ⇧+← in a
+   maths box. A run cannot be wrapped in one `<mark>` the way a worded one is -- half a fraction is not
+   an element -- so the ends are drawn as two empty spans and the band between them is laid over the
+   drawing once it is on the page (`kpSelBand_`). */
+const KP_SEL_A = '\u03dd', KP_SEL_B = '\u03df';
+function kpTypeset_(v, caret, end) {
+  let s = String(v == null ? '' : v).replace(/[\u03d9\u03db\u03dd\u03df]/g, '');
+  if (caret >= 0 && end != null && end > caret && caret < s.length) {
+    const a = Math.min(caret, s.length), b = Math.min(end, s.length);
+    s = s.slice(0, a) + KP_SEL_A + s.slice(a, b) + KP_SEL_B + s.slice(b);
+  } else if (caret >= 0) {
     const at = Math.min(caret, s.length);
     s = s.slice(0, at) + KP_CARET + s.slice(at);
   }
@@ -326,14 +345,37 @@ function kpTypeset_(v, caret) {
      and `typeset_` ends a term at one. */
   const h = typeset_(esc(s).replace(/\//g, '&frasl;').replace(/-/g, '\u2212'));
   return h.replace(/\u03d9/g, '<span class="kp-hole"></span>')
-          .replace(/\u03db/g, '<span class="kp-caret"></span>');
+          .replace(/\u03db/g, '<span class="kp-caret"></span>')
+          .replace(/\u03dd/g, '<span class="kp-sel-a"></span>').replace(/\u03df/g, '<span class="kp-sel-b"></span>');
+}
+/* THE BAND BETWEEN A MATHS SELECTION'S TWO ENDS, measured off the drawing and laid over it in the
+   field (`.kp-field` is the positioned box). Ends on two lines of a wrapped answer band the lines
+   between them whole. In a try: a drawing that cannot be measured shows its ends and no band. */
+function kpSelBand_(show) {
+  const a = show.querySelector('.kp-sel-a'), b = show.querySelector('.kp-sel-b');
+  const field = show.parentNode;
+  if (!a || !b || !field) return;
+  try {
+    const f = field.getBoundingClientRect(), sr = show.getBoundingClientRect();
+    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    const one = rb.top < ra.bottom - 1;
+    const left = one ? Math.min(ra.left, rb.left) : sr.left, right = one ? Math.max(ra.right, rb.right) : sr.right;
+    const top = Math.min(ra.top, rb.top), bottom = Math.max(ra.bottom, rb.bottom);
+    if (right - left < 1 || bottom - top < 1) return;
+    const band = document.createElement('span');
+    band.className = 'kp-sel-band';
+    band.setAttribute('aria-hidden', 'true');
+    band.style.cssText = 'left:' + (left - f.left) + 'px;top:' + (top - f.top) + 'px;width:' + (right - left)
+      + 'px;height:' + (bottom - top) + 'px';
+    show.appendChild(band);
+  } catch (e) { /* the two ends are still drawn */ }
 }
 
 /* A WORDED ANSWER IS DRAWN AS THE TEXT IT IS: escaped, its newlines kept by `white-space: pre-wrap`,
    the caret a span between two halves -- and a laptop's Ctrl+A drawn as a marked run, because the
    next key replaces it and a selection you cannot see is a paragraph lost to one letter. */
 function kpDraw_(v, caret, words, end) {
-  if (!words) return kpTypeset_(v, caret);
+  if (!words) return kpTypeset_(v, caret, end);
   const s = String(v == null ? '' : v);
   if (caret < 0) return esc(s);
   const a = Math.min(caret, s.length);
@@ -356,6 +398,7 @@ function kpRender_(inp) {
   }
   show.innerHTML = kpDraw_(inp.value, caret, words, end);
   if (words && caret >= 0) kpCaretSeen_(show);
+  if (!words && end > caret) kpSelBand_(show);
 }
 /* A WORDED DRAWING STOPS GROWING AT ABOUT FIVE LINES AND SCROLLS INSIDE (`.kp-words > .kp-show`), so the
    line being written is scrolled into its own window -- by `scrollTop` on the drawing, never
@@ -454,11 +497,17 @@ function kpPad_() {
 }
 
 /* THE PAD'S FACE FOR THIS BOX. Rebuilt only when what it should show has changed -- the layout, the
-   kind of box, the signs row -- so a key pressed on the same face is pressed on the same button. */
+   kind of box, the signs row -- so a key pressed on the same face is pressed on the same button.
+
+   THE SIGNS ROW IS THE BOX'S, NOT THE KIND'S. This said `!words &&`, and the review of 8 Oct found
+   eleven marked questions it left with no way to be answered right: `x < 4 or x > 5`, `93.5 ≤ length
+   < 94.5`, `6:18 pm` -- a word in the scheme makes them WORDS boxes, and every accepted way needs a
+   sign that neither the letters nor a signless `123` has. So a worded box that asked for the row
+   (`data-kp-signs`, `ansBox_`) shows it on its `123` face; its letters stay five rows. */
 function kpLayout_(inp) {
   const pad = kpPad_();
   const words = !!inp && inp.getAttribute('data-kp') === 'words';
-  const signs = !!inp && !words && inp.hasAttribute('data-kp-signs');
+  const signs = !!inp && inp.hasAttribute('data-kp-signs');
   const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '');
   if (pad.getAttribute('data-sig') !== sig) {
     pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs);
@@ -672,6 +721,7 @@ function kpEdit_(inp, cmd) {
   const words = inp.getAttribute('data-kp') === 'words';
   let a = inp.selectionStart, b = inp.selectionEnd;
   if (a == null) { a = v.length; b = v.length; }
+  const a0 = a, b0 = b;
   const put = (t, at) => {
     inp.value = v.slice(0, a) + t + v.slice(b);
     const c = a + (at == null ? t.length : at);
@@ -726,7 +776,52 @@ function kpEdit_(inp, cmd) {
      verdict off it, exactly as it does for a typed letter. One path for both, or the pad is a second
      way to answer that the rest of the app does not know about. ONLY WHEN THE ANSWER CHANGED: a caret
      moved is not a new answer, and it took "Correct" off one that had not changed. */
-  if (inp.value !== v) inp.dispatchEvent(new Event('input', { bubbles: true }));
+  if (inp.value !== v) {
+    kpUndoNote_(inp, v, a0, b0, cmd);
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+/* ---------- UNDO, BECAUSE `readonly` TOOK THE BROWSER'S ------------------------------------------
+   THE REVIEW OF 8 OCT, measured on a laptop: Ctrl+A and then any letter wiped a paragraph, and Ctrl+Z
+   did nothing -- `readonly` stops the browser's own undo along with its typing, and the textarea a
+   worded answer was before that day had one. So every change the pad's edit makes, from a thumb or a
+   keyboard, is noted on the box's own list, and Ctrl/⌘+Z walks it back, ⇧+Ctrl/⌘+Z or Ctrl+Y forward
+   (`kpKeys_`).
+
+   BY THE BOX'S KEY (`data-k`), NOT THE ELEMENT: a redraw replaces the element under the child
+   (`kpLive_`) and the history has to survive it. A RUN OF LETTERS IS ONE STEP, a word at a time, and a
+   run of ⌫ is one, as in every editor -- a step per letter would undo a sentence a letter at a time.
+   A run is the same kind of key, at the caret the last one left, inside two seconds. */
+const KP_UNDO = new Map();
+function kpUndoNote_(inp, was, a, b, cmd) {
+  const k = inp.getAttribute('data-k') || '';
+  let h = KP_UNDO.get(k);
+  if (!h) { h = { back: [], fwd: [], kind: '', at: -1, t: 0 }; KP_UNDO.set(k, h); }
+  const kind = a !== b ? '' : (cmd === '!back' || cmd === '!del') ? 'del'
+    : (cmd.length === 1 && cmd !== '\n') ? 'type' : '';
+  const now = Date.now();
+  const word = kind === 'type' && !/\s/.test(cmd) && /\s/.test(was.charAt(a - 1));
+  if (!(kind && kind === h.kind && a === h.at && now - h.t < 2000 && !word)) {
+    h.back.push({ v: was, a: a, b: b });
+    if (h.back.length > 200) h.back.shift();
+  }
+  h.fwd = [];
+  h.kind = kind;
+  h.at = inp.selectionStart;
+  h.t = now;
+}
+function kpUndo_(inp, redo) {
+  const h = KP_UNDO.get(inp.getAttribute('data-k') || '');
+  const from = h && (redo ? h.fwd : h.back);
+  if (!from || !from.length) return;
+  const to = from.pop();
+  (redo ? h.back : h.fwd).push({ v: inp.value, a: inp.selectionStart, b: inp.selectionEnd });
+  h.kind = '';
+  inp.value = to.v;
+  try { inp.setSelectionRange(Math.min(to.a, to.v.length), Math.min(to.b, to.v.length)); } catch (e) {}
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  kpAfter_(inp, '');
 }
 
 /* ---------- A KEY, FROM THE PAD OR A KEYBOARD -----------------------------------------------------
@@ -747,6 +842,11 @@ function kpType_(inp, cmd, typed) {
      never caps lock. */
   KP_SHIFT_AT = 0;
   kpEdit_(inp, c);
+  kpAfter_(inp, c);
+}
+/* AFTER ANY CHANGE: the drawing, the capital for the next letter, the room above the pad, the line a
+   screen reader hears. Undo comes through here too. */
+function kpAfter_(inp, c) {
   kpRender_(inp);
   if (!/^!(left|right|home|end)$/.test(c)) kpAutoShift_(inp);
   kpShiftPaint_();
@@ -1026,15 +1126,29 @@ document.addEventListener('focusout', e => {
    A READONLY BOX TAKES NO KEYS OF ITS OWN -- measured: `a`, Backspace and → arrive as `keydown` and
    change nothing -- so each is sent through the pad's own edit, which is better than the native typing
    it replaces: a laptop's Backspace now keeps the fraction's brackets paired, as ⌫ does. Enter is ✓;
-   Shift+Enter is a new line in a worded box; Escape puts the pad away. Ctrl and ⌘ belong to the
-   browser (copy, select all), and so does Tab, which moves to the next box. Option on a Mac types `≤`
-   and `≥` with `,` and `.`, so Alt alone is let through as a character. Composition (an IME mid-word)
-   is the browser's until it ends. */
+   Shift+Enter is a new line in a worded box; Escape puts the pad away. Tab is the browser's, which
+   moves to the next box. Option on a Mac types `≤` and `≥` with `,` and `.`, so Alt alone is let
+   through as a character. Composition (an IME mid-word) is the browser's until it ends.
+
+   AND WHAT A TEXT BOX'S KEYS DID THAT `readonly` TOOK, put back after the review of 8 Oct measured
+   each one gone in Chromium:
+   - ⇧ with ← → Home End (↑ ↓ in words) GROWS THE SELECTION from where it began (`kpExtend_`); it
+     moved the caret and dropped the selection.
+   - Ctrl/⌘+Z UNDOES and ⇧+Ctrl/⌘+Z or Ctrl+Y redoes, through the box's own history (`kpUndo_`). Ctrl+A
+     then a letter wiped a paragraph with no way back.
+   - Ctrl/⌘+X CUTS (the `cut` listener below); it did nothing.
+   - ALTGR TYPES. On Windows it arrives as Ctrl+Alt, and `€`, `á` and, on many European layouts, `@ { }`
+     were dropped as a shortcut. A one-character key with Ctrl and Alt both down, or the AltGraph
+     state, is a character.
+   Ctrl/⌘ with anything else -- copy, select all, the browser's own -- is still the browser's. */
 function kpKeys_(e) {
   const t = e.target;
   if (!t || !t.classList || !t.classList.contains('kp-in') || e.isComposing || e.keyCode === 229) return;
   const words = t.getAttribute('data-kp') === 'words';
   const k = e.key || '';
+  let altGr = false;
+  try { altGr = !!(e.getModifierState && e.getModifierState('AltGraph')); } catch (err) {}
+  if (!altGr && e.ctrlKey && e.altKey && !e.metaKey && k.length === 1) altGr = true;
   let cmd = null;
   if (k === 'Enter') {
     e.preventDefault();
@@ -1045,8 +1159,25 @@ function kpKeys_(e) {
     t.blur();
     kpClose_();
     return;
-  } else if (e.ctrlKey || e.metaKey) return;
-  else if (k === 'Backspace') cmd = '!back';
+  } else if ((e.ctrlKey || e.metaKey) && !altGr) {
+    const c = k.toLowerCase();
+    const redo = (c === 'z' && e.shiftKey) || (c === 'y' && e.ctrlKey && !e.metaKey);
+    if (c === 'z' || redo) {
+      e.preventDefault();
+      if (KP_AT !== t) kpOpen_(t);
+      return kpUndo_(t, redo);
+    }
+    if (c === 'x') return kpCut_(e, t);
+    return;
+  } else if (e.shiftKey && /^(ArrowLeft|ArrowRight|Home|End)$/.test(k)) {
+    e.preventDefault();
+    if (KP_AT !== t) kpOpen_(t);
+    return kpExtend_(t, k);
+  } else if (e.shiftKey && words && (k === 'ArrowUp' || k === 'ArrowDown')) {
+    e.preventDefault();
+    if (KP_AT !== t) kpOpen_(t);
+    return kpLine_(t, k === 'ArrowUp' ? -1 : 1, true);
+  } else if (k === 'Backspace') cmd = '!back';
   else if (k === 'Delete') cmd = '!del';
   else if (k === 'ArrowLeft') cmd = '!left';
   else if (k === 'ArrowRight') cmd = '!right';
@@ -1061,17 +1192,77 @@ function kpKeys_(e) {
   kpType_(t, cmd, true);
 }
 document.addEventListener('keydown', kpKeys_, true);
-/* ↑ AND ↓ IN A WORDED BOX: the caret a line up or down, read off the drawing the way a tap is. */
-function kpLine_(inp, dir) {
+/* ↑ AND ↓ IN A WORDED BOX: the caret a line up or down, read off the drawing the way a tap is. With ⇧
+   the selection's moving end goes, and its other end stays. Measured from a caret drawn where that end
+   is, because a selection is drawn as a run with no caret in it. */
+function kpLine_(inp, dir, grow) {
   const show = inp.parentNode && inp.parentNode.querySelector('.kp-show');
-  const c = show && show.querySelector('.kp-caret');
-  if (!c) return;
+  if (!show) return;
+  const v = inp.value;
+  let s = inp.selectionStart, e = inp.selectionEnd;
+  if (s == null) s = e = v.length;
+  const back = inp.selectionDirection === 'backward';
+  const anchor = back ? e : s;
+  const from = grow ? (back ? s : e) : (dir < 0 ? s : e);
+  show.innerHTML = kpDraw_(v, from, true);
+  const c = show.querySelector('.kp-caret');
+  if (!c) return kpRender_(inp);
   const r = c.getBoundingClientRect();
   const lh = parseFloat(getComputedStyle(show).lineHeight) || r.height || 20;
   const at = kpHitWords_(show, r.left, r.top + r.height / 2 + dir * lh);
-  try { inp.setSelectionRange(at, at); } catch (e) {}
+  if (grow) return kpSelect_(inp, anchor, at);
+  try { inp.setSelectionRange(at, at); } catch (err) {}
   kpRender_(inp);
 }
+/* ⇧ WITH ← → HOME END: the selection's moving end goes one character, or to an end, and its anchor --
+   where it began -- stays, whichever side of it the moving end has crossed to. */
+function kpExtend_(inp, k) {
+  const v = inp.value;
+  let s = inp.selectionStart, e = inp.selectionEnd;
+  if (s == null) s = e = v.length;
+  const back = inp.selectionDirection === 'backward';
+  const anchor = back ? e : s;
+  let to = back ? s : e;
+  if (k === 'ArrowLeft') to = Math.max(0, to - 1);
+  else if (k === 'ArrowRight') to = Math.min(v.length, to + 1);
+  else if (k === 'Home') to = 0;
+  else if (k === 'End') to = v.length;
+  kpSelect_(inp, anchor, to);
+}
+function kpSelect_(inp, anchor, to) {
+  try { inp.setSelectionRange(Math.min(anchor, to), Math.max(anchor, to), to < anchor ? 'backward' : 'forward'); } catch (e) {}
+  kpRender_(inp);
+}
+/* CTRL/⌘+X: THE SELECTION TO THE CLIPBOARD, THEN TAKEN OUT THROUGH THE PAD'S EDIT. Chromium fires
+   `cut` on a readonly box (measured) and does nothing else with it, so the listener below does the
+   work; the key asks for that event itself (`execCommand('cut')`), so that a browser which fires none
+   on a readonly box -- WebKit's Cut is disabled on one -- is seen to, and gets a copy and a delete
+   instead. Nothing selected, nothing cut. Nothing copied, nothing deleted: text taken out that is not
+   on the clipboard is lost. */
+let KP_CUT = false;
+function kpCut_(e, t) {
+  e.preventDefault();
+  if (!(t.selectionEnd > t.selectionStart)) return;
+  KP_CUT = false;
+  try { document.execCommand('cut'); } catch (err) {}
+  if (KP_CUT) return;
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch (err) { copied = false; }
+  if (!copied) return;
+  if (KP_AT !== t) kpOpen_(t);
+  kpType_(t, '!back', true);
+}
+document.addEventListener('cut', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('kp-in')) return;
+  KP_CUT = true;
+  e.preventDefault();
+  const a = t.selectionStart, b = t.selectionEnd;
+  if (!(b > a)) return;
+  try { e.clipboardData.setData('text/plain', t.value.slice(a, b)); } catch (err) { return; }
+  if (KP_AT !== t) kpOpen_(t);
+  kpType_(t, '!back', true);
+}, true);
 /* A PASTE ON A LAPTOP arrives on the readonly box carrying its text (measured) and is typed through
    the pad's edit like any key -- into a maths box as one line, because an `<input>` holds one. */
 document.addEventListener('paste', e => {

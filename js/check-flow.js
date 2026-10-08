@@ -7684,14 +7684,51 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   await wait(20);
   mo.disconnect();
   if (touched.length) bad.push('a script changed a box\'s lock on the way: ' + touched.join(' | ') + ' -- the lock is written in the markup and nowhere else');
-  /* AND THE SOURCE: nothing that ships writes `inputmode` or `readonly` by script. `abc` was exactly that. */
-  const SRC = /setAttribute\(\s*['"](?:inputmode|readonly)['"]|removeAttribute\(\s*['"](?:inputmode|readonly)['"]|\.readOnly\s*=(?!=)|\.inputMode\s*=(?!=)/;
+  /* AND THE SOURCE: nothing that ships writes `inputmode`, `readonly` or `contenteditable` by script. `abc`
+     was exactly that.
+
+     EVERY SPELLING OF THE WRITE, NOT TWO OF THEM. The review of 8 Oct added one line to keypad.js --
+     a double tap calling `toggleAttribute('readonly', false)` and `setAttribute('inputMode', 'text')`
+     -- and this stayed green: the pattern knew `setAttribute`/`removeAttribute` in lower case and
+     `.readOnly =`, and an HTML attribute name ignores case, `toggleAttribute` unlocks as surely as
+     `removeAttribute`, and a backtick or a bracket write is the same write. The MutationObserver above
+     sees only the routes this journey walks, so a double tap or a long press is the source's to catch. */
+  const Q = '[\'"`]';
+  const SRC = new RegExp([
+    '(?:set|remove|toggle)Attribute\\(\\s*' + Q + '(?:inputmode|readonly|contenteditable)' + Q,
+    '(?:set|remove)AttributeNS\\([^,()]*,\\s*' + Q + '(?:inputmode|readonly|contenteditable)' + Q,
+    'removeNamedItem(?:NS)?\\([^)]*' + Q + '(?:inputmode|readonly|contenteditable)' + Q,
+    '\\.(?:readOnly|inputMode|contentEditable)\\s*=(?!=)',
+    '\\[\\s*' + Q + '(?:readOnly|inputMode|contentEditable)' + Q + '\\s*\\]\\s*=(?!=)',
+  ].join('|'), 'i');
+  /* AND ONLY `kpField_` DRAWS AN ANSWER BOX. Every box that saves as an answer carries `data-do="qp-ans"`
+     (the `input` listener in find.js) and `.qp-ans-in` (what Send and Mark with AI read), and today
+     `kpField_` is the one place that writes either -- locked. A new kind of card that drew its own field
+     would only be asked about here if this journey were taught to draw it; written outside `kpField_`,
+     it fails now, whoever draws it. A selector that FINDS a box (`[data-do="qp-ans"]`, `.qp-ans-in`) is
+     a read and is not counted. */
+  const BOX = new RegExp([
+    '(?<!\\[)data-do=\\\\?' + Q + 'qp-ans\\\\?' + Q,
+    'setAttribute\\(\\s*' + Q + 'data-do' + Q + '\\s*,\\s*' + Q + 'qp-ans' + Q,
+    'dataset\\.do\\s*=(?!=)\\s*' + Q + 'qp-ans' + Q,
+    'class(?:Name)?\\s*=\\s*\\\\?' + Q + '[^\'"`]*\\bqp-ans-in\\b',
+    'classList\\.(?:add|toggle|replace)\\([^)]*' + Q + 'qp-ans-in' + Q,
+  ].join('|'));
   const jsDir = path.join(dir);
+  let field = '';
   fs.readdirSync(jsDir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
-    const src = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    let src = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     const m = src.match(SRC);
     if (m) bad.push('js/' + f + ' writes a box\'s lock by script: `' + m[0] + '` -- a box unlocked by script is the phone\'s keyboard let back in');
+    if (f === 'keypad.js') {
+      const cut = src.match(/function kpField_\([\s\S]*?\n\}\n/);
+      field = cut ? cut[0] : '';
+      if (cut) src = src.replace(cut[0], '');
+    }
+    const b = src.match(BOX);
+    if (b) bad.push('js/' + f + ' draws an answer box outside kpField_: `' + b[0] + '` -- a box not drawn by kpField_ is a box nobody locked');
   });
+  if (!field || !/data-do="qp-ans"/.test(field) || !/qp-ans-in/.test(field)) bad.push('kpField_ was not found in js/keypad.js drawing `data-do="qp-ans"` and `.qp-ans-in` -- the rule that only it draws a box asked about nothing');
   if (boxes < 7) bad.push('only ' + boxes + ' boxes were drawn to ask about — the rule was not asked of them all');
   [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
@@ -7706,8 +7743,10 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
    face, whose 5 types into a worded box; ⇧ once is one capital and twice is caps lock; ⌫ in prose
    deletes a bracket like any letter. And a laptop: `readonly` stops the browser typing, so its keys go
    through the pad's own edit -- letters, Backspace, ←, Shift+Enter, Enter, a paste -- each one's own
-   default cancelled. And the pad's other promises: a worded answer filled from another device is drawn
-   as the words it is, never typeset; the signs row is on a box whose scheme needs one, and on no other. */
+   default cancelled, and what `readonly` took from a text box is put back: ⇧ with an arrow selects,
+   Ctrl+Z and Ctrl+Y walk the box's own history, a cut cuts, AltGr types. And the pad's other promises:
+   a worded answer filled from another device is drawn as the words it is, never typeset; the signs row
+   is on a box whose scheme needs one, and on no other -- a worded box's on its `123` face. */
 check('the pad\'s letters type, save and mark a worded answer; 123 is the maths keys; ⇧, a laptop\'s keys and a paste all type', async () => {
   const { w, errs } = boot();
   await wait(300);
@@ -7776,6 +7815,51 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   if (inp.value !== 'It Rate \nu' || !paste.defaultPrevented) bad.push('a paste at the start gave ' + JSON.stringify(inp.value) + ', wanted "It Rate \\nu" typed through the pad');
   try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
   if (kept !== 'It Rate \nu') bad.push('the laptop\'s answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
+  /* AND WHAT `readonly` TOOK FROM A LAPTOP, PUT BACK -- the review of 8 Oct measured each one gone: ⇧ with
+     an arrow moved the caret and dropped the selection; Ctrl+Z did nothing, so Ctrl+A and a letter lost a
+     paragraph; Ctrl+X did nothing; AltGr (Ctrl+Alt on Windows) dropped `€`. */
+  const L = inp.value.length;
+  kd('End'); kd('ArrowLeft', { shiftKey: true }); kd('ArrowLeft', { shiftKey: true });
+  if (inp.selectionStart !== L - 2 || inp.selectionEnd !== L || inp.selectionDirection !== 'backward') bad.push('⇧← twice from the end selected ' + inp.selectionStart + '-' + inp.selectionEnd + ' ' + inp.selectionDirection + ', wanted ' + (L - 2) + '-' + L + ' backward -- the selection grows from where it began');
+  if (!card.querySelector('.kp-show mark.kp-sel')) bad.push('a selection made with ⇧← is not drawn');
+  kd('ArrowRight', { shiftKey: true });
+  if (inp.selectionStart !== L - 1 || inp.selectionEnd !== L) bad.push('⇧→ after ⇧←⇧← left ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted ' + (L - 1) + '-' + L + ' -- the moving end comes back, the anchor stays');
+  kd('Home', { shiftKey: true });
+  if (inp.selectionStart !== 0 || inp.selectionEnd !== L) bad.push('⇧Home from the end selected ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted 0-' + L);
+  /* Ctrl+A (all selected) and a letter, then Ctrl+Z: the paragraph back, selected as it was; ⇧Ctrl+Z, Ctrl+Y forward. */
+  const para = inp.value;
+  kd('Z');
+  if (inp.value !== 'Z') bad.push('a letter over everything selected gave ' + JSON.stringify(inp.value) + ', wanted "Z"');
+  const undid = kd('z', { ctrlKey: true });
+  if (inp.value !== para || inp.selectionStart !== 0 || inp.selectionEnd !== L) bad.push('Ctrl+Z after a letter over the whole answer gave ' + JSON.stringify(inp.value) + ' ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted the paragraph back, all selected');
+  if (!undid) bad.push('Ctrl+Z was left to the browser as well -- its own undo is another field\'s');
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (kept !== para) bad.push('an undo was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
+  kd('z', { ctrlKey: true, shiftKey: true });
+  if (inp.value !== 'Z') bad.push('⇧Ctrl+Z after an undo gave ' + JSON.stringify(inp.value) + ', wanted "Z" again');
+  kd('z', { metaKey: true });
+  kd('y', { ctrlKey: true });
+  if (inp.value !== 'Z') bad.push('⌘Z then Ctrl+Y gave ' + JSON.stringify(inp.value) + ', wanted "Z" -- undone and redone');
+  kd('z', { ctrlKey: true });
+  /* A RUN OF LETTERS IS ONE STEP, A WORD AT A TIME. */
+  kd('End'); [' ', 'o', 'k'].forEach(c => kd(c));
+  kd('z', { ctrlKey: true });
+  if (inp.value !== para + ' ') bad.push('Ctrl+Z after typing " ok" gave ' + JSON.stringify(inp.value) + ', wanted the word "ok" gone and the space kept');
+  kd('z', { ctrlKey: true });
+  if (inp.value !== para) bad.push('a second Ctrl+Z gave ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(para));
+  /* ALTGR: Ctrl+Alt with a one-character key is a character. */
+  kd('End'); kd('€', { ctrlKey: true, altKey: true });
+  if (inp.value !== para + '€') bad.push('AltGr+E (€, Ctrl+Alt on Windows) gave ' + JSON.stringify(inp.value) + ' -- dropped as a shortcut');
+  /* A CUT: the selection to the clipboard and out of the box, and Ctrl+Z puts it back. */
+  inp.setSelectionRange(0, 3);
+  let clip = null;
+  const cut = new w.Event('cut', { bubbles: true, cancelable: true });
+  Object.defineProperty(cut, 'clipboardData', { value: { setData: (t, v) => { clip = v; } } });
+  inp.dispatchEvent(cut);
+  if (clip !== 'It ' || inp.value !== para.slice(3) + '€' || !cut.defaultPrevented) bad.push('a cut of "It " put ' + JSON.stringify(clip) + ' on the clipboard and left ' + JSON.stringify(inp.value));
+  kd('z', { ctrlKey: true });
+  if (inp.value !== para + '€') bad.push('Ctrl+Z after a cut gave ' + JSON.stringify(inp.value));
+  inp.value = para; inp.dispatchEvent(new w.Event('input', { bubbles: true }));
   kd('Enter');
   if (!pad.hidden) bad.push('Enter on the worded box left the pad up');
   /* A MATHS BOX TYPED ON A LAPTOP KEEPS ITS SLOTS: Backspace steps into a filled fraction, as ⌫ does. */
@@ -7790,6 +7874,12 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   mi.value = '(3)/(4)'; mi.setSelectionRange(7, 7);
   mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
   if (mi.value !== '(3)/(4)' || mi.selectionStart !== 6) bad.push('a laptop Backspace after a filled fraction gave ' + JSON.stringify(mi.value) + ' at ' + mi.selectionStart + ' -- wanted the caret stepped inside, as ⌫ does');
+  /* ⇧Home IN A MATHS BOX SELECTS, AND THE SELECTION IS DRAWN: its two ends in the typeset answer, no caret. */
+  mi.setSelectionRange(7, 7);
+  mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Home', shiftKey: true, bubbles: true, cancelable: true }));
+  const mShow = mi.parentNode.querySelector('.kp-show');
+  if (mi.selectionStart !== 0 || mi.selectionEnd !== 7) bad.push('⇧Home in a maths box selected ' + mi.selectionStart + '-' + mi.selectionEnd + ', wanted 0-7');
+  if (!mShow.querySelector('.kp-sel-a') || !mShow.querySelector('.kp-sel-b') || mShow.querySelector('.kp-caret')) bad.push('a maths selection is not drawn by its two ends: ' + mShow.innerHTML.slice(0, 160));
   mi.blur();
   await wait(10);
   /* THE SIGNS ROW WHERE THE SCHEME NEEDS IT: an inequality's box has < ≤ ≥ > : ± above the digits. */
@@ -7807,6 +7897,23 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   if (!signed('lead', { accept: '', answer: '140 &lt; <i>h</i> &le; 150 &mdash; the class the median is in' })) bad.push('a box with no scheme whose answer leads "140 < h ≤ 150" has no signs row');
   if (signed('prose', { accept: '', answer: '<sup>5</sup>&frasl;<sub>9</sub> &mdash; M1 for the right numbers in the wrong form, eg 5 : 9' })) bad.push('a box whose answer is 5/9 was given the signs row off its mark scheme\'s prose ("eg 5 : 9")');
   if (signed('scheme', { accept: '5/9 | 0.56', answer: '<b>5 : 9</b>' })) bad.push('a box whose scheme is 5/9 was given the signs row off its worked answer -- the scheme decides where there is one');
+  /* AND ON A WORDED BOX THAT NEEDS ONE. The review of 8 Oct: eleven marked questions -- `x < 4 or x > 5`,
+     `93.5 ≤ length < 94.5`, `6:18 pm` -- have a word in their scheme, so they are WORDS boxes, and the row
+     was drawn on maths boxes only; neither face had `<` or `:`, and no way the marker accepts could be
+     typed. Its letters stay five rows; `123` has the row; the answer typed across both faces is marked right. */
+  const wi = Object.assign({}, base, { key: 'q-abc-wineq', answerType: 'calculation', accept: 'x < 4 or x > 5 | x > 5 or x < 4',
+    row: Object.assign({}, base.row, { row_id: 'Q-ABC-WINEQ' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(wi)); } catch (e) {}
+  const wb = draw(wi).querySelector('.kp-in');
+  if (wb.getAttribute('data-kp') !== 'words' || !wb.hasAttribute('data-kp-signs')) bad.push('a calculation whose scheme is "x < 4 or x > 5" is not a words box marked for the signs row: ' + wb.outerHTML.slice(0, 160));
+  wb.focus();
+  if (pad.getAttribute('data-layer') !== 'abc' || key('<')) bad.push('a worded box with the signs row did not open on its plain letters');
+  press('!123');
+  ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('the 123 face of a worded box whose scheme is "x < 4 or x > 5" has no ' + v + ' key'); });
+  ['x', '<', '4', ' '].forEach(press); press('!abc'); ['o', 'r', ' '].forEach(press); press('!123'); ['x', '>', '5'].forEach(press);
+  press('!done');
+  if (wb.value !== 'x<4 or x>5' || !wb.closest('.qcard').querySelector('.qp-mark.is-right')) bad.push('"x<4 or x>5" typed on the pad into a worded box gave ' + JSON.stringify(wb.value) + ' and was not marked right');
+  try { w.localStorage.removeItem(w.__t.ansKey(wi)); } catch (e) {}
   /* A WORDED ANSWER FROM ANOTHER DEVICE IS DRAWN AS WORDS: `ansRefresh_` through the pad's own drawing. */
   if (typeof w.ansRefresh_ === 'function') {
     const k = w.__t.ansKey(x);
