@@ -3637,6 +3637,7 @@ async function filesOnly_() {
     const extra = await libraryExtraRows_();
     libraryExtras_(d, extra);
     settingsInto_(d, extra);
+    try { splashSync_(d, extra); } catch (e) {}
   } catch (e) {}
   /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
      and an absent `checklists` is a throw rather than an empty screen. */
@@ -3832,11 +3833,11 @@ async function load() {
          the console says what they were.
 
          Costs nothing. A Proxy is only consulted on a property that is not there. */
-      /* REMEMBERED FOR THE NEXT LOAD. The splash is chosen while the page is still parsing — that
-         is what makes it right on the first frame — so it cannot ask DATA which have been retired.
-         It reads what the last visit left here instead: one load behind, which for a decorative
-         choice nobody will notice, and the alternative is a splash that changes after it appears. */
-      try { localStorage.setItem('splashOff', JSON.stringify(d.splashOff || [])); } catch (e) {}
+      /* `splashOff` WAS WRITTEN HERE, and that is why retiring a splash never reached a device. This
+         line ran BEFORE `settingsInto_` below, so it wrote the payload's `splashOff` -- which
+         `doGet` sends as `[]` on every load, the list having moved to data/settings/splashes.json --
+         and the file's list, built a few lines later, was never written anywhere. It is written by
+         `splashSync_` now, after the file has been read; see there. */
       /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
          `find.js` because this is the moment a payload becomes DATA, and a favourite read before
          that is the last device's guess. */
@@ -3883,6 +3884,9 @@ async function load() {
            and it is what keeps the site standing if the spreadsheet is deleted before the Apps
            Script sync has run, which is the ordering this project cannot control. */
         settingsInto_(d, extra);
+        /* AND WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM — see `splashSync_`. Its own `try`, so a
+           full or forbidden storage cannot cost this payload its library. */
+        try { splashSync_(d, extra); } catch (e) {}
       } catch (e) {
         d.questions = d.questions || [];
         d.dropdowns = d.dropdowns || {};
@@ -4159,6 +4163,23 @@ function splashWaitWatch_() {
     const now = $('splash');
     if (now && !now.classList.contains('done')) splashSay_(true);
   }, SPLASH_SAY_AFTER);
+}
+/* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM ----------------------------------------------
+   THE SPLASH IS CHOSEN WHILE THE PAGE IS STILL PARSING — that is what makes it right on the first
+   frame — so it cannot ask `DATA` anything. It reads what the last visit left in this device's storage
+   instead: one load behind, which for a decorative choice nobody will notice, and the alternative is a
+   splash that changes after it appears.
+
+   `splashOff` IS THE SHEET'S RETIRED SPLASHES, as `settingsInto_` reads them off
+   data/settings/splashes.json. Written only when that file came back with rows: a fetch that failed
+   is not the sheet saying "retire nothing", and writing `[]` for it would bring every retired splash
+   back until the next good load. It was written once before, from the payload and before the file had
+   been read, which is why no splash retired in the sheet ever left anybody's phone. */
+function splashSync_(d, extra) {
+  const rows = extra && extra['settings/splashes'];
+  if (rows && rows.length) {
+    try { localStorage.setItem('splashOff', JSON.stringify((d && d.splashOff) || [])); } catch (e) {}
+  }
 }
 function splashOff_() {
   clearTimeout(splashSayTimer); clearTimeout(splashEarlyTimer); splashSay_(false);

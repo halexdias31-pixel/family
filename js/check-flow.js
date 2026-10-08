@@ -10566,6 +10566,78 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   return bad;
 });
 
+/* ---------- THE SPLASH'S PICKER, AS index.html HOLDS IT ---------------------------------------------
+   `boot()` STRIPS EVERY SCRIPT FROM THE PAGE, the picker with them — so a journey about which splash
+   is drawn runs the real one itself, out of the file, in the window the app booted in. Cut by its id:
+   it is `<script id="pick-splash">`, the first thing inside `#splash` (see check-css.js). */
+const pickerSrc_ = () => {
+  const h = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
+  const m = /<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h);
+  return m ? m[1] : null;
+};
+/* EVERY ANSWER THE COIN CAN GIVE, by forcing `Math.random` across its range: N evenly spaced values
+   reach every index of any pool of N or fewer. The splash is put back as the markup has it between
+   runs, so each pick starts where a fresh page does. Answers the class each run left, and the root
+   it drew if it drew one. */
+const pickEvery_ = (w, src, n) => {
+  const sp = w.document.getElementById('splash');
+  const was = w.Math.random, out = [];
+  const reset = () => {
+    sp.className = 'is-tag';
+    [...sp.querySelectorAll(':scope > [class|="an"]')].forEach(e => e.remove());
+    [...w.document.head.querySelectorAll('style[data-anim]')].forEach(e => e.remove());
+  };
+  try {
+    for (let k = 0; k < (n || 64); k++) {
+      reset();
+      w.Math.random = () => (k + 0.5) / (n || 64);
+      w.eval(src);
+      const root = sp.querySelector(':scope > [class|="an"]');
+      out.push({ cls: sp.className, root: root ? root.className : '' });
+    }
+  } finally { w.Math.random = was; reset(); }
+  return out;
+};
+/* UNTIL `load()` HAS READ THE FILES AND BUILT `DATA` — a poll rather than a fixed sleep, because the
+   suite runs beside four browsers and a fixed sleep is the timer that fails only there. */
+const loaded_ = async (t, ms) => {
+  for (let i = 0; i < (ms || 5000) / 25; i++) {
+    const d = t.DATA && t.DATA();
+    if (d && d.splashOff) return true;
+    await wait(25);
+  }
+  return false;
+};
+
+/* ---------- A RETIRED SPLASH STAYS RETIRED ----------------------------------------------------------
+   data/settings/splashes.json IS THE SHEET'S SWITCH, and the picker reads what the last load left in
+   `splashOff`. That was written from the PAYLOAD, before the file had been read — and `doGet` sends
+   `[]` — so turning a splash off in the sheet never reached a single device. This serves the real
+   file with Pythagoras switched off, lets the real `load()` run, and asks what the device kept; then
+   runs the real picker from index.html with every answer the coin can give, and Pythagoras must never
+   be the one drawn. */
+check('a retired splash stays retired: the file\'s list reaches the device, and the picker never draws it', async () => {
+  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'))
+    .map(r => r.splash_id === 'pyth' ? Object.assign({}, r, { active: false }) : r);
+  const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows : undefined });
+  if (!w.__t) return ['the app did not finish loading'];
+  if (!(await loaded_(w.__t))) return ['`load()` never built DATA.splashOff — the splashes file was NOT read, so nothing was checked'];
+  const bad = [];
+  let off = null;
+  try { off = JSON.parse(w.localStorage.getItem('splashOff') || 'null'); } catch (e) { off = 'unreadable'; }
+  if (!Array.isArray(off) || off.indexOf('is-pyth') < 0) {
+    bad.push('the device kept splashOff = ' + JSON.stringify(off) + ' — Pythagoras is off in the file and the next load can still draw it');
+  }
+  const src = pickerSrc_();
+  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — the picker was NOT run']);
+  const picks = pickEvery_(w, src, 64);
+  const drew = picks.filter(p => p.cls === 'is-pyth' || p.root === 'an-pyth');
+  if (drew.length) bad.push('the picker drew Pythagoras ' + drew.length + ' times in 64 — retired in the sheet, and still on the splash');
+  const kinds = new Set(picks.map(p => p.root || p.cls));
+  if (kinds.size < 10) bad.push('64 forced picks drew only ' + kinds.size + ' different splashes (' + [...kinds].join(' ') + ') — the coin was NOT exercised');
+  return bad;
+});
+
 /* ---------- THE BIBLE: SIX QUESTIONS AND A CARD A VERSE, AND NOBODY ELSE IS SHOWN IT OR SENT IT ---------
    ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
    AND REDONE ON 6 OCT: *"it should be like the other stuff. tags in finder. should go translation e.g.
