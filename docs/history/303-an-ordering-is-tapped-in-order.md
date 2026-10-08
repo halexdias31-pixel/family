@@ -28,8 +28,29 @@ answer, and an `accept` that had to be taken away.
 `answer` stays the human-readable answer and `marks` is unchanged. The question's html keeps the
 items too: they are part of the question, and the weekly email prints the question's words.
 `tools/set-order.py` writes the four columns from a proposal file and asserts every one first; Q4 was
-converted with it, and is the only ordering so far. About 19 rows carry an examiner note that begins
-"THE ORDER IS THE ANSWER", and a looser search for ordering wording finds about 60 — the next batch.
+converted with it first, on its own.
+
+**Then 67 more, the same day**: Edexcel 1F/2F/3F/1H orderings (negatives, fractions, standard form,
+recurring decimals), the 1st Class Maths fraction and standard-form sets, the Corbett ordering
+decimals / numbers / fractions / Roman numerals sheets, the 5-a-day mixed fraction–decimal–percent
+orderings, a race ("furthest ahead"), shapes by sides, and one AQA food chain (`first | last`). Each
+order was solved, solved again independently, and solved a third time against the question's own
+list (and the preamble's table where the items live there) before it was written. 14 answers were
+rewritten too. Most were a bare list with no reason; three were wrong: 0701-5 and 0706-4 gave their
+decimals in the paper's order, not the answer's, and ordering-decimals-7 said "third decimal place"
+when the second decides it. `check-marking.js`'s sweep now covers 68 orderings. The "THE ORDER IS THE
+ANSWER" examiner notes on the Corbett rows were left as written: they say why there is no `accept`,
+which is still true.
+
+**What the strip costs at 320x568, measured** (signed out, each card brought on screen as
+`check/states.js` does): before, none of the 67 was shrunk; after, 22 are drawn below full size by
+`paneReach_`, and four scroll. Two are at the 0.7 floor: `Q-CBM-ordering-numbers-14`, where the items
+are words ("six thousand and ninety-nine") so every slot is the whole strip wide and the strip is five
+lines tall, and `Q-CBM-2d-shapes-8`, which has six items. `Q-1CM-standard-form-8` and `-9` overflow
+17px at zoom 0.884, so `paneReach_` misses the fit on them. At 375x667 two cards shrink and only
+numbers-14 scrolls (35px); at 390x844 only numbers-14 shrinks (0.967), and nothing scrolls. If the
+words case matters, it needs a slot rule for long items. The sizing rule itself is right: equal slots
+are what keep the strip still under the finger.
 
 **The scheme accepts the reverse on paper; the box does not.** Q4's mark scheme gives B1 for the
 largest-first list too. On a paper a reversed list is ambiguous; here the strip says "smallest" at its
