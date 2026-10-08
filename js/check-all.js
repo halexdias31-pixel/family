@@ -359,7 +359,7 @@ const SUITE = [
 let failed = 0, noted = 0;
 const notes = [];
 
-/* ---------- THE FOUR THAT DRIVE A BROWSER START TOGETHER, AT THE TOP -------------------------------
+/* ---------- THE ONES THAT DRIVE A BROWSER START AT THE TOP, A FEW AT A TIME ------------------------
    THEY ARE NOT CPU-BOUND AND NEVER WERE. Measured: `check/press.js` spends 77 seconds of wall clock
    and 4.5 seconds of processor — the rest is waiting for a page to settle, which is exactly the
    thing four processes can do at once on a four-core machine. Sequentially the four cost about three
@@ -375,14 +375,26 @@ const notes = [];
    THE OUTPUT DOES NOT MOVE. They are printed in roster order, in their place, when the fast ones
    have finished — so a run reads exactly as it did, and a failure is still named where somebody
    expects to find it. */
+/* AND NOT ALL AT ONCE. Eleven browser checks on a four-core machine, beside the fast ones, meant every
+   clock below was spent waiting for a core: on 8 Oct `check/ui.js --part=3/3` was killed at 900s in
+   the suite three runs running while it passed alone in 796s, then in under 600s once dealt by
+   weight -- and still died in the suite, because the clock starts when the process does and the
+   process spent most of it queued behind ten others. So at most a core fewer than the machine has
+   run together (one is left for the fast checks), each one's clock starts when IT starts, and the
+   rest wait their turn without spending their fifteen minutes. The order is the roster's, which puts
+   `check/ui.js` and its parts -- the longest -- last; they go first, so the run ends on short ones. */
+const POOL = Math.max(2, require('os').cpus().length - 1);
+const queue = [];
+let live = 0;
+const pump = () => { while (live < POOL && queue.length) { live++; queue.shift()(); } };
 const running = new Map();
-for (const c of SUITE) {
-  if (!c.slow) continue;
+for (const c of SUITE.filter(x => x.slow).sort((x, y) => (/ui\.js/.test(y.file) ? 1 : 0) - (/ui\.js/.test(x.file) ? 1 : 0))) {
   const [file, ...args] = c.file.split(' ');
   const p = file.includes('/') ? path.join(dir, '..', file) : path.join(dir, file);
   if (!fs.existsSync(p)) continue;
-  const t0 = Date.now();
-  running.set(c.file, new Promise(done => {
+  running.set(c.file, new Promise(fin => queue.push(() => {
+    const t0 = Date.now();
+    const done = r => { live--; fin(r); pump(); };
     /* TEN MINUTES, NOT FIVE. `check/ui.js` passed 300s on the day ten owner-list items each brought
        their own states, with the other three browser checks running beside it — and a check killed
        by the clock prints FAIL over a report with no finding in it, which reads exactly like a fault
@@ -395,8 +407,9 @@ for (const c of SUITE) {
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));
-  }));
+  })));
 }
+pump();
 
 /* THE RUN ITSELF, IN AN ASYNC WRAPPER. The four browser checks are started above and awaited in
    their place below, and `await` at the top level of a CommonJS file is a syntax error Node
