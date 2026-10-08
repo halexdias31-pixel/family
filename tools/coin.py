@@ -46,7 +46,7 @@ for i, c in enumerate(SEQ):
     a = pct(land[i])
     keys.append('@keyframes cn-m%d { 0%%, %s { opacity: 0; transform: scale(.4); } %s { opacity: 1; transform: scale(1.18); } %s, %d%% { opacity: 1; transform: scale(1); } %d%%, 100%% { opacity: 0; transform: scale(1); } }'
                 % (i, pct(land[i] - 0.01), pct(land[i] + 0.1), pct(land[i] + 0.22), END_HOLD, FADE))
-    marks.append('<i class="cn-m is-%s" style="--kf: cn-m%d">%s</i>' % (c.lower(), i, c))
+    marks.append('<i class="cn-m cn-m%s" style="--kf: cn-m%d">%s</i>' % (c.lower(), i, c))
 
 # the share of heads so far, as a bar that steps at each landing
 b, h = ['0%%, %s { transform: scaleX(0); }' % pct(land[0] - 0.01)], 0
