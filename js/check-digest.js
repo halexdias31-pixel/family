@@ -11,7 +11,7 @@
      · A WEEK IS MONDAY TO SUNDAY IN LONDON, including the two Sundays the clocks change, and a run on a
        Monday sends the week that just ended rather than starting one with nothing in it.
      · ONLY THAT WEEK'S ATTEMPTS, grouped per learner, new and done-again apart, with the name the phone
-       sent (and the key when it sent none).
+       sent — and never the key in its place: a question with no name is counted, not listed.
      · ONLY THE LEARNER'S ACCEPTED PARENTS WITH AN ADDRESS. Not a pending link, not a refused one, not
        another family's parent, not the learner; a parent whose `weekly_email` says no is skipped; a
        learner nobody can be told about is listed with the reason and emailed to nobody.
@@ -23,10 +23,16 @@
      · `digestPreview` IS AN ADMIN'S, and writes, sends and books nothing.
      · `markDone` KEEPS THE LABEL: tags out, capped, set where the row is written anyway — and a day
        already covered still writes nothing.
-     · THE PLAN CARRIES EACH QUESTION'S WORDS (SCHEMA.attempts `words`, for the daily email): a
-       practical's first box that has any, none that hold a link, an address or a domain anywhere in
-       them — the question still listed by its name — and none on an item not printed. SUNDAY'S EMAIL
-       IS NOT CHANGED BY THEM, byte for byte: it lists names.
+     · THE PLAN CARRIES EACH QUESTION'S WORDS (SCHEMA.attempts `words`): a practical's first box that
+       has any, none that hold a link, an address or a domain anywhere in them — the question still
+       listed by its name — and none on an item not printed.
+     · AND THE EMAIL PRINTS THEM, since the owner made it the one parents get (*"should be at the end
+       of the week that it send to parents all they done that week"*): each question under its paper
+       as "Q4a: <its ask>", the stem its parts share once, refused words gone and the number kept, a
+       paper with no words its line of numbers, "(again)", escaped, never a raw key, at most
+       `DIGEST_WEEK_LIST_MAX` and then "…and N more." — and 80 of the longest under Gmail's clip.
+     · `installWeeklyDigest` TAKES AWAY THE REMOVED EMAIL'S HOURLY CHECK (`DIGEST_RETIRED_RUNS`), and
+       only that, and says so.
      · `DIGEST_WORDS_REFUSE` RULE BY RULE — a one-letter domain, a dot that is not a full stop, a
        mobile, a landline as it is written, an account number, a sort code — words only under a key in
        the library's shape, and EVERY QUESTION AND STEM IN data/questions.json, as the phone sends it,
@@ -147,8 +153,10 @@ function seeded(opts) {
     if (keys(ada.fresh) !== 'q:ADA-1, q:ADA-SUN') bad.push('Ada’s new this week is [' + keys(ada.fresh) + '], wanted q:ADA-1 (the Monday) and q:ADA-SUN (the Sunday) — the week is Monday to Sunday inclusive');
     if (keys(ada.again) !== 'q:ADA-AGAIN') bad.push('Ada’s done-again is [' + keys(ada.again) + '], wanted q:ADA-AGAIN (first done 10 Sep, again 2 Oct)');
     if (/BEFORE|AFTER/.test(keys(ada.fresh) + keys(ada.again))) bad.push('a question from the Sunday before or the Monday after is in Ada’s week');
+    /* A ROW WITH NO NAME IS IN THE PLAN BY ITS KEY AND WITH NO LABEL — never the key as its label, which
+       is how a key reached a parent's email until the email listed each question with its words. */
     const again = (ada.again || [])[0];
-    if (again && again.label !== 'q:ADA-AGAIN') bad.push('a row with no label reads "' + again.label + '" — wanted the key, q:ADA-AGAIN');
+    if (again && (again.label !== '' || !again.hidden || again.key !== 'q:ADA-AGAIN')) bad.push('a row with no label is in the plan as ' + JSON.stringify(again) + ' — wanted key q:ADA-AGAIN, label "", hidden: counted, never printed by its key');
     const first = (ada.fresh || []).find(q => q.key === 'q:ADA-1');
     if (first && first.label !== 'Maths · Paper 1 (Calculator) — June 2024 · Q1') bad.push('the label the phone sent is not the name used: "' + first.label + '"');
     const to = (ada.to || []).map(p => p.id).sort().join(', ');
@@ -172,27 +180,37 @@ function seeded(opts) {
   if (!pat) bad.push('Pat is not sent Ada’s week');
   else {
     if (pat.subject !== 'Ada’s week: 3 questions') bad.push('Pat’s subject is "' + pat.subject + '"');
-    ['Hello Pat,', '28 Sep – 4 Oct', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'q:ADA-AGAIN', 'New this week', 'Gone back to',
-     'https://halexdias31-pixel.github.io/family/', 'To stop these emails',
+    /* THE WEEK'S LIST, GROUPED BY PAPER: the paper's name once, then its question; a question with no
+       name is the "1 more", never its key. */
+    ['Hello Pat,', '28 Sep – 4 Oct', '\nMaths · Paper 1 (Calculator) — June 2024\nQ1\n', '\nFractions & decimals\nQ2\n', '\n…and 1 more.\n',
+     '— 2 new and 1 gone back to.', 'https://halexdias31-pixel.github.io/family/', 'To stop these emails',
      /* WORDED FOR WHAT THE SHEET KNOWS: a first keystroke is "worked on", not "did"; the run is at 18:00 so
         the week is "up to 6pm"; and it is the child, not the parent, who can see them on the site. */
      'Ada worked on 3 questions', '28 Sep – 4 Oct, up to 6pm on Sunday', 'Ada can see them on the site'].forEach(s => {
       if (pat.text.indexOf(s) === -1) bad.push('Pat’s email does not say "' + s + '"');
     });
+    if (/q:ADA/.test(pat.subject + pat.text + pat.html)) bad.push('Pat’s email prints a raw key — a question with no name is counted in "…and N more", never listed by its key: ' + pat.text.split('\n').slice(4, 12).join(' / '));
     if (/\bdid \d/.test(pat.text) || /See them on the site/.test(pat.text)) bad.push('Pat’s email still says the child "did" N questions, or tells the parent to see them — ' + pat.text.split('\n')[2]);
     if (pat.html.indexOf('Fractions &amp; decimals') === -1) bad.push('the HTML body does not escape a label’s "&"');
+    /* ABOUT ONE CHILD, FROM THE BUSINESS: no other child, no tutor, no price. */
+    const other = /\b(Ben|Cal|Dee|Eve|Hal)\b|£|\b[Tt]utor\b/;
+    if (other.test(pat.subject + pat.text + pat.html)) bad.push('Pat’s email about Ada names another child, a tutor or a price: ' + (pat.text.split('\n').find(x => other.test(x)) || pat.subject));
     if (/<script|Fractions & decimals/.test(pat.html)) bad.push('the HTML body carries a label unescaped');
   }
 }
 
-/* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND NOT SUNDAY'S -------------
-   *"emails all parents on work their child has done with the exact questions for each"* — the daily email
-   (backend/recap.gs) prints each question's `words`, and it gets them from this plan, so this is where a
-   practical's three boxes become one question's words and where phone text is turned away. The refusal is
-   `digestWordsSafe_`, over the WHOLE text: `digestSafe_` reads `attemptLabel_(s)`, which is the first 120
-   characters, and a question with a link on its second line passes it. A refusal costs the words and
-   never the question: it is still listed, by its name, and still counted. And Sunday's email lists names,
-   so words on the sheet must not move one byte of it. */
+/* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND PRINTED ---------------------
+   *"emails all parents on work their child has done with the exact questions for each"*, and then *"should
+   be at the end of the week that it send to parents all they done that week"* — so Sunday's email prints
+   each question's `words`, and it gets them from this plan: this is where a practical's three boxes become
+   one question's words and where phone text is turned away. The refusal is `digestWordsSafe_`, over the
+   WHOLE text: `digestSafe_` reads `attemptLabel_(s)`, which is the first 120 characters, and a question
+   with a link on its second line passes it. A refusal costs the words and never the question: it is still
+   listed, by its number under its paper, and still counted.
+
+   THIS ASKED, UNTIL 8 OCT, THAT SUNDAY'S EMAIL WAS THE SAME TO THE BYTE WITH AND WITHOUT WORDS — it listed
+   names then. What that protected still holds and is asked below in its new shape: words never change
+   what is counted, which questions are listed or under which paper — they only add what each one asked. */
 {
   const { b } = seeded();
   const W1 = 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.';
@@ -240,22 +258,47 @@ function seeded(opts) {
   else if (hid.words) bad.push('a question not printed carries words: ' + JSON.stringify(hid.words) + ' — only a question listed by its name may have them');
   if (ben.count !== 1 + 1 + 1 + 5 + 1) bad.push('Ben’s count is ' + ben.count + ', wanted 9: his own, the new one, the practical once, the five with refused words and the one not printed — words change nothing counted');
 
-  /* SUNDAY'S EMAIL, WORDS OR NONE: the same subject, the same text, the same HTML. */
+  /* SUNDAY'S EMAIL PRINTS THEM: each question under its paper as "Q4a: <its ask>", the stem above it, in
+     the text and in the HTML; a practical's worksheet box by its words. */
   asked++;
   const bo = plan.emails.find(m => m.to === 'bo@example.org');
+  if (!bo) bad.push('Bo is not sent Ben’s week, so the words in Sunday’s email were NOT asked');
+  else {
+    if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a: Work out the probability of red.\n') === -1
+        || bo.html.indexOf('<p><b>Maths · Probability</b></p><p><i>A bag holds 3 red and 5 blue counters.</i></p><p><b>Q4a</b> — Work out the probability of red.</p>') === -1)
+      bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / '));
+    if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet: What is the dependent variable?\n') === -1)
+      bad.push('a practical’s worksheet is not printed with the first box’s words: ' + bo.text.split('\n').slice(4, 20).join(' / '));
+    /* REFUSED WORDS ARE NOT PRINTED, AND THE QUESTION STILL IS — by its number under its paper. */
+    asked++;
+    if (bo.text.indexOf('\nMaths · Equations\nQ2, Q3, Q4, Q6\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5\n') === -1
+        || bo.html.indexOf('<p><b>Maths · Equations</b><br>Q2, Q3, Q4, Q6</p>') === -1)
+      bad.push('questions whose words were refused are not still listed by their numbers under their papers: ' + bo.text.split('\n').slice(4, 20).join(' / '));
+    ['pay-family', 'office.family', 'family-answers', 'NOTICE', 'www.', 'For the answer', 'diagram shows'].forEach(x => {
+      if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints refused words ("' + x + '") — phone text that is a message must not go out under the business’s name');
+    });
+    /* A QUESTION WITH NO NAME: neither its key nor its words, and counted in the "more". */
+    asked++;
+    if (/Work out 7|Tutor says/.test(bo.text + bo.html) || !/Ben worked on 9 questions/.test(bo.text) || bo.text.indexOf('\n…and 1 more.\n') === -1)
+      bad.push('a question with no name printed its key or its words, or was not counted in "…and 1 more.": ' + bo.text.split('\n').slice(2, 20).join(' / '));
+  }
+
+  /* AND WORDS CHANGE NOTHING BUT THE WORDS — the question this file asked as "byte-identical" while the
+     email listed names. With the column blank: the same subject, the same lead, the same papers and the
+     same question numbers, each paper back to its line of numbers. */
+  asked++;
   const g = b.tabs.attempts, wi = g[0].indexOf('words');
   g.slice(1).forEach(r => { r[wi] = ''; });
   const bare = planOf();
   const bo0 = bare.emails.find(m => m.to === 'bo@example.org');
   if (!bo || !bo0) bad.push('Bo is not sent Ben’s week, so Sunday’s email was NOT compared with and without words');
   else {
-    ['subject', 'text', 'html'].forEach(f => {
-      if (bo[f] !== bo0[f]) bad.push('Sunday’s email ' + f + ' changes with the words on the sheet — it lists names; with words: ' + JSON.stringify(String(bo[f]).slice(0, 300)));
-    });
-    ['probability of red', 'dependent variable', 'Work out 7', '---'].forEach(x => {
-      if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints a question’s words ("' + x + '") — it lists names only');
-    });
-    if (bo.text.indexOf('- Maths · Probability · Q4a') === -1 || bo.text.indexOf('- Maths · Pythagoras · Q5') === -1) bad.push('Sunday’s email does not list the questions by name: ' + bo.text.split('\n').slice(2, 14).join(' / '));
+    if (bo.subject !== bo0.subject || bo.text.split('\n')[2] !== bo0.text.split('\n')[2]) bad.push('the words on the sheet change the subject or the lead: "' + bo.subject + '" / "' + bo0.subject + '"');
+    const heads = t => t.split('\n').filter(x => / · /.test(x) || x === 'Ben’s own').join(' | ');
+    if (heads(bo.text) !== heads(bo0.text)) bad.push('the words on the sheet change which papers are listed: ' + heads(bo.text) + ' — without words: ' + heads(bo0.text));
+    if (bo0.text.indexOf('\nMaths · Probability\nQ4a\n') === -1 || bo0.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet\n') === -1
+        || /probability of red|dependent variable|---/.test(bo0.text + bo0.html))
+      bad.push('with no words on the sheet the email does not list each question by its number alone: ' + bo0.text.split('\n').slice(4, 18).join(' / '));
   }
   if (!(bare.learners.find(x => x.id === 'P-S2') || { fresh: [] }).fresh.every(q => q.words === '')) bad.push('with the words column blank, an item still carries words');
 }
@@ -336,6 +379,89 @@ function seeded(opts) {
   }
 }
 
+/* ---------- 2d. THE WEEK'S LIST: ONE STEM, "(again)", ESCAPED, AT MOST 80, AND UNDER GMAIL'S CLIP ----------------
+   `digestQuestions_` (backend/digest.gs) is the list, and these are its rules asked of the email a parent
+   opens. A question's parts share a scene, printed ONCE above them, so Q5a, Q5b and Q5c read as the paper
+   prints them rather than as one scene three times. A question first done before the week says "(again)".
+   What came off a phone is escaped in the HTML and printed as written in the text. A week is up to seven
+   days of this, so the list stops at `DIGEST_WEEK_LIST_MAX` (80) with "…and N more." — which counts the
+   questions past the cap and the ones with no name alike — and 80 of the longest a question can be still
+   come in under the ~102 KB of HTML past which Gmail clips a message and hides the footer that says how to
+   stop. Read at the backend's own limits. */
+{
+  const { b, G } = seeded();
+  const STEM = 'A bag holds 3 red beads and 5 blue beads.';
+  const A = (q, label, words, first) => ({ person_id: 'P-S2', question_key: q, first_done: first || '2026-10-01', last_done: '2026-10-01', times: 1, label: label, words: words });
+  b.seed('attempts', [
+    A('q:BEN-P7-3', 'Maths · Paper 7 · Q3', 'Solve x > 3 and x < 7 & "y" for whole numbers x.'),
+    A('q:BEN-P7-5a', 'Maths · Paper 7 · Q5a', STEM + '\n---\nFind P(red).'),
+    A('q:BEN-P7-5b', 'Maths · Paper 7 · Q5b', STEM + '\n---\nFind P(blue).'),
+    A('q:BEN-P7-5c', 'Maths · Paper 7 · Q5c', STEM + '\n---\nTwo beads are taken.\nFind P(both red).'),
+    /* FIRST DONE A FORTNIGHT BEFORE, AGAIN THIS WEEK. */
+    A('q:BEN-P7-9', 'Maths · Paper 7 · Q9', 'Expand (x + 2)(x - 3).', '2026-09-14'),
+  ]);
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const m = plan.emails.find(e => e.to === 'bo@example.org') || { text: '', html: '' };
+  asked++;
+  if (m.text.indexOf('\nMaths · Paper 7\nQ3: Solve x > 3 and x < 7 & "y" for whole numbers x.\n' + STEM + '\nQ5a: Find P(red).\nQ5b: Find P(blue).\nQ5c: Two beads are taken. Find P(both red).\n') === -1)
+    bad.push('Paper 7 is not its heading, then "Q3: <its words>", then the stem its parts share and each part’s own ask: ' + m.text.split('\n').slice(4, 14).join(' / '));
+  asked++;
+  const times = t => t.split(STEM).length - 1;
+  if (times(m.text) !== 1 || times(m.html) !== 1 || m.html.indexOf('<p><i>' + STEM + '</i></p><p><b>Q5a</b> — Find P(red).</p><p><b>Q5b</b> — Find P(blue).</p>') === -1)
+    bad.push('the stem Q5a, Q5b and Q5c share is printed ' + times(m.text) + ' time(s) in the text and ' + times(m.html) + ' in the HTML — wanted once each, above the first of them');
+  asked++;
+  if (m.text.indexOf('\nQ9 (again): Expand (x + 2)(x - 3).\n') === -1 || m.html.indexOf('<b>Q9 (again)</b> — Expand (x + 2)(x - 3).') === -1)
+    bad.push('a question first done before the week is not "Q9 (again): <its words>": ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
+  asked++;
+  if (m.html.indexOf('<b>Q3</b> — Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.') === -1 || /x < 7 &|"y"/.test(m.html))
+    bad.push('the HTML does not escape a question’s words — "<", ">", "&" and quotes came off a phone: ' + JSON.stringify((m.html.match(/<b>Q3<\/b>[^<]*/) || [''])[0]));
+}
+{
+  /* THE CAP, THROUGH THE REAL RUN'S PLAN: Eve (whose only other row is last week's) did 85 named questions
+     and 2 with no name. 80 are listed, in number order, and "…and 7 more." counts the five past the cap
+     and the two that were never printable. */
+  const { b } = seeded();
+  const MAX = b.ev('DIGEST_WEEK_LIST_MAX');
+  asked++;
+  if (MAX !== 80) bad.push('DIGEST_WEEK_LIST_MAX is ' + MAX + ' — wanted 80: a week’s work, measured under Gmail’s clip (constants.gs)');
+  const rows = [];
+  for (let i = 1; i <= 85; i++) rows.push({ person_id: 'P-S5', question_key: 'q:EVE-C' + i, first_done: '2026-10-02', last_done: '2026-10-02', times: 1,
+    label: 'Maths · Paper 8 · Q' + i, words: 'Work out ' + i + ' + ' + i + '.' });
+  rows.push({ person_id: 'P-S5', question_key: 'q:EVE-NONAME-1', first_done: '2026-10-02', last_done: '2026-10-02', times: 1, label: '', words: 'Work out 99 × 7.' });
+  rows.push({ person_id: 'P-S5', question_key: 'Somebody typed this', first_done: '2026-10-02', last_done: '2026-10-02', times: 1, label: '', words: '' });
+  b.seed('attempts', rows);
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const m = plan.emails.find(e => e.to === 'yes@example.org') || { text: '', html: '', subject: '' };
+  const listed = m.text.split('\n').filter(x => /^Q\d+: Work out/.test(x));
+  asked++;
+  if (listed.length !== 80 || listed[0] !== 'Q1: Work out 1 + 1.' || listed[79] !== 'Q80: Work out 80 + 80.' || /\nQ8[1-5]:/.test(m.text))
+    bad.push('87 questions listed ' + listed.length + ' (' + JSON.stringify([listed[0], listed[listed.length - 1]]) + ') — wanted 80, Q1 to Q80 in number order, and none past');
+  asked++;
+  if (m.subject !== 'Eve’s week: 87 questions' || !/Eve worked on 87 questions/.test(m.text) || m.text.indexOf('\n…and 7 more.\n') === -1
+      || m.html.indexOf('<p>…and 7 more.</p>') === -1 || /q:EVE|Somebody typed|99 × 7/.test(m.text + m.html))
+    bad.push('the cap does not count what it left out — wanted "Eve’s week: 87 questions" and "…and 7 more." (Q81–Q85 and the two with no name, neither printed by key nor by words): subject "' + m.subject + '", ' + JSON.stringify(m.text.split('\n').filter(x => /…and/.test(x))));
+}
+{
+  /* AND 80 OF THE LONGEST A QUESTION CAN BE STILL COME IN UNDER GMAIL'S CLIP: each on its own paper of 110
+     characters, its own stem past `DIGEST_STEM_SHOWN` and its own ask past `DIGEST_WORDS_SHOWN`, with a
+     sprinkling of what `digestEsc_` grows. Rendered by the real `digestRender_`. Over ~102 KB of HTML Gmail
+     shows "[Message clipped]" and the footer that says how to stop is behind it. The floor beside it is
+     that the words really were printed at length — a render that dropped them would pass the ceiling. */
+  const { b, G } = world();
+  const MAX = b.ev('DIGEST_WEEK_LIST_MAX'), SHOWN = b.ev('DIGEST_WORDS_SHOWN'), STEM_SHOWN = b.ev('DIGEST_STEM_SHOWN');
+  const long = (lead, n) => { let t = lead, i = 0; while (t.length < n) t += (++i % 9 ? ' word' + i : ' x < ' + i + ' & y'); return t; };
+  const head = i => ('Maths · Paper ' + i + ' (Calculator) — November 2023 (Higher) · Statistics and probability · Set ' + i).slice(0, 110);
+  const items = [];
+  for (let i = 0; i < MAX + 5; i++) items.push({ key: 'q:L-' + i, label: head(i) + ' · Q' + i + 'a', hidden: false, last: '2026-10-01', times: 1,
+    words: long('Stem ' + i + ': a scene', STEM_SHOWN + 200) + '\n---\n' + long('Ask ' + i + ': explain', SHOWN + 200) });
+  G.__L = { id: 'P-S1', first: 'Ada', fresh: items, again: [] };
+  const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-09-28", end: "2026-10-04" }, { brand: "@family.", site: "https://halexdias31-pixel.github.io/family/", hour: 18 })')));
+  const kb = Buffer.byteLength(r.html, 'utf8') / 1024;
+  asked++;
+  if (!(kb < 102) || kb < 40 || r.html.indexOf('<p>…and 5 more.</p>') === -1 || !/To stop these emails/.test(r.html))
+    bad.push('80 of the longest questions make ' + kb.toFixed(1) + ' KB of HTML — wanted under Gmail’s ~102 KB clip (and over 40, the words printed at length), "…and 5 more." and the footer after them');
+}
+
 /* ---------- 3. THE LABEL MARKDONE KEEPS ------------------------------------------------------------------ */
 {
   const { b } = world();
@@ -352,8 +478,8 @@ function seeded(opts) {
   done([{ key: 'q:L3', day: '2026-09-29' }]);
   if (row('q:L3').label !== '') bad.push('a question sent with no label has "' + row('q:L3').label + '"');
   /* A NAME FOR A DAY ALREADY COVERED FILLS THE BLANK CELL AND WRITES NOTHING ELSE. This said "that day
-     must still write nothing" until the after-session email (recap.gs) met rows the backlog had sent
-     with no name, and prints no raw key — see `attemptsUpsert_`. Still nothing is counted. */
+     must still write nothing" until the parent email met rows the backlog had sent with no name, and
+     printed no raw key — see `attemptsUpsert_`. Still nothing is counted. */
   const t0 = Number(row('q:L3').times);
   const same = done([{ key: 'q:L3', day: '2026-09-29', label: 'Late name' }]);
   if (same.writes !== 1) bad.push('a name arriving for a day already covered wrote ' + same.writes + ' cell(s) — wanted the one blank name, and nothing else');
@@ -424,9 +550,13 @@ function seeded(opts) {
     ['https://pay', 'NOTICE', 'Tutor says', 'www.example.net', 'office.family@', '#iv', '#dv', '#cv'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Bo’s email prints "' + x + '" — phone text that is a link, an address or a sentence must not go out under the business’s name');
     });
-    /* A LABEL TURNED AWAY FALLS BACK TO THE KEY WHEN THE KEY IS THE LIBRARY'S SHAPE (q:BEN-2); the key
-       that is a sentence is not printed at all, and is the "1 more". */
-    if (!/Ben worked on 5 questions/.test(bo.text) || !/…and 1 more\./.test(bo.text) || !/- q:BEN-2\n/.test(bo.text)) bad.push('Bo’s email does not count what it does not print ("Ben worked on 5 questions", "- q:BEN-2", "…and 1 more."): ' + bo.text.split('\n').slice(2, 9).join(' / '));
+    /* A LABEL TURNED AWAY IS NOT REPLACED BY THE KEY. This fell back to a key in the library's shape
+       (q:BEN-2) while the email listed names; with each question's words a raw key reads to a parent as
+       a fault. The three whose text came off the phone — two labels and a key that is a sentence — are
+       not printed at all, and are the "3 more". */
+    if (!/Ben worked on 5 questions/.test(bo.text) || !/\n…and 3 more\.\n/.test(bo.text) || /q:BEN|pr:PR/.test(bo.subject + bo.text + bo.html)
+        || bo.text.indexOf('\nPhysics · AQA required practical · Specific heat capacity\nWorksheet\n') === -1)
+      bad.push('Bo’s email does not count what it does not print ("Ben worked on 5 questions", the practical by its name, "…and 3 more.", no raw key): ' + bo.text.split('\n').slice(2, 12).join(' / '));
   }
   /* AND THE CHILD'S OWN FIRST NAME, which goes in the subject and is a cell the child edits. */
   asked++;
@@ -617,18 +747,6 @@ function seeded(opts) {
   const pv2 = ok.b.post({ action: 'digestPreview', token: tok2 });
   if (pv2.attempts !== true || pv2.warning) bad.push('the Preview with an attempts tab answered attempts ' + pv2.attempts + ', warning "' + pv2.warning + '"');
 }
-{
-  /* TWO EMAILS, TWO "STOP"s. A parent who stopped the email after each session (`session_email` = no,
-     backend/recap.gs) has not stopped Sunday's — `weekly_email` is blank on Pat's row, which is on. */
-  const { b, mail } = seeded();
-  const g = b.tabs.people, h = g[0];
-  g.find((r, i) => i > 0 && r[h.indexOf('person_id')] === 'P-C1')[h.indexOf('session_email')] = 'no';
-  cfgSet(b, 'weekly_digest', 'send');
-  asked++;
-  run(b, SUN);
-  if (!mail.sent.some(m => m.to === 'pat@example.org')) bad.push('Pat, whose session_email says no and weekly_email is blank, was not sent the weekly email — the two opt-outs are separate');
-}
-
 /* ---------- 6. BOOKING THE SUNDAY ---------------------------------------------------------------------------- */
 {
   const { b, trig } = seeded();
@@ -652,6 +770,27 @@ function seeded(opts) {
   const gone = b.ev('removeWeeklyDigest()');
   if (mine().length || gone.removed !== 1 || !trig.some(x => x.spec.fn === 'closeFinishedJobs')) bad.push('removeWeeklyDigest left ' + mine().length + ' Sunday trigger(s), or took another');
 }
+{
+  /* THE REMOVED EMAIL'S HOURLY CHECK GOES WHEN THE SUNDAY IS BOOKED. The email after each session was
+     booked from the editor as an hourly trigger on `sessionRecapRun`, and that function is gone
+     (docs/history/295): left booked, it fails every hour and Google emails the owner each failure. The
+     owner runs `installWeeklyDigest` anyway, so it takes those away — by that exact handler name, written
+     out here rather than read from `DIGEST_RETIRED_RUNS`, so a misspelling there is red — touches no other
+     trigger, and its log line says so. Run again with none booked, it says there was none. */
+  const { b, trig } = seeded();
+  b.ev('ScriptApp.newTrigger("sessionRecapRun").timeBased().everyHours(1).create()');
+  b.ev('ScriptApp.newTrigger("sessionRecapRun").timeBased().everyHours(1).create()');
+  b.ev('ScriptApp.newTrigger("closeFinishedJobs").timeBased().everyDays(1).atHour(3).create()');
+  asked++;
+  const out = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest()')));
+  const fns = trig.map(t => t.spec.fn).sort().join(', ');
+  if (fns !== 'closeFinishedJobs, weeklyDigestRun') bad.push('after installWeeklyDigest the triggers are [' + fns + '] — wanted the old hourly check (sessionRecapRun, booked twice) gone, closeFinishedJobs kept, one Sunday');
+  if (!/removed the old after-session email’s hourly check \(2 triggers\)/.test(String(out.oldHourly))) bad.push('installWeeklyDigest does not say it removed the old hourly check: ' + JSON.stringify(out.oldHourly));
+  asked++;
+  const again = JSON.parse(JSON.stringify(b.ev('installWeeklyDigest()')));
+  if (!/no old after-session email check was booked/.test(String(again.oldHourly)) || trig.map(t => t.spec.fn).sort().join(', ') !== 'closeFinishedJobs, weeklyDigestRun')
+    bad.push('installWeeklyDigest run again, with no old check booked, said ' + JSON.stringify(again.oldHourly) + ' and left [' + trig.map(t => t.spec.fn) + ']');
+}
 
 /* ---------- 7. NOTHING STARTS IT, AND IT ARRIVES OFF ------------------------------------------------------------ */
 {
@@ -666,7 +805,7 @@ function seeded(opts) {
   /* NOT ONE CALL, anywhere, to what books or runs it — its own declarations and the run's one caller
      aside — AND NOT ONE BARE MENTION, which is a call waiting to happen: `sunday: installWeeklyDigest,`
      in RUNNABLE calls nothing in the text and books the Sunday from `?run=sunday`. `calls`, `mentions`
-     and `unquote` are check-mail-load.js's, shared with check-recap.js. */
+     and `unquote` are check-mail-load.js's. */
   back.concat(front).forEach(([f, src]) => {
     ['installWeeklyDigest', 'weeklyDigestRun', 'removeWeeklyDigest'].forEach(n => {
       const c = Math.max(calls(src, n).length, mentions(src, n).length);
@@ -716,6 +855,8 @@ function seeded(opts) {
     if (!(pv.emails || []).every(m => m.text && m.html)) bad.push('the preview does not carry each email’s bodies');
     if ((pv.unreachable || []).map(u => u.id).sort().join() !== 'P-S3,P-S4') bad.push('the preview’s unreachable list is ' + JSON.stringify(pv.unreachable));
     if (pv.scheduled !== 0) bad.push('the preview says ' + pv.scheduled + ' Sunday trigger(s) are booked — none is');
+    /* AND THAT IT IS THE BACKEND THAT PRINTS THE WORDS — the card tells an older deployed version apart by it. */
+    if (pv.words !== true) bad.push('the preview does not answer words: true, so the card would tell this backend it lists names only');
   }
   if (pv.writes || mail.sent.length || trig.length || rowsOf(b, 'digest_log').length !== logBefore) bad.push('digestPreview wrote ' + pv.writes + ' cell(s), sent ' + mail.sent.length + ', booked ' + trig.length + ' trigger(s) — it must do none of them');
   [['a student', tok['s1@example.org']], ['a parent', tok['pat@example.org']], ['nobody signed in', '']].forEach(([who, t]) => {
@@ -731,4 +872,4 @@ if (bad.length) {
   bad.forEach(x => console.log('  ' + x));
   process.exit(1);
 }
-console.log('OK — a London week, only that week, only accepted parents; off nothing, preview the log, send once each; one Sunday trigger, booked by nobody but the owner; the preview an admin’s.');
+console.log('OK — a London week, only that week, only accepted parents; each question with its own words, never a key, at most 80 and under Gmail’s clip; off nothing, preview the log, send once each; one Sunday trigger, booked by nobody but the owner, and the old hourly check taken away; the preview an admin’s.');

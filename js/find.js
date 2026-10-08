@@ -6609,10 +6609,10 @@ function attemptsSync_() {
   } catch (e) {}
   DONE_HELD.forEach((v, k) => { if (k.indexOf(pre) === 0 && !have[k]) have[k] = v; });
   /* ---------- AND EACH ONE'S NAME, WHICH THE BACKLOG USED TO LEAVE BEHIND --------------------------
-     A ROW WITH NO `label` IS A QUESTION NO PARENT CAN READ. The first learner the after-session
-     email was built for did three questions before the Ledger had an `attempts` tab; this load sent
-     them up as bare keys, and the email prints no raw key (recap.gs), so his parent would have read
-     "worked on 3 questions" and nothing else. So the backlog carries the name `doneMark_` would have
+     A ROW WITH NO `label` IS A QUESTION NO PARENT CAN READ. The first learner a parent email was
+     tried on did three questions before the Ledger had an `attempts` tab; this load sent them up as
+     bare keys, and the email prints no raw key (`digestQuestions_` in backend/digest.gs), so his
+     parent would have read "worked on 3 questions" and nothing else. So the backlog carries the name `doneMark_` would have
      sent — found the same way (`doneLabel_`, by the answer key this person's card has) — and so does
      a row the sheet already holds without one: sent with its own last day, which the backend counts
      as a day already covered (it writes the name and nothing else, see `attemptsUpsert_`). A key no
@@ -6622,7 +6622,7 @@ function attemptsSync_() {
   let index = null;
   const look = () => index || (index = doneIndex_());
   const named = q => who ? doneLabel_('ans:' + who + ':' + q, look()) : '';
-  /* ---------- AND EACH ONE'S WORDS, FOR THE DAILY EMAIL --------------------------------------------
+  /* ---------- AND EACH ONE'S WORDS, FOR THE WEEKLY EMAIL -------------------------------------------
      *"with the exact questions for each"* — SCHEMA.attempts `words`, sent the same way as the name and
      only to a backend that keeps them (`attemptWordsOn_`), so a phone ahead of the deploy does not
      resend every row on every visit for a column that is not there. A row the sheet already has
@@ -6672,7 +6672,7 @@ function doneSlot_(x) {
   return `<i class="qcard-done" data-k="${esc(k)}">${esc(doneText_(doneRead_(k)))}</i>`;
 }
 /* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT ----------------------------------------------
-   FOR THE PARENT EMAILS (backend/digest.gs, backend/recap.gs): the sheet holds a key no parent can read
+   FOR THE WEEKLY PARENT EMAIL (backend/digest.gs): the sheet holds a key no parent can read
    and the backend cannot look up. `Maths · Paper 1 — June 2024 · Q3`, the subject left out when the
    paper's name already says it. Only where the card is in hand — the load's backlog sends keys alone
    (pending: it could send this too) — and '' when there is no card, so that request is what it always

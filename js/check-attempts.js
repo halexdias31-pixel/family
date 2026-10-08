@@ -16,7 +16,7 @@
        would make every visitor rebuild is untouched.
      · WHO IS SENT WHAT: yourself, your own; an admin, everybody's summary; another learner and a
        stranger, nothing of anybody else's.
-     · THE QUESTION'S WORDS (`words`, for the daily parent email) BY THE LABEL'S RULES: kept on a new
+     · THE QUESTION'S WORDS (`words`, for the weekly parent email) BY THE LABEL'S RULES: kept on a new
        row, filled into a blank cell even on a day already covered and nothing else moved, never
        rewritten, and on a live tab from before the column neither written nor an error. The text is
        `attemptWords_`'s — an inequality is not a tag, line breaks and the stem's `---` line survive,
@@ -113,15 +113,15 @@ function world() {
     if (ben.length !== 50) bad.push('a batch of 60 wrote ' + ben.length + ' rows — wanted the cap of 50');
 
     /* ---------- A NAME FILLS A BLANK ROW ON A DAY ALREADY COVERED, AND NOTHING ELSE MOVES ---------
-       The first learner the after-session email met had three rows sent up as bare keys (the backlog
-       carried no names), and that email prints no raw key — so a row with no name must take one when
+       The first learner a parent email met had three rows sent up as bare keys (the backlog carried
+       no names), and the email prints no raw key — so a row with no name must take one when
        it next arrives, even for a day the sheet has. Only the name: no day moves, nothing is counted,
        and a row that already has a name is never renamed by another phone. */
     done('s1@example.org', [{ key: 'q-unnamed', day: D1 }]);
     const t0 = rows().find(x => x.question_key === 'q-unnamed');
     const nm = done('s1@example.org', [{ key: 'q-unnamed', day: D1, label: 'Maths · Money · Q1' }]);
     const t1 = rows().find(x => x.question_key === 'q-unnamed');
-    if (!t1 || t1.label !== 'Maths · Money · Q1') bad.push('a name sent for a day already covered was not written into the blank cell: ' + JSON.stringify(t1) + ' — the after-session email would list nothing');
+    if (!t1 || t1.label !== 'Maths · Money · Q1') bad.push('a name sent for a day already covered was not written into the blank cell: ' + JSON.stringify(t1) + ' — the parent email would list nothing');
     else if (t1.first_done !== t0.first_done || t1.last_done !== t0.last_done || Number(t1.times) !== Number(t0.times)) bad.push('naming a row on a covered day also moved it: ' + JSON.stringify(t0) + ' -> ' + JSON.stringify(t1) + ' — only the name may be written');
     if (nm.writes !== 1) bad.push('naming a blank row wrote ' + nm.writes + ' cell(s) — wanted exactly the one name');
     const rn = done('s1@example.org', [{ key: 'q-unnamed', day: D1, label: 'Something else' }]);

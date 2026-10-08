@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-08-a-everyday";
+const BOOKING_VERSION = "2026-10-08-b-weeklyonly";
 
 
 /**
@@ -633,12 +633,12 @@ function bookingCodes_(body) {
   return out;
 }
 
-/* ---------- A LIST OF CODES, READ ONE WAY WHEREVER IT IS READ ---------------------------------------
-   THREE PLACES TAKE ONE: the request (`bookingCodes_`, above), the job row it is kept on
-   (`createJob` writes `slot_codes`) and the email after a session, which reads the row's back to know
-   when THIS date's lesson ends (`recapEnd_` in recap.gs). Lower case, a day prefix and a two-digit
-   hour of the clock, each once, in the order given. Anything else is dropped rather than guessed at —
-   a `99` or a `mon10` typed into a cell is not an hour anybody can be taught in. */
+/* ---------- THE CODES A REQUEST SENDS, READ STRICTLY ------------------------------------------------
+   Lower case, a day prefix and a two-digit hour of the clock, each once, in the order given. Anything
+   else is dropped rather than guessed at — a `99` or a `mon10` is not an hour anybody can be taught
+   in. It was split out of `bookingCodes_` when the job row kept the ticked hours as well, for the
+   email after each session to read; that email and the column went on 8 Oct (docs/history/295), and
+   the request, the one reader left, keeps the strict reading. */
 function slotCodes_(v) {
   const seen = {};
   return S(v).split(',').map(x => norm(x)).filter(x => {
