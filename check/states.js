@@ -2721,40 +2721,55 @@ const STATES = {
       },
       wants: 'each email under its address, its plain body, and who nobody can tell' },
 
-    /* ---------- THE EMAIL AFTER EACH SESSION: ITS CARD, AND WHAT PREVIEW OPENS ------------------------
-       *"2 hours after the end of each session"* — backend/recap.gs, js/digest.js. The card is the last
+    /* ---------- THE DAILY EMAIL TO PARENTS: ITS CARD, AND WHAT PREVIEW OPENS ------------------------
+       *"2 hours after the end of each session"*, and then *"emails all parents on work their child has
+       done with the exact questions for each"* — backend/recap.gs, js/digest.js. The card is the last
        page of an admin's Settings, after the weekly one. The preview is drawn from a reply shaped the
        way `recapPreviewOut_` answers — a missing-tab warning, an unbooked check, a day with a session,
-       an email, a session counted for nobody and a learner nobody can tell — with an address and a
-       paper's name long enough to have to wrap at 320. */
+       an email, a session counted for nobody and a learner nobody can tell, and a day of homework with
+       no session whose email lists each question's own words — with an address, a paper's name and a
+       question's scene long enough to have to wrap at 320. The state names stay as they were:
+       js/check-recap.js finds this fixture by them. */
     { name: 'the email after each session card',
       only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
       enter: () => {
         paint('settings');
         const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
-        if (at < 0) throw new Error('no email-after-each-session card on the settings column');
+        if (at < 0) throw new Error('no daily email to parents card on the settings column');
         goPage('settings', at, true);
       },
       expect: () => {
         const pg = document.querySelector('#s-settings .page.on');
-        return !!pg && /Email after each session:\s*(Off|Preview|Send)/.test((pg.querySelector('.recap-mode') || {}).textContent || '')
+        return !!pg && /Daily email to parents:\s*(Off|Preview|Send)/.test((pg.querySelector('.recap-mode') || {}).textContent || '')
+          && /^(\d{1,2}(am|pm)|midnight|noon)$/.test((pg.querySelector('.recap-morning') || {}).textContent || '')
           && !!pg.querySelector('.tile-row [data-do="recap-preview"]');
       },
-      wants: 'the mode in its title, the delay, and one Preview tile' },
+      wants: 'the mode in its title, the delay, the next-morning hour, and one Preview tile' },
     { name: 'the email after each session, previewed',
       only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
       enter: () => {
         paint('settings');
         const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
-        if (at < 0) throw new Error('no email-after-each-session card on the settings column');
+        if (at < 0) throw new Error('no daily email to parents card on the settings column');
         goPage('settings', at, true);
         const body = 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 4 questions, 3 of them for the first time.\n\n'
           + 'Biology · Required practical · Osmosis\nWorksheet\n\n'
           + 'Maths · Paper 1 (Calculator) — June 2024\nQ3, Q7 (again), Q11\n\n'
           + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
-          + 'You get this because you are Ada’s parent on @family. To stop the emails after sessions, reply to this one and say so.';
+          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
+        /* A DAY OF HOMEWORK, AS `recapRender_` WRITES IT: the day in the lead, a paper's heading, the scene
+           its parts share once (cut to RECAP_STEM_SHOWN), then each part with its own ask — the longest
+           lines the sheet is ever handed. */
+        const work = 'Hello Pat,\n\nOn Monday 5 October Ada worked on 3 questions, 2 of them for the first time.\n\n'
+          + 'Maths · Paper 3 (Calculator) — November 2023 (Higher)\n'
+          + 'Here is some information about the 120 students in Year 11 at a school, who were each asked which of three after-school clubs they go to; 47 go to the chess club, 38 go to the drama club and the rest go to the football club, and no student goes to more than one club…\n'
+          + 'Q14a: A student is chosen at random from the 120. Work out the probability that the student goes to the drama club, giving your answer as a fraction in its simplest form.\n'
+          + 'Q14b (again): Two students are chosen at random without replacement. Work out the probability that both go to the chess club. (picture on the site)\n'
+          + 'Q15: Solve 2^x = 8. Simplify 72/n, t/2 and (7.902 − 8)/x.\n\n'
+          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
         const empty = d => ({ day: d, label: d, sessions: [], emails: [], nobody: [] });
-        openSheet('Email after each session', recapSheet_({ success: true, mode: 'preview', delay: 2, scheduled: 0,
+        openSheet('Daily email to parents', recapSheet_({ success: true, mode: 'preview', delay: 2, morning: 7, scheduled: 0,
           attempts: false, logTab: true,
           warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it; questions marked from then on are what these emails report. Nothing was sent.',
           days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
@@ -2767,7 +2782,11 @@ const STATES = {
                               subject: 'Ada’s session on Tue 6 Oct: 4 questions', text: body, count: 4, dueSaid: '8pm', state: 'due', status: 'preview' }],
                    nobody: [{ name: 'Ben Pupil', why: 'no question on the attempts tab for Ben Pupil on Tue 6 Oct — this email reports only questions marked while signed in as Ben Pupil; 9 were marked that day on Sam Tutor’s account (the tutor)', status: 'nothing done' },
                             { name: 'Chemistry (J-3)', why: 'agreed with the tutor but nobody’s seat is Booked — mark it paid and the next hourly check sends it, while it is within 24 hours of due', status: 'not sent' }] },
-                 empty('2026-10-05'), empty('2026-10-04'), empty('2026-10-03'), empty('2026-10-02'), empty('2026-10-01'), empty('2026-09-30')] }));
+                 { day: '2026-10-05', label: 'Mon 5 Oct', sessions: [],
+                   emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
+                              subject: 'Ada’s work on Mon 5 Oct: 3 questions', text: work, count: 3, dueSaid: '7am on Tue 6 Oct', state: 'due', status: 'preview' }],
+                   nobody: [] },
+                 empty('2026-10-04'), empty('2026-10-03'), empty('2026-10-02'), empty('2026-10-01'), empty('2026-09-30')] }));
       },
       leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
       /* AND THE DAY OUTRANKS THE EMAIL. Each email's `h3` was the browser's 1.17em bold — the largest text
@@ -2781,9 +2800,10 @@ const STATES = {
         const p = h3 && h3.nextElementSibling;
         const px = el => parseFloat(getComputedStyle(el).fontSize);
         return /To Pat Parent/.test(t) && /Ada’s session on Tue 6 Oct: 4 questions/.test(t) && /Nobody to tell/.test(t) && /No hourly check is booked/.test(t)
+          && /Ada’s work on Mon 5 Oct: 3 questions/.test(t) && /Q14a: A student is chosen at random/.test(t)
           && !!h2 && !!h3 && !!p && px(h3) <= px(p) && parseFloat(getComputedStyle(h2).borderTopWidth) > 0;
       },
-      wants: 'the warnings first, each session on a line, each email under its address, who nobody can tell, and each day a divider that outranks the email headings under it' },
+      wants: 'the warnings first, each session on a line, each email under its address, a day of homework with each question’s words, who nobody can tell, and each day a divider that outranks the email headings under it' },
 
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
        ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take

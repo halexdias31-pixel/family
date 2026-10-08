@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-07-b-merged";
+const DOGET_VERSION = "2026-10-08-a-everyday";
 
 
 function doGet(e) {
@@ -480,6 +480,9 @@ function doGet(e) {
                  'digestPreview',
                  /* And the email after each session's — the same card column, the same reason. */
                  'recapPreview',
+                 /* The phone sends a question's words with `markDone` (SCHEMA.attempts `words`) and
+                    backfills them only for a backend that says it keeps them. */
+                 'attemptWords',
                  /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
                  'checkUploads',
                  /* The site checks for this to decide whether it may offer the picker. */
@@ -2107,7 +2110,13 @@ function attemptsFor_(me, isAdmin) {
   if (!me || !S(me.person_id)) return out;
   const pid = S(me.person_id);
   out.for = pid;
-  const rows = read(TAB.attempts).rows;
+  const t = read(TAB.attempts);
+  const rows = t.rows;
+  /* WHETHER THE TAB CAN KEEP A QUESTION'S WORDS. `attemptWords` in `features` says the code can; this
+     says the live tab has the column (`ensureSchema` adds it). Until it does, `attemptsUpsert_` keeps
+     no words and no row ever comes back `worded`, so a phone told only by `features` resent every row's
+     words on every visit — fifty to a request, each one holding the script lock for nothing. */
+  if (t.headers && t.headers.indexOf('words') !== -1) out.keepsWords = 1;
   rows.forEach(r => {
     const q = S(r.question_key);
     if (!q || key(r.person_id) !== key(pid)) return;
@@ -2115,6 +2124,9 @@ function attemptsFor_(me, isAdmin) {
     /* WHETHER THE ROW HAS A NAME, so the phone can send the one it knows (`attemptsSync_`). A flag and
        not the name: the phone already has the name, and the payload is every visit's. */
     if (S(r.label)) out.mine[q].named = 1;
+    /* AND WHETHER IT HAS THE QUESTION'S WORDS (SCHEMA.attempts), so a row from before the phone sent
+       them is given its words the next time its learner loads the site. */
+    if (S(r.words)) out.mine[q].worded = 1;
   });
   if (isAdmin) {
     out.people = {};
