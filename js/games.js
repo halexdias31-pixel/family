@@ -2871,7 +2871,7 @@ on('rg-again', el => {
    there. Measured in Chromium with a touch double tap at 390, the review of 8 October: on Show it
    flashed the card and passed the turn on unseen; on Hide it opened the NEXT player's card in this
    player's hands; on the last Hide it went straight to Reveal before a word had been said. So Show,
-   Hide and Reveal ignore a press that comes within `IMP_GAP` of the card being drawn — see
+   Hide and Reveal ignore a press that comes within `IMP_GAP` of the last one — see
    `impTooSoon_`. The button stays where it is; it is the second tap that goes.
 ================================================================================================== */
 const IMP_MIN = 3, IMP_MAX = 12;
@@ -3182,7 +3182,7 @@ let IMP = IMP_IDLE();
    on unseen), Hide then the next player's Show (Player 1 holding Player 2's card), the last Hide then
    Reveal (the imposter named before anybody had played). Deal and Play again overlap Show's box too.
 
-   SO THOSE THREE IGNORE A PRESS WITHIN `IMP_GAP` OF THE CARD BEING DRAWN. Every deliberate press
+   SO THOSE THREE IGNORE A PRESS WITHIN `IMP_GAP` OF THE LAST PRESS. Every deliberate press
    here is further apart than that by a mile — a word is read, a phone is handed across a table, a
    round is played — so the only press it can cost is a second tap, and a child whose press was
    swallowed simply presses again. 600ms rather than a phone's own double-tap window (300–500ms),
@@ -3194,12 +3194,24 @@ let IMP = IMP_IDLE();
    to .01ms, so the guard would vanish for exactly the people who asked for less to happen.
 
    ONLY FOR A PRESS THAT CAME WITH AN EVENT. The click listener in shell.js always passes one; a check
-   or a state calling `ACTIONS[...]` straight is not a finger, and walks a whole round in one tick. */
+   or a state calling `ACTIONS[...]` straight is not a finger, and walks a whole round in one tick.
+
+   TIMED FROM THE LAST PRESS, NOT FROM THE CARD BEING DRAWN. It was the draw, and a card is drawn by
+   more than a press: a repaint when a payload lands, a return to the column. `check/press.js` found
+   it (8 Oct) — it arrives on a card and presses inside 600ms of the draw, and Show, Hide and Reveal
+   did nothing, which is exactly what a child gets who presses the moment the column slides back. A
+   double tap is two PRESSES close together, so that is what is measured: Deal, Show, Hide, Reveal
+   and Play again each stamp the time they acted (`impPressed_`), and only a press that close behind
+   one of them is the second tap. */
 const IMP_GAP = 600;
-let IMP_DREW = 0;
+let IMP_PRESSED = -Infinity;
 function impTooSoon_(e) {
   if (!e) return false;
-  try { return performance.now() - IMP_DREW < IMP_GAP; } catch (err) { return false; }
+  try { return performance.now() - IMP_PRESSED < IMP_GAP; } catch (err) { return false; }
+}
+function impPressed_(e) {
+  if (!e) return;
+  try { IMP_PRESSED = performance.now(); } catch (err) {}
 }
 
 function impDeal_(n) {
@@ -3245,8 +3257,6 @@ const impReveal_ = () => `<button class="art-go imp-go" data-do="imp-reveal"><sp
 function impPaint() {
   const card = $('imp-card'), acts = $('imp-acts');
   if (!card) return;
-  /* WHEN THIS CARD WENT DOWN, for `impTooSoon_`: a button cannot be meant sooner than it existed. */
-  try { IMP_DREW = performance.now(); } catch (e) {}
   const s = IMP;
   const player = i => 'Player ' + (i + 1);
   if (acts) acts.innerHTML = '';
@@ -3316,11 +3326,12 @@ on('imp-count', el => {
   impPaint();
 });
 on('imp-aloud', () => { impAloud_(!impAloud_()); impPaint(); });
-on('imp-start', () => { impHush_(); impDeal_(impCount_()); impPaint(); impAnnounce_(); });
+on('imp-start', (el, e) => { impHush_(); impPressed_(e); impDeal_(impCount_()); impPaint(); impAnnounce_(); });
 /* SHOW, HIDE AND REVEAL TAKE `(el, e)` FOR `impTooSoon_` — see "a second tap is not a second press". */
 on('imp-show', (el, e) => {
   if (IMP.phase !== 'deal' || IMP.shown) return;
   if (impTooSoon_(e)) return;
+  impPressed_(e);
   IMP.shown = true;
   impPaint();
 });
@@ -3353,6 +3364,7 @@ on('imp-hide', (el, e) => {
   impHush_();
   if (IMP.phase !== 'deal' || !IMP.shown) return;
   if (impTooSoon_(e)) return;
+  impPressed_(e);
   IMP.shown = false;
   if (IMP.at < IMP.n - 1) IMP.at++;
   else IMP.phase = 'play';
@@ -3364,12 +3376,13 @@ on('imp-hide', (el, e) => {
 on('imp-reveal', (el, e) => {
   if (IMP.phase !== 'play') return;
   if (impTooSoon_(e)) return;
+  impPressed_(e);
   impHush_();
   IMP.phase = 'reveal';
   impPaint();
   impAnnounce_();
 });
-on('imp-again', () => { impHush_(); impDeal_(IMP.n || impCount_()); impPaint(); impAnnounce_(); });
+on('imp-again', (el, e) => { impHush_(); impPressed_(e); impDeal_(IMP.n || impCount_()); impPaint(); impAnnounce_(); });
 on('imp-players', () => { impHush_(); IMP = IMP_IDLE(); impPaint(); });
 
 /* ==================================================================================================

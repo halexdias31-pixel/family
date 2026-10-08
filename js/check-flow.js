@@ -1946,6 +1946,16 @@ check('imposter takes a double tap on Show, Hide or Reveal as one press', async 
   tap('imp-again');
   tap('imp-show');
   want('deal 1', 'a second tap straight after Play again pressed Show');
+
+  /* AND A CARD THAT ARRIVED WITHOUT A PRESS TAKES THE FIRST TAP ON IT. The guard first timed the card
+     being DRAWN, and a card is drawn by a repaint or a return to the column too: `check/press.js`
+     pressed Show, Hide and Reveal inside 600ms of arriving and none of them did anything (8 Oct).
+     Dealt here without a finger -- as a repaint draws -- and tapped at once. */
+  await wait(PAST);
+  press('imp-players');
+  press('imp-start');
+  tap('imp-show');
+  want('deal 1 shown', 'a card drawn without a press refused the first tap on it — the guard timed the draw, not the last press');
   return bad;
 });
 /* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------
