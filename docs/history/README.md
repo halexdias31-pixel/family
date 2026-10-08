@@ -303,3 +303,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [One card, one answer: every card that wanted several answers in one box is parts now](299-one-card-one-answer.md)
 - [Imposter says four words a screen, reads aloud for the ones who cannot read yet, and deals from 810 cards](300-imposter-says-less-and-knows-more-words.md)
 - [Flabby Pird does not light up under a thumb: the game's page is not text to select](301-flappy-does-not-light-up-under-a-thumb.md)
+- [The keypad is the only keyboard: every answer box is the pad's, `abc` turns the pad to letters, and the phone's keyboard has no way in](302-the-keypad-is-the-only-keyboard.md)

@@ -1541,14 +1541,76 @@ const STATES = {
         const marked = (typeof USER === 'object' && USER && USER.token)
           ? /2 of 3 marks/.test(said.textContent) && /peak/.test(why.textContent)
           : /Sign in/.test(said.textContent);
-        return !!go && !card.querySelector('.kp-in') && !!said && marked;
+        /* NO MATHS BOX ON IT: the worded box is the pad's too since 8 Oct, on the letters (`data-kp="words"`). */
+        return !!go && !card.querySelector('.kp-in[data-kp="maths"]') && !!ta.matches('.kp-in[data-kp="words"][readonly]') && !!said && marked;
       },
-      wants: 'a three-mark explain question with its textarea, "Mark with AI" beside it in the bar, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
+      wants: 'a three-mark explain question with the pad\'s locked words box, "Mark with AI" beside it in the bar, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
       leave: () => {
         if (window.__aiApi) api = window.__aiApi;
         if (window.__aiTok && USER) delete USER.token;
         try { localStorage.removeItem(window.__aiKey); } catch (e) {}
         DATA.aiMarking = false;
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- A WORDED ANSWER, THE PAD UP ON ITS LETTERS ---------------------------------------------
+       THE OWNER, 8 Oct: *"Make the keypad never need to use their own keyboard the key pad seems to allow
+       ios keyboard to show I just want self contained system really"*. A worded box was a textarea and the
+       iPad's keyboard; it is the pad's box now, opening on the letters (keypad.js, `KP_ABC`). Pictured so
+       `check/ui.js` measures the letters as it measures the maths keys -- every key's face against the
+       pad (EDGE), its size (the letters are narrower than 44px and carry their reason, `ACCEPTED_TAP`),
+       its contrast -- at every width. Q33 of AQA Biology June 2024 Foundation, the explain question the
+       Mark-with-AI state uses, focused and typed into by the pad's own keys: "Hi" with its capital put in
+       by itself. Expect: the letters face up (sixty columns, 39 keys, the bottom row the maths pad's),
+       every key as tall as the maths keys for the screen, the box still locked and its pill wholly above
+       the pad, and the drawing saying what was typed. */
+    { name: 'a worded answer, the pad up on its letters',
+      enter: () => {
+        const id = 'Q-AQA-8461-2406-1F-033';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__abcKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* ON THE SETTLED PAGE, as the Figure state above opens its pad and for its reason: the lift is
+           worked out on the page in front, and a page still sliding is not yet in front. */
+        let tries = 0;
+        const up = () => {
+          const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__abcKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!ta || moving || !ta.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          ta.focus();
+          if (KP_AT !== ta) kpOpen_(ta);
+          ['h', 'i'].forEach(v => {
+            const k = document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+            if (k) k.click();
+          });
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__abcKey);
+        if (!pad || pad.hidden || !ta) return false;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        const pill = ta.closest('.qp-ans');
+        return pad.getAttribute('data-layer') === 'abc' && pad.classList.contains('is-abc')
+               && getComputedStyle(pad).gridTemplateColumns.split(' ').length === 60
+               && keys.length === 39 && keys.every(b => b.getBoundingClientRect().height >= tall - 0.5)
+               && keys.slice(-6).map(b => b.getAttribute('data-v')).join('|') === '!123|!left|!right|!nl|!back|!done'
+               && ta.readOnly && ta.getAttribute('inputmode') === 'none' && ta.value === 'Hi'
+               && ta.parentNode.querySelector('.kp-show').textContent === 'Hi'
+               && !!pill && pill.getBoundingClientRect().bottom <= pad.getBoundingClientRect().top;
+      },
+      wants: 'Q33\u2019s worded box focused, the pad up on its letters (39 keys on sixty columns, the maths pad\u2019s bottom row), "Hi" typed by the pad, the box locked and wholly above the pad',
+      leave: () => {
+        try { localStorage.removeItem(window.__abcKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- WHERE A TYPED ANSWER IS KEPT, SAID UNDER THE BOX ----------------------------------------

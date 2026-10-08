@@ -256,6 +256,17 @@ const MIN_TAP = 44;
    MATCHED ON CLASS, NOT ON TEXT. A rule written against "10" would accept any 22px control that
    happens to say 10; the class is what the stylesheet acts on. */
 const ACCEPTED_TAP = [
+  { cls: /^kp-key\.(kp-ch|kp-shift)\b/, why:
+    'THE PAD\'S LETTERS ARE NARROWER THAN A FINGER, AND A LETTER KEYBOARD CANNOT BE ANYTHING ELSE. The owner, 8 Oct: '
+  + '*"Make the keypad never need to use their own keyboard … I just want self contained system really"* -- so a worded '
+  + 'answer is typed on the pad\'s own letters (keypad.js, `KP_ABC`) and not the phone\'s. Ten keys across need 440px and '
+  + 'a phone has 288 inside its 16px gutters: a letter is 28.8px wide at 320 and 35.8 at 390, ⇧ and the apostrophe 43.2 '
+  + 'at 320. The iPhone\'s own keyboard puts the same ten letters on about 32pt cells, which is the precedent. What was '
+  + 'done instead of the width: every key is 44px or more TALL, in px; each key\'s box is its whole cell, the gap '
+  + 'between faces inside it (a transparent border), so no pixel of a row is dead; a tap in the pad\'s gutters or '
+  + 'between rows goes to the nearest key in that row (`kpNear_`), which makes the edge keys reach the edge of the '
+  + 'glass -- `q` is 44.8px wide in effect at 320; and the pressed letter is shown above the finger. From 640px wide the '
+  + 'letters pad widens and its keys are 60px, so a tablet is not on this list. A wrong letter costs one ⌫.' },
   { cls: /^(counted\.row|chip\.sm)\b/, why:
     'A FUNNEL ANSWER, AND THE CHIP IT BECOMES, IS 32px BY THE OWNER\'S CHOICE -- *"Make the tags smaller because this will '
   + 'help to make sure more fit in even when there\'s lots of names for the user to parse through."* '

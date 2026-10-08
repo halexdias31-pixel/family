@@ -3612,13 +3612,16 @@ function guideBox_(x, slot, ask, hint) {
      (`(a)`, `ANSWER`), and a sentence like "the one thing you will change" set in it at .62rem
      with .08em of letter-spacing is a smear rather than a question.
 
-     SPELLCHECK STAYS ON, where `ansBox_` turns it off. That one holds `3.42 x 10^7`; these hold
-     prose somebody writes about what they think will happen. */
+     AND IT IS THE PAD'S BOX, opening on the letters (`kpField_`, keypad.js). It was a plain textarea
+     with spellcheck on -- "these hold prose somebody writes about what they think will happen" --
+     and so it was one of the ways the phone's keyboard came up on a question's pages, which the owner
+     ruled out on 8 Oct (*"I just want self contained system really"*). Spelling help went with the
+     phone's keyboard; that is the trade, said here where it was the reason. Named by its question,
+     so a screen reader says what it is asking rather than "Your answer" three times. */
   return `<label class="qp-ans gd-box">
     <span class="gd-ask">${esc(ask)}</span>
     ${hint ? `<span class="gd-hint">${esc(hint)}</span>` : ''}
-    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="2" autocomplete="off">${esc(ansRead_(k))}</textarea>
+    ${kpField_(k, ansRead_(k), 'words', false, ask)}
   </label>`;
 }
 
@@ -7485,10 +7488,13 @@ function ansBox_(x) {
      box it always had and no button, rather than a Check that shrugs -- a control that sometimes
      does nothing is worse than one that is not there. */
   const can = String(x && x.accept || '').trim();
-  /* A MATHS ANSWER GETS THE KEYPAD AND A WORDED ONE THE PHONE'S KEYBOARD — "like hegarty maths …
-     worded answer normal device keyboard". Which is which, the pad, and "Mark with AI" for a
-     worded box are all keypad.js; this only chooses. Both boxes are `.qp-ans-in` with the same
-     `data-k`, so Send, the save on `input` and every check that types into one are unchanged. */
+  /* EVERY ANSWER IS TYPED ON THE SITE'S OWN PAD, a maths one opening on the maths keys and a worded
+     one on the letters. It was "worded answer normal device keyboard" until the owner, 8 Oct: *"Make
+     the keypad never need to use their own keyboard … I just want self contained system really"* --
+     keypad.js says why and how. Which is which, the pad, the box (`kpField_`, the one place it is
+     drawn and locked) and "Mark with AI" are all keypad.js; this only chooses. Both boxes are
+     `.qp-ans-in` with the same `data-k`, so Send, the save on `input` and every check that types into
+     one are unchanged. */
   const maths = ansMaths_(x);
   /* NO CAPTION OVER THE BOX. It said "<name>'s answer", and the owner: *"remove 'names answer'.
      that is redundant."* The name is still what the answer is filed under (`ansKey_`), and a screen
@@ -7511,9 +7517,9 @@ function ansBox_(x) {
 
      SO THE FIELD IS PAPER, the second palette (`--paper`, `--paper-ink`): 17:1 against the card, and
      it always stood in for the sheet the answer is written on. It says "Type your answer" while it is
-     empty -- a placeholder on the textarea, and the drawing's own line on the maths box (`.kp-show`),
-     because that input is invisible. A field rounded like every phone's message bar, which is a shape
-     everybody already reads as "type here".
+     empty -- the drawing's own line (`.kp-show:empty`), because the box under it is invisible. A
+     field rounded like every phone's message bar, which is a shape everybody already reads as "type
+     here".
 
      SEND IS A TILE, GOLD AND ROUND, BESIDE THE FIELD AND NOT IN IT. A tile because a question's pages
      are all tiles (*"it should all be tiles"*), the paper aeroplane because that is the mark for send
@@ -7530,8 +7536,7 @@ function ansBox_(x) {
   const ai = can ? '' : aiTile_(x);
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
-    ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="1" placeholder="Type your answer" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
+    ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', maths && kpSigns_(x))}
   </label>${fig}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
@@ -7612,8 +7617,12 @@ document.addEventListener('input', e => {
      (`rows="1"`, the chat bar in `ansBox_`), then downward a line at a time to the stylesheet's cap,
      then it scrolls inside. `field-sizing: content` does this where the browser has it; Safari -- the
      owner's iPad -- does not, so the height is set here as well. Downward, because the card is held
-     where it is while its box has the focus (`HOLD_AT`). */
-  if (el.tagName === 'TEXTAREA' && el.closest('.qp-bar')) {
+     where it is while its box has the focus (`HOLD_AT`).
+     NOT THE PAD'S BOX (`.kp-in`), which is every answer box now: it is invisible and laid over its
+     drawing, and the drawing is what grows (`.kp-words > .kp-show`). Measured with the prototype on 8
+     Oct, a height written here on that box made it about 600px tall, and the keypad's lift, measuring
+     it, threw the card 654px off the top of the screen. */
+  if (el.tagName === 'TEXTAREA' && el.closest('.qp-bar') && !el.classList.contains('kp-in')) {
     el.style.height = '';
     if (el.scrollHeight) el.style.height = el.scrollHeight + 'px';
   }

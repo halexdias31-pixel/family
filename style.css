@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-imposter-reads-aloud";
+  --css-version: "2026-10-08-keypad-is-the-keyboard";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11201,9 +11201,26 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    `textarea` IS `min-height: 5.8rem` GLOBALLY, which is a page-long box seven times over. These are
    two or three lines each and the card is already long. In `px` at the floor and `rem` above it,
    which is the shape the global rule uses and the reason it survives a fluid root — 4.2rem is 62px
-   on a 390px phone and 44px is the fingertip underneath it. Sixth conviction of that rule. */
+   on a 390px phone and 44px is the fingertip underneath it. Sixth conviction of that rule.
+
+   THE BOX IS THE PAD'S NOW (`kpField_`, keypad.js, 8 Oct: *"I just want self contained system
+   really"*), so what was the textarea's look -- the `--sunk` ground, the ruled line, gold on focus --
+   is the FIELD's, and the height and the ink are its drawing's (`.kp-show`): the textarea is invisible
+   under it. The caret is gold, because the drawing's own caret is the paper's ink and vanishes on
+   black, and the empty box says "Type your answer" in `--faint`, 5.4:1 on the sunk ground. */
 .gd-box { margin: .35rem 0 0; }
-.gd-box .qp-ans-in { min-height: max(44px, 4.2rem); }
+.gd-box .kp-field {
+  background: var(--sunk); border-bottom: 1px solid var(--line);
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+}
+.gd-box .kp-field:focus-within { border-bottom-color: var(--gold); }
+.gd-box .kp-field.kp-words > .kp-show {
+  min-height: max(44px, 4.2rem); max-height: 12rem; padding: .5rem .6rem;
+  color: var(--ink); font: 400 .9rem/1.6 var(--font);
+}
+.gd-box .kp-show:empty::before { color: var(--faint); }
+.gd-box .kp-caret { background: var(--gold); }
+.gd-box .kp-sel { background: var(--line); }
 
 
 /* ---------- A QUESTION CARD'S CHOICES ---------------------------------------------------------------
@@ -13244,14 +13261,10 @@ button.scr-sq { cursor: pointer; }
    Figure tile's line by. */
 .qp-ans-k { display: block; font: 600 .62rem/1 var(--font); color: var(--faint);
             letter-spacing: .08em; text-transform: uppercase; margin-bottom: .4rem; }
-.qp-ans-in {
-  display: block; width: 100%; min-height: 44px; resize: vertical;
-  padding: .5rem .6rem; box-sizing: border-box;
-  background: var(--sunk); color: var(--ink);
-  border: 0; border-bottom: 1px solid var(--line); border-radius: var(--r-sm) var(--r-sm) 0 0;
-  font: 400 .9rem/1.6 var(--font);
-}
-.qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
+/* `.qp-ans-in`'s OWN LOOK WAS HERE -- a `--sunk` box with a ruled line, gold on focus -- and its
+   textarea's in the bar below. Since 8 Oct every `.qp-ans-in` is the pad's invisible box inside a
+   `.kp-field` (keypad.js), so none of it was ever drawn: the ruled look is the worksheet field's
+   (`.gd-box .kp-field`) and the chat bar's is the pill's. */
 /* THE RULE UNDER THE BOX TOOK THE VERDICT'S COLOUR here, through `.qcard:has(> .qp-mark.is-right)`,
    because the verdict came after the box. The bar holds both now, so the ring round the field does it
    from inside `.qp-mark` with no `:has` -- see `.qp-bar`. */
@@ -13284,17 +13297,12 @@ button.scr-sq { cursor: pointer; }
   min-height: 52px; padding: 2px 14px; box-sizing: border-box; cursor: text;
   background: var(--paper); color: var(--paper-ink); border-radius: 26px;
 }
-.qp-bar > .qp-ans > .kp-field, .qp-bar > .qp-ans > .qp-ans-in { flex: 1 1 auto; min-width: 0; }
+.qp-bar > .qp-ans > .kp-field { flex: 1 1 auto; min-width: 0; }
 .qp-bar > .tile { flex: none; }
-/* 16px ON THE TEXTAREA, as on the maths box's input: iOS zooms the page into any field smaller than
-   that the moment it takes the focus. ONE LINE, GROWING -- `rows="1"`, `field-sizing` where the browser
-   has it and the `input` listener in find.js where it does not -- to about five lines, then it scrolls. */
-.qp-bar textarea.qp-ans-in {
-  min-height: 44px; max-height: 9.5rem; padding: .7rem 0; resize: none; overflow-y: auto;
-  background: transparent; color: var(--paper-ink); border: 0; border-radius: 0;
-  font-size: 16px; line-height: 1.35; field-sizing: content;
-}
-.qp-bar textarea.qp-ans-in::placeholder { color: var(--paper-dim); opacity: 1; }
+/* A WORDED ANSWER IN THE BAR: ONE LINE, GROWING to about five lines, then it scrolls inside -- the
+   message bar's shape, which the textarea had through `field-sizing` and a height set on every key. It
+   is the DRAWING that grows now (`.kp-words > .kp-show` below), and the invisible textarea is laid over
+   whatever height that is. */
 .qp-bar > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
 /* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the
    screen, not only in the sentence under it. Cleared by typing -- see the `input` listener in find.js,
@@ -13365,23 +13373,49 @@ button.scr-sq { cursor: pointer; }
    it is paper ink on no ground of its own; it was a `--sunk` box with a ruled line, 1.04:1 on the card.
 
    "TYPE YOUR ANSWER" WHILE IT IS EMPTY, drawn here because the input that would carry a placeholder is
-   the invisible one. `:empty` is exact: `kpTypeset_` draws nothing at all for an empty value, and the
-   caret's own span the moment the box has the focus, so the words go as the pad comes up. */
-.kp-field { position: relative; display: block; }
+   the invisible one. `:empty` is exact: `kpDraw_` draws nothing at all for an empty value, and the
+   caret's own span the moment the box has the focus, so the words go as the pad comes up.
+
+   ---------- THE FINGER LANDS ON THE DRAWING, NEVER ON THE BOX (8 Oct) ------------------------------
+   *"I just want self contained system really."* The box is `readonly` and `inputmode="none"`
+   (keypad.js says why both), and here it is also `pointer-events: none`: a tap goes through it to
+   the drawing inside the `<label>`, which keypad.js answers by focusing the box itself and putting the
+   caret where the finger was. With nothing editable under the finger, iOS has nowhere to open its
+   edit menu, its magnifier or its selection handles -- and the drawing is unselectable and has no
+   callout, so a long press on it is a long press on nothing. `touch-action: manipulation`, because two
+   quick taps to place the caret must not double-tap-zoom an iPad. NOT `user-select: none` on the box
+   itself: older iOS will not let such a field take the focus. */
+.kp-field { position: relative; display: block; touch-action: manipulation; cursor: text; }
 .kp-show {
   display: flex; align-items: center; flex-wrap: wrap; gap: 0 .1em;
   min-height: 48px; padding: .3rem 0; box-sizing: border-box;
   color: var(--paper-ink);
   font: 400 1.05rem/1.5 var(--font); overflow-wrap: anywhere;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
 .kp-show:empty::before { content: "Type your answer"; color: var(--paper-dim); }
-.kp-field .kp-in {
-  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0;
-  padding: 0; margin: 0; border: 0; background: transparent;
-  color: transparent; caret-color: transparent; font-size: 16px; resize: none; cursor: text;
+/* THREE CLASSES, (0,3,0), OVER the global `textarea` rule's height and anything else that names the box. */
+.kp-field > .kp-in.qp-ans-in {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; max-height: none;
+  padding: 0; margin: 0; border: 0; border-radius: 0; background: transparent; overflow: hidden;
+  color: transparent; caret-color: transparent; font-size: 16px; resize: none; field-sizing: fixed;
+  pointer-events: none;
 }
 .kp-field .kp-in::selection { background: transparent; }
 .kp-field .kp-in:focus { outline: none; }
+/* ---------- A WORDED ANSWER IS DRAWN AS TEXT ---------------------------------------------------------
+   THE MESSAGE BAR'S SHAPE: one line, growing a line at a time to about five, then scrolling inside
+   (keypad.js keeps the caret's line in view). Its own newlines kept (`pre-wrap`), a long word broken
+   rather than pushing the pill wider than the card. 16px/1.35, which is what the textarea it replaced
+   was set in. */
+.kp-field.kp-words > .kp-show {
+  display: block; white-space: pre-wrap; overflow-wrap: anywhere;
+  min-height: 44px; max-height: 9.5rem; overflow-y: auto; padding: .7rem 0;
+  font: 400 16px/1.35 var(--font);
+}
+.kp-field.kp-words .kp-caret { vertical-align: text-bottom; height: 1.25em; }
+/* A LAPTOP'S CTRL+A, DRAWN, because the next key replaces it -- the paper's own rule colour. */
+.kp-sel { background: var(--paper-rule); color: inherit; }
 /* A SLOT IS A DASHED BOX, the shape Hegarty draws for "something goes here". In `em` so it is the
    size of a digit whether it sits on the line or up in a power. In the paper's second voice, 5.3:1 on
    the cream -- `--dim` was drawn for the black box and is 2.6:1 there. */
@@ -13463,6 +13497,46 @@ button.scr-sq { cursor: pointer; }
 .kp-fr i { display: block; width: 9px; height: 8px; border: 1px solid currentColor; border-radius: 1px; }
 .kp-fr b { display: block; width: 15px; height: 1px; background: currentColor; }
 .kp-pw sup { font-size: .65em; }
+
+/* ---------- THE LETTERS: THE SAME PAD, TURNED OVER (`abc`) ---------------------------------------------
+   THE OWNER, 8 Oct: *"Make the keypad never need to use their own keyboard … I just want self contained
+   system really."* `abc` turned the box over to the phone's keyboard; now it turns the pad over to
+   these, and `123` turns it back (keypad.js, `KP_ABC`).
+
+   SIXTY COLUMNS, NO GAP BETWEEN THEM, AND THE GAP INSIDE EACH KEY: a transparent 2px border either side
+   with the face painted inside it, so a key's box is its whole cell and every pixel of a row is some
+   key's -- a letter is narrower than a finger (28.8px at 320), and the 4px between faces is where a
+   finger between two of them lands. Five rows at the maths pad's own heights, so the pad does not
+   change height when it turns over and the card above it does not move.
+
+   WIDER ON A TABLET: the maths pad keeps the app's column (`--app`), whose 60px keys are plenty; ten
+   letters in it would be 38px, so the letters take up to 640px, where they are 60. A width in px for the
+   same reason the keys' heights are. */
+#kp.is-abc { grid-template-columns: repeat(60, minmax(0, 1fr)); column-gap: 0; max-width: 640px; }
+#kp.is-abc .kp-key { border-inline: 2px solid transparent; background-clip: padding-box; }
+.kp-key.kp-ch { position: relative; font-weight: 500; font-size: 1.25rem; }
+#kp.is-shift .kp-ch { text-transform: uppercase; }
+/* ⇧ LIT WHILE IT IS ON, AND A BAR UNDER IT WHILE IT IS LOCKED -- the phone's own two signs for it. */
+.kp-key.kp-shift.is-on { background: var(--kp-face); color: var(--kp-ink); }
+.kp-key.kp-shift.is-lock { box-shadow: inset 0 -4px 0 var(--kp-ink); }
+/* ---------- THE LETTER UNDER THE FINGER, SHOWN ABOVE IT ------------------------------------------------
+   A FINGER COVERS A 29px KEY WHOLE, so the key says which it was where it can be seen, as the phone's
+   does -- while it is pressed (`.is-pressed`, put on at `pointerdown` by shell.js) and no longer. The
+   key itself does not darken: the bubble is the sign, and a darkening under it would be a filter on
+   the bubble too. */
+.kp-key.kp-ch.is-pressed, .kp-key.kp-ch:active { filter: none; transform: none; }
+.kp-key.kp-ch.is-pressed::after {
+  content: attr(data-v); position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
+  min-width: 44px; padding: 8px 0; box-sizing: border-box; border-radius: var(--r);
+  background: var(--kp-face); color: var(--kp-ink); font: 600 1.6rem/1 var(--font); text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .5); pointer-events: none;
+}
+
+/* WHAT THE BOX NOW SAYS, FOR A SCREEN READER ONLY (`kpSay_`): in the page, out of sight. */
+.kp-say {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
 
 /* ---------- MARK WITH AI ------------------------------------------------------------------------------
    SEND'S PLACE, SEND'S DISC — it is the same act for a worded answer (keypad.js, `aiTile_`). The

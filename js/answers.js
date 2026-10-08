@@ -405,10 +405,10 @@ function ansRefresh_(keys) {
       const v = typeof ansRead_ === 'function' ? ansRead_(k) : (ansValue_(k) || '');
       if (el.value === v) return;
       el.value = v;
-      if (el.classList.contains('kp-in') && typeof kpTypeset_ === 'function') {
-        const show = el.parentNode && el.parentNode.querySelector('.kp-show');
-        if (show) show.innerHTML = kpTypeset_(v, -1);
-      }
+      /* REDRAWN BY THE PAD'S OWN DRAWING (`kpRender_`), which knows a worded box from a maths one: this
+         called `kpTypeset_` on every box, and a worded answer filled from another device came back
+         typeset -- `well-known` with a minus in it, `and/or` stacked as a fraction. */
+      if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;

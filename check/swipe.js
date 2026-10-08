@@ -887,6 +887,115 @@ async function gesture(env, o) {
       }
       if (pages.length && !asked) fail('REACH', `${at} keypad`, 'no answer box was on the screen to tap — nothing was asked');
       note(`${at} keypad: ${asked} answer box(es) tapped; closest to the pad ${isFinite(worst) ? worst.toFixed(1) + 'px' : '-'}`);
+
+      /* ---------- AND A WORDED ANSWER, ON THE PAD'S LETTERS, BY TOUCH ------------------------------------
+         THE OWNER, 8 Oct: *"Make the keypad never need to use their own keyboard the key pad seems to allow
+         ios keyboard to show I just want self contained system really"*. The worded box was a textarea and
+         the phone's keyboard; it is the pad's box now (keypad.js), and the box itself takes no touch --
+         the finger lands on its drawing and the app focuses the box. So, with real touch on Q33's explain
+         box: the pad comes up on its LETTERS with the box focused and still `readonly`; h, i, space, t, h,
+         e, r, e, ⌫ type "Hi ther" with the capital put in by itself; a tap on the drawn `i` puts the caret
+         before it and `x` lands there; the pill stays 11.5px or more above the pad; and ✓ (no tile on a
+         box with no scheme and no AI) puts the pad away. */
+      const WQ = 'Q-AQA-8461-2406-1F-033';
+      const wbox = await page.evaluate(async id => {
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+        if (!it) return null;
+        try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(it) }]; paintStuff(true);
+        await window.__sw.still('stuff');
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        await window.__sw.still('stuff');
+        const inp = [...document.querySelectorAll('#s-stuff > .page.on .kp-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
+        if (!inp) return { none: true };
+        const r = inp.closest('.qp-ans').getBoundingClientRect();
+        return { k: ansKey_(it), x: Math.round(r.left + 40), y: Math.round(r.top + r.height / 2) };
+      }, WQ);
+      const touch = async (x, y) => {
+        const T1 = Date.now();
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T1 / 1000, touchPoints: [{ x, y, id: 4, radiusX: 6, radiusY: 6, force: 1 }] });
+        await sleep(40);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T1 + 40) / 1000, touchPoints: [] });
+        await sleep(90);
+      };
+      const keyOf = v => page.evaluate(v => {
+        const b = [...document.querySelectorAll('#kp .kp-key')].find(k => k.getAttribute('data-v') === v);
+        if (!b) return null;
+        const r = b.getBoundingClientRect();
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+      }, v);
+      const box = k => page.evaluate(k => {
+        const kp = document.getElementById('kp'), a = document.activeElement;
+        const b = [...document.querySelectorAll('#s-stuff .kp-in')].find(i => i.getAttribute('data-k') === k);
+        const pill = b && b.closest('.qp-ans');
+        return { up: !!kp && !kp.hidden, layer: kp && kp.getAttribute('data-layer'), focused: a === b, locked: !!b && b.readOnly && b.getAttribute('inputmode') === 'none',
+                 val: b ? b.value : null, at: b ? b.selectionStart : null,
+                 gap: kp && pill && !kp.hidden ? kp.getBoundingClientRect().top - pill.getBoundingClientRect().bottom : null };
+      }, k);
+      if (!wbox || wbox.none) fail('REACH', `${at} letters`, `${WQ} drew no answer box on its page — the letters were NOT pressed`);
+      else if (wbox.y < 5 || wbox.y > H - 5) fail('REACH', `${at} letters`, `${WQ}'s box is off the screen at y${wbox.y} — the letters were NOT pressed`);
+      else {
+        await touch(wbox.x, wbox.y);
+        await page.evaluate(() => window.__sw.still('stuff'));
+        const b0 = await box(wbox.k);
+        if (!b0.up || b0.layer !== 'abc' || !b0.focused) fail('LETTERS', `${at} ${WQ}`, `a tap on the worded box left the pad ${b0.up ? 'up on ' + b0.layer : 'down'} and the box ${b0.focused ? 'focused' : 'not focused'} — wanted the letters up on it`);
+        else {
+          let missing = '';
+          for (const v of ['h', 'i', ' ', 't', 'h', 'e', 'r', 'e', '!back']) {
+            const k = await keyOf(v);
+            if (!k) { missing = v; break; }
+            await touch(k.x, k.y);
+          }
+          const b1 = await box(wbox.k);
+          reached++;
+          note(`${at} letters by touch: h i ␣ t h e r e ⌫ → ${JSON.stringify(b1.val)}, ${b1.gap == null ? '-' : b1.gap.toFixed(1) + 'px'} above the pad`);
+          if (missing) fail('LETTERS', `${at} ${WQ}`, `the letters face has no key ${JSON.stringify(missing)}`);
+          if (b1.val !== 'Hi ther') fail('LETTERS', `${at} ${WQ}`, `real touch on h i ␣ t h e r e ⌫ left the box ${JSON.stringify(b1.val)}, wanted "Hi ther"`);
+          if (!b1.locked || !b1.focused || !b1.up) fail('LETTERS', `${at} ${WQ}`, `after the letters the box is ${b1.locked ? 'locked' : 'NOT locked'}, ${b1.focused ? 'focused' : 'not focused'}, the pad ${b1.up ? 'up' : 'down'}`);
+          if (b1.gap != null && b1.gap < 11.5) fail('KEYPAD COVERS', `${at} ${WQ}`, `the worded box's pill is ${b1.gap.toFixed(1)}px above the pad's top — under it or too close`);
+          /* A TAP ON THE DRAWN `i` (the second character) PUTS THE CARET BEFORE IT. */
+          const ch = await page.evaluate(k => {
+            const b = [...document.querySelectorAll('#s-stuff .kp-in')].find(i => i.getAttribute('data-k') === k);
+            const show = b && b.parentNode.querySelector('.kp-show');
+            const t = show && [...show.childNodes].find(n => n.nodeType === 3 && n.length > 1);
+            if (!t) return null;
+            const r = document.createRange(); r.setStart(t, 1); r.setEnd(t, 2);
+            const q = r.getBoundingClientRect();
+            return { x: Math.round(q.left + 1), y: Math.round(q.top + q.height / 2) };
+          }, wbox.k);
+          if (!ch) fail('LETTERS', `${at} ${WQ}`, 'the drawing has no text to tap — the caret was NOT placed');
+          else {
+            await touch(ch.x, ch.y);
+            const xk = await keyOf('x');
+            if (xk) await touch(xk.x, xk.y);
+            const b2 = await box(wbox.k);
+            if (b2.val !== 'Hxi ther') fail('LETTERS', `${at} ${WQ}`, `a tap on the drawn "i" then x gave ${JSON.stringify(b2.val)}, wanted "Hxi ther" — the caret did not go where the finger was`);
+          }
+          /* AND AS IT GROWS: a worded answer grows a line at a time, and the room asked for when the pad
+             came up was for one line (`kpKeepClear_`). The caret to the end, then enough letters to wrap
+             at 320, and the pill must still clear the pad. */
+          await page.evaluate(k => {
+            const b = [...document.querySelectorAll('#s-stuff .kp-in')].find(i => i.getAttribute('data-k') === k);
+            if (b) { b.setSelectionRange(b.value.length, b.value.length); kpRender_(b); }
+          }, wbox.k);
+          for (const v of ' and then more words wrap'.split('')) {
+            const k = await keyOf(v);
+            if (k) await touch(k.x, k.y);
+          }
+          await page.evaluate(() => window.__sw.still('stuff'));
+          const bg = await box(wbox.k);
+          note(`${at} letters grown to ${JSON.stringify(bg.val)}: ${bg.gap == null ? '-' : bg.gap.toFixed(1) + 'px'} above the pad`);
+          if (bg.gap == null || bg.gap < 11.5) fail('KEYPAD COVERS', `${at} ${WQ}`, `a worded answer grown to two lines put its pill ${bg.gap == null ? '(no pad)' : bg.gap.toFixed(1) + 'px'} above the pad's top — the room was not asked for again`);
+          const done = await keyOf('!done');
+          if (done) await touch(done.x, done.y);
+          await page.evaluate(() => window.__sw.still('stuff'));
+          const b3 = await box(wbox.k);
+          if (b3.up) fail('LETTERS', `${at} ${WQ}`, '✓ on a worded box with no tile beside it left the pad up');
+        }
+        await page.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} }, wbox.k);
+      }
       await page.evaluate(() => { STUFF.filters = []; paintStuff(true); goPage('stuff', 0, true); });
     }
 

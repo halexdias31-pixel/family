@@ -7379,10 +7379,11 @@ check('marking, revealing and tapping leave the question where it is, and typing
 /* ---------- A FRACTION, TYPED ON THE KEYPAD, MARKED RIGHT --------------------------------------------
    ASKED FOR AS "make the input better … like hegarty maths … desmos". keypad.js says how; this presses
    it the way a thumb would, through the real handlers, on a real question card: the box keeps the
-   phone's keyboard down (`inputmode="none"`), the pad has the keys the owner listed, the fraction is
+   phone's keyboard out (`readonly` and `inputmode="none"`), the pad has the keys the owner listed, the fraction is
    drawn STACKED with a dashed slot while it is still empty, and ✓ runs Check — against a scheme of
    `0.75`, so the keypad's `(3)/(4)` has to go through the bracket fold in `markNorm_` and `markFrac_`'s
-   "or equivalent" to be marked right. A worded question beside it keeps its textarea. */
+   "or equivalent" to be marked right. A worded question beside it is the pad's box too, on the
+   letters -- *"I just want self contained system really"* (8 Oct). */
 check('a fraction typed on the maths keypad is drawn stacked, saved, and marked right against 0.75', async () => {
   const { w, errs } = boot();
   await wait(300);
@@ -7396,9 +7397,10 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
   const card = draw(x);
   const inp = card.querySelector('.qp-ans-in');
-  if (!inp || inp.tagName !== 'INPUT' || inp.getAttribute('inputmode') !== 'none') {
-    return ['a calculation’s answer box is ' + (inp ? '<' + inp.tagName.toLowerCase() + ' inputmode="' + inp.getAttribute('inputmode') + '">' : 'missing')
-      + ' — wanted an <input inputmode="none"> so the phone keyboard stays down'];
+  if (!inp || inp.tagName !== 'INPUT' || inp.getAttribute('inputmode') !== 'none' || !inp.readOnly) {
+    return ['a calculation’s answer box is ' + (inp ? '<' + inp.tagName.toLowerCase() + ' inputmode="' + inp.getAttribute('inputmode') + '"'
+      + (inp.readOnly ? ' readonly' : '') + '>' : 'missing')
+      + ' — wanted an <input readonly inputmode="none">, so the phone’s keyboard has no way in'];
   }
   if (card.querySelector('textarea.qp-ans-in')) bad.push('the maths card drew a textarea as well as the keypad box');
   if (card.querySelector('.qp-ai')) bad.push('a maths question with a scheme was offered "Mark with AI" — Check is exact there');
@@ -7489,13 +7491,25 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   setTo('x');
   press('!pow'); press('2'); press('!done');
   if (i2.value !== 'x^(2)' || !c2.querySelector('.qp-mark.is-right')) bad.push('x^(2) against x^2 was not marked right: ' + i2.value);
-  /* AND A WORDED ANSWER IS STILL WORDS, on the phone's own keyboard. */
+  /* AND A WORDED ANSWER IS WORDS, ON THE PAD'S LETTERS -- it was the phone's own keyboard until the
+     owner, 8 Oct: *"Make the keypad never need to use their own keyboard … I just want self contained
+     system really"*. A textarea still (an answer typed before may hold a newline), but the pad's: in a
+     `.kp-field.kp-words` under its drawing, `readonly` and `inputmode="none"`, and focusing it opens
+     the pad on the letters. */
   const wd = draw(Object.assign({}, base, { key: 'q-kp-words', answerType: 'explain', accept: '',
     row: Object.assign({}, base.row, { row_id: 'Q-KP-6' }) }));
   const ta = wd.querySelector('.qp-ans-in');
-  if (!ta || ta.tagName !== 'TEXTAREA' || ta.hasAttribute('inputmode')) bad.push('an explain question lost its textarea and the device keyboard');
-  /* IN THE SAME BAR, saying what it is for while it is empty -- the box nobody could find in the sun. */
-  else if (!ta.closest('.qp-bar') || ta.getAttribute('placeholder') !== 'Type your answer') bad.push('the worded box is not in the chat bar with "Type your answer" in it');
+  if (!ta || !ta.matches('.kp-field.kp-words > textarea.kp-in[data-kp="words"][readonly][inputmode="none"]')) {
+    bad.push('an explain question\'s box is not the pad\'s locked words box: ' + (ta ? ta.outerHTML.slice(0, 160) : '(none)'));
+  } else {
+    /* IN THE SAME BAR, saying what it is for while it is empty -- the box nobody could find in the sun.
+       The words are the drawing's (`.kp-show:empty::before`), because the textarea is invisible. */
+    if (!ta.closest('.qp-bar') || ta.hasAttribute('placeholder') || ta.parentNode.querySelector('.kp-show').innerHTML !== '') bad.push('the worded box is not in the chat bar with an empty drawing to say "Type your answer"');
+    ta.focus();
+    if (pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="q"]')) bad.push('focusing a worded box did not open the pad on its letters (layer ' + pad.getAttribute('data-layer') + ')');
+    ta.blur();
+    await wait(10);
+  }
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -7550,6 +7564,260 @@ check('a redraw with the keypad up keeps typing into the same question', async (
   if (!pad.hidden) bad.push('with the question gone from the page, a key still left the pad up');
   if (host.querySelector('.kp-in').value) bad.push('a key typed into a different question\'s box after a redraw');
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- NO ANSWER BOX CAN BRING UP THE PHONE'S KEYBOARD, ON ANY ROUTE ----------------------------------
+   THE OWNER, 8 Oct: *"Make the keypad never need to use their own keyboard the key pad seems to allow ios
+   keyboard to show I just want self contained system really"*. Counted that day, the iPad's keyboard came
+   up on every worded box and every worksheet box (plain textareas), and from `abc` on every maths box,
+   which set `inputmode="text"` on purpose -- and WebKit's own source says `inputmode="none"` alone
+   leaves a hardware keyboard, Scribble and Scan Text a way in, where `readonly` does not (keypad.js).
+
+   SO THE RULE IS ASKED OF EVERY KIND OF BOX A QUESTION'S PAGES DRAW -- a maths answer, an explain
+   answer, a short worded one, a drawing question's card AND its pen page, a passage to ring words in,
+   and a practical's worksheet -- and of every route the pad has: a box focused, `abc`, `123`, a
+   redraw under the pad (`kpLive_`), Enter, ✓. Every text field there must be the pad's box, locked in
+   its markup (`readonly`, `inputmode="none"`) inside its drawing; and a MutationObserver over the whole
+   document says whether ANY script touched either attribute on the way, which is what the old `abc`
+   did. And the same promise asked of the source: nothing in js/ writes `inputmode` or `readonly` by
+   script, so a new route cannot be opened without this saying so. */
+check('no answer box on a question\'s pages can bring up the phone\'s keyboard — maths, words, worksheet, pen — on any route', async () => {
+  /* A REAL PRACTICAL, through the real mapper, as the sameness journey brings one: the fixture has none. */
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so no practical could be drawn — nothing was checked'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { practicals: JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8')) })));
+  const { w, errs } = boot({ payload: Object.assign(payload(), { practicals: made.practicals || [] }) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  const need = ['kpField_', 'questionCard_', 'questionFigCard_', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
+  if (!A['kp-key'] || need.length) return ['the keypad or the cards are not reachable (' + need.join(', ') + ') — nothing was checked'];
+  /* EVERY attribute change to `readonly` or `inputmode` anywhere, from here to the end. */
+  const touched = [];
+  const mo = new w.MutationObserver(list => list.forEach(m => {
+    if (m.target.classList && m.target.classList.contains('kp-in')) touched.push(m.attributeName + ' on ' + m.target.getAttribute('data-k') + ' (was ' + JSON.stringify(m.oldValue) + ')');
+  }));
+  mo.observe(d.body, { subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ['readonly', 'inputmode'] });
+  const host = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = (id, extra) => Object.assign({ row_id: id, paper_id: 'P-OWN', subject: 'Maths', name: 'Own keyboard' }, extra || {});
+  const q = (key, extra, rowExtra) => Object.assign({ kind: 'question', name: 'Q1', qNumber: '1', marks: 2, key: key, stems: [],
+    html: '<p>Answer it.</p>', answer: '<b>it</b>', row: row('Q-OWN-' + key, rowExtra) }, extra || {});
+  const maths = q('q-own-m', { answerType: 'calculation', accept: '12' });
+  const words = q('q-own-w', { answerType: 'explain', accept: '' });
+  const shortW = q('q-own-s', { answerType: 'short', accept: 'egestion' });
+  const pen = q('q:Q-OWN-P', { answerType: 'drawing' }, { figure: 'grid-blank' });
+  const passage = q('q:Q-OWN-T', { answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' });
+  const prac = w.stuffItems().find(x => x.kind === 'practical');
+  [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
+  const drawn = {
+    'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
+    'a short worded answer': host(w.questionCard_(shortW)), 'a drawing question\'s card': host(w.questionCard_(pen)),
+    'a drawing question\'s pen page': host(w.questionFigCard_(pen)), 'a passage to ring words in': host(w.questionCard_(passage)),
+    'a practical\'s worksheet': prac ? host(w.stuffPart_(prac, 'work')) : null,
+  };
+  if (!prac) bad.push('no practical in the fixture — its worksheet boxes were NOT checked');
+  const locked = b => b.matches('.kp-field > .kp-in.qp-ans-in[readonly][inputmode="none"][data-kp]') && b.readOnly
+    && !!b.closest('label.qp-ans');
+  const WANT = { 'a maths answer': 1, 'an explain answer': 1, 'a short worded answer': 1, 'a drawing question\'s card': 1,
+    'a drawing question\'s pen page': 0, 'a passage to ring words in': 1, 'a practical\'s worksheet': 3 };
+  let boxes = 0;
+  Object.keys(drawn).forEach(name => {
+    const h = drawn[name];
+    if (!h) return;
+    const fields = [...h.querySelectorAll('input, textarea, select, [contenteditable]')];
+    const open = fields.filter(f => !locked(f));
+    if (open.length) bad.push(name + ' draws a field the phone could type into: ' + open.map(f => f.outerHTML.slice(0, 140)).join(' | '));
+    if (fields.length !== WANT[name]) bad.push(name + ' draws ' + fields.length + ' text field(s), wanted ' + WANT[name]);
+    boxes += fields.length;
+  });
+  const pad = () => d.getElementById('kp');
+  const key = v => pad() && pad().querySelector('.kp-key[data-v="' + v + '"]');
+  const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + (pad() && pad().getAttribute('data-layer')) + ' face'); };
+  const live = () => d.activeElement;
+  const still = (where) => {
+    const b = live();
+    if (!b || !b.classList.contains('kp-in')) return bad.push(where + ': the focus is on ' + (b ? b.tagName + '.' + b.className : 'nothing') + ', not an answer box');
+    if (!locked(b)) bad.push(where + ': the focused box is not locked: ' + b.outerHTML.slice(0, 140));
+  };
+  /* THE ROUTES, ON THE MATHS BOX: focused, `abc`, a letter, `123`, a redraw under the pad on the letters,
+     a key after it, Enter. */
+  const mHost = drawn['a maths answer'];
+  mHost.querySelector('.kp-in').focus();
+  if (!pad() || pad().hidden) bad.push('focusing the maths box did not open the pad');
+  still('the maths box focused');
+  press('!abc');
+  if (pad().getAttribute('data-layer') !== 'abc' || !key('q')) bad.push('`abc` did not turn the pad to its letters');
+  still('after `abc`');
+  press('n');
+  press('!123');
+  if (pad().getAttribute('data-layer') !== 'maths' || !key('7')) bad.push('`123` did not turn the pad back to the maths keys');
+  still('after `123`');
+  press('!abc');
+  mHost.innerHTML = w.questionCard_(maths);
+  press('m');
+  const mNow = mHost.querySelector('.kp-in');
+  if (!mNow || mNow.value !== 'nm') bad.push('a letter after a redraw on the letters face typed into ' + (mNow ? JSON.stringify(mNow.value) : 'nothing') + ', wanted "nm" in the box that replaced it');
+  if (pad().getAttribute('data-layer') !== 'abc') bad.push('a redraw under the pad turned it back from the letters -- the child was on ' + 'abc');
+  still('after a redraw under the pad (`kpLive_`)');
+  mNow.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  if (!pad().hidden) bad.push('Enter on the maths box left the pad up');
+  if (mNow.matches('[readonly][inputmode="none"]') === false) bad.push('after Enter the maths box is not locked');
+  /* AND THE WORDED BOX: focused, it opens on the letters; `123`, `abc`, ✓. */
+  const ta = drawn['an explain answer'].querySelector('.kp-in');
+  ta.focus();
+  if (pad().hidden || pad().getAttribute('data-layer') !== 'abc') bad.push('focusing a worded box did not open the pad on its letters');
+  still('the worded box focused');
+  press('!123'); press('!abc'); press('!done');
+  if (!pad().hidden) bad.push('✓ on a worded box left the pad up');
+  /* AND EACH WORKSHEET BOX, one after another. */
+  if (drawn['a practical\'s worksheet']) {
+    [...drawn['a practical\'s worksheet'].querySelectorAll('.kp-in')].forEach((b, i) => {
+      b.focus();
+      if (pad().hidden || pad().getAttribute('data-layer') !== 'abc') bad.push('worksheet box ' + (i + 1) + ' did not open the pad on its letters');
+      still('worksheet box ' + (i + 1) + ' focused');
+    });
+    if (live() && live().blur) live().blur();
+  }
+  await wait(20);
+  mo.disconnect();
+  if (touched.length) bad.push('a script changed a box\'s lock on the way: ' + touched.join(' | ') + ' -- the lock is written in the markup and nowhere else');
+  /* AND THE SOURCE: nothing that ships writes `inputmode` or `readonly` by script. `abc` was exactly that. */
+  const SRC = /setAttribute\(\s*['"](?:inputmode|readonly)['"]|removeAttribute\(\s*['"](?:inputmode|readonly)['"]|\.readOnly\s*=(?!=)|\.inputMode\s*=(?!=)/;
+  const jsDir = path.join(dir);
+  fs.readdirSync(jsDir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
+    const src = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const m = src.match(SRC);
+    if (m) bad.push('js/' + f + ' writes a box\'s lock by script: `' + m[0] + '` -- a box unlocked by script is the phone\'s keyboard let back in');
+  });
+  if (boxes < 7) bad.push('only ' + boxes + ' boxes were drawn to ask about — the rule was not asked of them all');
+  [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- THE LETTERS ARE TYPED, SAVED AND MARKED; 123 IS THE MATHS KEYS; A LAPTOP STILL TYPES ------------
+   WHAT THE PHONE'S KEYBOARD DID FOR A WORDED ANSWER, DONE BY THE PAD (8 Oct). Pressed through the real
+   handlers on a short answer whose scheme is a word: the letters land in the box, a capital comes by
+   itself at the start, the answer is saved under `ansKey_` by the same `input` listener, and ✓ marks it
+   right through `qp-check` -- `markNorm_` lowercases, so "Egestion" is "egestion". `123` is the maths
+   face, whose 5 types into a worded box; ⇧ once is one capital and twice is caps lock; ⌫ in prose
+   deletes a bracket like any letter. And a laptop: `readonly` stops the browser typing, so its keys go
+   through the pad's own edit -- letters, Backspace, ←, Shift+Enter, Enter, a paste -- each one's own
+   default cancelled. And the pad's other promises: a worded answer filled from another device is drawn
+   as the words it is, never typeset; the signs row is on a box whose scheme needs one, and on no other. */
+check('the pad\'s letters type, save and mark a worded answer; 123 is the maths keys; ⇧, a laptop\'s keys and a paste all type', async () => {
+  const { w, errs } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key'] || !A['qp-check']) return ['the keypad or Check has no handler — nothing was checked'];
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const base = { kind: 'question', name: 'Q3', marks: 1, html: '<p>Name the process.</p>', answer: '<b>egestion</b>',
+    row: { row_id: 'Q-ABC-1', paper_id: 'P-ABC', subject: 'Biology', name: 'Letters' } };
+  const x = Object.assign({}, base, { key: 'q-abc-short', answerType: 'short', accept: 'egestion' });
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const card = draw(x);
+  const inp = card.querySelector('.kp-in');
+  if (!inp || inp.getAttribute('data-kp') !== 'words') return ['a short answer whose scheme is a word did not get the pad\'s words box: ' + (inp ? inp.outerHTML.slice(0, 120) : '(none)')];
+  inp.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return ['focusing the worded box did not open the pad'];
+  const key = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+  const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + pad.getAttribute('data-layer') + ' face'); };
+  /* THE LETTERS FACE: every letter, the punctuation, and the maths pad's bottom row in its places. */
+  const letters = 'qwertyuiopasdfghjklzxcvbnm'.split('').filter(c => !key(c));
+  if (letters.length) bad.push('the letters face has no key for ' + letters.join(' '));
+  ["'", ',', '.', '?', '-', ' ', '!shift'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
+  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-6).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!left|!right|!nl|!back|!done') bad.push('the letters\' bottom row is ' + bottom.join(' ') + ', wanted 123 ← → ↵ ⌫ ✓ in the maths pad\'s places');
+  if (key('!back') && !key('!back').classList.contains('kp-del')) bad.push('⌫ on the letters is not the red key');
+  'egestion'.split('').forEach(press);
+  if (inp.value !== 'Egestion') bad.push('typing e-g-e-s-t-i-o-n on the letters gave ' + JSON.stringify(inp.value) + ', wanted "Egestion" -- the first letter a capital by itself');
+  let kept = null;
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (kept !== inp.value) bad.push('the letters\' answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
+  if (!/Egestion/.test(card.querySelector('.kp-show').textContent)) bad.push('the drawing does not show the letters typed: ' + card.querySelector('.kp-show').innerHTML.slice(0, 120));
+  press('!done');
+  const mark = card.querySelector('.qp-mark');
+  if (!mark || !mark.classList.contains('is-right')) bad.push('✓ on "Egestion" against egestion was not marked right: ' + (mark ? mark.className + ' / ' + mark.textContent.trim() : 'no mark row'));
+  if (!pad.hidden) bad.push('✓ left the pad up');
+  /* `123` AND BACK, ⇧ AND CAPS LOCK, ⌫ IN PROSE. */
+  inp.focus();
+  press('!123');
+  if (pad.getAttribute('data-layer') !== 'maths' || pad.querySelectorAll('.kp-key').length !== 30 || !key('7') || !key('!abc')) bad.push('`123` did not show the maths pad\'s 30 keys with `abc` on it');
+  press('5');
+  press('!abc');
+  if (pad.getAttribute('data-layer') !== 'abc') bad.push('`abc` did not turn the pad back to its letters');
+  press(' ');
+  press('!shift'); press('a'); press('b');
+  if (!/5 Ab$/.test(inp.value)) bad.push('5 from the maths face, a space, ⇧ a b gave ' + JSON.stringify(inp.value) + ', wanted it to end "5 Ab" -- one capital, then lower case');
+  press('!shift'); press('!shift'); press('c'); press('d');
+  if (!/CD$/.test(inp.value) || !key('!shift').classList.contains('is-lock')) bad.push('⇧ twice did not lock capitals: ' + JSON.stringify(inp.value));
+  press('!shift');
+  if (key('!shift').classList.contains('is-on')) bad.push('⇧ pressed while locked did not turn capitals off');
+  inp.value = inp.value + '(e)';
+  inp.setSelectionRange(inp.value.length, inp.value.length);
+  press('!back');
+  if (!/\(e$/.test(inp.value)) bad.push('⌫ after a bracket in a worded box gave ' + JSON.stringify(inp.value) + ' -- in prose a bracket is deleted like any letter');
+  /* A LAPTOP'S KEYS, INTO THE READONLY BOX THROUGH THE PAD'S EDIT. */
+  const kd = (k, o) => { const e = new w.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, o || {})); inp.dispatchEvent(e); return e.defaultPrevented; };
+  inp.value = ''; inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  inp.setSelectionRange(0, 0);
+  const took = ['R', 'a', 't', 'e', ' ', 'u', 'p'].map(k => kd(k));
+  kd('Backspace'); kd('ArrowLeft'); kd('Enter', { shiftKey: true });
+  if (inp.value !== 'Rate \nu') bad.push('a laptop typing "Rate up", Backspace, ←, Shift+Enter gave ' + JSON.stringify(inp.value) + ', wanted "Rate \\nu"');
+  if (took.some(t => !t)) bad.push('a laptop\'s key was left to the browser as well as typed by the pad');
+  kd('Home');
+  const paste = new w.Event('paste', { bubbles: true, cancelable: true });
+  Object.defineProperty(paste, 'clipboardData', { value: { getData: () => 'It ' } });
+  inp.dispatchEvent(paste);
+  if (inp.value !== 'It Rate \nu' || !paste.defaultPrevented) bad.push('a paste at the start gave ' + JSON.stringify(inp.value) + ', wanted "It Rate \\nu" typed through the pad');
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (kept !== 'It Rate \nu') bad.push('the laptop\'s answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
+  kd('Enter');
+  if (!pad.hidden) bad.push('Enter on the worded box left the pad up');
+  /* A MATHS BOX TYPED ON A LAPTOP KEEPS ITS SLOTS: Backspace steps into a filled fraction, as ⌫ does. */
+  const m = Object.assign({}, base, { key: 'q-abc-maths', answerType: 'calculation', accept: '0.75', row: Object.assign({}, base.row, { row_id: 'Q-ABC-2' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(m)); } catch (e) {}
+  const mi = draw(m).querySelector('.kp-in');
+  mi.focus();
+  if (pad.getAttribute('data-layer') !== 'maths') bad.push('a maths box opened the pad on ' + pad.getAttribute('data-layer'));
+  if (key('<')) bad.push('a maths box whose scheme is 0.75 has the signs row');
+  ['3', '*', '4'].forEach(k => mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })));
+  if (mi.value !== '3×4') bad.push('a laptop typing 3*4 into a maths box gave ' + JSON.stringify(mi.value) + ', wanted "3×4"');
+  mi.value = '(3)/(4)'; mi.setSelectionRange(7, 7);
+  mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
+  if (mi.value !== '(3)/(4)' || mi.selectionStart !== 6) bad.push('a laptop Backspace after a filled fraction gave ' + JSON.stringify(mi.value) + ' at ' + mi.selectionStart + ' -- wanted the caret stepped inside, as ⌫ does');
+  mi.blur();
+  await wait(10);
+  /* THE SIGNS ROW WHERE THE SCHEME NEEDS IT: an inequality's box has < ≤ ≥ > : ± above the digits. */
+  const ineq = Object.assign({}, base, { key: 'q-abc-ineq', answerType: 'calculation', accept: 'x<3', row: Object.assign({}, base.row, { row_id: 'Q-ABC-3' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(ineq)); } catch (e) {}
+  const ii = draw(ineq).querySelector('.kp-in');
+  ii.focus();
+  ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('an inequality\'s box has no ' + v + ' key'); });
+  press('x'); press('<'); press('3'); press('!done');
+  if (ii.value !== 'x<3' || !ii.closest('.qcard').querySelector('.qp-mark.is-right')) bad.push('x < 3 typed on the signs row gave ' + JSON.stringify(ii.value) + ' and was not marked right');
+  /* AND ONLY THERE: with no scheme, the answer the worked answer LEADS with decides -- never its prose, which
+     names wrong forms ("eg 5 : 9") and gave 411 more boxes a sixth row, one of them lifted off the screen. */
+  const signed = (id, extra) => draw(Object.assign({}, base, { key: 'q-abc-' + id, answerType: 'calculation',
+    row: Object.assign({}, base.row, { row_id: 'Q-ABC-' + id }) }, extra)).querySelector('.kp-in').hasAttribute('data-kp-signs');
+  if (!signed('lead', { accept: '', answer: '140 &lt; <i>h</i> &le; 150 &mdash; the class the median is in' })) bad.push('a box with no scheme whose answer leads "140 < h ≤ 150" has no signs row');
+  if (signed('prose', { accept: '', answer: '<sup>5</sup>&frasl;<sub>9</sub> &mdash; M1 for the right numbers in the wrong form, eg 5 : 9' })) bad.push('a box whose answer is 5/9 was given the signs row off its mark scheme\'s prose ("eg 5 : 9")');
+  if (signed('scheme', { accept: '5/9 | 0.56', answer: '<b>5 : 9</b>' })) bad.push('a box whose scheme is 5/9 was given the signs row off its worked answer -- the scheme decides where there is one');
+  /* A WORDED ANSWER FROM ANOTHER DEVICE IS DRAWN AS WORDS: `ansRefresh_` through the pad's own drawing. */
+  if (typeof w.ansRefresh_ === 'function') {
+    const k = w.__t.ansKey(x);
+    try { w.localStorage.setItem(k, 'a well-known and/or 3/4 fact'); } catch (e) {}
+    w.ansRefresh_([k]);
+    const show = card.querySelector('.kp-show');
+    if (inp.value !== 'a well-known and/or 3/4 fact' || show.textContent !== 'a well-known and/or 3/4 fact' || show.querySelector('.frac, sup, sub')) {
+      bad.push('a worded answer filled from the account is drawn as ' + JSON.stringify(show.innerHTML.slice(0, 160)) + ' -- typeset, not the words it is');
+    }
+  } else bad.push('ansRefresh_ is not reachable — a worded box filled from the account was NOT checked');
+  [x, m, ineq].forEach(it => { try { w.localStorage.removeItem(w.__t.ansKey(it)); } catch (e) {} });
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
