@@ -65,10 +65,19 @@ const CHROME = process.env.CHROME ||
    A check that leaves the working tree edited is a check somebody commits by accident. */
 const POSTS = path.join(ROOT, 'js', 'posts.js');
 const PAGE = path.join(ROOT, 'index.html');
+/* ---------- AND A DATA FILE, BECAUSE THE WORKER PINNED THOSE TOO --------------------------------------
+   `data/textbooks.json` and every `data/settings/` file were fetched with no `?t=`, so the worker held
+   the first copy a device ever saw and answered every later load out of it: a deploy reached the code
+   and never the books. Each deploy below also renames a chapter, and the next load has to show the new
+   name. Restored with the rest, whatever happens. */
+const BOOKS = path.join(ROOT, 'data', 'textbooks.json');
+const BOOK_LINE = '{"book_id":"TB-GCSE-MATHS","chapter":1,"title":"Number, factors and primes"';
 const postsWas = fs.readFileSync(POSTS);
 const pageWas = fs.statSync(PAGE);
+const booksWas = fs.readFileSync(BOOKS);
 const restore = () => {
   try { fs.writeFileSync(POSTS, postsWas); } catch (err) { /* nothing better to do */ }
+  try { fs.writeFileSync(BOOKS, booksWas); } catch (err) { /* same */ }
   try { fs.utimesSync(PAGE, pageWas.atime, pageWas.mtime); } catch (err) { /* same */ }
 };
 process.on('exit', restore);
@@ -111,6 +120,9 @@ function serve(base) {
 
 function deploy(marker, hours) {
   fs.writeFileSync(POSTS, postsWas + '\nfunction ' + marker + '() { return 1; }\n');
+  const books = booksWas.toString('utf8');
+  if (books.indexOf(BOOK_LINE) < 0) throw new Error('data/textbooks.json has no line starting ' + BOOK_LINE + ' — the data half was NOT deployed');
+  fs.writeFileSync(BOOKS, books.replace(BOOK_LINE, BOOK_LINE.slice(0, -1) + ' ' + marker + '"'));
   const when = new Date(Date.now() + hours * 3600e3);
   fs.utimesSync(PAGE, when, when);
 }
@@ -147,6 +159,15 @@ async function run(base) {
       const got = await pg.evaluate(m => ({
         ran: typeof window[m] === 'function', load: window.LOAD,
       }), marker);
+      /* THE CHAPTER'S NEW NAME, read off what the app built rather than off the network: `DATA` is the
+         textbooks as `libraryExtras_` made them, so it is the copy a student would be shown. */
+      got.book = await pg.waitForFunction(m => {
+        try {
+          const b = (DATA.textbooks || []).find(x => x.id === 'TB-GCSE-MATHS');
+          const c = b && b.chapters.find(x => x.n === 1);
+          return !!c && c.title.indexOf(m) !== -1;
+        } catch (e) { return false; }
+      }, marker, { timeout: 30000 }).then(() => true, () => false);
       got.asked = seen.length;
       rounds.push(got);
       await pg.close();
@@ -172,8 +193,10 @@ async function run(base) {
     }
     rounds.forEach((r, i) => {
       console.log('  deploy ' + (i + 1) + ': entry point asked for ' + r.asked + 'x, LOAD ' + r.load +
-                  ', new code ' + (r.ran ? 'RAN' : 'DID NOT RUN'));
+                  ', new code ' + (r.ran ? 'RAN' : 'DID NOT RUN') +
+                  ', the renamed chapter ' + (r.book ? 'SHOWN' : 'NOT SHOWN'));
       if (!r.ran) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' did not reach the browser');
+      if (!r.book) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' renamed a chapter in data/textbooks.json and the browser still had the old name');
     });
     console.log('');
   }
@@ -186,5 +209,5 @@ async function run(base) {
                 'fault a hard refresh hides and nobody should have to know about.');
     process.exit(1);
   }
-  console.log('OK — two deploys at two base paths, each running on the next ordinary load.');
+  console.log('OK — two deploys at two base paths, each running on the next ordinary load, data included.');
 })().catch(err => { restore(); console.error(err); process.exit(1); });

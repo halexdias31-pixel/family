@@ -236,7 +236,15 @@ async function libraryExtraRows_() {
     try {
       const early = (window.BOOT_LIB_EXTRA || {})[name] || null;
       if (window.BOOT_LIB_EXTRA) window.BOOT_LIB_EXTRA[name] = null;
-      const res = early ? await early : await fetch('data/' + name + '.json', { cache: 'default' });
+      /* ---------- WITH THE DEPLOY'S STAMP, AS THE BOXERS ALREADY WERE --------------------------------
+         `sw.js` SERVES AN EXACT URL STRAIGHT OUT OF ITS STORE, with no network at all — that is its
+         warm visit, and it is safe only because every URL it holds carries `?t=` + the deploy. These
+         did not: `data/textbooks.json` and every `data/settings/` file were bare, so a device that had
+         the worker kept the first copy it ever fetched, for good. A chapter rewritten, a splash retired
+         in the sheet, a facet renamed — none of it reached a phone that had opened the site before.
+         `index.html`'s early fetch of the boxers stamps them; this is the same stamp for the rest. */
+      const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+      const res = early ? await early : await fetch('data/' + name + '.json' + stamp, { cache: 'default' });
       if (res && res.ok) rows = await res.json();
     } catch (e) { rows = null; }
     out[name] = Array.isArray(rows) ? rows : [];
