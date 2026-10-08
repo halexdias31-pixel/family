@@ -5731,11 +5731,18 @@ function qPartBits_(part) {
   return m ? { letter: m[1], roman: m[2] } : null;
 }
 
-/* The name on a card: Q1.1 · Q5b · Q5a(i) */
+/* The name on a card: Q1.1 · Q5b · Q5a(i) · Q1.3(i)
+
+   A NUMBERED PART WITH NUMERALS UNDER IT — AQA's 01.3(i), which the library spells `3i` once a card
+   asking two things became two cards (8 Oct, "one card, one answer"). Without this line it fell
+   through to the bare spelling and the card read "Q13i": question thirteen, part i. */
+const NUM_ROMAN = /^(\d+)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i;
 function qPartName_(part) {
   const s = String(part == null ? '' : part).trim();
   if (!s) return '';
   if (/^\d+$/.test(s)) return '.' + s;
+  const n = NUM_ROMAN.exec(s);
+  if (n) return '.' + n[1] + '(' + n[2].toLowerCase() + ')';
   const b = qPartBits_(s);
   return b ? b.letter + '(' + b.roman + ')' : s;
 }
@@ -5794,6 +5801,9 @@ function partKeyOf_(part, numerals) {
   if (!s) return '';
   if (/^\d+$/.test(s)) return padNums_(s);
   if (numerals && ROMAN_ONLY.test(s)) return padNums_(String(romanVal_(s)));
+  /* `3ix` after `3v`, by value — as letters "ix" sorts first. */
+  const n = NUM_ROMAN.exec(s);
+  if (n) return padNums_(n[1]) + padNums_(String(romanVal_(n[2].toLowerCase())));
   const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
   if (m) return m[1] + (m[2] ? padNums_(String(romanVal_(m[2]))) : '');
   return padNums_(s);
