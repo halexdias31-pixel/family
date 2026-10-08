@@ -1435,7 +1435,12 @@ const STATES = {
        and `load()` repaints again about fifteen seconds later; each replaces the box being typed in. Here,
        in Chromium -- which fires `focusout` for the removed box, where the iPad fires nothing (check-flow
        holds that half): 7, `repaint()`, a beat for the focus to land, then 5. Wanted: the pad still up,
-       on a box that is in the page, holding 7 before the 5 and 75 after it. */
+       on a box that is in the page, holding 7 before the 5 and 75 after it.
+       TWO LAYERS SINCE 8 OCT, and this asks both. `findKeep_` (js/answers.js) holds a repaint of Find
+       back while a box is focused or the pad is up, so `repaint()` must leave the SAME box in place; and
+       a redraw that comes anyway -- `paintStuff(true)`, which no keep stands in front of -- must still
+       land the pad on the new box. Merged, the state's old `repaint()` met the first layer and never
+       reached the second: "shows no ... the pad still up on the new box" at every width. */
     { name: 'a repaint with the keypad up',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
@@ -1458,9 +1463,11 @@ const STATES = {
           if (KP_AT !== inp) kpOpen_(inp);
           key('7').click();
           repaint();
+          const held = live() === inp && document.activeElement === inp;
+          paintStuff(true);
           setTimeout(() => {
             const now = live();
-            const mid = { up: !document.getElementById('kp').hidden, conn: !!KP_AT && KP_AT.isConnected,
+            const mid = { up: !document.getElementById('kp').hidden, conn: !!KP_AT && KP_AT.isConnected, held: held,
                           same: !!now && now !== inp && document.activeElement === now, val: now && now.value };
             key('5').click();
             const end = live();
@@ -1471,9 +1478,9 @@ const STATES = {
       },
       expect: () => {
         const r = window.__rp;
-        return !!r && r.mid.up && r.mid.conn && r.mid.same && r.mid.val === '7' && r.up && r.val === '75';
+        return !!r && r.mid.held && r.mid.up && r.mid.conn && r.mid.same && r.mid.val === '7' && r.up && r.val === '75';
       },
-      wants: 'Q0664 with 7 typed, the column repainted, and the pad still up on the new box holding 7 -- then 5 makes 75',
+      wants: 'Q0664 with 7 typed: a repaint held back (the same box), then a forced redraw with the pad still up on the new box holding 7 -- then 5 makes 75',
       leave: () => {
         try { localStorage.removeItem(window.__rpK); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
