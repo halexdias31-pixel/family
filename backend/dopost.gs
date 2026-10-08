@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-07-b-merged";
+const DOPOST_VERSION = "2026-10-08-a-everyday";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4836,6 +4836,9 @@ function attemptsUpsert_(pid, items) {
   const t = read(TAB.attempts);
   if (!t.sheet) return { error: 'The sheet has no attempts tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
   const hasLabel = t.headers.indexOf('label') !== -1;
+  /* `words` THE SAME WAY, for the same reason: a live tab from before the column must not turn every
+     `markDone` into an error, so it is written only where the column is (SCHEMA.attempts). */
+  const hasWords = t.headers.indexOf('words') !== -1;
   const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
   const tomorrow = Utilities.formatDate(new Date(Date.now() + 864e5), 'Europe/London', 'yyyy-MM-dd');
   const out = {};
@@ -4851,11 +4854,16 @@ function attemptsUpsert_(pid, items) {
        unmoved, `autoMigrate` not yet run) every `markDone` came back an error, labelled or not, while
        the rows were in fact written. The name is the weekly email's nicety; the day is the record. */
     const label = hasLabel ? attemptLabel_(it && it.label) : '';
+    const words = hasWords ? attemptWords_(it && it.words) : '';
     const row = t.rows.find(r => key(r.person_id) === key(pid) && S(r.question_key) === q);
+    /* THE REPLY SAYS WHETHER THE ROW NOW HAS A NAME AND WORDS, which `attemptsFor_` says on every load.
+       Without it the phone adopted a reply with no `named` on it, still saw every row it had just named
+       as unnamed, and — with more than fifty — sent the same fifty again, for ever. */
+    const flags = (l, w) => Object.assign({}, l ? { named: 1 } : {}, w ? { worded: 1 } : {});
     if (!row) {
       addRow(t, Object.assign({ person_id: pid, question_key: q, first_done: day, last_done: day, times: 1 },
-                              label ? { label: label } : {}));
-      out[q] = { first: day, last: day, times: 1 };
+                              label ? { label: label } : {}, words ? { words: words } : {}));
+      out[q] = Object.assign({ first: day, last: day, times: 1 }, flags(label, words));
       return;
     }
     const first = isoDate_(row.first_done), last = isoDate_(row.last_done);
@@ -4869,8 +4877,11 @@ function attemptsUpsert_(pid, items) {
        (the backlog did not, until `attemptsSync_` was mended) are named the next time their learner
        loads the site, which is what the after-session email needs to list them. */
     if (label && !S(row.label)) v.label = label;
+    /* AND THE QUESTION'S WORDS BY THE SAME RULE: a blank cell is filled, a written one is never changed. */
+    if (words && !S(row.words)) v.words = words;
     if (Object.keys(v).length) setCells(t, row, v);
-    out[q] = { first: v.first_done || first, last: v.last_done || last, times: N(v.times || row.times) || 1 };
+    out[q] = Object.assign({ first: v.first_done || first, last: v.last_done || last, times: N(v.times || row.times) || 1 },
+                           flags(v.label || S(row.label), v.words || S(row.words)));
   });
   return { attempts: out };
 }
@@ -4897,6 +4908,20 @@ function slotCell_(t, codes) {
 function attemptLabel_(v) {
   return S(v).replace(/<[^>]*>?/g, ' ').replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim()
     .slice(0, ATTEMPT_LABEL_MAX).trim();
+}
+
+/* A QUESTION'S WORDS AS A PARENT WILL READ THEM, FROM WHATEVER THE PHONE SENT. NOT `attemptLabel_`:
+   its `<[^>]*>?` reads the inequality in "Solve x > 3 and x < 7" as a tag and keeps "Solve x 3 and x",
+   and 125 questions in the library have a bare `<` or `>`. So only a REAL tag comes out — a letter or a
+   slash after the `<` — line breaks are kept (the stem and the ask are separate lines), runs of spaces
+   become one, and `ATTEMPT_WORDS_MAX` at most. `cellSafe_` deals with a leading `=` when it is written. */
+function attemptWords_(v) {
+  /* CUT FIRST, AND A TAG IS `<…>` WITH NO `<` INSIDE IT. `[^>]*` after `<a` re-scanned the rest of the
+     string for every `<a` with no `>` after it — measured at 18 s for 160 KB of them, under the script
+     lock that every other `markDone` waits on. */
+  return S(v).slice(0, ATTEMPT_WORDS_MAX * 4).replace(/\r\n?/g, '\n').replace(/<\/?[a-z][^<>]*>/gi, ' ')
+    .replace(/[ \t\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+    .slice(0, ATTEMPT_WORDS_MAX).trim();
 }
 
 /* EVERY ADMIN'S PERSON ID — the other payload a done question appears in (`attemptsFor_`). */

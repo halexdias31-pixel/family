@@ -164,19 +164,30 @@ function recapDelayNow_() {
   return /^\d{1,2}$/.test(v) && Number(v) <= 12 ? Number(v) : 2;
 }
 const recapAfter_ = h => (h === 0 ? 'Within the hour after' : 'About ' + h + ' hour' + (h === 1 ? '' : 's') + ' after');
+/* AND THE HOUR, THE NEXT MORNING, A DAY OF HOMEWORK WITH NO SESSION GOES — `session_recap_morning`, read
+   the server's way: whole hours 0 to 9, anything else 7. Said as a clock, "7am". */
+function recapMorningNow_() {
+  const vars = (DATA && DATA.constants && DATA.constants.vars) || {};
+  const raw = RECAP.got && RECAP.got.morning != null ? RECAP.got.morning : vars.session_recap_morning;
+  const v = String(raw == null ? '' : raw).trim();
+  return /^\d{1,2}$/.test(v) && Number(v) <= 9 ? Number(v) : 7;
+}
+const recapClockSay_ = h => (h === 0 ? 'midnight' : h === 12 ? 'noon' : (h % 12) + (h < 12 ? 'am' : 'pm'));
 /* THE CONFIG TAB'S OWN WORDS FOR EACH MODE, as `DIGEST_SAY` is for Sundays. */
 const RECAP_SAY = {
   off: 'Nothing is sent and nothing is written.',
-  preview: 'After each session, what would be sent is written to the recap_log tab. Nobody is emailed.',
-  send: 'After each session, parents are emailed.',
+  preview: 'Each day’s email is written to the recap_log tab when it falls due. Nobody is emailed.',
+  send: 'Parents are emailed: after each session, and the next morning for any other day of work.',
 };
 
 function recapCard_() {
   const mode = recapModeNow_();
   return `<div class="card recap">
-    <h3 class="recap-mode">Email after each session: <b>${esc(digestWord_(mode))}</b></h3>
+    <h3 class="recap-mode">Daily email to parents: <b>${esc(digestWord_(mode))}</b></h3>
     <p class="sub"><span class="recap-when">${esc(recapAfter_(recapDelayNow_()))}</span> a child’s last booked session
-      of the day, each parent who has accepted a link to them gets the questions that child worked on that day.</p>
+      of the day — or at <span class="recap-morning">${esc(recapClockSay_(recapMorningNow_()))}</span> the next morning,
+      on a day of homework with no session — each parent who has accepted a link to them gets every question that
+      child worked on that day, each with its own words.</p>
     <p class="faint"><span class="recap-why">${esc(RECAP_SAY[mode])}</span> Switched on the config tab
       (<code>session_recap</code>); the hourly check is booked from the Apps Script editor
       (<code>installSessionRecap</code>).</p>
@@ -228,6 +239,9 @@ function recapSheet_(d) {
   const warn = [];
   if (d.warning) warn.push(d.warning);
   if (d.scheduled === 0) warn.push('No hourly check is booked yet — run installSessionRecap once in the Apps Script editor.');
+  /* A BACKEND FROM BEFORE THE DAILY EMAIL answers without `morning`: it emails after sessions only, and
+     lists question numbers without their words. Said first, so the preview is not read as the new one. */
+  if (d.morning == null) warn.unshift('The live backend emails after sessions only, without the questions’ words — sync backend/ into Apps Script and make a new version.');
   const booked = d.scheduled == null ? '' : d.scheduled ? ' · checked every hour · booked' : ' · not booked';
   const any = days.some(x => (x.emails || []).length);
   /* `.recap-sheet` SCOPES THE HEADINGS (style.css): a day outranks the emails under it. */
@@ -235,13 +249,14 @@ function recapSheet_(d) {
     <p class="faint">${esc(digestWord_(mode) + booked + '. ' + (any ? RECAP_WILL[mode] + ' ' : ''))}This preview sent nothing.</p>
     ${days.length ? days.map(x => `<h2>${esc(x.label || x.day || '')}</h2>
       ${(x.sessions || []).map(s => `<p>${esc(recapSessionSay_(s, mode))}</p>`).join('')}
-      ${(x.emails || []).map(m => `<h3>To ${esc(m.parent || '')} · ${esc(m.to || '')} — ${esc(recapEmailSay_(m, mode))}</h3>
+      ${(x.emails || []).map(m => `<h3>To ${esc(m.parent || '')} · ${esc(m.to || '')} — ${esc(recapEmailSay_(m, mode))}${
+        m.dueSaid ? ` <span class="faint">· goes ${esc(m.dueSaid)}</span>` : ''}</h3>
         <p><b>${esc(m.subject || '')}</b></p>
         ${digestBody_(m.text)}`).join('')}
       ${(x.nobody || []).length ? `<h3>Nobody to tell</h3>
         ${x.nobody.map(u => `<p>${esc(u.name || '')} — ${esc(u.why || '')}${u.status && u.status !== '—'
           ? ` <span class="faint">(${esc(u.status)})</span>` : ''}</p>`).join('')}` : ''}`).join('')
-      : '<p>No booked session in the last 7 days. The email follows sessions booked on the site — one that is not booked here sends nothing.</p>'}</div>`;
+      : '<p>No booked session and no question done in the last 7 days. A question counts when it is marked while signed in as the child.</p>'}</div>`;
 }
 
 on('recap-preview', el => {
@@ -250,7 +265,7 @@ on('recap-preview', el => {
   const said = card && card.querySelector('.recap-said');
   /* A BACKEND FROM BEFORE recap.gs says so here, rather than "not recognised" from the server. */
   if (!(DATA && Array.isArray(DATA.features) && DATA.features.indexOf('recapPreview') !== -1)) {
-    if (said) said.textContent = 'The live backend does not have the email after sessions yet — sync backend/ into Apps Script.';
+    if (said) said.textContent = 'The live backend does not have the daily email yet — sync backend/ into Apps Script.';
     return;
   }
   send_({ action: 'recapPreview', name: USER && USER.name, personId: USER && USER.personId },
@@ -265,8 +280,10 @@ on('recap-preview', el => {
       if (why) why.textContent = RECAP_SAY[mode];
       const when = card && card.querySelector('.recap-when');
       if (when) when.textContent = recapAfter_(recapDelayNow_());
+      const morn = card && card.querySelector('.recap-morning');
+      if (morn) morn.textContent = recapClockSay_(recapMorningNow_());
       if (said) said.textContent = '';
-      openSheet('Email after each session', recapSheet_(d));
+      openSheet('Daily email to parents', recapSheet_(d));
     })
     .catch(() => {});
 });

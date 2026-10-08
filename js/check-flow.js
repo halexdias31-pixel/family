@@ -8747,6 +8747,298 @@ check('the load names what it sends, and names a row the sheet holds without a n
   return bad;
 });
 
+/* ==================================================================================================
+   AND ITS WORDS, FOR THE DAILY EMAIL TO PARENTS. ASKED FOR AS *"emails all parents on work their child
+   has done with the exact questions for each"*. The backend cannot look a key up, so the phone sends
+   what it draws (`doneWords_`) with the mark, the way it sends the name, and the email prints it.
+
+   ASKED OF THE LIBRARY'S OWN BUILDER — `questionItems`, over rows shaped as the payload carries them —
+   and the real `doneMark_`, because every way this goes wrong is quiet and is a parent told a
+   different question: a part sent without the scene it hangs from is "work out the probability of
+   red" with no bag in it; a fraction flattened is 3/4 read as 34; a power flattened is x² read as x2.
+   The library's two stored fractions are both here — `<sup>3</sup>&frasl;<sub>4</sub>` and the stacked
+   `.frac` span, which came out "13 × 58" for a third times five eighths until this asked — and so is an
+   italic index, which came out "2x" for 2 to the x. A paper's cover is not the question; a drawing's
+   labels are not its words; a picture the email cannot draw is said; a practical's worksheet box
+   sends nothing, because its name already says which sheet.
+================================================================================================== */
+const WD_SVG = '<svg viewBox="0 0 10 10"><text x="1" y="5">LABELWORD</text></svg>';
+const wdBank_ = () => [
+  /* THE PAPER'S COVER — paper scope. Every question in the paper sits under it, and it is not one. */
+  { id: 'S-WD-P', paper: 'P-WD', paper_id: 'P-WD', kind: 'preamble', name: 'Words', html: '<p>Answer ALL questions. COVERWORD.</p>' },
+  /* THE SCENE Q5's PARTS SHARE — question scope. */
+  { id: 'S-WD-5', paper: 'P-WD', paper_id: 'P-WD', q: '5', kind: 'preamble', name: 'Words', html: '<p>A bag holds 3 red and 5 blue counters.</p>' },
+  mpRow_('P-WD', 'Words', 5, 'a', { html: '<p>Work out the probability of red.</p>', accept: '3/8' }),
+  mpRow_('P-WD', 'Words', 5, 'b', { html: '<p>Two are taken. Work out the probability both are blue.</p>' }),
+  mpRow_('P-WD', 'Words', 6, '', { html: '<p>Work out <sup>3</sup>&frasl;<sub>4</sub> of 20.</p>' }),
+  mpRow_('P-WD', 'Words', 7, '', { html: '<p>Expand x<sup>2</sup>(x + y<sup>5</sup>).</p>' }),
+  mpRow_('P-WD', 'Words', 8, '', { html: '<p>Find the angle marked <i>x</i>.</p>', diagram: WD_SVG }),
+  mpRow_('P-WD', 'Words', 9, '', { html: '<p>Work out <span class="frac"><span class="frac-n">1</span><span class="frac-d">3</span></span> &times; <span class="frac"><span class="frac-n">5</span><span class="frac-d">8</span></span>.</p>' }),
+  mpRow_('P-WD', 'Words', 10, '', { html: '<p>Solve 2<sup><i>x</i></sup> = 8. Simplify <sup>72</sup>&frasl;<sub><i>n</i></sub>, <sup><i>t</i></sup>&frasl;<sub>2</sub> and <sup>7.902 &minus; 8</sup>&frasl;<sub><i>x</i></sub>.</p>' }),
+  mpRow_('P-WD', 'Words', 11, '', { html: '<p>Is <i>x</i> &lt; 7 when ' + WD_SVG + '<i>x</i> = 3?</p>' }),
+];
+const WD_ADA = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' };
+check('a Check sends the question’s own words: its stem above the part, a fraction as 3/4, a power as x², a picture said, a worksheet box none', async () => {
+  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: {}, keepsWords: 1 } });
+  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true }) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, ansKey = w.__t.ansKey;
+  const need = ['questionItems', 'doneMark_', 'questionCard_', 'questionTiles_'].filter(n => typeof w[n] !== 'function')
+    .concat(A['qp-check'] ? [] : ['qp-check']).concat(typeof ansKey === 'function' ? [] : ['ansKey_']);
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The words a Check sends were NOT checked'];
+  const bad = [];
+  const lib = mpLibrary_(w, wdBank_());
+  const item = n => lib.items.find(x => x.row.paper === 'P-WD' && x.name === n);
+  const marks = () => sent.filter(b => b.action === 'markDone');
+  const sentFor = key => { let got = null; marks().forEach(b => (b.items || []).forEach(i => { if (i.key === key) got = i; })); return got; };
+  try {
+    w.__t.USER(WD_ADA);
+    /* THE FIRST THROUGH A REAL CARD AND A REAL CHECK, as a child marks it. */
+    const q5a = item('Q5a');
+    if (!q5a) return ['Q5a did not reach the library — the words were NOT checked'];
+    const h = d.createElement('div');
+    h.innerHTML = w.questionCard_(q5a, 0) + '<div class="tile-row">' + w.questionTiles_(q5a) + '</div>';
+    d.body.appendChild(h);
+    const card = h.querySelector('.qcard');
+    const box = card && card.querySelector('.qp-ans-in'), btn = card && card.querySelector('.qp-check');
+    if (!box || !btn) bad.push('Q5a was drawn with no answer box or no Check — the Check was NOT pressed');
+    else { box.value = '3/8'; A['qp-check'](btn); }
+    /* THE REST AS EVERY OTHER MARK GOES — the first keystroke, Check or tap of the day calls this. */
+    ['Q5b', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11'].forEach(n => { const x = item(n); if (x) w.doneMark_(ansKey(x)); else bad.push(n + ' did not reach the library'); });
+    await wait(40);
+    const want = {
+      Q5a: 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.',
+      Q5b: 'A bag holds 3 red and 5 blue counters.\n---\nTwo are taken. Work out the probability both are blue.',
+      Q6: 'Work out 3/4 of 20.',
+      Q7: 'Expand x²(x + y^5).',
+      Q8: 'Find the angle marked x. (picture on the site)',
+      Q9: 'Work out 1/3 × 5/8.',
+      Q10: 'Solve 2^x = 8. Simplify 72/n, t/2 and (7.902 − 8)/x.',
+      Q11: 'Is x < 7 when x = 3?',
+    };
+    const why = {
+      Q5a: 'a part under a stem, through a real Check: the scene, a `---` line, then the ask',
+      Q5b: 'the second part of the same question: the same stem, so the email can print it once',
+      Q6: 'a stored fraction: 3/4, not the 34 that stripping the tags leaves',
+      Q7: 'a square and an index: x² and y^5, not x2 and y5',
+      Q8: 'a question with a diagram: its words, then "(picture on the site)", and none of the drawing’s labels',
+      Q9: 'the stacked `.frac` span the library also stores: 1/3 × 5/8, not 13 × 58',
+      Q10: 'an italic index and fractions with an italic half: 2^x, not 2x; 72/n, not ^72⁄n; t/2, not ^t/2; a two-term numerator bracketed',
+      Q11: 'a less-than kept, and a drawing inside the sentence dropped',
+    };
+    Object.keys(want).forEach(n => {
+      const x = item(n), got = x && sentFor(x.key);
+      if (!got) bad.push(n + ' — ' + why[n] + ' — sent no markDone at all');
+      else if (got.words !== want[n]) bad.push(n + ' — ' + why[n] + ' — sent words ' + JSON.stringify(got.words) + ', wanted ' + JSON.stringify(want[n]));
+    });
+    const all = JSON.stringify(marks());
+    if (/COVERWORD/.test(all)) bad.push('the paper’s cover went up as part of a question’s words — it is the paper’s, not the question’s');
+    if (/LABELWORD/.test(all)) bad.push('a drawing’s labels went up as a question’s words');
+    /* AND STILL ITS NAME, BESIDE THE WORDS — the heading the email lists it under. */
+    const named = sentFor(q5a.key);
+    if (named && !/Q5a/.test(String(named.label || ''))) bad.push('the words went up without the name: ' + JSON.stringify(named));
+    /* A PRACTICAL'S WORKSHEET BOX: the name says which sheet, and the card's method is not "the question". */
+    const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'Physics · Required practical · 60 min',
+                 html: '<p>PRACTICALWORD: heat the block for ten minutes.</p>', lead: '<p>PRACTICALWORD</p>' };
+    const heldAll = w.stuffItemsAll_;
+    const n4 = marks().length;
+    w.stuffItemsAll_ = () => lib.items.concat([pr]);
+    try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldAll; }
+    await wait(30);
+    const box4 = ((marks().slice(n4)[0] || {}).items || [])[0];
+    if (!box4) bad.push('a practical’s worksheet box sent no markDone at all');
+    else if ('words' in box4) bad.push('a practical’s worksheet box sent words: ' + JSON.stringify(box4.words) + ' — its name already says which worksheet');
+  } finally { lib.put(); w.__t.USER(null); }
+  return bad;
+});
+
+/* ---------- AND A ROW THE SHEET HOLDS WITHOUT ITS WORDS IS SENT THEM — ONLY TO A BACKEND THAT KEEPS THEM --
+   Rows marked before the phone sent words have none, and their parent's email would list numbers. So
+   the load sends a row its words the way it sends a name (`attemptsSync_`): for a row the payload says
+   has none (no `worded`), with the row's own last day, which the backend counts as covered. NOT to a
+   backend without `attemptWords` in its features — it has no column for them, and every visit would
+   send every row again for nothing — and NOT for a row that already has them, which is every visit
+   sending every row. The backlog the phone kept goes up with its words as well as its name. */
+check('the load sends a row its words only to a backend that keeps them, and only for a row the sheet holds without', async () => {
+  const mine = () => ({
+    /* NAMED, NOT WORDED: its words alone. */
+    'q:Q-P-WD-5a': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1 },
+    /* NAMED AND WORDED: nothing. */
+    'q:Q-P-WD-5b': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1, worded: 1 },
+    /* NEITHER: both. */
+    'q:Q-P-WD-6': { first: '2026-10-04', last: '2026-10-04', times: 1 },
+  });
+  /* `keeps` IS THE TAB'S OWN WORD (`keepsWords` from `attemptsFor_`): the code can keep words only once
+     the column is there, and a backend synced before `ensureSchema` says the first and not the second. */
+  const run = async (features, keeps) => {
+    const p = Object.assign(payload(), { features: features, attempts: Object.assign({ for: 'P7', mine: mine() }, keeps === false ? {} : { keepsWords: 1 }) });
+    const { w, sent } = boot({ payload: p, reply: b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true }),
+      /* AND THE BACKLOG: a day this phone kept that the sheet lacks. */
+      before: win => { win.localStorage.setItem('done:u:P7:q:Q-P-WD-7', '2026-10-06'); } });
+    await wait(300);
+    if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return null;
+    const lib = mpLibrary_(w, wdBank_());
+    try {
+      w.__t.USER(WD_ADA);
+      w.adoptMarks_();
+      await wait(40);
+    } finally { lib.put(); w.__t.USER(null); }
+    const m = sent.filter(b => b.action === 'markDone');
+    const by = {};
+    m.forEach(b => (b.items || []).forEach(i => { by[i.key] = i; }));
+    return { n: m.length, by: by };
+  };
+  const bad = [];
+  const STEM = 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.';
+  /* A BACKEND WITHOUT `attemptWords`: the names go, as before, and no words at all. */
+  const off = await run(['markDone']);
+  if (!off) return ['adoptMarks_ or questionItems is not reachable — renamed? The backfill was NOT checked'];
+  if (off.n !== 1) bad.push('without attemptWords the load sent ' + off.n + ' markDone request(s), wanted 1 (the unnamed row and the backlog)');
+  Object.keys(off.by).forEach(k => { if ('words' in off.by[k]) bad.push('a backend without attemptWords was sent words for ' + k + ': ' + JSON.stringify(off.by[k].words) + ' — it has no column, and every visit would send them again'); });
+  if (off.by['q:Q-P-WD-5a']) bad.push('without attemptWords a named row was sent anyway: ' + JSON.stringify(off.by['q:Q-P-WD-5a']) + ' — there is nothing it lacks that this backend keeps');
+  if (!off.by['q:Q-P-WD-6'] || !/Q6/.test(String(off.by['q:Q-P-WD-6'].label || ''))) bad.push('without attemptWords the unnamed row did not go up with its name: ' + JSON.stringify(off.by['q:Q-P-WD-6']));
+  if (!off.by['q:Q-P-WD-7']) bad.push('without attemptWords the backlog did not go up');
+  /* A BACKEND THAT KEEPS THEM. */
+  /* THE CODE SAYS YES AND THE TAB HAS NO COLUMN: no words — every visit would send every row for nothing. */
+  const noCol = await run(['markDone', 'attemptWords'], false);
+  if (!noCol) bad.push('the load could not be run without the words column, so that case was NOT checked');
+  else Object.keys(noCol.by).forEach(k => { if ('words' in noCol.by[k]) bad.push('a tab without the words column was sent words for ' + k + ' — attemptsFor_ said it has no column'); });
+  const on = await run(['markDone', 'attemptWords']);
+  if (on.n !== 1) bad.push('with attemptWords the load sent ' + on.n + ' markDone request(s), wanted 1');
+  const a = on.by['q:Q-P-WD-5a'];
+  if (!a) bad.push('a row the sheet names but holds without words (Q5a) was not sent its words');
+  else {
+    if (a.words !== STEM) bad.push('Q5a was sent words ' + JSON.stringify(a.words) + ' — wanted ' + JSON.stringify(STEM));
+    if (a.day !== '2026-10-05') bad.push('Q5a was sent day ' + a.day + ' — wanted its own last day, 2026-10-05, so the backend counts nothing');
+    if ('label' in a) bad.push('Q5a, already named on the sheet, was sent its name again: ' + JSON.stringify(a.label));
+  }
+  if (on.by['q:Q-P-WD-5b']) bad.push('a row the sheet already holds with its name and words (Q5b) was sent again — every visit would send it: ' + JSON.stringify(on.by['q:Q-P-WD-5b']));
+  const six = on.by['q:Q-P-WD-6'];
+  if (!six || six.words !== 'Work out 3/4 of 20.' || !/Q6/.test(String(six.label || '')) || six.day !== '2026-10-04') bad.push('a row with neither (Q6) went up as ' + JSON.stringify(six) + ' — wanted its name, its words and its own day');
+  const seven = on.by['q:Q-P-WD-7'];
+  if (!seven || seven.words !== 'Expand x²(x + y^5).' || seven.day !== '2026-10-06') bad.push('the backlog (Q7) went up as ' + JSON.stringify(seven) + ' — wanted its words and the day the phone kept');
+  return bad;
+});
+
+/* ---------- SIXTY ROWS TO NAME GO UP IN TWO REQUESTS, AND STOP ------------------------------------------
+   MEASURED BEFORE THE FIX: a learner with more than fifty rows to name had the first fifty sent; the
+   reply — from a backend that did not say `named` — was adopted, the next pass found the same fifty
+   still unnamed and sent them again, and again, for as long as the page was open. Every visit, a
+   request a second to the Apps Script quota until it refused. `ATTEMPTS_SENT` now sends a key once a
+   visit whatever the reply says, so sixty rows are fifty and then ten and then nothing.
+
+   THE REPLY IS THE OLD BACKEND'S: every row and its days, and no flag. After the sixth request every
+   reply is a refusal, which ends `attemptsSync_` — so if the loop comes back it is counted here and
+   ended, not left spinning through the rest of the suite. */
+check('sixty unnamed rows go up in two requests, fifty then ten, and stop — a reply with no flags does not send them again', async () => {
+  const rows = [], mine = {};
+  for (let i = 1; i <= 60; i++) {
+    rows.push(mpRow_('P-WL', 'Loop', i, '', { html: '<p>Loop question ' + i + '.</p>' }));
+    mine['q:Q-P-WL-' + i] = { first: '2026-10-05', last: '2026-10-05', times: 1 };
+  }
+  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: mine, keepsWords: 1 } });
+  let asked = 0;
+  const reply = b => {
+    if (b.action !== 'markDone') return { success: true };
+    if (++asked > 6) return { success: false, error: 'stopped by the test' };
+    return { success: true, attempts: (b.items || []).reduce((o, it) => { o[it.key] = { first: '2026-10-05', last: it.day, times: 1 }; return o; }, {}) };
+  };
+  const { w, sent } = boot({ payload: p, reply });
+  await wait(300);
+  if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return ['adoptMarks_ or questionItems is not reachable — renamed? The loop was NOT checked'];
+  const lib = mpLibrary_(w, rows);
+  try {
+    w.__t.USER(WD_ADA);
+    w.adoptMarks_();
+    await wait(200);
+  } finally { lib.put(); }
+  const bad = [];
+  const m = sent.filter(b => b.action === 'markDone');
+  const sizes = m.map(b => (b.items || []).length);
+  if (JSON.stringify(sizes) !== '[50,10]') bad.push('sixty unnamed rows went up as ' + m.length + ' request(s) of ' + JSON.stringify(sizes.slice(0, 8)) + (sizes.length > 8 ? '…' : '') + ' — wanted two, [50,10], and then nothing');
+  const keys = new Set();
+  m.forEach(b => (b.items || []).forEach(i => keys.add(i.key)));
+  if (keys.size !== 60) bad.push(keys.size + ' different rows were sent — wanted all 60, each once');
+  const first = (m[0] && m[0].items && m[0].items[0]) || {};
+  if (!/Q1/.test(String(first.label || '')) || first.words !== 'Loop question 1.') bad.push('the first row went up as ' + JSON.stringify(first) + ' — wanted its name and its words');
+  /* AND A SECOND PAYLOAD IN THE SAME VISIT SENDS NOTHING MORE. */
+  const n = m.length;
+  w.adoptMarks_();
+  await wait(60);
+  if (sent.filter(b => b.action === 'markDone').length !== n) bad.push('a second payload in the same visit sent the rows again');
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- AND A REFUSED SEND IS SENT AGAIN BY THE NEXT PAYLOAD ------------------------------------------
+   `ATTEMPTS_SENT` REMEMBERS WHAT WENT UP, NOT WHAT WAS TRIED. `attemptsSync_` has always promised that a
+   failure — no connection, a "Busy", an old backend's refusal — clears the mark so the next load tries
+   again; a key marked sent before the reply came back, and left marked when it failed, is a backlog
+   that waits for the next visit instead of the next payload, which on a phone that opened offline is
+   the fresh payload a second later. */
+check('a markDone the backend refused is sent again by the next payload in the same visit', async () => {
+  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: {
+    'q:Q-P-WD-6': { first: '2026-10-04', last: '2026-10-04', times: 1 } }, keepsWords: 1 } });
+  let n = 0;
+  const reply = b => (b.action !== 'markDone' ? { success: true }
+    : ++n === 1 ? { success: false, error: 'Busy — try again in a moment' } : { success: true, attempts: {} });
+  const { w, sent } = boot({ payload: p, reply,
+    before: win => { win.localStorage.setItem('done:u:P7:q:Q-P-WD-7', '2026-10-06'); } });
+  await wait(300);
+  if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return ['adoptMarks_ or questionItems is not reachable — renamed? The retry was NOT checked'];
+  const lib = mpLibrary_(w, wdBank_());
+  const bad = [];
+  const keys = b => (b.items || []).map(i => i.key).sort().join(', ');
+  try {
+    w.__t.USER(WD_ADA);
+    w.adoptMarks_();
+    await wait(40);
+    /* THE NEXT PAYLOAD, as the fresh one lands after the stored one. */
+    w.adoptMarks_();
+    await wait(40);
+  } finally { lib.put(); w.__t.USER(null); }
+  const m = sent.filter(b => b.action === 'markDone');
+  if (m.length !== 2) bad.push('after a refused send the next payload made ' + (m.length - 1) + ' more markDone request(s) — wanted 1, the same rows again');
+  else if (keys(m[1]) !== keys(m[0]) || keys(m[0]) !== 'q:Q-P-WD-6, q:Q-P-WD-7') bad.push('the retry sent ' + keys(m[1]) + ' after a refusal of ' + keys(m[0]) + ' — wanted the same two rows, q:Q-P-WD-6 and q:Q-P-WD-7');
+  return bad;
+});
+
+/* ---------- A REPLY WITHOUT THE FLAGS KEEPS THE ONES THE LOAD SAID ------------------------------------------
+   `attemptsAdopt_` puts what a `markDone` reply says over what the load said. A backend that does not
+   send `named` and `worded` must not wipe them: a row the load said is named and worded would read as
+   neither the moment any reply mentioned it, and the next sync would send it again. A reply that DOES
+   carry them is taken, and the days are always the reply's. */
+check('a markDone reply without named or worded keeps the flags the load said, and takes the reply’s days', async () => {
+  const p = Object.assign(payload(), { features: ['markDone'], attempts: { for: 'P7', mine: {
+    'q-flag-both': { first: '2026-10-01', last: '2026-10-01', times: 1, named: 1, worded: 1 },
+    'q-flag-name': { first: '2026-10-01', last: '2026-10-01', times: 1, named: 1 },
+    'q-flag-none': { first: '2026-10-01', last: '2026-10-01', times: 1 },
+  } } });
+  const { w } = boot({ payload: p });
+  await wait(300);
+  if (typeof w.attemptsAdopt_ !== 'function') return ['attemptsAdopt_ is not reachable — renamed? The flags were NOT checked'];
+  const bad = [];
+  w.__t.USER(WD_ADA);
+  const day = { first: '2026-10-01', last: '2026-10-07', times: 2 };
+  w.attemptsAdopt_('P7', {
+    'q-flag-both': Object.assign({}, day),
+    'q-flag-name': Object.assign({}, day),
+    'q-flag-none': Object.assign({ worded: 1 }, day),
+    'q-flag-new': { first: '2026-10-07', last: '2026-10-07', times: 1 },
+  });
+  const a = (w.__t.DATA().attempts || {}).mine || {};
+  const flags = q => (a[q] && a[q].named ? 'named' : '-') + ' ' + (a[q] && a[q].worded ? 'worded' : '-');
+  [['q-flag-both', 'named worded', 'a named, worded row'], ['q-flag-name', 'named -', 'a named row'],
+   ['q-flag-none', '- worded', 'a row the reply says is now worded'], ['q-flag-new', '- -', 'a row new in the reply']].forEach(([q, want, what]) => {
+    if (flags(q) !== want) bad.push(what + ' (' + q + ') reads "' + flags(q) + '" after a reply — wanted "' + want + '"');
+  });
+  ['q-flag-both', 'q-flag-name', 'q-flag-none'].forEach(q => {
+    if (!a[q] || a[q].last !== '2026-10-07' || a[q].times !== 2) bad.push(q + ' kept ' + JSON.stringify(a[q]) + ' — the reply’s days must win');
+  });
+  w.__t.USER(null);
+  return bad;
+});
+
 /* ---------- THE WEEKLY PARENT EMAIL'S CARD -----------------------------------------------------------
    ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents —
    built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the
@@ -8816,19 +9108,32 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   return bad;
 });
 
-/* ---------- THE EMAIL AFTER EACH SESSION'S CARD ------------------------------------------------------
+/* ---------- THE DAILY EMAIL TO PARENTS' CARD -----------------------------------------------------------
    ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated email to
-   them of the questions they got done"* — backend/recap.gs, switched off. The card is the weekly one's
+   them of the questions they got done"* — backend/recap.gs, switched off — and then, 8 Oct, as *"emails
+   all parents on work their child has done with the exact questions for each"*: a day of homework with
+   no session is emailed too, the next morning at `session_recap_morning`. The card is the weekly one's
    twin and has to keep its contract: an admin's alone, the page right after the weekly card (so no
    index in front of it moves), the mode as the server reads `session_recap`, the delay as it reads
-   `session_recap_delay`, a tile row with no switch on it, and a Preview that posts exactly one
-   `recapPreview` — a read. The sheet prints what came off phones and sheets as text: a subject typed
-   into the jobs tab with markup in it is shown, not drawn. A missing `attempts` tab and an unbooked
-   hourly check are said before anything else, and a backend without the action is told to sync. And
-   the weekly sheet, given `attempts: false`, says why rather than "nobody has done a question". */
-check('the email after each session card is an admin\'s, follows the weekly card, says the switch and the delay, and Preview reads without sending', async () => {
+   `session_recap_delay`, the morning hour as it reads `session_recap_morning` — and, once a preview has
+   answered, the hour the SERVER said, which is the reading that is true — a tile row with no switch on
+   it, and a Preview that posts exactly one `recapPreview` — a read. The sheet prints what came off
+   phones and sheets as text: a subject typed into the jobs tab with markup in it is shown, not drawn,
+   and a day of homework is a day of its own with each question's words. A missing `attempts` tab and
+   an unbooked hourly check are said before anything else; a backend from before the daily email (its
+   reply has no `morning`) is told to sync rather than read as the new one; a backend without the
+   action is told to sync. And the weekly sheet, given `attempts: false`, says why rather than "nobody
+   has done a question". */
+check('the daily email to parents card is an admin\'s, follows the weekly card, says the switch, the delay and the morning hour, and Preview reads without sending', async () => {
   const empty = n => ({ day: '2026-10-0' + n, label: 'Day ' + n, sessions: [], emails: [], nobody: [] });
-  const preview = { success: true, mode: 'preview', delay: 2, scheduled: 0, attempts: false, logTab: true,
+  /* A DAY OF HOMEWORK, AS `recapRender_` WRITES IT: no session line, the day said in the lead, and each
+     question with its words — the stem its parts share once, above them. */
+  const workText = 'Hello Pat,\n\nOn Monday 5 October Ada worked on 3 questions, 2 of them for the first time.\n\n'
+    + 'Maths · Paper 1 (Calculator) — June 2024\nA bag holds 3 red and 5 blue counters.\nQ5a: Work out the probability of red.\n'
+    + 'Q5b (again): Two are taken. Work out the probability both are blue.\nQ6: Work out 3/4 of 20.\n\n'
+    + 'Ada can see them on the site: https://example.org/\n\n'
+    + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
+  const preview = { success: true, mode: 'preview', delay: 2, morning: 8, scheduled: 0, attempts: false, logTab: true,
     warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it.',
     from: '2026-09-30', to: '2026-10-06', at: '2026-10-06 20:30',
     days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
@@ -8841,38 +9146,47 @@ check('the email after each session card is an admin\'s, follows the weekly card
                         text: 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 2 questions.\n\nMaths · Paper 1\nQ3, Q7 (again)',
                         count: 2, due: '2026-10-06 20:00', dueSaid: '8pm', state: 'due', status: '—', at: '' }],
              nobody: [{ name: 'Cal Alone', why: 'no parent has accepted a link to them', status: 'not sent' }] },
+           { day: '2026-10-05', label: 'Mon 5 Oct', sessions: [],
+             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s work on Mon 5 Oct: 3 questions',
+                        text: workText, count: 3, due: '2026-10-06 08:00', dueSaid: '8am on Tue 6 Oct', state: 'due', status: '—', at: '' }],
+             nobody: [] },
+           empty(4), empty(3), empty(2),
            { day: '2026-10-01', label: 'Thu 1 Oct',
              sessions: [{ subject: 'Maths', time: '4pm–6pm', learners: ['Ada Pupil'], due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past' }],
              emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s session on Thu 1 Oct: 1 question',
                         text: 'Hello Pat,', count: 1, due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past', status: '—', at: '' }],
-             nobody: [] },
-           empty(5), empty(4), empty(3), empty(2)] };
+             nobody: [] }] };
+  /* THE SAME REPLY FROM A BACKEND BEFORE THE DAILY EMAIL: everything but `morning`. */
+  const old = Object.assign({}, preview);
+  delete old.morning;
+  let answer = preview;
   const p = payload();
   p.features = ['digestPreview', 'recapPreview'];
   p.constants.vars.session_recap = 'off';
-  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'recapPreview' ? preview : { success: true }) });
+  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'recapPreview' ? answer : { success: true }) });
   await wait(300);
   const t = w.__t, d = w.document;
   const bad = [];
   const card = () => d.querySelector('#s-settings .card.recap');
   const said = () => (card().querySelector('.recap-mode') || {}).textContent || '';
+  const morning = () => (card().querySelector('.recap-morning') || {}).textContent || '';
   t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
   try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
   await wait(200);
-  if (card()) bad.push('a parent is shown the email-after-each-session card — it is an admin’s');
+  if (card()) bad.push('a parent is shown the daily email to parents card — it is an admin’s');
   t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
   w.paint('settings');
   await wait(200);
-  if (!card()) return bad.concat(['an admin has no Email after each session card on the Settings column']);
+  if (!card()) return bad.concat(['an admin has no Daily email to parents card on the Settings column']);
   /* THE PAGE AFTER THE WEEKLY CARD, so every page in front of it keeps its index. */
   const pages = [...d.querySelectorAll('#s-settings .page')];
   const at = sel => pages.findIndex(pg => pg.querySelector(sel));
-  if (at('.card.recap') !== at('.card.digest') + 1 || at('.card.recap') !== pages.length - 1) bad.push('the session card is page ' + at('.card.recap') + ' of ' + pages.length + ', the weekly card page ' + at('.card.digest') + ' — wanted it last, right after the weekly one');
-  if (!/Email after each session:\s*Off/.test(said())) bad.push('with session_recap off the card reads "' + said() + '"');
+  if (at('.card.recap') !== at('.card.digest') + 1 || at('.card.recap') !== pages.length - 1) bad.push('the daily email card is page ' + at('.card.recap') + ' of ' + pages.length + ', the weekly card page ' + at('.card.digest') + ' — wanted it last, right after the weekly one');
+  if (!/Daily email to parents:\s*Off/.test(said())) bad.push('with session_recap off the card reads "' + said() + '"');
   [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
     t.DATA().constants.vars.session_recap = cell;
     w.paint('settings');
-    if (!new RegExp('Email after each session:\\s*' + word).test(said())) bad.push('session_recap "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
+    if (!new RegExp('Daily email to parents:\\s*' + word).test(said())) bad.push('session_recap "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
   });
   [['3', 'About 3 hours after'], ['1', 'About 1 hour after'], ['', 'About 2 hours after'], ['25', 'About 2 hours after'], ['0', 'Within the hour after']].forEach(([cell, want]) => {
     t.DATA().constants.vars.session_recap_delay = cell;
@@ -8880,9 +9194,19 @@ check('the email after each session card is an admin\'s, follows the weekly card
     const sub = (card().querySelector('.sub') || {}).textContent || '';
     if (sub.indexOf(want) !== 0) bad.push('session_recap_delay "' + cell + '" reads "' + sub.slice(0, 40) + '" — wanted "' + want + '"');
   });
+  /* THE NEXT-MORNING HOUR, AS `recapMorning_` READS IT: whole hours 0 to 23, anything else 7 — said as a
+     clock, because "at 19 the next morning" is not a time anybody says. */
+  [['', '7am'], ['8', '8am'], ['9', '9am'], ['0', 'midnight'], ['10', '7am'], ['12', '7am'], ['19', '7am'], ['24', '7am'], ['7.5', '7am'], ['soon', '7am']].forEach(([cell, want]) => {
+    t.DATA().constants.vars.session_recap_morning = cell;
+    w.paint('settings');
+    if (morning() !== want) bad.push('session_recap_morning "' + cell + '" reads "' + morning() + '" — wanted "' + want + '", as the server reads it');
+  });
   t.DATA().constants.vars.session_recap = 'off';
   t.DATA().constants.vars.session_recap_delay = '';
+  t.DATA().constants.vars.session_recap_morning = '';
   w.paint('settings');
+  const sub0 = ((card().querySelector('.sub') || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!/or at 7am the next morning, on a day of homework with no session/.test(sub0)) bad.push('the card does not say a day of homework is emailed at 7am the next morning: "' + sub0 + '"');
   if (!/session_recap/.test(card().textContent) || !/installSessionRecap/.test(card().textContent)) bad.push('the card does not say where the switch is and how the hourly check is booked');
   const tile = card().querySelector('.tile-row .tile[data-do="recap-preview"]');
   if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
@@ -8894,6 +9218,8 @@ check('the email after each session card is an admin\'s, follows the weekly card
   if (asks.length !== 1 || sent.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one recapPreview and nothing else');
   const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
   if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
+  const title = (d.getElementById('sheet-title') || {}).textContent || '';
+  if (title !== 'Daily email to parents') bad.push('the preview sheet is titled "' + title + '" — wanted "Daily email to parents"');
   const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
   ['The Ledger has no attempts tab', 'No hourly check is booked yet — run installSessionRecap', 'This preview sent nothing', 'not booked',
    'Each email is written to the recap_log tab when it falls due, and none is sent.',
@@ -8901,10 +9227,16 @@ check('the email after each session card is an admin\'s, follows the weekly card
    'Chemistry 10am–12pm · nobody to email — see below',
    'To Pat Parent · pat@example.org — would be written to recap_log', 'Ada’s session on Tue 6 Oct: 2 questions', 'Q3, Q7 (again)',
    'Nobody to tell', 'Cal Alone — no parent has accepted a link to them', '(not sent)',
+   /* THE DAY OF HOMEWORK: its own day, its own email, each question with its words. */
+   'Mon 5 Oct', 'Ada’s work on Mon 5 Oct: 3 questions', 'On Monday 5 October Ada worked on 3 questions',
+   'A bag holds 3 red and 5 blue counters.', 'Q5a: Work out the probability of red.', 'Q6: Work out 3/4 of 20.',
    'Thu 1 Oct', 'Maths 4pm–6pm · Ada Pupil · email about 8pm · past', 'To Pat Parent · pat@example.org — not sent — past its 24 hours, it will not go'].forEach(s => {
     if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
   });
   if (/Chemistry[^·]*· email about/.test(text)) bad.push('a booked session nobody on it can be told about still says when its email goes: ' + (text.match(/Chemistry[^.]*/) || [''])[0]);
+  /* THE HOUR THE SERVER ANSWERED, NOT THE CELL: blank on this phone reads 7, the server said 8. */
+  if (morning() !== '8am') bad.push('after a preview answering morning: 8 the card says "' + morning() + '" — wanted "8am", the hour the server reads');
+  if (/The live backend emails after sessions only/.test(text)) bad.push('a backend that answers with `morning` is told it is from before the daily email');
   /* THE SAME REPLY WITH THE SWITCH OFF — owner step 4 — and ON. Off promises nothing: no "due now", no
      "not on the log yet" (which reads as "it will be"). Send says the log has not got it yet. */
   const asText = h => { const x = d.createElement('div'); x.innerHTML = h; return x.textContent.replace(/\s+/g, ' '); };
@@ -8918,11 +9250,33 @@ check('the email after each session card is an admin\'s, follows the weekly card
   if (sendText.indexOf('To Pat Parent · pat@example.org — not on the log yet') === -1 || sendText.indexOf('Each email is sent once, when it falls due.') === -1) bad.push('with session_recap on send the preview does not say the log has not got the email yet: ' + sendText.slice(0, 300));
   if (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths')) bad.push('a subject typed with markup in it was drawn as markup in the preview — it must be printed as text');
   if (body && !/^The Ledger has no attempts tab/.test(((body.querySelector('p b') || {}).textContent || ''))) bad.push('the missing attempts tab is not the first thing the preview says');
-  if (/Day 5|Day 2/.test(text)) bad.push('the preview drew days with nothing in them');
-  if (!/Email after each session:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
-  /* NO SESSION ANYWHERE IN THE WEEK: said, not a blank sheet. */
-  const none = w.recapSheet_({ success: true, mode: 'off', scheduled: 1, days: [empty(6), empty(5)] });
-  if (!/No booked session in the last 7 days/.test(none) || !/checked every hour · booked/.test(none) || /No hourly check/.test(none)) bad.push('a week with no booked session does not say so, or a booked check is called unbooked: ' + none.replace(/\s+/g, ' ').slice(0, 200));
+  if (/Day 4|Day 2/.test(text)) bad.push('the preview drew days with nothing in them');
+  if (!/Daily email to parents:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
+  /* NOTHING ANYWHERE IN THE WEEK: said, not a blank sheet — and said as both halves, sessions and work. */
+  const none = w.recapSheet_({ success: true, mode: 'off', morning: 7, scheduled: 1, days: [empty(6), empty(5)] });
+  if (!/No booked session and no question done in the last 7 days/.test(none) || !/checked every hour · booked/.test(none) || /No hourly check/.test(none)) bad.push('a week with no booked session and no work does not say so, or a booked check is called unbooked: ' + none.replace(/\s+/g, ' ').slice(0, 200));
+  /* A BACKEND FROM BEFORE THE DAILY EMAIL: it answers without `morning`, emails after sessions only and
+     lists numbers without words — said in bold with the other warnings, above the first day, so its
+     preview is not read as the new one. The card's hour falls back to the cell's reading. */
+  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
+  answer = old;
+  t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
+  await wait(300);
+  const oldWarn = body ? [...body.querySelectorAll('.recap-sheet > p > b')].map(b => b.textContent) : [];
+  const firstDay = body && body.querySelector('.recap-sheet h2');
+  const warnEl = body && [...body.querySelectorAll('.recap-sheet > p > b')].find(b => /The live backend emails after sessions only/.test(b.textContent));
+  if (!warnEl) bad.push('a preview reply with no `morning` (a backend from before the daily email) is not told to sync — warnings: ' + JSON.stringify(oldWarn));
+  else {
+    if (!/sync backend\/ into Apps Script/.test(warnEl.textContent)) bad.push('the old-backend warning does not say what to do: "' + warnEl.textContent + '"');
+    if (firstDay && (firstDay.compareDocumentPosition(warnEl) & w.Node.DOCUMENT_POSITION_FOLLOWING)) bad.push('the old-backend warning comes after the first day — it has to be read before the preview is');
+  }
+  if (morning() !== '7am') bad.push('after a reply with no `morning` the card says "' + morning() + '" — wanted the cell’s reading, 7am');
+  /* AND BACK: the new backend's reply takes the warning away again. */
+  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
+  answer = preview;
+  t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
+  await wait(300);
+  if (/The live backend emails after sessions only/.test((body || {}).textContent || '')) bad.push('the old-backend warning stayed after a reply that has `morning`');
   /* A BACKEND FROM BEFORE recap.gs: told, not asked. */
   try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
   t.DATA().features = ['digestPreview'];
@@ -8930,7 +9284,7 @@ check('the email after each session card is an admin\'s, follows the weekly card
   t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
   await wait(100);
   if (sent.some(b => b.action === 'recapPreview')) bad.push('a backend that does not list recapPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
-  if (!/sync backend/i.test((card().querySelector('.recap-said') || {}).textContent || '')) bad.push('a backend without the email after sessions is not said to need a sync');
+  if (!/sync backend/i.test((card().querySelector('.recap-said') || {}).textContent || '')) bad.push('a backend without the daily email is not said to need a sync');
   /* AND THE WEEKLY SHEET, WITH NO attempts TAB: the reason, not "nobody has done a question". */
   const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, attempts: false,
     warning: 'The Ledger has no attempts tab, so nothing says what anybody did.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
@@ -9352,6 +9706,11 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
      by its subject's group and then its subject — Maths, then Statistics — before `Book`, which is
      only asked if two books are left. With one book on the shelf the rung has one answer and is
      skipped by the rule below, so this route is the claim either way. */
+  /* AND IN THE CODE'S OWN ORDER, which is the order whenever `data/settings/facets.json` is not read — as
+     in every journey here — Subject before Book. It was Book first, under the shelf, and only the sheet
+     put it right. */
+  const order = t.DATA().facets ? [] : w.facetList().map(f => f.field);
+  if (!(order.indexOf('subject') !== -1 && order.indexOf('subject') < order.indexOf('book'))) bad.push('facetList() with no DATA.facets asks ' + (order.length ? order.filter(f => f === 'subject' || f === 'book').join(' before ') : 'nothing — DATA.facets was set, so NOT checked') + ' — wanted subject before book');
   const route = ['Learning', 'Resources', '@family. textbooks', 'Statistics'];
   const rungs = ['forLabel', 'kindLabel', 'shelf', 'subject'];
   const pressed = [];

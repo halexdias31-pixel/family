@@ -1,9 +1,20 @@
 /* ==================================================================================================
-   @family. — recap.gs   THE EMAIL TO PARENTS AFTER EACH SESSION
+   @family. — recap.gs   THE DAILY EMAIL TO PARENTS: AFTER EACH SESSION, AND THE MORNING AFTER ANY OTHER DAY
+                         OF WORK, WITH EACH QUESTION'S OWN WORDS
 
    ASKED FOR AS *"i need to begin wiring up the feedback system for parents to see the questions their
    children have done. like for example i have done with [a learner]. like 2 hours after the end of
    each session is done it will send an automated email to them of the questions they got done."*
+
+   AND THEN, 8 Oct: *"Finish setting up the email thing so it emails all parents on work their child has
+   done with the exact questions for each."* Two changes, both below:
+     EVERY DAY OF WORK   a day a child did questions with no session is an email too, due the next
+                         morning at `session_recap_morning` (7) — `recapWorkGroups_`. A session day is
+                         still the email two hours after the session, and it is the day's only email.
+     THE QUESTIONS       each one's own words, not only its number: the phone sends what it draws as it
+                         marks a question (SCHEMA.attempts `words`), and `recapRender_` prints the stem a
+                         question's parts share once, then each part's ask. One switch for both,
+                         `session_recap`, so "on" means every parent hears about every day of work.
 
    ARRIVES OFF, like the weekly one (backend/digest.gs), and for its reason: the first real run is an
    evening with families on the other end, and every rule here fails by emailing. Three things, all
@@ -63,10 +74,14 @@
 
    LIMITS, STATED AND NOT BUILT:
      · No "working with [child]" mode on the tutor's device. The natural next build.
-     · One date of a booking cannot be cancelled. Take it out of `session_dates`; otherwise a day with
-       no lesson but with homework is still emailed.
+     · One date of a booking cannot be cancelled. Take it out of `session_dates`; otherwise that day is
+       emailed two hours after a lesson that did not happen, rather than the next morning.
      · "That day" includes homework done the same day, and two sessions' questions cannot be told
        apart.
+     · A question from one day done again before the next morning's email moves its last day on, and
+       leaves that day's email — which is why `session_recap_morning` stops at 9.
+     · A session day's follow-up needs `recap_log.question_keys`; a session email sent before the column
+       existed has no follow-up, rather than a second copy of everything.
      · A question done offline, or refused as "Busy", reaches the sheet on the next app load: inside
        24 hours of due it is still sent, after that it is in Sunday's email.
      · About 100 emails a day on a consumer account, with one reserve (`weekly_digest_reserve`)
@@ -89,6 +104,15 @@ function recapMode_(cfg) {
 function recapDelay_(cfg) {
   const c = S(cfg && cfg.session_recap_delay);
   return /^\d{1,2}$/.test(c) && Number(c) <= 12 ? Number(c) : 2;
+}
+/* AND THE HOUR, THE NEXT MORNING, A DAY OF WORK WITH NO SESSION IS EMAILED — whole hours 0 to 9, and
+   anything else is 7: before school, with all of yesterday on the sheet. NOT LATER THAN 9, because the
+   sheet keeps each question's FIRST and LAST day only: a question from yesterday done again before the
+   email goes moves its last day to today, and it leaves yesterday's email. At 7 that is a child working
+   before school; at 18 it would be every repeat after school. */
+function recapMorning_(cfg) {
+  const c = S(cfg && cfg.session_recap_morning);
+  return /^\d{1,2}$/.test(c) && Number(c) <= 9 ? Number(c) : 7;
 }
 
 
@@ -425,6 +449,117 @@ function recapGroups_(sessions, delayH, problems) {
              sessions: g.sessions, job_ids: g.ids.slice().sort().join(','), others: g.others };
   }).sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : a.learner_id < b.learner_id ? -1 : 1));
 }
+/* ---------- AND EVERY OTHER DAY A CHILD DID QUESTIONS ----------------------------------------------------------
+   *"emails all parents on work their child has done with the exact questions for each"* — so a day of
+   homework with no lesson is an email too. PURE. One group per (day, learner) with a question first or
+   last done that day, joined on the key before `#` exactly as `digestPlan_` joins them — a practical's
+   three boxes are one question, and a group made off one box that the join then places on another day
+   would be a "nothing done" for a child who did something.
+
+   NOT ON A DAY THAT ALREADY HAS ONE. `taken` is every session group, in or out of this hour's window:
+   a session day's email is the one two hours after the session, carrying every question marked by then,
+   and what was marked after it goes in that day's next-morning follow-up (`recapLaterGroups_`) — so a
+   day is one email, or a session email and one short follow-up, whichever rule made it; and the
+   receipt's key (day, learner, parent) holds that even if a lesson is booked for a day after its email
+   went. AN AGREED LESSON NOT YET PAID makes no session group, so its day is emailed as a day of work:
+   the parents hear about the questions either way, and the lesson is named once it is paid.
+
+   ONLY A CHILD. `isLearner` is "has a parent who accepted them": the tutor working questions on their
+   own phone, an admin trying a paper, a parent doing one with their child — each of them has rows on
+   the attempts tab, and none of them is anybody's child to email about.
+
+   DUE THE NEXT MORNING, `morningH` o'clock London. The sheet keeps days, not times, so nothing can say
+   when the child stopped; an evening hour would spend the day's receipt before the homework done after
+   it, and the next morning has all of it. */
+function recapWorkGroups_(attemptRows, from, to, taken, isLearner, morningH) {
+  const joined = {};
+  (attemptRows || []).forEach(r => {
+    const pid = S(r && r.person_id), q = S(r && r.question_key).split('#')[0];
+    if (!pid || !q) return;
+    const first = isoDate_(r.first_done), last = isoDate_(r.last_done);
+    const id = pid + '\u0001' + q, J = joined[id] || (joined[id] = { pid: pid, first: first, last: last });
+    if (first && (!J.first || first < J.first)) J.first = first;
+    if (last && (!J.last || last > J.last)) J.last = last;
+  });
+  const by = {};
+  Object.keys(joined).forEach(id => {
+    const J = joined[id];
+    [J.first, J.last].forEach(d => {
+      if (!d || d < from || d > to) return;
+      const k = d + '\u0001' + J.pid;
+      if (!by[k] && !(taken && taken[k])) by[k] = { day: d, learner_id: J.pid };
+    });
+  });
+  const child = {};
+  const isChild = id => {
+    if (!(id in child)) { let y = false; try { y = !!isLearner(id); } catch (err) { y = false; } child[id] = y; }
+    return child[id];
+  };
+  const hour = Math.max(0, Math.min(23, Math.round(Number(morningH) || 0)));
+  return Object.keys(by).map(k => by[k]).filter(g => isChild(g.learner_id)).map(g => ({
+    day: g.day, learner_id: g.learner_id, how: 'did questions',
+    due: recapWall_(digestShift_(g.day, 1) + ' 00:00', hour * 60), sessions: [], job_ids: '', others: [] }))
+    .sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : a.learner_id < b.learner_id ? -1 : 1));
+}
+/* THE (day, learner) PAIRS A SESSION GROUP HAS, for `recapWorkGroups_`'s `taken`. */
+function recapTaken_(groups) {
+  const t = {};
+  (groups || []).forEach(g => { t[g.day + '\u0001' + g.learner_id] = 1; });
+  return t;
+}
+/* A CHILD IS SOMEBODY WITH A PARENT WHO ACCEPTED THEM — `acceptedParents` (people.gs), the list the
+   email itself is sent to, so "a child" and "somebody there is a parent to tell" are one test. */
+function recapHasParent_(id) {
+  /* NOT STAFF, AND NOT A PARENT. A tutor who was once a pupil keeps the family row from then, and a
+     parent may be linked under a grandparent; neither is a child whose day anybody asked to be told
+     about. Somebody with a child of their own is a parent here, whatever else the family tab says. */
+  const me = findPerson(id);
+  if (!me || hasRole(me, 'admin') || hasRole(me, 'tutor')) return false;
+  if ((childrenOf(id) || []).some(c => S(c && c.person_id) && S(c.person_id) !== S(id))) return false;
+  return (acceptedParents(id) || []).some(p => S(p && p.person_id) && S(p.person_id) !== S(id));
+}
+/* ---------- AND THE WORK DONE AFTER A SESSION'S EMAIL WENT ---------------------------------------------------
+   A SESSION DAY'S EMAIL GOES TWO HOURS AFTER THE LESSON, and its receipt is the day's — so the homework
+   set at the lesson and done that evening was in nobody's email, which is exactly the work the owner
+   asked to hear about. So the next morning, a session day has a second, shorter email: only the
+   questions that were not in the first. Its receipt is its own (`job_ids` = `later`), and the first
+   one's `question_keys` say what it already carried.
+
+   NOTHING TO TELL APART, NOTHING SENT. A session receipt from before `question_keys` existed says how
+   many and not which, so that day has no follow-up rather than a second copy of everything. A day whose
+   session email said "nothing done" — the tutor's account, or no question marked yet — has nothing to
+   subtract, so its follow-up is the whole day: the homework done after it. A day whose email has not
+   gone (held, failed, not due) has none: that email still carries everything when it goes. In
+   `preview`, a `preview` row counts as sent, so the preview shows what the follow-up would really add.
+
+   DUE THE LATER OF THE MORNING HOUR AND AN HOUR AFTER THE SESSION'S OWN EMAIL, so a lesson that ends late
+   with a long delay is never followed up before it has been emailed. PURE. */
+function recapLaterGroups_(sessionGroups, logRows, morningH, mode) {
+  const hour = Math.max(0, Math.min(23, Math.round(Number(morningH) || 0)));
+  const done = st => st === 'sent' || st === 'sending' || (mode === 'preview' && st === 'preview');
+  return (sessionGroups || []).map(g => {
+    const rows = (logRows || []).filter(r => isoDate_(r.day) === g.day && S(r.learner_id) === S(g.learner_id)
+      && S(r.job_ids) !== 'later');
+    const had = rows.filter(r => done(norm(r.status)));
+    /* ONLY BEHIND AN EMAIL THAT WENT, or a "nothing done" — the two answers the day's own email can give
+       and be finished. One still held, failed or never due yet still carries everything when it goes,
+       and a follow-up beside it would be the day twice. */
+    if (!had.length && !rows.some(r => norm(r.status) === 'nothing done')) return null;
+    if (had.length && had.every(r => !S(r.question_keys))) return null;
+    const skip = {};
+    had.forEach(r => S(r.question_keys).split(',').forEach(k => { if (k.trim()) skip[k.trim()] = 1; }));
+    const morning = recapWall_(digestShift_(g.day, 1) + ' 00:00', hour * 60);
+    const after = recapWall_(g.due, 60);
+    return { day: g.day, learner_id: g.learner_id, how: g.how, due: morning > after ? morning : after,
+             sessions: g.sessions, job_ids: 'later', later: true, skip: skip, others: g.others };
+  }).filter(Boolean);
+}
+/* SESSION GROUPS AND WORK GROUPS, ONE LIST IN DUE ORDER — what every caller acts on. */
+function recapAllGroups_(sessionGroups, workGroups) {
+  return (sessionGroups || []).concat(workGroups || [])
+    .sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : a.learner_id < b.learner_id ? -1 : 1));
+}
+
 /* THE JOB-LEVEL REASONS, ONE ROW PER JOB PER DAY — two names nobody can place on one booking are one
    row saying both, not two rows overwriting each other under the same key.
 
@@ -441,7 +576,7 @@ function recapJobNotes_(problems, delayH, groups) {
     let why = p.why;
     if (p.unpaid) {
       const anyway = (p.pending || []).some(l => (groups || []).some(g => g.day === p.day && g.learner_id === l.id));
-      why += anyway ? ' — so it is not named in the email; that day’s questions are in the child’s email either way'
+      why += anyway ? ' — so until it is marked paid it is not named in the email; that day’s questions go to the parents either way'
                     : ' — mark it paid and the next hourly check sends it, while it is within ' + RECAP_LATE_HOURS + ' hours of due';
     }
     if (n.whys.indexOf(why) === -1) n.whys.push(why);
@@ -455,22 +590,32 @@ function recapJobNotes_(problems, delayH, groups) {
    PURE. For each day, `digestPlan_` with a "week" that starts and ends on it — the same join of a
    practical's boxes, the same text that may and may not be printed, the same parents and the same
    reasons for not telling one — handed this email's render and this email's opt-out column. Only the
-   due learners' rows go in, so a child who did homework and had no session is in nobody's email.
+   due learners' rows go in — and since `recapWorkGroups_`, a child who did homework on a day with no
+   session IS a due learner, the next morning.
 
    Returns `{ emails, unreachable, optedOut, nothing }`, each carrying its day, due and job ids. */
 function recapPlan_(groups, attemptRows, peopleRows, parentsOf, look) {
   const out = { emails: [], unreachable: [], optedOut: [], nothing: [] };
-  const days = [];
-  (groups || []).forEach(g => { if (days.indexOf(g.day) === -1) days.push(g.day); });
-  days.forEach(day => {
+  /* ONE PLAN PER DAY AND KIND: a day's email and its next-morning follow-up are the same (day, learner)
+     and must not be planned as one — the follow-up leaves out what the first one carried (`skip`). */
+  const parts = [];
+  (groups || []).forEach(g => {
+    const k = g.day + (g.later ? '\u0001later' : '');
+    if (!parts.some(p => p.k === k)) parts.push({ k: k, day: g.day, later: !!g.later });
+  });
+  parts.forEach(part => {
+    const day = part.day;
     const of = {};
-    groups.filter(g => g.day === day).forEach(g => { of[g.learner_id] = g; });
-    const sessions = {};
-    Object.keys(of).forEach(id => { sessions[id] = of[id].sessions; });
-    const rows = (attemptRows || []).filter(r => of[S(r && r.person_id)]);
+    groups.filter(g => g.day === day && !!g.later === part.later).forEach(g => { of[g.learner_id] = g; });
+    const sessions = {}, later = {};
+    Object.keys(of).forEach(id => { sessions[id] = of[id].sessions; if (part.later) later[id] = true; });
+    const rows = (attemptRows || []).filter(r => {
+      const g = of[S(r && r.person_id)];
+      return g && !(g.skip && g.skip[S(r.question_key).split('#')[0]]);
+    });
     const plan = digestPlan_({ start: day, end: day }, rows, peopleRows, parentsOf,
-      Object.assign({}, look || {}, { sessions: sessions }), { render: recapRender_, optOut: 'session_email' });
-    const tag = g => ({ day: day, due: g.due, job_ids: g.job_ids });
+      Object.assign({}, look || {}, { sessions: sessions, later: later }), { render: recapRender_, optOut: 'session_email' });
+    const tag = g => ({ day: day, due: g.due, job_ids: g.job_ids, later: !!g.later });
     plan.emails.forEach(m => out.emails.push(Object.assign(m, tag(of[m.learner_id]))));
     const did = {};
     plan.learners.forEach(L => {
@@ -480,7 +625,8 @@ function recapPlan_(groups, attemptRows, peopleRows, parentsOf, look) {
       L.skipped.filter(p => p.why === 'asked not to get it').forEach(p => out.optedOut.push(Object.assign({
         learner_id: L.id, learner: L.name, parent_id: p.id, name: p.name, count: L.count }, tag(g))));
     });
-    Object.keys(of).filter(id => !did[id]).forEach(id => {
+    /* A FOLLOW-UP WITH NOTHING NEW IS NO EMAIL AND NO NOTE — the day's own email already said it. */
+    if (!part.later) Object.keys(of).filter(id => !did[id]).forEach(id => {
       const g = of[id];
       out.nothing.push(Object.assign({ learner_id: id, why: recapNothingWhy_(g, attemptRows, peopleRows) }, tag(g)));
     });
@@ -547,54 +693,99 @@ function recapRender_(L, P, week, look) {
   const span = s => (s && s.timeKnown && s.from && s.to ? recapTime_(s.from) + ' to ' + recapTime_(s.to) : '');
   const one = s => subject(s) + (span(s) ? ', ' + span(s) : '');
   const WORD = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
-  let had;
-  if (sessions.length <= 1) {
+  /* A DAY WITH A SESSION SAYS WHICH; A DAY OF HOMEWORK SAYS ONLY THE DAY (`recapWorkGroups_`). */
+  let had = '';
+  if (sessions.length === 1) {
     const s = sessions[0];
-    had = kid + ' had ' + (s ? subject(s) : 'a session') + ' on ' + recapLong_(day) + (span(s) ? ', ' + span(s) : '') + '.';
-  } else {
+    had = kid + ' had ' + subject(s) + ' on ' + recapLong_(day) + (span(s) ? ', ' + span(s) : '') + '.';
+  } else if (sessions.length > 1) {
     const parts = sessions.map(one);
     had = kid + ' had ' + (WORD[sessions.length] || sessions.length) + ' sessions on ' + recapLong_(day) + ': '
       + parts.slice(0, -1).join(', ') + ', and ' + parts[parts.length - 1] + '.';
   }
-  let count = 'That day ' + kids + ' worked on ' + qs(n);
+  /* THE NEXT MORNING'S FOLLOW-UP TO A SESSION DAY (`recapLaterGroups_`) names only what came after. */
+  const after = !!((look && look.later) || {})[L.id];
+  if (after) had = '';
+  const more_ = x => x + ' more question' + (x === 1 ? '' : 's');
+  let count = after ? 'After the session on ' + recapLong_(day) + ', ' + kids + ' worked on ' + more_(n)
+    : (had ? 'That day ' + kids : 'On ' + recapLong_(day) + ' ' + kids) + ' worked on ' + qs(n);
   if (fresh.length && again.length) count += ', ' + fresh.length + ' of them for the first time.';
   else if (again.length) count += n === 1 ? ', one ' + kids + ' had tried before.' : ', all of them ones ' + kids + ' had tried before.';
   else count += '.';
-  const lead = had + ' ' + count;
+  const lead = (had ? had + ' ' : '') + count;
 
-  /* HEADINGS, EACH WITH ITS QUESTION NUMBERS. '' is a label of one segment: a heading with no line. */
+  /* ---------- THE QUESTIONS, EACH WITH ITS OWN WORDS ---------------------------------------------------
+     *"with the exact questions for each"*. A heading per paper (the label before its last ` · `), then
+     a line per question: its number, and what it asked (SCHEMA.attempts `words`). The stem a question's
+     parts share is printed ONCE, above the first of them — `words` is the stem, a `---` line, then the
+     part's own ask — so Q5a, Q5b and Q5c read as the paper prints them rather than as one scene three
+     times. Each is cut to what reads on a phone (`RECAP_WORDS_SHOWN`, `RECAP_STEM_SHOWN`), and the link
+     at the end is where the whole question is drawn, with its picture.
+
+     A PAPER WITH NO WORDS FOR ANY OF ITS QUESTIONS — rows marked before the phone sent them, until their
+     learner next loads the site — is the old line of numbers, `Q3, Q7 (again)`. */
+  const cut = (t, max) => { const x = S(t).replace(/\s*\n+\s*/g, ' ').trim(); return x.length > max ? x.slice(0, max - 1).replace(/\s+\S*$/, '') + '…' : x; };
   const heads = {};
   fresh.map(q => [q, false]).concat(again.map(q => [q, true])).forEach(([q, before]) => {
     const label = S(q && q.label);
     if (!label || (q && q.hidden) || label === S(q && q.key)) return;
     const bits = label.split(' · ');
     const head = bits.length > 1 ? bits.slice(0, -1).join(' · ') : label;
-    const item = bits.length > 1 ? bits[bits.length - 1] + (before ? ' (again)' : '') : '';
-    (heads[head] || (heads[head] = [])).push(item);
+    const num = bits.length > 1 ? bits[bits.length - 1] : '';
+    /* THE STEM AND THE ASK, either side of a `---` line — which may be the last line, when a part's own
+       ask is only its picture and the cell was trimmed. */
+    const w = S(q && q.words), cutAt = /\n---(?:\n|$)/.exec(w);
+    (heads[head] || (heads[head] = [])).push({
+      num: num, again: before, stem: cutAt ? w.slice(0, cutAt.index) : '', ask: cutAt ? w.slice(cutAt.index + cutAt[0].length) : w });
   });
   let room = DIGEST_LIST_MAX, printed = 0;
   const shown = [];
   Object.keys(heads).sort((a, b) => a.localeCompare(b)).forEach(h => {
     if (room <= 0) return;
-    const list = heads[h].slice().sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const list = heads[h].slice().sort((a, b) => a.num.localeCompare(b.num, undefined, { numeric: true }));
     const take = list.slice(0, room);
     room -= take.length; printed += take.length;
-    shown.push({ head: h, items: take.filter(Boolean) });
+    shown.push({ head: h, items: take.filter(it => it.num || it.ask), worded: take.some(it => S(it.ask)) });
   });
   const more = n - printed;
+  /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no tag: its words stand alone, never ": What is 7 × 8?". */
+  const tag = it => (it.num ? it.num + (it.again ? ' (again)' : '') : '');
 
   const sees = kid + (printed ? ' can see them on ' : ' can see which ones on ');
   const link = sees + 'the site: ' + site;
   const foot = 'You get this because you are ' + (S(L.first) ? kid + '’s parent' : 'a parent') + ' on ' + brand
-    + (/[.!?]$/.test(brand) ? '' : '.') + ' To stop the emails after sessions, reply to this one and say so.';
-  const subjectLine = kid + '’s ' + (sessions.length > 1 ? 'sessions' : 'session') + ' on ' + recapShort_(day) + ': ' + qs(n);
+    + (/[.!?]$/.test(brand) ? '' : '.') + ' To stop these emails, reply to this one and say so.';
+  const subjectLine = after ? kid + '’s work after the session on ' + recapShort_(day) + ': ' + more_(n)
+    : kid + '’s ' + (!sessions.length ? 'work' : sessions.length > 1 ? 'sessions' : 'session')
+      + ' on ' + recapShort_(day) + ': ' + qs(n);
 
   const lines = [hello, '', lead, ''];
-  shown.forEach(h => { lines.push(h.head); if (h.items.length) lines.push(h.items.join(', ')); lines.push(''); });
+  const parts = [];
+  shown.forEach(h => {
+    lines.push(h.head);
+    let html = '<p><b>' + digestEsc_(h.head) + '</b></p>';
+    if (!h.worded) {
+      if (h.items.length) { lines.push(h.items.map(tag).join(', ')); html = '<p><b>' + digestEsc_(h.head) + '</b><br>' + digestEsc_(h.items.map(tag).join(', ')) + '</p>'; }
+    } else {
+      let stem = '';
+      h.items.forEach(it => {
+        if (it.stem && it.stem !== stem) {
+          lines.push(cut(it.stem, RECAP_STEM_SHOWN));
+          html += '<p><i>' + digestEsc_(cut(it.stem, RECAP_STEM_SHOWN)) + '</i></p>';
+        }
+        stem = it.stem;
+        const said = cut(it.ask, RECAP_WORDS_SHOWN);
+        lines.push(tag(it) && said ? tag(it) + ': ' + said : tag(it) || said);
+        html += '<p>' + (it.num ? '<b>' + digestEsc_(tag(it)) + '</b>' + (said ? ' — ' : '') : '') + digestEsc_(said) + '</p>';
+      });
+    }
+    lines.push('');
+    parts.push(html);
+  });
   if (printed && more > 0) lines.push('…and ' + more + ' more.', '');
   lines.push(link, '', foot);
   const html = '<p>' + digestEsc_(hello) + '</p><p>' + digestEsc_(lead) + '</p>'
-    + shown.map(h => '<p><b>' + digestEsc_(h.head) + '</b>' + (h.items.length ? '<br>' + digestEsc_(h.items.join(', ')) : '') + '</p>').join('')
+    + parts.join('')
     + (printed && more > 0 ? '<p>…and ' + more + ' more.</p>' : '')
     + '<p><a href="' + digestEsc_(site) + '">' + digestEsc_(sees + brand) + '</a></p>'
     + '<p><small>' + digestEsc_(foot) + '</small></p>';
@@ -605,9 +796,11 @@ function recapRender_(L, P, week, look) {
 /* ---------- THE HOURLY RUN -------------------------------------------------------------------------------------
    `sessionRecapRun` IS WHAT THE TRIGGER CALLS, and the only thing `installSessionRecap` books.
 
-   CHEAP WHEN THERE IS NOTHING TO DO, because it runs 24 times a day. Off returns before anything but
-   the config tab is read. Then `jobs` alone: no lesson dated in the last three days, or none whose
-   email is due this hour, and it returns without opening `events`, `people`, `family` or `attempts`.
+   CHEAP WHEN IT IS OFF, AND NOT FREE WHEN IT IS ON. Off returns before anything but the config tab is
+   read. On, every hour reads `jobs`, `attempts` (a day of homework with no lesson is emailed too, and
+   only that tab says one happened), `recap_log`, and — for each learner with questions in the last
+   three days — `family` and `people`, to know whether they are somebody's child. Small tabs, read once
+   an hour; and an email already sent is counted off the log without taking the lock (see below).
 
    THE TABS IT NEEDS ARE CHECKED ONLY ONCE SOMETHING IS DUE — a Ledger without `recap_log` or `attempts`
    is not a failure in an hour with no session, and it is never mistaken for a quiet day in an hour
@@ -645,29 +838,72 @@ function recapRun_(now) {
   const delay = recapDelay_(cfg);
   const from = digestShift_(clock.today, -2);
   const jobs = read(TAB.jobs).rows.filter(j => recapLesson_(j) && recapDays_(j, from, clock.today).length);
-  if (!jobs.length) return { mode: mode, at: clock.at, due: 0 };
-
-  const found = recapSessions_(jobs, from, clock.today, null, cfg);
+  const found = jobs.length ? recapSessions_(jobs, from, clock.today, null, cfg) : { sessions: [], problems: [] };
   const inWindow = due => recapDueNow_(due, clock.at);
-  const every = recapGroups_(found.sessions, delay, found.problems);
-  const groups = every.filter(g => inWindow(g.due));
+  const sessionGroups = recapGroups_(found.sessions, delay, found.problems);
+  /* EVERY OTHER DAY OF WORK — `recapWorkGroups_`. The attempts tab is read every hour for it now, which
+     a day with no lesson needs; a Ledger without the tab has no work to find, and is an error below only
+     once a session's email is due, as before. */
+  const att = read(TAB.attempts);
+  const attemptRows = att.sheet ? att.rows : [];
+  const every = recapAllGroups_(sessionGroups,
+    recapWorkGroups_(attemptRows, from, clock.today, recapTaken_(sessionGroups), recapHasParent_, recapMorning_(cfg)));
+  const first = every.filter(g => inWindow(g.due));
+  /* AND EACH SESSION DAY'S NEXT-MORNING FOLLOW-UP — `recapLaterGroups_` — read against the log, and never
+     in the same hour as the day's own email: that one goes first, and its receipt says what it carried. */
+  const log0 = recapLog_();
+  /* "THE SAME HOUR" IS AN HOUR THE DAY'S OWN EMAIL IS STILL TO GO — not every hour its group is in its
+     window. A session group stays in `first` for 24 hours after its due, sent or not (its email is
+     counted `already` below), so keying on `first` alone held the follow-up due at 07:00 back until the
+     session's window closed at 20:05 that evening. One the log already has as sent — `recapLaterGroups_`'s
+     own test — is not this hour's; a "nothing done", or no row yet, still is. */
+  const went = {};
+  (log0.rows || []).forEach(r => {
+    const st = norm(r.status);
+    if (S(r.learner_id) && S(r.job_ids) !== 'later' && (st === 'sent' || st === 'sending' || (mode === 'preview' && st === 'preview'))) {
+      went[isoDate_(r.day) + '\u0001' + S(r.learner_id)] = 1;
+    }
+  });
+  const sameHour = {};
+  first.forEach(g => { const k = g.day + '\u0001' + g.learner_id; if (!went[k]) sameHour[k] = 1; });
+  const later = log0.sheet ? recapLaterGroups_(sessionGroups, log0.rows, recapMorning_(cfg), mode)
+    .filter(g => inWindow(g.due) && !sameHour[g.day + '\u0001' + g.learner_id]) : [];
+  const groups = first.concat(later);
   const jobNotes = recapJobNotes_(found.problems, delay, every).filter(p => inWindow(p.due));
   if (!groups.length && !jobNotes.length) return { mode: mode, at: clock.at, due: 0 };
 
-  if (!recapLog_().sheet) return { mode: mode, error: 'The sheet has no recap_log tab. Open /exec?setup=1 to add it. Nothing was sent.' };
+  if (!log0.sheet) return { mode: mode, error: 'The sheet has no recap_log tab. Open /exec?setup=1 to add it. Nothing was sent.' };
   const noAttempts = digestNoAttempts_();
   if (noAttempts) return { mode: mode, error: noAttempts };
 
   /* THE PLAN IS MADE WITHOUT THE LOCK, and checked against the log, fresh, under it, one email at a time. */
   const look = digestLook_();
-  const plan = recapPlan_(groups, read(TAB.attempts).rows, read(TAB.people).rows, acceptedParents, look);
-  const out = Object.assign({ mode: mode, at: clock.at, due: groups.length, emails: plan.emails.length },
-    digestMail_(plan.emails, {
-      mode: mode, reserve: digestReserve_(cfg), readLog: recapLog_, brand: look.brand,
-      find: (log, m) => recapLogFind_(log, m.day, m.learner_id, m.parent_id),
-      put: (log, row, m, v) => recapLogPut_(log, row, m, Object.assign({ due: m.due, job_ids: m.job_ids }, v)),
-      heldNote: 'daily mail quota — the next hourly check sends it while it is within 24 hours of due',
-    }),
+  const plan = recapPlan_(groups, attemptRows, read(TAB.people).rows, acceptedParents, look);
+  /* A FOLLOW-UP LEAVES NO NOTE: who could not be told, and why, is on the day's own row already. */
+  plan.unreachable = plan.unreachable.filter(u => !u.later);
+  plan.optedOut = plan.optedOut.filter(p => !p.later);
+  /* WHAT THE LOG ALREADY SAYS, READ ONCE WITHOUT THE LOCK. A day's email is due for 24 hours and every
+     hourly check plans it again; `digestMail_` takes the lock and re-reads the whole log for each one
+     to find `sent` — 24 times a day per email, with `markDone` waiting on the same lock. So what the
+     log already holds as sent, or as the same preview, is counted here and not claimed again; what is
+     left goes through `digestMail_`, whose locked re-check is still the one that decides. */
+  const pre = { already: 0, previewed: 0 };
+  const toSend = plan.emails.filter(m => {
+    const row = recapLogFind_(log0, m.day, m.learner_id, m.parent_id, '', m.later);
+    const was = norm(row && row.status);
+    if (was === 'sent' || was === 'sending') { pre.already++; return false; }
+    if (mode === 'preview' && was === 'preview' && S(row.subject) === S(m.subject) && S(row.questions) === S(m.count)) { pre.previewed++; return false; }
+    return true;
+  });
+  const mail = digestMail_(toSend, {
+    mode: mode, reserve: digestReserve_(cfg), readLog: recapLog_, brand: look.brand,
+    find: (log, m) => recapLogFind_(log, m.day, m.learner_id, m.parent_id, '', m.later),
+    put: (log, row, m, v) => recapLogPut_(log, row, m, Object.assign({ due: m.due, job_ids: m.later ? 'later' : m.job_ids,
+      question_keys: (m.keys || []).join(',') }, v)),
+    heldNote: 'daily mail quota — the next hourly check sends it while it is within 24 hours of due',
+  });
+  mail.already += pre.already; mail.previewed += pre.previewed;
+  const out = Object.assign({ mode: mode, at: clock.at, due: groups.length, emails: plan.emails.length }, mail,
     { unreachable: plan.unreachable.length, optedOut: plan.optedOut.length, nothing: plan.nothing.length,
       problems: jobNotes.length, noted: 0 });
 
@@ -704,12 +940,18 @@ function recapLog_() {
   try { delete _cache[TAB.recap_log]; } catch (err) {}
   return read(TAB.recap_log);
 }
-function recapLogFind_(log, day, learnerId, parentId, jobIds) {
+/* A NEXT-MORNING FOLLOW-UP (`later`) IS ITS OWN RECEIPT: the same day, learner and parent, `job_ids`
+   = `later`. Every other learner row is found among the rows that are not one. */
+function recapLogFind_(log, day, learnerId, parentId, jobIds, later) {
   return (log.rows || []).find(r => isoDate_(r.day) === day && S(r.learner_id) === S(learnerId)
-    && S(r.parent_id) === S(parentId) && (S(learnerId) !== '' || S(r.job_ids) === S(jobIds))) || null;
+    && S(r.parent_id) === S(parentId)
+    && (S(learnerId) !== '' ? (S(r.job_ids) === 'later') === !!later : S(r.job_ids) === S(jobIds))) || null;
 }
 function recapLogPut_(log, row, k, values) {
   const v = Object.assign({}, values);
+  /* `question_keys` ONLY WHERE THE TAB HAS THE COLUMN — a write to one it has not got is an error for
+     an email that was in fact sent. Until `ensureSchema` adds it, a session day has no follow-up. */
+  if ('question_keys' in v && !(log.headers && log.headers.indexOf('question_keys') !== -1)) delete v.question_keys;
   ['due', 'job_ids'].forEach(c => {
     if (!(c in v)) return;
     const t = S(v[c]);
@@ -772,12 +1014,27 @@ function recapPreviewOut_(now) {
   const from = digestShift_(clock.today, -(RECAP_PREVIEW_DAYS - 1));
   const noAttempts = digestNoAttempts_();
   const log = recapLog_();
+  /* AND THE TWO COLUMNS THE DAILY EMAIL ADDED, by name: without `attempts.words` the emails list
+     question numbers and no words; without `recap_log.question_keys` a session day has no next-morning
+     follow-up. Both arrive with `ensureSchema`. */
+  const attHead = noAttempts ? [] : (read(TAB.attempts).headers || []);
+  const missing = [];
+  if (!noAttempts && attHead.indexOf('words') === -1) missing.push('attempts.words (the questions’ words)');
+  if (log.sheet && (log.headers || []).indexOf('question_keys') === -1) missing.push('recap_log.question_keys (the follow-up after a session day)');
   const warning = noAttempts || (log.sheet ? ''
-    : 'The Ledger has no recap_log tab. Open /exec?setup=1 (ensureSchema) to add it — until then the hourly check stops before it sends anything.');
+    : 'The Ledger has no recap_log tab. Open /exec?setup=1 (ensureSchema) to add it — until then the hourly check stops before it sends anything.')
+    || (missing.length ? 'The Ledger is missing ' + missing.join(' and ') + '. Open /exec?setup=1 (ensureSchema) to add ' + (missing.length > 1 ? 'them' : 'it') + '.' : '');
   const people = read(TAB.people).rows;
   const found = recapSessions_(read(TAB.jobs).rows, from, clock.today, null, cfg);
-  const groups = recapGroups_(found.sessions, delay, found.problems);
-  const plan = recapPlan_(groups, read(TAB.attempts).rows, people, acceptedParents, digestLook_());
+  const sessionGroups = recapGroups_(found.sessions, delay, found.problems);
+  const att = read(TAB.attempts);
+  const attemptRows = att.sheet ? att.rows : [];
+  const groups = recapAllGroups_(sessionGroups,
+    recapWorkGroups_(attemptRows, from, clock.today, recapTaken_(sessionGroups), recapHasParent_, recapMorning_(cfg)))
+    .concat(log.sheet ? recapLaterGroups_(sessionGroups, log.rows, recapMorning_(cfg), recapMode_(cfg)) : []);
+  const plan = recapPlan_(groups, attemptRows, people, acceptedParents, digestLook_());
+  plan.unreachable = plan.unreachable.filter(u => !u.later);
+  plan.optedOut = plan.optedOut.filter(p => !p.later);
 
   const byId = {};
   people.forEach(p => { const id = S(p && p.person_id); if (id && !byId[id]) byId[id] = p; });
@@ -785,8 +1042,8 @@ function recapPreviewOut_(now) {
   const stateOf = due => (due > clock.at ? 'upcoming' : recapDueNow_(due, clock.at) ? 'due' : 'past');
   const said = (day, due) => recapTime_(S(due).slice(11)) + (S(due).slice(0, 10) !== day ? ' on ' + recapShort_(S(due).slice(0, 10)) : '');
   const span = s => (s.timeKnown && s.from && s.to ? recapTime_(s.from) + '–' + recapTime_(s.to) : '');
-  const logged = (day, learner, parent, jobs) => {
-    const r = log.sheet ? recapLogFind_(log, day, learner, parent, jobs) : null;
+  const logged = (day, learner, parent, jobs, later) => {
+    const r = log.sheet ? recapLogFind_(log, day, learner, parent, jobs, later) : null;
     if (!r) return { status: '—', at: '' };
     const a = r.at instanceof Date && !isNaN(r.at) ? Utilities.formatDate(r.at, DIGEST_TZ, 'yyyy-MM-dd HH:mm') : S(r.at);
     return { status: S(r.status) || '—', at: a };
@@ -805,7 +1062,7 @@ function recapPreviewOut_(now) {
       due: '', dueSaid: '', state: p.why })));
     const emails = plan.emails.filter(m => m.day === day).map(m => Object.assign({
       learner: m.learner, parent: m.parent, to: m.to, subject: m.subject, text: m.text, count: m.count,
-      due: m.due, dueSaid: said(day, m.due), state: stateOf(m.due) }, logged(day, m.learner_id, m.parent_id)));
+      due: m.due, dueSaid: said(day, m.due), state: stateOf(m.due), later: !!m.later }, logged(day, m.learner_id, m.parent_id, '', m.later)));
     const nobody = []
       .concat(plan.unreachable.filter(u => u.day === day).map(u => Object.assign({ name: u.name || nameOf(u.learner_id), why: u.why },
         { status: logged(day, u.learner_id, '').status })))
@@ -817,7 +1074,7 @@ function recapPreviewOut_(now) {
         name: (S(p.subject) || 'A session') + ' (' + p.job_id + ')', why: p.why, status: logged(day, '', '', p.job_id).status })));
     days.push({ day: day, label: recapShort_(day), sessions: sessions, emails: emails, nobody: nobody });
   }
-  return { success: true, mode: recapMode_(cfg), delay: delay, scheduled: recapScheduled_(),
+  return { success: true, mode: recapMode_(cfg), delay: delay, morning: recapMorning_(cfg), scheduled: recapScheduled_(),
            attempts: !noAttempts, logTab: !!log.sheet, warning: warning, from: from, to: clock.today, at: clock.at,
            days: days };
 }

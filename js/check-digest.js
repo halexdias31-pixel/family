@@ -23,6 +23,14 @@
      · `digestPreview` IS AN ADMIN'S, and writes, sends and books nothing.
      · `markDone` KEEPS THE LABEL: tags out, capped, set where the row is written anyway — and a day
        already covered still writes nothing.
+     · THE PLAN CARRIES EACH QUESTION'S WORDS (SCHEMA.attempts `words`, for the daily email): a
+       practical's first box that has any, none that hold a link, an address or a domain anywhere in
+       them — the question still listed by its name — and none on an item not printed. SUNDAY'S EMAIL
+       IS NOT CHANGED BY THEM, byte for byte: it lists names.
+     · `DIGEST_WORDS_REFUSE` RULE BY RULE — a one-letter domain, a dot that is not a full stop, a
+       mobile, a landline as it is written, an account number, a sort code — words only under a key in
+       the library's shape, and EVERY QUESTION AND STEM IN data/questions.json, as the phone sends it,
+       refused by none of them.
 
    THROUGH THE REAL BACKEND on `check-gas-load.js`, with MailApp, ScriptApp and the clock stubbed so
    that nothing here can reach a mailbox, a project or the time of day. The people are invented and
@@ -174,6 +182,157 @@ function seeded(opts) {
     if (/\bdid \d/.test(pat.text) || /See them on the site/.test(pat.text)) bad.push('Pat’s email still says the child "did" N questions, or tells the parent to see them — ' + pat.text.split('\n')[2]);
     if (pat.html.indexOf('Fractions &amp; decimals') === -1) bad.push('the HTML body does not escape a label’s "&"');
     if (/<script|Fractions & decimals/.test(pat.html)) bad.push('the HTML body carries a label unescaped');
+  }
+}
+
+/* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND NOT SUNDAY'S -------------
+   *"emails all parents on work their child has done with the exact questions for each"* — the daily email
+   (backend/recap.gs) prints each question's `words`, and it gets them from this plan, so this is where a
+   practical's three boxes become one question's words and where phone text is turned away. The refusal is
+   `digestWordsSafe_`, over the WHOLE text: `digestSafe_` reads `attemptLabel_(s)`, which is the first 120
+   characters, and a question with a link on its second line passes it. A refusal costs the words and
+   never the question: it is still listed, by its name, and still counted. And Sunday's email lists names,
+   so words on the sheet must not move one byte of it. */
+{
+  const { b } = seeded();
+  const W1 = 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.';
+  /* A LINK PAST THE FIRST 120 CHARACTERS — where `digestSafe_` stops looking. */
+  const LATE = 'The diagram shows a right-angled triangle with sides of 6 cm and 8 cm, drawn accurately on squared paper below.\n---\nFor the answer, pay at www.pay-family.example';
+  const A = (q, label, words) => ({ person_id: 'P-S2', question_key: q, first_done: '2026-10-01', last_done: '2026-10-01', times: 1, label: label, words: words });
+  b.seed('attempts', [
+    A('q:BEN-W1', 'Maths · Probability · Q4a', W1),
+    /* ONE PRACTICAL'S THREE BOXES: the first with no words, the next two with different ones. */
+    A('pr:PR-CH02#iv', 'Chemistry · Required practical · Rates of reaction · Worksheet', ''),
+    A('pr:PR-CH02#dv', '', 'What is the dependent variable?'),
+    A('pr:PR-CH02#cv', '', 'Name two control variables.'),
+    /* WORDS THAT ARE A MESSAGE: a link, an address, a bare domain, and a link the label rule cannot see. */
+    A('q:BEN-W2', 'Maths · Equations · Q2', 'Solve 2x = 6\n---\nthen go to https://pay-family.example/now'),
+    A('q:BEN-W3', 'Maths · Equations · Q3', 'Questions? Write to office.family@example.org'),
+    A('q:BEN-W4', 'Maths · Equations · Q4', 'Answers at family-answers.com'),
+    /* AN `@` WITH NO DOMAIN AFTER IT — the business's own handle, which reads as the business speaking. */
+    A('q:BEN-W6', 'Maths · Equations · Q6', 'NOTICE FROM @family. fees are overdue'),
+    A('q:BEN-W5', 'Maths · Pythagoras · Q5', LATE),
+    /* A QUESTION NOT PRINTED AT ALL — no name, a key that is a sentence — carries no words to print. */
+    A('Tutor says hello', '', 'Work out 7 × 8.'),
+  ]);
+  const planOf = () => JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  asked++;
+  const plan = planOf();
+  const ben = plan.learners.find(x => x.id === 'P-S2') || {};
+  const items = [].concat(ben.fresh || [], ben.again || []);
+  const it = k => items.find(q => q.key === k) || null;
+  if (!it('q:BEN-W1') || it('q:BEN-W1').words !== W1) bad.push('the plan carries q:BEN-W1’s words as ' + JSON.stringify(it('q:BEN-W1') && it('q:BEN-W1').words) + ' — wanted them as the sheet holds them, stem, `---` and ask');
+  asked++;
+  const pr = it('pr:PR-CH02');
+  if (!pr || pr.words !== 'What is the dependent variable?') bad.push('a practical’s three boxes carry the words ' + JSON.stringify(pr && pr.words) + ' — wanted the first box that has any ("What is the dependent variable?"), not none and not the last');
+  asked++;
+  [['a link', 'q:BEN-W2', 'Maths · Equations · Q2'], ['an email address', 'q:BEN-W3', 'Maths · Equations · Q3'],
+   ['a bare domain', 'q:BEN-W4', 'Maths · Equations · Q4'], ['an @ and no domain', 'q:BEN-W6', 'Maths · Equations · Q6'],
+   ['a link past the first 120 characters', 'q:BEN-W5', 'Maths · Pythagoras · Q5']].forEach(([what, k, label]) => {
+    const q = it(k);
+    if (!q) { bad.push(k + ', whose words hold ' + what + ', is not in the plan at all — a refusal costs the words, never the question'); return; }
+    if (q.words) bad.push('words holding ' + what + ' are carried for ' + k + ': ' + JSON.stringify(q.words) + ' — phone text that is a message must not go out under the business’s name');
+    if (q.label !== label || q.hidden) bad.push(k + ', whose words hold ' + what + ', is listed as ' + JSON.stringify(q.label) + (q.hidden ? ' (hidden)' : '') + ' — wanted its name, "' + label + '", printed');
+  });
+  asked++;
+  const hid = items.find(q => q.hidden);
+  if (!hid) bad.push('the question with no printable name is not in the plan as hidden, so "an item not printed carries no words" was NOT checked');
+  else if (hid.words) bad.push('a question not printed carries words: ' + JSON.stringify(hid.words) + ' — only a question listed by its name may have them');
+  if (ben.count !== 1 + 1 + 1 + 5 + 1) bad.push('Ben’s count is ' + ben.count + ', wanted 9: his own, the new one, the practical once, the five with refused words and the one not printed — words change nothing counted');
+
+  /* SUNDAY'S EMAIL, WORDS OR NONE: the same subject, the same text, the same HTML. */
+  asked++;
+  const bo = plan.emails.find(m => m.to === 'bo@example.org');
+  const g = b.tabs.attempts, wi = g[0].indexOf('words');
+  g.slice(1).forEach(r => { r[wi] = ''; });
+  const bare = planOf();
+  const bo0 = bare.emails.find(m => m.to === 'bo@example.org');
+  if (!bo || !bo0) bad.push('Bo is not sent Ben’s week, so Sunday’s email was NOT compared with and without words');
+  else {
+    ['subject', 'text', 'html'].forEach(f => {
+      if (bo[f] !== bo0[f]) bad.push('Sunday’s email ' + f + ' changes with the words on the sheet — it lists names; with words: ' + JSON.stringify(String(bo[f]).slice(0, 300)));
+    });
+    ['probability of red', 'dependent variable', 'Work out 7', '---'].forEach(x => {
+      if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints a question’s words ("' + x + '") — it lists names only');
+    });
+    if (bo.text.indexOf('- Maths · Probability · Q4a') === -1 || bo.text.indexOf('- Maths · Pythagoras · Q5') === -1) bad.push('Sunday’s email does not list the questions by name: ' + bo.text.split('\n').slice(2, 14).join(' / '));
+  }
+  if (!(bare.learners.find(x => x.id === 'P-S2') || { fresh: [] }).fresh.every(q => q.words === '')) bad.push('with the words column blank, an item still carries words');
+}
+
+/* ---------- 2c. WHAT A QUESTION NEVER SAYS, RULE BY RULE — AND THE WHOLE LIBRARY THROUGH IT ---------------------
+   `DIGEST_WORDS_REFUSE` is wider than the name's rule, because the words are ten times longer and printed
+   under "@family." in a parent's inbox: a domain with one letter before its dot, a dot that is not a full
+   stop, a phone number, an account number, a sort code. Each one asked by itself, in the shape a person
+   types it. And words go out only under a key in the library's own shape — an invented key is somebody
+   typing into the sheet, and its "question" is whatever they typed. */
+{
+  const { b } = seeded();
+  const safe = s => b.ev('digestWordsSafe_(' + JSON.stringify(s) + ')');
+  asked++;
+  if (!safe('A bag holds 3 red beads and 5 blue beads.\n---\nFind P(red), e.g. as a fraction.')) bad.push('a plain question’s words are refused, so every refusal below proves nothing');
+  [['a domain with one letter before its dot', 'The answers are at x.com'], ['a short link', 'Watch t.co/4bXq before you start'],
+   ['a full-width dot', 'The answers are at evil．com'], ['an ideographic full stop', 'The answers are at evil。com'],
+   ['a UK mobile', 'Text 07700 900123 for the answers'], ['a UK mobile written +44', 'Text +44 7700 900123 for the answers'],
+   ['a London landline, as it is written', 'Ring 020 7946 0018 to pay'], ['a landline written +44', 'Ring +44 20 7946 0018 to pay'],
+   ['a landline outside London', 'Ring 0161 496 0000 to pay'], ['an account number', 'Pay into account 31926819'],
+   ['a run of more than eight digits', 'Quote reference 1234567890'], ['a sort code', 'Sort code 20-00-00']].forEach(([what, s]) => {
+    asked++;
+    if (safe(s)) bad.push('words holding ' + what + ' — ' + JSON.stringify(s) + ' — pass digestWordsSafe_, and would go to parents under the business’s name');
+  });
+
+  /* THE KEY'S SHAPE: the same safe name and plain words under a key from the library and under a key
+     somebody typed. Both are listed by name; only the first carries its words. */
+  const A = (q, label, words) => ({ person_id: 'P-S2', question_key: q, first_done: '2026-10-01', last_done: '2026-10-01', times: 1, label: label, words: words });
+  b.seed('attempts', [A('q:BEN-K1', 'Maths · Tables · Q1', 'Work out 7 × 8.'), A('Homework from Sam', 'Maths · Tables · Q2', 'Work out 6 × 9.')]);
+  asked++;
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const items = [].concat(...plan.learners.filter(x => x.id === 'P-S2').map(x => (x.fresh || []).concat(x.again || [])));
+  const lib = items.find(q => q.key === 'q:BEN-K1'), typed = items.find(q => q.key === 'Homework from Sam');
+  if (!lib || lib.words !== 'Work out 7 × 8.') bad.push('a question under a library key does not carry its words: ' + JSON.stringify(lib) + ' — so the key-shape ask below proves nothing');
+  if (!typed) bad.push('the question under an invented key is not in the plan at all — refusing the words must not cost the question');
+  else {
+    if (typed.words) bad.push('a question under an invented key ("Homework from Sam") carries words: ' + JSON.stringify(typed.words) + ' — only a key in DIGEST_KEY_SHAPE may');
+    if (typed.label !== 'Maths · Tables · Q2' || typed.hidden) bad.push('the question under an invented key is listed as ' + JSON.stringify(typed.label) + ' — wanted its safe name, printed');
+  }
+}
+{
+  /* EVERY QUESTION AND STEM IN THE LIBRARY, AS THE PHONE SENDS IT — and not one refused. The comment over
+     `DIGEST_WORDS_REFUSE` says each rule was measured so; this measures it every run, so a rule widened
+     tomorrow cannot quietly cost real questions their words in every parent's email. The text is the
+     phone's own: `doneWordsPlain_` and the constants above it, read out of js/find.js and run over jsdom,
+     then `attemptWords_`, as markDone keeps it — the html and the lead of every question and preamble. */
+  asked++;
+  let plain = null;
+  try {
+    const { JSDOM } = require('jsdom');
+    const src = fs.readFileSync(path.join(REPO, 'js', 'find.js'), 'utf8');
+    const i = src.indexOf('const DONE_WORDS_STEM'), f = src.indexOf('function doneWordsPlain_(', i), j = src.indexOf('\n}\n', f);
+    if (i !== -1 && f !== -1 && j !== -1) {
+      /* ONE ELEMENT, REUSED: the same parse and the same `textContent` as a document per text, measured
+         identical over the whole library, in half the time. */
+      const div = new JSDOM('').window.document.createElement('div');
+      const Parser = function () { return { parseFromString: s => { div.innerHTML = s; return { body: { textContent: div.textContent } }; } }; };
+      plain = new Function('DOMParser', src.slice(i, j + 2) + '\nreturn doneWordsPlain_;')(Parser);
+    }
+  } catch (e) { plain = null; }
+  let qs = [];
+  try { qs = JSON.parse(fs.readFileSync(path.join(REPO, 'data', 'questions.json'), 'utf8')); } catch (e) { qs = []; }
+  const texts = [];
+  if (plain) qs.filter(q => q && (q.kind === 'question' || q.kind === 'preamble')).forEach(q => ['html', 'lead'].forEach(f => {
+    if (q[f]) texts.push({ id: q.row_id + ' ' + f, text: plain(q[f]) });
+  }));
+  if (!plain || texts.length < 5000) bad.push('the library’s words could not be made (' + (plain ? texts.length + ' texts' : 'doneWordsPlain_ not found in js/find.js, or no jsdom') + '), so DIGEST_WORDS_REFUSE was NOT measured against it — not a pass');
+  else {
+    /* HANDED IN AS A GLOBAL, not pasted into the source: nine thousand texts in one `ev` string is a
+       megabyte of JavaScript to parse for nothing. */
+    const { b, G } = world();
+    G.__libTexts = texts.map(t => t.text);
+    const which = JSON.parse(JSON.stringify(b.ev('__libTexts.map(t => { const w = attemptWords_(t); const i = DIGEST_WORDS_REFUSE.findIndex(re => re.test(w));'
+      + ' return i === -1 ? null : [i, (w.match(DIGEST_WORDS_REFUSE[i]) || [""])[0]]; })')));
+    const hit = [];
+    which.forEach((x, n) => { if (x) hit.push(texts[n].id + ' (rule ' + x[0] + ': ' + JSON.stringify(x[1]) + ')'); });
+    if (hit.length) bad.push(hit.length + ' of the library’s ' + texts.length + ' question and stem texts are refused by DIGEST_WORDS_REFUSE — each would reach parents as a number with no words: ' + hit.slice(0, 5).join('; '));
   }
 }
 

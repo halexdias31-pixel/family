@@ -155,10 +155,11 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look, o) {
     if (!pid || !q) return;
     const first = isoDate_(r.first_done), last = isoDate_(r.last_done);
     const id = pid + '\u0001' + q, J = joined[id];
-    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: tidy(r.label), times: N(r.times) || 1 }; return; }
+    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: tidy(r.label), words: attemptWords_(r.words), times: N(r.times) || 1 }; return; }
     if (first && (!J.first || first < J.first)) J.first = first;
     if (last && last > J.last) J.last = last;
     if (!J.label) J.label = tidy(r.label);
+    if (!J.words) J.words = attemptWords_(r.words);
     J.times = Math.max(J.times, N(r.times) || 1);
   });
 
@@ -176,7 +177,12 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look, o) {
        is counted and not listed — it is in "…and N more" — rather than dropped, so the number the
        email gives stays true. */
     const label = digestSafe_(J.label) ? J.label : DIGEST_KEY_SHAPE.test(J.key) ? J.key : '';
-    const item = { key: J.key, label: label, hidden: !label, last: J.last, times: J.times };
+    /* AND THE QUESTION'S WORDS (SCHEMA.attempts), by the same rule over the whole of them: phone text
+       with a link or an address in it is not printed. Only the daily email prints them; Sunday's lists
+       names. Blank is a real answer — a row from before the phone sent them — and the name stands alone. */
+    /* AND ONLY UNDER A KEY IN THE LIBRARY'S OWN SHAPE: an invented key cannot carry a paragraph. */
+    const words = label && DIGEST_KEY_SHAPE.test(J.key) && digestWordsSafe_(J.words) ? J.words : '';
+    const item = { key: J.key, label: label, words: words, hidden: !label, last: J.last, times: J.times };
     (fresh ? L.fresh : L.again).push(item);
   });
 
@@ -233,8 +239,11 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look, o) {
     if (L.why) { unreachable.push({ id: pid, name: L.name, count: L.count, why: L.why }); return; }
     L.to.forEach(p => {
       const m = render(L, p, week, look);
+      /* `keys` ARE WHICH QUESTIONS IT CARRIED — the daily email keeps them on its receipt, so the next
+         morning's follow-up can leave them out (recap.gs, `recapLaterGroups_`). */
       emails.push({ week: week.start, learner_id: pid, parent_id: p.id, learner: L.name, parent: p.name,
-                    to: p.email, subject: m.subject, text: m.text, html: m.html, count: L.count });
+                    to: p.email, subject: m.subject, text: m.text, html: m.html, count: L.count,
+                    keys: L.fresh.concat(L.again).map(i => i.key) });
     });
   });
   learners.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -327,6 +336,15 @@ function digestEsc_(s) {
 function digestSafe_(s) {
   const t = attemptLabel_(s);
   return !!t && !/:\/\/|\bwww\.|@|\b[a-z0-9-]{2,}\.[a-z]{2,}\b/i.test(t);
+}
+
+/* `digestSafe_` FOR A QUESTION'S WORDS — the same refusal over the WHOLE text. `digestSafe_` asks it of
+   `attemptLabel_(s)`, which is the first 120 characters with every `<…>` gone, so a link in the second
+   line of a question would pass it. Measured: not one question or stem in data/questions.json is
+   refused, so the rule costs no real question its words. */
+function digestWordsSafe_(s) {
+  const t = attemptWords_(s);
+  return !!t && !DIGEST_WORDS_REFUSE.some(re => re.test(t));
 }
 
 /* THE BUSINESS'S NAME AND THE SITE'S ADDRESS — each from the one place it is written, each with the

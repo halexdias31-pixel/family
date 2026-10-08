@@ -240,7 +240,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-07-b-merged";
+const BACKEND_VERSION = "2026-10-08-a-everyday";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -370,11 +370,12 @@ const SCHEMA = {
        starts. `no` (or anything that is not blank/yes/true/1, which is `ON_`) is this parent asking
        to stop, and it is the one cell that does it. Read on the PARENT's row, never the child's. */
     "weekly_email",
-    /* THE EMAIL AFTER A SESSION, PER PARENT — backend/recap.gs. Blank is on; `no` (anything not `ON_`)
-       is this parent asking to stop. Read on the PARENT's row. Separate from weekly_email, so stopping
-       one does not stop the other: a parent who wants Sunday's summary and not an email after every
-       lesson — or the other way round — has one cell for each. `ensureSchema` appends it at the end
-       of the live tab; its place here is only where it is read beside its sibling. */
+    /* THE DAILY EMAIL, PER PARENT — backend/recap.gs: after each session, and the next morning for any
+       other day of work. Blank is on; `no` (anything not `ON_`) is this parent asking to stop. Read on
+       the PARENT's row. Separate from weekly_email, so stopping one does not stop the other: a parent
+       who wants Sunday's summary and not an email every day — or the other way round — has one cell
+       for each. `ensureSchema` appends it at the end of the live tab; its place here is only where it
+       is read beside its sibling. */
     "session_email",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
@@ -1223,6 +1224,18 @@ const SCHEMA = {
     "person_id", "question_key",
     "first_done", "last_done", "times",
     "label",
+    /* `words` IS THE QUESTION ITSELF, AS A PARENT READS IT. *"emails all parents on work their child has
+       done with the exact questions for each"* — a name like `Paper 1 · Q3` says which question, not
+       what it asked, and the backend still cannot look a key up. So the phone sends the words it is
+       drawing as it marks the question (`doneWords_` in js/find.js): the question's own stem, a line
+       holding only `---`, then the part's own ask; a picture it cannot carry is said in a bracket at
+       the end. Plain text, `ATTEMPT_WORDS_MAX` at most, filled into a blank cell and never rewritten,
+       exactly as `label` is. WHO CAN WRITE IT is what keeps it in one family: the row is the person the
+       sign-in token resolved to, so a phone writes only its own child's rows, and those go only to that
+       child's parents. Text that reads like a message rather than a question (a link, a phone number, an
+       account number) is never printed — `digestWordsSafe_`. To have a row's words written again, clear
+       the cell: the next time its learner loads the site the phone fills it. Appended, for `ensureSchema`. */
+    "words",
   ],
 
   /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS ---------------------------------------------------
@@ -1270,6 +1283,9 @@ const SCHEMA = {
     "day", "learner_id", "parent_id", "job_ids", "due",
     "to", "subject", "questions",
     "status", "at", "note",
+    /* WHICH QUESTIONS A SENT EMAIL CARRIED, comma-separated keys, so a session day's next-morning
+       follow-up (`recapLaterGroups_`, `job_ids` = `later`) can say only what came after. Appended. */
+    "question_keys",
   ],
 
   /* ---------- SPOTLIGHT: THE SAME SHAPE AS A FAVOURITE WITH THE PERSON TAKEN OUT -----------------
@@ -1556,8 +1572,14 @@ const CONFIG_DEFAULTS = [
      longer is the next day's email and the Sunday one already covers that. The reserve is NOT its
      own: `weekly_digest_reserve` above is one floor under both emails, because the PIN reset it
      protects does not care which of them spent the quota. */
-  ['session_recap', 'off', 'the email to parents after each booked session: off, preview (written to the recap_log tab, nothing sent) or send. Anything else = off'],
+  /* AND EVERY OTHER DAY OF WORK, ONE SWITCH FOR BOTH. *"emails all parents on work their child has done
+     with the exact questions for each"* — so a day with questions and no lesson is emailed too, the NEXT
+     MORNING at `session_recap_morning`, because the sheet keeps days and not times: an evening hour
+     would spend that day's receipt before the homework done after it. One child, one day, one email,
+     whichever of the two made it — a session day is still the email two hours after the session. */
+  ['session_recap', 'off', 'the daily email to parents about their child’s questions — after each booked session, and the next morning for any other day of work: off, preview (written to the recap_log tab, nothing sent) or send. Anything else = off'],
   ['session_recap_delay', 2, 'hours after a child’s last session of the day before their parents’ email goes, 0-12, blank = 2. Checked hourly, so it lands up to an hour later'],
+  ['session_recap_morning', 7, 'the hour (London, 0-9) the email about a day of questions with no session goes, the next morning — and a session day’s follow-up, for what was done after its email. Blank = 7. Checked hourly, so it lands up to an hour later'],
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
@@ -2069,6 +2091,10 @@ const ATTEMPTS_PER_POST = 50;
    characters; this is room for the longest the library has with a margin, and a ceiling on what one
    request can put in a cell a parent's email prints. See SCHEMA.attempts. */
 const ATTEMPT_LABEL_MAX = 120;
+/* AND A QUESTION'S WORDS — SCHEMA.attempts. 99% of the library's questions are under 520 characters
+   with their stem; a stem that is a whole extract (an English insert) is cut, and the email cuts again
+   to what fits a phone's screen (`RECAP_WORDS_SHOWN`). */
+const ATTEMPT_WORDS_MAX = 1200;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ------------------------------------------
    `DIGEST_MODES` is the whole vocabulary of `weekly_digest` on the config tab, OFF FIRST: anything not
@@ -2088,6 +2114,24 @@ const DIGEST_LIST_MAX = 30;
    against every row_id in data/questions.json. The slot after a `#` is gone before this is asked. */
 const DIGEST_KEY_SHAPE = /^[a-z]{1,4}:[A-Za-z0-9][A-Za-z0-9()_-]{0,100}$/;
 
+/* `digestWordsSafe_` (digest.gs): WHAT A QUESTION NEVER SAYS AND A MESSAGE PRETENDING TO BE FROM THE BUSINESS DOES. Wider than the
+   name's rule because the words are ten times longer and several lines, printed under "@family." in a
+   parent's inbox: a domain with ONE letter before the dot (x.com, t.co), a dot that is not a full stop
+   (．。｡), a phone number, a run of eight or more digits (an account number), a sort code. Each was
+   measured against every question and stem in data/questions.json: not one is refused. A refused text
+   is not printed and the question still is, by its number. */
+const DIGEST_WORDS_REFUSE = [
+  /:\/\/|\bwww\.|@/i,
+  /\b[a-z0-9-]+\.[a-z]{2,}\b/i,
+  /[A-Za-z0-9][\uFF0E\u3002\uFF61\u2024][A-Za-z]/,
+  /(?:\+44\s?7\d{3}|\b07\d{3})\s?\d{3}\s?\d{3}\b/,
+  /* A LANDLINE AS IT IS WRITTEN: `020 7946 0018`, London's 3-4-4, passed the 4-3-4 this was, and so did
+     `+44 20 7946 0018`. Still not one library question refused (check-digest.js measures it). */
+  /(?:\+44\s?|\b0)[12]\d{1,3}\s?\d{3,4}\s?\d{3,4}\b/,
+  /\b\d{8,}\b/,
+  /\b\d\d-\d\d-\d\d\b/,
+];
+
 /* ---------- THE EMAIL AFTER EACH SESSION — see backend/recap.gs ----------------------------------------
    `RECAP_RUN` is the hourly trigger's handler by name, written once for `DIGEST_RUN`'s reason: the
    trigger is found and deleted by this string. `RECAP_LATE_HOURS` is how long after it fell due an
@@ -2100,6 +2144,11 @@ const RECAP_RUN = 'sessionRecapRun';
 const RECAP_LATE_HOURS = 24;
 const RECAP_PREVIEW_DAYS = 7;
 const RECAP_UNNAMED = 'someone else';
+/* HOW MUCH OF A QUESTION'S WORDS THE EMAIL PRINTS — its own ask, and the stem it shares with its other
+   parts, printed once above them. Enough for 95% of the library whole; the rest end in "…" and the
+   link to the site, where the question is drawn with its picture. */
+const RECAP_WORDS_SHOWN = 400;
+const RECAP_STEM_SHOWN = 300;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
    `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the

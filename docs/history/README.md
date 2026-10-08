@@ -294,3 +294,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The funnel draws a list whole, and the tags are smaller](290-the-funnel-draws-a-list-whole-and-the-tags-are-smaller.md)
 - [The email after a session goes two hours after the child's last lesson of the day, to the parents who accepted them, about that day](291-the-email-after-a-session-goes-two-hours-after-the-child-s-la.md)
 - [The Bible is asked like everything else: six questions, and a card a verse](292-the-bible-is-asked-like-everything-else.md)
+- [An @family. textbook for every common GCSE, bare bones, beside Statistics](293-a-family-textbook-for-every-common-gcse.md)
+- [The daily email to parents: every day of work, with each question's own words](294-the-daily-email-to-parents-every-day-of-work-with-the-questions-words.md)

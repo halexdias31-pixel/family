@@ -1092,13 +1092,6 @@ const FACETS = [
      EVERY RESOURCE NAMES ITS SHELF, which is why the boxers and the bouts say `Boxing` in their
      mappers. A shelf only some of the list had would fail the coverage rule and never be asked. */
   { field: 'shelf',     label: 'Shelf',       always: true, of: x => x.shelf || '' },
-  /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
-     which is right — the list IS the book. The second book makes it a question with no deploy.
-     ASKED AFTER `Subject` SINCE THE SHELF HOLDS A BOOK FOR EVERY GCSE: its row in
-     `data/settings/facets.json` sits below Subject's, so the shelf asks Maths / English / Science …
-     first and a subject with one book ends the funnel on it. Twenty-four book titles in one list
-     would be the reading the cap exists to spare. */
-  { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
   /* ---------- THE BIBLE'S SIX QUESTIONS, IN THE OWNER'S ORDER -----------------------------------------
      *"tags in finder. should go translation e.g. kjv, then old testament or new, then group the books,
      e.g. torah, pauline epistles ect. then the book titles e.g. genises, eodus. then the chapters, e.g.
@@ -1146,6 +1139,14 @@ const FACETS = [
      `RETIRED_FACETS`, which stops a sheet row reading the column back off whatever else has one. */
   { field: 'subject',
     bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
+  /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
+     which is right — the list IS the book. The second book makes it a question with no deploy.
+     ASKED AFTER `Subject` SINCE THE SHELF HOLDS A BOOK FOR EVERY GCSE, so the shelf asks Maths /
+     English / Science … first and a subject with one book ends the funnel on it. Twenty-four book
+     titles in one list would be the reading the cap exists to spare. HERE AND IN THE SHEET: its row in
+     `data/settings/facets.json` is below Subject's too, and this list is the order whenever that file
+     is not read — the app's own journeys boot without it, and asked Book first. */
+  { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
   /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED --------------------------------------------
      STRAIGHT AFTER `Subject`, because "Maths, and it is about fractions" is how somebody says what
      they are looking for — and because `nextFacet` walks this list IN ORDER, so anything below the
@@ -6530,6 +6531,16 @@ function attemptsCan_() {
       && DATA.features.indexOf('markDone') !== -1);
   } catch (e) { return false; }
 }
+/* WHETHER THE BACKEND KEEPS A QUESTION'S WORDS: the code says it can (`attemptWords` in
+   `DATA.features`) AND the live tab has the column (`keepsWords` on this person's attempts, which
+   `attemptsFor_` reads off the tab's headers). Either missing and nothing is sent — a backend synced
+   before `ensureSchema` ran would otherwise be sent every row's words on every visit, for nothing. */
+function attemptWordsOn_() {
+  try {
+    return !!(DATA && Array.isArray(DATA.features) && DATA.features.indexOf('attemptWords') !== -1
+      && DATA.attempts && DATA.attempts.keepsWords);
+  } catch (e) { return false; }
+}
 function attemptsAdopt_(pid, got) {
   if (!DATA || !got || typeof got !== 'object') return;
   let a = DATA.attempts;
@@ -6537,7 +6548,14 @@ function attemptsAdopt_(pid, got) {
     a = { for: String(pid), mine: {} };
     try { DATA.attempts = a; } catch (e) { return; }
   }
-  Object.keys(got).forEach(q => { if (got[q] && DAY_ISO.test(String(got[q].last || ''))) a.mine[q] = got[q]; });
+  /* THE FLAGS SURVIVE THE REPLY. `named` and `worded` say a row has its name and its words; a reply
+     from a backend that does not send them must not wipe what the load said, or every row just named
+     looks unnamed again and `attemptsSync_` sends it again. */
+  Object.keys(got).forEach(q => {
+    if (!got[q] || !DAY_ISO.test(String(got[q].last || ''))) return;
+    const was = a.mine[q] || {};
+    a.mine[q] = Object.assign({}, was.named ? { named: 1 } : {}, was.worded ? { worded: 1 } : {}, got[q]);
+  });
 }
 function attemptSend_(items) {
   if (!items || !items.length || !attemptsCan_() || typeof api !== 'function') return Promise.resolve(false);
@@ -6560,6 +6578,12 @@ function attemptSend_(items) {
    sheet holds for them, and comparing against it would send everything every time. Once per person
    per visit; a failure clears the mark so the next load tries again. */
 let ATTEMPTS_SYNCED = '';
+/* EVERY KEY THIS VISIT HAS ALREADY SENT, per person. MEASURED: with more than fifty rows to name, the
+   second pass found the same fifty still unnamed (the reply carried no flag) and sent them again, and
+   again, with no end — 25 requests before the test stopped it. A key goes up once a visit now, whatever
+   the reply says, so each pass takes the next fifty and the last pass finds nothing left. Once it has
+   GONE UP: a refused request takes its keys back out (below), because a refusal sent nothing. */
+const ATTEMPTS_SENT = {};
 function attemptsSync_() {
   if (!attemptsCan_()) return;
   const pid = String(USER.personId);
@@ -6584,21 +6608,39 @@ function attemptsSync_() {
      as a day already covered (it writes the name and nothing else, see `attemptsUpsert_`). A key no
      card on this phone answers to goes up without, as before. */
   const who = typeof whoIs_ === 'function' ? whoIs_() : '';
-  const named = q => who ? doneLabel_('ans:' + who + ':' + q) : '';
+  /* ONE LOOKUP TABLE FOR THE WHOLE PASS — `doneIndex_` — not a scan of the library per row. */
+  let index = null;
+  const look = () => index || (index = doneIndex_());
+  const named = q => who ? doneLabel_('ans:' + who + ':' + q, look()) : '';
+  /* ---------- AND EACH ONE'S WORDS, FOR THE DAILY EMAIL --------------------------------------------
+     *"with the exact questions for each"* — SCHEMA.attempts `words`, sent the same way as the name and
+     only to a backend that keeps them (`attemptWordsOn_`), so a phone ahead of the deploy does not
+     resend every row on every visit for a column that is not there. A row the sheet already has
+     words for is never given them again. */
+  const wordsOn = attemptWordsOn_();
+  const worded = q => who && wordsOn && !(a.mine[q] && a.mine[q].worded) ? doneWords_('ans:' + who + ':' + q, look()) : '';
+  /* SENT IS A KEY AND ITS DAY: a key that went up this visit with Monday is still due to go with
+     Tuesday, if the child did it again while a later pass was refused. */
+  const sent = ATTEMPTS_SENT[pid] || (ATTEMPTS_SENT[pid] = new Set());
+  const tag = x => x.key + '|' + x.day;
   const items = Object.keys(have).map(k => ({ key: k.slice(pre.length), day: String(have[k] || '') }))
-    .filter(x => x.key && DAY_ISO.test(x.day) && !(a.mine[x.key] && String(a.mine[x.key].last || '') >= x.day));
-  items.forEach(x => { const l = named(x.key); if (l) x.label = l; });
+    .filter(x => x.key && !sent.has(tag(x)) && DAY_ISO.test(x.day) && !(a.mine[x.key] && String(a.mine[x.key].last || '') >= x.day));
+  items.forEach(x => { const l = named(x.key); if (l) x.label = l; const w = worded(x.key); if (w) x.words = w; });
   Object.keys(a.mine).forEach(q => {
     const m = a.mine[q];
-    if (!m || m.named || !DAY_ISO.test(String(m.last || '')) || items.some(x => x.key === q)) return;
-    const l = named(q);
-    if (l) items.push({ key: q, day: String(m.last), label: l });
+    if (!m || !DAY_ISO.test(String(m.last || '')) || sent.has(tag({ key: q, day: String(m.last) })) || items.some(x => x.key === q)) return;
+    const l = m.named ? '' : named(q), w = m.worded ? '' : worded(q);
+    if (l || w) items.push(Object.assign({ key: q, day: String(m.last) }, l ? { label: l } : {}, w ? { words: w } : {}));
   });
   ATTEMPTS_SYNCED = pid;
   if (!items.length) return;
+  const batch = items.slice(0, ATTEMPTS_PER_POST);
+  batch.forEach(x => sent.add(tag(x)));
   attemptSend_(items).then(ok => {
-    /* MORE THAN ONE REQUEST'S WORTH: the reply has been adopted, so the next pass finds fewer. */
-    if (!ok) { ATTEMPTS_SYNCED = ''; return; }
+    /* MORE THAN ONE REQUEST'S WORTH: the reply has been adopted, so the next pass finds fewer.
+       A REFUSAL UN-MARKS ITS BATCH, so the next payload sends it again as it always has: kept marked,
+       a "Busy" or a phone that opened offline left those rows for the next visit, not the next load. */
+    if (!ok) { batch.forEach(x => sent.delete(tag(x))); ATTEMPTS_SYNCED = ''; return; }
     if (items.length > ATTEMPTS_PER_POST) { ATTEMPTS_SYNCED = ''; attemptsSync_(); }
   });
 }
@@ -6652,10 +6694,10 @@ function doneTier_(it) {
   if (said.indexOf('as') !== -1 || said.indexOf('aslevel') !== -1) return 'AS';
   return '';
 }
-function doneLabel_(k) {
+function doneLabel_(k, index) {
   try {
     const slot = /#[^#]*$/.test(k), base = slot ? k.replace(/#[^#]*$/, '') : k;
-    const it = stuffItemsAll_().find(y => ansKey_(y) === base);
+    const it = doneItem_(base, index);
     if (!it) return '';
     const subj = String(it.subject || '');
     let sub = String(it.sub || '').split(' · ').filter(x => !/^\d+ min$/.test(x.trim())).join(' · ');
@@ -6663,6 +6705,103 @@ function doneLabel_(k) {
     if (sub && tier && sub.toLowerCase().indexOf(tier.toLowerCase()) === -1) sub += ' (' + tier + ')';
     return [subj && sub.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', sub, it.name,
             slot ? 'Worksheet' : ''].filter(Boolean).join(' · ');
+  } catch (e) { return ''; }
+}
+
+/* ---------- THE QUESTION ITSELF, AS A PARENT WILL READ IT --------------------------------------------
+   *"emails all parents on work their child has done with the exact questions for each"*. The backend
+   cannot look a key up (SCHEMA.attempts), so the words go with the mark, the way the name does: the
+   question's own stem (question and letter scope — a paper's whole source text is not "the question"),
+   a line holding only `---`, then the part's lead and ask. The email prints the stem once above the
+   parts that share it and cuts each to what reads on a phone.
+
+   AS TEXT, WITH THE MATHS KEPT. A fraction is `3/4` and a power `x²` or `x^5`, never the `34` and `x2`
+   that stripping the tags leaves; a drawing's labels are not words of the question and go with it; a
+   picture is said in a bracket, because the email cannot draw it and the site can. Empty for a
+   practical's box — its name already says which worksheet.
+
+   A HALF OR AN INDEX MAY HOLD MARKUP, AND THE LIBRARY HAS A SECOND FRACTION. The first version read
+   only a half with no tag in it; measured over data/questions.json, that sent a parent another sum:
+     the stacked `.frac` span, as stored (147)        one third times five eighths was "13 × 58"
+     an italic letter in a denominator (28)           72 over n was "^72⁄n", a power
+     an italic index (102, in 80 questions)           2 to the x was "2x"
+   So both shapes are read with markup inside, a half or an index of more than one term is bracketed —
+   (7.902 − 8)/x and x^(n + 1), not 7.902 − 8/x and x^n + 1 — and a slash left standing is a plain one.
+   The fraction rule runs again after ² and ³, for the d²y over dx² whose halves hold an index. */
+const DONE_WORDS_STEM = 500, DONE_WORDS_ASK = 600;
+const DONE_FRAC_SPAN = /<span class="frac"><span class="frac-n">((?:(?!<\/?span\b)[\s\S])*)<\/span>(?:<span class="frac-s">[^<]*<\/span>)?<span class="frac-d">((?:(?!<\/?span\b)[\s\S])*)<\/span><\/span>/g;
+const DONE_FRAC_SUP = /<sup>((?:(?!<\/?sup\b)[\s\S])*)<\/sup>\s*(?:&frasl;|&#8260;|\u2044)\s*<sub>((?:(?!<\/?sub\b)[\s\S])*)<\/sub>/g;
+/* A HALF THAT ALREADY WEARS ITS OWN BRACKETS keeps them and gains no second pair: `5/((x − 9))` was the
+   library's `<sub>(x &minus; 9)</sub>` bracketed again. */
+const doneHalf_ = h => {
+  const bare = String(h).replace(/<[^>]*>/g, '').trim();
+  if (/^\(/.test(bare) && /\)$/.test(bare)) {
+    let depth = 0, whole = true;
+    for (let i = 0; i < bare.length; i++) {
+      if (bare[i] === '(') depth++;
+      else if (bare[i] === ')') { depth--; if (depth === 0 && i < bare.length - 1) { whole = false; break; } }
+    }
+    if (whole) return h;
+  }
+  return /\S\s+\S|[+\-\u2212]|&minus;/.test(bare) ? '(' + h + ')' : h;
+};
+/* SUPERSCRIPT AND SUBSCRIPT DIGITS, for an index or a subscript that is only digits: `x₁`, `⁴√`. */
+const DONE_SUP_DIG = '\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079', DONE_SUB_DIG = '\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089';
+const doneDigits_ = (t, map) => t.replace(/\d/g, d => map[+d]);
+const doneFrac_ = (m, n, d) => doneHalf_(n) + '/' + doneHalf_(d);
+function doneWordsPlain_(html) {
+  const s = String(html || '')
+    .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
+    .replace(DONE_FRAC_SPAN, doneFrac_)
+    .replace(DONE_FRAC_SUP, doneFrac_)
+    .replace(/<sup>2<\/sup>/g, '\u00b2').replace(/<sup>3<\/sup>/g, '\u00b3')
+    .replace(DONE_FRAC_SUP, doneFrac_)
+    /* AN ORDINAL IS NOT A POWER — "the 3rd term", not "the 3^rd term" — and a root's index sits on the
+       root, ⁴√, not ^4√. Then a subscript is a subscript: x₁, and x_(n + 1) for a term index — run
+       together, `xn+1` read as x·n plus 1. */
+    .replace(/<sup>\s*(st|nd|rd|th)\s*<\/sup>/gi, '$1')
+    .replace(/<sup>\s*(\d+)\s*<\/sup>(?=\s*\u221a|\s*&radic;)/g, (m, d) => doneDigits_(d, DONE_SUP_DIG))
+    .replace(/<sub>\s*(\d+)\s*<\/sub>/g, (m, d) => doneDigits_(d, DONE_SUB_DIG))
+    .replace(/<sub>((?:(?!<\/?sub\b)[\s\S])*)<\/sub>/g, (m, e) => '_' + doneHalf_(e))
+    .replace(/<sup>((?:(?!<\/?sup\b)[\s\S])*)<\/sup>/g, (m, e) => '^' + doneHalf_(e))
+    .replace(/&frasl;|&#8260;|\u2044/g, '/')
+    /* A TABLE KEEPS ITS CELLS APART, ` | ` between them and a row a line, because two spaces did not
+       survive the collapse below and "0 < t ≤ 10 20" is a class and its frequency run together. */
+    .replace(/<\/t[dh]>\s*(?=<t[dh]\b)/gi, ' | ')
+    .replace(/<(br|\/p|\/li|\/div|\/tr|\/h\d|\/table)\b[^>]*>/gi, '\n');
+  let t = '';
+  try { t = new DOMParser().parseFromString(s, 'text/html').body.textContent || ''; }
+  catch (e) { t = s.replace(/<[^>]*>/g, ' '); }
+  return t.split('\n').map(l => l.replace(/[ \t\u00a0]+/g, ' ').trim()).filter(Boolean).join('\n');
+}
+/* THE CARD FOR AN ANSWER KEY. `index` is a Map built once by a caller doing many — `attemptsSync_`
+   names and words every row on the first visit after a deploy, and a scan of the library per row was
+   measured at 7.5 ms each, seconds for a learner with hundreds. One caller, one Map. */
+function doneItem_(k, index) {
+  if (index) return index.get(k) || null;
+  return stuffItemsAll_().find(y => ansKey_(y) === k) || null;
+}
+function doneIndex_() {
+  const m = new Map();
+  try { stuffItemsAll_().forEach(y => { const a = ansKey_(y); if (a && !m.has(a)) m.set(a, y); }); } catch (e) {}
+  return m;
+}
+function doneWords_(k, index) {
+  try {
+    if (/#[^#]*$/.test(k)) return '';
+    const it = doneItem_(k, index);
+    if (!it || it.kind !== 'question') return '';
+    const own = st => st && st.q !== undefined && st.q !== null && st.q !== '';
+    const stems = (it.stems || []).filter(own);
+    const cap = (t, n) => (t.length > n ? t.slice(0, n - 1).trim() + '…' : t);
+    const stem = cap(stems.map(st => doneWordsPlain_(st.html)).filter(Boolean).join('\n'), DONE_WORDS_STEM);
+    let ask = cap([it.lead, it.html].map(doneWordsPlain_).filter(Boolean).join('\n'), DONE_WORDS_ASK);
+    /* THE SITE'S OWN TEST FOR A PICTURE (`questionHasFig_`, `stemHasFig_`), never the `figure` cell: that
+       is a transcriber's one-word tag — "table", "boxes" — and 622 questions with it draw no picture,
+       so a parent would be sent to look for one that is not there. */
+    const pic = questionHasFig_(it) || stems.some(stemHasFig_);
+    if (pic) ask += (ask ? ' ' : '') + '(picture on the site)';
+    return stem ? stem + '\n---\n' + ask : ask;
   } catch (e) { return ''; }
 }
 
@@ -6674,7 +6813,10 @@ function doneMark_(k) {
   DONE_HELD.set(dk, today);
   try { localStorage.setItem(dk, today); } catch (e) {}
   const label = doneLabel_(k);
-  attemptSend_([Object.assign({ key: doneQKey_(k), day: today }, label ? { label: label } : {})]);
+  /* THE WORDS ONLY TO A BACKEND THAT KEEPS THEM — `attemptWords` in `DATA.features`, the gate the
+     backlog uses — so a phone ahead of the deploy does not post a paragraph with every Check. */
+  const words = attemptWordsOn_() ? doneWords_(k) : '';
+  attemptSend_([Object.assign({ key: doneQKey_(k), day: today }, label ? { label: label } : {}, words ? { words: words } : {})]);
   /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
   document.querySelectorAll('.qcard-done').forEach(el => {
     if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);
