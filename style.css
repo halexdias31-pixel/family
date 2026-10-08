@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-find-keeps-up";
+  --css-version: "2026-10-08-answers-signin";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -802,6 +802,34 @@ input:disabled, select:disabled, textarea:disabled {
 textarea { min-height: 5.8rem; resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
+/* ---------- A WRONG PIN SAYS WHICH BOX -----------------------------------------------------------------
+   The toast still says it (the owner's choice, docs/history/134); the box it was about is emptied,
+   focused and edged in `--bad` until the next keystroke, so a child on an iPad retypes without hunting
+   for the field or deleting four dots first. `aria-invalid` is what a screen reader hears, and what
+   `do-signin` sets — one attribute, not a class beside it to keep in step. */
+input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var(--bad); }
+/* ---------- THE PIN, AS DOTS, WITHOUT BEING A PASSWORD -------------------------------------------------
+   `type="password"` IS WHAT SAFARI OFFERS TO SAVE TO iCLOUD KEYCHAIN — on a shared iPad, every child's
+   PIN into the owner's keychain, and then offered back to whichever child taps the box. So where the
+   browser can draw dots on an ordinary text box, it is one (`signInCard_` in me.js asks `CSS.supports`),
+   and Safari has no password field to remember. Where it cannot, the box stays `password`, with
+   `autocomplete="off"`. */
+.pin-dots { -webkit-text-security: disc; text-security: disc; letter-spacing: .2em; }
+/* ---------- THE HANDLES THIS DEVICE HAS SIGNED IN, AS CHIPS ----------------------------------------------
+   Switching child on a shared iPad was: tap the box, type the handle, tap the PIN, type it. A chip per
+   handle that has signed in here (HANDLES ONLY — never a PIN) makes it one tap and the PIN, and its ✕
+   forgets it. Buttons, not tiles: they are a form's controls, filling in the box under them. 44px each,
+   in px, because a fingertip does not scale with the root. */
+.hchips { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .75rem; min-width: 0; }
+.hchip { display: inline-flex; align-items: stretch; min-width: 0; max-width: 100%;
+  border: 1px solid var(--line); border-radius: 22px; background: var(--sunk); overflow: hidden; }
+.hchip button { min-height: 44px; border: 0; background: transparent; color: var(--ink);
+  font: 500 .9rem/1 var(--font); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hchip-pick { padding: 0 .35rem 0 .9rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hchip-pick b { color: var(--gold); font-weight: 600; }
+.hchip-drop { min-width: 44px; color: var(--dim); font-size: .85rem; }
+.hchip button:active { background: var(--line); }
+.hchip.is-on { border-color: var(--gold); }
 /* `.dob-cap` IS IN THIS GROUP RATHER THAN BESIDE IT. A date of birth is three boxes under one
    caption, and `fieldHtml`'s own `<span>` is INSIDE the `<label>` so it cannot draw one over a row
    — but a second rule saying the same six declarations is six chances to drift, and the first
@@ -13241,6 +13269,8 @@ button.scr-sq { cursor: pointer; }
 /* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
    than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: 6px 14px 0; }
+/* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
+.qp-compose > .qp-saved { margin: 2px 14px 0; }
 
 /* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
    TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
@@ -13274,6 +13304,23 @@ button.scr-sq { cursor: pointer; }
 .qp-mark.is-near  .qp-verdict { color: var(--warn); }
 .qp-mark.is-right .qp-verdict::before { content: "\2713"; margin-right: .4rem; font-weight: 700; }
 .qp-mark.is-near  .qp-verdict::before { content: "\21BB"; margin-right: .4rem; font-weight: 700; }
+
+/* ---------- WHERE THE ANSWER WENT -------------------------------------------------------------------
+   *"it doesnt seem to save their answers"* and *"i feel very insecure when signing into the kids
+   accounts"* — the answer WAS kept, on that iPad, and nothing on the screen said so or said whose it
+   was. One line under the box, from `ansSavedSay_` (js/answers.js): "Saved to Ada’s account",
+   "Saving…", or "On this device only — sign in to keep it". Small and `--faint`, the voice every
+   caption on the card already uses, because it is a reassurance and not a control.
+
+   ONE LINE, RESERVED, so nothing moves — the rule 261 made for the verdict. The line is there and empty
+   before anything is typed, and "Saving…" becoming "Saved…" is one line becoming another of the same
+   height. `nowrap` with an ellipsis rather than a wrap: at 320 the longest sentence just fits, and a
+   long first name must cost letters, never a second line under the box. */
+.qp-saved {
+  display: block; min-height: 1.3em; margin: .15rem 0 0; min-width: 0;
+  font: 400 .72rem/1.3 var(--font); color: var(--faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* ---------- THE MATHS BOX: THE ANSWER DRAWN, THE INPUT INVISIBLE OVER IT ---------------------------
    See keypad.js. `.kp-show` is what is read — drawing the value through `typeset_` so a fraction

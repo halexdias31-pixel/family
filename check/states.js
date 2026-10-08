@@ -1544,6 +1544,83 @@ const STATES = {
         DATA.aiMarking = false;
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
+    /* ---------- WHERE A TYPED ANSWER IS KEPT, SAID UNDER THE BOX ----------------------------------------
+       *"it doesnt seem to save their answers"* and *"i am very dissapointed it didnt have his answers
+       already written in when he went to see them on the computer"* — js/answers.js. Two states, one per
+       visitor: SIGNED IN, the box on a fresh device filled from the account by `answersPull_` and the line
+       under it naming whose account it is on; SIGNED OUT, an answer typed and the line saying it is on
+       this device only. The fixture is a deployment from before `saveAnswers`, and its signed-in visitor
+       has no token, so both are lent for the length of the state — and `api` answers `myAnswers` the way
+       the backend does — and put back. Measured at 320 because the line is one line and must stay one. */
+    { name: 'a typed answer, filled from the account on another device',
+      only: () => typeof USER !== 'undefined' && !!USER && !!USER.personId,
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        const k = ansKey_(it);
+        window.__svKey = k;
+        try { localStorage.removeItem(k); localStorage.removeItem('ansAt:' + k); } catch (e) {}
+        /* NOT DUE EITHER — the states above typed into this same box signed in, and an answer still due
+           on this device wins over the account's (`answersAdopt_`), which is the rule, not this state. */
+        ansDirtySet_(whoIs_()).delete(k); ansDirtyKeep_(whoIs_());
+        window.__svFeat = DATA.features;
+        DATA.features = (DATA.features || []).concat(['saveAnswers', 'myAnswers']);
+        window.__svTok = !USER.token;
+        if (window.__svTok) USER.token = 'state-token';
+        window.__svApi = api;
+        api = (b, o) => (b && b.action === 'myAnswers')
+          ? Promise.resolve({ success: true, for: String(USER.personId),
+              answers: { [ansServerKey_(k)]: { v: '4.6', at: Date.now() - 3600e3 } } })
+          : (b && b.action === 'saveAnswers') ? Promise.resolve({ success: true, saved: {} })
+          : window.__svApi(b, o);
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        answersPull_(true);
+      },
+      expect: () => {
+        const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__svKey);
+        const line = [...document.querySelectorAll('#s-stuff .qp-saved')].find(b => b.getAttribute('data-k') === window.__svKey);
+        return !!inp && inp.value === '4.6' && !!line && /^Saved to .+account$/.test(line.textContent);
+      },
+      wants: 'Q0664\u2019s box filled with 4.6 from the account, and "Saved to \u2026\u2019s account" under it on one line',
+      leave: () => {
+        if (window.__svApi) api = window.__svApi;
+        DATA.features = window.__svFeat;
+        if (window.__svTok && USER) delete USER.token;
+        try { localStorage.removeItem(window.__svKey); localStorage.removeItem('ansAt:' + window.__svKey); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a typed answer, kept on this device only',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        window.__svKey = ansKey_(it);
+        try { localStorage.removeItem(window.__svKey); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const run = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__svKey);
+          if (!inp) return false;
+          inp.value = '4.6';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const line = [...document.querySelectorAll('#s-stuff .qp-saved')].find(b => b.getAttribute('data-k') === window.__svKey);
+        return !!line && line.textContent === 'On this device only \u2014 sign in to keep it';
+      },
+      wants: 'Q0664 typed into signed out, and "On this device only \u2014 sign in to keep it" under the box on one line',
+      leave: () => {
+        try { localStorage.removeItem(window.__svKey); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
@@ -2085,6 +2162,64 @@ const STATES = {
       },
       wants: 'the register sheet with the no-email tick ticked, a whole 44px row under the email box',
       leave: () => { closeSheet(); } },
+    /* ---------- SIGNING IN ON A SHARED iPAD -------------------------------------------------------------
+       *"the logging in and everything feels so janky and unresponsive and slow… i feel very insecure when
+       signing into the kids accounts"* (docs/history/296). Three pictures of the card nobody signed in
+       sees: the handles this device has signed in as chips, Sign in pressed and waiting, and a wrong PIN
+       — the box emptied, focused and edged red. `api` answers `verifyLogin` for the length of the state
+       (never, or with the server's wrong-PIN refusal) and is put back. */
+    { name: 'the handles signed in on this device, as chips',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        localStorage.setItem('familyHandles', JSON.stringify(['ada_kind7', 'maximilian_steady42']));
+        paint('account'); paintPager('account', true); goPage('account', 0, true);
+      },
+      expect: () => {
+        const b = [...document.querySelectorAll('#s-account .hchip button')];
+        return b.length === 4 && b.every(x => x.offsetHeight >= 44) ? 4 : 0;
+      },
+      wants: 'two remembered handles as chips over the email box, each with its \u2715, every one a 44px target',
+      leave: () => { try { localStorage.removeItem('familyHandles'); } catch (e) {} paint('account'); paintPager('account', true); } },
+    { name: 'signing in, waiting for the answer',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const n = document.getElementById('in-name'), p = document.getElementById('in-pin');
+        if (!n || !p) throw new Error('no sign-in card on the signed-out account column');
+        window.__siApi = api;
+        api = (b, o) => (b && b.action === 'verifyLogin') ? new Promise(() => {}) : window.__siApi(b, o);
+        n.value = 'ada_kind7'; p.value = '4826';
+        ACTIONS['do-signin'](document.querySelector('#s-account [data-do="do-signin"]'));
+      },
+      expect: () => {
+        const t = document.querySelector('#s-account [data-do="do-signin"]');
+        const p = document.getElementById('in-pin');
+        return !!t && t.classList.contains('is-busy') && !!p && p.disabled;
+      },
+      wants: 'Sign in pressed and waiting: its ring turning, the boxes locked and still readable',
+      leave: () => { if (window.__siApi) api = window.__siApi; paint('account'); paintPager('account', true); } },
+    { name: 'a wrong PIN, the box emptied and edged red',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const n = document.getElementById('in-name'), p = document.getElementById('in-pin');
+        if (!n || !p) throw new Error('no sign-in card on the signed-out account column');
+        window.__wpApi = api;
+        api = (b, o) => (b && b.action === 'verifyLogin')
+          ? Promise.resolve({ success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
+          : window.__wpApi(b, o);
+        n.value = 'ada_kind7'; p.value = '1239';
+        ACTIONS['do-signin'](document.querySelector('#s-account [data-do="do-signin"]'));
+      },
+      expect: () => {
+        const p = document.getElementById('in-pin');
+        return !!p && p.value === '' && p.getAttribute('aria-invalid') === 'true' && document.activeElement === p;
+      },
+      wants: 'the PIN box emptied, focused and edged in --bad after a wrong PIN, the handle kept',
+      leave: () => {
+        if (window.__wpApi) api = window.__wpApi;
+        const p = document.getElementById('in-pin');
+        if (p) { p.removeAttribute('aria-invalid'); p.blur(); }
+        paint('account'); paintPager('account', true);
+      } },
     /* ---------- A CHILD WITH NO HANDLE, ON AN ADMIN'S PEOPLE COLUMN ------------------------------------
        The card says "no handle yet" where the handle goes, and carries New PIN beside Message. Seeded
        into `DATA.everyone`, which the fixture does not carry, because the admin's list is built only

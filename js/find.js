@@ -6423,9 +6423,14 @@ function questionItems() {
    holds 134 nodes. Wrong for the reason this file keeps repeating: I reasoned about the DOM instead
    of asking it.
 
-   NOT SENT ANYWHERE, and the label says "Your answer" rather than anything promising otherwise.
-   There is no endpoint that takes one and no tab to hold it, so this is a workbook and not a
-   submission.
+   AND NOW IT IS SENT, TO THE ACCOUNT. This paragraph said "NOT SENT ANYWHERE … there is no endpoint
+   that takes one and no tab to hold it, so this is a workbook and not a submission" — and the owner,
+   on a pupil's iPad: *"i am very dissapointed it didnt have his answers already written in when he went
+   to see them on the computer"*. Signed in, every answer is kept on the person's row of the `answers`
+   tab as well (`ansStore_`, js/answers.js) and filled in on whichever device they open next. The
+   browser's copy is still what a box is drawn from — it is right on the first frame, offline, and
+   through every repaint — and the account is what follows the child. Still a workbook and not a
+   submission: nothing is marked by being saved.
 
    EVERY READ AND WRITE IS WRAPPED. Private mode THROWS on `localStorage` rather than returning
    null, and a thrown getter here would take the whole results list down with it. */
@@ -6447,7 +6452,8 @@ function questionItems() {
    same as the tutor -- which is the ordinary behaviour of every other surface here and is what
    `changePin` and the roster are for.
 
-   THE OLD UNPREFIXED KEY IS STILL READ, once, and it can only ever fill a box that is empty. */
+   THE OLD UNPREFIXED KEY IS STILL READ, once, and it can only ever fill a box that is empty — and it
+   is MOVED to whoever is signed in when it is read, never copied. See `ansRead_`. */
 function whoIs_() {
   try {
     if (typeof USER !== 'undefined' && USER && (USER.personId || USER.name)) {
@@ -6467,10 +6473,24 @@ function ansRead_(k) {
   try {
     const v = localStorage.getItem(k);
     if (v !== null) return v;
-    /* BEFORE THERE WAS A WHO, every answer lived under the bare key. Read it once so nobody's
-       working vanishes the day the name box appears; it is copied forward on the next keystroke. */
-    const bare = k.replace(/^ans:[^:]*:/, 'ans:');
-    return (bare !== k && localStorage.getItem(bare)) || '';
+    /* ---------- AN ANSWER TYPED BEFORE ANYBODY SIGNED IN, FOUND AND MOVED -----------------------------
+       THIS LOOKED IN THE WRONG PLACE FOR AS LONG AS THE KEY HAS HELD A PERSON ID. It was
+       `/^ans:[^:]*:/`, written when the key held one typed name (`ans:Ada:q:X`); the key is
+       `ans:u:P7:q:X` now — two segments — so it took off `ans:u:` and looked for `ans:P7:q:X`, which
+       no answer has ever been stored under. A child who answered before signing in signed in and found
+       the box empty: one half of *"i just relogged in as [the child] … and i dont see his answers"*.
+
+       MOVED, NOT COPIED — `padAdopt_`'s rule for the pen. The answer becomes this person's (and goes up
+       to their account with the rest, through `ansStore_`), and the signed-out copy goes: a copy left
+       behind would be read by the next child to sign in on the same iPad, which is the fault itself
+       carried forward. Only into an empty box — a box this person has written in keeps theirs. */
+    const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
+    if (bare === k) return '';
+    const was = localStorage.getItem(bare);
+    if (was === null) return '';
+    if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
+    localStorage.removeItem(bare);
+    return was;
   } catch (e) { return ''; }
 }
 
@@ -6483,9 +6503,10 @@ function ansRead_(k) {
    holds what they wrote, `done:<who>:<key>` the day they last wrote it, Checked it or tapped an
    option. THAT WAS `localStorage` ONLY, and is now the floor under the sheet's copy: the owner
    asked for it on the spreadsheet, so a tutor can see it and it follows the student to another
-   phone. The ANSWER still stays here -- see `ansBox_` -- which is why another phone can say
-   `Done 4 Oct` over an empty box: the date is a record that the work happened, not the work. See
-   "AND NOW THE SHEET HAS IT TOO" below.
+   phone. The ANSWER went with it only on 8 October -- it said here "the ANSWER still stays here", and
+   that is why another phone could say `Done 4 Oct` over an empty box, which the owner found on the
+   computer. Both follow the child now: the date on `attempts`, the answer on `answers` (js/answers.js).
+   See "AND NOW THE SHEET HAS IT TOO" below.
 
    SIGNED IN, OR NOTHING. "Per person" needs a person: the signed-out key is everybody who ever
    picked the phone up, and "Done 4 Oct" on it would be a claim about nobody in particular.
@@ -7409,13 +7430,31 @@ function choiceBox_(x) {
          (`questionsView_`): the answers are the Answers chip, so that is what it names. */
       ? (ok ? 'Correct' : 'Not yet — see Answers')
       : ''}</span>
-  </div>` : ''}`;
+  </div>` : ''}
+  <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>`;
 }
 
 /* A tap picks; on "choose two" a second tap adds and a tap on a chosen one takes it back off. Once
    a marked question is answered it is settled: a second go after "Not yet" -- or after Show on the
    answer page -- would make "Correct" a thing anybody can reach by elimination. "Start again" is
    clearing the box. */
+/* THE OPTIONS DRAWN AGAIN FROM THE STORED PICK, where they stand — the verdict row and the saved line
+   under them replaced with them, or the old ones would stay beside the new. A tap does this, and so does
+   a pick arriving from the account on another device (`ansRefresh_`, js/answers.js). */
+function choiceRedraw_(box) {
+  const k = box && box.getAttribute('data-k');
+  const x = k && stuffItemsAll_().find(it => ansKey_(it) === k);
+  if (!x) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = choiceBox_(x);
+  for (let n = box.nextElementSibling; n && (n.classList.contains('qp-mark') || n.classList.contains('qp-saved'));) {
+    const next = n.nextElementSibling;
+    n.remove();
+    n = next;
+  }
+  box.replaceWith(...wrap.childNodes);
+}
+
 on('qp-choose', (el) => {
   const box = el.closest('.qp-choices');
   const card = el.closest('.qcard');
@@ -7428,17 +7467,11 @@ on('qp-choose', (el) => {
   if (right && picked.length >= need) return;
   if (need === 1) picked = [n];
   else picked = picked.includes(n) ? picked.filter(v => v !== n) : picked.concat(n);
-  try { localStorage.setItem(k, picked.join(',')); } catch (err) {}
+  /* THROUGH `ansStore_`, the one writer — kept here, and on the account (js/answers.js). */
+  ansStore_(k, picked.join(','));
   /* ENOUGH CHOSEN IS AN ATTEMPT, marked or not -- see `doneMark_`. */
   if (picked.length >= need) doneMark_(k);
-  const x = stuffItemsAll_().find(it => ansKey_(it) === k);
-  if (!x) return;
-  const wrap = document.createElement('div');
-  wrap.innerHTML = choiceBox_(x);
-  const mark = box.nextElementSibling && box.nextElementSibling.classList.contains('qp-mark')
-    ? box.nextElementSibling : null;
-  if (mark) mark.remove();
-  box.replaceWith(...wrap.childNodes);
+  choiceRedraw_(box);
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. It did, from 263 on; the verdict on this card --
      "Correct" with your pick ticked, or "Not yet" with nothing ticked -- is the answer to "was I
      right", and the page after opens when somebody taps "Show the answer" and not before. See
@@ -7500,10 +7533,12 @@ function ansBox_(x) {
     ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
       rows="1" placeholder="Type your answer" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
   </label>${fig}${send}</div>`;
-  if (!send) return `<div class="qp-compose">${bar}</div>`;
+  if (!send) return `<div class="qp-compose">${bar}
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
   return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
     ${bar}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
 }
 
@@ -7559,13 +7594,17 @@ on('qp-check', (el) => {
 
 
 /* SAVED AS IT IS TYPED, through a delegated listener rather than a handler per box — there are
-   thousands of these and only one of them is ever being typed into. No Save button, because there
-   is nothing to save it TO and a button that only wrote to the same browser would be a promise the
-   app cannot keep. */
+   thousands of these and only one of them is ever being typed into. STILL NO SAVE BUTTON, though there
+   is something to save it to now: the account, signed in (`ansStore_`). Typing IS saving — on the device
+   at once, on the account a moment later and at once on Check or leaving the box — and the line under
+   the box says which has happened (`ansSavedSay_`). A button would be a second way to do what already
+   happens, and the one people would forget to press. */
 document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (!el) return;
-  try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
+  /* THROUGH `ansStore_`, which keeps it here exactly as before and, signed in, sends it to the account a
+     second and a half after the last keystroke (js/answers.js). */
+  ansStore_(el.getAttribute('data-k') || '', el.value || '');
   /* WRITING AN ANSWER IS DOING THE QUESTION, and 427 of them have no Check to press (no `accept`),
      so the box is where most of the library is "done". Empty is not an attempt. */
   if (String(el.value || '').trim()) doneMark_(el.getAttribute('data-k') || '');
@@ -7662,7 +7701,8 @@ function padAdopt_(k, bare) {
     if (localStorage.getItem(k) !== null) return;
     const v = localStorage.getItem(bare);
     if (v === null) return;
-    localStorage.setItem(k, v);
+    /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
+    if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
     localStorage.removeItem(bare);
   } catch (e) {}
 }
@@ -7866,7 +7906,7 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    <p class="qpad-note">Kept on this phone only, like the answer box.</p>
+    <p class="qpad-note">${esc(padKeptSay_())}</p>
   </div>`;
 }
 
@@ -8107,7 +8147,8 @@ function padEnd_(e) {
   if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k); all.push(st);
-  try { localStorage.setItem(k, JSON.stringify(all)); } catch (err) {}
+  /* `ansStore_`, the one writer: here, and on the account (js/answers.js). */
+  ansStore_(k, JSON.stringify(all));
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -8162,7 +8203,7 @@ on('pad-undo', (el) => {
   const all = padRead_(k);
   if (!all.length) { toast('Nothing to undo'); return; }
   all.pop();
-  try { localStorage.setItem(k, JSON.stringify(all)); } catch (err) {}
+  ansStore_(k, JSON.stringify(all));
   padRepaint_(pad, all);
 });
 
@@ -8170,7 +8211,8 @@ on('pad-clear', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   if (!padRead_(k).length) return;
-  try { localStorage.removeItem(k); } catch (err) {}
+  /* CLEARED IS A VALUE TOO — sent as nothing, so the drawing goes from the other device as well. */
+  ansStore_(k, null);
   padRepaint_(pad, []);
   toast('Cleared');
 });
@@ -8478,9 +8520,7 @@ on('qw-tap', (el) => {
   const i = all.indexOf(w);
   if (i >= 0) all.splice(i, 1); else all.push(w);
   CIRC_HELD.set(k, all.slice());
-  try {
-    if (all.length) localStorage.setItem(k, JSON.stringify(all)); else localStorage.removeItem(k);
-  } catch (err) {}
+  ansStore_(k, all.length ? JSON.stringify(all) : null);
   /* EVERY COPY OF THE WORD, on every page built, by key -- the card and a page of the same question
      peeking under it are two copies of one passage, and a ring on one only would be the two pages
      disagreeing. In place, so the passage does not move under the finger. */
@@ -9077,7 +9117,7 @@ function chunkHtml_(chunk, circ) {
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
-        the ring off. Kept on this phone only, like the answer box.</p>` : ''}`;
+        the ring off. ${esc(padKeptSay_())}</p>` : ''}`;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */

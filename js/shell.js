@@ -284,12 +284,18 @@ try {
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch {}
 
+/* ---------- THE COLUMN BEFORE THIS ONE ---------------------------------------------------------------
+   So signing in can put you back where you came from (`signedIn_` in me.js) — a child who swiped across
+   to the account column to sign in was left there, on a list of tutors, with the question they were on
+   two swipes away. Written only when the column actually changes. */
+let PREV_AT = '';
 function go(id, remember, instant) {
   const tab = TABS.find(t => t.id === id)
            || TABS.find(t => t.id === TAB_HOME)
            || TABS[0];
   const was = AT;
   AT = tab.id;
+  if (was && was !== AT) PREV_AT = was;
   if (remember !== false) {
     try {
       localStorage.setItem('familyTab', AT);
@@ -591,6 +597,11 @@ function paint(id) {
      me.js, beside the forms it asks about; signed out it always answers no, so signing out clears
      the column as it always did. */
   if (typeof settingsKeep_ === 'function' && settingsKeep_(id)) { STALE[id] = 1; return; }
+  /* ---------- AND FIND IS NOT REDRAWN UNDER A CHILD WHO IS WRITING ------------------------------------
+     The same rule for the answer box: a payload landing fifteen seconds after "Signed in" rebuilt the
+     column with the keypad up, and the box it was typing into was gone (diag-signin, A). `findKeep_`
+     (js/answers.js) says when, and draws it again a moment after the box is left. */
+  if (typeof findKeep_ === 'function' && findKeep_(id)) { STALE[id] = 1; return; }
   /* Drawn is fresh, by definition, whoever asked for it. */
   delete STALE[id];
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
@@ -2771,6 +2782,9 @@ function adoptMarks_() {
   /* AND THE DONE DATES THIS PHONE HAS THAT THE SHEET DOES NOT — see `attemptsSync_` in find.js. Here
      for the same reason as the two above: `DATA` is the payload that has just landed. */
   try { attemptsSync_(); } catch (e) {}
+  /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
+     waiting for the account goes up with it. See `answersPull_` in js/answers.js. */
+  try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) {}
 }
 
 const pages = (id, cards) =>
@@ -3074,7 +3088,9 @@ function why_(err) {
     : 'The server did not answer, so nothing was saved. Try again in a minute.';
 }
 
-function api(body) {
+/* `opts.keepalive` — a request the browser finishes after the page has gone, for the last answers sent as
+   an iPad's cover closes (`answersPush_` in js/answers.js). Nothing else passes it. */
+function api(body, opts) {
   /* ---------- THE TOKEN GOES ON EVERY REQUEST, FROM ONE PLACE ------------------------------------
      ADDED HERE BECAUSE EVERY WRITE IN THE APP COMES THROUGH THIS FUNCTION. Threading it through
      forty call sites would mean forty chances to forget one, and the one forgotten is a feature
@@ -3085,7 +3101,8 @@ function api(body) {
      the gate decides which actions need one. */
   const b = Object.assign({}, body);
   if (!b.token && typeof USER === 'object' && USER && USER.token) b.token = USER.token;
-  return fetch(API, { method: 'POST', cache: 'no-store', body: JSON.stringify(b) })
+  return fetch(API, Object.assign({ method: 'POST', cache: 'no-store', body: JSON.stringify(b) },
+                                  opts && opts.keepalive ? { keepalive: true } : {}))
     /* ---------- A REPLY THAT IS NOT JSON IS STILL A REPLY -------------------------------------
        `r.json()` ON AN APPS SCRIPT ERROR PAGE THROWS `Unexpected token '<'`, which is how a
        perfectly clear server-side error — a missing column, a bad id, a permission — arrived on
@@ -3120,11 +3137,12 @@ function api(body) {
          shows somebody signed in, which reads as the app being broken rather than as a sign-in to
          do. So the phone forgets the account the way Sign out does, once, and says why. A code rather
          than the sentence, so a reworded refusal cannot turn this off. */
+      /* THROUGH `signedOut_` (me.js), THE ONE WAY OUT — this branch cleared `USER` and nothing else, so
+         the person's inbox, stars and done dates outlived a session the server had already ended. */
       if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
-        USER = null;
-        try { localStorage.removeItem('familyUser'); } catch (e) {}
+        if (typeof signedOut_ === 'function') { try { signedOut_(); } catch (e) {} }
+        else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
         toast('Signed out — please sign in again');
-        try { repaint(); } catch (e) {}
       }
       return d || {};
     });
@@ -3650,6 +3668,8 @@ async function bootJson_(res) {
   }
 }
 
+/* WHETHER A GOOD PAYLOAD HAS EVER BEEN PAINTED — see the end of `load()`. */
+let FIRST_PAINT_DONE = false;
 async function load() {
   try {
     /* The person's id goes with the request so the server can say which posts YOU liked — it
@@ -4079,11 +4099,21 @@ async function load() {
 
      `repaint` now paints the neighbours as part of the sequence, so this is one line rather than
      three and cannot fall out of step with it. */
-  TABS.forEach(t => {
-    if (t.id === AT) return;
-    const el = $('s-' + t.id);
-    if (el) el.innerHTML = '';
-  });
+  /* ---------- ONCE, NOT ON EVERY LOAD ------------------------------------------------------------------
+     THE SKELETONS ARE A FACT ABOUT THE FIRST PAYLOAD. After it, every column already holds real markup,
+     and emptying all eleven made `repaint` below rebuild all eleven in one go — measured on the iPad
+     (diag-signin), 0.5–0.6 s of frozen main thread at full speed and 2 s at 4× slower, landing fifteen
+     to thirty-five seconds after "Signed in", usually under a child already swiping or typing. That is
+     the *"janky and unresponsive"* in the owner's sentence. From the second good payload on, `repaint`
+     alone: it draws the column in front and marks the rest stale, and `go` draws each on arrival. */
+  if (!FIRST_PAINT_DONE) {
+    TABS.forEach(t => {
+      if (t.id === AT) return;
+      const el = $('s-' + t.id);
+      if (el) el.innerHTML = '';
+    });
+  }
+  if (!LOAD_FAILED) FIRST_PAINT_DONE = true;
 
   /* AND THE WHOLE SEQUENCE, in the one order it may happen in — see `repaint`. */
   repaint();

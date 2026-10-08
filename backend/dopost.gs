@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-08-b-weeklyonly";
+const DOPOST_VERSION = "2026-10-08-c-answers";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4042,8 +4042,16 @@ function doPost(e) {
        `POST_WROTE` — and that is right for a price or a post, which every phone shows. A done
        question is in exactly two payloads: the student's own and an admin's. Bumping the generation
        for it would make the next visitor of every kind rebuild thirty tabs because a child typed an
-       answer, twenty times an evening. So those two are retired by key (`retirePayloadOf_`) and the
-       flag is put back. */
+       answer, twenty times an evening.
+
+       ---------- AND NOW IT RETIRES NOBODY'S ----------------------------------------------------------
+       IT USED TO RETIRE THOSE TWO BY KEY (`retirePayloadOf_`), and that was the slow half of *"the
+       logging in and everything feels so janky and unresponsive and slow"*: a child's first Check of
+       the evening threw their whole stored payload away, so the next sign-in or reload on any device
+       was a cold rebuild — measured at fifteen to thirty-five seconds — for want of one date. The
+       stored body no longer carries `attempts` at all: `doGet` adds them fresh for the token's person
+       on every answer, hit or miss (`payloadWithAttempts_`), so there is nothing here to go stale and
+       the flag is simply put back. */
     if (action === 'markDone') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
@@ -4063,11 +4071,59 @@ function doPost(e) {
         lock.releaseLock();
       }
       if (out.error) return jsonOut({ error: out.error });
-      if (POST_WROTE && !wroteBefore) {
-        POST_WROTE = false;
-        retirePayloadOf_([S(me.person_id)].concat(adminIds_()));
-      }
+      if (POST_WROTE && !wroteBefore) POST_WROTE = false;
       return jsonOut({ success: true, attempts: out.attempts });
+    }
+
+    /* ---------- WHAT THE CHILD WROTE, KEPT ON THEIR ACCOUNT -------------------------------------------
+       *"i just relogged in as [the child] after having done the questions earlier and i dont see his
+       answers there"* — and on the computer, *"it didnt have his answers already written in"*. The phone
+       sends what changed (debounced, and at once on Check, on leaving a box and on the app going to the
+       background — `answersPush_` in js/answers.js); this keeps one row per person per answer key in
+       SCHEMA.answers, and `myAnswers` below hands them back on the next device.
+
+       THE PERSON IS THE TOKEN'S, the `markDone` rule: `accessDenied` has overwritten `body.personId`, so
+       a request naming another child writes the sender's own row. No token, no row.
+
+       THE LATER EDIT WINS, and the reply says which won. A phone that was offline for an hour and sends
+       an older answer gets the newer one back instead of writing over it (`answersUpsert_`).
+
+       UNDER THE SCRIPT LOCK, for `markDone`'s reason: two devices finding no row and both appending is
+       two rows for one answer. Refused rather than written unlocked — the phone keeps the key dirty and
+       sends it again.
+
+       AND IT RETIRES NO PAYLOAD. Answers are not in the payload at all — a child's work is theirs, and
+       the payload is cached and shared by key — so the flag `addRow` and `setCells` raise is put back,
+       as `markDone` does, and no visitor rebuilds because a child typed. */
+    if (action === 'saveAnswers') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+      const items = (Array.isArray(body.items) ? body.items : []).slice(0, ANSWERS_PER_POST);
+      if (!items.length) return jsonOut({ error: 'No answer to save.' });
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — it will be sent again.', why: 'busy' });
+      let out = {};
+      const wroteBefore = POST_WROTE;
+      try {
+        /* FRESH ROWS UNDER THE LOCK, as `markDone` reads them. */
+        clearCache();
+        out = answersUpsert_(S(me.person_id), items);
+      } finally {
+        lock.releaseLock();
+      }
+      if (POST_WROTE && !wroteBefore) POST_WROTE = false;
+      if (out.error) return jsonOut({ error: out.error });
+      return jsonOut({ success: true, saved: out.saved });
+    }
+
+    /* ---------- AND READ BACK, BY THE PERSON WHO WROTE THEM AND NOBODY ELSE ------------------------------
+       `for` IS WHO THEY ARE FOR, which the phone checks before it fills a single box: a reply that lands
+       after the iPad has been handed to the next child is about the last one. No parent, tutor or admin
+       read — the owner can open the sheet, and if a view is ever wanted it is a separate `admin` action. */
+    if (action === 'myAnswers') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+      return jsonOut({ success: true, for: S(me.person_id), answers: answersFor_(S(me.person_id)) });
     }
 
     /* ---------- WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK ---------------------------------------
@@ -4783,6 +4839,21 @@ function loginReplyFor_(r, token, extra) {
      that had values, and the next Save on those pages wrote the blanks back — reported as "some
      things arent updating when i click save". `location` went with it: nothing on the phone reads
      `profile.location`. */
+  /* ---------- AND WHAT THE PAYLOAD WOULD HAVE BROUGHT FIFTEEN SECONDS LATER ---------------------------
+     *"the logging in and everything feels so janky and unresponsive and slow"*. Measured on a shared
+     iPad: "Signed in" at 2.5 s, then the person's Done dates, stars and family only when their own
+     `doGet` landed — 15 to 35 s later, as a freeze, often under a child already typing. They are four
+     small reads of rows that are this person's and nobody else's, so they come with the sign-in, in
+     exactly the shapes `doGet` sends (`attemptsFor_`, `favouritesOf_`, `familyOf_`), and the phone lays
+     them over `DATA` behind the same `for` checks the payload's copies pass (`signedIn_` in me.js).
+
+     AND THE ANSWERS, so the boxes on the screen fill with "Signed in" rather than a round trip later
+     (`answersFor_`). Each read is its own `try`: a tab that is missing or a read that fails costs that
+     one key, never the sign-in. */
+  try { out.attempts = attemptsFor_(r, hasRole(r, 'admin')); } catch (err) {}
+  try { out.favourites = favouritesOf_(r); } catch (err) {}
+  try { const fam = familyOf_(r); out.family = fam.family; out.familyFor = fam.familyFor; } catch (err) {}
+  try { out.answers = answersFor_(meId); } catch (err) {}
   if (extra) Object.assign(out, extra);
   return jsonOut(out);
 }
@@ -4864,6 +4935,93 @@ function attemptsUpsert_(pid, items) {
   return { attempts: out };
 }
 
+/* ---------- ONE ROW PER PERSON PER ANSWER, THE LATER EDIT WINNING ------------------------------------------
+   `items` is `[{ key, v, at }]` — the phone's answer key with the person taken out (`ans:q:<row>`,
+   `pad:q:<row>`, …), the value as text, and the moment the child made the edit in ms. Returns
+   `{ saved: { <key>: { v, at } } }` with the WINNER for every key it accepted — the value it wrote, or
+   the newer one already there — or `{ error }` before anything is written. See SCHEMA.answers.
+
+   WHAT IS REFUSED, and left out of `saved` so the phone can tell: a key that is not an answer's (only
+   `ans:` and `pad:`, 120 characters at most — anything else is not a box this site drew), and a value
+   over its ceiling (`ANSWER_TEXT_MAX`, `ANSWER_PAD_MAX`). Never cut: half a drawing is not a drawing.
+
+   THE PHONE'S CLOCK, NEVER AHEAD OF THE SERVER'S. An iPad whose clock runs a day fast would otherwise
+   win every argument for a day. A missing or nonsense `at` is now.
+
+   WHICH CELLS MOVE:
+     · no row                         → a row                                       (one append)
+     · a later edit                   → value, edited_at, saved_at                  (one write)
+     · the same edit again            → nothing — a retried request writes nothing
+     · an older edit                  → nothing, and the reply carries the newer one back
+
+   THE VALUE GOES IN AS TEXT, ALWAYS — a leading apostrophe whatever it holds, because `cellSafe_` only
+   protects a formula and `3/4`, `2,4` and `0.50` are not formulas. The apostrophe is the sheet's own
+   "this is text" and is not part of what comes back. */
+function answerAtMs_(v) {
+  if (v instanceof Date) return isNaN(v) ? 0 : v.getTime();
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  const t = Date.parse(S(v));
+  return isNaN(t) ? 0 : t;
+}
+function answersUpsert_(pid, items) {
+  const t = read(TAB.answers);
+  if (!t.sheet) return { error: 'The sheet has no answers tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  const now = Date.now();
+  /* THIS PERSON'S ROWS, ONCE — not a scan of the whole tab per item. */
+  const mine = {};
+  t.rows.forEach(r => {
+    if (key(r.person_id) !== key(pid)) return;
+    const k = S(r.answer_key);
+    if (k && (!mine[k] || answerAtMs_(r.edited_at) > answerAtMs_(mine[k].edited_at))) mine[k] = r;
+  });
+  const saved = {};
+  items.forEach(it => {
+    const k = S(it && it.key);
+    if (!/^(ans|pad):/.test(k) || k.length > 120) return;
+    const v = (it && it.v !== undefined && it.v !== null) ? String(it.v) : '';
+    if (v.length > (/^pad:/.test(k) ? ANSWER_PAD_MAX : ANSWER_TEXT_MAX)) return;
+    let at = Math.floor(Number(it && it.at));
+    if (!isFinite(at) || at <= 0 || at > now) at = now;
+    const iso = new Date(at).toISOString();
+    const row = mine[k];
+    if (!row) {
+      const made = addRow(t, { person_id: pid, answer_key: k, value: "'" + v, edited_at: "'" + iso, saved_at: new Date(now) });
+      /* THE ROW IN MEMORY HOLDS WHAT WAS MEANT, not the apostrophe — a second item for the same key in
+         this request compares against it. */
+      if (made) { made.value = v; made.edited_at = iso; mine[k] = made; }
+      saved[k] = { v: v, at: at };
+      return;
+    }
+    const was = answerAtMs_(row.edited_at);
+    const had = S(row.value);
+    if (at < was) { saved[k] = { v: had, at: was }; return; }
+    if (at === was && v === had) { saved[k] = { v: v, at: at }; return; }
+    setCells(t, row, { value: "'" + v, edited_at: "'" + iso, saved_at: new Date(now) });
+    row.value = v; row.edited_at = iso;
+    saved[k] = { v: v, at: at };
+  });
+  return { saved: saved };
+}
+
+/* EVERY ANSWER ONE PERSON HAS ON THE SHEET, `{ <key>: { v, at } }` — for `myAnswers` and the sign-in reply.
+   A key on two rows (only possible by hand) is the later edit. No tab is no answers: a backend synced
+   before `ensureSchema` ran must still sign people in. */
+function answersFor_(pid) {
+  const out = {};
+  if (!S(pid)) return out;
+  const t = read(TAB.answers);
+  if (!t.sheet) return out;
+  t.rows.forEach(r => {
+    if (key(r.person_id) !== key(pid)) return;
+    const k = S(r.answer_key);
+    if (!k) return;
+    const at = answerAtMs_(r.edited_at);
+    if (out[k] && out[k].at >= at) return;
+    out[k] = { v: S(r.value), at: at };
+  });
+  return out;
+}
+
 /* A QUESTION'S NAME AS A PARENT WILL READ IT, FROM WHATEVER THE PHONE SENT. It came off a phone and
    goes into an email, so: no tags (the HTML email escapes it as well — this is the cell, which a
    person also reads), one space where there were several, and `ATTEMPT_LABEL_MAX` at most. Blank
@@ -4887,7 +5045,5 @@ function attemptWords_(v) {
     .slice(0, ATTEMPT_WORDS_MAX).trim();
 }
 
-/* EVERY ADMIN'S PERSON ID — the other payload a done question appears in (`attemptsFor_`). */
-function adminIds_() {
-  return read(TAB.people).rows.filter(r => hasRole(r, 'admin') && S(r.person_id)).map(r => S(r.person_id));
-}
+/* `adminIds_` WAS HERE — every admin's person id, for `markDone` to retire their payloads by key. Nothing
+   is retired any more (see `markDone`), so nothing asks. */

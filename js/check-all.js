@@ -205,6 +205,10 @@ const SUITE = [
   /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
      from the token, and nobody sent another learner's — through the same backend. */
   { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. *"it didnt have his answers already written in when he went to
+     see them on the computer"* — the answers tab: the token's person, the later edit, every value as text,
+     and the sign-in reply carrying the child's own work. Same backend, same harness. */
+  { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. Nothing has ever sent one, which is why it is
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */

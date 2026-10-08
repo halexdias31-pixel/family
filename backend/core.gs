@@ -566,20 +566,11 @@ function clearPayloadCache() {
   } catch (err) {}
 }
 
-/* ---------- RETIRING A FEW PEOPLE'S PAYLOADS, NOT EVERYBODY'S ---------------------------------------
-   `clearPayloadCache` is the right answer to a write every phone shows, and far too much for one only
-   a handful of payloads carry — a done question is in its student's and an admin's, and bumping the
-   generation for it makes the next visitor of every kind wait for a rebuild. The key is
-   `payloadKey_`'s own, so this cannot name a different key from the one `doGet` stored under; the
-   index entry going is enough, because `cacheGet_` reads a missing index as a miss. */
-function retirePayloadOf_(ids) {
-  const c = payloadCache_();
-  if (!c) return;
-  try {
-    c.removeAll((ids || []).filter(Boolean).map(id => CACHE_TAG + payloadKey_({}, S(id))));
-  } catch (err) {}
-}
-
+/* ---------- `retirePayloadOf_` WAS HERE — RETIRING A FEW PEOPLE'S PAYLOADS, NOT EVERYBODY'S ----------
+   ITS ONE CALLER WAS `markDone`, which threw away a child's whole stored payload (and every admin's) for
+   one date, so the child's next load anywhere was a cold rebuild. The stored body no longer carries
+   `attempts` — `doGet` adds them fresh for the token's person (`payloadWithAttempts_` in doget.gs) — so
+   there is nothing left that a write to one person's rows makes stale, and nothing to retire by key. */
 /** The generation number, which prefixes every key — see `clearPayloadCache`. */
 function payloadGen_() {
   try {

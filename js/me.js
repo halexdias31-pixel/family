@@ -90,11 +90,32 @@ function signInCard_() {
              stays, because `type="email"` would refuse a handle before it was sent.
              THE PLACEHOLDER IS ONE OF EACH, SHORT, because the label above already says "email or
              handle" and the sentence it used to be was cut off at `— or you` on a 320 phone. */''}
+        ${handleChips_()}
         <label class="field"><span>email or handle</span>
           <input id="in-name" type="text" inputmode="email" autocomplete="username" autocapitalize="off"
                  spellcheck="false" placeholder="ada@x.com or ada_kind7"></label>
+        ${/* ---------- THE PIN, ON A SHARED iPAD ---------------------------------------------------------
+             *"i feel very insecure when signing into the kids accounts"*. It was `type="password"` with
+             `autocomplete="current-password"`, beside a `username` box: exactly the pair Safari offers to
+             save to the iCloud Keychain — so on the family's iPad every child's PIN could end up in the
+             owner's keychain, offered back to whichever child next tapped the box. A PIN on a shared
+             device is not a password the device should keep.
+
+             SO IT IS NOT A PASSWORD FIELD WHERE IT NEED NOT BE. Where the browser can draw dots on a
+             text box (`-webkit-text-security`, Safari and Chrome), it is one — `.pin-dots` — and there is
+             no password field for the keychain to remember. Where it cannot, it stays `password`, with
+             `autocomplete="off"`, so the PIN is never drawn in the clear. `data-1p-ignore` and
+             `data-lpignore` say the same to the two password managers that read their own attribute.
+
+             `maxlength="8"` because no PIN here is longer; `pattern="[0-9]*"` with `inputmode="numeric"`
+             is what brings an iPhone's number pad up; `enterkeyhint="go"` labels the key that signs in
+             (the Enter listener below presses Sign in). The in-app PIN pad the diagnosis offered is not
+             built here: the keypad is keypad.js's, and is being rebuilt. */''}
         <label class="field"><span>PIN</span>
-          <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
+          <input id="in-pin" ${pinDotsOk_() ? 'type="text" class="pin-dots"' : 'type="password"'}
+                 inputmode="numeric" pattern="[0-9]*" maxlength="8" enterkeyhint="go"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                 data-1p-ignore data-lpignore="true"></label>
         ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD -------------------------
              ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create
              account button."* This card is a THING in this app's sense — the account you are about
@@ -444,15 +465,6 @@ function googleSignedIn_(res) {
   send_({ action: 'googleLogin', credential: (res && res.credential) || '' })
     .then(d => {
       if (!d.success) { toast(d.error || 'That did not work.'); return; }
-      /* THE SAME THREE LINES AS THE PIN PATH, because the reply is the same reply — one function
-         builds it on the server for exactly this reason. */
-      USER = Object.assign({}, d);
-      try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
-      toast('Signed in');
-      /* THE SAME TWO LINES AS THE PIN PATH, and for the same reason — see the long note there. Both
-         doors have to feel the same or the one that feels slower reads as the one that is broken. */
-      repaint();
-      load();
       /* ---------- EXCEPT WHEN GOOGLE HAS JUST TAKEN AWAY THE PIN -----------------------------------
          `pinCleared`: the address was PENDING, so Google proving it also took the PIN the account was
          made with (`googleLogin` in dopost.gs — whoever chose it may not own the address) and signed
@@ -462,7 +474,10 @@ function googleSignedIn_(res) {
          `afterSignIn_`'s, which every door in shares — with the children held, when there were any. */
       if (d.pinCleared && !d.message) d.message = 'The PIN this account was made with no longer works. Sign in '
         + 'with Google, or use "Forgotten your PIN?" for a new one.';
-      afterSignIn_(d);
+      /* THE SAME DOOR AS THE PIN PATH — `signedIn_`, because the reply is the same reply (one function
+         builds it on the server for exactly this reason) and both doors have to feel the same, or the one
+         that feels slower reads as the one that is broken. */
+      signedIn_(d);
     })
     /* `send_` HAS ALREADY TOASTED IT — see the note over `do-signin`. */
     .catch(() => {});
@@ -556,10 +571,6 @@ on('do-signin', el => {
       /* NOT THE TYPED TEXT AS A NAME FALLBACK ANY MORE — it is an e-mail address now, and a row with
          no first or last name would have signed in wearing its address as a display name. The
          handle is on every sign-in reply and is a name somebody chose. */
-      USER = Object.assign({}, d);
-      if (!USER.name) USER.name = d.handle || name;
-      try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
-      toast('Signed in');
       /* ---------- DRAWN NOW, REFRESHED AFTER --------------------------------------------------------
          THIS WAS `load()` ALONE, AND `load()` IS A FULL PAYLOAD FETCH — about fifteen seconds against
          this backend. `repaint` is the LAST line of it, so nothing on screen changed until the whole
@@ -573,16 +584,35 @@ on('do-signin', el => {
 
          EVERYTHING THE SIGNED-IN SCREEN NEEDS IS ALREADY IN `USER` — the reply carried it. So paint
          it, then let `load()` bring the payload the person's id unlocks and repaint again when it
-         lands. Two paints, and the first one is the one that matters. */
-      repaint();
-      load();
-      /* AND WHAT IS OWED ONCE IN — a sentence about held children, a move link waiting. */
-      afterSignIn_(d);
+         lands. Two paints, and the first one is the one that matters. ALL OF IT IS `signedIn_` NOW —
+         the three doors in (this, Google, the emailed link) were three copies of these lines. */
+      signedIn_(d, name);
     })
     /* NO `.catch` THAT SPEAKS. `send_` has already toasted the sentence through `why_`, and a
        second copy here is what put the refusal on the screen twice. The rejection is swallowed
-       rather than left unhandled, and marked `handled` by `send_` so nothing else reports it. */
-    .catch(() => {});
+       rather than left unhandled, and marked `handled` by `send_` so nothing else reports it.
+
+       ---------- BUT A WRONG PIN SAYS WHICH BOX, AND EMPTIES IT --------------------------------------
+       MEASURED ON THE iPAD: after "That PIN is not right" the box kept the old digits and lost the
+       focus, so a child had to find the box, delete four dots and retype — on the screen the owner
+       called *"janky"*. The toast stays (docs/history/134 is the owner's choice of a toast); the box it
+       was about is emptied, focused and marked `aria-invalid` until the next keystroke. A handle nobody
+       has is the same, for the handle box. By the server's code (`why`), never by its sentence. */
+    .catch(err => {
+      const why = err && err.reply && err.reply.why;
+      const id = why === 'wrong-pin' ? 'in-pin' : (why === 'not-an-email' || why === 'no-such-email') ? 'in-name' : '';
+      const box = id && $(id);
+      if (!box) return;
+      if (id === 'in-pin') box.value = '';
+      box.setAttribute('aria-invalid', 'true');
+      try { box.focus(); if (id === 'in-name') box.select(); } catch (e) {}
+    });
+});
+/* THE MARK COMES OFF AT THE NEXT KEYSTROKE — a red edge round a box being corrected is the app still
+   complaining about what is no longer there. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t && (t.id === 'in-pin' || t.id === 'in-name') && t.hasAttribute('aria-invalid')) t.removeAttribute('aria-invalid');
 });
 
 /* ---------- ENTER SUBMITS, BECAUSE THE KEYBOARD SAYS IT WILL --------------------------------------
@@ -613,10 +643,40 @@ on('signout', () => {
      somebody believed they had left is the one thing sign-out must not leave behind — on a shared
      or lost phone it is the whole of what sign-out was for.
      SENT AND NOT WAITED FOR. The screen must clear whatever the network does; a sign-out that
-     hangs because there is no signal is a sign-out that did not happen. */
-  try { api({ action: 'signOut' }); } catch (err) {}
+     hangs because there is no signal is a sign-out that did not happen.
+
+     ---------- BUT THE LAST ANSWERS GO UP FIRST -----------------------------------------------------
+     A child who types an answer and hands the iPad straight over has an answer still a second and a
+     half from the account. It is sent now, while the token still works, and the session is ended
+     only once that request has answered — the screen clears at once either way. Whatever could not go
+     stays due on this device under that child, and goes the next time they sign in here. */
+  const tok = USER && USER.token;
+  let last = Promise.resolve();
+  try { if (typeof answersPush_ === 'function') last = answersPush_(true); } catch (err) {}
+  Promise.resolve(last).catch(() => {}).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
+  signedOut_();
+  toast('Signed out');
+});
+
+/* ==================================================================================================
+   ONE WAY IN AND ONE WAY OUT.
+
+   THREE DOORS IN — the PIN, Google, the link in a forgotten-PIN mail — WERE THREE COPIES of the same
+   six lines, and TWO WAYS OUT — Sign out, and `api()` finding the session dead — each cleared a
+   different subset of what belonged to the person leaving. On the family's shared iPad that subset was
+   the fault (diag-signin, measured): after one child signed out and the next signed in, **the first
+   child's private message from their tutor was on the second child's Messages column for about fifteen
+   seconds**, until the second child's own inbox arrived. Their stars were there too, until their payload
+   landed. `MESSAGES`, the dm poll's flags, `FAVS`, the done dates held for the visit and the per-person
+   keys of `DATA` were simply never told.
+
+   `signedOut_` IS EVERYTHING THAT IS ONE PERSON'S, cleared in one place, and both ways out call it.
+   `signedIn_` calls it first whenever the person arriving is not the one whose things are held — so the
+   next child starts from nothing of the last one's, whichever door either of them used. */
+function signedOut_(opts) {
+  opts = opts || {};
   USER = null;
-  try { localStorage.removeItem('familyUser'); } catch {}
+  try { localStorage.removeItem('familyUser'); } catch (e) {}
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM --------------------------------------
      THE SEARCH AND THE CHIPS ARE THE PERSON'S, NOT THE PHONE'S. They outlived the sign-out, so the
      next person to pick the phone up saw the last one's question — and found by the review of the
@@ -629,9 +689,143 @@ on('signout', () => {
   try {
     if (typeof STUFF !== 'undefined') { STUFF.q = ''; STUFF.filters = []; }
   } catch (err) {}
-  toast('Signed out');
+  /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
+     person's, and `loadMessages` drops it when it lands for somebody else. */
+  MESSAGES = null; MSG_FAILED = false; MSG_PENDING = []; MSG_ASKING = null;
+  Object.keys(MSG_QUEUE).forEach(k => { delete MSG_QUEUE[k]; });
+  try { DM_ASKED = false; DM_DONE = false; DM_LAST = 0; if (typeof dmStop_ === 'function') dmStop_(); } catch (e) {}
+  /* THE STARS — the device's copy is a cache of the person, and the next person is not them. */
+  try { FAVS = new Set(); localStorage.removeItem('favs'); } catch (e) {}
+  /* THE DONE DATES HELD FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. */
+  try { if (typeof DONE_HELD !== 'undefined') DONE_HELD.clear(); } catch (e) {}
+  try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) {}
+  try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) {}
+  /* THE PAYLOAD'S PER-PERSON KEYS. Each is already hidden from the next person by its `for` check, so
+     this is not what stops a leak — it is what stops the last person's data sitting on the device. */
+  try {
+    DATA.attempts = { for: '', mine: {} };
+    DATA.family = []; DATA.familyFor = '';
+    DATA.favourites = []; DATA.everyone = [];
+  } catch (e) {}
+  /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
+  try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) {}
+  if (!opts.quiet) repaint();
+}
+
+/* `d` is the sign-in reply; `typed` what was typed in the handle box, a name of last resort. */
+function signedIn_(d, typed) {
+  /* ---------- THE REPLY'S PER-PERSON EXTRAS GO ON `DATA`, NOT ON `USER` ---------------------------------
+     `loginReplyFor_` sends this person's done dates, stars, family and answers with the reply now, so
+     they are on the screen with "Signed in" rather than fifteen to thirty-five seconds later. They are
+     the payload's keys, in the payload's shapes, and they go where the payload's copies go — behind the
+     same `for` checks. On `USER` they would be written into `familyUser` and kept for thirty days. */
+  const EXTRA = ['attempts', 'favourites', 'family', 'familyFor', 'answers'];
+  const got = {};
+  const me = Object.assign({}, d);
+  EXTRA.forEach(k => { if (k in me) { got[k] = me[k]; delete me[k]; } });
+  const pid = String(me.personId || '');
+  /* A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD — or nobody held — starts clean. */
+  if (!USER || String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
+  /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
+  USER = me;
+  if (!USER.name) USER.name = me.handle || typed || '';
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  try {
+    if (got.attempts && typeof got.attempts === 'object' && String(got.attempts.for || '') === pid) DATA.attempts = got.attempts;
+    if (Array.isArray(got.favourites)) {
+      DATA.favourites = got.favourites;
+      if (typeof adoptFavourites_ === 'function') adoptFavourites_();
+    }
+    if (Array.isArray(got.family) && String(got.familyFor || '') === pid) { DATA.family = got.family; DATA.familyFor = pid; }
+  } catch (e) {}
+  /* THE ANSWERS, INTO THE BOXES — the reply's copy now, and a fresh read at once beside it, which also
+     sends whatever this device has had waiting for this person (js/answers.js). */
+  try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) {}
+  try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
+  handleRemember_(me.handle);
+  /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
+     between children, "Signed in" does not say into whose account. */
+  const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
+  toast(first ? 'Signed in as ' + first : 'Signed in');
   repaint();
+  /* ---------- AND BACK WHERE YOU CAME FROM ----------------------------------------------------------------
+     MEASURED ON THE iPAD: signed in, you stayed on the account column — your card and then every tutor —
+     so a child sent there from a question (`go('account')` from the cheat sheet, or a swipe across to
+     sign in) had to find their way back. Only when the sign-in happened ON that column: signing in from
+     the card at the top of the feed leaves you on the feed. Back to the column you came from, or — with
+     nowhere to go back to — Find, for a child, which is what a child signs in to do. */
+  try {
+    if (AT === 'account') {
+      const kid = typeof hasRole === 'function' && (hasRole('kid') || hasRole('student'));
+      const back = typeof PREV_AT === 'string' && PREV_AT && PREV_AT !== 'account' && TABS.some(t => t.id === PREV_AT)
+        ? PREV_AT : (kid ? 'stuff' : '');
+      if (back) go(back);
+    }
+  } catch (e) {}
+  load();
+  /* AND WHAT IS OWED ONCE IN — a sentence about held children, a move link waiting. */
+  afterSignIn_(d);
+}
+
+/* ---------- THE HANDLES THIS DEVICE HAS SIGNED IN, NEVER THEIR PINS ---------------------------------------
+   Switching child on the family iPad was typing a handle every time. A chip per handle that has signed
+   in here fills the box and puts the caret in the PIN, so it is one tap and the PIN. HANDLES ONLY: a
+   handle is printed on every card on the site; a PIN is never written anywhere on the device. Each chip
+   has a ✕ that forgets it — a child who has left, a visitor's account. Most recent first, six at most:
+   more than a family's children is not a family's iPad. Every read and write wrapped, for private mode. */
+const HANDLES_KEY = 'familyHandles';
+const HANDLES_MAX = 6;
+function handlesKnown_() {
+  try {
+    const v = JSON.parse(localStorage.getItem(HANDLES_KEY) || '[]');
+    return Array.isArray(v) ? v.map(String).filter(h => /^[\w.-]{1,40}$/.test(h)).slice(0, HANDLES_MAX) : [];
+  } catch (e) { return []; }
+}
+function handleRemember_(h) {
+  h = String(h || '').trim();
+  if (!/^[\w.-]{1,40}$/.test(h)) return;
+  const list = [h].concat(handlesKnown_().filter(x => x.toLowerCase() !== h.toLowerCase())).slice(0, HANDLES_MAX);
+  try { localStorage.setItem(HANDLES_KEY, JSON.stringify(list)); } catch (e) {}
+}
+function handleChips_() {
+  const list = handlesKnown_();
+  if (!list.length) return '';
+  return `<div class="hchips" role="group" aria-label="Signed in on this device before">${list.map(h =>
+    `<span class="hchip"><button type="button" class="hchip-pick" data-do="handle-pick" data-h="${esc(h)}"><b>@</b>${esc(h)}</button><button type="button" class="hchip-drop" data-do="handle-forget" data-h="${esc(h)}" aria-label="Forget ${esc(h)} on this device" title="Forget ${esc(h)} on this device">✕</button></span>`
+  ).join('')}</div>`;
+}
+on('handle-pick', el => {
+  const name = $('in-name'), pin = $('in-pin');
+  if (!name || !pin) return;
+  name.value = el.getAttribute('data-h') || '';
+  name.removeAttribute('aria-invalid');
+  pin.value = '';
+  /* THE CHIP CHOSEN STAYS LIT, so whoever is holding the iPad can see whose account the PIN is for
+     before typing it — the one thing on this card that answers *"i feel very insecure when signing into
+     the kids accounts"*. A value and a focus are invisible from across the table; a gold edge is not. */
+  const row = el.closest('.hchips');
+  if (row) [].forEach.call(row.querySelectorAll('.hchip'), c => {
+    const on = c === el.closest('.hchip');
+    c.classList.toggle('is-on', on);
+    const b = c.querySelector('.hchip-pick');
+    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  try { pin.focus(); } catch (e) {}
 });
+on('handle-forget', el => {
+  const h = String(el.getAttribute('data-h') || '').toLowerCase();
+  try { localStorage.setItem(HANDLES_KEY, JSON.stringify(handlesKnown_().filter(x => x.toLowerCase() !== h))); } catch (e) {}
+  const chip = el.closest('.hchip');
+  const row = chip && chip.parentNode;
+  if (chip) chip.remove();
+  if (row && !row.querySelector('.hchip')) row.remove();
+});
+/* DOTS ON A TEXT BOX, WHERE THE BROWSER CAN DRAW THEM — see `.pin-dots` and the PIN box above. Asked of
+   the browser rather than of its name. */
+function pinDotsOk_() {
+  try { return !!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc')); }
+  catch (e) { return false; }
+}
 
 /* ---------- THE WARDROBE -------------------------------------------------------------------------
    Every slot, every item, with the locked ones showing what they would take. A catalogue you can
@@ -1113,14 +1307,8 @@ function pinFromLink_() {
   send_({ action: 'pinLink', key })
     .then(d => {
       if (!d || !d.success) { toast((d && d.error) || 'That link did not work.'); return; }
-      /* THE PIN PATH'S LINES, for its reasons — see `do-signin`. */
-      USER = Object.assign({}, d);
-      if (!USER.name) USER.name = d.handle || '';
-      try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
-      toast('Signed in');
-      repaint();
-      load();
-      afterSignIn_(d);
+      /* THE PIN PATH'S DOOR, for its reasons — see `do-signin` and `signedIn_`. */
+      signedIn_(d);
     })
     .catch(() => {});      // `send_` has already toasted the server's sentence
 }
@@ -1227,18 +1415,35 @@ let MESSAGES = null;
    with the asking, as `DM_LAST`; this is a fact about the DATA. */
 let MSG_FAILED = false;
 
+/* ---------- ONE REQUEST AT A TIME, AND ONLY FOR WHOEVER ASKED ---------------------------------------
+   MEASURED: every load asked twice — `load()` for the widgets, and the Messages column's own draw
+   (`dmSync_`) a moment later — two round trips to Apps Script for one inbox. A second caller while one is
+   on the wire is handed the same promise. And a reply that lands after the iPad has changed hands is the
+   last child's inbox: it is dropped rather than put on the next child's column (diag-signin, C). */
+let MSG_ASKING = null;
 function loadMessages() {
   if (!USER) return Promise.resolve([]);
+  const who = String(USER.personId || USER.name || '');
+  if (MSG_ASKING && MSG_ASKING.who === who) return MSG_ASKING.p;
+  const still = () => !!USER && String(USER.personId || USER.name || '') === who;
   /* `send` FOR THE SAME REASON, and the comment below was written as though it already did. With
      `api()` a refusal — "Not signed in." — resolves with no `messages` key, `|| []` turns it into an
      empty list, and the inbox reads as empty rather than as unreachable. That is the exact fault
      the next four lines say they are guarding against, and it was reaching them as a success. */
-  return send({ action: 'messages', name: USER.name, personId: USER.personId })
-    .then(d => { MSG_FAILED = false; return (MESSAGES = (d && d.messages) || []); })
+  const asking = { who: who, p: null };
+  asking.p = send({ action: 'messages', name: USER.name, personId: USER.personId })
+    .then(d => {
+      if (!still()) return [];
+      MSG_FAILED = false;
+      return (MESSAGES = (d && d.messages) || []);
+    })
     /* A failure leaves whatever was already there rather than emptying the list — an unreachable
        backend is not the same fact as an empty inbox, and showing the second for the first is how
        a network blip reads as everything having been deleted. */
-    .catch(() => { MSG_FAILED = true; return MESSAGES || []; });
+    .catch(() => { if (!still()) return []; MSG_FAILED = true; return MESSAGES || []; })
+    .then(v => { if (MSG_ASKING === asking) MSG_ASKING = null; return v; });
+  MSG_ASKING = asking;
+  return asking.p;
 }
 
 /* ==================================================================================================

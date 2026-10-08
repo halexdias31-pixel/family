@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-08-b-weeklyonly";
+const DOGET_VERSION = "2026-10-08-c-answers";
 
 
 function doGet(e) {
@@ -299,7 +299,8 @@ function doGet(e) {
          find out. One key, appended to the stored JSON rather than parsed and re-serialised, so a
          hit stays the cheap path it exists to be. Open the API address in a tab: `"cached":true` is
          there or it is not. */
-      if (kept) { mark('cache'); return jsonRaw_(kept.slice(0, -1) + ',"cached":true}'); }
+      /* AND THIS VIEWER'S ATTEMPTS, FRESH — the stored body has none (`payloadWithAttempts_`). */
+      if (kept) { mark('cache'); return jsonRaw_(payloadWithAttempts_(kept, attemptsNow_(cacheViewer), true)); }
     }
 
     /* ---------- THE TABS WHOSE ABSENCE MEANS THE DATABASE IS NOT CONNECTED ----------------------
@@ -514,6 +515,10 @@ function doGet(e) {
                  /* The phone checks this before it sends a done question, so a phone ahead of the
                     deployment keeps the date to itself rather than being refused on every Check. */
                  'markDone',
+                 /* And what a child writes, kept on their account and read back on the next device
+                    (SCHEMA.answers). A phone ahead of the deployment keeps answers on the device and
+                    says so under the box rather than claiming they were saved. */
+                 'saveAnswers', 'myAnswers',
                  /* "Send the link again", and the sign-in link in a forgotten-PIN mail — listed so a
                     phone ahead of the deployment is told which file has not been pasted in. */
                  'resendLink', 'pinLink'],
@@ -899,42 +904,13 @@ function doGet(e) {
        the site; and a child's row is already in it for that reason, which is not the same as this
        person being YOUR child. The cache is keyed on the token's person (`payloadKey_`), so one
        family's list cannot be handed to another. */
-    if (meAsked && S(meAsked.person_id)) {
-      const famCard_ = (r, rel) => ({
-        personId: S(r.person_id), title: personDisplayName(r), relation: rel,
-        handle: S(r.handle), image: S(r.photo) || '',
-      });
-      /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
-         otherwise draw your own card a second time under "Your child". */
-      const meId = S(meAsked.person_id), seen = {};
-      /* WHOSE FAMILY THIS IS, said in the payload. The phone keeps `DATA` across a sign-out and
-         paints the next person's account before their own payload lands — so without this a phone
-         handed from one family to another drew the first family's children under "Your child" on
-         the second person's column, for as long as the new payload took, or for ever if it failed. */
-      payload.familyFor = meId;
-      const add = (rows, rel) => rows.forEach(r => {
-        const id = S(r.person_id);
-        if (!id || id === meId || seen[rel + id]) return;
-        seen[rel + id] = true;
-        payload.family.push(famCard_(r, rel));
-      });
-      add(acceptedParents(meId), 'parent');
-      add(acceptedChildren(meId), 'child');
-      /* ---------- AND YOUR BROTHERS AND SISTERS ----------------------------------------------------
-         ASKED FOR AS *"students should be able to see their parents and siblings likewise"*. The
-         first half of that sentence was built (parents and children, above) and the second was not,
-         though `siblingsOf` has existed all along and `payload.students[].siblings` has carried the
-         NAMES — to every student, read by nothing on the phone.
-
-         A SIBLING IS ANOTHER CHILD OF A PARENT YOU HAVE ACCEPTED, and `siblingsOf` walks
-         `acceptedLinks()` both steps, so the rule above holds for the second step too: a parent's
-         unanswered "this is my child" about somebody else makes them nobody's brother. Two children
-         who share no ACCEPTED parent are strangers here, whatever their surnames say.
-
-         SAME CARD, SAME FIELDS, SAME STAMP — `famCard_` is the public half and nothing more, and
-         `familyFor` above covers this list because it is the same list. */
-      add(siblingsOf(meId), 'sibling');
-    }
+    /* BUILT BY `familyOf_` BELOW, so the sign-in reply (`loginReplyFor_`) sends exactly this list in
+       exactly this shape — two copies of who counts as your family would be the `childrenOf` fault. */
+    try {
+      const fam = familyOf_(meAsked);
+      payload.familyFor = fam.familyFor;
+      payload.family = fam.family;
+    } catch (err) { payload.familyFor = ''; payload.family = []; }
 
     // --- venues -------------------------------------------------------------------------------
     venuesTab.forEach((r, i) => {
@@ -1552,13 +1528,9 @@ function doGet(e) {
     /* WHAT THIS PERSON HAS STARRED. Theirs only — a favourite is a private thing and there is no
        screen anywhere that wants somebody else's. Sent as the bare keys, which is the shape the
        Find screen already holds them in. */
+    /* `favouritesOf_`, so the sign-in reply sends the same list (`loginReplyFor_`). */
     try {
-      const meFav = meAsked;
-      payload.favourites = meFav
-        ? read(TAB.favourites).rows
-            .filter(r => key(r.person_id) === key(meFav.person_id))
-            .map(r => S(r.item_id))
-        : [];
+      payload.favourites = favouritesOf_(meAsked);
     } catch (err) { payload.favourites = []; }
 
     /* ---------- WHICH QUESTIONS THIS PERSON HAS DONE, AND — FOR AN ADMIN — HOW EVERYBODY IS DOING ----
@@ -2089,16 +2061,95 @@ function doGet(e) {
        THE FIRST REQUEST AFTER A DEPLOY OR A WRITE STILL PAYS THE FULL PRICE, and there is no way
        round that short of building it before anybody asks. What changes is that it is paid once
        rather than by everybody. */
+    /* ---------- WITHOUT `attempts`, WHICH GO ON FRESH EVERY TIME --------------------------------------
+       The stored copy leaves out the one key a child changes every evening, so `markDone` has nothing
+       to retire — see `payloadWithAttempts_`. Everything else in the body is exactly as before. */
     if (cacheKey) {
+      const fresh = payload.attempts;
+      delete payload.attempts;
       const body = JSON.stringify(payload);
       cachePut_(cacheKey, body);
-      return jsonRaw_(body);
+      return jsonRaw_(payloadWithAttempts_(body, fresh, false));
     }
     return jsonOut(payload);
   } catch (err) {
     return jsonOut({ error: err.toString() });
   }
 }
+/* ---------- `payload.family`, BUILT FOR ONE VIEWER — AND FOR THE SIGN-IN REPLY ---------------------------
+   `{ familyFor, family }` — the person's own accepted family, both directions, and the id it was built
+   for. It was written inline in `doGet`; it is a function so `loginReplyFor_` can send the same list in
+   the same shape with "Signed in" rather than fifteen seconds later — see the note there. The rules are
+   the block's in `doGet` ("YOUR OWN FAMILY"), unchanged. */
+function familyOf_(me) {
+  const out = { familyFor: '', family: [] };
+  if (!me || !S(me.person_id)) return out;
+  const famCard_ = (r, rel) => ({
+    personId: S(r.person_id), title: personDisplayName(r), relation: rel,
+    handle: S(r.handle), image: S(r.photo) || '',
+  });
+  /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
+     otherwise draw your own card a second time under "Your child". */
+  const meId = S(me.person_id), seen = {};
+  /* WHOSE FAMILY THIS IS, said in the payload. The phone keeps `DATA` across a sign-out and
+     paints the next person's account before their own payload lands — so without this a phone
+     handed from one family to another drew the first family's children under "Your child" on
+     the second person's column, for as long as the new payload took, or for ever if it failed. */
+  out.familyFor = meId;
+  const add = (rows, rel) => rows.forEach(r => {
+    const id = S(r.person_id);
+    if (!id || id === meId || seen[rel + id]) return;
+    seen[rel + id] = true;
+    out.family.push(famCard_(r, rel));
+  });
+  add(acceptedParents(meId), 'parent');
+  add(acceptedChildren(meId), 'child');
+  /* ---------- AND YOUR BROTHERS AND SISTERS ----------------------------------------------------
+     ASKED FOR AS *"students should be able to see their parents and siblings likewise"*. The
+     first half of that sentence was built (parents and children, above) and the second was not,
+     though `siblingsOf` has existed all along and `payload.students[].siblings` has carried the
+     NAMES — to every student, read by nothing on the phone.
+
+     A SIBLING IS ANOTHER CHILD OF A PARENT YOU HAVE ACCEPTED, and `siblingsOf` walks
+     `acceptedLinks()` both steps, so the rule above holds for the second step too: a parent's
+     unanswered "this is my child" about somebody else makes them nobody's brother. Two children
+     who share no ACCEPTED parent are strangers here, whatever their surnames say.
+
+     SAME CARD, SAME FIELDS, SAME STAMP — `famCard_` is the public half and nothing more, and
+     `familyFor` above covers this list because it is the same list. */
+  add(siblingsOf(meId), 'sibling');
+  return out;
+}
+
+/* ---------- `payload.favourites`, FOR ONE VIEWER — AND FOR THE SIGN-IN REPLY ------------------------------
+   The bare item keys this person has starred, theirs only. A function for `familyOf_`'s reason. */
+function favouritesOf_(me) {
+  if (!me || !S(me.person_id)) return [];
+  return read(TAB.favourites).rows
+    .filter(r => key(r.person_id) === key(me.person_id))
+    .map(r => S(r.item_id));
+}
+
+/* ---------- THE STORED BODY, WITH THIS VIEWER'S ATTEMPTS LAID ON --------------------------------------------
+   `attempts` IS THE ONE KEY OF THE PAYLOAD THAT A CHILD CHANGES EVERY EVENING, and it changes only for
+   that child and an admin. It used to be inside the stored body, so every `markDone` had to throw that
+   child's whole body away (`retirePayloadOf_`) and their next load anywhere — a sign-in on the iPad,
+   the computer at home — was the fifteen-to-thirty-five-second rebuild. So the stored body leaves it
+   out and every answer, hit or miss, has it added fresh for the person the TOKEN resolved to: one read
+   of one tab, against a rebuild of thirty.
+
+   `body` is the stored JSON text, which always ends in `}` and always has keys before it; the key goes
+   on the end, and `cached` after it when the body came from the store. Built from the same
+   `attemptsFor_` either way, so a hit and a miss cannot disagree. */
+function attemptsNow_(viewer) {
+  try { return attemptsFor_(viewer, !!viewer && hasRole(viewer, 'admin')); }
+  catch (err) { return { for: '', mine: {} }; }
+}
+function payloadWithAttempts_(body, attempts, cached) {
+  return String(body).slice(0, -1) + ',"attempts":' + JSON.stringify(attempts || { for: '', mine: {} })
+    + (cached ? ',"cached":true' : '') + '}';
+}
+
 /* ---------- `payload.attempts`, BUILT FOR ONE VIEWER ------------------------------------------------
    `{ for, mine: { <question key>: { first, last, times } }, people? }` — see the block in `doGet`
    that calls this for who gets what. `people` is `{ <person_id>: { n, last } }` and exists only for

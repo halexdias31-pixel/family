@@ -8226,7 +8226,9 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
    ("Ada's answer" / "Your answer"), and the star (`fav`) and the date's slot beside it (`.qcard-done`,
-   see `questionTiles_`), which need somebody signed in to keep them for.
+   see `questionTiles_`), which need somebody signed in to keep them for. AND WHERE THE WORK IS KEPT —
+   the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
+   which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
 check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
@@ -8269,8 +8271,10 @@ check('Find draws the same question family, practical, project and textbook for 
     h.querySelectorAll('[data-do="fav"], .tile-row .qcard-done').forEach(n => n.remove());
     /* A ROW THAT HELD ONLY THE STAR (and the date beside it) is the person's, and goes with them. */
     h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
+    h.querySelectorAll('.qp-saved').forEach(n => { n.textContent = ''; });
     return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
-      .replace(/>Your answer/g, '>WHO answer');
+      .replace(/>Your answer/g, '>WHO answer')
+      .replace(/Kept on this device only[^<]*|Saved to [^<]*account, like the answer box\./g, 'KEPT WHERE');
   };
   const draw = () => {
     const out = [];
@@ -11981,6 +11985,620 @@ check('multipart: the line under a chosen paper counts questions, names a search
       if (!want.test(got)) bad.push(what + ': "' + got + '"');
     });
   } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* ==================================================================================================
+   ANSWERS FOLLOW THE CHILD, AND SIGNING IN ON A SHARED iPAD.
+
+   THE OWNER, LIVE, ON A PUPIL'S iPAD: *"i just relogged in as [the child] after having done the
+   questions earlier and i dont see his answers there"*, *"it doesnt seem to save their answers"*, *"i am
+   very dissapointed it didnt have his answers already written in when he went to see them on the
+   computer"*, and *"the logging in and everything feels so janky and unresponsive and slow… i feel very
+   insecure when signing into the kids accounts"*. js/answers.js is the phone's half of the answers;
+   `signedIn_` / `signedOut_` in me.js are the one way in and out. Every journey below goes through the
+   real handlers and the real `api()`, and the backend's half is `check-saved-answers.js`. The children
+   are invented — Ada and Ben — because this repository is public.
+================================================================================================== */
+const ANS_ADA = { name: 'Ada Pupil', personId: 'P7', role: 'kid', roles: ['kid'], token: 'tok-P7', handle: 'ada_kind7' };
+const ANS_BEN = { name: 'Ben Pupil', personId: 'P8', role: 'kid', roles: ['kid'], token: 'tok-P8', handle: 'ben_bold8' };
+/* A BACKEND THAT KEEPS ANSWERS, as `answersUpsert_` does: the later edit wins and the reply carries the
+   winner. `server` is the account's rows, server key -> { v, at }, for P7 unless a journey says. */
+const ansBackend_ = (server, more) => b => {
+  const own = more ? more(b) : undefined;
+  if (own !== undefined) return own;
+  if (b.action === 'saveAnswers') {
+    const saved = {};
+    (b.items || []).forEach(it => {
+      const had = server[it.key];
+      if (had && had.at > it.at) { saved[it.key] = had; return; }
+      server[it.key] = saved[it.key] = { v: String(it.v), at: it.at };
+    });
+    return { success: true, saved: saved };
+  }
+  if (b.action === 'myAnswers') return { success: true, for: b.personId, answers: JSON.parse(JSON.stringify(server)) };
+  return { success: true, messages: [] };
+};
+const ANS_FEATURES = ['saveAnswers', 'myAnswers'];
+/* THE THREE KINDS OF BOX AND A PAD, built by the app's own builders and put in the document. */
+const ansCards_ = (w, tag) => {
+  const d = w.document;
+  const base = { kind: 'question', name: 'Q1', marks: 1, row: { row_id: 'Q-ANS-' + tag, paper_id: 'P-ANS', subject: 'Maths', name: 'Answers' } };
+  const words = Object.assign({}, base, { key: 'q:Q-ANS-W-' + tag, answerType: 'explain', html: '<p>Explain.</p>', accept: '' });
+  const maths = Object.assign({}, base, { key: 'q:Q-ANS-M-' + tag, html: '<p>Work out 3 &divide; 4.</p>', accept: '3/4' });
+  const pick = Object.assign({}, base, { key: 'q:Q-ANS-C-' + tag, html: '<p>Which?</p>', choices: ['3', '4', '5'], choiceRight: [2] });
+  const pen = { kind: 'question', key: 'q:Q-ANS-P-' + tag, answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  /* THE LIBRARY HOLDS THESE CARDS, as Find's would — a pick is redrawn from the card it belongs to. */
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => (held() || []).concat([words, maths, pick]);
+  const draw = () => {
+    host.innerHTML = [words, maths, pick].map(x => '<div class="cardhost">' + w.questionCard_(x, 0) + '</div>').join('')
+      + w.__t.padWrap(pen, pen.diagram, '')
+      /* A PASSAGE TO RING WORDS IN, keyed as `circOf_` keys it. */
+      + '<div class="qsheet-part is-text" data-circ="' + w.__t.padKey(pen) + ':words">'
+      + w.circWords_('<p>The tall tree swayed.</p>', 0, (() => { try { return JSON.parse(w.localStorage.getItem(w.__t.padKey(pen) + ':words') || '[]'); } catch (e) { return []; } })()) + '</div>';
+    const ink = host.querySelector('.qpad-ink');
+    if (ink) ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+  };
+  draw();
+  const q = sel => host.querySelector(sel);
+  const ta = () => q('[data-k$="' + words.key + '"].qp-ans-in');
+  const kp = () => q('[data-k$="' + maths.key + '"].qp-ans-in');
+  const box = () => q('.qp-choices');
+  const pad = () => q('.qpad');
+  const saidFor = x => { const el = q('.qp-saved[data-k$="' + x.key + '"]'); return el ? el.textContent : null; };
+  const ringed = () => [...host.querySelectorAll('[data-circ] .qw.is-circled')].map(s2 => s2.getAttribute('data-w'));
+  return { host, draw, words, maths, pick, pen, ta, kp, box, pad, saidFor, ringed };
+};
+const ansType_ = (w, el, text) => { el.value = text; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+const ansStroke_ = (w, c, pts) => {
+  const A = w.__t.ACTIONS;
+  const lock = c.pad().querySelector('.qpad-lock');
+  if (lock && !c.pad().classList.contains('is-drawing')) A['pad-draw'](lock);
+  const ink = c.pad().querySelector('.qpad-ink');
+  ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+  const Ev = w.PointerEvent || w.MouseEvent;
+  const fire = (type, x, y) => ink.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));
+  fire('pointerdown', pts[0][0], pts[0][1]);
+  pts.slice(1).forEach(p => fire('pointermove', p[0], p[1]));
+  fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  A['pad-draw'](c.pad().querySelector('.qpad-lock'));
+};
+const ansNeed_ = w => ['questionCard_', 'ansStore_', 'answersPush_', 'answersPull_', 'ansSavedSay_', 'ansRead_']
+  .filter(n => typeof w[n] !== 'function').concat(typeof (w.__t || {}).padWrap === 'function' ? [] : ['padWrap_']);
+
+check('answers: typed, picked and drawn go to the account a moment later, and the line under the box says whose', async () => {
+  const server = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing about saving answers was checked'];
+  const bad = [];
+  const saves = () => sent.filter(b => b.action === 'saveAnswers');
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'A');
+  if (!c.ta() || !c.kp() || !c.box() || !c.pad()) return ['the cards did not draw a textarea, a keypad box, options and a pad — nothing was checked'];
+  if (c.saidFor(c.words) !== '') bad.push('an empty box already says ' + JSON.stringify(c.saidFor(c.words)) + ' — a line about saving nothing');
+  /* TYPED, PICKED, DRAWN — with no Check and no leaving the box, so only the debounce sends them. */
+  ['b', 'be', 'because', 'because 180'].forEach(v => ansType_(w, c.ta(), v));
+  w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansStroke_(w, c, [[10, 10], [20, 20], [30, 30], [40, 40], [50, 50], [60, 60], [70, 70], [80, 80]]);
+  if (c.saidFor(c.words) !== 'Saving…') bad.push('while it is on its way the line says ' + JSON.stringify(c.saidFor(c.words)) + ', wanted "Saving…"');
+  await wait(200);
+  if (saves().length) bad.push('the answer was sent at once, ' + saves().length + ' request(s) — every keystroke would be a request');
+  await wait(1600);
+  if (saves().length !== 1) bad.push('a second and a half after the last edit ' + saves().length + ' saveAnswers request(s) had gone, wanted 1 carrying all three');
+  const s = saves()[0] || {};
+  const by = {}; (s.items || []).forEach(it => { by[it.key] = it; });
+  if (s.token !== 'tok-P7' || s.personId !== 'P7') bad.push('saveAnswers went as ' + JSON.stringify({ token: s.token, personId: s.personId }) + ' — the token is who the server writes for, and personId must ride with it');
+  const typed = by['ans:' + c.words.key], picked = by['ans:' + c.pick.key], drawn = by['pad:' + c.pen.key];
+  if (!typed || typed.v !== 'because 180') bad.push('the typed answer went up as ' + JSON.stringify(typed) + ' — wanted key ans:' + c.words.key + ' (no person in it) and "because 180"');
+  if (!picked || picked.v !== '2') bad.push('the pick went up as ' + JSON.stringify(picked) + ' — wanted "2"');
+  if (!drawn) bad.push('the drawing did not go up: ' + JSON.stringify(Object.keys(by)));
+  else if (drawn.v !== '[[10,10,80,80]]') bad.push('the drawing went up as ' + drawn.v + ' — a straight stroke of eight points is two after simplifying, and the device keeps all eight');
+  if (typed && !(typed.at > 0 && typed.at <= Date.now())) bad.push('the typed answer went up with no edit time: ' + JSON.stringify(typed));
+  if (Object.keys(by).some(k => /u:P7/.test(k))) bad.push('a key went up with the person in it: ' + Object.keys(by).join(', '));
+  if (JSON.parse(w.localStorage.getItem('pad:u:P7:' + c.pen.key) || '[]')[0].length !== 16) bad.push('the device lost the points of its own drawing when it sent a simpler one');
+  if (w.localStorage.getItem('ansDirty:u:P7')) bad.push('after the save the device still has these due: ' + w.localStorage.getItem('ansDirty:u:P7'));
+  if (c.saidFor(c.words) !== 'Saved to Ada’s account') bad.push('after the save the line says ' + JSON.stringify(c.saidFor(c.words)) + ', wanted "Saved to Ada’s account"');
+  if (c.saidFor(c.pick) !== 'Saved to Ada’s account') bad.push('under the options the line says ' + JSON.stringify(c.saidFor(c.pick)));
+  if (c.host.querySelectorAll('.qp-saved[data-k$="' + c.pick.key + '"]').length !== 1) bad.push('a pick redrew the options and left the old saved line beside the new one');
+
+  /* CHECK SENDS AT ONCE — a click on the tile, as a finger makes it. */
+  const n0 = saves().length;
+  ansType_(w, c.kp(), '(3)/(4)');
+  c.kp().closest('.qcard').querySelector('.qp-check').click();
+  await wait(60);
+  if (saves().length !== n0 + 1) bad.push('Check did not send the answer at once (' + (saves().length - n0) + ' request(s) within 60 ms)');
+  /* AND SO DOES LEAVING THE BOX. */
+  const n1 = saves().length;
+  c.ta().focus();
+  ansType_(w, c.ta(), 'because 180 degrees');
+  c.ta().blur();
+  await wait(60);
+  if (saves().length !== n1 + 1) bad.push('leaving the box did not send the answer at once (' + (saves().length - n1) + ' request(s) within 60 ms)');
+  /* AND THE APP GOING AWAY — with keepalive, so a closed iPad cover does not take the last answer. */
+  const kept = [];
+  const was = w.fetch;
+  w.fetch = (u, o) => { if (o && o.keepalive) kept.push(JSON.parse(o.body)); return was(u, o); };
+  ansType_(w, c.ta(), 'because 180 degrees on a line');
+  w.dispatchEvent(new w.Event('pagehide'));
+  await wait(60);
+  w.fetch = was;
+  if (!kept.some(b => b.action === 'saveAnswers')) bad.push('pagehide sent nothing with keepalive — closing the app loses the last answer');
+
+  /* SIGNED OUT: the device only, and it says so. */
+  w.__t.USER(null);
+  c.draw();
+  ansType_(w, c.ta(), 'mine');
+  if (c.saidFor(c.words) !== 'On this device only — sign in to keep it') bad.push('signed out the line says ' + JSON.stringify(c.saidFor(c.words)));
+  return bad;
+});
+
+check('answers: on another device, the account fills the box, the keypad drawing, the pick, the pad and the rings', async () => {
+  const at = Date.now() - 3600e3;
+  const server = {
+    'ans:q:Q-ANS-W-B': { v: 'because the angles make a line', at },
+    'ans:q:Q-ANS-M-B': { v: '(3)/(4)', at },
+    'ans:q:Q-ANS-C-B': { v: '2', at },
+    'pad:q:Q-ANS-P-B': { v: '[[10,20,30,40]]', at },
+    'pad:q:Q-ANS-P-B:words': { v: '["0.1"]', at },
+  };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was filled'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'B');
+  if (c.ta().value) bad.push('a fresh device already shows ' + JSON.stringify(c.ta().value));
+  const ok = await w.answersPull_(true);
+  if (!ok) bad.push('the read from the account did not land');
+  if (!sent.some(b => b.action === 'myAnswers' && b.personId === 'P7' && b.token === 'tok-P7')) bad.push('myAnswers was not asked with the token: ' + JSON.stringify(sent.filter(b => b.action === 'myAnswers')));
+  if (c.ta().value !== 'because the angles make a line') bad.push('the textarea on screen reads ' + JSON.stringify(c.ta().value) + ' — the account’s answer did not reach the box in front of the child');
+  if (c.kp().value !== '(3)/(4)') bad.push('the keypad box reads ' + JSON.stringify(c.kp().value));
+  const show = c.kp().parentNode.querySelector('.kp-show');
+  if (!show || !/frac/.test(show.innerHTML)) bad.push('the keypad’s drawing was not redrawn — the input holds (3)/(4) under a picture of nothing: ' + (show && show.innerHTML.slice(0, 80)));
+  const on = c.box() && c.box().querySelector('.qp-opt.is-picked');
+  if (!on || on.getAttribute('data-n') !== '2') bad.push('the picked option on screen is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted the account’s one');
+  if (c.ringed().join() !== '0.1') bad.push('the ringed words on screen are [' + c.ringed().join() + '], wanted the account’s "tall" (0.1)');
+  if (c.saidFor(c.words) !== 'Saved to Ada’s account') bad.push('a box filled from the account says ' + JSON.stringify(c.saidFor(c.words)));
+  /* DRAWN AGAIN, IT IS THE SAME — the device has it now. */
+  c.draw();
+  if (c.ta().value !== 'because the angles make a line') bad.push('drawn again the box reads ' + JSON.stringify(c.ta().value));
+  /* NOTHING CAME BACK UP: the device has nothing newer. */
+  await wait(1700);
+  if (sent.some(b => b.action === 'saveAnswers')) bad.push('answers read from the account were sent straight back to it: ' + JSON.stringify(sent.filter(b => b.action === 'saveAnswers').map(b => b.items)));
+  /* A REPLY FOR SOMEBODY ELSE — a child who signed out while it was on its way — is dropped. */
+  const b2 = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: b => (b.action === 'myAnswers' ? { success: true, for: 'P8', answers: { 'ans:q:Q-ANS-W-C': { v: 'Ben’s', at } } } : { success: true }) });
+  await wait(300);
+  b2.w.__t.USER(Object.assign({}, ANS_ADA));
+  const c2 = ansCards_(b2.w, 'C');
+  await b2.w.answersPull_(true);
+  if (c2.ta().value) bad.push('A REPLY FOR ANOTHER CHILD FILLED ADA’S BOX: ' + JSON.stringify(c2.ta().value));
+  /* AND A VALUE THE PAD CANNOT DRAW IS NOT PUT IN ITS MARKUP. */
+  const b3 = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: b => (b.action === 'myAnswers' ? { success: true, for: 'P7', answers: { 'pad:q:Q-ANS-P-D': { v: '[["\\"><img src=x onerror=alert(1)>"]]', at } } } : { success: true }) });
+  await wait(300);
+  b3.w.__t.USER(Object.assign({}, ANS_ADA));
+  const c3 = ansCards_(b3.w, 'D');
+  await b3.w.answersPull_(true);
+  if (c3.host.querySelector('img') || b3.w.localStorage.getItem('pad:u:P7:q:Q-ANS-P-D')) bad.push('a pad value that is not a list of numbers was stored and drawn');
+  return bad;
+});
+
+check('answers: typed before signing in is MOVED to whoever signs in, and the next child on the iPad sees nothing', async () => {
+  const server = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — the move was NOT checked'];
+  const bad = [];
+  w.__t.USER(null);
+  const c = ansCards_(w, 'E');
+  ansType_(w, c.ta(), 'typed before signing in');
+  const bare = 'ans:' + c.words.key, mine = 'ans:u:P7:' + c.words.key;
+  if (w.localStorage.getItem(bare) !== 'typed before signing in') return bad.concat(['signed out, the answer was not kept on the device at all']);
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  c.draw();
+  if (c.ta().value !== 'typed before signing in') bad.push('signed in as Ada the box reads ' + JSON.stringify(c.ta().value) + ' — the answer typed before signing in was not found (the `ansRead_` regex)');
+  if (w.localStorage.getItem(mine) !== 'typed before signing in') bad.push('the answer is not under Ada’s key: ' + JSON.stringify(w.localStorage.getItem(mine)));
+  if (w.localStorage.getItem(bare) !== null) bad.push('the answer was COPIED, not moved — the signed-out copy is still there for the next child: ' + JSON.stringify(w.localStorage.getItem(bare)));
+  await wait(1700);
+  const up = sent.filter(b => b.action === 'saveAnswers').map(b => (b.items || []).map(i => i.key + '=' + i.v).join(',')).join(' | ');
+  if (!/ans:q:Q-ANS-W-E=typed before signing in/.test(up)) bad.push('the moved answer did not go up to Ada’s account: ' + JSON.stringify(up));
+  w.__t.USER(Object.assign({}, ANS_BEN));
+  c.draw();
+  if (c.ta().value) bad.push('BEN SEES ADA’S ANSWER on the same iPad: ' + JSON.stringify(c.ta().value));
+  /* AND SIGNED OUT AGAIN, THE BOX IS EMPTY AND SAYS NOTHING — the answer moved; the device's open drawer
+     must not still claim to hold it (the visit's copy is for a storage that throws, not one that answered). */
+  w.__t.USER(null);
+  c.draw();
+  if (c.ta().value || c.saidFor(c.words)) bad.push('signed out after the move, the box reads ' + JSON.stringify(c.ta().value) + ' under the line ' + JSON.stringify(c.saidFor(c.words)) + ' — the moved answer is still claimed for the device');
+  return bad;
+});
+
+check('answers: an edit not yet sent beats the account’s copy, even a later one, and a box being typed in is never written over', async () => {
+  /* THE ACCOUNT'S COPY IS STAMPED AFTER THE EDIT HERE — the computer's clock, or an edit there in the
+     second before this one went up. Due wins all the same: it is about to go up, and the server decides. */
+  const server = {
+    'ans:q:Q-ANS-W-F': { v: 'the account’s answer', at: Date.now() + 60000 },
+    'ans:q:Q-ANS-M-F': { v: '(1)/(2)', at: Date.now() - 1000 },
+  };
+  /* THE SAVE IS HELD — it never answers — so the edit stays due while the account is read. */
+  const hold = new Promise(() => {});
+  const { w } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: ansBackend_(server, b => (b.action === 'saveAnswers' ? hold : undefined)) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — the merge was NOT checked'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'F');
+  ansType_(w, c.ta(), 'my new answer');
+  /* THE KEYPAD BOX HAS AN OLDER ANSWER, SAVED, AND THE CHILD IS IN IT. */
+  w.localStorage.setItem('ans:u:P7:' + c.maths.key, '(3)/(4)');
+  w.localStorage.setItem('ansAt:ans:u:P7:' + c.maths.key, String(Date.now() - 5000));
+  c.draw();
+  ansType_(w, c.ta(), 'my new answer');
+  c.kp().focus();
+  await w.answersPull_(true);
+  if (c.ta().value !== 'my new answer' || w.localStorage.getItem('ans:u:P7:' + c.words.key) !== 'my new answer') bad.push('an edit not yet sent was replaced by the account’s copy: the box reads ' + JSON.stringify(c.ta().value) + ' and the device ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + c.words.key)));
+  if (c.kp().value !== '(3)/(4)' || w.localStorage.getItem('ans:u:P7:' + c.maths.key) !== '(3)/(4)') bad.push('the box under the child’s finger was written over by the account: the box reads ' + JSON.stringify(c.kp().value) + ' and the device ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + c.maths.key)));
+  c.kp().blur();
+  /* AND A BOX NOBODY IS IN, NOT DUE, TAKES THE ACCOUNT'S NEWER ANSWER — the control for the two above. */
+  const b2 = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_({ 'ans:q:Q-ANS-W-G': { v: 'from the computer', at: Date.now() - 1000 } }) });
+  await wait(300);
+  b2.w.__t.USER(Object.assign({}, ANS_ADA));
+  b2.w.localStorage.setItem('ans:u:P7:q:Q-ANS-W-G', 'from this iPad, earlier');
+  b2.w.localStorage.setItem('ansAt:ans:u:P7:q:Q-ANS-W-G', String(Date.now() - 864e5));
+  const c2 = ansCards_(b2.w, 'G');
+  await b2.w.answersPull_(true);
+  if (c2.ta().value !== 'from the computer') bad.push('a box nobody was in kept its older answer over the account’s newer one: ' + JSON.stringify(c2.ta().value));
+  return bad;
+});
+
+check('answers: a backend without saveAnswers is sent nothing, and the box keeps its answer on the device as it always did', async () => {
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ['markDone'] }) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'H');
+  ansType_(w, c.ta(), 'kept here');
+  w.adoptMarks_();
+  await wait(1700);
+  const asked = sent.filter(b => b.action === 'saveAnswers' || b.action === 'myAnswers');
+  if (asked.length) bad.push('a backend that does not list them was sent ' + asked.map(b => b.action).join(', '));
+  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== 'kept here') bad.push('the answer was not kept on the device');
+  c.draw();
+  if (c.ta().value !== 'kept here') bad.push('drawn again the box reads ' + JSON.stringify(c.ta().value));
+  if (c.saidFor(c.words) !== 'On this device only') bad.push('signed in to a backend that cannot keep it, the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — it must not claim a save');
+  return bad;
+});
+
+check('answers: a refused save keeps the answer due and it goes on the next try; one typed over while sending stays due', async () => {
+  const server = {};
+  let refuse = 1, release = null;
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: ansBackend_(server, b => {
+      if (b.action !== 'saveAnswers') return undefined;
+      if (refuse-- > 0) return { error: 'Busy — it will be sent again.', why: 'busy' };
+      if (release === 'hold') return new Promise(r => { release = () => r(ansBackend_(server)(b)); });
+      return undefined;
+    }) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'I');
+  const due = () => JSON.parse(w.localStorage.getItem('ansDirty:u:P7') || '[]');
+  ansType_(w, c.ta(), 'first try');
+  await w.answersPush_(true);
+  if (!due().includes('ans:u:P7:' + c.words.key)) bad.push('a refused save took the answer off the list of what is due — it would never be sent again');
+  if (c.saidFor(c.words) !== 'Saving…') bad.push('after a refusal the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — it was not saved');
+  await w.answersPush_(true);
+  if (due().length) bad.push('the next try did not clear what was due: ' + JSON.stringify(due()));
+  if (!server['ans:q:Q-ANS-W-I'] || server['ans:q:Q-ANS-W-I'].v !== 'first try') bad.push('the next try did not reach the account: ' + JSON.stringify(server));
+  /* TYPED OVER WHILE THE SAVE WAS ON THE WIRE: the reply is about "second", so the key stays due and
+     the newer answer follows it up — the account must end on what the box says. */
+  release = 'hold';
+  ansType_(w, c.ta(), 'second');
+  const n0 = sent.filter(b => b.action === 'saveAnswers').length;
+  const p = w.answersPush_(true);
+  ansType_(w, c.ta(), 'second, longer');
+  await wait(20);
+  if (typeof release === 'function') release();
+  await p;
+  /* THE NEWER ANSWER FOLLOWS ON THE ORDINARY SECOND AND A HALF — one request per pause, not per round trip. */
+  await wait(1700);
+  const after = sent.filter(b => b.action === 'saveAnswers').slice(n0).map(b => (b.items || []).map(i => i.v).join());
+  if ((server['ans:q:Q-ANS-W-I'] || {}).v !== 'second, longer') bad.push('an answer typed over while the last one was being sent was taken as saved — the account has ' + JSON.stringify((server['ans:q:Q-ANS-W-I'] || {}).v) + ' and the box says "second, longer" (sent: ' + JSON.stringify(after) + ')');
+  if (due().length) bad.push('after the follow-up save something is still due: ' + JSON.stringify(due()));
+  /* AND AN ANSWER TOO LONG FOR THE ACCOUNT (ANSWER_TEXT_MAX): never sent, never due — it would be refused
+     for ever — and the line under the box does not claim a save that never happened. */
+  const n2 = sent.filter(b => b.action === 'saveAnswers').length;
+  ansType_(w, c.ta(), 'x'.repeat(2001));
+  await w.answersPush_(true);
+  if (sent.filter(b => b.action === 'saveAnswers').slice(n2).some(b => (b.items || []).some(i => String(i.v).length > 2000))) bad.push('an answer over the account’s ceiling was sent — the server refuses it every time');
+  if (due().length) bad.push('an answer over the ceiling is still due: ' + JSON.stringify(due()));
+  if (c.saidFor(c.words) !== 'On this device only \u2014 too long for the account') bad.push('under an answer too long for the account the line says ' + JSON.stringify(c.saidFor(c.words)));
+  return bad;
+});
+
+check('answers: a payload landing reads the account once a visit, and coming back to the app after a minute reads it again', async () => {
+  const server = { 'ans:q:Q-ANS-W-K': { v: 'from the computer', at: Date.now() - 5000 } };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } });
+  await wait(500);
+  const bad = [];
+  if (typeof w.adoptMarks_ !== 'function') return ['adoptMarks_ not reachable — nothing was checked'];
+  const reads = () => sent.filter(b => b.action === 'myAnswers').length;
+  if (reads() !== 1) bad.push('opening the app signed in read the account ' + reads() + ' time(s), wanted once — the boxes would be empty on this device until the next sign-in');
+  if (w.localStorage.getItem('ans:u:P7:q:Q-ANS-W-K') !== 'from the computer') bad.push('the answer typed on the computer did not reach this device when the app opened');
+  w.adoptMarks_(); w.adoptMarks_();
+  await wait(50);
+  if (reads() !== 1) bad.push('two more payloads in the same visit read the account ' + (reads() - 1) + ' more time(s) — once a visit');
+  /* BACK IN FRONT: not within the minute, and again after it. */
+  const d = w.document;
+  try { Object.defineProperty(d, 'visibilityState', { configurable: true, get: () => 'visible' }); } catch (e) {}
+  d.dispatchEvent(new w.Event('visibilitychange'));
+  await wait(50);
+  if (reads() !== 1) bad.push('coming back to the app within the minute read the account again');
+  const real = w.Date.now;
+  w.Date.now = () => real.call(w.Date) + 61000;
+  try {
+    d.dispatchEvent(new w.Event('visibilitychange'));
+    await wait(50);
+  } finally { w.Date.now = real; }
+  if (reads() !== 2) bad.push('coming back to the app after a minute away did not read the account again (' + reads() + ' reads) — the iPad would not see what was typed on the computer');
+  return bad;
+});
+
+/* ---------- SIGNING IN ON A SHARED iPAD ------------------------------------------------------------- */
+check('sign out, then the next child signs in: none of the last child’s messages, stars or done dates are on the screen', async () => {
+  /* BEN'S INBOX DOES NOT ARRIVE — the server is slow, then refuses. That is the moment the last child's
+     messages, if they were still held, are what the column falls back to drawing (`loadMessages` keeps
+     what it had on a failure, so a blip does not read as an empty inbox). */
+  let asked = 0;
+  const reply = b => b.action === 'verifyLogin'
+    ? Object.assign({ success: true }, ANS_BEN)
+    : b.action === 'messages' ? (b.personId === 'P8' ? (asked++, { error: 'The server did not answer.' }) : { success: true, messages: [] })
+    : { success: true };
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.signedIn_ !== 'function' || typeof w.signedOut_ !== 'function') return ['signedIn_ / signedOut_ are not reachable — the hand-over was NOT checked'];
+  t.USER(Object.assign({}, ANS_ADA));
+  t.dmSeed([{ id: 'M1', mine: false, read: false, body: 'Ada — a private note from your tutor', at: '2026-10-08 09:10',
+              withId: 'P2', withName: 'Sasha Matola', fromName: 'Sasha Matola' }]);
+  t.star('q:Q-ADA-STAR');
+  t.DATA().attempts = { for: 'P7', mine: { 'q:Q-ADA': { first: '2026-10-08', last: '2026-10-08', times: 1 } } };
+  try { w.localStorage.setItem('favs', JSON.stringify(['q:Q-ADA-STAR'])); } catch (e) {}
+  t.go('dm', false, true); w.paint('dm');
+  if (!/private note/.test(d.getElementById('s-dm').textContent)) bad.push('the seeded message was not drawn for Ada, so its absence below proves nothing');
+  t.go('account', false, true);
+  t.ACTIONS.signout(d.createElement('button'));
+  const so = sent.filter(b => b.action === 'signOut');
+  await wait(50);
+  if (!sent.some(b => b.action === 'signOut' && b.token === 'tok-P7')) bad.push('sign-out did not end Ada’s session on the server: ' + JSON.stringify(so));
+  t.go('account', false, true);
+  await wait(50);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!fill('in-name', 'ben_bold8') || !fill('in-pin', ['5', '1', '7', '3'].join(''))) return bad.concat(['no sign-in card after signing out']);
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(400);
+  if ((t.whoami() || {}).personId !== 'P8') return bad.concat(['Ben did not sign in: ' + JSON.stringify(t.whoami())]);
+  t.go('dm', false, true); w.paint('dm');
+  await wait(300);
+  w.paint('dm');
+  if (/private note/.test(d.getElementById('s-dm').textContent)) bad.push('ADA’S PRIVATE MESSAGE IS ON BEN’S MESSAGES COLUMN, drawn in place of his own inbox that did not arrive');
+  if (/Saved/.test(w.favTile_({ key: 'q:Q-ADA-STAR', kind: 'question' }))) bad.push('Ada’s star is lit for Ben');
+  if (Object.keys(w.attemptsMine_()).length) bad.push('Ada’s done dates are held for Ben: ' + JSON.stringify(w.attemptsMine_()));
+  if (/Q-ADA-STAR/.test(String(w.localStorage.getItem('favs') || ''))) bad.push('Ada’s stars are still in the device’s copy');
+  if (!asked) bad.push('Ben’s inbox was never asked for, so the column was never drawn without it — NOT checked');
+  return bad;
+});
+
+check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast and the banner unchanged', async () => {
+  const { w } = boot({ reply: b => (b.action === 'verifyLogin'
+    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle (like halex_kind42).' }
+                                        : { success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
+    : { success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(80);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['the sign-in card is not on the account column'];
+  const bannerWas = (() => { const b = d.getElementById('banner'); return b && !b.classList.contains('hidden') ? String(b.textContent || '') : ''; })();
+  name.value = 'ada_kind7'; pin.value = '1239';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  const p2 = d.getElementById('in-pin');
+  if (p2.value !== '') bad.push('after a wrong PIN the box still holds ' + JSON.stringify(p2.value) + ' — the child has to delete it before retyping');
+  if (d.activeElement !== p2) bad.push('after a wrong PIN the focus is on ' + (d.activeElement && (d.activeElement.id || d.activeElement.tagName)) + ', not the PIN box');
+  if (p2.getAttribute('aria-invalid') !== 'true') bad.push('the PIN box is not marked aria-invalid, so nothing says which box was wrong');
+  if (!/Wrong PIN/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — the owner’s choice is a toast');
+  const ban = d.getElementById('banner');
+  if ((ban && !ban.classList.contains('hidden') ? String(ban.textContent || '') : '') !== bannerWas) bad.push('a wrong PIN changed the banner');
+  if (d.getElementById('in-name').getAttribute('aria-invalid')) bad.push('the handle box was marked for a wrong PIN');
+  p2.value = '4'; p2.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (p2.hasAttribute('aria-invalid')) bad.push('the red edge stayed after the next keystroke');
+  /* A HANDLE NOBODY HAS MARKS THE HANDLE BOX. */
+  d.getElementById('in-name').value = 'nobody_here'; d.getElementById('in-pin').value = '1234';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (d.getElementById('in-name').getAttribute('aria-invalid') !== 'true' || d.activeElement !== d.getElementById('in-name')) bad.push('a handle nobody has did not mark and focus the handle box');
+  if (d.getElementById('in-pin').value !== '1234') bad.push('a wrong handle emptied the PIN, which was not what was wrong');
+  return bad;
+});
+
+check('the PIN box is not a password the iPad keeps, and handles that signed in here are chips that fill the box — never a PIN', async () => {
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
+  const bad = [];
+  /* WHERE THE BROWSER CAN DRAW DOTS ON TEXT (Safari, Chrome): a text box, so Safari has no password to keep. */
+  const { w, sent } = boot({ reply, before: win => { win.CSS = { supports: (p, v) => p === '-webkit-text-security' }; } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER(null); t.go('account', false, true); w.paint('account');
+  const pin = d.getElementById('in-pin');
+  if (!pin) return ['no PIN box on the account column'];
+  if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
+  const want = { autocomplete: 'off', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
+  Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
+  /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
+  const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
+  await wait(300);
+  b2.w.__t.USER(null); b2.w.__t.go('account', false, true); b2.w.paint('account');
+  const pin2 = b2.w.document.getElementById('in-pin');
+  if (!pin2 || pin2.type !== 'password' || pin2.getAttribute('autocomplete') !== 'off') bad.push('without dots the PIN box is ' + (pin2 && pin2.type) + ' autocomplete=' + (pin2 && pin2.getAttribute('autocomplete')) + ' — wanted password, off');
+  /* SIGNED IN BY HANDLE AND PIN: the handle is remembered, the PIN is not, anywhere. */
+  d.getElementById('in-name').value = 'ada_kind7';
+  pin.value = ['4', '8', '2', '6'].join('');
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (!sent.some(b => b.action === 'verifyLogin')) return bad.concat(['signing in posted nothing']);
+  const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
+  if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
+  if (w.localStorage.getItem('familyHandles') !== '["ada_kind7"]') bad.push('the handle was not remembered: ' + w.localStorage.getItem('familyHandles'));
+  if (/"answers"|"attempts"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
+  /* SIGNED OUT, THE CHIP IS THERE; TAPPING IT FILLS THE BOX AND PUTS THE CARET IN THE PIN. */
+  t.ACTIONS.signout(d.createElement('button'));
+  t.go('account', false, true); w.paint('account');
+  const chip = d.querySelector('#s-account [data-do="handle-pick"][data-h="ada_kind7"]');
+  if (!chip) return bad.concat(['signed out, there is no chip for the handle that signed in here']);
+  t.ACTIONS['handle-pick'](chip);
+  if (d.getElementById('in-name').value !== 'ada_kind7') bad.push('the chip filled the box with ' + JSON.stringify(d.getElementById('in-name').value));
+  if (d.activeElement !== d.getElementById('in-pin')) bad.push('after the chip the caret is not in the PIN box');
+  if (d.getElementById('in-pin').value) bad.push('the chip filled the PIN');
+  if (!chip.closest('.hchip').classList.contains('is-on')) bad.push('the chip tapped is not lit, so nothing on the card says whose account the PIN is for');
+  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="ada_kind7"]');
+  if (!drop) bad.push('the chip has no ✕ to forget it');
+  else {
+    t.ACTIONS['handle-forget'](drop);
+    if (d.querySelector('#s-account [data-do="handle-pick"]')) bad.push('✕ left the chip on the card');
+    if (JSON.parse(w.localStorage.getItem('familyHandles') || '[]').length) bad.push('✕ did not forget the handle on the device');
+  }
+  return bad;
+});
+
+check('signing in brings the done dates, stars, family and answers with the reply, before the payload', async () => {
+  let hold = false;
+  const reply = b => b.action === 'verifyLogin'
+    ? Object.assign({ success: true }, ANS_ADA, {
+        attempts: { for: 'P7', mine: { 'q:Q-SIGN': { first: '2026-10-08', last: '2026-10-08', times: 1 } } },
+        favourites: ['q:Q-SIGN-STAR'],
+        family: [{ personId: 'P9', title: 'Mo Parent', relation: 'parent', handle: 'mo_kind9', image: '' }], familyFor: 'P7',
+        answers: { 'ans:q:Q-ANS-W-J': { v: 'from the account', at: Date.now() - 1000 } } })
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply,
+    /* THE PAYLOAD AFTER SIGNING IN NEVER ARRIVES — so what is on the screen is the reply's alone. */
+    serve: () => (hold ? new Promise(() => {}) : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.signedIn_ !== 'function') return ['signedIn_ not reachable'];
+  t.USER(null); t.go('account', false, true); w.paint('account');
+  hold = true;
+  d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (!/Signed in as Ada/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — on an iPad passed between children it has to say whose account');
+  if (!w.attemptsMine_()['q:Q-SIGN']) bad.push('the done dates did not come with the reply: ' + JSON.stringify(w.attemptsMine_()));
+  if (!/Saved/.test(w.favTile_({ key: 'q:Q-SIGN-STAR', kind: 'question' }))) bad.push('the stars did not come with the reply');
+  const D = t.DATA();
+  if (D.familyFor !== 'P7' || !(D.family || []).some(f => f.personId === 'P9')) bad.push('the family did not come with the reply: ' + JSON.stringify({ familyFor: D.familyFor, family: D.family }));
+  if (w.localStorage.getItem('ans:u:P7:q:Q-ANS-W-J') !== 'from the account') bad.push('the answers did not come with the reply');
+  /* AND THE ACCOUNT IS READ AT ONCE, not when the payload lands — `signedIn_` calls `answersPull_`. */
+  if (!sent.some(b => b.action === 'myAnswers' && b.personId === 'P7')) bad.push('signing in did not read the account’s answers at once — they would wait for a payload that takes fifteen seconds');
+  const u = t.whoami() || {};
+  if ('answers' in u || 'attempts' in u || 'favourites' in u || 'family' in u) bad.push('the per-person extras were put on USER: ' + Object.keys(u).join(', '));
+  return bad;
+});
+
+check('signing in on the account column goes back where you came from — and Find, for a child with nowhere to go back to', async () => {
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
+  const { w } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const signIn = async () => {
+    d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
+    t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+    await wait(300);
+  };
+  t.USER(null);
+  t.go('tools', false, true); t.go('account', false, true); w.paint('account');
+  await signIn();
+  if (t.AT() !== 'tools') bad.push('signed in from the account column after Tools, the child is on ' + t.AT() + ' — wanted back on Tools');
+  /* SIGNED IN WHILE ANOTHER COLUMN IS IN FRONT — the emailed link at start-up, Google's own button — the
+     child is left where they are: only a sign-in made ON the account column goes back. */
+  t.ACTIONS.signout(d.createElement('button'));
+  t.go('account', false, true); w.paint('account');
+  d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
+  t.go('games', false, true);
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  await wait(300);
+  if (t.AT() !== 'games') bad.push('signed in with Games in front, the child was moved to ' + t.AT());
+  /* OPENED ON THE ACCOUNT COLUMN, NOTHING BEFORE IT: a child goes to Find. */
+  const b2 = boot({ reply, before: win => { win.localStorage.setItem('familyTab', 'account'); win.localStorage.setItem('familyTabAt', String(Date.now())); } });
+  await wait(300);
+  if (b2.w.__t.AT() !== 'account') return bad.concat(['the app did not open on the account column, so "nowhere to go back to" was NOT checked']);
+  b2.w.__t.USER(null); b2.w.paint('account');
+  const d2 = b2.w.document;
+  d2.getElementById('in-name').value = 'ada_kind7'; d2.getElementById('in-pin').value = '4826';
+  b2.w.__t.ACTIONS['do-signin'](d2.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (b2.w.__t.AT() !== 'stuff') bad.push('a child signing in with nowhere to go back to is on ' + b2.w.__t.AT() + ' — wanted Find');
+  return bad;
+});
+
+check('the payload landing does not rebuild Find under a keypad box with the focus, and does rebuild it once the box is left', async () => {
+  const { w } = boot();
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.findKeep_ !== 'function' || typeof w.kpField_ !== 'function') return ['findKeep_ or kpField_ not reachable — the keep was NOT checked'];
+  t.USER(Object.assign({}, ANS_ADA));
+  t.go('stuff', false, true);
+  const host = d.getElementById('s-stuff');
+  const page = d.createElement('div');
+  page.className = 'qcard';
+  page.innerHTML = w.kpField_('ans:u:P7:q:Q-KEEP', '7');
+  host.appendChild(page);
+  const inp = page.querySelector('.kp-in');
+  inp.focus();
+  if (d.activeElement !== inp) return ['the keypad box could not take the focus, so nothing was checked'];
+  const padUp = () => d.documentElement.classList.contains('kp-up');
+  await w.load();
+  await wait(50);
+  if (!d.contains(inp)) bad.push('the payload landing rebuilt Find and threw away the box the child was typing in');
+  if (d.activeElement !== inp) bad.push('after the payload the focus is on ' + (d.activeElement && d.activeElement.tagName) + ', not the box');
+  if (padUp() !== true && d.getElementById('kp')) bad.push('the payload landing put the keypad away');
+  inp.blur();
+  await wait(500);
+  if (d.contains(inp)) bad.push('half a second after the box was left, Find was still the stale copy — it is never redrawn');
+  return bad;
+});
+
+check('a second payload repaints the column in front and leaves the others for when they are visited, and asks for messages once', async () => {
+  const { w, sent } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); },
+    reply: b => (b.action === 'messages' ? { success: true, messages: [] } : { success: true }) });
+  await wait(600);
+  const t = w.__t, d = w.document, bad = [];
+  const firstAsks = sent.filter(b => b.action === 'messages').length;
+  if (firstAsks !== 1) bad.push('the first load asked for messages ' + firstAsks + ' times — the widgets and the Messages column share one request');
+  const ids = (t.TABS || []).map(x => x.id);
+  ids.forEach(id => { const el = d.getElementById('s-' + id); if (el && el.firstElementChild) el.firstElementChild.setAttribute('data-was', '1'); });
+  await w.load();
+  await wait(100);
+  const redrawn = ids.filter(id => { const el = d.getElementById('s-' + id); return el && !(el.firstElementChild && el.firstElementChild.hasAttribute('data-was')); });
+  if (redrawn.filter(id => id !== t.AT()).length) bad.push('a second payload rebuilt ' + redrawn.length + ' columns (' + redrawn.join(', ') + ') — wanted only the one in front, ' + t.AT() + '; the rest are drawn when visited');
   return bad;
 });
 

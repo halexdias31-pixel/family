@@ -171,6 +171,10 @@ const WHERE = {
   post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
   favourites:     { file: 'ledger' },
+  /* WHAT EACH LEARNER WROTE, so it follows them to another device — see SCHEMA.answers. The Ledger
+     beside `favourites` and `attempts`, for their reason: it is a record OF a learner, and the app
+     writes it. */
+  answers:        { file: 'ledger' },
   /* THE DAY EACH QUESTION WAS DONE, BY WHOM. The Ledger because it is the only file there is, and
      because it is where every other record OF a learner already lives — `people`, `exams`,
      `favourites` — so a tutor looking up a student finds their attempts beside their row rather than
@@ -237,7 +241,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-08-b-weeklyonly";
+const BACKEND_VERSION = "2026-10-08-c-answers";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -267,6 +271,8 @@ const TAB = {
   /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
+  /* What each learner wrote in an answer box, picked or drew — see SCHEMA.answers. */
+  answers: 'answers',
   /* Which questions each learner has done, and when — see SCHEMA.attempts. */
   attempts: 'attempts',
   /* What the weekly parent email sent, or would have — see SCHEMA.digest_log. */
@@ -1167,6 +1173,37 @@ const SCHEMA = {
     "at",
   ],
 
+  /* ---------- ANSWERS: WHAT THE CHILD WROTE, SO IT IS THERE ON THE NEXT DEVICE ----------------------
+     REPORTED BY THE OWNER FROM A PUPIL'S iPAD: *"i am very dissapointed it didnt have his answers
+     already written in when he went to see them on the computer"*, and *"it doesnt seem to save their
+     answers"*. Until this tab an answer lived in the browser it was typed in and nowhere else: the
+     card on the computer said `Done 8 Oct` (that is `attempts`) over an empty box.
+
+     ITS OWN TAB, NOT COLUMNS ON `attempts`. An attempt is written once a day and never rewritten; an
+     answer changes on every edit. And `attempts` is what the parent emails read whole — drawings in
+     it would be every email run reading every child's pen strokes for nothing.
+
+     ONE ROW PER PERSON PER ANSWER KEY, upserted by `saveAnswers`, read only by `myAnswers` and the
+     sign-in reply — for the person the token resolved to and nobody else (no parent, tutor or admin
+     view: the owner can open the sheet).
+
+     `answer_key` IS THE PHONE'S OWN KEY WITH THE PERSON TAKEN OUT — `ans:q:<row>` a typed answer or a
+     pick (`2,4`), `ans:q:<row>#iv` a practical's worksheet box, `pad:q:<row>` the pen's strokes,
+     `pad:q:<row>:words` the ringed words. The person is `person_id`, so the key cannot carry another.
+
+     `value` IS ALWAYS TEXT — written with a leading apostrophe whatever it holds. `cellSafe_` guards a
+     formula, not a fraction: `3/4` and `1/2` are dates to a sheet, `2,4` (two picked options) can
+     come back 24, and `0.50` comes back `0.5`. An empty value is a real row: clearing an answer has
+     to reach the other device as well.
+
+     `edited_at` IS WHEN THE CHILD MADE THE EDIT (the phone's clock, never later than the server's),
+     as ISO text; the later one wins, so a stale phone coming back online cannot write over the
+     newer answer. `saved_at` is when the server took it, for the owner reading the sheet. */
+  answers: [
+    "person_id", "answer_key",
+    "value", "edited_at", "saved_at",
+  ],
+
   /* ---------- ATTEMPTS: THE DAY A QUESTION WAS DONE, SO IT FOLLOWS THE STUDENT -------------------
      ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. The
      question card has said `Done 4 Oct` since 268, from `done:<who>:<key>` in `localStorage` — which
@@ -2019,6 +2056,19 @@ const ATTEMPT_LABEL_MAX = 120;
    with their stem; a stem that is a whole extract (an English insert) is cut, and the email cuts again
    to what fits a phone's screen (`DIGEST_WORDS_SHOWN`). */
 const ATTEMPT_WORDS_MAX = 1200;
+
+/* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers ------------------------------------
+   A TYPED ANSWER, the same ceiling as an answer sent to "Mark with AI" (`aiMark`): no answer box in the
+   library wants more, and a cell is not a place for an essay pasted in by accident.
+   THE PEN'S STROKES, under the 50,000 characters a Sheets cell holds, with room. The phone simplifies a
+   stroke before it sends it (a 504-point freehand line is 33 points after), so a whole graph is a few
+   kilobytes; one bigger than this stays on the device that drew it and is never cut — half a JSON list
+   is not a drawing. A value over its ceiling is refused, never truncated.
+   AND HOW MANY ONE REQUEST CARRIES, under the script lock every other write waits on. The phone sends
+   what changed in the last second and a half, which is one or two; the cap is for a backlog. */
+const ANSWER_TEXT_MAX = 2000;
+const ANSWER_PAD_MAX = 40000;
+const ANSWERS_PER_POST = 25;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ------------------------------------------
    `DIGEST_MODES` is the whole vocabulary of `weekly_digest` on the config tab, OFF FIRST: anything not
@@ -3017,6 +3067,11 @@ const ACTION_ACCESS = {
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
+  /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. `self` both ways: the row
+     written and the rows read are the person the token resolved to, whatever `personId` the body
+     claims — the gate overwrites it. Nobody reads another person's answers through these. */
+  saveAnswers: 'self',
+  myAnswers: 'self',
   /* THE DAY A QUESTION WAS DONE. `self`: the row written is the one for the person the token
      resolved to, whatever `personId` the body claims — the gate overwrites it before the handler
      runs. Nobody can date a question for somebody else. */
