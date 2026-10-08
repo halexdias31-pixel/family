@@ -58,6 +58,7 @@
 #     it, in a maths splash, reads as a missing number. The "=" is now inside each value's cell and
 #     fades with it, so between stops the caption says "m = rise ÷ run" and nothing is missing.
 import math, re, pathlib
+import sys; sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 
 U = 22.0                          # one unit of the axes, in viewBox units — one square of the grid
 XMIN, XMAX = -1.5, 2.5            # the plot, in the axes' own units
@@ -415,7 +416,7 @@ css = f'''/* ---------- y = mx + c ---------------------------------------------
      opacity; they were the paper colour written out as an rgb().
    · REDUCED MOTION is the base rules below: m = {f(STILL)}, the triangle at its tallest, c marked. */
 #splash-mxc {{ --mx-line: #6fa8dc; --mx-m: #6fd8a0; --mx-c: #e8862c; }}
-#splash-mxc .mx-svg {{ display: block; width: min(62vw, 14.5rem); height: auto; margin: 0 auto; overflow: hidden; }}
+#splash-mxc .mx-svg {{ display: block; width: min(62vw, 14.5rem); max-width: 100%; height: auto; margin: 0 auto; overflow: hidden; }}
 .mx-grid {{ fill: none; stroke: var(--paper); stroke-opacity: .1; stroke-width: .6; }}
 .mx-ax, .mx-ay {{ stroke: var(--paper); stroke-opacity: .55; stroke-width: {AX_W:g}; }}
 .mx-arrow {{ fill: var(--paper); fill-opacity: .55; }}
@@ -465,14 +466,7 @@ css = f'''/* ---------- y = mx + c ---------------------------------------------
 
 '''
 
-root = pathlib.Path(__file__).resolve().parent.parent
-html = (root / 'index.html').read_text()
-html, n = re.subn(r'<div id="splash-mxc"[\s\S]*?\n  </div>', lambda m_: svg, html, count=1)
-assert n == 1, 'no #splash-mxc in index.html'
-(root / 'index.html').write_text(html)
-style = (root / 'style.css').read_text()
-style, n = re.subn(r'/\* -+ y = mx \+ c -+[\s\S]*?(?=/\* THE "or" BETWEEN)', lambda m_: css, style, count=1)
-assert n == 1, 'no y = mx + c block in style.css'
-(root / 'style.css').write_text(style)
+# INTO ITS ROW IN data/textbooks.json, not index.html and style.css — see tools/anim_row.py.
+anim_row.write_anim('mxc', html=svg, css=css)
 print('viewBox %s x %s, P %s; %d stops %s; loop %gs, %d samples; worst off the line between samples %.3f'
       % (f(VW), f(VH), tuple(map(f, P)), len(MS), [SAY[m] for m in MS], T, len(stops), worst))

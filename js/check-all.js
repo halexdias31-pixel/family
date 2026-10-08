@@ -290,6 +290,11 @@ const SUITE = [
      asks the question neither can: after a deploy, does the browser run the new code. Deterministic,
      seven seconds, and it runs at both base paths because the base path is what hid the fault. */
   { file: 'check/deploy.js',  what: 'a deploy reaching a browser that already has the site', slow: true },
+  /* ---------- EVERY TEXTBOOK ANIMATION IN ITS CHAPTER, AND STILL WHEN ASKED ---------------------------
+     Twenty-seven drawings made for the middle of a black screen are drawn in a card as well. Each is
+     measured on its page at 320 and 390, at six moments of its loop, for leaving the card; and with
+     less movement asked for, in the chapter and on the splash, for holding still. */
+  { file: 'check/anims.js',   what: 'every textbook animation inside its card, and still when asked', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING ----------------------------------------
      REPORTED BY THE OWNER AS "grid not working when click", and it was true: `paintBook_` repainted
      `s-stuff`, which on the Booking column is not merely the wrong element but a dead one. Every

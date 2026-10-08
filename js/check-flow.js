@@ -10524,10 +10524,13 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   const x = left.find(i => i.kind === 'textbook') || w.stuffItems().find(i => i.kind === 'textbook');
   if (!x) return bad.concat(['Find offers no textbook at all']);
 
-  /* CARD, THEN A PAGE PER CHAPTER IN ORDER. */
+  /* CARD, THEN A PAGE PER CHAPTER IN ORDER — AND AFTER EACH CHAPTER ITS ANIMATIONS. "Add the animations
+     from loading to respective subject text books" (the owner, 8 Oct): Statistics teaches the mean, Bayes,
+     Pascal and the Galton board, each a page straight after its chapter. */
   const parts = w.pageParts_(x);
-  const want = [null].concat(book.chapters.map(c => 'ch' + c.n));
-  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order');
+  const want = [null].concat(...book.chapters.map(c => ['ch' + c.n].concat((c.animations || []).map(a => 'an' + c.n + '-' + a.id))));
+  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order, each with its animations after it');
+  ['an8-mean', 'an15-bayes', 'an16-pas', 'an16-gal'].forEach(a => { if (parts.indexOf(a) < 0) bad.push('GCSE Statistics has no ' + a + ' page — data/textbooks.json put it under that chapter'); });
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.tb')) bad.push('the book card is not drawn as a textbook');
@@ -10619,9 +10622,15 @@ const loaded_ = async (t, ms) => {
 check('a retired splash stays retired: the file\'s list reaches the device, and the picker never draws it', async () => {
   const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'))
     .map(r => r.splash_id === 'pyth' ? Object.assign({}, r, { active: false }) : r);
-  const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows : undefined });
+  /* AND THE BOOKS, because Pythagoras lives in one: the picker could only draw it from the copy a load
+     of data/textbooks.json kept, so without them the retirement would be proved of nothing. */
+  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows
+    : /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : undefined });
   if (!w.__t) return ['the app did not finish loading'];
   if (!(await loaded_(w.__t))) return ['`load()` never built DATA.splashOff — the splashes file was NOT read, so nothing was checked'];
+  for (let i = 0; i < 100 && !w.localStorage.getItem('splashAnims'); i++) await wait(25);
+  if (((JSON.parse(w.localStorage.getItem('splashAnims') || '{}').ids) || []).indexOf('pyth') < 0) return ['the load kept no copy of Pythagoras from the books — the retirement was NOT proved of anything'];
   const bad = [];
   let off = null;
   try { off = JSON.parse(w.localStorage.getItem('splashOff') || 'null'); } catch (e) { off = 'unreadable'; }
@@ -10635,6 +10644,172 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
   if (drew.length) bad.push('the picker drew Pythagoras ' + drew.length + ' times in 64 — retired in the sheet, and still on the splash');
   const kinds = new Set(picks.map(p => p.root || p.cls));
   if (kinds.size < 10) bad.push('64 forced picks drew only ' + kinds.size + ' different splashes (' + [...kinds].join(' ') + ') — the coin was NOT exercised');
+  return bad;
+});
+
+/* ---------- A CHAPTER PLAYS ITS ANIMATION ------------------------------------------------------------
+   "Add the animations from loading to respective subject text books." — the owner, 8 Oct. The real
+   books through the real mapper, GCSE Maths opened on Find, and the page after chapter 17 turned to:
+   Pythagoras, drawn from its row. Then what the page has to be true of: it plays on arrival and stops
+   when the page turns; its stylesheet is in the page once and is the row's; the drawing is the row's
+   markup with its ids made its own; no id inside any drawing on the page is shared; the chapter's
+   formula under it is typeset; the book's search words hold no markup; and Play again starts it over. */
+check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
+  const rows = read('textbooks');
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { textbooks: rows })));
+  const p = payload();
+  Object.assign(p, { textbooks: made.textbooks || [] });
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const row = rows.find(r => r.anim === 'pyth');
+  if (!row) return ['data/textbooks.json has no pyth row — NOT checked'];
+  t.go('stuff');
+  const S = t.STUFF();
+  S.q = ''; S.filters.length = 0;
+  S.filters.push({ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
+  w.paintStuff();
+  const pages = w.stuffPages_();
+  const at = pages.findIndex(pg => pg.part === 'an17-pyth');
+  if (at < 0) return ['GCSE Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
+  if (!pages[at - 1] || pages[at - 1].part !== 'ch17') bad.push('Pythagoras is not the page straight after chapter 17 (it follows ' + (pages[at - 1] && pages[at - 1].part) + ')');
+  const first = w.stuffFirstResult_();
+  t.goPage('stuff', first + at);
+  await wait(450); await woken_();
+  const host = w.document.getElementById('s-stuff');
+  /* THE PAGE IN FRONT, AS FIND MARKS IT — `.on` on the page the column is placed at. */
+  const cardEl = host.querySelector('.card.is-an17-pyth');
+  const here = cardEl && cardEl.closest('.page');
+  const stage = here && here.querySelector('.tb-an-stage[data-anim="pyth"]');
+  if (!stage) return bad.concat(['the page turned to has no Pythagoras stage']);
+  if (!stage.classList.contains('is-on')) bad.push('the stage on the page in front is not `.is-on` — it stands paused');
+  const others = [...host.querySelectorAll('.tb-an-stage.is-on')].filter(e => e !== stage);
+  if (others.length) bad.push(others.length + ' other stage(s) are playing off the page in front: ' + others.map(e => e.dataset.anim).join(' '));
+  /* ITS STYLESHEET: ONE, THE ROW'S. */
+  const st = w.document.head.querySelectorAll('style[data-anim="pyth"]');
+  if (st.length !== 1) bad.push(st.length + ' <style data-anim="pyth"> in the page — one, shared');
+  else if (st[0].textContent !== row.css) bad.push('the page\'s Pythagoras stylesheet is not the row\'s CSS');
+  /* ITS MARKUP: THE ROW'S, IDS ITS OWN. */
+  const n = (/-t(\d+)"/.exec(stage.innerHTML) || [])[1];
+  const box = w.document.createElement('div');
+  box.innerHTML = w.animIds_(row.html, n || 1);
+  if (stage.innerHTML !== box.innerHTML) bad.push('the stage is not the row\'s markup as `animIds_` gives it');
+  const ids = [...host.querySelectorAll('.tb-an-stage [id]')].map(e => e.id);
+  const dup = ids.filter((v, i) => ids.indexOf(v) !== i);
+  if (dup.length) bad.push('ids shared between drawings on the page: ' + [...new Set(dup)].join(' '));
+  const plain = ids.filter(v => !/-t\d+$/.test(v));
+  if (plain.length) bad.push('ids inside a drawing that were not made its own: ' + plain.join(' '));
+  if (!ids.length) bad.push('no drawing near the page has an id, so the id rule was NOT exercised (the Venn two pages on has four)');
+  /* WHAT IT IS ABOUT, IN THE CHAPTER'S WORDS AND TYPESET. */
+  const card = here.querySelector('.card.tb-an');
+  if (!card) bad.push('the page is not drawn as a textbook animation card');
+  else {
+    if (!/Pythagoras/.test(card.querySelector('h3').textContent)) bad.push('the page is not headed Pythagoras');
+    if (!/chapter 17/.test(card.querySelector('.fc-kick').textContent)) bad.push('the kicker does not say chapter 17');
+    const fm = card.querySelector('.tb-about .tb-math .tb-fm');
+    if (!fm || !fm.querySelector('sup')) bad.push('the Pythagoras formula under the drawing is not typeset (no raised power)');
+    if (card.querySelectorAll('.tb-about li').length > 4) bad.push('the page lists ' + card.querySelectorAll('.tb-about li').length + ' lines — only what it is about, not the whole chapter');
+    if (/@family\./.test(card.querySelector('.tb-an-stage').textContent)) bad.push('the drawing in the chapter signs itself');
+  }
+  /* THE BOOK IS FOUND BY THE ANIMATION'S TITLE, AND ITS WORDS HOLD NO MARKUP. */
+  const bk = (made.textbooks || []).find(b => b.name === 'GCSE Maths');
+  const words = w.textbookText_(bk);
+  /* NOT `<` ITSELF: the chapters' own words have inequalities in them. The drawing's tags and rules. */
+  if (/class=|<svg|<div|@keyframes|py-cell|an-pyth/.test(words)) bad.push('the book\'s search words hold markup — the drawing\'s html or css went into the haystack');
+  /* AND NOT ITS WORDS EITHER: the haystack strips tags, so markup put into it arrives as the drawing's
+     own captions. Bayes's "people take a test" is on the drawing and nowhere in the chapter. */
+  const statsBook = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
+  if (w.textbookText_(statsBook).indexOf('people take a test') !== -1) bad.push('GCSE Statistics is found by "people take a test", which is Bayes\'s drawing, not its chapter — the drawing went into the haystack');
+  if (words.indexOf('Galton') !== -1) bad.push('GCSE Maths\'s words hold Galton, which is a Statistics animation');
+  const stats = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
+  if (w.textbookText_(stats).indexOf('Galton board') < 0) bad.push('"Galton board" does not find GCSE Statistics');
+  /* PLAY AGAIN PUTS THE MARKUP BACK, which starts it over. */
+  const tile = card && card.querySelector('[data-do="tb-an-again"]');
+  if (!tile || typeof t.ACTIONS['tb-an-again'] !== 'function') bad.push('no Play again tile, or no handler for it');
+  else {
+    const before = stage.firstElementChild;
+    t.ACTIONS['tb-an-again'](tile);
+    if (stage.firstElementChild === before) bad.push('Play again left the drawing\'s elements in place — nothing restarted');
+    if (stage.innerHTML !== box.innerHTML) bad.push('Play again changed the drawing');
+  }
+  /* AND IT STOPS WHEN THE PAGE TURNS. */
+  t.goPage('stuff', first + at + 1);
+  await wait(450); await woken_();
+  if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
+  return bad;
+});
+
+/* ---------- THE SPLASH IS DRAWN FROM THE TEXTBOOKS' COPY ---------------------------------------------
+   "The animation from loading screen are pulling and syncing from the text book animations." — the
+   owner. Boot 1 is a real load that reads the real books and keeps the copy. Boot 2 is the next visit
+   on the same device: its storage carried over, Pythagoras the one the coin can land on, the real
+   picker run as index.html runs it. The drawing on the splash is the chapter's drawing; and when the
+   load finishes, it is taken off and the splash goes back to the tag for any Try again. */
+check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
+  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
+  const serve = u => /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? sheet : undefined;
+  const one = boot({ serve });
+  for (let i = 0; i < 200 && !one.w.localStorage.getItem('splashAnims'); i++) await wait(25);
+  const kept = {};
+  for (let i = 0; i < one.w.localStorage.length; i++) { const k = one.w.localStorage.key(i); kept[k] = one.w.localStorage.getItem(k); }
+  const idx = JSON.parse(kept.splashAnims || 'null');
+  if (!idx || !(idx.ids || []).length) return ['the first load kept no copy of the books\' animations — NOT checked'];
+  const bad = [];
+  const want = books.filter(r => r.anim).map(r => r.anim);
+  if (idx.ids.join() !== want.join()) bad.push('the first load kept ' + idx.ids.length + ' animations, not the books\' ' + want.length + ' in order');
+  const src = pickerSrc_();
+  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — NOT checked']);
+  const inline = ((/var kinds = \[([^\]]*)\]/.exec(src.replace(/\/\*[\s\S]*?\*\//g, '')) || [])[1] || '').match(/'([a-z0-9]+)'/g).map(x => x.slice(1, -1));
+  const two = boot({ serve, before: w2 => {
+    Object.keys(kept).forEach(k => w2.localStorage.setItem(k, kept[k]));
+    w2.localStorage.setItem('splashOff', JSON.stringify(inline.concat(idx.ids).filter(k => k !== 'pyth').map(k => 'is-' + k)));
+  } });
+  const w = two.w;
+  const sp = w.document.getElementById('splash');
+  sp.className = 'is-tag';
+  w.eval(src);
+  const root = sp.querySelector(':scope > .an-pyth');
+  if (sp.className !== 'is-an' || !root) return bad.concat(['the next visit drew "' + sp.className + '", not Pythagoras from the kept copy']);
+  if (root !== sp.firstElementChild) bad.push('the drawing is not the first thing in the splash');
+  if (!root.querySelector(':scope > .sp-sig')) bad.push('the splash did not sign the drawing');
+  /* THE CHAPTER'S DRAWING, ONCE THE PAGE'S OWN IDS ARE TAKEN OUT. */
+  const made = w.libraryExtras_({}, { textbooks: books });
+  const maths = made.textbooks.find(b => b.name === 'GCSE Maths');
+  const page = w.document.createElement('div');
+  page.innerHTML = w.textbookAnimPart_({ name: maths.name, row: maths, kind: 'textbook' }, 'an17-pyth');
+  const stage = page.querySelector('.tb-an-stage');
+  const splashCopy = root.cloneNode(true); splashCopy.querySelector('.sp-sig').remove();
+  const unsuffix = h => h.replace(/(id="|url\(#|href="#)([\w-]+?)-t\d+/g, '$1$2');
+  if (!stage || unsuffix(stage.innerHTML).trim() !== splashCopy.outerHTML.trim()) bad.push('the splash\'s Pythagoras is not the chapter\'s');
+  const styles = w.document.head.querySelectorAll('style[data-anim="pyth"]');
+  if (styles.length !== 1) bad.push(styles.length + ' Pythagoras stylesheets after the splash and the chapter both drew it — one, shared');
+  /* AND OFF WITH THE SPLASH. */
+  w.splashOff_();
+  await wait(650);
+  if (sp.querySelector(':scope > [class|="an"]')) bad.push('half a second after the splash came off, its drawing is still in it');
+  if (sp.className.split(/\s+/).indexOf('is-tag') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash');
+  return bad;
+});
+
+/* ---------- THE BOOKS AND THE SETTINGS ARE ASKED FOR WITH THE DEPLOY'S STAMP --------------------------
+   `sw.js` answers an exact URL out of its store with no network; a bare `data/textbooks.json` was the
+   first copy a device ever saw, for good. `check/deploy.js` proves the effect in a browser; this is
+   the cause, asked of the real fetch: every library and settings file carries `?t=` and the deploy. */
+check('the books and the settings files are fetched with the deploy stamp', async () => {
+  const { w, gets } = boot({ before: w2 => { w2.LOAD = 'STAMP42'; } });
+  for (let i = 0; i < 100 && !gets.some(u => /data\/textbooks\.json/.test(u)); i++) await wait(25);
+  const bad = [];
+  ['textbooks', 'practicals', 'settings/splashes', 'settings/brand'].forEach(n => {
+    const asked = gets.filter(u => u.indexOf('data/' + n + '.json') === 0);
+    if (!asked.length) bad.push('data/' + n + '.json was never asked for — NOT checked');
+    else if (!asked.every(u => u === 'data/' + n + '.json?t=STAMP42')) bad.push('data/' + n + '.json was asked for as ' + asked.join(', ') + ' — without the deploy stamp the worker keeps the first copy for good');
+  });
   return bad;
 });
 
@@ -11379,8 +11554,14 @@ check('every Find kind that is not a question is made of the shared parts: head,
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const all = w.stuffItemsAll_();
   /* THE CARD'S OWN MARKUP, NOT A DRAWING'S. A practical's diagram is hand-written SVG and some of it
-     carries a `style` attribute of its own, which is the drawing's business rather than the card's. */
-  const onCard = el => !el.closest('svg, figure');
+     carries a `style` attribute of its own, which is the drawing's business rather than the card's.
+     SO DOES A TEXTBOOK'S ANIMATION, and it is not SVG: the sieve's numbers, the coin's tallies and the
+     sort's bars are HTML, each carrying its own `--kf`, `--h` or `--i` inline, which is how one rule
+     is told apart across thirty elements. Seven of the 27 chapter pages were named here as "a stray
+     shape" the first time the rows were real. What a drawing may carry inline is `check-anims.js`'s
+     question — custom properties and its own `animation-name`, nothing else — so its stage is a
+     drawing here, as an `<svg>` is. */
+  const onCard = el => !el.closest('svg, figure, .tb-an-stage');
   const KINDS_HERE =['practical', 'project', 'textbook', 'film', 'boxer', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);

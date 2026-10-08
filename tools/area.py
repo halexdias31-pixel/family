@@ -21,6 +21,7 @@
 # starts and ends on the same frame. The un-animated geometry is the finished strip — what
 # prefers-reduced-motion shows.
 import math, re, pathlib
+import sys; sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 
 R = 20.0                    # the radius, in viewBox units
 N = 12                      # slices; half of them each colour, so N must be even
@@ -157,7 +158,7 @@ css = f'''/* ---------- THE CIRCLE, UNROLLED -----------------------------------
      now share the box's middle, which tools/area.py asserts.
    The base styles are the finished strip with r and πr marked, which is what reduced motion shows. */
 #splash-area {{ --ar-top: var(--gold); --ar-bot: #6fd8c4; }}
-#splash-area .ar-svg {{ display: block; width: min(72vw, 17rem); height: auto; margin: 0 auto; }}
+#splash-area .ar-svg {{ display: block; width: min(72vw, 17rem); max-width: 100%; height: auto; margin: 0 auto; }}
 .ar-top {{ --ar: var(--ar-top); }} .ar-bot {{ --ar: var(--ar-bot); }} .ar-r {{ --ar: var(--paper); }}
 .ar-ring {{ fill: none; stroke: var(--paper); stroke-opacity: .22; stroke-width: .4; }}
 .ar-slot {{ fill: var(--ar); fill-opacity: .07; stroke: var(--ar); stroke-opacity: .25; stroke-width: .3; }}
@@ -185,14 +186,7 @@ css = f'''/* ---------- THE CIRCLE, UNROLLED -----------------------------------
 
 '''
 
-root = pathlib.Path(__file__).resolve().parent.parent
-html = (root / 'index.html').read_text()
-html, n = re.subn(r'<div id="splash-area"[\s\S]*?\n  </div>', lambda m: svg, html, count=1)
-assert n == 1, 'no #splash-area in index.html'
-(root / 'index.html').write_text(html)
-style = (root / 'style.css').read_text()
-style, n = re.subn(r'/\* -+ THE CIRCLE, UNROLLED -+[\s\S]*?(?=/\* -+ THE SIEVE)', lambda m: css, style, count=1)
-assert n == 1, 'no circle-area block in style.css'
-(root / 'style.css').write_text(style)
+# INTO ITS ROW IN data/textbooks.json, not index.html and style.css — see tools/anim_row.py.
+anim_row.write_anim('area', html=svg, css=css)
 print('%d slices, chord %.3f, strip %.2f x %.2f (pi r = %.2f); landed %.2fs, leaving %.2fs, loop %gs; viewBox 0 0 %s %s'
       % (N, C, H * C, HT, math.pi * R, LAND, LEAVE, T, f(W), f(VH)))

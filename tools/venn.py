@@ -1,6 +1,6 @@
-# The A ∩ B splash: prints the <div id="splash-venn"> for index.html, then the block of rules and
-# @keyframes for style.css, from one table of geometry and one timeline. Edit either and re-run,
-# then paste both halves over the old ones. Run: python3 tools/venn.py
+# The A ∩ B animation (the textbooks' Maths chapter 19, and a loading splash): writes the <div> and
+# the block of rules and @keyframes into its row of data/textbooks.json, from one table of geometry
+# and one timeline. Edit either and re-run. Run: python3 tools/venn.py
 #
 # WHAT IT DRAWS, in one loop of T seconds: the universal set ξ is always there; circle A slides in
 # from the left and B from the right; then the three regions a GCSE paper asks about are shaded in
@@ -11,6 +11,7 @@
 # shaded on paper, and the hatch drifts sideways by exactly one line spacing per turn of its own loop
 # — so a shaded region is never a still picture and `npm run splash -- is-venn` sees every frame move.
 import math
+import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 
 T = 10.0                        # seconds, one whole loop
 W, H = 160, 108                 # the viewBox
@@ -106,7 +107,7 @@ svg.append('  </div>')
 
 # ---- the rules -----------------------------------------------------------------------------------
 css = []
-css.append('#splash-venn .vn-svg { width: min(66vw, 16rem); height: auto; }')
+css.append('#splash-venn .vn-svg { width: min(66vw, 16rem); max-width: 100%; height: auto; }')
 css.append('.vn-box { fill: none; stroke: rgb(244 241 232 / .35); stroke-width: 1.2; }')
 # THE LETTERS SIT ON THE HATCH, so each carries a stroke of the page's own black painted under its
 # fill: a hatch line running through a letter would turn "A" into a different glyph.
@@ -155,6 +156,6 @@ css.append('@media (prefers-reduced-motion: reduce) {')
 css.append('  .vn-g, .vn-r, .vn-s, .vn-h { animation: none; }')
 css.append('}')
 
-print('\n'.join(svg))
-print()
-print('\n'.join(css))
+# INTO ITS ROW IN data/textbooks.json — see tools/anim_row.py. It printed text to paste before.
+anim_row.write_anim('venn', html='\n'.join(svg), css='\n'.join(css))
+print('venn: %d lines of markup, %d of CSS' % (len(svg), len(css)))

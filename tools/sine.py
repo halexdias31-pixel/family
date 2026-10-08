@@ -7,6 +7,7 @@
 # seam, and everything that moves moves by transform. The un-animated geometry is the frame at
 # THETA0, which is what prefers-reduced-motion shows.
 import math, re, pathlib
+import sys; sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 T = 4.0                          # seconds per turn
 R, CX, CY = 18.0, 24.0, 34.0     # the circle
 X0, XR = 52.0, 176.0             # where the wave leaves the circle, and where it fades out
@@ -71,7 +72,7 @@ css = f'''/* ---------- THE UNIT CIRCLE AND THE SINE WAVE ----------------------
    inside the circle is sin θ drawn where it lives. Everything moves by transform and nothing by
    `stroke-dashoffset`, which repainted the path every frame. The un-animated geometry is the frame
    at θ = 60°, so reduced motion shows a finished picture rather than a dot sitting on the axis. */
-#splash-sine .sn-svg {{ width: min(76vw, 18rem); height: auto; overflow: visible; }}
+#splash-sine .sn-svg {{ width: min(76vw, 18rem); max-width: 100%; height: auto; overflow: visible; }}
 .sn-ring, .sn-axis {{ fill: none; stroke: rgb(244 241 232 / .3); stroke-width: 1.1; }}
 .sn-wave {{ fill: none; stroke: #6fd8c4; stroke-width: 2; stroke-linecap: round;
            animation: sn-roll {T:g}s linear infinite; }}
@@ -90,13 +91,6 @@ css = f'''/* ---------- THE UNIT CIRCLE AND THE SINE WAVE ----------------------
 @keyframes sn-trace {{ {' '.join(trace)} }}
 '''
 
-root = pathlib.Path(__file__).resolve().parent.parent
-html = (root / 'index.html').read_text()
-html, n = re.subn(r'<svg class="sn-svg"[\s\S]*?</svg>', lambda m: svg, html, count=1)
-assert n == 1, 'no sn-svg in index.html'
-(root / 'index.html').write_text(html)
-style = (root / 'style.css').read_text()
-style, n = re.subn(r'/\* ---------- THE UNIT CIRCLE AND THE SINE WAVE[\s\S]*?(?=\.sn-say \{)', lambda m: css, style, count=1)
-assert n == 1, 'no sine block in style.css'
-(root / 'style.css').write_text(style)
+# INTO ITS ROW IN data/textbooks.json, not index.html and style.css — see tools/anim_row.py.
+anim_row.write_anim('sine', fragments=[svg], css=css)
 print('period %.2f, %d wave points, %d keyframes' % (P, len(pts), N + 1))

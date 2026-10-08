@@ -1,6 +1,6 @@
-# The sieve splash ("what is left is prime"): prints the <div class="sv-grid"> and the caption for
-# index.html#splash-sieve, then the @keyframes for style.css. Edit the timeline and re-run, then paste
-# both halves over the old ones. Run: python3 tools/sieve.py
+# The sieve animation ("what is left is prime"; the textbooks' Maths chapter 1, and a loading splash):
+# writes the <div class="sv-grid">, the caption and the @keyframes into its row of data/textbooks.json.
+# Edit the timeline and re-run. Run: python3 tools/sieve.py
 #
 # WHAT IT DRAWS, in one loop of T seconds, on the numbers 2 to 17 in ONE LINE:
 #   2 is ringed in its colour, and its multiples 4, 6 ... 16 are struck through in that colour, one
@@ -19,6 +19,7 @@
 #
 # EVERYTHING MOVES BY transform OR opacity: a strike is scaleX from its left end, a ring scales up
 # and fades in, a struck digit fades to a third. Nothing animates width or colour.
+import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 N = range(2, 18)
 T = 7.2                 # seconds, one whole loop
 RING = 0.25             # seconds for a ring to draw
@@ -93,10 +94,7 @@ for i, (cls, text, a, b) in enumerate(SAY):
                               ('%s, 100%%' % pct(b), 'opacity: 0;')])
     says.append('<span class="sv-%s" style="--kf: sv-s%d">%s</span>' % (cls, i, text))
 
-print('    <div class="sv-grid">')
-for k in range(0, len(cells), 4):
-    print('      ' + ''.join(cells[k:k + 4]))
-print('    </div>')
-print('    <div class="sv-say">' + ''.join(says) + '</div>')
-print()
-print('\n'.join(keys))
+# INTO ITS ROW IN data/textbooks.json — see tools/anim_row.py. It printed text to paste before.
+grid = '\n'.join(['<div class="sv-grid">'] + ['      ' + ''.join(cells[k:k + 4]) for k in range(0, len(cells), 4)] + ['    </div>'])
+anim_row.write_anim('sieve', fragments=[grid, '<div class="sv-say">' + ''.join(says) + '</div>'], css='\n'.join(keys))
+print('%d numbers, %d keyframes' % (len(cells), len(keys)))

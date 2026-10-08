@@ -25,6 +25,7 @@
 # cannot drift apart. check-splash-loops.js re-derives P from each keyframe and asks that it is on the
 # circle, at every stop and half-way between stops.
 import math, re, pathlib
+import sys; sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 
 CX, CY, R = 60.0, 54.0, 34.0      # the circle, centred in a 120-wide viewBox
 VW, VH = 120, 104
@@ -167,7 +168,7 @@ css = f'''/* ---------- THE ANGLE AT THE CENTRE --------------------------------
      opacity — it was the paper colour written out as an rgb().
    · REDUCED MOTION is the base rules below: P at the top of the circle, the textbook picture. */
 #splash-cent {{ --ct-cen: #e8862c; --ct-edge: #6fa8dc; }}
-#splash-cent .ct-svg {{ display: block; width: min(62vw, 15rem); height: auto; margin: 0 auto; }}
+#splash-cent .ct-svg {{ display: block; width: min(62vw, 15rem); max-width: 100%; height: auto; margin: 0 auto; }}
 .ct-rim {{ fill: none; stroke: var(--paper); stroke-opacity: .3; stroke-width: 1.4; }}
 .ct-arc {{ fill: none; stroke: var(--paper); stroke-opacity: .75; stroke-width: 2.2; stroke-linecap: round; }}
 .ct-cen {{ fill: none; stroke: var(--ct-cen); stroke-width: 2; stroke-linejoin: round; }}
@@ -201,14 +202,7 @@ css = f'''/* ---------- THE ANGLE AT THE CENTRE --------------------------------
 
 '''
 
-root = pathlib.Path(__file__).resolve().parent.parent
-html = (root / 'index.html').read_text()
-html, n = re.subn(r'<div id="splash-cent"[\s\S]*?\n  </div>', lambda m: svg, html, count=1)
-assert n == 1, 'no #splash-cent in index.html'
-(root / 'index.html').write_text(html)
-style = (root / 'style.css').read_text()
-style, n = re.subn(r'/\* -+ THE ANGLE AT THE CENTRE -+[\s\S]*?(?=/\* -+ THE VENN)', lambda m: css, style, count=1)
-assert n == 1, 'no angle-at-the-centre block in style.css'
-(root / 'style.css').write_text(style)
+# INTO ITS ROW IN data/textbooks.json, not index.html and style.css — see tools/anim_row.py.
+anim_row.write_anim('cent', html=svg, css=css)
 print('A %s B %s M %s; centre %g°, edge %g°; %d stops, loop %gs' % (
   tuple(map(f, A)), tuple(map(f, B)), tuple(map(f, M)), CEN, EDGE, len(stops), T))

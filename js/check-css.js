@@ -99,8 +99,10 @@ function bracesBalance(css) {
    stylesheet. A line number that does not point at the thing is worse than none: it sends somebody
    to a rule that is fine and teaches them the report cannot be trusted. */
 const bare = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
-const rules = [];
-{
+/* AS A FUNCTION, because the teaching animations' CSS is in data/textbooks.json now and section 9
+   reads a row's rules the way it reads this file's. */
+function readRules_(bare) {
+  const rules = [];
   /* A hand-rolled reader rather than a parser from npm: it has to run with nothing installed, and
      the shapes it must understand are the ones this file actually uses. Nested at-rules are read as
      a block whose inner rules are read too. */
@@ -154,7 +156,9 @@ const rules = [];
        this file. */
     rules.push({ sel, decls, line, cond });
   }
+  return rules;
 }
+const rules = readRules_(bare);
 
 let fail = 0;
 /* ---------- A LIST TO LOOK AT IS NOT A BROKEN BUILD ----------------------------------------------
@@ -332,6 +336,28 @@ const splashBad = [];
     if (!shown) splashBad.push('#splash-' + n + ' is never shown by any `.is-` rule — it can only '
       + 'ever be hidden');
   });
+  /* ---------- THE HIDE LIST, THE PICKER'S LIST AND THE SHEET'S INLINE ROWS ARE ONE LIST ---------------
+     THE TEACHING SPLASHES LEFT THIS FILE FOR THE TEXTBOOKS (data/textbooks.json) and the picker draws
+     them from the copy a load keeps; what is still here is the brand, the two games and the calm ones.
+     Three places name those, and each one short is its own silent fault: a splash missing from the
+     picker's literal is never drawn, one missing from the hide list is drawn on top of every other,
+     and one missing from data/settings/splashes.json can never be retired. So they are one list. */
+  {
+    const page_ = fs.existsSync(path.join(dir, 'index.html')) ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8') : '';
+    const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(page_) || [])[1] || '';
+    const a = pick.indexOf("var kinds = ['tag'"), b = pick.indexOf('];', a);
+    const lit = a < 0 ? [] : [...pick.slice(a, b).replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/'([a-z0-9]+)'/g)].map(m => m[1]);
+    let sheet = [];
+    try {
+      sheet = JSON.parse(fs.readFileSync(path.join(dir, 'data', 'settings', 'splashes.json'), 'utf8'))
+        .filter(r => ['brand', 'game', 'calm'].includes(r.kind)).map(r => r.splash_id);
+    } catch (e) { splashBad.push('data/settings/splashes.json could not be read — the inline list was NOT compared with the sheet'); }
+    const hidden = names.map(n => n === 'nline' ? 'line' : n);
+    if (!lit.length) splashBad.push("the picker has no `var kinds = ['tag', …]` literal — the inline list was NOT compared");
+    const sameSet = (x, y) => x.slice().sort().join() === y.slice().sort().join();
+    if (lit.length && !sameSet(lit, hidden)) splashBad.push('the picker\'s list (' + lit.join(' ') + ') is not the hide list (' + hidden.join(' ') + ')');
+    if (sheet.length && !sameSet(sheet, hidden)) splashBad.push('the brand, game and calm rows of data/settings/splashes.json (' + sheet.join(' ') + ') are not the hide list (' + hidden.join(' ') + ')');
+  }
   /* ---------- AND THE PICKER IS THE FIRST THING INSIDE IT ---------------------------------------
      IT RAN AFTER EVERY SPLASH'S MARKUP, in the script below the splash, so a thousand lines of markup
      were parsed under the no-script default `is-tag` before the class was chosen — and a browser may
@@ -516,6 +542,15 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       }
     });
   }
+  /* AND THE ONES THE PICKER DRAWS FROM THE BOOKS' COPY. A row's markup carries no name — a chapter
+     page has its book's — so the picker signs it as it draws it, and the line that does is the check. */
+  {
+    const h = fs.existsSync(html) ? fs.readFileSync(html, 'utf8') : '';
+    const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h) || [])[1] || '';
+    if (pick.indexOf(`insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>')`) < 0) {
+      nameless.push('the picker does not sign a drawing it takes from the books — `<div class="sp-sig">@family.</div>` is not added to it');
+    }
+  }
   say('A LOADING SCREEN THAT DOES NOT SAY WHOSE APP IT IS', nameless);
 }
 
@@ -542,7 +577,13 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   const h = fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
   /* THE MARKUP OF ONE SPLASH: from its opening tag to the next splash's, or to `#splash-say`, which
      follows the last one. */
+  /* THREE OF THE FOUR ARE IN THE TEXTBOOKS NOW — the coin, the sieve and Bayes are rows of
+     data/textbooks.json, read through check-anims.js's one reader — and the blocks are still here.
+     A row's own CSS is its rules; the stylesheet's are the blocks'. */
+  const { animRow } = require('./check-anims.js');
   const markup = id => {
+    const row = animRow(id);
+    if (row) return row.html;
     const a = h.search(new RegExp('<(div|svg) id="splash-' + id + '"'));
     if (a < 0) return null;
     const rest = h.slice(a + 10);
@@ -553,10 +594,13 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
      keyframe. Brace-matched, because a regex to the first `}` stops at the end of the first stop —
      the fault the brace check at the top of this file was written for. */
   const frames = {};
-  for (const m of bare.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+  const rowBare = Object.keys({ coin: 1, sieve: 1, bayes: 1 }).map(id => animRow(id)).filter(Boolean)
+    .map(r => r.css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))).join('\n');
+  for (const m of (bare + '\n' + rowBare).matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    const bare_ = bare + '\n' + rowBare;
     let i = m.index + m[0].length, depth = 1;
-    while (i < bare.length && depth) { if (bare[i] === '{') depth++; else if (bare[i] === '}') depth--; i++; }
-    const body = bare.slice(m.index + m[0].length, i - 1);
+    while (i < bare_.length && depth) { if (bare_[i] === '{') depth++; else if (bare_[i] === '}') depth--; i++; }
+    const body = bare_.slice(m.index + m[0].length, i - 1);
     const props = new Set();
     for (const s of body.matchAll(/\{([^{}]*)\}/g)) {
       s[1].split(';').forEach(d => { const k = d.split(':')[0].trim().toLowerCase(); if (k) props.add(k); });
@@ -576,9 +620,9 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
        rule that sets its own background or colour is the mint side coming back; and the thickness
        is the stack of discs inside the coin, so fewer than four is a coin that vanishes when it
        turns. */
-    coin: (m) => {
+    coin: (m, R) => {
       const bad = [];
-      rules.filter(r => /^\.cn-[ht]$/.test(r.sel) && !r.cond).forEach(r => r.decls
+      R.filter(r => /^\.cn-[ht]$/.test(r.sel) && !r.cond).forEach(r => r.decls
         .filter(d => /^(background|background-color|color|border|border-color)$/.test(d.prop))
         .forEach(d => bad.push('line ' + r.line + '  ' + r.sel + ' sets its own ' + d.prop
           + ' — the two faces of the coin are one metal, drawn once in `.cn-coin b`')));
@@ -594,7 +638,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
        (5 × 5 = 25 is past 17, which is why it stops), and the second, lower line only on a number
        a later prime also divides. A hand edit that moved one strike would still animate perfectly
        and teach the wrong thing. And the row stays ONE line: `nowrap` on the run. */
-    sieve: (m) => {
+    sieve: (m, R) => {
       const bad = [];
       const least = n => { for (let p = 2; p <= n; p++) if (n % p === 0) return p; };
       const cells = [...m.matchAll(/<i[^>]*><b[^>]*>(\d+)<\/b>([\s\S]*?)<\/i>/g)];
@@ -621,8 +665,8 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
         });
         strikes.forEach(s => { if (s.by > 3) bad.push(n + ' is struck by ' + s.by + ' — the sieve stops at 3, since 5 × 5 > 17'); });
       });
-      if (!rules.some(r => r.sel === '#splash-sieve .sv-grid' && r.decls.some(d => d.prop === 'flex-wrap' && d.val === 'nowrap'))) {
-        bad.push('`#splash-sieve .sv-grid` no longer says `flex-wrap: nowrap` — at 320px 17 wraps alone onto a second line');
+      if (!R.some(r => r.sel === '.an-sieve .sv-grid' && r.decls.some(d => d.prop === 'flex-wrap' && d.val === 'nowrap'))) {
+        bad.push('`.an-sieve .sv-grid` no longer says `flex-wrap: nowrap` — at 320px 17 wraps alone onto a second line');
       }
       return bad;
     },
@@ -632,7 +676,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
        letters painted over the face because a child paints over its parent's background; the face
        is `::before` with a z-index now, and a background back on `.mb-block` is that fault again.
        And the runner is what bumps them — without it the rhythm is blocks twitching on their own. */
-    blocks: (m) => {
+    blocks: (m, R) => {
       const bad = [];
       const blocks = [...m.matchAll(/<span class="mb-block">([\s\S]*?)<\/span>/g)].map(x => x[1]);
       if (blocks.length !== 8) bad.push(blocks.length + ' blocks — @family. is eight');
@@ -640,11 +684,11 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       if (holder !== blocks.length - 1) bad.push(holder < 0
         ? 'the coin is not inside any block — positioned on the stage, it drifts off the last one'
         : 'the coin is inside block ' + (holder + 1) + ', not the last one');
-      rules.filter(r => r.sel === '.mb-block' && !r.cond).forEach(r => r.decls
+      R.filter(r => r.sel === '.mb-block' && !r.cond).forEach(r => r.decls
         .filter(d => /^background/.test(d.prop))
         .forEach(d => bad.push('line ' + r.line + '  .mb-block paints its own ' + d.prop
           + ' — the letter, its child, paints over that; the face belongs on `.mb-block::before`')));
-      if (!rules.some(r => r.sel === '.mb-block::before' && r.decls.some(d => d.prop === 'z-index' && +d.val > 0))) {
+      if (!R.some(r => r.sel === '.mb-block::before' && r.decls.some(d => d.prop === 'z-index' && +d.val > 0))) {
         bad.push('`.mb-block::before` has no positive z-index — the face is under the letter, '
           + 'so the letter shows through the block instead of coming out from behind it');
       }
@@ -659,7 +703,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
        the screen — the five captions and the sum — must be the number the dots make. And the
        regrouping must BE the answer: every positive carried to its own place, the true ones on one
        row and the false on another, so the two rows' lengths are TP and FP. */
-    bayes: (m) => {
+    bayes: (m, R) => {
       const bad = [];
       const people = [...m.matchAll(/<g class="by-p (by-tp|by-fn|by-fp|by-tn)"([^>]*)>([\s\S]*?)<\/g>/g)];
       const N = people.length;
@@ -711,12 +755,15 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
 
   Object.keys(LOOPED).forEach(id => {
     const m = markup(id);
-    if (!m) { loopBad.push('#splash-' + id + ' is not in index.html — this check cannot see it'); return; }
+    const row = animRow(id);
+    if (!m) { loopBad.push('#splash-' + id + ' is not in index.html or data/textbooks.json — this check cannot see it'); return; }
     const classes = new Set();
     for (const c of m.matchAll(/class="([^"]+)"/g)) c[1].split(/\s+/).forEach(x => x && classes.add(x));
-    const ours = r => r.sel.includes('#splash-' + id)
+    /* A ROW'S RULES ARE ALL ITS OWN; the stylesheet's are found by the splash's id and classes. */
+    const R = row ? readRules_(row.css.replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))) : rules;
+    const ours = r => row || r.sel.includes('#splash-' + id)
       || [...classes].some(c => new RegExp('\\.' + c + '(?![\\w-])').test(r.sel));
-    const mine = rules.filter(r => ours(r) && !/^\d|^from$|^to$/.test(r.sel));
+    const mine = R.filter(r => ours(r) && !/^\d|^from$|^to$/.test(r.sel));
     const moving = mine.filter(r => !/reduced-motion/.test(r.cond));
     const used = new Set();
     moving.forEach(r => r.decls.forEach(d => {
@@ -758,7 +805,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
     if (!mine.some(r => /reduced-motion/.test(r.cond) && r.decls.some(d => d.prop === 'animation' && d.val === 'none'))) {
       loopBad.push('#splash-' + id + ' has no reduced-motion rule turning its animation off');
     }
-    LOOPED[id](m).forEach(x => loopBad.push('#splash-' + id + ': ' + x));
+    LOOPED[id](m, R).forEach(x => loopBad.push('#splash-' + id + ': ' + x));
   });
   say('A SPLASH BUILT AS ONE LOOP THAT IS NOT ONE — ' + Object.keys(LOOPED).join(', '), loopBad);
 }

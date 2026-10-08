@@ -69,7 +69,10 @@ const PAGE = path.join(ROOT, 'index.html');
    `data/textbooks.json` and every `data/settings/` file were fetched with no `?t=`, so the worker held
    the first copy a device ever saw and answered every later load out of it: a deploy reached the code
    and never the books. Each deploy below also renames a chapter, and the next load has to show the new
-   name. Restored with the rest, whatever happens. */
+   name. Restored with the rest, whatever happens.
+   AND CHANGES ONE ANIMATION. Pythagoras is a row of that file too, and the loading screen draws the
+   copy a load keeps of it (`splashSync_`): after a deploy the device's copy must be the new drawing,
+   by its hash — or the splash would show yesterday's Pythagoras for good. */
 const BOOKS = path.join(ROOT, 'data', 'textbooks.json');
 const BOOK_LINE = '{"book_id":"TB-GCSE-MATHS","chapter":1,"title":"Number, factors and primes"';
 const postsWas = fs.readFileSync(POSTS);
@@ -122,7 +125,10 @@ function deploy(marker, hours) {
   fs.writeFileSync(POSTS, postsWas + '\nfunction ' + marker + '() { return 1; }\n');
   const books = booksWas.toString('utf8');
   if (books.indexOf(BOOK_LINE) < 0) throw new Error('data/textbooks.json has no line starting ' + BOOK_LINE + ' — the data half was NOT deployed');
-  fs.writeFileSync(BOOKS, books.replace(BOOK_LINE, BOOK_LINE.slice(0, -1) + ' ' + marker + '"'));
+  const PY = '.py-say b { color: var(--py); }';
+  if (books.indexOf(PY) < 0) throw new Error('the Pythagoras row has no `' + PY + '` — the animation half was NOT deployed');
+  fs.writeFileSync(BOOKS, books.replace(BOOK_LINE, BOOK_LINE.slice(0, -1) + ' ' + marker + '"')
+    .replace(PY, PY + ' .py-say b.' + marker.toLowerCase().replace(/_/g, '') + ' { color: inherit; }'));
   const when = new Date(Date.now() + hours * 3600e3);
   fs.utimesSync(PAGE, when, when);
 }
@@ -168,6 +174,15 @@ async function run(base) {
           return !!c && c.title.indexOf(m) !== -1;
         } catch (e) { return false; }
       }, marker, { timeout: 30000 }).then(() => true, () => false);
+      /* AND THE DEVICE'S COPY OF PYTHAGORAS IS THE NEW ONE: its CSS has this deploy's change, and the
+         hash the picker checks it by is the record's own. */
+      got.anim = await pg.waitForFunction(m => {
+        try {
+          const idx = JSON.parse(localStorage.getItem('splashAnims'));
+          const rec = JSON.parse(localStorage.getItem('splashAnim:pyth'));
+          return rec.css.indexOf('.py-say b.' + m + ' ') !== -1 && idx.h.pyth === rec.h;
+        } catch (e) { return false; }
+      }, marker.toLowerCase().replace(/_/g, ''), { timeout: 30000 }).then(() => true, () => false);
       got.asked = seen.length;
       rounds.push(got);
       await pg.close();
@@ -194,9 +209,11 @@ async function run(base) {
     rounds.forEach((r, i) => {
       console.log('  deploy ' + (i + 1) + ': entry point asked for ' + r.asked + 'x, LOAD ' + r.load +
                   ', new code ' + (r.ran ? 'RAN' : 'DID NOT RUN') +
-                  ', the renamed chapter ' + (r.book ? 'SHOWN' : 'NOT SHOWN'));
+                  ', the renamed chapter ' + (r.book ? 'SHOWN' : 'NOT SHOWN') +
+                  ', the changed animation ' + (r.anim ? 'KEPT' : 'NOT KEPT'));
       if (!r.ran) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' did not reach the browser');
       if (!r.book) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' renamed a chapter in data/textbooks.json and the browser still had the old name');
+      if (!r.anim) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' changed Pythagoras in data/textbooks.json and the device kept the old drawing for its splash');
     });
     console.log('');
   }

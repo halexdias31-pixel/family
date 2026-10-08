@@ -14,6 +14,17 @@
    index.html draws the splash from that copy while the page is still parsing. Three readers of one
    source, and this is what keeps them one source:
 
+   READ, FROM THE FILES:
+     · every proof or tool in data/settings/splashes.json is in exactly one chapter, and every row is
+       in the sheet under the name its page carries;
+     · nothing of any of them is left in index.html, style.css or the app's scripts;
+     · each row's markup is one `an-<id>` root of known elements, unsigned, running nothing, every
+       class and id carrying its own prefix, and no prefix shared;
+     · each row's CSS is anchored on its own root or prefix, holds only its keyframes (named by its
+       prefix, unique everywhere) and its reduced-motion block — which stills everything that moves —
+       and nothing that reaches the page (`html`, `body`, an id, `!important`, `url(`);
+     · together they fit SPLASH_CACHE_MAX, and the picker reads the shape the sync writes.
+
    RUN, NOT READ — the real `libraryExtras_`, `animHash_` and `splashSync_` and the real picker, in a
    jsdom window holding the whole app:
      · every record the sync keeps is its row's markup and CSS byte for byte, in the books' order;
@@ -65,6 +76,171 @@ async function main() {
   const books = readJson('data/textbooks.json');
   const splashes = readJson('data/settings/splashes.json');
 
+  /* ================================ READ, FROM THE FILES ======================================== */
+  const rows = readAnimRows();
+  const css0 = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
+  const shellSrc = fs.readFileSync(path.join(ROOT, 'js', 'shell.js'), 'utf8');
+  const jsApp = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js') && !f.startsWith('check') && f !== '_scope.js')
+    .map(f => ({ f, src: fs.readFileSync(path.join(ROOT, 'js', f), 'utf8') }));
+  const EL = { line: 'nline' };                                  // the one whose element id was not its name
+
+  /* ---------- 1. ONE ANIMATION, ONE CHAPTER, ONE ROW IN THE SHEET ----------------------------------
+     A teaching splash in data/settings/splashes.json (kind proof or tool) with no row is a splash
+     that can never be drawn; with two, it is in two chapters and the splash gets whichever the sync
+     met last. A row with no sheet row can never be retired. The sheet's `name` is the page's title. */
+  const teachRows = splashes.filter(r => r.kind === 'proof' || r.kind === 'tool');
+  teachRows.forEach(r => {
+    const n = rows.filter(x => x.anim === r.splash_id).length;
+    if (n !== 1) fail.push(r.splash_id + ' (' + r.kind + ' in data/settings/splashes.json) is in ' + n + ' textbook rows — a teaching animation lives in exactly one chapter');
+  });
+  rows.forEach(r => {
+    const sh = splashes.find(x => x.splash_id === r.anim);
+    if (!sh) fail.push(r.anim + ' (data/textbooks.json line ' + r.line + ') has no row in data/settings/splashes.json — the sheet can never retire it');
+    else {
+      if (sh.kind !== 'proof' && sh.kind !== 'tool') fail.push(r.anim + ' is kind "' + sh.kind + '" in the sheet — a textbook animation is a proof or a tool');
+      if (sh.name !== r.title) fail.push(r.anim + ': the sheet calls it "' + sh.name + '" and its page is titled "' + r.title + '"');
+    }
+  });
+
+  /* ---------- 2. NOTHING OF IT LEFT WHERE IT USED TO BE ----------------------------------------------
+     Its root's old id, its new root class, its prefix as a class or a keyframe — in index.html,
+     style.css or the app's own scripts. A rule left behind in style.css is a second copy that wins or
+     loses by the cascade; a class left in a script is a script reaching into a drawing it does not own. */
+  const prefixOf = {};
+  const htmlNoComments = page.replace(/<!--[\s\S]*?-->/g, '');
+  const cssNoComments = css0.replace(/\/\*[\s\S]*?\*\//g, '');
+  rows.forEach(r => {
+    const id = r.anim;
+    const cls = [...String(r.html).matchAll(/\sclass="([^"]*)"/g)].flatMap(m => m[1].split(/\s+/)).filter(Boolean).filter(c => c !== 'an-' + id);
+    const pre = cls.length ? cls[0].split('-')[0] : '';
+    prefixOf[id] = pre;
+    const hunt = [['splash-' + (EL[id] || id), 'its old root id'], ['an-' + id, 'its root class']];
+    if (pre) hunt.push(['.' + pre + '-', 'its prefix as a class'], ['@keyframes ' + pre + '-', 'its keyframes'], ['class="' + pre + '-', 'its prefix in markup']);
+    [['index.html', htmlNoComments], ['style.css', cssNoComments]].concat(jsApp.map(j => ['js/' + j.f, j.src.replace(/\/\*[\s\S]*?\*\//g, '')]))
+      .forEach(([file, text]) => hunt.forEach(([needle, what]) => {
+        const re = new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + (needle.endsWith('-') || needle.startsWith('class=') ? '' : '(?![\\w-])'));
+        if (re.test(text)) fail.push(id + ': ' + what + ' (`' + needle + '`) is still in ' + file + ' — the row is the one place it lives');
+      }));
+  });
+  const seenPre = {};
+  Object.entries(prefixOf).forEach(([id, p]) => {
+    if (!p) { fail.push(id + ': its markup has no class but its root — nothing for its rules to anchor on'); return; }
+    if (p === 'an' || p === 'tb') fail.push(id + ': its prefix `' + p + '-` is the app\'s own (`an-` roots, `tb-` textbook pages)');
+    if (seenPre[p]) fail.push(id + ' and ' + seenPre[p] + ' share the prefix `' + p + '-` — one rule could reach both drawings');
+    seenPre[p] = id;
+  });
+
+  /* ---------- 3. THE ROW'S MARKUP: ONE ROOT, KNOWN ELEMENTS, NOTHING THAT RUNS --------------------- */
+  const ELEMENTS = new Set(['div', 'span', 'b', 'i', 'u', 's', 'sup', 'sub', 'svg', 'g', 'path', 'rect', 'circle', 'ellipse',
+    'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'clipPath', 'mask', 'use', 'linearGradient', 'radialGradient', 'stop']);
+  const { JSDOM: J0 } = require('jsdom');
+  const doc0 = new J0('<!doctype html><body></body>').window.document;
+  const allIds = {};
+  [...htmlNoComments.matchAll(/\sid="([^"]+)"/g)].forEach(m => { allIds[m[1]] = (allIds[m[1]] || []).concat('index.html'); });
+  rows.forEach(r => {
+    const id = r.anim, pre = prefixOf[id], h = String(r.html);
+    const where = id + ' (line ' + r.line + ')';
+    if (!/^<div class="an-[a-z0-9]+" aria-hidden="true">/.test(h)) fail.push(where + ': the markup does not open `<div class="an-' + id + '" aria-hidden="true">` at its very first character');
+    else if (!h.startsWith('<div class="an-' + id + '" ')) fail.push(where + ': its root is not `an-' + id + '`');
+    const box = doc0.createElement('template');
+    box.innerHTML = h;
+    const top = [...box.content.childNodes].filter(n => n.nodeType !== 3 || n.textContent.trim());
+    if (top.length !== 1 || top[0].nodeType !== 1) fail.push(where + ': the markup is ' + top.length + ' things, not one root');
+    if (/sp-sig|@family\./i.test(h)) fail.push(where + ': the markup signs itself — the splash adds `@family.`, a chapter page has its book\'s name');
+    [...box.content.querySelectorAll('*')].forEach(el => {
+      const tag = el.localName;
+      if (!ELEMENTS.has(tag)) fail.push(where + ': <' + tag + '> is not one of the elements a drawing may use');
+      [...el.attributes].forEach(a => {
+        if (/^on/i.test(a.name)) fail.push(where + ': <' + tag + ' ' + a.name + '> — a drawing runs nothing');
+        if (/javascript:/i.test(a.value)) fail.push(where + ': a `javascript:` in ' + a.name);
+        if (a.name === 'style') a.value.split(';').map(d => d.trim()).filter(Boolean).forEach(d => {
+          if (/^--[\w-]+\s*:/.test(d)) return;
+          if (new RegExp('^animation-name\\s*:\\s*' + pre + '-[\\w-]+$').test(d)) return;
+          fail.push(where + ': style="' + d + '" — inline, a drawing sets custom properties and nothing else (an inline declaration beats the reduced-motion rule)');
+        });
+        if ((a.name === 'href' || /url\(/.test(a.value)) && /#/.test(a.value)) {
+          const ref = (/#([\w-]+)/.exec(a.value) || [])[1];
+          if (ref && !box.content.querySelector('[id="' + ref + '"]')) fail.push(where + ': ' + a.name + ' points at #' + ref + ', which is not in this drawing');
+        }
+      });
+      if (el.id) {
+        if (!el.id.startsWith(pre + '-')) fail.push(where + ': id="' + el.id + '" does not carry the prefix `' + pre + '-`');
+        (allIds[el.id] = allIds[el.id] || []).push(id);
+      }
+      const c = el.getAttribute('class');
+      if (c && el !== top[0]) c.split(/\s+/).filter(Boolean).forEach(k => { if (!k.startsWith(pre + '-')) fail.push(where + ': class "' + k + '" does not carry the prefix `' + pre + '-`'); });
+    });
+  });
+  Object.entries(allIds).filter(([k, v]) => v.length > 1).forEach(([k, v]) => fail.push('the id "' + k + '" is in ' + v.join(' and ') + ' — getElementById returns whichever came first'));
+
+  /* ---------- 4. THE ROW'S CSS: EVERY RULE ANCHORED ON ITS OWN DRAWING ---------------------------------
+     Two at-rules (its keyframes, its reduced-motion block), every selector starting from its root or
+     its prefix, no way to reach the page around it, no `!important` to win against it. */
+  const blocks = (src, s0, e0) => {
+    const out = []; let i = s0 || 0; const e = e0 == null ? src.length : e0;
+    while (i < e) {
+      if (/\s/.test(src[i])) { i++; continue; }
+      if (src.startsWith('/*', i)) { out.push({ k: 'comment' }); i = src.indexOf('*/', i + 2) + 2; continue; }
+      let ob = i; while (ob < e && src[ob] !== '{' && src[ob] !== ';') ob++;
+      if (src[ob] === ';') { out.push({ k: 'stmt', head: src.slice(i, ob).trim() }); i = ob + 1; continue; }
+      let d = 1, j = ob + 1; while (j < e && d) { if (src[j] === '{') d++; else if (src[j] === '}') d--; j++; }
+      const head = src.slice(i, ob).trim().replace(/\s+/g, ' ');
+      out.push({ head, body: src.slice(ob + 1, j - 1), kids: /^@/.test(head) && !/^@keyframes/.test(head) ? blocks(src, ob + 1, j - 1) : null });
+      i = j;
+    }
+    return out;
+  };
+  const splitSel = sel => { const o = []; let d = 0, cur = ''; for (const ch of sel) { if (ch === '(') d++; else if (ch === ')') d--; if (ch === ',' && !d) { o.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) o.push(cur.trim()); return o; };
+  const RM = '@media (prefers-reduced-motion: reduce)';
+  const kfSeen = {};
+  for (const m of cssNoComments.matchAll(/@keyframes\s+([\w-]+)/g)) kfSeen[m[1]] = ['style.css'];
+  let total = 0;
+  rows.forEach(r => {
+    const id = r.anim, pre = prefixOf[id], c = String(r.css), where = id + ' (line ' + r.line + ')';
+    total += String(r.html).length + c.length;
+    ['@import', '@font-face', ':root', 'url(', '!important', 'expression('].forEach(t => { if (c.indexOf(t) !== -1) fail.push(where + ': its CSS holds `' + t + '`'); });
+    const moving = new Set(), stilled = new Set();
+    const rule = (b, media) => {
+      splitSel(b.head).forEach(part => {
+        const left = part.split(/\s*[\s>+~]\s*/)[0];
+        if (!(left.indexOf('.an-' + id) !== -1 || new RegExp('\\.' + pre + '-').test(left))) fail.push(where + ': `' + part + '` does not start from `.an-' + id + '` or a `.' + pre + '-` class — it could match outside the drawing');
+        if (/#/.test(part)) fail.push(where + ': `' + part + '` names an id — the ids are renamed per drawing on a page, so a rule cannot know them');
+        if (/(^|[\s>+~,(])(html|body)(?![\w-])/.test(part)) fail.push(where + ': `' + part + '` reaches the page itself');
+        const anim = /(^|;|\s)animation(-name)?\s*:\s*([^;]+)/.exec(b.body);
+        if (media === RM) { if (/(^|;|\s)animation\s*:\s*none\b/.test(b.body)) stilled.add(part); }
+        else if (anim && !/^none\b/.test(anim[3].trim())) moving.add(part);
+      });
+    };
+    blocks(c).forEach(b => {
+      if (b.k === 'comment') { fail.push(where + ': a comment in its CSS — the why is in the script that writes it and in docs/history/304'); return; }
+      if (b.k === 'stmt') { fail.push(where + ': `' + b.head.slice(0, 40) + '` — no at-rule statements'); return; }
+      if (/^@keyframes /.test(b.head)) {
+        const name = b.head.split(' ')[1];
+        if (!name.startsWith(pre + '-')) fail.push(where + ': @keyframes ' + name + ' is not named `' + pre + '-…`');
+        (kfSeen[name] = kfSeen[name] || []).push(id);
+        return;
+      }
+      if (/^@/.test(b.head)) {
+        if (b.head !== RM) { fail.push(where + ': `' + b.head + '` — the only @media a drawing has is `' + RM + '`'); return; }
+        b.kids.forEach(k => { if (k.k === 'comment') fail.push(where + ': a comment in its CSS'); else if (k.kids || /^@/.test(k.head || '')) fail.push(where + ': an at-rule inside its reduced-motion block'); else rule(k, RM); });
+        return;
+      }
+      rule(b, '');
+    });
+    if (!stilled.size && moving.size) fail.push(where + ': no reduced-motion block with `animation: none` — under the global `.01ms` rule its loop flickers');
+  });
+  Object.entries(kfSeen).filter(([k, v]) => v.length > 1).forEach(([k, v]) => fail.push('@keyframes ' + k + ' is defined in ' + v.join(' and ') + ' — the later one wins for both'));
+
+  /* ---------- 5. WHAT THE DEVICE KEEPS FITS, AND THE PICKER READS THE SHAPE THE SYNC WRITES -------- */
+  const MAX = +((/const SPLASH_CACHE_MAX = (\d+);/.exec(shellSrc) || [])[1] || 0);
+  const F = +((/const SPLASH_CACHE_F = (\d+);/.exec(shellSrc) || [])[1] || 0);
+  if (!MAX || !F) fail.push('SPLASH_CACHE_MAX or SPLASH_CACHE_F is not in js/shell.js — the cache was NOT measured');
+  if (MAX && total > MAX) fail.push('the books\' animations come to ' + total + ' characters, past SPLASH_CACHE_MAX ' + MAX + ' — the last of them would never reach the splash');
+  const pf = /idx\.f === (\d+)/.exec(picker);
+  if (!pf) fail.push('the picker does not check the kept copy\'s shape (`idx.f === N`)');
+  else if (F && +pf[1] !== F) fail.push('the picker reads a kept copy of shape ' + pf[1] + ' and the sync writes SPLASH_CACHE_F = ' + F + ' — no device would ever draw one');
+  said.push(rows.length + ' animation rows, ' + Object.keys(prefixOf).length + ' prefixes, ' + total + ' characters of ' + MAX + ' kept; the picker reads shape ' + (pf ? pf[1] : '?') + ', the sync writes ' + F);
+
   /* ---------- THE WHOLE APP, IN ONE WINDOW, WITH NOTHING ANSWERING -------------------------------
      Every script in index.html's order, as `check-flow.js` loads it, so the functions run are the ones
      a phone runs. The network never answers, so `load()` waits for ever and nothing it would do
@@ -95,6 +271,9 @@ async function main() {
   const rec = id => { try { return JSON.parse(LS.getItem('splashAnim:' + id) || 'null'); } catch (e) { return 'unreadable'; } };
   const on_ = v => /^(true|yes|1|y|on|)$/i.test(String(v == null ? '' : v).trim());
   const SIG = '<div class="sp-sig">@family.</div>';
+  /* WHAT THE ROW'S MARKUP PARSES TO, signed — compared as the parser leaves it rather than as text,
+     because `<rect/>` comes back `<rect></rect>` and `&deg;` comes back `°` whoever parses it. */
+  const parsed = h => { const d = w.document.createElement('div'); d.innerHTML = h.replace(/<\/div>$/, SIG + '</div>'); return d.firstElementChild ? d.firstElementChild.outerHTML : ''; };
 
   /* THE REAL PICKER, made to choose `id` the app's own way: everything else retired in `splashOff`. */
   const sp = w.document.getElementById('splash');
@@ -140,8 +319,7 @@ async function main() {
         const got = pick(r.anim);
         if (got.cls !== 'is-an') fail.push(r.anim + ': the picker, with every other splash retired, drew "' + got.cls + '"');
         else {
-          const want = r.html.replace(/<\/div>$/, SIG + '</div>');
-          if (got.root !== want) fail.push(r.anim + ': the splash drew a root that is not the row\'s markup plus the signature');
+          if (got.root !== parsed(r.html)) fail.push(r.anim + ': the splash drew a root that is not the row\'s markup plus the signature');
           if (got.css !== r.css) fail.push(r.anim + ': the splash\'s <style> is not the row\'s CSS');
         }
       });
@@ -209,7 +387,7 @@ async function main() {
     LS.clear();
     sync(withRows([A2, B]));
     const good = pick('zzb');
-    if (good.cls !== 'is-an' || good.root !== B.html.replace(/<\/div>$/, SIG + '</div>') || good.css !== B.css) fail.push('the picker did not draw a good kept copy as its row: ' + JSON.stringify(good).slice(0, 160));
+    if (good.cls !== 'is-an' || good.root !== parsed(B.html) || good.css !== B.css) fail.push('the picker did not draw a good kept copy as its row: ' + JSON.stringify(good).slice(0, 160));
     const bad = (what, spoil, dropsIndex) => {
       LS.clear(); sync(withRows([A2, B])); spoil();
       const got = pick('zzb');

@@ -27,6 +27,7 @@
 # as #splash-pyth's cells do), to their place in the two rows. The gold is a second circle over the
 # grey one fading in; the ring scales in from 1.9x. One clock, T seconds, everything `infinite`.
 import re, pathlib
+import sys; sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 
 PEOPLE = 100
 COLS = 10
@@ -165,7 +166,7 @@ css = '''/* ---------- BAYES, WITH A HUNDRED PEOPLE ----------------------------
    ring the test draws. No paper here — this is the black-and-gold screen, so tokens only.
    Transform and opacity only, one %(T)gs clock, every animation infinite; check-css and
    check-splash-loops both hold it to that. */
-#splash-bayes { width: min(90vw, 20rem); }
+#splash-bayes { width: min(90vw, 20rem, 100%%); }
 #splash-bayes .by-svg { display: block; width: min(66vw, 14rem); height: auto; margin: 0 auto;
                         overflow: visible; }
 .by-dot { fill: var(--ink); fill-opacity: .26; }
@@ -208,26 +209,7 @@ css = '''/* ---------- BAYES, WITH A HUNDRED PEOPLE ----------------------------
 
 ''' % dict(T=T, say_rules=say_rules, frames='\n'.join(frames), say_sel=say_sel, last=last)
 
-root = pathlib.Path(__file__).resolve().parent.parent
-html = (root / 'index.html').read_text()
-pat = r'  <!-- BAYES, with a hundred people\.[\s\S]*?\n  </div>'
-if re.search(pat, html):
-    html = re.sub(pat, lambda m: svg, html, count=1)
-else:   # first run: after the coin, which is its nearest relative
-    anchor = '  <!-- A NUMBER LINE, with a marker walking along it. -->'
-    assert anchor in html, 'nowhere to put #splash-bayes in index.html'
-    html = html.replace(anchor, svg + '\n\n' + anchor, 1)
-(root / 'index.html').write_text(html)
-
-style = (root / 'style.css').read_text()
-cpat = r'/\* -+ BAYES, WITH A HUNDRED PEOPLE -+[\s\S]*?(?=/\* -+ THE NUMBER LINE -+ \*/)'
-if re.search(cpat, style):
-    style = re.sub(cpat, lambda m: css, style, count=1)
-else:
-    anchor = '/* ---------- THE NUMBER LINE ---'
-    assert anchor in style, 'nowhere to put the Bayes block in style.css'
-    style = style.replace(anchor, css + anchor, 1)
-(root / 'style.css').write_text(style)
-
+# INTO ITS ROW IN data/textbooks.json, not index.html and style.css — see tools/anim_row.py.
+anim_row.write_anim('bayes', html=svg[svg.index('<div id="splash-bayes"'):], css=css)
 print('%d people, %d have it; TP %d, FN %d, FP %d, TN %d; P(has it | +) = %d/%d = %.0f%%; loop %gs'
       % (PEOPLE, HAVE, TP, HAVE - TP, len(FP), WELL - len(FP), TP, TP + len(FP), 100 * POST, T))

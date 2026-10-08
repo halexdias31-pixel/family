@@ -22,6 +22,7 @@
 #  · THE ANSWER FROM THE FIRST FRAME. "a⁵" was in the caption before anything had been counted.
 # Transform and opacity only. The base styles are the joined, counted row — what reduced motion shows.
 import re, pathlib
+import sys; sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parent)); import anim_row
 
 T = 6.0                         # seconds, one loop
 CLOSE = (0.5, 1.2)              # the groups slide together
@@ -130,14 +131,7 @@ css = f'''/* ---------- INDEX LAWS ---------------------------------------------
 
 '''
 
-root = pathlib.Path(__file__).resolve().parent.parent
-html = (root / 'index.html').read_text()
-html, n = re.subn(r'<div id="splash-index"[\s\S]*?\n  </div>', lambda m: markup, html, count=1)
-assert n == 1, 'no #splash-index in index.html'
-(root / 'index.html').write_text(html)
-style = (root / 'style.css').read_text()
-style, n = re.subn(r'/\* -+ INDEX LAWS -+[\s\S]*?(?=/\* -+ THE TRIG TRICK)', lambda m: css, style, count=1)
-assert n == 1, 'no index-laws block in style.css'
-(root / 'style.css').write_text(style)
+# INTO ITS ROW IN data/textbooks.json, not index.html and style.css — see tools/anim_row.py.
+anim_row.write_anim('index', html=markup, css=css)
 print('%d tiles counted at %s s, joined %.1f-%.1f s, loop %gs'
       % (N, ', '.join('%.1f' % t for t in counted), CLOSE[1], OPEN[0], T))

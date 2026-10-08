@@ -478,6 +478,79 @@ const STATES = {
       },
       wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
+       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
+       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
+       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
+       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
+       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
+       by its page; the pages either side are in the DOM beside it and are measured too. */
+    { name: 'a textbook animation: Pythagoras',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
+        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
+        goPage('stuff', stuffFirstResult_() + at);
+      },
+      expect: () => {
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an17-pyth');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
+        return !!stage && !!stage.querySelector('.an-pyth')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="pyth"]');
+      },
+      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'a textbook animation: Bayes',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
+        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
+        goPage('stuff', stuffFirstResult_() + at);
+      },
+      expect: () => {
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an15-bayes');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
+        return !!stage && !!stage.querySelector('.an-bayes')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="bayes"]');
+      },
+      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'a textbook animation: standard form',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
+        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
+        goPage('stuff', stuffFirstResult_() + at);
+      },
+      expect: () => {
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an2-sf');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
+        return !!stage && !!stage.querySelector('.an-sf')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="sf"]');
+      },
+      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
        THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
        want a pen and 26 carry the picture to put one over — and every one of them is inside the

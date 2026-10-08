@@ -1,8 +1,9 @@
-# The coin-flip splash ("heads, about half the time"): prints the markup for index.html, then the
-# @keyframes for style.css. Ten tosses of a fixed sequence that ends on exactly five heads, so the
+# The coin-flip animation ("heads, about half the time"; the textbooks' Maths chapter 19, and a loading
+# splash): writes its four lines of markup and its @keyframes into its row of data/textbooks.json. Ten tosses of a fixed sequence that ends on exactly five heads, so the
 # running share wobbles 1, .5, .33, .5, .4, .5, .43, .38, .44 and lands on a half.
 # Every toss adds two whole turns plus a half turn when the face changes, so the coin lands on the
 # face the tally records. Run: python3 tools/coin.py
+import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 SEQ = 'HTTHTHTTHH'
 T = 9.0             # seconds, one whole run
 D = 0.66            # seconds per toss
@@ -69,9 +70,10 @@ for i, c in enumerate(SEQ):
 
 # twelve edge discs before the faces: the coin's thickness, and a tilt round it so the edge always
 # shows (style.css says why)
-print('    <div class="cn-stage"><div class="cn-tilt"><div class="cn-coin">' + '<i></i>' * 12 + '<b class="cn-h">H</b><b class="cn-t">T</b></div></div><i class="cn-shadow"></i></div>')
-print('    <div class="cn-row">' + ''.join(marks) + '</div>')
-print('    <div class="cn-bar"><i></i></div>')
-print('    <div class="cn-say">' + ''.join(says) + '</div>')
-print()
-print('\n'.join(keys))
+# INTO ITS ROW IN data/textbooks.json — see tools/anim_row.py. It printed text to paste before.
+anim_row.write_anim('coin', fragments=[
+    '<div class="cn-stage"><div class="cn-tilt"><div class="cn-coin">' + '<i></i>' * 12 + '<b class="cn-h">H</b><b class="cn-t">T</b></div></div><i class="cn-shadow"></i></div>',
+    '<div class="cn-row">' + ''.join(marks) + '</div>',
+    '<div class="cn-bar"><i></i></div>',
+    '<div class="cn-say">' + ''.join(says) + '</div>'], css='\n'.join(keys))
+print('%d tosses, %d keyframes' % (len(SEQ), len(keys)))
