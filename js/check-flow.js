@@ -1929,6 +1929,12 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
   if (at < 0) return ['there is no Connect 4 on the Games column'];
   t.goPage('games', at, true);
   const cells = () => [...d.querySelectorAll('#s-games #c4-board .c4-cell')];
+  /* TURNING TO THE PAGE STARTS THE WIDGET, IT DOES NOT FINISH IT — `woken_()` above says why. This
+     counted the squares on the same tick as the turn, and under a loaded full suite (8 Oct) the
+     board was still in the queue: "did not draw 42 squares". So: the column quiet, then up to three
+     seconds for the board itself, and a board that never draws still fails. */
+  await woken_();
+  for (let k = 0; k < 30 && cells().length !== W * H; k++) await wait(100);
   if (cells().length !== W * H) return ['the board did not draw ' + (W * H) + ' squares'];
   const bad = [];
   const tap = x => { const el = d.createElement('button'); el.setAttribute('data-x', String(x)); t.ACTIONS['c4-drop'](el); };
@@ -2001,8 +2007,10 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
   if (at < 0) return ['there is no maze on the Games column'];
   t.goPage('games', at, true);
-  await wait(50);
   const grid = () => d.querySelector('#s-games #maze-grid');
+  /* The board waited for, not guessed at — the same race as Connect 4's above. */
+  await woken_();
+  for (let k = 0; k < 30 && !(grid() && grid().children.length === N * N); k++) await wait(100);
   if (!grid() || grid().children.length !== N * N) return ['the maze did not draw ' + (N * N) + ' squares'];
   const bad = [];
 
