@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-question-page-in-the-sun";
+  --css-version: "2026-10-08-find-keeps-up";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2499,12 +2499,13 @@ button.text-drop { color: var(--bad); }
    its 44. The reach is the answers' own, 6px above and below, so the finger still gets 44. */
 .chip.sm { min-height: 32px; border-radius: 16px; padding: 0 .6rem; position: relative; }
 .chip.sm::before { content: ""; position: absolute; inset: -6px 0; }
-/* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
-   information, and with four chips on a line the second one is a puzzle. */
-/* `--dim`, NOT `--faint`, ON THE FILL: `--faint` was measured for black and for `--raised`, and on a
-   chip's own 8% white it is 3.97:1 — `check/ui.js` named every field on the first run of the filled
-   chips. `--dim` is the next step up and has exactly this job, a label beside a value. */
-.chip-k { color: var(--dim); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
+/* `.chip-k` WAS HERE — the field's name, small, dim and upper-case, in front of every chosen value:
+   `SUBJECT Maths`. Its note said "Grade 9" and "9" are different amounts of information, which is
+   true and is now said by the value itself: the chip is `Grade 9` because Grade's values are, and the
+   two that are bare numbers keep their field in the text (`chipText_` in find.js). The owner, 8 Oct:
+   *"i dont need the category of the tag to appear with the choisen option in the finder."* It cost a
+   line of the question page at 390 and at 820. (It was `--dim` rather than `--faint` because
+   `--faint` measured 3.97:1 on the chip's fill; nothing on a chip is that small any more.) */
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: the outline, the value, and the fill a tint of it rather
    than the plain 8% white -- filled still says "this one is on", just in the colour of what it is.
    THE TINT IS 10% AND THAT NUMBER IS MEASURED, NOT CHOSEN. At 14% the lime `Type` chip's fill went
@@ -2521,12 +2522,9 @@ button.text-drop { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
    invitation, not a state. */
 .chip.add { border-color: var(--gold); color: var(--gold); background: none; }
-/* CLEAR IS A CHIP, NOT A CAPTION. It was `border-color: transparent`, no background and the faint
-   colour — which at the end of a row of bordered chips read as a label somebody had left there.
-   It keeps the border and the fill every other chip has; only the colour says it undoes rather than
-   narrows. */
-.chip.is-clear { color: var(--dim); }
-.chip.is-clear .chip-k { color: var(--dim); }
+/* `.chip.is-clear` WAS HERE. Clear was a caption, then "a chip like the others" — and the owner, 8 Oct:
+   *"clear button looks like a tag which it isnt."* It is a tile beside the search box now, the pen's
+   bin; see `.find-search` and `filterClear_` in find.js. */
 
 /* ---------- THE CALCULATOR'S CARET --------------------------------------------------------------
    A block that blinks, because a hairline is invisible in a monospace column of digits at this
@@ -12341,6 +12339,19 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    were about to read. */
 .search:focus { outline: 0; border-color: var(--line-soft); background: #0a0a0a; }
 @media (hover: hover) { .search:hover { border-color: var(--line-soft); } }
+/* ---------- THE BOX AND THE BIN, ONE ROW ----------------------------------------------------------
+   Find's search box with Clear beside it — `filterClear_` in find.js says why Clear is a tile here
+   and not a chip in the row below. The box takes what the tile leaves (`min-width: 0`, or a flex
+   item will not shrink below its own placeholder), and the row carries the gap under it that the box
+   carried alone. The tile is the tile renderer's own 44px plate and this rule says no size of its
+   own; when a long answer list zooms the whole question card to fit (`paneReach_`), it shrinks with
+   the box beside it, as every control on that card does — measured 31px at 390x844 six answers in,
+   the trade `check/ui.js` records under its zoom line. `:empty` because before the first answer the
+   slot holds nothing, and a gap beside nothing would push the box in from the edge for no reason. */
+.find-search { display: flex; align-items: center; gap: .4rem; margin-bottom: .8rem; }
+.find-search .search { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+#stuff-clear { display: flex; flex: 0 0 auto; }
+#stuff-clear:empty { display: none; }
 
 /* ---------- THE BREADCRUMB -----------------------------------------------------------------------
    SMALL, QUIET, AND MONOSPACED, because it is a path rather than a sentence: 1stclassmaths · KS2 ·

@@ -298,4 +298,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The daily email to parents: every day of work, with each question's own words](294-the-daily-email-to-parents-every-day-of-work-with-the-questions-words.md)
 - [One email to parents, at the end of the week, with every question's own words](295-one-email-to-parents-at-the-end-of-the-week.md)
 - [The question page in the sun: Questions means questions, no ↓ tile, a chat bar with Send, a keypad you can see](297-the-question-page-in-the-sun.md)
+- [Find says only the answer, and keeps up with a fast thumb: value-only chips, Clear a tile, the glass filled to its edge](298-find-says-only-the-answer-and-keeps-up-with-a-fast-thumb.md)
 - [One card, one answer: every card that wanted several answers in one box is parts now](299-one-card-one-answer.md)

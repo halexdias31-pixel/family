@@ -129,8 +129,26 @@ const STATES = {
         paintStuff();
         goPage('stuff', 0, true);
       },
-      expect: () => document.querySelectorAll('#stuff-groups .row').length,
-      wants: 'a question with answers on it' },
+      /* ---------- AND THE CHIPS SAY ONLY WHAT WAS CHOSEN, WITH CLEAR BESIDE THE BOX ----------------
+         The owner, 8 Oct, on a pupil's iPad: *"i dont need the category of the tag to appear with the
+         choisen option in the finder"*, and *"clear button looks like a tag which it isnt."* This is
+         the state both were said about — seven chips, one of them a skip — so this is where the
+         pictures are asked for: no field name on any chip, Subject's chip `Maths✕` and nothing more
+         (still in Subject's colour), the skip saying `Any school year✕`, and Clear the pen's bin tile in
+         its slot beside the search box, not a chip among the tags. `check/ui.js` measures that tile's
+         reach and contrast here like every other control. */
+      expect: () => {
+        const chips = [...document.querySelectorAll('#stuff-chips .chip')];
+        const text = el => el.textContent.replace(/\s+/g, ' ').trim();
+        const subject = chips.find(c => c.getAttribute('data-tag') === 'subject');
+        return document.querySelectorAll('#stuff-groups .row').length > 0
+          && !document.querySelector('#stuff-chips .chip-k')
+          && !!subject && text(subject) === 'Maths✕'
+          && chips.some(c => text(c) === 'Any school year✕')
+          && !!document.querySelector('#stuff-clear .tile[data-do="filter-clear"]')
+          && !document.querySelector('#stuff-chips [data-do="filter-clear"]');
+      },
+      wants: 'a question with answers on it, the chips only their values (Maths✕, Any school year✕), and Clear a tile beside the search box' },
     /* ---------- THE SITTING, ASKED AS THE YEAR AND THEN THE MONTH ------------------------------------
        REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and as
        "they dont need to appear one above the other but can fill like from left to right". Then the

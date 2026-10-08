@@ -1174,30 +1174,57 @@ function holdHere_(t) {
    150px off for every frame of a held drag, both axes, against 7 then 0 before the plan existed.
    So the column's rest IN THE PLAN is moved to the new one, and the column written there plus
    however far the finger has it — every frame after reads the corrected rest. */
+/* ---------- AND ONLY ON THE PAGE IT WAS PLACED FOR, AND IT SAYS WHETHER IT COULD ---------------------
+   `fillStuffPages` ASKS THIS NOW, where it used to book a placement (see `settle_` in find.js), so
+   two things changed. IT ANSWERS: `true` when the column is where it belongs — corrected, or nothing
+   to correct, or a finger whose next frame will measure — and `false` when it could not say, so the
+   caller can ask for the placement it used to. AND IT KNOWS WHICH PAGE THE COLUMN WAS PLACED FOR
+   (`PLACED_P`, written by `placeGrid`). `goPage` sets `PAGE` and fills the page it turns to BEFORE it
+   books its slide, so in that moment `PAGE` already names a page the column has not been sent to —
+   and "hold the page in front" would have sent it there now, instantly: the turn's slide skipped. The
+   booked-slide test below catches that only once the slide is booked; the page number catches it
+   before. */
 function holdColumn_(id) {
   try {
     const host = $('s-' + id);
-    if (!host) return;
-    if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return;
+    if (!host) return false;
+    if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return false;
+    if (host.PLACED_P !== (PAGE[id] || 0)) return false;
     const at = colPlaced_(host);
-    if (!at) return;
+    if (!at) return false;
     /* A FINGER IS DOWN: this column's entry in this drag's plan, or nothing to correct — a plan
        made for another card in front is one the next drag frame throws away and measures afresh. */
     let plan = null;
     if (host.classList.contains('dragging')) {
       const p = DRAG_PLAN;
       plan = p && p.at === AT && p.page === (PAGE[AT] || 0) ? p.cols.find(c => c.host === host) : null;
-      if (!plan) return;
+      if (!plan) return true;
     }
     const want = columnShift_(host, domIndex_(id, PAGE[id] || 0));
     const rest = plan ? plan.y : at[1];
-    if (!isFinite(want) || Math.abs(rest - want) < 0.5) return;
-    const moving = typeof host.getAnimations === 'function'
-      && host.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === colProp_('y'));
-    if (!moving) colTransition_(host, null, SLIDE_NONE);
+    if (!isFinite(want)) return false;
+    if (Math.abs(rest - want) < 0.5) return true;
+    const run = typeof host.getAnimations === 'function'
+      && host.getAnimations().find(a => a.playState === 'running' && a.transitionProperty === colProp_('y'));
     if (plan) plan.y = want;
+    /* ---------- MID-SLIDE, THE SLIDE IS MOVED WITH THE LAYOUT, NOT RETARGETED UNDER IT ----------------
+       THIS LEFT A RUNNING SLIDE ALONE AND WROTE ITS NEW END, so the slide carried on toward the right
+       place — from the WRONG one: the layout had already moved the page by the difference, and the
+       slide's numbers had not. That is the at-rest flicker the note above describes, mid-slide. Found
+       on Find flicked back up a paper (8 Oct, *"if i scroll down quickly it does glitch out"*): the
+       late fill drew two cards above the one in front while its slide was still running, and the card
+       jumped 309px down the glass and slid back up over the next 120ms. So the slide is shifted by
+       exactly what the layout moved, from where it is drawn (`colShiftNow_`), and goes on to its end
+       in the time it had left — nothing on the glass moves. */
+    if (run && !plan) {
+      let left = 0;
+      try { const tm = run.effect.getComputedTiming(); left = Math.max(0, tm.endTime - tm.localTime); } catch (e) {}
+      colShiftNow_(host, want - rest);
+      colTransition_(host, null, { d: Math.max(80, Math.round(left)) + 'ms', tf: 'cubic-bezier(.25, .6, .25, 1)', delay: '0s' });
+    } else if (!run) colTransition_(host, null, SLIDE_NONE);
     colWrite_(host, at[0], want + (at[1] - rest));
-  } catch (e) { /* a column left where it was is the behaviour before this existed */ }
+    return true;
+  } catch (e) { /* a column left where it was is the behaviour before this existed */ return false; }
 }
 
 /* ---------- HOW FAR IT IS TO THE NEXT CARD DOWN ---------------------------------------------------
@@ -1367,6 +1394,25 @@ function colWrite_(host, x, y) {
     host.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
   }
 }
+/* ---------- A COLUMN MOVED BY WHAT ITS LAYOUT MOVED, FROM WHERE IT IS DRAWN -----------------------------
+   For the two moments the column's CONTENTS shift under a slide that is running: a card above the one
+   in front changing height (`holdColumn_`), and Find's window of pages moving its elements from one
+   end of the strip to the other (`stuffKeepPlace_` in find.js). The drawn position is read off the
+   running slide (`colNow_`), `d` is added with no transition, and the style is read back once, so the
+   browser takes THAT as where the next slide starts — written without the read, the next slide would
+   begin from the old number in the new layout, which is the jump. Sideways is left as placed, so a
+   column still arriving from a neighbour keeps arriving (one transform on an old browser: its drawn
+   x is kept instead). */
+function colShiftNow_(host, d) {
+  if (!host || !(Math.abs(d) >= 0.5)) return;
+  const at = colPlaced_(host);
+  if (!at) return;
+  const now = colNow_(host);
+  colTransition_(host, null, SLIDE_NONE);
+  colWrite_(host, SPLIT_AXES ? at[0] : now[0], now[1] + d);
+  void getComputedStyle(host).getPropertyValue(colProp_('y'));
+}
+
 /* WHERE THE LAST PLACEMENT PUT IT — the inline values, which are where it is going, not where it is
    drawn mid-slide (that is `colNow_`). `translate: 0px 0px` reads back as `0px`, so a missing second
    half is nought. */
@@ -1632,6 +1678,14 @@ function dragFast_(drag) {
   return true;
 }
 
+/* ---------- HOW MANY CARDS ABOVE AND BELOW THE ONE IN FRONT THE GLASS SHOWS ------------------------
+   Two on a phone, faded (.9, .75); three on a wide window, whole — a tall iPad shows a fourth card
+   down (see the opacity in `placeGrid`). ONE NUMBER FOR TWO READERS: `placeGrid` draws exactly these
+   and hides the rest, and `goPage` fills the Find screen's pages out to exactly these on every turn.
+   When they were two literals and an assumption, the assumption lost: the fill reached one card
+   either side and the glass showed three, and an empty card sat on the glass of the owner's iPad. */
+const glassRows_ = () => (WIDE ? 3 : 2);
+
 function placeGrid(instant, drag) {
   if (drag && dragFast_(drag)) return;
   DRAG_PLAN = null;
@@ -1746,6 +1800,9 @@ function placeGrid(instant, drag) {
       instant || (drag && drag.which === 'y' && id === AT) ? SLIDE_NONE : runs('y'),
       instant ? SLIDE_NONE : { d: '.22s', tf: 'ease', delay: '0s' });
     colWrite_(host, x, shift);
+    /* WHICH PAGE THIS SHIFT WAS WORKED OUT FOR — read by `holdColumn_`, which corrects a column only
+       for the page it was sent to. */
+    host.PLACED_P = at;
     /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
        something to look at, not something to tap. */
     /* STILL TRUE ON A WIDE WINDOW, where the columns beside are whole and readable: a press on one
@@ -1819,8 +1876,9 @@ function placeGrid(instant, drag) {
          its edge, both of which are already doing the work. */
       /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
          it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
-      el.style.opacity = WIDE ? (d <= 3 ? '1' : '0')
-        : d === 0 ? '1' : d === 1 ? '.9' : d === 2 ? '.75' : '0';
+      /* HOW FAR THAT IS, `glassRows_` — the one number `goPage` fills out to as well. */
+      el.style.opacity = d > glassRows_() ? '0' : WIDE ? '1'
+        : d === 0 ? '1' : d === 1 ? '.9' : '.75';
       /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD -----------------------------
          THIS WAS `d === 0`, which is every column's current page, and the column's own `none` above
          did not stop it: `pointer-events` is inherited, so an explicit `auto` on a child takes the
@@ -2523,6 +2581,7 @@ const pageCount = id => {
    was built for. Last booking of a key wins; every key runs. */
 let AFTER_SLIDE = null;
 const AFTER_SLIDE_JOBS = new Map();
+let AFTER_SLIDE_HELD = 0;   // when the booked jobs first found a finger down, for the cap below
 
 function afterSlide_(fn, key) {
   AFTER_SLIDE_JOBS.set(key || fn, fn);
@@ -2533,13 +2592,28 @@ function afterSlide_(fn, key) {
        the middle of it — measured on Tools: a widget starting at +322ms for 85ms, then a re-placement
        retargeting the glide at +412ms. The slide itself is composited and survives that work; what
        does not is the next swipe, which waits behind it, and a widget that grows mid-glide restarts
-       the curve. So it waits for the settle's end, or for a finger that has claimed the grid to
-       lift; the timer was only ever a stand-in for "the slide has finished". */
+       the curve. So it waits for the settle's end, or for a finger to lift; the timer was only ever
+       a stand-in for "the slide has finished". */
+    /* ---------- A FINGER DOWN AT ALL, NOT ONLY ONE THAT HAS CHOSEN ITS AXIS ----------------------------
+       THIS WAS `SWIPE.live && SWIPE.axis`, and the axis is claimed only after ten pixels of travel —
+       so the first ten pixels of the next flick were not a finger at all as far as this was
+       concerned. Instrumented on the iPad complaint (*"if i scroll down quickly it does glitch out or
+       clip fast"*, 8 Oct): the next touch went down at 4805ms and Find's late fill re-aimed the column
+       at 4806ms, one millisecond into the gesture, emptying pages over the card and filling them under
+       it while the thumb was on the glass. `widgetsLater_` in arcade.js made this same correction for
+       the widgets on 5 October; this is its twin.
+       AND NOT FOR EVER, for the reason that one gives: a finger resting on the glass, or a `pointerup`
+       the browser never sent, is `SWIPE.live` with nothing moving, and a page never filled is worse
+       than one filled under a still thumb. A second and a half, then on regardless. */
     const now = performance.now();
+    const down = typeof SWIPE !== 'undefined' && !!SWIPE.live;
+    if (!down) AFTER_SLIDE_HELD = 0;
+    else if (!AFTER_SLIDE_HELD) AFTER_SLIDE_HELD = now;
     const wait = SETTLE_ON && now < SETTLE_ON.until ? Math.ceil(SETTLE_ON.until - now) + 50
-               : (typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis) ? 100 : 0;
+               : down && now - AFTER_SLIDE_HELD < 1500 ? 100 : 0;
     if (wait) { AFTER_SLIDE = setTimeout(run, wait); return; }
     AFTER_SLIDE = null;
+    AFTER_SLIDE_HELD = 0;
     const jobs = [...AFTER_SLIDE_JOBS.values()];
     AFTER_SLIDE_JOBS.clear();
     /* ONE JOB THAT THROWS MUST NOT TAKE THE REST WITH IT. They are unrelated — an observer, a
@@ -2605,7 +2679,45 @@ function goPage(id, to, instant) {
     const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', n)];
     return !el || el.dataset.filled !== '1';
   })();
+  /* ---------- AND THE FAR EDGE OF THE GLASS, ONE CARD PER TURN ---------------------------------------
+     REPORTED FROM A PUPIL'S iPAD, 8 Oct: *"if i scroll down quickly it does glitch out or clip fast or
+     idk."* Measured at 820x1180 on the Corbettmaths subtraction sheet, ten quick flicks: the pages two
+     and three below the card in front sat on the glass as empty 31px slivers for 600–700ms at a time
+     — 96 of 192 frames had one, and 48 of 207 at 390x844.
+
+     THE FILL THAT SHOULD HAVE BEEN THERE NEVER RAN. The rest of a turn's filling is booked through
+     `afterSlide_`, which waits for 300ms of quiet and for the settle to end — so a flick every 150ms
+     starves it completely, by design. Only a page EMPTY ON ARRIVAL was filled on the spot (`bare`),
+     and that fill builds the card in front and one either side (`STUFF_SOON`) because it is paid for
+     in the tap. But the glass shows two either side on a phone and three on a wide window
+     (`glassRows_`), and `placeGrid`'s own note says what that edge is for: "a fast swipe never shows
+     an empty rectangle". It showed one every other turn.
+
+     SO THE PAGE ARRIVING AT THE FAR EDGE IS FILLED NOW, BEFORE THE COLUMN MOVES — the one the turn
+     brings onto the glass, plus any empty page between it and the card in front. In a run of turns
+     that is exactly ONE card per turn, which is the window's own promise (`STUFF_WIN` in find.js:
+     "turning a page still draws exactly one card"); everything past the edge is still the late
+     pass's. ONLY FOR A TURN: a jump of more than the glass is the `bare` path's, which `STUFF_SOON`
+     keeps cheap on purpose. */
+  const edge = id === 'stuff' && n !== was && Math.abs(n - was) <= glassRows_() && typeof stuffFillOne_ === 'function';
+  /* ---------- AND A CARD DRAWN ABOVE THE ONE IN FRONT DOES NOT MOVE IT ------------------------------
+     GOING DOWN THE PAPER the edge is below the card in front and nothing it draws can move that card.
+     GOING BACK UP it is above, and so is the page before a `bare` landing: a card arriving there is
+     taller than the empty page it fills, and everything under it, the card in front included, is
+     pushed down the layout while the column is still where the finger left it. Measured flicking back
+     up the subtraction sheet at 820x1180: the card jumped about 280px down the glass and slid back.
+     So the page being turned to is measured either side of those fills and the column moved by the
+     difference, from where it is drawn (`stuffKeepPlace_`, the window's own correction in find.js).
+     Asked only when something CAN land above, so a turn down the paper forces no layout here. */
+  const above = id === 'stuff' && (bare || (edge && n < was));
+  const ref = above && $('s-stuff') ? $('s-stuff').querySelectorAll(':scope > .page')[domIndex_('stuff', n)] : null;
+  const top0 = ref ? ref.offsetTop : 0;
   if (bare) fillStuffPages();
+  if (edge) {
+    const dir = n > was ? 1 : -1;
+    for (let k = 1; k <= glassRows_(); k++) { try { stuffFillOne_(n + dir * k); } catch (e) {} }
+  }
+  if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-stuff'), top0 - ref.offsetTop);
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_`
      in arcade.js. Before the placement, for the reason the fill above is: a card that grows after
      the column was placed is a card the placement never saw. */

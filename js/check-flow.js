@@ -9472,6 +9472,77 @@ const shopRow_ = (n, name, kindRaw, audience, inStock, extra) => Object.assign({
   id: n, rowIndex: n, kind: 'thing', kindRaw: kindRaw, name: name, price: '', unit: '£',
   acquire: 'buy', audience: audience, level: 0, slot: '', artId: '', description: name + ', for sale.',
   image: '', inStock: inStock, fields: {} }, extra || {});
+/* ---------- A CHOSEN ANSWER IS ONLY ITS VALUE, AND CLEAR IS A TILE BESIDE THE BOX -----------------
+   The owner, 8 Oct, on a pupil's iPad: *"i dont need the category of the tag to appear with the
+   choisen option in the finder"* and *"clear button looks like a tag which it isnt."* So: no field
+   name in front of a chosen value (`SUBJECT Maths` is `Maths`), a skip says what it skipped (`Any
+   school year`), a bare number keeps its field (`Chapter 119`), the kind's colour stays on the chip —
+   and Clear is the pen's bin tile in its own slot beside the search box, from the first answer on,
+   never a chip in the row. AND THE BOX IS NOT REDRAWN: the same element, still focused, after an
+   answer is pressed — the reason Clear has a slot of its own rather than sharing the box's line. */
+check('a chosen answer is only its value, and Clear is a tile beside the search box that keeps its focus', async () => {
+  const { w } = boot({ payload: payload() });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (!t.STUFF || typeof w.filterChips !== 'function') return ['Find\'s state is not exported to the journey'];
+  const bad = [];
+  t.go('stuff');
+  await wait(60);
+  t.STUFF().q = '';
+  t.STUFF().filters.length = 0;
+  w.paintStuff();
+  await wait(30);
+  const box = d.getElementById('stuff-q');
+  if (!box) return ['the Find screen has no search box to keep'];
+  const slot = () => d.getElementById('stuff-clear');
+  if (!slot()) return ['there is no #stuff-clear beside the search box — Clear has nowhere of its own to be'];
+  if (slot().innerHTML.trim()) bad.push('with nothing chosen, the Clear slot holds ' + slot().innerHTML.trim().slice(0, 80) + ' — it is shown from the first answer');
+  if (slot().parentElement !== box.parentElement) bad.push('Clear is not beside the search box — its slot and the box have different parents');
+
+  /* THE FIRST ANSWER, PRESSED WITH THE BOX FOCUSED. */
+  box.focus();
+  if (d.activeElement !== box) return bad.concat(['the search box would not take the focus, so keeping it was NOT checked']);
+  t.ACTIONS['facet-pick']({ dataset: { field: 'forLabel', value: 'Learning' } });
+  await wait(80);
+  if (d.getElementById('stuff-q') !== box) bad.push('pressing an answer replaced the search box — a new element, so the focus and the caret are gone');
+  else if (d.activeElement !== box) bad.push('pressing an answer took the focus off the search box (it is on ' + (d.activeElement ? d.activeElement.tagName + '#' + d.activeElement.id : 'nothing') + ')');
+  const tiles = () => [...slot().querySelectorAll('.tile[data-do="filter-clear"]')];
+  if (tiles().length !== 1) bad.push('one answer in, the Clear slot holds ' + tiles().length + ' Clear tile(s) — one, from the first answer');
+
+  /* THE CHIPS: a value, a skip, a bare number, and the tag that colours a kind. */
+  t.STUFF().filters.splice(0, t.STUFF().filters.length,
+    { field: 'forLabel', value: 'Learning' }, { field: 'subject', value: 'Maths' },
+    { field: 'yearGroup', any: true }, { field: 'bibleChapter', value: '119' });
+  w.paintStuff();
+  await wait(30);
+  const chips = [...d.querySelectorAll('#stuff-chips .chip')];
+  const text = el => el.textContent.replace(/\s+/g, ' ').trim();
+  const said = chips.map(text);
+  if (chips.length !== 4) bad.push('four answers drew ' + chips.length + ' chip(s): ' + said.join(' | '));
+  if (d.querySelector('#stuff-chips .chip-k')) bad.push('a chip still carries its field name in a .chip-k: ' + said.join(' | '));
+  const labels = ['What for', 'Subject', 'School year'];
+  said.forEach(s => labels.forEach(l => { if (s.indexOf(l + ' ') === 0) bad.push('the chip "' + s + '" starts with its field\'s name, ' + l); }));
+  const maths = chips.find(c => text(c) === 'Maths✕');
+  if (!maths) bad.push('no chip reads exactly "Maths✕" — they read ' + said.join(' | '));
+  else if (maths.getAttribute('data-tag') !== 'subject') bad.push('the Maths chip lost its colour: data-tag is ' + JSON.stringify(maths.getAttribute('data-tag')) + ', not "subject"');
+  if (said.indexOf('Learning✕') < 0) bad.push('the What for chip does not read "Learning✕" — ' + said.join(' | '));
+  if (said.indexOf('Any school year✕') < 0) bad.push('the skipped School year does not read "Any school year✕" — ' + said.join(' | '));
+  if (said.indexOf('Chapter 119✕') < 0) bad.push('a bare 119 does not keep its field as "Chapter 119✕" — ' + said.join(' | '));
+  if (d.querySelector('#stuff-chips [data-do="filter-clear"]')) bad.push('Clear is still drawn in the row of chips, where it looks like a tag');
+  if (tiles().length !== 1) bad.push('four answers in, the Clear slot holds ' + tiles().length + ' Clear tile(s)');
+  else {
+    const tile = tiles()[0];
+    if (!/Clear/.test(tile.getAttribute('aria-label') || '')) bad.push('the Clear tile is named ' + JSON.stringify(tile.getAttribute('aria-label')) + ' — it should say Clear');
+    if (!tile.querySelector('svg')) bad.push('the Clear tile has no mark on it — the bin');
+    /* AND IT STILL CLEARS, and goes with what it cleared. */
+    t.ACTIONS['filter-clear'](tile);
+    await wait(30);
+    if (t.STUFF().filters.length) bad.push('pressing Clear left ' + t.STUFF().filters.length + ' answer(s) chosen');
+    if (slot().innerHTML.trim()) bad.push('with everything cleared, the Clear tile is still beside the box');
+  }
+  return bad;
+});
+
 check('the shop is its own column with the basket on top, and Find no longer has a Shop door', async () => {
   const p = payload();
   p.shop = [shopRow_(2, 'Gooey Louie (board game)', 'game', 'all', true),

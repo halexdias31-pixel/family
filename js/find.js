@@ -12596,21 +12596,42 @@ const TAG_OF = {
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
 
-/* THE FIELD'S NAME IS LEFT OFF A CHIP THAT ALREADY STARTS WITH IT. `PAPER Paper 1` says Paper twice
-   on a chip four words wide; the colour says what kind of tag it is now, and `Grade 9` against `9`
-   -- the reason the field is printed at all -- only needs it where the value does not say it. */
-const chipKeyIn_ = (key, show) => !!key && new RegExp('^' + String(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(String(show));
+/* `chipKeyIn_` WAS HERE, and the small grey field name in front of every chosen answer with it
+   (`.chip-k`). It printed `SUBJECT Maths`, `TYPE Worksheet`, `LEVEL SATs`, and left the name off
+   only when the value already began with it, so `PAPER Paper 1` was not said twice.
 
-/* The chips, and the + that adds one. Drawn with the list rather than with the two selects above
-   it, because this row grows and shrinks and a fixed control does not. */
+   THE OWNER, on a pupil's iPad, 8 Oct: *"i dont need the category of the tag to appear with the
+   choisen option in the finder."* Measured at 390x844 six answers in, the chips read `What for
+   Learning✕ | What kind Questions✕ | Subject Maths✕ | Type Worksheet✕ | Level SATs✕ | Key stage
+   KS2✕ | School year any✕ | clear✕`. Without the names the block is 79px tall as drawn instead of
+   105 at 390x844, and 64 instead of 93 at 820x1180: one whole line of the question page at both
+   widths, spent on words the colour already says. Every facet's values were read through `showOf`
+   before it went, and none a person reaches needs its name to mean something — Grade is already
+   `Grade 5`, School year `Year 4`, Paper `Paper 1`, a sitting `2024`. The two that did are said
+   below, by rule, in the value. */
+/* ---------- WHAT A CHOSEN CHIP SAYS: THE VALUE, AND ONLY WHERE THE VALUE IS NOT ENOUGH, MORE -----
+   · A SKIP says what it skipped: `Any school year`. It read `any`, which meant something only while
+     the field's name stood in front of it.
+   · A BARE NUMBER OF ONE TO THREE DIGITS keeps its field: `Chapter 119`, `Verse 16`. The Bible's
+     two (an admin's), and the only values the walk through `showOf` found that are nothing alone —
+     a lone `119` among the chips could be either. A year is four digits and says itself.
+   · Everything else is `chipShow_`, exactly what its button said. */
+function chipText_(f, i) {
+  const key = String((facetBy(f.field) || {}).label || f.field);
+  if (f.any) return 'Any ' + key.toLowerCase();
+  const show = String(chipShow_(f, i));
+  return /^\d{1,3}$/.test(show.trim()) ? key + ' ' + show.trim() : show;
+}
+
+/* THE CHIPS YOU HAVE CHOSEN. Drawn with the list rather than with the search box above it, because
+   this row grows and shrinks and a fixed control does not. Clear is not one of them — see
+   `filterClear_`. */
 function filterChips() {
   return `<div class="chips">
     ${STUFF.filters.map((f, i) => {
-      const key = (facetBy(f.field) || {}).label || f.field;
-      const show = f.any ? 'any' : chipShow_(f, i);
+      const show = chipText_(f, i);
       return `
       <button class="chip sm" data-do="filter-drop" data-i="${i}"${tagAttr_(f.field)}>
-        ${chipKeyIn_(key, show) ? '' : `<span class="chip-k">${esc(key)}</span>`}
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody
              made and has to be able to unmake. A question silently dropped with nothing on screen
              saying so is the funnel "changing its mind" again — the complaint `whyThisQuestion()`
@@ -12624,14 +12645,29 @@ function filterChips() {
         ${esc(show)}<span class="chip-x">✕</span>
       </button>`;
     }).join('')}
-    ${/* `clear` WAS GREY TEXT ON NOTHING — no border, no fill, the faint colour — sitting at the end
-          of a row of bordered chips. It read as a caption rather than a control, which is the one
-          thing a control must never do. It is a chip like the others now, with the same ✕ the chips
-          carry, so the row is a row of things you can press. */''}
-    ${STUFF.filters.length > 1
-      ? '<button class="chip sm is-clear" data-do="filter-clear">'
-        + '<span class="chip-k">clear</span><span class="chip-x">✕</span></button>' : ''}
   </div>`;
+}
+
+/* ---------- CLEAR IS A TILE BESIDE THE SEARCH BOX, NOT A CHIP AT THE END OF THE ROW -----------------
+   IT HAS BEEN BOTH THE WRONG THINGS. It was grey text on nothing at the end of the chips, which read
+   as a caption; it was then made "a chip like the others", with the pill, the outline, the fill and
+   the ✕ — and the owner, 8 Oct, on a pupil's iPad: *"clear button looks like a tag which it isnt."*
+   A chip in that row IS a tag: it is something you chose, and its ✕ takes that one thing back.
+   Clear is not something you chose. It is an action on all of them.
+
+   SO IT IS A TILE — CLAUDE.md's rule, tiles win any tie — with the pen's own bin and word (`pad-clear`,
+   `Clear · every mark`), so "Clear" is one object wherever the app draws it. And it sits BESIDE THE
+   SEARCH BOX, out of the row of tags altogether: the box and the bin are the two controls on the
+   question page that act on the whole search rather than on one answer.
+
+   FROM THE FIRST ANSWER ON, where the chip waited for the second. The box narrows to make room
+   once, at the first press, and then stays where it is for the rest of the walk; at `> 1` it would
+   narrow under your thumb at the second answer instead. Written into its own slot by `paintStuff`,
+   so the search box beside it is never redrawn and keeps its focus and its caret. */
+function filterClear_() {
+  return STUFF.filters.length
+    ? tile_({ icon: 'bin', label: 'Clear', note: 'every answer', act: 'filter-clear', cls: 'find-clear' })
+    : '';
 }
 
 /* THE PICKER SHEET IS GONE. It asked which FIELD, then which VALUE — two taps and a panel over
@@ -12725,11 +12761,13 @@ const STUFF_WIN = 15;
 const STUFF_EDGE = 4;
 
 /* A PAGE THAT NOW STANDS FOR A DIFFERENT RESULT MUST NOT KEEP THE OLD ONE'S MARKUP. The `filled`
-   mark is what `fillStuffPages` reads, so taking it off is what asks for the redraw. */
+   mark is what `fillStuffPages` reads, so taking it off is what asks for the redraw.
+   AND IT KEEPS ITS HEIGHT, as a page emptied in `fillStuffPages` does — see `stuffPin_`. */
 function stuffBlank_(el) {
   if (!el) return;
-  delete el.dataset.filled;
   const pane = el.querySelector(':scope > .pane');
+  if (el.dataset.filled === '1') stuffPin_(el, pane);
+  delete el.dataset.filled;
   if (pane) pane.innerHTML = '';
 }
 
@@ -12781,6 +12819,10 @@ function stuffWindow_() {
   res = [].slice.call(host.querySelectorAll(':scope > .page.is-res'));
   /* A JUMP FURTHER THAN THE WINDOW IS WIDE keeps nothing, so there is nothing to move. */
   if (Math.abs(k) >= res.length) { res.forEach(stuffBlank_); return; }
+  /* THE FIRST PAGE THAT STAYS, and where it sat — see `stuffKeepPlace_` below. Read before anything
+     moves, when the layout is the one the last frame already drew. */
+  const ref = k > 0 ? res[k] : res[0];
+  const top0 = ref ? ref.offsetTop : 0;
   if (k > 0) {
     for (let i = 0; i < k; i++) { stuffBlank_(res[i]); host.appendChild(res[i]); }
   } else {
@@ -12792,11 +12834,36 @@ function stuffWindow_() {
       host.insertBefore(el, host.children[keep] || null);
     }
   }
+  if (ref) stuffKeepPlace_(host, top0 - ref.offsetTop);
+}
+
+/* ---------- THE WINDOW MOVES, AND THE CARDS ON THE GLASS DO NOT ---------------------------------------
+   FOUND WHILE MEASURING *"if i scroll down quickly it does glitch out or clip fast or idk"* (8 Oct,
+   the owner on a pupil's iPad), on the Corbettmaths subtraction sheet past its twelfth page. Every
+   fourth turn the window re-centres, and the pages it moves from the top of the strip to the bottom
+   take their height with them — so everything left in the column, the card in front included, is
+   suddenly that much higher in the layout. The column is MID-SLIDE when that happens (the turn that
+   asked for it has just been released), and a running slide is a `translate` going from one number
+   to another: the layout jumped and the numbers did not. Measured at 820x1180: the card in front
+   jumped 250–550px up in one frame and then slid back down to where it belonged, at every re-centring
+   — 62 card-frames moving the wrong way in a run of twelve flicks, 40 at 390x844.
+
+   `goPage`'s own placement was never wrong about where the column should END: it measures after the
+   window moves. What was wrong was where the slide STARTED. So the column is moved by exactly what
+   the layout moved, from where it is drawn this moment, before the turn's own slide is written over
+   it a frame later — `colShiftNow_` in shell.js, which `holdColumn_` uses for a card above that
+   changes height mid-slide. Nothing is drawn in between: this runs in the handler that turned the
+   page, and the frame after it is the slide. */
+function stuffKeepPlace_(host, d) {
+  try { colShiftNow_(host, d); } catch (e) { /* the column left as it was is the jump this exists to stop, and nothing worse */ }
 }
 
 function paintStuff(keepPage) {
   const chips = $('stuff-chips');
   if (chips) chips.innerHTML = filterChips();
+  /* THE BIN BESIDE THE BOX, in its own slot so the box itself is never rewritten — see `filterClear_`. */
+  const clear = $('stuff-clear');
+  if (clear) clear.innerHTML = filterClear_();
   const groups = $('stuff-groups');
   if (groups) groups.innerHTML = stuffQuestion();
   /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE ------------------------------------------
@@ -13356,6 +13423,22 @@ function paneWatch_(host) {
       const due = PANE_WATCH_DUE || (PANE_WATCH_DUE = []);
       const first = due.length === 0;
       const held = new Set();
+      /* ---------- AND HOW TALL EACH PANE WAS, FOR THE DAY IT IS EMPTIED ------------------------------
+         `stuffPin_` holds an emptied page at the height it had, so the cards under it do not move —
+         and it must know that height without asking for it, because asking (`offsetHeight` after
+         the `innerHTML` writes of a fill) is a forced layout of the column inside the loop, the cost
+         the `scrollTop` note in `fillStuffPages` records at 1.3s a task. HERE IT IS FREE: an observer
+         is delivered after layout and before paint, so reading a box is reading a number the frame
+         has already worked out. ALL OF THEM BEFORE `holdColumn_` below writes anything, so not one
+         read follows a write. A card taken out of its pane is reported too, with no pane to name —
+         and the height it had is exactly the one to keep. THE RECTANGLE, NOT `offsetHeight`, which
+         rounds: a 288.6px card held at 289 moved the cards under it by a pixel, and the column was
+         put back by a pixel on every emptying. A page's box is never scaled, so the two agree but
+         for the rounding. */
+      rows.forEach(r => {
+        const pane = r.target && r.target.parentElement;
+        if (pane && pane.classList.contains('pane')) pane.LAST_H = pane.getBoundingClientRect().height;
+      });
       rows.forEach(r => {
         const pane = r.target && r.target.parentElement;
         if (pane && due.indexOf(pane) === -1) due.push(pane);
@@ -13387,6 +13470,61 @@ function paneWatch_(host) {
     kids.forEach(k => { if (!old.has(k)) PANE_WATCH.observe(k); });
     host.PANE_KIDS = kids;
   } catch (e) {}
+}
+
+/* ---------- ONE PAGE, FILLED: THE LOOP'S BODY, AND THE FAR EDGE OF THE GLASS ------------------------
+   `fillStuffPages` below does this for each page near you, and `goPage` in shell.js does it for one
+   page per turn — the one arriving at the far edge of what the glass shows — so it is said once. A
+   page that is already filled, or is not a result, or has no element in the window is left alone and
+   answered `false`, so a caller may ask for a page without knowing whether it needs anything.
+   `ctx` is the loop's own `pages`, `first` and `items`, handed in so a walk over eleven does not ask
+   for them eleven times; a single caller leaves it out. */
+function stuffFillOne_(i, ctx) {
+  const host = $('s-stuff');
+  if (!host) return false;
+  const c = ctx || {};
+  const first = c.first != null ? c.first : stuffFirstResult_();
+  /* THE PAGE COUNT, not the result count — a practical is four pages. See `stuffPages_`. */
+  if (i < first || i > first + stuffPages_().length - 1) return false;
+  const pages = c.pages || host.querySelectorAll(':scope > .page');
+  const el = pages[domIndex_('stuff', i)];
+  if (!el || el.dataset.filled === '1') return false;
+  /* INTO THE PANE, not over it — see the note in `fillStuffPages`. `paneOf_` makes one if the page
+     has not got one. */
+  const pane = paneOf_(el);
+  pane.innerHTML = stuffPageHtml(i - first);
+  el.dataset.filled = '1';
+  /* THE HEIGHT IT WAS HELD AT WHILE EMPTY GOES, in the same task as the card arrives, so the page is
+     its card's height from the first frame it is drawn — see `stuffPin_`. */
+  el.style.minHeight = '';
+  /* AND DRAWN WHILE IT IS BUILT, if it is one of the ten that do not loop. This is the whole of the
+     fix for widgets popping open: the markup and its contents now arrive together, five pages before
+     anybody sees either. It happens before `settle_`, so the grid measures panes that are already
+     their final height rather than measuring them and being wrong. */
+  const items = c.items || stuffFiltered();
+  const w = showingWidgets() && items[i - first] && items[i - first].row;
+  if (w && !w.stop) drawWidget_(w);
+  return true;
+}
+
+/* ---------- AN EMPTIED PAGE KEEPS ITS HEIGHT -------------------------------------------------------
+   PART OF THE OWNER'S *"if i scroll down quickly it does glitch out or clip fast or idk"* (8 Oct, a
+   pupil's iPad). A page is emptied when you are more than `STUFF_NEAR` past it, and an empty pane is
+   31px of glass — so a 289px question card emptied above the one you are reading took 258px out of
+   the column over your card, and every card under it moved up by that much in one frame. The column
+   was then put back, and on the iPad that putting-back was a slide: measured at 820x1180 on the
+   Corbettmaths subtraction sheet, the column re-aimed 137–731px AGAINST the direction of a run of
+   flicks, 2–3 times in every ten.
+
+   SO THE PAGE IS HELD AT THE HEIGHT IT HAD, and nothing below it can tell it was emptied. The page is
+   the cell and is invisible (`.page`'s own note); five pages away it is `.far` as well, so the space
+   it keeps is space nobody sees. The height comes from `pane.LAST_H`, which the `ResizeObserver` in
+   `paneWatch_` writes after a layout the frame had already done — never from `offsetHeight` here,
+   which after the fill's writes would be a forced layout per page emptied. A pane the observer has
+   not measured yet is left to shrink, as every pane did before. `stuffFillOne_` lets go of it. */
+function stuffPin_(el, pane) {
+  const h = pane && pane.LAST_H;
+  if (el && h > 0) el.style.minHeight = h + 'px';
 }
 
 /* `all` IS THE LATE PASS SAYING "DO THE REST". Without it the deferred call is not a continuation
@@ -13468,15 +13606,9 @@ function fillStuffPages(all) {
        will eventually disagree. */
     const near = Math.abs(i - at) <= STUFF_NEAR;
     if (near && el.dataset.filled !== '1') {
-      pane.innerHTML = stuffPageHtml(i - first);
-      el.dataset.filled = '1';
-      changed = true;
-      /* AND DRAWN WHILE IT IS BUILT, if it is one of the ten that do not loop. This is the whole of
-         the fix for widgets popping open: the markup and its contents now arrive together, five
-         pages before anybody sees either. It happens before `settle_` below, so the grid measures
-         panes that are already their final height rather than measuring them and being wrong. */
-      const w = showingWidgets() && items[i - first] && items[i - first].row;
-      if (w && !w.stop) drawWidget_(w);
+      /* THE CARD, ITS WIDGET DRAWN WITH IT — see `stuffFillOne_`, which the far edge of the glass in
+         `goPage` shares. */
+      if (stuffFillOne_(i, { pages: pages, first: first, items: items })) changed = true;
     } else if (!near && el.dataset.filled === '1') {
       /* AND THE SCROLL WITH IT. The pages are a window and their elements are recycled, so a pane
          left scrolled down would hand the next card it stands for to somebody half way through it.
@@ -13496,6 +13628,8 @@ function fillStuffPages(all) {
         pane.scrollTop = 0;
         pane.style.overflowY = '';
       }
+      /* AT THE HEIGHT IT HAD, so the cards under it stay where they are — see `stuffPin_`. */
+      stuffPin_(el, pane);
       pane.innerHTML = '';
       delete el.dataset.filled;
       changed = true;
@@ -13540,8 +13674,26 @@ function fillStuffPages(all) {
 /** The grid measures the panes again and puts everything where it now belongs. Instant: the cards
     have not moved as far as anybody is concerned, and animating them to where they already look
     like they are is a second movement nobody asked for. */
+/* ---------- HELD, NOT PLACED -------------------------------------------------------------------------
+   THIS WAS `placeCells('y', true, 0, 'stuff')`, and "instant" was a wish rather than a fact: a
+   placement is booked for the next frame, and `placeCells`' own rule is that ANIMATION WINS — so when a
+   page turn had already booked its slide, this one's instant was merged into that slide, and a card
+   emptied above you came back as the column sliding the wrong way. Measured at 820x1180 on the iPad
+   complaint, *"if i scroll down quickly it does glitch out or clip fast or idk"*: re-aimed 137–731px
+   against a run of flicks on a 263–270ms slide, 2–3 times in every ten.
+
+   SO IT IS `holdColumn_`, the correction the `ResizeObserver` already makes when a card above grows:
+   the column put back under the page you are reading, now, in this task, before anything is painted
+   — no frame booked, nothing for an animation to win. The new panes are watched first (`paneWatch_`,
+   what the placement used to do for them a frame later), so the observer can report their heights to
+   `stuffPin_` and any zoom `paneReach_` gives them is in what the hold measures. When the hold cannot
+   answer — the column was never placed, or a page turn has moved `PAGE` and its own placement is
+   still to come — it says so, and the placement is asked for as before. */
 function settle_(changed) {
-  if (changed) placeCells('y', true, 0, 'stuff');
+  if (!changed) return;
+  const host = $('s-stuff');
+  if (host && typeof paneWatch_ === 'function') paneWatch_(host);
+  if (!holdColumn_('stuff')) placeCells('y', true, 0, 'stuff');
 }
 
 /**
@@ -13923,8 +14075,10 @@ screen('stuff', () => {
      question, on the app's front door, every single load — the same fault as the count line and
      the sort dropdown that were removed from this exact page for the same reason. It is on the You
      screen, which is where a balance goes. */
+  /* THE BOX AND THE BIN ARE ONE ROW — see `filterClear_`. `#stuff-clear` is the slot `paintStuff`
+     rewrites; the input is never rewritten, which is what keeps its focus across a press. */
   const controls = `<div id="stuff-controls">`
-    + `<input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}">
+    + `<div class="find-search"><input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}"><span id="stuff-clear">${filterClear_()}</span></div>
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first.
 
           Gone with the grouping dropdown that went before it, and for the same reason: this screen
