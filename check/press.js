@@ -171,6 +171,13 @@ const ACCEPTED_QUIET = {
      asks what was said, to whom, and when it was cut off — that is where this press is proved. */
   'imp-listen': { why: 'speaks the card quietly through speechSynthesis and draws nothing, so nobody across '
                      + 'the table sees that anything happened; check-flow records the voice and proves it.' },
+  /* AND SHOW, PRESSED STRAIGHT AFTER DEAL, IS A DOUBLE TAP — which is what it is ignored as, on purpose.
+     On the setup state this presses Deal and then Show, which Deal has just drawn on the same pixels,
+     well inside `IMP_GAP`: two taps that close are the double tap the guard exists for (games.js, "a
+     second tap is not a second press"). Scoped to that state, so a Show that went dead anywhere else
+     still shows here; check-flow proves Show alone opens the card and a second tap does not. */
+  'imp-show': { only: 'imposter setup', why: 'pressed within 600ms of Deal on the same pixels: a double tap, '
+                     + 'ignored by design (`impTooSoon_`); check-flow proves Show alone opens the card.' },
 
   /* ---------- AND ONE THAT IS THE FIXTURE RATHER THAN THE APP -------------------------------------- */
   'cmt-del': { only: 'signed out', why:
