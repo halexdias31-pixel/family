@@ -163,6 +163,11 @@ const SUITE = [
      five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
+  /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY -------------------
+     "the source for the animations should be in text books. The animation from loading screen are
+     pulling and syncing from the text book animations." — the owner, 8 Oct. One row each; the sync and
+     the picker are run, not read, and a copy that is not the row is never drawn. */
+  { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN -----------------------------
      "i want to add the bible to resources as a book. but only admin can see the bible." — and then
      "tags in finder ... each verse is a widget." The split out of `data/archive/bible.json` checked

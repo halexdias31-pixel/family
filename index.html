@@ -591,80 +591,103 @@
      IT RAN AFTER ALL OF IT. It sat in the script below the markup, so every splash's markup -- a
      thousand lines of it -- was parsed before the class was chosen, and the element carries
      `is-tag` in the markup as the no-script default. A browser is free to paint between those two
-     moments, and on a slow phone it did: the tag for about half a second, then the splash the coin
-     had actually chosen. Here, inside `#splash` and before anything else in it, the element exists
-     (its opening tag has been read) and nothing that could be painted has been parsed yet, so
-     there is no frame in which the wrong one is on the screen.
+     moments, and it did: measured by `check/load.js` at 4x CPU, four loads in seven painted before
+     the pick. Here, inside `#splash` and before anything else in it, the element exists (its
+     opening tag has been read) and nothing that could be painted has been parsed yet: none of seven.
 
      `js/check-css.js` holds it here: `script#pick-splash` is the first element in `#splash`. */
 
   /* WHICH ONE, decided here and nowhere else.
 
-     During parsing, so the class is on the element before it is first painted — a pick made after
-     the first frame would show one splash and then swap it, which is worse than having only one.
+     During parsing, so the choice is made before anything is painted — a pick made after the first
+     frame would show one splash and then swap it, which is worse than having only one.
 
      `Math.random()` and not a rotation: a rotation needs somewhere to remember what came last, and
-     the thing it would have to remember outlives the page. A coin is honest about it. */
+     the thing it would have to remember outlives the page. A coin is honest about it.
+
+     ---------- TWO KINDS OF SPLASH, AND ONLY ONE OF THEM IS IN THIS FILE ----------------------------
+     "Add the animations from loading to respective subject text books. Matter of fact the source for
+     the animations should be in text books. The animation from loading screen are pulling and syncing
+     from the text book animations." — the owner, 8 Oct.
+
+     THE ONES IN THE LIST BELOW ARE IN THIS FILE: the brand, the two games and the calm ones, each
+     with its markup further down and its CSS in style.css. THE TEACHING ONES — a proof, a law, a
+     process — LIVE IN THE TEXTBOOKS, a row of data/textbooks.json under the chapter each one teaches.
+     The last load kept a copy of them on this device (`splashSync_` in shell.js) and this draws from
+     it: no fetch and no script file, because nothing else has arrived yet when this runs. A first
+     visit has no copy, so its pool is the inline ones — the same splash a first visit always had a
+     chance of getting. ONE LOAD BEHIND, like `splashOff`: a drawing changed in a book reaches the
+     splash on the load after the one that read the book.
+
+     A COPY THAT IS NOT WHOLE IS NOT DRAWN. Each kept drawing carries the hash its index promised;
+     any that does not match, or does not parse, is taken back out and an inline splash drawn instead,
+     and the index is dropped so the next load writes everything again. A splash from yesterday is
+     fine. A garbled one is not. */
   (function () {
     /* THE MOMENT THE CHOICE IS MADE, so `check/load.js` can hold it against the first paint. */
     try { performance.mark('splash-pick'); } catch (e) {}
     var el = document.getElementById('splash');
-    /* One of three, evenly. An array rather than a chain of ifs, so adding a fourth is adding a
-       word — the chain is where somebody eventually writes `< 0.5` twice and one of them never
-       comes up. */
-    var kinds = ['is-tag', 'is-led', 'is-torch', 'is-pyth', 'is-tube', 'is-ps', 'is-blocks',
-                 /* THE RING: two boxers of our own, eight-bit. See tools/boxing.py. */
-                 'is-box',
-                 /* ---------- THE VISUAL PROOFS ------------------------------------------------
-                    Public-domain mathematics drawn from scratch: odd numbers making squares,
-                    triangle numbers, the unit circle, the circle unrolled, the sieve, halves,
-                    the angles of a triangle, binary, Pascal, Fibonacci, a Galton board.
-                    A loading screen that teaches something is one nobody minds waiting through. */
-                 'is-odds', 'is-tri', 'is-sine', 'is-area', 'is-sieve', 'is-half',
-                 'is-ang', 'is-bin', 'is-pas', 'is-fib', 'is-gal',
-                 /* ---------- AND EIGHT MORE ---------------------------------------------------
-                    Balancing an equation, sorting, the times table, a protractor, coin flips, a
-                    number line, a Venn diagram, a clock. */
-                 'is-sort', 'is-prot', 'is-coin',
-                 'is-line', 'is-venn', 'is-clock', 'is-mult',
-                 /* BAYES: a test right nine times in ten, and a positive that is still only even
-                    odds. tools/bayes.py. */
-                 'is-bayes',
-                 /* ---------- AND THREE THAT TEACH NOTHING -----------------------------------
-                    Breathing, rain, a pendulum wave. Twenty-seven proofs in a row is a set that
-                    never lets anybody just wait — some loads should be calm, or pretty, and
-                    nothing more.
-                    THE WEAVE WAS THE FOURTH AND IS GONE. Six threads each way sliding across
-                    themselves: it read as a tartan square holding still, which is a picture rather
-                    than an animation, and a loading screen that looks frozen reads as an app that
-                    has. Its markup, its rules and its keyframes went with it — a splash left in the
-                    file but out of the pool is dead code that still has to be maintained. */
-                 /* ---------- AND FOUR THAT ARE COMPONENTS -----------------------------------
-                    Index laws, the trig trick, standard form, the angle at the centre. Every one
-                    of these is a block on the sheet, so the splash and the paper teach the same
-                    thing in the same words — which is the point of taking them from the list
-                    rather than inventing four more. */
-                 'is-index', 'is-trick', 'is-sf', 'is-cent',
-                 'is-mean', 'is-half3', 'is-mxc',
-                 'is-ripple', 'is-orbit', 'is-tide', 'is-dawn',
-                 'is-breathe', 'is-rain', 'is-pend'];
+    /* An array rather than a chain of ifs, so adding one is adding a word — the chain is where
+       somebody eventually writes `< 0.5` twice and one of them never comes up. `js/check-css.js`
+       holds this list to the stylesheet's hide list and to the brand, game and calm rows of
+       data/settings/splashes.json. */
+    var kinds = ['tag', 'led', 'torch', 'tube', 'ps',
+                 /* THE BLOCKS, AND THE RING: two boxers of our own, eight-bit. See tools/boxing.py. */
+                 'blocks', 'box',
+                 /* ---------- AND SEVEN THAT TEACH NOTHING -------------------------------------
+                    A set of proofs is a set that never lets anybody just wait — some loads should
+                    be calm, or pretty, and nothing more. The orbit and the pendulum have no words
+                    at all, which is also why they are not in any book.
+                    THE WEAVE WAS ONE AND IS GONE. Six threads each way sliding across themselves:
+                    it read as a tartan square holding still, which is a picture rather than an
+                    animation, and a loading screen that looks frozen reads as an app that has. */
+                 'ripple', 'orbit', 'tide', 'dawn', 'breathe', 'rain', 'pend',
+                 /* THE TEACHING ONES, STILL IN THIS FILE UNTIL THEY MOVE INTO THE TEXTBOOKS */
+                 'pyth', 'odds', 'tri', 'sine', 'area', 'sieve', 'half', 'ang', 'bin', 'pas', 'fib',
+                 'gal', 'sort', 'prot', 'coin', 'line', 'venn', 'clock', 'mult', 'bayes', 'index',
+                 'trick', 'sf', 'cent', 'mean', 'half3', 'mxc'];
     /* ---------- THE SHEET MAY TURN ANY OF THEM OFF ---------------------------------------------
-       THE LIST ABOVE IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `DATA` has not loaded when
-       this runs — the pick happens during parsing so the splash is right on the first frame — so
-       the last known set is read from `localStorage`, which `data.js` writes whenever a payload
-       arrives. A splash retired in the sheet stops appearing from the next load onward.
-
+       THE LIST IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `splashOff` is the retired ones as
+       the last load read them off data/settings/splashes.json (`splashSync_`), `is-` and an id each,
+       for the kept drawings as for the inline ones.
        AND IF ANYTHING IS MISSING OR EMPTY, EVERY SPLASH STAYS IN. A misspelt row in a spreadsheet
        must not leave a blank loading screen — the failure mode of this feature is "you see one you
-       had turned off", which nobody minds. */
+       had turned off", which nobody minds. So does a sheet that retires every one of them. */
+    var off = [], idx = null, anims = [], st = null;
+    try { off = JSON.parse(localStorage.getItem('splashOff') || '[]') || []; } catch (e) { off = []; }
     try {
-      var off = JSON.parse(localStorage.getItem('splashOff') || '[]');
-      if (off.length) {
-        var live = kinds.filter(function (k) { return off.indexOf(k) === -1; });
-        if (live.length) kinds = live;
+      idx = JSON.parse(localStorage.getItem('splashAnims') || 'null');
+      if (idx && idx.f === 1 && idx.ids && idx.h) anims = idx.ids;
+    } catch (e) { anims = []; }
+    var on = function (k) { return off.indexOf('is-' + k) === -1; };
+    var all = kinds.concat(anims), pool = all.filter(on);
+    if (!pool.length) pool = all;
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    if (anims.indexOf(pick) !== -1) {
+      try {
+        var rec = JSON.parse(localStorage.getItem('splashAnim:' + pick) || 'null');
+        if (!rec || rec.h !== idx.h[pick] || typeof rec.html !== 'string' || typeof rec.css !== 'string') throw 0;
+        /* ITS STYLESHEET, WHICH A CHAPTER PAGE SHARES — see `animStyle_` in find.js. */
+        st = document.createElement('style');
+        st.setAttribute('data-anim', pick); st.setAttribute('data-h', rec.h); st.textContent = rec.css;
+        document.head.appendChild(st);
+        /* IN FRONT OF THIS SCRIPT, as the first thing in the splash. The book's drawing carries no
+           name — a chapter page has its book's — so the splash signs it, as every splash here is. */
+        el.insertAdjacentHTML('afterbegin', rec.html);
+        el.firstElementChild.insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>');
+        el.className = 'is-an';
+        return;
+      } catch (e) {
+        if (st && st.parentNode) st.parentNode.removeChild(st);
+        var r = el.querySelector(':scope > [class|="an"]');
+        if (r) el.removeChild(r);
+        try { localStorage.removeItem('splashAnims'); } catch (e2) {}
+        var inl = kinds.filter(on);
+        if (!inl.length) inl = kinds;
+        pick = inl[Math.floor(Math.random() * inl.length)];
       }
-    } catch (e) { /* a broken value is the same as no value */ }
-    if (el) el.className = kinds[Math.floor(Math.random() * kinds.length)];
+    }
+    el.className = 'is-' + pick;
   })();
   </script>
   <!-- ============================================================================================

@@ -3859,35 +3859,152 @@ function textbookCard_(x) {
 
 /* ONE CHAPTER. `part` is `ch` and the chapter's number — `ch7` — because it also lands in a class
    name, `is-ch7`, and a colon there would need escaping in every selector that reads it. */
+/* AND ONE ANIMATION. `an7-mean` is the mean's page after chapter 7 — see `textbookAnimPart_`. */
 function textbookPart_(x, part) {
+  if (/^an\d+-/.test(String(part || ''))) return textbookAnimPart_(x, part);
   const b = x.row, n = Number(String(part || '').slice(2));
   const c = (b.chapters || []).find(ch => ch.n === n);
   if (!c) return '';
-  const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   return `<div class="card fc prac prac-part tb is-${esc(part)}">
     <p class="fc-kick">${esc(x.name)} · chapter ${c.n}</p>
     <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
-    ${c.words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul class="fc-list">${
-      c.words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
-    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
-         and an `H` trailing it sat alone on a third, measured at 320px. */''}
-    ${c.formulas.length ? `<section class="fc-sec tb-math"><h4>Formulas</h4><ul>${
-      c.formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
-        tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
-    ${c.points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul class="fc-list">${
-      c.points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}
+    ${tbSections_(c)}
     ${c.topics ? `<p class="fc-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
   </div>`;
 }
 
+/* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR ---------
+   ONE RENDERER FOR BOTH PAGES. The chapter draws every line; the page of an animation draws the lines it
+   is ABOUT (`keep`, the row's `about`): a key word or a formula by its name, a worked line by how it
+   opens. Two copies of this markup would be two places for a Higher mark or a fraction to be drawn
+   differently, which is the shape `typeset_` exists to end. With no `keep` this is, byte for byte, what
+   `textbookPart_` drew before it moved here — proved over every chapter of every book when it moved. */
+function tbSections_(c, keep) {
+  const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
+  const named = i => !keep || keep.indexOf(i.name) !== -1;
+  /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the
+     next character must not carry the word on: "Mean" is not the opening of "Meanwhile". */
+  const opens = p => !keep || keep.some(k => p.text.indexOf(k) === 0 && !/[A-Za-z0-9]/.test(p.text.charAt(k.length)));
+  const words = c.words.filter(named), formulas = c.formulas.filter(named), points = c.points.filter(opens);
+  return `${words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul class="fc-list">${
+      words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
+    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
+         and an `H` trailing it sat alone on a third, measured at 320px. */''}
+    ${formulas.length ? `<section class="fc-sec tb-math"><h4>Formulas</h4><ul>${
+      formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
+        tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
+    ${points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul class="fc-list">${
+      points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}`;
+}
+
+/* ==================================================================================================
+   A CHAPTER'S ANIMATION, ON A PAGE OF ITS OWN STRAIGHT AFTER IT.
+
+   "Add the animations from loading to respective subject text books. Matter of fact the source for the
+   animations should be in text books." — the owner, 8 Oct. Each teaching animation (Pythagoras counted,
+   the sieve, Bayes with a hundred people) is a row of data/textbooks.json under the chapter it teaches,
+   and this is where the book plays it: the drawing, a Play again tile, and under it the chapter's own
+   words about it — its `about`, drawn by the chapter's renderer, so the page says what the picture shows
+   in the words the chapter uses. The loading screen draws the same rows from a copy the device keeps;
+   see `splashSync_` in shell.js.
+
+   NO "@family." LINE. The splash signs every drawing because it is the first thing anybody sees and has
+   to say whose app it is; here the kicker already names the book. The row's markup carries no
+   signature at all — the picker in index.html adds one when it draws on the splash.
+
+   A THING HAS TILES (CLAUDE.md), and an animation is a thing: Play again is a tile, not a button. */
+let TB_AN_SEQ = 0;
+function textbookAnimPart_(x, part) {
+  const m = /^an(\d+)-([a-z0-9]+)$/.exec(String(part || ''));
+  const b = x && x.row;
+  const c = m && b && (b.chapters || []).find(ch => ch.n === Number(m[1]));
+  const a = c && (c.animations || []).find(y => y.id === m[2]);
+  if (!a) return '';
+  animStyle_(a);
+  return `<div class="card fc prac prac-part tb tb-an is-${esc(part)}">
+    <p class="fc-kick">${esc(x.name)} · chapter ${c.n} · ${esc(c.title)}${tbHigher_(c.higher)}</p>
+    <h3>${esc(a.title)}</h3>
+    <div class="tb-an-stage" data-anim="${esc(a.id)}">${animIds_(a.html, ++TB_AN_SEQ)}</div>
+    <div class="tile-row">${tile_({ icon: 'undo', label: 'Play again', note: 'from the start', act: 'tb-an-again' })}</div>
+    <section class="tb-about">${tbSections_(c, a.about)}</section>
+  </div>`;
+}
+
+/* ---------- AN ANIMATION'S STYLESHEET, ONCE, SHARED WITH THE SPLASH ---------------------------------
+   ONE `<style data-anim="id">` PER ANIMATION in `<head>`, holding the row's CSS and its hash. The splash
+   makes the same element when it draws one from the device's copy, so a book opened while that splash
+   is still fading finds it there: left alone if the hash is the book's, its text replaced if the book
+   has a newer drawing. Every rule in it is anchored on the animation's own root or its own prefix
+   (`check-anims.js`), so nothing in it can reach anything else on the page. */
+function animStyle_(a) {
+  if (!a || !a.id) return;
+  let st = document.head.querySelector('style[data-anim="' + a.id + '"]');
+  if (st && st.getAttribute('data-h') === a.h) return;
+  if (!st) {
+    st = document.createElement('style');
+    st.setAttribute('data-anim', a.id);
+    document.head.appendChild(st);
+  }
+  st.textContent = a.css;
+  st.setAttribute('data-h', a.h);
+}
+
+/* ---------- AN id IS ONE ELEMENT, AND A DRAWING CAN BE ON THE PAGE TWICE ------------------------------
+   THE SINE WAVE'S FADE, THE VENN'S CLIPS AND y = mx + c's CLIP ARE `id`s, reached by `url(#…)` and
+   `href="#…"` from inside the drawing. Find keeps the pages either side filled, so two copies of one
+   chapter's drawing — or the splash's and a chapter's — would be two elements with one id, and
+   `url(#sn-fade)` resolves to whichever came first: the fault check-css's id sweep was written for.
+   So each drawing put on a page is given its own: every `id` in it gains `-t` and a number that only
+   goes up, and every reference inside it follows. The CSS never names an id (check-anims), so nothing
+   outside the drawing needs telling. */
+function animIds_(html, n) {
+  const ids = [...String(html).matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
+  if (!ids.length) return String(html);
+  const any = ids.map(i => i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  return String(html).replace(new RegExp('(\\sid="|url\\(#|href="#)(' + any + ')(?=["\\)])', 'g'),
+    (all, at, id) => at + id + '-t' + n);
+}
+
+/* ---------- ONLY THE ONE ON THE PAGE IN FRONT PLAYS, AND IT PLAYS FROM THE START ----------------------
+   FIND KEEPS ELEVEN PAGES FILLED (`STUFF_NEAR`), so a book with four drawings near the page you are on
+   would run four animations nobody can see — and the one you swipe to would already be half way through
+   its story. So the stage on the page in front is `.is-on`, and arriving there puts its markup back
+   (`innerHTML = innerHTML`), which starts every animation in it again; every other stage stands paused
+   by `.tb-an-stage:not(.is-on)` in style.css. Off the Find screen, nothing plays.
+   BOOKED BY NAME through `afterSlide_` from `goPage`, so a run of quick flicks is one decision at the
+   end, and called when a screen arrives and at the end of a fill. */
+function tbAnimWatch_() {
+  const host = $('s-stuff');
+  if (!host) return;
+  const stages = host.querySelectorAll('.tb-an-stage');
+  if (!stages.length) return;
+  const here = AT === 'stuff' ? host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)] : null;
+  stages.forEach(st => {
+    const on = !!here && here.contains(st);
+    if (on && !st.classList.contains('is-on')) {
+      st.innerHTML = st.innerHTML;
+      st.classList.add('is-on');
+    } else if (!on && st.classList.contains('is-on')) st.classList.remove('is-on');
+  });
+}
+/* PLAY AGAIN: the same restart, on the tile's own stage. */
+on('tb-an-again', el => {
+  const card = el && el.closest('.card');
+  const st = card && card.querySelector('.tb-an-stage');
+  if (st) st.innerHTML = st.innerHTML;
+});
+
 /* `textbookText_` — `projectText_`'s move for a book: `frequency density` and `stratified` are what
    somebody types, and they are only ever inside a chapter. The formulas go in as typed, so `IQR`
    finds the chapter that defines it. */
+/* AN ANIMATION IS FOUND BY ITS TITLE — "Galton board" finds the statistics book — and never by its
+   markup or its CSS, which are not words anybody types. */
 function textbookText_(b) {
   const parts = [b.summary, b.board, b.spec];
   (b.chapters || []).forEach(c => {
     parts.push(c.title);
     c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
+    (c.animations || []).forEach(a => parts.push(a.title));
   });
   return plainText_(parts.filter(Boolean).join(' '));
 }
@@ -4557,9 +4674,16 @@ function pageParts_(x, prev) {
     return out;
   }
   /* A TEXTBOOK IS ITS CONTENTS CARD AND A PAGE PER CHAPTER, in the chapters' own order — the
-     mapper sorted them by number, so this is the book read front to back. */
+     mapper sorted them by number, so this is the book read front to back. AND A PAGE PER ANIMATION,
+     straight after the chapter it teaches: `an17-pyth` after `ch17`. Saved and Spotlight keep the
+     cover only (`cardPages_` takes none of these). */
   if (x && x.kind === 'textbook' && x.row) {
-    return [null].concat((x.row.chapters || []).map(c => 'ch' + c.n));
+    const out = [null];
+    (x.row.chapters || []).forEach(c => {
+      out.push('ch' + c.n);
+      (c.animations || []).forEach(a => out.push('an' + c.n + '-' + a.id));
+    });
+    return out;
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader
@@ -13963,6 +14087,11 @@ function fillStuffPages(all) {
     STUFF_LATE = setTimeout(() => paneReach_(
       host.querySelectorAll(':scope > .page[data-filled="1"] > .pane')), 0);
   }
+
+  /* A TEXTBOOK'S ANIMATION ON THE PAGE IN FRONT PLAYS, AND ONLY THAT ONE — see `tbAnimWatch_`. Here,
+     after the pages near you are filled, because a stage that was not on the page a moment ago is
+     on it now. */
+  tbAnimWatch_();
 
   /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs.
      THE CANVAS IS WHY THIS STAYS LATE FOR THOSE TWO. A canvas measures itself from its box, and the

@@ -147,7 +147,60 @@ const books = new Map();
 const unknownTopics = new Map();
 let higherItems = 0, formulas = 0, words = 0, points = 0, live = 0;
 
+/* ---------- AN ANIMATION IS A ROW TOO, AND IT IS NOT A CHAPTER ---------------------------------------
+   "Add the animations from loading to respective subject text books. Matter of fact the source for the
+   animations should be in text books." — the owner, 8 Oct. A teaching animation is a row with `anim`,
+   placed straight under the chapter it teaches (or under another animation of that chapter): file order
+   is page order, and the row is the one place its drawing exists. So it names a chapter that is there
+   and switched on, it has one id that no other row has, and what it is `about` is in that chapter — a
+   key word or formula by its name, or a worked line by how it opens — or the page under the drawing
+   would draw nothing. Its markup and CSS are `check-anims.js`'s. The chapter rules below (numbering,
+   "appears twice", three key words) are not asked of it. */
+const ANIM_FIELDS = ['book_id', 'chapter', 'anim', 'title', 'about', 'html', 'css', 'active'];
+const isAnim = r => !!(r && Object.prototype.hasOwnProperty.call(r, 'anim'));
+const on_ = v => /^(true|yes|1|y|on|)$/i.test(String(v == null ? '' : v).trim());
+const animIds = new Map();
+let animCount = 0;
+{
+  const chapterRow = (b, n) => rows.find(x => !isAnim(x) && String(x.book_id || '').trim() === b && x.chapter === n);
+  rows.forEach((r, line) => {
+    if (!isAnim(r)) return;
+    animCount++;
+    const where = 'animation row ' + (line + 2) + ' (' + JSON.stringify(r.anim) + ')';
+    const keys = Object.keys(r);
+    if (keys.join() !== ANIM_FIELDS.join()) fail.push(where + ' has the fields ' + keys.join(', ') + ' — an animation row is exactly ' + ANIM_FIELDS.join(', ') + ', in that order');
+    const id = String(r.anim || '');
+    if (!/^[a-z][a-z0-9]*$/.test(id)) fail.push(where + ' — `anim` is a lower-case id, a letter then letters or digits, as splashes.json names it');
+    if (animIds.has(id)) fail.push(where + ' — the id ' + id + ' is also on row ' + animIds.get(id) + '; one animation is in one chapter');
+    animIds.set(id, line + 2);
+    if (!String(r.title || '').trim()) fail.push(where + ' has no title — it is the heading of its page');
+    if (!String(r.active) || !on_(r.active)) { /* off: in neither the chapter nor the splash; nothing to place */ }
+    const b = String(r.book_id || '').trim(), n = r.chapter;
+    const ch = chapterRow(b, n);
+    if (!ch) { fail.push(where + ' names ' + b + ' chapter ' + JSON.stringify(n) + ', which is not a chapter in this file'); return; }
+    if (n === 0) { fail.push(where + ' hangs on the title page of ' + b + ' — an animation teaches a chapter'); return; }
+    if (!on_(ch.active)) fail.push(where + ' is under ' + b + ' chapter ' + n + ', which is switched off — the page would vanish with it');
+    const title = rows.find(x => !isAnim(x) && String(x.book_id || '').trim() === b && x.chapter === 0);
+    if (title && !on_(title.active)) fail.push(where + ' is in ' + b + ', whose title page is switched off');
+    /* STRAIGHT UNDER ITS CHAPTER: the rows above it, back to the chapter, are animations of the same chapter. */
+    let k = line - 1;
+    while (k >= 0 && isAnim(rows[k]) && String(rows[k].book_id || '').trim() === b && rows[k].chapter === n) k--;
+    if (k < 0 || rows[k] !== ch) fail.push(where + ' is not directly under ' + b + ' chapter ' + n + ' — file order is page order, so it would be drawn after ' + (k >= 0 ? (isAnim(rows[k]) ? 'animation ' + rows[k].anim : rows[k].book_id + ' chapter ' + rows[k].chapter) : 'nothing'));
+    /* WHAT IT IS ABOUT, FOUND IN ITS CHAPTER. */
+    const about = String(r.about || '').split('|').map(t => t.trim()).filter(Boolean);
+    if (!about.length) fail.push(where + ' is about nothing — `about` names at least one key word, formula or worked line of its chapter');
+    const names = ['words', 'formulas'].flatMap(col => String(ch[col] || '').split('|').map(t => t.trim().replace(/^\[H\] /, ''))
+      .filter(Boolean).map(t => { const at = t.indexOf(' — '); return at > 0 ? t.slice(0, at).trim() : ''; }).filter(Boolean));
+    const lines = String(ch.points || '').split('|').map(t => t.trim().replace(/^\[H\] /, '')).filter(Boolean);
+    about.forEach(a => {
+      const opens = lines.some(p => p.indexOf(a) === 0 && !/[A-Za-z0-9]/.test(p.charAt(a.length)));
+      if (names.indexOf(a) < 0 && !opens) fail.push(where + ' is about "' + a + '", which is not a key word or formula of ' + b + ' chapter ' + n + ', nor how a worked line there opens');
+    });
+  });
+}
+
 rows.forEach((r, line) => {
+  if (isAnim(r)) return;
   const id = String((r && r.book_id) || '').trim();
   if (!id) { fail.push('row ' + (line + 1) + ' has no book_id'); return; }
   if (!/^TB-[A-Z0-9]+(-[A-Z0-9]+)*$/.test(id)) fail.push(id + ' is not shaped TB-… — one id space per data file is how a key never collides');
@@ -299,7 +352,7 @@ books.forEach((b, id) => {
   });
 });
 console.log('key words: ' + words + '   formulas: ' + formulas + '   worked lines: ' + points
-  + '   items marked Higher: ' + higherItems);
+  + '   items marked Higher: ' + higherItems + '   animations: ' + animCount);
 note.push('GCSE Statistics (1ST0) questions in the library: ' + stats1st0
   + '. The ' + alevelStats + ' "Statistics" paper rows are A-level 9MA0 — a different qualification, not joined.');
 note.forEach(n => console.log('note: ' + n));

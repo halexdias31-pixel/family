@@ -11141,6 +11141,19 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .tb-fn { display: block; font-size: .72rem; color: var(--faint); }
 .tb-fm { display: block; font-size: .95rem; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; }
 .tb-points li { margin: 0 0 .3rem; }
+/* ---------- A CHAPTER'S ANIMATION: ITS STAGE, AND THE ONES NOT IN FRONT HELD STILL -----------------
+   THE DRAWING'S OWN CSS IS NOT HERE. It is the row's, in data/textbooks.json, and arrives as one
+   `<style data-anim>` per animation (`animStyle_`); this is only the box it stands in. Centred, as the
+   splash centres it, because every drawing was sized and balanced for that.
+   PAUSED UNLESS IN FRONT, AND `!important` IS THE ONLY WAY TO SAY IT. Each drawing sets its motion
+   with the `animation` shorthand, which resets `animation-play-state` to running, and its `<style>` is
+   later in the cascade than this file — so without it every page Find keeps filled either side of you
+   ran its drawing out of sight, and the one you swiped to was already half way through its story.
+   `tbAnimWatch_` puts `.is-on` on the page in front and restarts it there. The index laws light their
+   tiles with an `::after`, which `*` does not reach. */
+.tb-an-stage { display: grid; place-items: center; margin: .75rem 0; }
+.tb-an-stage:not(.is-on) *, .tb-an-stage:not(.is-on) *::before,
+.tb-an-stage:not(.is-on) *::after { animation-play-state: paused !important; }
 
 /* ---------- THE BIBLE — A COVER, AND A CARD A VERSE ---------------------------------------------------
    "i want to add the bible to resources as a book", and then, 6 Oct, *"it should be like the other
