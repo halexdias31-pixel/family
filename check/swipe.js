@@ -797,6 +797,13 @@ async function gesture(env, o) {
        pages of one paper, and the box's bottom must be 12px or more above the pad's top — the margin
        `kpRoom_` itself keeps. AND PUT BACK: the pad closed, the card is where it was before the tap,
        because a lift that outlives the pad is a card hanging off the top for no reason. */
+    /* ---------- AND THE KEYS PRESSED WITH A FINGER, NOT WITH `.click()` ------------------------------
+       THE OWNER, 8 Oct: *"they keypad was a bit unstable. it wasnt working at first for some reason."*
+       Every keypad check before this called `.click()` or the handler itself, so the path a finger takes
+       -- touchstart, the pad's own `mousedown` guard that keeps the focus on the box, `pointerdown`'s
+       press mark, the click the browser makes of the tap -- had never been walked. On the first box of
+       the run: real touch on 7, then ⌫, then 5, and the box must end as it began plus a 5, with the pad
+       still up and the box still focused. */
     if (want('keypad')) {
       const PAPER = 'RS1786302107764-481';
       const pages = await page.evaluate(async id => {
@@ -829,6 +836,38 @@ async function gesture(env, o) {
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T0 / 1000, touchPoints: [{ x: box.x, y: box.y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
         await sleep(50);
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T0 + 50) / 1000, touchPoints: [] });
+        if (!asked) {
+          const keys = await page.evaluate(() => {
+            const kp = document.getElementById('kp'), inp = document.activeElement;
+            if (!kp || kp.hidden || !inp || !inp.classList || !inp.classList.contains('kp-in')) return null;
+            const at = v => { const b = kp.querySelector('.kp-key[data-v="' + v + '"]'); if (!b) return null;
+              const r = b.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; };
+            return { was: inp.value, k: inp.getAttribute('data-k'), seven: at('7'), back: at('!back'), five: at('5') };
+          });
+          if (!keys || !keys.seven || !keys.back || !keys.five) fail('REACH', `${at} keypad keys`, 'the pad was not up with 7, ⌫ and 5 on it after the tap — the keys were not pressed');
+          else {
+            for (const k of [keys.seven, keys.back, keys.five]) {
+              const T1 = Date.now();
+              await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T1 / 1000, touchPoints: [{ x: k.x, y: k.y, id: 2, radiusX: 8, radiusY: 8, force: 1 }] });
+              await sleep(40);
+              await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T1 + 40) / 1000, touchPoints: [] });
+              await sleep(90);
+            }
+            const typed = await page.evaluate(k => {
+              const kp = document.getElementById('kp'), inp = document.activeElement;
+              const box = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === k);
+              return { up: !!kp && !kp.hidden, focused: inp === box, val: box ? box.value : null };
+            }, keys.k);
+            note(`${at} keypad keys by touch: ${JSON.stringify(keys.was)} + 7 ⌫ 5 → ${JSON.stringify(typed.val)}`);
+            if (typed.val !== keys.was + '5') fail('KEYPAD KEYS', `${at} stuff/${p}`, `real touch on 7, ⌫, 5 left the box ${JSON.stringify(typed.val)}, wanted ${JSON.stringify(keys.was + '5')}`);
+            if (!typed.up || !typed.focused) fail('KEYPAD KEYS', `${at} stuff/${p}`, `after three keys pressed by touch the pad is ${typed.up ? 'up' : 'down'} and the box ${typed.focused ? 'has' : 'has lost'} the focus`);
+            /* AND PUT BACK, so the measurement below and the next run start from the box as it was. */
+            await page.evaluate(k => {
+              const box = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === k.k);
+              if (box) { box.value = k.was; box.dispatchEvent(new Event('input', { bubbles: true })); }
+            }, keys);
+          }
+        }
         const r = await page.evaluate(async () => {
           await window.__sw.still('stuff');
           const kp = document.getElementById('kp'), inp = document.activeElement;

@@ -532,7 +532,14 @@ function inspect(opts) {
   const drop = document.getElementById('drop');
   const onDrop = drop && !drop.classList.contains('hidden') && vis(drop)
     ? [drop, ...drop.querySelectorAll('*')] : [];
-  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onDrop].filter(vis);
+  /* ---------- AND THE MATHS KEYPAD, FOR THE SAME REASON AGAIN -------------------------------------
+     `#kp` IS ONE ELEMENT ON <body> (keypad.js), fixed to the foot of the app, so its thirty keys were
+     outside every screen this file measured -- tap size, contrast, all of it -- for as long as the pad
+     has existed, including the state that exists to picture it. Found on 8 Oct, when the owner said the
+     keys could not be seen in the sun and nothing here had ever looked at one. */
+  const kp = document.getElementById('kp');
+  const onPad = kp && !kp.hidden && vis(kp) ? [kp, ...kp.querySelectorAll('*')] : [];
+  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onDrop, ...onPad].filter(vis);
 
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR ------------------------------------------
      `scrollWidth > clientWidth` on a box whose overflow-x is not auto or scroll. This is the honest
@@ -1149,7 +1156,46 @@ function inspect(opts) {
     }
   }
 
-  return { found, guessed,
+  /* ---------- 4. AN EDGE YOU CANNOT SEE (WCAG 1.4.11, 3:1) ------------------------------------------
+     THE OWNER, 8 Oct, from a pupil's iPad in the sun: the keypad and the answer box could not be found.
+     Rule 3 measures TEXT, and every glyph on them passed it -- 7:1 and up. What failed was the SHAPE:
+     the box's face against the card was 1.04:1, its rule 1.25:1, Check's plate 1.05:1, a key's face
+     against the pad 1.03:1 and its edge 1.34:1. In glare that is glyphs floating on nothing, and no rule
+     here could say so. WCAG 1.4.11 asks 3:1 of the boundary of a control against what is next to it.
+
+     ON THREE SUBJECTS AND NO OTHERS, on purpose: the keypad's keys, the answer field (`.qp-bar > .qp-ans`)
+     and the Send tile -- the three the complaint named and the redesign answered. Every plate-and-mark
+     tile in the app is ~1.1:1 by design (`.tile`: "the mark is the button"), so the rule asked of all of
+     them would be a red of two hundred lines that nobody reads, which is the fault this file keeps
+     recording. A control passes if its FACE or its BORDER reaches 3:1 against the ground behind it,
+     both composited down the chain as rule 3 does. A disabled control is exempt, as WCAG exempts it. */
+  const EDGE_OF = ['.kp-key', '.qp-bar > .qp-ans', '.tile.is-send'];
+  const edgeN = {};
+  EDGE_OF.forEach(sel => { edgeN[sel] = 0; });
+  found.edges = [];
+  const contrast = (p, q) => { const a = lum(p), b = lum(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+  for (const el of inside) {
+    const sel = EDGE_OF.find(x => el.matches(x));
+    if (!sel || el.disabled || !el.parentElement) continue;
+    edgeN[sel]++;
+    const s = getComputedStyle(el);
+    const face = parse(s.backgroundColor);
+    const line = (parseFloat(s.borderTopWidth) || 0) >= 1 ? parse(s.borderTopColor) : null;
+    let worst = Infinity, at = null;
+    grounds(el.parentElement).forEach(g => {
+      const f = face && face.a > 0 ? contrast(over(face, g), g) : 1;
+      const b = line && line.a > 0 ? contrast(over(line, g), g) : 1;
+      const r = Math.max(f, b);
+      if (r < worst) { worst = r; at = g; }
+    });
+    if (worst < 3) {
+      found.edges.push({ sel, ratio: +worst.toFixed(2), face: s.backgroundColor, line: line ? s.borderTopColor : 'none',
+        bg: `rgb(${[at.r, at.g, at.b].map(Math.round).join(' ')})`,
+        name: (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 20) });
+    }
+  }
+
+  return { found, guessed, edgeN,
            pane: live === document.body ? 'body' : (live.id || live.className || live.tagName),
            counted: inside.length };
 }
@@ -1167,6 +1213,9 @@ function inspect(opts) {
      rather than a silence, because "no board was a mess" and "no board was found" both print no
      finding. */
   let boardsMeasured = 0;
+  /* AND HOW MANY CONTROLS THE EDGE RULE (4, in `inspect`) MEASURED, per subject, for the same reason: a
+     keypad that never came up and a keypad whose every key passed print the same nothing. */
+  const edgesMeasured = {};
   const rows = [];
 
   /* ---------- ASK THE APP WHICH COLUMNS IT HAS, ONCE, BEFORE MEASURING ANY OF THEM ---------------
@@ -1343,7 +1392,7 @@ function inspect(opts) {
         }
 
         await settled(page);
-        const { found, counted, guessed } = await page.evaluate(inspect,
+        const { found, counted, guessed, edgeN } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
                                 + `which pane is in front, so this row may be measuring the wrong thing.`);
@@ -1420,6 +1469,7 @@ function inspect(opts) {
           return { out, n };
         }, { sid: id, sel: BOARDS, tol: BOARD_TOL });
         boardsMeasured += boards.n;
+        Object.keys(edgeN || {}).forEach(k => { edgesMeasured[k] = (edgesMeasured[k] || 0) + edgeN[k]; });
         if (boards.out.length) rows.push({ width, id: label, as: who.as, boards: boards.out });
 
         if (SHOTS) await page.screenshot({
@@ -1638,6 +1688,9 @@ function inspect(opts) {
         `<${t.tag}>${t.cls ? '.' + t.cls : ''} ${JSON.stringify(t.text)} is ${t.w}x${t.h}`, at,
         ok && ok.why);
     });
+    (r.edges || []).forEach(e => add('EDGE',
+      `${e.sel} ${JSON.stringify(e.name)} ${e.ratio}:1 against what is behind it (needs 3) — face ${e.face}, `
+      + `edge ${e.line}, on ${e.bg}`, at));
     (r.lowContrast || []).forEach(c => add('CONTRAST',
       `${JSON.stringify(c.text)} ${c.ratio}:1 (needs ${c.need}) ${c.fg} on ${c.bg}`, at));
     (r.noName || []).forEach(n => add('NO NAME',
@@ -1652,6 +1705,15 @@ function inspect(opts) {
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
+  console.log(`edges measured against what is behind them (WCAG 1.4.11, 3:1): `
+            + Object.keys(edgesMeasured).map(k => `${k} ${edgesMeasured[k]}`).join(', ') + '\n');
+  /* A SUBJECT THE RULE NEVER REACHED IS NOT A PASS. The Find screen's states put the answer bar, Send
+     and the keypad on the screen; a run that measured Find and found none of one of them is a selector
+     that stopped matching, and it says so rather than printing a clean line. */
+  if (screens.indexOf('stuff') >= 0) {
+    Object.keys(edgesMeasured).filter(k => !edgesMeasured[k]).forEach(k =>
+      add('EDGE', `${k} was never on the screen — the rule was NOT asked of it`, 'stuff'));
+  }
 
   /* EVERY FINDING THAT IS NOT KNOWN IS A FAILURE, counted once per distinct fault rather than once
      per place it was seen — the same 38px button on nine screens is one thing to fix, which is the

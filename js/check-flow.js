@@ -6904,7 +6904,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   const bad = [];
   if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
   const A = w.__t.ACTIONS;
-  ['qp-check', 'qa-go', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
+  ['qp-check', 'qa-show', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
   if (bad.length) return bad;
   const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   /* THE TAG ROW AND THE QUESTION. There was a gold header line above the tags; everything it said is a
@@ -6949,19 +6949,22 @@ check('marking, revealing and tapping leave the question where it is, and typing
   A['qp-check'](chk);
   if (!mark.classList.contains('is-right')) bad.push('15 was not marked right');
   same(t0, typed, 'after a right Check');
-  /* REVEALED -- by the tile under the card, which turns to the answer page. The tile is drawn by
-     `questionTiles_` beside the card as `stuffCard` puts it; the card must not change for it. */
+  /* REVEALED -- by Show on the answer page, which is the page a swipe after the card. The question's
+     own row has no way to it any more (*"there doesnt need to be a scroll down tile on questions"*,
+     8 Oct), and showing the answer must not change the card it belongs to. */
   const shutX = Object.assign({}, base, { key: 'q-still-shut', row: Object.assign({}, base.row, { row_id: 'Q-STILL-8' }) });
   const shut = draw(shutX);
   const r0 = still(shut);
   shut.parentNode.insertAdjacentHTML('beforeend', '<div class="tile-row">' + w.questionTiles_(shutX) + '</div>');
-  const rev = shut.parentNode.querySelector('[data-do="qa-go"]');
-  if (!rev) bad.push('a question with an answer has no tile to its answer page');
+  if (shut.parentNode.querySelector('[data-do="qa-go"], .tile-i-next')) bad.push('the question\'s row still carries a tile to its answer page -- the owner asked for none');
+  shut.parentNode.insertAdjacentHTML('beforeend', w.questionAnsCard_(shutX));
+  const rev = shut.parentNode.querySelector('[data-do="qa-show"]');
+  if (!rev) bad.push('the answer page has no Show to reveal it with');
   else {
     const heldR = w.stuffItemsAll_;
     w.stuffItemsAll_ = () => [shutX];
-    try { A['qa-go'](rev); } finally { w.stuffItemsAll_ = heldR; }
-    same(r0, shut, 'after "To the answer"');
+    try { A['qa-show'](rev); } finally { w.stuffItemsAll_ = heldR; w.ansHide_(shutX); }
+    same(r0, shut, 'after "Show the answer"');
   }
   /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the
      library, which this harness does not load; so the library is this one question for the length of
@@ -6985,6 +6988,9 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (shownBy) bad.push('a wrong tap ticked option ' + shownBy.getAttribute('data-n') + ' -- the answer shown on the question card without Show');
   const said = (tapped.querySelector('.qp-verdict') || {}).textContent || '';
   if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
+  /* AND IT POINTS AT THE ANSWERS CHIP, not at "the answer page": with Questions chosen there is no
+     answer page after the question to point at (`questionsView_`). */
+  if (said.trim() !== 'Not yet — see Answers') bad.push('a wrong tap\'s verdict reads "' + said.trim() + '", wanted "Not yet — see Answers"');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
   /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
@@ -7036,6 +7042,17 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   }
   if (card.querySelector('textarea.qp-ans-in')) bad.push('the maths card drew a textarea as well as the keypad box');
   if (card.querySelector('.qp-ai')) bad.push('a maths question with a scheme was offered "Mark with AI" — Check is exact there');
+  /* ---------- THE BOX IS A CHAT BAR WITH A SEND TILE ----------------------------------------------------
+     *"the answer box should look like a chatbox. with send tile."* (8 Oct.) The structure the stylesheet
+     and the handlers lean on: the field and Send side by side in `.qp-bar`, Send a gold `.tile.is-send`
+     that is still `.qp-check` (the name ✓ and every check find it by) with the paper aeroplane on it, and
+     the verdict a line of its own UNDER the bar but inside `.qp-mark`, where `qp-check` looks for it. */
+  const bar = card.querySelector('.qp-mark.qp-compose > .qp-bar');
+  const sendT = card.querySelector('.qp-check');
+  if (!bar || !bar.querySelector(':scope > .qp-ans .kp-in')) bad.push('the answer box is not in a chat bar (`.qp-mark.qp-compose > .qp-bar` holding the field)');
+  if (!sendT || !sendT.matches('.qp-bar > .tile.is-send[data-do="qp-check"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not a gold tile with the send mark in the bar beside the field: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
+  const verdictEl = card.querySelector('.qp-verdict');
+  if (!verdictEl || !verdictEl.closest('.qp-mark') || verdictEl.closest('.qp-bar')) bad.push('the verdict is not a line of its own under the bar, inside `.qp-mark`');
   inp.focus();
   const pad = d.getElementById('kp');
   if (!pad || pad.hidden) return bad.concat(['focusing the maths box did not open the keypad']);
@@ -7050,6 +7067,10 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   pad.querySelectorAll('.kp-key').forEach(b => {
     if (b.tagName !== 'BUTTON' || b.getAttribute('type') !== 'button') bad.push('a key is not a <button type="button">: ' + b.outerHTML.slice(0, 60));
   });
+  /* ⌫ IS THE RED KEY, with a drawn mark (*"especially backspace, which i thing should be red"*), and ✓
+     wears the Send tile's paper aeroplane -- one mark for "mark it" on the pad and beside the box. */
+  if (key('!back') && (!key('!back').classList.contains('kp-del') || !key('!back').querySelector('svg.kp-del-i'))) bad.push('⌫ is not the red key (`kp-del`) with its drawn mark');
+  if (key('!done') && !key('!done').querySelector('.tile-i-send')) bad.push('✓ does not carry the send mark the Send tile has');
   const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + v + ' to press'); };
   press('!frac');
   const show = card.querySelector('.kp-show');
@@ -7080,6 +7101,32 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   if (i2.value !== 'x') bad.push('⌫ in an empty power left "' + i2.value + '", wanted the whole ^() gone');
   press('!frac'); press('!back');
   if (i2.value !== 'x') bad.push('⌫ in an empty fraction after x left "' + i2.value + '"');
+  /* ---------- AND ⌫ NEVER LEAVES HALF A BRACKET ----------------------------------------------------------
+     MEASURED ON 8 OCT: `123/(4)` then ⌫ was `123/(4` -- the `)` taken on its own -- and the next key made
+     it `123/(46`, the stray half keypad.js promised a student would never have to find. Now a filled pair
+     is stepped into, not broken: ⌫ after `)` moves the caret inside and deletes nothing. Pressed until
+     the box is empty, from three starts, and at every press the brackets still pair. */
+  const paired = v => { let n = 0; for (const ch of v) { n += ch === '(' ? 1 : ch === ')' ? -1 : 0; if (n < 0) return false; } return n === 0; };
+  const setTo = v => { i2.value = v; i2.setSelectionRange(v.length, v.length); };
+  setTo('(3)/(4)');
+  press('!back');
+  if (i2.value !== '(3)/(4)' || i2.selectionStart !== 6) bad.push('⌫ after a filled fraction gave "' + i2.value + '" with the caret at ' + i2.selectionStart + ' -- wanted nothing deleted and the caret stepped inside, at 6');
+  press('!back');
+  if (i2.value !== '(3)/()') bad.push('⌫ again gave "' + i2.value + '", wanted the 4 gone: "(3)/()"');
+  setTo('123/(4)');
+  press('!back'); press('5');
+  if (i2.value !== '123/(45)') bad.push('123/(4), ⌫, 5 gave "' + i2.value + '" -- wanted "123/(45)": the ⌫ steps inside, it does not take the bracket');
+  for (const start of ['(3)/(4)', '123/(4)', 'x^(2)+\u221a(16)']) {
+    setTo(start);
+    const seen = [start];
+    for (let n = 0; n < 30 && i2.value; n++) {
+      press('!back');
+      seen.push(i2.value);
+      if (!paired(i2.value)) { bad.push('⌫ from "' + start + '" left an unpaired bracket: ' + seen.join(' → ')); break; }
+    }
+    if (i2.value) bad.push('thirty ⌫ from "' + start + '" did not empty the box: ' + seen.slice(-4).join(' → '));
+  }
+  setTo('x');
   press('!pow'); press('2'); press('!done');
   if (i2.value !== 'x^(2)' || !c2.querySelector('.qp-mark.is-right')) bad.push('x^(2) against x^2 was not marked right: ' + i2.value);
   /* AND A WORDED ANSWER IS STILL WORDS, on the phone's own keyboard. */
@@ -7087,6 +7134,62 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
     row: Object.assign({}, base.row, { row_id: 'Q-KP-6' }) }));
   const ta = wd.querySelector('.qp-ans-in');
   if (!ta || ta.tagName !== 'TEXTAREA' || ta.hasAttribute('inputmode')) bad.push('an explain question lost its textarea and the device keyboard');
+  /* IN THE SAME BAR, saying what it is for while it is empty -- the box nobody could find in the sun. */
+  else if (!ta.closest('.qp-bar') || ta.getAttribute('placeholder') !== 'Type your answer') bad.push('the worded box is not in the chat bar with "Type your answer" in it');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- A REDRAW WITH THE KEYPAD UP KEEPS TYPING INTO THE SAME QUESTION -------------------------------
+   THE OWNER, 8 Oct: *"they keypad was a bit unstable. it wasnt working at first for some reason."* Signing
+   in runs `repaint()` and `load()` lands about fifteen seconds later and repaints again, and each replaces
+   the card -- and the box the child is typing in. jsdom, like WebKit on the iPad, fires NO `focusout` for a
+   removed element, so before the fix the pad stayed up naming a box that was gone, and the 5 pressed after
+   the redraw was lost without a trace while the box on the screen still said 7. Measured red on the commit
+   before this one. The redraw here is what `repaint` does to a card: its markup replaced. */
+check('a redraw with the keypad up keeps typing into the same question', async () => {
+  const { w, errs } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key']) return ['the keypad has no handler — keypad.js did not load'];
+  const x = { kind: 'question', key: 'q-kp-redraw', name: 'Q6', marks: 1, answerType: 'calculation', accept: '75',
+    row: { row_id: 'Q-KP-REDRAW', paper_id: 'P-KP', subject: 'Maths', name: 'Keypad' },
+    html: '<p>Work out 3 &times; 25.</p>', answer: '<b>75</b>' };
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const host = d.createElement('div');
+  host.innerHTML = w.questionCard_(x);
+  d.body.appendChild(host);
+  const first = host.querySelector('.kp-in');
+  if (!first) return ['the card drew no maths box'];
+  first.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return ['focusing the maths box did not open the keypad'];
+  const press = v => { const b = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + v); };
+  press('7');
+  if (first.value !== '7') bad.push('7 typed "' + first.value + '" before the redraw');
+  /* THE REDRAW: the card's markup replaced, as `repaint` and `paintStuff(true)` do. */
+  host.innerHTML = w.questionCard_(x);
+  const now = host.querySelector('.kp-in');
+  if (!now || now === first) return bad.concat(['the redraw did not replace the box, so nothing was asked']);
+  press('5');
+  let kept = null;
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (now.value !== '75') bad.push('after the redraw the box on the page holds "' + now.value + '" -- the 5 went to the box that was taken away (' + JSON.stringify(first.value) + ')');
+  if (d.activeElement !== now) bad.push('after the redraw the focus is on ' + (d.activeElement ? d.activeElement.tagName.toLowerCase() + '.' + d.activeElement.className : 'nothing') + ', not on the box that replaced the one being typed in');
+  if (kept !== '75') bad.push('the answer saved is ' + JSON.stringify(kept) + ', wanted "75"');
+  if (pad.hidden) bad.push('the redraw put the keypad away');
+  /* AND THE CARET STAYS WHERE IT WAS, inside a structure, not thrown to the end. */
+  press('!frac');
+  host.innerHTML = w.questionCard_(x);
+  const third = host.querySelector('.kp-in');
+  press('4');
+  if (!third || third.value !== '75/(4)') bad.push('a fraction begun before a redraw and finished after it reads "' + (third && third.value) + '", wanted "75/(4)" -- the caret lost its place in the slot');
+  /* AND A REDRAW FOR SOMEBODY ELSE, whose box has another key, closes the pad rather than typing into it. */
+  host.innerHTML = w.questionCard_(Object.assign({}, x, { key: 'q-kp-redraw-other', row: Object.assign({}, x.row, { row_id: 'Q-KP-OTHER' }) }));
+  press('9');
+  if (!pad.hidden) bad.push('with the question gone from the page, a key still left the pad up');
+  if (host.querySelector('.kp-in').value) bad.push('a key typed into a different question\'s box after a redraw');
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -7121,6 +7224,10 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   const card = draw(x);
   const go = card.querySelector('.qp-ai-go[data-do="qp-ai"]');
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
+  /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
+     verdict line and its sentence under the bar (`ansBox_`, `aiTile_`). */
+  if (!go.matches('.qp-mark.qp-ai > .qp-bar > .tile.is-send')) bad.push('"Mark with AI" is not the gold tile in the answer bar: ' + go.outerHTML.slice(0, 120));
+  if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
   const held = w.stuffItemsAll_;
   w.stuffItemsAll_ = () => [x];
@@ -7182,14 +7289,15 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
      * the question card keeps its box and no longer carries the answer, in any form
      * the answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid with CSS an
        answer anybody could read in the document)
-     * the question's tile ("To the answer") turns to the page and does NOT open it -- *"answers should
-       just stay hidden unless user unhides them"* -- and the page's own Show tile does; the open
-       survives a redraw (the `REEL_HELD` fault: a fact left on an element dies with it), and it opens
-       only that question. Hide, and every role alike, are the next journey's
+     * the answer page is the page a swipe after its question in the strip, and nothing on the question
+       card turns to it -- the ↓ `To the answer` tile went on 8 Oct, *"there doesnt need to be a scroll
+       down tile on questions"* -- and landed on it is still hidden; the page's own Show tile opens it,
+       the open survives a redraw (the `REEL_HELD` fault: a fact left on an element dies with it), and it
+       opens only that question. Hide, and every role alike, are the next journey's
      * a tapped question settled right does NOT open it, and neither does a typed answer marked right:
        the card already says "Correct", and a page that opens itself is a reveal nobody pressed
-     * a TUTOR's page is hidden exactly as a student's, with the same tile label -- it was open
-       without asking, behind a tile that read "The answer"
+     * a TUTOR's page is hidden exactly as a student's, and their question card has no tile to it
+       either -- it was open without asking, behind a tile that read "The answer"
      * Saved, which draws a kept thing through `cardPages_`, keeps the answer page after the figure
    Turning the page is a real browser's question -- `check/states.js`, "the answer, turned to from
    its question" -- because jsdom lays nothing out and has no library to page through. */
@@ -7206,7 +7314,8 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (typeof ansKey !== 'function') gone.push('ansKey_');
   if (gone.length) return [gone.join(', ') + ' not reachable — renamed? The answer page was NOT checked'];
   const A = w.__t.ACTIONS;
-  if (!A['qa-go'] || !A['qa-show']) return ['qa-go or qa-show has no handler, so nothing can show an answer page'];
+  if (!A['qa-show']) return ['qa-show has no handler, so nothing can show an answer page'];
+  if (A['qa-go']) bad.push('`qa-go` still has a handler -- the ↓ "To the answer" tile was taken out, and its handler with it');
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
   const SECRET = 'Seventeen-and-a-half';
   const row = id => ({ row_id: id, paper_id: 'P-ANSP', subject: 'Maths', name: 'Answer page' });
@@ -7225,8 +7334,12 @@ check('an answer is its own page after its question, hidden from everybody alike
   const q = el(w.questionCard_(base));
   if (q.querySelector('.qans, .qans-body') || q.textContent.indexOf(SECRET) >= 0) bad.push('the question card still draws the answer');
   if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
-  if (!el(w.questionTiles_(base)).querySelector('[data-do="qa-go"]')) bad.push('a question with an answer has no tile to its answer page');
-  if (el(w.questionTiles_(none)).querySelector('[data-do="qa-go"]')) bad.push('a question with no answer offers a tile to an answer page that does not exist');
+  /* NO WAY TO IT ON THE QUESTION'S OWN PAGE -- the owner, 8 Oct: *"there doesnt need to be a scroll down
+     tile on questions."* Not in the row, not on the card, with or without an answer. */
+  [base, none, fig].forEach(x => {
+    const h = el(w.questionTiles_(x) + w.questionCard_(x));
+    if (h.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next')) bad.push(x.row.row_id + '\'s question page still carries a tile to its answer');
+  });
   /* HIDDEN, signed out. */
   if (w.__t.isTutorRole()) bad.push('signed out reads as staff, so the hidden page was NOT checked');
   const hid = el(w.questionAnsCard_(base));
@@ -7236,24 +7349,23 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
   if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
   if (card && card.getAttribute('data-of') !== 'Q-ANSP-5') bad.push('the answer page does not name its row');
-  /* TURNED TO FROM THE QUESTION'S TILE, where the page already stands -- AND STILL HIDDEN. *"answers
-     should just stay hidden unless user unhides them"*: the question's tile turns the page and that is
-     all it does. It used to show the answer as it turned, which made reaching the page and revealing
-     it one tap. */
+  /* SWIPED TO: the page after the question card in the strip, with no kind chosen -- AND STILL HIDDEN.
+     *"answers should just stay hidden unless user unhides them"*: reaching the page is a swipe, and
+     revealing it is the page's own tap. The strip is the app's own (`stuffPages_`) over these two. */
+  const heldF = w.stuffFiltered;
+  let strip = [];
+  w.stuffFiltered = (() => { const list = [base, fig]; return () => list; })();
+  try { strip = w.stuffPages_(); } finally { w.stuffFiltered = heldF; }
+  const at = strip.findIndex(pg => pg.x === base && !pg.part);
+  const next = strip[at + 1];
+  if (at < 0 || !next || next.x !== base || next.part !== 'ans') bad.push('a swipe from the question card does not land on its answer: the strip reads ' + strip.map(pg => pg.x.row.row_id + ':' + (pg.part || 'card')).join(' '));
   d.body.appendChild(hid);
   const other = el(w.questionAnsCard_(fig));
   d.body.appendChild(other);
-  const tiles = el(w.questionTiles_(base));
-  d.body.appendChild(tiles);
   const held = w.stuffItemsAll_;
-  w.stuffItemsAll_ = () => [base, fig];
-  const goTile = tiles.querySelector('[data-do="qa-go"]');
-  if (goTile) { try { A['qa-go'](goTile); } finally { w.stuffItemsAll_ = held; } }
-  w.stuffItemsAll_ = held;
   const turned = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
   if (!turned || !turned.classList.contains('is-hidden') || turned.innerHTML.indexOf(SECRET) >= 0)
-    bad.push('the question\'s "To the answer" tile showed the answer as it turned to it -- revealing is the answer page\'s own tap');
-  if (goTile && /show/i.test(goTile.getAttribute('aria-label') || '')) bad.push('the question\'s tile still says it shows the answer: ' + goTile.getAttribute('aria-label'));
+    bad.push('the answer page, swiped to, is open -- revealing is the answer page\'s own tap');
   /* SHOWN BY THE ANSWER PAGE'S OWN TILE, where it stands. */
   const showT = turned && turned.querySelector('[data-do="qa-show"]');
   if (!showT) bad.push('the answer page has no Show tile to press');
@@ -7311,8 +7423,7 @@ check('an answer is its own page after its question, hidden from everybody alike
     if (!w.__t.isTutorRole()) { bad.push('could not sign ' + role + ' in, so their answer page was NOT checked'); return; }
     const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
     if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
-    const tl = el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"]');
-    if (!tl || !/To the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "To the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
+    if (el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"], .tile-i-next')) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s question still carries a tile to the answer -- it went for everybody');
   });
   w.__t.USER(null);
   return bad;
@@ -7329,14 +7440,15 @@ check('an answer is its own page after its question, hidden from everybody alike
      * Show again: open again -- the toggle is not a one-way door
      * drawn afresh after a Hide it is hidden (`ANS_SHOWN` forgot), after a Show it is open, and the
        next visitor's page is hidden whatever the last one did
-     * the question card's tile ("To the answer") reveals nothing for any of them */
+     * the question card has no tile to the answer for any of them (*"there doesnt need to be a scroll
+       down tile on questions"*, 8 Oct), and drawing it reveals nothing */
 check('the answer page shows, hides and shows again from one tile, hidden by default, the same for every visitor', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   const need = ['questionAnsCard_', 'questionTiles_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Show and Hide were NOT checked'];
-  if (!A['qa-show'] || !A['qa-hide'] || !A['qa-go']) return ['qa-show, qa-hide or qa-go has no handler, so the toggle was NOT checked'];
+  if (!A['qa-show'] || !A['qa-hide']) return ['qa-show or qa-hide has no handler, so the toggle was NOT checked'];
   const SECRET = 'Forty-two-and-a-quarter';
   const x = { kind: 'question', name: 'Q8', marks: 1, key: 'q-toggle-8',
     row: { row_id: 'Q-TOGGLE-8', paper_id: 'P-TOGGLE', subject: 'Maths', name: 'Toggle' },
@@ -7385,13 +7497,13 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
     };
     hiddenRight('as drawn');
     const s0 = slot(card());
-    /* THE QUESTION'S OWN TILE, pressed first: it turns pages and reveals nothing. */
+    /* THE QUESTION'S OWN PAGE, drawn first: no tile to the answer on it, and drawing it reveals nothing. */
     const qt = d.createElement('div');
-    qt.innerHTML = w.questionTiles_(x);
+    qt.innerHTML = w.questionCard_(x) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>';
     d.body.appendChild(qt);
-    w.stuffItemsAll_ = () => [x];
-    try { A['qa-go'](qt.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; qt.remove(); }
-    hiddenRight('after the question\'s "To the answer"');
+    if (qt.querySelector('[data-do="qa-go"], .tile-i-next')) bad.push(what + ': the question page still carries a tile to the answer');
+    qt.remove();
+    hiddenRight('after the question was drawn');
     /* THE FOCUS FOLLOWS THE TOGGLE. `ansSet_` replaces the card, so the tile that was pressed is gone;
        from a keyboard the focus has to land on the tile that replaced it rather than on `<body>`. And
        ONLY from the card that held it: a Hide with the focus somewhere else leaves it there. */
@@ -7441,8 +7553,9 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
      * the part's card no longer carries the stem; the stem card is `Q3` with no part and no marks
      * a figure page's header is the figure's own name -- Figure 3, Figure 4 (not the stem's 3), or
        plain Figure -- and never a question number
-     * the answer tile turns by the distance from the CARD to the answer, not from the first page,
-       which stopped being the same number when a stem could stand in front. */
+     * the answer is the page a swipe after the CARD, not after the first page -- which stopped being
+       the same place when a stem could stand in front -- and with `Questions` chosen it is not in the
+       strip at all, while the stem and its figure still are (8 Oct, `questionsView_`). */
 check('a question\'s pages follow the paper: its stem and that stem\'s figure first and once, and a figure has no question number', async () => {
   const { w } = boot();
   await wait(300);
@@ -7501,17 +7614,19 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   });
   if (el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure stands in front of it, points forward at a figure');
   if (el(w.questionCard_(b)).querySelector('.qsheet-figref')) bad.push('(b) points at a figure page it does not have -- the stem\'s figure is in front of it, not after');
-  /* THE TILE: from (a)'s card, two pages after a stem and its figure, the answer is ONE page on. */
-  const strip2 = el('<div id="s-ordtest"><section class="page"></section><section class="page"></section>'
-    + '<section class="page"><div class="tile-row">' + w.questionTiles_(a) + '</div></section><section class="page"></section></div>');
-  d.body.appendChild(strip2);
-  const heldA = w.stuffItemsAll_, heldG = w.goPage;
-  let went = null;
-  w.stuffItemsAll_ = () => [a];
-  w.goPage = (id, n) => { went = [id, n]; };
-  try { w.__t.ACTIONS['qa-go'](strip2.querySelector('[data-do="qa-go"]')); }
-  finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip2.remove(); }
-  if (!went || went[0] !== 'ordtest' || went[1] !== 3) bad.push('the answer tile on (a)\'s card turned to ' + JSON.stringify(went) + ', wanted page 3 -- the card is page 2 and its answer the page after');
+  /* THE SWIPE: from (a)'s card, two pages after a stem and its figure, the answer is ONE page on -- read
+     off the strip above, which is the list the pager turns through. No tile on the card to do it for you. */
+  const words = strip.split(' ');
+  if (words.indexOf('a:ans') !== words.indexOf('a:card') + 1) bad.push('a swipe from (a)\'s card does not land on its answer: ' + strip);
+  if (el(w.questionCard_(a) + w.questionTiles_(a)).querySelector('[data-do="qa-go"], .tile-i-next')) bad.push('(a)\'s card still carries a tile to its answer');
+  /* `Questions` CHOSEN: the same strip with no answer page in it, the opening and its figure kept. */
+  const S = w.__t.STUFF();
+  const heldQ = S.filters;
+  S.filters = [{ field: 'kindLabel', value: 'Questions' }];
+  w.stuffFiltered = (() => { const list = [a, b, c]; return () => list; })();
+  let qs = '';
+  try { qs = w.stuffPages_().map(pg => pg.x.qPart + ':' + (pg.part || 'card')).join(' '); } finally { w.stuffFiltered = heldF; S.filters = heldQ; }
+  if (qs !== 'a:stem0 a:sfig0 a:card b:card c:fig c:card') bad.push('with Questions chosen the strip reads "' + qs + '", wanted the paper\'s order with no answer page: stem, its figure, (a), (b), (c)\'s figure, (c)');
   return bad;
 });
 
@@ -7523,7 +7638,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
        paragraph (the ask) on the card with the box, the pre pages with no box and saying "continued"
      * a long stem is `stem0`, `stem0-1`... and then its figure; only its first page carries `lines`
      * a table is never cut, and one block longer than a page stays whole rather than being broken
-     * the answer tile still turns from the card to the answer, past any pre pages in front */
+     * the answer is still the page a swipe after the card, past any pre pages in front */
 check('a page too long for a phone is cut between paragraphs, and the ask stays on the card with its box', async () => {
   const { w } = boot();
   await wait(300);
@@ -7570,16 +7685,8 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     if (pages.some(p => p.querySelectorAll('table').length > 1 || (p.querySelector('table') && p.querySelectorAll('table tr').length !== 7))) bad.push('the table was cut between its rows');
     const n = pages.length;
     if (!new RegExp('^Q2\\.4 · ' + n + ' of ' + n + '$').test(tagText(card, 'number'))) bad.push('the card\'s number tag reads "' + tagText(card, 'number') + '", wanted Q2.4 · ' + n + ' of ' + n);
-    /* THE TILE turns from the card to the answer, past the pre pages in front of it. */
-    const strip = el('<div id="s-cuttest">' + parts.map(p => p === null
-      ? '<section class="page"><div class="tile-row">' + w.questionTiles_(long) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
-    d.body.appendChild(strip);
-    const heldA = w.stuffItemsAll_, heldG = w.goPage;
-    let went = null;
-    w.stuffItemsAll_ = () => [long];
-    w.goPage = (id, to) => { went = to; };
-    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
-    if (went !== parts.indexOf('ans')) bad.push('the answer tile turned to page ' + went + ', wanted ' + parts.indexOf('ans'));
+    /* THE SWIPE: the answer is the page after the card, past the pre pages in front of it. */
+    if (parts.indexOf('ans') !== parts.indexOf(null) + 1) bad.push('the answer is page ' + parts.indexOf('ans') + ' and the card page ' + parts.indexOf(null) + ' -- a swipe from the card does not reach it');
   }
   /* ONE BLOCK LONGER THAN A PAGE stays whole. */
   const one = { kind: 'question', name: 'Q9', key: 'q-cut-one', row: row('Q-CUT-9'), stems: [], html: '<p>' + 'word '.repeat(600) + '</p>' };
@@ -7622,7 +7729,7 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
        card, then the figure); a marker inside a paragraph stands after it rather than cutting it
      * the cut still works inside a side: eight paragraphs before the figure are cut into pages in
        front of it, and no page holds words from both sides
-     * the strip (`stuffPages_`), Saved (`cardPages_`) and the answer tile all agree */
+     * the strip (`stuffPages_`), Saved (`cardPages_`) and a swipe from the card all agree */
 check('a figure stands where the paper prints it, on its own page: text, figure, text, figure, text', async () => {
   const { w } = boot();
   await wait(300);
@@ -7690,7 +7797,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     /* THE MARKER, NEVER DRAWN AND NEVER SEARCHED. */
     if (drawn.some(p => /<!--\s*fig/.test(p.innerHTML))) bad.push('the <!--fig--> marker is in a drawn page');
     if (typeof w.plainText_ === 'function' && /fig/i.test(w.plainText_(a.html))) bad.push('the marker reaches the search haystack: ' + w.plainText_(a.html));
-    /* THE STRIP, SAVED AND THE TILE. */
+    /* THE STRIP, SAVED AND THE SWIPE. */
     const heldF = w.stuffFiltered;
     w.stuffFiltered = (() => { const list = [a]; return () => list; })();
     let strip = '';
@@ -7698,15 +7805,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     if (strip !== 'stem0 sfig0 stem0-1 pre0 fig card ans') bad.push('the strip reads "' + strip + '"');
     const saved = w.cardPages_(a, 0);
     if (saved.length !== 7 || !/class="qcard qfig/.test(saved[4]) || !/qp-ans/.test(saved[5])) bad.push('Saved draws the question as ' + saved.length + ' pages, not the same seven in the same order');
-    const tiles = el('<div id="s-figtest">' + parts.map(p => p === null
-      ? '<section class="page"><div class="tile-row">' + w.questionTiles_(a) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
-    d.body.appendChild(tiles);
-    const heldA = w.stuffItemsAll_, heldG = w.goPage;
-    let went = null;
-    w.stuffItemsAll_ = () => [a];
-    w.goPage = (id, to) => { went = to; };
-    try { w.__t.ACTIONS['qa-go'](tiles.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; tiles.remove(); }
-    if (went !== parts.indexOf('ans')) bad.push('the answer tile turned to page ' + went + ', wanted ' + parts.indexOf('ans'));
+    if (parts.indexOf('ans') !== parts.indexOf(null) + 1) bad.push('the answer is page ' + parts.indexOf('ans') + ', not the swipe after the card on page ' + parts.indexOf(null));
   }
 
   /* ---------- WITHOUT A MARKER, AND WITH ONE IN THE WRONG PLACE ---------------------------------- */
@@ -7973,7 +8072,7 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
        control, no box -- and a line naming the part the marks came from
      * whoever is signed in: another person sees their own (none), and is told so
      * not when the page in front is already that picture (the earlier part with no answer page)
-     * on Saved too (`cardPages_`), and "To the answer" still turns one page from the card
+     * on Saved too (`cardPages_`), and the answer is still the one swipe after the card
      * a part whose own figure IS that picture gets the marks UNDER its own pen instead -- no page --
        and its Undo takes its own mark and never the earlier one; a part that only LOOKS at that picture
        gets them on its copy, with no pen
@@ -8048,7 +8147,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     const saved = w.cardPages_(c, 0);
     if (saved.length !== 4 || !/qfig-uses/.test(saved[1])) bad.push('on Saved, (c) is ' + saved.length + ' pages and the second is not the graph');
     const off = (() => { const p = w.pageParts_(c); return p.indexOf('ans') - p.indexOf(null); })();
-    if (off !== 1) bad.push('"To the answer" on (c) would turn ' + off + ' pages, not one');
+    if (off !== 1) bad.push('(c)\'s answer is ' + off + ' swipes after its card, not one');
     /* ---------- THE FIGURE TILE ON (c) OPENS (b)'s PICTURE WITH THE GRAPH ON IT ---------------------- */
     const sheet = el((w.figsBefore_(c)[0] || {}).html || '');
     if (paths(sheet.querySelector('.qseen'), '.qpad-was') !== 2) bad.push('the Figure tile on (c) opens (b)\'s grid with ' + paths(sheet.querySelector('.qseen'), '.qpad-was') + ' of Ali\'s two marks — the graph it says to use is not there');
@@ -8121,7 +8220,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    EVERY PAGE OF A QUESTION FAMILY, drawn by the app's own builders for four visitors -- signed out, a
    student, a tutor, an admin -- and compared as markup: a stem with words both sides of its figure, a
    part with a lead, a figure and a box, its answer page hidden and then shown, a tapped question, a
-   worded one with Mark with AI under it, a drawing question on a squared grid, a passage to ring words
+   worded one with Mark with AI beside it, a drawing question on a squared grid, a passage to ring words
    in; and a real practical, project and textbook through the real mapper.
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
@@ -8327,7 +8426,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   });
   /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
   [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
-   ['pad-clear', 'Clear'], ['qa-go', 'To the answer'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
+   ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
    ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
    ['fav', 'the star']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
@@ -8335,6 +8434,8 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
     if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
   });
+  /* AND THE ONE THE OWNER TOOK AWAY: *"there doesnt need to be a scroll down tile on questions"* (8 Oct). */
+  if (seen['qa-go']) bad.push('the family still draws ' + seen['qa-go'] + ' "To the answer" tile(s) (qa-go)');
   t.USER(null);
   if (!bad.length) console.log('          ' + pages.length + ' pages; tiles: ' + Object.keys(seen).sort().map(k => k + ' ' + seen[k]).join(', '));
   return bad;
@@ -11459,14 +11560,19 @@ check('multipart: Saved and Spotlight draw a question\'s opening and its figure 
   return bad;
 });
 
-/* FINDING 9: "To the answer" says where the answer really is, and the drawing page carries it too. */
-check('multipart: "To the answer" says where the answer is, and the drawing page after a card carries it', async () => {
+/* FINDING 9, AFTER THE TILE WENT. The multi-part audit found the ↓ tile's note saying "next page" over a
+   figure, and a drawing page with no way on from it. The owner, 8 Oct: *"there doesnt need to be a scroll
+   down tile on questions"* -- so the answer is a swipe, and what has to be right is the strip itself: the
+   answer straight after the card, or after the drawing page where the child finishes, and no page of a
+   question carrying a tile that turns for you. */
+check('multipart: the answer is a swipe after the card -- after the drawing page where there is one -- and no page carries a tile to it', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionTiles_', 'questionFigCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
-  if (need.length) return [need.join(', ') + ' not reachable — the tile\'s note was NOT checked'];
+  const need = ['questionTiles_', 'questionFigCard_', 'questionCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the way to the answer was NOT checked'];
+  if (w.__t.ACTIONS['qa-go']) bad.push('`qa-go` still has a handler, so a tile to the answer could still be drawn and work');
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
   const row = id => ({ row_id: id, paper_id: 'P-MP-T', subject: 'Maths', name: 'Tiles' });
   const q = (id, extra) => Object.assign({ kind: 'question', name: 'Q' + id, qNumber: id, marks: 2, key: 'q-mp-t' + id,
@@ -11474,31 +11580,15 @@ check('multipart: "To the answer" says where the answer is, and the drawing page
   const plain = q('1');
   const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
   const front = q('3', { diagram: MP_SVG });
-  const note = h => { const t = el(h).querySelector('[data-do="qa-go"]'); return t ? String(t.getAttribute('aria-label') || '').replace(/^To the answer · /, '') : '(no tile)'; };
-  [[plain, 'next page', 'a card whose answer is the next page'],
-   [grid, 'after the squared grid', 'a card with the grid to draw on between it and its answer'],
-   [front, 'next page', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
-    const got = note(w.questionTiles_(x));
-    if (got !== want) bad.push(what + ' says "' + got + '", wanted "' + want + '"');
+  [[plain, '[null,"ans"]', 'a card whose answer is the next page'],
+   [grid, '[null,"fig","ans"]', 'a card with the grid to draw on between it and its answer'],
+   [front, '["fig",null,"ans"]', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
+    const got = JSON.stringify(w.pageParts_(x));
+    if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want + ' -- the answer the swipe after the last page the child works on');
+    /* AND NOTHING ON ANY OF ITS PAGES TURNS FOR YOU. */
+    const all = el(w.questionCard_(x) + w.questionTiles_(x) + (w.questionHasFig_(x) ? w.questionFigCard_(x) : ''));
+    if (all.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next, .qfig-tiles')) bad.push(what + ' still carries a tile to its answer');
   });
-  /* THE DRAWING PAGE: the grid after the card carries the tile; a figure in front of its card does not. */
-  const gf = el(w.questionFigCard_(grid));
-  const gt = gf.querySelector('[data-do="qa-go"]');
-  if (!gt) bad.push('the grid page -- where the child finishes -- has no "To the answer" tile');
-  else if (note(gf.innerHTML) !== 'next page' || gt.getAttribute('data-from') !== 'fig') bad.push('the grid page\'s tile reads "' + note(gf.innerHTML) + '" from "' + gt.getAttribute('data-from') + '", wanted "next page" from the figure');
-  if (el(w.questionFigCard_(front)).querySelector('[data-do="qa-go"]')) bad.push('a figure read on the way to its card carries a tile to the answer');
-  /* AND IT TURNS ONE PAGE ON FROM THE GRID: card page 0, grid page 1, answer page 2. */
-  if (gt) {
-    const strip = el('<div id="s-mptile"><section class="page"></section><section class="page">' + gf.innerHTML + '</section><section class="page"></section></div>');
-    d.body.appendChild(strip);
-    const heldA = w.stuffItemsAll_, heldG = w.goPage;
-    let went = null;
-    w.stuffItemsAll_ = () => [grid];
-    w.goPage = (id, n) => { went = [id, n]; };
-    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); }
-    finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
-    if (!went || went[1] !== 2) bad.push('the grid page\'s tile turned to ' + JSON.stringify(went) + ', wanted page 2 -- the answer is the page after the grid');
-  }
   return bad;
 });
 
@@ -11671,10 +11761,89 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
       }
       host.remove();
     }
-    /* AND "Questions" IS AS IT WAS: questions with their answers after them. */
+    /* ---------- AND "Questions" MEANS QUESTIONS -------------------------------------------------------
+       THE OWNER, 8 Oct: *"answers shouldnt even be showing up when all ive done is clicked questions. the
+       answers still show up."* This said "Questions IS AS IT WAS: questions with their answers after
+       them", and that was the fault. Chosen: question pages and no answer page. With no kind chosen (the
+       paper alone): every answer page still straight after its question's card, where *"the answers
+       should appear after their questions"* (5 Oct) put it. */
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Questions' }];
-    if (!w.stuffPages_().some(pg => pg.part !== 'ans')) bad.push('choosing Questions shows no question pages');
+    const qPages = w.stuffPages_();
+    if (!qPages.some(pg => pg.part !== 'ans')) bad.push('choosing Questions shows no question pages');
+    const leaked = qPages.filter(pg => pg.part === 'ans');
+    if (leaked.length) bad.push('choosing Questions still draws ' + leaked.length + ' answer page(s): ' + leaked.map(pg => pg.x.name).join(', '));
+    S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const all = w.stuffPages_();
+    const cards = all.filter(pg => !pg.part && w.questionHasAns_(pg.x));
+    if (!cards.length) bad.push('the paper with no kind chosen has no question with an answer, so "after its question" was NOT checked');
+    cards.forEach(pg => {
+      const i = all.indexOf(pg);
+      let j = i + 1;
+      while (all[j] && all[j].x === pg.x && all[j].part === 'fig') j++;
+      if (!all[j] || all[j].x !== pg.x || all[j].part !== 'ans') bad.push('with no kind chosen, ' + pg.x.name + '\'s answer is not the page after its card');
+    });
   } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
+  return bad;
+});
+
+/* ---------- QUESTIONS CHOSEN: NOT ONE ANSWER ON ANY PAGE, FOR A PUPIL OR A TUTOR ------------------------
+   THE OWNER, 8 Oct, signed in as a pupil on an iPad: *"answers shouldnt even be showing up when all ive
+   done is clicked questions. the answers still show up."* Every page of a two-part paper drawn as Find
+   draws it, with Questions chosen, as a student and then as a tutor -- *"Should behave the same whether
+   it's a tutor or child"* -- and not one of them is an answer page, says "Answer", or carries the
+   answer's words anywhere in its markup. (A wrong tap's "Not yet — see Answers", which names the chip
+   rather than a page that is not there, is the marking journey's.) */
+check('multipart: with Questions chosen, no page of a two-part paper is an answer or holds one, for a pupil or a tutor', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['stuffPages_', 'stuffPart_', 'stuffCard'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the Questions view was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const SAYS = ['50°', 'angles on a line'];
+  try {
+    for (const [who, u] of [['a pupil', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+                            ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }]]) {
+      w.__t.USER(u);
+      S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Questions' }];
+      const pages = w.stuffPages_().filter(pg => pg.x.qNumber === '8' || String(pg.x.qNumber) === '8');
+      if (pages.filter(pg => !pg.part).length !== 2) { bad.push(who + ': Q8 drew ' + pages.filter(pg => !pg.part).length + ' question cards, wanted its two parts -- nothing was asked'); continue; }
+      pages.forEach(pg => {
+        const h = d.createElement('div');
+        h.innerHTML = pg.part ? w.stuffPart_(pg.x, pg.part) : w.stuffCard(pg.x, 0);
+        const at = who + ', ' + pg.x.name + ':' + (pg.part || 'card');
+        if (pg.part === 'ans' || h.querySelector('.qans-card, .qans, .qans-body')) bad.push(at + ' is an answer page');
+        if (tagText(h, 'kind') === 'Answer') bad.push(at + ' is tagged "Answer"');
+        SAYS.forEach(t => { if (h.innerHTML.indexOf(t) >= 0) bad.push(at + ' carries the answer "' + t + '" in its markup'); });
+      });
+    }
+  } finally { w.__t.USER(null); lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* ---------- WHAT KIND: QUESTIONS FIRST, ANSWERS BESIDE IT --------------------------------------------------
+   MEASURED ON 8 OCT: the first question Find asks offered `Answers | Bundles | Films | Practicals | Projects
+   | Questions | Resources` -- the alphabet -- so Answers was the first chip, top left where a thumb lands,
+   and one tap on it opens every answer at once. In `KIND_BUCKET`'s order now (`orderOf`): Questions, then
+   Answers, its pair. Asked of the facet's own order and of the chips it draws over a real list. */
+check('multipart: What kind offers Questions first and Answers next to it, not the alphabet', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  const kind = w.facetList().find(f => f.field === 'kindLabel');
+  if (!kind || typeof w.facetValues !== 'function') return ['the What kind facet or facetValues is not reachable — the order was NOT checked'];
+  if (typeof kind.orderOf !== 'function') return ['What kind has no `orderOf`, so its chips fall back to the alphabet -- Answers first'];
+  const all = ['Resources', 'Answers', 'Films', 'Bundles', 'Projects', 'Practicals', 'Questions'];
+  const o = v => { const i = kind.orderOf(v); return i < 0 ? 1e6 : i; };
+  const got = all.slice().sort((a, b) => o(a) - o(b)).join(' ');
+  if (got !== 'Questions Answers Practicals Projects Bundles Films Resources') bad.push('What kind orders its answers "' + got + '"');
+  const lib = mpLibrary_(w, mpBank_());
+  try {
+    const chips = w.facetValues(lib.items, kind).map(v => String(v.show || v.value));
+    if (chips[0] !== 'Questions' || chips[1] !== 'Answers') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Questions then Answers');
+  } finally { lib.put(); }
   return bad;
 });
 

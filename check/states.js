@@ -902,45 +902,88 @@ const STATES = {
       },
       wants: 'Q3\'s answer page, after its question, for whoever is looking: "Answer hidden", Show the answer, and no answer in it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'the answer, turned to from its question',
+    /* ---------- SWIPED TO, NOT TURNED TO BY A TILE ----------------------------------------------------
+       THIS WAS "THE ANSWER, TURNED TO FROM ITS QUESTION", pressing the question card's ↓ `To the answer`
+       tile. The tile went on the owner's word, 8 Oct: *"there doesnt need to be a scroll down tile on
+       questions."* So the question's page is landed on, it is asked to carry NO such tile, and the strip
+       is swiped one page on -- `goPage(PAGE + 1)`, the landing a swipe ends in, animated as one -- and
+       that page must be the question's answer, still hidden, with Show waiting. A paper chosen and no
+       kind: the one place answers follow their questions. */
+    { name: 'the answer, swiped to from its question',
       enter: () => {
         ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         const first = typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1;
         goPage('stuff', first + stuffPageOf_(it), true);
         window.__ansWant = first + stuffPageOf_(it, 'ans');
-        window.__ansFrom = null;
-        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would -- AT ONCE where it is already
-           drawn (the landing above is instant), so the whole of `ui.js`'s wait goes to the page turning.
-           Pressed after a tick, a loaded run measured the strip still sliding: "PANE OFF THE SCREEN",
-           73px out, a picture of the turn rather than of the page it turned to. */
-        /* BY ITS KEY, NOT BY `.page.on`, which is set a frame after the instant landing -- so the tile is
-           found in the same tick the page is built, and a loaded run's timers cannot eat the wait. */
+        window.__ansFrom = PAGE.stuff;
+        /* BY ITS KEY, in the tick the page is built -- `.page.on` arrives a frame after an instant landing. */
         const k = ansKey_(it);
-        const press = () => {
-          const tile = [...document.querySelectorAll('#s-stuff [data-do="qa-go"]')].find(b => b.getAttribute('data-k') === k);
-          if (!tile) return false;
-          window.__ansFrom = PAGE.stuff;
-          tile.click();
-          return true;
-        };
-        if (!press()) setTimeout(press, 150);
+        window.__ansTile = [...document.querySelectorAll('#s-stuff [data-do="qa-go"], #s-stuff .tile-i-next')].length;
+        window.__ansCard = [...document.querySelectorAll('#s-stuff .qp-ans-in')].some(b => b.getAttribute('data-k') === k);
+        goPage('stuff', PAGE.stuff + 1);
       },
       /* LANDED ON, AND STILL HIDDEN. *"answers should just stay hidden unless user unhides them"* --
-         the question's tile is `To the answer` now and turns the page without revealing it; the
-         page's own Show tile is the one tap that does. */
+         the page's own Show tile is the one tap that reveals it. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card');
-        return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
+        return window.__ansCard && window.__ansTile === 0
+               && PAGE.stuff === window.__ansFrom + 1 && PAGE.stuff === window.__ansWant
                && !!c && c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
                && !c.querySelector('.qans, .qans-body') && !!c.querySelector('.tile[data-do="qa-show"]');
       },
-      wants: 'the question\'s "To the answer" tile pressed, and the page turned forward to its answer -- still hidden, Show the answer waiting',
+      wants: 'the question\'s page with no tile to the answer on the strip, then one swipe on: its answer, still hidden, Show the answer waiting',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- QUESTIONS CHOSEN: THE PAGE AFTER A QUESTION IS THE NEXT QUESTION --------------------------
+       THE OWNER, 8 Oct, on an iPad: *"answers shouldnt even be showing up when all ive done is clicked
+       questions. the answers still show up."* Measured that morning on the Corbettmaths subtraction
+       sheet: 59 pages, 27 of them answers, `subtraction-1, its answer, subtraction-2, its answer...`.
+       With Questions chosen, Q1's card and one swipe on is Q2's card -- and no answer card anywhere on
+       the strip, not merely shut. */
+    { name: 'Questions chosen, Q1 then Q2',
+      enter: () => {
+        ANS_SHOWN.clear();
+        const q1 = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-subtraction-1');
+        if (!q1) throw new Error('Q-CBM-subtraction-1 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(q1) }, { field: 'kindLabel', value: 'Questions' }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(q1), true);
+        window.__q2From = PAGE.stuff;
+        goPage('stuff', PAGE.stuff + 1);
+      },
+      expect: () => {
+        const q2 = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-subtraction-2');
+        const box = document.querySelector('#s-stuff .page.on .qp-ans-in');
+        return !!q2 && PAGE.stuff === window.__q2From + 1 && !!box && box.getAttribute('data-k') === ansKey_(q2)
+               && !document.querySelector('#s-stuff .qans-card');
+      },
+      wants: 'the subtraction sheet with Questions chosen: Q1, one swipe, and Q2\'s card -- no answer card on the strip at all',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- WHAT KIND: QUESTIONS FIRST -------------------------------------------------------------
+       The chips were the alphabet, so `Answers` was the first one -- top left, where a thumb lands -- and
+       one tap on it opens every answer for anybody. In `KIND_BUCKET`'s order now: Questions, then
+       Answers beside it. Pictured, because which chip is first is a fact about the screen. */
+    { name: 'What kind, Questions first',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const chips = [...document.querySelectorAll('#s-stuff .page.on [data-do="facet-pick"][data-field="kindLabel"]')]
+          .map(c => c.getAttribute('data-value'));
+        return chips[0] === 'Questions' && chips[1] === 'Answers';
+      },
+      wants: 'the What kind question with Questions as its first chip and Answers the second',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, shown, and nothing under it',
       enter: () => {
         ANS_SHOWN.clear();
@@ -1237,7 +1280,7 @@ const STATES = {
       } },
     /* ---------- THE KEYPAD UP ON A PART WITH A FIGURE BEHIND IT: THE FIGURE TILE STAYS ABOVE THE PAD ---
        THE REVIEW OF THE MULTI-PART MERGE, at 320x568: 1F Q23b's box raised the pad (top 315) and Check,
-       Figure and To the answer stood at 322-437, under it -- the Figure tile exists to show the Venn
+       Figure and the old way to the answer stood at 322-437, under it -- the Figure tile exists to show the Venn
        WHILE answering, and was hidden exactly then; a tap where it had been typed a key. The tile now
        stands at the end of the box's own line (`ansBox_`), so wherever the box clears the pad, it does.
        Expect: the box AND the Figure tile wholly above the pad's top edge, at every width. */
@@ -1283,12 +1326,150 @@ const STATES = {
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
-    /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" UNDER IT ------------------------------------
+    /* ---------- THE ANSWER BOX AT REST: A PAPER FIELD SAYING WHAT IT IS FOR, AND SEND ----------------------
+       THE OWNER, 8 Oct: *"the answer box should look like a chatbox. with send tile. we found it hard to
+       find answer box in the ipad in the sun."* It was `--sunk` on the card, 1.04:1, with nothing in it.
+       At rest and empty: the field is the paper (`--paper`, read off the stylesheet rather than written
+       here), it says "Type your answer", and Send is the gold tile beside it. `check/ui.js` measures its
+       edges against the card (EDGE). Q0664, the row the marking states use. */
+    { name: 'the answer box at rest, empty, with a Send tile',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__restK = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+      },
+      expect: () => {
+        const inp = [...document.querySelectorAll('#s-stuff .page.on .kp-in')].find(b => b.getAttribute('data-k') === window.__restK);
+        const card = inp && inp.closest('.qcard');
+        const field = card && card.querySelector('.qp-bar > .qp-ans');
+        const show = card && card.querySelector('.kp-show');
+        if (!field || !show) return false;
+        const probe = document.createElement('i');
+        probe.style.color = 'var(--paper)';
+        document.body.appendChild(probe);
+        const paper = getComputedStyle(probe).color;
+        probe.remove();
+        return getComputedStyle(field).backgroundColor === paper && !inp.value
+               && /Type your answer/.test(getComputedStyle(show, '::before').content)
+               && !!card.querySelector('.qp-bar > .tile.is-send.qp-check[data-do="qp-check"]')
+               && !!card.querySelector('.qp-mark.qp-compose > .qp-verdict');
+      },
+      wants: 'Q0664\'s box empty and at rest: the field the paper colour, "Type your answer" in it, and the gold Send tile beside it',
+      leave: () => {
+        try { localStorage.removeItem(window.__restK); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- THE KEYPAD UP, IN ITS SUNLIGHT COLOURS ----------------------------------------------------
+       *"its hard to see keypad and each button especially backspace, which i thing should be red."* The
+       keys were 1.03:1 on the pad. Lit faces now, ⌫ the app's red with a black mark, and the heights in
+       px: 44 on a short screen, 56 from 700px, 48 between. The whole pad takes only a tap
+       (`touch-action: manipulation`), so a double tap in a gap cannot zoom the iPad's page. */
+    { name: 'the keypad up, colours for sunlight',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__sunK = ansKey_(it);
+        let tries = 0;
+        const up = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__sunK);
+          if (!inp) { if (++tries < 20) setTimeout(up, 20); return; }
+          inp.focus();
+          if (KP_AT !== inp) kpOpen_(inp);
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        if (!pad || pad.hidden) return false;
+        const key = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+        const bg = el => (el ? getComputedStyle(el).backgroundColor : '');
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        return bg(key('!back')) === 'rgb(255, 95, 86)' && getComputedStyle(key('!back')).color === 'rgb(0, 0, 0)'
+               && !!key('!back').querySelector('svg.kp-del-i')
+               && bg(key('7')) === 'rgb(242, 242, 242)' && getComputedStyle(key('7')).color === 'rgb(17, 17, 17)'
+               && getComputedStyle(pad).touchAction === 'manipulation'
+               && keys.length === 30 && keys.every(b => b.getBoundingClientRect().height >= tall - 0.5);
+      },
+      wants: 'the keypad up with light keys, ⌫ red with a black mark, touch-action manipulation on the pad, and every key 44/48/56px tall for the screen',
+      leave: () => {
+        try { localStorage.removeItem(window.__sunK); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- A REPAINT WITH THE KEYPAD UP --------------------------------------------------------------
+       *"they keypad was a bit unstable. it wasnt working at first for some reason."* Signing in repaints,
+       and `load()` repaints again about fifteen seconds later; each replaces the box being typed in. Here,
+       in Chromium -- which fires `focusout` for the removed box, where the iPad fires nothing (check-flow
+       holds that half): 7, `repaint()`, a beat for the focus to land, then 5. Wanted: the pad still up,
+       on a box that is in the page, holding 7 before the 5 and 75 after it. */
+    { name: 'a repaint with the keypad up',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__rpK = ansKey_(it);
+        window.__rp = null;
+        const live = () => [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__rpK);
+        const key = v => document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+        let tries = 0;
+        const run = () => {
+          const inp = live();
+          if (!inp) { if (++tries < 20) setTimeout(run, 20); return; }
+          inp.focus();
+          if (KP_AT !== inp) kpOpen_(inp);
+          key('7').click();
+          repaint();
+          setTimeout(() => {
+            const now = live();
+            const mid = { up: !document.getElementById('kp').hidden, conn: !!KP_AT && KP_AT.isConnected,
+                          same: !!now && now !== inp && document.activeElement === now, val: now && now.value };
+            key('5').click();
+            const end = live();
+            window.__rp = { mid: mid, val: end && end.value, up: !document.getElementById('kp').hidden };
+          }, 60);
+        };
+        run();
+      },
+      expect: () => {
+        const r = window.__rp;
+        return !!r && r.mid.up && r.mid.conn && r.mid.same && r.mid.val === '7' && r.up && r.val === '75';
+      },
+      wants: 'Q0664 with 7 typed, the column repainted, and the pad still up on the new box holding 7 -- then 5 makes 75',
+      leave: () => {
+        try { localStorage.removeItem(window.__rpK); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" BESIDE IT ------------------------------------
+       In the answer bar where Send stands on a box with a scheme (8 Oct, `aiTile_`), its verdict and its
+       sentence on the lines under the bar.
        The fixture is a deployment with the action and no key (`aiMarking: false`), which is what
        `doGet` sends until the owner adds one — so this says yes for the length of the state, the way
        a key in Script Properties would, and puts it back. Q33 of AQA Biology June 2024 Foundation is
        a three-mark `explain` with a scheme and no `accept`: exactly the question the button is for. */
-    { name: 'a worded answer, Mark with AI under it',
+    { name: 'a worded answer, Mark with AI beside it',
       enter: () => {
         const id = 'Q-AQA-8461-2406-1F-033';
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
@@ -1337,7 +1518,7 @@ const STATES = {
           : /Sign in/.test(said.textContent);
         return !!go && !card.querySelector('.kp-in') && !!said && marked;
       },
-      wants: 'a three-mark explain question with its textarea, "Mark with AI" under it, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
+      wants: 'a three-mark explain question with its textarea, "Mark with AI" beside it in the bar, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
       leave: () => {
         if (window.__aiApi) api = window.__aiApi;
         if (window.__aiTok && USER) delete USER.token;

@@ -40,11 +40,12 @@
    keyboard is one keyboard for every field.
 
    A FORM HAS BUTTONS. The keys are the controls of the box they type into, which is the CLAUDE.md
-   rule for a form; nothing here is a tile. 44px tall at the narrowest phone, in px, because a
-   fingertip does not scale with the root font.
+   rule for a form; nothing here is a tile. 48px tall, 44 on a short screen and 56 on a tablet, in px,
+   because a fingertip does not scale with the root font -- see `#kp` in style.css.
 
    LOADED AFTER `find`: it reads `typeset_`, `markBare_`, `ansItem_` and `padWanted_` from there, and
-   `ansBox_` there calls `kpField_` and `aiBox_` here — at draw time, after every file has loaded.
+   `ansBox_` there calls `kpField_` and `aiTile_` here — at draw time, after every file has loaded.
+   BEFORE `tiles`, so `tileIcon_` (the ✓ key's mark) is read when the pad is built, never at load.
 ================================================================================================== */
 
 /* ---------- WHICH ANSWERS ARE MATHS ---------------------------------------------------------------
@@ -119,8 +120,21 @@ const KP_KEYS = [
   { v: '!left', a: 'move left', c: ' kp-mode', t: '\u2190' },
   { v: '!right', a: 'move right', c: ' kp-mode', t: '\u2192' },
   { v: ' ', a: 'space', c: ' kp-mode', t: '\u2423' },
-  { v: '!back', a: 'delete', c: ' kp-mode', t: '\u232b' },
-  { v: '!done', a: 'done', c: ' kp-done', t: '\u2713' },
+  /* ---------- ⌫ IS RED, AND ITS MARK IS DRAWN ---------------------------------------------------------
+     THE OWNER, 8 Oct, from a pupil's iPad in the sun: *"its hard to see keypad and each button especially
+     backspace, which i thing should be red."* It was `⌫` in `--dim`, a thin outline glyph at 15px on a
+     near-black key -- the font's own picture of a backspace, which in glare was a smudge. So the key is
+     `--bad` (`.kp-del` in style.css; red is "something is wrong" everywhere else in this app, and this
+     is the one exception, on the owner's word and because it is the key that destroys) and its mark is
+     an SVG drawn here, black and 2.2 thick: white on that red is 2.99:1 and fails, black is 7:1. */
+  { v: '!back', a: 'delete', c: ' kp-del',
+    t: '<svg class="kp-del-i" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none"'
+     + ' stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+     + '<path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z"/><path d="m12.5 9.5 5 5M17.5 9.5l-5 5"/></svg>' },
+  /* ✓ IS SEND: the same paper aeroplane as the Send tile beside the box (`ansBox_`), because it is the
+     same act -- one mark for "mark it" wherever the child is looking. `icon` and not `t`, because
+     `tileIcon_` is in tiles.js, which loads after this file; `kpKey_` draws it when the pad is built. */
+  { v: '!done', a: 'done', c: ' kp-done', icon: 'send' },
 ];
 /* A KEY IS A BUTTON AND NOT A TILE, the one place on a question's pages the owner's *"it should all be
    tiles"* does not reach, and on purpose: these are a KEYBOARD. Thirty keys in a grid have to be the
@@ -128,7 +142,8 @@ const KP_KEYS = [
    is a 44px plate with an outline mark and its name in `title`, which on a key would be a picture of a
    7 called "7". Typing is the answer being given, as a multiple-choice option is (`choiceBox_`). */
 const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="kp-key"
-  data-v="${esc(k.v != null ? k.v : k.t)}"${k.a ? ` aria-label="${esc(k.a)}"` : ''}>${k.t}</button>`;
+  data-v="${esc(k.v != null ? k.v : k.t)}"${k.a ? ` aria-label="${esc(k.a)}"` : ''}>${
+  k.icon ? tileIcon_(k.icon) : k.t}</button>`;
 
 /* ---------- THE BOX -----------------------------------------------------------------------------------
    THE DRAWING IS WHAT YOU SEE; THE INPUT IS LAID OVER IT, INVISIBLE. The input has to be the real
@@ -188,8 +203,49 @@ function kpRender_(inp) {
   if (KP_AT === inp) {
     caret = inp.selectionStart;
     if (caret == null) caret = inp.value.length;
+    /* WHICH BOX AND WHERE IN IT, kept apart from the element -- see `kpLive_`. */
+    KP_WAS = { k: inp.getAttribute('data-k') || '', caret: caret };
   }
   show.innerHTML = kpTypeset_(inp.value, caret);
+}
+
+/* ---------- THE BOX THE PAD TYPES INTO, AFTER A REDRAW ---------------------------------------------
+   THE OWNER, 8 Oct: *"they keypad was a bit unstable. it wasnt working at first for some reason."*
+   Measured on the branch it was said about: a repaint replaces the card's markup -- `repaint()` on
+   signing in, and again when `load()` lands about fifteen seconds later -- and the box the child is
+   typing into goes with it. Chromium fires `focusout` for a removed element, so the pad closed and the
+   next key did nothing. WebKit (the iPad) and jsdom fire NOTHING: the pad stayed up, `KP_AT` still
+   named the removed input, and every key after that typed into a box that was no longer on the page --
+   the 5 pressed after a redraw was lost without a trace, while the box on the screen still said 7.
+
+   SO A KEY ASKS FOR THE LIVE BOX FIRST. Still in the page: that one. Gone: the box that replaced it,
+   found by the answer key it carries (`data-k`, which is who and which question -- so a redraw after
+   somebody else signs in finds nothing and the pad closes, rather than typing into their drawer), on
+   the page in front first and anywhere in the document after that. Focused without scrolling (the
+   columns are parked on transforms, CLAUDE.md), with the caret put back where it was (`KP_WAS`), and
+   the pad stays up. Nothing to find: the pad closes, which is what Chromium already did. */
+let KP_WAS = null;
+function kpFind_(k) {
+  if (!k) return null;
+  const has = root => (root ? [...root.querySelectorAll('.kp-in')].find(i => i.getAttribute('data-k') === k) : null) || null;
+  return has(document.querySelector('#screen .page.on')) || has(document);
+}
+function kpLive_() {
+  /* NOTHING NAMED IS NOTHING TO FIND: a pad put away (`kpClose_`) is not brought back by a key. */
+  if (!KP_AT) return null;
+  if (KP_AT.isConnected) return KP_AT;
+  const now = kpFind_(KP_AT.getAttribute('data-k'));
+  if (!now) { kpClose_(); return null; }
+  kpTake_(now);
+  return KP_AT === now ? now : null;
+}
+/* FOCUS THE REPLACEMENT, whose `focusin` reopens the pad on it (`kpOpen_`, which keeps the caret from
+   `KP_WAS`). A browser that takes the focus without the event -- a page that is not the front window
+   -- gets the same `kpOpen_` called by hand. In a try, because an old browser refusing the options
+   object must still leave the box focused. */
+function kpTake_(inp) {
+  try { inp.focus({ preventScroll: true }); } catch (e) { try { inp.focus(); } catch (e2) {} }
+  if (KP_AT !== inp) kpOpen_(inp);
 }
 
 /* ---------- OPENING AND CLOSING -------------------------------------------------------------------
@@ -221,14 +277,18 @@ function kpOpen_(inp) {
      carets on one screen is two places the next key might go. */
   const was = KP_AT;
   KP_AT = inp;
-  if (was && was !== inp) kpRender_(was);
+  if (was && was !== inp && was.isConnected) kpRender_(was);
   const pad = kpPad_();
   pad.hidden = false;
   document.documentElement.classList.add('kp-up');
   /* THE CARET GOES TO THE END ON ARRIVAL. A tap lands it wherever the finger was in the INPUT'S text,
      which is invisible and laid out nothing like the drawing over it — so it would sit somewhere the
-     student cannot see. The end is where the next key belongs; ← and → move it from there. */
-  try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {}
+     student cannot see. The end is where the next key belongs; ← and → move it from there.
+     EXCEPT ON THE BOX THAT REPLACED THE ONE BEING TYPED IN (`kpLive_`): the student never left it, so
+     the caret goes back to where it was -- inside the fraction's bottom, say, and not after it. */
+  const back = !!(was && was !== inp && !was.isConnected && KP_WAS && KP_WAS.k === inp.getAttribute('data-k'));
+  const at = back ? Math.max(0, Math.min(KP_WAS.caret, inp.value.length)) : inp.value.length;
+  try { inp.setSelectionRange(at, at); } catch (e) {}
   kpRender_(inp);
   kpRoom_(inp, pad);
 }
@@ -328,7 +388,31 @@ function kpLift_(inp, pad) {
    bracket would be three presses to cross one line.
 
    ⌫ TAKES AN EMPTY STRUCTURE AWAY WHOLE. Deleting `(` out of `^()` one character at a time leaves a
-   `^)` that is not maths and not a slot, and the student has to find the stray half. */
+   `^)` that is not maths and not a slot, and the student has to find the stray half.
+
+   AND IT NEVER TAKES HALF OF A FILLED ONE. That promise had a hole in it, measured on 8 Oct: after a
+   filled slot ⌫ deleted the `)` on its own -- `123/(4)` then ⌫ was `123/(4`, and the next key made it
+   `123/(46`. So a bracket with something between it and its partner is not deleted, it is STEPPED
+   OVER: ⌫ after a `)` moves the caret inside, to the end of what the slot holds; ⌫ just inside a `(`
+   moves the caret out to the left -- across `)/(` into the top of a fraction, across `^(` and `√(` to
+   before the sign, across `/(` to the number over it -- and ⌫ just after a sign whose slot is filled
+   steps back over the sign. Each of those deletes nothing; the next ⌫ deletes a digit, and a slot
+   emptied that way goes whole by the rule above. EVERY PAIR, not only the ones a structure key typed:
+   `(3)/()` loses its bottom whole and leaves `(3)`, and if those brackets could then be deleted one at
+   a time, `(3` would be the stray half again. A bracket with no partner -- the ( key pressed alone --
+   deletes like any character, because there is no other half to strand. */
+/* THE PARTNER OF THE BRACKET AT `i`, or -1. Counted, so `(2(x+1))` pairs its outer brackets. */
+function kpPartner_(v, i) {
+  const c = v.charAt(i);
+  const step = c === '(' ? 1 : c === ')' ? -1 : 0;
+  if (!step) return -1;
+  for (let j = i, depth = 0; j >= 0 && j < v.length; j += step) {
+    const d = v.charAt(j);
+    if (d === '(' || d === ')') depth += (d === c ? 1 : -1);
+    if (!depth) return j;
+  }
+  return -1;
+}
 function kpEdit_(inp, cmd) {
   const v = inp.value;
   let a = inp.selectionStart, b = inp.selectionEnd;
@@ -349,7 +433,17 @@ function kpEdit_(inp, cmd) {
     const c = v.slice(a, a + 3) === ')/(' ? a + 3 : Math.min(v.length, a + 1);
     inp.setSelectionRange(c, c);
   } else if (cmd === '!back') {
-    if (b > a) put('');
+    /* WHERE A FILLED PAIR IS STEPPED OVER RATHER THAN BROKEN -- see the note above. -1: delete. */
+    const c = v.charAt(a - 1);
+    const sign = /[\^\u221a\/]/;
+    let step = -1;
+    if (b > a || a < 1 || (c === '(' && v.charAt(a) === ')')) step = -1;
+    else if (c === ')' && kpPartner_(v, a - 1) >= 0) step = a - 1;
+    else if (c === '(' && kpPartner_(v, a - 1) >= 0) {
+      step = v.slice(a - 3, a) === ')/(' ? a - 3 : sign.test(v.charAt(a - 2)) ? a - 2 : a - 1;
+    } else if (sign.test(c) && v.charAt(a) === '(' && kpPartner_(v, a) > a + 1) step = a - 1;
+    if (step >= 0) inp.setSelectionRange(step, step);
+    else if (b > a) put('');
     else if (a > 0) {
       let from = a - 1, to = a;
       if (v.slice(a - 1, a + 1) === '()') {
@@ -368,7 +462,8 @@ function kpEdit_(inp, cmd) {
 }
 
 on('kp-key', (el) => {
-  const inp = KP_AT;
+  /* THE LIVE BOX, NOT THE LAST ONE NAMED -- a redraw may have replaced it (`kpLive_`). */
+  const inp = kpLive_();
   if (!inp) return;
   const v = el.getAttribute('data-v') || '';
   if (v === '!done') return kpDone_(inp);
@@ -415,6 +510,14 @@ document.addEventListener('focusout', e => {
       t.classList.remove('is-words');
     }
     if (now && now.classList && now.classList.contains('kp-in')) return;
+    /* TAKEN AWAY, NOT LEFT: a box that is no longer in the page lost the focus because a redraw
+       replaced it, not because the student went anywhere. Chromium says so with this event; the box
+       that replaced it is found by its key and focused, and the pad stays up on it (`kpLive_`, which
+       is how WebKit, firing nothing, is caught on the next key instead). */
+    if (KP_AT === t && !t.isConnected) {
+      const again = kpFind_(t.getAttribute('data-k'));
+      if (again) { kpTake_(again); return; }
+    }
     if (KP_AT === t) kpClose_();
   }, 0);
 });
@@ -464,7 +567,7 @@ document.addEventListener('keydown', e => {
    on the first press, and from then every AI button on the screen is greyed and says so — one press
    wasted, never a button that keeps doing nothing.
 
-   A TILE, BESIDE CHECK AND SHAPED LIKE IT, because it is the same act on a different kind of answer.
+   A TILE, WHERE SEND IS AND SHAPED LIKE IT, because it is the same act on a different kind of answer.
    This said "a form's button ... the answer box is a form, and its buttons belong to it" -- the house
    rule, and Check was a gold button beside it on the same argument. The owner overruled it for a
    question's pages, one control at a time and then all at once: *"check button should be a tile"*,
@@ -487,12 +590,12 @@ function aiWanted_(x) {
   return !!String(x.answer || '').trim();
 }
 
-function aiBox_(x) {
+/* THE TILE ALONE, GOLD AND ROUND IN THE ANSWER BAR WHERE SEND STANDS ON A BOX WITH A SCHEME -- the
+   bar, its verdict line and the sentence under it are `ansBox_`'s, so one function lays out both. This
+   was `aiBox_`, which drew its own row under the box. */
+function aiTile_(x) {
   if (!aiWanted_(x) || !aiOffered_()) return '';
-  return `<div class="qp-mark qp-ai">
-    ${tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: 'qp-ai-go' })}
-    <span class="qp-verdict" role="status" aria-live="polite"></span>
-  </div><p class="qp-ai-why"></p>`;
+  return tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: 'qp-ai-go', tone: 'send' });
 }
 
 /* THE QUESTION AS WORDS. The library's markup carries fractions as `<sup>`/`&frasl;`/`<sub>` and

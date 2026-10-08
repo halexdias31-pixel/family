@@ -877,6 +877,9 @@ function bucketTable_(pairs) {
   Object.keys(at).forEach(k => { spelt[spellKey_(k)] = at[k]; });
   const of = v => at[norm(v)] || spelt[spellKey_(v)] || '';
   of.order = pairs.map(row => row[0]);
+  /* AND THE ANSWERS IN THE ORDER THE TABLE LISTS THEM, for a facet whose answers have an order of
+     their own that the alphabet does not give -- see `orderOf` on What kind. */
+  of.within = [].concat(...pairs.map(row => row[1]));
   return of;
 }
 
@@ -1066,8 +1069,21 @@ const FACETS = [
      complicated it."* It had been a hidden `Page` filter, reached by an `Answers only` switch tile on
      every answer page. Now a question that has an answer answers this question twice -- `Questions`
      and `Answers` -- and choosing `Answers` draws only the answer pages (`answersView_`), in the
-     question's order, open. Nothing else about a question changes. */
-  { field: 'kindLabel',
+     question's order, open. */
+  /* ---------- AND `Questions` MEANS QUESTIONS, NOT QUESTIONS AND THEIR ANSWERS -------------------------
+     THE OWNER, 8 Oct, from a lesson on an iPad in the sun: *"answers shouldnt even be showing up when all
+     ive done is clicked questions. the answers still show up."* `Questions` drew every question with its
+     answer page after it -- hidden, but a card headed "Answer" under every question reads as the answers
+     showing. So each chip means what it says: `Questions` is the question, its opening and its figures
+     and never an answer page (`questionsView_`); `Answers` is the answers alone, open. With no kind
+     chosen -- "Doesn't matter", a search, Saved -- each answer page still follows its question, shut
+     until Show: the 5 Oct wish, *"the answers should appear after their questions"*. The same for a
+     tutor and a pupil; a tutor's way to the answers is the Answers chip.
+
+     IN `KIND_BUCKET`'S ORDER, NOT THE ALPHABET'S (`orderOf`). Alphabetical put `Answers` first, top
+     left, where a thumb lands -- and one tap on it opens every answer at once, for anybody. Questions
+     comes first now and Answers beside it, its pair. */
+  { field: 'kindLabel', orderOf: v => KIND_BUCKET.within.indexOf(v),
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => {
       const k = x.kindLabel || kindOf_(x).label;
@@ -4470,7 +4486,9 @@ function pageParts_(x, prev) {
      precedent and this is the same move one part along: the answer is the page after the question,
      and after its figure where it has one, because you read the question, look at the picture, and
      only then want the answer. A row with no answer has no answer page — a page that can only ever
-     say "nothing here" is the empty page the note below refuses. */
+     say "nothing here" is the empty page the note below refuses. THIS IS EVERY PAGE A QUESTION HAS;
+     which of them the strip draws is the kind chosen -- `Questions` leaves `ans` out and `Answers`
+     keeps it alone (`stuffPages_`), so a page that is drawn is always the page it would have been. */
   /* ---------- AND IN THE PAPER'S ORDER, WHICH PUTS THE SHARED OPENING AND ITS FIGURE FIRST ----------
      ASKED FOR AS *"preserve order of question from exam while at the same time giving diagrams and
      figures their own widget"*. The figure page gathered EVERY picture a part hangs from -- the
@@ -4583,8 +4601,9 @@ function cardPages_(x, credits, prev) {
    SO THE KEPT PARTS OF ONE QUESTION ARE DRAWN TOGETHER, in the paper's order (`sortKey_`), each told
    the part in front of it -- `pageParts_`'s own rule for a stem the previous part already showed. In
    the place the first of them holds in the list, so nothing else on the column moves. A part kept on
-   its own still has its opening in front of it, because nothing in front of it showed it. "To the
-   answer" counts from the page the tile is on (`qa-go`), so it lands the same either way. */
+   its own still has its opening in front of it, because nothing in front of it showed it. Its answer
+   stands where `pageParts_` puts it either way -- after the card and any drawing page, a swipe on,
+   as on Find with no kind chosen. */
 function keptPages_(items, credits) {
   const by = {}, done = {}, seq = [];
   const key = x => x._sk || (x._sk = sortKey_(x));
@@ -7385,8 +7404,10 @@ function choiceBox_(x) {
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
       /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: "Not yet --
-         the answer has its own page" wrapped to two there, and the slot is one line tall. */
-      ? (ok ? 'Correct' : 'Not yet — see the answer page')
+         the answer has its own page" wrapped to two there, and the slot is one line tall. "See the
+         answer page" pointed at the page after, and with Questions chosen there is no page after
+         (`questionsView_`): the answers are the Answers chip, so that is what it names. */
+      ? (ok ? 'Correct' : 'Not yet — see Answers')
       : ''}</span>
   </div>` : ''}`;
 }
@@ -7432,34 +7453,58 @@ function ansBox_(x) {
      does nothing is worse than one that is not there. */
   const can = String(x && x.accept || '').trim();
   /* A MATHS ANSWER GETS THE KEYPAD AND A WORDED ONE THE PHONE'S KEYBOARD — "like hegarty maths …
-     worded answer normal device keyboard". Which is which, the pad, and "Mark with AI" under a
+     worded answer normal device keyboard". Which is which, the pad, and "Mark with AI" for a
      worded box are all keypad.js; this only chooses. Both boxes are `.qp-ans-in` with the same
-     `data-k`, so Check, the save on `input` and every check that types into one are unchanged. */
+     `data-k`, so Send, the save on `input` and every check that types into one are unchanged. */
   const maths = ansMaths_(x);
   /* NO CAPTION OVER THE BOX. It said "<name>'s answer", and the owner: *"remove 'names answer'.
-     that is redundant."* A box under a question is plainly where the answer goes; the name is still
-     what the answer is filed under (`ansKey_`), and a screen reader still hears "Your answer" from
-     `aria-label`. CHECK IS A TILE -- *"check button should be a tile"* -- one renderer for every
-     action, `.qp-check` kept as the name the keypad's ✓ and the checks find it by. */
+     that is redundant."* The name is still what the answer is filed under (`ansKey_`), and a screen
+     reader still hears "Your answer" from `aria-label`. */
   /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT --------------------------
      THE REVIEW OF THE MULTI-PART MERGE, at 320x568: 1F Q23b's box raised the keypad (its top at 315) and
-     the row under the card -- Check, Figure, To the answer -- stood at 322-437, all under it. The tile is
-     there to show the Venn WHILE the child answers, and that is exactly when it was hidden; a tap where
-     it had been typed a 4. The column cannot scroll it into view: the pages are a strip on transforms
-     and a card is sized to its screen (`partChunks_`), so there is nothing below to scroll to.
-     SO IT TAKES THE BOX'S RIGHT-HAND END, on the box's own line: whenever the box is on the screen the
-     figure is one tap away, and the line is the box's height either way, so nothing moves down. A box
-     44px narrower still holds any answer this library has (it scrolls inside, as it always did). Check
-     needs no such move -- the pad's own ✓ is Check (`kpDone_`). Options to tap are not a box and keep
-     the tile in the row (`questionTiles_`). */
+     the row under the card -- Check, Figure and the old way to the answer -- stood at 322-437, all under
+     it. The tile is there to show the Venn WHILE the child answers, and that is exactly when it was
+     hidden; a tap where it had been typed a 4. The column cannot scroll it into view: the pages are a
+     strip on transforms and a card is sized to its screen (`partChunks_`), so there is nothing below to
+     scroll to. SO IT STANDS IN THE BOX'S OWN LINE: whenever the box is on the screen the figure is one
+     tap away. Options to tap are not a box and keep the tile in the row (`questionTiles_`). */
   const fig = figTile_(x);
-  return `${fig ? '<div class="qp-ans-row">' : ''}<label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
+  /* ---------- THE ANSWER BOX IS A CHAT BAR, WITH A SEND TILE ------------------------------------------
+     THE OWNER, 8 Oct, after a lesson on a pupil's iPad in the sun: *"the answer box should look like a
+     chatbox. with send tile. we found it hard to find answer box in the ipad in the sun."* Measured on
+     that screen: the box was `--sunk` on a `--raised` card, 1.04:1, with a 1.25:1 rule under it -- an
+     empty black rectangle on a black card, with no words in it -- and Check was a dark plate at 1.05:1.
+     In glare only the glyphs were left.
+
+     SO THE FIELD IS PAPER, the second palette (`--paper`, `--paper-ink`): 17:1 against the card, and
+     it always stood in for the sheet the answer is written on. It says "Type your answer" while it is
+     empty -- a placeholder on the textarea, and the drawing's own line on the maths box (`.kp-show`),
+     because that input is invisible. A field rounded like every phone's message bar, which is a shape
+     everybody already reads as "type here".
+
+     SEND IS A TILE, GOLD AND ROUND, BESIDE THE FIELD AND NOT IN IT. A tile because a question's pages
+     are all tiles (*"it should all be tiles"*), the paper aeroplane because that is the mark for send
+     (`TILE_ICONS.send`), and gold on the dark card (11:1) rather than inside the cream, where gold
+     measured 1.56:1. It is Check -- `.qp-check`, the same handler, the name the keypad's ✓ and the checks
+     find it by -- so only its face changed. MARK WITH AI IS THE SAME TILE for a worded answer with no
+     scheme to match (`aiTile_`), and a box with neither has no tile at all: a Send that sends nowhere is
+     the control that sometimes does nothing.
+
+     THE VERDICT IS A LINE OF ITS OWN UNDER THE BAR, its height reserved, so "Correct" lands in a space
+     that was already there and marking moves nothing (261). `.qp-mark` wraps the bar and the line, so
+     `qp-check` and `qp-ai` still find their verdict by `closest('.qp-mark')`, and the input listener
+     still finds `.qp-mark[data-accept]` on the card. */
+  const ai = can ? '' : aiTile_(x);
+  const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
+  const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="2" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
-  </label>${fig ? fig + '</div>' : ''}${can ? `<div class="qp-mark" data-accept="${esc(can)}">
-    ${tile_({ icon: 'tick', label: 'Check', note: 'mark it', act: 'qp-check', cls: 'qp-check' })}
+      rows="1" placeholder="Type your answer" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
+  </label>${fig}${send}</div>`;
+  if (!send) return `<div class="qp-compose">${bar}</div>`;
+  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+    ${bar}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
-  </div>` : aiBox_(x)}`;
+  </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
 }
 
 /* ---------- THE VERDICT ------------------------------------------------------------------------
@@ -7524,6 +7569,15 @@ document.addEventListener('input', e => {
   /* WRITING AN ANSWER IS DOING THE QUESTION, and 427 of them have no Check to press (no `accept`),
      so the box is where most of the library is "done". Empty is not an attempt. */
   if (String(el.value || '').trim()) doneMark_(el.getAttribute('data-k') || '');
+  /* A WORDED ANSWER GROWS AS IT IS TYPED, the way a message bar does: one line while it is one line
+     (`rows="1"`, the chat bar in `ansBox_`), then downward a line at a time to the stylesheet's cap,
+     then it scrolls inside. `field-sizing: content` does this where the browser has it; Safari -- the
+     owner's iPad -- does not, so the height is set here as well. Downward, because the card is held
+     where it is while its box has the focus (`HOLD_AT`). */
+  if (el.tagName === 'TEXTAREA' && el.closest('.qp-bar')) {
+    el.style.height = '';
+    if (el.scrollHeight) el.style.height = el.scrollHeight + 'px';
+  }
   /* A VERDICT IS ABOUT THE ANSWER IT MARKED, and the moment a letter changes it is about an answer
      that is no longer there. "Correct" beside "16", left from when the box said "15", is the app
      vouching for something it never read. So typing takes the verdict off -- its words, its colour,
@@ -9143,14 +9197,13 @@ function questionFigCard_(x) {
   else if (x.diagram) out.push(usesFig_(x) || `<figure>${x.diagram}${figCredit_(x)}</figure>`);
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
-  /* THE WAY ON TO THE ANSWER, ON THE PAGE WHERE THE DRAWING IS DONE -- a pen page after its card is
-     where the child finishes, so it is where they look for what comes next (finding 9). Only there:
-     a figure in front of its card is read on the way to the box, and the card has the tile. */
-  const on = pad && partPlan_(x).figAt >= partChunks_(x).length ? questionTiles_(x, 'fig') : '';
+  /* `.qfig-tiles` WAS HERE -- the drawing page's row, holding one tile: `To the answer`, for a pen page
+     after its card (finding 9). The tile went everywhere on the owner's word, 8 Oct: *"there doesnt
+     need to be a scroll down tile on questions."* The answer is the next page, reached the way every
+     page is, by a swipe -- and with Questions chosen it is not in the strip at all (`stuffPages_`). */
   return `<div class="qcard qfig" data-of="${esc(id)}">
     ${qPage_(x, label, '', false)}
-    <div class="qsheet">${out.join('')}</div>${on ? `
-    <div class="tile-row qfig-tiles">${on}</div>` : ''}
+    <div class="qsheet">${out.join('')}</div>
   </div>`;
 }
 
@@ -9221,6 +9274,12 @@ function questionNoFigCard_(x) {
    again. simple is best."* Shown, the same tile is `Hide the answer`, and hidden is exactly hidden
    again: the answer leaves the markup, not just the screen.
 
+   AND NOT IN THE QUESTIONS LIST AT ALL. *"answers shouldnt even be showing up when all ive done is
+   clicked questions. the answers still show up."* (8 Oct, on an iPad in the sun.) Shut was not enough:
+   a card tagged "Answer" under every question reads as the answers showing to somebody squinting at
+   it. So this page is drawn where no kind is chosen and where Answers is, and never with Questions
+   (`stuffPages_`) -- for a tutor exactly as for a pupil.
+
    `data-of` NAMES THE ROW, as the figure card does, and `data-k` is the answer box's key, which is
    what `ansSet_` finds these by to redraw them, open or shut, where they already stand. */
 function questionHasAns_(x) {
@@ -9266,7 +9325,8 @@ function questionAnsCard_(x) {
      ASKED FOR AS *"answers should just stay hidden unless user unhides them. and can hide them again.
      simple is best."* So the page has one control and two faces: `Show the answer` (the eye) while it is
      hidden, `Hide the answer` (the eye struck through) once it is shown. Nothing else on the page
-     offers either, and nothing anywhere else opens it -- the question's own tile only turns to it.
+     offers either, and nothing anywhere else opens it -- the question card has no way to it but a
+     swipe (its `To the answer` tile went on 8 Oct).
 
      ABOVE THE ANSWER, NOT UNDER IT, because "the same place" is a promise about where the thumb goes
      back to. Under it, the tile would sit wherever the answer happened to end -- a word, or a table
@@ -9332,32 +9392,15 @@ function ansSet_(x, open) {
 function ansShow_(x) { ansSet_(x, true); }
 function ansHide_(x) { ansSet_(x, false); }
 
-/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND ONLY TO IT. It used to read `Show the answer` and
-   reveal the page as it turned to it -- one tap that did two things, and the owner's rule now is that
-   revealing is a tap of its own: *"answers should just stay hidden unless user unhides them."* So it
-   says where it goes (`To the answer`, an arrow, "turns the page") and the page it lands on is exactly
-   as it was left -- hidden, unless this person showed it on this visit. One label for everybody: staff
-   read `The answer` here once, when their page was open already, and it is not. Drawn the same whether
-   or not the answer has been shown, so pressing it changes nothing on this card. */
-/* ---------- AND ITS NOTE SAYS WHERE THE ANSWER IS, READ OFF THE PAGES THEMSELVES --------------------
-   THE MULTI-PART AUDIT, FINDING 9: the note said "next page" on 219 cards whose next page was the
-   figure or the grid to draw on -- 1F Q3, Q7, Q11c, 3F Q24b. The tile still landed on the answer;
-   the words were wrong about the swipe in between. So the note is worked out from `pageParts_`, the
-   list the strip is built from: "next page" when it is, "after the figure" (or the grid, in the name
-   its own header uses -- `figWhat_`) when one page stands between, and a count when more do.
-
-   `from` IS THE PAGE THE TILE STANDS ON -- the card (`null`), or the drawing page (`'fig'`) for a
-   part whose figure comes after its card: the child finishes on the grid, not on the words, so the
-   way on is where they finish (`questionFigCard_`). No tile where the answer is not ahead. */
-function ansWhere_(x, from) {
-  const parts = pageParts_(x);
-  const a = parts.indexOf('ans'), at = parts.indexOf(from || null);
-  if (a < 0 || at < 0 || a <= at) return '';
-  const between = parts.slice(at + 1, a);
-  if (!between.length) return 'next page';
-  if (between.length === 1 && between[0] === 'fig') return 'after the ' + figWhat_(x).toLowerCase();
-  return (between.length + 1) + ' pages on';
-}
+/* ---------- `To the answer` AND `ansWhere_` WERE HERE -----------------------------------------------
+   THE QUESTION CARD'S ↓ TILE, which turned the strip forward to the answer page without revealing it,
+   with a note worked out from `pageParts_` saying how far ("next page", "after the squared grid" --
+   finding 9 of the multi-part audit, which caught it saying "next page" over a figure). REMOVED ON THE
+   OWNER'S WORD, 8 Oct: *"there doesnt need to be a scroll down tile on questions."* A tile that does what
+   a swipe does is a second way to turn a page on the one surface where every page turns the same way,
+   and once `Questions` stopped drawing answer pages (`stuffPages_`) it would have counted pages that are
+   not in the strip and landed on the next question. The answer is the page after its question -- after
+   the drawing page where there is one -- reached by a swipe, and only where no kind is chosen. */
 /* ---------- AND THE DAY YOU LAST DID IT, BESIDE THE STAR --------------------------------------------
    IT WAS ON THE GOLD HEADER'S MARKS LINE, and the header went: everything else it said is a tag now
    (`qPage_`). The date is NOT a tag, and that is the argument for where it is. A tag is a fact about
@@ -9371,15 +9414,12 @@ function ansWhere_(x, from) {
    lands beside 44px tiles in a row 44px tall. DRAWN ONLY WHERE A DATE CAN BE KEPT (`doneKeyOf_`):
    somebody signed in, the same visitor the star is drawn for. Signed out there is no slot, because
    there is nothing it could ever say. */
-function questionTiles_(x, from) {
-  const where = questionHasAns_(x) ? ansWhere_(x, from) : '';
+function questionTiles_(x) {
   /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
      its own end (`ansBox_`), where the keypad cannot cover it. */
-  const fig = from || !(Array.isArray(x.choices) && x.choices.length >= 2) ? '' : figTile_(x);
-  const go = where ? tile_({ icon: 'next', label: 'To the answer', note: where, cls: 'qa-to',
-                            act: 'qa-go', data: from ? { k: ansKey_(x), from: from } : { k: ansKey_(x) } }) : '';
-  /* The date slot belongs to the card's own row only -- a drawing page's row carries just the way on. */
-  return fig + go + (!from && doneKeyOf_(ansKey_(x)) ? doneSlot_(x) : '');
+  const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) : '';
+  /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
+  return fig + (doneKeyOf_(ansKey_(x)) ? doneSlot_(x) : '');
 }
 
 /* ==================================================================================================
@@ -9471,32 +9511,8 @@ on('q-fig', el => {
     `${figs.length > 1 ? `<p class="qfig-sheet-k">${esc(f.label)}</p>` : ''}<div class="qsheet">${f.html}</div>`).join('')}</div>`);
 });
 
-/* ---------- AND TURNING TO IT --------------------------------------------------------------------
-   FORWARD BY THE ANSWER'S PLACE AMONG ITS QUESTION'S PAGES -- one, or two past a figure -- from the
-   page the tile is on. Which page that is, is asked of the element (`logIndex_` turns an element's
-   position into a page number past the Find screen's window) rather than read off `PAGE`, because a
-   tile on the page peeking under the one you are on is still that page's tile. The same on Saved,
-   whose pages come from `cardPages_` in `pageParts_`'s own order.
-
-   IT DOES NOT CALL `ansShow_`, and that absence is the whole of the owner's change: the page turns,
-   and what is on it is the page's own business. */
-on('qa-go', (el) => {
-  const x = ansItem_(el.getAttribute('data-k'));
-  if (!x) return;
-  /* FROM THE QUESTION CARD, NOT FROM THE FIRST PAGE: a stem and its figure can stand in front of
-     the card the tile is on (`pageParts_`), so the distance is answer minus card. */
-  /* AND FROM THE DRAWING PAGE, for the tile that stands there (`data-from`) -- see `ansWhere_`. */
-  const parts = pageParts_(x);
-  const from = parts.indexOf(el.getAttribute('data-from') || null);
-  const off = parts.indexOf('ans') < 0 || from < 0 ? -1 : parts.indexOf('ans') - from;
-  const pg = el.closest('.page');
-  const host = pg && pg.parentElement;
-  const id = host && host.id ? host.id.replace(/^s-/, '') : '';
-  if (off < 0 || !id || typeof goPage !== 'function') return;
-  const at = [].indexOf.call(host.querySelectorAll(':scope > .page'), pg);
-  const base = typeof logIndex_ === 'function' ? logIndex_(id, at) : at;
-  goPage(id, base + off);
-});
+/* `on('qa-go')` WAS HERE -- the ↓ tile's handler, which turned forward by the answer's place among its
+   question's pages. It went with the tile (see where `To the answer` was, above). */
 
 /* ON THE ANSWER PAGE ITSELF, THE ONE CONTROL, BOTH WAYS -- you are already there. */
 on('qa-show', (el) => {
@@ -10917,10 +10933,16 @@ function stuffPages_() {
   /* AND ONLY THE ANSWERS when `Answers` is the kind chosen -- see `kindLabel`. Built in full and then
      kept, so every page that is drawn is the page it would have been. */
   const only = answersView_();
+  /* AND NO ANSWER AT ALL when `Questions` is -- *"answers shouldnt even be showing up when all ive done
+     is clicked questions"* (8 Oct; see `kindLabel`). The same cut the other way: the question's opening,
+     its figures and its card, each the page it would have been, and its answer page left out. Answers
+     wins if somebody has chosen both, because that chip is the one that asks for something. */
+  const qOnly = !only && questionsView_();
   /* AND NONE AT ALL when `Bundles` is -- the bundles are the results, drawn in front (`bundlePages_`). */
   if (bundlesView_()) { STUFF_PAGES = { from: items, pages: pages }; return pages; }
   seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
     if (only && part !== 'ans') return;
+    if (qOnly && part === 'ans') return;
     pages.push({ x: x, part: part });
   }));
   STUFF_PAGES = { from: items, pages: pages };
@@ -10930,6 +10952,10 @@ function stuffPages_() {
 /* IS `Answers` THE KIND CHOSEN? -- the one switch the answers view hangs on. */
 function answersView_() {
   return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Answers');
+}
+/* IS `Questions` THE KIND CHOSEN? -- its pair: question pages, and never an answer page. */
+function questionsView_() {
+  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Questions');
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS -------------------------

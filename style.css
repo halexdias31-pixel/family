@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-weekly-email";
+  --css-version: "2026-10-08-question-page-in-the-sun";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11669,6 +11669,24 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* THE FILLED VERSION IS WITH THE OTHER FILLED RULES, further down. It was declared twice — here
    with a .07 background and there with .09 — and the one you could see was never this one. */
 
+/* ---------- SEND IS A GOLD DISC, THE ANSWER BAR'S ONE ACTION -------------------------------------------
+   *"the answer box should look like a chatbox. with send tile."* (8 Oct.) `tone: 'send'` from `ansBox_`
+   -- Send where the question has a scheme, Mark with AI where its answer is words. The one tile in the
+   app that is FILLED rather than a plate with a mark on it, because it is the one a child has to find
+   in glare: gold on the card is 11:1 where a plate's edge was 1.10:1. Round, as every phone draws send
+   beside its message bar; 48px, a little over the floor, because it is the most-pressed control on the
+   page. Its mark is ink on gold, drawn heavier than the 1.4 of a plate's. Tokens only (`check-css`
+   refuses a `.tile` colour spelt out). */
+.tile.is-send { width: 48px; height: 48px; border-radius: 50%;
+  background: var(--gold); border-color: var(--gold); color: var(--bg); }
+.tile.is-send .tile-i { width: 22px; height: 22px; stroke-width: 1.8; }
+.tile.is-send:active, .tile.is-send.is-pressed { background: var(--gold); border-color: var(--gold);
+  filter: brightness(.85); }
+/* SWITCHED OFF (no AI key on the server) IT LOSES THE DISC, like every disabled tile -- "nothing to
+   press here"; WAITING FOR THE MARKER IT KEEPS IT, with the busy ring in its own ink. */
+.tile.is-send[disabled] { background: none; border-color: var(--line); color: var(--dim); }
+.tile.is-send.is-busy { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+
 /* ---------- SILVER MEANS ONLY YOU CAN SEE THIS ---------------------------------------------------
    NOT A HUE, ON PURPOSE. Green is a subject, purple a venue, pink a wearable, red a tutor — every
    colour in this palette names what a thing IS, and there were none left, because admin is not that
@@ -13139,18 +13157,17 @@ button.scr-sq { cursor: pointer; }
 }
 
 /* ---------- WRITING ON THE PAPER -------------------------------------------------------------------
-   A BOX PER PART, under the question it belongs to. See `ansBox_` in resource.js for why it is kept
+   A BOX PER PART, under the question it belongs to. See `ansBox_` in find.js for why it is kept
    in the browser rather than sent anywhere: these cards are rebuilt on every repaint, and a
    `<textarea>` rebuilt is a `<textarea>` emptied.
 
-   IT LOOKS LIKE RULED PAPER because that is what it is standing in for. A bordered form field would
-   promise a submit button that does not exist. */
+   THE RULED LINE BELOW IS THE GUIDE'S BOX NOW (`guideBox_`, `.gd-box`), which writes on a page of
+   notes. A QUESTION'S BOX IS THE CHAT BAR further down (`.qp-bar`): this note said a bordered field
+   "would promise a submit button that does not exist", and since 8 Oct the button exists -- Send. */
 .qp-ans { display: block; margin: .9rem 0 .2rem; }
-/* THE BOX AND, AT ITS END, THE FIGURE TILE (`ansBox_`): one line, the box taking what the tile leaves.
-   The tile sits on the box's baseline, where the box's ruled line is. */
-.qp-ans-row { display: flex; align-items: flex-end; gap: .6rem; margin: .9rem 0 .2rem; }
-.qp-ans-row > .qp-ans { flex: 1 1 auto; min-width: 0; margin: 0; }
-.qp-ans-row > .tile { flex: none; }
+/* `.qp-ans-row`'s flex line WAS HERE -- the box and the Figure tile at its end, sat on the box's ruled
+   line. The bar is that line now (`.qp-bar`); the class stays on it as the name the checks find the
+   Figure tile's line by. */
 .qp-ans-k { display: block; font: 600 .62rem/1 var(--font); color: var(--faint);
             letter-spacing: .08em; text-transform: uppercase; margin-bottom: .4rem; }
 .qp-ans-in {
@@ -13161,13 +13178,58 @@ button.scr-sq { cursor: pointer; }
   font: 400 .9rem/1.6 var(--font);
 }
 .qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
-/* THE RULE UNDER THE BOX TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as
-   are joined on the screen, not only in the sentence beside the button. `:has` because the verdict
-   comes AFTER the box in the markup and a sibling selector only looks forward; a browser without it
-   keeps the plain rule and loses nothing but this. Cleared by typing -- see the `input` listener in
-   find.js, which takes the verdict off as soon as the answer it was about has changed. */
-.qcard:has(> .qp-mark.is-right) .qp-ans-in { border-bottom-color: var(--good); }
-.qcard:has(> .qp-mark.is-near) .qp-ans-in { border-bottom-color: var(--warn); }
+/* THE RULE UNDER THE BOX TOOK THE VERDICT'S COLOUR here, through `.qcard:has(> .qp-mark.is-right)`,
+   because the verdict came after the box. The bar holds both now, so the ring round the field does it
+   from inside `.qp-mark` with no `:has` -- see `.qp-bar`. */
+
+/* ---------- THE ANSWER BAR: A PAPER FIELD, AND SEND BESIDE IT ---------------------------------------
+   THE OWNER, 8 Oct, after a lesson on a pupil's iPad in the sun: *"the answer box should look like a
+   chatbox. with send tile. we found it hard to find answer box in the ipad in the sun."* Measured on
+   that page: the box was `--sunk` on a `--raised` card, 1.04:1, its rule 1.25:1, and Check a dark plate
+   at 1.05:1 -- in glare an empty black rectangle on a black card, which is a box nobody can find.
+
+   THE FIELD IS THE PAPER PALETTE, and tokens only (CLAUDE.md: a paper colour is never a literal). It
+   always stood in for the sheet the answer is written on, and cream on the card is 17:1, its words
+   13:1, "Type your answer" and the dashed slots 5.3:1. Rounded at half its height, the shape every
+   phone's message bar has, so it reads as "type here" before a word of it is read.
+
+   SEND IS OUTSIDE IT, on the dark card (`.tile.is-send`, a gold disc): gold inside the cream measured
+   1.56:1, on the card 11:1. A RING, NOT A RULE, says what is happening to the field -- gold while it is
+   being typed in, green or amber once marked -- 3px outside it, on the card, where each reads at about
+   11:1. `check/ui.js` holds the field and Send to 3:1 against what is behind them (EDGE, WCAG 1.4.11),
+   which is the rule nothing measured while all of this sat at 1.04.
+
+   THE VERDICT IS A LINE OF ITS OWN UNDER THE BAR, ONE LINE TALL BEFORE IT SAYS ANYTHING, so "Correct"
+   and "Not yet" land in a space that was already there and marking moves nothing (261,
+   `check/states.js`). */
+.qp-compose { margin: .9rem 0 .2rem; }
+.qp-mark.qp-compose { display: block; min-height: 0; margin: .9rem 0 .2rem; }
+.qp-bar { display: flex; align-items: center; gap: 8px; }
+.qp-bar > .qp-ans {
+  flex: 1 1 auto; min-width: 0; margin: 0; display: flex; align-items: center;
+  min-height: 52px; padding: 2px 14px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border-radius: 26px;
+}
+.qp-bar > .qp-ans > .kp-field, .qp-bar > .qp-ans > .qp-ans-in { flex: 1 1 auto; min-width: 0; }
+.qp-bar > .tile { flex: none; }
+/* 16px ON THE TEXTAREA, as on the maths box's input: iOS zooms the page into any field smaller than
+   that the moment it takes the focus. ONE LINE, GROWING -- `rows="1"`, `field-sizing` where the browser
+   has it and the `input` listener in find.js where it does not -- to about five lines, then it scrolls. */
+.qp-bar textarea.qp-ans-in {
+  min-height: 44px; max-height: 9.5rem; padding: .7rem 0; resize: none; overflow-y: auto;
+  background: transparent; color: var(--paper-ink); border: 0; border-radius: 0;
+  font-size: 16px; line-height: 1.35; field-sizing: content;
+}
+.qp-bar textarea.qp-ans-in::placeholder { color: var(--paper-dim); opacity: 1; }
+.qp-bar > .qp-ans:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+/* THE RING TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as are joined on the
+   screen, not only in the sentence under it. Cleared by typing -- see the `input` listener in find.js,
+   which takes the verdict off as soon as the answer it was about has changed. */
+.qp-mark.is-right > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--good); }
+.qp-mark.is-near > .qp-bar > .qp-ans { box-shadow: 0 0 0 3px var(--warn); }
+/* THE VERDICT'S LINE, reserved: one line of `.qp-verdict` tall when it is empty, and it wraps rather
+   than cutting a sentence off when one is longer. Set in from the edge to sit under the field's words. */
+.qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: 6px 14px 0; }
 
 /* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
    TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
@@ -13203,18 +13265,23 @@ button.scr-sq { cursor: pointer; }
 .qp-mark.is-near  .qp-verdict::before { content: "\21BB"; margin-right: .4rem; font-weight: 700; }
 
 /* ---------- THE MATHS BOX: THE ANSWER DRAWN, THE INPUT INVISIBLE OVER IT ---------------------------
-   See keypad.js. `.kp-show` is what is read — the same ruled-paper box as `.qp-ans-in`, drawing the
-   value through `typeset_` so a fraction stacks as it does in the question above — and the real
-   `<input>` lies over it with its ink transparent, so it takes the tap and the focus and nothing of
-   its own text shows. 16px on the input because iOS zooms into anything smaller on focus. */
+   See keypad.js. `.kp-show` is what is read — drawing the value through `typeset_` so a fraction
+   stacks as it does in the question above — and the real `<input>` lies over it with its ink
+   transparent, so it takes the tap and the focus and nothing of its own text shows. 16px on the input
+   because iOS zooms into anything smaller on focus. IT SITS IN THE BAR'S PAPER FIELD (`.qp-bar`), so
+   it is paper ink on no ground of its own; it was a `--sunk` box with a ruled line, 1.04:1 on the card.
+
+   "TYPE YOUR ANSWER" WHILE IT IS EMPTY, drawn here because the input that would carry a placeholder is
+   the invisible one. `:empty` is exact: `kpTypeset_` draws nothing at all for an empty value, and the
+   caret's own span the moment the box has the focus, so the words go as the pad comes up. */
 .kp-field { position: relative; display: block; }
 .kp-show {
   display: flex; align-items: center; flex-wrap: wrap; gap: 0 .1em;
-  min-height: 52px; padding: .45rem .6rem; box-sizing: border-box;
-  background: var(--sunk); color: var(--ink);
-  border-bottom: 1px solid var(--line); border-radius: var(--r-sm) var(--r-sm) 0 0;
+  min-height: 48px; padding: .3rem 0; box-sizing: border-box;
+  color: var(--paper-ink);
   font: 400 1.05rem/1.5 var(--font); overflow-wrap: anywhere;
 }
+.kp-show:empty::before { content: "Type your answer"; color: var(--paper-dim); }
 .kp-field .kp-in {
   position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0;
   padding: 0; margin: 0; border: 0; background: transparent;
@@ -13222,46 +13289,82 @@ button.scr-sq { cursor: pointer; }
 }
 .kp-field .kp-in::selection { background: transparent; }
 .kp-field .kp-in:focus { outline: none; }
-.kp-up .kp-field:focus-within .kp-show { border-bottom-color: var(--gold); }
-.qcard:has(> .qp-mark.is-right) .kp-show { border-bottom-color: var(--good); }
-.qcard:has(> .qp-mark.is-near) .kp-show { border-bottom-color: var(--warn); }
 /* A SLOT IS A DASHED BOX, the shape Hegarty draws for "something goes here". In `em` so it is the
-   size of a digit whether it sits on the line or up in a power. */
+   size of a digit whether it sits on the line or up in a power. In the paper's second voice, 5.3:1 on
+   the cream -- `--dim` was drawn for the black box and is 2.6:1 there. */
 .kp-hole { display: inline-block; width: .75em; height: 1em; min-width: 10px; min-height: 14px;
-           vertical-align: middle; border: 1px dashed var(--dim); border-radius: 1px; }
+           vertical-align: middle; border: 1px dashed var(--paper-dim); border-radius: 1px; }
 .kp-show sup .kp-hole { height: .8em; min-height: 10px; min-width: 8px; }
+/* THE CARET IN THE PAPER'S INK. It was gold on black; gold on the cream is 1.56:1 and it vanished. */
 .kp-caret { display: inline-block; width: 2px; height: 1.15em; margin: 0 -1px; vertical-align: middle;
-            background: var(--gold); animation: kp-blink 1.1s steps(1) infinite; }
+            background: var(--paper-ink); animation: kp-blink 1.1s steps(1) infinite; }
 @keyframes kp-blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .kp-caret { animation: none; } }
 
 /* ---------- THE PAD ---------------------------------------------------------------------------------
    ONE PAD ON <body>, FIXED TO THE FOOT OF THE APP'S COLUMN like `#toast` and `#sheet` — inside a pane
-   it would ride the pane's transform. Six keys across at 44px, in px, because a fingertip does not
-   scale with the root font: at 320 that is (320 − 32 − 20) ÷ 6 = 44.7px a key, which is why there
-   are six and not seven. Black like the screen, with the structures in gold — the keys that make a
-   maths answer a maths answer are the ones worth finding at a glance. Under the toast (50), which
-   still has to be readable while the pad is up. */
+   it would ride the pane's transform. Six keys across, in px, because a fingertip does not scale with
+   the root font: at 320 that is (320 − 32 − 20) ÷ 6 = 44.7px a key, which is why there are six and not
+   seven, and why the gaps stay 4px. Under the toast (50), which still has to be readable while the pad
+   is up. */
+/* ---------- LIGHT KEYS ON THE BLACK PAD, FOR SUNLIGHT -------------------------------------------------
+   THE OWNER, 8 Oct: *"when using the ipad in the sun its hard to see keypad and each button especially
+   backspace, which i thing should be red."* The keys were `--sunk` on black with a `--line` edge:
+   1.03:1 for the face and 1.34:1 for the edge, measured, so in glare only the glyphs were left
+   floating on nothing. Now every key is a lit face: digits near-white with black ink (18.8:1 against
+   the pad, 16.9:1 for the digit), the structures a pale amber with brown ink (16.6:1, 6.3:1) so the
+   keys that make a maths answer are still the ones found at a glance, the moves a mid grey with white
+   (3.9:1, 5.3:1), ✓ gold. ⌫ IS RED BECAUSE THE OWNER ASKED FOR RED -- and because it is the one key
+   that destroys; `--bad` means "something is wrong" everywhere else in this app (`:root`), and this is
+   the stated exception. Its glyph is black, 7:1 on that red, where white would be 2.99:1.
+
+   THE PAD'S OWN PALETTE, NAMED ON THE PAD, as the chess board's is on `.chess` (CLAUDE.md): these
+   colours are this component's and nothing else in the app should be offered them. `--bad` and
+   `--gold` are borrowed by name, because those two ARE the app's. `check/ui.js` holds every key's face
+   to 3:1 against the pad (EDGE).
+
+   AND THE PAD ITSELF TAKES NO GESTURE BUT A TAP: `touch-action: manipulation` on the whole pad, not
+   only on the keys, because two quick taps in a 4px gap or the 8px edge could double-tap-zoom the page
+   on an iPad, which ignores `user-scalable=no`; no selection and no callout, so a held key is a held
+   key and not a magnifier. */
 #kp {
+  --kp-face: #f2f2f2;       --kp-ink: #111111;
+  --kp-op-face: #ffe0b8;    --kp-op-ink: #7a4300;
+  --kp-mode-face: #6b6b6b;  --kp-mode-ink: #ffffff;
+  --kp-del-face: var(--bad); --kp-del-ink: #000000;
   position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
   width: 100%; max-width: var(--app); box-sizing: border-box; z-index: 49;
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px;
   padding: 8px 16px calc(8px + var(--safe-bottom));
   background: var(--bg); border-top: 1px solid var(--line);
   box-shadow: 0 -.4rem 1.2rem rgba(0,0,0,.5);
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
 #kp[hidden] { display: none; }
+/* 48px, 44 ON A SHORT SCREEN AND 56 FROM 700px UP. 44 is the floor (CLAUDE.md) and 320x568 needs every
+   pixel of it for the box above the pad; a tablet held by a child has room for a key a thumb cannot
+   miss. */
 .kp-key {
-  min-height: 44px; min-width: 0; padding: 0;
-  background: var(--sunk); color: var(--ink);
-  border: 1px solid var(--line); border-radius: var(--r-sm);
-  font: 500 1.05rem/1 var(--font); cursor: pointer;
+  min-height: 48px; min-width: 0; padding: 0;
+  background: var(--kp-face); color: var(--kp-ink);
+  border: 0; border-radius: var(--r);
+  font: 600 1.3rem/1 var(--font); cursor: pointer;
   touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
-.kp-key:active { background: var(--line); transform: translateY(1px); }
-.kp-key.kp-op { color: var(--gold); }
-.kp-key.kp-mode { color: var(--dim); font-size: .95rem; }
-.kp-key.kp-done { background: var(--gold); color: var(--bg); border-color: var(--gold); font-weight: 700; }
+/* PRESSED IS `.is-pressed` AS WELL AS `:active`: Safari withholds `:active` on touch unless the element
+   has a touch listener of its own, and every listener here is on the window (see `pressMark_` in
+   shell.js, which puts the class on at `pointerdown`). Without it a key on the iPad gave no sign it
+   had been touched. */
+.kp-key:active, .kp-key.is-pressed { filter: brightness(.8); transform: translateY(1px); }
+.kp-key.kp-op { background: var(--kp-op-face); color: var(--kp-op-ink); }
+.kp-key.kp-mode { background: var(--kp-mode-face); color: var(--kp-mode-ink); font-size: 1.05rem; }
+.kp-key.kp-del { background: var(--kp-del-face); color: var(--kp-del-ink); }
+.kp-key.kp-done { background: var(--gold); color: var(--bg); }
+.kp-del-i { display: inline-block; width: 26px; height: 26px; vertical-align: middle; }
+/* ✓ WEARS SEND'S MARK (keypad.js), drawn a little heavier than a tile's so it holds up on a key. */
+.kp-done .tile-i { width: 24px; height: 24px; stroke-width: 1.8; }
+@media (min-width: 700px) { .kp-key { min-height: 56px; } }
+@media (max-height: 600px) { .kp-key { min-height: 44px; } }
 /* THE FRACTION KEY IS A FRACTION: two boxes and a line, drawn, not a glyph that varies by font. */
 .kp-fr { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; vertical-align: middle; }
 .kp-fr i { display: block; width: 9px; height: 8px; border: 1px solid currentColor; border-radius: 1px; }
@@ -13269,14 +13372,14 @@ button.scr-sq { cursor: pointer; }
 .kp-pw sup { font-size: .65em; }
 
 /* ---------- MARK WITH AI ------------------------------------------------------------------------------
-   CHECK'S ROW, CHECK'S TILE — it is the same act for a worded answer (keypad.js). The feedback is
-   one sentence UNDER the row rather than in the verdict slot, which holds two short lines at most and
-   is where "2 of 3 marks" goes. Greyed, not removed, when the backend says there is no key: the
-   tile stays where the student's eye already is and the sentence beside it says why.
+   SEND'S PLACE, SEND'S DISC — it is the same act for a worded answer (keypad.js, `aiTile_`). The
+   feedback is one sentence UNDER the verdict's line rather than in it, which is one line and is where
+   "2 of 3 marks" goes. Greyed, not removed, when the backend says there is no key: the tile stays where
+   the student's eye already is and the line under it says why.
    `.qp-ai-go`'s 120px width and its grey disabled fill WERE HERE, for the gold button it was; a tile
-   is 44px and draws its own disabled state (`.tile[disabled]`), so there is nothing left to say. */
+   draws its own disabled state (`.tile.is-send[disabled]`), so there is nothing left to say. */
 .qp-ai.is-busy .qp-verdict { color: var(--dim); }
-.qp-ai-why { margin: 0 0 .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+.qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
 .qp-ai-why:empty { display: none; }
 
 /* ---------- `.resume` WAS HERE --------------------------------------------------------------------
@@ -13302,9 +13405,8 @@ button.scr-sq { cursor: pointer; }
    the answer arrives under the row rather than pushing the row down. `.qans-wait` (the block that held
    the sentence over a tile under it) went with that order. */
 .qans-tiles { margin-top: .9rem; }
-/* THE DRAWING PAGE'S WAY ON TO THE ANSWER sits under the grid as the answer page's sits under its
-   header -- one tile, the row's own spacing. See `questionFigCard_`. */
-.qfig-tiles { margin-top: .9rem; }
+/* `.qfig-tiles` WAS HERE -- the drawing page's row, which held only `To the answer`. Both went on
+   8 Oct: *"there doesnt need to be a scroll down tile on questions."* */
 /* THE FIGURE OVER THE CARD (`q-fig`): each figure named in the words its own page's header uses when
    the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
 .qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }

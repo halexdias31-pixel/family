@@ -297,4 +297,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [An @family. textbook for every common GCSE, bare bones, beside Statistics](293-a-family-textbook-for-every-common-gcse.md)
 - [The daily email to parents: every day of work, with each question's own words](294-the-daily-email-to-parents-every-day-of-work-with-the-questions-words.md)
 - [One email to parents, at the end of the week, with every question's own words](295-one-email-to-parents-at-the-end-of-the-week.md)
+- [The question page in the sun: Questions means questions, no ↓ tile, a chat bar with Send, a keypad you can see](297-the-question-page-in-the-sun.md)
 - [One card, one answer: every card that wanted several answers in one box is parts now](299-one-card-one-answer.md)

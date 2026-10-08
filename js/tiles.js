@@ -77,7 +77,8 @@ const TILE_ICONS = {
   show:  '<path d="M1.5 8.5S4.2 4 9 4s7.5 4.5 7.5 4.5S13.8 13 9 13s-7.5-4.5-7.5-4.5z"/>'
        + '<circle cx="9" cy="8.5" r="2.2"/>',
   /* A TICK, FOR CHECK -- "check button should be a tile". Marking your own answer is the act, and
-     a tick is what a teacher's pen puts on a right one. */
+     a tick is what a teacher's pen puts on a right one. THE ANSWER BOX'S CHECK WEARS `send` NOW (8 Oct,
+     *"the answer box should look like a chatbox. with send tile"*); the tick stays for "Check uploads". */
   tick:  '<path d="M3.5 9.5l3.5 3.5 7.5-8"/>',
   hide:  '<path d="M3 3.5 15 14"/>'
        + '<path d="M7 5.1A7.7 7.7 0 0 1 9 4c4.8 0 7.5 4.5 7.5 4.5a14 14 0 0 1-2.6 2.9"/>'
@@ -158,18 +159,12 @@ const TILE_ICONS = {
        + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
   /* ---------- A QUESTION'S PAGES, WHICH ARE ALL TILES NOW ---------------------------------------
      ASKED FOR AS *"lock should be a tile too. same as undo and clear. it should all be tiles."* and
-     *"some questions require a compass or ruler. so should have a tile for these things."* Five marks
+     *"some questions require a compass or ruler. so should have a tile for these things."* Marks
      the set did not have, at the same 1.4 stroke so a pen bar reads as one row with the star.
 
-     NEXT IS AN ARROW AND NOT AN EYE. The question card's tile used to be the eye and it SHOWED the
-     answer as it turned the page; it only turns the page now (*"answers should just stay hidden
-     unless user unhides them"*), and an eye on a control that reveals nothing would be the one mark
-     in the app that lies. The eye belongs to the tile that does reveal, on the answer page.
-
-     AND IT POINTS DOWN. It pointed right, and on this screen right is a different COLUMN -- a swipe
-     sideways leaves Find for the next screen -- while a question's pages stack downwards ("Swipe up
-     for its questions"), and the answer is the page below its question, or two below past a figure.
-     An arrow is a promise about which way the page will go; this one now keeps it.
+     `next` WAS HERE, THE ↓ ON `To the answer` -- an arrow pointing down the column to the answer page.
+     The tile went on the owner's word, 8 Oct (*"there doesnt need to be a scroll down tile on
+     questions"*, see `questionTiles_` in find.js), and nothing else drew the mark, so it went with it.
 
      THE PEN IS A PENCIL WITH ITS LINE, so it is told from `edit` (a pencil alone, which elsewhere means
      "change this text") by the squiggle it has just drawn. THE RULER IS ON A SLANT with its ticks,
@@ -177,7 +172,6 @@ const TILE_ICONS = {
      compasses every geometry set holds -- the hinge, two legs, and the arc it swings between them.
      AI IS A SPARKLE, the mark every phone already puts on "a model did this", so the one tile whose
      verdict is a guess says so before it is pressed. */
-  next:  '<path d="M9 2.5v12"/><path d="m5 10.5 4 4 4-4"/>',
   pen:   '<path d="M12.6 2.6 15 5 7.2 12.8l-3.2.8.8-3.2z"/>'
        + '<path d="M9 15.2c1.6-1.2 2.6.6 4 0s1.8-1 2.6-1"/>',
   ruler: '<g transform="rotate(-38 9 8.5)"><rect x="1.5" y="5.8" width="15" height="5.4" rx="1"/>'
@@ -719,12 +713,13 @@ function cardActions_(x) {
   if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
   if (x.kind === 'receipt') return jobTiles_(x);
-  /* A QUESTION'S ONE ACTION IS ITS ANSWER, which is a page of its own now and this is the way to
-     it — `questionTiles_` in find.js. It TURNS TO the answer page and reveals nothing. Every other
-     control on a question's pages is a tile too, on the owner's word (*"it should all be tiles"*) —
-     Check, Mark with AI, the pen's lock, its tools, Undo, Clear, Show and Hide — except the keypad's
-     keys and the multiple-choice options, which are the answer being given rather than things done
-     to it. See `padWrap_` and `choiceBox_` in find.js. */
+  /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. It held the
+     way to the answer page too, `To the answer`, until the owner: *"there doesnt need to be a scroll
+     down tile on questions"* (8 Oct); the answer is the next page, a swipe away. Every other control on
+     a question's pages is a tile, on the owner's word (*"it should all be tiles"*) — Send, Mark with
+     AI, the pen's lock, its tools, Undo, Clear, Show and Hide — except the keypad's keys and the
+     multiple-choice options, which are the answer being given rather than things done to it. See
+     `ansBox_`, `padWrap_` and `choiceBox_` in find.js. */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION,
      `Figure` -- which opens it over the card. A typed box carries it at its own end instead (`ansBox_`). */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
