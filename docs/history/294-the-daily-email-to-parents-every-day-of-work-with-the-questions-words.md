@@ -1,3 +1,5 @@
+Removed on 8 Oct — see [295](295-one-email-to-parents-at-the-end-of-the-week.md).
+
 ## The daily email to parents: every day of work, with each question's own words
 
 **Asked for as** *"Finish setting up the email thing so it emails all parents on work their child has

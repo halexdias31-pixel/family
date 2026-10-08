@@ -43,7 +43,7 @@
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
                                     field hold keypad grow widgets cost flicks reduced wide
-                                    widepress — for proving one rule by mutation without waiting
+                                    widepress findrun — for proving one rule by mutation without waiting
                                     six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
@@ -797,6 +797,13 @@ async function gesture(env, o) {
        pages of one paper, and the box's bottom must be 12px or more above the pad's top — the margin
        `kpRoom_` itself keeps. AND PUT BACK: the pad closed, the card is where it was before the tap,
        because a lift that outlives the pad is a card hanging off the top for no reason. */
+    /* ---------- AND THE KEYS PRESSED WITH A FINGER, NOT WITH `.click()` ------------------------------
+       THE OWNER, 8 Oct: *"they keypad was a bit unstable. it wasnt working at first for some reason."*
+       Every keypad check before this called `.click()` or the handler itself, so the path a finger takes
+       -- touchstart, the pad's own `mousedown` guard that keeps the focus on the box, `pointerdown`'s
+       press mark, the click the browser makes of the tap -- had never been walked. On the first box of
+       the run: real touch on 7, then ⌫, then 5, and the box must end as it began plus a 5, with the pad
+       still up and the box still focused. */
     if (want('keypad')) {
       const PAPER = 'RS1786302107764-481';
       const pages = await page.evaluate(async id => {
@@ -829,6 +836,38 @@ async function gesture(env, o) {
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T0 / 1000, touchPoints: [{ x: box.x, y: box.y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
         await sleep(50);
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T0 + 50) / 1000, touchPoints: [] });
+        if (!asked) {
+          const keys = await page.evaluate(() => {
+            const kp = document.getElementById('kp'), inp = document.activeElement;
+            if (!kp || kp.hidden || !inp || !inp.classList || !inp.classList.contains('kp-in')) return null;
+            const at = v => { const b = kp.querySelector('.kp-key[data-v="' + v + '"]'); if (!b) return null;
+              const r = b.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; };
+            return { was: inp.value, k: inp.getAttribute('data-k'), seven: at('7'), back: at('!back'), five: at('5') };
+          });
+          if (!keys || !keys.seven || !keys.back || !keys.five) fail('REACH', `${at} keypad keys`, 'the pad was not up with 7, ⌫ and 5 on it after the tap — the keys were not pressed');
+          else {
+            for (const k of [keys.seven, keys.back, keys.five]) {
+              const T1 = Date.now();
+              await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T1 / 1000, touchPoints: [{ x: k.x, y: k.y, id: 2, radiusX: 8, radiusY: 8, force: 1 }] });
+              await sleep(40);
+              await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T1 + 40) / 1000, touchPoints: [] });
+              await sleep(90);
+            }
+            const typed = await page.evaluate(k => {
+              const kp = document.getElementById('kp'), inp = document.activeElement;
+              const box = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === k);
+              return { up: !!kp && !kp.hidden, focused: inp === box, val: box ? box.value : null };
+            }, keys.k);
+            note(`${at} keypad keys by touch: ${JSON.stringify(keys.was)} + 7 ⌫ 5 → ${JSON.stringify(typed.val)}`);
+            if (typed.val !== keys.was + '5') fail('KEYPAD KEYS', `${at} stuff/${p}`, `real touch on 7, ⌫, 5 left the box ${JSON.stringify(typed.val)}, wanted ${JSON.stringify(keys.was + '5')}`);
+            if (!typed.up || !typed.focused) fail('KEYPAD KEYS', `${at} stuff/${p}`, `after three keys pressed by touch the pad is ${typed.up ? 'up' : 'down'} and the box ${typed.focused ? 'has' : 'has lost'} the focus`);
+            /* AND PUT BACK, so the measurement below and the next run start from the box as it was. */
+            await page.evaluate(k => {
+              const box = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === k.k);
+              if (box) { box.value = k.was; box.dispatchEvent(new Event('input', { bubbles: true })); }
+            }, keys);
+          }
+        }
         const r = await page.evaluate(async () => {
           await window.__sw.still('stuff');
           const kp = document.getElementById('kp'), inp = document.activeElement;
@@ -1175,31 +1214,44 @@ async function gesture(env, o) {
         const tall = await page.evaluate(async () => {
           if (typeof stuffItems !== 'function') return null;
           await window.__sw.place('stuff');
-          const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
+          /* THE TALL CARD IS FOUND, NOT NAMED — see the same note in press.js. The longest
+             questions in the library, longest first, until one has a page with room to glide. */
           const facet = FACETS.find(f => f.field === 'paperId');
-          if (!want || !facet) return null;
-          STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
-          paintStuff(true);
-          await new Promise(r => setTimeout(r, 400));
-          const items = stuffFiltered();
-          const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
-          if (i < 0) return null;
-          /* ITS TALLEST PAGE — the probability-tree card this used stopped being tall when the 1st
-             Class Maths sheets were transcribed properly; see the same note in press.js. */
-          const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+          if (!facet) return null;
+          /* WHAT MAKES A PAGE TALL HERE IS OPTIONS, NOT WORDS. A long stem is cut between paragraphs
+             (`partChunks_`) and a long card is drawn smaller (`paneReach_`, down to `PANE_ZOOM_MIN`), so the
+             six longest questions all fitted (0px, measured 8 Oct). What cannot be cut or shrunk past the floor is
+             a row of full-width option buttons: `check/cards.js`'s tallest cards at 320 are all "choose the
+             true statements" with eight long options. So: most options first, then most words, and measured. */
+          const plain = h => String(h || '').replace(/<[^>]*>/g, '').replace(/&[#a-z0-9]+;/gi, ' ').length;
+          const opts = r => String(r.choices || '').split(' | ').filter(Boolean).length;
+          const ranked = stuffItemsAll_().filter(x => x.row && x.row.html && x.row.kind !== 'preamble' && x.row.kind !== 'document')
+            .sort((a, b) => (opts(b.row) - opts(a.row)) || (plain(b.row.html + b.row.choices) - plain(a.row.html + a.row.choices))).slice(0, 6);
           let best = null;
-          for (let p = at; p < at + 4; p++) {
-            goPage('stuff', p, true);
-            await window.__sw.still('stuff');
-            const pane = document.querySelector('#s-stuff > .page.on > .pane');
-            const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
-            if (!best || room > best.room) best = { page: PAGE.stuff, room };
+          for (const want of ranked) {
+            STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+            paintStuff(true);
+            await new Promise(r => setTimeout(r, 400));
+            const items = stuffFiltered();
+            const i = items.findIndex(x => x.row && x.row.row_id === want.row.row_id);
+            if (i < 0) continue;
+            const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+            best = null;
+            for (let p = at; p < at + 4; p++) {
+              goPage('stuff', p, true);
+              await window.__sw.still('stuff');
+              const pane = document.querySelector('#s-stuff > .page.on > .pane');
+              const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
+              if (!best || room > best.room) best = { page: PAGE.stuff, room, id: want.row.row_id };
+            }
+            if (best.room >= 120) break;
           }
+          if (!best) return null;
           goPage('stuff', best.page, true);
           await window.__sw.still('stuff');
           return best;
         });
-        if (!tall || tall.room < 60) fail('REACH', `${at} tall card`, tall ? `the card has ${tall.room}px to scroll — not tall` : 'the tall question card was not found');
+        if (!tall || tall.room < 60) fail('REACH', `${at} tall card`, tall ? `the tallest page found (${tall.id}) has ${tall.room}px to scroll — not tall` : 'the tall question card was not found');
         else {
           const top = () => page.evaluate(() => Math.round(document.querySelector('#s-stuff > .page.on > .pane').scrollTop));
           const zero = () => page.evaluate(() => { document.querySelector('#s-stuff > .page.on > .pane').scrollTop = 0; });
@@ -1521,6 +1573,149 @@ async function gesture(env, o) {
     }
     if (env.errs.length || env2.errs.length) fail('PAGE ERROR', 'wide', env.errs.concat(env2.errs).slice(0, 3).join(' | '));
     await env2.ctx.close();
+  }
+
+  /* ---------- 14. FIND, FLICKED FAST: NOTHING EMPTY ON THE GLASS, NOTHING TURNED BACK ----------------
+     The owner, 8 Oct, from a live session on a pupil's iPad: *"if i scroll down quickly it does glitch
+     out or clip fast or idk."* Nothing here had ever flicked a TALL WIDE window — the flicks above are
+     at 390 and 320 and rule 12's 1280 is a window at rest — and an iPad is the one that shows three
+     cards below the one in front. Measured there on the Corbettmaths subtraction sheet, ten quick
+     flicks: an EMPTY card on the glass in 96 of 192 frames (48 of 207 at 390x844), and the column sent
+     back against the run 137–731px, two or three times in every ten flicks. Three causes, all in how
+     Find fills its window of pages (`goPage`, `stuffPin_`, `stuffKeepPlace_`, `afterSlide_`).
+
+     SO THE RUN, AS A THUMB DOES IT: 820x1180 and 390x844, W-CBM-subtraction on Find from its first
+     result, ten real touch flicks of 220px over 80ms, 80ms apart, from a point below the middle of the
+     glass (a page not in front takes no presses, so the finger lands on the grid on every card). Then
+     TEN MORE from wherever that left it, because the window of fifteen pages re-centres only once you
+     are a dozen in, every fourth turn after — and moving it was the third cause. Every frame is read
+     AFTER IT IS PAINTED (a `requestAnimationFrame` that posts a message, so the read is the frame that
+     was drawn and not the one being built), and every write to the column is recorded.
+
+       EMPTY ON THE GLASS  a result page with nothing in its pane, drawn (opacity over .05, not hidden)
+                           and inside the window, in any frame.
+       TURNED BACK         the column sent more than 40px AGAINST the run while `PAGE` stayed where it
+                           was: a write that is not a finger's (`colWrite_`, wrapped as `__swCost` wraps
+                           its functions) re-aimed backwards from the aim before it — a write that only
+                           moves the drawn position with the layout (`colShiftNow_`) is not an aim and is
+                           not counted — or a card DRAWN more than 40px further down in one frame than in
+                           the frame before, which is what a write-shaped rule cannot see when the layout
+                           itself moved.
+       REACH               fewer than eight pages turned by ten flicks, or the second ten never moved
+                           the window: the run did not happen, so nothing about it was measured.
+     The first two were proved by mutation: the far edge not filled (`STUFF_SOON` alone) shows empty
+     cards at both widths; an emptied page not held at its height turns the column back at the end of
+     the run; the window moved without `stuffKeepPlace_` turns the cards back in the second ten. */
+  if (want('findrun')) {
+    for (const [W, H] of [[820, 1180], [390, 844]].filter(s => !WIDTH || s[0] === WIDTH)) {
+      const at = `${W}x${H} find run`;
+      const env = await boot(browser, W, H);
+      const { page, cdp } = env;
+      const set = await page.evaluate(async () => {
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        /* THE LIBRARY ARRIVES AFTER THE PAYLOAD, so it is waited for rather than assumed. */
+        for (let i = 0; i < 100 && !(typeof LIBRARY_ROWS !== 'undefined' && Array.isArray(LIBRARY_ROWS) && LIBRARY_ROWS.length); i++) await wait(100);
+        if (typeof stuffFirstResult_ !== 'function') return null;
+        await window.__sw.place('stuff');
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: 'W-CBM-subtraction' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+        await window.__sw.still('stuff');
+        return { first: stuffFirstResult_(), p: PAGE.stuff || 0, n: AXES.y.count('stuff'), wide: !!WIDE };
+      });
+      reached++;
+      if (!set || set.n < set.first + 22) {
+        fail('REACH', at, set ? `the subtraction sheet is ${set.n - set.first} page(s) on Find — the run needs 22` : 'the Find screen did not draw the sheet');
+        await env.ctx.close(); continue;
+      }
+      /* THE RECORDER: every write to Find's column, and every painted frame. */
+      await page.evaluate(() => {
+        const R = window.__swRun = { on: true, writes: [], frames: [], real: colWrite_, realShift: colShiftNow_, shifting: 0 };
+        window.colWrite_ = function (host, x, y) {
+          if (R.on && host && host.id === 's-stuff') {
+            R.writes.push({ y: +y, p: PAGE.stuff || 0, drag: host.classList.contains('dragging'), shift: R.shifting > 0, lo: PAGE_LO.stuff || 0 });
+          }
+          return R.real.apply(this, arguments);
+        };
+        /* A WRITE MADE BY `colShiftNow_` IS WHERE THE COLUMN IS DRAWN, moved by what its layout moved —
+           mid-slide that is behind the slide's end by however far it has still to go, so read as an aim
+           it would look like a turn back of up to a whole card. It is not an aim, and is marked. */
+        window.colShiftNow_ = function () {
+          R.shifting++;
+          try { return R.realShift.apply(this, arguments); } finally { R.shifting--; }
+        };
+        const host = document.getElementById('s-stuff');
+        const mc = new MessageChannel();
+        mc.port1.onmessage = () => {
+          if (!R.on) return;
+          const cards = [];
+          let empty = null;
+          [].forEach.call(host.querySelectorAll(':scope > .page'), (el, i) => {
+            const r = el.getBoundingClientRect();
+            if (r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) return;
+            const cs = getComputedStyle(el);
+            if (cs.visibility === 'hidden' || +cs.opacity <= 0.05) return;
+            const log = logIndex_('stuff', i);
+            const pane = el.querySelector(':scope > .pane');
+            if (el.classList.contains('is-res') && (!pane || !pane.firstChild) && !empty) empty = { log, top: Math.round(r.top), op: +(+cs.opacity).toFixed(2) };
+            cards.push([log, r.top]);
+          });
+          R.frames.push({ p: PAGE.stuff || 0, lo: PAGE_LO.stuff || 0, empty, cards });
+          requestAnimationFrame(() => mc.port2.postMessage(0));
+        };
+        requestAnimationFrame(() => mc.port2.postMessage(0));
+      });
+      const x0 = Math.round(W / 2), y0 = Math.round(H * 0.7);
+      for (const phase of ['from the first result', 'on, through the window moving']) {
+        const before = await page.evaluate(() => {
+          const R = window.__swRun; R.writes = []; R.frames = [];
+          return { p: PAGE.stuff || 0, lo: PAGE_LO.stuff || 0 };
+        });
+        for (let k = 0; k < 10; k++) {
+          await finger(cdp, Object.assign({ x0, y0 }, G.flick(0, -220, 80)));
+          await sleep(80);
+        }
+        /* AND WHAT THE RUN LEFT BEHIND IT: the late fill, the emptying, anything that re-places the
+           column once the thumb has stopped. */
+        await page.evaluate(() => window.__sw.still('stuff'));
+        await sleep(300);
+        const r = await page.evaluate(() => {
+          const R = window.__swRun;
+          return { writes: R.writes.slice(), frames: R.frames.slice(), p: PAGE.stuff || 0, lo: PAGE_LO.stuff || 0 };
+        });
+        reached++;
+        const where = `${at}, ten flicks ${phase}`;
+        const turned = r.p - before.p;
+        const emptyFrames = r.frames.filter(f => f.empty);
+        /* BACK, BY THE WRITES: each one that is not a finger's against the one before it. */
+        const back = [];
+        let last = null;
+        r.writes.forEach(w => {
+          if (w.drag || w.shift) return;
+          if (last && last.p === w.p && w.y - last.y > 40) back.push(`re-aimed ${Math.round(last.y)} → ${Math.round(w.y)}px on page ${w.p}`);
+          last = w;
+        });
+        /* AND BY WHAT WAS DRAWN: a card lower on the glass than one frame before, with no page turned. */
+        for (let i = 1; i < r.frames.length; i++) {
+          const a = r.frames[i - 1], b = r.frames[i];
+          if (a.p !== b.p) continue;
+          const moved = b.cards.map(([log, top]) => { const o = a.cards.find(c => c[0] === log); return o ? top - o[1] : 0; });
+          const worst = Math.max(0, ...moved);
+          if (worst > 40) back.push(`drawn ${Math.round(worst)}px back down in one frame on page ${b.p}${b.lo !== a.lo ? ' as the window moved' : ''}`);
+        }
+        note(`${where}: page ${before.p} → ${r.p} (${turned} turned), ${r.frames.length} frames, ${emptyFrames.length} with an empty card on the glass, ${back.length} turn(s) back, window ${before.lo} → ${r.lo}`);
+        if (turned < 8) fail('REACH', where, `ten flicks turned ${turned} page(s) — eight is the least that is a run, so nothing about one was measured`);
+        if (phase !== 'from the first result' && r.lo === before.lo) fail('REACH', where, `the window never moved (${r.lo}) — the re-centring was not asked`);
+        if (emptyFrames.length) {
+          const e = emptyFrames[0];
+          fail('EMPTY ON THE GLASS', where, `${emptyFrames.length} of ${r.frames.length} painted frames had an empty card drawn on the glass — first page ${e.empty.log} at ${e.empty.top}px, opacity ${e.empty.op}, with page ${e.p} in front`);
+        }
+        if (back.length) fail('TURNED BACK', where, `${back.length} time(s) the column went against the run: ${back.slice(0, 3).join('; ')}`);
+      }
+      await page.evaluate(() => { const R = window.__swRun; R.on = false; window.colWrite_ = R.real; window.colShiftNow_ = R.realShift; });
+      if (env.errs.length) fail('PAGE ERROR', at, env.errs.slice(0, 3).join(' | '));
+      await env.ctx.close();
+    }
   }
 
   await browser.close();

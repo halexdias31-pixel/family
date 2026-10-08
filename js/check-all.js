@@ -205,14 +205,14 @@ const SUITE = [
   /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
      from the token, and nobody sent another learner's — through the same backend. */
   { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. *"it didnt have his answers already written in when he went to
+     see them on the computer"* — the answers tab: the token's person, the later edit, every value as text,
+     and the sign-in reply carrying the child's own work. Same backend, same harness. */
+  { file: 'check-saved-answers.js', what: 'answers on the account: the token’s person, the later edit wins, text in and text out' },
   /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. Nothing has ever sent one, which is why it is
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
-  /* AND THE ONE AFTER EACH SESSION, ON THE SAME ENGINE. *"2 hours after the end of each session"* —
-     every rule it has fails by emailing too: before the lesson ends, about another family's child,
-     about a lesson nobody paid for, or a second time. Same backend, same stubbed mail and clock. */
-  { file: 'check-recap.js', what: 'the email after a session: London due times, Booked seats only, the child’s own day, accepted parents, sent once' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
      images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the

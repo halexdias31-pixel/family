@@ -129,8 +129,26 @@ const STATES = {
         paintStuff();
         goPage('stuff', 0, true);
       },
-      expect: () => document.querySelectorAll('#stuff-groups .row').length,
-      wants: 'a question with answers on it' },
+      /* ---------- AND THE CHIPS SAY ONLY WHAT WAS CHOSEN, WITH CLEAR BESIDE THE BOX ----------------
+         The owner, 8 Oct, on a pupil's iPad: *"i dont need the category of the tag to appear with the
+         choisen option in the finder"*, and *"clear button looks like a tag which it isnt."* This is
+         the state both were said about — seven chips, one of them a skip — so this is where the
+         pictures are asked for: no field name on any chip, Subject's chip `Maths✕` and nothing more
+         (still in Subject's colour), the skip saying `Any school year✕`, and Clear the pen's bin tile in
+         its slot beside the search box, not a chip among the tags. `check/ui.js` measures that tile's
+         reach and contrast here like every other control. */
+      expect: () => {
+        const chips = [...document.querySelectorAll('#stuff-chips .chip')];
+        const text = el => el.textContent.replace(/\s+/g, ' ').trim();
+        const subject = chips.find(c => c.getAttribute('data-tag') === 'subject');
+        return document.querySelectorAll('#stuff-groups .row').length > 0
+          && !document.querySelector('#stuff-chips .chip-k')
+          && !!subject && text(subject) === 'Maths✕'
+          && chips.some(c => text(c) === 'Any school year✕')
+          && !!document.querySelector('#stuff-clear .tile[data-do="filter-clear"]')
+          && !document.querySelector('#stuff-chips [data-do="filter-clear"]');
+      },
+      wants: 'a question with answers on it, the chips only their values (Maths✕, Any school year✕), and Clear a tile beside the search box' },
     /* ---------- THE SITTING, ASKED AS THE YEAR AND THEN THE MONTH ------------------------------------
        REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and as
        "they dont need to appear one above the other but can fill like from left to right". Then the
@@ -902,45 +920,88 @@ const STATES = {
       },
       wants: 'Q3\'s answer page, after its question, for whoever is looking: "Answer hidden", Show the answer, and no answer in it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'the answer, turned to from its question',
+    /* ---------- SWIPED TO, NOT TURNED TO BY A TILE ----------------------------------------------------
+       THIS WAS "THE ANSWER, TURNED TO FROM ITS QUESTION", pressing the question card's ↓ `To the answer`
+       tile. The tile went on the owner's word, 8 Oct: *"there doesnt need to be a scroll down tile on
+       questions."* So the question's page is landed on, it is asked to carry NO such tile, and the strip
+       is swiped one page on -- `goPage(PAGE + 1)`, the landing a swipe ends in, animated as one -- and
+       that page must be the question's answer, still hidden, with Show waiting. A paper chosen and no
+       kind: the one place answers follow their questions. */
+    { name: 'the answer, swiped to from its question',
       enter: () => {
         ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         const first = typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1;
         goPage('stuff', first + stuffPageOf_(it), true);
         window.__ansWant = first + stuffPageOf_(it, 'ans');
-        window.__ansFrom = null;
-        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would -- AT ONCE where it is already
-           drawn (the landing above is instant), so the whole of `ui.js`'s wait goes to the page turning.
-           Pressed after a tick, a loaded run measured the strip still sliding: "PANE OFF THE SCREEN",
-           73px out, a picture of the turn rather than of the page it turned to. */
-        /* BY ITS KEY, NOT BY `.page.on`, which is set a frame after the instant landing -- so the tile is
-           found in the same tick the page is built, and a loaded run's timers cannot eat the wait. */
+        window.__ansFrom = PAGE.stuff;
+        /* BY ITS KEY, in the tick the page is built -- `.page.on` arrives a frame after an instant landing. */
         const k = ansKey_(it);
-        const press = () => {
-          const tile = [...document.querySelectorAll('#s-stuff [data-do="qa-go"]')].find(b => b.getAttribute('data-k') === k);
-          if (!tile) return false;
-          window.__ansFrom = PAGE.stuff;
-          tile.click();
-          return true;
-        };
-        if (!press()) setTimeout(press, 150);
+        window.__ansTile = [...document.querySelectorAll('#s-stuff [data-do="qa-go"], #s-stuff .tile-i-next')].length;
+        window.__ansCard = [...document.querySelectorAll('#s-stuff .qp-ans-in')].some(b => b.getAttribute('data-k') === k);
+        goPage('stuff', PAGE.stuff + 1);
       },
       /* LANDED ON, AND STILL HIDDEN. *"answers should just stay hidden unless user unhides them"* --
-         the question's tile is `To the answer` now and turns the page without revealing it; the
-         page's own Show tile is the one tap that does. */
+         the page's own Show tile is the one tap that reveals it. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card');
-        return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
+        return window.__ansCard && window.__ansTile === 0
+               && PAGE.stuff === window.__ansFrom + 1 && PAGE.stuff === window.__ansWant
                && !!c && c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
                && !c.querySelector('.qans, .qans-body') && !!c.querySelector('.tile[data-do="qa-show"]');
       },
-      wants: 'the question\'s "To the answer" tile pressed, and the page turned forward to its answer -- still hidden, Show the answer waiting',
+      wants: 'the question\'s page with no tile to the answer on the strip, then one swipe on: its answer, still hidden, Show the answer waiting',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- QUESTIONS CHOSEN: THE PAGE AFTER A QUESTION IS THE NEXT QUESTION --------------------------
+       THE OWNER, 8 Oct, on an iPad: *"answers shouldnt even be showing up when all ive done is clicked
+       questions. the answers still show up."* Measured that morning on the Corbettmaths subtraction
+       sheet: 59 pages, 27 of them answers, `subtraction-1, its answer, subtraction-2, its answer...`.
+       With Questions chosen, Q1's card and one swipe on is Q2's card -- and no answer card anywhere on
+       the strip, not merely shut. */
+    { name: 'Questions chosen, Q1 then Q2',
+      enter: () => {
+        ANS_SHOWN.clear();
+        const q1 = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-subtraction-1');
+        if (!q1) throw new Error('Q-CBM-subtraction-1 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(q1) }, { field: 'kindLabel', value: 'Questions' }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(q1), true);
+        window.__q2From = PAGE.stuff;
+        goPage('stuff', PAGE.stuff + 1);
+      },
+      expect: () => {
+        const q2 = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-subtraction-2');
+        const box = document.querySelector('#s-stuff .page.on .qp-ans-in');
+        return !!q2 && PAGE.stuff === window.__q2From + 1 && !!box && box.getAttribute('data-k') === ansKey_(q2)
+               && !document.querySelector('#s-stuff .qans-card');
+      },
+      wants: 'the subtraction sheet with Questions chosen: Q1, one swipe, and Q2\'s card -- no answer card on the strip at all',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- WHAT KIND: QUESTIONS FIRST -------------------------------------------------------------
+       The chips were the alphabet, so `Answers` was the first one -- top left, where a thumb lands -- and
+       one tap on it opens every answer for anybody. In `KIND_BUCKET`'s order now: Questions, then
+       Answers beside it. Pictured, because which chip is first is a fact about the screen. */
+    { name: 'What kind, Questions first',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const chips = [...document.querySelectorAll('#s-stuff .page.on [data-do="facet-pick"][data-field="kindLabel"]')]
+          .map(c => c.getAttribute('data-value'));
+        return chips[0] === 'Questions' && chips[1] === 'Answers';
+      },
+      wants: 'the What kind question with Questions as its first chip and Answers the second',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, shown, and nothing under it',
       enter: () => {
         ANS_SHOWN.clear();
@@ -1237,7 +1298,7 @@ const STATES = {
       } },
     /* ---------- THE KEYPAD UP ON A PART WITH A FIGURE BEHIND IT: THE FIGURE TILE STAYS ABOVE THE PAD ---
        THE REVIEW OF THE MULTI-PART MERGE, at 320x568: 1F Q23b's box raised the pad (top 315) and Check,
-       Figure and To the answer stood at 322-437, under it -- the Figure tile exists to show the Venn
+       Figure and the old way to the answer stood at 322-437, under it -- the Figure tile exists to show the Venn
        WHILE answering, and was hidden exactly then; a tap where it had been typed a key. The tile now
        stands at the end of the box's own line (`ansBox_`), so wherever the box clears the pad, it does.
        Expect: the box AND the Figure tile wholly above the pad's top edge, at every width. */
@@ -1283,12 +1344,157 @@ const STATES = {
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
-    /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" UNDER IT ------------------------------------
+    /* ---------- THE ANSWER BOX AT REST: A PAPER FIELD SAYING WHAT IT IS FOR, AND SEND ----------------------
+       THE OWNER, 8 Oct: *"the answer box should look like a chatbox. with send tile. we found it hard to
+       find answer box in the ipad in the sun."* It was `--sunk` on the card, 1.04:1, with nothing in it.
+       At rest and empty: the field is the paper (`--paper`, read off the stylesheet rather than written
+       here), it says "Type your answer", and Send is the gold tile beside it. `check/ui.js` measures its
+       edges against the card (EDGE). Q0664, the row the marking states use. */
+    { name: 'the answer box at rest, empty, with a Send tile',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__restK = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+      },
+      expect: () => {
+        const inp = [...document.querySelectorAll('#s-stuff .page.on .kp-in')].find(b => b.getAttribute('data-k') === window.__restK);
+        const card = inp && inp.closest('.qcard');
+        const field = card && card.querySelector('.qp-bar > .qp-ans');
+        const show = card && card.querySelector('.kp-show');
+        if (!field || !show) return false;
+        const probe = document.createElement('i');
+        probe.style.color = 'var(--paper)';
+        document.body.appendChild(probe);
+        const paper = getComputedStyle(probe).color;
+        probe.remove();
+        return getComputedStyle(field).backgroundColor === paper && !inp.value
+               && /Type your answer/.test(getComputedStyle(show, '::before').content)
+               && !!card.querySelector('.qp-bar > .tile.is-send.qp-check[data-do="qp-check"]')
+               && !!card.querySelector('.qp-mark.qp-compose > .qp-verdict');
+      },
+      wants: 'Q0664\'s box empty and at rest: the field the paper colour, "Type your answer" in it, and the gold Send tile beside it',
+      leave: () => {
+        try { localStorage.removeItem(window.__restK); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- THE KEYPAD UP, IN ITS SUNLIGHT COLOURS ----------------------------------------------------
+       *"its hard to see keypad and each button especially backspace, which i thing should be red."* The
+       keys were 1.03:1 on the pad. Lit faces now, ⌫ the app's red with a black mark, and the heights in
+       px: 44 on a short screen, 56 from 700px, 48 between. The whole pad takes only a tap
+       (`touch-action: manipulation`), so a double tap in a gap cannot zoom the iPad's page. */
+    { name: 'the keypad up, colours for sunlight',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__sunK = ansKey_(it);
+        let tries = 0;
+        const up = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__sunK);
+          if (!inp) { if (++tries < 20) setTimeout(up, 20); return; }
+          inp.focus();
+          if (KP_AT !== inp) kpOpen_(inp);
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        if (!pad || pad.hidden) return false;
+        const key = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+        const bg = el => (el ? getComputedStyle(el).backgroundColor : '');
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        return bg(key('!back')) === 'rgb(255, 95, 86)' && getComputedStyle(key('!back')).color === 'rgb(0, 0, 0)'
+               && !!key('!back').querySelector('svg.kp-del-i')
+               && bg(key('7')) === 'rgb(242, 242, 242)' && getComputedStyle(key('7')).color === 'rgb(17, 17, 17)'
+               && getComputedStyle(pad).touchAction === 'manipulation'
+               && keys.length === 30 && keys.every(b => b.getBoundingClientRect().height >= tall - 0.5);
+      },
+      wants: 'the keypad up with light keys, ⌫ red with a black mark, touch-action manipulation on the pad, and every key 44/48/56px tall for the screen',
+      leave: () => {
+        try { localStorage.removeItem(window.__sunK); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- A REPAINT WITH THE KEYPAD UP --------------------------------------------------------------
+       *"they keypad was a bit unstable. it wasnt working at first for some reason."* Signing in repaints,
+       and `load()` repaints again about fifteen seconds later; each replaces the box being typed in. Here,
+       in Chromium -- which fires `focusout` for the removed box, where the iPad fires nothing (check-flow
+       holds that half): 7, `repaint()`, a beat for the focus to land, then 5. Wanted: the pad still up,
+       on a box that is in the page, holding 7 before the 5 and 75 after it.
+       TWO LAYERS SINCE 8 OCT, and this asks both. `findKeep_` (js/answers.js) holds a repaint of Find
+       back while a box is focused or the pad is up, so `repaint()` must leave the SAME box in place; and
+       a redraw that comes anyway -- `paintStuff(true)`, which no keep stands in front of -- must still
+       land the pad on the new box. Merged, the state's old `repaint()` met the first layer and never
+       reached the second: "shows no ... the pad still up on the new box" at every width. */
+    { name: 'a repaint with the keypad up',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__rpK = ansKey_(it);
+        window.__rp = null;
+        const live = () => [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__rpK);
+        const key = v => document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+        let tries = 0;
+        const run = () => {
+          const inp = live();
+          if (!inp) { if (++tries < 20) setTimeout(run, 20); return; }
+          inp.focus();
+          if (KP_AT !== inp) kpOpen_(inp);
+          key('7').click();
+          repaint();
+          const held = live() === inp && document.activeElement === inp;
+          paintStuff(true);
+          setTimeout(() => {
+            const now = live();
+            const mid = { up: !document.getElementById('kp').hidden, conn: !!KP_AT && KP_AT.isConnected, held: held,
+                          same: !!now && now !== inp && document.activeElement === now, val: now && now.value };
+            key('5').click();
+            const end = live();
+            window.__rp = { mid: mid, val: end && end.value, up: !document.getElementById('kp').hidden };
+          }, 60);
+        };
+        run();
+      },
+      expect: () => {
+        const r = window.__rp;
+        return !!r && r.mid.held && r.mid.up && r.mid.conn && r.mid.same && r.mid.val === '7' && r.up && r.val === '75';
+      },
+      wants: 'Q0664 with 7 typed: a repaint held back (the same box), then a forced redraw with the pad still up on the new box holding 7 -- then 5 makes 75',
+      leave: () => {
+        try { localStorage.removeItem(window.__rpK); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" BESIDE IT ------------------------------------
+       In the answer bar where Send stands on a box with a scheme (8 Oct, `aiTile_`), its verdict and its
+       sentence on the lines under the bar.
        The fixture is a deployment with the action and no key (`aiMarking: false`), which is what
        `doGet` sends until the owner adds one — so this says yes for the length of the state, the way
        a key in Script Properties would, and puts it back. Q33 of AQA Biology June 2024 Foundation is
        a three-mark `explain` with a scheme and no `accept`: exactly the question the button is for. */
-    { name: 'a worded answer, Mark with AI under it',
+    { name: 'a worded answer, Mark with AI beside it',
       enter: () => {
         const id = 'Q-AQA-8461-2406-1F-033';
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
@@ -1337,12 +1543,89 @@ const STATES = {
           : /Sign in/.test(said.textContent);
         return !!go && !card.querySelector('.kp-in') && !!said && marked;
       },
-      wants: 'a three-mark explain question with its textarea, "Mark with AI" under it, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
+      wants: 'a three-mark explain question with its textarea, "Mark with AI" beside it in the bar, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
       leave: () => {
         if (window.__aiApi) api = window.__aiApi;
         if (window.__aiTok && USER) delete USER.token;
         try { localStorage.removeItem(window.__aiKey); } catch (e) {}
         DATA.aiMarking = false;
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- WHERE A TYPED ANSWER IS KEPT, SAID UNDER THE BOX ----------------------------------------
+       *"it doesnt seem to save their answers"* and *"i am very dissapointed it didnt have his answers
+       already written in when he went to see them on the computer"* — js/answers.js. Two states, one per
+       visitor: SIGNED IN, the box on a fresh device filled from the account by `answersPull_` and the line
+       under it naming whose account it is on; SIGNED OUT, an answer typed and the line saying it is on
+       this device only. The fixture is a deployment from before `saveAnswers`, and its signed-in visitor
+       has no token, so both are lent for the length of the state — and `api` answers `myAnswers` the way
+       the backend does — and put back. Measured at 320 because the line is one line and must stay one. */
+    { name: 'a typed answer, filled from the account on another device',
+      only: () => typeof USER !== 'undefined' && !!USER && !!USER.personId,
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        const k = ansKey_(it);
+        window.__svKey = k;
+        try { localStorage.removeItem(k); localStorage.removeItem('ansAt:' + k); } catch (e) {}
+        /* NOT DUE EITHER — the states above typed into this same box signed in, and an answer still due
+           on this device wins over the account's (`answersAdopt_`), which is the rule, not this state. */
+        ansDirtySet_(whoIs_()).delete(k); ansDirtyKeep_(whoIs_());
+        window.__svFeat = DATA.features;
+        DATA.features = (DATA.features || []).concat(['saveAnswers', 'myAnswers']);
+        window.__svTok = !USER.token;
+        if (window.__svTok) USER.token = 'state-token';
+        window.__svApi = api;
+        api = (b, o) => (b && b.action === 'myAnswers')
+          ? Promise.resolve({ success: true, for: String(USER.personId),
+              answers: { [ansServerKey_(k)]: { v: '4.6', at: Date.now() - 3600e3 } } })
+          : (b && b.action === 'saveAnswers') ? Promise.resolve({ success: true, saved: {} })
+          : window.__svApi(b, o);
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        answersPull_(true);
+      },
+      expect: () => {
+        const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__svKey);
+        const line = [...document.querySelectorAll('#s-stuff .qp-saved')].find(b => b.getAttribute('data-k') === window.__svKey);
+        return !!inp && inp.value === '4.6' && !!line && /^Saved to .+account$/.test(line.textContent);
+      },
+      wants: 'Q0664\u2019s box filled with 4.6 from the account, and "Saved to \u2026\u2019s account" under it on one line',
+      leave: () => {
+        if (window.__svApi) api = window.__svApi;
+        DATA.features = window.__svFeat;
+        if (window.__svTok && USER) delete USER.token;
+        try { localStorage.removeItem(window.__svKey); localStorage.removeItem('ansAt:' + window.__svKey); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a typed answer, kept on this device only',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        window.__svKey = ansKey_(it);
+        try { localStorage.removeItem(window.__svKey); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const run = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === window.__svKey);
+          if (!inp) return false;
+          inp.value = '4.6';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const line = [...document.querySelectorAll('#s-stuff .qp-saved')].find(b => b.getAttribute('data-k') === window.__svKey);
+        return !!line && line.textContent === 'On this device only \u2014 sign in to keep it';
+      },
+      wants: 'Q0664 typed into signed out, and "On this device only \u2014 sign in to keep it" under the box on one line',
+      leave: () => {
+        try { localStorage.removeItem(window.__svKey); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
@@ -1886,6 +2169,64 @@ const STATES = {
       },
       wants: 'the register sheet with the no-email tick ticked, a whole 44px row under the email box',
       leave: () => { closeSheet(); } },
+    /* ---------- SIGNING IN ON A SHARED iPAD -------------------------------------------------------------
+       *"the logging in and everything feels so janky and unresponsive and slow… i feel very insecure when
+       signing into the kids accounts"* (docs/history/296). Three pictures of the card nobody signed in
+       sees: the handles this device has signed in as chips, Sign in pressed and waiting, and a wrong PIN
+       — the box emptied, focused and edged red. `api` answers `verifyLogin` for the length of the state
+       (never, or with the server's wrong-PIN refusal) and is put back. */
+    { name: 'the handles signed in on this device, as chips',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        localStorage.setItem('familyHandles', JSON.stringify(['ada_kind7', 'maximilian_steady42']));
+        paint('account'); paintPager('account', true); goPage('account', 0, true);
+      },
+      expect: () => {
+        const b = [...document.querySelectorAll('#s-account .hchip button')];
+        return b.length === 4 && b.every(x => x.offsetHeight >= 44) ? 4 : 0;
+      },
+      wants: 'two remembered handles as chips over the email box, each with its \u2715, every one a 44px target',
+      leave: () => { try { localStorage.removeItem('familyHandles'); } catch (e) {} paint('account'); paintPager('account', true); } },
+    { name: 'signing in, waiting for the answer',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const n = document.getElementById('in-name'), p = document.getElementById('in-pin');
+        if (!n || !p) throw new Error('no sign-in card on the signed-out account column');
+        window.__siApi = api;
+        api = (b, o) => (b && b.action === 'verifyLogin') ? new Promise(() => {}) : window.__siApi(b, o);
+        n.value = 'ada_kind7'; p.value = '4826';
+        ACTIONS['do-signin'](document.querySelector('#s-account [data-do="do-signin"]'));
+      },
+      expect: () => {
+        const t = document.querySelector('#s-account [data-do="do-signin"]');
+        const p = document.getElementById('in-pin');
+        return !!t && t.classList.contains('is-busy') && !!p && p.disabled;
+      },
+      wants: 'Sign in pressed and waiting: its ring turning, the boxes locked and still readable',
+      leave: () => { if (window.__siApi) api = window.__siApi; paint('account'); paintPager('account', true); } },
+    { name: 'a wrong PIN, the box emptied and edged red',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const n = document.getElementById('in-name'), p = document.getElementById('in-pin');
+        if (!n || !p) throw new Error('no sign-in card on the signed-out account column');
+        window.__wpApi = api;
+        api = (b, o) => (b && b.action === 'verifyLogin')
+          ? Promise.resolve({ success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
+          : window.__wpApi(b, o);
+        n.value = 'ada_kind7'; p.value = '1239';
+        ACTIONS['do-signin'](document.querySelector('#s-account [data-do="do-signin"]'));
+      },
+      expect: () => {
+        const p = document.getElementById('in-pin');
+        return !!p && p.value === '' && p.getAttribute('aria-invalid') === 'true' && document.activeElement === p;
+      },
+      wants: 'the PIN box emptied, focused and edged in --bad after a wrong PIN, the handle kept',
+      leave: () => {
+        if (window.__wpApi) api = window.__wpApi;
+        const p = document.getElementById('in-pin');
+        if (p) { p.removeAttribute('aria-invalid'); p.blur(); }
+        paint('account'); paintPager('account', true);
+      } },
     /* ---------- A CHILD WITH NO HANDLE, ON AN ADMIN'S PEOPLE COLUMN ------------------------------------
        The card says "no handle yet" where the handle goes, and carries New PIN beside Message. Seeded
        into `DATA.everyone`, which the fixture does not carry, because the admin's list is built only
@@ -2704,106 +3045,30 @@ const STATES = {
         const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
         if (at < 0) throw new Error('no weekly parent email card on the settings column');
         goPage('settings', at, true);
-        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 3 questions — 2 new and 1 gone back to.\n\n'
-          + 'New this week\n- Maths · Paper 1 (Calculator) — June 2024 · Q1\n- Maths · Paper 31: Statistics — June 2022 · Q4b\n\n'
-          + 'Gone back to\n- q:Q-9MA031-2206-1\n\nAda can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+        /* THE BODY AS `digestRender_` WRITES IT SINCE 8 OCT: a paper's heading, the scene its parts share
+           once (cut to DIGEST_STEM_SHOWN), each part with its own ask — the longest lines the sheet is
+           ever handed — and a paper with no words as its line of numbers. */
+        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 4 questions — 3 new and 1 gone back to.\n\n'
+          + 'Maths · Paper 1 (Calculator) — June 2024\nQ1, Q7 (again)\n\n'
+          + 'Maths · Paper 3 (Calculator) — November 2023 (Higher)\n'
+          + 'Here is some information about the 120 students in Year 11 at a school, who were each asked which of three after-school clubs they go to; 47 go to the chess club, 38 go to the drama club and the rest go to the football club, and no student goes to more than one club…\n'
+          + 'Q14a: A student is chosen at random from the 120. Work out the probability that the student goes to the drama club, giving your answer as a fraction in its simplest form.\n'
+          + 'Q14b: Two students are chosen at random without replacement. Work out the probability that both go to the chess club. (picture on the site)\n\n'
+          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
           + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
-        openSheet('Weekly parent email', digestSheet_({ success: true, mode: 'preview', hour: 18, scheduled: 0,
+        openSheet('Weekly parent email', digestSheet_({ success: true, mode: 'preview', hour: 18, scheduled: 0, words: true,
           week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
           emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
-                     subject: 'Ada’s week: 3 questions', text: body, html: '', count: 3 }],
+                     subject: 'Ada’s week: 4 questions', text: body, html: '', count: 4 }],
           unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] }));
       },
       leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
       expect: () => {
         const t = (document.getElementById('sheet-body') || {}).textContent || '';
-        return /To Pat Parent/.test(t) && /Ada’s week: 3 questions/.test(t) && /Nobody to tell/.test(t);
+        return /To Pat Parent/.test(t) && /Ada’s week: 4 questions/.test(t) && /Q14a: A student is chosen at random/.test(t)
+          && /Nobody to tell/.test(t);
       },
-      wants: 'each email under its address, its plain body, and who nobody can tell' },
-
-    /* ---------- THE DAILY EMAIL TO PARENTS: ITS CARD, AND WHAT PREVIEW OPENS ------------------------
-       *"2 hours after the end of each session"*, and then *"emails all parents on work their child has
-       done with the exact questions for each"* — backend/recap.gs, js/digest.js. The card is the last
-       page of an admin's Settings, after the weekly one. The preview is drawn from a reply shaped the
-       way `recapPreviewOut_` answers — a missing-tab warning, an unbooked check, a day with a session,
-       an email, a session counted for nobody and a learner nobody can tell, and a day of homework with
-       no session whose email lists each question's own words — with an address, a paper's name and a
-       question's scene long enough to have to wrap at 320. The state names stay as they were:
-       js/check-recap.js finds this fixture by them. */
-    { name: 'the email after each session card',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
-        if (at < 0) throw new Error('no daily email to parents card on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        return !!pg && /Daily email to parents:\s*(Off|Preview|Send)/.test((pg.querySelector('.recap-mode') || {}).textContent || '')
-          && /^(\d{1,2}(am|pm)|midnight|noon)$/.test((pg.querySelector('.recap-morning') || {}).textContent || '')
-          && !!pg.querySelector('.tile-row [data-do="recap-preview"]');
-      },
-      wants: 'the mode in its title, the delay, the next-morning hour, and one Preview tile' },
-    { name: 'the email after each session, previewed',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
-        if (at < 0) throw new Error('no daily email to parents card on the settings column');
-        goPage('settings', at, true);
-        const body = 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 4 questions, 3 of them for the first time.\n\n'
-          + 'Biology · Required practical · Osmosis\nWorksheet\n\n'
-          + 'Maths · Paper 1 (Calculator) — June 2024\nQ3, Q7 (again), Q11\n\n'
-          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
-          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
-        /* A DAY OF HOMEWORK, AS `recapRender_` WRITES IT: the day in the lead, a paper's heading, the scene
-           its parts share once (cut to RECAP_STEM_SHOWN), then each part with its own ask — the longest
-           lines the sheet is ever handed. */
-        const work = 'Hello Pat,\n\nOn Monday 5 October Ada worked on 3 questions, 2 of them for the first time.\n\n'
-          + 'Maths · Paper 3 (Calculator) — November 2023 (Higher)\n'
-          + 'Here is some information about the 120 students in Year 11 at a school, who were each asked which of three after-school clubs they go to; 47 go to the chess club, 38 go to the drama club and the rest go to the football club, and no student goes to more than one club…\n'
-          + 'Q14a: A student is chosen at random from the 120. Work out the probability that the student goes to the drama club, giving your answer as a fraction in its simplest form.\n'
-          + 'Q14b (again): Two students are chosen at random without replacement. Work out the probability that both go to the chess club. (picture on the site)\n'
-          + 'Q15: Solve 2^x = 8. Simplify 72/n, t/2 and (7.902 − 8)/x.\n\n'
-          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
-          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
-        const empty = d => ({ day: d, label: d, sessions: [], emails: [], nobody: [] });
-        openSheet('Daily email to parents', recapSheet_({ success: true, mode: 'preview', delay: 2, morning: 7, scheduled: 0,
-          attempts: false, logTab: true,
-          warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it; questions marked from then on are what these emails report. Nothing was sent.',
-          days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
-                   /* WHAT `recapPreviewOut_` REALLY PUTS IN `sessions`: Booked sessions, and the QUIET reasons.
-                      A reason the log is told (agreed but not paid) is a job-level row in `nobody`, for
-                      another job — one job is never both a quiet line and a log row on one day. */
-                   sessions: [{ subject: 'Maths', time: '4pm–6pm', learners: ['Ada Pupil'], dueSaid: '8pm', state: 'due' },
-                              { subject: 'Physics', time: '', learners: [], dueSaid: '', state: 'nobody has a seat on it — cancelled, or never booked on the site' }],
-                   emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
-                              subject: 'Ada’s session on Tue 6 Oct: 4 questions', text: body, count: 4, dueSaid: '8pm', state: 'due', status: 'preview' }],
-                   nobody: [{ name: 'Ben Pupil', why: 'no question on the attempts tab for Ben Pupil on Tue 6 Oct — this email reports only questions marked while signed in as Ben Pupil; 9 were marked that day on Sam Tutor’s account (the tutor)', status: 'nothing done' },
-                            { name: 'Chemistry (J-3)', why: 'agreed with the tutor but nobody’s seat is Booked — mark it paid and the next hourly check sends it, while it is within 24 hours of due', status: 'not sent' }] },
-                 { day: '2026-10-05', label: 'Mon 5 Oct', sessions: [],
-                   emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
-                              subject: 'Ada’s work on Mon 5 Oct: 3 questions', text: work, count: 3, dueSaid: '7am on Tue 6 Oct', state: 'due', status: 'preview' }],
-                   nobody: [] },
-                 empty('2026-10-04'), empty('2026-10-03'), empty('2026-10-02'), empty('2026-10-01'), empty('2026-09-30')] }));
-      },
-      leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
-      /* AND THE DAY OUTRANKS THE EMAIL. Each email's `h3` was the browser's 1.17em bold — the largest text
-         on the sheet — under a day drawn as the sheet's small dim marker, so the days that organise the
-         preview were the hardest thing on it to find. Asked of the drawn page: an email's heading is no
-         larger than the text under it, and the day is a divider with a rule above it. */
-      expect: () => {
-        const body = document.getElementById('sheet-body');
-        const t = (body || {}).textContent || '';
-        const h2 = body && body.querySelector('.recap-sheet h2'), h3 = body && body.querySelector('.recap-sheet h3');
-        const p = h3 && h3.nextElementSibling;
-        const px = el => parseFloat(getComputedStyle(el).fontSize);
-        return /To Pat Parent/.test(t) && /Ada’s session on Tue 6 Oct: 4 questions/.test(t) && /Nobody to tell/.test(t) && /No hourly check is booked/.test(t)
-          && /Ada’s work on Mon 5 Oct: 3 questions/.test(t) && /Q14a: A student is chosen at random/.test(t)
-          && !!h2 && !!h3 && !!p && px(h3) <= px(p) && parseFloat(getComputedStyle(h2).borderTopWidth) > 0;
-      },
-      wants: 'the warnings first, each session on a line, each email under its address, a day of homework with each question’s words, who nobody can tell, and each day a divider that outranks the email headings under it' },
+      wants: 'each email under its address, its plain body with each question’s words, and who nobody can tell' },
 
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
        ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take

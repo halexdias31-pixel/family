@@ -12,11 +12,11 @@
      · THE PERSON IS THE TOKEN'S. A request claiming another student's `personId` dates the question
        for whoever sent it. No token, no row.
      · A DAY FROM THE FUTURE IS TODAY. The phone's day is believed, up to tomorrow.
-     · ONLY TWO PAYLOADS ARE RETIRED — the student's own and the admin's — and the generation that
-       would make every visitor rebuild is untouched.
+     · NO PAYLOAD IS RETIRED AND THE GENERATION IS UNTOUCHED — the stored body carries no `attempts`,
+       and every load, hit or miss, has them laid on fresh for the token's person.
      · WHO IS SENT WHAT: yourself, your own; an admin, everybody's summary; another learner and a
        stranger, nothing of anybody else's.
-     · THE QUESTION'S WORDS (`words`, for the daily parent email) BY THE LABEL'S RULES: kept on a new
+     · THE QUESTION'S WORDS (`words`, for the weekly parent email) BY THE LABEL'S RULES: kept on a new
        row, filled into a blank cell even on a day already covered and nothing else moved, never
        rewritten, and on a live tab from before the column neither written nor an error. The text is
        `attemptWords_`'s — an inequality is not a tag, line breaks and the stem's `---` line survive,
@@ -113,15 +113,15 @@ function world() {
     if (ben.length !== 50) bad.push('a batch of 60 wrote ' + ben.length + ' rows — wanted the cap of 50');
 
     /* ---------- A NAME FILLS A BLANK ROW ON A DAY ALREADY COVERED, AND NOTHING ELSE MOVES ---------
-       The first learner the after-session email met had three rows sent up as bare keys (the backlog
-       carried no names), and that email prints no raw key — so a row with no name must take one when
+       The first learner a parent email met had three rows sent up as bare keys (the backlog carried
+       no names), and the email prints no raw key — so a row with no name must take one when
        it next arrives, even for a day the sheet has. Only the name: no day moves, nothing is counted,
        and a row that already has a name is never renamed by another phone. */
     done('s1@example.org', [{ key: 'q-unnamed', day: D1 }]);
     const t0 = rows().find(x => x.question_key === 'q-unnamed');
     const nm = done('s1@example.org', [{ key: 'q-unnamed', day: D1, label: 'Maths · Money · Q1' }]);
     const t1 = rows().find(x => x.question_key === 'q-unnamed');
-    if (!t1 || t1.label !== 'Maths · Money · Q1') bad.push('a name sent for a day already covered was not written into the blank cell: ' + JSON.stringify(t1) + ' — the after-session email would list nothing');
+    if (!t1 || t1.label !== 'Maths · Money · Q1') bad.push('a name sent for a day already covered was not written into the blank cell: ' + JSON.stringify(t1) + ' — the parent email would list nothing');
     else if (t1.first_done !== t0.first_done || t1.last_done !== t0.last_done || Number(t1.times) !== Number(t0.times)) bad.push('naming a row on a covered day also moved it: ' + JSON.stringify(t0) + ' -> ' + JSON.stringify(t1) + ' — only the name may be written');
     if (nm.writes !== 1) bad.push('naming a blank row wrote ' + nm.writes + ' cell(s) — wanted exactly the one name');
     const rn = done('s1@example.org', [{ key: 'q-unnamed', day: D1, label: 'Something else' }]);
@@ -323,9 +323,14 @@ function world() {
   });
 }
 
-/* ---------- WHAT IT COSTS EVERYBODY ELSE ----------------------------------------------------------
-   A done question is in two payloads. Ada's own goes, the admin's goes, Ben's stays, and the
-   generation every key starts with is the same number after as before. */
+/* ---------- WHAT IT COSTS EVERYBODY ELSE — AND NOW, WHAT IT COSTS THE CHILD ---------------------------
+   A done question used to retire two stored payloads by key, the student's and the admin's, and that was
+   the slow sign-in the owner felt on a shared iPad (*"janky and unresponsive and slow"*): the child's
+   next load anywhere was a cold rebuild. The stored body leaves `attempts` out now and `doGet` adds them
+   fresh for the token's person on every answer (`payloadWithAttempts_`). So: nobody's payload is retired,
+   the generation is the same number after as before, and still Ada's next load — a cache HIT — has the
+   question she just did, the admin's summary counts it, and Ben's has nothing of hers. And the stored
+   body itself carries no `attempts`: a copy in there would be a date nothing ever refreshes. */
 {
   const { b, tok, done } = world();
   b.get({ token: tok['s1@example.org'] });
@@ -333,15 +338,27 @@ function world() {
   b.get({ token: tok['a1@example.org'] });
   const gen = b.props.PAYLOAD_GEN;
   const idx = pid => [...b.cache.keys()].some(k => /^pay:[^:]*$/.test(k) && k.endsWith('|' + pid));
-  if (!idx('P-S1') || !idx('P-S2') || !idx('P-A1')) bad.push('the three payloads were not cached to begin with, so retirement was NOT checked: ' + [...b.cache.keys()].filter(k => /^pay:[^:]*$/.test(k)).join(', '));
+  if (!idx('P-S1') || !idx('P-S2') || !idx('P-A1')) bad.push('the three payloads were not cached to begin with, so what a done question costs was NOT checked: ' + [...b.cache.keys()].filter(k => /^pay:[^:]*$/.test(k)).join(', '));
   else {
+    asked++;
+    const stored = [...b.cache.keys()].filter(k => /^pay:.*:\d+$/.test(k)).map(k => b.cache.get(k)).join('');
+    if (/"attempts"\s*:/.test(stored)) bad.push('the STORED payload carries `attempts` — a date in there is one nothing refreshes, so a done question would have to throw the child’s whole payload away again');
     done('s1@example.org', [{ key: 'q-cost', day: D1 }]);
     if (b.props.PAYLOAD_GEN !== gen) bad.push('a done question bumped PAYLOAD_GEN (' + gen + ' → ' + b.props.PAYLOAD_GEN + ') — every visitor rebuilds thirty tabs because a child typed an answer');
-    if (idx('P-S1')) bad.push('Ada’s own payload was not retired, so her other phone keeps the old date for six hours');
-    if (idx('P-A1')) bad.push('the admin’s payload was not retired, so the people column keeps the old count');
+    if (!idx('P-S1')) bad.push('Ada’s own stored payload was retired for one date — her next sign-in anywhere is a cold rebuild, the slow sign-in this was built to end');
+    if (!idx('P-A1')) bad.push('the admin’s stored payload was retired for Ada’s question');
     if (!idx('P-S2')) bad.push('Ben’s payload was retired for Ada’s question — it has nothing of hers in it');
-    const fresh = b.get({ token: tok['s1@example.org'] }).attempts || {};
-    if (!fresh.mine || !fresh.mine['q-cost']) bad.push('Ada’s next load does not have the question she just did');
+    const fresh = b.get({ token: tok['s1@example.org'] });
+    if (!fresh.cached) bad.push('Ada’s next load was not served from the store, so this did not ask what a hit carries');
+    const mine = (fresh.attempts || {}).mine || {};
+    if (!mine['q-cost'] || mine['q-cost'].last !== D1) bad.push('Ada’s next load (a cache hit) does not have the question she just did: ' + JSON.stringify(fresh.attempts));
+    if ((fresh.attempts || {}).for !== 'P-S1') bad.push('the attempts laid on a hit are stamped for "' + (fresh.attempts || {}).for + '", not Ada');
+    const hal = b.get({ token: tok['a1@example.org'] }).attempts || {};
+    if (!hal.people || !hal.people['P-S1'] || !(hal.people['P-S1'].n >= 1)) bad.push('the admin’s next load does not count Ada’s question: ' + JSON.stringify(hal.people));
+    const ben = b.get({ token: tok['s2@example.org'] }).attempts || {};
+    if (ben.mine && ben.mine['q-cost']) bad.push('BEN’S NEXT LOAD CARRIES ADA’S QUESTION — the fresh attempts were built for the wrong person');
+    const anon = b.get({}).attempts || {};
+    if (anon.for !== '' || Object.keys(anon.mine || {}).length) bad.push('a visitor with no token was laid attempts: ' + JSON.stringify(anon));
   }
 }
 

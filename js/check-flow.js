@@ -1929,6 +1929,12 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
   if (at < 0) return ['there is no Connect 4 on the Games column'];
   t.goPage('games', at, true);
   const cells = () => [...d.querySelectorAll('#s-games #c4-board .c4-cell')];
+  /* TURNING TO THE PAGE STARTS THE WIDGET, IT DOES NOT FINISH IT — `woken_()` above says why. This
+     counted the squares on the same tick as the turn, and under a loaded full suite (8 Oct) the
+     board was still in the queue: "did not draw 42 squares". So: the column quiet, then up to three
+     seconds for the board itself, and a board that never draws still fails. */
+  await woken_();
+  for (let k = 0; k < 30 && cells().length !== W * H; k++) await wait(100);
   if (cells().length !== W * H) return ['the board did not draw ' + (W * H) + ' squares'];
   const bad = [];
   const tap = x => { const el = d.createElement('button'); el.setAttribute('data-x', String(x)); t.ACTIONS['c4-drop'](el); };
@@ -2001,8 +2007,10 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
   if (at < 0) return ['there is no maze on the Games column'];
   t.goPage('games', at, true);
-  await wait(50);
   const grid = () => d.querySelector('#s-games #maze-grid');
+  /* The board waited for, not guessed at — the same race as Connect 4's above. */
+  await woken_();
+  for (let k = 0; k < 30 && !(grid() && grid().children.length === N * N); k++) await wait(100);
   if (!grid() || grid().children.length !== N * N) return ['the maze did not draw ' + (N * N) + ' squares'];
   const bad = [];
 
@@ -6896,7 +6904,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   const bad = [];
   if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
   const A = w.__t.ACTIONS;
-  ['qp-check', 'qa-go', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
+  ['qp-check', 'qa-show', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
   if (bad.length) return bad;
   const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   /* THE TAG ROW AND THE QUESTION. There was a gold header line above the tags; everything it said is a
@@ -6941,19 +6949,22 @@ check('marking, revealing and tapping leave the question where it is, and typing
   A['qp-check'](chk);
   if (!mark.classList.contains('is-right')) bad.push('15 was not marked right');
   same(t0, typed, 'after a right Check');
-  /* REVEALED -- by the tile under the card, which turns to the answer page. The tile is drawn by
-     `questionTiles_` beside the card as `stuffCard` puts it; the card must not change for it. */
+  /* REVEALED -- by Show on the answer page, which is the page a swipe after the card. The question's
+     own row has no way to it any more (*"there doesnt need to be a scroll down tile on questions"*,
+     8 Oct), and showing the answer must not change the card it belongs to. */
   const shutX = Object.assign({}, base, { key: 'q-still-shut', row: Object.assign({}, base.row, { row_id: 'Q-STILL-8' }) });
   const shut = draw(shutX);
   const r0 = still(shut);
   shut.parentNode.insertAdjacentHTML('beforeend', '<div class="tile-row">' + w.questionTiles_(shutX) + '</div>');
-  const rev = shut.parentNode.querySelector('[data-do="qa-go"]');
-  if (!rev) bad.push('a question with an answer has no tile to its answer page');
+  if (shut.parentNode.querySelector('[data-do="qa-go"], .tile-i-next')) bad.push('the question\'s row still carries a tile to its answer page -- the owner asked for none');
+  shut.parentNode.insertAdjacentHTML('beforeend', w.questionAnsCard_(shutX));
+  const rev = shut.parentNode.querySelector('[data-do="qa-show"]');
+  if (!rev) bad.push('the answer page has no Show to reveal it with');
   else {
     const heldR = w.stuffItemsAll_;
     w.stuffItemsAll_ = () => [shutX];
-    try { A['qa-go'](rev); } finally { w.stuffItemsAll_ = heldR; }
-    same(r0, shut, 'after "To the answer"');
+    try { A['qa-show'](rev); } finally { w.stuffItemsAll_ = heldR; w.ansHide_(shutX); }
+    same(r0, shut, 'after "Show the answer"');
   }
   /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the
      library, which this harness does not load; so the library is this one question for the length of
@@ -6977,6 +6988,9 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (shownBy) bad.push('a wrong tap ticked option ' + shownBy.getAttribute('data-n') + ' -- the answer shown on the question card without Show');
   const said = (tapped.querySelector('.qp-verdict') || {}).textContent || '';
   if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
+  /* AND IT POINTS AT THE ANSWERS CHIP, not at "the answer page": with Questions chosen there is no
+     answer page after the question to point at (`questionsView_`). */
+  if (said.trim() !== 'Not yet — see Answers') bad.push('a wrong tap\'s verdict reads "' + said.trim() + '", wanted "Not yet — see Answers"');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
   /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
@@ -7028,6 +7042,17 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   }
   if (card.querySelector('textarea.qp-ans-in')) bad.push('the maths card drew a textarea as well as the keypad box');
   if (card.querySelector('.qp-ai')) bad.push('a maths question with a scheme was offered "Mark with AI" — Check is exact there');
+  /* ---------- THE BOX IS A CHAT BAR WITH A SEND TILE ----------------------------------------------------
+     *"the answer box should look like a chatbox. with send tile."* (8 Oct.) The structure the stylesheet
+     and the handlers lean on: the field and Send side by side in `.qp-bar`, Send a gold `.tile.is-send`
+     that is still `.qp-check` (the name ✓ and every check find it by) with the paper aeroplane on it, and
+     the verdict a line of its own UNDER the bar but inside `.qp-mark`, where `qp-check` looks for it. */
+  const bar = card.querySelector('.qp-mark.qp-compose > .qp-bar');
+  const sendT = card.querySelector('.qp-check');
+  if (!bar || !bar.querySelector(':scope > .qp-ans .kp-in')) bad.push('the answer box is not in a chat bar (`.qp-mark.qp-compose > .qp-bar` holding the field)');
+  if (!sendT || !sendT.matches('.qp-bar > .tile.is-send[data-do="qp-check"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not a gold tile with the send mark in the bar beside the field: ' + (sendT ? sendT.outerHTML.slice(0, 120) : '(none)'));
+  const verdictEl = card.querySelector('.qp-verdict');
+  if (!verdictEl || !verdictEl.closest('.qp-mark') || verdictEl.closest('.qp-bar')) bad.push('the verdict is not a line of its own under the bar, inside `.qp-mark`');
   inp.focus();
   const pad = d.getElementById('kp');
   if (!pad || pad.hidden) return bad.concat(['focusing the maths box did not open the keypad']);
@@ -7042,6 +7067,10 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   pad.querySelectorAll('.kp-key').forEach(b => {
     if (b.tagName !== 'BUTTON' || b.getAttribute('type') !== 'button') bad.push('a key is not a <button type="button">: ' + b.outerHTML.slice(0, 60));
   });
+  /* ⌫ IS THE RED KEY, with a drawn mark (*"especially backspace, which i thing should be red"*), and ✓
+     wears the Send tile's paper aeroplane -- one mark for "mark it" on the pad and beside the box. */
+  if (key('!back') && (!key('!back').classList.contains('kp-del') || !key('!back').querySelector('svg.kp-del-i'))) bad.push('⌫ is not the red key (`kp-del`) with its drawn mark');
+  if (key('!done') && !key('!done').querySelector('.tile-i-send')) bad.push('✓ does not carry the send mark the Send tile has');
   const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + v + ' to press'); };
   press('!frac');
   const show = card.querySelector('.kp-show');
@@ -7072,6 +7101,32 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   if (i2.value !== 'x') bad.push('⌫ in an empty power left "' + i2.value + '", wanted the whole ^() gone');
   press('!frac'); press('!back');
   if (i2.value !== 'x') bad.push('⌫ in an empty fraction after x left "' + i2.value + '"');
+  /* ---------- AND ⌫ NEVER LEAVES HALF A BRACKET ----------------------------------------------------------
+     MEASURED ON 8 OCT: `123/(4)` then ⌫ was `123/(4` -- the `)` taken on its own -- and the next key made
+     it `123/(46`, the stray half keypad.js promised a student would never have to find. Now a filled pair
+     is stepped into, not broken: ⌫ after `)` moves the caret inside and deletes nothing. Pressed until
+     the box is empty, from three starts, and at every press the brackets still pair. */
+  const paired = v => { let n = 0; for (const ch of v) { n += ch === '(' ? 1 : ch === ')' ? -1 : 0; if (n < 0) return false; } return n === 0; };
+  const setTo = v => { i2.value = v; i2.setSelectionRange(v.length, v.length); };
+  setTo('(3)/(4)');
+  press('!back');
+  if (i2.value !== '(3)/(4)' || i2.selectionStart !== 6) bad.push('⌫ after a filled fraction gave "' + i2.value + '" with the caret at ' + i2.selectionStart + ' -- wanted nothing deleted and the caret stepped inside, at 6');
+  press('!back');
+  if (i2.value !== '(3)/()') bad.push('⌫ again gave "' + i2.value + '", wanted the 4 gone: "(3)/()"');
+  setTo('123/(4)');
+  press('!back'); press('5');
+  if (i2.value !== '123/(45)') bad.push('123/(4), ⌫, 5 gave "' + i2.value + '" -- wanted "123/(45)": the ⌫ steps inside, it does not take the bracket');
+  for (const start of ['(3)/(4)', '123/(4)', 'x^(2)+\u221a(16)']) {
+    setTo(start);
+    const seen = [start];
+    for (let n = 0; n < 30 && i2.value; n++) {
+      press('!back');
+      seen.push(i2.value);
+      if (!paired(i2.value)) { bad.push('⌫ from "' + start + '" left an unpaired bracket: ' + seen.join(' → ')); break; }
+    }
+    if (i2.value) bad.push('thirty ⌫ from "' + start + '" did not empty the box: ' + seen.slice(-4).join(' → '));
+  }
+  setTo('x');
   press('!pow'); press('2'); press('!done');
   if (i2.value !== 'x^(2)' || !c2.querySelector('.qp-mark.is-right')) bad.push('x^(2) against x^2 was not marked right: ' + i2.value);
   /* AND A WORDED ANSWER IS STILL WORDS, on the phone's own keyboard. */
@@ -7079,6 +7134,62 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
     row: Object.assign({}, base.row, { row_id: 'Q-KP-6' }) }));
   const ta = wd.querySelector('.qp-ans-in');
   if (!ta || ta.tagName !== 'TEXTAREA' || ta.hasAttribute('inputmode')) bad.push('an explain question lost its textarea and the device keyboard');
+  /* IN THE SAME BAR, saying what it is for while it is empty -- the box nobody could find in the sun. */
+  else if (!ta.closest('.qp-bar') || ta.getAttribute('placeholder') !== 'Type your answer') bad.push('the worded box is not in the chat bar with "Type your answer" in it');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- A REDRAW WITH THE KEYPAD UP KEEPS TYPING INTO THE SAME QUESTION -------------------------------
+   THE OWNER, 8 Oct: *"they keypad was a bit unstable. it wasnt working at first for some reason."* Signing
+   in runs `repaint()` and `load()` lands about fifteen seconds later and repaints again, and each replaces
+   the card -- and the box the child is typing in. jsdom, like WebKit on the iPad, fires NO `focusout` for a
+   removed element, so before the fix the pad stayed up naming a box that was gone, and the 5 pressed after
+   the redraw was lost without a trace while the box on the screen still said 7. Measured red on the commit
+   before this one. The redraw here is what `repaint` does to a card: its markup replaced. */
+check('a redraw with the keypad up keeps typing into the same question', async () => {
+  const { w, errs } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key']) return ['the keypad has no handler — keypad.js did not load'];
+  const x = { kind: 'question', key: 'q-kp-redraw', name: 'Q6', marks: 1, answerType: 'calculation', accept: '75',
+    row: { row_id: 'Q-KP-REDRAW', paper_id: 'P-KP', subject: 'Maths', name: 'Keypad' },
+    html: '<p>Work out 3 &times; 25.</p>', answer: '<b>75</b>' };
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const host = d.createElement('div');
+  host.innerHTML = w.questionCard_(x);
+  d.body.appendChild(host);
+  const first = host.querySelector('.kp-in');
+  if (!first) return ['the card drew no maths box'];
+  first.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return ['focusing the maths box did not open the keypad'];
+  const press = v => { const b = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + v); };
+  press('7');
+  if (first.value !== '7') bad.push('7 typed "' + first.value + '" before the redraw');
+  /* THE REDRAW: the card's markup replaced, as `repaint` and `paintStuff(true)` do. */
+  host.innerHTML = w.questionCard_(x);
+  const now = host.querySelector('.kp-in');
+  if (!now || now === first) return bad.concat(['the redraw did not replace the box, so nothing was asked']);
+  press('5');
+  let kept = null;
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (now.value !== '75') bad.push('after the redraw the box on the page holds "' + now.value + '" -- the 5 went to the box that was taken away (' + JSON.stringify(first.value) + ')');
+  if (d.activeElement !== now) bad.push('after the redraw the focus is on ' + (d.activeElement ? d.activeElement.tagName.toLowerCase() + '.' + d.activeElement.className : 'nothing') + ', not on the box that replaced the one being typed in');
+  if (kept !== '75') bad.push('the answer saved is ' + JSON.stringify(kept) + ', wanted "75"');
+  if (pad.hidden) bad.push('the redraw put the keypad away');
+  /* AND THE CARET STAYS WHERE IT WAS, inside a structure, not thrown to the end. */
+  press('!frac');
+  host.innerHTML = w.questionCard_(x);
+  const third = host.querySelector('.kp-in');
+  press('4');
+  if (!third || third.value !== '75/(4)') bad.push('a fraction begun before a redraw and finished after it reads "' + (third && third.value) + '", wanted "75/(4)" -- the caret lost its place in the slot');
+  /* AND A REDRAW FOR SOMEBODY ELSE, whose box has another key, closes the pad rather than typing into it. */
+  host.innerHTML = w.questionCard_(Object.assign({}, x, { key: 'q-kp-redraw-other', row: Object.assign({}, x.row, { row_id: 'Q-KP-OTHER' }) }));
+  press('9');
+  if (!pad.hidden) bad.push('with the question gone from the page, a key still left the pad up');
+  if (host.querySelector('.kp-in').value) bad.push('a key typed into a different question\'s box after a redraw');
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -7113,6 +7224,10 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   const card = draw(x);
   const go = card.querySelector('.qp-ai-go[data-do="qp-ai"]');
   if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
+  /* IN THE CHAT BAR, WHERE SEND IS on a box with a scheme: the same gold tile beside the field, with its
+     verdict line and its sentence under the bar (`ansBox_`, `aiTile_`). */
+  if (!go.matches('.qp-mark.qp-ai > .qp-bar > .tile.is-send')) bad.push('"Mark with AI" is not the gold tile in the answer bar: ' + go.outerHTML.slice(0, 120));
+  if (!card.querySelector('.qp-mark.qp-ai > .qp-verdict') || !(card.querySelector('.qp-mark.qp-ai').nextElementSibling || { classList: { contains: () => false } }).classList.contains('qp-ai-why')) bad.push('the AI\'s verdict line and sentence are not under the bar where the handler looks for them');
   const ta = card.querySelector('textarea.qp-ans-in');
   const held = w.stuffItemsAll_;
   w.stuffItemsAll_ = () => [x];
@@ -7174,14 +7289,15 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
      * the question card keeps its box and no longer carries the answer, in any form
      * the answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid with CSS an
        answer anybody could read in the document)
-     * the question's tile ("To the answer") turns to the page and does NOT open it -- *"answers should
-       just stay hidden unless user unhides them"* -- and the page's own Show tile does; the open
-       survives a redraw (the `REEL_HELD` fault: a fact left on an element dies with it), and it opens
-       only that question. Hide, and every role alike, are the next journey's
+     * the answer page is the page a swipe after its question in the strip, and nothing on the question
+       card turns to it -- the ↓ `To the answer` tile went on 8 Oct, *"there doesnt need to be a scroll
+       down tile on questions"* -- and landed on it is still hidden; the page's own Show tile opens it,
+       the open survives a redraw (the `REEL_HELD` fault: a fact left on an element dies with it), and it
+       opens only that question. Hide, and every role alike, are the next journey's
      * a tapped question settled right does NOT open it, and neither does a typed answer marked right:
        the card already says "Correct", and a page that opens itself is a reveal nobody pressed
-     * a TUTOR's page is hidden exactly as a student's, with the same tile label -- it was open
-       without asking, behind a tile that read "The answer"
+     * a TUTOR's page is hidden exactly as a student's, and their question card has no tile to it
+       either -- it was open without asking, behind a tile that read "The answer"
      * Saved, which draws a kept thing through `cardPages_`, keeps the answer page after the figure
    Turning the page is a real browser's question -- `check/states.js`, "the answer, turned to from
    its question" -- because jsdom lays nothing out and has no library to page through. */
@@ -7198,7 +7314,8 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (typeof ansKey !== 'function') gone.push('ansKey_');
   if (gone.length) return [gone.join(', ') + ' not reachable — renamed? The answer page was NOT checked'];
   const A = w.__t.ACTIONS;
-  if (!A['qa-go'] || !A['qa-show']) return ['qa-go or qa-show has no handler, so nothing can show an answer page'];
+  if (!A['qa-show']) return ['qa-show has no handler, so nothing can show an answer page'];
+  if (A['qa-go']) bad.push('`qa-go` still has a handler -- the ↓ "To the answer" tile was taken out, and its handler with it');
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
   const SECRET = 'Seventeen-and-a-half';
   const row = id => ({ row_id: id, paper_id: 'P-ANSP', subject: 'Maths', name: 'Answer page' });
@@ -7217,8 +7334,12 @@ check('an answer is its own page after its question, hidden from everybody alike
   const q = el(w.questionCard_(base));
   if (q.querySelector('.qans, .qans-body') || q.textContent.indexOf(SECRET) >= 0) bad.push('the question card still draws the answer');
   if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
-  if (!el(w.questionTiles_(base)).querySelector('[data-do="qa-go"]')) bad.push('a question with an answer has no tile to its answer page');
-  if (el(w.questionTiles_(none)).querySelector('[data-do="qa-go"]')) bad.push('a question with no answer offers a tile to an answer page that does not exist');
+  /* NO WAY TO IT ON THE QUESTION'S OWN PAGE -- the owner, 8 Oct: *"there doesnt need to be a scroll down
+     tile on questions."* Not in the row, not on the card, with or without an answer. */
+  [base, none, fig].forEach(x => {
+    const h = el(w.questionTiles_(x) + w.questionCard_(x));
+    if (h.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next')) bad.push(x.row.row_id + '\'s question page still carries a tile to its answer');
+  });
   /* HIDDEN, signed out. */
   if (w.__t.isTutorRole()) bad.push('signed out reads as staff, so the hidden page was NOT checked');
   const hid = el(w.questionAnsCard_(base));
@@ -7228,24 +7349,23 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
   if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
   if (card && card.getAttribute('data-of') !== 'Q-ANSP-5') bad.push('the answer page does not name its row');
-  /* TURNED TO FROM THE QUESTION'S TILE, where the page already stands -- AND STILL HIDDEN. *"answers
-     should just stay hidden unless user unhides them"*: the question's tile turns the page and that is
-     all it does. It used to show the answer as it turned, which made reaching the page and revealing
-     it one tap. */
+  /* SWIPED TO: the page after the question card in the strip, with no kind chosen -- AND STILL HIDDEN.
+     *"answers should just stay hidden unless user unhides them"*: reaching the page is a swipe, and
+     revealing it is the page's own tap. The strip is the app's own (`stuffPages_`) over these two. */
+  const heldF = w.stuffFiltered;
+  let strip = [];
+  w.stuffFiltered = (() => { const list = [base, fig]; return () => list; })();
+  try { strip = w.stuffPages_(); } finally { w.stuffFiltered = heldF; }
+  const at = strip.findIndex(pg => pg.x === base && !pg.part);
+  const next = strip[at + 1];
+  if (at < 0 || !next || next.x !== base || next.part !== 'ans') bad.push('a swipe from the question card does not land on its answer: the strip reads ' + strip.map(pg => pg.x.row.row_id + ':' + (pg.part || 'card')).join(' '));
   d.body.appendChild(hid);
   const other = el(w.questionAnsCard_(fig));
   d.body.appendChild(other);
-  const tiles = el(w.questionTiles_(base));
-  d.body.appendChild(tiles);
   const held = w.stuffItemsAll_;
-  w.stuffItemsAll_ = () => [base, fig];
-  const goTile = tiles.querySelector('[data-do="qa-go"]');
-  if (goTile) { try { A['qa-go'](goTile); } finally { w.stuffItemsAll_ = held; } }
-  w.stuffItemsAll_ = held;
   const turned = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
   if (!turned || !turned.classList.contains('is-hidden') || turned.innerHTML.indexOf(SECRET) >= 0)
-    bad.push('the question\'s "To the answer" tile showed the answer as it turned to it -- revealing is the answer page\'s own tap');
-  if (goTile && /show/i.test(goTile.getAttribute('aria-label') || '')) bad.push('the question\'s tile still says it shows the answer: ' + goTile.getAttribute('aria-label'));
+    bad.push('the answer page, swiped to, is open -- revealing is the answer page\'s own tap');
   /* SHOWN BY THE ANSWER PAGE'S OWN TILE, where it stands. */
   const showT = turned && turned.querySelector('[data-do="qa-show"]');
   if (!showT) bad.push('the answer page has no Show tile to press');
@@ -7303,8 +7423,7 @@ check('an answer is its own page after its question, hidden from everybody alike
     if (!w.__t.isTutorRole()) { bad.push('could not sign ' + role + ' in, so their answer page was NOT checked'); return; }
     const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
     if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
-    const tl = el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"]');
-    if (!tl || !/To the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "To the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
+    if (el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"], .tile-i-next')) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s question still carries a tile to the answer -- it went for everybody');
   });
   w.__t.USER(null);
   return bad;
@@ -7321,14 +7440,15 @@ check('an answer is its own page after its question, hidden from everybody alike
      * Show again: open again -- the toggle is not a one-way door
      * drawn afresh after a Hide it is hidden (`ANS_SHOWN` forgot), after a Show it is open, and the
        next visitor's page is hidden whatever the last one did
-     * the question card's tile ("To the answer") reveals nothing for any of them */
+     * the question card has no tile to the answer for any of them (*"there doesnt need to be a scroll
+       down tile on questions"*, 8 Oct), and drawing it reveals nothing */
 check('the answer page shows, hides and shows again from one tile, hidden by default, the same for every visitor', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
   const need = ['questionAnsCard_', 'questionTiles_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — renamed? Show and Hide were NOT checked'];
-  if (!A['qa-show'] || !A['qa-hide'] || !A['qa-go']) return ['qa-show, qa-hide or qa-go has no handler, so the toggle was NOT checked'];
+  if (!A['qa-show'] || !A['qa-hide']) return ['qa-show or qa-hide has no handler, so the toggle was NOT checked'];
   const SECRET = 'Forty-two-and-a-quarter';
   const x = { kind: 'question', name: 'Q8', marks: 1, key: 'q-toggle-8',
     row: { row_id: 'Q-TOGGLE-8', paper_id: 'P-TOGGLE', subject: 'Maths', name: 'Toggle' },
@@ -7377,13 +7497,13 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
     };
     hiddenRight('as drawn');
     const s0 = slot(card());
-    /* THE QUESTION'S OWN TILE, pressed first: it turns pages and reveals nothing. */
+    /* THE QUESTION'S OWN PAGE, drawn first: no tile to the answer on it, and drawing it reveals nothing. */
     const qt = d.createElement('div');
-    qt.innerHTML = w.questionTiles_(x);
+    qt.innerHTML = w.questionCard_(x) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>';
     d.body.appendChild(qt);
-    w.stuffItemsAll_ = () => [x];
-    try { A['qa-go'](qt.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; qt.remove(); }
-    hiddenRight('after the question\'s "To the answer"');
+    if (qt.querySelector('[data-do="qa-go"], .tile-i-next')) bad.push(what + ': the question page still carries a tile to the answer');
+    qt.remove();
+    hiddenRight('after the question was drawn');
     /* THE FOCUS FOLLOWS THE TOGGLE. `ansSet_` replaces the card, so the tile that was pressed is gone;
        from a keyboard the focus has to land on the tile that replaced it rather than on `<body>`. And
        ONLY from the card that held it: a Hide with the focus somewhere else leaves it there. */
@@ -7433,8 +7553,9 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
      * the part's card no longer carries the stem; the stem card is `Q3` with no part and no marks
      * a figure page's header is the figure's own name -- Figure 3, Figure 4 (not the stem's 3), or
        plain Figure -- and never a question number
-     * the answer tile turns by the distance from the CARD to the answer, not from the first page,
-       which stopped being the same number when a stem could stand in front. */
+     * the answer is the page a swipe after the CARD, not after the first page -- which stopped being
+       the same place when a stem could stand in front -- and with `Questions` chosen it is not in the
+       strip at all, while the stem and its figure still are (8 Oct, `questionsView_`). */
 check('a question\'s pages follow the paper: its stem and that stem\'s figure first and once, and a figure has no question number', async () => {
   const { w } = boot();
   await wait(300);
@@ -7493,17 +7614,19 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   });
   if (el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure stands in front of it, points forward at a figure');
   if (el(w.questionCard_(b)).querySelector('.qsheet-figref')) bad.push('(b) points at a figure page it does not have -- the stem\'s figure is in front of it, not after');
-  /* THE TILE: from (a)'s card, two pages after a stem and its figure, the answer is ONE page on. */
-  const strip2 = el('<div id="s-ordtest"><section class="page"></section><section class="page"></section>'
-    + '<section class="page"><div class="tile-row">' + w.questionTiles_(a) + '</div></section><section class="page"></section></div>');
-  d.body.appendChild(strip2);
-  const heldA = w.stuffItemsAll_, heldG = w.goPage;
-  let went = null;
-  w.stuffItemsAll_ = () => [a];
-  w.goPage = (id, n) => { went = [id, n]; };
-  try { w.__t.ACTIONS['qa-go'](strip2.querySelector('[data-do="qa-go"]')); }
-  finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip2.remove(); }
-  if (!went || went[0] !== 'ordtest' || went[1] !== 3) bad.push('the answer tile on (a)\'s card turned to ' + JSON.stringify(went) + ', wanted page 3 -- the card is page 2 and its answer the page after');
+  /* THE SWIPE: from (a)'s card, two pages after a stem and its figure, the answer is ONE page on -- read
+     off the strip above, which is the list the pager turns through. No tile on the card to do it for you. */
+  const words = strip.split(' ');
+  if (words.indexOf('a:ans') !== words.indexOf('a:card') + 1) bad.push('a swipe from (a)\'s card does not land on its answer: ' + strip);
+  if (el(w.questionCard_(a) + w.questionTiles_(a)).querySelector('[data-do="qa-go"], .tile-i-next')) bad.push('(a)\'s card still carries a tile to its answer');
+  /* `Questions` CHOSEN: the same strip with no answer page in it, the opening and its figure kept. */
+  const S = w.__t.STUFF();
+  const heldQ = S.filters;
+  S.filters = [{ field: 'kindLabel', value: 'Questions' }];
+  w.stuffFiltered = (() => { const list = [a, b, c]; return () => list; })();
+  let qs = '';
+  try { qs = w.stuffPages_().map(pg => pg.x.qPart + ':' + (pg.part || 'card')).join(' '); } finally { w.stuffFiltered = heldF; S.filters = heldQ; }
+  if (qs !== 'a:stem0 a:sfig0 a:card b:card c:fig c:card') bad.push('with Questions chosen the strip reads "' + qs + '", wanted the paper\'s order with no answer page: stem, its figure, (a), (b), (c)\'s figure, (c)');
   return bad;
 });
 
@@ -7515,7 +7638,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
        paragraph (the ask) on the card with the box, the pre pages with no box and saying "continued"
      * a long stem is `stem0`, `stem0-1`... and then its figure; only its first page carries `lines`
      * a table is never cut, and one block longer than a page stays whole rather than being broken
-     * the answer tile still turns from the card to the answer, past any pre pages in front */
+     * the answer is still the page a swipe after the card, past any pre pages in front */
 check('a page too long for a phone is cut between paragraphs, and the ask stays on the card with its box', async () => {
   const { w } = boot();
   await wait(300);
@@ -7562,16 +7685,8 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     if (pages.some(p => p.querySelectorAll('table').length > 1 || (p.querySelector('table') && p.querySelectorAll('table tr').length !== 7))) bad.push('the table was cut between its rows');
     const n = pages.length;
     if (!new RegExp('^Q2\\.4 · ' + n + ' of ' + n + '$').test(tagText(card, 'number'))) bad.push('the card\'s number tag reads "' + tagText(card, 'number') + '", wanted Q2.4 · ' + n + ' of ' + n);
-    /* THE TILE turns from the card to the answer, past the pre pages in front of it. */
-    const strip = el('<div id="s-cuttest">' + parts.map(p => p === null
-      ? '<section class="page"><div class="tile-row">' + w.questionTiles_(long) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
-    d.body.appendChild(strip);
-    const heldA = w.stuffItemsAll_, heldG = w.goPage;
-    let went = null;
-    w.stuffItemsAll_ = () => [long];
-    w.goPage = (id, to) => { went = to; };
-    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
-    if (went !== parts.indexOf('ans')) bad.push('the answer tile turned to page ' + went + ', wanted ' + parts.indexOf('ans'));
+    /* THE SWIPE: the answer is the page after the card, past the pre pages in front of it. */
+    if (parts.indexOf('ans') !== parts.indexOf(null) + 1) bad.push('the answer is page ' + parts.indexOf('ans') + ' and the card page ' + parts.indexOf(null) + ' -- a swipe from the card does not reach it');
   }
   /* ONE BLOCK LONGER THAN A PAGE stays whole. */
   const one = { kind: 'question', name: 'Q9', key: 'q-cut-one', row: row('Q-CUT-9'), stems: [], html: '<p>' + 'word '.repeat(600) + '</p>' };
@@ -7614,7 +7729,7 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
        card, then the figure); a marker inside a paragraph stands after it rather than cutting it
      * the cut still works inside a side: eight paragraphs before the figure are cut into pages in
        front of it, and no page holds words from both sides
-     * the strip (`stuffPages_`), Saved (`cardPages_`) and the answer tile all agree */
+     * the strip (`stuffPages_`), Saved (`cardPages_`) and a swipe from the card all agree */
 check('a figure stands where the paper prints it, on its own page: text, figure, text, figure, text', async () => {
   const { w } = boot();
   await wait(300);
@@ -7682,7 +7797,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     /* THE MARKER, NEVER DRAWN AND NEVER SEARCHED. */
     if (drawn.some(p => /<!--\s*fig/.test(p.innerHTML))) bad.push('the <!--fig--> marker is in a drawn page');
     if (typeof w.plainText_ === 'function' && /fig/i.test(w.plainText_(a.html))) bad.push('the marker reaches the search haystack: ' + w.plainText_(a.html));
-    /* THE STRIP, SAVED AND THE TILE. */
+    /* THE STRIP, SAVED AND THE SWIPE. */
     const heldF = w.stuffFiltered;
     w.stuffFiltered = (() => { const list = [a]; return () => list; })();
     let strip = '';
@@ -7690,15 +7805,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     if (strip !== 'stem0 sfig0 stem0-1 pre0 fig card ans') bad.push('the strip reads "' + strip + '"');
     const saved = w.cardPages_(a, 0);
     if (saved.length !== 7 || !/class="qcard qfig/.test(saved[4]) || !/qp-ans/.test(saved[5])) bad.push('Saved draws the question as ' + saved.length + ' pages, not the same seven in the same order');
-    const tiles = el('<div id="s-figtest">' + parts.map(p => p === null
-      ? '<section class="page"><div class="tile-row">' + w.questionTiles_(a) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
-    d.body.appendChild(tiles);
-    const heldA = w.stuffItemsAll_, heldG = w.goPage;
-    let went = null;
-    w.stuffItemsAll_ = () => [a];
-    w.goPage = (id, to) => { went = to; };
-    try { w.__t.ACTIONS['qa-go'](tiles.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; tiles.remove(); }
-    if (went !== parts.indexOf('ans')) bad.push('the answer tile turned to page ' + went + ', wanted ' + parts.indexOf('ans'));
+    if (parts.indexOf('ans') !== parts.indexOf(null) + 1) bad.push('the answer is page ' + parts.indexOf('ans') + ', not the swipe after the card on page ' + parts.indexOf(null));
   }
 
   /* ---------- WITHOUT A MARKER, AND WITH ONE IN THE WRONG PLACE ---------------------------------- */
@@ -7965,7 +8072,7 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
        control, no box -- and a line naming the part the marks came from
      * whoever is signed in: another person sees their own (none), and is told so
      * not when the page in front is already that picture (the earlier part with no answer page)
-     * on Saved too (`cardPages_`), and "To the answer" still turns one page from the card
+     * on Saved too (`cardPages_`), and the answer is still the one swipe after the card
      * a part whose own figure IS that picture gets the marks UNDER its own pen instead -- no page --
        and its Undo takes its own mark and never the earlier one; a part that only LOOKS at that picture
        gets them on its copy, with no pen
@@ -8040,7 +8147,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     const saved = w.cardPages_(c, 0);
     if (saved.length !== 4 || !/qfig-uses/.test(saved[1])) bad.push('on Saved, (c) is ' + saved.length + ' pages and the second is not the graph');
     const off = (() => { const p = w.pageParts_(c); return p.indexOf('ans') - p.indexOf(null); })();
-    if (off !== 1) bad.push('"To the answer" on (c) would turn ' + off + ' pages, not one');
+    if (off !== 1) bad.push('(c)\'s answer is ' + off + ' swipes after its card, not one');
     /* ---------- THE FIGURE TILE ON (c) OPENS (b)'s PICTURE WITH THE GRAPH ON IT ---------------------- */
     const sheet = el((w.figsBefore_(c)[0] || {}).html || '');
     if (paths(sheet.querySelector('.qseen'), '.qpad-was') !== 2) bad.push('the Figure tile on (c) opens (b)\'s grid with ' + paths(sheet.querySelector('.qseen'), '.qpad-was') + ' of Ali\'s two marks — the graph it says to use is not there');
@@ -8113,13 +8220,15 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    EVERY PAGE OF A QUESTION FAMILY, drawn by the app's own builders for four visitors -- signed out, a
    student, a tutor, an admin -- and compared as markup: a stem with words both sides of its figure, a
    part with a lead, a figure and a box, its answer page hidden and then shown, a tapped question, a
-   worded one with Mark with AI under it, a drawing question on a squared grid, a passage to ring words
+   worded one with Mark with AI beside it, a drawing question on a squared grid, a passage to ring words
    in; and a real practical, project and textbook through the real mapper.
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
    ("Ada's answer" / "Your answer"), and the star (`fav`) and the date's slot beside it (`.qcard-done`,
-   see `questionTiles_`), which need somebody signed in to keep them for.
+   see `questionTiles_`), which need somebody signed in to keep them for. AND WHERE THE WORK IS KEPT —
+   the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
+   which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
 check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
@@ -8162,8 +8271,10 @@ check('Find draws the same question family, practical, project and textbook for 
     h.querySelectorAll('[data-do="fav"], .tile-row .qcard-done').forEach(n => n.remove());
     /* A ROW THAT HELD ONLY THE STAR (and the date beside it) is the person's, and goes with them. */
     h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
+    h.querySelectorAll('.qp-saved').forEach(n => { n.textContent = ''; });
     return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
-      .replace(/>Your answer/g, '>WHO answer');
+      .replace(/>Your answer/g, '>WHO answer')
+      .replace(/Kept on this device only[^<]*|Saved to [^<]*account, like the answer box\./g, 'KEPT WHERE');
   };
   const draw = () => {
     const out = [];
@@ -8319,7 +8430,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   });
   /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
   [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
-   ['pad-clear', 'Clear'], ['qa-go', 'To the answer'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
+   ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
    ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
    ['fav', 'the star']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
@@ -8327,6 +8438,8 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
     if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
   });
+  /* AND THE ONE THE OWNER TOOK AWAY: *"there doesnt need to be a scroll down tile on questions"* (8 Oct). */
+  if (seen['qa-go']) bad.push('the family still draws ' + seen['qa-go'] + ' "To the answer" tile(s) (qa-go)');
   t.USER(null);
   if (!bad.length) console.log('          ' + pages.length + ' pages; tiles: ' + Object.keys(seen).sort().map(k => k + ' ' + seen[k]).join(', '));
   return bad;
@@ -8703,9 +8816,9 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
 
 /* ==================================================================================================
    THE BACKLOG CARRIES EACH QUESTION'S NAME, AND A ROW THE SHEET HOLDS WITHOUT ONE IS SENT ITS NAME.
-   The first learner the after-session email was built for had three rows on the sheet as bare keys —
-   done before the Ledger had an `attempts` tab, sent up by the load with no names — and that email
-   prints no raw key, so his parent would have been told a number and nothing else. `attemptsSync_`
+   The first learner a parent email was tried on had three rows on the sheet as bare keys — done
+   before the Ledger had an `attempts` tab, sent up by the load with no names — and the email prints
+   no raw key, so his parent would have been told a number and nothing else. `attemptsSync_`
    now names what it sends (`doneLabel_`, the card this person has for the key), and sends the name
    for a row the payload says has none (`named`), with that row's own last day — a day the backend
    already has, where it writes the name alone (check-attempts.js asks that half).
@@ -8748,7 +8861,7 @@ check('the load names what it sends, and names a row the sheet holds without a n
 });
 
 /* ==================================================================================================
-   AND ITS WORDS, FOR THE DAILY EMAIL TO PARENTS. ASKED FOR AS *"emails all parents on work their child
+   AND ITS WORDS, FOR THE PARENT EMAIL. ASKED FOR AS *"emails all parents on work their child
    has done with the exact questions for each"*. The backend cannot look a key up, so the phone sends
    what it draws (`doneWords_`) with the mark, the way it sends the name, and the email prints it.
 
@@ -9044,12 +9157,21 @@ check('a markDone reply without named or worded keeps the flags the load said, a
    built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the
    config row says (anything but preview or send is Off, as on the server), it is an admin's alone, and
    its one tile asks `digestPreview` — a read — and opens what would be sent, the plain body escaped.
-   It posts nothing else, and a backend without the action is told so rather than asked. */
-check('the weekly parent email card is an admin\'s, says the switch, and Preview opens the emails without sending one', async () => {
-  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0,
+   It posts nothing else, and a backend without the action is told so rather than asked.
+
+   AND SINCE 8 OCT THE EMAIL LISTS EACH QUESTION WITH ITS OWN WORDS (`digestQuestions_`): the card says
+   so, the sheet prints the body as the server wrote it — a paper's heading, the stem once, "Q1a: …" —
+   and a reply without `words: true`, which is a deployed web-app version from before (the Preview is
+   answered by the deployed version, the Sunday trigger runs the code as saved), is told to make a new
+   version rather than read as the new email. The fixture is the body `digestRender_` writes. */
+check('the weekly parent email card is an admin\'s, says the switch and the words, and Preview opens the emails without sending one', async () => {
+  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0, words: true,
     week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
     emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
-               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\nThe questions\n- <b>Maths</b> · Q1\n- q:Q-2',
+               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\n'
+                 + 'Maths · Paper 1\nA bag holds 3 red and 5 blue beads.\nQ1a: Find P(red), and is <b>Maths</b> x < 7?\nQ1b (again): Find P(blue).\n\n'
+                 + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+                 + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.',
                html: '<p>Hello Pat,</p>', count: 2 }],
     unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] };
   const p = payload();
@@ -9070,6 +9192,11 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   await wait(200);
   if (!card()) return bad.concat(['an admin has no Weekly parent email card on the Settings column']);
   if (!/Weekly parent email:\s*Off/.test(said())) bad.push('with weekly_digest off the card reads "' + said() + '"');
+  /* WHAT IT SENDS, IN THE CARD'S OWN WORDS: every question of the week, each with what it asked. */
+  const sub = ((card().querySelector('.sub') || {}).textContent || '').replace(/\s+/g, ' ');
+  if (!/every question that child worked on that week, each with its own words/.test(sub)) bad.push('the card does not say the email lists every question with its own words: "' + sub + '"');
+  /* AND ONE CARD: the daily email's went with it (docs/history/295). */
+  if (/Daily email to parents/.test(d.getElementById('s-settings').textContent)) bad.push('the removed daily email still has a card on the Settings column');
   [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
     t.DATA().constants.vars.weekly_digest = cell;
     w.paint('settings');
@@ -9089,12 +9216,15 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
   if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
   const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
-  ['28 Sep – 4 Oct', 'To Pat Parent · pat@example.org', 'Ada’s week: 2 questions', 'Hello Pat,', 'q:Q-2',
+  ['28 Sep – 4 Oct', 'To Pat Parent · pat@example.org', 'Ada’s week: 2 questions', 'Hello Pat,', 'Maths · Paper 1',
+   'A bag holds 3 red and 5 blue beads.', 'Q1b (again): Find P(blue).',
    'Cal Alone — no parent has accepted a link to them', 'This preview sent nothing', 'no Sunday booked yet',
    'On Sunday this email would be written to the digest_log tab, and none sent'].forEach(s => {
     if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
   });
-  if (text.indexOf('<b>Maths</b>') === -1 || (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths'))) bad.push('a question’s name was drawn as markup in the preview — it came off a phone and must be printed as text');
+  if (text.indexOf('<b>Maths</b> x < 7?') === -1 || (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths'))) bad.push('a question’s words were drawn as markup in the preview — they came off a phone and must be printed as text');
+  /* A REPLY WITH `words` IS THE NEW BACKEND, AND IS NOT TOLD IT IS OLD. */
+  if (body && body.querySelector('.digest-old')) bad.push('a preview reply with words: true is told the live web app lists names only');
   if (!/Weekly parent email:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
   /* A BACKEND FROM BEFORE digest.gs: told, not asked. */
   try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
@@ -9104,192 +9234,17 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   await wait(100);
   if (sent.some(b => b.action === 'digestPreview')) bad.push('a backend that does not list digestPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
   if (!/sync backend/i.test((card().querySelector('.digest-said') || {}).textContent || '')) bad.push('a backend without the weekly email is not said to need a sync');
-  t.USER(null);
-  return bad;
-});
-
-/* ---------- THE DAILY EMAIL TO PARENTS' CARD -----------------------------------------------------------
-   ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated email to
-   them of the questions they got done"* — backend/recap.gs, switched off — and then, 8 Oct, as *"emails
-   all parents on work their child has done with the exact questions for each"*: a day of homework with
-   no session is emailed too, the next morning at `session_recap_morning`. The card is the weekly one's
-   twin and has to keep its contract: an admin's alone, the page right after the weekly card (so no
-   index in front of it moves), the mode as the server reads `session_recap`, the delay as it reads
-   `session_recap_delay`, the morning hour as it reads `session_recap_morning` — and, once a preview has
-   answered, the hour the SERVER said, which is the reading that is true — a tile row with no switch on
-   it, and a Preview that posts exactly one `recapPreview` — a read. The sheet prints what came off
-   phones and sheets as text: a subject typed into the jobs tab with markup in it is shown, not drawn,
-   and a day of homework is a day of its own with each question's words. A missing `attempts` tab and
-   an unbooked hourly check are said before anything else; a backend from before the daily email (its
-   reply has no `morning`) is told to sync rather than read as the new one; a backend without the
-   action is told to sync. And the weekly sheet, given `attempts: false`, says why rather than "nobody
-   has done a question". */
-check('the daily email to parents card is an admin\'s, follows the weekly card, says the switch, the delay and the morning hour, and Preview reads without sending', async () => {
-  const empty = n => ({ day: '2026-10-0' + n, label: 'Day ' + n, sessions: [], emails: [], nobody: [] });
-  /* A DAY OF HOMEWORK, AS `recapRender_` WRITES IT: no session line, the day said in the lead, and each
-     question with its words — the stem its parts share once, above them. */
-  const workText = 'Hello Pat,\n\nOn Monday 5 October Ada worked on 3 questions, 2 of them for the first time.\n\n'
-    + 'Maths · Paper 1 (Calculator) — June 2024\nA bag holds 3 red and 5 blue counters.\nQ5a: Work out the probability of red.\n'
-    + 'Q5b (again): Two are taken. Work out the probability both are blue.\nQ6: Work out 3/4 of 20.\n\n'
-    + 'Ada can see them on the site: https://example.org/\n\n'
-    + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
-  const preview = { success: true, mode: 'preview', delay: 2, morning: 8, scheduled: 0, attempts: false, logTab: true,
-    warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it.',
-    from: '2026-09-30', to: '2026-10-06', at: '2026-10-06 20:30',
-    days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
-             sessions: [{ subject: '<b>Maths</b>', from: '16:00', to: '18:00', timeKnown: true, time: '4pm–6pm',
-                          learners: ['Ada Pupil'], due: '2026-10-06 20:00', dueSaid: '8pm', state: 'due' },
-                        { subject: 'Physics', time: '', learners: [], due: '', dueSaid: '', state: 'not agreed — not counted' },
-                        /* BOOKED, AND NOBODY ON IT CAN BE TOLD (which of two children): no "email about". */
-                        { subject: 'Chemistry', time: '10am–12pm', learners: [], due: '2026-10-06 14:00', dueSaid: '2pm', state: 'due' }],
-             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s session on Tue 6 Oct: 2 questions',
-                        text: 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 2 questions.\n\nMaths · Paper 1\nQ3, Q7 (again)',
-                        count: 2, due: '2026-10-06 20:00', dueSaid: '8pm', state: 'due', status: '—', at: '' }],
-             nobody: [{ name: 'Cal Alone', why: 'no parent has accepted a link to them', status: 'not sent' }] },
-           { day: '2026-10-05', label: 'Mon 5 Oct', sessions: [],
-             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s work on Mon 5 Oct: 3 questions',
-                        text: workText, count: 3, due: '2026-10-06 08:00', dueSaid: '8am on Tue 6 Oct', state: 'due', status: '—', at: '' }],
-             nobody: [] },
-           empty(4), empty(3), empty(2),
-           { day: '2026-10-01', label: 'Thu 1 Oct',
-             sessions: [{ subject: 'Maths', time: '4pm–6pm', learners: ['Ada Pupil'], due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past' }],
-             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s session on Thu 1 Oct: 1 question',
-                        text: 'Hello Pat,', count: 1, due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past', status: '—', at: '' }],
-             nobody: [] }] };
-  /* THE SAME REPLY FROM A BACKEND BEFORE THE DAILY EMAIL: everything but `morning`. */
-  const old = Object.assign({}, preview);
-  delete old.morning;
-  let answer = preview;
-  const p = payload();
-  p.features = ['digestPreview', 'recapPreview'];
-  p.constants.vars.session_recap = 'off';
-  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'recapPreview' ? answer : { success: true }) });
-  await wait(300);
-  const t = w.__t, d = w.document;
-  const bad = [];
-  const card = () => d.querySelector('#s-settings .card.recap');
-  const said = () => (card().querySelector('.recap-mode') || {}).textContent || '';
-  const morning = () => (card().querySelector('.recap-morning') || {}).textContent || '';
-  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
-  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  await wait(200);
-  if (card()) bad.push('a parent is shown the daily email to parents card — it is an admin’s');
-  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
-  w.paint('settings');
-  await wait(200);
-  if (!card()) return bad.concat(['an admin has no Daily email to parents card on the Settings column']);
-  /* THE PAGE AFTER THE WEEKLY CARD, so every page in front of it keeps its index. */
-  const pages = [...d.querySelectorAll('#s-settings .page')];
-  const at = sel => pages.findIndex(pg => pg.querySelector(sel));
-  if (at('.card.recap') !== at('.card.digest') + 1 || at('.card.recap') !== pages.length - 1) bad.push('the daily email card is page ' + at('.card.recap') + ' of ' + pages.length + ', the weekly card page ' + at('.card.digest') + ' — wanted it last, right after the weekly one');
-  if (!/Daily email to parents:\s*Off/.test(said())) bad.push('with session_recap off the card reads "' + said() + '"');
-  [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
-    t.DATA().constants.vars.session_recap = cell;
-    w.paint('settings');
-    if (!new RegExp('Daily email to parents:\\s*' + word).test(said())) bad.push('session_recap "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
-  });
-  [['3', 'About 3 hours after'], ['1', 'About 1 hour after'], ['', 'About 2 hours after'], ['25', 'About 2 hours after'], ['0', 'Within the hour after']].forEach(([cell, want]) => {
-    t.DATA().constants.vars.session_recap_delay = cell;
-    w.paint('settings');
-    const sub = (card().querySelector('.sub') || {}).textContent || '';
-    if (sub.indexOf(want) !== 0) bad.push('session_recap_delay "' + cell + '" reads "' + sub.slice(0, 40) + '" — wanted "' + want + '"');
-  });
-  /* THE NEXT-MORNING HOUR, AS `recapMorning_` READS IT: whole hours 0 to 23, anything else 7 — said as a
-     clock, because "at 19 the next morning" is not a time anybody says. */
-  [['', '7am'], ['8', '8am'], ['9', '9am'], ['0', 'midnight'], ['10', '7am'], ['12', '7am'], ['19', '7am'], ['24', '7am'], ['7.5', '7am'], ['soon', '7am']].forEach(([cell, want]) => {
-    t.DATA().constants.vars.session_recap_morning = cell;
-    w.paint('settings');
-    if (morning() !== want) bad.push('session_recap_morning "' + cell + '" reads "' + morning() + '" — wanted "' + want + '", as the server reads it');
-  });
-  t.DATA().constants.vars.session_recap = 'off';
-  t.DATA().constants.vars.session_recap_delay = '';
-  t.DATA().constants.vars.session_recap_morning = '';
-  w.paint('settings');
-  const sub0 = ((card().querySelector('.sub') || {}).textContent || '').replace(/\s+/g, ' ');
-  if (!/or at 7am the next morning, on a day of homework with no session/.test(sub0)) bad.push('the card does not say a day of homework is emailed at 7am the next morning: "' + sub0 + '"');
-  if (!/session_recap/.test(card().textContent) || !/installSessionRecap/.test(card().textContent)) bad.push('the card does not say where the switch is and how the hourly check is booked');
-  const tile = card().querySelector('.tile-row .tile[data-do="recap-preview"]');
-  if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
-  if (card().querySelectorAll('.tile').length !== 1 || card().querySelector('button:not(.tile)')) bad.push('the card has more than its one Preview tile, or a plain button — a thing has tiles, and there is no switch on the phone');
-  sent.length = 0;
-  t.ACTIONS['recap-preview'](tile);
-  await wait(300);
-  const asks = sent.filter(b => b.action === 'recapPreview');
-  if (asks.length !== 1 || sent.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one recapPreview and nothing else');
-  const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
-  if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
-  const title = (d.getElementById('sheet-title') || {}).textContent || '';
-  if (title !== 'Daily email to parents') bad.push('the preview sheet is titled "' + title + '" — wanted "Daily email to parents"');
-  const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
-  ['The Ledger has no attempts tab', 'No hourly check is booked yet — run installSessionRecap', 'This preview sent nothing', 'not booked',
-   'Each email is written to the recap_log tab when it falls due, and none is sent.',
-   'Tue 6 Oct', '<b>Maths</b> 4pm–6pm · Ada Pupil · email about 8pm · email due now', 'Physics · not agreed — not counted',
-   'Chemistry 10am–12pm · nobody to email — see below',
-   'To Pat Parent · pat@example.org — would be written to recap_log', 'Ada’s session on Tue 6 Oct: 2 questions', 'Q3, Q7 (again)',
-   'Nobody to tell', 'Cal Alone — no parent has accepted a link to them', '(not sent)',
-   /* THE DAY OF HOMEWORK: its own day, its own email, each question with its words. */
-   'Mon 5 Oct', 'Ada’s work on Mon 5 Oct: 3 questions', 'On Monday 5 October Ada worked on 3 questions',
-   'A bag holds 3 red and 5 blue counters.', 'Q5a: Work out the probability of red.', 'Q6: Work out 3/4 of 20.',
-   'Thu 1 Oct', 'Maths 4pm–6pm · Ada Pupil · email about 8pm · past', 'To Pat Parent · pat@example.org — not sent — past its 24 hours, it will not go'].forEach(s => {
-    if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
-  });
-  if (/Chemistry[^·]*· email about/.test(text)) bad.push('a booked session nobody on it can be told about still says when its email goes: ' + (text.match(/Chemistry[^.]*/) || [''])[0]);
-  /* THE HOUR THE SERVER ANSWERED, NOT THE CELL: blank on this phone reads 7, the server said 8. */
-  if (morning() !== '8am') bad.push('after a preview answering morning: 8 the card says "' + morning() + '" — wanted "8am", the hour the server reads');
-  if (/The live backend emails after sessions only/.test(text)) bad.push('a backend that answers with `morning` is told it is from before the daily email');
-  /* THE SAME REPLY WITH THE SWITCH OFF — owner step 4 — and ON. Off promises nothing: no "due now", no
-     "not on the log yet" (which reads as "it will be"). Send says the log has not got it yet. */
-  const asText = h => { const x = d.createElement('div'); x.innerHTML = h; return x.textContent.replace(/\s+/g, ' '); };
-  const offText = asText(w.recapSheet_(Object.assign({}, preview, { mode: 'off' })));
-  if (/due now|not on the log yet|would be written/.test(offText)) bad.push('with session_recap off the preview still promises a send: ' + (offText.match(/[^.]*(due now|not on the log yet|would be written)[^.]*/) || [''])[0]);
-  ['It is off, so nothing below goes', 'email about 8pm · off — would go now if switched on', 'To Pat Parent · pat@example.org — not sent — session_recap is off',
-   'not sent — past its 24 hours, it will not go'].forEach(s => {
-    if (offText.indexOf(s) === -1) bad.push('with session_recap off the preview sheet does not say "' + s + '"');
-  });
-  const sendText = asText(w.recapSheet_(Object.assign({}, preview, { mode: 'send' })));
-  if (sendText.indexOf('To Pat Parent · pat@example.org — not on the log yet') === -1 || sendText.indexOf('Each email is sent once, when it falls due.') === -1) bad.push('with session_recap on send the preview does not say the log has not got the email yet: ' + sendText.slice(0, 300));
-  if (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths')) bad.push('a subject typed with markup in it was drawn as markup in the preview — it must be printed as text');
-  if (body && !/^The Ledger has no attempts tab/.test(((body.querySelector('p b') || {}).textContent || ''))) bad.push('the missing attempts tab is not the first thing the preview says');
-  if (/Day 4|Day 2/.test(text)) bad.push('the preview drew days with nothing in them');
-  if (!/Daily email to parents:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
-  /* NOTHING ANYWHERE IN THE WEEK: said, not a blank sheet — and said as both halves, sessions and work. */
-  const none = w.recapSheet_({ success: true, mode: 'off', morning: 7, scheduled: 1, days: [empty(6), empty(5)] });
-  if (!/No booked session and no question done in the last 7 days/.test(none) || !/checked every hour · booked/.test(none) || /No hourly check/.test(none)) bad.push('a week with no booked session and no work does not say so, or a booked check is called unbooked: ' + none.replace(/\s+/g, ' ').slice(0, 200));
-  /* A BACKEND FROM BEFORE THE DAILY EMAIL: it answers without `morning`, emails after sessions only and
-     lists numbers without words — said in bold with the other warnings, above the first day, so its
-     preview is not read as the new one. The card's hour falls back to the cell's reading. */
-  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
-  answer = old;
-  t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
-  await wait(300);
-  const oldWarn = body ? [...body.querySelectorAll('.recap-sheet > p > b')].map(b => b.textContent) : [];
-  const firstDay = body && body.querySelector('.recap-sheet h2');
-  const warnEl = body && [...body.querySelectorAll('.recap-sheet > p > b')].find(b => /The live backend emails after sessions only/.test(b.textContent));
-  if (!warnEl) bad.push('a preview reply with no `morning` (a backend from before the daily email) is not told to sync — warnings: ' + JSON.stringify(oldWarn));
-  else {
-    if (!/sync backend\/ into Apps Script/.test(warnEl.textContent)) bad.push('the old-backend warning does not say what to do: "' + warnEl.textContent + '"');
-    if (firstDay && (firstDay.compareDocumentPosition(warnEl) & w.Node.DOCUMENT_POSITION_FOLLOWING)) bad.push('the old-backend warning comes after the first day — it has to be read before the preview is');
-  }
-  if (morning() !== '7am') bad.push('after a reply with no `morning` the card says "' + morning() + '" — wanted the cell’s reading, 7am');
-  /* AND BACK: the new backend's reply takes the warning away again. */
-  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
-  answer = preview;
-  t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
-  await wait(300);
-  if (/The live backend emails after sessions only/.test((body || {}).textContent || '')) bad.push('the old-backend warning stayed after a reply that has `morning`');
-  /* A BACKEND FROM BEFORE recap.gs: told, not asked. */
-  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
-  t.DATA().features = ['digestPreview'];
-  sent.length = 0;
-  t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
-  await wait(100);
-  if (sent.some(b => b.action === 'recapPreview')) bad.push('a backend that does not list recapPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
-  if (!/sync backend/i.test((card().querySelector('.recap-said') || {}).textContent || '')) bad.push('a backend without the daily email is not said to need a sync');
+  /* A DEPLOYED VERSION FROM BEFORE THE WORDS: its reply has no `words`, and its emails are names. Said
+     first and in bold, so the old list is not read as what Sunday will send. */
+  const oldSheet = w.digestSheet_(Object.assign({}, preview, { words: undefined }));
+  const oldDoc = new w.DOMParser().parseFromString('<div>' + oldSheet + '</div>', 'text/html').body.firstChild;
+  const first = oldDoc && oldDoc.firstElementChild;
+  if (!first || !first.classList.contains('digest-old') || !first.querySelector('b') || !/new version/.test(first.textContent)) bad.push('a preview reply with no `words` (a web-app version from before the words) is not told first, in bold, to make a new version: ' + JSON.stringify(first && first.outerHTML));
   /* AND THE WEEKLY SHEET, WITH NO attempts TAB: the reason, not "nobody has done a question". */
-  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, attempts: false,
+  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, attempts: false, words: true,
     warning: 'The Ledger has no attempts tab, so nothing says what anybody did.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
   if (!/<b>The Ledger has no attempts tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no attempts tab does not say so in bold, or still says nobody has done a question');
-  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', attempts: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
+  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', attempts: true, words: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
   t.USER(null);
   return bad;
 });
@@ -9521,6 +9476,77 @@ const shopRow_ = (n, name, kindRaw, audience, inStock, extra) => Object.assign({
   id: n, rowIndex: n, kind: 'thing', kindRaw: kindRaw, name: name, price: '', unit: '£',
   acquire: 'buy', audience: audience, level: 0, slot: '', artId: '', description: name + ', for sale.',
   image: '', inStock: inStock, fields: {} }, extra || {});
+/* ---------- A CHOSEN ANSWER IS ONLY ITS VALUE, AND CLEAR IS A TILE BESIDE THE BOX -----------------
+   The owner, 8 Oct, on a pupil's iPad: *"i dont need the category of the tag to appear with the
+   choisen option in the finder"* and *"clear button looks like a tag which it isnt."* So: no field
+   name in front of a chosen value (`SUBJECT Maths` is `Maths`), a skip says what it skipped (`Any
+   school year`), a bare number keeps its field (`Chapter 119`), the kind's colour stays on the chip —
+   and Clear is the pen's bin tile in its own slot beside the search box, from the first answer on,
+   never a chip in the row. AND THE BOX IS NOT REDRAWN: the same element, still focused, after an
+   answer is pressed — the reason Clear has a slot of its own rather than sharing the box's line. */
+check('a chosen answer is only its value, and Clear is a tile beside the search box that keeps its focus', async () => {
+  const { w } = boot({ payload: payload() });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (!t.STUFF || typeof w.filterChips !== 'function') return ['Find\'s state is not exported to the journey'];
+  const bad = [];
+  t.go('stuff');
+  await wait(60);
+  t.STUFF().q = '';
+  t.STUFF().filters.length = 0;
+  w.paintStuff();
+  await wait(30);
+  const box = d.getElementById('stuff-q');
+  if (!box) return ['the Find screen has no search box to keep'];
+  const slot = () => d.getElementById('stuff-clear');
+  if (!slot()) return ['there is no #stuff-clear beside the search box — Clear has nowhere of its own to be'];
+  if (slot().innerHTML.trim()) bad.push('with nothing chosen, the Clear slot holds ' + slot().innerHTML.trim().slice(0, 80) + ' — it is shown from the first answer');
+  if (slot().parentElement !== box.parentElement) bad.push('Clear is not beside the search box — its slot and the box have different parents');
+
+  /* THE FIRST ANSWER, PRESSED WITH THE BOX FOCUSED. */
+  box.focus();
+  if (d.activeElement !== box) return bad.concat(['the search box would not take the focus, so keeping it was NOT checked']);
+  t.ACTIONS['facet-pick']({ dataset: { field: 'forLabel', value: 'Learning' } });
+  await wait(80);
+  if (d.getElementById('stuff-q') !== box) bad.push('pressing an answer replaced the search box — a new element, so the focus and the caret are gone');
+  else if (d.activeElement !== box) bad.push('pressing an answer took the focus off the search box (it is on ' + (d.activeElement ? d.activeElement.tagName + '#' + d.activeElement.id : 'nothing') + ')');
+  const tiles = () => [...slot().querySelectorAll('.tile[data-do="filter-clear"]')];
+  if (tiles().length !== 1) bad.push('one answer in, the Clear slot holds ' + tiles().length + ' Clear tile(s) — one, from the first answer');
+
+  /* THE CHIPS: a value, a skip, a bare number, and the tag that colours a kind. */
+  t.STUFF().filters.splice(0, t.STUFF().filters.length,
+    { field: 'forLabel', value: 'Learning' }, { field: 'subject', value: 'Maths' },
+    { field: 'yearGroup', any: true }, { field: 'bibleChapter', value: '119' });
+  w.paintStuff();
+  await wait(30);
+  const chips = [...d.querySelectorAll('#stuff-chips .chip')];
+  const text = el => el.textContent.replace(/\s+/g, ' ').trim();
+  const said = chips.map(text);
+  if (chips.length !== 4) bad.push('four answers drew ' + chips.length + ' chip(s): ' + said.join(' | '));
+  if (d.querySelector('#stuff-chips .chip-k')) bad.push('a chip still carries its field name in a .chip-k: ' + said.join(' | '));
+  const labels = ['What for', 'Subject', 'School year'];
+  said.forEach(s => labels.forEach(l => { if (s.indexOf(l + ' ') === 0) bad.push('the chip "' + s + '" starts with its field\'s name, ' + l); }));
+  const maths = chips.find(c => text(c) === 'Maths✕');
+  if (!maths) bad.push('no chip reads exactly "Maths✕" — they read ' + said.join(' | '));
+  else if (maths.getAttribute('data-tag') !== 'subject') bad.push('the Maths chip lost its colour: data-tag is ' + JSON.stringify(maths.getAttribute('data-tag')) + ', not "subject"');
+  if (said.indexOf('Learning✕') < 0) bad.push('the What for chip does not read "Learning✕" — ' + said.join(' | '));
+  if (said.indexOf('Any school year✕') < 0) bad.push('the skipped School year does not read "Any school year✕" — ' + said.join(' | '));
+  if (said.indexOf('Chapter 119✕') < 0) bad.push('a bare 119 does not keep its field as "Chapter 119✕" — ' + said.join(' | '));
+  if (d.querySelector('#stuff-chips [data-do="filter-clear"]')) bad.push('Clear is still drawn in the row of chips, where it looks like a tag');
+  if (tiles().length !== 1) bad.push('four answers in, the Clear slot holds ' + tiles().length + ' Clear tile(s)');
+  else {
+    const tile = tiles()[0];
+    if (!/Clear/.test(tile.getAttribute('aria-label') || '')) bad.push('the Clear tile is named ' + JSON.stringify(tile.getAttribute('aria-label')) + ' — it should say Clear');
+    if (!tile.querySelector('svg')) bad.push('the Clear tile has no mark on it — the bin');
+    /* AND IT STILL CLEARS, and goes with what it cleared. */
+    t.ACTIONS['filter-clear'](tile);
+    await wait(30);
+    if (t.STUFF().filters.length) bad.push('pressing Clear left ' + t.STUFF().filters.length + ' answer(s) chosen');
+    if (slot().innerHTML.trim()) bad.push('with everything cleared, the Clear tile is still beside the box');
+  }
+  return bad;
+});
+
 check('the shop is its own column with the basket on top, and Find no longer has a Shop door', async () => {
   const p = payload();
   p.shop = [shopRow_(2, 'Gooey Louie (board game)', 'game', 'all', true),
@@ -10997,13 +11023,20 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   if (!tile) return ['the receipt has no Share tile on it'];
   rc.getBoundingClientRect = () => BOX;
   const press = () => w.__t.ACTIONS['book-share'](tile);
+  /* UNTIL IT HAPPENS, NOT FOR A FIXED BEAT. The picture is drawn from a clone of the receipt with
+     every element's style copied across, which is a few milliseconds alone and more than 120 under a
+     full suite with agents beside it — where this journey failed with "handed 0 shares" on 8 Oct and
+     passed alone. A wait that is long enough on a quiet machine is a race, so each step waits for
+     its own outcome, up to three seconds, and a press that truly does nothing still fails. */
+  const till = async ok => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < 3000) await wait(20); };
 
   /* ---------- 1. A PHONE: ONE PNG FILE, TO THE SHARE SHEET ----------------------------------------- */
   const shared = [];
   w.navigator.canShare = x => !!(x && x.files && x.files.length && x.files[0].type === 'image/png');
   w.navigator.share = x => { shared.push(x); return Promise.resolve(); };
   press();
-  await wait(120);
+  await till(() => shared.length);
+  await wait(30);
   if (shared.length !== 1) bad.push('a phone that shares files was handed ' + shared.length + ' shares, not 1');
   else {
     const f = (shared[0].files || [])[0];
@@ -11030,8 +11063,9 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   /* ---------- 2. A LAPTOP: NO FILE SHARING, SO A DOWNLOAD ------------------------------------------ */
   w.navigator.canShare = () => false;
   shared.length = 0;
+  const clicked = clicks.length;
   press();
-  await wait(120);
+  await till(() => clicks.length > clicked || shared.length);
   if (shared.length) bad.push('a browser that cannot share files was still sent to navigator.share');
   const dl = clicks[clicks.length - 1];
   if (!dl) bad.push('a browser that cannot share files was given no download');
@@ -11044,7 +11078,7 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   w.navigator.share = x => { shared.push(x); const e = new Error('no'); e.name = 'NotAllowedError'; return Promise.reject(e); };
   shared.length = 0;
   press();
-  await wait(150);
+  await till(() => { const t = d.getElementById('sheet'); return t && !t.classList.contains('hidden') && t.querySelector('img.rc-shot'); });
   const sheet = d.getElementById('sheet');
   const img = sheet && sheet.querySelector('img.rc-shot');
   if (!sheet || sheet.classList.contains('hidden') || !img) bad.push('a refused share sheet left nothing on the screen — the picture should be offered in a sheet');
@@ -11601,14 +11635,19 @@ check('multipart: Saved and Spotlight draw a question\'s opening and its figure 
   return bad;
 });
 
-/* FINDING 9: "To the answer" says where the answer really is, and the drawing page carries it too. */
-check('multipart: "To the answer" says where the answer is, and the drawing page after a card carries it', async () => {
+/* FINDING 9, AFTER THE TILE WENT. The multi-part audit found the ↓ tile's note saying "next page" over a
+   figure, and a drawing page with no way on from it. The owner, 8 Oct: *"there doesnt need to be a scroll
+   down tile on questions"* -- so the answer is a swipe, and what has to be right is the strip itself: the
+   answer straight after the card, or after the drawing page where the child finishes, and no page of a
+   question carrying a tile that turns for you. */
+check('multipart: the answer is a swipe after the card -- after the drawing page where there is one -- and no page carries a tile to it', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionTiles_', 'questionFigCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
-  if (need.length) return [need.join(', ') + ' not reachable — the tile\'s note was NOT checked'];
+  const need = ['questionTiles_', 'questionFigCard_', 'questionCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the way to the answer was NOT checked'];
+  if (w.__t.ACTIONS['qa-go']) bad.push('`qa-go` still has a handler, so a tile to the answer could still be drawn and work');
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
   const row = id => ({ row_id: id, paper_id: 'P-MP-T', subject: 'Maths', name: 'Tiles' });
   const q = (id, extra) => Object.assign({ kind: 'question', name: 'Q' + id, qNumber: id, marks: 2, key: 'q-mp-t' + id,
@@ -11616,31 +11655,15 @@ check('multipart: "To the answer" says where the answer is, and the drawing page
   const plain = q('1');
   const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
   const front = q('3', { diagram: MP_SVG });
-  const note = h => { const t = el(h).querySelector('[data-do="qa-go"]'); return t ? String(t.getAttribute('aria-label') || '').replace(/^To the answer · /, '') : '(no tile)'; };
-  [[plain, 'next page', 'a card whose answer is the next page'],
-   [grid, 'after the squared grid', 'a card with the grid to draw on between it and its answer'],
-   [front, 'next page', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
-    const got = note(w.questionTiles_(x));
-    if (got !== want) bad.push(what + ' says "' + got + '", wanted "' + want + '"');
+  [[plain, '[null,"ans"]', 'a card whose answer is the next page'],
+   [grid, '[null,"fig","ans"]', 'a card with the grid to draw on between it and its answer'],
+   [front, '["fig",null,"ans"]', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
+    const got = JSON.stringify(w.pageParts_(x));
+    if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want + ' -- the answer the swipe after the last page the child works on');
+    /* AND NOTHING ON ANY OF ITS PAGES TURNS FOR YOU. */
+    const all = el(w.questionCard_(x) + w.questionTiles_(x) + (w.questionHasFig_(x) ? w.questionFigCard_(x) : ''));
+    if (all.querySelector('[data-do="qa-go"], .qa-to, .tile-i-next, .qfig-tiles')) bad.push(what + ' still carries a tile to its answer');
   });
-  /* THE DRAWING PAGE: the grid after the card carries the tile; a figure in front of its card does not. */
-  const gf = el(w.questionFigCard_(grid));
-  const gt = gf.querySelector('[data-do="qa-go"]');
-  if (!gt) bad.push('the grid page -- where the child finishes -- has no "To the answer" tile');
-  else if (note(gf.innerHTML) !== 'next page' || gt.getAttribute('data-from') !== 'fig') bad.push('the grid page\'s tile reads "' + note(gf.innerHTML) + '" from "' + gt.getAttribute('data-from') + '", wanted "next page" from the figure');
-  if (el(w.questionFigCard_(front)).querySelector('[data-do="qa-go"]')) bad.push('a figure read on the way to its card carries a tile to the answer');
-  /* AND IT TURNS ONE PAGE ON FROM THE GRID: card page 0, grid page 1, answer page 2. */
-  if (gt) {
-    const strip = el('<div id="s-mptile"><section class="page"></section><section class="page">' + gf.innerHTML + '</section><section class="page"></section></div>');
-    d.body.appendChild(strip);
-    const heldA = w.stuffItemsAll_, heldG = w.goPage;
-    let went = null;
-    w.stuffItemsAll_ = () => [grid];
-    w.goPage = (id, n) => { went = [id, n]; };
-    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); }
-    finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
-    if (!went || went[1] !== 2) bad.push('the grid page\'s tile turned to ' + JSON.stringify(went) + ', wanted page 2 -- the answer is the page after the grid');
-  }
   return bad;
 });
 
@@ -11813,10 +11836,89 @@ check('multipart: "Answers" is a kind at the start of the funnel, and choosing i
       }
       host.remove();
     }
-    /* AND "Questions" IS AS IT WAS: questions with their answers after them. */
+    /* ---------- AND "Questions" MEANS QUESTIONS -------------------------------------------------------
+       THE OWNER, 8 Oct: *"answers shouldnt even be showing up when all ive done is clicked questions. the
+       answers still show up."* This said "Questions IS AS IT WAS: questions with their answers after
+       them", and that was the fault. Chosen: question pages and no answer page. With no kind chosen (the
+       paper alone): every answer page still straight after its question's card, where *"the answers
+       should appear after their questions"* (5 Oct) put it. */
     S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Questions' }];
-    if (!w.stuffPages_().some(pg => pg.part !== 'ans')) bad.push('choosing Questions shows no question pages');
+    const qPages = w.stuffPages_();
+    if (!qPages.some(pg => pg.part !== 'ans')) bad.push('choosing Questions shows no question pages');
+    const leaked = qPages.filter(pg => pg.part === 'ans');
+    if (leaked.length) bad.push('choosing Questions still draws ' + leaked.length + ' answer page(s): ' + leaked.map(pg => pg.x.name).join(', '));
+    S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const all = w.stuffPages_();
+    const cards = all.filter(pg => !pg.part && w.questionHasAns_(pg.x));
+    if (!cards.length) bad.push('the paper with no kind chosen has no question with an answer, so "after its question" was NOT checked');
+    cards.forEach(pg => {
+      const i = all.indexOf(pg);
+      let j = i + 1;
+      while (all[j] && all[j].x === pg.x && all[j].part === 'fig') j++;
+      if (!all[j] || all[j].x !== pg.x || all[j].part !== 'ans') bad.push('with no kind chosen, ' + pg.x.name + '\'s answer is not the page after its card');
+    });
   } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
+  return bad;
+});
+
+/* ---------- QUESTIONS CHOSEN: NOT ONE ANSWER ON ANY PAGE, FOR A PUPIL OR A TUTOR ------------------------
+   THE OWNER, 8 Oct, signed in as a pupil on an iPad: *"answers shouldnt even be showing up when all ive
+   done is clicked questions. the answers still show up."* Every page of a two-part paper drawn as Find
+   draws it, with Questions chosen, as a student and then as a tutor -- *"Should behave the same whether
+   it's a tutor or child"* -- and not one of them is an answer page, says "Answer", or carries the
+   answer's words anywhere in its markup. (A wrong tap's "Not yet — see Answers", which names the chip
+   rather than a page that is not there, is the marking journey's.) */
+check('multipart: with Questions chosen, no page of a two-part paper is an answer or holds one, for a pupil or a tutor', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['stuffPages_', 'stuffPart_', 'stuffCard'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the Questions view was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const SAYS = ['50°', 'angles on a line'];
+  try {
+    for (const [who, u] of [['a pupil', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+                            ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }]]) {
+      w.__t.USER(u);
+      S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Questions' }];
+      const pages = w.stuffPages_().filter(pg => pg.x.qNumber === '8' || String(pg.x.qNumber) === '8');
+      if (pages.filter(pg => !pg.part).length !== 2) { bad.push(who + ': Q8 drew ' + pages.filter(pg => !pg.part).length + ' question cards, wanted its two parts -- nothing was asked'); continue; }
+      pages.forEach(pg => {
+        const h = d.createElement('div');
+        h.innerHTML = pg.part ? w.stuffPart_(pg.x, pg.part) : w.stuffCard(pg.x, 0);
+        const at = who + ', ' + pg.x.name + ':' + (pg.part || 'card');
+        if (pg.part === 'ans' || h.querySelector('.qans-card, .qans, .qans-body')) bad.push(at + ' is an answer page');
+        if (tagText(h, 'kind') === 'Answer') bad.push(at + ' is tagged "Answer"');
+        SAYS.forEach(t => { if (h.innerHTML.indexOf(t) >= 0) bad.push(at + ' carries the answer "' + t + '" in its markup'); });
+      });
+    }
+  } finally { w.__t.USER(null); lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* ---------- WHAT KIND: QUESTIONS FIRST, ANSWERS BESIDE IT --------------------------------------------------
+   MEASURED ON 8 OCT: the first question Find asks offered `Answers | Bundles | Films | Practicals | Projects
+   | Questions | Resources` -- the alphabet -- so Answers was the first chip, top left where a thumb lands,
+   and one tap on it opens every answer at once. In `KIND_BUCKET`'s order now (`orderOf`): Questions, then
+   Answers, its pair. Asked of the facet's own order and of the chips it draws over a real list. */
+check('multipart: What kind offers Questions first and Answers next to it, not the alphabet', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  const kind = w.facetList().find(f => f.field === 'kindLabel');
+  if (!kind || typeof w.facetValues !== 'function') return ['the What kind facet or facetValues is not reachable — the order was NOT checked'];
+  if (typeof kind.orderOf !== 'function') return ['What kind has no `orderOf`, so its chips fall back to the alphabet -- Answers first'];
+  const all = ['Resources', 'Answers', 'Films', 'Bundles', 'Projects', 'Practicals', 'Questions'];
+  const o = v => { const i = kind.orderOf(v); return i < 0 ? 1e6 : i; };
+  const got = all.slice().sort((a, b) => o(a) - o(b)).join(' ');
+  if (got !== 'Questions Answers Practicals Projects Bundles Films Resources') bad.push('What kind orders its answers "' + got + '"');
+  const lib = mpLibrary_(w, mpBank_());
+  try {
+    const chips = w.facetValues(lib.items, kind).map(v => String(v.show || v.value));
+    if (chips[0] !== 'Questions' || chips[1] !== 'Answers') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Questions then Answers');
+  } finally { lib.put(); }
   return bad;
 });
 
@@ -11883,6 +11985,620 @@ check('multipart: the line under a chosen paper counts questions, names a search
       if (!want.test(got)) bad.push(what + ': "' + got + '"');
     });
   } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* ==================================================================================================
+   ANSWERS FOLLOW THE CHILD, AND SIGNING IN ON A SHARED iPAD.
+
+   THE OWNER, LIVE, ON A PUPIL'S iPAD: *"i just relogged in as [the child] after having done the
+   questions earlier and i dont see his answers there"*, *"it doesnt seem to save their answers"*, *"i am
+   very dissapointed it didnt have his answers already written in when he went to see them on the
+   computer"*, and *"the logging in and everything feels so janky and unresponsive and slow… i feel very
+   insecure when signing into the kids accounts"*. js/answers.js is the phone's half of the answers;
+   `signedIn_` / `signedOut_` in me.js are the one way in and out. Every journey below goes through the
+   real handlers and the real `api()`, and the backend's half is `check-saved-answers.js`. The children
+   are invented — Ada and Ben — because this repository is public.
+================================================================================================== */
+const ANS_ADA = { name: 'Ada Pupil', personId: 'P7', role: 'kid', roles: ['kid'], token: 'tok-P7', handle: 'ada_kind7' };
+const ANS_BEN = { name: 'Ben Pupil', personId: 'P8', role: 'kid', roles: ['kid'], token: 'tok-P8', handle: 'ben_bold8' };
+/* A BACKEND THAT KEEPS ANSWERS, as `answersUpsert_` does: the later edit wins and the reply carries the
+   winner. `server` is the account's rows, server key -> { v, at }, for P7 unless a journey says. */
+const ansBackend_ = (server, more) => b => {
+  const own = more ? more(b) : undefined;
+  if (own !== undefined) return own;
+  if (b.action === 'saveAnswers') {
+    const saved = {};
+    (b.items || []).forEach(it => {
+      const had = server[it.key];
+      if (had && had.at > it.at) { saved[it.key] = had; return; }
+      server[it.key] = saved[it.key] = { v: String(it.v), at: it.at };
+    });
+    return { success: true, saved: saved };
+  }
+  if (b.action === 'myAnswers') return { success: true, for: b.personId, answers: JSON.parse(JSON.stringify(server)) };
+  return { success: true, messages: [] };
+};
+const ANS_FEATURES = ['saveAnswers', 'myAnswers'];
+/* THE THREE KINDS OF BOX AND A PAD, built by the app's own builders and put in the document. */
+const ansCards_ = (w, tag) => {
+  const d = w.document;
+  const base = { kind: 'question', name: 'Q1', marks: 1, row: { row_id: 'Q-ANS-' + tag, paper_id: 'P-ANS', subject: 'Maths', name: 'Answers' } };
+  const words = Object.assign({}, base, { key: 'q:Q-ANS-W-' + tag, answerType: 'explain', html: '<p>Explain.</p>', accept: '' });
+  const maths = Object.assign({}, base, { key: 'q:Q-ANS-M-' + tag, html: '<p>Work out 3 &divide; 4.</p>', accept: '3/4' });
+  const pick = Object.assign({}, base, { key: 'q:Q-ANS-C-' + tag, html: '<p>Which?</p>', choices: ['3', '4', '5'], choiceRight: [2] });
+  const pen = { kind: 'question', key: 'q:Q-ANS-P-' + tag, answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  /* THE LIBRARY HOLDS THESE CARDS, as Find's would — a pick is redrawn from the card it belongs to. */
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => (held() || []).concat([words, maths, pick]);
+  const draw = () => {
+    host.innerHTML = [words, maths, pick].map(x => '<div class="cardhost">' + w.questionCard_(x, 0) + '</div>').join('')
+      + w.__t.padWrap(pen, pen.diagram, '')
+      /* A PASSAGE TO RING WORDS IN, keyed as `circOf_` keys it. */
+      + '<div class="qsheet-part is-text" data-circ="' + w.__t.padKey(pen) + ':words">'
+      + w.circWords_('<p>The tall tree swayed.</p>', 0, (() => { try { return JSON.parse(w.localStorage.getItem(w.__t.padKey(pen) + ':words') || '[]'); } catch (e) { return []; } })()) + '</div>';
+    const ink = host.querySelector('.qpad-ink');
+    if (ink) ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+  };
+  draw();
+  const q = sel => host.querySelector(sel);
+  const ta = () => q('[data-k$="' + words.key + '"].qp-ans-in');
+  const kp = () => q('[data-k$="' + maths.key + '"].qp-ans-in');
+  const box = () => q('.qp-choices');
+  const pad = () => q('.qpad');
+  const saidFor = x => { const el = q('.qp-saved[data-k$="' + x.key + '"]'); return el ? el.textContent : null; };
+  const ringed = () => [...host.querySelectorAll('[data-circ] .qw.is-circled')].map(s2 => s2.getAttribute('data-w'));
+  return { host, draw, words, maths, pick, pen, ta, kp, box, pad, saidFor, ringed };
+};
+const ansType_ = (w, el, text) => { el.value = text; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+const ansStroke_ = (w, c, pts) => {
+  const A = w.__t.ACTIONS;
+  const lock = c.pad().querySelector('.qpad-lock');
+  if (lock && !c.pad().classList.contains('is-drawing')) A['pad-draw'](lock);
+  const ink = c.pad().querySelector('.qpad-ink');
+  ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+  const Ev = w.PointerEvent || w.MouseEvent;
+  const fire = (type, x, y) => ink.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));
+  fire('pointerdown', pts[0][0], pts[0][1]);
+  pts.slice(1).forEach(p => fire('pointermove', p[0], p[1]));
+  fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]);
+  A['pad-draw'](c.pad().querySelector('.qpad-lock'));
+};
+const ansNeed_ = w => ['questionCard_', 'ansStore_', 'answersPush_', 'answersPull_', 'ansSavedSay_', 'ansRead_']
+  .filter(n => typeof w[n] !== 'function').concat(typeof (w.__t || {}).padWrap === 'function' ? [] : ['padWrap_']);
+
+check('answers: typed, picked and drawn go to the account a moment later, and the line under the box says whose', async () => {
+  const server = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing about saving answers was checked'];
+  const bad = [];
+  const saves = () => sent.filter(b => b.action === 'saveAnswers');
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'A');
+  if (!c.ta() || !c.kp() || !c.box() || !c.pad()) return ['the cards did not draw a textarea, a keypad box, options and a pad — nothing was checked'];
+  if (c.saidFor(c.words) !== '') bad.push('an empty box already says ' + JSON.stringify(c.saidFor(c.words)) + ' — a line about saving nothing');
+  /* TYPED, PICKED, DRAWN — with no Check and no leaving the box, so only the debounce sends them. */
+  ['b', 'be', 'because', 'because 180'].forEach(v => ansType_(w, c.ta(), v));
+  w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansStroke_(w, c, [[10, 10], [20, 20], [30, 30], [40, 40], [50, 50], [60, 60], [70, 70], [80, 80]]);
+  if (c.saidFor(c.words) !== 'Saving…') bad.push('while it is on its way the line says ' + JSON.stringify(c.saidFor(c.words)) + ', wanted "Saving…"');
+  await wait(200);
+  if (saves().length) bad.push('the answer was sent at once, ' + saves().length + ' request(s) — every keystroke would be a request');
+  await wait(1600);
+  if (saves().length !== 1) bad.push('a second and a half after the last edit ' + saves().length + ' saveAnswers request(s) had gone, wanted 1 carrying all three');
+  const s = saves()[0] || {};
+  const by = {}; (s.items || []).forEach(it => { by[it.key] = it; });
+  if (s.token !== 'tok-P7' || s.personId !== 'P7') bad.push('saveAnswers went as ' + JSON.stringify({ token: s.token, personId: s.personId }) + ' — the token is who the server writes for, and personId must ride with it');
+  const typed = by['ans:' + c.words.key], picked = by['ans:' + c.pick.key], drawn = by['pad:' + c.pen.key];
+  if (!typed || typed.v !== 'because 180') bad.push('the typed answer went up as ' + JSON.stringify(typed) + ' — wanted key ans:' + c.words.key + ' (no person in it) and "because 180"');
+  if (!picked || picked.v !== '2') bad.push('the pick went up as ' + JSON.stringify(picked) + ' — wanted "2"');
+  if (!drawn) bad.push('the drawing did not go up: ' + JSON.stringify(Object.keys(by)));
+  else if (drawn.v !== '[[10,10,80,80]]') bad.push('the drawing went up as ' + drawn.v + ' — a straight stroke of eight points is two after simplifying, and the device keeps all eight');
+  if (typed && !(typed.at > 0 && typed.at <= Date.now())) bad.push('the typed answer went up with no edit time: ' + JSON.stringify(typed));
+  if (Object.keys(by).some(k => /u:P7/.test(k))) bad.push('a key went up with the person in it: ' + Object.keys(by).join(', '));
+  if (JSON.parse(w.localStorage.getItem('pad:u:P7:' + c.pen.key) || '[]')[0].length !== 16) bad.push('the device lost the points of its own drawing when it sent a simpler one');
+  if (w.localStorage.getItem('ansDirty:u:P7')) bad.push('after the save the device still has these due: ' + w.localStorage.getItem('ansDirty:u:P7'));
+  if (c.saidFor(c.words) !== 'Saved to Ada’s account') bad.push('after the save the line says ' + JSON.stringify(c.saidFor(c.words)) + ', wanted "Saved to Ada’s account"');
+  if (c.saidFor(c.pick) !== 'Saved to Ada’s account') bad.push('under the options the line says ' + JSON.stringify(c.saidFor(c.pick)));
+  if (c.host.querySelectorAll('.qp-saved[data-k$="' + c.pick.key + '"]').length !== 1) bad.push('a pick redrew the options and left the old saved line beside the new one');
+
+  /* CHECK SENDS AT ONCE — a click on the tile, as a finger makes it. */
+  const n0 = saves().length;
+  ansType_(w, c.kp(), '(3)/(4)');
+  c.kp().closest('.qcard').querySelector('.qp-check').click();
+  await wait(60);
+  if (saves().length !== n0 + 1) bad.push('Check did not send the answer at once (' + (saves().length - n0) + ' request(s) within 60 ms)');
+  /* AND SO DOES LEAVING THE BOX. */
+  const n1 = saves().length;
+  c.ta().focus();
+  ansType_(w, c.ta(), 'because 180 degrees');
+  c.ta().blur();
+  await wait(60);
+  if (saves().length !== n1 + 1) bad.push('leaving the box did not send the answer at once (' + (saves().length - n1) + ' request(s) within 60 ms)');
+  /* AND THE APP GOING AWAY — with keepalive, so a closed iPad cover does not take the last answer. */
+  const kept = [];
+  const was = w.fetch;
+  w.fetch = (u, o) => { if (o && o.keepalive) kept.push(JSON.parse(o.body)); return was(u, o); };
+  ansType_(w, c.ta(), 'because 180 degrees on a line');
+  w.dispatchEvent(new w.Event('pagehide'));
+  await wait(60);
+  w.fetch = was;
+  if (!kept.some(b => b.action === 'saveAnswers')) bad.push('pagehide sent nothing with keepalive — closing the app loses the last answer');
+
+  /* SIGNED OUT: the device only, and it says so. */
+  w.__t.USER(null);
+  c.draw();
+  ansType_(w, c.ta(), 'mine');
+  if (c.saidFor(c.words) !== 'On this device only — sign in to keep it') bad.push('signed out the line says ' + JSON.stringify(c.saidFor(c.words)));
+  return bad;
+});
+
+check('answers: on another device, the account fills the box, the keypad drawing, the pick, the pad and the rings', async () => {
+  const at = Date.now() - 3600e3;
+  const server = {
+    'ans:q:Q-ANS-W-B': { v: 'because the angles make a line', at },
+    'ans:q:Q-ANS-M-B': { v: '(3)/(4)', at },
+    'ans:q:Q-ANS-C-B': { v: '2', at },
+    'pad:q:Q-ANS-P-B': { v: '[[10,20,30,40]]', at },
+    'pad:q:Q-ANS-P-B:words': { v: '["0.1"]', at },
+  };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was filled'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'B');
+  if (c.ta().value) bad.push('a fresh device already shows ' + JSON.stringify(c.ta().value));
+  const ok = await w.answersPull_(true);
+  if (!ok) bad.push('the read from the account did not land');
+  if (!sent.some(b => b.action === 'myAnswers' && b.personId === 'P7' && b.token === 'tok-P7')) bad.push('myAnswers was not asked with the token: ' + JSON.stringify(sent.filter(b => b.action === 'myAnswers')));
+  if (c.ta().value !== 'because the angles make a line') bad.push('the textarea on screen reads ' + JSON.stringify(c.ta().value) + ' — the account’s answer did not reach the box in front of the child');
+  if (c.kp().value !== '(3)/(4)') bad.push('the keypad box reads ' + JSON.stringify(c.kp().value));
+  const show = c.kp().parentNode.querySelector('.kp-show');
+  if (!show || !/frac/.test(show.innerHTML)) bad.push('the keypad’s drawing was not redrawn — the input holds (3)/(4) under a picture of nothing: ' + (show && show.innerHTML.slice(0, 80)));
+  const on = c.box() && c.box().querySelector('.qp-opt.is-picked');
+  if (!on || on.getAttribute('data-n') !== '2') bad.push('the picked option on screen is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted the account’s one');
+  if (c.ringed().join() !== '0.1') bad.push('the ringed words on screen are [' + c.ringed().join() + '], wanted the account’s "tall" (0.1)');
+  if (c.saidFor(c.words) !== 'Saved to Ada’s account') bad.push('a box filled from the account says ' + JSON.stringify(c.saidFor(c.words)));
+  /* DRAWN AGAIN, IT IS THE SAME — the device has it now. */
+  c.draw();
+  if (c.ta().value !== 'because the angles make a line') bad.push('drawn again the box reads ' + JSON.stringify(c.ta().value));
+  /* NOTHING CAME BACK UP: the device has nothing newer. */
+  await wait(1700);
+  if (sent.some(b => b.action === 'saveAnswers')) bad.push('answers read from the account were sent straight back to it: ' + JSON.stringify(sent.filter(b => b.action === 'saveAnswers').map(b => b.items)));
+  /* A REPLY FOR SOMEBODY ELSE — a child who signed out while it was on its way — is dropped. */
+  const b2 = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: b => (b.action === 'myAnswers' ? { success: true, for: 'P8', answers: { 'ans:q:Q-ANS-W-C': { v: 'Ben’s', at } } } : { success: true }) });
+  await wait(300);
+  b2.w.__t.USER(Object.assign({}, ANS_ADA));
+  const c2 = ansCards_(b2.w, 'C');
+  await b2.w.answersPull_(true);
+  if (c2.ta().value) bad.push('A REPLY FOR ANOTHER CHILD FILLED ADA’S BOX: ' + JSON.stringify(c2.ta().value));
+  /* AND A VALUE THE PAD CANNOT DRAW IS NOT PUT IN ITS MARKUP. */
+  const b3 = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: b => (b.action === 'myAnswers' ? { success: true, for: 'P7', answers: { 'pad:q:Q-ANS-P-D': { v: '[["\\"><img src=x onerror=alert(1)>"]]', at } } } : { success: true }) });
+  await wait(300);
+  b3.w.__t.USER(Object.assign({}, ANS_ADA));
+  const c3 = ansCards_(b3.w, 'D');
+  await b3.w.answersPull_(true);
+  if (c3.host.querySelector('img') || b3.w.localStorage.getItem('pad:u:P7:q:Q-ANS-P-D')) bad.push('a pad value that is not a list of numbers was stored and drawn');
+  return bad;
+});
+
+check('answers: typed before signing in is MOVED to whoever signs in, and the next child on the iPad sees nothing', async () => {
+  const server = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — the move was NOT checked'];
+  const bad = [];
+  w.__t.USER(null);
+  const c = ansCards_(w, 'E');
+  ansType_(w, c.ta(), 'typed before signing in');
+  const bare = 'ans:' + c.words.key, mine = 'ans:u:P7:' + c.words.key;
+  if (w.localStorage.getItem(bare) !== 'typed before signing in') return bad.concat(['signed out, the answer was not kept on the device at all']);
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  c.draw();
+  if (c.ta().value !== 'typed before signing in') bad.push('signed in as Ada the box reads ' + JSON.stringify(c.ta().value) + ' — the answer typed before signing in was not found (the `ansRead_` regex)');
+  if (w.localStorage.getItem(mine) !== 'typed before signing in') bad.push('the answer is not under Ada’s key: ' + JSON.stringify(w.localStorage.getItem(mine)));
+  if (w.localStorage.getItem(bare) !== null) bad.push('the answer was COPIED, not moved — the signed-out copy is still there for the next child: ' + JSON.stringify(w.localStorage.getItem(bare)));
+  await wait(1700);
+  const up = sent.filter(b => b.action === 'saveAnswers').map(b => (b.items || []).map(i => i.key + '=' + i.v).join(',')).join(' | ');
+  if (!/ans:q:Q-ANS-W-E=typed before signing in/.test(up)) bad.push('the moved answer did not go up to Ada’s account: ' + JSON.stringify(up));
+  w.__t.USER(Object.assign({}, ANS_BEN));
+  c.draw();
+  if (c.ta().value) bad.push('BEN SEES ADA’S ANSWER on the same iPad: ' + JSON.stringify(c.ta().value));
+  /* AND SIGNED OUT AGAIN, THE BOX IS EMPTY AND SAYS NOTHING — the answer moved; the device's open drawer
+     must not still claim to hold it (the visit's copy is for a storage that throws, not one that answered). */
+  w.__t.USER(null);
+  c.draw();
+  if (c.ta().value || c.saidFor(c.words)) bad.push('signed out after the move, the box reads ' + JSON.stringify(c.ta().value) + ' under the line ' + JSON.stringify(c.saidFor(c.words)) + ' — the moved answer is still claimed for the device');
+  return bad;
+});
+
+check('answers: an edit not yet sent beats the account’s copy, even a later one, and a box being typed in is never written over', async () => {
+  /* THE ACCOUNT'S COPY IS STAMPED AFTER THE EDIT HERE — the computer's clock, or an edit there in the
+     second before this one went up. Due wins all the same: it is about to go up, and the server decides. */
+  const server = {
+    'ans:q:Q-ANS-W-F': { v: 'the account’s answer', at: Date.now() + 60000 },
+    'ans:q:Q-ANS-M-F': { v: '(1)/(2)', at: Date.now() - 1000 },
+  };
+  /* THE SAVE IS HELD — it never answers — so the edit stays due while the account is read. */
+  const hold = new Promise(() => {});
+  const { w } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: ansBackend_(server, b => (b.action === 'saveAnswers' ? hold : undefined)) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — the merge was NOT checked'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'F');
+  ansType_(w, c.ta(), 'my new answer');
+  /* THE KEYPAD BOX HAS AN OLDER ANSWER, SAVED, AND THE CHILD IS IN IT. */
+  w.localStorage.setItem('ans:u:P7:' + c.maths.key, '(3)/(4)');
+  w.localStorage.setItem('ansAt:ans:u:P7:' + c.maths.key, String(Date.now() - 5000));
+  c.draw();
+  ansType_(w, c.ta(), 'my new answer');
+  c.kp().focus();
+  await w.answersPull_(true);
+  if (c.ta().value !== 'my new answer' || w.localStorage.getItem('ans:u:P7:' + c.words.key) !== 'my new answer') bad.push('an edit not yet sent was replaced by the account’s copy: the box reads ' + JSON.stringify(c.ta().value) + ' and the device ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + c.words.key)));
+  if (c.kp().value !== '(3)/(4)' || w.localStorage.getItem('ans:u:P7:' + c.maths.key) !== '(3)/(4)') bad.push('the box under the child’s finger was written over by the account: the box reads ' + JSON.stringify(c.kp().value) + ' and the device ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + c.maths.key)));
+  c.kp().blur();
+  /* AND A BOX NOBODY IS IN, NOT DUE, TAKES THE ACCOUNT'S NEWER ANSWER — the control for the two above. */
+  const b2 = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_({ 'ans:q:Q-ANS-W-G': { v: 'from the computer', at: Date.now() - 1000 } }) });
+  await wait(300);
+  b2.w.__t.USER(Object.assign({}, ANS_ADA));
+  b2.w.localStorage.setItem('ans:u:P7:q:Q-ANS-W-G', 'from this iPad, earlier');
+  b2.w.localStorage.setItem('ansAt:ans:u:P7:q:Q-ANS-W-G', String(Date.now() - 864e5));
+  const c2 = ansCards_(b2.w, 'G');
+  await b2.w.answersPull_(true);
+  if (c2.ta().value !== 'from the computer') bad.push('a box nobody was in kept its older answer over the account’s newer one: ' + JSON.stringify(c2.ta().value));
+  return bad;
+});
+
+check('answers: a backend without saveAnswers is sent nothing, and the box keeps its answer on the device as it always did', async () => {
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ['markDone'] }) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'H');
+  ansType_(w, c.ta(), 'kept here');
+  w.adoptMarks_();
+  await wait(1700);
+  const asked = sent.filter(b => b.action === 'saveAnswers' || b.action === 'myAnswers');
+  if (asked.length) bad.push('a backend that does not list them was sent ' + asked.map(b => b.action).join(', '));
+  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== 'kept here') bad.push('the answer was not kept on the device');
+  c.draw();
+  if (c.ta().value !== 'kept here') bad.push('drawn again the box reads ' + JSON.stringify(c.ta().value));
+  if (c.saidFor(c.words) !== 'On this device only') bad.push('signed in to a backend that cannot keep it, the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — it must not claim a save');
+  return bad;
+});
+
+check('answers: a refused save keeps the answer due and it goes on the next try; one typed over while sending stays due', async () => {
+  const server = {};
+  let refuse = 1, release = null;
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: ansBackend_(server, b => {
+      if (b.action !== 'saveAnswers') return undefined;
+      if (refuse-- > 0) return { error: 'Busy — it will be sent again.', why: 'busy' };
+      if (release === 'hold') return new Promise(r => { release = () => r(ansBackend_(server)(b)); });
+      return undefined;
+    }) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'I');
+  const due = () => JSON.parse(w.localStorage.getItem('ansDirty:u:P7') || '[]');
+  ansType_(w, c.ta(), 'first try');
+  await w.answersPush_(true);
+  if (!due().includes('ans:u:P7:' + c.words.key)) bad.push('a refused save took the answer off the list of what is due — it would never be sent again');
+  if (c.saidFor(c.words) !== 'Saving…') bad.push('after a refusal the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — it was not saved');
+  await w.answersPush_(true);
+  if (due().length) bad.push('the next try did not clear what was due: ' + JSON.stringify(due()));
+  if (!server['ans:q:Q-ANS-W-I'] || server['ans:q:Q-ANS-W-I'].v !== 'first try') bad.push('the next try did not reach the account: ' + JSON.stringify(server));
+  /* TYPED OVER WHILE THE SAVE WAS ON THE WIRE: the reply is about "second", so the key stays due and
+     the newer answer follows it up — the account must end on what the box says. */
+  release = 'hold';
+  ansType_(w, c.ta(), 'second');
+  const n0 = sent.filter(b => b.action === 'saveAnswers').length;
+  const p = w.answersPush_(true);
+  ansType_(w, c.ta(), 'second, longer');
+  await wait(20);
+  if (typeof release === 'function') release();
+  await p;
+  /* THE NEWER ANSWER FOLLOWS ON THE ORDINARY SECOND AND A HALF — one request per pause, not per round trip. */
+  await wait(1700);
+  const after = sent.filter(b => b.action === 'saveAnswers').slice(n0).map(b => (b.items || []).map(i => i.v).join());
+  if ((server['ans:q:Q-ANS-W-I'] || {}).v !== 'second, longer') bad.push('an answer typed over while the last one was being sent was taken as saved — the account has ' + JSON.stringify((server['ans:q:Q-ANS-W-I'] || {}).v) + ' and the box says "second, longer" (sent: ' + JSON.stringify(after) + ')');
+  if (due().length) bad.push('after the follow-up save something is still due: ' + JSON.stringify(due()));
+  /* AND AN ANSWER TOO LONG FOR THE ACCOUNT (ANSWER_TEXT_MAX): never sent, never due — it would be refused
+     for ever — and the line under the box does not claim a save that never happened. */
+  const n2 = sent.filter(b => b.action === 'saveAnswers').length;
+  ansType_(w, c.ta(), 'x'.repeat(2001));
+  await w.answersPush_(true);
+  if (sent.filter(b => b.action === 'saveAnswers').slice(n2).some(b => (b.items || []).some(i => String(i.v).length > 2000))) bad.push('an answer over the account’s ceiling was sent — the server refuses it every time');
+  if (due().length) bad.push('an answer over the ceiling is still due: ' + JSON.stringify(due()));
+  if (c.saidFor(c.words) !== 'On this device only \u2014 too long for the account') bad.push('under an answer too long for the account the line says ' + JSON.stringify(c.saidFor(c.words)));
+  return bad;
+});
+
+check('answers: a payload landing reads the account once a visit, and coming back to the app after a minute reads it again', async () => {
+  const server = { 'ans:q:Q-ANS-W-K': { v: 'from the computer', at: Date.now() - 5000 } };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } });
+  await wait(500);
+  const bad = [];
+  if (typeof w.adoptMarks_ !== 'function') return ['adoptMarks_ not reachable — nothing was checked'];
+  const reads = () => sent.filter(b => b.action === 'myAnswers').length;
+  if (reads() !== 1) bad.push('opening the app signed in read the account ' + reads() + ' time(s), wanted once — the boxes would be empty on this device until the next sign-in');
+  if (w.localStorage.getItem('ans:u:P7:q:Q-ANS-W-K') !== 'from the computer') bad.push('the answer typed on the computer did not reach this device when the app opened');
+  w.adoptMarks_(); w.adoptMarks_();
+  await wait(50);
+  if (reads() !== 1) bad.push('two more payloads in the same visit read the account ' + (reads() - 1) + ' more time(s) — once a visit');
+  /* BACK IN FRONT: not within the minute, and again after it. */
+  const d = w.document;
+  try { Object.defineProperty(d, 'visibilityState', { configurable: true, get: () => 'visible' }); } catch (e) {}
+  d.dispatchEvent(new w.Event('visibilitychange'));
+  await wait(50);
+  if (reads() !== 1) bad.push('coming back to the app within the minute read the account again');
+  const real = w.Date.now;
+  w.Date.now = () => real.call(w.Date) + 61000;
+  try {
+    d.dispatchEvent(new w.Event('visibilitychange'));
+    await wait(50);
+  } finally { w.Date.now = real; }
+  if (reads() !== 2) bad.push('coming back to the app after a minute away did not read the account again (' + reads() + ' reads) — the iPad would not see what was typed on the computer');
+  return bad;
+});
+
+/* ---------- SIGNING IN ON A SHARED iPAD ------------------------------------------------------------- */
+check('sign out, then the next child signs in: none of the last child’s messages, stars or done dates are on the screen', async () => {
+  /* BEN'S INBOX DOES NOT ARRIVE — the server is slow, then refuses. That is the moment the last child's
+     messages, if they were still held, are what the column falls back to drawing (`loadMessages` keeps
+     what it had on a failure, so a blip does not read as an empty inbox). */
+  let asked = 0;
+  const reply = b => b.action === 'verifyLogin'
+    ? Object.assign({ success: true }, ANS_BEN)
+    : b.action === 'messages' ? (b.personId === 'P8' ? (asked++, { error: 'The server did not answer.' }) : { success: true, messages: [] })
+    : { success: true };
+  const { w, sent } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.signedIn_ !== 'function' || typeof w.signedOut_ !== 'function') return ['signedIn_ / signedOut_ are not reachable — the hand-over was NOT checked'];
+  t.USER(Object.assign({}, ANS_ADA));
+  t.dmSeed([{ id: 'M1', mine: false, read: false, body: 'Ada — a private note from your tutor', at: '2026-10-08 09:10',
+              withId: 'P2', withName: 'Sasha Matola', fromName: 'Sasha Matola' }]);
+  t.star('q:Q-ADA-STAR');
+  t.DATA().attempts = { for: 'P7', mine: { 'q:Q-ADA': { first: '2026-10-08', last: '2026-10-08', times: 1 } } };
+  try { w.localStorage.setItem('favs', JSON.stringify(['q:Q-ADA-STAR'])); } catch (e) {}
+  t.go('dm', false, true); w.paint('dm');
+  if (!/private note/.test(d.getElementById('s-dm').textContent)) bad.push('the seeded message was not drawn for Ada, so its absence below proves nothing');
+  t.go('account', false, true);
+  t.ACTIONS.signout(d.createElement('button'));
+  const so = sent.filter(b => b.action === 'signOut');
+  await wait(50);
+  if (!sent.some(b => b.action === 'signOut' && b.token === 'tok-P7')) bad.push('sign-out did not end Ada’s session on the server: ' + JSON.stringify(so));
+  t.go('account', false, true);
+  await wait(50);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!fill('in-name', 'ben_bold8') || !fill('in-pin', ['5', '1', '7', '3'].join(''))) return bad.concat(['no sign-in card after signing out']);
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(400);
+  if ((t.whoami() || {}).personId !== 'P8') return bad.concat(['Ben did not sign in: ' + JSON.stringify(t.whoami())]);
+  t.go('dm', false, true); w.paint('dm');
+  await wait(300);
+  w.paint('dm');
+  if (/private note/.test(d.getElementById('s-dm').textContent)) bad.push('ADA’S PRIVATE MESSAGE IS ON BEN’S MESSAGES COLUMN, drawn in place of his own inbox that did not arrive');
+  if (/Saved/.test(w.favTile_({ key: 'q:Q-ADA-STAR', kind: 'question' }))) bad.push('Ada’s star is lit for Ben');
+  if (Object.keys(w.attemptsMine_()).length) bad.push('Ada’s done dates are held for Ben: ' + JSON.stringify(w.attemptsMine_()));
+  if (/Q-ADA-STAR/.test(String(w.localStorage.getItem('favs') || ''))) bad.push('Ada’s stars are still in the device’s copy');
+  if (!asked) bad.push('Ben’s inbox was never asked for, so the column was never drawn without it — NOT checked');
+  return bad;
+});
+
+check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast and the banner unchanged', async () => {
+  const { w } = boot({ reply: b => (b.action === 'verifyLogin'
+    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle (like halex_kind42).' }
+                                        : { success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
+    : { success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(80);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['the sign-in card is not on the account column'];
+  const bannerWas = (() => { const b = d.getElementById('banner'); return b && !b.classList.contains('hidden') ? String(b.textContent || '') : ''; })();
+  name.value = 'ada_kind7'; pin.value = '1239';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  const p2 = d.getElementById('in-pin');
+  if (p2.value !== '') bad.push('after a wrong PIN the box still holds ' + JSON.stringify(p2.value) + ' — the child has to delete it before retyping');
+  if (d.activeElement !== p2) bad.push('after a wrong PIN the focus is on ' + (d.activeElement && (d.activeElement.id || d.activeElement.tagName)) + ', not the PIN box');
+  if (p2.getAttribute('aria-invalid') !== 'true') bad.push('the PIN box is not marked aria-invalid, so nothing says which box was wrong');
+  if (!/Wrong PIN/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — the owner’s choice is a toast');
+  const ban = d.getElementById('banner');
+  if ((ban && !ban.classList.contains('hidden') ? String(ban.textContent || '') : '') !== bannerWas) bad.push('a wrong PIN changed the banner');
+  if (d.getElementById('in-name').getAttribute('aria-invalid')) bad.push('the handle box was marked for a wrong PIN');
+  p2.value = '4'; p2.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (p2.hasAttribute('aria-invalid')) bad.push('the red edge stayed after the next keystroke');
+  /* A HANDLE NOBODY HAS MARKS THE HANDLE BOX. */
+  d.getElementById('in-name').value = 'nobody_here'; d.getElementById('in-pin').value = '1234';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (d.getElementById('in-name').getAttribute('aria-invalid') !== 'true' || d.activeElement !== d.getElementById('in-name')) bad.push('a handle nobody has did not mark and focus the handle box');
+  if (d.getElementById('in-pin').value !== '1234') bad.push('a wrong handle emptied the PIN, which was not what was wrong');
+  return bad;
+});
+
+check('the PIN box is not a password the iPad keeps, and handles that signed in here are chips that fill the box — never a PIN', async () => {
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
+  const bad = [];
+  /* WHERE THE BROWSER CAN DRAW DOTS ON TEXT (Safari, Chrome): a text box, so Safari has no password to keep. */
+  const { w, sent } = boot({ reply, before: win => { win.CSS = { supports: (p, v) => p === '-webkit-text-security' }; } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER(null); t.go('account', false, true); w.paint('account');
+  const pin = d.getElementById('in-pin');
+  if (!pin) return ['no PIN box on the account column'];
+  if (pin.type !== 'text' || !pin.classList.contains('pin-dots')) bad.push('where dots can be drawn the PIN box is type=' + pin.type + ' — a password field is what Safari offers to keep in the iCloud Keychain');
+  const want = { autocomplete: 'off', maxlength: '8', pattern: '[0-9]*', enterkeyhint: 'go', inputmode: 'numeric' };
+  Object.keys(want).forEach(a => { if (pin.getAttribute(a) !== want[a]) bad.push('the PIN box has ' + a + '=' + JSON.stringify(pin.getAttribute(a)) + ', wanted ' + JSON.stringify(want[a])); });
+  /* AND WHERE IT CANNOT, A PASSWORD BOX STILL NOT OFFERED TO THE KEYCHAIN. */
+  const b2 = boot({ reply, before: win => { win.CSS = { supports: () => false }; } });
+  await wait(300);
+  b2.w.__t.USER(null); b2.w.__t.go('account', false, true); b2.w.paint('account');
+  const pin2 = b2.w.document.getElementById('in-pin');
+  if (!pin2 || pin2.type !== 'password' || pin2.getAttribute('autocomplete') !== 'off') bad.push('without dots the PIN box is ' + (pin2 && pin2.type) + ' autocomplete=' + (pin2 && pin2.getAttribute('autocomplete')) + ' — wanted password, off');
+  /* SIGNED IN BY HANDLE AND PIN: the handle is remembered, the PIN is not, anywhere. */
+  d.getElementById('in-name').value = 'ada_kind7';
+  pin.value = ['4', '8', '2', '6'].join('');
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (!sent.some(b => b.action === 'verifyLogin')) return bad.concat(['signing in posted nothing']);
+  const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
+  if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
+  if (w.localStorage.getItem('familyHandles') !== '["ada_kind7"]') bad.push('the handle was not remembered: ' + w.localStorage.getItem('familyHandles'));
+  if (/"answers"|"attempts"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
+  /* SIGNED OUT, THE CHIP IS THERE; TAPPING IT FILLS THE BOX AND PUTS THE CARET IN THE PIN. */
+  t.ACTIONS.signout(d.createElement('button'));
+  t.go('account', false, true); w.paint('account');
+  const chip = d.querySelector('#s-account [data-do="handle-pick"][data-h="ada_kind7"]');
+  if (!chip) return bad.concat(['signed out, there is no chip for the handle that signed in here']);
+  t.ACTIONS['handle-pick'](chip);
+  if (d.getElementById('in-name').value !== 'ada_kind7') bad.push('the chip filled the box with ' + JSON.stringify(d.getElementById('in-name').value));
+  if (d.activeElement !== d.getElementById('in-pin')) bad.push('after the chip the caret is not in the PIN box');
+  if (d.getElementById('in-pin').value) bad.push('the chip filled the PIN');
+  if (!chip.closest('.hchip').classList.contains('is-on')) bad.push('the chip tapped is not lit, so nothing on the card says whose account the PIN is for');
+  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="ada_kind7"]');
+  if (!drop) bad.push('the chip has no ✕ to forget it');
+  else {
+    t.ACTIONS['handle-forget'](drop);
+    if (d.querySelector('#s-account [data-do="handle-pick"]')) bad.push('✕ left the chip on the card');
+    if (JSON.parse(w.localStorage.getItem('familyHandles') || '[]').length) bad.push('✕ did not forget the handle on the device');
+  }
+  return bad;
+});
+
+check('signing in brings the done dates, stars, family and answers with the reply, before the payload', async () => {
+  let hold = false;
+  const reply = b => b.action === 'verifyLogin'
+    ? Object.assign({ success: true }, ANS_ADA, {
+        attempts: { for: 'P7', mine: { 'q:Q-SIGN': { first: '2026-10-08', last: '2026-10-08', times: 1 } } },
+        favourites: ['q:Q-SIGN-STAR'],
+        family: [{ personId: 'P9', title: 'Mo Parent', relation: 'parent', handle: 'mo_kind9', image: '' }], familyFor: 'P7',
+        answers: { 'ans:q:Q-ANS-W-J': { v: 'from the account', at: Date.now() - 1000 } } })
+    : { success: true, messages: [] };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply,
+    /* THE PAYLOAD AFTER SIGNING IN NEVER ARRIVES — so what is on the screen is the reply's alone. */
+    serve: () => (hold ? new Promise(() => {}) : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.signedIn_ !== 'function') return ['signedIn_ not reachable'];
+  t.USER(null); t.go('account', false, true); w.paint('account');
+  hold = true;
+  d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
+  t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (!/Signed in as Ada/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — on an iPad passed between children it has to say whose account');
+  if (!w.attemptsMine_()['q:Q-SIGN']) bad.push('the done dates did not come with the reply: ' + JSON.stringify(w.attemptsMine_()));
+  if (!/Saved/.test(w.favTile_({ key: 'q:Q-SIGN-STAR', kind: 'question' }))) bad.push('the stars did not come with the reply');
+  const D = t.DATA();
+  if (D.familyFor !== 'P7' || !(D.family || []).some(f => f.personId === 'P9')) bad.push('the family did not come with the reply: ' + JSON.stringify({ familyFor: D.familyFor, family: D.family }));
+  if (w.localStorage.getItem('ans:u:P7:q:Q-ANS-W-J') !== 'from the account') bad.push('the answers did not come with the reply');
+  /* AND THE ACCOUNT IS READ AT ONCE, not when the payload lands — `signedIn_` calls `answersPull_`. */
+  if (!sent.some(b => b.action === 'myAnswers' && b.personId === 'P7')) bad.push('signing in did not read the account’s answers at once — they would wait for a payload that takes fifteen seconds');
+  const u = t.whoami() || {};
+  if ('answers' in u || 'attempts' in u || 'favourites' in u || 'family' in u) bad.push('the per-person extras were put on USER: ' + Object.keys(u).join(', '));
+  return bad;
+});
+
+check('signing in on the account column goes back where you came from — and Find, for a child with nowhere to go back to', async () => {
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, ANS_ADA) : { success: true, messages: [] };
+  const { w } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const signIn = async () => {
+    d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
+    t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+    await wait(300);
+  };
+  t.USER(null);
+  t.go('tools', false, true); t.go('account', false, true); w.paint('account');
+  await signIn();
+  if (t.AT() !== 'tools') bad.push('signed in from the account column after Tools, the child is on ' + t.AT() + ' — wanted back on Tools');
+  /* SIGNED IN WHILE ANOTHER COLUMN IS IN FRONT — the emailed link at start-up, Google's own button — the
+     child is left where they are: only a sign-in made ON the account column goes back. */
+  t.ACTIONS.signout(d.createElement('button'));
+  t.go('account', false, true); w.paint('account');
+  d.getElementById('in-name').value = 'ada_kind7'; d.getElementById('in-pin').value = '4826';
+  t.go('games', false, true);
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  await wait(300);
+  if (t.AT() !== 'games') bad.push('signed in with Games in front, the child was moved to ' + t.AT());
+  /* OPENED ON THE ACCOUNT COLUMN, NOTHING BEFORE IT: a child goes to Find. */
+  const b2 = boot({ reply, before: win => { win.localStorage.setItem('familyTab', 'account'); win.localStorage.setItem('familyTabAt', String(Date.now())); } });
+  await wait(300);
+  if (b2.w.__t.AT() !== 'account') return bad.concat(['the app did not open on the account column, so "nowhere to go back to" was NOT checked']);
+  b2.w.__t.USER(null); b2.w.paint('account');
+  const d2 = b2.w.document;
+  d2.getElementById('in-name').value = 'ada_kind7'; d2.getElementById('in-pin').value = '4826';
+  b2.w.__t.ACTIONS['do-signin'](d2.querySelector('[data-do="do-signin"]'));
+  await wait(300);
+  if (b2.w.__t.AT() !== 'stuff') bad.push('a child signing in with nowhere to go back to is on ' + b2.w.__t.AT() + ' — wanted Find');
+  return bad;
+});
+
+check('the payload landing does not rebuild Find under a keypad box with the focus, and does rebuild it once the box is left', async () => {
+  const { w } = boot();
+  await wait(400);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.findKeep_ !== 'function' || typeof w.kpField_ !== 'function') return ['findKeep_ or kpField_ not reachable — the keep was NOT checked'];
+  t.USER(Object.assign({}, ANS_ADA));
+  t.go('stuff', false, true);
+  const host = d.getElementById('s-stuff');
+  const page = d.createElement('div');
+  page.className = 'qcard';
+  page.innerHTML = w.kpField_('ans:u:P7:q:Q-KEEP', '7');
+  host.appendChild(page);
+  const inp = page.querySelector('.kp-in');
+  inp.focus();
+  if (d.activeElement !== inp) return ['the keypad box could not take the focus, so nothing was checked'];
+  const padUp = () => d.documentElement.classList.contains('kp-up');
+  await w.load();
+  await wait(50);
+  if (!d.contains(inp)) bad.push('the payload landing rebuilt Find and threw away the box the child was typing in');
+  if (d.activeElement !== inp) bad.push('after the payload the focus is on ' + (d.activeElement && d.activeElement.tagName) + ', not the box');
+  if (padUp() !== true && d.getElementById('kp')) bad.push('the payload landing put the keypad away');
+  inp.blur();
+  await wait(500);
+  if (d.contains(inp)) bad.push('half a second after the box was left, Find was still the stale copy — it is never redrawn');
+  return bad;
+});
+
+check('a second payload repaints the column in front and leaves the others for when they are visited, and asks for messages once', async () => {
+  const { w, sent } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); },
+    reply: b => (b.action === 'messages' ? { success: true, messages: [] } : { success: true }) });
+  await wait(600);
+  const t = w.__t, d = w.document, bad = [];
+  const firstAsks = sent.filter(b => b.action === 'messages').length;
+  if (firstAsks !== 1) bad.push('the first load asked for messages ' + firstAsks + ' times — the widgets and the Messages column share one request');
+  const ids = (t.TABS || []).map(x => x.id);
+  ids.forEach(id => { const el = d.getElementById('s-' + id); if (el && el.firstElementChild) el.firstElementChild.setAttribute('data-was', '1'); });
+  await w.load();
+  await wait(100);
+  const redrawn = ids.filter(id => { const el = d.getElementById('s-' + id); return el && !(el.firstElementChild && el.firstElementChild.hasAttribute('data-was')); });
+  if (redrawn.filter(id => id !== t.AT()).length) bad.push('a second payload rebuilt ' + redrawn.length + ' columns (' + redrawn.join(', ') + ') — wanted only the one in front, ' + t.AT() + '; the rest are drawn when visited');
   return bad;
 });
 

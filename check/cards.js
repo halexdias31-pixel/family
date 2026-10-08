@@ -70,7 +70,7 @@ const TAGSAY = (() => {
   const { cutFrom } = require(path.join(ROOT, 'js', 'check-marks-load.js'));
   const src = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
   const names = ['NEEDS_SAY', 'needsSay_', 'nameNeeds_', 'marksSay_',
-                 'ROMAN_ONLY', 'LETTER_ROMAN', 'qPartBits_', 'qPartName_'];
+                 'ROMAN_ONLY', 'LETTER_ROMAN', 'NUM_ROMAN', 'qPartBits_', 'qPartName_'];
   /* A ONE-LINE `const` IS TAKEN TO ITS LINE'S END: `cutFrom` counts braces, and `i{1,3}` inside the
      part-name regexes is a brace pair that closed the cut halfway through the pattern. */
   const cut = n => { const m = new RegExp('^const ' + n + ' = [^\\n]*;$', 'm').exec(src);

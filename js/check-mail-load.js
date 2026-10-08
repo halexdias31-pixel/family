@@ -3,25 +3,21 @@
 
    NOT A CHECK — a harness, like `check-gas-load.js` underneath it, and not on the roster in
    check-all.js. LIFTED OUT OF `check-digest.js`, WHICH WROTE IT, the day a second parent email needed
-   it: `check-recap.js` asks the email after a session the same questions — sent once, never under the
-   lock, never before the receipt is on the sheet — of the same `digestMail_`. A second copy of this
-   world would be the copy whose mail stub stopped looking for the receipt the day somebody tidied
-   the other one, and the at-most-once rule would go on passing in the file nobody touched.
+   it. That email (after each session, then every day of work) was removed on 8 Oct — docs/history/295
+   — and its check with it; check-digest.js is the one user again, and the harness stays a file of its
+   own because it is a world, not a list of rules.
 
-   WHAT CHANGED IN THE LIFT, AND ONLY THIS:
      · THE RECEIPT THE MAIL STUB LOOKS FOR IS A PARAMETER. `world({ receipt: { tab, keyCol } })` —
-       `digest_log` / `week_of` by default (the weekly email), `recap_log` / `day` for the email after a
-       session. A send with no row for that address saying `sending`, under a well-formed key, at the
-       moment of sending, is recorded in `mail.unreceipted`; a send while the lock is held, in
-       `mail.locked`.
-     · THE TRIGGER STUB KNOWS `everyHours`, which the hourly check books.
-     · `formatDate` ANSWERS `yyyy-MM-dd HH:mm` IN THE ZONE NAMED, as well as `yyyy-MM-dd` — the hourly
-       check reads London's clock to the minute, and a harness that answered UTC would make "due at
-       20:00 London" and "due at 20:00 UTC" the same answer, which is the whole of the summer question.
+       `digest_log` / `week_of` by default, the weekly email's. A send with no row for that address
+       saying `sending`, under a well-formed key, at the moment of sending, is recorded in
+       `mail.unreceipted`; a send while the lock is held, in `mail.locked`.
+     · THE TRIGGER STUB KNOWS `everyHours`, so a check can book the kind of hourly trigger
+       `installWeeklyDigest` must take away (`DIGEST_RETIRED_RUNS`).
+     · `formatDate` ANSWERS `yyyy-MM-dd HH:mm` IN THE ZONE NAMED, as well as `yyyy-MM-dd`, so a London
+       clock is never quietly a UTC one — the whole of the summer question.
 
    AND THE STATIC READERS check-digest's "nothing starts it" section wrote — `strip`, `calls`,
-   `mentions`, `unquote` — so both emails ask "who names the installer" with one definition of naming.
-   Every person either check invents is invented, and every PIN is 0000.
+   `mentions`, `unquote`. Every person the check invents is invented, and every PIN is 0000.
 ================================================================================================== */
 'use strict';
 const path = require('path');

@@ -171,6 +171,10 @@ const WHERE = {
   post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
   favourites:     { file: 'ledger' },
+  /* WHAT EACH LEARNER WROTE, so it follows them to another device — see SCHEMA.answers. The Ledger
+     beside `favourites` and `attempts`, for their reason: it is a record OF a learner, and the app
+     writes it. */
+  answers:        { file: 'ledger' },
   /* THE DAY EACH QUESTION WAS DONE, BY WHOM. The Ledger because it is the only file there is, and
      because it is where every other record OF a learner already lives — `people`, `exams`,
      `favourites` — so a tutor looking up a student finds their attempts beside their row rather than
@@ -179,9 +183,6 @@ const WHERE = {
   /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
      `attempts`, which is what it reports on, and because the app writes it. */
   digest_log:     { file: 'ledger' },
-  /* WHAT THE EMAIL AFTER A SESSION SENT, OR WOULD HAVE, OR WHY NOT — see SCHEMA.recap_log. The Ledger
-     beside `digest_log`, for the same two reasons: what it reports on is here, and the app writes it. */
-  recap_log:      { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: question
      2 of the three-question test at the top of CLAUDE.md, and code cannot be written to at
      runtime. `data/settings/spotlight.json` is the FLOOR beneath it — see `spotNow_`. */
@@ -240,7 +241,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-08-a-everyday";
+const BACKEND_VERSION = "2026-10-08-c-answers";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -270,12 +271,12 @@ const TAB = {
   /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
+  /* What each learner wrote in an answer box, picked or drew — see SCHEMA.answers. */
+  answers: 'answers',
   /* Which questions each learner has done, and when — see SCHEMA.attempts. */
   attempts: 'attempts',
   /* What the weekly parent email sent, or would have — see SCHEMA.digest_log. */
   digest_log: 'digest_log',
-  /* What the email after each session sent, or would have, or why not — see SCHEMA.recap_log. */
-  recap_log: 'recap_log',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -370,13 +371,6 @@ const SCHEMA = {
        starts. `no` (or anything that is not blank/yes/true/1, which is `ON_`) is this parent asking
        to stop, and it is the one cell that does it. Read on the PARENT's row, never the child's. */
     "weekly_email",
-    /* THE DAILY EMAIL, PER PARENT — backend/recap.gs: after each session, and the next morning for any
-       other day of work. Blank is on; `no` (anything not `ON_`) is this parent asking to stop. Read on
-       the PARENT's row. Separate from weekly_email, so stopping one does not stop the other: a parent
-       who wants Sunday's summary and not an email every day — or the other way round — has one cell
-       for each. `ensureSchema` appends it at the end of the live tab; its place here is only where it
-       is read beside its sibling. */
-    "session_email",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
@@ -708,20 +702,7 @@ const SCHEMA = {
        filled in, so one column answers the question AND decides whether to ask it.
        A booking a parent made and one an admin made on their behalf were identical rows before
        this, and that is the fact you want on the day somebody says they never booked it. */
-    "booked_by",
-    /* EVERY HOUR TICKED ON THE GRID, as its own codes — `m10,m16,m17`. `weekday`, `start_time` and
-       `hours_per_session` are the FIRST run (`bookSpec` on the phone names the session by it), so a
-       Monday 10-11 with a Monday 16-18 was stored as Monday 10:00 for one hour, and nothing on the row
-       said there was an afternoon. The email after a session read that as a lesson ending at 11:00
-       and went at 13:00, three hours before the second one started — and that day's receipt was then
-       spent. `recapEnd_` (recap.gs) reads this instead when it is there: the day's last ticked hour
-       plus one is when the day's teaching ends.
-       WRITTEN ONLY AS SENT. `createJob` stores what the phone ticked, never what `bookingCodes_`
-       derives for an older phone from the three cells — that derivation is the first run on every
-       named day, the very reading this column exists to correct. BLANK on every row made before it,
-       and on one an Edit move rewrote (the old hours no longer describe it); `recapEnd_` then takes
-       the latest the grid allows. */
-    "slot_codes"
+    "booked_by"
   ],
   events: [
     "event_id", "at", "job_id", "actor",
@@ -1192,6 +1173,37 @@ const SCHEMA = {
     "at",
   ],
 
+  /* ---------- ANSWERS: WHAT THE CHILD WROTE, SO IT IS THERE ON THE NEXT DEVICE ----------------------
+     REPORTED BY THE OWNER FROM A PUPIL'S iPAD: *"i am very dissapointed it didnt have his answers
+     already written in when he went to see them on the computer"*, and *"it doesnt seem to save their
+     answers"*. Until this tab an answer lived in the browser it was typed in and nowhere else: the
+     card on the computer said `Done 8 Oct` (that is `attempts`) over an empty box.
+
+     ITS OWN TAB, NOT COLUMNS ON `attempts`. An attempt is written once a day and never rewritten; an
+     answer changes on every edit. And `attempts` is what the parent emails read whole — drawings in
+     it would be every email run reading every child's pen strokes for nothing.
+
+     ONE ROW PER PERSON PER ANSWER KEY, upserted by `saveAnswers`, read only by `myAnswers` and the
+     sign-in reply — for the person the token resolved to and nobody else (no parent, tutor or admin
+     view: the owner can open the sheet).
+
+     `answer_key` IS THE PHONE'S OWN KEY WITH THE PERSON TAKEN OUT — `ans:q:<row>` a typed answer or a
+     pick (`2,4`), `ans:q:<row>#iv` a practical's worksheet box, `pad:q:<row>` the pen's strokes,
+     `pad:q:<row>:words` the ringed words. The person is `person_id`, so the key cannot carry another.
+
+     `value` IS ALWAYS TEXT — written with a leading apostrophe whatever it holds. `cellSafe_` guards a
+     formula, not a fraction: `3/4` and `1/2` are dates to a sheet, `2,4` (two picked options) can
+     come back 24, and `0.50` comes back `0.5`. An empty value is a real row: clearing an answer has
+     to reach the other device as well.
+
+     `edited_at` IS WHEN THE CHILD MADE THE EDIT (the phone's clock, never later than the server's),
+     as ISO text; the later one wins, so a stale phone coming back online cannot write over the
+     newer answer. `saved_at` is when the server took it, for the owner reading the sheet. */
+  answers: [
+    "person_id", "answer_key",
+    "value", "edited_at", "saved_at",
+  ],
+
   /* ---------- ATTEMPTS: THE DAY A QUESTION WAS DONE, SO IT FOLLOWS THE STUDENT -------------------
      ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. The
      question card has said `Done 4 Oct` since 268, from `done:<who>:<key>` in `localStorage` — which
@@ -1218,8 +1230,9 @@ const SCHEMA = {
      not a tab. So the phone sends the name it is showing as it marks the question, and `markDone`
      keeps it — set on a new row, filled on an old one the next day it moves, never on a day already
      covered (that must still write nothing). Blank on every row from before it existed, and on what
-     the load's backlog sends: the email falls back to the key. Appended, so `ensureSchema` adds it
-     at the end of a live tab without moving anything. */
+     the load's backlog sends: the email counts that question and does not print it — never the key,
+     which reads to a parent as a fault (`digestQuestions_`). Appended, so `ensureSchema` adds it at
+     the end of a live tab without moving anything. */
   attempts: [
     "person_id", "question_key",
     "first_done", "last_done", "times",
@@ -1254,38 +1267,6 @@ const SCHEMA = {
     "week_of", "learner_id", "parent_id",
     "to", "subject", "questions",
     "status", "at", "note",
-  ],
-
-  /* ---------- THE EMAIL AFTER A SESSION: ITS RECEIPTS, AND EVERY REASON ONE DID NOT GO -----------------
-     ONE ROW PER PARENT PER LEARNER PER DAY, written by `sessionRecapRun` (backend/recap.gs) and by
-     nothing else. In `preview` it is the whole output; in `send` a row saying `sent` — or `sending`,
-     written and flushed just before the send — for this day, this learner and this parent is the
-     receipt that stops the next hourly check sending it again. `due` is not part of the key, so a
-     changed delay or a session moved an hour cannot send a second email about the same day.
-
-     TWO KINDS OF ROW WITH NO PARENT, so the log answers "who did NOT get one" as well as who did:
-       learner rows   `parent_id` blank — `not sent` (nobody can be told, and why) or `nothing done`
-                      (no question on `attempts` for that child that day, and whose account they
-                      might have been marked on instead)
-       job rows       `learner_id` blank, `job_ids` set — a booked session nobody could be placed on:
-                      not paid yet, a name on the booking that is nobody's child, a booker who is
-                      not on the people tab
-
-     `day` AND `due` ARE TEXT (`'2026-10-06`, `'2026-10-06 20:00`): both are compared as strings, and a
-     cell the sheet turned into a date would come back as one in whatever zone the file is set to —
-     the `week_of` rule. `job_ids` too, so `5,7` (two jobs that have only row numbers) stays two ids.
-
-     STATUSES. `sent` and `sending` are receipts. `preview`, `held` (the day's mail quota), `failed`
-     (the send threw), `opted out` (session_email says no), `not sent` and `nothing done` are not, so
-     the next hourly check acts on them again while the day is within 24 hours of due — and a note row
-     is rewritten only when what it says has changed. */
-  recap_log: [
-    "day", "learner_id", "parent_id", "job_ids", "due",
-    "to", "subject", "questions",
-    "status", "at", "note",
-    /* WHICH QUESTIONS A SENT EMAIL CARRIED, comma-separated keys, so a session day's next-morning
-       follow-up (`recapLaterGroups_`, `job_ids` = `later`) can say only what came after. Appended. */
-    "question_keys",
   ],
 
   /* ---------- SPOTLIGHT: THE SAME SHAPE AS A FAVOURITE WITH THE PERSON TAKEN OUT -----------------
@@ -1559,27 +1540,7 @@ const CONFIG_DEFAULTS = [
      PIN at 21:00 on a Sunday must not find the day's quota spent on summaries. */
   ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
   ['weekly_digest_hour', 18, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
-  ['weekly_digest_reserve', 10, 'emails a day kept back from both parent emails (weekly and after-session) for PIN resets and notices. Blank = 10'],
-
-  /* ---------- THE EMAIL AFTER EACH SESSION — see backend/recap.gs -------------------------------------
-     ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated email
-     to them of the questions they got done."* The switch arrives OFF for the weekly email's reasons,
-     and is the same three words: `off` returns before a tab is read, `preview` writes what would go
-     to `recap_log` and sends nothing, `send` emails parents, and anything else is off.
-
-     THE DELAY IS FROM THE END OF A CHILD'S LAST BOOKED SESSION THAT DAY, and the hourly check is what
-     notices it has passed — so "2" lands between two and three hours after. 0-12, because anything
-     longer is the next day's email and the Sunday one already covers that. The reserve is NOT its
-     own: `weekly_digest_reserve` above is one floor under both emails, because the PIN reset it
-     protects does not care which of them spent the quota. */
-  /* AND EVERY OTHER DAY OF WORK, ONE SWITCH FOR BOTH. *"emails all parents on work their child has done
-     with the exact questions for each"* — so a day with questions and no lesson is emailed too, the NEXT
-     MORNING at `session_recap_morning`, because the sheet keeps days and not times: an evening hour
-     would spend that day's receipt before the homework done after it. One child, one day, one email,
-     whichever of the two made it — a session day is still the email two hours after the session. */
-  ['session_recap', 'off', 'the daily email to parents about their child’s questions — after each booked session, and the next morning for any other day of work: off, preview (written to the recap_log tab, nothing sent) or send. Anything else = off'],
-  ['session_recap_delay', 2, 'hours after a child’s last session of the day before their parents’ email goes, 0-12, blank = 2. Checked hourly, so it lands up to an hour later'],
-  ['session_recap_morning', 7, 'the hour (London, 0-9) the email about a day of questions with no session goes, the next morning — and a session day’s follow-up, for what was done after its email. Blank = 7. Checked hourly, so it lands up to an hour later'],
+  ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
@@ -2093,25 +2054,57 @@ const ATTEMPTS_PER_POST = 50;
 const ATTEMPT_LABEL_MAX = 120;
 /* AND A QUESTION'S WORDS — SCHEMA.attempts. 99% of the library's questions are under 520 characters
    with their stem; a stem that is a whole extract (an English insert) is cut, and the email cuts again
-   to what fits a phone's screen (`RECAP_WORDS_SHOWN`). */
+   to what fits a phone's screen (`DIGEST_WORDS_SHOWN`). */
 const ATTEMPT_WORDS_MAX = 1200;
+
+/* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers ------------------------------------
+   A TYPED ANSWER, the same ceiling as an answer sent to "Mark with AI" (`aiMark`): no answer box in the
+   library wants more, and a cell is not a place for an essay pasted in by accident.
+   THE PEN'S STROKES, under the 50,000 characters a Sheets cell holds, with room. The phone simplifies a
+   stroke before it sends it (a 504-point freehand line is 33 points after), so a whole graph is a few
+   kilobytes; one bigger than this stays on the device that drew it and is never cut — half a JSON list
+   is not a drawing. A value over its ceiling is refused, never truncated.
+   AND HOW MANY ONE REQUEST CARRIES, under the script lock every other write waits on. The phone sends
+   what changed in the last second and a half, which is one or two; the cap is for a backlog. */
+const ANSWER_TEXT_MAX = 2000;
+const ANSWER_PAD_MAX = 40000;
+const ANSWERS_PER_POST = 25;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ------------------------------------------
    `DIGEST_MODES` is the whole vocabulary of `weekly_digest` on the config tab, OFF FIRST: anything not
    in it reads as off. `DIGEST_TZ` is whose week it is — London's, the same clock `attemptsUpsert_`
    writes a day in, so a Sunday's question and a Sunday's email agree about which Sunday. `DIGEST_RUN`
    is the trigger's handler by name, written once, because the trigger is found and deleted by that
-   string and two spellings of it would leave a Sunday run nobody can remove. `DIGEST_LIST_MAX` is how
-   many questions one email lists before "and N more": a list a parent reads, not a ledger. */
+   string and two spellings of it would leave a Sunday run nobody can remove. */
 const DIGEST_MODES = ['off', 'preview', 'send'];
 const DIGEST_TZ = 'Europe/London';
 const DIGEST_RUN = 'weeklyDigestRun';
-const DIGEST_LIST_MAX = 30;
-/* THE SHAPE OF A LIBRARY KEY, the only kind of key the email prints when a question has no name:
-   `q:Q-9MA031-2206-1`, `q:Q-1GK0-2011-1H-6b(i)`, `pr:PR-PH01`. A short prefix, a colon, and letters,
-   digits, dashes, underscores and brackets — no space, no full stop, no `@`, so a "key" that is a
-   sentence or an address (`markDone` takes any 120 characters) is counted and not printed. Measured
-   against every row_id in data/questions.json. The slot after a `#` is gone before this is asked. */
+/* THE HOURLY CHECK OF THE EMAIL AFTER EACH SESSION, BY ITS HANDLER'S NAME — that email was removed on
+   8 Oct (*"delete daily email stuff"*), and a trigger the owner booked for it from the editor would go
+   on firing every hour into a function that no longer exists, failing, and emailing the owner the
+   failure. `installWeeklyDigest` deletes any project trigger with this handler, and says so. The one
+   place the old name is still written, because a trigger is found by that string and nothing else. */
+const DIGEST_RETIRED_RUNS = ['sessionRecapRun'];
+/* HOW MANY QUESTIONS THE WEEKLY EMAIL LISTS, each with its own words (`digestQuestions_`), before
+   "…and N more." A WEEK'S WORK, NOT A DAY'S: the owner made Sunday's the email parents get — *"all
+   they done that week"* — and the 30 the list held when it was names is one evening of a past paper,
+   so a child who did two papers and their homework would have half the week cut. BUT NOT UNBOUNDED, because Gmail clips a message whose HTML
+   passes about 102 KB: the rest hides behind "[Message clipped] View entire message", and that hides the
+   footer that says how to stop. Measured on 8 Oct with the real render: 80 questions at their longest —
+   each on its own 110-character paper, its own stem cut at `DIGEST_STEM_SHOWN`, its own ask at
+   `DIGEST_WORDS_SHOWN` — is 66 KB of HTML; the library's 80 longest asks under its 80 longest stems (as
+   the phone sends them, escaped — the library has almost nothing `digestEsc_` grows) are 67 KB; a heavy
+   week shaped like a real one, six papers with three parts to a stem, is 36 KB. So 80 keeps a third in
+   hand under the clip, and about 120 would reach it. check-digest.js renders the first case every run
+   and fails it at 102 KB, so raising this, or either cut, past the clip is red. */
+const DIGEST_WEEK_LIST_MAX = 80;
+/* THE SHAPE OF A LIBRARY KEY: `q:Q-9MA031-2206-1`, `q:Q-1GK0-2011-1H-6b(i)`, `pr:PR-PH01`. A short
+   prefix, a colon, and letters, digits, dashes, underscores and brackets — no space, no full stop, no
+   `@`. The email never prints a key; this decides whose WORDS it may print: only a question under a
+   key in the library's own shape, because a "key" that is a sentence or an address (`markDone` takes
+   any 120 characters) is somebody typing into the sheet, and its "question" is whatever they typed.
+   Measured against every row_id in data/questions.json. The slot after a `#` is gone before this is
+   asked. */
 const DIGEST_KEY_SHAPE = /^[a-z]{1,4}:[A-Za-z0-9][A-Za-z0-9()_-]{0,100}$/;
 
 /* `digestWordsSafe_` (digest.gs): WHAT A QUESTION NEVER SAYS AND A MESSAGE PRETENDING TO BE FROM THE BUSINESS DOES. Wider than the
@@ -2132,23 +2125,12 @@ const DIGEST_WORDS_REFUSE = [
   /\b\d\d-\d\d-\d\d\b/,
 ];
 
-/* ---------- THE EMAIL AFTER EACH SESSION — see backend/recap.gs ----------------------------------------
-   `RECAP_RUN` is the hourly trigger's handler by name, written once for `DIGEST_RUN`'s reason: the
-   trigger is found and deleted by this string. `RECAP_LATE_HOURS` is how long after it fell due an
-   email may still go — a held one the next morning, a session marked paid that evening, a child's
-   backlog that synced on the next load — and also the reason switching it on cannot email about last
-   month: nothing is acted on past it, so there is no watermark to keep. `RECAP_PREVIEW_DAYS` is how
-   far back the admin's Preview looks. `RECAP_UNNAMED` is the booking form's "Someone else" (`UNNAMED`
-   in js/book.js) — a seat for a child with no account, who has no attempts and no parent here. */
-const RECAP_RUN = 'sessionRecapRun';
-const RECAP_LATE_HOURS = 24;
-const RECAP_PREVIEW_DAYS = 7;
-const RECAP_UNNAMED = 'someone else';
-/* HOW MUCH OF A QUESTION'S WORDS THE EMAIL PRINTS — its own ask, and the stem it shares with its other
-   parts, printed once above them. Enough for 95% of the library whole; the rest end in "…" and the
-   link to the site, where the question is drawn with its picture. */
-const RECAP_WORDS_SHOWN = 400;
-const RECAP_STEM_SHOWN = 300;
+/* HOW MUCH OF A QUESTION'S WORDS THE WEEKLY EMAIL PRINTS — its own ask, and the stem it shares with its
+   other parts, printed once above them (`digestQuestions_`). Enough for 95% of the library whole; the
+   rest end in "…" and the link to the site, where the question is drawn with its picture. Written for
+   the daily email under its own prefix, and renamed when that email was removed. */
+const DIGEST_WORDS_SHOWN = 400;
+const DIGEST_STEM_SHOWN = 300;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
    `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the
@@ -3085,6 +3067,11 @@ const ACTION_ACCESS = {
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
+  /* WHAT A CHILD WROTE, KEPT ON THEIR ACCOUNT AND READ BACK ON ANOTHER DEVICE. `self` both ways: the row
+     written and the rows read are the person the token resolved to, whatever `personId` the body
+     claims — the gate overwrites it. Nobody reads another person's answers through these. */
+  saveAnswers: 'self',
+  myAnswers: 'self',
   /* THE DAY A QUESTION WAS DONE. `self`: the row written is the one for the person the token
      resolved to, whatever `personId` the body claims — the gate overwrites it before the handler
      runs. Nobody can date a question for somebody else. */
@@ -3093,9 +3080,6 @@ const ACTION_ACCESS = {
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */
   digestPreview: 'admin',
-  /* WHAT THE EMAIL AFTER EACH SESSION WOULD SAY, FOR THE LAST SEVEN DAYS. Admin, for `digestPreview`'s
-     reason — every learner's day and every parent's address — and a read: see backend/recap.gs. */
-  recapPreview: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

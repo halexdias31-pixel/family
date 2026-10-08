@@ -1,3 +1,5 @@
+Removed on 8 Oct — see [295](295-one-email-to-parents-at-the-end-of-the-week.md).
+
 ## The email after a session goes two hours after the child's last lesson of the day, to the parents who accepted them, about that day
 
 Asked for on 6 Oct as *"i need to begin wiring up the feedback system for parents to see the questions
