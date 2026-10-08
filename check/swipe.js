@@ -1004,8 +1004,11 @@ async function gesture(env, o) {
          · a thumb that lands just off the canvas, on the "Tap to play" line 6px under it or on the
            Score row, starts no selection (`selectstart`) and leaves no range. Chromium shares that
            half with WebKit;
-         · the canvas and the card's text compute `user-select: none`, which is what WebKit asks of
-           the element under the finger before it selects anything;
+         · and the same of a thumb beside the canvas, in the gutter of its page or under the board,
+           where there is no text at all. The card alone refusing sent those to the next page: a
+           caret in "Connect 4" every time, found by the skeptic's probe after the first fix;
+         · the canvas, the card's text and the page they are on compute `user-select: none`, which
+           is what WebKit asks of the element under the finger before it selects anything;
          · `-webkit-touch-callout: none` is in the stylesheet beside it, READ FROM THE FILE. Chromium
            does not know the property and drops it from the CSSOM, so the one line of the fix that
            only an iPhone reads is the one line no browser here could ever see go missing.
@@ -1047,8 +1050,25 @@ async function gesture(env, o) {
           return hit && el.contains(hit) ? { x, y } : null;
         };
         const score = document.getElementById('flappy-score');
+        /* AND BESIDE IT, WHERE NO TEXT IS. Between the canvas and the edge of its page are the star
+           card's padding and the pane's, 27px a side and 14px under the board. A press there is on
+           a box with nothing to select, and the browser carries it to the nearest text that may be
+           selected — which, with the game's card refusing, was the heading of the NEXT page: a caret
+           in "Connect 4" on every tap. Each spot must be on the game's page and off its card. */
+        const card = c.parentElement, pane = c.closest('.pane'), wrap = c.closest('.card.is-widget') || card;
+        const pad = (x, y) => {
+          x = Math.round(x); y = Math.round(y);
+          if (!pane || y < 40 || y > innerHeight - 30) return null;
+          const hit = document.elementFromPoint(x, y);
+          return hit && pane.contains(hit) && !card.contains(hit) ? { x, y } : null;
+        };
+        const cr = c.getBoundingClientRect(), kr = card.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+        const pr = pane ? pane.getBoundingClientRect() : wr;
         const sp = { canvas: spot(c, 0.5), low: spot(c, 0.8), msg: spot(document.getElementById('flappy-msg'), 0.5),
-                     score: spot(score && score.closest('.row') && score.closest('.row').querySelector('.k'), 0.5) };
+                     score: spot(score && score.closest('.row') && score.closest('.row').querySelector('.k'), 0.5),
+                     beside: pad(cr.right + 7, cr.top + cr.height / 2),
+                     gutter: pad((pr.left + wr.left) / 2, cr.top + cr.height * 0.7),
+                     under: pad(cr.left + cr.width / 2, (kr.bottom + wr.bottom) / 2) };
         /* THE CARD AND EVERYTHING ABOVE IT, as drawn. */
         const chain = [];
         for (let el = c; el && el !== document.documentElement; el = el.parentElement) {
@@ -1070,16 +1090,17 @@ async function gesture(env, o) {
           window.__flapArmed = true;
         }
         getSelection().removeAllRanges();
-        return { sp, n: chain.length, us: { canvas: us(c), msg: us(document.getElementById('flappy-msg')), card: us(c.parentElement) },
+        return { sp, n: chain.length, us: { canvas: us(c), msg: us(document.getElementById('flappy-msg')), card: us(c.parentElement),
+                                            page: pane ? us(pane) : null },
                  control: { body: us(document.body), other: other ? us(other) : null } };
       }, idx);
       reached++;
       if (idx < 0) fail('REACH', `${at} flappy`, 'there is no Flabby Pird on the Games column — nothing was asked');
       else if (!g) fail('REACH', `${at} flappy`, 'the Flabby Pird card never drew its canvas — nothing was asked');
       else {
-        note(`${at} flappy: user-select canvas ${g.us.canvas}, card ${g.us.card}, message ${g.us.msg}; elsewhere body ${g.control.body}, another card ${g.control.other}`);
-        ['canvas', 'card', 'msg'].forEach(k => {
-          if (g.us[k] !== 'none') fail('NOTHING LIGHTS UP', `${at} flappy`, `the game's ${k === 'msg' ? '"Tap to play" line' : k} computes \`user-select: ${g.us[k]}\` — a held thumb on an iPhone selects the word beside it`);
+        note(`${at} flappy: user-select canvas ${g.us.canvas}, card ${g.us.card}, message ${g.us.msg}, page ${g.us.page}; elsewhere body ${g.control.body}, another card ${g.control.other}`);
+        ['canvas', 'card', 'msg', 'page'].forEach(k => {
+          if (g.us[k] !== 'none') fail('NOTHING LIGHTS UP', `${at} flappy`, `the game's ${k === 'msg' ? '"Tap to play" line' : k === 'page' ? 'page (its `.pane`)' : k} computes \`user-select: ${g.us[k]}\` — a held thumb on an iPhone selects the word beside it`);
         });
         if (g.control.body === 'none') fail('GAME ONLY', `${at} flappy`, 'the page itself computes `user-select: none` — the game\'s fix reached every question and message in the app');
         if (!g.control.other) fail('REACH', `${at} flappy`, 'no other card on Games had text to ask the control of');
@@ -1095,6 +1116,9 @@ async function gesture(env, o) {
         const series = [
           ['two quick taps and a held press on "Tap to play"', 'msg', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
           ['two quick taps and a held press on the Score row', 'score', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['two quick taps and a held press beside the canvas', 'beside', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['two quick taps and a held press in the page\'s gutter', 'gutter', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['two quick taps and a held press under the board', 'under', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
           ['eight rapid taps on the canvas', 'canvas', async p => { for (let k = 0; k < 8; k++) { await tap(p, 40); await sleep(60); } }, 8],
           ['a held press low on the canvas', 'low', async p => { await tap(p, 900); }, 1],
         ];

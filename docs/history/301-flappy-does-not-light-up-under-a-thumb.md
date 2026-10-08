@@ -45,8 +45,7 @@ never got the same line.
 
 - **The whole card, not the canvas.** Scoped to the canvas alone, a probe still selected the
   message line and the Score row, and those are where a thumb going fast lands as often as on the
-  bird. `.card:has(> .flappy)` matches the same markup in all three places the widget is drawn:
-  the Games column, `.widget-full` and the sheet.
+  bird.
 - **The prefixes stay.** iOS Safari reads `-webkit-user-select`, and only WebKit has a callout.
 - **Not `preventDefault` in the flap.** On `pointerdown` it cancels the mouse events that follow and
   not WebKit's selection. The flap stays on the finger going down (145).
@@ -54,6 +53,34 @@ never got the same line.
   refuse the double-tap zoom itself. The card sits inside `#screen`, whose `none` already refuses it,
   and a child's `touch-action` can only narrow what is allowed above it.
 - **Not the whole app.** A question, an answer or a message is text somebody may want to copy.
+
+### And then the whole page: the card alone sent a thumb to the next card
+
+**A skeptic's probe after the fix above** pressed where no text is: the padding between the canvas
+and the edge of its page. On a column the card sits inside two more boxes — the star's
+`.card.is-widget`, then the `.pane` — and their padding is 27px each side of the canvas and 14px
+under the board, all still `user-select: auto`. A thumb at the side of the bird lands there.
+
+**The browser takes a press on an empty box to the nearest text it may select.** Before the fix
+that was "Tap to play". With the card refusing, it was the heading of the NEXT page: every tap, double
+tap and held press there left a caret in "Connect 4", at 390 and at 320, 30 presses in 30. Chromium
+paints no caret in plain text, so nothing showed. WebKit picks the position the same way and then
+selects the word round it, so on an iPhone that press selects a word on another card, which may be just
+off the screen, or in view once the column moves.
+
+```css
+.pane:has(.flappy), .card:has(> .flappy) { … the same three … }
+```
+
+- **The pane is the game's own page and nothing else.** There is one widget to a page on Games and
+  on Saved, the only other thing on it is the star, which has no text, and the funnel no longer
+  carries games. Across all 6,612 elements of the document the change makes 20 elements
+  unselectable, and all 20 are on that page.
+- **The card rule stays** for a widget drawn anywhere without a pane round it. The sheet that once
+  held widgets is gone (see `on('widget')` in overworld.js), so today the game is drawn in two
+  places: the Games column and the Saved column. It has the same markup in both.
+- **Beyond the pane is `#screen`.** WebKit will not start a selection on a block taller than 97% of
+  the visible area, and `#screen` is the full height of the window.
 
 ### `node check/swipe.js --only=flappy`, rule 8e
 
@@ -63,8 +90,10 @@ see:
 
 - **two quick taps and a held press on "Tap to play" and on the Score row** start no selection and
   leave no range. This half is shared with WebKit;
-- **the canvas, the card and the message line compute `user-select: none`**, which is what WebKit
-  asks of the element under the finger;
+- **the same beside the canvas, in the page's gutter and under the board**, where there is no
+  text;
+- **the canvas, the card, the message line and the pane compute `user-select: none`**, which is
+  what WebKit asks of the element under the finger;
 - **`-webkit-touch-callout: none` is read from style.css itself.** Chromium drops a property it does
   not know from the CSSOM, so the one line only an iPhone reads is the one line no browser here could
   see go missing;
@@ -82,11 +111,16 @@ see:
 | scoped to `.flappy` only | 8 findings: the message line and the Score row still select |
 | `body` added to the selector | 4 findings, GAME ONLY |
 | a `:hover` shadow on the card | 4 findings: every series redrew the card |
+| back to `.card:has(> .flappy)` alone (the first fix) | 8 findings: the pane is `auto`, and a press beside the canvas, in the gutter or under the board starts a selection |
+| `.pane` with no `:has` | 2 findings, GAME ONLY: another Games card stops selecting |
+
+The first five were run on the first fix and the last two on the widened one.
 
 ### Left for a phone
 
 This is reasoned from WebKit's rules, not seen: no iOS engine is available here. On an iPhone, hold
 a finger on the bird for about a second, double-tap the "Tap to play" line, and tap fast through a
-whole game. Nothing should go blue and no magnifier or Copy bubble should appear. On Android, in
+whole game. Then hold a finger in the dark margin beside the bird, between the sky and the edge of
+the card. Nothing should go blue and no magnifier or Copy bubble should appear. On Android, in
 Chrome, the probes' Chromium already selected nothing from a long press on the canvas, so there the
 fix covers the text under the canvas. Hold a finger on "Tap to play" and on the Score row to see it.

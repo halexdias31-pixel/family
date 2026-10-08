@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-flappy-no-select";
+  --css-version: "2026-10-08-flappy-page-no-select";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1673,6 +1673,16 @@ a { color: inherit; text-decoration: none; }
    hammered, for the same reason: `-webkit-user-select` because iOS Safari reads the prefix, and
    `-webkit-touch-callout` because only WebKit has a callout to refuse.
 
+   AND THE WHOLE PAGE THE GAME IS ON, NOT ONLY ITS CARD. On a column the card is wrapped twice — the
+   star's `.card.is-widget`, then the `.pane` — and between the canvas and the pane's edge are 27px
+   of their padding on each side and 14px under the board, all `auto`. A thumb at the side of the
+   bird lands there. The browser takes a press on a box with no text in it to the nearest text it
+   may select, and with this card refusing, that was the NEXT page: every tap, double tap and held
+   press there put the selection in "Connect 4" (probe at 390 and 320, a caret every time; on iOS the
+   same press selects the word and paints it). `.pane:has(.flappy)` is the game's own page and
+   nothing else — one widget to a page on Games and on Saved, and the only text on it is the game's.
+   The card rule stays beside it for a widget drawn anywhere without a pane round it.
+
    NOT `preventDefault` in the flap. On `pointerdown` it cancels the mouse events that follow and
    not WebKit's selection gesture, and the flap stays instant on the finger going down.
    NOT `touch-action: manipulation` as on `#kp`, because here it would measure nothing. The pad is
@@ -1682,7 +1692,8 @@ a { color: inherit; text-decoration: none; }
    AND NOT THE WHOLE APP: a question, an answer or a message is text somebody may want to copy.
    `check/swipe.js` (8e) asks all of this with a real finger, and reads the callout from this file,
    because Chromium drops a property it does not know. */
-.card:has(> .flappy) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.pane:has(.flappy), .card:has(> .flappy) {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- WHAT THE LAWS PAINT -----------------------------------------------------------------
    One class per colour a law can name. The LAW says "green"; this says what green is — so the
