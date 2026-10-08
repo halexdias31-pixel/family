@@ -116,7 +116,7 @@ file or JSON exists. So the device keeps a copy, written by a load and read by t
   - then **`splashAnims`** = `{ f: 1, ids: [...], h: { id: hash } }`, **last**, so a load cut off half
     way leaves the old index pointing at records that are still whole.
   - A record the store refuses (quota) is left out of the index rather than half-written. The lot is
-    capped at `SPLASH_CACHE_MAX`, 200 000 characters; the 27 come to 170 201, and
+    capped at `SPLASH_CACHE_MAX`, 200 000 characters; the 27 come to about 170 000, and
     `check-anims.js` fails before the books outgrow it, so a drawing is never quietly left off.
   - **An empty or failed fetch of the books changes nothing.** `|| []` makes a missing file look like
     an empty one; an empty one must not clear a good copy.
@@ -205,7 +205,7 @@ splash was chosen before anything was painted in 7 of 7 loads in every run.
   holds the pick against the first contentful paint.
 
 Each new rule above was mutated — the break put in, the check seen to go red, the real files seen
-green again: 32 of them, listed in the commit. One never went red, and it was the fix that was wrong, not the check: standard form's
+green again: 33 of them, listed in the commits. One never went red, and it was the fix that was wrong, not the check: standard form's
 half-rem padding (added two commits before the move, "for the point's first hop past the row")
 removed, and `check/anims.js` still found the point inside its card at 320. Measured, it cannot leave
 it: the stage centres the drawing rather than stretching it, so the root is 94px wide in a 244px card

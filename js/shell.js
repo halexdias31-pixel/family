@@ -4194,8 +4194,12 @@ function splashWaitWatch_() {
    A FAILED FETCH LEAVES THE COPY ALONE, for the reason a failed splashes file leaves `splashOff`.
    OUT OF STORAGE ON ONE DRAWING LEAVES THAT ONE OUT, and nothing else is touched: a `setItem` that
    throws evicts nothing, so a child's saved answers (`ans:`) and drawings (`pad:`) cannot be pushed out
-   by a loading screen. `SPLASH_CACHE_MAX` is the ceiling on the lot — about twice what the 27 come to,
-   in a 5 MB store shared with everything else this app keeps.
+   by a loading screen. `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with
+   everything else this app keeps. THE 27 COME TO ABOUT 170 000 OF ITS 200 000 — this said "about
+   twice" when it was written, before the rows were real, and it was not. The room left is a few
+   drawings, not twenty-seven; a drawing past the ceiling is left off the splash (never out of its
+   chapter), and `check-anims.js` fails before the books get there, so raising it is a decision made
+   in the open.
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
    and both move, and every device starts again from an empty copy. */
