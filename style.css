@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-08-answers-signin";
+  --css-version: "2026-10-08-flappy-no-select";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1659,6 +1659,30 @@ a { color: inherit; text-decoration: none; }
    delay actually reported was `click` firing on the release. See the binding note in `initFlappy`. */
 .flappy { width: 100%; aspect-ratio: 4/5; display: block; touch-action: none;
           background: var(--sunk); border: 1px solid var(--line); border-radius: .5rem; }
+/* ---------- A THUMB ON THE GAME IS A FLAP, NOT A SELECTION -----------------------------------------
+   THE OWNER, 8 Oct: *"Flappy bird sometimes highlights when tapping. Like they tap then it
+   highlights. Happens on phone."* It was the phone selecting text. Nothing the app draws lit up.
+   Somebody playing taps fast and now and then rests a thumb while the bird falls. On iOS a press
+   held about half a second, or two quick taps, is the gesture that selects the nearest word and
+   paints it blue, with the magnifier and the Copy bubble. Nothing on this card said it was not text.
+   `touch-action: none` above turns off panning and zooming and nothing else, so it never did.
+
+   THE WHOLE CARD, NOT ONLY THE CANVAS. A thumb going fast lands on the "Tap to play" line 6px under
+   the canvas, or on the Score row, as often as on the bird. Scoped to the canvas alone, a probe still
+   started a selection on both. The same three declarations as `#kp`, the other surface built to be
+   hammered, for the same reason: `-webkit-user-select` because iOS Safari reads the prefix, and
+   `-webkit-touch-callout` because only WebKit has a callout to refuse.
+
+   NOT `preventDefault` in the flap. On `pointerdown` it cancels the mouse events that follow and
+   not WebKit's selection gesture, and the flap stays instant on the finger going down.
+   NOT `touch-action: manipulation` as on `#kp`, because here it would measure nothing. The pad is
+   fixed outside the swipe grid and had to refuse the double-tap zoom itself. This card sits inside
+   `#screen`, whose `none` already refuses it, and a child's `touch-action` can only narrow what the
+   elements above it allow, never widen it.
+   AND NOT THE WHOLE APP: a question, an answer or a message is text somebody may want to copy.
+   `check/swipe.js` (8e) asks all of this with a real finger, and reads the callout from this file,
+   because Chromium drops a property it does not know. */
+.card:has(> .flappy) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- WHAT THE LAWS PAINT -----------------------------------------------------------------
    One class per colour a law can name. The LAW says "green"; this says what green is — so the
