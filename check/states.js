@@ -5590,10 +5590,13 @@ const STATES = {
           && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
       },
       wants: 'two chips waiting, a paragraph in the box and Send beside it rather than under it',
+      /* EMPTIED AS A PERSON EMPTIES IT, with `input`: the paragraph is a DRAFT now (data.js; docs/history
+         317), kept as it was typed and drawn back by every redraw of Messages — set to '' without telling
+         anybody, it came back in the next state's composer. */
       leave: () => {
         delete MSG_QUEUE['P009'];
         const b = document.querySelector('#s-dm .msg-text');
-        if (b) { b.value = ''; b.style.height = ''; }
+        if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],
 };

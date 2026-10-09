@@ -13725,6 +13725,366 @@ check('answers: a payload landing reads the account once a visit, and coming bac
   return bad;
 });
 
+/* ==================================================================================================
+   EVERY BOX SURVIVES A RELOAD (docs/history/317).
+
+   THE OWNER, 9 Oct, during a lesson: *"[the child] accidentally refreshed on his computer when doing the
+   english language question. this lost him all his progress on his answer. the box should be
+   autosaving his work like everywhere else should be doing this."* Three hunts in a real browser found
+   the two ways the essay was lost — a store that refused the write and a session the server ended — and
+   a stale second tab that wrote one letter over it. Each is a journey here, through the real handlers,
+   and so is the reload itself: a first boot types, the page goes away (`pagehide`), and a SECOND BOOT
+   starts from exactly the storage the first one left, the way the splash journey boots twice. The
+   children are invented, Ada and Ben, as above. Signed in on the live backend's shape — no
+   `saveAnswers`, so the device is the only copy, as it was on 9 Oct.
+================================================================================================== */
+const keptStore_ = w => {
+  const o = {};
+  for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); }
+  return o;
+};
+const fromStore_ = (kept, more) => win => {
+  Object.keys(kept).forEach(k => win.localStorage.setItem(k, kept[k]));
+  if (more) more(win);
+};
+/* ABOUT THE ESSAY'S LENGTH — 3,000 characters, over the account's 2,000 as well. */
+const RELOAD_ESSAY = 'The wind came off the sea like a held breath let go, and the town leaned into it. '.repeat(37);
+const RELOAD_ESSAY_X = { kind: 'question', name: 'Q5', marks: 40, key: 'q:Q-ANS-E-R', answerType: 'written', accept: '',
+  html: '<p>Write a description suggested by this picture.</p>',
+  row: { row_id: 'Q-ANS-E-R', paper_id: 'P-ANS', subject: 'English Language', name: 'Answers' } };
+const reloadEssayBox_ = w => {
+  const h = w.document.createElement('div');
+  w.document.body.appendChild(h);
+  h.innerHTML = w.questionCard_(RELOAD_ESSAY_X, 0);
+  /* BY `data-do="qp-ans"`, the one thing every box that saves as an answer carries — not by how the essay's
+     box is drawn, which is being rebuilt as a writing sheet. */
+  return h.querySelector('[data-do="qp-ans"][data-k$="' + RELOAD_ESSAY_X.key + '"]');
+};
+
+check('a reload keeps every answer — words, maths, a 3,000-character essay, a pick and a drawing — signed in on the live backend and signed out', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(one.w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was reloaded'];
+  const bad = [];
+  let c = ansCards_(one.w, 'R');
+  ansType_(one.w, c.ta(), 'because 180');
+  ansType_(one.w, c.kp(), '(3)/(4)');
+  const e1 = reloadEssayBox_(one.w);
+  if (!e1) return ['the essay card drew no answer box — nothing was reloaded'];
+  ansType_(one.w, e1, RELOAD_ESSAY);
+  one.w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansStroke_(one.w, c, [[10, 10], [60, 60], [90, 20]]);
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  const two = boot({ before: fromStore_(keptStore_(one.w)) });
+  await wait(300);
+  const w = two.w;
+  if (!w.__t.whoami() || w.__t.whoami().personId !== 'P7') bad.push('the reload did not come back signed in as Ada — every key below is somebody else\'s');
+  c = ansCards_(w, 'R');
+  if (c.ta().value !== 'because 180') bad.push('after the reload the words box holds ' + JSON.stringify(c.ta().value));
+  if (c.kp().value !== '(3)/(4)') bad.push('after the reload the maths box holds ' + JSON.stringify(c.kp().value));
+  const e2 = reloadEssayBox_(w);
+  if (!e2 || e2.value !== RELOAD_ESSAY) bad.push('after the reload the essay is ' + (e2 ? e2.value.length : 'no box,') + ' characters, wanted ' + RELOAD_ESSAY.length);
+  const on = c.box().querySelector('.qp-opt.is-picked');
+  if (!on || on.getAttribute('data-n') !== '2') bad.push('after the reload the picked option is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('after the reload the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted 1');
+  /* SIGNED OUT: the device's key, and the same again. */
+  w.__t.USER(null);
+  try { w.localStorage.removeItem('familyUser'); } catch (e) {}
+  c.draw();
+  ansType_(w, c.ta(), 'mine, on this computer');
+  w.dispatchEvent(new w.Event('pagehide'));
+  const three = boot({ before: fromStore_(keptStore_(w)) });
+  await wait(300);
+  if (three.w.__t.whoami()) bad.push('the signed-out reload came back signed in');
+  const c3 = ansCards_(three.w, 'R');
+  if (c3.ta().value !== 'mine, on this computer') bad.push('signed out, after the reload the box holds ' + JSON.stringify(c3.ta().value));
+  return bad;
+});
+
+check('a reload keeps what was typed and not yet sent: the composer, a comment, the booking note, a settings box, the new-post sheet and the make-an-account names — and never a PIN', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const W = one.w;
+  const fns = ['msgForm_', 'commentsHtml_', 'fieldHtml', 'registerSheet_', 'draftRead_', 'draftKeep_'].filter(n => typeof W[n] !== 'function');
+  if (fns.length) return [fns.join(', ') + ' not reachable — nothing was reloaded'];
+  const bad = [];
+  const draw = (w, html) => { const h = w.document.createElement('div'); w.document.body.appendChild(h); h.innerHTML = html; return h; };
+  const type = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  const surfaces = w => {
+    const msg = draw(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+    const cmt = draw(w, w.commentsHtml_({ id: 'POST-R', comments: { list: [], total: 0 } })).querySelector('.cmt-text');
+    const set = draw(w, '<div class="me-form">' + w.fieldHtml('headline', 'Maths, mostly', {}) + '</div>').querySelector('[data-me="headline"]');
+    const note = draw(w, w.noteRow_().sel).querySelector('[data-do="book-note"]');
+    return { msg, cmt, set, note };
+  };
+  let s = surfaces(W);
+  if (!s.msg || !s.cmt || !s.set || !s.note) return ['a surface did not draw: ' + JSON.stringify(Object.keys(s).filter(k => !s[k]))];
+  type(W, s.msg, 'See you Tuesday — can we do');
+  type(W, s.cmt, 'Lovely photo of the');
+  type(W, s.set, 'Maths and Physics');
+  type(W, s.note, 'Two of them are twins and');
+  W.__t.ACTIONS['new-post']();
+  const pc = W.document.getElementById('post-cap'), pb = W.document.getElementById('post-body');
+  if (!pc || !pb) bad.push('the new-post sheet did not open, so it was NOT checked');
+  else { type(W, pc, 'Thursday at the library'); type(W, pb, 'Twelve of them, and'); }
+  /* A PIN IS NEVER WRITTEN DOWN — not a sheet's, and not one a box carrying a draft would have kept. */
+  W.closeSheet && W.closeSheet();
+  const PIN = ['4', '9', '1', '7'].join('');
+  const trap = draw(W, '<input type="text" data-draft="set:lib1_pin"><input type="password" data-draft="reg:pin">');
+  trap.querySelectorAll('input').forEach(el => type(W, el, PIN));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const kept = keptStore_(W);
+  const leak = Object.keys(kept).filter(k => String(kept[k]).indexOf(PIN) !== -1);
+  if (leak.length) bad.push('a PIN was written to the device under ' + leak.join(', '));
+  const two = boot({ before: fromStore_(kept) });
+  await wait(300);
+  const w = two.w;
+  s = surfaces(w);
+  if (s.msg.value !== 'See you Tuesday — can we do') bad.push('after the reload the composer holds ' + JSON.stringify(s.msg.value));
+  if (s.cmt.value !== 'Lovely photo of the') bad.push('after the reload the comment box holds ' + JSON.stringify(s.cmt.value));
+  if (s.set.value !== 'Maths and Physics') bad.push('after the reload the settings box holds ' + JSON.stringify(s.set.value) + ' — wanted the unsaved edit over the saved "Maths, mostly"');
+  if (s.note.value !== 'Two of them are twins and' || w.__t.BOOKING.note !== 'Two of them are twins and') bad.push('after the reload the booking note is ' + JSON.stringify(s.note.value) + ' and BOOKING.note ' + JSON.stringify(w.__t.BOOKING.note));
+  w.__t.ACTIONS['new-post']();
+  const pc2 = w.document.getElementById('post-cap'), pb2 = w.document.getElementById('post-body');
+  if (!pc2 || pc2.value !== 'Thursday at the library' || !pb2 || pb2.value !== 'Twelve of them, and') bad.push('after the reload the new-post sheet opened holding ' + JSON.stringify([pc2 && pc2.value, pb2 && pb2.value]));
+  w.closeSheet && w.closeSheet();
+  /* TYPED BACK TO WHAT IS SAVED IS NO DRAFT. */
+  type(w, s.set, 'Maths, mostly');
+  if (w.draftRead_('set', 'headline') !== null) bad.push('a settings box typed back to its saved value still keeps a draft');
+  /* SENT, AND THE DRAFT GOES — the comment, through the real handler and a server that takes it. */
+  const tile = s.cmt.closest('.cmt-form').querySelector('[data-do="cmt-add"]');
+  if (!tile) bad.push('no Post tile beside the comment box');
+  else {
+    w.__t.ACTIONS['cmt-add'](tile);
+    await wait(100);
+    if (w.draftRead_('cmt', 'POST-R') !== null) bad.push('the comment was posted and its draft is still kept — the next reload would put it back in the box');
+  }
+  /* ANOTHER CHILD ON THE SAME iPAD IS NOT HANDED ADA'S DRAFT. */
+  w.__t.USER(Object.assign({}, ANS_BEN));
+  const ben = draw(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  if (ben.value) bad.push('Ben opened the same conversation and the composer held Ada\'s draft: ' + JSON.stringify(ben.value));
+  /* SIGNED OUT: the make-an-account sheet is the device's draft, and comes back across a reload. */
+  w.__t.USER(null);
+  try { w.localStorage.removeItem('familyUser'); } catch (e) {}
+  w.registerSheet_();
+  const rf = w.document.getElementById('reg-first'), rp = w.document.getElementById('reg-pin');
+  if (!rf || !rp) bad.push('the make-an-account sheet did not open, so it was NOT checked');
+  else {
+    type(w, rf, 'Ivy');
+    type(w, rp, PIN);
+    w.dispatchEvent(new w.Event('pagehide'));
+    const kept3 = keptStore_(w);
+    if (Object.keys(kept3).some(k => String(kept3[k]).indexOf(PIN) !== -1)) bad.push('the PIN typed into the make-an-account sheet was written to the device');
+    const three = boot({ before: fromStore_(kept3) });
+    await wait(300);
+    three.w.registerSheet_();
+    const rf3 = three.w.document.getElementById('reg-first');
+    if (!rf3 || rf3.value !== 'Ivy') bad.push('after the reload the make-an-account sheet opened with the first name ' + JSON.stringify(rf3 && rf3.value));
+  }
+  return bad;
+});
+
+check('the booking form is the person\'s on a shared iPad: a sign-out takes it off the screen, signing in again brings it back, and the next child is not handed it', async () => {
+  const { w } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'draftRead_'].filter(n => typeof w[n] !== 'function');
+  if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const B = w.__t.BOOKING;
+  /* THROUGH THE REAL LISTENER, as a parent types the note. */
+  const note = v => {
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    h.innerHTML = w.noteRow_().sel;
+    const el = h.querySelector('[data-do="book-note"]');
+    el.value = v;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+  };
+  note('Ada on Tuesdays, please');
+  w.signedOut_();
+  if (B.note) bad.push('signed out, the booking form still holds Ada\'s note ' + JSON.stringify(B.note) + ' for whoever picks the iPad up');
+  if (w.draftRead_('book', 'form') !== null) bad.push('signed out, the device was handed Ada\'s booking as its own draft');
+  /* BEN SIGNS IN: nothing of Ada's. */
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  if (B.note) bad.push('Ben signed in and the booking form held ' + JSON.stringify(B.note));
+  /* ADA AGAIN: hers is back (from Ben, through the sign-out on the way). */
+  w.signedIn_(Object.assign({}, ANS_ADA));
+  if (B.note !== 'Ada on Tuesdays, please') bad.push('Ada signed in again and the booking note is ' + JSON.stringify(B.note) + ' — wanted the one she left');
+  /* FILLED IN SIGNED OUT AND SIGNED IN TO SEND: it is the person's now, and the device's copy goes. */
+  w.signedOut_();
+  note('Two children, Saturdays');
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  if (B.note !== 'Two children, Saturdays') bad.push('filled in signed out, then signed in to send, and the note is ' + JSON.stringify(B.note));
+  if (!/Two children/.test(String(w.draftRead_('book', 'form') || ''))) bad.push('the form filled in signed out is not Ben\'s draft after he signed in');
+  if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('the device\'s copy of a form Ben carried into his account is still on the device, for the next visitor');
+  return bad;
+});
+
+check('a store that refuses the write: the box keeps the visit\'s copy through a redraw, says it is not saved, and leaving asks first — a store with room says nothing', async () => {
+  const { w } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(w).concat(['ansValue_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was refused'];
+  const bad = [];
+  const c = ansCards_(w, 'F');
+  const k = 'ans:u:P7:' + c.words.key;
+  /* HUNT A3: 142 characters stored, then the store full of other things, and 252 typed. */
+  ansType_(w, c.ta(), 'a'.repeat(142));
+  const real = w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem = function (key, v) {
+    if (/^(ans|pad|draft):/.test(String(key))) throw new w.DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    return real.call(this, key, v);
+  };
+  try {
+    ansType_(w, c.ta(), 'a'.repeat(252));
+    if (w.localStorage.getItem(k) !== 'a'.repeat(142)) bad.push('the refused write was NOT set up — the store holds ' + String(w.localStorage.getItem(k)).length);
+    c.draw();
+    if (c.ta().value.length !== 252) bad.push('a redraw drew the box with ' + c.ta().value.length + ' characters — the store\'s older copy over the visit\'s 252');
+    if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('under a refused answer the line says ' + JSON.stringify(c.saidFor(c.words)));
+    ansType_(w, c.ta(), c.ta().value + 'b');
+    if (String(w.ansValue_(k)).length !== 253) bad.push('the next key after the redraw left the visit\'s copy at ' + String(w.ansValue_(k)).length + ', wanted 253');
+    const ev = new w.Event('beforeunload', { cancelable: true });
+    w.dispatchEvent(ev);
+    if (!ev.defaultPrevented) bad.push('leaving with 253 characters held by nothing but the page did not ask first');
+  } finally { w.Storage.prototype.setItem = real; }
+  /* ROOM AGAIN: the next key lands, the line goes back, and leaving does not ask. */
+  ansType_(w, c.ta(), c.ta().value + 'c');
+  if (String(w.localStorage.getItem(k)).length !== 254) bad.push('with room again the store holds ' + String(w.localStorage.getItem(k)).length + ', wanted 254');
+  if (c.saidFor(c.words) !== 'On this device only') bad.push('with the answer stored again the line says ' + JSON.stringify(c.saidFor(c.words)));
+  const ev2 = new w.Event('beforeunload', { cancelable: true });
+  w.dispatchEvent(ev2);
+  if (ev2.defaultPrevented) bad.push('leaving asked first with every answer stored — a prompt on every refresh');
+  return bad;
+});
+
+check('a browser that keeps no site data at all: the answer lives through a redraw, the line says so, and leaving asks first', async () => {
+  const { w, errs } = boot({ before: win => {
+    Object.defineProperty(win, 'localStorage', { configurable: true, get() { throw new win.DOMException('The operation is insecure.', 'SecurityError'); } });
+  } });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  /* SIGNED IN FOR THE VISIT, as a sign-in leaves it when nothing can be stored — hunt A1. */
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  /* NOTHING TYPED YET: hiding the page on Find writes where Find was, which this browser refuses — and a
+     place is a convenience, so leaving must not ask (`keepPut_`'s `quiet`). */
+  w.__t.go('stuff');
+  w.dispatchEvent(new w.Event('pagehide'));
+  const ev0 = new w.Event('beforeunload', { cancelable: true });
+  w.dispatchEvent(ev0);
+  if (ev0.defaultPrevented) bad.push('with nothing typed, leaving Find asked "Leave site?" — where Find was is a convenience, and a refresh would ask every time');
+  const c = ansCards_(w, 'N');
+  ansType_(w, c.ta(), 'x'.repeat(111));
+  if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('with nothing stored the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — it said "On this device only" over an answer on no device');
+  c.draw();
+  if (c.ta().value.length !== 111) bad.push('a redraw drew ' + c.ta().value.length + ' characters, wanted the visit\'s 111 (hunt A2: it drew an empty box, and the next key saved one letter)');
+  const ev = new w.Event('beforeunload', { cancelable: true });
+  w.dispatchEvent(ev);
+  if (!ev.defaultPrevented) bad.push('leaving with 111 characters held by nothing but the page did not ask');
+  if (errs && errs.length) bad.push('the app threw with storage blocked: ' + errs.slice(0, 2).join(' | '));
+  return bad;
+});
+
+check('an answer written in another tab is the answer in this one — a stale box is given it before a key can write over it', async () => {
+  const { w } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const c = ansCards_(w, 'T');
+  const k = 'ans:u:P7:' + c.words.key;
+  if (c.ta().value) return ['the box was not empty to start with — NOT checked'];
+  /* THE OTHER TAB WRITES THE ESSAY; the browser tells this one with `storage`. */
+  w.localStorage.setItem(k, RELOAD_ESSAY);
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: null, newValue: RELOAD_ESSAY }));
+  if (c.ta().value !== RELOAD_ESSAY) bad.push('the box in this tab still holds ' + c.ta().value.length + ' characters after the other tab wrote ' + RELOAD_ESSAY.length);
+  ansType_(w, c.ta(), c.ta().value + '!');
+  if (w.localStorage.getItem(k) !== RELOAD_ESSAY + '!') bad.push('one key in this tab left the store holding ' + String(w.localStorage.getItem(k)).length + ' characters (hunt 3: "H" over 1,369)');
+  return bad;
+});
+
+check('a session the server ended on the reload: the box drawn signed out says the answer is still here, and signing in again brings it back', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(one.w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  let c = ansCards_(one.w, 'G');
+  ansType_(one.w, c.ta(), RELOAD_ESSAY);
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  /* THE iPAD SIGNED THE ACCOUNT OUT: every signed-in request of this computer's is refused. */
+  const two = boot({ before: fromStore_(keptStore_(one.w)),
+    reply: b => (b.token === 'tok-P7' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+  for (let i = 0; i < 40 && two.w.__t.whoami(); i++) await wait(50);
+  const w = two.w;
+  if (w.__t.whoami()) return ['the server refused the session and the app stayed signed in — NOT checked'];
+  c = ansCards_(w, 'G');
+  if (c.ta().value) bad.push('signed out by the server, the box shows ' + c.ta().value.length + ' characters — wanted the signed-out key\'s empty box');
+  if (c.saidFor(c.words) !== 'Signed out — sign in again and your answer is back') bad.push('under the empty box the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — an essay still on the device and nothing saying so');
+  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== RELOAD_ESSAY) bad.push('the essay under Ada\'s key is gone from the device');
+  w.signedIn_(Object.assign({}, ANS_ADA));
+  c.draw();
+  if (c.ta().value !== RELOAD_ESSAY) bad.push('signed in again, the box holds ' + c.ta().value.length + ' characters, wanted the essay');
+  if (/Signed out/.test(c.saidFor(c.words) || '')) bad.push('signed in again, the line still says ' + JSON.stringify(c.saidFor(c.words)));
+  return bad;
+});
+
+check('a reload puts Find back on the question: the column, the paper\'s chip and the essay\'s page, with the box holding what was typed', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const ID = 'Q-R0398-5';
+  const row = LIB.find(r => r.row_id === ID);
+  if (!row) return [ID + ' is not in data/questions.json — nothing was reloaded'];
+  const paper = LIB.filter(r => r.paper_id === row.paper_id);
+  const serve = url => (/data\/questions\.json/.test(url) ? paper : undefined);
+  const one = boot({ serve, before: signedInAs_(ANS_ADA) });
+  const W = one.w;
+  for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)); i++) await wait(50);
+  const x = W.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+  if (!x) return ['the essay did not come through the loader into Find — nothing was reloaded'];
+  const bad = [];
+  const S = W.__t.STUFF();
+  S.filters = [{ field: 'paperId', value: row.paper_id }];
+  W.paintStuff();
+  W.__t.go('stuff');
+  const at = W.stuffPages_().findIndex(pg => pg.x === x && !pg.part);
+  const i0 = at >= 0 ? at : W.stuffPages_().findIndex(pg => pg.x === x);
+  W.__t.goPage('stuff', W.stuffFirstResult_() + i0, true);
+  await wait(200);
+  const k = 'ans:u:P7:' + x.key;
+  const box1 = W.document.querySelector('#s-stuff [data-do="qp-ans"][data-k="' + k + '"]');
+  if (!box1) return ['the essay\'s box is not on Find\'s page in front — the setup did NOT reach it'];
+  ansType_(W, box1, RELOAD_ESSAY);
+  /* THE CHILD HAD BEEN WRITING FOR TWENTY MINUTES: the column was chosen long ago, and is left just now. */
+  W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const want = W.__t.PAGE.stuff;
+  const kept = keptStore_(W);
+  const two = boot({ serve, before: fromStore_(kept) });
+  const w = two.w;
+  for (let i = 0; i < 100 && !(w.__t.STUFF().filters || []).length; i++) await wait(50);
+  await wait(200);
+  if (w.__t.AT() !== 'stuff') bad.push('the reload opened on ' + w.__t.AT() + ', not Find');
+  const f = JSON.stringify(w.__t.STUFF().filters);
+  if (f !== JSON.stringify([{ field: 'paperId', value: row.paper_id }])) bad.push('the reload brought Find back with the chips ' + f);
+  if (w.__t.PAGE.stuff !== want) bad.push('the reload put Find on page ' + w.__t.PAGE.stuff + ', not the essay\'s ' + want);
+  const box2 = w.document.querySelector('#s-stuff [data-do="qp-ans"][data-k="' + k + '"]');
+  if (!box2) bad.push('after the reload the essay\'s box is not on the page in front');
+  else if (box2.value !== RELOAD_ESSAY) bad.push('after the reload the essay\'s box holds ' + box2.value.length + ' characters');
+  /* AND TOMORROW IS TOMORROW: the same storage, left seven minutes ago, opens where it always did. */
+  const stale = Object.assign({}, kept);
+  const ago = String(Date.now() - 7 * 60 * 1000);
+  stale.familyTabAt = ago;
+  Object.keys(stale).filter(n => /^draft:u:P7:find:place$/.test(n)).forEach(n => {
+    try { const d = JSON.parse(stale[n]); const p = JSON.parse(d.v); p.at = Number(ago); d.v = JSON.stringify(p); stale[n] = JSON.stringify(d); } catch (e) {}
+  });
+  const three = boot({ serve, before: fromStore_(stale) });
+  await wait(1200);
+  if (three.w.__t.AT() === 'stuff' && (three.w.__t.STUFF().filters || []).length) bad.push('a visit seven minutes after leaving was put back on the essay — "remembered for a reload, not for tomorrow"');
+  return bad;
+});
+
 /* ---------- SIGNING IN ON A SHARED iPAD ------------------------------------------------------------- */
 check('sign out, then the next child signs in: none of the last child’s messages, stars or done dates are on the screen', async () => {
   /* BEN'S INBOX DOES NOT ARRIVE — the server is slow, then refuses. That is the moment the last child's

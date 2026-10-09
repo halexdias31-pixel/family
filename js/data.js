@@ -167,6 +167,175 @@ let LIBRARY_FAILED = '';
 let LOAD_SLOW = false;
 try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch {}
 
+/* ==================================================================================================
+   WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED
+   IS SAID, NEVER KEPT QUIETLY IN MEMORY.
+
+   THE OWNER, 9 OCT, DURING A LESSON: *"[the child] accidentally refreshed on his computer when doing the
+   english language question. this lost him all his progress on his answer. the box should be
+   autosaving his work like everywhere else should be doing this."* docs/history/317 has what three
+   hunts found; this block is the half of the answer that every surface shares.
+
+   ONE WRITER, `keepPut_`, for anything a person made: an answer (`ansLocalPut_`, answers.js) and a
+   draft (below).
+     · A STORE THAT REFUSES IT GIVES UP ITS CACHES FIRST. The only cache this app keeps in
+       `localStorage` is the loading screen's copy of the textbooks' drawings — 181,176 of a normal
+       boot's 181,339 characters, measured — and `splashGiveWay_` (shell.js) takes it. Then once more.
+     · A WRITE STILL REFUSED IS REMEMBERED (`KEEP_UNKEPT`) WITH ITS VALUE HELD FOR THE VISIT
+       (`KEEP_MEM`), and every reader asks `keepHeld_` FIRST. Measured before this (hunt A2/A3): the
+       store refused the last 110 of 252 characters, a redraw drew the 142 it held, and the next key
+       saved 143 over the visit's 252 — a refused write became a lost one without a reload at all.
+       A browser keeping no site data refuses everything, and the same redraw drew an empty box.
+     · AND IT IS SAID: under an answer box ("Not saved — this browser is not keeping it",
+       `ansSavedSay_`), once a visit as a toast, and by the browser's own "Leave site?" if the page is
+       left with something only the visit holds — see the `beforeunload` note below. */
+const KEEP_MEM = new Map();
+const KEEP_UNKEPT = new Set();
+let KEEP_SAID = false;
+/* `quiet` IS FOR A CONVENIENCE, NOT WORK — where Find was (`findPlaceKeep_`). It is written if there is
+   room and forgotten if there is not: it takes no cache's room, says nothing, and is never the reason the
+   browser asks "Leave site?" — written as the page is hidden, in a browser keeping nothing it would have
+   made every refresh ask. */
+function keepPut_(k, v, quiet) {
+  const put = () => { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); };
+  if (quiet) { try { put(); return true; } catch (e) { return false; } }
+  KEEP_MEM.set(k, v);
+  try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) {}
+  try { if (v !== null && typeof splashGiveWay_ === 'function' && splashGiveWay_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) {}
+  KEEP_UNKEPT.add(k);
+  if (!KEEP_SAID && v !== null && String(v).trim()) {
+    KEEP_SAID = true;
+    try { if (typeof toast === 'function') toast('This browser is not saving what you type — leaving the page would lose it.'); } catch (e) {}
+  }
+  return false;
+}
+/* THE VISIT'S COPY OF A KEY THE STORE REFUSED, or `undefined` for a key the store holds as written. */
+const keepHeld_ = k => (KEEP_UNKEPT.has(k) ? KEEP_MEM.get(k) : undefined);
+/* ONCE MORE, AS THE PAGE GOES — a draft sent or a copy given way since may have made the room. */
+function keepRetry_() {
+  [...KEEP_UNKEPT].forEach(k => {
+    const v = KEEP_MEM.get(k);
+    try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, v); KEEP_UNKEPT.delete(k); } catch (e) {}
+  });
+}
+/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js). */
+function keepAtRisk_() {
+  keepRetry_();
+  return [...KEEP_UNKEPT].filter(k => {
+    const v = KEEP_MEM.get(k);
+    if (v === null || v === undefined || !String(v).trim() || v === '[]') return false;
+    try { if (typeof ansOnAccount_ === 'function' && ansOnAccount_(k)) return false; } catch (e) {}
+    return true;
+  });
+}
+/* ---------- AND WHAT IS WAITING TO GO UP GOES AS THE PAGE GOES ------------------------------------------
+   THREE THINGS SEND TO THE ACCOUNT A MOMENT AFTER THE LAST KEY — the notepad (1.4 s), the docket and the
+   timetable (0.9 s) — and the cheat sheet maker keeps its words 0.2 s after. Each writes this device's
+   copy at once, but a reload inside that moment took the send with it, and the next device opened the
+   account's older copy. Each books its send here as well as on its timer (`keepDue_`), and leaving the
+   page sends whatever is booked, with `keepalive` so the browser finishes it after the page has gone. */
+const KEEP_DUE = new Map();
+function keepDue_(name, send) { if (send) KEEP_DUE.set(name, send); else KEEP_DUE.delete(name); }
+function keepFlush_() {
+  const due = [...KEEP_DUE.values()];
+  KEEP_DUE.clear();
+  due.forEach(f => { try { f(true); } catch (e) {} });
+}
+const keepLeaving_ = () => { keepFlush_(); keepRetry_(); };
+window.addEventListener('pagehide', keepLeaving_);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') keepLeaving_(); });
+/* ---------- A RELOAD ASKS FIRST, BUT ONLY WHEN THE WORK IS IN NOTHING BUT THIS PAGE ------------------
+   THE ASK WAS "NO 'are you sure' PROMPT — THE WORK IS ALREADY SAVED, and a prompt on every refresh is
+   noise", and on every ordinary device that holds: nothing here asks. The hunt found the one case the
+   premise is false (A1): a browser that keeps no site data — a blocked-cookies profile makes
+   `localStorage` THROW — typed 111 characters, reloaded with no word from anybody, and drew an empty
+   box. There the work is in this page and nowhere else, so the browser's own "Leave site?" is the
+   last thing between it and a refresh; staying kept all 111 (measured on the hunt's patched copy).
+   It never fires while every key is stored, and an answer already on the account does not count. */
+window.addEventListener('beforeunload', e => {
+  if (!keepAtRisk_().length) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
+/* ---------- A DRAFT: EVERY BOX THAT IS SENT OR SAVED BY A BUTTON -------------------------------------
+   AN ANSWER IS SAVED AS IT IS TYPED (answers.js). Everything else a person types waits for a Send, a
+   Post or a Save — and lived in the page until then: the message composer, a comment, the new-post
+   sheet, the booking form, a settings card, the week of hours, the business records, the make-an-
+   account sheet. A reload lost every one of them. So each is now a DRAFT, kept as it changes:
+
+     `draft:<who>:<surface>:<id>`   `<who>` is `u:<person id>` signed in and `device` signed out, so a
+                                    draft is the signed-in person's and never handed to whoever signs in
+                                    next on a shared iPad. A device's draft is kept for `DRAFT_DEVICE_MS`
+                                    — long enough for a reload, not until tomorrow's visitor.
+     `draftAttr_(surface, id, was)` on the box: ` data-draft="surface:id"` and the value it was drawn
+                                    from (`data-draft-was`), so typing back to it takes the draft away.
+     `draftVal_(surface, id, was)`  what the box is drawn holding: the draft, or `was`.
+     `draftDrop_(surface, id)`      when the thing is sent, saved or cancelled.
+
+   ONE DELEGATED LISTENER saves every `[data-draft]` box on `input` and `change` — so a surface takes
+   part by carrying the attribute and drawing `draftVal_`, and `js/check-drafts.js` holds every
+   `<input>` and `<textarea>` the app draws to being an answer, a draft, or on its EXEMPT list with a
+   reason. NEVER A PIN, A PASSWORD, A FILE OR A HIDDEN BOX: refused here whatever the markup says. */
+const DRAFT_DEVICE_MS = 6 * 60 * 60 * 1000;
+const DRAFT_NEVER = /(^|[^a-z])(pin|password|passcode|cvc|cvv)(\d|[^a-z]|$)/i;
+function draftWho_() {
+  try { if (USER && (USER.personId || USER.name)) return 'u:' + (USER.personId || USER.name); } catch (e) {}
+  return 'device';
+}
+/* `who` only to name somebody else's draft — the device's, carried into the person who signed in
+   (`bookFollow_`, book.js). Every other caller is the person in front of the screen. */
+const draftKey_ = (surface, id, who) => 'draft:' + (who || draftWho_()) + ':' + surface + ':' + (id == null ? '' : id);
+function draftRead_(surface, id) {
+  const k = draftKey_(surface, id);
+  let raw = keepHeld_(k);
+  if (raw === undefined) { try { raw = localStorage.getItem(k); } catch (e) { raw = KEEP_MEM.has(k) ? KEEP_MEM.get(k) : null; } }
+  if (raw === null || raw === undefined) return null;
+  try {
+    const d = JSON.parse(raw);
+    if (!d || typeof d !== 'object' || typeof d.v !== 'string') return null;
+    if (/^draft:device:/.test(k) && !(Date.now() - (Number(d.at) || 0) < DRAFT_DEVICE_MS)) { draftDrop_(surface, id); return null; }
+    return d.v;
+  } catch (e) { return null; }
+}
+function draftKeep_(surface, id, v, quiet) {
+  if (DRAFT_NEVER.test(String(surface) + ':' + String(id == null ? '' : id))) return false;
+  if (v === null || v === undefined) return draftDrop_(surface, id);
+  return keepPut_(draftKey_(surface, id), JSON.stringify({ v: String(v), at: Date.now() }), quiet);
+}
+function draftDrop_(surface, id, who) {
+  const k = draftKey_(surface, id, who);
+  let had = KEEP_MEM.has(k);
+  if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) {} }
+  return had ? keepPut_(k, null) : true;
+}
+function draftAttr_(surface, id, was) {
+  const w = was === null || was === undefined ? '' : String(was);
+  return ' data-draft="' + esc(surface + ':' + (id == null ? '' : id)) + '"' + (w ? ' data-draft-was="' + esc(w) + '"' : '');
+}
+function draftVal_(surface, id, was) {
+  const w = was === null || was === undefined ? '' : String(was);
+  const d = draftRead_(surface, id);
+  if (d === null) return w;
+  /* A DRAFT THAT SAYS WHAT IS SAVED ANYWAY is no draft — saved elsewhere since, or typed back. */
+  if (d === w) { draftDrop_(surface, id); return w; }
+  return d;
+}
+function draftFrom_(el) {
+  if (!el || !el.getAttribute) return;
+  const spec = el.getAttribute('data-draft');
+  if (!spec || /^(password|file|hidden)$/i.test(el.type || '')) return;
+  const at = spec.indexOf(':');
+  const surface = at < 0 ? spec : spec.slice(0, at), id = at < 0 ? '' : spec.slice(at + 1);
+  const box = String(el.type || '').toLowerCase() === 'checkbox';
+  const v = box ? (el.checked ? '1' : '0') : String(el.value == null ? '' : el.value);
+  const was = el.hasAttribute('data-draft-was') ? el.getAttribute('data-draft-was') : (box ? '0' : '');
+  if (v === was) draftDrop_(surface, id); else draftKeep_(surface, id, v);
+}
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+  try { draftFrom_(e.target && e.target.closest && e.target.closest('[data-draft]')); } catch (err) {}
+}));
+
 /* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
 /* ---------- AND WHEN ONE ID IS ON THE PAGE TWICE, THE COPY ON THE SCREEN IN FRONT --------------
    A WIDGET STARRED ONTO THE SAVED COLUMN WAS DEAD THERE. Every widget finds its parts by id, the

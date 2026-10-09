@@ -386,6 +386,8 @@ on('book-share', el => {
 function drawBooker() {
   redrawBooker_(paintBook_);
   if (typeof bookDrop_ === 'function') bookDrop_();
+  /* EVERY ANSWER COMES THROUGH HERE, so here is where the form is kept for a reload (`bookKeep_`, book.js). */
+  if (typeof bookKeep_ === 'function') bookKeep_();
 }
 
 /** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */

@@ -283,6 +283,18 @@ try {
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch {}
+/* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED ---------------------------------------
+   THE STAMP WAS ONLY WRITTEN WHEN THE COLUMN CHANGED, so it measured how long ago you ARRIVED: a child
+   twenty minutes into an essay on Find refreshed and was put on the Feed, because twenty minutes is more
+   than six — and the answer that was still in the box looked lost (docs/history/317). Written again as
+   the page is hidden or left, for the column the person is on, it measures the time AWAY, which is the
+   question both readers of `AWAY_AGAIN` are asking. Only for the column already remembered: a column
+   reached with `remember === false` stays unremembered. */
+function tabStampLeft_() {
+  try { if (localStorage.getItem('familyTab') === AT) localStorage.setItem('familyTabAt', String(Date.now())); } catch {}
+}
+window.addEventListener('pagehide', tabStampLeft_);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') tabStampLeft_(); });
 
 /* ---------- THE COLUMN BEFORE THIS ONE ---------------------------------------------------------------
    So signing in can put you back where you came from (`signedIn_` in me.js) — a child who swiped across
@@ -3145,8 +3157,13 @@ function api(body, opts) {
       /* THROUGH `signedOut_` (me.js), THE ONE WAY OUT — this branch cleared `USER` and nothing else, so
          the person's inbox, stars and done dates outlived a session the server had already ended. */
       if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
+        /* WHOSE SESSION IT WAS, read before it is forgotten — see `ansGoneSay_` (answers.js): the box
+           that person wrote in is drawn empty under the signed-out key now, and says why (317). */
+        const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_(); } catch (e) {} }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
+        try { if (gone) localStorage.setItem('familyGone', gone); } catch (e) {}
+        try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) {}
         toast('Signed out — please sign in again');
       }
       return d || {};
@@ -4127,6 +4144,9 @@ async function load() {
   /* AND THE WHOLE SEQUENCE, in the one order it may happen in — see `repaint`. */
   repaint();
   openSharedPost();     // if the app was opened on a shared link, go to that post
+  /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
+     arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
+  if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();
 }
 
 /* ---------- THE SPLASH, OFF AND ON ---------------------------------------------------------------
@@ -4431,10 +4451,14 @@ function buildMayReload_(tag) {
         first load — and reloading the load somebody just made is the loop this is avoiding. */
   if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
   /* 3. NOTHING TYPED AND UNSAVED. `qp-ans` writes to localStorage on every keystroke and the
-        notepad does the same, so both survive a reload; everything else in a box would not. */
+        notepad does the same, so both survive a reload — and so does every box carrying a DRAFT
+        (`data-draft`, data.js), drawn again holding it; everything else in a box would not. */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
     .filter(el => String(el.value || '').trim())
-    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad');
+    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad' && !el.hasAttribute('data-draft'));
+  /* 4. NOTHING THE STORE REFUSED — that is in this page and nowhere else, and a reload is the loss
+        (`keepAtRisk_`, data.js; 317). */
+  if (typeof keepAtRisk_ === 'function' && keepAtRisk_().length) return false;
   return !typed.length;
 }
 

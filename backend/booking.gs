@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-09-a-films";
+const BOOKING_VERSION = "2026-10-09-b-autosave";
 
 
 /**
@@ -1807,7 +1807,9 @@ function authHeldSaid_(n) {
        + 'them back.';
 }
 
-/* SIGNING OUT, or a PIN changed: every session that person holds ends here, not only on the phone. */
+/* A PIN CHANGED, A PIN RESET, A ROW TAKEN BACK: every session that person holds ends here, not only on
+   the phone. NOT SIGNING OUT, which ends only the session that asked — see `signOut` in dopost.gs and
+   docs/history/317 for the essay that ending them all cost. */
 function authEndSession_(t, r) {
   const id = S(r && r.person_id);
   if (!id) return;

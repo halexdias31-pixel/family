@@ -1782,7 +1782,7 @@ function bookPrice() {
 
    So it is derived. Every step's answer is cleared because every step is asked, and a step added
    tomorrow is cleared without anybody remembering this function exists. */
-function resetBooking_() {
+function resetBooking_(keepDraft) {
   BOOK_STEPS.forEach(st => {
     /* A list question gets an empty list and a single one gets an empty string, because that is
        what each is tested against — `[].length` for one, `''` for the other. Handing a multi step
@@ -1800,6 +1800,81 @@ function resetBooking_() {
      booking. A reset with it left set would draw the next booking's first page as a picker for a
      question nobody had pressed. */
   BOOKING.picking = '';
+  /* AND THE DRAFT OF IT — sent, or started again, is not a booking to bring back (`bookKeep_`). NOT
+     when the form is only being cleared off the screen for somebody else (`bookFollow_`): the draft
+     is the person's who left, and theirs again when they sign back in. */
+  if (keepDraft) return;
+  try {
+    draftDrop_('book', 'form');
+    BOOK_STEPS.forEach(st => { if (st.emails) draftDrop_('book', 'emails:' + st.id); });
+  } catch (e) {}
+}
+
+/* ---------- THE FORM SURVIVES A RELOAD (docs/history/317) -------------------------------------------------
+   EVERY ANSWER LIVED IN `BOOKING`, IN MEMORY: about a dozen of them — subjects, level, how many, where,
+   the hours ticked on the grid, the other families, the note — and a reload was the blank paper again.
+   So `BOOKING` is a DRAFT (data.js), written whole by `drawBooker` (receipt.js), which every answer
+   already goes through, and by the note as it is typed; read back once as this file loads, for whoever
+   is signed in (a draft is the person's, or the device's for a few hours signed out); and dropped by
+   `resetBooking_`, which is what sending a booking and starting again both call. `picking` — which
+   list hangs open — is about the screen, not the booking, and is not kept. A blank form is no draft. */
+const bookBlank_ = () => Object.keys(BOOKING).every(k => k === 'done' || k === 'picking'
+  || ![].concat(BOOKING[k] == null ? [] : BOOKING[k]).join('').trim());
+/* WHOSE FORM IS IN `BOOKING` — the draft it was read from or last written to. See `bookFollow_`. */
+let BOOK_WHO = '';
+function bookKeep_() {
+  if (typeof draftKeep_ !== 'function') return;
+  try {
+    BOOK_WHO = draftWho_();
+    const o = {};
+    Object.keys(BOOKING).forEach(k => { if (k !== 'picking') o[k] = BOOKING[k]; });
+    if (bookBlank_()) draftDrop_('book', 'form'); else draftKeep_('book', 'form', JSON.stringify(o));
+  } catch (e) {}
+}
+function bookBack_() {
+  if (typeof draftRead_ !== 'function') return;
+  BOOK_WHO = draftWho_();
+  try {
+    const raw = draftRead_('book', 'form');
+    if (raw === null) return;
+    const o = JSON.parse(raw);
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
+    const plain = v => typeof v === 'string' || typeof v === 'number';
+    Object.keys(o).forEach(k => {
+      if (k === 'picking') return;
+      const v = o[k];
+      if (plain(v) || (Array.isArray(v) && v.every(plain))) BOOKING[k] = Array.isArray(v) ? v.slice() : v;
+    });
+  } catch (e) {}
+}
+bookBack_();
+/* ---------- AND THE FORM IS THE PERSON'S, ON A SHARED iPAD -------------------------------------------------
+   `BOOKING` IS ONE OBJECT IN MEMORY, and it outlived a sign-out: the next family to pick the iPad up was
+   shown the last one's subjects, hours, other families' addresses and note — and now that the form is a
+   draft, the first answer they gave would have written all of it into the device's draft as well. So
+   `signedOut_` and `signedIn_` (me.js) ask this whenever the person changes:
+     · FROM NOBODY TO SOMEBODY, with a form on the screen: the same person, signing in to send what they
+       filled in — it becomes theirs, and the device's copy goes (or it would come back, sent, for the
+       next visitor). With nothing filled in, their own draft is read instead: a session the server
+       ended, signed in again, finds the booking it left.
+     · FROM SOMEBODY TO ANYBODY ELSE: the form is cleared off the screen — not dropped, it is still the
+       person's who left — and whoever is in front now is given their own. `signingIn` is the sign-out
+       on the way from one child to the next (`signedIn_`): the device's draft is not read in between,
+       or the next step would hand it to the child signing in as though they had filled it in. */
+function bookFollow_(signingIn) {
+  if (typeof draftWho_ !== 'function') return;
+  const now = draftWho_();
+  if (now === BOOK_WHO) return;
+  if (BOOK_WHO === 'device' && !bookBlank_()) {
+    bookKeep_();
+    try {
+      draftDrop_('book', 'form', 'device');
+      BOOK_STEPS.forEach(st => { if (st.emails) draftDrop_('book', 'emails:' + st.id, 'device'); });
+    } catch (e) {}
+    return;
+  }
+  resetBooking_(true);
+  if (signingIn) BOOK_WHO = now; else bookBack_();
 }
 
 /* `on('new-booking')` AND `on('book-close')` WERE HERE. One opened the form and one shut it, and
@@ -1995,6 +2070,14 @@ document.addEventListener('change', e => {
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="book-note"]');
   if (el) BOOKING.note = el.value || '';
+});
+/* AND AS IT IS TYPED, into the form's draft (`bookKeep_`) — still no redraw, for the reason above: a
+   reload mid-sentence used to lose a note nobody had clicked away from yet (317). */
+document.addEventListener('input', e => {
+  const el = e.target && e.target.closest && e.target.closest('[data-do="book-note"]');
+  if (!el) return;
+  BOOKING.note = el.value || '';
+  bookKeep_();
 });
 
 /* ---------- THE SPLIT, TYPED --------------------------------------------------------------------
@@ -2480,8 +2563,11 @@ function stepInput_(st) {
   const v = (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ');
   /* `readonly`, NOT `disabled`. A locked text box should still be readable and selectable — somebody
      joining a class may well want to copy the addresses already on it. */
+  /* THE ADDRESSES AS TYPED ARE A DRAFT of their own (data.js; 317) until `change` makes them answers —
+     typed and reloaded before leaving the box, they were not in `BOOKING` yet. Drawn holding the
+     draft; the answer it becomes is the value that takes it away. */
   return `<input class="bk-in" type="text" data-do="book-emails" data-step="${esc(st.id)}"
-    value="${esc(v)}" placeholder="—" aria-label="${esc(st.label)}"
+    value="${esc(draftVal_('book', 'emails:' + st.id, v))}"${draftAttr_('book', 'emails:' + st.id, v)} placeholder="—" aria-label="${esc(st.label)}"
     ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
 
