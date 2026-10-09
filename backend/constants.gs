@@ -237,11 +237,84 @@ const WHERE = {
    That is the failure the health check already reports for nine of fifteen people. */
 const ADMIN_NAME = "@family.";
 
+/* ==================================================================================================
+   EVERY KIND OF EMAIL THIS SITE SENDS, AND WHICH OF THEM SOMEBODY MAY TURN OFF
+
+   The owner, 9 Oct: *"Also let parents select their communication preferences like notification. And
+   kids and tutors too I guess"*. The site sends email and nothing else — no push, no SMS — so a
+   preference is a yes or no per KIND of email, and this table is the one list of kinds. Every sender
+   names its kind (`notify(name, subject, body, kind)`), `wants_` in people.gs asks the recipient's row,
+   and the Notifications card on Settings draws the kinds that reach that person (`notifyOf_`).
+   `js/check-prefs.js` fails on a `notify(` with no kind, or a kind that is not a key here.
+
+   OPTIONAL KINDS have a `col` on the people tab — BLANK IS ON, `no` is off, `ON_` reads it, the shape
+   `weekly_email` already had — and the `roles` it reaches (the words `rolesOf` gives). A person sees the
+   kinds of every role they hold. Default ON for everybody, because every row already on the sheet has a
+   blank there, and nobody was asked before; nothing here is off unless somebody turns it off.
+
+   ESSENTIAL KINDS have no column and no switch: `wants_` answers yes without looking. They are what
+   somebody needs to USE the service, and each says why in `why`, which the card does not print — it is
+   for whoever is tempted to add a column:
+     access    — the confirmation link, a new address's link, a forgotten PIN, the grown-up's yes for a
+                 child with no email, your child's handle. Without them nobody can get in, or back in.
+     security  — too many wrong PINs, your PIN changed. The only warning an account theft ever gives.
+     family    — somebody saying they are your parent, and the child's answer. A child is never put on an
+                 account they were not told about, and a parent who asked is owed the answer.
+     booked    — a booking received, a tutor chosen or not taken forward, accepted, declined, withdrawn,
+                 paid, cancelled. Each DECIDES whether a session happens; found out at the door is too
+                 late. See `move` in dopost.gs for which of its acts are which.
+     reported  — a message somebody reported. Safeguarding, and the admin is the only one told.
+   EVERYTHING ELSE IS THE CONVERSATION AROUND THOSE — a note on a session, new terms, a payment someone
+   else made, a festive sign-up, a message, a post going up, a thank-you for a referral, a post waiting
+   for approval — and is somebody's to turn off.
+
+   THE NOTES ARE THE CARD'S WORDS, and short because the card has to fit a 320 phone without scrolling —
+   the owner: *"I don't like scrolling. If you need to leave things more compact or smaller font"*. An
+   optional kind's label and note sit beside its tick; an essential kind is drawn as its LABEL ALONE, in
+   one run of words under "Always sent", so its label says the whole of it ("Bookings confirmed or
+   cancelled", not "Your bookings") and its note is for a pointer that can hover. `noteFor` is the same kind
+   as one role meets it — an admin's "booking updates" are festive sign-ups, not session notes. Order is the
+   card's order: optional first, then what is always sent. */
+const NOTIFY_ALL_ROLES = ['client', 'student', 'tutor', 'admin'];
+const NOTIFY_KINDS = {
+  weekly:    { col: 'weekly_email', roles: ['client'],
+               label: 'Weekly progress email', note: 'Sundays: what your child worked on' },
+  messages:  { col: 'messages_email', roles: NOTIFY_ALL_ROLES,
+               label: 'Messages', note: 'When somebody messages you here' },
+  bookings:  { col: 'bookings_email', roles: ['client', 'tutor', 'admin'],
+               label: 'Booking updates', note: 'Notes, new terms and payments on a session',
+               noteFor: { admin: 'Sign-ups to a festive event' } },
+  posts:     { col: 'posts_email', roles: ['client', 'student', 'tutor'],
+               label: 'Your posts', note: 'When one goes up, or is not put up' },
+  referrals: { col: 'referrals_email', roles: NOTIFY_ALL_ROLES,
+               label: 'Your code was used', note: 'When somebody joins with it' },
+  /* OFF MEANS A POST WAITS UNSEEN until the admin opens Posts — said on the card, because nothing else
+     tells anybody a post is waiting. */
+  approvals: { col: 'approvals_email', roles: ['admin'],
+               label: 'Posts waiting for you', note: 'If off, a post waits until you open Posts' },
+
+  access:    { essential: true, roles: NOTIFY_ALL_ROLES,
+               label: 'Sign-in links and new PINs', note: 'Confirming your address, a forgotten PIN, a link to sign in',
+               why: 'without them nobody can get into their account, or back into it' },
+  security:  { essential: true, roles: NOTIFY_ALL_ROLES,
+               label: 'Security warnings', note: 'Too many wrong PINs, or your PIN changed',
+               why: 'the only warning an account theft ever gives' },
+  family:    { essential: true, roles: ['client', 'student'],
+               label: 'Family links', note: 'Somebody adding you as their child, and the answer',
+               why: 'a child is never put on an account they were not told about' },
+  booked:    { essential: true, roles: ['client', 'tutor'],
+               label: 'Bookings confirmed or cancelled', note: 'Received, accepted, paid, a tutor leaving, cancelled',
+               why: 'each decides whether a session happens, and the door is too late to find out' },
+  reported:  { essential: true, roles: ['admin'],
+               label: 'Reported messages', note: 'A message somebody has reported',
+               why: 'a report is a safeguarding matter and the admin is the only one told' },
+};
+
 /* Bumped on every paste that changes behaviour. It is the ONLY way to tell from the outside
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-09-a-films";
+const BACKEND_VERSION = "2026-10-09-b-notifications";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -371,6 +444,17 @@ const SCHEMA = {
        starts. `no` (or anything that is not blank/yes/true/1, which is `ON_`) is this parent asking
        to stop, and it is the one cell that does it. Read on the PARENT's row, never the child's. */
     "weekly_email",
+    /* ---------- AND EVERY OTHER EMAIL SOMEBODY MAY TURN OFF, ONE COLUMN EACH — see `NOTIFY_KINDS` ----------
+       The owner, 9 Oct: *"Also let parents select their communication preferences like notification. And
+       kids and tutors too I guess"*. `weekly_email` was already the shape — BLANK IS ON, `no` is off, read
+       through `ON_` — so the other five optional kinds are five more of it beside it, not a second
+       mechanism: one packed cell of choices is what the redesign note above calls a cell that "could not
+       be read or edited in the sheet", and `ensureSchema` can append a column to a live tab and cannot
+       re-pack a cell. `weekly_email` KEEPS ITS NAME — renaming it would lose every `no` already typed —
+       which is why the others end in `_email` too. Written only by `setNotify` (the row the token
+       resolves to) or by hand. NOT `admin_email`, which reads like an address: `approvals_email` is
+       whether the admin is emailed about a post waiting for them. */
+    "messages_email", "bookings_email", "posts_email", "referrals_email", "approvals_email",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
@@ -3159,6 +3243,10 @@ const ACTION_ACCESS = {
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */
   myProfile: 'self',
+  /* WHICH EMAILS YOU WANT (`NOTIFY_KINDS`). `self`: the handler writes the row the token resolved to,
+     and another row only by `resetPin`'s rule — a parent's ACCEPTED child, or an admin, never an admin's
+     row. See `setNotify` in dopost.gs. */
+  setNotify: 'self',
   // The books, the prices, the rooms, the people list.
   diagnosePeople: 'admin', getProfile: 'admin', listPeople: 'admin',
   updateVenue: 'admin', updateConfig: 'admin', updatePricing: 'admin',

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-09-a-films";
+const DOGET_VERSION = "2026-10-09-b-notifications";
 
 
 function doGet(e) {
@@ -471,6 +471,9 @@ function doGet(e) {
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
                  'digestPreview',
+                 /* Which emails somebody wants — the Notifications card on Settings says "sync backend/"
+                    rather than drawing ticks an older backend would refuse. */
+                 'setNotify',
                  /* The phone sends a question's words with `markDone` (SCHEMA.attempts `words`) and
                     backfills them only for a backend that says it keeps them. */
                  'attemptWords',

@@ -221,7 +221,11 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
            account from before verification existed, and is not pending. `addressPending_` (people.gs)
            is this rule for every mail now, so the digest and `notify` cannot disagree about it. */
         if (addressPending_(p)) { L.skipped.push(Object.assign(who, { why: 'email not confirmed' })); return; }
-        if (!ON_(p.weekly_email)) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
+        /* THEIR OWN CHOICE, through the one reader every sender asks (`wants_` in people.gs) — still the
+           `weekly_email` cell, blank is yes, and now also the Weekly progress email tick on the parent's
+           Notifications card (`setNotify`). It read `ON_(p.weekly_email)` itself until 9 Oct; one rule
+           read in two places is the drift `addressPending_` was written to end. */
+        if (!wants_(p, 'weekly')) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
         /* ONE MAILBOX ONCE PER CHILD, if two parent rows share an address. */
         const m = norm(who.email);
         if (seenMail[m]) { L.skipped.push(Object.assign(who, { why: 'same address as another parent' })); return; }
@@ -303,7 +307,9 @@ function digestRender_(L, P, week, look) {
   const sees = kid + (Q.printed ? ' can see them on ' : ' can see which ones on ');
   const link = sees + 'the site: ' + site;
   const foot = 'You get this because you are ' + (S(L.first) ? kid + '’s parent' : 'a parent') + ' on ' + brand + (/[.!?]$/.test(brand) ? '' : '.')
-    + ' To stop these emails, reply to this one and say so.';
+    /* THE SWITCH IS ON THE SITE NOW (9 Oct), so the footer names it first — a reply still works, and is
+       what somebody who never signs in will do. */
+    + ' To stop these emails, untick Weekly progress email in Settings → Notifications on the site, or reply to this one and say so.';
   const subject = kid + '’s week: ' + qs(n);
 
   const text = [hello, '', lead, ''].concat(Q.lines, [link, '', foot]).join('\n');
@@ -539,7 +545,7 @@ function digestRun_(now) {
         const row = digestLogFind_(log, week.start, L.id, p.id);
         if (norm(row && row.status) === 'sent') return;
         digestLogPut_(log, row, week.start, L.id, p.id, { to: '', subject: '', questions: L.count,
-          status: 'opted out', at: new Date(), note: 'weekly_email on their row says no' });
+          status: 'opted out', at: new Date(), note: 'weekly_email on their row says no (Settings → Notifications)' });
         out.skipped++;
       });
     });

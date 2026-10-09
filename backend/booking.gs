@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-09-a-films";
+const BOOKING_VERSION = "2026-10-09-b-notifications";
 
 
 /**
@@ -476,11 +476,21 @@ function confirmedTutorOf_(jobId) {
 function sendInvite(jobId, fromName, toEmail, toName) {
   const t = read(TAB.invites);
   const token = Utilities.getUuid().replace(/-/g, '').slice(0, 20);
-  addRow(t, {
+  /* ---------- AN INVITATION TO SOMEBODY WHO IS ALREADY A MEMBER IS A `bookings` EMAIL ---------------------
+     The owner, 9 Oct: *"let parents select their communication preferences"*. Most invitations go to an
+     address with no account — nobody there has chosen anything, and it goes as it always has. But one
+     typed for a family already on the people tab is an email about a session to somebody who may have
+     ticked "booking updates" off, so it asks them (`wants_`), like every other sender. HELD, NOT LOST: the
+     row is still written — the link still works if the inviter passes it on — and `notes` says why
+     nothing was sent, which is where this tab keeps what happened to an invitation. */
+  const member = norm(toEmail) ? read(TAB.people).rows.find(r => norm(r.email) === norm(toEmail)) : null;
+  const held = !!member && !wants_(member, 'bookings');
+  addRow(t, Object.assign({
     invite_id: 'I' + Date.now() + Math.floor(Math.random() * 99),
     job_id: S(jobId), from_person: S(fromName), to_email: S(toEmail), to_name: S(toName),
     sent_on: new Date(), token,
-  });
+  }, held ? { notes: 'not emailed: bookings_email on their row says no (Settings → Notifications)' } : {}));
+  if (held) { notifyHeld_(member, 'bookings', S(fromName) + ' would like to share a tutoring session with you'); return token; }
 
   /* `cfg` is not a function — `config()` is. This line threw a ReferenceError the moment anybody
      sent an invitation, which is why the whole mechanism has never once run to completion. */
@@ -1512,7 +1522,7 @@ function authWrong_(t, r) {
   const said = 'Somebody has tried the @family. PIN for '
     + (S(r.handle) ? '@' + S(r.handle) : personDisplayName(r)) + ' ' + n + ' times and got it wrong.\n\n'
     + 'Signing in is held up for a minute, and for longer on each wrong answer after that.\n';
-  try { notify(personDisplayName(r), 'Too many sign-in attempts', said + 'If that was not you, reply here.'); }
+  try { notify(personDisplayName(r), 'Too many sign-in attempts', said + 'If that was not you, reply here.', 'security'); }
   catch (err) {}
   /* ---------- AND A CHILD WITH NO ADDRESS HAS A GROWN-UP WHO IS TOLD ------------------------------
      `notify` READS THE ROW'S OWN ADDRESS, so for a child with none the warning went nowhere — the

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-09-a-films";
+const DOPOST_VERSION = "2026-10-09-b-notifications";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -428,9 +428,10 @@ function doPost(e) {
       if (inviter) {
         const owner = t.rows.find(x => S(x.person_id) === inviter || personDisplayName(x) === inviter);
         if (owner) {
+          /* A THANK-YOU, and theirs to turn off (`referrals_email`) — nothing waits on it. */
           notify(personDisplayName(owner), 'Somebody joined through you',
             full + ' has just signed up using your code. Thank you — that is genuinely how this '
-            + 'grows.');
+            + 'grows.', 'referrals');
         }
       }
       // Sent directly rather than through notify(): notify looks the address up on the row, and
@@ -1487,10 +1488,12 @@ function doPost(e) {
          assumes it was lost; somebody told it was turned down can ask why, which is a conversation
          and not a mystery. */
       const who = findPerson(S(r.author));
+      /* `posts` — news about something they made, theirs to turn off (`posts_email`). The post itself is
+         on the Posts screen either way. */
       if (who) notify(personDisplayName(who),
         yes ? 'Your post is up' : 'Your post was not put up',
         yes ? 'It is on the Posts screen now.\n\n— @family.'
-            : 'It has not been put up. If you would like to know why, just reply.\n\n— @family.');
+            : 'It has not been put up. If you would like to know why, just reply.\n\n— @family.', 'posts');
 
       return jsonOut({ success: true, approved: yes });
     }
@@ -1648,12 +1651,14 @@ function doPost(e) {
       /* SOMEBODY HAS TO KNOW IT IS WAITING, or it waits for ever. This is the whole mechanism: a
          post nobody is told about is a post nobody approves, and the person who made it is left
          wondering why the app ate their photograph. */
+      /* `approvals` — the admin's to turn off (`approvals_email`), and the card says what that costs: the
+         post then waits until somebody opens Posts. */
       if (!iAmAdmin) {
         notify(adminName_(), 'A post is waiting for you',
           personDisplayName(me) + ' has posted a photograph.\n\n'
           + (S(body.caption) ? '"' + S(body.caption) + '"\n\n' : '')
           + 'It is not visible to anybody until you let it through. Open @family. and press the '
-          + 'post to approve or turn it down.');
+          + 'post to approve or turn it down.', 'approvals');
       }
 
       return jsonOut({ success: true, image: url, media: [url].concat(more), pending: !iAmAdmin });
@@ -2330,9 +2335,11 @@ function doPost(e) {
       const extra = saved.list.length
         ? '\n\n(' + saved.list.length + ' attachment' + (saved.list.length === 1 ? '' : 's')
           + ' — open it on the site.)' : '';
+      /* `messages` — theirs to turn off (`messages_email`): the message is in their inbox on the site
+         either way, and the sender is not told which. */
       notify(personDisplayName(to), 'A message from ' + personDisplayName(me),
         (text || 'Sent you ' + (saved.list.length === 1 ? 'a file.' : 'some files.'))
-        + extra + '\n\n— reply on the site.');
+        + extra + '\n\n— reply on the site.', 'messages');
 
       return jsonOut({ success: true, id: id, attachments: saved.list });
     }
@@ -2407,9 +2414,10 @@ function doPost(e) {
       setCell(t, r, 'flagged', 'TRUE');
       setCell(t, r, 'flag_reason', S(body.reason));
       clearCache();
+      /* `reported` — ESSENTIAL: a report is a safeguarding matter and the admin is the only one told. */
       notify(adminName_(), 'A message was reported',
         'Reported by ' + personDisplayName(me) + '\n\nReason: ' + (S(body.reason) || '(none given)')
-        + '\n\nMessage id: ' + S(r.message_id) + '\n\nIt is still in the messages tab.');
+        + '\n\nMessage id: ' + S(r.message_id) + '\n\nIt is still in the messages tab.', 'reported');
       return jsonOut({ success: true });
     }
 
@@ -2478,9 +2486,11 @@ function doPost(e) {
       if (!linked) return jsonOut({ error: 'The family tab could not be opened — nothing was saved.' });
       clearCache();
 
+      /* `family` — ESSENTIAL: somebody claiming to be a child's parent is never a thing the child could
+         have switched off hearing about. */
       notify(personDisplayName(child), 'Someone has added you to their account',
         personDisplayName(me) + ' says they are your parent or guardian.\n\n'
-        + 'Open @family. and accept or decline it — nothing changes until you do.');
+        + 'Open @family. and accept or decline it — nothing changes until you do.', 'family');
 
       return jsonOut({ success: true });
     }
@@ -2519,9 +2529,11 @@ function doPost(e) {
 
       const parent = findPerson(S(r.parent_id));
       if (parent) {
+        /* `family` — ESSENTIAL: the answer to a request the parent made, which decides whether they can
+           see and help their child at all. */
         notify(personDisplayName(parent),
           yes ? 'They accepted' : 'They declined',
-          personDisplayName(me) + (yes ? ' is now on your account.' : ' declined the request.'));
+          personDisplayName(me) + (yes ? ' is now on your account.' : ' declined the request.'), 'family');
       }
       return jsonOut({ success: true });
     }
@@ -2779,7 +2791,7 @@ function doPost(e) {
       clearCache();
       notify(personDisplayName(kid), 'Your PIN was changed',
         'The PIN on your ' + BRAND_NAME + ' account was just changed by ' + personDisplayName(me)
-        + '.\n\nIf you did not ask for that, reply to this message.');
+        + '.\n\nIf you did not ask for that, reply to this message.', 'security');
       return jsonOut({ success: true, name: personDisplayName(kid), first: S(kid.first_name),
                        handle: handle, pin: fresh });
     }
@@ -2835,7 +2847,7 @@ function doPost(e) {
          expected is the only warning an account theft ever gives. */
       notify(personDisplayName(r), 'Your PIN was changed',
         'The PIN on your @family. account was just changed.'
-        + '\n\nIf that was not you, reply to this message.');
+        + '\n\nIf that was not you, reply to this message.', 'security');
 
       /* ---------- AND THE PHONE THAT MADE THE CHANGE IS GIVEN A NEW SESSION -------------------------
          `authEndSession_` ENDS EVERY SESSION THE PERSON HOLDS, THE CALLER'S INCLUDED — so the note
@@ -2873,11 +2885,14 @@ function doPost(e) {
       /* Tell them. The whole reason an order has a state is that the person who asked cannot see
          your printer, and a thing that arrives with no warning is a thing they had given up on. */
       const who = findPerson(S(r.person_id));
+      /* `bookings` RATHER THAN A KIND OF ITS OWN: nothing writes an order any more, and a column for a
+         mail that cannot be triggered is a switch nobody could ever see work. A parcel on its way is
+         news about something already paid for, like a note on a session. */
       if (who) notify(personDisplayName(who),
         norm(r.delivery) === 'post' ? 'Your printing is in the post' : 'Your printing is ready',
         norm(r.delivery) === 'post'
           ? 'It went out today.\n\n  ' + S(r.resource) + '\n\n— @family.'
-          : 'Ready to collect at your next session.\n\n  ' + S(r.resource) + '\n\n— @family.');
+          : 'Ready to collect at your next session.\n\n  ' + S(r.resource) + '\n\n— @family.', 'bookings');
       return jsonOut({ success: true });
     }
 
@@ -2937,6 +2952,69 @@ function doPost(e) {
     }
     // A tutor saying "yes, this is all still true". Dated, so it can go stale on its own.
     if (action === 'confirmDetails') return savePerson('details_confirmed', new Date());
+
+    /* ---------- WHICH EMAILS YOU WANT: ONE TICK ON THE NOTIFICATIONS CARD ----------------------------------
+       The owner, 9 Oct: *"Also let parents select their communication preferences like notification. And
+       kids and tutors too I guess"*. One kind at a time (`NOTIFY_KINDS`), saved the moment it is ticked —
+       `on: true` writes a BLANK, which is what every row already had and what `ON_` reads as yes, and
+       `on: false` writes `no`, the word the owner was told to type into `weekly_email` by hand (280). So a
+       switch on the phone and a cell typed in the sheet are one fact, and every sender reads it through
+       `wants_` at the moment it sends.
+
+       WHOSE ROW IS THE TOKEN'S. The gate has made `body.personId` the asker, so a request naming somebody
+       else by name is still the asker's own row. `targetId` is the one way to another row, and it is
+       `resetPin`'s rule word for word, because it is the same question — what a grown-up may decide for a
+       child: an admin, or a parent the child has ACCEPTED (an `asked` link is a claim, not a family), the
+       parent's own address proved (`confirmFirst_`), and never an admin's row. The phone does not offer it
+       yet; the rule is here so the day it does, nobody has to decide it again.
+
+       REFUSED, WITH NOTHING WRITTEN: a kind that is not in the table, an ESSENTIAL kind (its `why` is the
+       sentence — a reset PIN cannot be switched off), a kind that does not reach that person's roles (a
+       child turning off the weekly email about themselves would be a cell that means nothing), and a sheet
+       without the column yet — `savePerson`'s sentence, because `ensureSchema` is what adds it. */
+    if (action === 'setNotify') {
+      const me = findPerson('', S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      const kind = S(body.kind);
+      const K = Object.prototype.hasOwnProperty.call(NOTIFY_KINDS, kind) ? NOTIFY_KINDS[kind] : null;
+      if (!K) return jsonOut({ error: 'There is no email called "' + kind + '" to turn on or off. Nothing was changed.' });
+      if (K.essential) {
+        return jsonOut({ error: '"' + K.label + '" is always sent — ' + K.why + '. Nothing was changed.' });
+      }
+      const t = read(TAB.people);
+      const want = S(body.targetId);
+      let r = t.rows.find(x => S(x.person_id) === S(me.person_id)) || me;
+      if (want && want !== S(me.person_id)) {
+        const kid = t.rows.find(x => S(x.person_id) === want);
+        if (!kid) return jsonOut({ error: 'We could not find that account.' });
+        const mine = acceptedChildren(S(me.person_id)).some(c => S(c.person_id) === want);
+        if (!hasRole(me, 'admin') && !mine) {
+          return jsonOut({ error: 'Only their parent or an admin can choose what they are emailed. Nothing was changed.' });
+        }
+        if (!hasRole(me, 'admin') && addressPending_(me)) {
+          return jsonOut(confirmFirst_(me, 'you can choose what ' + (S(kid.first_name) || 'they') + ' is emailed'));
+        }
+        if (hasRole(kid, 'admin')) return jsonOut({ error: 'An admin chooses their own emails. Nothing was changed.' });
+        r = kid;
+      }
+      if (!K.roles.some(x => hasRole(r, x))) {
+        return jsonOut({ error: '"' + K.label + '" is not an email that reaches ' + (r === me || S(r.person_id) === S(me.person_id) ? 'you' : 'them')
+                              + '. Nothing was changed.' });
+      }
+      if (t.headers.indexOf(K.col) === -1) {
+        return jsonOut({ error: 'The sheet has no `' + K.col + '` column. Run ensureSchema() — nothing was saved.' });
+      }
+      const on = TRUE_(body.on);
+      /* WRITTEN ONLY WHEN IT CHANGES WHAT THE CELL MEANS: a `yes` typed by hand is already on, and turning
+         it on again is not a reason to rewrite somebody's cell or throw the payload cache away. */
+      const changed = ON_(r[K.col]) !== on;
+      if (changed && !setCell(t, r, K.col, on ? '' : 'no')) {
+        return jsonOut({ error: 'That could not be written to the sheet — nothing was saved.' });
+      }
+      if (changed) clearCache();
+      return jsonOut({ success: true, kind: kind, on: on, changed: changed ? 1 : 0,
+                       personId: S(r.person_id), notify: notifyOf_(r) });
+    }
 
     /* A PERSON'S REFERRAL CODE, and who has arrived through it.
        The count is the point. A code nobody used is a question about the offer, not about the
@@ -3106,8 +3184,12 @@ function doPost(e) {
         /* THE TUTOR LIST IS IN THE STORED PAYLOAD — the same reason `setListed` clears it. */
         clearCache();
       }
+      /* `notify` RIDES WITH THE ROLES: which emails reach somebody is decided by what they are, so a parent
+         who has just ticked Tutor has two more lines on the Notifications card, now rather than on the
+         next app open (`notifyOf_`). */
       return jsonOut({ success: true, role: toAppRole(mainRole(r)), roles: rolesOf(r).map(toAppRole),
-                       tutorPending: tutorPending_(r), changed: !!(adding.length || dropping.length) });
+                       tutorPending: tutorPending_(r), changed: !!(adding.length || dropping.length),
+                       notify: notifyOf_(r) });
     }
 
     if (action === 'saveAvatar') {
@@ -3389,11 +3471,13 @@ function doPost(e) {
       props.deleteProperty(ref);
       props.deleteProperty(ref + '_session');
 
+      /* THE PAYER'S IS THEIR RECEIPT — `booked`, essential. THE TUTOR'S IS NEWS about somebody else's
+         money on a session already theirs — `bookings`, which they may turn off. */
       notify(payer, 'Payment received — you are booked in',
-        'Your place is confirmed. See you there.\n\n— @family.');
+        'Your place is confirmed. See you there.\n\n— @family.', 'booked');
       const tutor = (tutorsIn(jobId).find(x => x.status === BM.AGREED || x.status === BM.BOOKED) || {}).name;
       if (tutor) notify(tutor, 'Paid: a place is confirmed',
-        payer + ' has paid and is confirmed in the class.\n\n— @family.');
+        payer + ' has paid and is confirmed in the class.\n\n— @family.', 'bookings');
       return jsonOut({ success: true });
     }
 
@@ -3471,7 +3555,7 @@ function doPost(e) {
         + S(j.subject) + (S(j.weekday) ? ' on ' + S(j.weekday) : '')
         + (fmtTime(j.start_time) ? ' at ' + fmtTime(j.start_time) : '')
         + (S(j.venue) ? '\n' + S(j.venue) : '')
-        + '\n\nIf that is a surprise, reply to this message.\n\n— @family.'));
+        + '\n\nIf that is a surprise, reply to this message.\n\n— @family.', 'booked'));
 
       return jsonOut({ success: true, paid: done, how: how });
     }
@@ -3648,11 +3732,12 @@ function doPost(e) {
         others.filter(p2 => key(p2.name) !== key(target.name)).forEach(o => {
           logEvent({ jobId, actor: me, role, action: ACT.DECLINE, target: o.name,
                      message: 'another tutor was chosen' });
+          /* `booked` both — the decision on an application, which a tutor must not learn by noticing. */
           notify(o.name, 'Not taken forward: ' + S(j.subject),
-            'The family chose another tutor this time.\n\n— @family.');
+            'The family chose another tutor this time.\n\n— @family.', 'booked');
         });
         notify(target.name, "You're teaching " + S(j.subject),
-          'You were picked for ' + S(j.subject) + '.\n\nLog in to @family. to agree the terms.\n\n— @family.');
+          'You were picked for ' + S(j.subject) + '.\n\nLog in to @family. to agree the terms.\n\n— @family.', 'booked');
       }
 
       // The job's status, from who is left. Written for readability in the sheet; nothing reads it.
@@ -3663,7 +3748,7 @@ function doPost(e) {
         // Tell any tutor still attached: a cancelled job is invisible, so they'd otherwise hold a
         // place on something they can neither see nor act on.
         tutorsIn(jobId).forEach(tu => notify(tu.name, 'Cancelled: ' + S(j.subject),
-          'The family has withdrawn, so ' + S(j.subject) + ' is not going ahead.\n\n— @family.'));
+          'The family has withdrawn, so ' + S(j.subject) + ' is not going ahead.\n\n— @family.', 'booked'));
       }
 
       // Tell whoever didn't move. Keying this off "whose turn is next" is what previously meant
@@ -3676,11 +3761,21 @@ function doPost(e) {
                      Decline: 'Not going ahead: ' + S(j.subject),
                      Withdraw: me + ' withdrew from ' + S(j.subject),
                      Pay: 'Paid: ' + S(j.subject) };
+      /* ---------- WHICH OF THESE SOMEBODY MAY TURN OFF, BY THE ACT ---------------------------------------
+         ACCEPT, DECLINE AND WITHDRAW DECIDE whether the session happens with this person in it — `booked`,
+         essential. WITHDRAW is one the survey of 9 Oct had as optional, and it is not: a tutor leaving a
+         family's session is the session losing its teacher, and a parent who had turned "booking
+         updates" off would find that out at the door. EDIT, SAY, REQUEST AND PAY are the conversation
+         around a session that is still going ahead — new terms, a note, a payment somebody else made —
+         `bookings`, theirs to turn off: each is on the session's page whether or not it is emailed.
+         Written in the call as a conditional of two literals, not a variable, so `check-prefs.js` can
+         read both answers off the source. */
       const tellThese = target ? [target.name] : others.map(p2 => p2.name);
       tellThese.forEach(n => notify(n, HEAD[act] || ('Update on ' + S(j.subject)),
         me + ' ' + act.toLowerCase() + 'ed on ' + S(j.subject) + '.' +
         (text ? '\n\nTheir message:\n"' + text + '"' : '') +
-        '\n\nLog in to @family. to respond.\n\n— @family.'));
+        '\n\nLog in to @family. to respond.\n\n— @family.',
+        (act === ACT.ACCEPT || act === ACT.DECLINE || act === ACT.WITHDRAW) ? 'booked' : 'bookings'));
 
       const after = participantsOf(jobId);
       const mineAfter = after.find(p2 => key(p2.name) === key(me));
@@ -3865,13 +3960,19 @@ function doPost(e) {
                    message: 'chosen by the family at booking' });
       }
 
+      /* THE CLIENT'S RECEIPT — `booked`, essential: it carries the total they asked to pay. */
       notify(me, 'Booking received 🎉',
         'Thanks for requesting ' + S(body.subject) + ' with @family.\n\n' +
         '• ' + S(body.subject) + ' (' + S(body.level) + ')\n' +
         '• ' + S(body.day) + ' at ' + fmtTime(body.time) + '\n' +
         '• ' + S(body.location) + '\n' +
         (S(body.dates) ? '• Dates: ' + S(body.dates) + '\n' : '') +
-        '• Total: £' + S(body.price) + '\n\n— @family.');
+        '• Total: £' + S(body.price) + '\n\n— @family.', 'booked');
+      /* ---------- AND THE NAMED TUTOR'S — `booked` TOO, WHICH THE SURVEY OF 9 OCT HAD AS OPTIONAL ----------
+         It reads like a request, and it is more than one: the lines above log the tutor's own ACCEPT
+         ("chosen by the family at booking"), so by the time this is sent they are already on the session.
+         It is "You're teaching X" from `move` in other words, and that one is essential — a tutor who had
+         turned "booking updates" off would be booked without ever being told. */
       if (named) {
         notify(S(body.requestedTutor),
           'New request: ' + S(body.subject) + ' — ' + me,
@@ -3880,7 +3981,7 @@ function doPost(e) {
           '• ' + S(body.day) + ' at ' + fmtTime(body.time) + '\n' +
           '• ' + S(body.location) + '\n' +
           (S(body.message) ? '\nTheir message:\n"' + S(body.message) + '"\n' : '') +
-          '\nLog in to @family. to accept, decline, or ask for a change.\n\n— @family.');
+          '\nLog in to @family. to accept, decline, or ask for a change.\n\n— @family.', 'booked');
       }
       /* THE RECEIPT, WRITTEN AT THE MOMENT OF ASKING. Not derived later from the job — a job can be
          edited, moved, repriced or cancelled, and the client's copy of what they asked for must
@@ -4440,10 +4541,11 @@ function doPost(e) {
       });
 
       const now = clientsIn(jobId);
+      /* `bookings` — the admin's to turn off: the sign-up is on the event's roster either way. */
       notify(adminName_(), 'Somebody is coming to ' + offer.name,
         personDisplayName(me) + ' has joined ' + offer.name + ' on ' + offer.date
         + (kids ? '\nBringing: ' + kids : '')
-        + '\n\n' + now.length + ' of ' + offer.seats + ' places taken.');
+        + '\n\n' + now.length + ' of ' + offer.seats + ' places taken.', 'bookings');
 
       return jsonOut({ success: true, jobId: jobId,
         joined: now.length, seats: offer.seats,
@@ -4582,7 +4684,7 @@ function doPost(e) {
       before.forEach(pp => notify(pp.name, 'Cancelled: ' + S(j.subject),
         S(j.subject) + (S(j.weekday) ? ' on ' + S(j.weekday) : '')
         + (fmtTime(j.start_time) ? ' at ' + fmtTime(j.start_time) : '')
-        + ' is not going ahead.\n\nIf that is a surprise, reply to this message.\n\n— @family.'));
+        + ' is not going ahead.\n\nIf that is a surprise, reply to this message.\n\n— @family.', 'booked'));
 
       return jsonOut({ success: true, ended: before.length,
                        who: before.map(x => x.name) });
@@ -4770,6 +4872,10 @@ function profileOf_(r) {
      the row has, and the Contact box draws this one in its place so the next Save of that page posts it
      again rather than the old one — which would read as "keep the old one" (`updateProfile`). */
   out.email_moving = S((authMoveGet_(r) || {}).to);
+  /* WHICH EMAILS REACH THIS PERSON AND WHICH THEY HAVE TURNED OFF — `notifyOf_` in people.gs, the
+     Notifications card's whole list. Not a column, so the loop above cannot produce it, and an object,
+     so a Save posting the form's fields back never posts it. */
+  out.notify = notifyOf_(r);
   return out;
 }
 

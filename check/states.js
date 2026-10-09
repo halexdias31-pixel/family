@@ -5598,6 +5598,111 @@ const STATES = {
   ],
 };
 
+/* ---------- NOTIFICATIONS, AS EACH ROLE IS SENT THEM — `notifyCard_` in js/me.js ----------------------------
+   *"Also let parents select their communication preferences like notification. And kids and tutors too I
+   guess"* (the owner, 9 Oct). The card draws whatever list the server sends on the profile, so a state is a
+   ROLE and that role's LIST — and a list typed out here would be this file's belief about the server, the
+   fault CLAUDE.md records as "a fixture must send what doGet really sends". So the lists are not typed: they
+   are `notifyOf_` itself, asked of the real backend (js/check-gas-load.js) when this file is loaded, and
+   written into each state's `enter` as data. A label or a note changed in NOTIFY_KINDS is measured on the
+   next run without anybody touching this file.
+
+   WHY `new Function`: every state is carried into the page as its source (`String(state.enter)`) and run
+   there, so a closure over a value computed here would arrive empty. A function BUILT from source with the
+   list already in it is the same thing the other states are — a line of the app's own code — with the
+   server's answer as a literal.
+
+   THE WIDEST CASE EACH: a parent on an address with no space in it, a parent whose address is still waiting
+   for its link (the one extra paragraph), a kid with no email (one sentence, nothing to tick), a tutor, the
+   admin who is the signed-in visitor, and a backend older than the site (one sentence). The role is played
+   through `USER` as the sign-in reply sends it, and `DATA.features` says whether the backend has `setNotify`
+   — the fixture's own list predates it. `leave` puts the visitor back exactly. */
+(function notifyStates_() {
+  let real = null, why = '';
+  try { real = require('../js/check-gas-load.js').backend(); } catch (e) { why = String(e && e.message || e); }
+  const listFor = (role, email, extra) => {
+    if (!real) return null;
+    try { return JSON.parse(JSON.stringify(real.ev('notifyOf_(' + JSON.stringify(Object.assign(
+      { role: role, email: email, person_id: 'P-STATE', verified: 'TRUE' }, extra || {})) + ')'))); }
+    catch (e) { why = String(e && e.message || e); return null; }
+  };
+  const LONG = 'philippa.parentington-smythe.family@example.org';
+  const state = (name, as, notify, hasFeature, expect, wants) => ({
+    name: 'notifications, ' + name,
+    only: () => typeof USER !== 'undefined' && !!USER,
+    /* NO LIST WHERE ONE WAS WANTED IS A THROW, so the state reads "could not reach" — loud — rather than
+       measuring the "on their way" sentence and calling it the parent's card. */
+    enter: new Function((notify === null && hasFeature
+        ? 'throw new Error(' + JSON.stringify('notifyOf_ could not be asked of the real backend: ' + why) + ');\n' : '')
+      + 'var AS = ' + JSON.stringify(as) + ', NOTIFY = ' + JSON.stringify(notify) + ', HAS = ' + JSON.stringify(hasFeature) + ';\n'
+      + 'window.__NOTIFY_WAS = { role: USER.role, roles: USER.roles, profile: USER.profile, features: DATA.features };\n'
+      /* THE VISITOR AS STORED, kept where a reload cannot reach it — see `leave`. Only the first time: a state
+         entered again after a reload must not keep the role it played as the visitor's own. */
+      + 'try { if (sessionStorage.getItem("notifyStateUser") === null) sessionStorage.setItem("notifyStateUser", localStorage.getItem("familyUser") || ""); } catch (e) {}\n'
+      + 'Object.assign(USER, AS);\n'
+      + 'USER.profile = Object.assign({}, USER.profile || {});\n'
+      + 'if (NOTIFY) USER.profile.notify = NOTIFY; else delete USER.profile.notify;\n'
+      + 'DATA.features = (DATA.features || []).filter(function (x) { return x !== "setNotify"; }).concat(HAS ? ["setNotify"] : []);\n'
+      /* A CLEAN COLUMN FIRST — `settingsKeep_`, the agreement state's reason. */
+      + 'document.querySelectorAll("#s-settings .me-form").forEach(function (f) { f.removeAttribute("data-dirty"); f.classList.remove("is-sending"); });\n'
+      + 'paint("settings");\n'
+      + 'var at = [].slice.call(document.querySelectorAll("#s-settings .page")).findIndex(function (pg) { return pg.querySelector(".notify-card"); });\n'
+      + 'if (at < 0) throw new Error("no Notifications card on the settings column");\n'
+      + 'goPage("settings", at, true);'),
+    /* ---------- AND THE STORED VISITOR PUT BACK, NOT ONLY THE ONE IN MEMORY ----------------------------------
+       FOUND BY `check/press.js`: a tick pressed in "a parent" is a real save, and a real save writes `USER` to
+       `familyUser` — as the parent this state was playing. Every reload after it (`freshen`, the next screen's
+       visit) then signed the run in as that parent, and the Games column's swipes and the booking form's
+       dropdown were measured for somebody who is not the visitor: two swipes "landed on page 2", wanted 3. So
+       the stored visitor is kept in `sessionStorage` by `enter` and written back here, and `USER` is put back
+       from it rather than from a copy a reload may have taken of the parent. */
+    leave: () => {
+      const was = window.__NOTIFY_WAS || {}; delete window.__NOTIFY_WAS;
+      let raw = null;
+      try { raw = sessionStorage.getItem('notifyStateUser'); sessionStorage.removeItem('notifyStateUser'); } catch (e) {}
+      let stored = null;
+      try { stored = raw ? JSON.parse(raw) : null; } catch (e) { stored = null; }
+      const from = stored || was;
+      USER.role = from.role; USER.roles = from.roles; USER.profile = from.profile; DATA.features = was.features;
+      try { if (raw) localStorage.setItem('familyUser', raw); } catch (e) {}
+      document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+      paint('settings');
+    },
+    expect: expect,
+    wants: wants,
+  });
+  /* THE CARD IN FRONT, NOT RUNNING OFF THE SIDE, with this many ticks (all ticked — an untouched row is on)
+     and this many lines of what is always sent. */
+  const ticks = (n, must) => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+    + 'if (!c) return 0;\n'
+    + 'var t = c.querySelectorAll("[data-do=\\"notify-pick\\"]");\n'
+    + 'return t.length === ' + n + ' && [].every.call(t, function (b) { return b.checked; })\n'
+    + '  && c.querySelectorAll(".notify-always li").length === ' + must + '\n'
+    + '  && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
+  const said = re => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+    + 'return c && !c.querySelector("[data-do=\\"notify-pick\\"]") && ' + re + '.test(c.textContent)'
+    + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
+  const count = (n, essential) => ((n && n.kinds) || []).filter(k => !!k.essential === essential).length;
+  const parent = listFor('client', LONG), held = listFor('client', LONG, { verified: 'PENDING' });
+  const kid = listFor('student', ''), tutor = listFor('tutor', 'tutor@example.org'), admin = listFor('admin', 'admin@example.org');
+  STATES.settings.push(
+    state('a parent', { role: 'parent', roles: ['parent'] }, parent, true, ticks(count(parent, false), count(parent, true)),
+      'a parent\'s ticks — the weekly email "not being sent yet", messages, booking updates, posts, referrals — and the four always sent'),
+    state('a parent whose address waits for its link', { role: 'parent', roles: ['parent'] }, held, true,
+      new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+        + 'return c && c.querySelector(".notify-held") && c.querySelectorAll("[data-do=\\"notify-pick\\"]").length === ' + count(held, false)
+        + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;'),
+      'the parent\'s ticks under a line saying only the link goes to the address until it is opened'),
+    state('a kid with no email', { role: 'kid', roles: ['kid'] }, kid, true, said('/no email address/'),
+      'one sentence — nothing is emailed to a child with no address — and nothing to tick'),
+    state('a tutor', { role: 'tutor', roles: ['tutor'] }, tutor, true, ticks(count(tutor, false), count(tutor, true)),
+      'a tutor\'s ticks — messages, booking updates, posts, referrals — and the three always sent'),
+    state('the admin', { role: 'admin', roles: ['admin'] }, admin, true, ticks(count(admin, false), count(admin, true)),
+      'the admin\'s ticks — messages, festive sign-ups, referrals, posts waiting — and the three always sent'),
+    state('a backend older than the site', { role: 'parent', roles: ['parent'] }, null, false, said('/does not have notification choices yet/'),
+      'one sentence saying the backend has no notification choices yet, and nothing to tick'));
+})();
+
 const statesOf = id => STATES[id] || [{ name: '' }];
 
 module.exports = { STATES, statesOf };
