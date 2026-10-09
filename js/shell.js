@@ -4192,14 +4192,27 @@ function splashWaitWatch_() {
    checks every record's hash against the index before it draws, so a damaged one costs an inline
    splash and a full rewrite next time, never a garbled screen.
    A FAILED FETCH LEAVES THE COPY ALONE, for the reason a failed splashes file leaves `splashOff`.
-   OUT OF STORAGE ON ONE DRAWING LEAVES THAT ONE OUT, and nothing else is touched: a `setItem` that
-   throws evicts nothing, so a child's saved answers (`ans:`) and drawings (`pad:`) cannot be pushed out
-   by a loading screen. `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with
-   everything else this app keeps. THE 27 COME TO ABOUT 170 000 OF ITS 200 000 — this said "about
-   twice" when it was written, before the rows were real, and it was not. The room left is a few
-   drawings, not twenty-seven; a drawing past the ceiling is left off the splash (never out of its
-   chapter), and `check-anims.js` fails before the books get there, so raising it is a decision made
-   in the open.
+   OUT OF STORAGE, THE WHOLE COPY GOES (`splashGiveWay_`). This said "out of storage on one drawing
+   leaves that one out, and nothing else is touched … a child's saved answers and drawings cannot be
+   pushed out by a loading screen", and both halves were true word for word and the effect was the
+   opposite: a `setItem` that throws evicts nothing, so the drawings that DID fit stayed — in the last
+   free space on the device, where a child's next answer needed to go. Measured on a store with about
+   100 000 characters free: fourteen drawings kept, and a 2 000-character answer then refused, which
+   `ansLocalPut_` swallowed, so a child who was not signed in lost it on reload. And on a store with
+   room for the 27 but not for the index after them, all 27 were written, the index failed, and the
+   27 stayed behind with nothing naming them — never drawn, rewritten whole on every load, the index
+   failing again each time. A decoration has no claim on the last of the room. So: any write here that
+   throws takes the index and every `splashAnim:` key with it, and the splash falls back to the inline
+   ones, as on a first visit; the next load tries again from nothing. And a child's write that throws
+   (`ansLocalPut_`, answers.js) takes the copy away and tries once more, so a copy that fitted
+   yesterday cannot hold space a child needs today. WHAT IS GUARANTEED, then: this never removes
+   anything but its own keys, never keeps a part-copy after a refusal, and never stands between an
+   answer or a drawing and the store. Other writes (`favs`, the signed-in user) are not covered.
+   `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with everything else this app
+   keeps. THE 28 COME TO ABOUT 173 000 OF ITS 200 000 — this said "about twice" when it was written,
+   before the rows were real, and it was not. The room left is a few drawings, not twenty-eight; a
+   drawing past the ceiling is left off the splash (never out of its chapter), and `check-anims.js`
+   fails before the books get there, so raising it is a decision made in the open.
    `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
    before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
    and both move, and every device starts again from an empty copy. */
@@ -4216,19 +4229,22 @@ function splashSync_(d, extra) {
   try { was = JSON.parse(localStorage.getItem('splashAnims') || 'null'); } catch (e) { was = null; }
   const old = was && was.f === SPLASH_CACHE_F && was.h && typeof was.h === 'object' ? was.h : {};
   const idx = { f: SPLASH_CACHE_F, ids: [], h: {} };
-  let size = 0;
+  let size = 0, full = false;
   d.textbooks.forEach(b => (b.chapters || []).forEach(c => (c.animations || []).forEach(a => {
-    if (!a || !a.id || idx.h[a.id]) return;
+    if (full || !a || !a.id || idx.h[a.id]) return;
     const n = String(a.html).length + String(a.css).length;
     if (size + n > SPLASH_CACHE_MAX) return;
     if (old[a.id] !== a.h) {
       try { localStorage.setItem('splashAnim:' + a.id, JSON.stringify({ h: a.h, html: a.html, css: a.css })); }
-      catch (e) { try { localStorage.removeItem('splashAnim:' + a.id); } catch (e2) {} return; }
+      catch (e) { full = true; return; }
     }
     size += n;
     idx.ids.push(a.id);
     idx.h[a.id] = a.h;
   })));
+  /* A REFUSED WRITE GIVES THE WHOLE COPY BACK — see above. Before the sweep, which would only be
+     tidying what is about to go. */
+  if (full) { splashGiveWay_(); return; }
   /* EVERY KEPT DRAWING THE BOOKS NO LONGER HAVE GOES, and so does one left half-written by a load that
      stopped. Only this file's own prefix: nothing else in the store is this function's to touch. */
   try {
@@ -4239,8 +4255,24 @@ function splashSync_(d, extra) {
     }
     gone.forEach(k => localStorage.removeItem(k));
   } catch (e) {}
+  /* AND AN INDEX THE STORE REFUSES TAKES ITS DRAWINGS WITH IT: without it nothing can name them, so
+     they are room taken for a splash nobody will be shown. */
   try { localStorage.setItem('splashAnims', JSON.stringify(idx)); }
-  catch (e) { try { localStorage.removeItem('splashAnims'); } catch (e2) {} }
+  catch (e) { splashGiveWay_(); }
+}
+/* THE WHOLE KEPT COPY, OUT: the index and every drawing, and nothing that is not this file's own
+   prefix. Called when the store refuses a write — here, or a child's in `ansLocalPut_` — and answers
+   whether there was anything to give, so the caller knows whether trying again can help. */
+function splashGiveWay_() {
+  const gone = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k === 'splashAnims' || k.indexOf('splashAnim:') === 0)) gone.push(k);
+    }
+    gone.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  return gone.length > 0;
 }
 function splashOff_() {
   clearTimeout(splashSayTimer); clearTimeout(splashEarlyTimer); splashSay_(false);

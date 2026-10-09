@@ -87,7 +87,19 @@ function ansValue_(k) {
 }
 function ansLocalPut_(k, v) {
   ANS_MEM.set(k, v);
-  try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {}
+  try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
+  catch (e) {
+    /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. The splash
+       keeps the books' drawings here (`splashSync_`, shell.js), and on a nearly full device they were
+       the last 170 000 characters of room: a 2 000-character answer was refused, this swallowed it,
+       and a child who was not signed in lost it on reload. So a refused write takes that copy away and
+       tries once more — once, and only if there was a copy to take; a store full of other things
+       refuses again and the visit's `ANS_MEM` is all there is, as before. The splash draws an inline
+       one until a load finds room again. */
+    if (v !== null && typeof splashGiveWay_ === 'function' && splashGiveWay_()) {
+      try { localStorage.setItem(k, v); } catch (e2) {}
+    }
+  }
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
   if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) {}

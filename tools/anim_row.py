@@ -4,8 +4,20 @@
 # animations should be in text books." — the owner, 8 Oct. The proofs, laws and processes the loading
 # screen used to carry in index.html and style.css are rows of data/textbooks.json now, one each, under
 # the chapter each one teaches: `html` and `css` hold the drawing once, and the splash draws a copy the
-# device keeps (see `splashSync_` in js/shell.js). The twelve scripts in tools/ that generate those
-# drawings wrote into index.html and style.css; they write the row through here instead.
+# device keeps (see `splashSync_` in js/shell.js). The scripts in tools/ that generate those drawings
+# wrote into index.html and style.css; they write the row through here instead.
+#
+# FOR A ROW A SCRIPT WRITES, THE SCRIPT IS THE SOURCE, AND THE ROW IS ITS OUTPUT. Thirteen of them:
+#
+# WRITTEN BY A SCRIPT: area bayes cent coin fib gal index mxc orbit pyth sieve sine venn
+#
+# (`gal` is tools/galton.py and `orbit` tools/solar.py; every other one is tools/<id>.py.) Change one of
+# those in its script and re-run it; never edit its row by hand. Everything a script writes replaces its
+# namesake in the row, so a hand edit to anything the script writes — Pythagoras's colours, Bayes's
+# markup, y = mx + c's rules — passes every check and is quietly undone the next time anybody runs the
+# script for any reason. `check-anims.js` runs each one against a copy of the books and fails if the
+# copy changes, and it holds the line above to the scripts that call `write_anim`. The other fifteen
+# rows have no script: for them the row IS the source, and it is edited in place.
 #
 # THE SCRIPTS ARE UNCHANGED IN WHAT THEY COMPUTE AND HOW THEY WRITE IT — markup indented as it stood in
 # index.html, rules with their comments and `#splash-<id>` as they stood in style.css. This applies the

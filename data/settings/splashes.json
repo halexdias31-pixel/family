@@ -34,7 +34,7 @@
 {"splash_id": "half3", "name": "Half, three ways", "kind": "tool", "shows": "½ = 0.5 = 50%", "note": "", "active": true},
 {"splash_id": "mxc", "name": "y = mx + c", "kind": "proof", "shows": "the line turning as m changes", "note": "", "active": true},
 {"splash_id": "ripple", "name": "Ripple", "kind": "calm", "shows": "three rings leaving one point", "note": "", "active": true},
-{"splash_id": "orbit", "name": "Orbit", "kind": "calm", "shows": "eight planets round the Sun", "note": "", "active": true},
+{"splash_id": "orbit", "name": "The solar system", "kind": "proof", "shows": "eight planets round the Sun, each at its real period", "note": "Kepler", "active": true},
 {"splash_id": "tide", "name": "Tide", "kind": "calm", "shows": "seven columns rising a beat apart", "note": "", "active": true},
 {"splash_id": "dawn", "name": "Dawn", "kind": "calm", "shows": "a sun rising and setting behind a line", "note": "", "active": true},
 {"splash_id": "breathe", "name": "Breathing", "kind": "calm", "shows": "a ring that swells and settles", "note": "", "active": true},

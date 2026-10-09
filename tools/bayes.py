@@ -1,5 +1,7 @@
-# The Bayes splash (#splash-bayes): writes the <div> into index.html and the rules and @keyframes into
-# style.css, both from the handful of numbers below. Run: python3 tools/bayes.py
+# The Bayes animation (the textbooks' Statistics chapter 15, and a loading splash): writes the <div> and
+# the rules and @keyframes into its row of data/textbooks.json, both from the handful of numbers below,
+# through tools/anim_row.py. This script is the row's source: change it here and re-run, never the row.
+# Run: python3 tools/bayes.py
 #
 # WHAT IT SHOWS, the classic test question every student gets wrong the first time: a test that is
 # right nine times in ten, and a positive result that still means only a coin's worth of having it.

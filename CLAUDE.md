@@ -60,14 +60,19 @@ almost never writes to it directly.
 - **`config` tab** — key/value numbers and switches, reaching the site as `DATA.constants.vars`.
 - **`facets` / `kinds` tabs** — what the funnel asks and what the answers are called. These moved out
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
-- **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes and
-  24 more, each directly under the chapter it teaches (`anim`, `title`, `about`, `html`, `css`). The
-  chapter plays it on a page of its own; the loading screen draws a copy the device kept from the last
-  load (`splashSync_` in shell.js, read by the picker in index.html — one load behind). *"The source
-  for the animations should be in text books"* — the owner, 8 Oct. **Change a drawing in its row**, or
-  in the `tools/*.py` that writes it (through `tools/anim_row.py`), never in `index.html` or
-  `style.css`: those hold only the 14 splashes that teach nothing, and `check-anims.js` fails on a
-  teaching one left there. See docs/history/304.
+- **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes, the
+  solar system and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
+  `html`, `css`). The chapter plays it on a page of its own; the loading screen draws a copy the
+  device kept from the last load (`splashSync_` in shell.js, read by the picker in index.html — one
+  load behind). *"The source for the animations should be in text books"* — the owner, 8 Oct.
+  **Each one has ONE source, and which it is depends on the drawing.** Thirteen are written by a
+  script — `area bayes cent coin fib gal index mxc orbit pyth sieve sine venn` (`gal` is
+  `tools/galton.py`, `orbit` is `tools/solar.py`, the rest `tools/<id>.py`, all through
+  `tools/anim_row.py`): for those **the script is the source** — change it and re-run it, and never
+  edit the row by hand, because the next run puts back everything the script writes and nothing
+  notices but `check-anims.js`. For the other 15 **the row is the source**: edit it in place. Never
+  in `index.html` or `style.css`: those hold only the 13 splashes that teach nothing, and
+  `check-anims.js` fails on a teaching one left there. See docs/history/304.
 - Everything else — people, venues, jobs, pricing, posts, links, laws, landmarks, holidays — is a
   tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it and the
   file it lives in in `WHERE`. **All three have to name it.** `TAB` without `WHERE` is a tab nothing

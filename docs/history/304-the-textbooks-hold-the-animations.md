@@ -28,16 +28,16 @@ draws those words under it.
 | Index laws | `index` | GCSE Maths | 2 Indices, surds and standard form | Index laws |
 | Standard form | `sf` | GCSE Maths | 2 Indices, surds and standard form | Standard form |
 | Half, three ways | `half3` | GCSE Maths | 3 Fractions, decimals and percentages | Equivalent |
-| Number line | `line` | GCSE Maths | 3 Fractions, decimals and percentages | Equivalent |
+| Number line | `line` | GCSE Maths | 3 Fractions, decimals and percentages | Equivalent, On a number line |
 | y = mx + c | `mxc` | GCSE Maths | 6 Straight-line graphs | Straight line, Gradient |
 | Sine wave | `sine` | GCSE Maths | 7 Quadratic and other graphs | y = sin x |
 | Odd squares | `odds` | GCSE Maths | 10 Number sequences | Square numbers |
 | Triangle numbers | `tri` | GCSE Maths | 10 Number sequences | Square numbers |
 | Fibonacci | `fib` | GCSE Maths | 10 Number sequences | Fibonacci-type sequence |
 | Halves | `half` | GCSE Maths | 10 Number sequences | Geometric sequence |
-| Clock | `clock` | GCSE Maths | 11 Ratio and proportion | Ratio |
+| Clock | `clock` | GCSE Maths | 11 Ratio and proportion | Ratio, On a clock |
 | Angles | `ang` | GCSE Maths | 13 Angles, polygons and constructions | Angle sum of an n-sided polygon |
-| Protractor | `prot` | GCSE Maths | 13 Angles, polygons and constructions | Bearing |
+| Protractor | `prot` | GCSE Maths | 13 Angles, polygons and constructions | Protractor |
 | Angle at the centre | `cent` | GCSE Maths | 15 Circle theorems | Centre, Angle at the centre |
 | Circle area | `area` | GCSE Maths | 16 Area and volume | Circle |
 | Pythagoras | `pyth` | GCSE Maths | 17 Pythagoras and trigonometry | Pythagoras |
@@ -50,15 +50,26 @@ draws those words under it.
 | Galton board | `gal` | GCSE Statistics | 16 Probability distributions | Binomial distribution, Normal distribution |
 | Binary | `bin` | GCSE Computer Science | 3 Data representation | Binary |
 | Sorting | `sort` | GCSE Computer Science | 8 Algorithms | Bubble sort, Insertion sort, Merge sort |
+| The solar system | `orbit` | GCSE Physics | 12 Space physics | Solar system, A satellite in a circular orbit |
 
 Maths chapter 3 had no word for "equivalent", which is the thing both of its drawings show, so it
 was given one (`Equivalent — the same value written another way, such as ½ = 0.5 = 50% …`) in the
 commit before the move, rather than pointing two drawings at a word the chapter does not say.
 
-**The fourteen that are not teaching stay in `index.html`**: the brand (`tag`, `led`, `torch`,
-`tube`, `ps`), the two games (`blocks`, `box`) and the calm ones (`ripple`, `orbit`, `tide`, `dawn`,
+**The thirteen that are not teaching stay in `index.html`**: the brand (`tag`, `led`, `torch`,
+`tube`, `ps`), the two games (`blocks`, `box`) and the calm ones (`ripple`, `tide`, `dawn`,
 `breathe`, `rain`, `pend`). They belong to no chapter, and a first visit — with no copy on the
 device yet — needs something to draw.
+
+**The orbit was the fourteenth, and it was filed wrong.** It stayed as one of the "calm ones that
+teach nothing", with "no words at all, which is also why they are not in any book" — and its own
+comment said the opposite: each planet turns in its real period, T ∝ a^1.5, Kepler's third law,
+"which is the solar system rather than a decoration of one". A law is teaching, by the rule this
+move was made on, and GCSE Physics chapter 12 supplies the words the drawing lacked: "Solar system —
+the Sun, the planets … orbiting it" and "[H] … a faster satellite needs a smaller orbit". It moved
+in the review after the move (below). The tide (a travelling wave) stays calm: seven columns a beat
+apart show "transverse" only to somebody who already knows the word, and the chapter's ripples on
+water are not what it draws.
 
 ### The row
 
@@ -75,12 +86,19 @@ whole app and touch nothing else — and `check-anims.js` refuses a row that bre
 The comments did not go into the rows: a JSON cell is no place for six paragraphs of why. They are
 below, every one, under the drawing they stood over — the archive this file ends with.
 
-**The twelve generators** (`tools/pyth.py`, `sieve.py`, `bayes.py`, `coin.py`, `venn.py`, `mxc.py`,
-`area.py`, `cent.py`, `fib.py`, `galton.py`, `index.py`, `sine.py`) wrote into `index.html` and
-`style.css`. They write the row now, through `tools/anim_row.py`: each item a script prints replaces
-its namesake in the row (a rule by selector, a keyframe by name, markup by how its element opens),
-and an item the row does not have is an error. All twelve were re-run after the move and leave
+**The thirteen generators** (`tools/pyth.py`, `sieve.py`, `bayes.py`, `coin.py`, `venn.py`, `mxc.py`,
+`area.py`, `cent.py`, `fib.py`, `galton.py`, `index.py`, `sine.py`, and `solar.py` since the orbit
+moved) wrote into `index.html` and `style.css`. They write the row now, through `tools/anim_row.py`:
+each item a script prints replaces its namesake in the row (a rule by selector, a keyframe by name,
+markup by how its element opens), and an item the row does not have is an error. All of them leave
 `data/textbooks.json` byte for byte as it is; a changed number in one of them changes its row.
+
+**So for those thirteen rows the script is the source, and the row is its output** — `area bayes
+cent coin fib gal index mxc orbit pyth sieve sine venn`. This said "change a drawing in its row, or
+in the tools/*.py that writes it", which offered two sources for one drawing: `--py-a` changed by
+hand in Pythagoras's row passed every check, and `python3 tools/pyth.py` then put the old colour back
+without a word. `check-anims.js` now runs each script on a scratch copy of the books and fails if the
+copy changes. For the other fifteen the row is the only source.
 
 ### The chapter page
 
@@ -115,9 +133,12 @@ file or JSON exists. So the device keeps a copy, written by a load and read by t
     leaves the device);
   - then **`splashAnims`** = `{ f: 1, ids: [...], h: { id: hash } }`, **last**, so a load cut off half
     way leaves the old index pointing at records that are still whole.
-  - A record the store refuses (quota) is left out of the index rather than half-written. The lot is
-    capped at `SPLASH_CACHE_MAX`, 200 000 characters; the 27 come to about 170 000, and
-    `check-anims.js` fails before the books outgrow it, so a drawing is never quietly left off.
+  - **A write the store refuses (quota) gives the whole copy back** — the index and every
+    `splashAnim:` key (`splashGiveWay_`) — and the splash draws an inline one until a load finds
+    room. As built it left the refused one out and kept the rest, which evicted nothing and still
+    sat in the last room on the device; see "After the review" below. The lot is capped at
+    `SPLASH_CACHE_MAX`, 200 000 characters; the 28 come to about 173 000, and `check-anims.js` fails
+    before the books outgrow it, so a drawing is never quietly left off.
   - **An empty or failed fetch of the books changes nothing.** `|| []` makes a missing file look like
     an empty one; an empty one must not clear a good copy.
   - `splashOff` (the sheet's retired splashes) is written here too, and only when
@@ -184,8 +205,9 @@ splash was chosen before anything was painted in 7 of 7 loads in every run.
   the two at-rules, a reduced-motion block in each; size under the cap; the picker's `f === 1` equal
   to `SPLASH_CACHE_F`. Then the sync and the picker in jsdom: the
   real 27 written byte for byte in order and drawn as parsed; a changed row replaces only itself, a
-  deleted row's key goes, an orphan is swept, quota on one key leaves only that one out, the keypad's
-  and the answers' keys are untouched, an empty fetch changes nothing; a good copy is drawn and four
+  deleted row's key goes, an orphan is swept, a refused drawing or index takes the whole copy (and,
+  on a store filled for real, two loads leave room for a child's answer), the keypad's and the
+  answers' keys are untouched, an empty fetch changes nothing; a good copy is drawn and four
   bad ones (an index of another shape, a damaged record, a record whose hash is not the index's, a
   record with no markup) fall back to an inline splash.
 - **`js/check-textbooks.js`**: the row's fields in order, the id's shape, unique, its chapter exists
@@ -215,12 +237,10 @@ box. `check/ui.js`, run on the chapter page, found the box that IS overflowed: t
 width. So the commit after the move moves the half rem from the root to the row — the overhang the
 comment described (it is in the archive below, under standard form), on the element it names.
 
-**Not changed, and worth knowing**: the reduced-motion stills of Multiples, Standard form and the
-Protractor set `animation: none` on a selector that a per-child rule outranks. They are still under
-reduced motion only because the global `.01ms` rule ends every animation at once — which leaves each
-element wherever that rule's fill puts it, not necessarily at the still its own block meant (Multiples'
-lit threes and standard form's 10⁴ may not show). That was true before the move and is
-carried over byte for byte.
+**Carried over, and fixed in the review after**: the reduced-motion stills of Multiples and Standard
+form set `animation: none` on a selector a per-child rule outranks, and the Protractor's wedge had no
+rule at all. They held still only because the global `.01ms` rule loops anything left running — on
+whatever frame the loop is on, not the still the block meant. See "After the review".
 
 ### Proof that nothing moved on the screen
 
@@ -229,6 +249,73 @@ it, the same 162 frames drawn on the splash from the device's copy. 159 of 162 f
 other three are the coin's 3D faces at 390, 6 to 12 pixels off by one value in 255 — exactly what the
 original gives against a second run of itself. The chapter pages
 (272 of them) are byte-identical apart from the new animation pages.
+
+### After the review
+
+Five findings, each verified before it was changed.
+
+**1. A full store: the copy gave nothing back.** `splashSync_` wrote drawings until one write threw,
+left that one out, kept the rest and wrote the index last; the comment promised that "saved answers
+and drawings cannot be pushed out by a loading screen", and that was true word for word — a `setItem`
+that throws evicts nothing. But what fitted stayed, in the last free room on the device. Measured: a
+store with about 100 000 characters free kept fourteen drawings and then refused a 2 000-character
+answer, which `ansLocalPut_` swallowed, so a child who was not signed in lost it on reload. A store
+with room for the 27 but not the 701-character index after them kept all 27 with nothing naming them
+— never drawn — and the next load, finding no index, rewrote all 27 and failed on the index again,
+on every load. Now any refused write in the sync takes the index and every `splashAnim:` key with it
+(`splashGiveWay_`), and a refused child's write in `ansLocalPut_` takes the copy away and tries once
+more. `check-anims.js` fills a real 5 000 000-character store to each of those two shapes, syncs the
+real books twice, and requires no splash key left and room for a 2 000-character answer; and a copy
+that fitted must give way to an answer that does not. Each was mutated back to the old line and went
+red. Not covered: writes that do not go through `ansLocalPut_` (`favs`, the signed-in user).
+
+**2. With less movement asked for, four drawings held still on the wrong picture** — on the chapter
+page, where a pupil reads the drawing beside its key words:
+- *Sorting*: `transform: none` wiped the bars' `scaleY(var(--h))`, so eight identical full-height bars
+  sat over "Bubble sort". The still is the sorted end now: the staircase, in the sorted green.
+- *Half, three ways*: the three labels are stacked (`position: absolute; inset: 0`) for the
+  cross-fade, and all three at opacity 1 printed as one orange glyph. Under reduced motion they sit
+  in a line, joined by `=`: ½ = 0.5 = 50%, the chapter's own words.
+- *Multiples*: `.mu-grid i { animation: none }` lost to the later per-cell rules, so the global
+  `.01ms` loop decided which cells were lit: none at 390, the threes at 820, the fives on the splash.
+  The rule is `.an-mult .mu-grid i:nth-child(n)` now, and the threes are lit under "multiples of 3".
+- *Protractor*: the wedge had no reduced-motion rule. It stops at 120° now, with the arm on it — an
+  angle read from the right-hand zero, which a straight 180° (the arm lying along the baseline) is not.
+- *Standard form* showed 10⁴ correctly and was not wrong to look at, but the same lost `animation:
+  none` left its four exponent animations finite, and the splash's replay loop restarted them every
+  frame under reduced motion. Same fix as Multiples.
+`check/anims.js` now also fails on any animation of a drawing still running under reduced motion
+(mutating Multiples and the Protractor back made it red, in the chapter and on the splash), and
+`--shots` writes each still to check/shots/anim-still-<id>.png. Still is not the same as showing the
+lesson; the shots are for a person to look at, and were looked at for all six above.
+
+**3. Two drawings sat over words they contradict.** The protractor sweeps anticlockwise from the
+right-hand zero, and the only words under it were "Bearing — an angle measured clockwise from north",
+the convention it does not show and the very mix-up pupils make. Maths chapter 13 gained the key word
+it does show — "Protractor — measures an angle in degrees: its centre on the vertex, its baseline
+along one arm, and read from the 0 on that arm, as its two scales run opposite ways" — and the row is
+about that. The clock (chapter 11, "Ratio") was captioned "telling the time" and nothing on the page
+said why it is in a ratio chapter; its caption is "minute : hour = 12 : 1" and the chapter has a
+worked line it is also about ("On a clock, the minute hand turns 12 times for each turn of the hour
+hand …"). The number line (chapter 3) hopped the quarters under "Equivalent — ½ = 0.5 = 50%"; the
+chapter has a worked line for it too ("On a number line from 0 to 1, ¼, ½ and ¾ sit at 0.25, 0.5 and
+0.75: one point, whichever way it is written").
+
+**4. The orbit moved into Physics chapter 12** — see "The orbit was the fourteenth" above.
+`tools/solar.py` writes its row; its two inline styles became custom properties (`--t`, the period;
+`--o`, the ring's pivot), because a drawing in a book sets nothing else inline. The splash drawn from the kept copy is the same
+picture as the inline one, pixel for pixel, at 0, 1.3, 2.6 and 9 s, at 390 and 320, with and without
+reduced motion. The sheet's row is kind `proof`, named "The solar system".
+
+**5. Two sources for the twelve scripted drawings** — see "So for those thirteen rows" above. Six tool
+headers still said they wrote "into index.html and … into style.css", and five CSS templates said
+"from the same … as the <svg> in index.html"; they say the row now. `tools/anim_row.py` carries the
+list (`WRITTEN BY A SCRIPT: …`) and `check-anims.js` holds it to the scripts.
+
+**Seen, not changed**: index.html's replay loop restarts every finite splash animation when the last
+one finishes, and does so under reduced motion too, where the global `.01ms` rule makes "finishes" mean
+"every frame". Every textbook drawing now stills itself, so none of them reaches it; whether an inline
+splash does was not measured.
 
 ---
 
@@ -1303,6 +1390,22 @@ From style.css:
    the entire point of the drawing, read as one moving hand and one stuck one.
    The ratio is kept exactly; both are twelve times faster. The minute hand sweeps in a third of a
    second and the hour hand makes a visible quarter-turn in the time anybody watches. */
+```
+
+
+#### The solar system (`orbit`) — TB-GCSE-PHYS chapter 12, moved in the review after
+
+From index.html (its CSS comment is still in `tools/solar.py`, which writes it):
+
+```html
+  <!-- THE SOLAR SYSTEM. Eight planets in order round the Sun, each at its real period relative to the
+       others (Kepler), Earth once every four seconds. Drawn by tools/solar.py. -->
+```
+
+From style.css, the shared reduced-motion rule it was in, which keeps the other three:
+
+```css
+  .rp-box span, .or-p, .or-ring, .td-row i, .dw-sun { animation: none; opacity: 1; transform: none; }
 ```
 
 

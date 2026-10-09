@@ -4,9 +4,10 @@
 
    EVERY TEXTBOOK ANIMATION, IN ITS CHAPTER, IN A REAL BROWSER — AND STILL WHEN STILLNESS IS ASKED FOR.
 
-   "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Twenty-seven
-   drawings that were made for one place — the middle of a black screen as wide as the phone — are
-   drawn in a second: a card, narrower than the phone by its padding, with words above and below.
+   "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Drawings
+   made for one place — the middle of a black screen as wide as the phone; twenty-seven at the move,
+   and the solar system since — are drawn in a second: a card, narrower than the phone by its padding,
+   with words above and below.
    `check-anims.js` proves the rows are one source, kept and drawn as written; this asks what only a
    browser can answer about each one, on the page Find turns to after its chapter, at 320 and 390:
 
@@ -17,12 +18,24 @@
      · AND WITH LESS MOVEMENT ASKED FOR, IT HOLDS STILL: eight frames a quarter-second apart are the
        same picture, in the chapter and on the splash drawn from the device's copy — the global
        `.01ms` rule turns anything left moving into a flicker, which is the one thing reduced motion
-       is there to stop.
+       is there to stop;
+     · AND IT IS STILL BECAUSE ITS OWN BLOCK STILLED IT: no animation of the drawing is left running.
+       Eight equal frames did not prove that. Multiples' `animation: none` lost to a per-cell rule that
+       outranked it and the protractor's wedge had no rule at all, and both held still — on whatever
+       frame the global `.01ms` loop happened to stop at, which is not the picture their blocks meant:
+       no threes lit under "multiples of 3" at 390, the threes lit at 820, the 5s lit on the splash.
+
+   WHAT THE STILL SHOWS IS FOR A PERSON TO LOOK AT. Holding still is not showing the lesson: the
+   sorting bars all came out full height (`transform: none` wiped out their `scaleY`), and ½, 0.5 and
+   50% printed on top of one another as one orange glyph — both perfectly still. `--shots` writes each
+   chapter card under reduced motion to check/shots/anim-still-<id>.png, the drawing with the words
+   under it, the way a pupil who asked for less movement reads it.
 
    SLOW, and in the suite's browser pool beside `check/ui.js`.
 
-     node check/anims.js            all 27
+     node check/anims.js            all of them
      node check/anims.js pyth sf    just these
+     node check/anims.js --shots    and the reduced-motion stills, for a person
 ================================================================================================== */
 'use strict';
 const http = require('http');
@@ -42,6 +55,7 @@ const MOMENTS = [0, 900, 1800, 2700, 3600, 4500];
 
 const rows = readAnimRows().filter(r => /^(true|yes|1|y|on|)$/i.test(String(r.active == null ? '' : r.active).trim()));
 const asked = process.argv.slice(2).filter(a => /^[a-z0-9]+$/.test(a));
+const SHOTS = process.argv.includes('--shots');
 const want = asked.length ? rows.filter(r => asked.includes(r.anim)) : rows;
 if (!want.length) { console.log('COULD NOT RUN — no animation rows in data/textbooks.json' + (asked.length ? ' named ' + asked.join(' ') : '')); process.exit(1); }
 
@@ -63,7 +77,16 @@ const route = (page, backend) => page.route('**/*', r => {
   if (/script\.google\.com/.test(u)) return backend ? r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }) : undefined;
   return r.abort();
 });
-const bookOf = r => ({ 'TB-GCSE-MATHS': 'GCSE Maths', 'TB-GCSE-STATS': 'GCSE Statistics', 'TB-GCSE-CS': 'GCSE Computer Science' }[r.book_id]);
+/* THE BOOK'S NAME AS FIND SHOWS IT: its title page's title, read off the file. This was a map of three
+   books written out, and the first drawing to land in a fourth (the solar system, in Physics) would
+   have been looked for under no book at all. */
+const TITLES = {};
+fs.readFileSync(path.join(ROOT, 'data', 'textbooks.json'), 'utf8').split('\n').forEach(l => {
+  const s = l.trim().replace(/,$/, '');
+  if (!s.startsWith('{')) return;
+  try { const r = JSON.parse(s); if (r.chapter === 0 && !('anim' in r)) TITLES[r.book_id] = r.title; } catch (e) {}
+});
+const bookOf = r => TITLES[r.book_id];
 
 async function boot(ctx) {
   const page = await ctx.newPage();
@@ -190,11 +213,28 @@ let PORT = 0;
       }
       return moved;
     };
+    /* WHAT IS STILL RUNNING INSIDE THE DRAWING after the frames above (two seconds): under the global
+       rule an animation its block stilled is gone, one that ran once has finished, and one left
+       `infinite` is looping every .01ms — still to the eye, on no frame anybody chose. */
+    const running = (pg, sel) => pg.evaluate(sel => {
+      const root = document.querySelector(sel);
+      if (!root) return null;
+      return [...new Set(document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && root.contains(a.effect.target))
+        .map(a => { const t = a.effect.target, c = t.getAttribute('class'); return (c ? '.' + c.split(' ')[0] : '<' + t.localName + '>') + ' (' + (a.animationName || '?') + ')'; }))];
+    }, sel);
+    const looping = (r, where, list) => {
+      if (list && list.length) bad.push(r.anim + ' with less movement, ' + where + ': ' + list.length + ' animation(s) of it still looping under the global `.01ms` rule — '
+        + list.slice(0, 3).join(', ') + ' — so it stops on whatever frame that loop is on, not on the still its own block meant');
+    };
+    if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
     for (const r of want) {
       const why = await turnTo(page, r);
       if (why) { bad.push(r.anim + ' with less movement: ' + why); continue; }
-      const n = await still(page, '#s-stuff .card.is-an' + r.chapter + '-' + r.anim + ' .tb-an-stage');
+      const card = '#s-stuff .card.is-an' + r.chapter + '-' + r.anim;
+      const n = await still(page, card + ' .tb-an-stage');
       if (n) bad.push(r.anim + ' with less movement, in its chapter: ' + (n < 0 ? 'no stage' : n + ' of 7 frames changed'));
+      looping(r, 'in its chapter', await running(page, card + ' .tb-an-stage > .an-' + r.anim));
+      if (SHOTS) await (await page.$(card)).screenshot({ path: path.join(__dirname, 'shots', 'anim-still-' + r.anim + '.png') });
     }
     const ids = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('splashAnims')).ids; } catch (e) { return []; } });
     const inline = await page.evaluate(() => {
@@ -215,6 +255,7 @@ let PORT = 0;
       if (!drew) { bad.push(r.anim + ': with every other splash retired, the splash did not draw it from the copy'); await pg.close(); continue; }
       const n = await still(pg, '#splash');
       if (n) bad.push(r.anim + ' with less movement, on the splash: ' + n + ' of 7 frames changed');
+      looping(r, 'on the splash', await running(pg, '#splash > .an-' + r.anim));
       await pg.close();
     }
     await ctx.close();
@@ -223,7 +264,8 @@ let PORT = 0;
   await browser.close();
   srv.close();
   console.log('\n' + want.length + ' animations, ' + looked + ' chapter pages measured at ' + SIZES.map(s => s[0]).join(' and ')
-    + ', six moments each; and with less movement, each in its chapter and on the splash.');
+    + ', six moments each; and with less movement, each in its chapter and on the splash, with nothing left looping.'
+    + (SHOTS ? '\nThe reduced-motion stills are in check/shots/anim-still-<id>.png — look at them: still is not the same as showing the lesson.' : ''));
   if (bad.length) {
     console.log('\nBROKEN  (' + bad.length + ')');
     bad.forEach(b => console.log('  ' + b));

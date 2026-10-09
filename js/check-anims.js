@@ -23,7 +23,12 @@
      · each row's CSS is anchored on its own root or prefix, holds only its keyframes (named by its
        prefix, unique everywhere) and its reduced-motion block — which stills everything that moves —
        and nothing that reaches the page (`html`, `body`, an id, `!important`, `url(`);
-     · together they fit SPLASH_CACHE_MAX, and the picker reads the shape the sync writes.
+     · together they fit SPLASH_CACHE_MAX, and the picker reads the shape the sync writes;
+     · A ROW A SCRIPT WRITES HAS ONE SOURCE, THE SCRIPT: every tools/*.py that calls
+       `anim_row.write_anim` is run against a copy of the books and must leave it byte for byte as it
+       is — a row edited by hand, or a script changed and not re-run, is two sources that disagree, and
+       the next run silently picks the script's. And the list tools/anim_row.py prints for people
+       ("WRITTEN BY A SCRIPT: …") is the list the scripts actually make.
 
    RUN, NOT READ — the real `libraryExtras_`, `animHash_` and `splashSync_` and the real picker, in a
    jsdom window holding the whole app:
@@ -31,7 +36,10 @@
      · a changed drawing replaces the kept one and its hash; a deleted row deletes its key;
      · a kept copy of the wrong shape, a damaged record or a hash that does not match is never drawn —
        the splash falls back to an inline one, and a damaged copy drops its index;
-     · out of storage on one drawing leaves that one out and every `pad:` and `ans:` key untouched;
+     · OUT OF STORAGE THE WHOLE COPY GIVES WAY — a refused drawing or a refused index takes every
+       `splashAnim:` key and the index with it, on a store filled for real until the index fails as
+       well as on a write made to throw, and every `pad:` and `ans:` key is untouched; and a child's
+       answer refused by a store the copy filled is written once the copy has gone (`ansLocalPut_`);
      · a books or splashes fetch that came back empty changes nothing;
      · the picker draws each kept animation as its row, signed, with its row's CSS.
 
@@ -241,12 +249,53 @@ async function main() {
   else if (F && +pf[1] !== F) fail.push('the picker reads a kept copy of shape ' + pf[1] + ' and the sync writes SPLASH_CACHE_F = ' + F + ' — no device would ever draw one');
   said.push(rows.length + ' animation rows, ' + Object.keys(prefixOf).length + ' prefixes, ' + total + ' characters of ' + MAX + ' kept; the picker reads shape ' + (pf ? pf[1] : '?') + ', the sync writes ' + F);
 
+  /* ---------- 6. A ROW A SCRIPT WRITES: THE SCRIPT IS THE SOURCE -----------------------------------
+     Measured before this existed: `--py-a` changed by hand in Pythagoras's row passed every check, and
+     `python3 tools/pyth.py` then put the old colour back without a word. So each script is run, in a
+     scratch copy of tools/ and the books — never on the real file — and the copy must come back as it
+     went in. Python is this check's subject as much as the rows are: a machine that cannot run it has
+     NOT been checked, and says so. */
+  {
+    const { spawnSync } = require('child_process');
+    const os = require('os');
+    const toolDir = path.join(ROOT, 'tools');
+    const writers = fs.readdirSync(toolDir).filter(f => f.endsWith('.py') && f !== 'anim_row.py').sort()
+      .map(f => ({ f, id: (/anim_row\.write_anim\(\s*'([a-z0-9]+)'/.exec(fs.readFileSync(path.join(toolDir, f), 'utf8')) || [])[1] }))
+      .filter(t => t.id);
+    const listed = ((/# WRITTEN BY A SCRIPT: ([a-z0-9 ]+)/.exec(fs.readFileSync(path.join(toolDir, 'anim_row.py'), 'utf8')) || [])[1] || '').trim().split(/\s+/).filter(Boolean);
+    const made = writers.map(t => t.id).sort();
+    if (listed.slice().sort().join() !== made.join()) fail.push('tools/anim_row.py says "WRITTEN BY A SCRIPT: ' + listed.join(' ') + '" and the scripts that call write_anim write ' + made.join(' ') + ' — the list people read to know which rows not to edit by hand is wrong');
+    writers.forEach(t => { if (!rows.some(r => r.anim === t.id)) fail.push('tools/' + t.f + ' writes "' + t.id + '", and no row of data/textbooks.json has that id'); });
+    const books0 = fs.readFileSync(path.join(ROOT, 'data', 'textbooks.json'), 'utf8');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'check-anims-'));
+    try {
+      fs.mkdirSync(path.join(tmp, 'tools')); fs.mkdirSync(path.join(tmp, 'data'));
+      fs.copyFileSync(path.join(toolDir, 'anim_row.py'), path.join(tmp, 'tools', 'anim_row.py'));
+      const before = books0.split('\n');
+      for (const t of writers) {
+        fs.writeFileSync(path.join(tmp, 'data', 'textbooks.json'), books0);
+        fs.copyFileSync(path.join(toolDir, t.f), path.join(tmp, 'tools', t.f));
+        const run = spawnSync('python3', ['-I', path.join(tmp, 'tools', t.f)], { cwd: tmp, encoding: 'utf8', timeout: 60000 });
+        if (run.error) { console.log('COULD NOT RUN — python3 would not start (' + run.error.message + '), so whether the ' + writers.length + ' scripts and their rows agree was NOT checked'); process.exit(1); }
+        if (run.status !== 0) { fail.push('tools/' + t.f + ' fails on a copy of the books: ' + String(run.stderr || run.stdout).trim().split('\n').pop().slice(0, 160)); continue; }
+        const after = fs.readFileSync(path.join(tmp, 'data', 'textbooks.json'), 'utf8');
+        if (after === books0) continue;
+        const moved = after.split('\n').map((l, i) => l === before[i] ? null : (/"anim":"([a-z0-9]+)"/.exec(l) || /"anim":"([a-z0-9]+)"/.exec(before[i] || '') || [])[1] || ('line ' + (i + 1))).filter(Boolean);
+        fail.push('tools/' + t.f + ' rewrites ' + [...new Set(moved)].join(', ') + ' — the row and its script disagree. The script is the source: move a hand edit into it, or re-run it after changing it');
+      }
+    } finally { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {} }
+    said.push(writers.length + ' scripts write a row each (' + made.join(' ') + '); each, re-run on a copy of the books, leaves it byte for byte as it is');
+  }
+
   /* ---------- THE WHOLE APP, IN ONE WINDOW, WITH NOTHING ANSWERING -------------------------------
      Every script in index.html's order, as `check-flow.js` loads it, so the functions run are the ones
      a phone runs. The network never answers, so `load()` waits for ever and nothing it would do
      afterwards can write to the storage this check is reading. */
+  /* A STORE OF A KNOWN SIZE, so section 3 can leave exactly the room it means to: jsdom's default,
+     said out loud, and counted the way jsdom counts it — every key and value, in characters. */
+  const QUOTA = 5000000;
   const dom = new JSDOM(page.replace(/<script[\s\S]*?<\/script>/g, ''),
-    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://example.org/' });
+    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://example.org/', storageQuota: QUOTA });
   const w = dom.window;
   w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
   w.fetch = () => new Promise(() => {});
@@ -261,7 +310,7 @@ async function main() {
     w.eval(order.map(n => fs.readFileSync(path.join(ROOT, 'js', n + '.js'), 'utf8')).join('\n')
       + '\n;window.__a = { F: SPLASH_CACHE_F, MAX: SPLASH_CACHE_MAX };');
   } catch (e) { console.log('COULD NOT RUN — the app threw while loading: ' + e.message); process.exit(1); }
-  for (const f of ['libraryExtras_', 'animHash_', 'splashSync_']) {
+  for (const f of ['libraryExtras_', 'animHash_', 'splashSync_', 'splashGiveWay_', 'ansLocalPut_']) {
     if (typeof w[f] !== 'function') { console.log('COULD NOT RUN — ' + f + ' is not a function in the loaded app'); process.exit(1); }
   }
   const LS = w.localStorage;
@@ -369,13 +418,20 @@ async function main() {
     LS.setItem('splashAnim:zzorphan', '{"h":"x","html":"","css":""}');
     sync(withRows([A2]));
     if (LS.getItem('splashAnim:zzorphan') !== null) fail.push('a kept drawing no index names was left in storage');
-    /* OUT OF STORAGE ON ONE DRAWING: THAT ONE LEFT OUT, EVERYTHING ELSE UNTOUCHED. */
+    /* OUT OF STORAGE ON ONE DRAWING: THE WHOLE COPY GIVES WAY, AND NOTHING ELSE IS TOUCHED. This was
+       "that one left out, the rest kept" — and the rest was the last room on the device (section 3). */
     LS.removeItem('splashAnims');
     w.Storage.prototype.setItem = function (k, v) { if (k === 'splashAnim:zzb') throw new w.DOMException('full', 'QuotaExceededError'); return setItem.call(this, k, v); };
     try { sync(withRows([A2, B])); } finally { w.Storage.prototype.setItem = setItem; }
-    if (LS.getItem('splashAnim:zzb') !== null || ((index() || {}).ids || []).indexOf('zzb') !== -1) fail.push('a drawing storage refused is still named as kept');
-    if (!rec('zza')) fail.push('a refused write took a drawing that did fit with it');
+    const ours = () => Object.keys(snap()).filter(k => k === 'splashAnims' || k.indexOf('splashAnim:') === 0);
+    if (ours().length) fail.push('a drawing storage refused left ' + ours().join(' ') + ' behind — a loading screen kept room a child\'s answer may need');
     if (LS.getItem('pad:q1') !== 'a drawing' || LS.getItem('ans:q1') !== 'an answer') fail.push('the sync touched a pad: or ans: key — a loading screen cost a child their work');
+    /* AND AN INDEX STORAGE REFUSES TAKES ITS DRAWINGS WITH IT: nothing could name them. */
+    LS.clear(); LS.setItem('pad:q1', 'a drawing');
+    w.Storage.prototype.setItem = function (k, v) { if (k === 'splashAnims') throw new w.DOMException('full', 'QuotaExceededError'); return setItem.call(this, k, v); };
+    try { sync(withRows([A2, B])); } finally { w.Storage.prototype.setItem = setItem; }
+    if (ours().length) fail.push('an index storage refused left ' + ours().join(' ') + ' behind, named by nothing — never drawn, and rewritten on every load');
+    if (LS.getItem('pad:q1') !== 'a drawing') fail.push('a refused index took a pad: key with it');
     /* AN EMPTY FETCH CHANGES NOTHING — the books', and the splashes' (which is what `splashOff` is). */
     LS.setItem('splashOff', '["is-kept"]');
     const before = JSON.stringify(snap());
@@ -400,10 +456,53 @@ async function main() {
     bad('a damaged record', () => LS.setItem('splashAnim:zzb', '{"h":'), true);
     bad('a record whose hash is not the index\'s', () => { const r = rec('zzb'); r.h = '00000000'; LS.setItem('splashAnim:zzb', JSON.stringify(r)); }, true);
     bad('a record with no markup', () => { const r = rec('zzb'); delete r.html; LS.setItem('splashAnim:zzb', JSON.stringify(r)); }, true);
-    said.push('the sync replaces a changed drawing and writes nothing else, deletes a deleted one, sweeps an orphan, survives a full store without touching pad:/ans:, and ignores an empty fetch; the picker draws a good copy and none of four bad ones');
+    said.push('the sync replaces a changed drawing and writes nothing else, deletes a deleted one, sweeps an orphan, gives the whole copy back when a drawing or the index is refused without touching pad:/ans:, and ignores an empty fetch; the picker draws a good copy and none of four bad ones');
     LS.clear();
   }
   resetSplash();
+
+  /* ---------- 3. A FULL DEVICE, FOR REAL: THE COPY GIVES WAY TO A CHILD'S WORK ------------------------
+     No write made to throw here: the store is filled with a child's drawing until exactly the room
+     named is left, and the real books are synced into it — twice, because the fault this replaces
+     repeated on every load. Room for every drawing but not the index after them was the case that
+     left 27 drawings nobody could name; room for half was the case that kept fourteen in the last
+     space a 2 000-character answer needed. */
+  if (real.length) {
+    const used = () => { let n = 0; for (let i = 0; i < LS.length; i++) { const k = LS.key(i); n += k.length + LS.getItem(k).length; } return n; };
+    const ours = () => Object.keys(snap()).filter(k => k === 'splashAnims' || k.indexOf('splashAnim:') === 0);
+    LS.clear(); sync(books);
+    let recs = 0, ix = 0;
+    Object.entries(snap()).forEach(([k, v]) => { if (k === 'splashAnims') ix = k.length + v.length; else if (k.indexOf('splashAnim:') === 0) recs += k.length + v.length; });
+    const fill = room => {
+      LS.clear();
+      LS.setItem('pad:q1', 'a drawing'); LS.setItem('ans:q1', 'an answer');
+      LS.setItem('pad:full', 'x'.repeat(QUOTA - used() - 'pad:full'.length - room));
+      const left = QUOTA - used();
+      if (left !== room) fail.push('the store was left ' + left + ' characters, not ' + room + ' — the full-device case was NOT set up as meant');
+    };
+    const ANSWER = 'y'.repeat(2000);
+    [['room for every drawing but not the index after them', recs + Math.floor(ix / 2)], ['room for about half the drawings', Math.floor(recs / 2)]].forEach(([what, room]) => {
+      fill(room);
+      sync(books); sync(books);
+      if (ours().length) fail.push(what + ': ' + ours().length + ' splash key(s) left after the store refused one — a decoration in the last room on the device');
+      let fits = true;
+      try { LS.setItem('ans:probe', ANSWER); LS.removeItem('ans:probe'); } catch (e) { fits = false; }
+      if (!fits) fail.push(what + ': after two loads a 2 000-character answer no longer fits');
+      if (LS.getItem('pad:q1') !== 'a drawing' || LS.getItem('ans:q1') !== 'an answer' || !LS.getItem('pad:full')) fail.push(what + ': the sync touched a pad: or ans: key');
+    });
+    /* A COPY THAT FITTED, AND THEN AN ANSWER THAT DOES NOT: the child's write takes the copy and lands. */
+    fill(recs + ix + 500);
+    sync(books);
+    if (!LS.getItem('splashAnims')) fail.push('a store with room for the whole copy did not keep it — the answer-after-copy case was NOT set up');
+    else {
+      w.ansLocalPut_('ans:q2', ANSWER);
+      if (LS.getItem('ans:q2') !== ANSWER) fail.push('a child\'s answer refused by a store the splash copy had filled was not written once the copy could give way (`ansLocalPut_`)');
+      if (ours().length) fail.push('the splash copy is still there after a child\'s answer was refused for want of room');
+      if (LS.getItem('pad:q1') !== 'a drawing' || !LS.getItem('pad:full')) fail.push('giving way took a pad: key with it');
+    }
+    said.push('a full device (' + recs + ' characters of drawings, ' + ix + ' of index): with room for the drawings but not the index, and with room for half, two loads leave no splash key and room for a 2 000-character answer; a copy that fitted gives way to an answer that does not');
+    LS.clear();
+  }
   if (errs.length) said.push('the app logged ' + errs.length + ' error(s) while loaded here (the network never answers): ' + errs.slice(0, 2).join(' | ').slice(0, 200));
 
   console.log('');
