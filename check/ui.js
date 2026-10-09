@@ -105,6 +105,15 @@ const PAYLOAD_AT = arg('payload');
 const FIXTURE = PAYLOAD_AT
   ? fs.readFileSync(PAYLOAD_AT, 'utf8')
   : fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
+/* ---------- AND A STRANGER IS SENT WHAT `doGet` SENDS A STRANGER -----------------------------------
+   THE FIXTURE IS THE ADMIN'S PAYLOAD, and it was served to the signed-out visitor too — so every run
+   measured a stranger's videos card and Find holding three films that `doGet` builds inside
+   `if (viewerIsAdmin)` and sends nobody else (note 068, `filmsFor_`). A fixture must send what doGet
+   really sends: for the visitor who is not an admin, `films` is `[]` and `filmsSync` is not there. */
+const FIXTURE_ANON = (() => {
+  try { const o = JSON.parse(FIXTURE); o.films = []; delete o.filmsSync; return JSON.stringify(o); }
+  catch (e) { return FIXTURE; }
+})();
 if (PAYLOAD_AT) {
   console.log('payload: ' + PAYLOAD_AT + '  (the real one — findings here are about the DATA as');
   console.log('         much as the code, and the numbers move when a cell does)\n');
@@ -1297,7 +1306,8 @@ function inspect(opts) {
 
     /* THE BACKEND, STOOD IN FOR. Matched on the host so it catches the JSONP route too. */
     await page.route('**://script.google.com/**', r =>
-      r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      r.fulfill({ status: 200, contentType: 'application/json',
+                  body: who.user && (who.user.roles || []).indexOf('admin') !== -1 ? FIXTURE : FIXTURE_ANON }));
 
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1800);                      // the boot fetch and first paint

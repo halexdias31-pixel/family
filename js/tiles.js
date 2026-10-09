@@ -157,6 +157,11 @@ const TILE_ICONS = {
      the set as one more outline. */
   full:  '<path d="M2.5 6.5v-4h4"/><path d="M11.5 2.5h4v4"/>'
        + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
+  /* SYNC: two arrows chasing each other round a circle, the mark every phone puts on "fetch it again
+     from where it really lives" — the videos card's Sync from Drive, which refills the films from the
+     Notflix folder. Open paths at the set's 1.4, so it is one more outline beside Full screen. */
+  sync:  '<path d="M3.1 6.3a6.3 6.3 0 0 1 10.4-2.35L16.7 7"/><path d="M16.7 2.8V7h-4.2"/>'
+       + '<path d="M14.9 10.7a6.3 6.3 0 0 1-10.4 2.35L1.3 10"/><path d="M1.3 14.2V10h4.2"/>',
   /* ---------- A QUESTION'S PAGES, WHICH ARE ALL TILES NOW ---------------------------------------
      ASKED FOR AS *"lock should be a tile too. same as undo and clear. it should all be tiles."* and
      *"some questions require a compass or ruler. so should have a tile for these things."* Marks

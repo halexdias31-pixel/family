@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-08-c-answers";
+const DOGET_VERSION = "2026-10-09-a-films";
 
 
 function doGet(e) {
@@ -299,8 +299,8 @@ function doGet(e) {
          find out. One key, appended to the stored JSON rather than parsed and re-serialised, so a
          hit stays the cheap path it exists to be. Open the API address in a tab: `"cached":true` is
          there or it is not. */
-      /* AND THIS VIEWER'S ATTEMPTS, FRESH — the stored body has none (`payloadWithAttempts_`). */
-      if (kept) { mark('cache'); return jsonRaw_(payloadWithAttempts_(kept, attemptsNow_(cacheViewer), true)); }
+      /* AND THIS VIEWER'S ATTEMPTS AND FILMS, FRESH — the stored body has neither (`payloadWithFresh_`). */
+      if (kept) { mark('cache'); return jsonRaw_(payloadWithFresh_(kept, freshFor_(cacheViewer), true)); }
     }
 
     /* ---------- THE TABS WHOSE ABSENCE MEANS THE DATABASE IS NOT CONNECTED ----------------------
@@ -389,19 +389,11 @@ function doGet(e) {
        NOT EVEN READ OTHERWISE. A read inside the guard rather than a filter after one: a tab that
        is never opened cannot be forwarded by a later line that forgets to check, and it saves the
        scan on every visit by everybody who is not an admin. `viewerIsAdmin` is settled a few lines
-       above — asked once, which is the note there. */
-    const filmsOut = [];
-    if (viewerIsAdmin) {
-      read(TAB.films).rows.forEach(function (r) {
-        if (!TRUE_(r.active)) return;
-        filmsOut.push({
-          id: S(r.film_id), title: S(r.title), year: S(r.year), kind: S(r.kind),
-          audience: S(r.audience), director: S(r.director), lead: S(r.lead),
-          seasons: S(r.seasons), url: S(r.drive_url), fileKind: S(r.file_kind),
-          sizeGb: S(r.size_gb), placeholder: TRUE_(r.placeholder), notes: S(r.notes)
-        });
-      });
-    }
+       above — asked once, which is the note there.
+       IN A FUNCTION NOW, `filmsFor_`, because a cache HIT lays the films on fresh too (see
+       `payloadWithFresh_`) and two copies of who-may-see-a-film would be two rules. The guard is
+       still the first line of it: a non-admin returns before the tab is opened. */
+    const filmsOut = filmsFor_(viewerIsAdmin);
     /* `drive_id` IS DELIBERATELY NOT SENT. `drive_url` is built from it in the sheet and is the
        only form anything opens, so shipping both would be one fact twice — the `handle`/`username`
        shape this project has already paid for three times. */
@@ -484,6 +476,8 @@ function doGet(e) {
                  'attemptWords',
                  /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
                  'checkUploads',
+                 /* The videos card's Sync from Drive, for an admin — the films from the Notflix folder. */
+                 'filmsSync',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',
                  /* `likePost` is deliberately absent. The site checks this list, so a stale copy
@@ -594,7 +588,9 @@ function doGet(e) {
                      subjectsEta: sur.subject,      // the old name, kept so nothing breaks
                      days: sur.day, times: sur.time, services: sur.service,
                      students: {}, weeks: {}, baseRate: N(cfg.M) },
-      constants: { vars: cfg },
+      /* THE TAB LESS ITS SECRETS — `configPublic_` in core.gs. `films_folder` is the Notflix
+         folder's id, and that id is the folder's only lock; this payload goes to everybody. */
+      constants: { vars: configPublic_(cfg) },
       // Every per-option surcharge as a flat list, so the pricing card can offer each one for
       // editing rather than saying "set this somewhere else". Venues come from their own tab, but
       // they behave identically here — a rate attached to a choice.
@@ -1553,6 +1549,14 @@ function doGet(e) {
       payload.attempts = attemptsFor_(meAsked, viewerIsAdmin);
     } catch (err) { payload.attempts = { for: '', mine: {} }; }
 
+    /* ---------- WHEN THE FILMS WERE LAST FILLED FROM DRIVE, FOR THE ADMIN AND NOBODY ELSE ----------
+       The videos card asks for a sync when this says never, or more than a day ago, or part-way
+       (`filmsSyncDue_` in js/games.js). Absent rather than empty for everybody else: a student's
+       payload has no key that says films exist. Laid on fresh like the films (`freshFor_`). */
+    if (viewerIsAdmin) {
+      try { payload.filmsSync = filmsSyncSays_(); } catch (err) { payload.filmsSync = { at: '', more: false }; }
+    }
+
     /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY -------------------------
        NOT FILTERED BY PERSON, and that is the one line that makes it a spotlight rather than a
        favourite: `js/collections.js` opens with the argument — a favourite is a statement about
@@ -2061,15 +2065,20 @@ function doGet(e) {
        THE FIRST REQUEST AFTER A DEPLOY OR A WRITE STILL PAYS THE FULL PRICE, and there is no way
        round that short of building it before anybody asks. What changes is that it is paid once
        rather than by everybody. */
-    /* ---------- WITHOUT `attempts`, WHICH GO ON FRESH EVERY TIME --------------------------------------
+    /* ---------- WITHOUT `attempts` OR THE FILMS, WHICH GO ON FRESH EVERY TIME ----------------------------
        The stored copy leaves out the one key a child changes every evening, so `markDone` has nothing
-       to retire — see `payloadWithAttempts_`. Everything else in the body is exactly as before. */
+       to retire — see `payloadWithFresh_`. AND THE FILMS, for the same reason from the other side: a
+       sync from Drive writes the films tab, and with the films in the stored body every write it made
+       would retire the admin's payload and cost them the fifteen-to-thirty-five-second rebuild for a
+       list they already had in the sync's own reply. Everything else in the body is exactly as before. */
+    /* BY NAME IN A LIST, not `payload.films` here: `check-payload.js` counts every `payload.<key>` as a
+       key sent, and a line that takes a key OUT would answer for one that was never put in. */
     if (cacheKey) {
-      const fresh = payload.attempts;
-      delete payload.attempts;
+      const fresh = {};
+      ['attempts', 'films', 'filmsSync'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
       cachePut_(cacheKey, body);
-      return jsonRaw_(payloadWithAttempts_(body, fresh, false));
+      return jsonRaw_(payloadWithFresh_(body, fresh, false));
     }
     return jsonOut(payload);
   } catch (err) {
@@ -2130,7 +2139,7 @@ function favouritesOf_(me) {
     .map(r => S(r.item_id));
 }
 
-/* ---------- THE STORED BODY, WITH THIS VIEWER'S ATTEMPTS LAID ON --------------------------------------------
+/* ---------- THE STORED BODY, WITH THIS VIEWER'S ATTEMPTS (AND AN ADMIN'S FILMS) LAID ON ----------------------
    `attempts` IS THE ONE KEY OF THE PAYLOAD THAT A CHILD CHANGES EVERY EVENING, and it changes only for
    that child and an admin. It used to be inside the stored body, so every `markDone` had to throw that
    child's whole body away (`retirePayloadOf_`) and their next load anywhere — a sign-in on the iPad,
@@ -2138,16 +2147,68 @@ function favouritesOf_(me) {
    out and every answer, hit or miss, has it added fresh for the person the TOKEN resolved to: one read
    of one tab, against a rebuild of thirty.
 
-   `body` is the stored JSON text, which always ends in `}` and always has keys before it; the key goes
-   on the end, and `cached` after it when the body came from the store. Built from the same
-   `attemptsFor_` either way, so a hit and a miss cannot disagree. */
+   `body` is the stored JSON text, which always ends in `}` and always has keys before it; the keys go
+   on the end, and `cached` after them when the body came from the store. Built from the same
+   `attemptsFor_` and `filmsFor_` either way, so a hit and a miss cannot disagree.
+
+   ---------- AND THE FILMS, WHICH A SYNC FROM DRIVE CHANGES WHILE THE ADMIN WATCHES ----------------
+   *"Let admin be able to search up films which are in the notflix folder"* — and the sync that fills
+   the tab is pressed from the very card that shows it. Left in the stored body, every sync would have
+   to retire the admin's payload (a cold rebuild) or leave it saying the old list for six hours. So the
+   films are this function's second key: `[]` for everybody, read only for an admin, and for an admin
+   `filmsSync` beside them — the stamp of the last whole pass, which no other payload carries at all. */
 function attemptsNow_(viewer) {
   try { return attemptsFor_(viewer, !!viewer && hasRole(viewer, 'admin')); }
   catch (err) { return { for: '', mine: {} }; }
 }
-function payloadWithAttempts_(body, attempts, cached) {
-  return String(body).slice(0, -1) + ',"attempts":' + JSON.stringify(attempts || { for: '', mine: {} })
+function freshFor_(viewer) {
+  const admin = !!viewer && hasRole(viewer, 'admin');
+  const out = { attempts: attemptsNow_(viewer), films: [] };
+  if (admin) {
+    try { out.films = filmsFor_(true); } catch (err) { out.films = []; }
+    try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
+  }
+  return out;
+}
+function payloadWithFresh_(body, fresh, cached) {
+  const f = fresh || {};
+  return String(body).slice(0, -1)
+    + ',"attempts":' + JSON.stringify(f.attempts || { for: '', mine: {} })
+    + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
+    + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (cached ? ',"cached":true' : '') + '}';
+}
+
+/* ---------- `payload.films`, FOR AN ADMIN AND AN EMPTY LIST FOR EVERYBODY ELSE ------------------------
+   THE GUARD IS THE FIRST LINE, so the tab is never opened for anybody else — note 068's rule that the
+   gate is the read and not a filter after it. `drive_id` is not sent (the note in `doGet`).
+
+   `active` IS READ THE WAY EVERY OTHER `active` IN THIS PROJECT IS READ NOW: blank is on (`ON_`). It
+   was `TRUE_`, so a row typed by hand with the cell left empty vanished from the admin's search
+   without a word, while `data/videos.json` beside it treated a blank as on. The sync writes TRUE or
+   FALSE on every row it owns, so the difference only ever reached the rows a person typed. */
+function filmsFor_(isAdmin) {
+  const out = [];
+  if (!isAdmin) return out;
+  read(TAB.films).rows.forEach(function (r) {
+    if (!ON_(r.active)) return;
+    out.push({
+      id: S(r.film_id), title: S(r.title), year: S(r.year), kind: S(r.kind),
+      audience: S(r.audience), director: S(r.director), lead: S(r.lead),
+      seasons: S(r.seasons), url: S(r.drive_url), fileKind: S(r.file_kind),
+      sizeGb: S(r.size_gb), placeholder: TRUE_(r.placeholder), notes: S(r.notes)
+    });
+  });
+  return out;
+}
+
+/* ---------- WHAT THE LAST SYNC FROM DRIVE SAYS, FOR THE ADMIN'S CARD ------------------------------------
+   `at` — the end of the last WHOLE pass, or '' for never. `more` — a pass is part-way, and the next
+   run carries on from where it stopped. `folder` — the folder's NAME, never its id. `found` — what was
+   in it, by kind, as counts. Read from Script Properties, which is where `filmsSync_` keeps its place. */
+function filmsSyncSays_() {
+  const st = filmsState_();
+  return { at: S(st.at), more: !!S(st.pass), folder: S(st.folder), found: st.found || null };
 }
 
 /* ---------- `payload.attempts`, BUILT FOR ONE VIEWER ------------------------------------------------

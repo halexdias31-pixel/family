@@ -4797,7 +4797,7 @@ function filmCard_(x) {
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${/* A ROW ASKED FOR BY NAME WHOSE FILE IS NOT THERE SAYS SO, and says it where the link would
           be. The library's `placeholder` column, one table along: a card that states the gap beats
-          a link that opens nothing, and it is the reason `There Will Be Blood` is a row at all. */''}
+          a link that opens nothing, and it is the reason a film asked for by name is a row at all. */''}
     ${f.placeholder
       ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>` : ''}
     ${/* ---------- THE WATCH TILE IS IN THE CARD'S ONE ROW NOW, see `filmTiles_` --------------------
@@ -10161,6 +10161,17 @@ function stuffItemsAll_() {
   return built;
 }
 
+/* ---------- FORGET EVERY LIST BUILT FROM `DATA`, FOR A WRITE THAT CHANGED `DATA` IN PLACE ----------------
+   The three memos test `DATA` by identity, which a new payload changes and an edit in place does not —
+   and the films sync from the videos card (`filmsAdopt_` in games.js) is an edit in place: a reply that
+   carries the films, written over `DATA.films` so the admin has them without a reload. Without this,
+   Find would go on drawing the films from before the sync until the next payload. */
+function stuffForget_() {
+  ITEM_MEMO = { key: null, from: null, items: null };
+  ALL_MEMO = { key: null, from: null, items: null };
+  FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+}
+
 function stuffItems() {
   const key = itemMemoKey_();
   if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key) return ITEM_MEMO.items;
@@ -10555,8 +10566,8 @@ function stuffItemsRaw_() {
          and is one fewer thing to keep in step if the tab grows. */
       audience: f.audience, filmKind: f.kind,
       /* EVERY WORD SOMEBODY MIGHT TYPE. The lesson one commit old: a thing whose own words are not
-         in the haystack is findable by its title and by nothing else, so `daniel day-lewis`,
-         `gosling` and `documentary` have to be in here or they find nothing. */
+         in the haystack is findable by its title and by nothing else, so a director's surname,
+         a lead's and `documentary` have to be in here or they find nothing. */
       text: [f.director, f.lead, f.kind, f.audience, f.notes, f.seasons].filter(Boolean).join(' '),
       row: f,
     })),

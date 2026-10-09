@@ -4896,6 +4896,41 @@ const STATES = {
                  && /^2 of \d+ videos$/.test((document.querySelector('#s-games .vid-said') || {}).textContent || ''),
       wants: 'the player holding the chosen clip, a Full screen tile under it, and two of the list left',
       leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
+
+    /* ---------- THE FILMS IN THE VIDEOS CARD — THE ADMIN'S, AND NOBODY ELSE'S ------------------------
+       *"Let admin be able to search up films which are in the notflix folder on gdrive."* Two states for
+       one card, `only:` each way round, because what the card holds is the PAYLOAD's decision: the
+       admin is served the fixture's three invented films and a sync stamp, and the signed-out visitor
+       what `doGet` sends a stranger — no film and no stamp (`FIXTURE_ANON` in ui.js). The admin's card
+       carries a row nobody else's has — the silver Sync from Drive tile and the line beside it — and a
+       film not in the Drive yet, dimmed; both are new widths to fit at 320. */
+    { name: 'the films in the videos card, an admin’s',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        VID.q = ''; VID.at = '';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => !!document.querySelector('#s-games .vid-admin .tile.is-admin[data-do="vid-sync"]')
+                 && !!document.querySelector('#s-games .vid-admin .vid-synced')
+                 && document.querySelectorAll('#s-games .vid-list .vid-row').length >= 3
+                 && !!document.querySelector('#s-games .vid-list .vid-row.is-off'),
+      wants: 'the silver Sync from Drive tile and when it last ran, the films, and the one not in the Drive yet dimmed' },
+    { name: 'the videos card, nobody’s films',
+      only: () => !(typeof isAdmin === 'function' && isAdmin()),
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        VID.q = ''; VID.at = '';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => !document.querySelector('#s-games .vid-admin *')
+                 && !document.querySelector('#s-games [data-do="vid-sync"]')
+                 && !/film|drive|sync/i.test((document.querySelector('#s-games .vid-box') || {}).textContent || 'film'),
+      wants: 'no Sync tile, nothing in the admin row, and no word on the card that says films exist' },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------

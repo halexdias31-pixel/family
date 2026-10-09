@@ -94,6 +94,19 @@ for (const m of gs.matchAll(/addRow\([^,]+,\s*\{/g)) {
   }
 }
 
+/* AND THE KEYS OF A `setCells` OBJECT, the third way a row is written (`setCells(t, row, { … })`, one
+   call per run of columns) and the one this file was written before. Same walk as `addRow`'s. A
+   `setCells` handed a variable cannot be read here — which is why the films sync names every column it
+   writes in its `addRow` literal, where this can. */
+for (const m of gs.matchAll(/setCells\([^,]+,[^,]+,\s*\{/g)) {
+  let i = gs.indexOf('{', m.index + m[0].length - 1), depth = 0, end = i;
+  do { if (gs[end] === '{') depth++; else if (gs[end] === '}') depth--; end++; }
+  while (depth > 0 && end < gs.length);
+  for (const k of gs.slice(i, end).matchAll(/(?:^|[{,])\s*([a-z][a-z_0-9]*)\s*:/g)) {
+    writes.add(k[1]);
+  }
+}
+
 /* READS, and only off the names this file gives a sheet row. */
 const reads = new Set([...gs.matchAll(/\b(r|x|j|row|owner|child|parent|me|who|post)\.([a-z][a-z_0-9]{2,})\b/g)]
   .map(m => m[2]));

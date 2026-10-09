@@ -306,3 +306,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The keypad is the only keyboard: every answer box is the pad's, `abc` turns the pad to letters, and the phone's keyboard has no way in](302-the-keypad-is-the-only-keyboard.md)
 - [An ordering is tapped in order: the items are buttons, the answer is the order, and a machine marks it](303-an-ordering-is-tapped-in-order.md)
 - [The textbooks hold the teaching animations, and the loading screen draws its copy of them](304-the-textbooks-hold-the-animations.md)
+- [The films are whatever is in the Notflix folder: a sync from Drive, asked for by the videos card, and only an admin ever sees one](305-the-films-are-whatever-is-in-the-notflix-folder.md)

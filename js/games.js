@@ -5406,6 +5406,12 @@ on('kt-lesson', el => {
      - the films — `DATA.films`, which the backend sends to an admin and to NOBODY ELSE (note 068 in
        docs/history). `|| []` is the ordinary fallback and here it is also the whole gate, exactly
        as it is in find.js: nothing in this file decides who may see a film.
+       AND THEY ARE WHATEVER IS IN THE NOTFLIX FOLDER — *"Ensure the video searcher is hooked up. Let
+       admin be able to search up films which are in the notflix folder on gdrive."* (9 Oct). This card
+       was wired all along and an admin found nothing: the films tab was empty, and nothing filled it
+       from Drive. `filmsSync` does now (backend/content.gs), and THIS CARD IS WHERE IT IS ASKED FOR —
+       on its own for an admin once the last whole pass is a day old, and by hand from a silver Sync
+       from Drive tile that only an admin is drawn. See `filmsSyncDue_` below and note 305.
 
    NOT ALL OF YOUTUBE. A live search of YouTube needs a YouTube Data API key in the page, which in a
    public repository is a published key; that is the owner's decision and it has not been taken. So
@@ -5455,9 +5461,12 @@ function vidYouTubeId_(url) {
 function videosAll_() {
   const out = [];
   const seen = new Set();
+  /* ONE ROW PER ADDRESS — and a row with no address (a film not in the Drive yet) by its own key, or
+     every placeholder after the first would be taken for the first. */
   const add = r => {
-    if (!r.title || !r.how || seen.has(r.url)) return;
-    seen.add(r.url);
+    const at = r.url || ('#' + r.key);
+    if (!r.title || !r.how || seen.has(at)) return;
+    seen.add(at);
     out.push(r);
   };
   /* THE OWNER'S LIST FIRST, so a video they typed in that is also a film is shown with their title
@@ -5475,10 +5484,23 @@ function videosAll_() {
      *"the video widget shouldn't acknowledge reels."* Reels are the Reel column's, and listing them
      again here made one thing two places to find it. A row of the owner's own list that was typed
      with kind "reel" is shown as a clip -- it is still a video somebody chose. */
+  /* ---------- A FILM, A SERIES OR A DOCUMENTARY — AND ONE THAT IS NOT IN THE DRIVE YET ---------------
+     `label` IS WHAT IT IS, because every film row said "Film" — a five-season show and a documentary
+     included. The words an admin types for a kind are in `tags` with it: `series` and `tv`, `documentary`,
+     `film` and `movie`, and the folder's audience (`kids`, `adults`).
+     A PLACEHOLDER IS LISTED, not dropped. It was skipped without a word, so an admin searching for a
+     film asked for by name was told "Nothing matches that" where Find says "Not in the drive yet" —
+     two answers to one question. It is a row that says so and opens nothing (`how: 'none'`). */
   ((typeof DATA !== 'undefined' && DATA.films) || []).forEach((f, i) => {
-    if (!f || !f.title || f.placeholder || !/^https?:\/\//i.test(String(f.url || ''))) return;
-    add({ key: 'f' + (f.id || i), title: String(f.title), url: String(f.url), kind: 'film', how: 'out',
-          tags: [f.year, f.director, f.lead, f.kind, f.audience].filter(Boolean).join(' '),
+    if (!f || !f.title) return;
+    const url = String(f.url || '').trim();
+    const k = String(f.kind || '').toLowerCase();
+    const label = k === 'series' ? 'Series' : k === 'documentary' ? 'Documentary' : 'Film';
+    const words = k === 'series' ? 'series tv show' : k === 'documentary' ? 'documentary' : 'film movie';
+    const door = !f.placeholder && /^https?:\/\//i.test(url);
+    add({ key: 'f' + (f.id || i), title: String(f.title), url: door ? url : '', kind: 'film', label: label,
+          how: door ? 'out' : 'none', none: f.placeholder ? 'not in the Drive yet' : 'no Drive link yet',
+          tags: [f.year, f.director, f.lead, words, f.audience].filter(Boolean).join(' '),
           age: f.audience === 'kids' ? 'kids' : '', notes: String(f.notes || '') });
   });
   return out;
@@ -5487,13 +5509,18 @@ function videosAll_() {
 /* EVERY WORD TYPED HAS TO BE SOMEWHERE IN THE ROW — title, tags, kind, notes. An "any word" match
    gets LONGER as you type a second word, which is the opposite of what typing into a search box is
    for; "narrows as you type" was the request. */
+/* AND A PLURAL FINDS ITS SINGULAR: `films`, `documentaries`, `movies` — the folder's own words are
+   plurals, and they are what an admin who has the folder in mind will type. */
 function videosFound_(q) {
   const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
   const all = videosAll_();
   if (!words.length) return all;
+  const has = (hay, w) => hay.indexOf(w) !== -1
+    || (w.length > 3 && /ies$/.test(w) && hay.indexOf(w.slice(0, -3) + 'y') !== -1)
+    || (w.length > 3 && /s$/.test(w) && hay.indexOf(w.slice(0, -1)) !== -1);
   return all.filter(r => {
     const hay = [r.title, r.tags, r.kind, r.notes, r.age].join(' ').toLowerCase();
-    return words.every(w => hay.indexOf(w) !== -1);
+    return words.every(w => has(hay, w));
   });
 }
 
@@ -5514,10 +5541,13 @@ function vidPlayer_(r) {
 }
 
 function vidRow_(r) {
-  const flag = r.kind === 'film' ? 'Film' : 'Clip';
-  const sub = [r.age, r.how === 'out' ? 'opens in a new tab' : ''].filter(Boolean).join(' · ');
+  const flag = r.label || (r.kind === 'film' ? 'Film' : 'Clip');
+  const sub = [r.age, r.how === 'out' ? 'opens in a new tab' : r.how === 'none' ? r.none : '']
+    .filter(Boolean).join(' · ');
   const inner = `<span class="vid-t">${esc(r.title)}</span>
       <span class="vid-k">${esc(flag)}${sub ? ' · ' + esc(sub) : ''}</span>`;
+  /* NOTHING TO OPEN, AND IT SAYS SO — not a button that does nothing when pressed. */
+  if (r.how === 'none') return `<li><div class="vid-row is-off">${inner}</div></li>`;
   /* A DOOR IS A LINK, NOT A BUTTON THAT PRETENDS TO PLAY. `out` is absolute http(s), tested in
      `vidHow_` — `tile_`'s rule for the one way out of this app. */
   if (r.how === 'out') {
@@ -5548,8 +5578,24 @@ function vidPaint_(only) {
         autocomplete="off" enterkeyhint="search" aria-label="Search videos">
       <div class="vid-stage"></div>
       <div class="tile-row vid-acts"></div>
+      <div class="vid-admin"></div>
       <p class="faint vid-said"></p>
       <ul class="vid-list"></ul>`;
+    }
+    /* ---------- THE ADMIN'S ROW: SYNC FROM DRIVE, AND WHEN IT LAST RAN ----------------------------------
+       ONLY FOR AN ADMIN, and an EMPTY ELEMENT for everybody else — no tile, no sentence, no word that says
+       films exist. `isAdmin()` decides what is DRAWN; what is SENT is the backend's, and a student's
+       payload has no film and no stamp in it to draw from. Silver, like every admin control (tiles.js).
+       The sentence beside the tile is the tile's note made visible: a 44px plate has no room for "synced
+       an hour ago", and that is the line the admin is looking for. */
+    const adm = box.querySelector('.vid-admin');
+    if (adm) {
+      const mine = typeof isAdmin === 'function' && isAdmin();
+      const said = mine ? filmsSyncSaid_() : '';
+      const html = mine ? `<div class="tile-row">${tile_({ icon: 'sync', label: 'Sync from Drive', note: said,
+          act: 'vid-sync', tone: 'admin', cls: FILMSYNC.asking ? 'is-busy' : '', off: !!FILMSYNC.asking })}
+        <span class="vid-synced">${esc(said)}</span></div>` : '';
+      if (adm.dataset.html !== html) { adm.innerHTML = html; adm.dataset.html = html; }
     }
     const q = box.querySelector('.vid-q');
     if (q && document.activeElement !== q && q.value !== VID.q) q.value = VID.q;
@@ -5568,8 +5614,11 @@ function vidPaint_(only) {
                                           off: !playing });
     }
     box.querySelector('.vid-said').textContent = said;
+    /* FORTY ROWS, AND THEN A SENTENCE SAYING THERE ARE MORE — the count above said "60 videos" over a
+       list that stopped at forty with nothing to say the rest existed. */
     box.querySelector('.vid-list').innerHTML = found.length
       ? found.slice(0, 40).map(vidRow_).join('')
+        + (found.length > 40 ? `<li class="faint vid-none">${found.length - 40} more — type to narrow the list.</li>` : '')
       : (all.length ? '<li class="faint vid-none">Nothing matches that.</li>' : '');
   });
 }
@@ -5591,7 +5640,98 @@ function videosAsk_() {
 function initVideos() {
   vidPaint_();
   videosAsk_().then(() => vidPaint_());
+  /* AN ADMIN'S CARD KEEPS THE FILMS CURRENT ON ITS OWN — once per person per visit, when the last whole
+     pass is a day old or a pass is part-way. `initVideos` runs again when the payload lands and when
+     somebody signs in, so the first call that can see an admin's stamp is the one that asks. */
+  if (filmsSyncDue_()) filmsSyncRun_(false);
 }
+
+/* ==================================================================================================
+   THE FILMS FROM DRIVE — ASKED FOR BY THE CARD, FOR AN ADMIN
+
+   `DATA.filmsSync` IS THE ADMIN'S AND NOBODY ELSE'S: `{ at, more, folder, found }`, the end of the last
+   whole pass through the Notflix folder. Absent from every other payload, and absent from an older
+   backend's — which is why its absence, and not the role, is what stops the card asking: a sync posted
+   to a backend that has never heard of it would be a refusal on every visit.
+
+   THE REPLY CARRIES THE LIST. `filmsSync` answers with the films as `doGet` builds them and the stamp
+   beside them, so the card is current the moment it answers — no reload, and no rebuild of a payload
+   that never held the films anyway (`payloadWithFresh_` in backend/doget.gs). A pass too big for one
+   run answers `more`, and the card asks again, a few times, until the pass is whole.
+
+   A REPLY FOR SOMEBODY WHO HAS GONE IS DROPPED. A sync takes seconds, and a shared iPad can be signed
+   out and handed on in that time; films written into the next person's `DATA` would be the one thing
+   `signedOut_` exists to prevent.
+================================================================================================== */
+const FILMS_STALE_MS = 24 * 60 * 60 * 1000;   // a day — `FILMS_SYNC_*` in backend/constants.gs says why
+const FILMS_ROUNDS = 6;                        // a part-way pass is asked to go on at most this often
+/* `autoFor` — whom the card has already synced for on its own this visit, so a sync that FAILS (no folder
+   found, the backend not yet deployed) is said once in the admin's line and not posted again on every
+   return to the column. `err` is that sentence, until a sync succeeds. */
+const FILMSYNC = { asking: null, autoFor: '', err: '' };
+
+function filmsSyncDue_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return false;
+  const s = typeof DATA !== 'undefined' && DATA && DATA.filmsSync;
+  if (!s || typeof s !== 'object' || FILMSYNC.asking) return false;
+  const who = String((USER && (USER.personId || USER.name)) || '');
+  if (FILMSYNC.autoFor === who) return false;
+  const at = Date.parse(s.at || '');
+  return !!s.more || !at || Date.now() - at > FILMS_STALE_MS;
+}
+
+function filmsSyncSaid_() {
+  if (FILMSYNC.asking) return 'Syncing the films from Drive…';
+  if (FILMSYNC.err) return 'Not synced — ' + FILMSYNC.err;
+  const s = typeof DATA !== 'undefined' && DATA && DATA.filmsSync;
+  if (!s || typeof s !== 'object') return 'Films from the Notflix folder in Drive';
+  if (s.more) return 'Films part-synced from Drive';
+  if (!s.at) return 'Films not synced from Drive yet';
+  const f = s.found || {};
+  const n = (Number(f.films) || 0) + (Number(f.series) || 0) + (Number(f.documentaries) || 0);
+  return 'Films synced from Drive ' + ago(s.at) + (s.found ? ' · ' + n + ' in the folder' : '');
+}
+
+/* THE REPLY INTO `DATA`, and Find told: its lists are kept against `DATA` by identity, and this changes
+   `DATA` in place. */
+function filmsAdopt_(d) {
+  if (!d || typeof DATA === 'undefined' || !DATA) return;
+  if (Array.isArray(d.films)) DATA.films = d.films;
+  if (d.sync && typeof d.sync === 'object') DATA.filmsSync = d.sync;
+  if (typeof stuffForget_ === 'function') stuffForget_();
+}
+
+function filmsSyncRun_(byHand) {
+  if (FILMSYNC.asking) return FILMSYNC.asking;
+  const who = String((USER && (USER.personId || USER.name)) || '');
+  const token = USER && USER.token;
+  FILMSYNC.autoFor = who;
+  const still = () => !!USER && USER.token === token;
+  let rounds = 0;
+  const once = () => send({ action: 'filmsSync', personId: (USER && USER.personId) || '' }).then(d => {
+    if (!still()) return null;
+    FILMSYNC.err = '';
+    filmsAdopt_(d);
+    if (d && d.more && ++rounds < FILMS_ROUNDS) { vidPaint_(); return once(); }
+    return d;
+  });
+  /* ONLY ITS OWN `asking` IS CLEARED WHEN IT ENDS. `signedOut_` lets go of a sync in flight, so the next
+     admin can start one of their own; this one ending later must not mark that one finished. */
+  const mine = once()
+    .then(d => { if (byHand && d) toast(d.message || 'Films synced.'); return d; },
+          err => { if (still()) { FILMSYNC.err = why_(err); if (byHand) toast(FILMSYNC.err); } return null; })
+    .then(d => { if (FILMSYNC.asking === mine) FILMSYNC.asking = null; vidPaint_(); return d; });
+  FILMSYNC.asking = mine;
+  vidPaint_();
+  return mine;
+}
+
+/* THE TILE. Asked again here rather than trusted from the drawing — a tile is not a permission, and the
+   backend asks a third time. */
+on('vid-sync', () => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  filmsSyncRun_(true);
+});
 
 /* LEAVING THE COLUMN STOPS IT — the Reels column's lesson in note 047: a clip somebody turned the
    sound up on went on talking from a screen two swipes away. An iframe cannot be paused from here,

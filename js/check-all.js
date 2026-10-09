@@ -210,6 +210,11 @@ const SUITE = [
   /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
      from the token, and nobody sent another learner's — through the same backend. */
   { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. *"Let admin be able to search up films which are in
+     the notflix folder on gdrive"* — the card was wired and the tab it reads was empty. The sync that
+     fills it, over an invented Drive: once each, a second pass writes nothing, typed cells survive,
+     a missing file goes off, only an admin, no id sent, no payload retired, and the clock bounds it. */
+  { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. *"it didnt have his answers already written in when he went to
      see them on the computer"* — the answers tab: the token's person, the later edit, every value as text,
      and the sign-in reply carrying the child's own work. Same backend, same harness. */
