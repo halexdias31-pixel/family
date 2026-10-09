@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-films-from-notflix";
+  --css-version: "2026-10-09-a-short-is-a-reel";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2687,7 +2687,20 @@ button.text-drop { color: var(--bad); }
    picture is a snowfield, and then it is gone — so a scrim is laid over the bottom two-thirds
    once there is something behind it. Only then: over the gradient it would be a shadow over a
    shadow. */
-.feed-art.has-photo::before {
+/* ---------- AND ONLY WHERE THERE ARE WORDS: IT WAS THE GREY ON EVERY REEL ---------------------------
+   ASKED ON 9 OCT: *"is there a grey effect on reels? i dont like that if there is remove it."* There
+   was, and it was this. A reel is a clip with no words on it — `feedSlide` draws no `.feed-text` for
+   one — and the scrim was laid on `has-photo` alone, so every reel had black at 92% across its
+   bottom eighth, 55% at the middle and a fade up to three-quarters of the way: on a bright frame (both
+   clips here are white buildings on a pale model), the lower two-thirds of the picture read as a
+   grey wash with no text above it to explain it. Screenshot at 390x844 before and after, note 319.
+
+   THE FLOOR WAS FOR THE WORDS, SO IT GOES WHERE THE WORDS ARE. `:has()` rather than a class, the
+   receipts' argument: whether a slide carries words is a fact about its contents, and a class would
+   be that fact written a second time in the one place nothing checks it. A fact with a photograph
+   keeps its scrim exactly as it was; a clip with a caption gets one; a clip with none gets the
+   picture and nothing over it. */
+.feed-art.has-photo:has(> .feed-text)::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(to top, rgba(0,0,0,.92) 12%, rgba(0,0,0,.55) 45%, transparent 78%);
 }
@@ -10607,6 +10620,56 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .feed-art.is-clip::before { z-index: 1; }
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
+
+/* ---------- A YOUTUBE SHORT ---------------------------------------------------------------------
+   FOUR LAYERS IN THE PLACE ONE `<video>` HOLDS, numbered for the reason the three above are:
+
+     .feed-poster    the Short's own thumbnail, filling the frame as the mp4 reels' posters do
+     .feed-yt        the player's place — empty until `reelYtPlay_` (posts.js) builds one
+       iframe        YouTube's player, INVISIBLE until it says it is playing (`is-live`), so its black
+                     box, spinner, title, pause screen and error screen are never on the slide
+       .feed-yt-veil a clear layer over it that takes every touch for the column (see posts.js)
+
+   COVER, BY ARITHMETIC. An `<iframe>` has no `object-fit`, and YouTube's player inside it letterboxes
+   — so the frame is made the size that a 9:16 picture needs to COVER the slide and the slide crops it,
+   which is what `object-fit: cover` does for the videos. The slide is not 9:16: at 390x844 it is
+   272x593, narrower, so the Short is cropped about 31px each side. Sized in the box's own `cq`
+   units, which is why `.feed-yt` is a size container; a browser without them gets the frame the size
+   of the slide, letterboxed, which is the worst case and still a picture. */
+.feed-poster {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+.feed-yt { position: absolute; inset: 0; z-index: 0; overflow: hidden; container-type: size; }
+.feed-yt-frame {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  border: 0; opacity: 0; transition: opacity .3s ease;
+  /* THE VEIL TAKES THE TOUCH; this makes sure the frame cannot, even where a browser hit-tests an
+     iframe ahead of an empty span over it. */
+  pointer-events: none;
+}
+@supports (width: 1cqh) {
+  .feed-yt-frame { width: max(100cqw, 100cqh * 9 / 16); height: max(100cqh, 100cqw * 16 / 9); }
+}
+.feed-yt.is-live .feed-yt-frame { opacity: 1; }
+.feed-yt-veil { position: absolute; inset: 0; z-index: 1; }
+
+/* ---------- AND WHEN IT CANNOT PLAY: THE POSTER, AND ONE WAY OUT ------------------------------------
+   Drawn from the first paint and shown only on `is-dead`, so nothing moves when it appears. In the
+   middle, where the ▶ would be — a dead Short cannot be held, so that place is free — and in the
+   same charcoal wash as the Sound button, which is what a control over a picture looks like
+   everywhere this feature draws one. In px, the house rule for anything a finger aims at. */
+.feed-yt-out { display: none; }
+.feed-art.is-dead .feed-yt-out {
+  position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 16px; border-radius: 22px;
+  background: rgb(0 0 0 / .55); border: 1px solid rgb(255 255 255 / .28);
+  color: #fff; font-size: .82rem; white-space: nowrap; text-decoration: none;
+}
+/* A SOUND BUTTON ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
+.reel:has(.feed-art.is-dead) .reel-sound { display: none; }
 
 /* ---------- A STOPPED REEL SAYS SO ----------------------------------------------------------------
    A VIDEO THAT IS PAUSED ON ITS FIRST FRAME LOOKS EXACTLY LIKE ONE THAT IS PLAYING A STILL SHOT,
