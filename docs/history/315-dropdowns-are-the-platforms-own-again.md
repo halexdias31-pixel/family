@@ -13,8 +13,9 @@ row (notes 147 and 153), and so did the settings column's venues field. The owne
 
 **"Stable" is the platform's list.** The open list is drawn by the platform, over the page, and nothing
 in this app positions it: the wheel on an iPhone, the sheet on Android, the system list on a laptop. It
-cannot hang off the wrong field, shut under a column that is still settling, open behind a sheet, or lose
-its select to a repaint, because it does none of those things. Every caller drew a real `<select>` and
+cannot hang off the wrong field, shut under a column that is still settling, or open behind a sheet,
+because it does none of those things. (This first said it could not lose its select to a repaint either.
+It could, and review proved it the same day: see "After review" below.) Every caller drew a real `<select>` and
 listened for `change` the whole time (that was 226's own design), so **no caller changed in either
 direction**: the booking steps, the settings fields, the qualification shelf's `Something else…`, the
 cheat sheet, the flyer maker, the word games and Scrabble's blank.
@@ -41,14 +42,14 @@ book.js says the same, at the place the panel used to be.
 | surface | before | now |
 |---|---|---|
 | **every single-choice select** (booking rows, settings fields, qualification shelf, phone code, cheat sheet, word games, flyer maker, Scrabble's blank) | `pointer-events: none`, the tap intercepted, `#drop` | the browser's own `<select>`. Callers unchanged |
-| **closed select** | looked like a text box everywhere except the cheat sheet, whose wrapper drew a `▾` | **one rule** beside `input, select, textarea`: the field's box (`--sunk`, `--line`, 44px floor, 16px), one `▾` drawn as two gradients in the select's own background from a token (`--sel-arrow`), the text stopping short of it with an ellipsis. `background-color` everywhere, because the `background` shorthand would erase the arrow |
-| **the booking row's select** | a dashed word with no sign it opens | keeps its receipt clothes, with the same arrow at 4px. The answer column is 56/75/81px at 320/390/768 and a 44px row detaches its dashed rule (note 031, `ACCEPTED_TAP`). The **one** exception, said in a WHY beside `.bk-sel`. Its text is under 16px, and the viewport's `maximum-scale=1` stops iOS zooming it, as it already did. A keyboard's focus now lights the arrow gold, because the row had no visible focus at all |
-| **the flyer maker's eight selects** | `.78rem` in a 1.7rem box | the field. Columns go from `minmax(6.5rem…)` to `8.5rem` so a 16px answer fits beside the arrow |
+| **closed select** | looked like a text box everywhere except the cheat sheet, whose wrapper drew a `▾` | **one rule** beside `input, select, textarea`: the field's box (`--sunk`, `--line`, 44px floor, 16px), one `▾` drawn as two gradients in the select's own background from a token (`--sel-arrow`), the text stopping short of it with an ellipsis. `background-color` everywhere, because the `background` shorthand would erase the arrow. After review: the arrow's tip .55rem in and .3rem of air before the words, 22px of padding at 390 where the first version gave 31 |
+| **the booking row's select** | a dashed word with no sign it opens | keeps its receipt clothes, with the same arrow at 4px. After review, the row's word (`Kind`) is a `<label for>` the select, so a tap on it reaches the select too. The answer column is 56/75/81px at 320/390/768 and a 44px row detaches its dashed rule (note 031, `ACCEPTED_TAP`). The **one** exception, said in a WHY beside `.bk-sel`. Its text is under 16px, and the viewport's `maximum-scale=1` stops iOS zooming it, as it already did. A keyboard's focus now lights the arrow gold, because the row had no visible focus at all |
+| **the flyer maker's eight selects** | `.78rem` in a 1.7rem box | the field. After review, on six tracks: an answer in words (Style included) takes the row, a number half of it, a colour well a third; 16px, and `min(16px, 4.6vw)` under 348px wide. No default is cut at 320, 390, 768 or 1280 |
 | **Scrabble's blank** | `.scr-sel`: `.9rem`, 600 weight, its own box | the field. The rule is gone |
 | **the cheat sheet / word games** | `.mat-sel::after` drew the only arrow | the select's own arrow. The wrapper's was deleted rather than drawn twice |
 | **the open list's colours** | `.bk-sel option` only (*"white on white"*) | `select option, select optgroup` for every select, so the three faint-placeholder selects no longer hand their grey to a laptop's list. The blank option is `--dim`, because on several selects (`Not sure`, `No preference`) it is a real answer |
 | **booking, several answers** (`subjects`, `interval`, `kids`) | a `.bk-many` button that hung `#drop` | the same button (`aria-expanded`, `aria-controls`, the arrow turned up while open), opening **a list of real checkboxes under the row, in the card, the full width**: `.check` rows at 44px each in px, a `role="group"` named by the question. Tapping the row again closes it. `BOOKING.picking` is still the whole state, so a redraw keeps it. A tick goes through `cards.js`'s change dispatcher to `book-many-pick`, which makes `BOOKING` agree with the box rather than toggling blind, so a doubled event is harmless, and keeps the keyboard's focus on the box. No Done button: a disclosure closes from its own row |
-| **settings, several answers** (`venues_ok`) | a `.me-many` button that hung `#drop` | a `<details>` whose `<summary>` **is** the field (it is in the field rule's group) and whose ticks are `.check` checkboxes under it. The browser opens and closes it. The hidden `data-me` box is still the answer, so `me-save` is unchanged. The ticks carry `data-many-of`, not `data-me`. A tick's own `change` now marks the card dirty, which the panel's buttons never did, so before this a repaint could undo the ticks before Save |
+| **settings, several answers** (`venues_ok`) | a `.me-many` button that hung `#drop` | a `<details>` whose `<summary>` **is** the field (it is in the field rule's group) and whose ticks are `.check` checkboxes under it. The browser opens and closes it. The hidden `data-me` box is still the answer, so `me-save` is unchanged. The ticks carry `data-many-of`, not `data-me`. A tick's own `change` now marks the card dirty, which the panel's buttons never did, so before this a repaint could undo the ticks before Save. After review, which field is open is kept as state (`MANY_OPEN_`), so a repaint draws it open |
 | **the qualification `+`** | opened the subject list in the panel, then the level list | **focuses** the subject box, then the level box (`qualNext_`). A platform's list cannot be opened from script: `showPicker()` needs a tap to ride on, and iOS does not offer it on a select. The gold edge says where the next answer goes |
 | **"Who is this for?"** | the panel hid a blank option that repeated the fallback name | `stepSelect_` writes the blank as `—` when the fallback is already an answer on the list, so the platform's list does not show `Test Admin` twice |
 | `#drop`, `#drop-back` | index.html, 90 lines of CSS, three owners | gone. `dropOnFront_` stays, because the maze's arrow keys ask it (games.js) |
@@ -86,7 +87,7 @@ while the gesture is a swipe or began on a sliding card. The drag guard had alwa
 Note 226 had measured exactly this for a 12–14px drag ending on a caption. As a side effect, a swipe
 that ends on a checkbox's label no longer ticks it.
 
-### Measured: the in-flow list and the fold
+### Measured: the in-flow list and the fold (superseded: see "After review")
 
 Note 147 ruled the in-flow shape out by arithmetic (544px of card in a 534px pane at 320). That was
 before `paneReach_`, which shrinks a card taller than its pane to 0.7 and scrolls past that. Re-measured
@@ -185,8 +186,7 @@ brief was full-width rows, the conventional shape.
 - **A mouse drag that starts on a select opens the select's list** and does not move the column. That
   is the laptop's own dropdown, and the reason the select is native. A finger's drag from the same
   select does move the column (measured above).
-- **The flyer maker's answers ellipsise at 390.** Sixteen-pixel answers in two columns read
-  `Back to …` and `A5 · hal…`. The open list shows them whole.
+- ~~**The flyer maker's answers ellipsise at 390.**~~ Fixed after review: six tracks, see the table.
 
 - **No iPhone was opened.** The platform's own list is the point, and this environment has Chromium
   only. The screenshots of an open list are Chromium on Linux (`dd-*-select-open-*.png`), photographed
@@ -196,3 +196,90 @@ brief was full-width rows, the conventional shape.
 - **Note 188's touch adjustment** (Chromium snapping a touch near a select onto it) is live again,
   because selects take the finger. press.js and swipe.js already walk their swipe starts away from
   selects for this reason.
+
+### After review (9 October)
+
+Two reviewers ran the branch with real touch (CDP), a laptop keyboard and a slow boot, with c332f6b
+beside it. What they found, and what was done:
+
+- **A payload landing under an open list took its select away (must-fix).** Tap Kind, so the phone's
+  list is up, and let a payload land (a slow boot, a Save, `profileRefresh_` once per app open): the
+  column was rebuilt and the pick went to a select no longer in the document, so `BOOKING.how` stayed
+  empty. The settings favourite colour did the same. The panel had found its select again (226). The
+  platform's list cannot, because the list is that element's. **Fixed at the landing repaint:**
+  `landRepaint_` (shell.js, which already held a box being typed in) now also holds a column whose
+  `select` is focused, which on a phone means its list is open, and draws the column once the select is
+  left. `profileRefresh_` (me.js) now repaints through it too, which it did not before. A select's own
+  `change` still redraws its card at once. Re-measured: the same node, the focus kept, and the pick
+  lands (`{how: "Instant class"}`), on a slow boot and on `load()` alike. Journey: *a reply that lands
+  leaves an open list where it is*. Three mutations, each red: `select` out of the hold,
+  `profileRefresh_` painting directly, and the venues field's open state not drawn.
+- **A short drag on the venues field opened it (should-fix).** The swipe guard cancelled the click's
+  default on `select, label, input[type=checkbox|radio]` and not on `summary`, which opens its
+  `<details>` from that default. `summary` is in `FIELD_ACTS_` now. Drags of 12px sideways, 12px down
+  and 14px up leave it shut, and a tap opens it. Asked in check-flow (mutation red) and in press.js's
+  real-touch block.
+- **Opening a list shrank the whole booking card (should-fix).** `paneReach_` zoomed a card with twelve
+  subjects open to 0.70: tick rows 31px and receipt words 5.8px. That broke the house rule that a
+  fingertip does not scale, on the very list that was opened to be pressed. A pane holding an open list
+  of ticks (`.bk-many-list`, `details.many-d[open]`) is now drawn at full size and scrolls, which is the
+  essay's answer for the same reason. It scrolls from its first pixel over, not from `PANE_REACH`'s 24,
+  which would clip half the Send tile. Re-measured: rows 44px and words unchanged at 320, 390 and 1280,
+  and Send is reached by scrolling. `bookManyShow_` scrolls that pane, and only that pane, so a list
+  opened near the foot comes on screen. The section above that says "the card is drawn at 0.70" describes
+  the cost this removes.
+- **The keyboard lost its place on every answer (should-fix).** Enter on the Subject row, ArrowDown on
+  For, a pick in Tutor's open list: each redraw dropped the focus to `<body>`. `redrawBooker_` now
+  records the focused control (its `data-do`, its step and, for a tick, its value) and gives the focus
+  back to the same control on the new card (`bookFocusOf_`). That covers a tick, the several-answers
+  button, and a select on a `pointer: fine` machine. It does not cover a text box, whose `change` fires
+  as it is left, or a select on a phone, where focus is the wheel. Re-measured: Tab after Enter goes into
+  the list, the second ArrowDown moves, and the pick keeps the focus. `book-many-pick`'s own restore was
+  folded into it.
+- **The arrow's padding cut answers that used to fit (should-fix).** `youngest` was 75px in 70 at 320,
+  and the flyer cut 4 of its 8 defaults at 390. The arrow now stands .55rem in with .3rem of air (22px,
+  where it was 31): `youngest` is 75 in 77. The flyer maker is on six tracks (see the table) and cuts
+  nothing at 320, 390, 768 or 1280, measured with canvas against each select's own room.
+- **The booking row's word reached nothing (should-fix, and the nit about the CSS comment).** The
+  stylesheet said "the whole ROW is the target", which had been true of the panel's hit test only. The
+  word is now a `<label for>` its control (`bkCtl_` gives each control an id, and a locked row keeps a
+  `<span>`). A tap on it asks for the platform's list with `showPicker()` where the browser has it;
+  Safari has only the label's focus. A 12px drag on it opens nothing, since labels were already in the
+  guard. The CSS comment now says what is true. press.js asks it with real touch on For, Kind and Tutor,
+  which replaces the deleted "a tap 3px under the box" item.
+- **check-dropdowns let the whole click dispatcher off (should-fix).** It skipped any listener whose
+  body named `FIELD_ACTS_`, and that is shell.js's document click listener. Now the guard's own
+  `if (….closest(FIELD_ACTS_)) e.preventDefault();` statements are cut out and the rest is read. If it
+  finds none of them, it says it could not reach its subject. The reviewer's mutation (a
+  `preventDefault` on a SELECT before `pressDone_`) is red.
+- **check-dropdowns missed inherited and indirect `pointer-events: none` (should-fix).** Every mutation
+  the reviewer tried is red now:
+  - `.mat-sel` and `label.field`, a select's wrappers, found by walking every template's open tags
+    around each `<select`, nested templates included;
+  - `.field > *`, a subject that names no element;
+  - `.q-name`, a class handed to `<select ${attrs}>` by its callers;
+  - `:is(select)` and `NONE`;
+  - a `style="pointer-events:none"` on a select;
+  - `s.style.pointerEvents = 'none'` in a function about a select.
+
+  A pseudo-element (`.card::after`) is its own box and is not counted. Run against c332f6b, the check
+  still names the panel's rule, both elements and both listeners. **The real cascade is asked too:**
+  press.js walks every page of every column, puts it in front, and asks of every select on it whether
+  `pointer-events` is `none` and whether a finger at its centre lands on it, inside every box that
+  clips it. That is 23 selects on 12 columns, plus one counted as scrolled out of reach (the flyer
+  maker's last, under the foot of its own scroller). Adding `.mat-sel` and `label.field` rules to the
+  stylesheet made it name 10.
+- **The duplicate blank had no guard (nit, fixed).** The select journey now checks, for an admin whose
+  own name is on the For list, that the blank is the dash, and that no single-answer select on the card
+  says the same words on two lines. The mutation (`esc(fb || '—')`) is red.
+- **The open venues field shut when a payload landed (nit, fixed with the above).** Which field is
+  open is now state (`MANY_OPEN_`), written by the browser's own `toggle`, and a repaint draws it open.
+  It is not done by marking the card dirty, which would hold the column from every repaint until Save
+  just for having been read.
+- **Removed assertions (nit).** Both that "should have been rewritten" now are: the row's reach
+  (press.js, above) and the duplicate blank (check-flow, above). The several-answers journey again
+  checks that the form is on its page after the list shuts. `bare()`, which moves press.js's mouse
+  swipes off selects, stays, and stays recorded under "Not done": a laptop's mouse on a select is the
+  laptop's dropdown.
+
+The checks re-run on this branch after the fixes are listed, with their numbers, in the commit message.

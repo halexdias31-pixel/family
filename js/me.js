@@ -3343,16 +3343,20 @@ function fieldHtml(name, value, o) {
 
      ANYTHING ALREADY IN THE CELL IS OFFERED, list or not. The column was free text once, so a row may
      hold a name the list does not — leaving it off would make it impossible to untick and easy to
-     lose on the next save. */
+     lose on the next save.
+
+     OPEN IS DRAWN OPEN — see `MANY_OPEN_` below: a repaint keeps the list open under the person who
+     opened it, as `BOOKING.picking` keeps the booking form's. */
   if (FIELD_MULTI[name] && (o.options || []).length) {
     const got = profList_(v);
     const on = x => got.some(g => norm(g) === norm(x));
     const opts = (o.options || []).slice();
     got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
     const said = got.join(', ');
+    const key = attr + ':' + name;
     return `<div class="field many"><span class="many-cap">${esc(label)}</span>
       <input type="hidden" ${attr}="${esc(name)}" value="${esc(said)}">
-      <details class="many-d"><summary class="many-sum${said ? '' : ' is-unset'}"
+      <details class="many-d" data-many="${esc(key)}"${MANY_OPEN_ === key ? ' open' : ''}><summary class="many-sum${said ? '' : ' is-unset'}"
         aria-label="${esc(label + ': ' + (said || 'nothing chosen'))}">${esc(said || 'Tap to choose')}</summary>
         <div class="many-list" role="group" aria-label="${esc(label)}">${opts.map(x => `<label class="check many-opt">
           <input type="checkbox" data-many-of="${esc(name)}" value="${esc(x)}"${on(x) ? ' checked' : ''}${
@@ -3430,6 +3434,34 @@ function fieldHtml(name, value, o) {
     ${listId ? `<datalist id="${listId}">${
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
 }
+
+/* ---------- WHICH SEVERAL-OF-A-LIST FIELD IS OPEN, KEPT AS STATE RATHER THAN IN THE DOM ---------------
+   FOUND BY REVIEW ON 9 OCTOBER: open the venues field, tick nothing, and let a payload land — the
+   list shut under the person. Opening a `<details>` fires no `input` and no `change`, so the card was
+   clean, `settingsKeep_` let `paint` redraw it, and the open state had lived only in the element that
+   was replaced. The panel it replaced survived the same repaint, and so does the booking form's list,
+   because `BOOKING.picking` is state; this is that, for the settings column. Not by marking the card
+   dirty, which is the qualification shelf's answer for an open LINE (*"AN OPEN LINE COUNTS"*): a card
+   held dirty is a column that is never redrawn until Save, and opening a list to read it is not an
+   edit. Written by the browser's own `toggle` (it does not bubble, hence the capture), so a keyboard's
+   Enter, a tap and a redraw drawing it `open` all say the same thing. One is remembered, the last
+   opened, which is the booking form's rule too; there is one such field today (`venues_ok`). The shut
+   of an element being thrown away by a repaint is not a person shutting it, hence `isConnected`. */
+let MANY_OPEN_ = '';
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d || !d.matches || !d.matches('details.many-d')) return;
+  const k = d.dataset.many || '';
+  /* A PERSON OPENING IT, as against a repaint drawing it open: the list is brought onto the screen, as
+     the booking form's is (`tickListShow_` in book.js) — at 320 the card grows when it stops being
+     drawn smaller, and the field went below the glass as it opened. */
+  if (d.open && MANY_OPEN_ !== k && typeof tickListShow_ === 'function') {
+    tickListShow_(() => ({ list: d.querySelector('.many-list'), head: d.querySelector('summary') }),
+                  () => d.isConnected && d.open);
+  }
+  if (d.open) MANY_OPEN_ = k;
+  else if (MANY_OPEN_ === k && d.isConnected) MANY_OPEN_ = '';
+}, true);
 
 /* ---------- A TICK UNDER A SEVERAL-OF-A-LIST FIELD -------------------------------------------------
    WRITES THE HIDDEN INPUT AND THE SUMMARY, AND NOTHING ELSE. The list is read off the boxes in the
@@ -4805,10 +4837,14 @@ function profileRefresh_(loud, onOld) {
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
       const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      if (roleMoved) { try { repaint(); } catch (e) {} return; }
+      /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: a
+         select somebody has open, or a box they are in, is not rebuilt under them. Found by review on
+         9 October — the favourite colour tapped, its list up, and this repaint took the select away. */
+      const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
+      if (roleMoved) { try { land(); } catch (e) {} return; }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
-        try { paint('settings'); placeCells('y', true, 0, 'settings'); } catch (e) {}
+        try { land(() => { paint('settings'); placeCells('y', true, 0, 'settings'); }); } catch (e) {}
       }
     })
     .catch(() => { PROFILE_ASKING = false; });

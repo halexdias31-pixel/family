@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-dropdowns-are-the-platforms-own";
+  --css-version: "2026-10-09-dropdowns-after-review";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -812,12 +812,19 @@ input, select, textarea, .many-sum {
    the image, and the arrow would vanish from whichever select a later rule happened to paint.
 
    AN OPEN LIST POINTS UP — the arrow on a several-of-a-list field turns over while its list is open
-   under it, which is the one thing a disclosure says that a select never needs to. */
+   under it, which is the one thing a disclosure says that a select never needs to.
+
+   THE ARROW SITS CLOSE TO THE EDGE, AND THE WORDS CLOSE TO THE ARROW. It was first drawn with its
+   middle 1.05rem in and .7rem of air before the words, 31px of a 390 phone's select given to a 10px
+   arrow, and the review of 9 October measured what that cost: `youngest` in the Ages box at 320 was
+   75px of words in 70px of room — `younge…` where it had fitted with room to spare before the arrow —
+   and the flyer maker cut twice as many answers as it used to. The tip now stands .55rem in, inside
+   the box's own left inset, and the words stop .3rem before it: 22px rather than 31. */
 select, .bk-many, .many-sum {
   --sel-arrow: var(--dim);
   --sel-tri: 5px;      /* half the arrow's width, and all of its height */
-  --sel-at: 1.05rem;   /* the arrow's middle, from the box's right edge */
-  padding-right: calc(var(--sel-at) + var(--sel-tri) + .7rem);
+  --sel-at: calc(.55rem + var(--sel-tri));   /* the arrow's middle, from the box's right edge */
+  padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem);
   background-image: linear-gradient(45deg, transparent 50%, var(--sel-arrow) 50%),
                     linear-gradient(135deg, var(--sel-arrow) 50%, transparent 50%);
   background-position: right var(--sel-at) center, right calc(var(--sel-at) - var(--sel-tri)) center;
@@ -4097,7 +4104,11 @@ button.text-drop { color: var(--bad); }
    measured rather than preferred: the answer column is **56 / 75 / 81px** at 320 / 390 / 768, and a
    16px answer in a 44px box with a 2rem arrow in 75px is three letters and an ellipsis; and a 44px row
    detaches the dashed rule it sits on by 24px, which was built twice and reverted twice (note 031 —
-   `ACCEPTED_TAP` in check/ui.js carries it). The whole ROW is the target instead: label, dash, answer.
+   `ACCEPTED_TAP` in check/ui.js carries it). So the row's WORD is part of the target as well: `Kind`
+   is a `<label for>` its select (`receiptRow`, `bkCtl_` in book.js), a tap on it focuses the select and
+   asks for the platform's list, and a tap on the answer opens it directly. The row's figures are not:
+   they are the price, not the question. Until review found it on 9 October this said "the whole ROW is
+   the target", which had been the panel's hit test and stopped being true when the panel went.
 
    WHAT IT SHARES IS THE ARROW, smaller — the same `▾`, from the same rule, so a dropdown on the receipt
    reads as a dropdown, which for a week it did not (a dashed word with nothing to say it opens).
@@ -4122,6 +4133,8 @@ button.text-drop { color: var(--bad); }
 /* A DISABLED ROW HAS NO ARROW, because it opens nothing: `send_` (me.js) disables every control on the
    card while a booking is on the wire, and an arrow on a box that will not open is a promise broken. */
 .bk-sel:disabled { background-image: none; padding-right: 0; }
+/* THE WORD THAT OPENS ITS ROW SAYS SO TO A MOUSE, as the answer beside it does. */
+label.bk-k { cursor: pointer; }
 .bk-sel:focus { outline: 0; }
 /* A KEYBOARD ON THIS ROW HAD NOTHING TO SEE. The box has no edge to turn gold, so the arrow does, and
    the answer comes up to full ink: the same "this one" the field's gold edge says, on the one select
@@ -7561,15 +7574,39 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    each on its own line, and the flyer somewhere below the fold. The point of drawing it underneath
    is that you see the change as you make it, and that is lost if you have to scroll to find it.
    A grid of even columns instead: three across on a phone, more on anything wider. */
-.fm-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+/* ---------- A ROW FOR AN ANSWER IN WORDS, HALF A ROW FOR A WORD, A SIXTH FOR A COLOUR ---------------
+   EVEN COLUMNS CUT THE ANSWERS. With the flyer's eight dropdowns in the select rule's own field (note
+   315), two even columns at 390 left 96px of room beside the arrow, and the review of 9 October found
+   half the defaults cut there — `Back to …`, `Waiting …`, `Colliers…`, `A5 · hal…` — where the old
+   small boxes had cut two. The answers are the campaign's name, the venue's, a size in words: data, in
+   a monospace face, twenty-one characters for `Colliers Wood Library`. The card is under 380px wide at
+   every size measured (218 / 272 / 376 / 342 at 320 / 390 / 768 / 1280), so no two of those can ever
+   sit side by side in it whole.
+
+   SO SIX TRACKS, AND EACH CONTROL TAKES WHAT ITS ANSWER NEEDS: a select whose answer is words is the
+   whole row (the labels with no class), one whose answer is a number is half (`fm-half`: Hours, To a
+   class), and a colour well a third (`fm-ink`), the three wells one row. Style is a word and has a row:
+   beside the three wells it left each a sixth, 31px at 320, and a well is a fingertip's target like
+   any other (`check/ui.js` said so the first time this was tried). Two rows taller than the even grid,
+   and the controls already scroll inside `.widget-squeeze`. */
+.fm-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
           gap: .4rem .5rem; margin-bottom: .45rem; }
 .fm-bar label { display: flex; flex-direction: column; gap: .1rem; min-width: 0;
+                grid-column: 1 / -1;
                 font-size: .54rem; letter-spacing: .09em; text-transform: uppercase;
                 color: var(--faint); }
+.fm-bar label.fm-half { grid-column: span 3; }
+.fm-bar label.fm-ink { grid-column: span 2; }
 /* `.fm-bar select` WAS HERE AT .78rem IN A 1.7rem BOX — a flyer's eight dropdowns drawn smaller than
    every other select in the app, under the 16px an iPhone zooms on and under a fingertip. They are the
-   select rule's own field now (note 315: one dropdown everywhere), and the columns below are wide
-   enough for a 16px answer beside the arrow. */
+   select rule's own field now (note 315: one dropdown everywhere), 44px and 16px.
+
+   EXCEPT UNDER 348px WIDE, WHERE THE WORDS GIVE WAY BEFORE THE ANSWER IS CUT. A whole row at 320 is
+   184px of room and `Colliers Wood Library` is 197px at 16px, so the answer comes down with the screen:
+   `4.6vw` is 14.7px at 320, where both twenty-character defaults fit, and 16px from 348 up. In `vw`
+   because the root's rem stops shrinking at 13.5px, under this width. The box stays 44px, which is the
+   fingertip; iOS does not zoom into it, for the reason the booking row gives (`maximum-scale=1`). */
+.fm-bar select { font-size: min(16px, 4.6vw); }
 /* A NATIVE COLOUR INPUT is a real picker on every platform, and a hex field is six characters of
    typing to find out you wanted a different green. */
 .fm-bar input[type=color] { width: 2.4rem; height: 1.7rem; padding: 0; cursor: pointer;

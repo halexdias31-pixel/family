@@ -14165,10 +14165,21 @@ function paneReach_(panes) {
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     };
     const essay = list.map(p => !!p.querySelector('.qp-essay'));
+    /* ---------- AND A LIST OF TICKS THAT IS OPEN IS NEVER DRAWN SMALLER --------------------------------
+       THE BOOKING FORM'S SEVERAL-ANSWERS ROWS AND THE SETTINGS COLUMN'S VENUES open a list of checkboxes
+       in the card (note 315), and the review of 9 Oct measured what this did to them: twelve subjects
+       open at 390x844 took the card to 0.70 — tick rows 31px, the receipt's words 5.8px — and the
+       Child list at 320x568 to 32px rows. A tick row is 44px IN px because a fingertip is the same size
+       on every screen (CLAUDE.md), and the list is open precisely to be pressed. So a pane holding one
+       is drawn at full size and scrolls, which is the essay's answer above for the same reason, and it
+       goes back to fitting the moment the list is shut. `tickListShow_` (book.js) brings the opened
+       list into the pane, for the booking form and the settings column alike. */
+    const ticks = list.map(p => !!p.querySelector('.bk-many-list, details.many-d[open]'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
+      if (ticks[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
       const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
@@ -14234,8 +14245,11 @@ function paneReach_(panes) {
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
     /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || (essay[i] && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > PANE_REACH);
+    /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: drawn at full size
+       instead of fitted, the little it is over is the card's own foot — the Send tile — and 24px of that
+       clipped with no scroll is a tile half there. */
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i]) && want[i] === 1))
+      && p.scrollHeight - p.clientHeight > (ticks[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */

@@ -1538,6 +1538,20 @@ check('a several-of-a-list field opens into ticks under it, marks its card, and 
   if (!/Colliers Wood Library, Mitcham library/.test(sum.textContent)) bad.push('the summary did not follow the tick: ' + JSON.stringify(sum.textContent));
   if (!form || !form.dataset.dirty) bad.push('a tick did not mark the card dirty, so a repaint before Save puts it back');
   if (!det.open) bad.push('ticking a box shut the list');
+  /* A SWIPE THAT STARTS ON THE FIELD OPENS NOTHING. The summary opens its `<details>` from the click's
+     default, as a label ticks its box, so the swipe guard has to cancel it too (`FIELD_ACTS_`) — found by
+     review with real touch: a 12px drag on the field opened it. A tap that stayed put is not cancelled. */
+  if (typeof t.pressMoved !== 'function') bad.push('pressMoved is not exported — the summary\'s swipe guard was NOT checked');
+  else {
+    const click = () => { const ev = new w.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }); sum.dispatchEvent(ev); return ev; };
+    t.pressMoved(true);
+    const swiped = click();
+    t.pressMoved(false);
+    if (!swiped.defaultPrevented) bad.push('a swipe\'s click on the field\'s summary was not cancelled — the list opens under a lifting thumb');
+    const tapped = click();
+    if (tapped.defaultPrevented) bad.push('a tap on the field\'s summary was cancelled — it cannot open');
+    det.open = true;
+  }
   sent.length = 0;
   try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
   await wait(400);
@@ -1545,6 +1559,88 @@ check('a several-of-a-list field opens into ticks under it, marks its card, and 
   if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no updateProfile');
   else if ((post.fields || {}).venues_ok !== 'Colliers Wood Library, Mitcham library') {
     bad.push('Save posted venues_ok as ' + JSON.stringify((post.fields || {}).venues_ok));
+  }
+  return bad;
+});
+
+/* ---------- A REPLY THAT LANDS LEAVES AN OPEN LIST WHERE IT IS -------------------------------------------
+   FOUND BY REVIEW ON 9 OCTOBER, with real touch: tap the booking form's Kind, so the phone's own list
+   is up, and let the payload land — the column was rebuilt, the select the list belonged to went with
+   it, and the pick went nowhere. The settings column's favourite colour the same, through
+   `profileRefresh_`'s repaint, and the venues field's ticks shut under the person who had opened them.
+   The panel had found its select again after a repaint; the platform's list cannot, so a landing reply
+   now holds a column whose select is focused (`landRepaint_`, shell.js), and the venues field's open
+   state is kept as state (`MANY_OPEN_`, me.js). Driven through the two real landing paths: `load()`'s
+   own repaint and `profileRefresh_`'s. */
+check('a reply that lands leaves an open list where it is: a focused select keeps its node, an open venues field stays open', async () => {
+  const P = payload();
+  const { w } = boot({ payload: Object.assign(P, { profileFields: Object.assign({}, P.profileFields || {}, { 'Contact & address': ['favourite_colour', 'email', 'venues_ok'] }) }),
+    reply: b => b.action === 'myProfile'
+      ? { success: true, personId: 'P9', role: 'tutor', roles: ['tutor'], profile: { first_name: 'Ada', last_name: 'Tutor', phone_cc: '+44', email: 'ada@example.org', venues_ok: '' } }
+      : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.landRepaint_ !== 'function') return ['landRepaint_ is not a global — the landing repaint was NOT checked'];
+  t.USER({ name: 'Ada Tutor', personId: 'P9', role: 'tutor', roles: ['tutor'], token: 'tk',
+           profile: { first_name: 'Ada', last_name: 'Tutor', phone_cc: '+44', email: 'ada@example.org', venues_ok: '' } });
+
+  /* THE BOOKING FORM'S SELECT, its list open, and the payload's own repaint landing behind it. */
+  try { t.repaint(true); t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const kind = d.querySelector('#bookr select.bk-sel[data-step="how"]:not(:disabled)');
+  if (!kind) bad.push('no Kind select on the booking form — the booking half was NOT checked');
+  else {
+    kind.focus();
+    w.landRepaint_();
+    await wait(30);
+    if (!kind.isConnected) bad.push('a payload landing rebuilt the booking card under a focused select — its list now belongs to nothing');
+    else if (d.activeElement !== kind) bad.push('a payload landing took the focus off the booking select');
+    const to = [...kind.options].find(o => o.value && !o.disabled);
+    if (to) {
+      kind.value = to.value;
+      kind.dispatchEvent(new w.Event('change', { bubbles: true }));
+      await wait(30);
+      if (t.BOOKING.how !== to.value) bad.push('the pick made in the held select did not reach BOOKING.how: ' + JSON.stringify(t.BOOKING.how));
+    }
+    try { kind.blur(); } catch (e) {}
+  }
+
+  /* THE SETTINGS COLUMN: a select focused, then `profileRefresh_`'s repaint. */
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
+  await wait(200);
+  const cc = d.querySelector('#s-settings select[data-me]');
+  if (!cc) bad.push('no select on Settings (' + JSON.stringify([...d.querySelectorAll('#s-settings [data-me]')].map(x => x.tagName + ':' + x.dataset.me).slice(0, 12)) + ') — the settings half was NOT checked');
+  else if (typeof w.profileRefresh_ !== 'function') bad.push('profileRefresh_ is not a global — its repaint was NOT checked');
+  else {
+    cc.focus();
+    w.profileRefresh_();
+    await wait(300);
+    if (!cc.isConnected) bad.push('profileRefresh_ rebuilt Settings under a focused select');
+    try { cc.blur(); } catch (e) {}
+    await wait(500);
+  }
+
+  /* THE VENUES FIELD, OPENED AND UNTOUCHED — a clean card, which `settingsKeep_` lets a repaint redraw. */
+  w.paint('settings');
+  await wait(100);
+  const det = () => d.querySelector('#s-settings .field.many details');
+  if (!det()) bad.push('no venues field on Settings — the open-list half was NOT checked');
+  else {
+    det().open = true;
+    det().dispatchEvent(new w.Event('toggle'));
+    await wait(30);
+    const form = det().closest('.me-form');
+    if (form && form.dataset.dirty) bad.push('opening the list marked its card dirty — a card held until Save for being read');
+    w.landRepaint_();
+    w.paint('settings');
+    await wait(60);
+    if (!det() || !det().open) bad.push('the venues field shut when a payload landed, with nobody pressing it');
+    det().open = false;
+    det().dispatchEvent(new w.Event('toggle'));
+    await wait(30);
+    w.paint('settings');
+    await wait(60);
+    if (det() && det().open) bad.push('the venues field, shut by the person, came back open after a repaint');
   }
   return bad;
 });
@@ -4781,6 +4877,8 @@ check('picking several answers is one open, a list of checkboxes under its row, 
   if (list()) bad.push('pressing the open row again does not shut the list');
   if (B.picking) bad.push('a shut list leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
   if ((B[step.id] || []).length !== 1) bad.push('shutting the list changed the answer: ' + JSON.stringify(B[step.id]));
+  /* AND THE FORM IS STILL ON ITS PAGE AFTERWARDS — asked while the panel stood, and lost with it. */
+  if (!formUp()) bad.push('shutting the list takes the form off its page');
   return bad;
 });
 
@@ -4824,6 +4922,19 @@ check('a select is the platform\'s own: its press is not cancelled, its focus is
   };
 
   if (floating()) bad.push('a floating list is in the document before anything was pressed');
+  /* ---------- THE ROW'S WORD IS THE SELECT'S LABEL ----------------------------------------------------
+     FOUND BY REVIEW ON 9 OCTOBER: a tap on `Kind` reached nothing, while the stylesheet said the whole
+     row was the target — the panel's hit test had made it so, and went with the panel. The word is a
+     `<label for>` its control now (`receiptRow`), so the browser's own label activation reaches it. */
+  const rowsWithControl = [...d.querySelectorAll('#bookr .bk-row')]
+    .filter(r => r.querySelector('select.bk-sel, button.bk-many, input.bk-in'));
+  if (!rowsWithControl.length) bad.push('no booking row carries a control — the row labels were NOT checked');
+  rowsWithControl.forEach(r => {
+    const ctl = r.querySelector('select.bk-sel, button.bk-many, input.bk-in');
+    const k = r.querySelector('.bk-k');
+    if (!k || k.tagName !== 'LABEL') bad.push('the "' + (ctl.dataset.step || ctl.dataset.do) + '" row\'s word is a ' + (k ? k.tagName : 'nothing') + ', not a label — a tap on it reaches nothing');
+    else if (k.control !== ctl) bad.push('the "' + (ctl.dataset.step || ctl.dataset.do) + '" row\'s label is for ' + JSON.stringify(k.htmlFor) + ', not its own control');
+  });
   if (press(sel, 'mousedown').defaultPrevented) bad.push('the mousedown on the "' + stepId + '" select was cancelled — the platform\'s list opens from it');
   if (press(sel, 'click').defaultPrevented) bad.push('the click on the "' + stepId + '" select was cancelled');
   await wait(30);
@@ -4868,6 +4979,45 @@ check('a select is the platform\'s own: its press is not cancelled, its focus is
     w.__t.pressMoved(false);
     if (!md.defaultPrevented) bad.push('a swipe\'s mousedown on a select was not cancelled — the list opens under a lifting thumb');
     if (!ck.defaultPrevented) bad.push('a swipe\'s click on a select was not cancelled');
+  }
+
+  /* ---------- NO TWO LINES OF THE PLATFORM'S LIST SAY THE SAME THING ----------------------------------
+     THE BLANK OPTION CARRIES THE FALLBACK'S WORDS, so an admin's "Who is this for?" read `Test Admin` on
+     its empty line and `Test Admin` again on the person — two lines nobody could tell apart. The panel
+     hid the repeat, and this journey's option count asserted it; when the platform's list came back the
+     rule moved into `stepSelect_` (the blank is `—` when the fallback is already an answer) and the count
+     went with the panel, so nothing held it (found by review, 9 October: the rule undone, every journey
+     green). Asked of the select itself now: for an admin whose own name is on the For list, the blank is
+     the dash, and no two options of ANY single-answer select on the card read the same. */
+  {
+    const S = w.__t.STEPS || [];
+    const client = S.find(x => x.id === 'client');
+    w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
+    const names = client ? (() => { try { return client.options().filter(Boolean); } catch (e) { return []; } })() : [];
+    const fb = client && client.fallback ? String(client.fallback() || '') : '';
+    if (!client || !w.__t.control) bad.push('the For step or stepControl_ is not there — the repeated blank was NOT checked');
+    else if (!fb || !names.some(n => n === fb)) {
+      bad.push('the admin\'s own name (' + JSON.stringify(fb) + ') is not on the For list — the repeated blank was NOT checked');
+    } else {
+      const box = d.createElement('div');
+      box.innerHTML = String(w.__t.control(client));
+      const s = box.querySelector('select');
+      const blank = s && [...s.options].find(o => o.value === '');
+      if (!blank) bad.push('the For select has no blank option');
+      else if (blank.textContent.trim() === fb) bad.push('the For select\'s blank reads ' + JSON.stringify(fb) + ', which is also a person on the list');
+    }
+    S.filter(x => !x.multi && !x.grid && !x.emails).forEach(x => {
+      const box = d.createElement('div');
+      try { box.innerHTML = String(w.__t.control(x)); } catch (e) { return; }
+      const s = box.querySelector('select');
+      if (!s) return;
+      const seen = new Set();
+      [...s.options].map(o => o.textContent.trim()).forEach(t => {
+        if (seen.has(t)) bad.push('the "' + x.id + '" select says ' + JSON.stringify(t) + ' on two lines of its list');
+        seen.add(t);
+      });
+    });
+    w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   }
 
   /* THE CAPTION OF A `.field` IS A WAY IN TOO, and its activation is the browser's to run. */

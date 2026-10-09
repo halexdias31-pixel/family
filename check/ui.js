@@ -367,7 +367,7 @@ const ACCEPTED_TAP = [
   + 'scrolled sideways hides the words it is asking you to find. What makes it liveable is that a '
   + 'wrong tap costs nothing: a first tap on the wrong letter is replaced by tapping the right one, '
   + 'and a second tap that is not in a line with the first simply becomes the new start.' },
-  { cls: /^bk-(sel|in|v)\b/, why:
+  { cls: /^bk-(sel|in|v|k)\b/, why:
     'THE BOOKING ROW IS ONE LINE AND ITS UNDERLINE IS THE CELL\'S BOTTOM BORDER. Tried twice and '
   + 'photographed both times: `min-height: 44px` on the control grows the grid cell to 44px and '
   + 'leaves the dashed underline sitting 24px below the label it belongs to, with `align-items: '
@@ -376,7 +376,10 @@ const ACCEPTED_TAP = [
   + 'but that is a redesign of the row, not a number, and it is the app\'s main form.\n'
   + '        AND IT IS THE ONE SELECT NOT DRAWN AS THE FIELD. On 9 October every dropdown went back to '
   + 'the platform\'s own and every other select took the field\'s 44px box (note 315); this row kept '
-  + 'its receipt clothes for exactly the reason above, and carries the same arrow, smaller.' },
+  + 'its receipt clothes for exactly the reason above, and carries the same arrow, smaller.\n'
+  + '        AND THE ROW\'S WORD IS ITS LABEL. `Kind` is a `<label for>` the row\'s select (`bk-k`, receiptRow in '
+  + 'book.js), so a tap on the word reaches the select too — the row\'s reach is the word and the answer, not the '
+  + '15px box alone (review, 9 October). It is one line of the same receipt, for the same reason.' },
 ];
 
 /* 4.5:1 is WCAG AA for body text. Large text is allowed 3:1, which is why size is checked too —

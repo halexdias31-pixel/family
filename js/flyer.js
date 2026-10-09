@@ -340,11 +340,13 @@ function flyControls() {
         .map((r, i) => `<option value="${i}"${i === (FLY_AT || 0) ? ' selected' : ''}>${
           esc(r[0])}</option>`).join('')}</select></label>
       ${flyMenu()}
+      ${/* A ROW EACH FOR AN ANSWER IN WORDS, HALF A ROW FOR A NUMBER, A THIRD FOR A COLOUR — see
+            `.fm-bar` in style.css. The labels with no class are the whole row. */''}
       <label>Style<select id="fm-s">${FLY_STYLES
         .map(s => `<option>${s}</option>`).join('')}</select></label>
-      <label>Ink<input type="color" id="fm-k1"></label>
-      <label>Accent<input type="color" id="fm-k2"></label>
-      <label>Paper<input type="color" id="fm-k3"></label>
+      <label class="fm-ink">Ink<input type="color" id="fm-k1"></label>
+      <label class="fm-ink">Accent<input type="color" id="fm-k2"></label>
+      <label class="fm-ink">Paper<input type="color" id="fm-k3"></label>
     </div>
     <div class="fm-bar">
       <label>Advertising<select id="fm-ad">
@@ -354,10 +356,10 @@ function flyControls() {
         <option value="none">Neither</option></select></label>
       <label>Venue<select id="fm-v">${list
         .map(v => opt(v, norm(v[0]) === norm(B.venueMain))).join('')}</select></label>
-      <label>Hours<select id="fm-h">
+      <label class="fm-half">Hours<select id="fm-h">
         <option>1</option><option>1.5</option><option selected>2</option>
         <option>2.5</option><option>3</option></select></label>
-      <label>To a class<select id="fm-n">
+      <label class="fm-half">To a class<select id="fm-n">
         <option>2</option><option>3</option><option selected>4</option>
         <option>5</option><option>6</option></select></label>
       <label>Size<select id="fm-z">

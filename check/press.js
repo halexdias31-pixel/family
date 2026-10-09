@@ -1747,8 +1747,18 @@ for (const who of VISITORS) {
            the `mousedown` that would open the list is cancelled (`FIELD_ACTS_` in shell.js), so the
            select is not focused and its press is not let through;
          · focus arriving by the keyboard's next arrow STAYS on the select — the panel blurred it;
-         · and with a sheet open over a select, one tap on the backdrop closes the sheet and reaches
-           nothing behind it.
+         · with a sheet open over a select, one tap on the backdrop closes the sheet and reaches
+           nothing behind it;
+         · a tap on a booking row's WORD reaches its select — `Kind` is a `<label for>` it — the focus
+           and the platform's list asked for (`showPicker`, recorded rather than drawn here). This is
+           what "a tap 3px under the box" asked while the panel stood; deleted with the panel, and
+           found missing by review: for a commit the word reached nothing;
+         · a 12px drag that starts on the settings column's several-of-a-list field opens nothing, and
+           a tap on it does — its `<summary>` acts on the click's default as a select's label does;
+         · and EVERY select on every page of every column, on the page in front, is what a finger at
+           its centre lands on, with `pointer-events` not `none`. The stylesheet and the scripts are
+           read for this by `js/check-dropdowns.js`; this is the cascade itself, wrappers, inheritance
+           and inline styles included, which nothing reading files can be sure of.
 
        NOTHING ELSE HERE CAN SEE ANY OF IT. `check-flow.js` runs in jsdom, which has no layout and no
        touch adjustment, and `js/check-dropdowns.js` reads the stylesheet rather than a finger. These are
@@ -1771,6 +1781,14 @@ for (const who of VISITORS) {
           if (sel(e.target)) window.__selHit.push(type + (e.defaultPrevented ? ':cancelled' : ''));
         }));
         document.addEventListener('focusin', e => { if (e.target && e.target.tagName === 'SELECT') window.__selHit.push('FOCUS'); }, true);
+        /* THE PLATFORM'S LIST ASKED FOR FROM SCRIPT, recorded and not drawn: a headless page cannot
+           photograph it, and the question is whether it was asked. */
+        if (window.HTMLSelectElement && HTMLSelectElement.prototype.showPicker) {
+          HTMLSelectElement.prototype.showPicker = function () { window.__selHit.push('PICKER'); };
+        }
+        document.addEventListener('toggle', e => {
+          if (e.target && e.target.matches && e.target.matches('details.many-d') && e.target.open) window.__selHit.push('OPENED');
+        }, true);
       });
       await tp.route('**://script.google.com/**', r =>
         r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
@@ -1852,6 +1870,106 @@ for (const who of VISITORS) {
              'the column moved off ' + before + ', and the select neither focused nor pressed');
         await tp.evaluate(() => { go('booking', false, true); });
         await tp.waitForTimeout(700);
+      }
+      /* THE ROW'S WORD. A tap a little in from the label's left edge — where a thumb aims at a word —
+         on three rows, and the select it names is what answers. */
+      for (const step of ['client', 'how', 'tutor']) {
+        const lab = await tp.evaluate(st => {
+          const l = [...document.querySelectorAll('#s-booking label.bk-k[for="bk-ctl-' + st + '"]')]
+            .find(x => typeof dropOnFront_ === 'function' ? dropOnFront_(x) : !!x.offsetParent);
+          if (!l) return null;
+          const r = l.getBoundingClientRect();
+          return { x: Math.round(r.left + Math.min(10, r.width / 2)), y: Math.round(r.top + r.height / 2),
+                   w: Math.round(r.width), h: Math.round(r.height) };
+        }, step);
+        if (!lab) { want('booking · the "' + step + '" row\'s word', false, 'no label for a select on that row', 'a `<label for>` the row\'s select'); continue; }
+        await reset(); await tap(lab.x, lab.y);
+        const r = await now();
+        want('booking · a tap on the "' + step + '" row\'s word (' + lab.w + 'x' + lab.h + ')',
+             (r.focused || r.hit.indexOf('FOCUS') !== -1) && r.hit.indexOf('PICKER') !== -1 && !r.own, said(r),
+             'the row\'s select focused and the platform\'s list asked for — the word is part of the target');
+      }
+
+      /* THE SETTINGS COLUMN'S SEVERAL-OF-A-LIST FIELD: a drag from it is not a tap, a tap opens it. */
+      const venues = await field('settings', '.field.many summary');
+      if (!venues) want('settings · the venues field', false, 'no several-of-a-list field on Settings', 'a field to drag from');
+      else {
+        const shut = () => tp.evaluate(() => document.querySelectorAll('#s-settings details.many-d[open]').forEach(d => { d.open = false; }));
+        for (const [dx, dy] of [[12, 0], [0, 12], [0, -14]]) {
+          await shut(); await reset(); await drag(venues.x, venues.y, dx, dy);
+          const r = await now();
+          want('settings · the venues field, a ' + Math.abs(dx || dy) + 'px drag ' + (dx ? 'sideways' : dy > 0 ? 'down' : 'up'),
+               r.hit.indexOf('OPENED') === -1, said(r) + (r.hit.indexOf('OPENED') !== -1 ? ', the list OPENED' : ''),
+               'the list left shut — a thumb starting a scroll there is not a tap');
+        }
+        await shut(); await reset(); await tap(venues.x, venues.y);
+        const r = await now();
+        want('settings · a tap on the venues field', r.hit.indexOf('OPENED') !== -1, said(r) + (r.hit.indexOf('OPENED') !== -1 ? ', the list opened' : ', the list stayed shut'),
+             'the list opened under it');
+        await shut();
+      }
+
+      /* ---------- EVERY SELECT, ON EVERY PAGE THAT DRAWS ONE, IS WHAT A FINGER LANDS ON -------------------
+         WALKED, NOT SAMPLED: each column the app has, each page of it that holds a select, put in front,
+         and every select on that page asked two things of the real cascade — `pointer-events` (inherited,
+         so a wrapper's rule or a column's inline style counts) and what `elementFromPoint` finds at its
+         centre. A select scrolled out of its pane or under the screen's edge is counted as not measured,
+         and a page with selects none of which could be measured is a failure to reach, not a pass. */
+      {
+        const cols = await tp.evaluate(() => (typeof TABS !== 'undefined' ? TABS : []).map(t => (t && t.id) || t).filter(x => typeof x === 'string'));
+        let measured = 0, skipped = 0;
+        const walls = [];
+        for (const col of cols) {
+          /* EVERY PAGE, NOT ONLY THE ONES HOLDING A SELECT WHEN THE COLUMN IS DRAWN: a widget draws its
+             controls when its page is started (the flyer maker, the cheat sheet), so a page with no select
+             yet is not a page with none. */
+          const pages = await tp.evaluate(c => {
+            go(c, false, true);
+            return [...document.querySelectorAll('#s-' + c + ' > .page')]
+              .map((p, i) => (typeof logIndex_ === 'function' ? logIndex_(c, i) : i));
+          }, col);
+          for (const pg of pages) {
+            await tp.evaluate(a => { go(a.c, false, true); goPage(a.c, a.p, true); }, { c: col, p: pg });
+            await tp.waitForTimeout(450);
+            const got = await tp.evaluate(c => {
+              const out = { ok: 0, off: 0, bad: [] };
+              for (const s of document.querySelectorAll('#s-' + c + ' select:not(:disabled)')) {
+                if (typeof dropOnFront_ === 'function' && !dropOnFront_(s)) continue;
+                const r = s.getBoundingClientRect();
+                if (!r.width || !r.height) continue;
+                const x = r.left + r.width / 2, y = r.top + r.height / 2;
+                /* WHAT IS ON THE GLASS: the window, cut by every box between the select and its screen
+                   that clips — the pane, and a scroller inside the card (the flyer maker's controls
+                   scroll in `.widget-squeeze`, and its last select sits under that box's foot until it
+                   is scrolled to). A centre outside that is scrolled out of reach, not walled off. */
+                let L = 0, T = 0, R = innerWidth, B = innerHeight;
+                for (let e = s.parentElement; e && !e.classList.contains('screen'); e = e.parentElement) {
+                  const cs = getComputedStyle(e);
+                  if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+                  const er = e.getBoundingClientRect();
+                  L = Math.max(L, er.left); T = Math.max(T, er.top); R = Math.min(R, er.right); B = Math.min(B, er.bottom);
+                }
+                if (x < L || x > R || y < T || y > B) { out.off++; continue; }
+                const pe = getComputedStyle(s).pointerEvents;
+                const at = document.elementFromPoint(x, y);
+                if (pe === 'none' || !(at === s || s.contains(at))) {
+                  out.bad.push((s.id || s.dataset.me || s.dataset.step || s.dataset.do || s.className || 'select') + ': pointer-events ' + pe
+                    + ', under the finger ' + (at ? at.tagName.toLowerCase() + (at.className ? '.' + String(at.className).split(' ')[0] : '') : 'nothing'));
+                } else out.ok++;
+              }
+              return out;
+            }, col);
+            measured += got.ok; skipped += got.off;
+            got.bad.forEach(b => walls.push(col + ' p' + pg + ' · ' + b));
+          }
+        }
+        await tp.evaluate(() => go('booking', false, true));
+        await tp.waitForTimeout(500);
+        want('every select on the page in front, ' + measured + ' measured on ' + cols.length + ' columns (' + skipped + ' scrolled out of reach and not measured)',
+             measured > 10 && !walls.length,
+             walls.length ? walls.slice(0, 4).join('; ') + (walls.length > 4 ? ' … and ' + (walls.length - 4) + ' more' : '')
+               : measured > 10 ? 'every one is what a finger at its centre lands on' : 'only ' + measured + ' selects were measured — the walk did NOT reach them',
+             'pointer-events not none, and the select itself under a finger at its centre');
       }
 
       const cc = await field('settings', 'select[data-me="phone_cc"]');
@@ -1960,6 +2078,8 @@ for (const who of VISITORS) {
       r => `${r.dir} from ${r.from} landed on ${r.got}, wanted ${r.want}`);
   const dropBad = drops.filter(d => !d.ok);
   if (drops.length && !dropBad.length) console.log('touched dropdowns ' + drops.length + ' way(s): every tap reached the platform\'s own select, every swipe and drag moved on without it');
+  /* EACH ONE AND WHAT IT GOT, ON ASKING — the line above is a count, and a count cannot say which. */
+  if (VERBOSE) drops.forEach(d => console.log('   ' + (d.ok ? 'ok   ' : 'WRONG') + ' ' + d.from + ' — ' + d.got));
   say('A DROPDOWN TAP WENT WRONG', dropBad, r => `${r.from}: ${r.got}, wanted ${r.want}`);
   say('TOOK THE APP DOWN', dead, r => `${r.action} on ${r.screen}: ` + JSON.stringify(r.alive));
   say('NOTHING MEASURABLE CHANGED, AND NOTHING SAYS WHY', quiet,

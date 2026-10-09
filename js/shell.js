@@ -3524,8 +3524,14 @@ function wideOverClear_() {
    the click in the guard below, before a label can act. Only while the gesture is a swipe or began on
    a card still sliding; a tap that stayed put reaches the select exactly as the platform intends.
    This is what lets a swipe that starts on a dropdown move the column (`axisFree`, overworld.js)
-   without the dropdown opening under the finger as it lifts. Note 315 has the measurements. */
-const FIELD_ACTS_ = 'select, label, input[type="checkbox"], input[type="radio"]';
+   without the dropdown opening under the finger as it lifts. Note 315 has the measurements.
+
+   AND A `<summary>`, which opens its `<details>` from the click's default exactly as a label ticks its
+   box — the settings column's several-of-a-list field is one. Found by review on 9 October with real
+   touch: a 12px drag starting on the venues field logged `click:SUMMARY, TOGGLE:open`, the guard having
+   swallowed the click and the browser opening the list anyway, so a thumb starting a scroll there
+   pushed the card down. The ticks under it were already guarded, as labels. */
+const FIELD_ACTS_ = 'select, label, summary, input[type="checkbox"], input[type="radio"]';
 addEventListener('mousedown', e => {
   if (!PRESS_MOVED && !PRESS_SLIDING) return;
   if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
@@ -3964,18 +3970,32 @@ function loadStale_(n, who) {
    length of the call, so a press that repaints (Send under a message) is never held. Find is not this
    rule's — `findKeep_` holds it on its own, stricter terms, and redraws it itself; Settings' unsaved
    cards are `settingsKeep_`'s and still are. */
+/* ---------- AND NOT THE SELECT WHOSE LIST IS OPEN EITHER ---------------------------------------------
+   FOUND BY REVIEW, 390x844 with real touch, on 9 October: tap the booking form's Kind, so the phone's
+   own list is up over it, and let a payload land behind it. The column was rebuilt, the select the
+   list belonged to was thrown away, and the pick went to a node nobody could see — `BOOKING.how`
+   stayed empty and the row said `—`. The settings column's favourite colour the same. While the panel
+   stood (note 226) it found its select again after a repaint; the platform's list cannot, because the
+   list IS that element's. So the landing repaint holds a FOCUSED select as it holds a box being typed
+   in: on a phone a focused select is its list open (iOS draws the wheel from focus, Android its sheet),
+   and on a laptop it is the list or the keyboard's arrows on it. A pick then lands on the select it was
+   made in, its own `change` redraws what it changes, and the column is drawn when the select is left.
+   Only for a LANDING payload: a select's own `change` still redraws its card at once (`drawBooker`). */
 const TYPING_ = 'textarea, input[type="text"], input[type="search"], input[type="email"], '
-  + 'input[type="tel"], input[type="number"], input:not([type]), [contenteditable="true"]';
+  + 'input[type="tel"], input[type="number"], input:not([type]), [contenteditable="true"], select';
 function typingBox_() {
   const a = document.activeElement;
   if (!a || !a.matches || !a.matches(TYPING_)) return null;
   const stuff = document.getElementById('s-stuff');
   return stuff && stuff.contains(a) ? null : a;
 }
-function landRepaint_() {
+/* `draw` IS ANY OTHER REPAINT THAT A LANDING REPLY MAKES — `profileRefresh_` (me.js) drawing your own
+   settings once per app open is the other one, and it rebuilt the column under an open list exactly as
+   the payload did. Without it, the whole `repaint`, as before. */
+function landRepaint_(draw) {
   const R = RECONNECT;
   R.hold = typingBox_();
-  try { repaint(); } finally { R.hold = null; }
+  try { (typeof draw === 'function' ? draw : repaint)(); } finally { R.hold = null; }
 }
 /* `paint` asks this beside `settingsKeep_` and `findKeep_`, and `startScreen_` before it restarts
    anything. In a `try`, because both are hoisted and this const is not. */
