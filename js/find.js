@@ -4137,7 +4137,7 @@ function bibleIndex_() {
          reads `BIBLE.hays` and so changes its answer the moment they are here, on the item already
          built. The cached search and the pages are told to forget (`me.js`'s move for the friends
          list): a `psalms` typed while the index was on its way would otherwise go on answering from
-         the list that did not have it, and the Books shelf would go on saying "on its way" over a
+         the list that did not have it, and the Books shelf would go on showing its loader over a
          question it can now ask. */
       if (ok) {
         FIND_MEMO.key = null;
@@ -4378,7 +4378,11 @@ function bibleFind_(verses, words, credits) {
 
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK ---------------------------
    `paperEnd_`'s job for the Bible: say what the strip below holds. Over the cover, the only reason
-   there is no question is the index — on its way, or not come. */
+   there is no question is the index — on its way, or not come.
+   ON ITS WAY IS THE ONE LOADER, where the question will be asked. It was "The list of the Bible's
+   books is on its way." — a wait in words of its own; the owner, 9 Oct, *"They should all have a
+   simplistic simple loading thing while it's info or whatever is loading."* Not come is a fact with a
+   way back, and keeps its words. */
 function bibleEnd_(items) {
   if (listKind_(items) !== 'bible') return '';
   const first = items[0], last = items[items.length - 1];
@@ -4386,7 +4390,7 @@ function bibleEnd_(items) {
     if (BIBLE.index) return '';
     return BIBLE.failed
       ? '<p class="find-end">The list of the Bible&rsquo;s books did not arrive. <b>Try again is under the cover.</b></p>'
-      : '<p class="find-end">The list of the Bible&rsquo;s books is on its way.</p>';
+      : loading_();
   }
   if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>Swipe up for it.</b></p>`;
   const to = first.bb === last.bb ? last.ch + ':' + last.v : last.name;
@@ -4428,8 +4432,11 @@ function bibleCard_(x) {
   if (x && x.bb) return bibleVerseCard_(x);
   const ix = BIBLE.index, t = ix && ix.totals;
   const num = v => Number(v || 0).toLocaleString('en-GB');
+  /* THE HOW-TO NEEDS THE INDEX — the translation's name and the counts come from it — so until it is
+     here the cover says what the book is and the one loader holds the room for the rest. It said
+     "Opening the list of books…" on the end of the lede, a wait in words of its own. */
   const how = ix ? ` Choose ${esc(ix.translation)}, then the testament, the group, the book, the chapter
-      and the verse: every verse is a card of its own.` : BIBLE.failed ? '' : ' Opening the list of books…';
+      and the verse: every verse is a card of its own.` : '';
   return `<div class="card fc prac bible" data-bb="card">
     <div class="fc-head">
       <h3>${esc(BIBLE_NAME)}</h3>
@@ -4437,7 +4444,7 @@ function bibleCard_(x) {
     </div>
     <p class="sub">The Authorized Version of 1611</p>
     <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.${how}</p>
-    ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : ''}
+    ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : !ix ? loading_() : ''}
     <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
       King James prints them.</p>
     ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
@@ -4466,7 +4473,9 @@ function bibleVerseCard_(x) {
   if (d) body = bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1]);
   else if (BIBLE.missed[n] && !BIBLE.loading[n]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
   else {
-    body = '<p class="bb-v is-wait" aria-busy="true">…</p>';
+    /* WAITING FOR ITS BOOK: the one loader, where the verse will be. It was a faint "…" with
+       `aria-busy` — the Bible's own wait, one of the twenty-four the owner was looking at on 9 Oct. */
+    body = loading_();
     if (!BIBLE.loading[n]) {
       bibleLoad_(n).then(got => {
         if (!got) toast(bb.book + ' did not arrive — Try again is under the verse.');
@@ -11731,6 +11740,13 @@ function bookingPages_(o) {
      column came back with zero pages — after the `stuff` states had left a `kindLabel` filter set. */
   const narrowed = (STUFF.filters || []).some(f => f.field === 'kindLabel');
   if (!(o && o.column) && narrowed) return [];
+  /* ---------- NOT BEFORE THE PAYLOAD -----------------------------------------------------------------
+     The tutors, the rooms, the prices and your own sessions all come with it, so before it lands the
+     form was every row reading "—", an empty week, a Cost of "–" and no tutor to choose — measured on
+     9 Oct with the payload held, and nothing on it said it was early. It is the one loader on a page of
+     its own until then, as every column waits (`loading_`, shell.js); the form is drawn whole the
+     moment the payload's repaint comes. */
+  if (typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') return [loading_()];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
   /* ---------- THE BASKET IS NOT HERE ANY MORE, AND IT WAS HERE FOR ONE GOOD REASON --------------
      IT WAS A PAGE OF THIS COLUMN, appended in column mode only: a basket is the end of arranging a
@@ -12090,7 +12106,16 @@ function accountPages_() {
      `.card.is-widget` itself. Keeping this line would put a widget card inside a widget card —
      two borders, two backgrounds, two lots of padding — which is visibly worse than what was
      reported in the first place and is exactly what "just a normal widget" rules out. */
-  return [me].concat(claimPages, famPages, others, everyone);
+  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING -----------------
+     Your own card is drawn from the sign-in kept on this device; everybody else — your family, your
+     tutors, the people you teach — comes with the payload. Measured on 9 Oct with it held: the column
+     was your card and nothing after it, and grew under you fifteen seconds later with nothing having
+     said it would. So until it lands, the page after yours is the one loader, as every column waits
+     (`loading_`, shell.js). The owner, 9 Oct: *"They should all have a simplistic simple loading
+     thing while it's info or whatever is loading."* */
+  const coming = typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function'
+    ? [loading_()] : [];
+  return [me].concat(claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME ------------------------------
@@ -14471,11 +14496,19 @@ function stuffQuestion() {
      "3" alone is not a choice anybody can hear the meaning of. `counted` stays first in the class
      list: `check/ui.js`'s accepted tap targets read the first two classes. */
   const grid = !!facet.grid;
+  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING --------------------------
+     The library is a file of its own, and the splash lifts at fifteen seconds once it is in whether
+     the payload is or not — so on a slow line the first question is asked without the answers only
+     the payload brings (the bundles, the films). Measured on 9 Oct with the payload held: a question
+     that looked finished and was not, and grew when the payload came. So under the answers, until then, the one loader
+     (`loading_`, shell.js) — the answers already here stay pressable, and the room under them says
+     more are on their way. */
+  const more = typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function' ? loading_() : '';
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip + '</div>';
+      </div>`).join('') + skip + '</div>' + more;
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,

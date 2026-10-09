@@ -4534,6 +4534,19 @@ function initAvail() {
      NOTHING — and drawing an empty week for the first would be this repository’s oldest fault:
      *I did not manage to look*, printed as *I looked and there was nothing there*. A deployment
      older than `profileFields` says so and offers the sheet, which is where it used to live. */
+  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THAT IS A WAIT, NOT THE OLD SERVER -------------
+     The hours are named by the payload's `profileFields`, so before it lands there are none to draw,
+     and this said "The hours have not arrived from the server yet" — the right words for a server
+     older than `profileFields`, where they never will, and a wait in words of its own for every
+     other tutor for the fifteen seconds the payload takes. The owner, 9 Oct: *"They should all have a
+     simplistic simple loading thing."* So the wait is `loading_()` (shell.js); this widget's `start`
+     runs again on the payload's repaint, which draws the week in its place. The sentence is kept, in
+     its own words, for the payload that came without them — an older server, or one that failed —
+     where it is a fact rather than a wait. */
+  if (!codes.length && typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') {
+    into.innerHTML = loading_();
+    return;
+  }
   if (!codes.length) {
     into.innerHTML = `<p class="note">The hours have not arrived from the server yet.<br>
       <span class="faint">Settings → the week grid is there when they do.</span></p>`;
@@ -4888,7 +4901,7 @@ on('pin-save', el => {
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state.
 
    THEY WERE IN THE WRONG FILE. Both are read by posts.js and written by shell.js, and neither has
-   anything to do with the You screen — they lived here because the skeleton below happened to be
+   anything to do with the You screen — they lived here because the skeleton that was below happened to be
    the first thing that wanted them. That worked only because me.js is loaded before posts.js, which
    is a fact about a list in index.html rather than anything either file states.
 
@@ -4899,33 +4912,10 @@ on('pin-save', el => {
    Shared state goes in data.js. That file loads fourth, before everything that reads it, and it is
    the one place somebody looks for "where does this value live". */
 
-/**
- * A SHAPE OF THE THING THAT IS COMING, not a spinner.
- *
- * A spinner says "wait". This says "a face, a photograph and two lines are about to be here" — so
- * nothing jumps when they arrive, and the wait reads as loading rather than as nothing happening.
- *
- * IT HAS TO MATCH. It used to draw two stacked articles because the feed was a column; the feed is
- * one post per screen now, so it draws ONE, inside the same pager, with the picture taking the
- * same room the real one will. A skeleton in the wrong shape is worse than no skeleton at all —
- * the page still jumps, and it jumps at the exact moment somebody has started reading it.
- *
- * The bars are staggered a little. In lockstep they pulse as one block, which reads as a single
- * animated rectangle; slightly apart they read as separate things arriving.
- */
-function skeleton() {
-  const bar = (w, h, delay, extra) =>
-    `<span class="sk-box" style="width:${w};height:${h};animation-delay:${delay}s${
-      extra ? ';' + extra : ''}"></span>`;
-  return [`
-    <article class="post sk">
-      <header class="post-by">
-        ${bar('1.9rem', '1.9rem', 0, 'border-radius:50%;flex:none')}
-        ${bar('6rem', '.7rem', .08)}
-      </header>
-      <span class="sk-box sk-pic" style="animation-delay:.16s"></span>
-      <div class="post-acts">${bar('9rem', '2.3rem', .24)}</div>
-      ${bar('80%', '.7rem', .32, 'margin-top:.5rem')}
-      ${bar('45%', '.7rem', .4, 'margin-top:.35rem')}
-    </article>`];
-}
+/* `skeleton()` WAS HERE — a grey post (a face, a 4:5 picture, two lines) pulsing on the feed, the
+   reel and Messages while the payload was on its way. Its argument was a good one: "a shape of the
+   thing that is coming, not a spinner", so nothing jumps when it lands. What it lost to is the owner,
+   9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple loading
+   thing"* — it was one of twenty-four looks for one fact. The three columns draw `loading_()` now
+   (shell.js), which on a page of its own holds the whole cell, so its one job is still done: the post
+   that replaces it lands in the room it was keeping. */

@@ -431,8 +431,11 @@ function feedPosts() {
 function postsBlocks() {
   /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: one is a
      wait and the other is a fact. Telling somebody "nothing posted yet" while the request is still
-     in flight is a lie the app corrects a second later, which is worse than saying nothing. */
-  if (!LOADED) return skeleton();
+     in flight is a lie the app corrects a second later, which is worse than saying nothing.
+     THE WAIT IS `loading_()`, the one every card draws (shell.js) — a page of its own, so it holds
+     the whole cell and the post lands in the room it was keeping. It was a skeleton post of its own
+     until the owner, 9 Oct: *"They should all have a simplistic simple loading thing."* */
+  if (!LOADED) return [loading_()];
 
   const posts = feedPosts();
   /* ---------- WHAT THE CALENDAR IS OFFERING, AT THE FRONT OF THE FEED -------------------------------
@@ -580,7 +583,7 @@ let CAM_STREAM = null;
    was a prompt nobody swiped for, which is the report this was written for arriving by another road.
    Held until the page is left (`feedCamWatch_`, `camStop_`) or `Try the camera again` is pressed,
    and drawn back onto every redrawn card by `camFailed_`, so a repaint cannot quietly turn the
-   sentence saying why back into "Starting the camera…". */
+   sentence saying why back into the loader that says it is starting. */
 let CAM_ASKING = false;
 let CAM_FAILED = null;
 /* ---------- WHICH WAY IT IS POINTING, AND WHY IT IS A VARIABLE NOW --------------------------------
@@ -602,10 +605,12 @@ function cameraCard() {
       <canvas id="cam-still" hidden></canvas>
       ${/* "Starting" RATHER THAN "off", BECAUSE IT IS. This panel shows for the moment between the
             column arriving and the first frame, and `The camera is off.` was a statement about a
-            state the card no longer has — read while the thing it denied was already happening. */''}
-      <div class="cam-off" id="cam-off">
-        <p class="sub">Starting the camera…</p>
-      </div>
+            state the card no longer has — read while the thing it denied was already happening.
+            AND "STARTING" IS THE ONE LOADER NOW, not a sentence of its own: the owner, 9 Oct, *"they
+            should all have a simplistic simple loading thing"*. It sits in the middle of the
+            viewfinder, where the picture will be; a camera that did NOT start is a fact, not a wait,
+            and keeps its words (`camFailed_`). */''}
+      <div class="cam-off" id="cam-off">${loading_()}</div>
     </div>
     ${/* ---------- FOUR CONTROLS, WHICH IS WHAT A CAMERA HAS ------------------------------------
           ASKED FOR ON THE WHITEBOARD BY SHAPE AND COLOUR: "white circle for take pic, Red for
@@ -819,6 +824,17 @@ async function camStart_() {
     return;
   }
   if (retry) retry.disabled = true;
+  /* ---------- A NEW ASK IS A WAIT AGAIN, AND IT LOOKS LIKE ONE --------------------------------------
+     After a refusal the viewfinder said "The camera did not start." and the line under it why — and
+     `Try the camera again`, or coming back up to the page, asked again with both still standing, so
+     the card read as refused for the whole of a fresh prompt. Measured on 9 Oct by `check/ui.js`'s
+     `the camera still starting`: the stale reason was the line that went when the stream came, and the
+     card moved 40px at the moment the picture arrived. So asking puts the one loader back in the
+     viewfinder (`loading_`, shell.js — the owner, 9 Oct, *"they should all have a simplistic simple
+     loading thing"*) and clears the line; a refusal writes both back in `camFailed_`. */
+  const off = $('cam-off');
+  if (off) { off.hidden = false; if (!off.querySelector('.loading')) off.innerHTML = loading_(); }
+  if (said) said.textContent = '';
   CAM_ASKING = true;
   try {
     /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
@@ -844,7 +860,7 @@ async function camStart_() {
   /* ---------- AND THE CARD MAY HAVE BEEN DRAWN AGAIN WHILE IT WAS UP --------------------------------
      `v`, `said` and `retry` were found before the prompt, and a repaint in the meantime replaced all
      three — so the stream went into a `<video>` no longer in the document while the one on the screen
-     said "Starting the camera…" until something else repainted. Found again here, after the wait,
+     said it was starting the camera until something else repainted. Found again here, after the wait,
      which is the half `CAM_ASKING` makes necessary: the repaint no longer asks a second time, so this
      answer is the only one that will arrive. */
   const now = $('cam-view');
@@ -866,7 +882,7 @@ async function camStart_() {
 
 /* ---------- WHAT THE CARD SAYS WHEN THE CAMERA DID NOT START -----------------------------------------
    DRAWN FROM TWO PLACES NOW: the ask that failed, and every card redrawn after it while the refusal
-   is remembered. A repaint puts back a card reading "Starting the camera…" with its retry hidden, and
+   is remembered. A repaint puts back a card with the loader in its viewfinder and its retry hidden, and
    `camStart_` no longer asks again behind it — so without this the card would claim to be starting a
    camera nobody is asking for, with no way to ask. */
 function camFailed_(err) {
@@ -875,7 +891,9 @@ function camFailed_(err) {
   /* THE WAY BACK APPEARS ONLY NOW. Until something fails there is nothing to retry, and a button
      offering to start a camera that is already running is the thing this replaced. */
   if (retry) { retry.hidden = false; retry.disabled = false; }
-  if (off) { off.hidden = false; const t = off.querySelector('.sub'); if (t) t.textContent = 'The camera did not start.'; }
+  /* THE PANEL'S WHOLE CONTENT, NOT A LINE INSIDE IT: while it waits it holds the loader and no
+     sentence, so there is no line to find and rewrite. */
+  if (off) { off.hidden = false; off.innerHTML = '<p class="sub">The camera did not start.</p>'; }
   /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
   camSettle_();
 }
@@ -1426,8 +1444,7 @@ function camStop_(keepShown) {
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
   const off = $('cam-off');
-  if (off) { off.hidden = false;
-             const t = off.querySelector('.sub'); if (t) t.textContent = 'Starting the camera…'; }
+  if (off) { off.hidden = false; off.innerHTML = loading_(); }
   $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
   /* LEAVING THE COLUMN LETS THE POST GO TOO, the tray with it — the same thing it has always done to
      a single held picture. */
@@ -1705,7 +1722,11 @@ on('new-post', () => {
        Uploading writes to Drive; choosing only reads it. That difference matters because a
        deployment can hold read and not write — and for a photograph taken on a phone this is the
        shorter route anyway: share it to the folder from the camera roll and it is here. */''}
-  <div id="post-from-folder"><p class="faint">Looking in the folder…</p></div>
+  ${/* WHILE THE FOLDER IS READ, THE ONE LOADER — it said "Looking in the folder…" in faint ink, a
+       wait of its own on a sheet; the owner, 9 Oct, *"they should all have a simplistic simple
+       loading thing"*. What it turns into — the pictures, "Nothing new", "Could not look" — is a
+       result, and keeps its words. */''}
+  <div id="post-from-folder">${loading_()}</div>
   ${/* A LINK, not a file.
        Uploading meant this app had to be allowed to write to your Drive, which is a large
        permission to hold for the sake of one button — and the picture has to be somewhere with a
@@ -2172,7 +2193,8 @@ function feedCamWatch_() {
    pointed the other way. The sheet still wins the moment it has a row, so nothing about the
    migration is undone — it just stops being a cliff. */
 screen('reel', () => {
-  if (!LOADED) return `<section class="page"><div class="pane">${skeleton()}</div></section>`;
+  /* WAITING, AS EVERY COLUMN WAITS — `loading_()` on a page of its own. */
+  if (!LOADED) return `<section class="page"><div class="pane">${loading_()}</div></section>`;
   /* ---------- CLIPS ONLY, AND THE FACTS ARE NOT A FALLBACK ---------------------------------------
      REPORTED FROM A SCREENSHOT OF THIS COLUMN: "no more factoids on this yh? its just the videos".
      The column opened on a green gradient reading "Notre-Dame took nearly 200 years", which is a
@@ -2395,7 +2417,11 @@ function reelTurn_(n) {
   /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. Appending when the last one is reached puts a
      blank page where the flick should have been; two early is the same cost paid while nobody is
      waiting. Same number and same reason as the observer that used to do it. */
-  if (n >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
+  /* AND NOT WHILE THE COLUMN IS STILL WAITING. Measured on 9 Oct with the payload held: page 0 was
+     the waiting card and pages 1 and 2 were clips, added by this top-up behind it — a column that
+     said "on its way" and "here it is" at once. `screen('reel')` draws the clips the moment the
+     payload lands; until then the one loader is the whole column, as on every other. */
+  if (LOADED && n >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
 
   /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen
      rather than gone, because the column peeks above and below. A clip left running up there is
@@ -2579,8 +2605,8 @@ screen('dm', () => { dmSync_(); return pages('dm', dmPages_().map(p => p.html));
 let DM_ASKED = false;
 /* AND WHETHER IT CAME BACK, which `MESSAGES` cannot say. `loadMessages` leaves it alone on a
    failure — deliberately, so a blip does not read as an empty inbox — so "still null" means both
-   *waiting* and *asked and refused*, and showing the skeleton for the second is a column that
-   never finishes loading. This is the fact the skeleton actually depends on. */
+   *waiting* and *asked and refused*, and showing the loader for the second is a column that
+   never finishes loading. This is the fact the loader actually depends on. */
 let DM_DONE  = false;
 
 /* IS ONE IN FLIGHT. Two overlapping asks against this backend is two round trips for one answer,
@@ -2649,7 +2675,7 @@ function dmTyping_() {
 
 /* THE ONE SIDE EFFECT. `loadMessages` swallows its own failures and always resolves, so there is no
    rejection path to handle — and the first answer must repaint either way, or a failed first fetch
-   leaves the skeleton on screen for ever with nothing saying why. */
+   leaves the loader on screen for ever with nothing saying why. */
 function dmSync_(force) {
   if (!USER || !LOADED || DM_BUSY) return;
   if (!force && DM_ASKED && Date.now() - DM_LAST < DM_EVERY) return;
@@ -2722,7 +2748,8 @@ function dmFace_(t) {
 function dmPages_() {
   if (!USER) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
     <p class="sub">Sign in to see your messages.</p></div>` }];
-  if (!LOADED || !DM_DONE) return [{ name: '', html: skeleton() }];
+  /* THE PAYLOAD AND THE FIRST ANSWER FOR MESSAGES — `loading_()` until both, as every column waits. */
+  if (!LOADED || !DM_DONE) return [{ name: '', html: loading_() }];
 
   const threads = messageThreads_();
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT -------------------------------------

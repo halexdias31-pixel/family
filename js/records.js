@@ -77,7 +77,12 @@ const bizRow_ = id => (BIZ.list || []).find(r => r.id === id) || {};
 
 const bizCap_ = (item, st) => `${esc(item.title)} <span class="biz-when">· ${esc(item.due.toLowerCase())}</span>${
   st ? ` <b class="biz-flag">${st === 'overdue' ? 'Overdue' : 'Due soon'}</b>` : ''}`;
-const bizSaid_ = () => BIZ.error ? BIZ.error : BIZ.list ? '' : 'Fetching what is recorded…';
+/* THE CARD'S OWN LINE SAYS ONLY A REFUSAL NOW. It said "Fetching what is recorded…" under Save on all
+   five cards while `listRecords` was out — a wait in words of its own, with the boxes empty and
+   live beneath it. The wait is the one loader over the boxes (`bizCard_`). */
+const bizSaid_ = () => BIZ.error || '';
+/* WAITING: asked and not yet answered. A refusal is an answer, and draws the boxes with it. */
+const bizWaiting_ = () => !BIZ.list && !BIZ.error;
 
 function bizItem_(item) {
   const r = bizRow_(item.id);
@@ -97,11 +102,23 @@ function bizItem_(item) {
   </div>`;
 }
 
+/* ---------- UNTIL THE SHEET HAS ANSWERED, THE BOXES ARE UNDER THE ONE LOADER ---------------------------
+   MEASURED ON 9 Oct with `listRecords` held: five cards, every box empty and editable, "Fetching what
+   is recorded…" under Save, and a Save that answered with a toast. A box typed into then made the
+   card one `bizFillAll_` leaves alone, so what the sheet held never reached it. The owner, 9 Oct:
+   *"They should all have a simplistic simple loading thing while it's info or whatever is loading."*
+   So the boxes and Save are drawn as they will be and veiled by `loading_()` (shell.js): the card is
+   its finished size from the first frame, the dots sit over the room the dates will fill, nothing can
+   be typed into a box about to be overwritten, and `bizFill_` takes the loader off as it fills them —
+   in place, so nothing on the card moves. The title stays out of it, so you can see which card it is. */
 function bizCard_(pg) {
+  const wait = bizWaiting_() && typeof loading_ === 'function';
   return `<div class="card biz"><div class="me-form" data-biz-page="${esc(pg.title)}">
     <h3>${esc(pg.title)}</h3>
-    ${pg.items.map(bizItem_).join('')}
-    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'biz-save' })}</div>
+    <div class="biz-body"${wait ? ' aria-busy="true"' : ''}>
+      ${pg.items.map(bizItem_).join('')}
+      <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'biz-save' })}</div>
+    ${wait ? loading_() : ''}</div>
     <p class="faint me-said biz-said">${esc(bizSaid_())}</p>
   </div></div>`;
 }
@@ -134,9 +151,17 @@ function bizFill_(form) {
   });
   const said = form.querySelector('.biz-said');
   if (said) said.textContent = bizSaid_();
+  /* AND THE LOADER COMES OFF, with the values already in the boxes under it — so they appear filled
+     rather than empty and then filled. A refusal takes it off too: it is an answer, not a wait. */
+  if (!bizWaiting_() && typeof loaded_ === 'function') loaded_(form.querySelector('.biz-body'));
 }
 const bizFillAll_ = () => document.querySelectorAll('.me-form[data-biz-page]')
-  .forEach(f => { if (!f.dataset.dirty && !f.classList.contains('is-sending')) bizFill_(f); });
+  .forEach(f => {
+    if (!f.dataset.dirty && !f.classList.contains('is-sending')) bizFill_(f);
+    /* A CARD KEPT FOR WHAT IS TYPED IN IT IS NOT FILLED, AND IT STOPS WAITING ALL THE SAME — the loader
+       is about the answer having come, and it has. */
+    else if (!bizWaiting_() && typeof loaded_ === 'function') loaded_(f.querySelector('.biz-body'));
+  });
 
 function bizStart_() {
   if (!(typeof isAdmin === 'function' && isAdmin()) || BIZ.list || BIZ.asking) return;
@@ -156,7 +181,7 @@ on('biz-save', el => {
   if (!form || !isAdmin()) return;
   if (!BIZ.list) {
     toast(BIZ.error ? 'The records have not loaded, so nothing was saved — trying again.'
-                    : 'Still fetching what is recorded — a moment.');
+                    : 'The records are still on their way — a moment.');
     if (BIZ.error) { BIZ.error = ''; bizStart_(); }
     return;
   }

@@ -43,6 +43,11 @@ const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet' },
+  /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT --------------------------------------------
+     The owner, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
+     simple loading thing."* Twenty-four looks for one fact were replaced by `loading_()`; this is
+     what stops the twenty-fifth — a phrase, a class, a keyframe — arriving one fix at a time. */
+  { file: 'check-loading.js', what: 'every wait is the one loader, and nothing else draws one' },
   /* THE REBUILT SPLASHES, AS KEYFRAMES. `npm run splash` asks whether the picture changes and a
      wipe, a snap and a cross-fade all change it — so it passed the three faults this reads for. */
   { file: 'check-splash-loops.js', what: 'the rebuilt splashes: one seamless loop each, centred' },

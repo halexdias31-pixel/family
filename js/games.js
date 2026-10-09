@@ -513,6 +513,19 @@ function drawCalendar() {
         kinds.map(k => `<i class="dot ${k}"></i>`).join('')}</span>` : ''}</span>`);
   }
   host.innerHTML = cells.join('');
+  /* ---------- AND UNTIL THE PAYLOAD IS IN, THE MONTH IS WAITING, NOT EMPTY ---------------------------
+     The terms, holidays, exams and sessions all come with the payload, so before it lands this drew a
+     month with no mark on it — measured on 9 Oct with the payload held — which reads as a month with
+     nothing in it. Nothing on the card said otherwise. So the days are drawn and veiled by the one
+     loader (`loading_`, shell.js): the grid keeps its size under the dots, and when the payload's
+     repaint draws it again with its marks it appears in exactly that box. The arrows still turn the
+     month meanwhile; each month is drawn waiting until the marks are there to put on it. */
+  if (typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') {
+    host.setAttribute('aria-busy', 'true');
+    host.insertAdjacentHTML('beforeend', loading_());
+  } else {
+    host.removeAttribute('aria-busy');
+  }
   /* THE KEY IS ITS OWN ELEMENT AFTER THE GRID, not a cell of it: `.cal` is a seven-column grid and
      anything put inside it would be laid out as days. Found or made beside `#cal-body`. */
   let key = host.parentNode && host.parentNode.querySelector('.cal-key-box');
@@ -5568,7 +5581,20 @@ function vidPaint_(only) {
   const playing = all.find(r => r.key === VID.at) || null;
   /* A COUNT RATHER THAN A SILENCE: "3 of 12 videos" says the box searched something, where an
      empty list under a search box looks exactly like a search that never ran. */
-  const said = VIDEOS_LIST === null && !all.length ? 'Looking for videos…'
+  /* ---------- STILL COMING IS THE ONE LOADER, OVER THE CARD IT WILL FILL ------------------------
+     It was "Looking for videos…" in the count's faint line, under a search box with nothing to
+     search, over an empty list — a wait of its own. The owner, 9 Oct: *"They should all have a
+     simplistic simple loading thing while it's info or whatever is loading."* So until the list is in
+     the box is drawn whole and veiled by `loading_()` (shell.js): the search box, the count line —
+     held at one line by a space, so it is the height it will be — and the list, out of sight under
+     the dots. Nothing can be typed into a search with nothing behind it, and when the list lands the
+     card is already the size it is about to be: measured by `check/ui.js` in `the videos still
+     coming`. "No videos listed yet" is a fact once both sources have answered, and keeps its words.
+     BOTH SOURCES: the owner's list is `data/videos.json` and an admin's films come with the payload,
+     so an empty list with either still out is a list on its way — measured on 9 Oct with the payload
+     held, an admin's card said "No videos listed yet" over films that landed fifteen seconds later. */
+  const waiting = !all.length && (VIDEOS_LIST === null || (typeof LOADED !== 'undefined' && !LOADED));
+  const said = waiting ? '\u00a0'
     : !all.length ? 'No videos listed yet.'
     : found.length === all.length ? all.length + (all.length === 1 ? ' video' : ' videos')
     : found.length + ' of ' + all.length + ' videos';
@@ -5614,9 +5640,18 @@ function vidPaint_(only) {
                                           off: !playing });
     }
     box.querySelector('.vid-said').textContent = said;
+    /* THE VEIL GOES ON ONCE AND COMES OFF ONCE: a repaint while still waiting finds it already there,
+       and the paint that has the list takes it off with `loaded_`. */
+    if (waiting && typeof loading_ === 'function') {
+      if (box.getAttribute('aria-busy') !== 'true') {
+        box.setAttribute('aria-busy', 'true');
+        box.insertAdjacentHTML('beforeend', loading_());
+      }
+    } else if (typeof loaded_ === 'function') loaded_(box);
     /* FORTY ROWS, AND THEN A SENTENCE SAYING THERE ARE MORE — the count above said "60 videos" over a
        list that stopped at forty with nothing to say the rest existed. */
-    box.querySelector('.vid-list').innerHTML = found.length
+    box.querySelector('.vid-list').innerHTML = waiting ? ''
+      : found.length
       ? found.slice(0, 40).map(vidRow_).join('')
         + (found.length > 40 ? `<li class="faint vid-none">${found.length - 40} more — type to narrow the list.</li>` : '')
       : (all.length ? '<li class="faint vid-none">Nothing matches that.</li>' : '');
