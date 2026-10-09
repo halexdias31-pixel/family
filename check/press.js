@@ -171,6 +171,13 @@ const ACCEPTED_QUIET = {
      asks what was said, to whom, and when it was cut off — that is where this press is proved. */
   'imp-listen': { why: 'speaks the card quietly through speechSynthesis and draws nothing, so nobody across '
                      + 'the table sees that anything happened; check-flow records the voice and proves it.' },
+  /* A TEXTBOOK ANIMATION'S PLAY AGAIN PUTS THE SAME MARKUP BACK, which is how a CSS animation starts
+     over: new elements, the same drawing. Everything this harness compares is the same afterwards by
+     construction — the motion restarting is the whole effect. check-flow proves it ("Play again left
+     the drawing's elements in place" if the nodes are not new; "changed the drawing" if they are not
+     the same). */
+  'tb-an-again': { why: 'restarts the animation by putting the same markup back: new elements, the same '
+                     + 'drawing, so nothing measured differs; check-flow proves the elements are new.' },
   /* AND SHOW, PRESSED STRAIGHT AFTER DEAL, IS A DOUBLE TAP — which is what it is ignored as, on purpose.
      On the setup state this presses Deal and then Show, which Deal has just drawn on the same pixels,
      well inside `IMP_GAP`: two taps that close are the double tap the guard exists for (games.js, "a
