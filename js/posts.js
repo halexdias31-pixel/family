@@ -2402,13 +2402,34 @@ function reelTurn_(n) {
      sound coming from something nobody can see, which is the one thing a muted-by-default column
      is arranged to avoid. */
   host.querySelectorAll('.reel').forEach(el => {
-    const here = Number(el.dataset.reel) === n && REEL_HELD !== n;
+    const at = Number(el.dataset.reel);
+    const here = at === n && REEL_HELD !== n;
     const v = el.querySelector('video.feed-vid');
     if (v) {
       if (here) reelPlay_(v);
       else { try { v.pause(); } catch {} }
     }
+    /* A SHORT OBEYS THE SAME RULE, and one more: a player more than a page away is TAKEN DOWN, not
+       paused. See `reelYtDrop_` for the arithmetic — a YouTube player is a whole web page in its own
+       process, and the column deals the same Short again every lap. The neighbours keep theirs
+       paused, so a flick back resumes rather than reloads. */
+    const yt = el.querySelector('.feed-yt');
+    if (yt) {
+      if (here) reelYtPlay_(yt);
+      else if (Math.abs(at - n) > 1) reelYtDrop_(yt);
+      else reelYtPause_(yt);
+    }
   });
+
+  /* AND THE NEIGHBOURS' FOCUS IS READ AGAIN, NOW THAT THEY ARE STILL. `soft-dim` (a dim in place of
+     the blur, for a pane that repaints itself) is decided by `placeGrid` at the turn — and at the
+     turn the reel just left is still playing, because this runs after the slide. So the page you had
+     just left stayed dimmed and sharp-edged among blurred ones until something placed the grid again:
+     an mp4 that way, and a Short for as long as it kept its player (review, 9 Oct, measured both).
+     Not during a drag: the finger owns the focus then (`softDrag_`). */
+  if (typeof softDim_ === 'function' && !SOFT_DRAG) {
+    host.querySelectorAll('.page.soft').forEach(p => p.classList.toggle('soft-dim', softDim_(p)));
+  }
 }
 
 /* ---------- AND IT STOPS WHEN YOU LEAVE THE COLUMN ------------------------------------------------
@@ -2437,7 +2458,9 @@ function reelsStop_() { clipsStop_($('s-reel')); }
 function clipsStop_(root) {
   if (!root) return;
   root.querySelectorAll('video.feed-vid').forEach(v => { try { v.pause(); } catch {} });
-
+  /* A SHORT IS TAKEN DOWN RATHER THAN PAUSED when its column is left — `reelYtDrop_` says why. It is
+     built again, from its poster, the moment `reelsWatch_` finds it on screen on the way back. */
+  root.querySelectorAll('.feed-yt').forEach(reelYtDrop_);
 }
 
 /* ONE MORE LAP, AS PAGES. `pages()` is the same wrapper the screen's first draw used, so an
@@ -2483,6 +2506,314 @@ function reelPlay_(v) {
   const p = v.play();
   if (p && p.catch) p.catch(() => {});
 }
+/* ==================================================================================================
+   A YOUTUBE SHORT, DRIVEN THE WAY THE `<video>` ABOVE IS
+
+   THE OWNER, 9 OCT: *"i want to add this to reels, maybe embedd? or work fine without? i just want it
+   to look like other reels"*. A YouTube video has no file a `<video>` can read, so it is an embed or
+   nothing — and the embeds were taken out on "remove the embedded reels. they suck." The note over
+   `clipPlayable_` in games.js says why this one is let back in: Drive's and Instagram's players could
+   not be told anything, and YouTube's IFrame Player takes orders by `postMessage`. So everything the
+   column does to a `<video>` is done here to the player, by message, and nothing else is:
+
+     arriving        the poster is already there (`feedSlide`); THIS builds the player, muted, and it
+                     starts itself — the one kind of start every browser allows
+     tap             `pauseVideo` / `playVideo`, and `is-held` draws the ▶, exactly as for a video
+     Sound           `unMute` / `mute`, the same button and the same words
+     leaving         `pauseVideo`; a page further and the player is taken down (`reelYtDrop_`)
+     cannot load     the poster stays, and one link says "Watch on YouTube" (`reelYtDead_`)
+
+   NO SCRIPT FROM YOUTUBE ON THIS PAGE. `iframe_api` would be a second company's JavaScript loaded into
+   the app on every visit, for a handful of messages whose shape is fixed: `{event: 'command', func,
+   args}` one way, `onReady` / `infoDelivery` / `onStateChange` / `onError` the other. They are written
+   out below instead — the part of that file this column needs, and nothing it does not.
+
+   THE PLAYER IS INVISIBLE UNTIL IT IS PLAYING. Before its first frame an embed shows a black box, a
+   spinner and the video's title; paused, the title again and suggestions of its own; broken, its
+   error screen. None of those is a reel. So the iframe sits at `opacity: 0` over the poster and `is-live`
+   — set when the player says it is PLAYING, and taken off the moment it is told to stop — is the one
+   thing that shows it. A held Short shows its poster under the ▶, not YouTube's pause screen.
+
+   NOT SEEN FROM HERE, AND SAID SO. The machine these were written and checked on cannot reach
+   YouTube, so every test speaks to a stand-in that answers in the player's own messages. What the
+   real player may still draw in its first seconds of playing — its title, which no parameter has
+   turned off since `showinfo` was retired — is settled by the first open on a phone (note 319).
+
+   A CLEAR LAYER OVER IT TAKES EVERY TOUCH. A touch on an iframe belongs to the page inside it: the
+   column could not be swiped past a Short, and a tap would have pressed YouTube's own player. The
+   veil (`.feed-yt-veil`) is above the iframe and the iframe is `pointer-events: none` under it, so a
+   tap is the slide's `reel-tap` and a drag is the column's — the same two things they are on a video.
+================================================================================================== */
+const YT_HOST = 'https://www.youtube-nocookie.com';
+/* HOW LONG A PLAYER HAS TO PLAY ITS FIRST FRAME before the slide stops waiting and offers the door.
+   Long, on purpose: the poster is on the screen for all of it, so waiting costs nothing anybody can
+   see, and YouTube's player is a megabyte of somebody else's script on a phone that may be on 3G. A
+   player that answers and is then told to stop is not timed — only one that was asked to play, or
+   one that has said nothing at all (`reelYtClock_`). */
+const YT_GIVE_UP = 20000;
+/* HOW LONG THE PLAYER STAYS SHOWING ACROSS A LAP — see `reelYtHeard_`. A restart that has not said
+   PLAYING again by then is not a lap any more, and whatever YouTube is drawing goes back under the
+   poster. */
+const YT_LAP = 2500;
+let YT_SEQ = 0;
+/* PER SLIDE, ITS TWO CLOCKS AND THE LAST STATE ITS PLAYER REPORTED. A WeakMap, so a slide a repaint
+   threw away takes its entry with it, and nothing about a clock is written into the markup. */
+const YT_BOX = new WeakMap();
+/* BOTH CLOCKS STOPPED — when the player is taken down, or given up on. A clock left running over a
+   player that is gone would fire into the NEXT one built on the same slide and decide about it. */
+function ytClocksOff_(box) {
+  const o = ytBox_(box);
+  clearTimeout(o.clock); clearTimeout(o.lap);
+  o.clock = o.lap = 0;
+  o.st = null;
+}
+function ytBox_(box) {
+  let o = YT_BOX.get(box);
+  if (!o) YT_BOX.set(box, o = { clock: 0, lap: 0, st: null });
+  return o;
+}
+
+/* THE ADDRESS, and every word in it is doing something. `enablejsapi` is what makes it take orders;
+   `mute` + `autoplay` is the start a browser allows; `loop` needs `playlist` set to the same id or a
+   single video ignores it; `controls=0`, `rel=0`, `iv_load_policy=3` take YouTube's buttons, its
+   suggestions and its annotations off the picture; `playsinline` stops an iPhone taking it full screen;
+   `origin` is the page the player may talk to, and it is left off where there is no web origin to
+   name (opened from a file). The NOCOOKIE host is the Videos card's, for the Videos card's reason: no
+   tracking cookie until somebody actually plays it. */
+function reelYtSrc_(id) {
+  const o = /^https?:$/.test(location.protocol) ? '&origin=' + encodeURIComponent(location.origin) : '';
+  const v = encodeURIComponent(id);
+  return YT_HOST + '/embed/' + v + '?enablejsapi=1&mute=1&autoplay=1&loop=1&playlist=' + v
+    + '&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3' + o;
+}
+
+/* ONE ORDER TO ONE PLAYER. Sent to the nocookie origin and nowhere else, so a page that somehow ended
+   up in the frame instead is told nothing. An order before the player is ready is dropped by YouTube
+   — which is why `want` and `sound` are written on the box first and `reelYtHeard_` says them again
+   when it answers. */
+function reelYtSay_(box, func, args) {
+  const f = box && box.querySelector('iframe.feed-yt-frame');
+  if (!f || !f.contentWindow) return;
+  try {
+    f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: func, args: args || [],
+                                                 id: f.dataset.n, channel: 'widget' }), YT_HOST);
+  } catch (e) {}
+}
+
+/* PLAY: build the player the first time this slide is the one on screen, and ask it to play after.
+   NEVER BEFORE IT IS REACHED — the rule `feedSlide` writes about the videos' `src`, and sharper here:
+   a YouTube player is a page, and a column that built one per Short dealt would build one a lap. */
+function reelYtPlay_(box) {
+  if (!box || box.dataset.dead) return;
+  box.dataset.want = 'play';
+  if (box.querySelector('iframe.feed-yt-frame')) reelYtSay_(box, 'playVideo');
+  else if (!reelYtBuild_(box)) return;
+  reelYtClock_(box);
+}
+
+/* THE PLAYER ITSELF, put in the slide under the veil. False when the slide names no video. */
+function reelYtBuild_(box) {
+  const id = box.dataset.yt;
+  if (!id) return false;
+  const f = document.createElement('iframe');
+  f.className = 'feed-yt-frame';
+  f.dataset.n = String(++YT_SEQ);
+  f.title = 'YouTube video';
+  /* `autoplay` IN `allow` IS WHAT LETS THE SOUND BUTTON WORK: a tap on this page is the gesture, and
+     this is the page delegating it to the frame. `referrerpolicy` is the Videos card's, for its
+     reason — YouTube refuses (error 153) a page that sends no referrer at all. `tabindex=-1`: the
+     slide is the control and YouTube's buttons are not, so a keyboard does not stop inside them. */
+  f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+  f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  f.setAttribute('tabindex', '-1');
+  f.addEventListener('load', () => reelYtHello_(f));
+  f.src = reelYtSrc_(id);
+  box.insertBefore(f, box.firstChild);
+  return true;
+}
+
+/* ---------- THE GIVE-UP CLOCK, WOUND BY EVERY ASK TO PLAY -------------------------------------------
+   IT WAS WOUND ONCE, WHEN THE PLAYER WAS BUILT, AND ONE MOMENT DECIDED IT. Twenty seconds on, if the
+   Short was not being asked to play right then, nothing happened and nothing ever looked again. So a
+   player that never answered (YouTube blocked, the phone offline) was stuck for good the moment
+   somebody did the natural thing with a picture that will not move — tapped it once (which holds it)
+   or flicked one page away and back — inside those twenty seconds: a poster that never played, a live
+   Sound button, and no door. Measured in review on 9 Oct with a stand-in that never answers: still no
+   door at sixty seconds, both ways.
+
+   NOW TWO RULES, ONE CLOCK AT A TIME PER SLIDE:
+     - A PLAYER THAT HAS SAID NOTHING AT ALL in twenty seconds is given up on whatever was wanted of
+       it. It is not being held; it is not there. `reelYtHello_` stops asking at the same moment.
+     - ONE THAT ANSWERED but has not played its first frame is given up on only if it was being asked
+       to play when the clock ran out. If it was held or a page away, the next ask winds a fresh clock
+       — so a player that only ever answered is still never left without a door.
+   `played` AND NOT `is-live`: a Short that played, was flicked away and is being started again when
+   the clock runs out is a player that works, not one that failed. */
+function reelYtClock_(box) {
+  const f = box.querySelector('iframe.feed-yt-frame');
+  const o = ytBox_(box);
+  if (!f || f.dataset.played || o.clock) return;
+  o.clock = setTimeout(() => {
+    o.clock = 0;
+    if (!f.isConnected || f.dataset.played) return;
+    if (!f.dataset.heard || box.dataset.want === 'play') reelYtDead_(box);
+  }, YT_GIVE_UP);
+}
+
+/* PAUSE, and the poster goes back over it at once rather than when YouTube confirms — the frame
+   between is YouTube's pause screen. */
+function reelYtPause_(box) {
+  if (!box) return;
+  box.dataset.want = 'pause';
+  box.classList.remove('is-live');
+  reelYtSay_(box, 'pauseVideo');
+}
+
+/* ---------- TAKEN DOWN, NOT PAUSED, ONCE IT IS OUT OF REACH ---------------------------------------
+   A PAUSED `<video>` IS A DECODED FRAME; A PAUSED YOUTUBE PLAYER IS A WEB PAGE — YouTube's whole
+   player, in its own process on any browser that isolates sites, holding its script, its buffer and
+   its connections for as long as it exists. And the column deals in LAPS: with three clips the same
+   Short is every third page, so a column that kept every player it had built would hold one more per
+   lap, up to `REEL_MAX`'s sixty pages, behind a screen nobody is looking at — the "phone gets hot"
+   this file's own ceiling was written against.
+
+   SO BY DISTANCE, NOT BY A TIMER. The one on screen plays; the pages either side keep theirs paused,
+   because those are the ones a flick back reaches and a player built again is a second or two of
+   poster; anything further is removed, and so is everything when the column is left (`clipsStop_`).
+   So there are never more than three players (the page in front and one either side) and, with the
+   Short one clip in three, never more than one or two — decided by the page you are on, the number
+   the app already knows, rather than by a clock that would need a timer per slide and still guess.
+
+   A PLAYER BUILT AGAIN STARTS MUTED, as every autoplaying thing must, and the button is put back to
+   say so — a label reading "Sound on" over a player that has just started silent is the invisible
+   mode `is-held` exists to prevent. */
+function reelYtDrop_(box) {
+  if (!box) return;
+  box.dataset.want = 'pause';
+  box.classList.remove('is-live');
+  ytClocksOff_(box);
+  const f = box.querySelector('iframe.feed-yt-frame');
+  if (f) f.remove();
+  if (box.dataset.sound) {
+    delete box.dataset.sound;
+    const b = box.closest('.reel') && box.closest('.reel').querySelector('.reel-sound');
+    if (b) b.textContent = 'Sound off';
+  }
+}
+
+/* ---------- WHEN IT CANNOT PLAY, IT STAYS A PICTURE WITH A WAY OUT ---------------------------------
+   OFFLINE, A VIDEO TAKEN DOWN, EMBEDDING SWITCHED OFF BY ITS OWNER (`onError` 100, 101, 150), or
+   nothing heard from the player at all. Every one of those draws YouTube's error screen or a black
+   box inside the frame, and neither is ever shown: the frame is removed, the poster stays, and the
+   one thing added is a link to watch it where it lives — a door, as the Videos card's rows are, and
+   the only YouTube words that appear on the slide.
+
+   A HELD SHORT THAT DIES IS LET GO. `onError` can arrive a second or two after the player loads, so
+   a Short somebody had already tapped to hold kept its ▶ — drawn above the door, in the same middle
+   of the slide — and no tap could clear it, because `reel-tap` does nothing on a dead Short (review,
+   9 Oct). There is nothing left to hold: the mark comes off and `REEL_HELD` forgets the page, so a
+   repaint does not draw it back. */
+function reelYtDead_(box) {
+  if (!box || box.dataset.dead) return;
+  box.dataset.dead = '1';
+  box.classList.remove('is-live');
+  ytClocksOff_(box);
+  const f = box.querySelector('iframe.feed-yt-frame');
+  if (f) f.remove();
+  const art = box.closest('.feed-art');
+  if (art) art.classList.add('is-dead');
+  const reel = box.closest('.reel');
+  if (reel) {
+    reel.classList.remove('is-held');
+    if (REEL_HELD === Number(reel.dataset.reel)) REEL_HELD = -1;
+  }
+}
+
+/* HELLO, UNTIL IT ANSWERS. `listening` is how a page tells the player it wants to be spoken to; the
+   player only starts sending once it has heard it, and it may not be listening yet when the frame's
+   `load` fires — so it is said again every 400ms until the first answer, which is what YouTube's own
+   script does. The three events are asked for by name because `onError` and `onStateChange` are only
+   sent to a page that asked. */
+function reelYtHello_(f) {
+  let n = 0;
+  const say = () => {
+    if (!f.isConnected || f.dataset.heard || ++n > YT_GIVE_UP / 400) return;
+    try {
+      const w = f.contentWindow;
+      const id = f.dataset.n;
+      w.postMessage(JSON.stringify({ event: 'listening', id: id, channel: 'widget' }), YT_HOST);
+      ['onReady', 'onStateChange', 'onError'].forEach(ev =>
+        w.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: [ev],
+                                       id: id, channel: 'widget' }), YT_HOST));
+    } catch (e) {}
+    setTimeout(say, 400);
+  };
+  say();
+}
+
+/* WHAT THE PLAYER SAYS. The first thing it says, whatever it is, means it is listening — so the box's
+   wishes are said again then (an order sent before that was dropped). PLAYING (1) shows it; paused
+   (2) and cued (5) hide it again behind the poster; buffering (3) leaves it as it is, so a stall
+   mid-clip is a frozen frame rather than a flash of poster.
+
+   ENDED (0) AND UNSTARTED (−1) ARE A LAP, WHILE IT IS MEANT TO BE PLAYING. They hid it too, and a
+   looping Short says both at every lap boundary — `loop=1&playlist=<id>` restarts as 0, −1, 3, 1 — so
+   the poster cross-faded in over the picture once a lap: fully hidden for half a second, partly for a
+   second, where an mp4 reel loops without a seam (review, 9 Oct, with a stand-in that restarts that
+   way; the real player's sequence cannot be watched from this machine). So a Short that was showing
+   and is wanted stays showing through them, for `YT_LAP`. A restart that has not said PLAYING (or
+   buffering) by then is not a lap — a loop that did not happen leaves YouTube's end screen, its grid
+   of other videos — and that goes back under the poster. */
+function reelYtHeard_(f, d) {
+  const box = f.closest('.feed-yt');
+  if (!box) return;
+  const first = !f.dataset.heard;
+  f.dataset.heard = '1';
+  if (d.event === 'onError') { reelYtDead_(box); return; }
+  if (first || d.event === 'onReady') {
+    reelYtSay_(box, box.dataset.sound === 'on' ? 'unMute' : 'mute');
+    reelYtSay_(box, box.dataset.want === 'play' ? 'playVideo' : 'pauseVideo');
+  }
+  const st = d.event === 'onStateChange' ? Number(d.info)
+    : d.event === 'infoDelivery' && d.info && typeof d.info.playerState === 'number' ? d.info.playerState
+    : null;
+  if (st === null) return;
+  const o = ytBox_(box);
+  o.st = st;
+  if (st === 1) {
+    clearTimeout(o.lap); o.lap = 0;
+    /* PLAYING WHILE IT WAS ASKED NOT TO — `autoplay` beat a flick away, or a pause sent before it was
+       listening — is told again rather than shown. */
+    f.dataset.played = '1';
+    if (box.dataset.want !== 'play') { reelYtSay_(box, 'pauseVideo'); return; }
+    box.classList.add('is-live');
+    const art = box.closest('.feed-art');
+    if (art) art.classList.add('has-photo');
+  } else if (st === 3) {
+    /* buffering: as it is */
+  } else if ((st === 0 || st === -1) && box.dataset.want === 'play' && box.classList.contains('is-live')) {
+    if (!o.lap) o.lap = setTimeout(() => {
+      o.lap = 0;
+      if (o.st !== 1 && o.st !== 3) box.classList.remove('is-live');
+    }, YT_LAP);
+  } else {
+    clearTimeout(o.lap); o.lap = 0;
+    box.classList.remove('is-live');
+  }
+}
+
+/* ONE LISTENER FOR EVERY PLAYER, matched to its frame by the window that sent the message — the
+   `data-do` shape, one listener for the document. Anything not from YouTube's two hosts, or not JSON,
+   or from a frame that is not a reel's, is not this function's business. */
+addEventListener('message', e => {
+  if (!/^https:\/\/www\.youtube(?:-nocookie)?\.com$/.test(String(e.origin || ''))) return;
+  let d = e.data;
+  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { return; } }
+  if (!d || typeof d !== 'object' || !d.event) return;
+  const f = [...document.querySelectorAll('iframe.feed-yt-frame')].find(x => x.contentWindow === e.source);
+  if (f) reelYtHeard_(f, d);
+});
+
 /* SOUND IS OFF UNTIL IT IS ASKED FOR, because a column that starts talking the moment it opens is a
    column nobody opens twice — and because a muted video is the only kind a browser will start by
    itself. The button says the state it is IN, not the state it would move to: "Sound off" on a
@@ -2497,10 +2828,30 @@ function reelPlay_(v) {
    exactly like a playing one that happens to be still, so `is-held` draws the ▶ over it — the same
    argument this repository writes about the pen: "a mode you cannot see is a mode that surprises
    you". */
-on('reel-tap', (el) => {
+on('reel-tap', (el, e) => {
+  /* THE DOOR OUT IS NOT A PAUSE. "Watch on YouTube" sits inside the slide, so its click reaches this
+     handler too; the link does its own job and this one does nothing. */
+  if (e && e.target && e.target.closest && e.target.closest('a[href]')) return;
+  const n = Number(el.dataset.reel);
+  /* A SHORT IS HELD BY `REEL_HELD`, NOT BY ASKING IT. A `<video>` can be asked whether it is paused,
+     synchronously; a player in a frame can only be told, and its answer arrives later — so the state
+     this column already keeps is the answer, which is also what draws the ▶. */
+  const yt = el.querySelector('.feed-yt');
+  if (yt) {
+    if (yt.dataset.dead) return;
+    if (REEL_HELD === n) {
+      REEL_HELD = -1;
+      el.classList.remove('is-held');
+      reelYtPlay_(yt);
+    } else {
+      REEL_HELD = n;
+      el.classList.add('is-held');
+      reelYtPause_(yt);
+    }
+    return;
+  }
   const v = el.querySelector('video.feed-vid');
   if (!v) return;
-  const n = Number(el.dataset.reel);
   if (v.paused) {
     REEL_HELD = -1;
     el.classList.remove('is-held');
@@ -2514,6 +2865,18 @@ on('reel-tap', (el) => {
 
 on('reel-sound', (el) => {
   const slide = el.closest('.reel');
+  /* THE SAME BUTTON AND THE SAME WORDS FOR A SHORT, said to the player instead of set on an element.
+     A held Short is not started by it: sound on a stopped reel is a choice for when it next plays. */
+  const yt = slide && slide.querySelector('.feed-yt');
+  if (yt) {
+    if (yt.dataset.dead) return;
+    const on_ = yt.dataset.sound !== 'on';
+    if (on_) yt.dataset.sound = 'on'; else delete yt.dataset.sound;
+    reelYtSay_(yt, on_ ? 'unMute' : 'mute');
+    if (on_ && yt.dataset.want === 'play') reelYtSay_(yt, 'playVideo');
+    el.textContent = on_ ? 'Sound on' : 'Sound off';
+    return;
+  }
   const v = slide && slide.querySelector('video.feed-vid');
   if (!v) return;
   v.muted = !v.muted;

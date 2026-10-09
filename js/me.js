@@ -675,6 +675,10 @@ on('signout', () => {
    next child starts from nothing of the last one's, whichever door either of them used. */
 function signedOut_(opts) {
   opts = opts || {};
+  /* WHO IS LEAVING, AND WHETHER THEY WERE AN ADMIN — read before they are forgotten, for `ended` below. */
+  const was = USER;
+  let wasAdmin = false;
+  try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) {}
   USER = null;
   try { localStorage.removeItem('familyUser'); } catch (e) {}
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM --------------------------------------
@@ -685,9 +689,32 @@ function signedOut_(opts) {
      shown, on the screen of somebody who is not one. Nothing was fetched or drawn, but a shelf
      nobody else may see was named to them. So Find starts again from its first question, as it
      does on a fresh visit. `typeof`, because me.js loads before find.js declares `STUFF`. The box is
-     not cleared here: `repaint` below draws Find's controls again from `STUFF.q`. */
+     not cleared here: `repaint` below draws Find's controls again from `STUFF.q`.
+     ---------- `keepFind`: NOBODY WAS SIGNED IN, SO THERE IS NOBODY ELSE'S QUESTION TO TAKE AWAY ----------
+     THE OWNER, 9 Oct: *"when the child writes something in an answer box then goes to sign in, it wipes
+     their finder so they have to click all the way to get back there."* `signedIn_` calls this for
+     nobody-signed-in as well as for somebody else, and this line could not tell the two apart — so a
+     child who walked the funnel to Q13 signed out, typed an answer and signed in was put back on the
+     first question. Signed out is the least anybody can be shown — `load()` drops a payload asked for by
+     somebody who has gone since, so an admin's cannot land on a signed-out phone (docs/history/318) — and
+     what was asked for then is nobody's but the person holding the phone, so it stays: the search, the
+     chips, and — since nothing here touches `PAGE` — the card and the page they were on.
+     ---------- `ended`: THE SESSION DIED UNDER THE PERSON STILL HOLDING THE PHONE --------------------------
+     `api()` CALLS THIS WHEN THE SERVER SAYS THE TOKEN IS NO GOOD — thirty days up, or the PIN changed on
+     another phone — and it is the owner's complaint by another door: a child on Q13 types "80", the answer
+     goes up a second and a half later, the refusal comes back, and Find was emptied under the card they
+     were reading. Nobody left; the same child is holding the iPad. So Find stays, and `STUFF.whose` says
+     whose question it is: the same person signing in again keeps it, and anybody else signing in next is
+     a switch and starts again (`signedIn_`). AN ADMIN'S IS STILL CLEARED: theirs is the one question that
+     can name a shelf only an admin is shown, which is the reason above.
+     ONE DECIDER PER DOOR: `signedIn_` passes `keepFind`, `api()` passes `ended`; Sign out and a switch from
+     one person to another pass neither and clear Find. */
   try {
-    if (typeof STUFF !== 'undefined') { STUFF.q = ''; STUFF.filters = []; }
+    if (typeof STUFF !== 'undefined') {
+      if (opts.keepFind) { /* nobody → somebody: `signedIn_` keeps it, and says whose it is now */ }
+      else if (opts.ended && was && !wasAdmin) STUFF.whose = String(was.personId || was.name || '');
+      else { STUFF.q = ''; STUFF.filters = []; STUFF.whose = ''; }
+    }
   } catch (err) {}
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
@@ -729,9 +756,15 @@ function signedOut_(opts) {
   try {
     if (typeof FILMSYNC !== 'undefined') { FILMSYNC.asking = null; FILMSYNC.autoFor = ''; FILMSYNC.err = ''; }
     if (typeof VID !== 'undefined') VID.q = '';
+    /* AND THE PICTURES THAT FAILED, which are remembered by address — and a Drive film's address is its
+       file id (`VID_BROKEN` in games.js). */
+    if (typeof VID_BROKEN !== 'undefined') VID_BROKEN.clear();
   } catch (e) {}
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) {}
+  /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
+     board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
   if (!opts.quiet) repaint();
 }
 
@@ -747,12 +780,29 @@ function signedIn_(d, typed) {
   const me = Object.assign({}, d);
   EXTRA.forEach(k => { if (k in me) { got[k] = me[k]; delete me[k]; } });
   const pid = String(me.personId || '');
-  /* A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD — or nobody held — starts clean. */
-  if (!USER || String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
+  /* ---------- A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD STARTS CLEAN; NOBODY HELD KEEPS FIND ----
+     THIS WAS ONE CONDITION, `!USER || … !== pid || !pid` — "a different person, or nobody held, starts
+     clean" — and so signing in from signed out threw away the funnel exactly as a switch between two
+     children does (*"it wipes their finder"*, 9 Oct). Somebody else signed in still goes through
+     `signedOut_` whole. From nobody, the stars, the inbox, the per-person keys and the films still go —
+     they are the device's last person's, or nobody's — but Find is the same seat: the same child, now with
+     a name. UNLESS FIND SAYS IT IS SOMEBODY ELSE'S: `STUFF.whose` is set only when a session died under
+     its person (`ended` in `signedOut_`), and then only that person signing in again keeps it — anybody
+     else is the next child on the iPad, and starts from the first question. ONE PLACE DECIDES, and it is
+     these lines; `signedOut_` only does what it is told. */
+  const fromNobody = !USER;
+  let whose = '';
+  try { whose = typeof STUFF !== 'undefined' ? String(STUFF.whose || '') : ''; } catch (e) {}
+  if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
+  else if (String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
+  /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
+  try { if (typeof STUFF !== 'undefined') STUFF.whose = ''; } catch (e) {}
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  /* EVERY COPY OF THE WHITEBOARD UNDER THE PERSON WHO IS SIGNED IN NOW, stale columns included. */
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
   try {
     if (got.attempts && typeof got.attempts === 'object' && String(got.attempts.for || '') === pid) DATA.attempts = got.attempts;
     if (Array.isArray(got.favourites)) {
@@ -764,6 +814,10 @@ function signedIn_(d, typed) {
   /* THE ANSWERS, INTO THE BOXES — the reply's copy now, and a fresh read at once beside it, which also
      sends whatever this device has had waiting for this person (js/answers.js). */
   try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) {}
+  /* AND WHAT WAS WRITTEN SIGNED OUT IS THIS PERSON'S, from nobody only — the same seat as Find above. ALL
+     OF IT, NOW, AFTER THE ACCOUNT'S COPY: the later edit wins, and none is left on the device for the
+     next child to sign in (`answersClaim_`, js/answers.js). */
+  try { if (fromNobody && pid && typeof answersClaim_ === 'function') answersClaim_(pid); } catch (e) {}
   try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
   handleRemember_(me.handle);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
