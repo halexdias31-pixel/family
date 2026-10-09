@@ -2008,7 +2008,9 @@ document.addEventListener('input', e => {
   MAT_TOUCHED = true;
   matBlankSet_('text', e.target.value);
   clearTimeout(matTextTimer);
-  matTextTimer = setTimeout(() => { matPaint(); matRemember(); }, 200);
+  matTextTimer = setTimeout(() => { keepDue_('mat', null); matPaint(); matRemember(); }, 200);
+  /* KEPT AS THE PAGE GOES even inside the 0.2 s (`keepDue_`, data.js; docs/history/317). */
+  keepDue_('mat', () => { clearTimeout(matTextTimer); matRemember(); });
 });
 
 /* ---------- WHERE YOU LEFT IT --------------------------------------------------------------------------

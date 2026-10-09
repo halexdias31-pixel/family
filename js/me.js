@@ -653,7 +653,12 @@ on('signout', () => {
   const tok = USER && USER.token;
   let last = Promise.resolve();
   try { if (typeof answersPush_ === 'function') last = answersPush_(true); } catch (err) {}
-  Promise.resolve(last).catch(() => {}).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
+  /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up
+     (`keepDue_`, data.js) — each is sent only while somebody is signed in, so after `signedOut_` below
+     the words typed in the last second and a half reached nobody (review of 317). */
+  let due = Promise.resolve();
+  try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) {}
+  Promise.all([Promise.resolve(last).catch(() => {}), due]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
   signedOut_();
   toast('Signed out');
 });
@@ -765,6 +770,9 @@ function signedOut_(opts) {
   /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
      board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
+     docs/history/317). `typeof`, because book.js loads after this file. */
+  try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) {}
   if (!opts.quiet) repaint();
 }
 
@@ -803,6 +811,8 @@ function signedIn_(d, typed) {
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
   /* EVERY COPY OF THE WHITEBOARD UNDER THE PERSON WHO IS SIGNED IN NOW, stale columns included. */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  /* THE BOOKING FORM FOLLOWS — filled in signed out and signed in to send, it is theirs (book.js). */
+  try { if (typeof bookFollow_ === 'function') bookFollow_(); } catch (e) {}
   try {
     if (got.attempts && typeof got.attempts === 'object' && String(got.attempts.for || '') === pid) DATA.attempts = got.attempts;
     if (Array.isArray(got.favourites)) {
@@ -1145,15 +1155,21 @@ function registerSheet_() {
             above them, four boxes stacked put Make my account under the fold of a 320x568 phone for a
             student, and the parent's note half under it. A row is 74px back, and a name fits in half
             of a 320 sheet. */''}
+      ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap
+            outside, or the page reloaded, and they were gone. The DEVICE'S drafts (nobody is signed in
+            to make an account), so they last `DRAFT_DEVICE_MS` and no longer: on a shared iPad the next
+            family is not handed this one's address tomorrow. Dropped when the account is made. NOT THE
+            QUESTION ABOVE, which is asked again on purpose (the note over `REG_NOTE`), nor the tick it
+            resets, and NEVER THE PIN. */''}
       <div class="f-row" style="--n:2">
         <label class="field"><span>first name</span>
-          <input id="reg-first" autocomplete="given-name"></label>
+          <input id="reg-first" autocomplete="given-name"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"></label>
         <label class="field"><span>last name</span>
-          <input id="reg-last" autocomplete="family-name"></label>
+          <input id="reg-last" autocomplete="family-name"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"></label>
       </div>
       <label class="field"><span>email</span>
         <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
-               spellcheck="false" placeholder="you@example.com"></label>
+               spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"></label>
       <label class="check reg-kid" hidden><input type="checkbox" id="reg-noemail"><span class="box"></span>
         <span>It's a grown-up's email</span></label>
       <label class="field"><span>PIN — 4 to 8 digits</span>
@@ -1214,6 +1230,7 @@ on('reg-send', el => {
   if (kid) body.parent_email = email; else body.email = email;
   send_(body, { button: el, busy: 'Making it…' })
     .then(d => {
+      ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) {} });
       closeSheet();
       /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the
          email — is sign in with it, and they have just typed it once. FOR A CHILD WITH NO ADDRESS IT
@@ -1691,6 +1708,9 @@ document.addEventListener('keydown', e => {
 
 function msgPost_(p) {
   p.state = 'sending'; p.err = ''; p.why = '';
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server is still answering drew these
+     words back in the composer, after the server had them, for a second Send (`draftSent_`, data.js). */
+  try { if (typeof draftSent_ === 'function') draftSent_('msg', p.withId, p.body); } catch (e) {}
   const files = p.queue.length ? Promise.all(p.queue.map(msgRead_)) : Promise.resolve([]);
   return files.then(read => {
     /* ---------- A FILE THAT COULD NOT BE READ IS NEVER LEFT OUT IN SILENCE ------------------------
@@ -1714,6 +1734,8 @@ function msgPost_(p) {
                   to: p.withName, toId: p.withId, body: p.body, files: list });
   }).then(d => {
     p.state = 'sent'; p.id = (d && d.id) || '';
+    /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
+    try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) {}
     toast(p.inSheet ? 'Sent to ' + p.withName : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
@@ -1723,6 +1745,8 @@ function msgPost_(p) {
     });
   }).catch(err => {
     p.state = 'failed';
+    /* NOT SENT, SO A DRAFT AGAIN — kept for a reload, as the bubble keeps it for this page. */
+    try { if (typeof draftSentBack_ === 'function') draftSentBack_('msg', p.withId, p.body); } catch (e) {}
     /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
        what is shown, rather than a "Not sent" that throws that away. */
     p.err = String((err && err.message) || 'Not sent.');
@@ -2083,6 +2107,17 @@ const messagesHtml_ = ms => {
    THE NOTE IS PART OF THE FORM. The five-minute gap and the e-mail are things somebody needs to
    know BEFORE pressing send, and they are also where a refusal is printed — so the sentence and the
    place the server answers are one element rather than two to keep in step. */
+/* ---------- WHAT IS HALF WRITTEN SURVIVES A RELOAD (docs/history/317) -----------------------------------
+   THE BOX IS A DRAFT (`draftAttr_`, data.js), per conversation and per person: kept as it is typed,
+   drawn back into the composer by every redraw and every reload, and dropped only when the server
+   has the message (`msgPost_`). NOT WHILE THE SAME WORDS ARE A BUBBLE ON THEIR WAY — Send empties the
+   box and the redraw that follows must not put them back; after a reload there is no bubble, and a
+   message that never went is in the box again rather than nowhere. */
+function msgDraft_(k) {
+  if (typeof draftVal_ !== 'function') return '';
+  const d = draftVal_('msg', k, '');
+  return d && MSG_PENDING.some(p => p.withId === k && p.body === d.trim()) ? '' : d;
+}
 function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
   return `<div class="msg-form" data-k="${esc(k)}">
@@ -2091,7 +2126,7 @@ function msgForm_(to, toId, note, rows) {
       aria-label="Attach a photo, video or file">＋</button>
     <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
-      placeholder="Message…" aria-label="Message ${esc(to)}"></textarea>
+      placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
     <button class="btn msg-go" data-do="msg-send"
       data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
     <p class="faint msg-said">${esc(note || '')}</p>
@@ -2239,9 +2274,11 @@ function childCard_() {
     <h3>Add your child</h3>
     <p class="sub">Their name as it is on their account. They will be asked to say yes before
       anything is linked.</p>
+    ${/* DRAFTS UNTIL ASKED (data.js; docs/history/317) — a card on the Settings column is redrawn by a
+          payload, and a reload lost what was typed. */''}
     <div class="f-row" style="--n:2">
-      <label class="field"><input data-kid="first" placeholder="First name" autocomplete="off"></label>
-      <label class="field"><input data-kid="last" placeholder="Last name" autocomplete="off"></label>
+      <label class="field"><input data-kid="first" placeholder="First name" autocomplete="off"${draftAttr_('kid-ask', 'first')} value="${esc(draftVal_('kid-ask', 'first'))}"></label>
+      <label class="field"><input data-kid="last" placeholder="Last name" autocomplete="off"${draftAttr_('kid-ask', 'last')} value="${esc(draftVal_('kid-ask', 'last'))}"></label>
     </div>
     <button class="btn quiet" data-do="add-child-go">Ask them</button>
     <p class="faint">Nothing changes until they accept. If they say no, nothing happens and we do
@@ -2271,6 +2308,7 @@ on('add-child-go', el => {
   }, { button: el, busy: 'Asking…' }).then(() => {
     if (box('first')) box('first').value = '';
     if (box('last')) box('last').value = '';
+    ['first', 'last'].forEach(f => { try { draftDrop_('kid-ask', f); } catch (e) {} });
     toast('Asked. They will see it when they next sign in.');
     load();
   /* `heldBy_`: a refusal because the asker's own address is waiting redraws this as the held card. */
@@ -2305,14 +2343,17 @@ function pinSlip_(first, handle, pin) {
 
 function childMakeCard_() {
   const mine = KID_MADE.pid && USER && KID_MADE.pid === String(USER.personId || '');
+  const kidSurname = (USER && USER.profile && USER.profile.last_name) || '';
   return `<div class="card kid-card kid-make">
     <h3>Make your child's account</h3>
     <p class="sub">No email needed. They sign in with a handle we make for them and a PIN you
       choose.</p>
+    ${/* THE NAMES ARE DRAFTS UNTIL THE ACCOUNT IS MADE (data.js; 317), the surname starting from the
+          parent's own as it always did. NEVER THE PIN BELOW. */''}
     <div class="f-row" style="--n:2">
-      <label class="field"><input data-kid-new="first" placeholder="First name" autocomplete="off"></label>
+      <label class="field"><input data-kid-new="first" placeholder="First name" autocomplete="off"${draftAttr_('kid-new', 'first')} value="${esc(draftVal_('kid-new', 'first'))}"></label>
       <label class="field"><input data-kid-new="last" placeholder="Last name" autocomplete="off"
-             value="${esc((USER && USER.profile && USER.profile.last_name) || '')}"></label>
+             value="${esc(draftVal_('kid-new', 'last', kidSurname))}"${draftAttr_('kid-new', 'last', kidSurname)}></label>
     </div>
     <label class="field"><span>a PIN for them — 4 to 8 digits</span>
       <input data-kid-new="pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
@@ -2426,6 +2467,7 @@ on('kid-make', el => {
         { button: el, busy: 'Making it…' })
     .then(d => {
       KID_MADE = { pid: String(USER.personId || ''), name: first, handle: String(d.handle || ''), pin };
+      ['first', 'last'].forEach(f => { try { draftDrop_('kid-new', f); } catch (e) {} });
       toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
       /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
       if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else STALE.settings = 1;
@@ -2578,7 +2620,7 @@ function settingsPages_() {
      grid and everything else is a column of boxes, and a second walk here would be a second answer
      to that question. Its own note says so: "one walk now, so a group of hour codes becomes a
      timetable everywhere rather than only where somebody remembered." */
-  const pages = Object.keys(groups).map(g => `<div class="card">
+  const pages = Object.keys(groups).map(g => setHeldSay_(`<div class="card">
     <div class="me-form">${fieldsHtml({ [g]: groups[g] }, {
       /* A CARD'S TITLE IS AN `h3` — see the note over `fieldsHtml`. Each group is a card here, so
          the group's name IS that card's title rather than a divider inside it. */
@@ -2601,7 +2643,7 @@ function settingsPages_() {
             (groups[g] || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
       ${(groups[g] || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
       <p class="faint me-said"></p></div>
-  </div>`);
+  </div>`));
 
   /* ---------- YOUR HANDLE, BEFORE THE PIN AND FOR THE SAME REASON -------------------------------
      THE TWO THINGS ABOUT AN ACCOUNT THAT DO NOT GO THROUGH `Save`. Everything above is
@@ -2997,9 +3039,13 @@ screen('settings', () => pages('settings', settingsPages_()));
    AVAIL_HOURS`, so every day carries the same hours — the same guarantee `slotGrid()` gives the
    booker, and the reason one header can name the columns for all seven rows. A day the backend
    sends nothing for is dropped rather than drawn empty. */
-function availGrid_(codes, p, readonly) {
-  const on = f => TRUEish_(p[f]);
+function availGrid_(codes, p, readonly, mine) {
   const ro = f => readonly.indexOf(f) !== -1;
+  /* AN HOUR TICKED AND NOT YET SAVED IS A DRAFT of your own row (`fieldHtml`'s note; 317) — "Save my
+     hours" took every unsaved tick with it on a reload. Only on your own week (`mine`). */
+  const was = f => (TRUEish_(p[f]) ? '1' : '0');
+  const keep = f => !!mine && !ro(f) && typeof draftVal_ === 'function';
+  const on = f => (keep(f) ? draftVal_('set', f, was(f)) : was(f)) === '1';
 
   /* Grouped back into days, from the flat list the backend sends. The prefix IS the day and the
      digits ARE the hour, so nothing else has to be looked up. */
@@ -3027,7 +3073,7 @@ function availGrid_(codes, p, readonly) {
     ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
       <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
-             ${ro(h.code) ? 'disabled' : ''}>
+             ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}>
     </label>`, { chars: 3 })}</div>`;
 }
 
@@ -3298,6 +3344,19 @@ function fieldOptions_(f) {
  * @param o.readonly whether it may be changed
  * @param o.label   an override for the label
  */
+/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. */
+const setDraftOk_ = name => typeof draftAttr_ === 'function' && !FIELD_MULTI[name]
+  && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
+/* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO ----------------------------------------------------------
+   SAVE SENDS EVERY BOX OF ITS CARD (`meSave_`), so a box holding an edit made before a reload and never
+   saved went up with a Save pressed for the box beside it — and nothing on the card said the city in
+   front of you was not the one on the sheet (review of 317). `draftAttr_` marks a box drawn holding a
+   draft (`data-draft-held`); its card's line says so until the next Save writes over it. */
+const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in its box. Save keeps it.';
+function setHeldSay_(html) {
+  return /\sdata-draft-held\b/.test(html)
+    ? html.replace('<p class="faint me-said"></p>', '<p class="faint me-said">' + esc(SET_HELD_SAY) + '</p>') : html;
+}
 function fieldHtml(name, value, o) {
   o = o || {};
   /* THE EXTRA-SEAT FIGURE IS A SHARE OF THE RATE, NOT POUNDS, and nothing on the box said so: a tutor
@@ -3311,12 +3370,25 @@ function fieldHtml(name, value, o) {
   const attr = o.attr || 'data-me';
   const label = o.label || fieldLabel(name);
   const ro = !!o.readonly;
-  const v = value ?? '';
+  const v0 = value ?? '';
+  /* ---------- AN UNSAVED EDIT IS A DRAFT (data.js; docs/history/317) ------------------------------
+     A CARD'S BOXES WAITED FOR ITS SAVE, and a reload before it took every edit on the card with it.
+     So each box of YOUR OWN row (`data-me` — another editor's row is somebody else's draft) keeps what
+     is typed as a draft and is drawn holding it, with the saved value as the one that takes the draft
+     away again; `meSave_` drops each field it sent. NOT A LIBRARY CARD (its PIN is on it, and a
+     card is drafted whole or not at all), NOT THE QUALIFICATION SHELF (saved the moment each answer
+     changes, `qualCommit_`), NOT a several-of-a-list's hidden answer, and never anything named a PIN —
+     `draftKeep_` refuses those whatever asks. */
+  const keep = attr === 'data-me' && !ro && setDraftOk_(name);
+  const saved = FIELD_IS_BOOL.test(name) ? (TRUEish_(v0) ? '1' : '0') : String(v0);
+  const da = keep ? draftAttr_('set', name, saved) : '';
+  const dv = keep ? draftVal_('set', name, saved) : saved;
+  const v = keep && !FIELD_IS_BOOL.test(name) ? dv : v0;
 
   if (FIELD_IS_BOOL.test(name)) {
     return `<label class="check">
-      <input type="checkbox" ${attr}="${esc(name)}" ${TRUEish_(v) ? 'checked' : ''}
-             ${ro ? 'disabled' : ''}>
+      <input type="checkbox" ${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
+             ${ro ? 'disabled' : ''}${da}>
       <span class="box"></span><span>${esc(label)}</span></label>`;
   }
 
@@ -3351,7 +3423,7 @@ function fieldHtml(name, value, o) {
        question it answers. */
     const ph = o.placeholder || '';
     return `<label class="field">${ph ? '' : `<span>${esc(label)}</span>`}
-      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}>
+      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}>
         <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
         ${(v !== '' && v != null && !opts.some(x => String(x) === String(v)) ? [String(v)] : [])
           .concat(opts).map(x => `<option value="${esc(x)}"${
@@ -3376,7 +3448,7 @@ function fieldHtml(name, value, o) {
   if (FIELD_IS_DATE.test(name)) {
     return `<label class="field"><span>${esc(label)}</span>
       <input type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
-             ${ro ? 'disabled' : ''} ${o.extra || ''}></label>`;
+             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}></label>`;
   }
 
   /* WHAT OTHERS SAY IS A SUGGESTION, not a rule — a datalist offers them and still lets somebody
@@ -3403,7 +3475,7 @@ function fieldHtml(name, value, o) {
   return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
            ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
-           ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}>
+           ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}${da}>
     ${listId ? `<datalist id="${listId}">${
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
 }
@@ -4256,6 +4328,8 @@ on('qual-drop', el => {
    deployment that has not sent one, and a code the list lacks is offered rather than lost. */
 function phoneRow_(value) {
   const cc = String(value('phone_cc') || '') || '+44';
+  /* THE NUMBER IS A DRAFT UNTIL SAVED, as every box of your own row is (`fieldHtml`; 317). */
+  const phoneNo = String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || '');
   const codes = (Array.isArray(DATA && DATA.phoneCodes) && DATA.phoneCodes.length) ? DATA.phoneCodes.slice() : ['+44'];
   if (codes.indexOf(cc) === -1) codes.unshift(cc);
   return `<div class="f-rowwrap"><span class="dob-cap">phone</span>
@@ -4264,7 +4338,7 @@ function phoneRow_(value) {
         ${codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join('')}
       </select></label>
       <label class="field"><input type="tel" data-me="phone_no" inputmode="tel" autocomplete="tel-national"
-        placeholder="Number" value="${esc(String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || ''))}"></label>
+        placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}></label>
     </div></div>`;
 }
 function qualYears_(current) {
@@ -4543,7 +4617,7 @@ function fieldsHtml(groups, o) {
                               && !(photos && isPhotoField_(f)) && !(picture && f === 'photo')
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
-      ? availGrid_(list, o.raw || {}, o.readonly || [])
+      ? availGrid_(list, o.raw || {}, o.readonly || [], o.attr === 'data-me')
       : (picture ? photoPicker_(value) : '')
       + (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value) : '')
@@ -4594,7 +4668,7 @@ function initAvail() {
     return;
   }
 
-  into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [])
+  into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [], true)
     + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save my hours', act: 'me-save' })}</div>
        <p class="faint me-said"></p>`;
 }
@@ -4697,6 +4771,8 @@ function meSave_(el) {
          ticks, a birthday normalised — so the next Save starts from the sheet. An older backend sends
          no profile, and the typed fields are merged as they always were. */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
+      /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
+      Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) {} });
       if (d && d.name) USER.name = d.name;
       /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
       if (d && d.pendingEmail !== undefined) { accountChanged_(); USER.pendingEmail = String(d.pendingEmail || ''); }

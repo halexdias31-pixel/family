@@ -4002,6 +4002,35 @@ const STATES = {
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
   ],
 
+  /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
+     NOT LEFT TO THE DEFAULT. A column with no entry here is measured in the state it opens in with
+     nothing asked of it, and "nothing to press" printed by `check/press.js` is the same silence
+     whether the column drew its card or drew nothing. So the one state says what it must be looking
+     at — the card, "Not built yet.", and not a control on it — for both visitors, which is the
+     placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup.
+     The day the column is built this entry is where its states go.
+
+     BOTH HALVES OF THE RULE, the three questions `placeholderFaults_` asks in check-flow.js — written
+     out again here because `expect` is sent to the page as a string and can reach nothing of this
+     file. The first version asked only "is there a control", with a selector that did not name a
+     `<summary>`: a card given "Streak: 0 days · 0% of the course done", a bar at nought per cent and
+     a `<details>` was measured as this state, and `check/ui.js` went red on it only because the
+     summary was too small to tap (review, 9 October). So: nothing pressable anywhere in the column,
+     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. */
+  progress: [
+    { name: '',
+      expect: () => {
+        const h = document.getElementById('s-progress');
+        const pane = h && h.querySelector(':scope > .page > .pane');
+        if (!pane || !pane.querySelector('.card h3') || !/Not built yet/.test(pane.textContent)) return false;
+        if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
+          + '[tabindex], [onclick], [role], [contenteditable]')) return false;
+        if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
+        return !/\d/.test(pane.textContent);
+      },
+      wants: 'Progress card saying it is not built yet: drill\'s markup only, no number, nothing on it to press' },
+  ],
+
   /* ---------- THE SHOP ------------------------------------------------------------------------
      THE UNNAMED STATE IS PAGE 0, the basket, empty — which is what every visitor lands on. The two
      below are what a fixture with no shop rows could never have drawn: a shelf of shop cards, and a
@@ -5889,10 +5918,13 @@ const STATES = {
           && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
       },
       wants: 'two chips waiting, a paragraph in the box and Send beside it rather than under it',
+      /* EMPTIED AS A PERSON EMPTIES IT, with `input`: the paragraph is a DRAFT now (data.js; docs/history
+         317), kept as it was typed and drawn back by every redraw of Messages — set to '' without telling
+         anybody, it came back in the next state's composer. */
       leave: () => {
         delete MSG_QUEUE['P009'];
         const b = document.querySelector('#s-dm .msg-text');
-        if (b) { b.value = ''; b.style.height = ''; }
+        if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],
 };

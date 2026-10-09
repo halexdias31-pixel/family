@@ -703,6 +703,18 @@ for (const who of VISITORS) {
       r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(2200);
+    /* ---------- AND THE ROW IS READ ONCE THE PAYLOAD HAS LANDED, NOT AFTER A FIXED WAIT ----------
+       `TABS` IS IN TWO ORDERS DURING A BOOT. Until the payload and its settings files arrive it is
+       `TAB_ORDER` (Settings last); when they land, `applyColumns_` puts it in `columns.json`'s order
+       (Settings right of You). On a machine running other checks the 2.2s above ended before that, so
+       the neighbours below were taken from one order and the swipes landed in the other — measured on
+       9 October, adding Progress: six swipes "went somewhere else", every one of them a pair the
+       reorder had moved (`left from account landed on settings, wanted tools`), the app right each
+       time. `LOADED` is set after `applyColumns_`, success or failure, so it is the moment the row
+       stops moving. Thirty seconds and then a throw, which exits non-zero: a row read mid-boot is not
+       a row measured. */
+    await page.waitForFunction(() => { try { return LOADED === true; } catch (e) { return false; } }, null, { timeout: 30000 });
+    await page.waitForTimeout(300);
 
     const drag = async (x0, y0, dx, dy) => {
       await page.mouse.move(x0, y0);

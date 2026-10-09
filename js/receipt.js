@@ -386,6 +386,8 @@ on('book-share', el => {
 function drawBooker() {
   redrawBooker_(paintBook_);
   if (typeof bookDrop_ === 'function') bookDrop_();
+  /* EVERY ANSWER COMES THROUGH HERE, so here is where the form is kept for a reload (`bookKeep_`, book.js). */
+  if (typeof bookKeep_ === 'function') bookKeep_();
 }
 
 /** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */
@@ -579,12 +581,14 @@ on('book-send', el => {
      — so nothing else is sent. */
   const joined = typeof joinedJob_ === 'function' ? joinedJob_() : null;
   if (joined && !isWaiting_()) {
+    /* SENT: the form's draft is not drawn by another page while this asks (`bookSending_`, book.js). */
+    bookSending_(true);
     api({ action: 'move', jobId: String(joined.id || joined.jobId || ''),
           role: 'client', name: USER.name, personId: (USER && USER.personId) || '', move: 'Request',
           text: 'asked to join', requestId: 'join-' + (joined.id || '') + '-' + Date.now() })
       .then(d => {
         el.disabled = false;
-        if (d && d.error) { if (said) said.textContent = d.error; return; }
+        if (d && d.error) { bookSending_(false); if (said) said.textContent = d.error; return; }
         /* THE CLASS YOU ASKED TO JOIN, kept so it comes back under the blank form — see `ASKED_JOB`
            in book.js. The id is the one we already had: this path asks to join a session that
            exists, so there is no new job to be told about. */
@@ -613,6 +617,7 @@ on('book-send', el => {
          Found by `node js/check.js` — "used but never declared", which is precisely what it was. */
       .catch(err => {
         el.disabled = false;
+        bookSending_(false);
         if (said) said.textContent = why_(err);
       });
     return;
@@ -627,6 +632,7 @@ on('book-send', el => {
        So the answer to "who is this for" chooses the verb: nobody means `openWaitlist`, anybody
        means `joinWaitlist`. One question, two doors, and the form does not need a second button. */
     const forNobody = BOOKING.client === NOBODY;
+    bookSending_(true);
     send_({ action: forNobody ? 'openWaitlist' : 'joinWaitlist',
       name: USER.name, personId: (USER && USER.personId) || '',
       venue: BOOKING.loc,
@@ -655,7 +661,7 @@ on('book-send', el => {
       })
       /* `send_` has already said what went wrong and marked the error handled — this stops it
          reaching the console as an unhandled rejection, and adds nothing a person would read. */
-      .catch(() => { el.disabled = false; });
+      .catch(() => { el.disabled = false; bookSending_(false); });
     return;
   }
 
@@ -671,6 +677,7 @@ on('book-send', el => {
 
   /* THE ONE THAT MATTERS MOST. Asking for a session had no failure path: with no connection the
      button did nothing and the request was never sent, and nobody was told either fact. */
+  bookSending_(true);
   send_({ action: 'createJob',
     name: USER.name, clientName: USER.name,
     /* WHO THIS BOOKING BELONGS TO, permanently.
@@ -751,6 +758,7 @@ on('book-send', el => {
     })
     .catch(err => {
       el.disabled = false;
+      bookSending_(false);
       if (said) said.textContent = String(err.message || 'Could not ask for that');
     });
 });

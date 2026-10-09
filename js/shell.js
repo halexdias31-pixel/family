@@ -146,6 +146,29 @@ const TABS = [
      APPENDED, because this table is append-only; `TAB_ORDER` and `data/settings/columns.json` are
      what put it second-but-one. */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
+  /* ---------- AND PROGRESS, AT THE FAR END OF THE ROW, WAITING TO BE BUILT ------------------------
+     ASKED FOR AS "i want to add a new column for students to track their progress and everythinh.
+     you can leave it at the end of the columns for now. just leave a place holder for now." (9 Oct)
+
+     A PLACE, NOT A QUESTION, which is the test every column in this table is judged by. Nobody
+     narrows "how am I doing" down by answering the funnel's questions: it is the same page whatever
+     you were looking for, and a child opens the app to look at it with no errand at all. So it is a
+     column, and not a kind in `data/settings/kinds.json`.
+
+     A PLACEHOLDER, AND IT SAYS SO — `progressCards_` in arcade.js, on `drill`'s rule from map.js.
+
+     APPENDED, because this table is append-only: `AT` is remembered by id and the X axis clamps by
+     index. `TAB_ORDER` and the last row of `data/settings/columns.json` are what put it last, which
+     is the "for now" the request asked for — moving it is one row of that file with no deploy.
+
+     📈 RATHER THAN A PLAIN SYMBOL. The row is two kinds of glyph: emoji (🏠 📅 🛒 🔎 👤 🧰 🎮) and
+     plain shapes that already mean the thing (★ kept, ✦ featured, ⚙ settings, ✉ a letter). No plain
+     shape means a chart, and the near ones are taken here — ↗ was a post's share mark (`tiles.js`),
+     ▲ is the calculator's up key — so it is the emoji half: 📈 is Unicode 6.0, in Apple's emoji font
+     since iOS 5, and a line going up reads at any size. NOTHING DRAWS IT TODAY: the bar went (see
+     `<nav id="tabs">` in index.html), so like every icon here it is carried for `applyColumns_`
+     and for whatever names a column next. */
+  { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -163,7 +186,8 @@ const TABS = [
    they are widgets standing for what the column holds, not columns of their own. */
 const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
                    'spotlight',
-                   'settings'];
+                   'settings',
+                   'progress'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
@@ -283,6 +307,18 @@ try {
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch {}
+/* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED ---------------------------------------
+   THE STAMP WAS ONLY WRITTEN WHEN THE COLUMN CHANGED, so it measured how long ago you ARRIVED: a child
+   twenty minutes into an essay on Find refreshed and was put on the Feed, because twenty minutes is more
+   than six — and the answer that was still in the box looked lost (docs/history/317). Written again as
+   the page is hidden or left, for the column the person is on, it measures the time AWAY, which is the
+   question both readers of `AWAY_AGAIN` are asking. Only for the column already remembered: a column
+   reached with `remember === false` stays unremembered. */
+function tabStampLeft_() {
+  try { if (localStorage.getItem('familyTab') === AT) localStorage.setItem('familyTabAt', String(Date.now())); } catch {}
+}
+window.addEventListener('pagehide', tabStampLeft_);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') tabStampLeft_(); });
 
 /* ---------- THE COLUMN BEFORE THIS ONE ---------------------------------------------------------------
    So signing in can put you back where you came from (`signedIn_` in me.js) — a child who swiped across
@@ -2229,6 +2265,10 @@ const PAGER = {
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
+  /* PROGRESS, COUNTED FROM `progressCards_`, the list `screen('progress')` draws. One card today —
+     the placeholder — and counted anyway rather than written as 1: the day it is built it will be
+     a page per something, and a count kept here by hand is the fault every entry above records. */
+  progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -2476,7 +2516,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0, shop: 0 };
+               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.
@@ -3180,8 +3220,19 @@ function api(body, opts) {
          refusal is usually the answer they just typed going up — so Find keeps its place for them to sign
          in again to (docs/history/318). Everything else of theirs goes, as for Sign out. */
       if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
+        /* WHOSE SESSION IT WAS, read before it is forgotten — see `ansGoneSay_` (answers.js): the box
+           that person wrote in is drawn empty under the signed-out key now, and says why (317). */
+        const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) {} }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
+        /* THROUGH `ansRecPut_`, held for the visit when the store refuses or throws: without it a
+           browser keeping no site data never knew whose the next answer was (review of the merge). */
+        try {
+          const rec = gone ? JSON.stringify({ who: gone, at: Date.now() }) : '';
+          if (rec && typeof ansRecPut_ === 'function') ansRecPut_('familyGone', rec);
+          else if (rec) localStorage.setItem('familyGone', rec);
+        } catch (e) {}
+        try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) {}
         toast('Signed out — please sign in again');
       }
       return d || {};
@@ -4506,6 +4557,9 @@ async function loadOnce_(again, n) {
      is typing in, if they are: see `landRepaint_`. */
   landRepaint_();
   openSharedPost();     // if the app was opened on a shared link, go to that post
+  /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
+     arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
+  if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();
 }
 
 /* ---------- THE SPLASH, OFF AND ON ---------------------------------------------------------------
@@ -4822,10 +4876,14 @@ function buildMayReload_(tag, booted) {
     if (!up && !(typeof performance !== 'undefined' && performance.now() < SPLASH_SAY_AFTER)) return false;
   } else if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
   /* 3. NOTHING TYPED AND UNSAVED. `qp-ans` writes to localStorage on every keystroke and the
-        notepad does the same, so both survive a reload; everything else in a box would not. */
+        notepad does the same, so both survive a reload — and so does every box carrying a DRAFT
+        (`data-draft`, data.js), drawn again holding it; everything else in a box would not. */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
     .filter(el => String(el.value || '').trim())
-    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad');
+    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad' && !el.hasAttribute('data-draft'));
+  /* 4. NOTHING THE STORE REFUSED — that is in this page and nowhere else, and a reload is the loss
+        (`keepAtRisk_`, data.js; 317). */
+  if (typeof keepAtRisk_ === 'function' && keepAtRisk_().length) return false;
   return !typed.length;
 }
 

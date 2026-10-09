@@ -6680,6 +6680,11 @@ const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key |
    signed in (`ansKey_`); only the words saying so on the box are gone. */
 
 function ansRead_(k) {
+  /* THE VISIT'S COPY OF A WRITE THE STORE REFUSED (`keepHeld_`, data.js), never the older stored one or
+     the empty box a browser keeping nothing answers with: a redraw drew that, and the next key saved it
+     over the essay (docs/history/317). */
+  const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
+  if (held !== undefined) return held || '';
   try {
     const v = localStorage.getItem(k);
     if (v !== null) return v;
@@ -6701,8 +6706,14 @@ function ansRead_(k) {
     if (bare === k) return '';
     const was = localStorage.getItem(bare);
     if (was === null) return '';
+    /* NOT INTO SOMEBODY ELSE'S BOX: written signed out just after the server ended ANOTHER person's
+       session, so it is theirs — the review of 317 found a child's words moved into the next child's
+       account this way. `ansMayMove_` (js/answers.js) is the one question every move asks; here the
+       box is empty, so any answer but "no" moves it. */
+    if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return '';
     if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
     localStorage.removeItem(bare);
+    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
     return was;
   } catch (e) { return ''; }
 }
@@ -8121,8 +8132,9 @@ document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (!el) return;
   /* THROUGH `ansStore_`, which keeps it here exactly as before and, signed in, sends it to the account a
-     second and a half after the last keystroke (js/answers.js). */
-  ansStore_(el.getAttribute('data-k') || '', el.value || '');
+     second and a half after the last keystroke (js/answers.js). AND WHETHER IT IS WORDS: an answer typed
+     signed out after a session ended is joined to that person's own as words are (`ansJoin_`). */
+  ansStore_(el.getAttribute('data-k') || '', el.value || '', el.getAttribute('data-kp') === 'words');
   /* WRITING AN ANSWER IS DOING THE QUESTION, and 427 of them have no Check to press (no `accept`),
      so the box is where most of the library is "done". Empty is not an attempt. */
   if (String(el.value || '').trim()) doneMark_(el.getAttribute('data-k') || '');
@@ -8233,9 +8245,13 @@ function padAdopt_(k, bare) {
     if (localStorage.getItem(k) !== null) return;
     const v = localStorage.getItem(bare);
     if (v === null) return;
+    /* NOR A DRAWING SOMEBODY ELSE MADE SIGNED OUT — `ansRead_`'s rule, asked of the same `ansMayMove_`
+       (answers.js). Only into an empty pad, so any answer but "no" moves it. */
+    if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
     if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
     localStorage.removeItem(bare);
+    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
   } catch (e) {}
 }
 
@@ -8328,8 +8344,9 @@ function padTools_(x) {
    write builds the next one on a stale list. Read straight from `localStorage`, a store that THROWS
    (private mode) answered an empty list every time, so each stroke replaced the last in `ANS_MEM`
    and Undo found nothing; `ansValue_` falls back to the visit's copy exactly then. A store that is
-   merely FULL still answers the old list -- that case is caught where the stroke is written
-   (`padSave_`, below), because only the write knows it was refused. */
+   merely FULL still answers the old list -- so `ansValue_` asks `keepHeld_` (data.js) before it asks
+   the store, and a stroke the store refused is read back from the visit, the list on the screen (317;
+   `padSave_`, below). */
 function padRead_(k) {
   try {
     const raw = typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k);
@@ -8446,9 +8463,14 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padKeptSay_` says "Saved to Ada's
-          account" signed in, which is true of a question's and false of the whiteboard's (`padPrefix_`). */''}
-    <p class="qpad-note">${esc(padPrefix_(x) === 'pad' ? padKeptSay_() : PAD_HERE_ONLY)}</p>
+    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padNoteSay_` says "Saved to Ada's
+          account" signed in, "Not saved" when the store refused it and who was signed out when a session ended
+          (317). The whiteboard's (`padPrefix_`) stays on this device, so of those only "Not saved" is ever
+          true of it: `padNoteSay_` gives a `board:` key that line or `PAD_HERE_ONLY`, never an account's
+          sentence. It carries `data-kept-k` like a question's, so `ansSavedPaint_` -- run by every write --
+          says "Not saved" the moment a stroke is refused and takes it back when one lands (310, after the
+          merge with 317). */''}
+    <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
   </div>`;
 }
 
@@ -8715,17 +8737,25 @@ function padEnd_(e) {
   padSave_(pad, k, all);
 }
 
-/* ---------- A STROKE THE DEVICE REFUSED IS NOT LEFT ON THE SCREEN ---------------------------------
-   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT SWALLOWS A FULL
-   STORE: `ansLocalPut_` keeps the value in `ANS_MEM` and carries on, which is right for a typed answer
-   and was wrong here. Measured by the review of the whiteboard, store filled to the quota: two more
-   strokes, and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the
-   stale list `localStorage` still answered), and Undo then took off a stroke the child could still
-   see. Nothing on the screen said any of it. So the write is read back: a stroke the device did not
-   keep is taken off the screen -- which then shows exactly what a reload would -- and the toast says
-   why. A store that throws on every read is the visit's `ANS_MEM`, which `ansValue_` reads, so
-   private mode is not mistaken for a full one.
-   AND THE BOARD HAS A CEILING OF ITS OWN, `PAD_BOARD_MAX`, said in the same way before it is reached. */
+/* ---------- A STROKE THE DEVICE REFUSED STAYS ON THE SCREEN, AND THE NOTE SAYS IT IS NOT SAVED -------
+   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT USED TO SWALLOW A
+   FULL STORE: measured by the review of the whiteboard, store filled to the quota, two more strokes,
+   and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the stale list
+   `localStorage` still answered), and Undo then took off a stroke the child could still see. Nothing on
+   the screen said any of it. 310's answer was to read the write back and take a refused stroke off the
+   screen, with a toast that the device was full.
+   AFTER THE MERGE WITH 317 THAT READ-BACK COULD NEVER FAIL, and the rule is 317's, for the board as for
+   every answer: a write the store refuses is HELD FOR THE VISIT (`keepPut_`, data.js) and every reader
+   asks for the held copy first (`padRead_` through `ansValue_` → `keepHeld_`), so the list the next
+   stroke is added to is the list on the screen, and Undo takes off the stroke you can see. The stroke
+   stays drawn; the note under the pad says "Not saved — this browser is not keeping it." (`padNoteSay_`,
+   repainted by every `ansStore_`), once a visit a toast says it too, and leaving the page asks first.
+   Chosen over taking it off because a line that vanishes under the finger is worse than one that is
+   said to be unsaved — and a stroke taken off is lost, where a held one lands when the room comes back.
+   THE BOARD'S CEILING IS NOT A REFUSED WRITE and is unchanged: `PAD_BOARD_MAX` is the board's size, so
+   a stroke past it is never written, is taken back off, and the toast says the board is full. Asked of
+   `padRead_`, which is the held list while there is one -- so a board the device has stopped storing is
+   still held to its ceiling, and a board that is full says so whether or not the device kept it. */
 function padSave_(pad, k, all) {
   const v = JSON.stringify(all);
   if (padIsBoard_(k) && v.length > PAD_BOARD_MAX) {
@@ -8734,12 +8764,7 @@ function padSave_(pad, k, all) {
     return false;
   }
   ansStore_(k, v);
-  let kept = true;
-  try { kept = (typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k)) === v; } catch (e) {}
-  if (kept) return true;
-  padRepaint_(pad, padRead_(k));
-  toast('This device is full, so that line was not kept.');
-  return false;
+  return true;
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -8901,8 +8926,10 @@ function padRepaint_(pad, all) {
    picture had never shown, each fixed in the pen for both rather than here for one: a second finger
    or a palm taking over the stroke (the note over `pointerdown`), a repaint cutting a stroke on any
    column but Find (`padHold_`), Clear with no way back (`on('pad-clear')`), and a full device keeping
-   strokes on the screen it had refused to store (`padSave_`). And two that are the board's own: a
-   sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`), and its size.
+   strokes on the screen it had refused to store with nothing said (`padSave_` -- since the merge with
+   317 the stroke is held for the visit and the note says it is not saved). And two that are the
+   board's own: a sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`),
+   and its size.
 
    THE SURFACE IS PAPER, because it stands in for a physical board: `--paper` with the ink in
    `--paper-ink`, never gold. The pen is gold on a question because the question's own figure is
@@ -9238,7 +9265,9 @@ const circKey_ = x => padKey_(x) + ':words';
 const CIRC_HELD = new Map();
 function circRead_(k) {
   try {
-    const raw = localStorage.getItem(k);
+    /* THE VISIT'S COPY FIRST when the store refused it — `ansRead_`'s reason (317). */
+    const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
+    const raw = held !== undefined ? (held === null ? '[]' : held) : localStorage.getItem(k);
     if (raw !== null) {
       const v = JSON.parse(raw);
       return Array.isArray(v) ? v.map(String) : [];
@@ -9878,7 +9907,7 @@ function chunkHtml_(chunk, circ) {
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
-        the ring off. ${esc(padKeptSay_())}</p>` : ''}`;
+        the ring off. <span data-kept-k="${esc(circ.k)}">${esc(padNoteSay_(circ.k))}</span></p>` : ''}`;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -9886,7 +9915,10 @@ function circOf_(x) {
   if (padSurface_(x) !== 'text') return null;
   const k = circKey_(x), bare = 'pad:' + padItemKey_(x) + ':words';
   padAdopt_(k, bare);
-  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)) {
+  /* THE VISIT'S RINGS ARE A SIGNED-OUT ANSWER TOO, and move only where `padAdopt_` would move the stored
+     ones: the one question every move asks (`ansMayMove_`, answers.js). */
+  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)
+      && (typeof ansMayMove_ !== 'function' || ansMayMove_(bare, k))) {
     CIRC_HELD.set(k, CIRC_HELD.get(bare));
     CIRC_HELD.delete(bare);
   }
@@ -10530,6 +10562,58 @@ function stuffForget_() {
   ITEM_MEMO = { key: null, from: null, items: null };
   ALL_MEMO = { key: null, from: null, items: null };
   FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+}
+
+/* ---------- WHERE YOU WERE IN FIND, KEPT FOR A RELOAD --------------------------------------------------
+   THE ESSAY WAS STILL THERE AND THE PAGE WAS NOT (docs/history/317). The chips, the search and the page
+   in front lived in memory only, and the column itself came back after a reload only if it had been
+   CHOSEN in the last six minutes — so a child who had been writing for twenty minutes, refreshed, and
+   landed on the Feed (or on Find's first question) had to walk the funnel back to Q5 to find out
+   whether anything had survived, and an empty-looking screen is what "lost all his progress" looks
+   like. `familyTabAt` is now written as the page is LEFT as well (shell.js), and this keeps the place
+   beside it: the chips, the search, and the item and part on the page in front — by key, not by page
+   number, because a page number means a different question once the library changes.
+
+   THE SEARCH BOX COMES BACK WITH IT, AND ONLY WITH IT: it is half of where you were, and a search
+   restored on its own would be a list narrowed by words nobody can see being typed. The films' search
+   (`VID.q`) is not kept — retyped in a second, and it may be a title (me.js clears it on sign-out).
+
+   THE SAME CLOCK AS THE COLUMN: a reload within `AWAY_AGAIN` of leaving, on Find, for the same person
+   (a draft is the signed-in person's, so an admin's shelf is never somebody else's place), and only if
+   nothing has been asked of Find since the page opened. Tomorrow's visit opens where it always did. */
+function findPlaceKeep_() {
+  try {
+    if (typeof AT === 'undefined' || AT !== 'stuff' || typeof draftKeep_ !== 'function') return;
+    const at = (PAGE.stuff || 0) - stuffFirstResult_();
+    const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
+    const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
+    /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
+    draftKeep_('find', 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
+      key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
+  } catch (e) {}
+}
+window.addEventListener('pagehide', findPlaceKeep_);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
+let FIND_PLACE_TRIED = false;
+function findPlaceBack_() {
+  if (FIND_PLACE_TRIED || typeof draftRead_ !== 'function') return;
+  FIND_PLACE_TRIED = true;
+  try {
+    const raw = draftRead_('find', 'place');
+    if (raw === null) return;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
+    if (AT !== 'stuff' || (STUFF.filters || []).length || STUFF.q) return;
+    STUFF.filters = (Array.isArray(p.f) ? p.f : []).filter(f => f && typeof f === 'object' && typeof f.field === 'string');
+    STUFF.q = typeof p.q === 'string' ? p.q : '';
+    const box = $('stuff-q');
+    if (box) box.value = STUFF.q;
+    paintStuff();
+    if (!p.key) return;
+    const i = stuffPages_().findIndex(pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key
+      && (pg.part || null) === (p.part || null));
+    if (i >= 0) goPage('stuff', stuffFirstResult_() + i, true);
+  } catch (e) {}
 }
 
 function stuffItems() {
@@ -15165,9 +15249,13 @@ function docketSave(list) {
   clearTimeout(dockTimer);
   const said = $('dock-said');
   if (said) said.textContent = 'Saving…';
-  dockTimer = setTimeout(() => {
-    api({ action: 'saveTodo',
-      name: USER.name, personId: USER.personId, todo: USER.todo })
+  /* AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`, data.js; 317). */
+  const sendTodo = keepalive => {
+    clearTimeout(dockTimer);
+    keepDue_('docket', null);
+    if (!USER) return;
+    return api({ action: 'saveTodo',
+      name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
       .then(d => {
         if (d && d.error) throw new Error(d.error);
         const el = $('dock-said');
@@ -15179,7 +15267,9 @@ function docketSave(list) {
         const el = $('dock-said');
         if (el) el.textContent = String(err.message || 'Not saved — no connection.');
       });
-  }, 900);
+  };
+  dockTimer = setTimeout(sendTodo, 900);
+  keepDue_('docket', sendTodo);
 }
 
 function paintDocket() {
@@ -15328,18 +15418,24 @@ document.addEventListener('input', e => {
   const said = $('pad-said');
   if (said) said.textContent = 'Saving…';
   /* Longer than the docket's, because this is typed continuously rather than tapped. Nine hundred
-     milliseconds into a sentence is a write per word. */
-  padTimer = setTimeout(() => {
-    api({ action: 'saveNotepad',
-      name: USER.name, personId: USER.personId, notepad: USER.notepad })
-      .then(d => {
-        if (d && d.error) throw new Error(d.error);
-        const el = $('pad-said');
-        if (el) el.textContent = 'Saved';
-      })
-      .catch(err => {
-        const el = $('pad-said');
-        if (el) el.textContent = String(err.message || 'Not saved — no connection.');
-      });
-  }, 1400);
+     milliseconds into a sentence is a write per word. AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`,
+     data.js; 317), so a reload inside the 1.4 s does not leave the account a sentence behind. */
+  padTimer = setTimeout(padSend_, 1400);
+  keepDue_('notepad', padSend_);
 });
+function padSend_(keepalive) {
+  clearTimeout(padTimer);
+  keepDue_('notepad', null);
+  if (!USER) return;
+  return api({ action: 'saveNotepad',
+    name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
+    .then(d => {
+      if (d && d.error) throw new Error(d.error);
+      const el = $('pad-said');
+      if (el) el.textContent = 'Saved';
+    })
+    .catch(err => {
+      const el = $('pad-said');
+      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+    });
+}

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-09-b-essay";
+const DOPOST_VERSION = "2026-10-09-c-essay-autosave";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -736,11 +736,19 @@ function doPost(e) {
     }
 
     if (action === 'signOut') {
-      /* THE GATE HAS ALREADY RESOLVED THE TOKEN, so this ends the session of whoever actually holds
-         it — a request cannot sign anybody else out. */
-      const t = read(TAB.people);
-      const r = findPerson(body.name);
-      if (r) { authEndSession_(t, r); clearCache(); }
+      /* ---------- THIS SESSION, NOT EVERY ONE THE PERSON HOLDS (docs/history/317) -----------------
+         IT ENDED THEM ALL (`authEndSession_`), and that is how an essay vanished in a lesson. A child
+         writing on the computer; the same account signed in on the iPad — by the tutor checking it,
+         which is how this family uses accounts — and signed out there. The computer's NEXT signed-in
+         request was answered `why: 'signed-out'`; it signed itself out and drew the box under the
+         signed-out key, empty, over 3,015 characters still on the device. Reproduced in a sandbox
+         on this backend: two sessions, the iPad's Sign out, nought left, and the computer's profile
+         and inbox refused. Signing out of one device is about that device.
+         ENDED BY THE TOKEN IT CAME WITH, which is the only session a request can prove it holds — so
+         a request still cannot sign anybody else out, and the token that asked is refused after this.
+         `authEndSession_` keeps the cases where ending everything is the point: a PIN changed, a PIN
+         reset, an address's owner taking a row back. */
+      try { if (S(body.token)) authProps_().deleteProperty(authSessionKey_(body.token)); } catch (err) {}
       /* SUCCESS EITHER WAY. An expired token reaching here means the session is already over, and
          an error would say otherwise. */
       return jsonOut({ success: true });

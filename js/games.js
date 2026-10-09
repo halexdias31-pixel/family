@@ -4767,13 +4767,18 @@ function tmtSave_(t) {
     USER.timetable = JSON.stringify(t);
     try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
     clearTimeout(TMT_TIMER);
-    TMT_TIMER = setTimeout(() => {
+    /* AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`, data.js; docs/history/317). */
+    const send = keepalive => {
+      clearTimeout(TMT_TIMER);
+      keepDue_('timetable', null);
       if (!USER) return;
-      api({ action: 'saveTimetable', name: USER.name, personId: USER.personId || '',
-            timetable: USER.timetable })
+      return api({ action: 'saveTimetable', name: USER.name, personId: USER.personId || '',
+            timetable: USER.timetable }, keepalive ? { keepalive: true } : undefined)
         .then(d => { if (d && d.error) throw new Error(d.error); })
         .catch(err => toast('Timetable not saved — ' + String((err && err.message) || 'no connection.')));
-    }, 900);
+    };
+    TMT_TIMER = setTimeout(send, 900);
+    keepDue_('timetable', send);
     return;
   }
   try { localStorage.setItem(tmtKey_(), JSON.stringify(t)); }
