@@ -309,3 +309,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The films are whatever is in the Notflix folder: a sync from Drive, asked for by the videos card, and only an admin ever sees one](305-the-films-are-whatever-is-in-the-notflix-folder.md)
 - [The videos card reads like YouTube: a pill to search in, a picture on every row, and the watch page when something plays](311-the-videos-card-reads-like-youtube.md)
 - [An essay is written on a sheet: paragraphs with a return key you can see, and Gemini marks all of it](312-an-essay-is-written-on-a-sheet.md)
+- [The site asks again by itself: a payload that did not arrive is retried under one quiet line, the banner is an admin's, and a page older than the site reloads once](313-the-site-asks-again-by-itself.md)

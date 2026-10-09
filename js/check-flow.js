@@ -7304,6 +7304,244 @@ check('a backend that never answers does not hang the app for ever', async () =>
   return bad;
 });
 
+/* ---------- A PAYLOAD THAT DID NOT ARRIVE IS ASKED FOR AGAIN, QUIETLY --------------------------------
+   THE OWNER, 9 OCT, with a phone screenshot of the orange "Could not reach the backend … timeout" bar
+   over Find: *"I don't like when this happens I would rather site just refreshed itself."* See
+   `RECONNECT` in shell.js. These journeys stand in for the network at the one place it fails — the
+   payload's GET — and leave every other request to the stub above:
+     'timeout'  the deadline's own rejection (an `AbortError` called `timeout`), without waiting sixty
+                seconds for it
+     'fetch'    "Failed to fetch", a phone with no signal
+     'html'     Apps Script's own error page, the "Authorization is required" case
+     'refuse'   `{ error }` — a real answer, which is not asked again
+     a promise  the request held until the journey lets it through (and what it resolves to, below)
+     { body }   that payload rather than the stub's
+     anything else (or nothing): the payload, as on every other journey
+   `asked` is every payload GET in order, so "asked again" is a count rather than an impression.
+   THE PAYLOAD CAN EDIT AND DELETE A POST, because the stub's `features: []` raises the "backend at this
+   URL cannot editPost" banner on every success — a true banner about a different thing, and one that
+   would stand where these journeys ask whether ANY banner is up. */
+const RC_PAYLOAD_ = () => Object.assign(payload(), { features: ['editPost', 'deletePost'] });
+const RC_PAGE_ = '<!DOCTYPE html><html><head><title>Error</title></head><body><div>Authorization is '
+  + 'required to perform that action.</div></body></html>';
+const RC_KID_ = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo' };
+const RC_ADMIN_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin' };
+function flaky_(plan, user) {
+  const asked = [];
+  const b = boot({ payload: RC_PAYLOAD_(), before: w => {
+    if (user) signedInAs_(user)(w);
+    const real = w.fetch;
+    w.fetch = (url, o) => {
+      if (!(o && o.body) && /script\.google\.com\/macros\/.*[?&]_=\d+/.test(String(url))) {
+        const step = typeof plan === 'function' ? plan(asked.length) : plan[asked.length];
+        asked.push(String(url));
+        if (step === 'timeout') return Promise.reject(Object.assign(new Error('timeout'), { name: 'AbortError' }));
+        if (step === 'fetch') return Promise.reject(new w.TypeError('Failed to fetch'));
+        if (step === 'html') return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(RC_PAGE_) });
+        if (step === 'refuse') return Promise.resolve({ ok: true, status: 200,
+          text: () => Promise.resolve(JSON.stringify({ error: 'No people (expected in the people file)' })) });
+        const reply = v => (v && v.body ? Promise.resolve({ ok: true, status: 200,
+          text: () => Promise.resolve(JSON.stringify(v.body)) }) : real(url, o));
+        if (step && typeof step.then === 'function') return step.then(reply);
+        if (step && step.body) return reply(step);
+      }
+      return real(url, o);
+    };
+  } });
+  b.asked = asked;
+  b.line = () => String((b.w.document.getElementById('reconnect') || {}).textContent || '');
+  b.bannerUp = () => { const el = b.w.document.getElementById('banner');
+    return !!(el && !el.classList.contains('hidden') && String(el.textContent || '').trim()); };
+  b.bannerText = () => String((b.w.document.getElementById('banner') || {}).textContent || '');
+  b.arrived = () => { const D = b.w.__t && b.w.__t.DATA(); return !!(D && D.tutors && D.tutors.length === 2); };
+  return b;
+}
+const RC_LATE_ = 'Can’t reach the server — still trying.';
+
+check('a payload that timed out is asked for again at once, under a quiet line, and the screen fills in', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const b = flaky_(['timeout', gate]);
+  await wait(400);
+  const bad = [];
+  if (b.asked.length !== 2) bad.push('after a timeout the payload was asked for ' + b.asked.length + ' time(s), not twice — a timeout is asked again straight away');
+  if (b.line() !== 'Reconnecting…') bad.push('while it asks again the quiet line says "' + b.line() + '", not "Reconnecting…"');
+  if (b.bannerUp()) bad.push('a signed-out visitor was shown the banner: ' + b.bannerText().slice(0, 120));
+  if (b.arrived()) bad.push('the payload is in DATA before the retry was let through, so this journey proves nothing');
+  const before = b.w.document.body.innerHTML.indexOf('Colliers Wood Library') !== -1;
+  open();
+  await wait(500);
+  if (!b.arrived()) bad.push('the retry answered and the payload is not in DATA');
+  if (b.line()) bad.push('the retry succeeded and the quiet line still says "' + b.line() + '"');
+  if (b.bannerUp()) bad.push('the retry succeeded and a banner is up: ' + b.bannerText().slice(0, 120));
+  /* DRAWN, not only held: a venue only the payload knows is on a column after the retry. */
+  const after = b.w.document.body.innerHTML.indexOf('Colliers Wood Library') !== -1;
+  if (before) bad.push('a venue only the payload sends was on the page before it arrived — pick another witness');
+  else if (!after) bad.push('the payload arrived and nothing it carries was drawn — the success path did not repaint');
+  if (b.asked.length !== 2) bad.push('a success did not stop the asking: ' + b.asked.length + ' requests');
+  return bad;
+});
+
+check('no connection: a student is asked for again a few seconds later, and never shown the banner', async () => {
+  const b = flaky_(['fetch'], RC_KID_);
+  await wait(400);
+  const bad = [];
+  if (b.asked.length !== 1) bad.push('a fast failure was asked again at once (' + b.asked.length + ' requests) — it waits a few seconds');
+  if (b.line() !== 'Reconnecting…') bad.push('after "Failed to fetch" the quiet line says "' + b.line() + '"');
+  if (b.bannerUp()) bad.push('a student was shown the banner: ' + b.bannerText().slice(0, 120));
+  if (/script\.google\.com/.test(b.w.document.body.textContent)) bad.push('the backend\'s address is on the page for a student');
+  await wait(3400);
+  if (b.asked.length !== 2) bad.push('three seconds after a fast failure the payload had been asked for ' + b.asked.length + ' time(s), not twice');
+  if (!b.arrived()) bad.push('the second ask answered and the payload is not in DATA');
+  if (b.line()) bad.push('the second ask succeeded and the quiet line still says "' + b.line() + '"');
+  if (b.bannerUp()) bad.push('the second ask succeeded and a banner is up');
+  return bad;
+});
+
+check('the browser saying it is online again asks at once, one request at a time', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const b = flaky_(['fetch', gate]);
+  await wait(300);
+  const bad = [];
+  if (b.asked.length !== 1) return ['the first failure was asked again before `online` (' + b.asked.length + ' requests), so `online` cannot be measured'];
+  b.w.dispatchEvent(new b.w.Event('online'));
+  b.w.dispatchEvent(new b.w.Event('online'));
+  await wait(100);
+  if (b.asked.length !== 2) bad.push('`online` twice made ' + (b.asked.length - 1) + ' request(s) — wanted one at once, and no second while it is in the air');
+  open();
+  await wait(400);
+  if (!b.arrived()) bad.push('the ask `online` made answered and the payload is not in DATA');
+  if (b.line()) bad.push('the quiet line outlived the success: "' + b.line() + '"');
+  b.w.dispatchEvent(new b.w.Event('online'));
+  await wait(100);
+  if (b.asked.length !== 2) bad.push('`online` after a success asked again — nothing was failing');
+  return bad;
+});
+
+check('a web page instead of data: an admin is shown the diagnostic, a student only the quiet line', async () => {
+  const bad = [];
+  const a = flaky_(() => 'html', RC_ADMIN_);
+  const k = flaky_(() => 'html', RC_KID_);
+  await wait(400);
+  if (!a.bannerUp()) bad.push('an admin given Apps Script\'s error page was not shown the banner');
+  else {
+    if (!/Authorization is required/.test(a.bannerText())) bad.push('the admin\'s banner lost its advice: ' + a.bannerText().slice(0, 160));
+    if (!/Still trying by itself/.test(a.bannerText())) bad.push('the admin\'s banner does not say the app is still asking');
+  }
+  if (a.line()) bad.push('the quiet line speaks under the admin\'s banner: "' + a.line() + '"');
+  if (k.bannerUp()) bad.push('a student was shown the diagnostic: ' + k.bannerText().slice(0, 120));
+  if (k.line() !== 'Reconnecting…') bad.push('a student\'s quiet line says "' + k.line() + '"');
+  return bad;
+});
+
+check('after two minutes of failures a student reads one plain sentence, never the address; an admin the banner', async () => {
+  const bad = [];
+  const k = flaky_(() => 'fetch', RC_KID_);
+  const a = flaky_(() => 'fetch', RC_ADMIN_);
+  const slow = flaky_(() => 'timeout', RC_ADMIN_);
+  await wait(400);
+  if (k.line() !== 'Reconnecting…') bad.push('before two minutes the student\'s line says "' + k.line() + '"');
+  if (a.bannerUp()) bad.push('an admin was shown the banner for a plain lost connection before two minutes had passed');
+  if (slow.bannerUp()) bad.push('an admin was shown the banner for a timeout before two minutes had passed');
+  /* TWO MINUTES ON, by the app's own clock — `Date` is this window's, so only the app moves. */
+  [k, a, slow].forEach(b => { const was = b.w.Date.now.bind(b.w.Date); b.w.Date.now = () => was() + 125000;
+                        b.w.dispatchEvent(new b.w.Event('online')); });
+  await wait(300);
+  if (k.asked.length !== 2) bad.push('the student\'s `online` made ' + (k.asked.length - 1) + ' request(s), so the two-minute failure was not measured');
+  if (k.line() !== RC_LATE_) bad.push('after two minutes the student\'s line says "' + k.line() + '", not "' + RC_LATE_ + '"');
+  if (k.bannerUp()) bad.push('after two minutes a student was shown the banner');
+  if (/script\.google\.com/.test(k.w.document.body.textContent)) bad.push('after two minutes the backend\'s address is on a student\'s page');
+  if (!a.bannerUp()) bad.push('after two minutes of failures an admin was still not shown the diagnostic');
+  else if (!/Manage deployments/.test(a.bannerText())) bad.push('the admin\'s two-minute banner is not the "Failed to fetch" advice: ' + a.bannerText().slice(0, 160));
+  /* AND A TIMEOUT HAS ADVICE OF ITS OWN — the screenshot's "timeout" sat over "Something else went wrong". */
+  if (!slow.bannerUp()) bad.push('after two minutes of timeouts an admin was not shown the diagnostic');
+  else if (!/longer than a minute/.test(slow.bannerText())) bad.push('two minutes of timeouts are still "something else": ' + slow.bannerText().slice(0, 160));
+  return bad;
+});
+
+check('a refusal is a real answer: not asked again, and only an admin is told what the server said', async () => {
+  const bad = [];
+  const k = flaky_(() => 'refuse', RC_KID_);
+  const a = flaky_(() => 'refuse', RC_ADMIN_);
+  await wait(400);
+  k.w.dispatchEvent(new k.w.Event('online'));
+  await wait(200);
+  if (k.asked.length !== 1) bad.push('a refusal was asked for again (' + k.asked.length + ' requests) — the same question gets the same answer');
+  if (k.line()) bad.push('a refusal put the quiet line up: "' + k.line() + '"');
+  if (k.bannerUp()) bad.push('a student was shown the server\'s refusal in the banner');
+  if (!a.bannerUp() || !/The server said/.test(a.bannerText())) bad.push('an admin was not told what the server said');
+  return bad;
+});
+
+/* A RETRY IS THE ONLY REQUEST THIS APP EVER LEAVES IN THE AIR ON ITS OWN, so it is the one that can be
+   overtaken: a pupil signs in while it is out, the sign-in's load answers first, and then the retry —
+   asked as nobody — lands on top of it. Before retries a load was always one somebody had just asked
+   for; this is the race they brought. */
+check('a retry overtaken by a sign-in does not paint the stranger\'s payload over the one just asked for', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const mine = Object.assign(RC_PAYLOAD_(), { version: 'signed-in' });
+  const theirs = Object.assign(RC_PAYLOAD_(), { version: 'stranger' });
+  const b = flaky_(n => n === 0 ? 'fetch' : n === 1 ? gate.then(() => ({ body: theirs })) : { body: mine });
+  await wait(300);
+  b.w.dispatchEvent(new b.w.Event('online'));
+  await wait(100);
+  if (b.asked.length !== 2) return ['`online` did not send the retry (' + b.asked.length + ' requests), so the race was not run'];
+  b.w.__t.USER(RC_KID_);
+  b.w.load();
+  await wait(400);
+  const bad = [];
+  if (b.asked.length !== 3) bad.push('the sign-in\'s load was not sent beside the retry (' + b.asked.length + ' requests)');
+  if ((b.w.__t.DATA() || {}).version !== 'signed-in') bad.push('the sign-in\'s payload did not land: ' + (b.w.__t.DATA() || {}).version);
+  open();
+  await wait(400);
+  if ((b.w.__t.DATA() || {}).version !== 'signed-in')
+    bad.push('the retry asked as nobody landed after the sign-in and replaced its payload — DATA is "' + (b.w.__t.DATA() || {}).version + '"');
+  if (b.line()) bad.push('the quiet line came back after a good payload: "' + b.line() + '"');
+  return bad;
+});
+
+/* ---------- AND A PAGE THAT OPENS OLDER THAN THE SITE REFRESHES ITSELF, ONCE ----------------------------
+   The same screenshot's footer: "site 06 Oct at 14:32 · css 2026-10-09-…" — a three-day-old index.html
+   under that morning's stylesheet. See `bootStale_`. `LOAD_AT` is what index.html reads from its own
+   `Last-Modified`; the HEAD `buildTag_` sends is answered here with the server's. jsdom cannot navigate,
+   so the reload is counted at the one place it would happen. */
+function staleBoot_(pageAt, serverAt, already) {
+  const { implSymbol } = require('jsdom/lib/jsdom/living/generated/utils');
+  let reloads = 0;
+  const b = boot({ payload: RC_PAYLOAD_(), before: w => {
+    w.LOAD_AT = pageAt;
+    if (already) { try { w.sessionStorage.setItem('familyBuiltFor', already); } catch (e) {} }
+    try { w.location[implSymbol].reload = () => { reloads++; }; } catch (e) {}
+    const real = w.fetch;
+    w.fetch = (url, o) => (o && o.method === 'HEAD')
+      ? Promise.resolve({ ok: true, status: 200, headers: { get: k => ({ etag: '"build-b"',
+          'last-modified': new Date(serverAt).toUTCString() })[k.toLowerCase()] || null } })
+      : real(url, o);
+  } });
+  b.reloads = () => reloads;
+  return b;
+}
+check('a page that opens older than the server reloads once, and never twice for one build', async () => {
+  const bad = [];
+  const now = Date.now() - 5000;
+  const old = now - 3 * 24 * 3600e3;
+  const fresh = staleBoot_(now, now);
+  const stale = staleBoot_(old, now);
+  const again = staleBoot_(old, now, '"build-b"');
+  await wait(400);
+  if (fresh.reloads()) bad.push('a page as new as the server reloaded itself');
+  if (stale.reloads() !== 1) bad.push('a page three days older than the server reloaded ' + stale.reloads() + ' time(s), not once');
+  let mark = null; try { mark = stale.w.sessionStorage.getItem('familyBuiltFor'); } catch (e) {}
+  if (mark !== '"build-b"') bad.push('the reload was not remembered against the build it was for, so nothing stops a second');
+  if (again.reloads()) bad.push('a page that had already reloaded for this build reloaded again — that is the loop');
+  const ban = again.w.document.getElementById('banner');
+  if (!ban || ban.classList.contains('hidden') || !/newer version/i.test(ban.textContent))
+    bad.push('a page still stale after its one reload was not offered the tap to load the new build');
+  return bad;
+});
+
 /* ---------- THE PICTURE IS A DOOR EXACTLY WHILE THE PEN IS OFF -----------------------------------
    REPORTED AS "for questions where you have to draw on it it doesnt work as when you are drawing
    its moving the widget itself". Measured with real touch events on Q7 of the June 2024 Foundation

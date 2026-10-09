@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-essay-sheet-c";
+  --css-version: "2026-10-09-asks-again";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1418,6 +1418,25 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   animation: toast-in .2s ease-out;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, .5rem); } }
+
+/* ---------- THE LINE WHILE THE APP ASKS AGAIN ---------------------------------------------------
+   `#reconnect` — see `RECONNECT` in shell.js. NOT THE BANNER, which is what the owner did not want:
+   no amber, no address, no advice, because the person reading it has nothing to do. The faint ink of
+   an aside at the size of one, in the strip the banner would use, on the raised black every card here
+   sits on. Under the banner and under a sheet; over the column, so a line that swallowed the tap
+   beneath it would be a fault of its own — it takes no presses at all.
+
+   EMPTY, IT IS NOTHING, and it is emptied rather than hidden — the note in index.html says why. */
+#reconnect {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 28;
+  top: calc(var(--top) + var(--safe-top) + .5rem);
+  margin: 0; max-width: calc(100% - 2rem);
+  padding: .3rem .8rem; border: 1px solid var(--line); border-radius: 2px;
+  background: var(--raised); color: var(--dim);
+  font-size: .78rem; line-height: 1.35; text-align: center;
+  pointer-events: none;
+}
+#reconnect:empty { padding: 0; border: 0; }
 
 /* Somebody who has asked their phone to stop animating things means it. */
 @media (prefers-reduced-motion: reduce) {
