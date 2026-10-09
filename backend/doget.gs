@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-09-a-films";
+const DOGET_VERSION = "2026-10-09-b-essay";
 
 
 function doGet(e) {
@@ -503,6 +503,12 @@ function doGet(e) {
                  /* The site checks this before it draws "Mark with AI", so a phone ahead of the
                     deployment shows no button rather than one answering "not recognised". */
                  'aiMark',
+                 /* And this one says `aiMark` reads the WHOLE answer, up to `AI_ANSWER_MAX` (20,000
+                    characters), and marks an essay on its levels. Before it, `aiMark` cut the answer at
+                    2,000 -- so a phone ahead of the deployment would have sent a whole essay and shown
+                    a mark for its first third as the essay's. A phone that does not see this sends no
+                    answer longer than 2,000 and says why (`aiWhole_` in js/keypad.js). */
+                 'aiMarkWhole',
                  /* The site checks this before it offers the ＋ to somebody who is not an admin —
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost',

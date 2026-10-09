@@ -50,7 +50,10 @@
    above the funnel reading "or the 227 papers these are in" was a second way of narrowing sitting
    above the first, and a screen with two of those is a pivot table. A paper is now an ANSWER to an
    ordinary question — see `paperId` in FACETS — which is what it should always have been. */
-const STUFF = { q: '', filters: [] };
+/* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: the person whose session died under them with this
+   question on Find (`ended` in `signedOut_`), so that only they, signing in again, are handed it back.
+   Empty otherwise — signed in, the question is `USER`'s; signed out, it is the holder's. */
+const STUFF = { q: '', filters: [], whose: '' };
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -6612,7 +6615,10 @@ function ansRead_(k) {
        MOVED, NOT COPIED — `padAdopt_`'s rule for the pen. The answer becomes this person's (and goes up
        to their account with the rest, through `ansStore_`), and the signed-out copy goes: a copy left
        behind would be read by the next child to sign in on the same iPad, which is the fault itself
-       carried forward. Only into an empty box — a box this person has written in keeps theirs. */
+       carried forward. Only into an empty box — a box this person has written in keeps theirs.
+       SIGNING IN FROM SIGNED OUT DECIDES THEM ALL FIRST NOW (`answersClaim_`, js/answers.js): here, only
+       into an empty box, a signed-out answer lost to an older one on the account and was left for the next
+       child. This is what is left for a device that was already signed in with one still on it. */
     const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
     if (bare === k) return '';
     const was = localStorage.getItem(bare);
@@ -7927,6 +7933,43 @@ function ansBox_(x) {
      still finds `.qp-mark[data-accept]` on the card. */
   const ai = can ? '' : aiTile_(x);
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
+  /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR -----------------------------------------
+     THE OWNER, 9 Oct, about a pupil on a forty-mark creative writing question: *"firstly it doesnt let him
+     do paragraphs and also i want it to mark with ai."* The chat bar above is a pill that grows to five
+     lines and scrolls inside -- four paragraphs seen through a letterbox. So an answer that is extended
+     writing (`ansEssay_`, keypad.js, which says which 281 rows and why six marks) is drawn as a SHEET:
+     the card's full width, the paper palette, ruled, eight lines tall on a phone and twelve on a tablet
+     before a word is written, growing with the essay up to the room above the pad (and the room its card
+     has, `kpSheetFit_`), then scrolling inside with the line being typed kept in view (`kpBox_`,
+     `kpCaretSeen_`). Its newlines are drawn, so a paragraph is a paragraph.
+
+     THE ROW UNDER IT IS TILES, because it is the action row under a thing (CLAUDE.md): Mark with AI, or
+     Send where a scheme can be checked, the Figure tile, and the word count -- a count rather than a
+     silence, and the number a pupil looks at while writing. With no tile to draw, one faint line says
+     why (`aiWhyNot_`). The verdict, the saved line and the AI's points keep their classes and their
+     reserved lines, so `qp-ai`, `qp-check`, the `input` listener below and every check find them where
+     they always were. `.qp-compose` for the verdict's reserved line; `.qp-mark` only when there is a
+     verdict to hold, as on the bar. */
+  /* THE REVIEW OF 9 OCT ADDED TWO THINGS TO THIS ROW. THE TILE'S NAME, SAID BESIDE IT (`.qp-ai-say`): a
+     tile is a mark with its name in `aria-label`, and on an iPad Mark with AI was a gold sparkle beside
+     "177 words" with nothing saying what it would do -- for the one action this whole sheet exists to
+     end in. Hidden from a screen reader, which already hears the tile's own name. AND A KEPT MARK
+     (`aiKeptView_`, keypad.js): an essay marked earlier is drawn with its verdict and its points, fresh
+     or "before your changes", so a reload or a swipe away and back does not throw the feedback out. */
+  if (ansEssay_(x)) {
+    const v = ansRead_(k);
+    const note = send ? '' : aiWhyNot_(x);
+    const say = ai ? '<span class="qp-ai-say" aria-hidden="true">Mark with AI</span>' : '';
+    const kept = ai && typeof aiKeptView_ === 'function' ? aiKeptView_(k, v) : null;
+    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+      <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
+    const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
+    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${kept ? ' ' + kept.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+    ${sheet}${foot}
+    ${send ? `<span class="qp-verdict" role="status" aria-live="polite">${kept ? esc(kept.verdict) : ''}</span>` : ''}
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
+  </div>${ai ? `<p class="qp-ai-why">${kept ? esc(kept.why) : ''}</p>` : ''}`;
+  }
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', signs)}
   </label>${fig}${send}</div>`;
@@ -11576,6 +11619,42 @@ function stuffPageOf_(x, part) {
   return i < 0 ? 0 : i;
 }
 
+/* ---------- AND BACK ONTO THE CARD YOU WERE ON WHEN THE LIST UNDER IT CHANGES -------------------------
+   `PAGE.stuff` IS A NUMBER, and a redraw that keeps your place keeps the number. That is right while the
+   list is the same list, and it is how a child signing in landed on the card they left (docs/history/318)
+   — but the payload that lands after signing in is that person's, and a signed-in child can be shown
+   more (their friends answer a search; the Bible's index lands for an admin and joins the list mid-read).
+   Measured in check-flow: one more row in front of June 2023 1H Q13 and the redraw put the child on Q12,
+   the same page number on a different card, with nothing anywhere saying why.
+
+   SO A FILLED PAGE SAYS WHICH CARD IT IS (`FIND_AT`, written by `stuffFillOne_`, read only while the page
+   is still marked filled), and the two redraws that keep your place — `screen('stuff')` and
+   `paintStuff(true)` — look that card up in the new list and stand on it. ASKED OF THE PAGE ON THE SCREEN
+   RATHER THAN REMEMBERED, because the page is what the child is actually looking at; a number noted when
+   the page was turned is a guess the moment anything in front of it moves. AND ONLY FOR THE SAME QUESTION:
+   a page drawn for other chips is not the place the new chips were asked for, and the redraws that change
+   the chips go to the question as they always did. A card that is no longer there leaves the number as
+   it was, which is the behaviour before this. */
+const stuffPageId_ = pg => (pg && pg.x ? String(pg.x.key || pg.x.name || '') + '\u0000' + (pg.part || '') : '');
+const stuffAsk_ = () => JSON.stringify([S_(STUFF.q), STUFF.filters || []]);
+function stuffHeld_() {
+  try {
+    const host = $('s-stuff');
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)];
+    const at = el && el.dataset.filled === '1' && el.FIND_AT;
+    return at && at.ask === stuffAsk_() ? at.id : '';
+  } catch (e) { return ''; }
+}
+function stuffBackTo_(id, keep) {
+  if (!id) return;
+  const pages = stuffPages_();
+  /* STILL WHERE IT WAS — the commonest case by far (a star, the same list again), and one comparison
+     rather than a walk over a list that can be thousands of pages long. */
+  if (stuffPageId_(pages[(PAGE.stuff || 0) - keep]) === id) return;
+  const i = pages.findIndex(pg => stuffPageId_(pg) === id);
+  if (i >= 0) PAGE.stuff = keep + i;
+}
+
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST ---------------------------
    `collectionAxes_`, `groupItems_`, `one_` and `plural_` WERE HERE, with `collect: true` on the
    facet they served. Together they drew a line above the funnel — "or the 227 papers these are in"
@@ -13438,6 +13517,8 @@ function paintStuff(keepPage) {
   /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
      what says how much the pages in front moved by. */
   const was = PAGE.stuff || 0;
+  /* AND WHICH CARD THAT IS, off the page itself before it is replaced — see `stuffHeld_`. */
+  const held = keepPage ? stuffHeld_() : '';
   /* ---------- WHAT MOVED IS THE FIRST RESULT, NOT THE QUESTION ---------------------------------
      THIS READ `stuffQuestionPage_()` AND THAT NUMBER IS ALWAYS NOUGHT. `screen('stuff')` builds
      `[the question], frontPages_(), savedPages_(), …` — the question is FIRST and everything that
@@ -13578,6 +13659,9 @@ function paintStuff(keepPage) {
     ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
                            pageCount('stuff') - 1))
     : stuffQuestionPage_();
+  /* THE SHIFT ABOVE IS WHAT MOVED IN FRONT OF THE RESULTS; THIS IS WHAT MOVED AMONG THEM — the card
+     looked up by name in the list as it is now (`stuffBackTo_`), when the list has changed under it. */
+  if (keepPage) stuffBackTo_(held, stuffFirstResult_());
   /* AND THE WINDOW IS BUILT AROUND THE PAGE WE ARE GOING TO BE ON, so it is decided first. Built
      around the old one, a shift of a page or two in front could put the new page just past the
      window's edge, where there is no element to fill. */
@@ -13766,6 +13850,18 @@ const STUFF_SOON = 1;
 const PANE_REACH = 24;
 /* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead. See `paneReach_`. */
 const PANE_ZOOM_MIN = 0.7;
+/* ---------- AND AN ESSAY'S CARD, NO SMALLER THAN KEEPS ITS TILES AT 44px ------------------------------
+   A CARD WITH AN ESSAY SHEET ON IT (`ansEssay_`, docs/history/312) is drawn smaller only while that
+   alone makes it fit with its 48px tiles still 44px or more (44 / 48 is 0.917); past that it is drawn
+   at full size and its pane scrolls, as every card past `PANE_ZOOM_MIN` does. The review of 9 Oct found
+   it at 320x568: the sheet had already given way to its five-line floor (`kpSheetFit_`, keypad.js) and
+   the question over it still did not leave room, so the card went to 0.843 -- Mark with AI 40px, the
+   sheet 188px wide, writing at 13.5px -- the one size where the essay was worse than the chat bar it
+   replaced, which fitted there at full size. Zoom is the owner's answer for a card a little too tall;
+   a card a page of writing tall is the case it was never for, because the thing being shrunk is the
+   page the pupil writes on and the tile they mark it with. With the pad up, `kpRoom_` finds the pane
+   as its scroller and scrolls the sheet and its row above the pad, as for any scrolling card. */
+const PANE_ZOOM_ESSAY = 0.92;
 
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. The first version took
    one pane at a time -- read `scrollHeight`, write `overflowY` -- and a CPU profile of the tap put
@@ -13813,17 +13909,26 @@ function paneReach_(panes) {
         k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
       }
     }));
+    /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. Measured
+       on 9 Oct: a three-paragraph essay grew its sheet, its card passed the pane at 390x844, and this
+       zoomed the whole card to 0.87 -- the writing smaller, the Mark tile 38px, the sheet 242px wide.
+       The sheet scrolls inside anyway; so it is the sheet that gets shorter, and the card stays at
+       full size. Only panes that hold one, so every other pane is measured exactly as before. */
+    if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
     const pad = p => {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     };
-    const want = list.map(p => {
+    const essay = list.map(p => !!p.querySelector('.qp-essay'));
+    const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
-      return Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+      const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+      /* AN ESSAY'S CARD: that zoom, or none and a scrolling pane -- `PANE_ZOOM_ESSAY`. */
+      return essay[i] && z < PANE_ZOOM_ESSAY ? 1 : z;
     });
     /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider
        card re-flowed. Zoom alone does not shrink anything whose height follows its width — a game
@@ -13884,7 +13989,7 @@ function paneReach_(panes) {
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
     /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
-    const over = list.map((p, i) => want[i] <= PANE_ZOOM_MIN
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || (essay[i] && want[i] === 1))
       && p.scrollHeight - p.clientHeight > PANE_REACH);
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
@@ -14034,6 +14139,9 @@ function stuffFillOne_(i, ctx) {
   const pane = paneOf_(el);
   pane.innerHTML = stuffPageHtml(i - first);
   el.dataset.filled = '1';
+  /* WHICH CARD THIS IS, AND FOR WHICH QUESTION — so a redraw over a changed list can find it again
+     (`stuffHeld_`). An expando, as `pane.LAST_H` is: nothing reads it out of the markup. */
+  el.FIND_AT = { ask: stuffAsk_(), id: stuffPageId_(stuffPages_()[i - first]) };
   /* THE HEIGHT IT WAS HELD AT WHILE EMPTY GOES, in the same task as the card arrives, so the page is
      its card's height from the first frame it is drawn — see `stuffPin_`. */
   el.style.minHeight = '';
@@ -14703,9 +14811,17 @@ screen('stuff', () => {
      window, with `PAGE_KEEP` and `PAGE_LO` set to describe exactly that. The count in front is
      `1 + frontPages_().length` because the question is page nought here, which is what
      `stuffFirstResult_` reads back off the DOM once it exists. */
+  /* ---------- AND THE CARD YOU WERE ON, BY NAME, NOT BY NUMBER ----------------------------------------
+     A REPAINT KEEPS `PAGE.stuff`, and a repaint is what a payload landing is — the one after signing in
+     is that person's, and its list can be longer than the one the card was found in. So the page on the
+     screen is asked which card it is BEFORE this draw replaces it (`paint` writes the markup after this
+     returns, so the old strip is still the one in the document), and the new list is asked where that
+     card is now (`stuffBackTo_`). The window below is then built around the page that is right. */
+  const held = stuffHeld_();
   const front = frontPages_();
   const keep = 1 + front.length;
   const want = stuffPageCount();
+  stuffBackTo_(held, keep);
   PAGE_KEEP.stuff = keep;
   PAGE_LO.stuff = stuffLo_(want, keep, PAGE_LO.stuff);
   /* AND THE WINDOW IS FILLED A MOMENT LATER, because a page cannot be filled until it is in the
