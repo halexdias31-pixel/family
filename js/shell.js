@@ -479,6 +479,10 @@ function startScreen_(id, arriving) {
      running, and restarting it is what moves the caret: the notepad's `start` writes its value back.
      See `landRepaint_`. */
   if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) return;
+  /* NOR ONE `paint` HELD UNDER A STROKE (`padHold_`, find.js), for the same reason and one more: a
+     restart stops and starts every widget on the column in one task -- most of a second on Tools --
+     and a finger drawing through that gets a straight line where it moved. */
+  if (typeof padHold_ === 'function' && padHold_(id)) return;
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
   if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }
@@ -611,6 +615,11 @@ function paint(id) {
   if (typeof findKeep_ === 'function' && findKeep_(id)) { STALE[id] = 1; return; }
   /* AND NO COLUMN IS REBUILT BY A PAYLOAD LANDING UNDER SOMEBODY TYPING IN IT — see `landRepaint_`. */
   if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) { STALE[id] = 1; return; }
+  /* ---------- AND NO COLUMN IS REDRAWN UNDER A STROKE, WHICHEVER COLUMN IT IS ---------------------------
+     `findKeep_` holds a half-drawn stroke on Find only, and the whiteboard is on Tools and Saved: a
+     repaint mid-stroke there cut the line where it came (310). `padHold_` (find.js) asks of any column
+     whether the pen's ink is in it. */
+  if (typeof padHold_ === 'function' && padHold_(id)) { STALE[id] = 1; return; }
   /* Drawn is fresh, by definition, whoever asked for it. */
   delete STALE[id];
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned

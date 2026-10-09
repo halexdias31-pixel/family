@@ -1456,6 +1456,78 @@ for (const who of VISITORS) {
       await ctx.close();
     }
 
+    /* ---------- AND ON ITS SIDE, WHERE IT WAS A POSTAGE STAMP ------------------------------------------
+       FOUND BY BOTH REVIEWS OF THE BOARD: turned sideways the board was 16x21px at 568x320 and 68x91 at
+       844x390 -- nothing cut off, nothing anybody could draw on. `.wb` in style.css now lays the card out
+       sideways there, the board the card's height and everything else beside it. So at both sizes, in a
+       phone-shaped context: the board at least 120x160px, every tile of the card a 44px square inside
+       its pane, and a real tap on the padlock and a real drag across the board is one stroke kept with
+       the column and the page where they were -- the side layout is the same pen, measured where the
+       finger lands. Proved by mutation: without the `@media` block the 568x320 board is 16x21 and both
+       rows say so. */
+    for (const [sw, sh] of [[568, 320], [844, 390]]) {
+      const ctx = await browser.newContext({ viewport: { width: sw, height: sh }, hasTouch: true, isMobile: true });
+      const tp = await ctx.newPage();
+      tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
+      await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
+      await tp.addInitScript(GUARDS);
+      await tp.route('**://script.google.com/**', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      await tp.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+      await tp.waitForTimeout(2200);
+      const tc = await ctx.newCDPSession(tp);
+      const W_ = 'tools · the whiteboard at ' + sw + 'x' + sh;
+      const at = () => tp.evaluate(async () => {
+        if (AT !== 'tools') go('tools', false, true);
+        goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
+        for (let i = 0; i < 80; i++) {
+          const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)
+            || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
+            || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until);
+          if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .qpad')) break;
+          await new Promise(r => setTimeout(r, 100));
+        }
+        const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
+        if (!pad) return null;
+        const k = pad.getAttribute('data-k');
+        let n = 0;
+        try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
+        const box = el => { const r = el.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height), l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+        const pane = box(pad.closest('.pane'));
+        const card = pad.closest('.card');
+        const tiles = [...card.querySelectorAll('.tile')].map(box);
+        const off = tiles.filter(b => b.w < 44 || b.h < 44 || b.b > pane.b + 0.5 || b.r > pane.r + 0.5 || b.l < pane.l - 0.5).length;
+        return { at: AT, page: PAGE.tools, k, strokes: n, armed: pad.classList.contains('is-drawing'),
+                 ink: box(pad.querySelector('.qpad-ink')), lock: box(pad.querySelector('.qpad-lock')), tiles: tiles.length, off };
+      });
+      let b = await at();
+      if (!b) {
+        swipes.push({ from: W_, dir: 'touch', ok: false, got: 'no board on the Tools column', want: 'a board' });
+      } else {
+        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; initWhiteboard(); }, b.k);
+        b = await at();
+        swipes.push({ from: W_, dir: 'its size', ok: b.ink.w >= 120 && b.ink.h >= 160 && b.tiles >= 3 && !b.off,
+                      got: 'a ' + b.ink.w + 'x' + b.ink.h + 'px board, ' + b.off + ' of ' + b.tiles + ' tiles under 44px or past the pane',
+                      want: 'at least 120x160px, every tile 44px and inside the pane' });
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: b.lock.x, y: b.lock.y }] });
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(420);
+        const x0 = b.ink.x - Math.round(b.ink.w * 0.35), y0 = b.ink.y;
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
+        for (let i = 1; i <= 10; i++) {
+          await tc.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + Math.round(b.ink.w * 0.7) * i / 10, y: y0 }] });
+          await tp.waitForTimeout(12);
+        }
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(520);
+        const a = await tp.evaluate(k => ({ at: AT, page: PAGE.tools, strokes: (() => { try { return (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) { return -1; } })() }), b.k);
+        swipes.push({ from: W_ + ', locked', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
+        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; }, b.k);
+      }
+      await ctx.close();
+    }
+
     /* ==================================================================================================
        AND A TAP ON THE GAME FLAPS ON THE FINGER GOING DOWN, NOT ON IT COMING UP.
 

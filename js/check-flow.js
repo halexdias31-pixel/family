@@ -2220,8 +2220,13 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   t.goPage('tools', roster.indexOf('whiteboard'), true);
-  await wait(50);
   const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  /* THE BOARD IS WAITED FOR, NOT GUESSED AT. Measured at a load average of 60: arriving at Tools books
+     the column's widget starts behind the slide, `woken_` above found the queue empty because it had
+     not been filled yet, and a fixed 50ms after `goPage` found no board -- which appeared a second
+     later. `partyBoot_`'s lesson: ask every 100ms, up to ten seconds, then let the queue drain. */
+  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  await woken_();
   if (!pad()) return bad.concat(['the whiteboard did not draw a pad on the Tools column']);
   const k = pad().getAttribute('data-k');
   if (k !== 'board:u:P9:whiteboard') bad.push('the board is kept under ' + JSON.stringify(k) + ', wanted "board:u:P9:whiteboard" — a `pad:` key is a question\'s answer');
@@ -2253,10 +2258,12 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
   A['pad-draw'](pad().querySelector('.qpad-lock'));
   if (!pad().classList.contains('is-drawing') || !ink().hasAttribute('data-noswipe')) bad.push('the padlock did not lock the board: no frame or no `data-noswipe`');
   if (w.axisFree(ink(), 'x', -1) || w.axisFree(ink(), 'y', 1)) bad.push('locked, the grid may still take a drag that starts on the board, so a stroke slides the column');
-  /* (20+30, 100+40) is units (34, 34); (20+150, 100+200) is (170, 170); (20+270, 100+360) is (306, 306). */
+  /* (20+30, 100+40) is units (34, 34); (20+150, 100+200) is (170, 170); (20+270, 100+360) is (306, 306).
+     STORED THINNED (`PAD_BOARD_MAX` in find.js): the middle point of a straight run is no part of the
+     line, so the board keeps the two ends -- a question's pad would keep all three. */
   drag([[50, 140], [170, 300], [290, 460]]);
   let s = stored();
-  if (s.length !== 1 || JSON.stringify(s[0]) !== '[34,34,170,170,306,306]') bad.push('a locked drag stored ' + JSON.stringify(s) + ', wanted one stroke [34,34,170,170,306,306]');
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[34,34,306,306]') bad.push('a locked drag stored ' + JSON.stringify(s) + ', wanted one stroke [34,34,306,306] -- its two ends, thinned');
   if (paths() !== 1) bad.push('a locked drag drew ' + paths() + ' path(s), wanted 1');
 
   A['pad-undo'](pad().querySelector('.qpad-undo'));
@@ -2296,6 +2303,155 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
 
   if (typeof t.padOn === 'function') t.padOn('');
   try { w.localStorage.removeItem(k); } catch (e) {}
+  return bad;
+});
+
+/* ---------- AND WHAT THE TWO REVIEWS OF THE BOARD FOUND, ASKED OF IT ------------------------------------
+   Each of these was measured on a phone with real touches (note 310) and fixed in the pen, so each is
+   asked here through the pen's own listeners and handlers, the way the journey above asks its own:
+     * ONE FINGER IS ONE STROKE: a second pointer going down mid-stroke (a palm) is ignored, its moves
+       and its lift are not the stroke's, and no stray preview is left in the board
+     * A REPAINT DOES NOT CUT A STROKE: `repaint()` half way leaves the same board element under the
+       finger (`padHold_`, and `wbPaint_` skipping the copy being drawn on), and the stroke is kept whole
+     * CLEAR CAN BE UNDONE: Undo on the emptied board puts back exactly what Clear took
+     * A STROKE THE DEVICE REFUSED IS TAKEN OFF THE SCREEN and the toast says so; so is one past the
+       board's ceiling
+     * A SIGN-OUT, AWAY FROM TOOLS, takes the last person's board off the stale column: unarmed, keyed
+       to nobody, blank -- and a sign-in draws the next person's there */
+check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, puts a Clear back, owns up to a refused stroke and leaves with whoever signs out', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
+  if (!t || typeof w.initWhiteboard !== 'function' || typeof w.padHold_ !== 'function' || typeof w.padWhoChanged_ !== 'function'
+      || typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function' || typeof t.padOn !== 'function'
+      || !A['pad-undo'] || !A['pad-clear'] || !w.Storage) {
+    return ['padHold_, padWhoChanged_, signedOut_/signedIn_, padOn or the pad handlers are not reachable — the board was NOT checked'];
+  }
+  const toasts = [];
+  const realToast = w.toast;
+  w.toast = m => { toasts.push(String(m)); };
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
+  t.USER(sam);
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  t.goPage('tools', roster.indexOf('whiteboard'), true);
+  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  /* WAITED FOR, the journey above's reason. */
+  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  await woken_();
+  if (!pad()) { w.toast = realToast; return ['the whiteboard did not draw a pad on the Tools column']; }
+  const k = pad().getAttribute('data-k');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  t.padOn(k);
+  w.initWhiteboard();
+  const L = 20, T = 100, W = 300, H = 400;
+  const ink = () => pad().querySelector('.qpad-ink');
+  const fix = () => { ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
+  /* A POINTER BY ITS ID. jsdom has no PointerEvent, so the id is put on a mouse event as the browser
+     would carry it -- the one field the pen's listeners tell two fingers apart by. */
+  const fire = (type, px, py, id) => {
+    const e = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: px, clientY: py });
+    Object.defineProperty(e, 'pointerId', { value: id });
+    ink().dispatchEvent(e);
+  };
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
+  const paths = () => pad().querySelectorAll('.qpad-g path').length;
+  fix();
+
+  /* ONE FINGER: finger 1 along the top and down the right; a palm goes down at the bottom, moves and
+     lifts in the middle of it. Units: x 50 -> 34, 170 -> 170, 290 -> 306; y 140 -> 34, 300 -> 170. */
+  fire('pointerdown', 50, 140, 1);
+  fire('pointermove', 170, 140, 1);
+  fire('pointerdown', 280, 470, 2);
+  fire('pointermove', 270, 460, 2);
+  fire('pointermove', 290, 140, 1);
+  fire('pointerup', 270, 460, 2);
+  fire('pointermove', 290, 300, 1);
+  fire('pointerup', 290, 300, 1);
+  let s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[34,34,306,34,306,170]') {
+    bad.push('a palm mid-stroke left ' + JSON.stringify(s) + ', wanted finger 1\'s one stroke [34,34,306,34,306,170] -- a second pointer took the stroke over');
+  }
+  if (paths() !== s.length || pad().querySelector('[data-live]')) bad.push('after the palm the board draws ' + paths() + ' path(s) for ' + s.length + ' stored, or a live preview was left behind');
+
+  /* A REPAINT HALF WAY THROUGH A STROKE -- a payload landing, or the inbox reply after every load. */
+  fire('pointerdown', 50, 200, 1);
+  fire('pointermove', 100, 200, 1);
+  const was = ink();
+  /* AND NOT RESTARTED EITHER: `startScreen_` asks `padHold_` too, so the column's widgets are left
+     running rather than stopped and started in one task under the finger. */
+  const realStart = w.toolsStart_, restarted = [];
+  w.toolsStart_ = function (kind) { restarted.push(kind); return realStart.apply(this, arguments); };
+  try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  finally { w.toolsStart_ = realStart; }
+  if (restarted.indexOf('tool') !== -1) bad.push('a repaint half way through a stroke restarted every widget on the Tools column under the finger');
+  if (ink() !== was) {
+    bad.push('a repaint replaced the board under a stroke being drawn — the rest of the stroke goes into a detached copy');
+    fix();
+  }
+  fire('pointermove', 200, 200, 1);
+  fire('pointerup', 200, 200, 1);
+  s = stored();
+  if (s.length !== 2 || JSON.stringify(s[1]) !== '[34,85,204,85]') bad.push('the stroke a repaint landed in was kept as ' + JSON.stringify(s[1]) + ', wanted it whole: [34,85,204,85]');
+  if (paths() !== s.length) bad.push('after the repaint the board draws ' + paths() + ' path(s) for ' + s.length + ' stored');
+
+  /* CLEAR, AND UNDO PUTS IT BACK. */
+  const before = JSON.stringify(stored());
+  A['pad-clear'](pad().querySelector('.qpad-clear'));
+  if (w.localStorage.getItem(k) !== null || paths()) bad.push('Clear left the board with ' + paths() + ' path(s) drawn');
+  A['pad-undo'](pad().querySelector('.qpad-undo'));
+  if (JSON.stringify(stored()) !== before || paths() !== stored().length) bad.push('Undo straight after Clear did not put the board back: ' + JSON.stringify(stored()) + ' against ' + before);
+
+  /* A STROKE THE DEVICE REFUSED: the store throws for the board's key, as a full one does. */
+  const S = w.Storage.prototype, realSet = S.setItem;
+  S.setItem = function (key, v) {
+    if (key === k) { const e = new Error('the quota has been exceeded'); e.name = 'QuotaExceededError'; throw e; }
+    return realSet.call(this, key, v);
+  };
+  const n0 = stored().length;
+  toasts.length = 0;
+  try {
+    fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
+  } finally { S.setItem = realSet; }
+  if (stored().length !== n0 || paths() !== n0) bad.push('a stroke the device refused is still drawn: ' + paths() + ' path(s) on the screen, ' + stored().length + ' kept');
+  if (!toasts.some(m => /device is full/i.test(m))) bad.push('nothing said the device refused the stroke (toasts: ' + JSON.stringify(toasts) + ')');
+
+  /* AND ONE PAST THE BOARD'S CEILING: a board already holding more than it may. */
+  const big = []; for (let i = 0; i < 26000; i++) big.push(i % 340, (i * 7) % 340);
+  w.localStorage.setItem(k, JSON.stringify([big]));
+  w.initWhiteboard(); fix();
+  toasts.length = 0;
+  fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
+  if (stored().length !== 1 || paths() !== 1) bad.push('a stroke past the board\'s ceiling was kept or left drawn: ' + stored().length + ' stored, ' + paths() + ' drawn');
+  if (!toasts.some(m => /board is full/i.test(m))) bad.push('nothing said the board is full (toasts: ' + JSON.stringify(toasts) + ')');
+  w.localStorage.setItem(k, JSON.stringify([[34, 34, 306, 306]]));
+  w.initWhiteboard();
+
+  /* A SIGN-OUT FROM ANOTHER COLUMN: Tools is left STALE by its repaint, and its board must not be Sam's. */
+  t.go('feed', false, true);
+  await wait(LEAVE_MS); await woken_();
+  try { w.signedOut_(); } catch (e) { bad.push('signedOut_ threw: ' + e.message); }
+  await wait(50);
+  const out = pad();
+  if (!out) bad.push('after the sign-out there is no board on the Tools column at all');
+  else {
+    if (out.getAttribute('data-k') !== 'board:whiteboard') bad.push('after a sign-out the stale Tools column still holds the board keyed ' + JSON.stringify(out.getAttribute('data-k')) + ' — the last person\'s, on the shared iPad');
+    if (out.classList.contains('is-drawing') || out.querySelector('[data-noswipe]')) bad.push('after a sign-out the board on the stale Tools column is still armed');
+    if (out.querySelectorAll('.qpad-g path').length) bad.push('after a sign-out the last person\'s marks are still drawn on the Tools column');
+  }
+  /* AND A SIGN-IN, still away from Tools, draws the person arriving -- Sam again, whose stroke is kept. */
+  try { w.signedIn_(Object.assign({ token: 't-sam' }, sam)); } catch (e) { bad.push('signedIn_ threw: ' + e.message); }
+  await wait(50);
+  const back = pad();
+  if (!back || back.getAttribute('data-k') !== k || back.querySelectorAll('.qpad-g path').length !== 1) {
+    bad.push('after signing back in the stale Tools column shows ' + (back ? JSON.stringify(back.getAttribute('data-k')) + ' with ' + back.querySelectorAll('.qpad-g path').length + ' mark(s)' : 'no board') + ', wanted Sam\'s board and its one stroke');
+  }
+
+  w.toast = realToast;
+  t.padOn('');
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem('board:whiteboard'); } catch (e) {}
+  t.USER(null);
   return bad;
 });
 
