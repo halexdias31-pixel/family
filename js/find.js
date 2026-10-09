@@ -8216,7 +8216,17 @@ document.addEventListener('input', e => {
    person too, which is the fault itself carried forward. Never over marks the person already has:
    those are newer than anything the phone kept. */
 const padItemKey_ = x => (x && (x.key || x.name)) || '?';
-const padKey_ = x => 'pad:' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
+/* ---------- `pad:` IS A QUESTION'S, AND A PEN THAT IS NOT ON A QUESTION SAYS SO IN ITS KEY ----------
+   EVERY `pad:` KEY IS AN ANSWER as far as the rest of the app is concerned: answers.js sends it to the
+   account's `answers` tab (`ansStore_`, and the backlog sweep in `answersAdopt_` that walks every
+   `pad:<who>:` on the device), and that tab is the record of what a child answered. So the one pen
+   that is not on a question -- the whiteboard, `WB_ITEM` below -- names its own prefix (`prefix:
+   'board'`), and its marks are `board:u:P7:whiteboard`: the same per-person key, the same handlers,
+   and a shape answers.js does not recognise, so it is kept on the device and never read as a
+   question somebody answered. The argument is written over `WB_ITEM`. A question names nothing and is
+   `pad:` exactly as it always was. */
+const padPrefix_ = x => (x && x.prefix) || 'pad';
+const padKey_ = x => padPrefix_(x) + ':' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
 function padAdopt_(k, bare) {
   if (!k || !bare || k === bare) return;
   try {
@@ -8313,9 +8323,17 @@ function padTools_(x) {
   return out();
 }
 
+/* THROUGH `ansValue_`, THE WRITER'S OWN READER (js/answers.js), and not `localStorage` beside it.
+   Every stroke is read, appended to and written back whole, so a read that disagrees with the last
+   write builds the next one on a stale list. Read straight from `localStorage`, a store that THROWS
+   (private mode) answered an empty list every time, so each stroke replaced the last in `ANS_MEM`
+   and Undo found nothing; `ansValue_` falls back to the visit's copy exactly then. A store that is
+   merely FULL still answers the old list -- that case is caught where the stroke is written
+   (`padSave_`, below), because only the write knows it was refused. */
 function padRead_(k) {
   try {
-    const v = JSON.parse(localStorage.getItem(k) || '[]');
+    const raw = typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k);
+    const v = JSON.parse(raw || '[]');
     return Array.isArray(v) ? v : [];
   } catch (e) { return []; }
 }
@@ -8392,7 +8410,7 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
-  padAdopt_(k, 'pad:' + padItemKey_(x));
+  padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
   const marks = padRead_(k);
   /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
      its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
@@ -8428,7 +8446,9 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    <p class="qpad-note">${esc(padKeptSay_())}</p>
+    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padKeptSay_` says "Saved to Ada's
+          account" signed in, which is true of a question's and false of the whiteboard's (`padPrefix_`). */''}
+    <p class="qpad-note">${esc(padPrefix_(x) === 'pad' ? padKeptSay_() : PAD_HERE_ONLY)}</p>
   </div>`;
 }
 
@@ -8492,6 +8512,9 @@ let PAD_GO = null;                // the drag behind it: which tool, on which in
 /* WHICH TOOL EACH PAD IS HOLDING, by the pad's key, for the visit: a card is rebuilt on every repaint
    and a tool left on the element would be dropped with it, the `PAD_ON` argument one line up. */
 const PAD_TOOL = new Map();
+/* WHAT CLEAR LAST TOOK OFF EACH PAD, by key, for the visit -- so Undo straight after it puts the marks
+   back. See `on('pad-clear')`. */
+const PAD_CLEARED = new Map();
 
 function padAt_(ink, e) {
   const r = ink.getBoundingClientRect();
@@ -8616,17 +8639,33 @@ function padAid_(g) {
   aid.innerHTML = pin + rad;
 }
 
+/* ---------- ONE FINGER IS ONE STROKE, AND A SECOND ONE IS NOT A TAKEOVER ---------------------------
+   FOUND BY THE REVIEW OF THE WHITEBOARD with real touches through CDP: finger 1 drawing, a second
+   touch down near the bottom of the board -- a palm resting, or a second child's finger, which on a
+   board the size of a page is the ordinary case and not the odd one -- and the second `pointerdown`
+   replaced the stroke in progress while `pointermove` took every pointer's moves as the stroke's. The
+   stored line alternated between the two (`[272,306,272,305,156,68,272,304,169,68,…]`, a fan of
+   spokes from the palm), finger 1's first 60px were gone, and the first live preview was left in the
+   DOM as a path nothing had stored. The question pages' pen had the same three lines; a question's
+   picture is small enough that nobody rests a hand on it.
+   SO A STROKE BELONGS TO THE POINTER THAT STARTED IT (`PAD_GO.id`): another pointer going down while
+   it is drawn is ignored, and only that pointer's moves and lift are the stroke's. THE SAME ID GOING
+   DOWN AGAIN means its own lift never arrived -- a mouse is always pointer 1 -- so that starts afresh
+   rather than wedging the pen, and so does a stroke whose ink a repaint has already replaced. */
 document.addEventListener('pointerdown', e => {
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
   if (!ink) return;
   const pad = ink.closest('.qpad');
   if (!pad || pad.getAttribute('data-k') !== PAD_ON) return;
+  if (PAD_GO && PAD_GO.id !== e.pointerId && PAD_GO.ink.isConnected) { e.preventDefault(); return; }
   const at = padAt_(ink, e);
   if (!at) return;
   e.preventDefault();
+  /* A STROKE LEFT HALF DRAWN BY A LIFT THAT NEVER CAME takes its preview with it. */
+  if (PAD_GO) { const old = PAD_GO.ink.querySelector('[data-live]'); if (old) old.remove(); }
   const r = ink.getBoundingClientRect();
   PAD_GO = { tool: padToolNow_(pad), ink: ink, from: at, sx: r.width / 340, sy: r.height / 340,
-             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null };
+             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: e.pointerId };
   /* THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
      because a ring of no width is not a mark -- its point is the aid's. */
   PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
@@ -8641,7 +8680,7 @@ document.addEventListener('pointerdown', e => {
 });
 
 document.addEventListener('pointermove', e => {
-  if (!PAD_ST || !PAD_GO) return;
+  if (!PAD_ST || !PAD_GO || e.pointerId !== PAD_GO.id) return;
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
   if (!ink || ink !== PAD_GO.ink) return;
   const at = padAt_(ink, e);
@@ -8656,21 +8695,51 @@ document.addEventListener('pointermove', e => {
 
 function padEnd_(e) {
   if (!PAD_ST || !PAD_GO) { PAD_ST = null; PAD_GO = null; return; }
+  /* ANOTHER FINGER LIFTING IS NOT THE END OF THIS STROKE -- the note over `pointerdown`. */
+  if (e && e.pointerId !== PAD_GO.id) return;
   const g = PAD_GO;
-  const st = PAD_DRAW[g.tool].end(g, PAD_ST);
+  let st = PAD_DRAW[g.tool].end(g, PAD_ST);
   PAD_ST = null; PAD_GO = null;
   const live = g.ink.querySelector('[data-live]');
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
   /* A SLIP IS TAKEN BACK OFF THE SCREEN as well as never stored: the preview is not a mark. */
   if (!st) { if (live) live.remove(); return; }
-  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
   const pad = g.ink.closest('.qpad');
+  const k = (pad && pad.getAttribute('data-k')) || '';
+  /* THE WHITEBOARD'S STROKE IS STORED THINNED -- see `PAD_BOARD_MAX`. A question's keeps every point. */
+  if (padIsBoard_(k) && typeof ansSimplify_ === 'function') st = ansSimplify_(st, 1);
+  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
   if (!pad) return;
-  const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k); all.push(st);
-  /* `ansStore_`, the one writer: here, and on the account (js/answers.js). */
-  ansStore_(k, JSON.stringify(all));
+  padSave_(pad, k, all);
+}
+
+/* ---------- A STROKE THE DEVICE REFUSED IS NOT LEFT ON THE SCREEN ---------------------------------
+   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT SWALLOWS A FULL
+   STORE: `ansLocalPut_` keeps the value in `ANS_MEM` and carries on, which is right for a typed answer
+   and was wrong here. Measured by the review of the whiteboard, store filled to the quota: two more
+   strokes, and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the
+   stale list `localStorage` still answered), and Undo then took off a stroke the child could still
+   see. Nothing on the screen said any of it. So the write is read back: a stroke the device did not
+   keep is taken off the screen -- which then shows exactly what a reload would -- and the toast says
+   why. A store that throws on every read is the visit's `ANS_MEM`, which `ansValue_` reads, so
+   private mode is not mistaken for a full one.
+   AND THE BOARD HAS A CEILING OF ITS OWN, `PAD_BOARD_MAX`, said in the same way before it is reached. */
+function padSave_(pad, k, all) {
+  const v = JSON.stringify(all);
+  if (padIsBoard_(k) && v.length > PAD_BOARD_MAX) {
+    padRepaint_(pad, padRead_(k));
+    toast('The board is full. Clear it to carry on.');
+    return false;
+  }
+  ansStore_(k, v);
+  let kept = true;
+  try { kept = (typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k)) === v; } catch (e) {}
+  if (kept) return true;
+  padRepaint_(pad, padRead_(k));
+  toast('This device is full, so that line was not kept.');
+  return false;
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -8723,20 +8792,41 @@ on('pad-undo', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k);
+  /* AN EMPTY PAD THAT CLEAR EMPTIED: the last thing done was the Clear, so it is what Undo undoes. */
+  if (!all.length && PAD_CLEARED.has(k)) {
+    const back = PAD_CLEARED.get(k);
+    PAD_CLEARED.delete(k);
+    ansStore_(k, JSON.stringify(back));
+    padRepaint_(pad, back);
+    toast('Put back');
+    return;
+  }
   if (!all.length) { toast('Nothing to undo'); return; }
   all.pop();
   ansStore_(k, JSON.stringify(all));
   padRepaint_(pad, all);
 });
 
+/* ---------- CLEAR CAN BE UNDONE ------------------------------------------------------------------
+   IT COULD NOT, AND ON THE WHITEBOARD THAT WAS THE WHOLE PAGE. Found by both reviews of the board: draw
+   a page, one tap on the bin -- which sits 4px from Undo in a row of 44px tiles -- and the key was
+   removed, and Undo answered "Nothing to undo". On a question a slip costs one diagram's marks; on a
+   board it costs everything on it. So what Clear takes off is held for the visit (`PAD_CLEARED`), and
+   Undo on the emptied pad puts it back -- also after strokes drawn since have been undone one by one,
+   which is the order an undo history runs in. One level: a second Clear holds what IT took. Not kept
+   past the visit, and dropped at a change of person (`padWhoChanged_`). No dialog: a question that
+   interrupts every deliberate Clear to guard against the odd slip is the wrong way round when the
+   slip can simply be undone. */
 on('pad-clear', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
-  if (!padRead_(k).length) return;
+  const had = padRead_(k);
+  if (!had.length) return;
+  PAD_CLEARED.set(k, had);
   /* CLEARED IS A VALUE TOO — sent as nothing, so the drawing goes from the other device as well. */
   ansStore_(k, null);
   padRepaint_(pad, []);
-  toast('Cleared');
+  toast('Cleared. Undo puts it back.');
 });
 
 /* REPAINTED FROM THE STORED MARKS RATHER THAN BY REMOVING A NODE, so that what is on the screen is
@@ -8748,6 +8838,155 @@ function padRepaint_(pad, all) {
   if (g) g.innerHTML = (all || [])
     .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
 }
+
+/* ==================================================================================================
+   THE WHITEBOARD IS THIS PEN, ON NOTHING.
+
+   ASKED FOR AS *"Can you also add a whiteboard widget in tools. Make it bare bones for now."* The
+   widget is `whiteboard` in WIDGETS (map.js); this is all of its code, and most of that is comment.
+
+   NOT A SECOND DRAWING SURFACE. Everything hard about a pen in this app is already paid for above, in
+   bug reports: the lock that holds the column still while a finger draws (`data-noswipe` for the grid,
+   `touch-action: none` for the browser -- two halves of one sentence, see `on('pad-draw')`), the
+   picture that is a door while the pen is off and a drag that is still a swipe (`PRESS_MOVED`), the
+   pen that survives a repaint because it is read off `PAD_ON` rather than left on an element, strokes
+   as flat polylines in the device's storage written once per stroke, Undo and Clear redrawn from
+   storage, a key per person signed in, and the phone's old marks moving once to whoever opens them. A
+   board of its own would have to be paid for again, one report at a time. So `padWrap_` is handed a
+   pseudo-item and a blank surface and does what it does for a question.
+
+   WHAT `padWrap_` ASKS OF A QUESTION, AND WHY NONE OF IT BITES HERE -- read rather than assumed:
+     `usesUnder_`   an earlier part's marks: `usesOf_` answers null for anything not `kind: 'question'`
+     `padTools_`    no `needs`, no words, so the pen alone -- and a lone Pen is drawn as no tool tile
+     `padKeptSay_`  "Saved to Ada's account" -- not true of this one, so the note says it is kept here
+                    (`padPrefix_` decides; one line in `padWrap_`)
+   and the key's prefix, two lines over `padKey_`. That is the whole generalisation.
+
+   BARE BONES, AND THAT IS THE BRIEF RATHER THAN AN UNFINISHED JOB: draw (with the lock), Undo, Clear.
+   No colours, no eraser, no shapes, no ruler or compass, no export, no sharing, no pages. What it
+   would grow into next, in the order somebody would miss them:
+     a second colour   the stroke is a flat list of numbers and nothing else (`padPath_`), so a colour
+                       is a change to the FORMAT -- say `{c, p}` beside the bare list, read by `padPath_`
+                       -- not a class on the path
+     an eraser         Undo is the eraser today; a real one is a tool in `PAD_DRAW` that removes the
+                       strokes a drag crosses, which is where the ruler and the compass already live
+     the ruler/compass `padTools_` could offer them here with one line (`WB_ITEM.needs`); left off
+                       because "bare bones" was the word
+     the account       see the next paragraph -- it needs a key the answers tab can tell from a question
+     pages, export     a list of boards under one key; a PNG from the two SVGs. Nobody has asked.
+
+   ITS OWN PREFIX, `board:`, SO IT IS NEVER A QUESTION SOMEBODY ANSWERED. Under `pad:` the board would
+   be `pad:u:P7:whiteboard`, and every reader of `pad:` keys takes it for an answer: `ansStore_` sends it
+   to the `answers` tab as `pad:whiteboard`, and so does the backlog sweep in `answersAdopt_`, which
+   walks every `pad:<who>:` key on the device whether or not a question drew it. That tab is the record
+   of what a child answered, and anything that ever lists or counts answers from it -- a progress page,
+   a parent's summary, a log of what was handed in -- would count a question called `whiteboard` that
+   nobody can find. Teaching every reader of that tab, now and later, to skip one name is a rule in N
+   places that the next reader will not know about; a key that does not look like an answer is a rule
+   in none. answers.js matches `^(ans|pad):` throughout, so a `board:` key goes through the same
+   `ansStore_` the pen always calls, is written to the device, has no person in it as far as the
+   account is concerned, and is sent nowhere.
+   WHAT IT DOES NOT TOUCH, checked: the weekly parent email reads `attempts`, which only `doneMark_`
+   writes, and the pen has never called it (a stroke is not "done"); Saved keeps the widget's star as
+   `w:whiteboard` in `FAVS`, a widget like the calculator, not a question; and nothing else walks the
+   store but that sweep, `attemptsSync_` (`done:`) and the splash (`splashAnim:`) -- and, since the
+   signed-out answers began moving to whoever signs in, `answersClaim_`, which takes `^(ans|pad):` only,
+   so a board drawn signed out stays the device's and is never handed to the next child.
+   WHAT IT COSTS: the board stays on the device it was drawn on, per person signed in there. For a board
+   that is the ordinary thing -- you wipe it -- and the note under it says so. And its size is bounded
+   here rather than by the device's store running out: `PAD_BOARD_MAX`, below.
+
+   WHAT THE BOARD FOUND IN THE PEN. "The pen has already paid for it" held for the lock, the swipe and
+   the per-person key, and the two reviews of the board still found four faults a question's small
+   picture had never shown, each fixed in the pen for both rather than here for one: a second finger
+   or a palm taking over the stroke (the note over `pointerdown`), a repaint cutting a stroke on any
+   column but Find (`padHold_`), Clear with no way back (`on('pad-clear')`), and a full device keeping
+   strokes on the screen it had refused to store (`padSave_`). And two that are the board's own: a
+   sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`), and its size.
+
+   THE SURFACE IS PAPER, because it stands in for a physical board: `--paper` with the ink in
+   `--paper-ink`, never gold. The pen is gold on a question because the question's own figure is
+   printed in `currentColor` and your line has to be told from its axis; here there is nothing on the
+   board but your marks, and gold on cream is a line you can barely see. Sized in `style.css` (`.wb`),
+   where the reason for its shape is written: the ink is stretched to its box, so the box keeps ONE
+   shape everywhere or yesterday's circle comes back an ellipse. */
+const WB_ITEM = { key: 'whiteboard', prefix: 'board' };
+const PAD_HERE_ONLY = 'Kept on this device only.';
+/* EMPTY, BECAUSE THE BOX IS THE BOARD. On a question `.qpad-art` takes its size from the figure in it;
+   here `.wb .qpad-art` is given its paper and its 3:4 itself (style.css) and this only fills it, so
+   the ink is laid over it exactly as over any figure. */
+const WB_SURF = '<svg class="wb-surf" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true"></svg>';
+
+/* THE BOARD'S KEYS -- `board:` signed out, `board:u:<who>:` signed in -- which the pen asks about in
+   two places: `padEnd_` thins the board's strokes and `padSave_` holds it to its ceiling. */
+const padIsBoard_ = k => String(k || '').indexOf(WB_ITEM.prefix + ':') === 0;
+
+/* ---------- HOW BIG A BOARD MAY GET, AND WHAT A STROKE ON IT COSTS ---------------------------------
+   UNBOUNDED, AND REWRITTEN WHOLE ON EVERY LIFT. Measured by the review in Chromium on the board's own
+   key: a stroke as `PAD_DRAW.pen` builds it is one point per unit moved, about 2,500 characters across
+   the board, so 100 strokes were 254K characters and 3-5ms a lift on a desktop, 1,000 were 2.5M and
+   66-83ms -- all of it synchronous, on a phone slower -- in a store of about five million characters
+   that every typed answer is written to as well. A question's pad is bounded by its one question and,
+   signed in, by `ANS_PAD_MAX`; the board is one open-ended key per person and was bounded by nothing.
+   SO EACH STROKE IS STORED THINNED, and the board has a ceiling. Thinned by `ansSimplify_` at one unit
+   (js/answers.js) -- what a question's drawing gets on its way to the account, the same line to within
+   a unit, which is finer than the finger, at a fraction of the characters. Only what is STORED is
+   thinned: the line under the finger keeps every point while it is drawn. The ceiling is 100,000
+   characters -- two and a half times a question's, a few hundred strokes as stored, and four people's
+   boards on one iPad well under a tenth of the store; reached, the stroke is taken back off and the
+   toast says to Clear (`padSave_`). Measured after, in note 310. */
+const PAD_BOARD_MAX = 100000;
+
+/* ---------- AND NO COLUMN IS REDRAWN UNDER A STROKE --------------------------------------------------
+   FOUND BY THE REVIEW OF THE WHITEBOARD: lock it, start a stroke, and call `repaint()` half way -- which
+   is what a payload landing does, and the inbox reply after every load -- and the stroke was cut where
+   the repaint came. `paint` held a column back for Find only (`findKeep_`, js/answers.js, whose own
+   note records this exact fault on Find), so Tools and Saved were rebuilt under the finger: the ink was
+   replaced, `pointermove` ignored the new one, and the lift stored the half already drawn -- 34 to 142
+   units of a stroke that went to 306 -- through a detached copy, so the board on the screen drew none
+   of it and Undo then took off a stroke nobody could see.
+   SO THE RULE IS WHICHEVER COLUMN HOLDS THE STROKE. `paint` (shell.js) asks this beside `findKeep_`,
+   and a column with `PAD_GO`'s ink in it is marked STALE instead of drawn, and drawn the next time it is
+   arrived at, as `settingsKeep_` does for a half-typed card. A repaint ALSO restarts the column's
+   widgets, so `startScreen_` asks this too and leaves the held column running, as it does for
+   `reconnectKeep_`; and `wbPaint_`, which a change of person still runs, skips the copy being drawn
+   on, for the same reason. */
+function padHold_(id) {
+  try {
+    if (!PAD_ST || !PAD_GO || !PAD_GO.ink || !PAD_GO.ink.isConnected) return false;
+    const host = document.getElementById('s-' + id);
+    return !!host && host.contains(PAD_GO.ink);
+  } catch (e) { return false; }
+}
+
+/* ---------- A CHANGE OF PERSON PUTS THE PEN DOWN AND DRAWS EVERY BOARD AGAIN ------------------------
+   FOUND BY THE REVIEW OF THE WHITEBOARD, with real touches at 390x844: lock the board signed in, draw,
+   swipe to Account and Sign out -- and Tools, which a sign-out marks STALE rather than redraws, still
+   held the last person's board: their three strokes, the frame lit, `data-k` and `PAD_ON` both still
+   theirs, all the way to the next arrival, and on the screen mid-swipe on the way there. A line drawn on
+   it would have gone into their key. The family's shared iPad, which is what `signedOut_` is for.
+   SO `signedOut_` AND `signedIn_` (me.js) CALL THIS: every pad on the page disarmed, the stroke and the
+   held Clears forgotten, and every copy of the board drawn again under whoever is signed in now. The
+   board is the one widget whose markup is a person's and whose column a repaint may leave stale; any
+   question's pad left on a stale column is disarmed here too, so none can take a stroke meanwhile. */
+function padWhoChanged_() {
+  [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
+  PAD_ON = ''; PAD_ST = null; PAD_GO = null;
+  PAD_CLEARED.clear();
+  wbPaint_();
+}
+
+/* EVERY COPY, BY CLASS -- `tmtPaint_`'s reason: the Saved column draws this same markup, and two
+   elements under one id is the `$('msg-text')` fault. The same key in both, so a stroke on one is on
+   the other the next time it is drawn. EXCEPT THE COPY A FINGER IS DRAWING ON, `padHold_`'s reason. */
+function wbPaint_() {
+  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, '')}</div>`;
+  document.querySelectorAll('.wb-box').forEach(el => {
+    if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
+    el.innerHTML = html;
+  });
+}
+function initWhiteboard() { wbPaint_(); }
 
 /* ==================================================================================================
    "USE YOUR GRAPH" SHOWS YOUR GRAPH.

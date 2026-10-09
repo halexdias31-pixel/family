@@ -1596,6 +1596,37 @@ const WIDGETS = [
           `uploadsPaint_` writes to. */''}
     <div id="up-box" class="up-box"></div>
   </div>` },
+
+  /* ---------- THE WHITEBOARD ----------------------------------------------------------------------
+     ASKED FOR AS *"Can you also add a whiteboard widget in tools. Make it bare bones for now."* So it
+     is a blank sheet, the padlock that holds the column still while you draw, Undo and Clear -- and
+     nothing else, on purpose; the note over `WB_ITEM` in find.js says what would come next and why
+     none of it is here yet.
+
+     THE QUESTION PAGES' PEN, NOT A NEW ONE. `initWhiteboard` hands `padWrap_` a pseudo-item and an
+     empty surface, so the faults that pen has already been through -- a stroke that slid the column,
+     a lock a repaint forgot, a drawing shared between two children on one iPad -- were paid for once.
+     NOT ALL OF THEM, it turned out: a board the size of a page found four a question's small picture
+     never had (a palm taking over the stroke, a repaint cutting one off Find, a Clear with no way back,
+     a full device), fixed in the pen for both -- the note over `WB_ITEM` lists them. Its marks are
+     `board:<who>:whiteboard` on the device, never `pad:`, so nothing that reads answers takes a
+     scribble for a question somebody answered.
+
+     A TOOL AND `solid`, the notepad's kind of thing: an instrument rather than a card, the calculator's
+     note above. NOTHING ON THE TOOLS COLUMN READS IT -- `solid` is read only where a widget is the whole
+     page of Find (`.widget-full.solid`), and tools left the funnel on the owner's word (find.js, "THE
+     WIDGETS ARE NOT IN THE FUNNEL"), so it is said for what the board is, not for anything it changes
+     today. NO `stop` -- nothing runs between strokes. NO `.card` OF ITS OWN, the timetable's
+     reason: `widgetOnColumn_` already draws one, and the inner one was height a board on a 320x568
+     phone does not have. `.wb-box` IS A CLASS AS WELL AS AN ID, because the Saved column draws this
+     markup again and `wbPaint_` writes every copy.
+
+     APPENDED LAST, after `uploads`, for `legotrade`'s reason above: `PAGE.tools` remembers a page by
+     its index, and a widget inserted higher up moves everybody's remembered page by one. */
+  { id: 'whiteboard', kind: 'tool', name: 'Whiteboard', solid: true, start: () => initWhiteboard?.(),
+    into: 'wb-box', what: 'The whiteboard',
+    html: `<h3>Whiteboard</h3>
+    <div id="wb-box" class="wb-box"></div>` },
 ];
 
 

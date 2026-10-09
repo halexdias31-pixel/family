@@ -762,6 +762,9 @@ function signedOut_(opts) {
   } catch (e) {}
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) {}
+  /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
+     board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
   if (!opts.quiet) repaint();
 }
 
@@ -798,6 +801,8 @@ function signedIn_(d, typed) {
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  /* EVERY COPY OF THE WHITEBOARD UNDER THE PERSON WHO IS SIGNED IN NOW, stale columns included. */
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
   try {
     if (got.attempts && typeof got.attempts === 'object' && String(got.attempts.for || '') === pid) DATA.attempts = got.attempts;
     if (Array.isArray(got.favourites)) {

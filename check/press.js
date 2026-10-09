@@ -1338,6 +1338,197 @@ for (const who of VISITORS) {
     }
 
     /* ==================================================================================================
+       AND THE WHITEBOARD IS THE SAME PEN ON A BOARD THE SIZE OF A PAGE.
+
+       ASKED FOR AS *"Can you also add a whiteboard widget in tools. Make it bare bones for now."* It is
+       the question pages' pen (`WB_ITEM` in find.js), so the two sentences above are its sentences too
+       -- but a board is the biggest thing on its page, where a question's picture is one part of a card,
+       and the notepad records what that costs: an EMPTY widget the size of the page that eats every
+       swipe is a page with no way off (docs/history/080). So both halves again, on the Tools column:
+         unlocked   a sideways swipe across the board moves the column, a downward one turns back a page
+                    of Tools, and neither draws anything
+         locked     a tap on the padlock (a real tap, not `el.click()`, for `PRESS_MOVED`'s reason above)
+                    and then a sideways drag and a downward drag: each is a stroke kept, and neither the
+                    column nor the page moves
+       ON A PHONE, NOT A WINDOW: its own context with `hasTouch` and `isMobile` at 390x844, because a
+       board is where a finger is the only way anybody will use it. Real touches through CDP, as above.
+       Proved by mutation: with `axisFree` no longer reading `[data-noswipe]`, both locked drags carry
+       the column to Games while the pen keeps the stroke -- the pen and the grid both took the finger,
+       which is the line of best fit's report again -- and the real files are green. */
+    {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+      const tp = await ctx.newPage();
+      tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
+      await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
+      await tp.addInitScript(GUARDS);
+      await tp.route('**://script.google.com/**', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      await tp.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+      await tp.waitForTimeout(2200);
+      const tc = await ctx.newCDPSession(tp);
+      const tt = async (x, y, dx, dy) => {
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        for (let i = 1; i <= 10; i++) {
+          await tc.send('Input.dispatchTouchEvent',
+            { type: 'touchMove', touchPoints: [{ x: x + dx * i / 10, y: y + dy * i / 10 }] });
+          await tp.waitForTimeout(12);
+        }
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(520);
+      };
+      const tap = async (x, y) => {
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(420);
+      };
+      /* EVERYTHING READ AT ONCE, from the app's own state: where the column and the page are, whether
+         the pad is armed both ways, how many strokes its key holds, and where to put a finger.
+         AND ONLY ONCE THE COLUMN HAS STOPPED WAKING. Arriving at Tools starts its fourteen widgets one
+         per task behind the page in front (`widgetsWake_`), each a layout of the whole document, and a
+         fixed 700ms here was a guess at when that ended: on a machine at a load average of 12-17 the
+         gesture after it landed among those starts, was delivered at 0.3px/ms, and settled back -- the
+         board's first swipe "stayed on Tools" in two runs of three while every other row passed.
+         Reproduced at 6x CPU, with eleven widgets still queued as the finger went down. So this waits
+         for what `check-flow`'s `quiet()` waits for -- the queue empty and nothing settling -- and
+         goes to the column only when it is not already on it, which is what re-queued them. */
+      const wbAt = turn => tp.evaluate(async go_ => {
+        if (go_) {
+          if (AT !== 'tools') go('tools', false, true);
+          goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
+          for (let i = 0; i < 80; i++) {
+            const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)
+              || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
+              || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until);
+            if (!busy && i >= 4) break;
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+        const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
+        if (!pad) return null;
+        const k = pad.getAttribute('data-k');
+        let n = 0;
+        try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
+        const c = el => { const r = el.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) }; };
+        return { at: AT, page: PAGE.tools, k, strokes: n,
+                 armed: pad.classList.contains('is-drawing') && !!pad.querySelector('.qpad-ink[data-noswipe]'),
+                 ink: c(pad.querySelector('.qpad-ink')), lock: c(pad.querySelector('.qpad-lock')),
+                 next: TABS.map(t => t.id)[TABS.map(t => t.id).indexOf('tools') + 1] };
+      }, !!turn);
+      let b = await wbAt(true);
+      const W_ = 'tools · the whiteboard';
+      if (!b || b.ink.w < 120 || b.ink.h < 160) {
+        swipes.push({ from: W_, dir: 'touch', ok: false, got: b ? 'a board ' + b.ink.w + 'x' + b.ink.h + 'px' : 'no board on the Tools column',
+                      want: 'a board at least 120x160px to draw on' });
+      } else {
+        /* A BLANK BOARD, UNLOCKED, whatever an earlier press left on it. */
+        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; initWhiteboard(); }, b.k);
+        /* BACK ON THE BOARD BEFORE EACH GESTURE -- the one before may have moved the column or the page. */
+        const fresh = () => wbAt(true);
+        /* UNLOCKED, SIDEWAYS: the column moves. */
+        b = await fresh();
+        await tt(b.ink.x + Math.round(b.ink.w * 0.35), b.ink.y, -Math.round(b.ink.w * 0.7), 0);
+        let a = await tp.evaluate(() => AT);
+        swipes.push({ from: W_ + ', unlocked', dir: 'touch left', ok: a === b.next, got: a, want: b.next });
+        /* UNLOCKED, DOWN: the page turns back one -- the board is the last page, so up has nowhere to go. */
+        b = await fresh();
+        await tt(b.ink.x, b.ink.y - Math.round(b.ink.h * 0.3), 0, Math.round(b.ink.h * 0.6));
+        a = await wbAt(false);
+        swipes.push({ from: W_ + ', unlocked', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page - 1 && a.strokes === 0,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s)', want: 'tools page ' + (b.page - 1) + ', 0 stroke(s)' });
+        /* LOCKED: a tap on the padlock, then a sideways drag and a downward one. */
+        b = await fresh();
+        await tap(b.lock.x, b.lock.y);
+        b = await wbAt(false);
+        swipes.push({ from: W_ + ', the padlock', dir: 'tap', ok: b.armed,
+                      got: b.armed ? 'locked: the frame on and the ink named' : 'not locked', want: 'locked' });
+        if (b.armed) {
+          await tt(b.ink.x + Math.round(b.ink.w * 0.35), b.ink.y, -Math.round(b.ink.w * 0.7), 0);
+          a = await wbAt(false);
+          swipes.push({ from: W_ + ', locked', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
+                        got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
+          await tt(b.ink.x, b.ink.y - Math.round(b.ink.h * 0.3), 0, Math.round(b.ink.h * 0.6));
+          a = await wbAt(false);
+          swipes.push({ from: W_ + ', locked', dir: 'touch down', ok: a.at === 'tools' && a.page === b.page && a.strokes === 2,
+                        got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 2 stroke(s) kept' });
+        }
+        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; }, b.k);
+      }
+      await ctx.close();
+    }
+
+    /* ---------- AND ON ITS SIDE, WHERE IT WAS A POSTAGE STAMP ------------------------------------------
+       FOUND BY BOTH REVIEWS OF THE BOARD: turned sideways the board was 16x21px at 568x320 and 68x91 at
+       844x390 -- nothing cut off, nothing anybody could draw on. `.wb` in style.css now lays the card out
+       sideways there, the board the card's height and everything else beside it. So at both sizes, in a
+       phone-shaped context: the board at least 120x160px, every tile of the card a 44px square inside
+       its pane, and a real tap on the padlock and a real drag across the board is one stroke kept with
+       the column and the page where they were -- the side layout is the same pen, measured where the
+       finger lands. Proved by mutation: without the `@media` block the 568x320 board is 16x21 and both
+       rows say so. */
+    for (const [sw, sh] of [[568, 320], [844, 390]]) {
+      const ctx = await browser.newContext({ viewport: { width: sw, height: sh }, hasTouch: true, isMobile: true });
+      const tp = await ctx.newPage();
+      tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
+      await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
+      await tp.addInitScript(GUARDS);
+      await tp.route('**://script.google.com/**', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      await tp.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+      await tp.waitForTimeout(2200);
+      const tc = await ctx.newCDPSession(tp);
+      const W_ = 'tools · the whiteboard at ' + sw + 'x' + sh;
+      const at = () => tp.evaluate(async () => {
+        if (AT !== 'tools') go('tools', false, true);
+        goPage('tools', widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard'), true);
+        for (let i = 0; i < 80; i++) {
+          const busy = (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length)
+            || (typeof AFTER_SLIDE !== 'undefined' && AFTER_SLIDE)
+            || (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && performance.now() < SETTLE_ON.until);
+          if (!busy && i >= 4 && document.querySelector('#s-tools #wgt-whiteboard .qpad')) break;
+          await new Promise(r => setTimeout(r, 100));
+        }
+        const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
+        if (!pad) return null;
+        const k = pad.getAttribute('data-k');
+        let n = 0;
+        try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
+        const box = el => { const r = el.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height), l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+        const pane = box(pad.closest('.pane'));
+        const card = pad.closest('.card');
+        const tiles = [...card.querySelectorAll('.tile')].map(box);
+        const off = tiles.filter(b => b.w < 44 || b.h < 44 || b.b > pane.b + 0.5 || b.r > pane.r + 0.5 || b.l < pane.l - 0.5).length;
+        return { at: AT, page: PAGE.tools, k, strokes: n, armed: pad.classList.contains('is-drawing'),
+                 ink: box(pad.querySelector('.qpad-ink')), lock: box(pad.querySelector('.qpad-lock')), tiles: tiles.length, off };
+      });
+      let b = await at();
+      if (!b) {
+        swipes.push({ from: W_, dir: 'touch', ok: false, got: 'no board on the Tools column', want: 'a board' });
+      } else {
+        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; initWhiteboard(); }, b.k);
+        b = await at();
+        swipes.push({ from: W_, dir: 'its size', ok: b.ink.w >= 120 && b.ink.h >= 160 && b.tiles >= 3 && !b.off,
+                      got: 'a ' + b.ink.w + 'x' + b.ink.h + 'px board, ' + b.off + ' of ' + b.tiles + ' tiles under 44px or past the pane',
+                      want: 'at least 120x160px, every tile 44px and inside the pane' });
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: b.lock.x, y: b.lock.y }] });
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(420);
+        const x0 = b.ink.x - Math.round(b.ink.w * 0.35), y0 = b.ink.y;
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0 }] });
+        for (let i = 1; i <= 10; i++) {
+          await tc.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + Math.round(b.ink.w * 0.7) * i / 10, y: y0 }] });
+          await tp.waitForTimeout(12);
+        }
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(520);
+        const a = await tp.evaluate(k => ({ at: AT, page: PAGE.tools, strokes: (() => { try { return (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) { return -1; } })() }), b.k);
+        swipes.push({ from: W_ + ', locked', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
+                      got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
+        await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; }, b.k);
+      }
+      await ctx.close();
+    }
+
+    /* ==================================================================================================
        AND A TAP ON THE GAME FLAPS ON THE FINGER GOING DOWN, NOT ON IT COMING UP.
 
        REPORTED AS "when you tap theres like a slight delay" ON AN IPAD, and the delay was the
