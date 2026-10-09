@@ -154,6 +154,15 @@ function diagrams() {
     if (!Array.isArray(rows)) return;
     rows.forEach((r, i) => {
       if (!r || typeof r !== 'object') return;
+      /* A TEXTBOOK ANIMATION IS NOT A FIGURE OF THIS KIND, and measured as one it is wrong by
+         hundreds of pixels. Since 9 Oct the teaching animations are rows of data/textbooks.json
+         (`anim`), and each carries its own `css` — the font size of its labels in its own viewBox
+         units among it. Drawn here inside `.qsheet` without that stylesheet, the Bayes tree's
+         "have it, test +" came out at the card's text size in a 100-unit box: "242.4px past the
+         viewBox", on a drawing that is whole on the screen. `check/anims.js` draws every one with its
+         own CSS, inside its card, at several moments and as its reduced-motion still — that is the
+         instrument for these. */
+      if (f === 'textbooks.json' && r.anim) return;
       Object.keys(r).forEach(k => {
         const v = r[k];
         if (typeof v !== 'string' || v.indexOf('<svg') === -1) return;
