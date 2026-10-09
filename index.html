@@ -1026,6 +1026,12 @@
   (function () {
     var sp = document.getElementById('splash');
     if (!sp || !sp.getAnimations) return;         /* old browser: the still frame, as before */
+    /* NOT FOR SOMEBODY WHO ASKED FOR LESS MOVEMENT. Every animation there is cut to .01ms by the
+       global rule, so each "finishes" at once — and this restarted it at once, for the whole load: a
+       splash that should hold one still frame was restarting itself every frame. `check/anims.js`
+       caught it as y = mx + c's labels "still looping" on the splash, on some runs and not others,
+       because whether the sample landed inside the churn depended on how long the boot took. */
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var replay = function () {
       if (sp.classList.contains('done')) return;
       var all = sp.getAnimations({ subtree: true });
