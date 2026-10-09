@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-essay-sheet-b";
+  --css-version: "2026-10-09-essay-sheet-c";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11791,9 +11791,12 @@ button.scr-sq { cursor: pointer; }
    verdict, and no green or amber ring on a sheet that is no longer the text that was marked. */
 .qp-essay.is-stale > .qp-verdict { color: var(--dim); }
 /* THE VERDICT AND THE SAVED LINE SIT UNDER THE ROW, in line with the paper's edge rather than the pill's
-   text, which is 14px in from a rounded end the sheet does not have. */
-.qp-essay > .qp-verdict { margin: 6px 4px 0; }
-.qp-essay > .qp-saved { margin: 2px 4px 0; }
+   text, which is 14px in from a rounded end the sheet does not have.
+   `.qp-compose.qp-essay`, NOT `.qp-essay`: the chat bar's own margins are `.qp-compose > …` at the same
+   weight, and a rule that wins only by coming later is the one `check/cascade.js` exists to refuse --
+   move either block and the essay's lines would silently take the pill's 14px back. */
+.qp-compose.qp-essay > .qp-verdict { margin: 6px 4px 0; }
+.qp-compose.qp-essay > .qp-saved { margin: 2px 4px 0; }
 
 /* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
    TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
