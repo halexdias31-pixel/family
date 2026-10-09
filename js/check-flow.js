@@ -2401,6 +2401,41 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
+/* ---------- WHAT A PLACEHOLDER MAY HOLD, ASKED ONE WAY OF EVERY PLACEHOLDER --------------------------
+   `drill`'S RULE IN map.js HAS TWO HALVES: *"Give it a streak counter and three greyed-out buttons and
+   somebody taps them."* The three journeys below — contest, LEGO trade-in, Progress — each asked only
+   the second, with one selector copied three times, `button, [data-do], input, select, textarea,
+   a[href]`. Found in review on 9 October, adding Progress: a card given *"Streak: 0 days · 0% of the
+   course done"*, a bar at nought per cent and a `<details>` with a `<summary>` passed all three
+   asks. The number and the bar are the first half of the rule and nothing looked for them; the
+   summary is a thing a finger opens and the selector did not name it. `check/ui.js` went red on that
+   card only because the summary was too small to tap — the right answer for the wrong reason, and
+   gone the day somebody pads it.
+
+   SO THE RULE IS ASKED HERE, ONCE, as three questions of what is inside the card:
+   - **Is anything on it pressable** — by tag (a `<summary>`, a `<label>`, a `<details>`) or by what
+     makes any element pressable (`data-do`, `tabindex`, `onclick`, a `role`, `contenteditable`).
+   - **Is there anything but `drill`'s markup** — a heading, a `.sub` line, the `.empty` "Not built
+     yet." with drill's `<br>` and `.faint` aside. A bar, a meter, a picture or a second card is
+     something that looks finished, and naming what IS allowed catches the one nobody thought of.
+   - **Is there a digit in it.** A count, a percentage or a date on a thing with nothing behind it
+     is a number that is wrong. No placeholder has needed one: contest's house name comes from
+     `brand()`, which this payload leaves to its `@family.` fallback.
+   It returns faults rather than a pass, so each journey says which visitor and which card. */
+const PLACEHOLDER_KEYS_ = 'button, [data-do], input, select, textarea, a[href], summary, details, label, '
+  + '[tabindex], [onclick], [role], [contenteditable]';
+const PLACEHOLDER_MARKUP_ = 'div.card, h3, p.sub, p.empty, br, span.faint';
+const placeholderFaults_ = box => {
+  const bad = [];
+  const live = [...box.querySelectorAll(PLACEHOLDER_KEYS_)];
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  const more = [...box.querySelectorAll('*')].filter(e => !e.matches(PLACEHOLDER_MARKUP_) && live.indexOf(e) < 0);
+  if (more.length) bad.push('a placeholder draws more than a heading, one line and "Not built yet.": ' + more.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  const nums = String(box.textContent || '').match(/\d[\d.,:%]*/g);
+  if (nums) bad.push('a placeholder shows a number with nothing behind it: ' + nums.join(', '));
+  return bad;
+};
+
 /* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS -----------------
    ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
    for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
@@ -2423,9 +2458,7 @@ check('the contest placeholder comes straight after One more thing on the Games 
   const h = slot.querySelector('h3');
   if (!h || h.textContent.trim() !== 'Contest') bad.push('the card is not headed Contest');
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
-  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  return bad;
+  return bad.concat(placeholderFaults_(slot));
 });
 
 /* ---------- LEGO TRADE-IN: APPENDED AFTER THE CALENDAR, AND NOTHING ON IT TO PRESS -------------------
@@ -2451,9 +2484,7 @@ check('the LEGO trade-in placeholder comes straight after the calendar on the To
   const h = slot.querySelector('h3');
   if (!h || h.textContent.trim() !== 'LEGO trade-in') bad.push('the card is not headed LEGO trade-in');
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
-  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  return bad;
+  return bad.concat(placeholderFaults_(slot));
 });
 
 /* ---------- THE WHITEBOARD: LOCK, DRAW, UNDO, KEPT THROUGH A REPAINT, CLEAR -- AND NEVER AN ANSWER ------
@@ -7631,6 +7662,86 @@ check('each column opens on the page worth reading', async () => {
       bad.push('the Posts column opens on the ＋ New post card rather than on a post');
     }
   }
+  return bad;
+});
+
+/* ---------- PROGRESS: THE LAST COLUMN, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS ---------------
+   ASKED FOR AS "i want to add a new column for students to track their progress and everythinh. you
+   can leave it at the end of the columns for now. just leave a place holder for now." The contest
+   journey's two questions, asked of a column — arriving anywhere but LAST, and growing a control
+   before there is anything behind it — and a third a column has and a widget does not: can a person
+   get there.
+
+   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served.
+   Without it this stub answers that file with the payload, `settingsInto_` skips a thing with no
+   `length`, and the app runs on `TAB_ORDER` — where Settings is last and Spotlight's neighbour is
+   Settings. A journey asking about the code's order would be asking about an order no phone has.
+
+   A SWIPE AS A TRACKPAD SENDS IT. Two fingers sideways is a `wheel` event, and `overworld.js` answers
+   it with `ax.go(ax.at() + 1)` — the same call a finger's release makes — so this is the app's own
+   gesture rather than `go('progress')`, which would reach the column whether or not anything sat
+   next to it. And one more past the end stays put: the last column is an end, not a wrap.
+
+   THE SAME CARD FOR EVERYBODY until it is built — signed out, a student, a parent, a tutor, an
+   admin — so all five are asked, and a card that grew a role's control would fail here. */
+check('progress is the last column, one card that says it is not built yet with nothing to press, and a swipe off Spotlight lands on it', async () => {
+  const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+  const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
+  await wait(600);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const ids = () => t.TABS.map(x => x.id);
+  if (ids().indexOf('progress') < 0) return ['there is no `progress` column on the phone — the order reads ' + ids().join(', ')];
+  if (ids()[ids().length - 1] === 'settings') {
+    return ['columns.json was not applied (Settings is last, which is the code\'s own order) — the order a phone gets was NOT checked'];
+  }
+  if (ids()[ids().length - 1] !== 'progress') bad.push('Progress is not the last column — the order reads ' + ids().join(', '));
+  if (ids().indexOf('progress') !== ids().indexOf('spotlight') + 1) bad.push('Progress is not straight after Spotlight — the order reads ' + ids().join(', '));
+
+  /* THE SWIPE. */
+  const swipe = async from => {
+    const at = d.querySelector('#s-' + from + ' .page .pane') || d.getElementById('s-' + from);
+    at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
+    await wait(LEAVE_MS); await woken_();
+  };
+  t.go('spotlight', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'spotlight') return bad.concat(['go("spotlight") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await swipe('spotlight');
+  if (t.AT() !== 'progress') bad.push('a sideways swipe off Spotlight landed on ' + t.AT() + ', wanted Progress');
+  else {
+    await swipe('progress');
+    if (t.AT() !== 'progress') bad.push('a sideways swipe past the last column moved off Progress, to ' + t.AT());
+  }
+
+  /* THE CARD, FOR EVERY VISITOR. */
+  const who = [['signed out', null],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }],
+    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }]];
+  for (const [as, u] of who) {
+    t.USER(u);
+    w.paint('progress');
+    const host = d.getElementById('s-progress');
+    if (!host) return bad.concat(['there is no #s-progress to draw into']);
+    const n = host.querySelectorAll(':scope > .page').length;
+    if (n !== 1) bad.push(as + ': the column draws ' + n + ' pages, wanted the one card');
+    if (t.pageCount('progress') !== n) bad.push(as + ': the pager counts ' + t.pageCount('progress') + ' pages over ' + n + ' drawn');
+    const h = host.querySelector('h3');
+    if (!h || h.textContent.trim() !== 'Progress') bad.push(as + ': the card is not headed Progress');
+    if (!/Not built yet/.test(host.textContent)) bad.push(as + ': the card does not say it is not built yet');
+    /* THE PANE, NOT THE COLUMN: `#s-progress` holds the page and pane `pages()` wraps every card in,
+       which are not the card's markup. The pane's contents are, and asking of the pane rather than
+       of the card means a second thing drawn beside the card is caught as well. And a control
+       anywhere else in the column is still a control, so the whole column is asked that one. */
+    const pane = host.querySelector(':scope > .page > .pane');
+    if (!pane) bad.push(as + ': the column has no pane — the card was NOT checked');
+    else for (const f of placeholderFaults_(pane)) bad.push(as + ': ' + f);
+    const outside = [...host.querySelectorAll(PLACEHOLDER_KEYS_)].filter(e => !pane || !pane.contains(e));
+    if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  }
+  t.USER(null);
   return bad;
 });
 
