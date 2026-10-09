@@ -122,7 +122,21 @@ go live** — until then the live `aiMark` still cuts at 2,000 and marks one sen
   the cap; a short answer still one sentence; and the phone's three ceilings equal the server's, and
   the account's at least as long. Mutated (the server slicing at 2,000; the phone's ceiling at 2,000):
   red, then green.
+- **One expectation was genuinely obsolete**: `check-flow.js`'s *"answers: a refused save keeps the
+  answer due…"* typed `'x'.repeat(2001)` as "too long for the account" — the old ceiling copied into a
+  check. It reads `ANS_TEXT_MAX` out of js/answers.js now and types one past it. Nothing that held the
+  chat bar's shape needed changing: every check that asks for `.qp-bar` asks it of a one- or three-mark
+  box, which is still a bar.
 - **`check/states.js`**, *"an essay, three paragraphs on its sheet, the pad up"*, measured by
   `check/ui.js` at every width for both visitors: 40 keys, one labelled return ≥ 44px, two paragraph
   breaks, the count right, the row under the sheet above the pad and the caret inside the sheet's window.
   `.qp-essay > .qp-sheet` joins the EDGE rule's subjects.
+- **And `check/ui.js` learnt one thing from it.** The first run named the essay state PANE OFF THE
+  SCREEN at 320, 390, 1280 and 1920: with the pad up, `kpLift_` lifts the column by what the row under
+  the sheet is short of, and a sheet that tall takes the card's top — the question — above the glass.
+  That is the keypad's design (the phone's own keyboard pushes a page the same way; the pad put away
+  puts it back), and the alternative was measured and refused: a sheet sized so the whole card fits
+  above the pad is five lines on a phone and on a laptop. So a pane whose top is above the glass is
+  printed as **PANE LIFTED OVER THE PAD (known)** — and only when the pad is up, the hold carries a
+  lift, and the focused box's field and the row kept clear for it are wholly on the glass above the pad.
+  A lift that took the box itself off the top is still PANE OFF THE SCREEN.
