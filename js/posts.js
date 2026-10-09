@@ -169,6 +169,32 @@ function postCard_(p, i) {
     const face = pic(p.avatar || brand('logo_square') || brand('logo_circle'));
     const who = p.handle || p.author || brand('name', '@family.');
 
+    /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES ---------------
+       Under the picture when there is one, after the words when there is not — see the two places
+       it is dropped in below. Built here so the two cannot drift into two versions of one row.
+
+       WHAT AN EMPTY ROW MEANS, WHICH IS NOT WHAT IT USED TO MEAN. IT SAID "fill in
+       `brand!reactions`" AND THAT RUNG NO LONGER EXISTS. The brand tab became
+       `data/settings/brand.json`, which the phone reads and Apps Script cannot — so `reactionSet`
+       is down to the post's own cell and `HOUSE_REACTIONS`, and that second one is six faces in
+       `constants.gs` that are never empty. Measured: `reactionSet` cannot return an empty list, so
+       `doGet` cannot send `reactions: null`.
+
+       WHICH MAKES THIS BRANCH UNREACHABLE ON ANY CURRENT BACKEND, and that is exactly what it
+       should now say. An empty row means the payload came from a deployment older than the house
+       set — nothing to type into a cell, and the remedy is a sync. Sending somebody to edit a tab
+       that is not there any more is the fault this repository records under `.favwrap.is-fav` and
+       under the dead `kind === 'paper'` guard: a sentence that outlived the thing it described.
+
+       AND EVERYBODY ELSE GETS NO SLOT AT ALL. It used to be an empty `<span></span>`, which existed
+       only to balance a flex row against the Share button beside it; Share is a tile in the row
+       below now and there is nothing left here to balance. */
+    const acts = reacts(p) || (isAdmin()
+      ? '<span class="faint">No reactions — this payload predates them. '
+        + 'Check the build stamp on You.</span>'
+      : '');
+    const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
+
     /* The order is Instagram's, and it is right: WHO first, then the picture, then what you can do
        about it, then what it says.
        Who first because a photograph with no attribution is an advert; the caption last because it
@@ -206,36 +232,23 @@ function postCard_(p, i) {
              none, which is what the overlap was. */''}
       ${postMediaHtml_(media, i)}
 
-      ${/* THE ACTIONS ROW, which is now reactions and sharing and nothing else.
+      ${/* THE FACES, DIRECTLY UNDER THE PICTURE — the place the heart held, where the eye already
+            goes and where the thing you can do about a photograph belongs.
             The heart has gone. A like is a reaction with exactly one option, so having both was
             two counts of the same gesture — and a heart sitting beside a 👍 asking for the same
             press, with no way to tell somebody which one you meant.
-            The reactions move UP here, into the place the heart held: directly under the picture,
-            where the eye already goes and where the thing you can do about a photograph belongs. */''}
-      <div class="post-acts">
-        ${/* ---------- WHAT AN EMPTY ROW MEANS, WHICH IS NOT WHAT IT USED TO MEAN ----------------
-              IT SAID "fill in `brand!reactions`" AND THAT RUNG NO LONGER EXISTS. The brand tab
-              became `data/settings/brand.json`, which the phone reads and Apps Script cannot — so
-              `reactionSet` is down to the post's own cell and `HOUSE_REACTIONS`, and that second
-              one is six faces in `constants.gs` that are never empty. Measured: `reactionSet`
-              cannot return an empty list, so `doGet` cannot send `reactions: null`.
 
-              WHICH MAKES THIS BRANCH UNREACHABLE ON ANY CURRENT BACKEND, and that is exactly what
-              it should now say. An empty row means the payload came from a deployment older than
-              the house set — nothing to type into a cell, and the remedy is a sync. Sending
-              somebody to edit a tab that is not there any more is the fault this repository
-              records under `.favwrap.is-fav` and under the dead `kind === 'paper'` guard: a
-              sentence that outlived the thing it described. */''}
-        ${reacts(p) || (isAdmin()
-          ? '<span class="faint">No reactions — this payload predates them. '
-            + 'Check the build stamp on You.</span>'
-          : '<span></span>')}
-        ${/* SHARING MOVED DOWN INTO THE TILE ROW. It was the one action living in this row, drawn
-              as a `.post-act` — its own class, its own 44px rule, its own hover — for a control
-              that is the same act as sharing a booking and now uses the same renderer. What is left
-              here is the reactions, which are a counted response rather than an action on the post,
-              and which is why the row is aligned to flex-start: they wrap. */''}
-      </div>
+            `.post-acts` IS THE SLOT FOR THE FACES AND NOTHING ELSE NOW: one line of equal pills,
+            wrapping only when a post's own cell names more than six. Share went down into the tile
+            row (see `postTiles_`), and the total went onto the time line (see `postWhen_`), so
+            this is no longer a flex row with things to align — the owner, 9 Oct: *"refine how the
+            post reactions look. Looks abit scuffed"*, and the scuff was most of all a row of
+            different-width boxes wrapping a face and a bare number onto a line of their own.
+
+            ON A POST WITH NO PICTURE THE FACES COME AFTER THE WORDS. Directly under the header
+            they would be a row of faces reacting to nothing yet read; there, the words are the
+            thing you are reacting to, so they go first. */''}
+      ${media.length ? actsHtml : ''}
 
       ${/* The name leads the caption, as it does everywhere — but ONLY when there is a caption.
             Without a caption it was printing the name on its own under the picture, which is the
@@ -243,7 +256,8 @@ function postCard_(p, i) {
       ${p.caption ? `<p class="post-cap"><b>${esc(who)}</b> ${mark(p.caption)}</p>` : ''}
       ${p.poll ? poll(p) : ''}
       ${p.body ? `<p class="note">${mark(p.body)}</p>` : ''}
-      ${p.when || p.at ? `<p class="faint post-when">${esc(ago(p.at || p.when))}</p>` : ''}
+      ${media.length ? '' : actsHtml}
+      ${postWhen_(p)}
       ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. Sharing, editing, and the decision to put it up were
             three controls in three places drawn three ways — a `<span>` in the header, a
             `.post-act` beside the reactions, and a `.btn-row` down here. A post is a THING, and a
@@ -1437,13 +1451,38 @@ function camStop_(keepShown) {
 }
 
 /* ---------- REACTIONS ---------------------------------------------------------------------------
-   A row of faces with a count under each. Unlike the poll, the counts are NOT hidden — a poll asks
-   a question and wants an unanchored answer; a reaction is a room agreeing with itself, and seeing
-   that eleven people laughed is most of why anybody adds a twelfth.
+   A row of faces, each with its count beside it INSIDE its own pill. Unlike the poll, the counts are
+   NOT hidden — a poll asks a question and wants an unanchored answer; a reaction is a room agreeing
+   with itself, and seeing that eleven people laughed is most of why anybody adds a twelfth.
 
    A face with nobody behind it shows no number rather than a 0 — a row of zeroes reads as
-   indifference, and an empty space reads as nothing having happened yet.
+   indifference, and an empty pill reads as nothing having happened yet.
+
+   ONE LINE OF SIX EQUAL CELLS, AND NO TOTAL IN IT. The owner, 9 Oct: *"Also refine how the post
+   reactions look. Looks abit scuffed right bow"*. Measured on the row that was there: each face's box
+   was as wide as its count (36.8px with none, 59.2 with three digits), so a tap that added a digit
+   reflowed the row — 👏 going 9 → 10 threw 🎉 onto a second line 43px down — and the total sat at the
+   end as a bare "77" that read as one more face's count. The six house faces never wrap now: the
+   cells are a grid of one width, the count is capped at three characters (`reactN_`), and the total
+   is a sentence on the time line (`postWhen_`). A post's own cell naming more than six wraps into the
+   same columns. See docs/history/307.
 --------------------------------------------------------------------------------------------- */
+/* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". `.react:active` was cut off: the repaint replaces
+   the button mid-press, so the press was never seen to finish. Set by on('react') round its
+   `repaint()` and cleared straight after, so the `.catch` repaint and every later one draw no
+   animation — a face that lands once, not one that bounces whenever anything else redraws the feed.
+   `var`, because it is reassigned (`check-const.js`). */
+var REACT_POP_ = '';
+
+/* A COUNT IS AT MOST THREE CHARACTERS, so a pill never grows for its number: 999, then 1k…999k.
+   NOT "1.5k", which is four mono characters and was measured past the edge of a 41px cell at 320.
+   Four digits of reactions on a tutoring feed is not a real case; if it comes, it is rounded down
+   rather than a wider pill, and the sheet behind the total still has the exact number. */
+function reactN_(n) {
+  n = Number(n) || 0;
+  return n < 1000 ? String(n) : Math.floor(n / 1000) + 'k';
+}
+
 function reacts(p) {
   const r = p.reactions;
   /* NO FACES, NO ROW — and the caller is told, rather than being handed an empty div.
@@ -1457,48 +1496,83 @@ function reacts(p) {
      means the payload predates the house set rather than that a cell is blank. */
   if (!r || !Array.isArray(r.emoji) || !r.emoji.length) return '';
   const counts = Array.isArray(r.counts) ? r.counts : [];
-  return `<div class="reacts">
-    ${r.emoji.map((e, i) => {
-      const n = counts[i] || 0;
-      const mine = r.yours === e;
-      return `<button class="react${mine ? ' mine' : ''}${n ? ' any' : ''}"
-                 data-do="react" data-id="${esc(p.id)}" data-emoji="${esc(e)}">
-        <span class="react-e">${esc(e)}</span>${n ? `<span class="react-n">${n}</span>` : ''}
-      </button>`;
-    }).join('')}
-    ${/* THE TOTAL, and it is its own button. Pressing a face adds YOUR reaction; pressing the
-          number asks who — two different questions, and one control answering both means somebody
-          who wants to see the list has to react to the post to find out.
-          Only there when somebody has: a 0 that opens an empty panel is a promise broken. */''}
-    ${r.total ? `<button class="react-who" data-do="who-reacted" data-id="${esc(p.id)}"
-        >${r.total}</button>` : ''}
-  </div>`;
+  /* `mine` RIGHT AFTER `react` IN THE CLASS LIST, because `check/ui.js` names a control by its first
+     two classes and its `ACCEPTED_TAP` entry for these cells is written against that name.
+     `aria-pressed`, because "yours" was a gold 11px number and nothing else — a screen reader had no
+     way to hear which face was the one you had pressed. `.any` is gone: nothing styles it now that
+     every face has the same plate and the number inside is what says somebody pressed it. */
+  return `<div class="reacts" role="group" aria-label="Reactions">${r.emoji.map((e, i) => {
+    const n = Number(counts[i]) || 0;
+    const t = n ? reactN_(n) : '';            // no zero counts: an empty pill, not a 0
+    const mine = r.yours === e;
+    const cls = 'react' + (mine ? ' mine' : '') + (t.length > 2 ? ' is-long' : '')
+              + (REACT_POP_ && REACT_POP_ === p.id + ' ' + e ? ' is-pop' : '');
+    return `<button class="${cls}" data-do="react" data-id="${esc(p.id)}" data-emoji="${esc(e)}"
+               aria-pressed="${mine}"><span class="react-e">${esc(e)}</span>${
+      t ? `<span class="react-n">${t}</span>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+
+/* THE TOTAL, and it is its own button. Pressing a face adds YOUR reaction; pressing the total asks
+   who — two different questions, and one control answering both means somebody who wants to see
+   the list has to react to the post to find out.
+   Only there when somebody has: a 0 that opens an empty panel is a promise broken.
+
+   AND IT SAYS WHAT IT IS NOW: "3 reactions", on the time line, not "3" at the end of the row of
+   faces. A bare number at the end of a row of numbers read as one more face's count, was announced
+   as just "77", and measured 18.6x38 at 390 — a faint digit nobody could find or hit. A text action
+   like every other in the app (`button.text-action` gives it the 44px box and the dotted line that
+   says "this acts"), so it is still its own button and still not a seventh pill. */
+function reactWho_(p) {
+  const r = p && p.reactions;
+  const n = r ? Number(r.total) || 0 : 0;
+  if (!n) return '';                          // a 0 that opens an empty sheet is a promise broken
+  return `<button class="text-action react-who" data-do="who-reacted" data-id="${esc(p.id)}"
+             aria-haspopup="dialog">${n} reaction${n === 1 ? '' : 's'}</button>`;
+}
+/* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the
+   first reaction on a post moves nothing below it — the tile row stays where your thumb left it.
+   INLINE AFTER THE TIME, NOT PUSHED TO THE RIGHT EDGE: at 820 the faces stop at about 349px of a
+   410px card, and a total out at the far edge was a number belonging to nothing beside it. */
+function postWhen_(p) {
+  const at = p.at || p.when;
+  const when = at ? `<span>${esc(ago(at))}</span>` : '';
+  const who = reactWho_(p);
+  if (!when && !who) return '';
+  return `<p class="faint post-when">${when}${when && who ? '<span aria-hidden="true">·</span>' : ''}${who}</p>`;
 }
 
 /* WHO REACTED, AND WITH WHAT. Grouped by face rather than listed flat: "four people laughed" is
    the shape of the answer, and a list of twenty rows each carrying its own emoji makes you count
-   them yourself. */
+   them yourself.
+   THE FACE IS THE GROUP'S HEADING, drawn as the same pill as the row and bigger. It was an `<h2>` in
+   the sheet's small-caps label style, which made the face about 10px — the smallest thing in the
+   sheet — with its count glued to it. Yours is the gold pill, and your name comes first under it. */
 on('who-reacted', el => {
   const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
   const r = p && p.reactions;
   if (!r || !r.total) return;
-
+  const me = USER ? norm(USER.name) : '';
+  const isMe = n => !!me && norm(n) === me;
   const by = r.by || [];
   const groups = (r.emoji || []).map((e, i) => ({
-    emoji: e, n: (r.counts || [])[i] || 0,
-    names: by.filter(x => x.emoji === e).map(x => x.name),
-  })).filter(g => g.n);
+    emoji: e, at: i, mine: r.yours === e, n: Number((r.counts || [])[i]) || 0,
+    /* YOU FIRST in your own group — the one name in the sheet you are looking for. */
+    names: by.filter(x => x && x.emoji === e).map(x => x.name).sort((a, b) => isMe(b) - isMe(a)),
+  })).filter(g => g.n)
+    /* MOST FIRST, ties in the house order: "four people laughed" is the shape of the answer. */
+    .sort((a, b) => b.n - a.n || a.at - b.at);
 
   openSheet(r.total + ' reaction' + (r.total === 1 ? '' : 's'),
-    groups.map(g => `
-      <h2><span>${esc(g.emoji)}</span><span class="faint">${g.n}</span></h2>
-      ${g.names.length
-        ? g.names.map(n => rowValue(mark(n))).join('')
-        : ''}
+    groups.map(g => `<section class="rx-group">
+      <h3 class="rx-head"><span class="rx-pill${g.mine ? ' mine' : ''}"><span class="react-e">${
+        esc(g.emoji)}</span><span class="react-n">${g.n}</span></span></h3>
+      ${g.names.map(n => rowValue(mark(n) + (isMe(n) ? '<span class="rx-you">you</span>' : ''))).join('')}
       ${g.n > g.names.length
         /* Reacted by people whose names the site cannot resolve — somebody removed from the sheet,
            or a reaction from before they were added. The count is still true. */
-        ? `<p class="faint">…and ${g.n - g.names.length} more</p>` : ''}`).join(''));
+        ? `<p class="faint">…and ${g.n - g.names.length} more</p>` : ''}
+    </section>`).join(''));
 });
 
 on('react', el => {
@@ -1563,7 +1637,11 @@ on('react', el => {
     r.yours = emoji; r.counts[at(emoji)]++; r.total++;
     r.by.push({ name: USER.name, emoji: emoji });
   }
+  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `repaint` is
+     synchronous (shell.js), so clearing it on the next line is safe and nothing later replays it. */
+  REACT_POP_ = r.yours === emoji ? id + ' ' + emoji : '';   // added or moved: it lands; taken back: quiet
   repaint();
+  REACT_POP_ = '';
 
   /* `personId` AS WELL AS `name`. The handler resolves the person with
      `findPerson(S(body.name), S(body.personId))`, which prefers the id and falls back to matching

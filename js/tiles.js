@@ -877,9 +877,10 @@ function jobAdminTiles_(j, stage, accepted) {
    paragraph under the row rather than one note per tile.
 
    SHARING STAYS OUT OF THE REACTIONS ROW. The reactions are not actions on the post — they are a
-   counted response, they wrap to two lines, and the note on `.post-acts` explains that the row is
-   aligned to flex-start because of it. A tile row underneath is the same place every other thing in
-   this app puts its actions. */
+   counted response, drawn as one line of pills under the picture (`reacts()` in posts.js, and the
+   owner's *"Looks abit scuffed"* of 9 Oct for why they are pills now). Share IS an action on the
+   post, so it is a tile in the row below, which is the same place every other thing in this app
+   puts its actions. */
 function postTiles_(p) {
   const id = String((p && p.id) || '');
   if (!id) return '';

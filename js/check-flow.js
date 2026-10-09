@@ -6480,6 +6480,13 @@ check('the camera card starts itself and offers the gallery', async () => {
      · to another column and back — on a post it asks nothing; on the camera page that IS arriving
      · refused — a repaint on the camera page does not ask again behind your back; the button does
      · a prompt still up when a repaint lands — one ask, and the stream reaches the card on screen */
+/* ---------- WHAT `doGet` SENDS FOR A POST NOBODY HAS REACTED TO ----------------------------------------
+   THE SIX HOUSE FACES AND SIX ZEROES — `reactionSet` cannot return an empty list, so `doGet` cannot
+   send `{}`. These posts said `reactions: {}`, which `reacts()` draws as no row at all, so every post
+   seeded here was a post the app is never sent, and the row of faces was in none of them. A fixture
+   must send what `doGet` really sends (CLAUDE.md). */
+const NO_REACTIONS_ = () => ({ emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                               total: 0, yours: '', by: [] });
 const camBoot_ = o => {
   const gum = { asks: 0, open: 0, hold: null };
   const p = payload();
@@ -6490,7 +6497,7 @@ const camBoot_ = o => {
     p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
       image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
       at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
-      reactions: {}, comments: { total: 0, list: [] } }));
+      reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
   }
   const b = boot({ payload: p, before: w => {
     try { if (o.user) w.localStorage.setItem('familyUser', JSON.stringify(o.user)); } catch (e) {}
@@ -6660,7 +6667,7 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
   p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
     image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
     at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
-    reactions: {}, comments: { total: 0, list: [] } }));
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
   let refuse = true;
   const { w, sent } = boot({ payload: p,
     reply: b => (b.action === 'addComment' && refuse ? { error: 'That is too long to post.' } : { success: true }),
@@ -6708,6 +6715,161 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
   const after = d.querySelector('#s-feed .cmt-form .tile[data-do="cmt-add"]');
   if (!after || after.classList.contains('is-busy') || !after.querySelector('svg.tile-i-send'))
     bad.push('after a comment went through, the Post tile on the screen is missing, busy, or has lost its mark');
+  return bad;
+});
+
+/* ---------- A POST'S FACES, PRESSED, TAKEN BACK, AND ASKED WHO ---------------------------------------
+   THE ROW HAD NO JOURNEY AT ALL. Every seeded post here sent `reactions: {}`, which `reacts()` draws as
+   nothing, so the faces, the count, "yours" and the who-reacted sheet were exercised by no check — and
+   the fixture `check/ui.js` renders sent `{"👍": 3}`, a shape `doGet` has never sent, which draws
+   nothing either. So when the owner said *"Also refine how the post reactions look. Looks abit
+   scuffed"* (9 Oct), nothing in the repository had ever drawn the row it was about.
+
+   WHAT IS HELD, each a way the redraw can go half done (docs/history/307):
+     · ONE ROW OF SIX, and it is still six after a tap — the redraw replaces the row, it does not add one
+     · A TAP ADDS YOURS: the face is `.mine` (second class, which `ACCEPTED_TAP` keys on), pressed for
+       a screen reader, its count goes up, the TOTAL on the time line follows, `reactPost` carries the
+       `personId`, and the face lands (`is-pop`) for that one paint and not for the next
+     · THE SAME TAP TAKES IT BACK: no `.mine`, the count gone (a 0 is drawn as nothing), the total back
+     · THE TOTAL OPENS WHO REACTED, most-used first and ties in the house order, yours the gold pill
+       with your name first under it
+     · SIGNED OUT, a face sends nothing and goes to sign in; the total still opens the sheet */
+check('a post\'s faces: a tap adds yours, the same tap takes it back, the total opens who reacted', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const FACES = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
+  const seed = () => {
+    const p = payload();
+    p.festive = [];
+    p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: '', media: [],
+      caption: 'A Tuesday at the library', body: '', location: '', when: '01/09/2026',
+      at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
+      reactions: { emoji: FACES.slice(), counts: [2, 1, 0, 0, 0, 0], total: 3, yours: '',
+        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
+             { name: 'Carl Everyclient', emoji: '❤️' }] },
+      comments: { total: 0, list: [] } }];
+    return p;
+  };
+  const bad = [];
+  const { w, sent } = boot({ payload: seed(),
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document;
+  if (!w.__t) return ['the app did not load, so the reactions were NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  const rows = () => [...d.querySelectorAll('#s-feed [data-post="PO1"] .reacts')];
+  const face = e => d.querySelector(`#s-feed [data-post="PO1"] .react[data-emoji="${e}"]`);
+  const count = e => { const n = face(e) && face(e).querySelector('.react-n'); return n ? n.textContent.trim() : ''; };
+  const total = () => { const b = d.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+                        return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  const shape = when => {
+    const r = rows();
+    if (r.length !== 1) { bad.push(`${when}: ${r.length} rows of faces on the post, not one`); return false; }
+    const n = r[0].querySelectorAll('.react').length;
+    if (n !== 6) bad.push(`${when}: the row holds ${n} faces, not the six it was sent`);
+    return true;
+  };
+  if (!shape('drawn')) return bad.concat(['so nothing was pressed — not a pass']);
+  if (total() !== '3 reactions') bad.push(`drawn, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
+  if (count('😂')) bad.push(`drawn, 😂 with nobody behind it shows ${JSON.stringify(count('😂'))} — a 0 is drawn as nothing`);
+  if (d.querySelector('#s-feed .react.mine')) bad.push('drawn, a face is `.mine` before anybody signed in here pressed one');
+
+  /* ---------- A TAP ADDS YOURS ------------------------------------------------------------------- */
+  sent.length = 0;
+  face('😂').click(); await wait(50);
+  shape('after a tap');
+  const f = face('😂');
+  if (!f) return bad.concat(['after a tap there is no 😂 on the post']);
+  if (String(f.className).split(/\s+/)[1] !== 'mine') {
+    bad.push(`after a tap, 😂 is ${JSON.stringify(f.className)} — \`mine\` must be its second class (ACCEPTED_TAP keys on it)`);
+  }
+  if (f.getAttribute('aria-pressed') !== 'true') bad.push(`after a tap, 😂 is aria-pressed=${JSON.stringify(f.getAttribute('aria-pressed'))}`);
+  if (count('😂') !== '1') bad.push(`after a tap, 😂 counts ${JSON.stringify(count('😂'))}, not "1"`);
+  if (total() !== '4 reactions') bad.push(`after a tap, the time line says ${JSON.stringify(total())}, not "4 reactions"`);
+  if (!f.classList.contains('is-pop')) bad.push('after a tap, the face that landed is not marked to land (`is-pop`)');
+  const r1 = sent.find(b => b.action === 'reactPost');
+  if (!r1) bad.push(`a tap on a face posted ${JSON.stringify(sent.map(b => b.action))}, not reactPost`);
+  else if (r1.postId !== 'PO1' || r1.emoji !== '😂' || r1.personId !== 'P1')
+    bad.push('reactPost went out as ' + JSON.stringify({ postId: r1.postId, emoji: r1.emoji, personId: r1.personId }));
+  await wait(150);
+  /* ONE PAINT, NOT EVERY ONE: the next redraw of the feed must not bounce the face again. */
+  w.__t.repaint(); await wait(50);
+  if (face('😂') && face('😂').classList.contains('is-pop')) bad.push('a later repaint landed 😂 again — `REACT_POP_` was not cleared');
+  if (!face('😂') || !face('😂').classList.contains('mine')) bad.push('a later repaint lost yours');
+
+  /* ---------- THE SAME TAP TAKES IT BACK --------------------------------------------------------- */
+  sent.length = 0;
+  face('😂').click(); await wait(50);
+  shape('after taking it back');
+  if (d.querySelector('#s-feed .react.mine')) bad.push('after taking it back, a face is still `.mine`');
+  if (face('😂') && face('😂').getAttribute('aria-pressed') !== 'false') bad.push('after taking it back, 😂 is still pressed for a screen reader');
+  if (count('😂')) bad.push(`after taking it back, 😂 still counts ${JSON.stringify(count('😂'))}`);
+  if (face('😂') && face('😂').classList.contains('is-pop')) bad.push('taking it back landed the face — only a face added or moved to lands');
+  if (total() !== '3 reactions') bad.push(`after taking it back, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
+  if (!sent.some(b => b.action === 'reactPost' && b.emoji === '😂')) bad.push('taking it back sent no reactPost');
+  await wait(150);
+
+  /* ---------- THE TOTAL OPENS WHO REACTED -------------------------------------------------------- */
+  face('❤️').click(); await wait(150);          // now yours is ❤️: 👍 2, ❤️ 2 — a tie
+  const who = d.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+  if (!who) return bad.concat(['there is no total on the time line to open who reacted']);
+  who.click(); await wait(100);
+  const title = (d.getElementById('sheet-title') || {}).textContent || '';
+  const sheet = d.getElementById('sheet');
+  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing the total opened no sheet']);
+  if (title !== '4 reactions') bad.push(`the sheet is titled ${JSON.stringify(title)}, not "4 reactions"`);
+  const groups = () => [...d.querySelectorAll('#sheet-body .rx-group')].map(g => ({
+    e: ((g.querySelector('.rx-pill .react-e') || {}).textContent || ''),
+    n: ((g.querySelector('.rx-pill .react-n') || {}).textContent || ''),
+    mine: !!g.querySelector('.rx-pill.mine'),
+    names: [...g.querySelectorAll('.row')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) }));
+  const g1 = groups();
+  if (g1.map(g => g.e + g.n).join(' ') !== '👍2 ❤️2') {
+    bad.push(`the sheet's groups are ${JSON.stringify(g1.map(g => g.e + g.n))}, not 👍 2 then ❤️ 2 (a tie keeps the house order)`);
+  }
+  const heart = g1.find(g => g.e === '❤️');
+  if (heart && !heart.mine) bad.push('in the sheet, ❤️ is yours and its pill is not the gold one');
+  if (heart && !/^Pat Parent\s*you$/.test(heart.names[0] || '')) {
+    bad.push(`under ❤️ the first name is ${JSON.stringify(heart.names[0])}, not you with "you" after it`);
+  }
+  if (g1.some(g => g.e === '👍' && g.mine)) bad.push('in the sheet, 👍 is drawn as yours');
+  /* MOST FIRST, AND NOT THE HOUSE ORDER WEARING THAT NAME: 🎉 is last of the six and leads here. */
+  const r = w.__t.DATA().posts[0].reactions;
+  r.counts = [1, 2, 0, 0, 0, 3]; r.total = 6;
+  w.__t.ACTIONS['who-reacted'](who); await wait(50);
+  const g2 = groups();
+  if (g2.map(g => g.e).join(' ') !== '🎉 ❤️ 👍') {
+    bad.push(`with 🎉 3, ❤️ 2, 👍 1 the sheet's groups run ${JSON.stringify(g2.map(g => g.e))} — most first`);
+  }
+  if (!/…and 3 more/.test((d.getElementById('sheet-body') || {}).textContent || '')) {
+    bad.push('three 🎉 with no names behind them lost "…and 3 more"');
+  }
+
+  /* ---------- SIGNED OUT ------------------------------------------------------------------------- */
+  {
+    const b = boot({ payload: seed() });
+    await wait(400);
+    b.w.__t.go('feed'); await wait(700); await woken_();
+    const bd = b.w.document;
+    const fx = bd.querySelector('#s-feed [data-post="PO1"] .react[data-emoji="👍"]');
+    if (!fx) bad.push('signed out, the post draws no faces');
+    else {
+      b.sent.length = 0;
+      fx.click(); await wait(100);
+      if (b.sent.some(x => x.action === 'reactPost')) bad.push('signed out, a face posted reactPost');
+      if (b.w.__t.AT() !== 'account') bad.push(`signed out, a face went to ${b.w.__t.AT()}, not to sign in`);
+      if (bd.querySelector('.react.mine')) bad.push('signed out, a face became yours');
+    }
+    const t = bd.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+    if (!t) bad.push('signed out, there is no total on the time line');
+    else {
+      b.w.__t.ACTIONS['who-reacted'](t); await wait(50);
+      const sh = bd.getElementById('sheet');
+      if (!sh || sh.classList.contains('hidden') || !bd.querySelector('#sheet-body .rx-group')) {
+        bad.push('signed out, the total did not open who reacted');
+      }
+    }
+  }
   return bad;
 });
 

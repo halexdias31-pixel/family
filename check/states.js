@@ -5015,6 +5015,154 @@ const STATES = {
       },
       wants: 'the still on the card with Post it under it',
       leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
+    /* ---------- A POST'S FACES, IN EVERY STATE THEY ARE DRAWN IN ---------------------------------
+       THE OWNER, 9 Oct: *"Also refine how the post reactions look. Looks abit scuffed right bow"* —
+       and this lab had never drawn the row. The fixture's post sent `{"👍": 3}`, a shape `doGet` has
+       never sent, which `reacts()` draws as nothing; so tap size, contrast and sideways overflow had
+       been measured across every width on a post with no faces on it. The fixture sends the real
+       shape now (six house faces, counts, total, yours, by) and these are the states the row is in:
+       nobody, some, yours, a post's own set of more than six with three-digit and four-digit counts,
+       and the who-reacted sheet open. Signed out is the other visitor, and runs all but "yours".
+
+       SEEDED THROUGH `DATA.posts`, THE APP'S OWN DOOR — the post's `reactions` is exactly what the
+       payload's arrival puts there — then `repaint` and `goPage` to the post, which is what a finger
+       does. `PO1` because it is the fixture's post with a picture, so the row is where it is on most
+       posts: directly under the photograph. AND PUT BACK, because states run in order down one page
+       and the next would otherwise be measuring this one's counts. */
+    { name: 'reactions nobody',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                        total: 0, yours: '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        return !!el && el.querySelectorAll('.reacts .react').length === 6
+          && !el.querySelector('.react-n') && !el.querySelector('.react-who');
+      },
+      wants: 'the post on the screen with six empty pills and no total',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    { name: 'reactions some',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
+                        total: 4, yours: '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
+                             { name: 'Carl Everyclient', emoji: '👍' },
+                             { name: 'Evie Everystudent-Longername', emoji: '❤️' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        return !!el && el.querySelectorAll('.reacts .react-n').length === 2
+          && /4 reactions/.test((el.querySelector('.post-when .react-who') || {}).textContent || '');
+      },
+      wants: 'the post on the screen with two counted faces and "4 reactions" on its time line',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* EVERY FACE COUNTED IN TWO DIGITS AND ONE OF THEM YOURS — the widest the house row gets on a
+       busy post, and the gold one with its heavier count inside a 41px cell at 320. */
+    { name: 'reactions yours',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [12, 9, 15, 3, 27, 11],
+                        total: 77, yours: '❤️',
+                        by: [{ name: USER.name, emoji: '❤️' }, { name: 'Ada Tutor', emoji: '👍' },
+                             { name: 'Priya Parent', emoji: '😂' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        const mine = el && el.querySelector('.react.mine');
+        return !!mine && mine.dataset.emoji === '❤️' && mine.getAttribute('aria-pressed') === 'true'
+          && el.querySelectorAll('.reacts .react-n').length === 6;
+      },
+      wants: 'the post on the screen with six counted faces and ❤️ drawn as yours',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* A POST'S OWN CELL NAMING NINE FACES, with three- and four-digit counts: the one case the row
+       wraps (into the same columns, six and three), and the one case a count steps down a size
+       (`is-long`) or rounds (`1k`). Yours too when signed in, on a three-digit face. */
+    { name: 'reactions many and wrapping',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉', '🔥', '🙏', '💯'],
+                        counts: [999, 1500, 212, 7, 0, 45, 3, 0, 1], total: 2767,
+                        yours: signed ? '😂' : '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        if (!el) return false;
+        const faces = [...el.querySelectorAll('.reacts .react')];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
+        return faces.length === 9 && tops.size === 2 && !!el.querySelector('.react.is-long')
+          && [...el.querySelectorAll('.react-n')].some(n => n.textContent === '1k');
+      },
+      wants: 'the post on the screen with nine faces on two lines, a three-digit count stepped down and 1500 drawn as 1k',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* WHO REACTED, OPEN — the sheet is outside `#s-feed`, and `check/ui.js` measures it when one is
+       open. Groups most-used first, a long name, and yours the gold pill when signed in. Opened
+       through the total's own handler, and shut on the way out (a sheet survives `go()`). */
+    { name: 'reactions who reacted',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [2, 1, 3, 0, 0, 0],
+                        total: 6, yours: signed ? '😂' : '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '😂' },
+                             { name: 'Evie Everystudent-Longername', emoji: '😂' },
+                             { name: 'Carl Everyclient', emoji: '❤️' }]
+                             .concat(signed ? [{ name: USER.name, emoji: '😂' }] : []) };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const t = document.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+        if (!t) throw new Error('no total on the post to open who reacted from');
+        ACTIONS['who-reacted'](t);
+      },
+      expect: () => {
+        const sh = document.getElementById('sheet');
+        const g = [...document.querySelectorAll('#sheet-body .rx-group .rx-pill .react-e')].map(x => x.textContent);
+        return !!sh && !sh.classList.contains('hidden') && g.join(' ') === '😂 👍 ❤️';
+      },
+      wants: 'the who-reacted sheet open with 😂, 👍 and ❤️ in that order',
+      leave: () => {
+        closeSheet();
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
   ],
 
   booking: [
