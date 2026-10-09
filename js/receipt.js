@@ -122,6 +122,15 @@ function rcStyle_(cs) {
     if (/^(animation|transition)/.test(p)) continue;
     s += p + ':' + cs.getPropertyValue(p) + ';';
   }
+  /* `background-position` IS COPIED BY ITS TWO HALVES, because the whole one does not come back.
+     Chrome lists the shorthand among the computed properties and writes `right 13.8px` as
+     `right 13.8px 50%` — three values with an offset on a keyword and a percentage after it, which
+     no parser accepts — so the copy dropped it, fell back to `0% 0%`, and every select's arrow
+     (two five-pixel gradients, `select` in the stylesheet, since docs/history/315) came out folded
+     into its top-left corner. `check/share.js` counted it as 34 blots on the booking form. The
+     longhands serialise as `calc(100% - 13.8px)` and `50%`, which parse; written last, they win. */
+  s += 'background-position-x:' + cs.getPropertyValue('background-position-x')
+    + ';background-position-y:' + cs.getPropertyValue('background-position-y') + ';';
   return s + 'animation:none;transition:none;';
 }
 

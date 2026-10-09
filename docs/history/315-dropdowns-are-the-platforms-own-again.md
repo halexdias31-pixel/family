@@ -283,3 +283,20 @@ beside it. What they found, and what was done:
   laptop's dropdown.
 
 The checks re-run on this branch after the fixes are listed, with their numbers, in the commit message.
+
+## After the merge: the shared booking picture folded every arrow into a corner
+
+The full suite on the merged branch failed `check/share.js` on the booking form at 390px: 34 blots,
+over its limit of 30, where the commit before the merge had 0. The screen and the picture differed
+at every select. The picture had no arrow, and a five-pixel wedge sat in each select's top-left
+corner.
+
+The arrow is the select's own background (two gradients, placed `right … center`). `rcClone_`
+(receipt.js) copies a control as a `div` wearing its computed style. Chrome lists
+`background-position` among those computed properties, and writes it as `right 13.8px 50%`. That
+form does not parse, so the copy's position fell back to `0% 0%`. Both halves of the arrow were
+drawn at the corner.
+
+`rcStyle_` now writes `background-position-x` and `-y` last. Those serialise as `calc(100% - 13.8px)`
+and `50%`, which parse. The form went back to 0 blots at 390px and 1 at 320px, the same as before the
+merge. Every other picture is unchanged.
