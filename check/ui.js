@@ -105,6 +105,15 @@ const PAYLOAD_AT = arg('payload');
 const FIXTURE = PAYLOAD_AT
   ? fs.readFileSync(PAYLOAD_AT, 'utf8')
   : fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
+/* ---------- AND A STRANGER IS SENT WHAT `doGet` SENDS A STRANGER -----------------------------------
+   THE FIXTURE IS THE ADMIN'S PAYLOAD, and it was served to the signed-out visitor too — so every run
+   measured a stranger's videos card and Find holding three films that `doGet` builds inside
+   `if (viewerIsAdmin)` and sends nobody else (note 068, `filmsFor_`). A fixture must send what doGet
+   really sends: for the visitor who is not an admin, `films` is `[]` and `filmsSync` is not there. */
+const FIXTURE_ANON = (() => {
+  try { const o = JSON.parse(FIXTURE); o.films = []; delete o.filmsSync; return JSON.stringify(o); }
+  catch (e) { return FIXTURE; }
+})();
 if (PAYLOAD_AT) {
   console.log('payload: ' + PAYLOAD_AT + '  (the real one — findings here are about the DATA as');
   console.log('         much as the code, and the numbers move when a cell does)\n');
@@ -256,6 +265,17 @@ const MIN_TAP = 44;
    MATCHED ON CLASS, NOT ON TEXT. A rule written against "10" would accept any 22px control that
    happens to say 10; the class is what the stylesheet acts on. */
 const ACCEPTED_TAP = [
+  { cls: /^kp-key\.(kp-ch|kp-shift)\b/, why:
+    'THE PAD\'S LETTERS ARE NARROWER THAN A FINGER, AND A LETTER KEYBOARD CANNOT BE ANYTHING ELSE. The owner, 8 Oct: '
+  + '*"Make the keypad never need to use their own keyboard … I just want self contained system really"* -- so a worded '
+  + 'answer is typed on the pad\'s own letters (keypad.js, `KP_ABC`) and not the phone\'s. Ten keys across need 440px and '
+  + 'a phone has 288 inside its 16px gutters: a letter is 28.8px wide at 320 and 35.8 at 390, ⇧ and the apostrophe 43.2 '
+  + 'at 320. The iPhone\'s own keyboard puts the same ten letters on about 32pt cells, which is the precedent. What was '
+  + 'done instead of the width: every key is 44px or more TALL, in px; each key\'s box is its whole cell, the gap '
+  + 'between faces inside it (a transparent border), so no pixel of a row is dead; a tap in the pad\'s gutters or '
+  + 'between rows goes to the nearest key in that row (`kpNear_`), which makes the edge keys reach the edge of the '
+  + 'glass -- `q` is 44.8px wide in effect at 320; and the pressed letter is shown above the finger. From 640px wide the '
+  + 'letters pad widens and its keys are 60px, so a tablet is not on this list. A wrong letter costs one ⌫.' },
   { cls: /^(counted\.row|chip\.sm)\b/, why:
     'A FUNNEL ANSWER, AND THE CHIP IT BECOMES, IS 32px BY THE OWNER\'S CHOICE -- *"Make the tags smaller because this will '
   + 'help to make sure more fit in even when there\'s lots of names for the user to parse through."* '
@@ -1286,7 +1306,8 @@ function inspect(opts) {
 
     /* THE BACKEND, STOOD IN FOR. Matched on the host so it catches the JSONP route too. */
     await page.route('**://script.google.com/**', r =>
-      r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      r.fulfill({ status: 200, contentType: 'application/json',
+                  body: who.user && (who.user.roles || []).indexOf('admin') !== -1 ? FIXTURE : FIXTURE_ANON }));
 
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1800);                      // the boot fetch and first paint

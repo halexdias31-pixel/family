@@ -45,7 +45,8 @@ const zlib = require('zlib');
 const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
-const PORT = 8153;
+/* OVERRIDABLE, like every other harness's port: parallel runs in worktrees share one machine. */
+const PORT = Number(process.env.LOAD_PORT || 8153);
 const DETAIL = process.argv.includes('--detail');
 
 /* ---------- THE NETWORK, AS A PHONE HAS IT -------------------------------------------------------
@@ -178,6 +179,21 @@ async function visit(page, cdp, label, note) {
   } catch (e) { marks.library = -1; }
   await page.waitForLoadState('load').catch(() => {});
   const loaded = Date.now() - t0;
+  /* ---------- AND WHETHER THE SPLASH WAS CHOSEN BEFORE ANYTHING WAS PAINTED ----------------------
+     THE PICKER USED TO RUN AFTER EVERY SPLASH'S MARKUP, so the no-script default (`is-tag`) could be
+     painted and then swapped for the one the coin chose. It is the first thing inside `#splash` now
+     and marks `splash-pick` as it runs; the browser's `first-contentful-paint` is the other end. A
+     load that painted something before the pick is a load that could have shown the wrong splash.
+     CONTENTFUL, NOT `first-paint`: the first version of this read `first-paint` and failed three
+     warm loads out of seven, and each was a frame of the empty body's background — nothing precedes
+     `#splash` in the body but comments, so that frame holds no splash at all, right or wrong. A
+     splash is text and SVG; the first frame with any of it in is the one that has to come after. */
+  const pickAt = await page.evaluate(() => {
+    const m = performance.getEntriesByName('splash-pick')[0];
+    const p = performance.getEntriesByType('paint').find(e => e.name === 'first-contentful-paint');
+    return { pick: m ? m.startTime : null, paint: p ? p.startTime : null };
+  }).catch(() => ({ pick: null, paint: null }));
+  marks.pick = pickAt.pick; marks.paint = pickAt.paint;
   cdp.off('Network.responseReceived', onResp);
   cdp.off('Network.requestServedFromCache', onCached);
   cdp.off('Network.loadingFinished', onFinish);
@@ -196,6 +212,9 @@ async function visit(page, cdp, label, note) {
   console.log(`   app on screen   ${String(marks.appUp).padStart(6)} ms`
             + `      library ready ${String(marks.library).padStart(6)} ms`
             + `      load event ${String(loaded).padStart(6)} ms`);
+  console.log(`   splash picked   ${marks.pick == null ? '  none' : String(Math.round(marks.pick)).padStart(6)} ms`
+            + `      first contentful paint ${marks.paint == null ? '  none' : String(Math.round(marks.paint)).padStart(6)} ms`
+            + (marks.pick != null && marks.paint != null && marks.paint < marks.pick ? '      PAINTED BEFORE THE PICK' : ''));
   console.log(`   the browser asked for ${String(reqs.length).padStart(3)} file(s)`
             + `   ·  the server sent ${String(got.length).padStart(3)}`
             + `   ·  answered "unchanged" ${String(same.length).padStart(3)}`
@@ -333,6 +352,13 @@ async function visit(page, cdp, label, note) {
 
   console.log('\n(These are one machine on one afternoon. What is worth reading is the gap between'
             + '\n the three rows, not the absolute figures.)');
+  /* THE ONE LINE HERE THAT IS A RULE RATHER THAN A READING. Timings move with the machine; the
+     order of two marks inside one page does not, so a load that painted before the splash was
+     chosen fails this run. A load whose page never marked a pick is not a pass either. */
+  const early = out.filter(r => r.pick == null || r.paint == null || r.paint < r.pick);
+  console.log('\nTHE SPLASH CHOSEN BEFORE ANYTHING WAS PAINTED in ' + (out.length - early.length) + ' of ' + out.length + ' loads'
+            + (early.length ? ' — NOT in: ' + early.map(r => r.label.trim() + ' (pick ' + r.pick + ', paint ' + r.paint + ')').join(', ') : ''));
+  if (early.length) process.exitCode = 1;
   await browser.close();
   try { srv.close(); } catch (e) {}
 })();

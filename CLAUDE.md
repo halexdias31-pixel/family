@@ -60,6 +60,19 @@ almost never writes to it directly.
 - **`config` tab** — key/value numbers and switches, reaching the site as `DATA.constants.vars`.
 - **`facets` / `kinds` tabs** — what the funnel asks and what the answers are called. These moved out
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
+- **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes, the
+  solar system and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
+  `html`, `css`). The chapter plays it on a page of its own; the loading screen draws a copy the
+  device kept from the last load (`splashSync_` in shell.js, read by the picker in index.html — one
+  load behind). *"The source for the animations should be in text books"* — the owner, 8 Oct.
+  **Each one has ONE source, and which it is depends on the drawing.** Thirteen are written by a
+  script — `area bayes cent coin fib gal index mxc orbit pyth sieve sine venn` (`gal` is
+  `tools/galton.py`, `orbit` is `tools/solar.py`, the rest `tools/<id>.py`, all through
+  `tools/anim_row.py`): for those **the script is the source** — change it and re-run it, and never
+  edit the row by hand, because the next run puts back everything the script writes and nothing
+  notices but `check-anims.js`. For the other 15 **the row is the source**: edit it in place. Never
+  in `index.html` or `style.css`: those hold only the 13 splashes that teach nothing, and
+  `check-anims.js` fails on a teaching one left there. See docs/history/304.
 - Everything else — people, venues, jobs, pricing, posts, links, laws, landmarks, holidays — is a
   tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it and the
   file it lives in in `WHERE`. **All three have to name it.** `TAB` without `WHERE` is a tab nothing
@@ -183,9 +196,11 @@ node js/check-post.js            # an action that names a person by a cell they 
 node js/check-library.js         # data/questions.json: ids, 80 marks, the closed facet vocabulary
 node js/check-marking.js         # a right answer marked right, a wrong one wrong
 node js/check-practicals.js      # the 41 practicals, and whether their topics join to anything
+node js/check-anims.js           # the textbooks' animations: rows, anchoring, and the splash's copy
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node check/deploy.js             # after a push, does a browser that has the site run the new code
+node check/anims.js              # every textbook animation in its card at 320 and 390, still when asked
 node check/ui.js                 # 9 screens x 5 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at

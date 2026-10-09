@@ -1,5 +1,5 @@
-# The Fibonacci splash (#splash-fib): writes the squares and the spiral into index.html from the
-# sequence itself. Run: python3 tools/fib.py
+# The Fibonacci animation (the textbooks' Maths chapter 10, and a loading splash): writes the squares and
+# the spiral into its row of data/textbooks.json from the sequence itself. Run: python3 tools/fib.py
 #
 # ASKED FOR AS "make fibonacci sequence animation smaller so can fit more of it in". It drew five
 # squares, 1 1 2 3 5, at eight units a side; this draws EIGHT, 1 1 2 3 5 8 13 21, at two units, in
@@ -12,6 +12,7 @@
 # what the old hand-made one had to learn the hard way: every arc starts where the last one ended,
 # and the heading is continuous at every joint, so it is a spiral and not a rosette.
 import math, re, pathlib
+import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 
 F = [1, 1, 2, 3, 5, 8, 13, 21]
 U = 2.0                                   # units per Fibonacci 1
@@ -80,12 +81,6 @@ svg = '''<svg class="fb-svg" viewBox="0 0 %s %s">
       <path class="fb-arc" d="%s"/>
     </svg>''' % (f(W), f(H), ' '.join(map(str, F)), rects, d)
 
-root = pathlib.Path(__file__).resolve().parent.parent
-idx = root / 'index.html'
-t = idx.read_text()
-t2, n = re.subn(r'<svg class="fb-svg".*?</svg>', lambda m: svg, t, count=1, flags=re.S)
-assert n == 1
-t2, n = re.subn(r'<div class="fb-say">[^<]*</div>', '<div class="fb-say">%s</div>' % ' '.join(map(str, F)), t2, count=1)
-assert n == 1
-idx.write_text(t2)
+# INTO ITS ROW IN data/textbooks.json, not index.html — see tools/anim_row.py.
+anim_row.write_anim('fib', fragments=[svg, '<div class="fb-say">%s</div>' % ' '.join(map(str, F))])
 print('viewBox %s x %s, %d squares, ratio %.3f, arc length %.1f' % (f(W), f(H), len(sq), (x1 - x0) / (y1 - y0), length))

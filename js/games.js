@@ -2824,9 +2824,9 @@ on('rg-again', el => {
 
    THE PHONE IS THE ONLY THING THAT KNOWS WHO THE IMPOSTER IS, so it is dealt like the Scrabble rack:
    passed round, one player at a time, and nothing secret is on the screen between two of them.
-   "Hand the phone to Player 3" is what the next player sees, and the word only comes up when THEY
-   press for it. A card that showed the word and then said "pass it on" would put it in front of
-   whoever takes the phone.
+   "Pass to Player 3" is what the next player sees, and the word only comes up when THEY press for
+   it. A card that showed the word and then said "pass it on" would put it in front of whoever takes
+   the phone.
 
    THE IMPOSTER IS TOLD THE CATEGORY AND NOTHING ELSE, which is the rule every version of this game
    that is fun to play uses. With nothing at all to go on, the imposter's first word is a guess and
@@ -2834,7 +2834,7 @@ on('rg-again', el => {
    something that sounds right and the game is whether the others notice.
 
    WHO GOES FIRST IS DRAWN FROM EVERYBODY, THE IMPOSTER INCLUDED. Leaving the imposter out would be
-   kinder to them and would tell the room something: in a game of three, "Player 2 goes first" would
+   kinder to them and would tell the room something: in a game of three, "Player 2 starts" would
    rule Player 2 out, and the whole game is not knowing.
 
    NO SCORE AND NO TIMER, for the reason Herd Mentality gives: the voting and the arguing are the
@@ -2844,6 +2844,35 @@ on('rg-again', el => {
    a payload lands, and a round half-dealt that dealt itself again would hand some players a second
    word. `initImposter` redraws what is in progress. What `stop` does instead is HIDE a word left on
    the screen, because a column swiped away and back is exactly how the next person sees it.
+
+   ---------- A SMALL LINE, A BIG LINE AND ONE BUTTON ----------------------------------------------
+   REPORTED AS "Can you make the imposter game more simple and intuitive while adding more categories
+   and words. It’s info over load on the reading parts like reading theme and word extra" (8 Oct).
+   Every screen carried a sentence: "Player 2 of 4" over "Hand the phone to Player 2" over "Nobody
+   else looks"; "Nobody else knows. Blend in."; "goes first. One word each, round the circle — then
+   vote."; "Caught? The imposter still wins by guessing the word." Each was true and none was needed
+   past the first round, and every one of them was a paragraph somebody had to read out to a child
+   with the phone in their hand — which, on the card, is reading the secret out loud. So a screen is
+   a small line, a big line and one button, and `check-flow.js` counts: no more than four words on
+   the pass, the card and the play screens, the dealt word and its category aside.
+
+   THE CATEGORY WENT FROM A PLAYER'S CARD, which was the "reading theme and word" half: somebody who
+   has been told "pizza" does not need telling it is a food. It is the imposter's hint and nobody
+   else's, and the whole table sees it on the play screen once everybody has looked.
+
+   THE BIG LINE AND THE BUTTON DO NOT MOVE from the first "Pass to" to "Reveal". Every one of those
+   screens draws the same slots — small line, big line, small line, button, and with Read aloud on the
+   speaker's room under the button — empty or not, so the card is one height on all of them. The
+   phone goes to children who cannot read the button yet, and "the gold one under the big word" has to
+   be the same place every time. Show, Hide and Listen carry the app's own marks (`TILE_ICONS`): an open eye, a
+   shut one and a speaker, so the three a child presses alone are known by picture as well as place.
+
+   AND THE SAME PLACE CUTS BOTH WAYS: a double tap lands its second tap on the button just drawn
+   there. Measured in Chromium with a touch double tap at 390, the review of 8 October: on Show it
+   flashed the card and passed the turn on unseen; on Hide it opened the NEXT player's card in this
+   player's hands; on the last Hide it went straight to Reveal before a word had been said. So Show,
+   Hide and Reveal ignore a press that comes within `IMP_GAP` of the last one — see
+   `impTooSoon_`. The button stays where it is; it is the second tap that goes.
 ================================================================================================== */
 const IMP_MIN = 3, IMP_MAX = 12;
 
@@ -2852,69 +2881,193 @@ const IMP_MIN = 3, IMP_MAX = 12;
    so a card has to be something everybody can say three different true words about — and
    something a child in the room has heard of.
 
+   TWENTY-SEVEN CATEGORIES OF THIRTY, 810 cards, where there were eleven of twenty-two (242) — "while
+   adding more categories and words", in the same note as the simpler screens. SPLIT FINER AS WELL AS
+   GROWN, because the category is the imposter's whole hint: "Animals" over a shark, a bee and a
+   hamster told them almost nothing, and "Sea life" tells them enough to say "salty" and sound right.
+   THIRTY IN EVERY ONE, because the pile below is every (category, word) pair, so a category's share
+   of the rounds is its share of the cards — a category of forty beside one of twenty would come up
+   twice as often for no reason anybody chose. `check-widgets.js` holds the shape: at least 25
+   categories, at least 30 words in each, no word twice anywhere (`hairdresser` in Jobs and
+   `hairdresser’s` in Places were the same card in the old deck), and no word that says its own
+   category, which is the hint handing the imposter half the answer (`school bus` and `school trip`
+   were in School).
+
    ABOUT HALF OF THESE ARE ALSO IN ARTICULATE OR CHARADES, AND THAT IS ALLOWED. `check-widgets.js`
    refuses one word in both of those two, because a word described and then mimed is a word the
    room already knows the answer to. Nothing like that can happen here: the word is dealt at random
-   from about two hundred and forty, only one person is trying to work it out, and a card from an
-   hour ago tells them nothing about which one came up. Keeping ordinary words out to satisfy a rule
-   written for a different game would leave the imposter a deck of words nobody can talk about. */
+   from 810, only one person is trying to work it out, and a card from an hour ago tells them
+   nothing about which one came up. Keeping ordinary words out to satisfy a rule written for a
+   different game would leave the imposter a deck of words nobody can talk about. */
 const IMP_DECK = {
   Food: [
-    'pizza', 'pancakes', 'spaghetti', 'sushi', 'curry', 'burger', 'porridge', 'cereal',
-    'doughnut', 'popcorn', 'soup', 'omelette', 'jacket potato', 'fish fingers', 'trifle',
-    'crumpet', 'strawberries', 'chocolate', 'cheese', 'lasagne', 'sausage roll', 'hot dog',
+    'pizza', 'burger', 'sandwich', 'spaghetti', 'fish and chips', 'fish fingers', 'hot dog', 'soup',
+    'cereal', 'porridge', 'beans on toast', 'jacket potato', 'roast dinner', 'sausage roll',
+    'curry', 'lasagne', 'omelette', 'boiled egg', 'macaroni cheese', 'shepherd’s pie', 'meatballs',
+    'crumpet', 'bangers and mash', 'fried rice', 'sushi', 'tacos', 'nachos', 'fry-up',
+    'spring rolls', 'dumplings',
   ],
-  Animals: [
-    'elephant', 'penguin', 'giraffe', 'kangaroo', 'octopus', 'hedgehog', 'crocodile', 'owl',
-    'dolphin', 'tortoise', 'zebra', 'squirrel', 'shark', 'parrot', 'camel', 'bee', 'spider',
-    'frog', 'polar bear', 'jellyfish', 'hamster', 'bat',
+  'Fruit and veg': [
+    'apple', 'banana', 'orange', 'strawberry', 'grapes', 'carrot', 'watermelon', 'pineapple',
+    'tomato', 'cucumber', 'pear', 'lemon', 'cherry', 'peas', 'broccoli', 'sweetcorn', 'blueberry',
+    'mango', 'peach', 'plum', 'kiwi', 'coconut', 'lettuce', 'onion', 'pumpkin', 'sprouts', 'pepper',
+    'avocado', 'celery', 'mushroom',
   ],
-  Places: [
-    'beach', 'airport', 'library', 'hospital', 'zoo', 'cinema', 'supermarket', 'museum',
-    'swimming pool', 'farm', 'castle', 'train station', 'playground', 'campsite', 'bakery',
-    'theme park', 'desert', 'jungle', 'bowling alley', 'hairdresser’s', 'car park', 'church',
+  'Sweets and treats': [
+    'chocolate', 'ice cream', 'lollipop', 'biscuit', 'cupcake', 'doughnut', 'popcorn', 'crisps',
+    'candyfloss', 'jelly', 'marshmallow', 'milkshake', 'brownie', 'sprinkles', 'bubblegum',
+    'waffle', 'candy cane', 'pick and mix', 'slushie', 'fudge', 'crumble', 'trifle', 'cheesecake',
+    'jam tart', 'flapjack', 'scone', 'hot cross bun', 'mince pie', 'Swiss roll', 'rocky road',
+  ],
+  'In the kitchen': [
+    'fridge', 'kettle', 'toaster', 'microwave', 'oven', 'sink', 'plate', 'bowl', 'fork', 'mug',
+    'frying pan', 'dishwasher', 'saucepan', 'teapot', 'wooden spoon', 'rolling pin', 'whisk',
+    'tea towel', 'apron', 'chopping board', 'blender', 'baking tray', 'washing-up liquid', 'grater',
+    'sieve', 'peeler', 'tin opener', 'measuring jug', 'ladle', 'spatula',
   ],
   'At home': [
-    'sofa', 'fridge', 'toothbrush', 'pillow', 'kettle', 'bath', 'microwave', 'washing machine',
-    'lamp', 'mirror', 'ladder', 'doorbell', 'remote control', 'toaster', 'hoover', 'duvet',
-    'stairs', 'bin', 'radiator', 'curtains', 'plug', 'letterbox',
+    'bed', 'sofa', 'bath', 'television', 'stairs', 'toothbrush', 'window', 'key', 'mirror', 'lamp',
+    'soap', 'curtains', 'wardrobe', 'carpet', 'bin', 'doorbell', 'remote control', 'duvet',
+    'washing machine', 'vacuum cleaner', 'alarm clock', 'hairdryer', 'letterbox', 'radiator',
+    'bookcase', 'chimney', 'attic', 'iron', 'mop', 'hot-water bottle',
   ],
-  Jobs: [
-    'firefighter', 'pilot', 'chef', 'teacher', 'farmer', 'plumber', 'nurse', 'vet',
-    'police officer', 'postman', 'builder', 'lifeguard', 'hairdresser', 'judge', 'footballer',
-    'scientist', 'zookeeper', 'baker', 'dentist', 'bus driver', 'artist', 'shopkeeper',
+  'In the garden': [
+    'swing', 'trampoline', 'sunflower', 'paddling pool', 'watering can', 'shed', 'pond', 'barbecue',
+    'sandpit', 'tree house', 'lawnmower', 'wheelbarrow', 'spade', 'rose', 'fence', 'gate',
+    'bird feeder', 'greenhouse', 'hosepipe', 'rake', 'flowerpot', 'scarecrow', 'gnome', 'tulip',
+    'seeds', 'weeds', 'washing line', 'hammock', 'vegetable patch', 'compost heap',
   ],
-  Sport: [
-    'football', 'tennis', 'swimming', 'cricket', 'basketball', 'skiing', 'golf', 'rugby',
-    'cycling', 'gymnastics', 'darts', 'bowling', 'karate', 'badminton', 'snooker', 'surfing',
-    'ice skating', 'netball', 'table tennis', 'athletics', 'rowing', 'hockey',
-  ],
-  School: [
-    'pencil case', 'homework', 'calculator', 'whiteboard', 'lunchbox', 'assembly', 'register',
-    'ruler', 'school bus', 'exam', 'science lab', 'backpack', 'rubber', 'textbook',
-    'spelling test', 'school trip', 'uniform', 'detention', 'sports day', 'glue stick',
-    'times tables', 'break time',
-  ],
-  Transport: [
-    'bicycle', 'helicopter', 'submarine', 'tractor', 'rocket', 'hot-air balloon', 'canoe',
-    'double-decker bus', 'scooter', 'ambulance', 'fire engine', 'taxi', 'lorry', 'train',
-    'aeroplane', 'cable car', 'motorbike', 'tram', 'yacht', 'ferry', 'van', 'go-kart',
-  ],
-  Nature: [
-    'rainbow', 'thunderstorm', 'snowman', 'volcano', 'waterfall', 'tornado', 'fog', 'puddle',
-    'sunset', 'icicle', 'lightning', 'earthquake', 'mountain', 'river', 'forest', 'cave',
-    'island', 'moon', 'desert island', 'conker', 'mushroom', 'sunflower',
+  Toolbox: [
+    'hammer', 'screwdriver', 'ladder', 'saw', 'torch', 'drill', 'nail', 'batteries', 'sticky tape',
+    'tape measure', 'brick', 'light bulb', 'padlock', 'paint roller', 'paint pot', 'spanner',
+    'hard hat', 'wallpaper', 'magnifying glass', 'superglue', 'chain', 'plank', 'safety goggles',
+    'plunger', 'nuts and bolts', 'pliers', 'scaffolding', 'sandpaper', 'workbench', 'crane',
   ],
   Clothes: [
-    'wellies', 'pyjamas', 'scarf', 'sunglasses', 'trainers', 'raincoat', 'crown', 'gloves',
-    'swimming costume', 'dressing gown', 'bow tie', 'slippers', 'hoodie', 'flip-flops', 'apron',
-    'helmet', 'tie', 'socks', 'woolly hat', 'onesie', 'cap', 'wedding dress',
+    'socks', 'jumper', 'T-shirt', 'jeans', 'pyjamas', 'shorts', 'wellies', 'trainers', 'skirt',
+    'raincoat', 'hoodie', 'scarf', 'gloves', 'woolly hat', 'sunglasses', 'slippers',
+    'dressing gown', 'swimming costume', 'flip-flops', 'cap', 'leggings', 'tracksuit', 'helmet',
+    'tie', 'belt', 'dungarees', 'nappy', 'kilt', 'high heels', 'earmuffs',
+  ],
+  'The body': [
+    'nose', 'eye', 'ear', 'mouth', 'hand', 'foot', 'hair', 'teeth', 'arm', 'leg', 'tummy', 'knee',
+    'toes', 'thumb', 'tongue', 'elbow', 'neck', 'shoulder', 'chin', 'heart', 'brain', 'skeleton',
+    'beard', 'skin', 'forehead', 'wrist', 'ankle', 'muscles', 'freckles', 'fingerprint',
+  ],
+  'Wild animals': [
+    'elephant', 'lion', 'monkey', 'giraffe', 'tiger', 'zebra', 'panda', 'kangaroo', 'crocodile',
+    'polar bear', 'hippo', 'rhino', 'koala', 'camel', 'fox', 'owl', 'squirrel', 'hedgehog', 'frog',
+    'bat', 'badger', 'eagle', 'flamingo', 'ostrich', 'peacock', 'toucan', 'sloth', 'meerkat',
+    'otter', 'chameleon',
+  ],
+  'Pets and farm animals': [
+    'dog', 'cat', 'rabbit', 'hamster', 'guinea pig', 'goldfish', 'horse', 'cow', 'pig', 'sheep',
+    'chicken', 'duck', 'mouse', 'tortoise', 'pony', 'donkey', 'goat', 'budgie', 'parrot', 'rat',
+    'goose', 'turkey', 'bull', 'cockerel', 'llama', 'ferret', 'lizard', 'reindeer', 'gerbil',
+    'pigeon',
+  ],
+  'Sea life': [
+    'shark', 'dolphin', 'whale', 'octopus', 'jellyfish', 'crab', 'starfish', 'penguin', 'seal',
+    'turtle', 'seahorse', 'lobster', 'clownfish', 'orca', 'seaweed', 'squid', 'stingray', 'walrus',
+    'pufferfish', 'coral', 'puffin', 'eel', 'prawn', 'narwhal', 'swordfish', 'tuna', 'oyster',
+    'salmon', 'sea urchin', 'barnacle',
+  ],
+  Minibeasts: [
+    'spider', 'bee', 'ladybird', 'butterfly', 'ant', 'snail', 'worm', 'caterpillar', 'slug',
+    'beetle', 'wasp', 'fly', 'grasshopper', 'dragonfly', 'moth', 'centipede', 'woodlouse',
+    'tadpole', 'stick insect', 'cobweb', 'beehive', 'daddy-long-legs', 'earwig', 'mosquito', 'flea',
+    'maggot', 'chrysalis', 'praying mantis', 'pond skater', 'water boatman',
+  ],
+  Nature: [
+    'rainbow', 'volcano', 'waterfall', 'tornado', 'snowflake', 'puddle', 'lightning', 'mountain',
+    'river', 'forest', 'cave', 'island', 'desert', 'jungle', 'icicle', 'cloud', 'iceberg', 'lake',
+    'conker', 'acorn', 'pine cone', 'cactus', 'palm tree', 'dandelion', 'hailstones',
+    'stinging nettle', 'bluebell', 'daisy', 'nest', 'autumn leaves',
+  ],
+  Space: [
+    'moon', 'sun', 'star', 'rocket', 'astronaut', 'alien', 'Earth', 'Mars', 'Saturn', 'Jupiter',
+    'shooting star', 'telescope', 'flying saucer', 'black hole', 'satellite', 'crater', 'asteroid',
+    'comet', 'solar system', 'galaxy', 'eclipse', 'Northern Lights', 'Pluto', 'Venus', 'Neptune',
+    'Mercury', 'countdown', 'launch pad', 'mission control', 'constellation',
+  ],
+  'At the seaside': [
+    'sandcastle', 'bucket and spade', 'shell', 'seagull', 'waves', 'rock pool', 'beach ball',
+    'pier', 'lighthouse', 'suncream', 'deckchair', 'beach hut', 'rubber ring', 'pebbles',
+    'stick of rock', 'snorkel', 'flippers', 'donkey ride', 'fishing net', 'lifeboat', 'cliff',
+    'windbreak', 'parasol', 'cool box', 'helter-skelter', 'pedalo', 'postcard', 'bodyboard',
+    'wetsuit', 'anchor',
+  ],
+  'Fairy tales': [
+    'castle', 'dragon', 'witch', 'giant', 'unicorn', 'mermaid', 'princess', 'king', 'knight',
+    'magic wand', 'Cinderella', 'Goldilocks', 'Three Little Pigs', 'Snow White', 'Red Riding Hood',
+    'Big Bad Wolf', 'Gingerbread Man', 'Peter Pan', 'genie', 'troll', 'beanstalk',
+    'Sleeping Beauty', 'Rapunzel', 'Pinocchio', 'Hansel and Gretel', 'wishing well', 'throne',
+    'potion', 'Ugly Duckling', 'Puss in Boots',
+  ],
+  Countries: [
+    'England', 'Scotland', 'Wales', 'France', 'Spain', 'Ireland', 'America', 'Australia', 'Italy',
+    'China', 'Japan', 'India', 'Egypt', 'Germany', 'Canada', 'Jamaica', 'Mexico', 'Greece',
+    'Brazil', 'Switzerland', 'Holland', 'New Zealand', 'Poland', 'South Africa', 'Kenya',
+    'Portugal', 'Pakistan', 'Nigeria', 'Thailand', 'Peru',
+  ],
+  'Around town': [
+    'playground', 'supermarket', 'zoo', 'swimming pool', 'cinema', 'library', 'hospital', 'café',
+    'airport', 'theme park', 'museum', 'soft play', 'church', 'shopping centre', 'traffic lights',
+    'zebra crossing', 'bowling alley', 'aquarium', 'hotel', 'campsite', 'petrol station', 'theatre',
+    'stadium', 'fountain', 'skate park', 'chemist’s', 'nursery', 'phone box', 'mosque',
+    'skyscraper',
+  ],
+  'Famous places': [
+    'Big Ben', 'Eiffel Tower', 'London Eye', 'Buckingham Palace', 'Pyramids', 'Statue of Liberty',
+    'North Pole', 'Tower Bridge', 'Stonehenge', 'Mount Everest', 'Great Wall', 'Leaning Tower',
+    'Loch Ness', 'Sydney Opera House', 'Wembley', 'Antarctica', 'Sahara', 'Tower of London',
+    'Niagara Falls', 'Grand Canyon', 'Taj Mahal', 'Colosseum', 'Venice', 'Great Barrier Reef',
+    'Sphinx', 'Wimbledon', 'Hollywood', 'Hadrian’s Wall', 'Jurassic Coast', 'Land’s End',
+  ],
+  Jobs: [
+    'teacher', 'doctor', 'firefighter', 'police officer', 'nurse', 'farmer', 'chef', 'vet', 'pilot',
+    'builder', 'dentist', 'postman', 'hairdresser', 'baker', 'lifeguard', 'scientist', 'artist',
+    'shopkeeper', 'dinner lady', 'lollipop lady', 'magician', 'waiter', 'plumber', 'mechanic',
+    'detective', 'paramedic', 'actor', 'butcher', 'photographer', 'window cleaner',
+  ],
+  Sport: [
+    'football', 'tennis', 'cricket', 'rugby', 'basketball', 'netball', 'golf', 'gymnastics',
+    'skiing', 'ice skating', 'karate', 'hockey', 'rounders', 'surfing', 'badminton', 'horse riding',
+    'dodgeball', 'skateboarding', 'diving', 'sack race', 'trophy', 'referee', 'climbing', 'sailing',
+    'volleyball', 'rowing', 'high jump', 'hurdles', 'marathon', 'weightlifting',
+  ],
+  School: [
+    'ruler', 'scissors', 'pencil case', 'homework', 'lunchbox', 'uniform', 'crayons', 'rubber',
+    'playtime', 'desk', 'glue stick', 'whiteboard', 'paintbrush', 'book bag', 'PE kit',
+    'sports day', 'spelling test', 'assembly', 'gold star', 'calculator', 'exercise book',
+    'sharpener', 'glitter', 'globe', 'magnet', 'microscope', 'nativity play', 'show and tell',
+    'coat peg', 'lost property',
+  ],
+  Transport: [
+    'car', 'bicycle', 'aeroplane', 'train', 'double-decker bus', 'scooter', 'helicopter',
+    'fire engine', 'ambulance', 'tractor', 'taxi', 'lorry', 'digger', 'motorbike', 'submarine',
+    'hot-air balloon', 'ice-cream van', 'pushchair', 'caravan', 'sledge', 'canoe', 'speedboat',
+    'go-kart', 'ferry', 'cruise ship', 'tram', 'cable car', 'monster truck', 'cement mixer', 'raft',
   ],
   Celebrations: [
-    'birthday party', 'wedding', 'fireworks', 'Christmas', 'Easter egg', 'Halloween',
-    'Bonfire Night', 'sleepover', 'picnic', 'barbecue', 'Pancake Day', 'Diwali', 'Eid',
-    'New Year’s Eve', 'school disco', 'fancy dress', 'Mother’s Day', 'carnival',
-    'graduation', 'Valentine’s Day', 'baby shower', 'party bags',
+    'birthday party', 'Christmas', 'Halloween', 'Easter egg', 'wedding', 'Bonfire Night',
+    'presents', 'balloons', 'sleepover', 'fancy dress', 'picnic', 'disco', 'Valentine’s Day',
+    'Mother’s Day', 'Pancake Day', 'April Fools’ Day', 'New Year’s Eve', 'Chinese New Year',
+    'Diwali', 'Eid', 'Hanukkah', 'Holi', 'advent calendar', 'cracker', 'piñata', 'bunting',
+    'carnival', 'World Book Day', 'harvest festival', 'pantomime',
+  ],
+  'Toys and games': [
+    'teddy bear', 'doll', 'kite', 'bubbles', 'hide and seek', 'jigsaw', 'robot', 'puppet', 'yo-yo',
+    'skipping rope', 'building blocks', 'slime', 'dice', 'marbles', 'snakes and ladders',
+    'bouncy castle', 'hopscotch', 'pass the parcel', 'stickers', 'hula hoop', 'playing cards',
+    'dominoes', 'chess', 'noughts and crosses', 'treasure hunt', 'Simon says', 'roller skates',
+    'spinning top', 'pogo stick', 'jack-in-the-box',
+  ],
+  Music: [
+    'guitar', 'drums', 'piano', 'violin', 'trumpet', 'recorder', 'microphone', 'headphones',
+    'triangle', 'tambourine', 'maracas', 'xylophone', 'radio', 'harp', 'cymbals', 'choir',
+    'karaoke', 'pop star', 'concert', 'ballet', 'talent show', 'lullaby', 'orchestra', 'saxophone',
+    'bagpipes', 'harmonica', 'trombone', 'tuba', 'castanets', 'accordion',
   ],
 };
 
@@ -2943,10 +3096,123 @@ function impCount_(n) {
   return Math.max(IMP_MIN, Math.min(IMP_MAX, v));
 }
 
+/* ---------- READ ALOUD, FOR THE ONES WHO CANNOT READ YET -------------------------------------------
+   ASKED FOR AS "For the imposter game can you have have it so young ones who can’t read can play.
+   Like it will read it out for them." (8 Oct.)
+
+   THE BROWSER'S OWN VOICE — `speechSynthesis` — and nothing else: no network, no key, nothing to
+   install, and it works on the iPad at the table with the wifi off. A British voice where the phone
+   has one, a little slower than its own pace. Where there is no voice at all the switch is not drawn
+   and the game is exactly the one above, which is the house rule about anything that can be absent.
+
+   ONE SWITCH, OFF UNTIL SOMEBODY TURNS IT ON, and remembered like the player count: it is the same
+   family at the same table next week. Off by default because a phone that starts talking in a
+   classroom is a phone that gets put away.
+
+   THE SECRET IS NEVER SAID BY ITSELF. A phone that read the word out as the card came up would tell
+   the whole table — the one thing this game cannot survive. So the card has LISTEN, pressed by the
+   person holding it, said at a little over half volume, and pressable again for "say it again". The
+   pass screen is what tells them how, and it TELLS them, out loud, because a child who cannot read
+   the card cannot read that sentence either.
+
+   AND IT TELLS THEM IN THE ORDER THE PRESSES GO. It said "Hold the phone to your ear, then press
+   Show" — but Show makes no sound, so a child who did exactly that heard nothing, and the gold button
+   now under their thumb was Hide: the obvious next press, and it passed their turn on without them
+   ever hearing the word (the review of 8 October). So it names the speaker, and puts the ear last.
+
+   WHAT EVERYBODY MAY HEAR IS SAID BY ITSELF — whose turn it is, who starts, who it was — and only on
+   the press that brings that screen up. A browser lets a page talk in answer to a tap (Safari refuses
+   a first `speak()` outside one), and a press is also the only moment somebody is listening for it.
+   So `impPaint` has no voice: a repaint, a payload landing, a column swiped back to, all say nothing.
+
+   AND WHAT IS STILL BEING SAID IS CUT OFF FIRST. Hide, Play again, Players and leaving the column
+   each start with `impHush_`, before anything else they do — a word half-spoken when the phone is
+   handed on finishes in the next player's ear otherwise, and `speak()` queues rather than replaces. */
+function impCanSay_() {
+  try { return !!(window.speechSynthesis && window.SpeechSynthesisUtterance); } catch (e) { return false; }
+}
+function impAloud_(on) {
+  if (on !== undefined) {
+    try { localStorage.setItem('imp-aloud', on ? '1' : '0'); } catch (e) {}
+    return on;
+  }
+  let v = false;
+  try { v = localStorage.getItem('imp-aloud') === '1'; } catch (e) {}
+  return v && impCanSay_();
+}
+function impHush_() {
+  try { if (impCanSay_()) window.speechSynthesis.cancel(); } catch (e) {}
+}
+/* `lang` AS WELL AS `voice`, because Chrome hands back no voices at all until its list has loaded —
+   the first round of the day would get whatever the phone defaults to. `lang` is a request any
+   engine honours with the list empty; `voice` is the exact one when there is a list to pick from. */
+function impSay_(text, quiet) {
+  if (!impAloud_()) return;
+  try {
+    const ss = window.speechSynthesis;
+    const u = new window.SpeechSynthesisUtterance(text);
+    u.lang = 'en-GB';
+    const gb = (typeof ss.getVoices === 'function' ? ss.getVoices() || [] : [])
+      .find(v => /^en[-_]GB/i.test(String(v.lang || '')));
+    if (gb) u.voice = gb;
+    u.rate = 0.9;
+    u.volume = quiet ? 0.6 : 1;
+    ss.speak(u);
+  } catch (e) {}
+}
+/* WHAT A SCREEN SAYS WHEN A PRESS BRINGS IT UP — only the ones nothing secret is on. The card says
+   nothing until Listen, which is `imp-listen` below and not here. */
+function impAnnounce_() {
+  const s = IMP, player = i => 'Player ' + (i + 1);
+  if (s.phase === 'deal' && !s.shown) impSay_(player(s.at) + '. Press Show, then the speaker, and hold the phone to your ear.');
+  else if (s.phase === 'play') impSay_(s.cat + '. ' + player(s.first) + ' starts.');
+  else if (s.phase === 'reveal') impSay_('The imposter was ' + player(s.imp) + '. The word was ' + s.word + '.');
+}
+
 /* `phase` IS ONE OF idle · deal · play · reveal, and `at` is whose turn it is to look while dealing.
    `shown` is whether that player's card is up — the one piece of state that must never outlive the
    person holding the phone, which is what `impHide_` is for. */
-let IMP = { phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' };
+const IMP_IDLE = () => ({ phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' });
+let IMP = IMP_IDLE();
+
+/* ---------- A SECOND TAP IS NOT A SECOND PRESS -------------------------------------------------
+   SHOW, HIDE AND REVEAL ARE DRAWN ON THE SAME PIXELS, which is the design — and a double tap, the
+   most common thing a five-year-old does to a button, then presses two screens in one go. Measured
+   in Chromium with two touch taps 120ms apart: Show then Hide (the card flashed and the turn moved
+   on unseen), Hide then the next player's Show (Player 1 holding Player 2's card), the last Hide then
+   Reveal (the imposter named before anybody had played). Deal and Play again overlap Show's box too.
+
+   SO THOSE THREE IGNORE A PRESS WITHIN `IMP_GAP` OF THE LAST PRESS. Every deliberate press
+   here is further apart than that by a mile — a word is read, a phone is handed across a table, a
+   round is played — so the only press it can cost is a second tap, and a child whose press was
+   swallowed simply presses again. 600ms rather than a phone's own double-tap window (300–500ms),
+   because a small child's two taps are slower than an adult's.
+
+   `performance.now()` ON BOTH SIDES, rather than the event's `timeStamp`: one clock, and no browser's
+   idea of what `timeStamp` counts from to trust. NOT A CSS `pointer-events` FADE-IN either, which the
+   review prototyped and which works — but `prefers-reduced-motion` cuts every animation in style.css
+   to .01ms, so the guard would vanish for exactly the people who asked for less to happen.
+
+   ONLY FOR A PRESS THAT CAME WITH AN EVENT. The click listener in shell.js always passes one; a check
+   or a state calling `ACTIONS[...]` straight is not a finger, and walks a whole round in one tick.
+
+   TIMED FROM THE LAST PRESS, NOT FROM THE CARD BEING DRAWN. It was the draw, and a card is drawn by
+   more than a press: a repaint when a payload lands, a return to the column. `check/press.js` found
+   it (8 Oct) — it arrives on a card and presses inside 600ms of the draw, and Show, Hide and Reveal
+   did nothing, which is exactly what a child gets who presses the moment the column slides back. A
+   double tap is two PRESSES close together, so that is what is measured: Deal, Show, Hide, Reveal
+   and Play again each stamp the time they acted (`impPressed_`), and only a press that close behind
+   one of them is the second tap. */
+const IMP_GAP = 600;
+let IMP_PRESSED = -Infinity;
+function impTooSoon_(e) {
+  if (!e) return false;
+  try { return performance.now() - IMP_PRESSED < IMP_GAP; } catch (err) { return false; }
+}
+function impPressed_(e) {
+  if (!e) return;
+  try { IMP_PRESSED = performance.now(); } catch (err) {}
+}
 
 function impDeal_(n) {
   const [cat, word] = impDraw_();
@@ -2955,17 +3221,50 @@ function impDeal_(n) {
           cat: cat, word: word };
 }
 
+/* THE SLOTS EVERY SCREEN FROM "Pass to" TO "Reveal" IS DRAWN IN — see "the big line and the button
+   do not move" above. An empty slot is drawn empty rather than left out, which is the whole trick: the
+   stylesheet gives it its height either way.
+
+   AND THE SPEAKER'S ROOM IS KEPT ON THE SCREENS WITHOUT ONE. The first version only hung the card from
+   its top, so that Listen under the button pushed nothing up inside the card — and the screenshots at
+   320 and 390 still had Hide 36px above where Show had been, because the column centres the whole
+   widget in the pane and a card 72px taller is centred 36px higher. So it is the card's HEIGHT that
+   has to be the same, and `foot` is Listen on a card and an empty 64px (with Listen's 20px over it)
+   on the pass and play screens while Read aloud is on; with it off there is no speaker anywhere and
+   nothing to keep room for. */
+function impFrame_(over, big, under, button, foot) {
+  return `<p class="art-cat-of imp-lab">${esc(over)}</p>
+    <p class="art-word imp-big">${esc(big)}</p>
+    <p class="art-cat-of imp-lab">${esc(under)}</p>
+    ${button}${foot || ''}`;
+}
+/* THE MARK BESIDE THE WORD, NOT INSTEAD OF IT — `tile_`'s own rule turned round, because a gold button
+   that a reader reads and a non-reader recognises has to carry both. WRITTEN OUT AT EACH BUTTON rather
+   than built by a helper from its action's name: `check-doors.js` pairs every `data-do` it can read
+   with a handler, and the first version here built three of them from a variable and left Show, Hide
+   and Reveal as "a handler with no door". FUNCTIONS AND NOT STRINGS, because tiles.js loads after this
+   file: a `const` built at load would call `tileIcon_` before there is one — which `check.js` let
+   through when this was written, and reports now. */
+const impShow_ = () => `<button class="art-go imp-go" data-do="imp-show">${tileIcon_('show')}<span>Show</span></button>`;
+const impHideBtn_ = () => `<button class="art-go imp-go" data-do="imp-hide">${tileIcon_('hide')}<span>Hide</span></button>`;
+const impReveal_ = () => `<button class="art-go imp-go" data-do="imp-reveal"><span>Reveal</span></button>`;
+
 /* DRAWN FROM THE STATE, the `REEL_HELD` rule — the handlers change `IMP` and ask for a paint, and
    nothing is ever patched onto the element. EVERY CONTROL IS BUILT HERE rather than written into
    the widget's markup, which is the Scrabble lesson: a button that is on the page before it can do
-   anything is one `check/press.js` presses and correctly reports dead. */
+   anything is one `check/press.js` presses and correctly reports dead. AND NOTHING HERE SPEAKS — see
+   "read aloud" above. */
 function impPaint() {
-  const card = $('imp-card'), acts = $('imp-acts'), said = $('imp-said');
+  const card = $('imp-card'), acts = $('imp-acts');
   if (!card) return;
   const s = IMP;
   const player = i => 'Player ' + (i + 1);
+  if (acts) acts.innerHTML = '';
   if (s.phase === 'idle') {
     const n = impCount_();
+    /* THE SWITCH IS A FORM'S CONTROL, so it is a button (CLAUDE.md: a FORM has buttons) — with the
+       word, because the adult setting the game up is the one person here who reads it. */
+    const on = impAloud_();
     card.innerHTML = `<p class="art-cat-of">Players</p>
       <div class="imp-count">
         <button class="imp-step" data-do="imp-count" data-d="-1" aria-label="One player fewer"
@@ -2974,48 +3273,36 @@ function impPaint() {
         <button class="imp-step" data-do="imp-count" data-d="1" aria-label="One player more"
           ${n >= IMP_MAX ? 'disabled' : ''}>+</button>
       </div>
+      ${impCanSay_() ? `<button class="imp-aloud${on ? ' on' : ''}" data-do="imp-aloud"
+        aria-pressed="${on ? 'true' : 'false'}">${tileIcon_('speak')}<span>Read aloud</span><span
+        class="imp-sw" aria-hidden="true"></span></button>` : ''}
       <button class="art-go" data-do="imp-start">Deal</button>`;
-    if (acts) acts.innerHTML = '';
-    if (said) said.textContent = 'Everybody sees the word but one. Pass the phone round.';
+    return;
+  }
+  const aloud = impAloud_();
+  const room = aloud ? '<span class="imp-foot" aria-hidden="true"></span>' : '';
+  if (s.phase === 'deal' && !s.shown) {
+    card.innerHTML = impFrame_('Pass to', player(s.at), '', impShow_(), room);
     return;
   }
   if (s.phase === 'deal') {
-    const last = s.at === s.n - 1;
-    if (!s.shown) {
-      card.innerHTML = `<p class="art-cat-of">${esc(player(s.at))} of ${s.n}</p>
-        <p class="imp-pass">Hand the phone to <b>${esc(player(s.at))}</b></p>
-        <button class="art-go" data-do="imp-show">Show me</button>`;
-      if (said) said.textContent = 'Nobody else looks.';
-    } else {
-      card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>`
-        + (s.at === s.imp
-          ? `<p class="art-word">You’re the imposter</p>
-             <p class="imp-pass">Nobody else knows. Blend in.</p>`
-          : `<p class="art-word">${esc(s.word)}</p>`)
-        + `<button class="art-go" data-do="imp-hide">${last ? 'Hide it' : 'Hide — pass it on'}</button>`;
-      if (said) said.textContent = '';
-    }
-    if (acts) acts.innerHTML = '';
+    const me = s.at === s.imp;
+    card.innerHTML = impFrame_('', me ? 'Imposter' : s.word, me ? 'Hint: ' + s.cat : '', impHideBtn_(),
+      aloud ? tile_({ icon: 'speak', label: 'Listen', act: 'imp-listen', tone: 'listen' }) : '');
     return;
   }
   if (s.phase === 'play') {
-    card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>
-      <p class="imp-pass"><b>${esc(player(s.first))}</b> goes first. One word each, round the
-        circle — then vote.</p>
-      <button class="art-go" data-do="imp-reveal">Reveal</button>`;
-    if (acts) acts.innerHTML = '';
-    if (said) said.textContent = 'Caught? The imposter still wins by guessing the word.';
+    card.innerHTML = impFrame_(s.cat, player(s.first) + ' starts', '', impReveal_(), room);
     return;
   }
-  card.innerHTML = `<p class="art-over">The imposter was</p>
+  card.innerHTML = `<p class="art-over">Imposter</p>
     <p class="art-score">${esc(player(s.imp))}</p>
-    <p class="art-over">and the word was</p>
+    <p class="art-over">Word</p>
     <p class="art-word">${esc(s.word)}</p>`;
   if (acts) {
     acts.innerHTML = `<button class="btn" data-do="imp-again">Play again</button>
       <button class="btn quiet" data-do="imp-players">Players</button>`;
   }
-  if (said) said.textContent = '';
 }
 
 function initImposter() {
@@ -3024,8 +3311,10 @@ function initImposter() {
 }
 
 /* A WORD LEFT UP WHEN THE COLUMN GOES IS A WORD THE NEXT PERSON SEES, so leaving hides it. The
-   round is kept — this is `stop`, not `New game` — and whoever was looking presses Show me again. */
+   round is kept — this is `stop`, not `New game` — and whoever was looking presses Show again. And a
+   word still being SAID is a word the next person hears, so the voice stops first. */
 function impHide_() {
+  impHush_();
   /* AND REPAINTED, not just forgotten: the column is still in the document off to one side, so a
      word left in its markup is a word the next repaint of anything is not obliged to remove. */
   if (IMP.phase === 'deal' && IMP.shown) { IMP.shown = false; impPaint(); }
@@ -3036,26 +3325,65 @@ on('imp-count', el => {
   impCount_(Math.max(IMP_MIN, Math.min(IMP_MAX, impCount_() + d)));
   impPaint();
 });
-on('imp-start', () => { impDeal_(impCount_()); impPaint(); });
-on('imp-show', () => {
-  if (IMP.phase !== 'deal') return;
+on('imp-aloud', () => { impAloud_(!impAloud_()); impPaint(); });
+on('imp-start', (el, e) => { impHush_(); impPressed_(e); impDeal_(impCount_()); impPaint(); impAnnounce_(); });
+/* SHOW, HIDE AND REVEAL TAKE `(el, e)` FOR `impTooSoon_` — see "a second tap is not a second press". */
+on('imp-show', (el, e) => {
+  if (IMP.phase !== 'deal' || IMP.shown) return;
+  if (impTooSoon_(e)) return;
+  impPressed_(e);
   IMP.shown = true;
   impPaint();
 });
-on('imp-hide', () => {
-  if (IMP.phase !== 'deal') return;
+/* THE ONLY PLACE THE SECRET IS SPOKEN, and only with the card up — so only by the person who pressed
+   Show. Hushed first so a second press says it again rather than queueing a second copy behind it.
+
+   THE TWO LINES ARE THE SAME SHAPE AND ABOUT THE SAME LENGTH, because the table can hear HOW LONG a
+   phone talks even where it cannot make out a word. It was "Pizza." (about 0.6s) against "You’re the
+   imposter. The hint is food." (about 3s), so whichever phone talked five times longer was the
+   imposter's — and in one round every player's line is the same length, so the odd one out stood
+   out. Counted in syllables over all 810 cards: 2 against 11 on average before; 10.6 against 10.6
+   now, and within two syllables of each other for 72% of cards. The word said TWICE is the other
+   half of it: the first is said while the phone is still going up, the second at the ear.
+
+   STARTED ON THE TAP AND NOT AFTER A PAUSE, though the review offered one (1.2–1.5s, so the phone is
+   at the ear first). Safari will only start speech in answer to a tap until something has spoken,
+   and a delayed line is not in answer to one; nothing here can try that on an iPhone, and a Listen
+   that says nothing on the family's own phone is worse than one that starts a moment early. */
+on('imp-listen', () => {
+  if (IMP.phase !== 'deal' || !IMP.shown) return;
+  impHush_();
+  const w = String(IMP.word);
+  impSay_(IMP.at === IMP.imp
+    ? 'You’re the imposter. Your hint is ' + String(IMP.cat).toLowerCase() + '.'
+    : 'Your word is ' + w + '. Your word is ' + w + '.', true);
+});
+/* HUSHED BEFORE THE GUARD, so a second tap that is ignored still stops the voice — which is never
+   wrong when the phone may be on its way to somebody else. */
+on('imp-hide', (el, e) => {
+  impHush_();
+  if (IMP.phase !== 'deal' || !IMP.shown) return;
+  if (impTooSoon_(e)) return;
+  impPressed_(e);
   IMP.shown = false;
   if (IMP.at < IMP.n - 1) IMP.at++;
   else IMP.phase = 'play';
   impPaint();
+  impAnnounce_();
 });
-on('imp-reveal', () => {
+/* GUARDED BEFORE THE HUSH, the other way round from Hide: a second tap of the last Hide lands here,
+   and the line it would cut off is "Food. Player 3 starts." — which the table is meant to hear. */
+on('imp-reveal', (el, e) => {
   if (IMP.phase !== 'play') return;
+  if (impTooSoon_(e)) return;
+  impPressed_(e);
+  impHush_();
   IMP.phase = 'reveal';
   impPaint();
+  impAnnounce_();
 });
-on('imp-again', () => { impDeal_(IMP.n || impCount_()); impPaint(); });
-on('imp-players', () => { IMP = { phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' }; impPaint(); });
+on('imp-again', (el, e) => { impHush_(); impPressed_(e); impDeal_(IMP.n || impCount_()); impPaint(); impAnnounce_(); });
+on('imp-players', () => { impHush_(); IMP = IMP_IDLE(); impPaint(); });
 
 /* ==================================================================================================
    FOUR CLASSROOM GAMES — Just a Minute, Taboo, Hot Seat and 20 Questions.
@@ -4603,10 +4931,12 @@ const WORD_GAMES = [
   { k: 'twq', name: '20 Questions', party: true,
     body: `<p class="sub">Twenty yes-or-no questions to find a person, a place or a thing.</p>` },
   { k: 'imp', name: 'Imposter', start: () => initImposter(), stop: () => impHide_(),
-    body: `<p class="sub">Three or more, one phone. Everybody knows the word but one of you.</p>
+    /* NO NOTE LINE UNDER THE CARD. `#imp-said` was here and said a sentence on every screen — see
+       "a small line, a big line and one button" over `IMP_MIN`. With nothing left to write to it, an
+       empty paragraph would only be a margin. */
+    body: `<p class="sub">Everyone gets the word but one. Find the imposter.</p>
     <div id="imp-card" class="art"></div>
-    <div id="imp-acts" class="art-row"></div>
-    <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>` },
+    <div id="imp-acts" class="art-row"></div>` },
   /* HERD MENTALITY, MOVED IN BY THE OWNER — "heard mentality is a word game so should go there." It
      was left out of the merge on the builder's reasoning (a question everybody answers at once is
      not a word to get across), and that was a call nobody had asked for. Its engine is untouched:
@@ -5076,6 +5406,12 @@ on('kt-lesson', el => {
      - the films — `DATA.films`, which the backend sends to an admin and to NOBODY ELSE (note 068 in
        docs/history). `|| []` is the ordinary fallback and here it is also the whole gate, exactly
        as it is in find.js: nothing in this file decides who may see a film.
+       AND THEY ARE WHATEVER IS IN THE NOTFLIX FOLDER — *"Ensure the video searcher is hooked up. Let
+       admin be able to search up films which are in the notflix folder on gdrive."* (9 Oct). This card
+       was wired all along and an admin found nothing: the films tab was empty, and nothing filled it
+       from Drive. `filmsSync` does now (backend/content.gs), and THIS CARD IS WHERE IT IS ASKED FOR —
+       on its own for an admin once the last whole pass is a day old, and by hand from a silver Sync
+       from Drive tile that only an admin is drawn. See `filmsSyncDue_` below and note 305.
 
    NOT ALL OF YOUTUBE. A live search of YouTube needs a YouTube Data API key in the page, which in a
    public repository is a published key; that is the owner's decision and it has not been taken. So
@@ -5125,9 +5461,12 @@ function vidYouTubeId_(url) {
 function videosAll_() {
   const out = [];
   const seen = new Set();
+  /* ONE ROW PER ADDRESS — and a row with no address (a film not in the Drive yet) by its own key, or
+     every placeholder after the first would be taken for the first. */
   const add = r => {
-    if (!r.title || !r.how || seen.has(r.url)) return;
-    seen.add(r.url);
+    const at = r.url || ('#' + r.key);
+    if (!r.title || !r.how || seen.has(at)) return;
+    seen.add(at);
     out.push(r);
   };
   /* THE OWNER'S LIST FIRST, so a video they typed in that is also a film is shown with their title
@@ -5145,10 +5484,23 @@ function videosAll_() {
      *"the video widget shouldn't acknowledge reels."* Reels are the Reel column's, and listing them
      again here made one thing two places to find it. A row of the owner's own list that was typed
      with kind "reel" is shown as a clip -- it is still a video somebody chose. */
+  /* ---------- A FILM, A SERIES OR A DOCUMENTARY — AND ONE THAT IS NOT IN THE DRIVE YET ---------------
+     `label` IS WHAT IT IS, because every film row said "Film" — a five-season show and a documentary
+     included. The words an admin types for a kind are in `tags` with it: `series` and `tv`, `documentary`,
+     `film` and `movie`, and the folder's audience (`kids`, `adults`).
+     A PLACEHOLDER IS LISTED, not dropped. It was skipped without a word, so an admin searching for a
+     film asked for by name was told "Nothing matches that" where Find says "Not in the drive yet" —
+     two answers to one question. It is a row that says so and opens nothing (`how: 'none'`). */
   ((typeof DATA !== 'undefined' && DATA.films) || []).forEach((f, i) => {
-    if (!f || !f.title || f.placeholder || !/^https?:\/\//i.test(String(f.url || ''))) return;
-    add({ key: 'f' + (f.id || i), title: String(f.title), url: String(f.url), kind: 'film', how: 'out',
-          tags: [f.year, f.director, f.lead, f.kind, f.audience].filter(Boolean).join(' '),
+    if (!f || !f.title) return;
+    const url = String(f.url || '').trim();
+    const k = String(f.kind || '').toLowerCase();
+    const label = k === 'series' ? 'Series' : k === 'documentary' ? 'Documentary' : 'Film';
+    const words = k === 'series' ? 'series tv show' : k === 'documentary' ? 'documentary' : 'film movie';
+    const door = !f.placeholder && /^https?:\/\//i.test(url);
+    add({ key: 'f' + (f.id || i), title: String(f.title), url: door ? url : '', kind: 'film', label: label,
+          how: door ? 'out' : 'none', none: f.placeholder ? 'not in the Drive yet' : 'no Drive link yet',
+          tags: [f.year, f.director, f.lead, words, f.audience].filter(Boolean).join(' '),
           age: f.audience === 'kids' ? 'kids' : '', notes: String(f.notes || '') });
   });
   return out;
@@ -5157,13 +5509,18 @@ function videosAll_() {
 /* EVERY WORD TYPED HAS TO BE SOMEWHERE IN THE ROW — title, tags, kind, notes. An "any word" match
    gets LONGER as you type a second word, which is the opposite of what typing into a search box is
    for; "narrows as you type" was the request. */
+/* AND A PLURAL FINDS ITS SINGULAR: `films`, `documentaries`, `movies` — the folder's own words are
+   plurals, and they are what an admin who has the folder in mind will type. */
 function videosFound_(q) {
   const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
   const all = videosAll_();
   if (!words.length) return all;
+  const has = (hay, w) => hay.indexOf(w) !== -1
+    || (w.length > 3 && /ies$/.test(w) && hay.indexOf(w.slice(0, -3) + 'y') !== -1)
+    || (w.length > 3 && /s$/.test(w) && hay.indexOf(w.slice(0, -1)) !== -1);
   return all.filter(r => {
     const hay = [r.title, r.tags, r.kind, r.notes, r.age].join(' ').toLowerCase();
-    return words.every(w => hay.indexOf(w) !== -1);
+    return words.every(w => has(hay, w));
   });
 }
 
@@ -5184,10 +5541,13 @@ function vidPlayer_(r) {
 }
 
 function vidRow_(r) {
-  const flag = r.kind === 'film' ? 'Film' : 'Clip';
-  const sub = [r.age, r.how === 'out' ? 'opens in a new tab' : ''].filter(Boolean).join(' · ');
+  const flag = r.label || (r.kind === 'film' ? 'Film' : 'Clip');
+  const sub = [r.age, r.how === 'out' ? 'opens in a new tab' : r.how === 'none' ? r.none : '']
+    .filter(Boolean).join(' · ');
   const inner = `<span class="vid-t">${esc(r.title)}</span>
       <span class="vid-k">${esc(flag)}${sub ? ' · ' + esc(sub) : ''}</span>`;
+  /* NOTHING TO OPEN, AND IT SAYS SO — not a button that does nothing when pressed. */
+  if (r.how === 'none') return `<li><div class="vid-row is-off">${inner}</div></li>`;
   /* A DOOR IS A LINK, NOT A BUTTON THAT PRETENDS TO PLAY. `out` is absolute http(s), tested in
      `vidHow_` — `tile_`'s rule for the one way out of this app. */
   if (r.how === 'out') {
@@ -5218,8 +5578,24 @@ function vidPaint_(only) {
         autocomplete="off" enterkeyhint="search" aria-label="Search videos">
       <div class="vid-stage"></div>
       <div class="tile-row vid-acts"></div>
+      <div class="vid-admin"></div>
       <p class="faint vid-said"></p>
       <ul class="vid-list"></ul>`;
+    }
+    /* ---------- THE ADMIN'S ROW: SYNC FROM DRIVE, AND WHEN IT LAST RAN ----------------------------------
+       ONLY FOR AN ADMIN, and an EMPTY ELEMENT for everybody else — no tile, no sentence, no word that says
+       films exist. `isAdmin()` decides what is DRAWN; what is SENT is the backend's, and a student's
+       payload has no film and no stamp in it to draw from. Silver, like every admin control (tiles.js).
+       The sentence beside the tile is the tile's note made visible: a 44px plate has no room for "synced
+       an hour ago", and that is the line the admin is looking for. */
+    const adm = box.querySelector('.vid-admin');
+    if (adm) {
+      const mine = typeof isAdmin === 'function' && isAdmin();
+      const said = mine ? filmsSyncSaid_() : '';
+      const html = mine ? `<div class="tile-row">${tile_({ icon: 'sync', label: 'Sync from Drive', note: said,
+          act: 'vid-sync', tone: 'admin', cls: FILMSYNC.asking ? 'is-busy' : '', off: !!FILMSYNC.asking })}
+        <span class="vid-synced">${esc(said)}</span></div>` : '';
+      if (adm.dataset.html !== html) { adm.innerHTML = html; adm.dataset.html = html; }
     }
     const q = box.querySelector('.vid-q');
     if (q && document.activeElement !== q && q.value !== VID.q) q.value = VID.q;
@@ -5238,8 +5614,11 @@ function vidPaint_(only) {
                                           off: !playing });
     }
     box.querySelector('.vid-said').textContent = said;
+    /* FORTY ROWS, AND THEN A SENTENCE SAYING THERE ARE MORE — the count above said "60 videos" over a
+       list that stopped at forty with nothing to say the rest existed. */
     box.querySelector('.vid-list').innerHTML = found.length
       ? found.slice(0, 40).map(vidRow_).join('')
+        + (found.length > 40 ? `<li class="faint vid-none">${found.length - 40} more — type to narrow the list.</li>` : '')
       : (all.length ? '<li class="faint vid-none">Nothing matches that.</li>' : '');
   });
 }
@@ -5261,7 +5640,98 @@ function videosAsk_() {
 function initVideos() {
   vidPaint_();
   videosAsk_().then(() => vidPaint_());
+  /* AN ADMIN'S CARD KEEPS THE FILMS CURRENT ON ITS OWN — once per person per visit, when the last whole
+     pass is a day old or a pass is part-way. `initVideos` runs again when the payload lands and when
+     somebody signs in, so the first call that can see an admin's stamp is the one that asks. */
+  if (filmsSyncDue_()) filmsSyncRun_(false);
 }
+
+/* ==================================================================================================
+   THE FILMS FROM DRIVE — ASKED FOR BY THE CARD, FOR AN ADMIN
+
+   `DATA.filmsSync` IS THE ADMIN'S AND NOBODY ELSE'S: `{ at, more, folder, found }`, the end of the last
+   whole pass through the Notflix folder. Absent from every other payload, and absent from an older
+   backend's — which is why its absence, and not the role, is what stops the card asking: a sync posted
+   to a backend that has never heard of it would be a refusal on every visit.
+
+   THE REPLY CARRIES THE LIST. `filmsSync` answers with the films as `doGet` builds them and the stamp
+   beside them, so the card is current the moment it answers — no reload, and no rebuild of a payload
+   that never held the films anyway (`payloadWithFresh_` in backend/doget.gs). A pass too big for one
+   run answers `more`, and the card asks again, a few times, until the pass is whole.
+
+   A REPLY FOR SOMEBODY WHO HAS GONE IS DROPPED. A sync takes seconds, and a shared iPad can be signed
+   out and handed on in that time; films written into the next person's `DATA` would be the one thing
+   `signedOut_` exists to prevent.
+================================================================================================== */
+const FILMS_STALE_MS = 24 * 60 * 60 * 1000;   // a day — `FILMS_SYNC_*` in backend/constants.gs says why
+const FILMS_ROUNDS = 6;                        // a part-way pass is asked to go on at most this often
+/* `autoFor` — whom the card has already synced for on its own this visit, so a sync that FAILS (no folder
+   found, the backend not yet deployed) is said once in the admin's line and not posted again on every
+   return to the column. `err` is that sentence, until a sync succeeds. */
+const FILMSYNC = { asking: null, autoFor: '', err: '' };
+
+function filmsSyncDue_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return false;
+  const s = typeof DATA !== 'undefined' && DATA && DATA.filmsSync;
+  if (!s || typeof s !== 'object' || FILMSYNC.asking) return false;
+  const who = String((USER && (USER.personId || USER.name)) || '');
+  if (FILMSYNC.autoFor === who) return false;
+  const at = Date.parse(s.at || '');
+  return !!s.more || !at || Date.now() - at > FILMS_STALE_MS;
+}
+
+function filmsSyncSaid_() {
+  if (FILMSYNC.asking) return 'Syncing the films from Drive…';
+  if (FILMSYNC.err) return 'Not synced — ' + FILMSYNC.err;
+  const s = typeof DATA !== 'undefined' && DATA && DATA.filmsSync;
+  if (!s || typeof s !== 'object') return 'Films from the Notflix folder in Drive';
+  if (s.more) return 'Films part-synced from Drive';
+  if (!s.at) return 'Films not synced from Drive yet';
+  const f = s.found || {};
+  const n = (Number(f.films) || 0) + (Number(f.series) || 0) + (Number(f.documentaries) || 0);
+  return 'Films synced from Drive ' + ago(s.at) + (s.found ? ' · ' + n + ' in the folder' : '');
+}
+
+/* THE REPLY INTO `DATA`, and Find told: its lists are kept against `DATA` by identity, and this changes
+   `DATA` in place. */
+function filmsAdopt_(d) {
+  if (!d || typeof DATA === 'undefined' || !DATA) return;
+  if (Array.isArray(d.films)) DATA.films = d.films;
+  if (d.sync && typeof d.sync === 'object') DATA.filmsSync = d.sync;
+  if (typeof stuffForget_ === 'function') stuffForget_();
+}
+
+function filmsSyncRun_(byHand) {
+  if (FILMSYNC.asking) return FILMSYNC.asking;
+  const who = String((USER && (USER.personId || USER.name)) || '');
+  const token = USER && USER.token;
+  FILMSYNC.autoFor = who;
+  const still = () => !!USER && USER.token === token;
+  let rounds = 0;
+  const once = () => send({ action: 'filmsSync', personId: (USER && USER.personId) || '' }).then(d => {
+    if (!still()) return null;
+    FILMSYNC.err = '';
+    filmsAdopt_(d);
+    if (d && d.more && ++rounds < FILMS_ROUNDS) { vidPaint_(); return once(); }
+    return d;
+  });
+  /* ONLY ITS OWN `asking` IS CLEARED WHEN IT ENDS. `signedOut_` lets go of a sync in flight, so the next
+     admin can start one of their own; this one ending later must not mark that one finished. */
+  const mine = once()
+    .then(d => { if (byHand && d) toast(d.message || 'Films synced.'); return d; },
+          err => { if (still()) { FILMSYNC.err = why_(err); if (byHand) toast(FILMSYNC.err); } return null; })
+    .then(d => { if (FILMSYNC.asking === mine) FILMSYNC.asking = null; vidPaint_(); return d; });
+  FILMSYNC.asking = mine;
+  vidPaint_();
+  return mine;
+}
+
+/* THE TILE. Asked again here rather than trusted from the drawing — a tile is not a permission, and the
+   backend asks a third time. */
+on('vid-sync', () => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  filmsSyncRun_(true);
+});
 
 /* LEAVING THE COLUMN STOPS IT — the Reels column's lesson in note 047: a clip somebody turned the
    sound up on went on talking from a screen two swipes away. An iframe cannot be paused from here,

@@ -327,7 +327,7 @@ function world() {
    A done question used to retire two stored payloads by key, the student's and the admin's, and that was
    the slow sign-in the owner felt on a shared iPad (*"janky and unresponsive and slow"*): the child's
    next load anywhere was a cold rebuild. The stored body leaves `attempts` out now and `doGet` adds them
-   fresh for the token's person on every answer (`payloadWithAttempts_`). So: nobody's payload is retired,
+   fresh for the token's person on every answer (`payloadWithFresh_`). So: nobody's payload is retired,
    the generation is the same number after as before, and still Ada's next load — a cache HIT — has the
    question she just did, the admin's summary counts it, and Ben's has nothing of hers. And the stored
    body itself carries no `attempts`: a copy in there would be a date nothing ever refreshes. */

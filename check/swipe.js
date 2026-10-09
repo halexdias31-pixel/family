@@ -43,7 +43,7 @@
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
                                     field hold keypad grow widgets cost flicks reduced wide
-                                    widepress findrun — for proving one rule by mutation without waiting
+                                    widepress findrun flappy — for proving one rule by mutation without waiting
                                     six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
@@ -887,6 +887,115 @@ async function gesture(env, o) {
       }
       if (pages.length && !asked) fail('REACH', `${at} keypad`, 'no answer box was on the screen to tap — nothing was asked');
       note(`${at} keypad: ${asked} answer box(es) tapped; closest to the pad ${isFinite(worst) ? worst.toFixed(1) + 'px' : '-'}`);
+
+      /* ---------- AND A WORDED ANSWER, ON THE PAD'S LETTERS, BY TOUCH ------------------------------------
+         THE OWNER, 8 Oct: *"Make the keypad never need to use their own keyboard the key pad seems to allow
+         ios keyboard to show I just want self contained system really"*. The worded box was a textarea and
+         the phone's keyboard; it is the pad's box now (keypad.js), and the box itself takes no touch --
+         the finger lands on its drawing and the app focuses the box. So, with real touch on Q33's explain
+         box: the pad comes up on its LETTERS with the box focused and still `readonly`; h, i, space, t, h,
+         e, r, e, ⌫ type "Hi ther" with the capital put in by itself; a tap on the drawn `i` puts the caret
+         before it and `x` lands there; the pill stays 11.5px or more above the pad; and ✓ (no tile on a
+         box with no scheme and no AI) puts the pad away. */
+      const WQ = 'Q-AQA-8461-2406-1F-033';
+      const wbox = await page.evaluate(async id => {
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+        if (!it) return null;
+        try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(it) }]; paintStuff(true);
+        await window.__sw.still('stuff');
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        await window.__sw.still('stuff');
+        const inp = [...document.querySelectorAll('#s-stuff > .page.on .kp-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
+        if (!inp) return { none: true };
+        const r = inp.closest('.qp-ans').getBoundingClientRect();
+        return { k: ansKey_(it), x: Math.round(r.left + 40), y: Math.round(r.top + r.height / 2) };
+      }, WQ);
+      const touch = async (x, y) => {
+        const T1 = Date.now();
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T1 / 1000, touchPoints: [{ x, y, id: 4, radiusX: 6, radiusY: 6, force: 1 }] });
+        await sleep(40);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T1 + 40) / 1000, touchPoints: [] });
+        await sleep(90);
+      };
+      const keyOf = v => page.evaluate(v => {
+        const b = [...document.querySelectorAll('#kp .kp-key')].find(k => k.getAttribute('data-v') === v);
+        if (!b) return null;
+        const r = b.getBoundingClientRect();
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+      }, v);
+      const box = k => page.evaluate(k => {
+        const kp = document.getElementById('kp'), a = document.activeElement;
+        const b = [...document.querySelectorAll('#s-stuff .kp-in')].find(i => i.getAttribute('data-k') === k);
+        const pill = b && b.closest('.qp-ans');
+        return { up: !!kp && !kp.hidden, layer: kp && kp.getAttribute('data-layer'), focused: a === b, locked: !!b && b.readOnly && b.getAttribute('inputmode') === 'none',
+                 val: b ? b.value : null, at: b ? b.selectionStart : null,
+                 gap: kp && pill && !kp.hidden ? kp.getBoundingClientRect().top - pill.getBoundingClientRect().bottom : null };
+      }, k);
+      if (!wbox || wbox.none) fail('REACH', `${at} letters`, `${WQ} drew no answer box on its page — the letters were NOT pressed`);
+      else if (wbox.y < 5 || wbox.y > H - 5) fail('REACH', `${at} letters`, `${WQ}'s box is off the screen at y${wbox.y} — the letters were NOT pressed`);
+      else {
+        await touch(wbox.x, wbox.y);
+        await page.evaluate(() => window.__sw.still('stuff'));
+        const b0 = await box(wbox.k);
+        if (!b0.up || b0.layer !== 'abc' || !b0.focused) fail('LETTERS', `${at} ${WQ}`, `a tap on the worded box left the pad ${b0.up ? 'up on ' + b0.layer : 'down'} and the box ${b0.focused ? 'focused' : 'not focused'} — wanted the letters up on it`);
+        else {
+          let missing = '';
+          for (const v of ['h', 'i', ' ', 't', 'h', 'e', 'r', 'e', '!back']) {
+            const k = await keyOf(v);
+            if (!k) { missing = v; break; }
+            await touch(k.x, k.y);
+          }
+          const b1 = await box(wbox.k);
+          reached++;
+          note(`${at} letters by touch: h i ␣ t h e r e ⌫ → ${JSON.stringify(b1.val)}, ${b1.gap == null ? '-' : b1.gap.toFixed(1) + 'px'} above the pad`);
+          if (missing) fail('LETTERS', `${at} ${WQ}`, `the letters face has no key ${JSON.stringify(missing)}`);
+          if (b1.val !== 'Hi ther') fail('LETTERS', `${at} ${WQ}`, `real touch on h i ␣ t h e r e ⌫ left the box ${JSON.stringify(b1.val)}, wanted "Hi ther"`);
+          if (!b1.locked || !b1.focused || !b1.up) fail('LETTERS', `${at} ${WQ}`, `after the letters the box is ${b1.locked ? 'locked' : 'NOT locked'}, ${b1.focused ? 'focused' : 'not focused'}, the pad ${b1.up ? 'up' : 'down'}`);
+          if (b1.gap != null && b1.gap < 11.5) fail('KEYPAD COVERS', `${at} ${WQ}`, `the worded box's pill is ${b1.gap.toFixed(1)}px above the pad's top — under it or too close`);
+          /* A TAP ON THE DRAWN `i` (the second character) PUTS THE CARET BEFORE IT. */
+          const ch = await page.evaluate(k => {
+            const b = [...document.querySelectorAll('#s-stuff .kp-in')].find(i => i.getAttribute('data-k') === k);
+            const show = b && b.parentNode.querySelector('.kp-show');
+            const t = show && [...show.childNodes].find(n => n.nodeType === 3 && n.length > 1);
+            if (!t) return null;
+            const r = document.createRange(); r.setStart(t, 1); r.setEnd(t, 2);
+            const q = r.getBoundingClientRect();
+            return { x: Math.round(q.left + 1), y: Math.round(q.top + q.height / 2) };
+          }, wbox.k);
+          if (!ch) fail('LETTERS', `${at} ${WQ}`, 'the drawing has no text to tap — the caret was NOT placed');
+          else {
+            await touch(ch.x, ch.y);
+            const xk = await keyOf('x');
+            if (xk) await touch(xk.x, xk.y);
+            const b2 = await box(wbox.k);
+            if (b2.val !== 'Hxi ther') fail('LETTERS', `${at} ${WQ}`, `a tap on the drawn "i" then x gave ${JSON.stringify(b2.val)}, wanted "Hxi ther" — the caret did not go where the finger was`);
+          }
+          /* AND AS IT GROWS: a worded answer grows a line at a time, and the room asked for when the pad
+             came up was for one line (`kpKeepClear_`). The caret to the end, then enough letters to wrap
+             at 320, and the pill must still clear the pad. */
+          await page.evaluate(k => {
+            const b = [...document.querySelectorAll('#s-stuff .kp-in')].find(i => i.getAttribute('data-k') === k);
+            if (b) { b.setSelectionRange(b.value.length, b.value.length); kpRender_(b); }
+          }, wbox.k);
+          for (const v of ' and then more words wrap'.split('')) {
+            const k = await keyOf(v);
+            if (k) await touch(k.x, k.y);
+          }
+          await page.evaluate(() => window.__sw.still('stuff'));
+          const bg = await box(wbox.k);
+          note(`${at} letters grown to ${JSON.stringify(bg.val)}: ${bg.gap == null ? '-' : bg.gap.toFixed(1) + 'px'} above the pad`);
+          if (bg.gap == null || bg.gap < 11.5) fail('KEYPAD COVERS', `${at} ${WQ}`, `a worded answer grown to two lines put its pill ${bg.gap == null ? '(no pad)' : bg.gap.toFixed(1) + 'px'} above the pad's top — the room was not asked for again`);
+          const done = await keyOf('!done');
+          if (done) await touch(done.x, done.y);
+          await page.evaluate(() => window.__sw.still('stuff'));
+          const b3 = await box(wbox.k);
+          if (b3.up) fail('LETTERS', `${at} ${WQ}`, '✓ on a worded box with no tile beside it left the pad up');
+        }
+        await page.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} }, wbox.k);
+      }
       await page.evaluate(() => { STUFF.filters = []; paintStuff(true); goPage('stuff', 0, true); });
     }
 
@@ -983,6 +1092,178 @@ async function gesture(env, o) {
           ask(name, r, after + (axis === 'y' ? 1 : 0));
           await undo();
         }
+      }
+    }
+
+    /* ---------- 8e. A THUMB ON THE GAME LIGHTS NOTHING UP ------------------------------------------
+       THE OWNER, 8 Oct: *"Flappy bird sometimes highlights when tapping. Like they tap then it
+       highlights. Happens on phone."*
+
+       IT WAS THE BROWSER SELECTING TEXT, NOT ANYTHING THE APP PAINTS. Somebody playing taps fast and
+       now and then rests a thumb while the bird falls. On iOS a held press, or two quick taps, is the
+       gesture that selects the nearest word and paints it blue, and nothing on the card said it was
+       not text to select. The keypad has said so since it was built (`#kp`); the game never did.
+       Three probes ruled the rest out: no `:hover`, `:active`, `:focus` or `.is-pressed` rule reaches
+       the canvas or anything above it, nothing in that chain can take focus, and the game repaints
+       nothing outside the canvas except its own message line.
+
+       CHROMIUM CANNOT SHOW THE BLUE ITSELF. A long press on a canvas here selects nothing, with the
+       fix or without it. So the rule asks the three things this browser CAN see, and each one fails
+       with the fix taken out:
+         · a thumb that lands just off the canvas, on the "Tap to play" line 6px under it or on the
+           Score row, starts no selection (`selectstart`) and leaves no range. Chromium shares that
+           half with WebKit;
+         · and the same of a thumb beside the canvas, in the gutter of its page or under the board,
+           where there is no text at all. The card alone refusing sent those to the next page: a
+           caret in "Connect 4" every time, found by the skeptic's probe after the first fix;
+         · the canvas, the card's text and the page they are on compute `user-select: none`, which
+           is what WebKit asks of the element under the finger before it selects anything;
+         · `-webkit-touch-callout: none` is in the stylesheet beside it, READ FROM THE FILE. Chromium
+           does not know the property and drops it from the CSSOM, so the one line of the fix that
+           only an iPhone reads is the one line no browser here could ever see go missing.
+       The rest of the report is asked too, so it stays ruled out: rapid taps and a held press on the
+       canvas focus nothing and change no outline, background, border or shadow on the card or on
+       anything above it. A sticky `:hover` after a tap would show up exactly there, and it is the
+       next thing a well-meaning rule would add.
+
+       AND ONLY THE GAME. Text on the card beside it must still select, because a question, an answer
+       or a message is text somebody may want to copy. A swipe that starts on the canvas must still
+       turn the page: `user-select` is not `touch-action`, and that is the claim worth asking. */
+    if (want('flappy')) {
+      if (W === SIZES[0][0]) {
+        const css = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+        const blocks = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+          .filter(m => /\.flappy\b/.test(m[1]) && /(^|[;\s])user-select:\s*none/.test(m[2]));
+        reached++;
+        if (!blocks.length) fail('NOTHING LIGHTS UP', 'style.css', 'no rule naming `.flappy` sets `user-select: none` — the game card is text an iPhone may select');
+        else if (!blocks.some(m => /-webkit-user-select:\s*none/.test(m[2]) && /-webkit-touch-callout:\s*none/.test(m[2])))
+          fail('NOTHING LIGHTS UP', 'style.css', `the rule on the game card (${blocks[0][1].trim()}) lacks \`-webkit-user-select: none\` or \`-webkit-touch-callout: none\` — the two that iOS Safari reads`);
+      }
+      const idx = await page.evaluate(() => widgetsOf_('game').findIndex(w => w.id === 'flabby'));
+      const g = idx < 0 ? null : await page.evaluate(async i => {
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        await window.__sw.place('games', i);
+        const live = () => typeof flappyState !== 'undefined' && flappyState
+          && document.querySelector('#s-games > .page.on #flappy-canvas');
+        for (let k = 0; k < 60 && !live(); k++) await wait(60);
+        const c = live();
+        if (!c) return null;
+        /* WHERE A THUMB LANDS: the middle of the canvas and low on it, the message line, the label
+           of the Score row. Each one must be on the glass and be what is under the finger. */
+        const spot = (el, fy) => {
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height * fy);
+          if (r.height < 4 || y < 40 || y > innerHeight - 30) return null;
+          const hit = document.elementFromPoint(x, y);
+          return hit && el.contains(hit) ? { x, y } : null;
+        };
+        const score = document.getElementById('flappy-score');
+        /* AND BESIDE IT, WHERE NO TEXT IS. Between the canvas and the edge of its page are the star
+           card's padding and the pane's, 27px a side and 14px under the board. A press there is on
+           a box with nothing to select, and the browser carries it to the nearest text that may be
+           selected — which, with the game's card refusing, was the heading of the NEXT page: a caret
+           in "Connect 4" on every tap. Each spot must be on the game's page and off its card. */
+        const card = c.parentElement, pane = c.closest('.pane'), wrap = c.closest('.card.is-widget') || card;
+        const pad = (x, y) => {
+          x = Math.round(x); y = Math.round(y);
+          if (!pane || y < 40 || y > innerHeight - 30) return null;
+          const hit = document.elementFromPoint(x, y);
+          return hit && pane.contains(hit) && !card.contains(hit) ? { x, y } : null;
+        };
+        const cr = c.getBoundingClientRect(), kr = card.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+        const pr = pane ? pane.getBoundingClientRect() : wr;
+        const sp = { canvas: spot(c, 0.5), low: spot(c, 0.8), msg: spot(document.getElementById('flappy-msg'), 0.5),
+                     score: spot(score && score.closest('.row') && score.closest('.row').querySelector('.k'), 0.5),
+                     beside: pad(cr.right + 7, cr.top + cr.height / 2),
+                     gutter: pad((pr.left + wr.left) / 2, cr.top + cr.height * 0.7),
+                     under: pad(cr.left + cr.width / 2, (kr.bottom + wr.bottom) / 2) };
+        /* THE CARD AND EVERYTHING ABOVE IT, as drawn. */
+        const chain = [];
+        for (let el = c; el && el !== document.documentElement; el = el.parentElement) {
+          chain.push(el);
+          if (el.id === 'screen') break;
+        }
+        const PROPS = ['outline-style', 'outline-width', 'outline-color', 'background-color', 'background-image',
+                       'box-shadow', 'border-top-color', 'border-bottom-color'];
+        const drawn = () => chain.map(el => PROPS.map(p => getComputedStyle(el).getPropertyValue(p)).join('|'));
+        const us = el => { const s = getComputedStyle(el); return s.getPropertyValue('user-select') || s.getPropertyValue('-webkit-user-select'); };
+        /* THE CONTROL: text on another card on this column, and the page itself, still select. */
+        const other = document.querySelector('#s-games > .page:not(.on) .card h3, #s-games > .page:not(.on) .card p');
+        window.__flap = { sel: 0, focus: 0, down: 0, chain, drawn, before: drawn(), active: document.activeElement };
+        if (!window.__flapArmed) {
+          document.addEventListener('selectstart', () => window.__flap.sel++, true);
+          document.addEventListener('focusin', () => window.__flap.focus++, true);
+          /* AND THE GAME HEARD EVERY TAP, or a canvas that took none of them proves nothing. */
+          document.addEventListener('pointerdown', e => { if (e.target && e.target.id === 'flappy-canvas') window.__flap.down++; }, true);
+          window.__flapArmed = true;
+        }
+        getSelection().removeAllRanges();
+        return { sp, n: chain.length, us: { canvas: us(c), msg: us(document.getElementById('flappy-msg')), card: us(c.parentElement),
+                                            page: pane ? us(pane) : null },
+                 control: { body: us(document.body), other: other ? us(other) : null } };
+      }, idx);
+      reached++;
+      if (idx < 0) fail('REACH', `${at} flappy`, 'there is no Flabby Pird on the Games column — nothing was asked');
+      else if (!g) fail('REACH', `${at} flappy`, 'the Flabby Pird card never drew its canvas — nothing was asked');
+      else {
+        note(`${at} flappy: user-select canvas ${g.us.canvas}, card ${g.us.card}, message ${g.us.msg}, page ${g.us.page}; elsewhere body ${g.control.body}, another card ${g.control.other}`);
+        ['canvas', 'card', 'msg', 'page'].forEach(k => {
+          if (g.us[k] !== 'none') fail('NOTHING LIGHTS UP', `${at} flappy`, `the game's ${k === 'msg' ? '"Tap to play" line' : k === 'page' ? 'page (its `.pane`)' : k} computes \`user-select: ${g.us[k]}\` — a held thumb on an iPhone selects the word beside it`);
+        });
+        if (g.control.body === 'none') fail('GAME ONLY', `${at} flappy`, 'the page itself computes `user-select: none` — the game\'s fix reached every question and message in the app');
+        if (!g.control.other) fail('REACH', `${at} flappy`, 'no other card on Games had text to ask the control of');
+        else if (g.control.other === 'none') fail('GAME ONLY', `${at} flappy`, 'text on another Games card computes `user-select: none` — the fix is not scoped to the game');
+        /* A TAP, real touch, `down` ms on the glass. */
+        const tap = async (p, down) => {
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: p.x, y: p.y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
+          await sleep(down);
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        };
+        /* THE TEXT FIRST, while it still says "Tap to play": once the game is running the message line
+           is empty and there is nothing there to land on. */
+        const series = [
+          ['two quick taps and a held press on "Tap to play"', 'msg', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['two quick taps and a held press on the Score row', 'score', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['two quick taps and a held press beside the canvas', 'beside', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['two quick taps and a held press in the page\'s gutter', 'gutter', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['two quick taps and a held press under the board', 'under', async p => { await tap(p, 40); await sleep(60); await tap(p, 40); await sleep(120); await tap(p, 900); }],
+          ['eight rapid taps on the canvas', 'canvas', async p => { for (let k = 0; k < 8; k++) { await tap(p, 40); await sleep(60); } }, 8],
+          ['a held press low on the canvas', 'low', async p => { await tap(p, 900); }, 1],
+        ];
+        for (const [name, k, run, downs] of series) {
+          const p = g.sp[k];
+          reached++;
+          if (!p) { fail('REACH', `${at} flappy`, `no ${k} on the glass for "${name}" — nothing was asked`); continue; }
+          await run(p);
+          await sleep(250);
+          const r = await page.evaluate(() => {
+            const F = window.__flap, s = getSelection();
+            const out = { sel: F.sel, focus: F.focus, down: F.down, ranges: s.rangeCount, text: String(s), moved: document.activeElement !== F.active,
+                          changed: F.drawn().map((d, i) => d === F.before[i] ? null : (F.chain[i].id || F.chain[i].className || F.chain[i].tagName)).filter(Boolean) };
+            F.sel = 0; F.focus = 0; F.down = 0; s.removeAllRanges();
+            return out;
+          });
+          note(`${at} flappy, ${name}: ${r.down} flap(s), ${r.sel} selectstart, ${r.ranges} range(s)${r.text ? ' "' + r.text.slice(0, 20) + '"' : ''}, ${r.focus} focus, ${r.changed.length} element(s) redrawn`);
+          if (downs && r.down < downs) fail('REACH', `${at} flappy`, `${name}: the game heard ${r.down} of ${downs} — the finger was not on the canvas`);
+          if (r.sel || r.ranges) fail('NOTHING LIGHTS UP', `${at} flappy`, `${name} started ${r.sel} selection(s) and left ${r.ranges} range(s)${r.text ? ' over "' + r.text.slice(0, 30) + '"' : ''} — on an iPhone that is the word painted blue`);
+          if (r.focus || r.moved) fail('NOTHING LIGHTS UP', `${at} flappy`, `${name} moved the focus (${r.focus} focusin)`);
+          if (r.changed.length) fail('NOTHING LIGHTS UP', `${at} flappy`, `${name} changed the outline, background, border or shadow of ${r.changed.slice(0, 4).join(', ')}`);
+        }
+        /* AND THE LOOP STOPPED BY HAND, as `check/press.js` does: a game left running behind the rules
+           below shares their frame budget. */
+        const stop = () => page.evaluate(() => {
+          if (typeof flappyState !== 'undefined' && flappyState) {
+            if (flappyState.raf) cancelAnimationFrame(flappyState.raf);
+            flappyState.raf = null; flappyState.running = false;
+          }
+        });
+        await stop();
+        /* AND THE SWIPE THAT STARTS ON IT STILL TURNS THE PAGE — up when there is a card below, down
+           when the game is the last one. */
+        if (idx < count.games - 1) await turn('up, starting on the game', { col: 'games', p: idx, on: '.flappy', g: G.flick(0, -140, 130) }, down1);
+        else await turn('down, starting on the game', { col: 'games', p: idx, on: '.flappy', g: G.flick(0, 140, 130) }, up1);
+        await stop();
       }
     }
 

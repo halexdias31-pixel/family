@@ -861,5 +861,11 @@
    "placeholder": true,
    "notes": "Asked for by name and not in the drive yet."
   }
- ]
+ ],
+ "filmsSync": {
+  "at": "2026-10-09T08:00:00.000Z",
+  "more": false,
+  "folder": "Notflix",
+  "found": { "films": 1, "series": 1, "documentaries": 0, "placeholders": 1 }
+ }
 }

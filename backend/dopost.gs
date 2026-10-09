@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-08-c-answers";
+const DOPOST_VERSION = "2026-10-09-a-films";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4050,7 +4050,7 @@ function doPost(e) {
        the evening threw their whole stored payload away, so the next sign-in or reload on any device
        was a cold rebuild — measured at fifteen to thirty-five seconds — for want of one date. The
        stored body no longer carries `attempts` at all: `doGet` adds them fresh for the token's person
-       on every answer, hit or miss (`payloadWithAttempts_`), so there is nothing here to go stale and
+       on every answer, hit or miss (`payloadWithFresh_`), so there is nothing here to go stale and
        the flag is simply put back. */
     if (action === 'markDone') {
       const me = findPerson(S(body.name), S(body.personId));
@@ -4139,6 +4139,28 @@ function doPost(e) {
       } catch (err) {
         return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
       }
+    }
+
+    /* ---------- THE FILMS, FILLED FROM THE NOTFLIX FOLDER ------------------------------------------------
+       *"Let admin be able to search up films which are in the notflix folder on gdrive."* The videos
+       card posts this for an admin when the last whole pass is a day old, and its silver Sync from Drive
+       tile posts it by hand. `filmsSync_` in content.gs is the whole of it; this is the door.
+
+       ADMIN-GATED HERE AS WELL AS IN `ACTION_ACCESS`, `spotlight`'s rule: the table says who may reach
+       the handler, and this says what it will do for whom. The reply is the films list — the one thing
+       `doGet` refuses everybody but an admin — so it is asked twice.
+
+       THE REPLY CARRIES THE LIST, so the card is current the moment the sync answers, rather than after
+       a reload that would have to rebuild the payload. `filmsFor_` reads the tab the sync has just
+       written, from this request's own copy of it. */
+    if (action === 'filmsSync') {
+      const me = findPerson('', S(body.personId));
+      if (!me || !hasRole(me, 'admin')) return jsonOut({ error: 'Only an admin can sync the films.' });
+      let out;
+      try { out = filmsSync_({ budgetMs: FILMS_SYNC_BUDGET_MS }); }
+      catch (err) { return jsonOut({ error: 'The films could not be synced: ' + S(err && err.message || err) }); }
+      if (out.error) return jsonOut({ error: out.error, why: out.why });
+      return jsonOut(Object.assign({ success: true }, out, { films: filmsFor_(true), sync: filmsSyncSays_() }));
     }
 
     if (action === 'openWaitlist') {

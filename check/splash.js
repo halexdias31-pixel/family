@@ -64,15 +64,19 @@ const MIME = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
 /* THE POOL, READ OFF index.html RATHER THAN LISTED HERE. A checker holding its own copy of the list
    it checks passes for ever the day somebody adds a splash — the sentence `check-spine.js` already
    carries. */
+/* ---------- AND HALF OF IT IS NOT IN index.html ANY MORE ---------------------------------------------
+   THE TEACHING SPLASHES LIVE IN THE TEXTBOOKS (data/textbooks.json), and the picker draws them from the
+   copy a load keeps on the device (`splashSync_` in shell.js). So the inline list is read off the
+   picker's literal, and the rest is whatever a REAL boot of the app saved — the app filling its own
+   cache, not this file writing one it hopes looks the same. */
 function kinds() {
   const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const a = src.indexOf("var kinds = ['is-tag'");
+  const a = src.indexOf("var kinds = ['tag'");
   if (a < 0) return null;
   const b = src.indexOf('];', a);
-  const out = [...src.slice(a, b).matchAll(/'(is-[a-z0-9]+)'/g)].map(m => m[1]);
+  const out = [...src.slice(a, b).replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/'([a-z0-9]+)'/g)].map(m => 'is-' + m[1]);
   return out.length ? out : null;
 }
-
 function serve() {
   const srv = http.createServer((q, r) => {
     const rel = decodeURIComponent(q.url.split('?')[0]);
@@ -94,13 +98,31 @@ function serve() {
     console.log('COULD NOT RUN — the splash list was not found in index.html');
     process.exitCode = 1; return;
   }
-  const asked = process.argv.slice(2).filter(x => /^is-/.test(x));
-  const want = asked.length ? asked : ALL;
-
   const srv = await serve();
   const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
                '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(p => fs.existsSync(p));
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+  /* ONE CONTEXT FOR THE WHOLE RUN, because the device's copy of the books' drawings lives in its
+     storage. A real boot fills it first — the backend answering with the fixture, so `load()` reads
+     the books and `splashSync_` keeps them — and every page after it is the same device. */
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+  {
+    const seed = await ctx.newPage();
+    const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
+    await seed.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+    await seed.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+    await seed.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem('splashAnims') || 'null'); } catch (e) { return false; } },
+      null, { timeout: 60000 }).catch(() => {});
+    const kept = await seed.evaluate(() => { try { return JSON.parse(localStorage.getItem('splashAnims')).ids; } catch (e) { return null; } });
+    await seed.close();
+    if (!kept) {
+      console.log('COULD NOT RUN — a real boot kept no copy of the textbooks\' animations, so they were NOT measured');
+      process.exitCode = 1; await browser.close(); srv.close(); return;
+    }
+    kept.forEach(k => ALL.push('is-' + k));
+  }
+  const asked = process.argv.slice(2).filter(x => /^is-/.test(x));
+  const want = asked.length ? asked : ALL;
 
   const frames = Math.round(SECONDS * 1000 / EVERY);
   console.log(`\n${want.length} splash${want.length === 1 ? '' : 'es'}, ${SECONDS}s each, a frame `
@@ -109,8 +131,6 @@ function serve() {
 
   const rows = [];
   for (const kind of want) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 },
-                                           deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     /* THE PAYLOAD NEVER ANSWERS, so the splash stays up for the whole run — which is the state this
        is about: somebody on a bad signal looking at the loading screen. */
@@ -125,13 +145,15 @@ function serve() {
     }, ALL.filter(k => k !== kind));
 
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+    /* A KEPT DRAWING IS `is-an` AND ITS ROOT, an inline one is its class. */
     const drew = await page.evaluate(() => {
       const el = document.getElementById('splash');
-      return el ? el.className : '';
+      const root = el && el.querySelector(':scope > [class|="an"]');
+      return el ? (root ? 'is-' + root.className.replace(/^an-/, '') : el.className) : '';
     });
-    if (drew.indexOf(kind) === -1) {
+    if (drew !== kind) {
       console.log(`  ! asked for ${kind} and the page drew "${drew}" — not measured.`);
-      await ctx.close(); process.exitCode = 1; continue;
+      await page.close(); process.exitCode = 1; continue;
     }
 
     const box = await page.$('#splash');
@@ -153,8 +175,9 @@ function serve() {
     rows.push({ kind, moved, n, worst });
     console.log(kind.padEnd(13) + String(moved).padStart(4) + '/' + String(n).padEnd(6)
               + String(worst * EVERY).padStart(8) + 'ms');
-    await ctx.close();
+    await page.close();
   }
+  await ctx.close();
 
   /* ---------- WHAT IS WORTH LOOKING AT, AND IT IS A JUDGEMENT RATHER THAN A THRESHOLD ------------
      A THIRD OF THE FRAMES IS THE LINE THIS PRINTS AT, and it is a place to start reading rather

@@ -1,7 +1,8 @@
-# The Galton board splash: prints the sixteen <circle>s for index.html, then the sixteen
-# @keyframes for style.css. Every route of four left/right bounces is taken once, so the pile is
+# The Galton board (the textbooks' Statistics chapter 16, and a loading splash): writes the sixteen
+# <circle>s and the sixteen @keyframes into its row of data/textbooks.json. Every route of four left/right bounces is taken once, so the pile is
 # 1, 4, 6, 4, 1 by construction. Run: python3 tools/galton.py
 import itertools, re
+import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 T = 10.0            # seconds, one whole bell
 GAP, R, PR = 0.45, 2.6, 1.6
 ROWS = [14, 24, 34, 44]
@@ -39,6 +40,6 @@ for i, rt in enumerate(routes):
     keys.append('@keyframes gl-b%d { %s }' % (i, ' '.join(frames)))
     balls.append('<circle class="gl-b" style="animation-name: gl-b%d" cx="%g" cy="%.1f" r="%g"/>' % (i, lx, ly, R))
 assert filled == [1,4,6,4,1], filled
-print('\n      '.join(balls))
-print('\n'.join(keys))
-print('/* filled', filled, '*/')
+# INTO ITS ROW IN data/textbooks.json — see tools/anim_row.py. It printed text to paste before.
+anim_row.write_anim('gal', run=('<circle class="gl-b"', '\n      '.join(balls)), css='\n'.join(keys))
+print('filled', filled)

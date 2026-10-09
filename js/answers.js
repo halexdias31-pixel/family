@@ -87,7 +87,19 @@ function ansValue_(k) {
 }
 function ansLocalPut_(k, v) {
   ANS_MEM.set(k, v);
-  try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {}
+  try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
+  catch (e) {
+    /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. The splash
+       keeps the books' drawings here (`splashSync_`, shell.js), and on a nearly full device they were
+       the last 170 000 characters of room: a 2 000-character answer was refused, this swallowed it,
+       and a child who was not signed in lost it on reload. So a refused write takes that copy away and
+       tries once more — once, and only if there was a copy to take; a store full of other things
+       refuses again and the visit's `ANS_MEM` is all there is, as before. The splash draws an inline
+       one until a load finds room again. */
+    if (v !== null && typeof splashGiveWay_ === 'function' && splashGiveWay_()) {
+      try { localStorage.setItem(k, v); } catch (e2) {}
+    }
+  }
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
   if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) {}
@@ -405,10 +417,10 @@ function ansRefresh_(keys) {
       const v = typeof ansRead_ === 'function' ? ansRead_(k) : (ansValue_(k) || '');
       if (el.value === v) return;
       el.value = v;
-      if (el.classList.contains('kp-in') && typeof kpTypeset_ === 'function') {
-        const show = el.parentNode && el.parentNode.querySelector('.kp-show');
-        if (show) show.innerHTML = kpTypeset_(v, -1);
-      }
+      /* REDRAWN BY THE PAD'S OWN DRAWING (`kpRender_`), which knows a worded box from a maths one: this
+         called `kpTypeset_` on every box, and a worded answer filled from another device came back
+         typeset -- `well-known` with a minus in it, `and/or` stacked as a fraction. */
+      if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
@@ -419,6 +431,10 @@ function ansRefresh_(keys) {
     });
     document.querySelectorAll('.qp-choices[data-k]').forEach(box => {
       if (has(box.getAttribute('data-k')) && typeof choiceRedraw_ === 'function') choiceRedraw_(box);
+    });
+    /* AN ORDERING'S ROW, drawn again from the store by `orderBox_` exactly as a tap does. */
+    document.querySelectorAll('.qp-order[data-k]').forEach(box => {
+      if (has(box.getAttribute('data-k')) && typeof orderRedraw_ === 'function') orderRedraw_(box, '');
     });
     document.querySelectorAll('.qpad[data-k]').forEach(pad => {
       const k = pad.getAttribute('data-k');
@@ -485,9 +501,9 @@ function padKeptSay_() {
 }
 
 /* ---------- WHEN IT SENDS AT ONCE ------------------------------------------------------------------------
-   LEAVING A BOX, which is the moment a child has finished with it. AFTER CHECK, A PICK OR "MARK WITH AI"
-   — this listener is added after the app's own click dispatcher (shell.js), so the handler has stored the
-   answer by the time this runs. AND THE APP GOING AWAY: `visibilitychange` to hidden is the last event an
+   LEAVING A BOX, which is the moment a child has finished with it. AFTER CHECK, A PICK, AN ORDER SENT OR
+   "MARK WITH AI" — this listener is added after the app's own click dispatcher (shell.js), so the handler
+   has stored the answer by the time this runs. AND THE APP GOING AWAY: `visibilitychange` to hidden is the last event an
    iPad reliably sends when the cover closes or the Home Screen is pressed, and `pagehide` is the one a
    tab closing sends — both with `keepalive`. */
 document.addEventListener('focusout', e => {
@@ -495,7 +511,7 @@ document.addEventListener('focusout', e => {
   if (el) answersPush_(true);
 });
 document.addEventListener('click', e => {
-  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-ai"]');
+  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-ai"]');
   if (t) answersPush_(true);
 });
 document.addEventListener('visibilitychange', () => {

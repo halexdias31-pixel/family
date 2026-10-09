@@ -81,6 +81,15 @@ const { statesOf } = require('./states.js');
 const ROOT = path.join(__dirname, '..');
 const PORT = Number(process.env.PRESS_PORT || 8123);   /* overridable: parallel runs in worktrees share one machine */
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
+/* AND A STRANGER IS SENT WHAT `doGet` SENDS A STRANGER — `check/ui.js`'s rule, which this file did
+   not have. The fixture is the admin's payload, films and all, and the signed-out pass was served it
+   too: the state "the videos card, nobody's films" read a stranger's card listing three films that
+   `filmsFor_` never builds for anybody but an admin, and could not be reached (9 Oct). For the visitor
+   who is not signed in, `films` is `[]` and `filmsSync` is absent, as the backend sends them. */
+const FIXTURE_ANON = (() => {
+  try { const o = JSON.parse(FIXTURE); o.films = []; delete o.filmsSync; return JSON.stringify(o); }
+  catch (e) { return FIXTURE; }
+})();
 const ONLY = (process.argv.find(a => a.startsWith('--screen=')) || '').split('=')[1] || '';
 const VERBOSE = process.argv.includes('--verbose');
 
@@ -163,6 +172,28 @@ const ACCEPTED_QUIET = {
   'cam-flip': { why: 'switches between two cameras. `camWays_` asks the browser for its video inputs '
                    + 'and this container has none, so there is nothing to switch to. The control is '
                    + 'drawn only where there are two, which is why this is quiet rather than absent.' },
+
+  /* ---------- A CONTROL WHOSE WHOLE JOB IS A SOUND -------------------------------------------------
+     IMPOSTER'S LISTEN SAYS THE CARD THROUGH THE PHONE'S OWN VOICE and changes nothing on the page, on
+     purpose: a card that changed when the word was spoken would be a tell from across the table. This
+     harness cannot hear, so it is quiet here by construction. check-flow stubs `speechSynthesis` and
+     asks what was said, to whom, and when it was cut off — that is where this press is proved. */
+  'imp-listen': { why: 'speaks the card quietly through speechSynthesis and draws nothing, so nobody across '
+                     + 'the table sees that anything happened; check-flow records the voice and proves it.' },
+  /* A TEXTBOOK ANIMATION'S PLAY AGAIN PUTS THE SAME MARKUP BACK, which is how a CSS animation starts
+     over: new elements, the same drawing. Everything this harness compares is the same afterwards by
+     construction — the motion restarting is the whole effect. check-flow proves it ("Play again left
+     the drawing's elements in place" if the nodes are not new; "changed the drawing" if they are not
+     the same). */
+  'tb-an-again': { why: 'restarts the animation by putting the same markup back: new elements, the same '
+                     + 'drawing, so nothing measured differs; check-flow proves the elements are new.' },
+  /* AND SHOW, PRESSED STRAIGHT AFTER DEAL, IS A DOUBLE TAP — which is what it is ignored as, on purpose.
+     On the setup state this presses Deal and then Show, which Deal has just drawn on the same pixels,
+     well inside `IMP_GAP`: two taps that close are the double tap the guard exists for (games.js, "a
+     second tap is not a second press"). Scoped to that state, so a Show that went dead anywhere else
+     still shows here; check-flow proves Show alone opens the card and a second tap does not. */
+  'imp-show': { only: 'imposter setup', why: 'pressed within 600ms of Deal on the same pixels: a double tap, '
+                     + 'ignored by design (`impTooSoon_`); check-flow proves Show alone opens the card.' },
 
   /* ---------- AND ONE THAT IS THE FIXTURE RATHER THAN THE APP -------------------------------------- */
   'cmt-del': { only: 'signed out', why:
@@ -312,7 +343,7 @@ for (const who of VISITORS) {
 
 
   await page.route('**://script.google.com/**', r =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+    r.fulfill({ status: 200, contentType: 'application/json', body: who.user ? FIXTURE : FIXTURE_ANON }));
 
   if (who.user) await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, who.user);
   await page.addInitScript(GUARDS);

@@ -569,7 +569,7 @@ function clearPayloadCache() {
 /* ---------- `retirePayloadOf_` WAS HERE — RETIRING A FEW PEOPLE'S PAYLOADS, NOT EVERYBODY'S ----------
    ITS ONE CALLER WAS `markDone`, which threw away a child's whole stored payload (and every admin's) for
    one date, so the child's next load anywhere was a cold rebuild. The stored body no longer carries
-   `attempts` — `doGet` adds them fresh for the token's person (`payloadWithAttempts_` in doget.gs) — so
+   `attempts` — `doGet` adds them fresh for the token's person (`payloadWithFresh_` in doget.gs) — so
    there is nothing left that a write to one person's rows makes stale, and nothing to retire by key. */
 /** The generation number, which prefixes every key — see `clearPayloadCache`. */
 function payloadGen_() {
@@ -898,6 +898,19 @@ function config() {
        before must not have them read as coefficients — a row whose value is the sentence
        "per hour x h x sessions" would otherwise be looked up as a number and come back NaN. */
     if (k && k.indexOf('formula_') !== 0) out[k] = r.value;
+  });
+  return out;
+}
+
+/* ---------- THE CONFIG TAB AS A PHONE MAY SEE IT ---------------------------------------------------
+   EVERYTHING BUT `CONFIG_PRIVATE`. `doGet` sends this as `constants.vars` to every visitor; the
+   server's own readers go on calling `config()`, which still has every key. A copy rather than a
+   delete, because `config()`'s object is the one `filmsRoot_` and the pricing read within the same
+   request. */
+function configPublic_(cfg) {
+  const out = {};
+  Object.keys(cfg || {}).forEach(k => {
+    if (CONFIG_PRIVATE.indexOf(norm(k)) === -1) out[k] = cfg[k];
   });
   return out;
 }

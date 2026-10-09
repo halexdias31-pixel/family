@@ -297,6 +297,13 @@ function boot(opts) {
          repaint kept the round, and only the state can say that the clock did not move while the
          column was away. */
       'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
+      /* IMPOSTER'S ROUND, AS A GETTER FOR THE SAME REASON — `impDeal_` replaces the object — so a
+         journey can hold each screen up against what was actually dealt rather than against what an
+         earlier screen said. AND A CARD ON TOP OF ITS PILE, put there the way `impDraw_` would find
+         it, so the read-aloud journey knows the word it is listening for: a random deal can be `ear`,
+         which is in the pass screen's own sentence ("Hold the phone to your ear"). */
+      'IMP: () => (typeof IMP !== "undefined" ? IMP : null),' +
+      'impStack: (c, wd) => { IMP_PILE.push([c, wd]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
@@ -1526,7 +1533,17 @@ check('removing a qualification: the bin saves at once, and only that one goes',
    two imposters, an imposter shown the word, a word left on the screen when the phone is handed on,
    a reveal naming somebody who was never told. So this deals a round of five through the app's own
    handlers and reads what each player would have seen — and what the NEXT player sees before they
-   press anything, which is the half that is easy to get wrong. */
+   press anything, which is the half that is easy to get wrong. Each screen is held up against what
+   was actually dealt (`__t.IMP`), not against what an earlier screen said.
+
+   THE CATEGORY IS THE IMPOSTER'S AND NOBODY ELSE'S. It was on every card, and the owner, 8 Oct:
+   "info over load on the reading parts like reading theme and word extra". A player with the word
+   is not told its category; the imposter is told nothing else; the table sees it on the play screen.
+
+   AND A SCREEN SAYS FOUR WORDS, counted, so the sentences cannot creep back one at a time — the way
+   they came: "Player 2 of 4", then "Hand the phone to", then "Nobody else looks" under it. A word is
+   a run of letters; the dealt word and its category are taken out first, because "Pets and farm
+   animals" is the hint and not the app talking, and a player's number is a name and not reading. */
 check('the imposter game tells everybody the word but one, and hides it between players', async () => {
   const { w } = boot();
   await wait(300);
@@ -1544,58 +1561,401 @@ check('the imposter game tells everybody the word but one, and hides it between 
   };
   const bad = [];
   const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
+  const html = () => String(card().innerHTML || '');
+  /* WHAT A PERSON HOLDING THE PHONE CAN SEE: the words, and every title, aria-label and alt, because a
+     secret in a `title` is a secret on the screen. NOT THE RAW MARKUP, which is what this read first —
+     and `cat` (Pets and farm animals) is a real card that matched the `art-cat-of` class on every
+     pass screen, so the journey failed eight ways on correct code about one deal in 810 (the review
+     of 8 October). Class names, `data-do` and an icon's path are the app's own, never the round's. */
+  const visible = () => [String(card().textContent || '')]
+    .concat([...card().querySelectorAll('[title], [aria-label], [alt]')]
+      .map(el => [el.getAttribute('title'), el.getAttribute('aria-label'), el.getAttribute('alt')].filter(Boolean).join(' ')))
+    .join(' ').replace(/\s+/g, ' ').trim();
+  /* A WHOLE WORD OR PHRASE, ANY CASE. `star` is in Space and the play screen says "Player 3 starts";
+     a substring test would call that a leak and fail one deal in eight hundred. */
+  const lit = p => String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const has = (txt, p) => !!p && new RegExp('(^|[^A-Za-z])' + lit(p) + '($|[^A-Za-z])', 'i').test(txt);
+  /* THE BUDGET IS COUNTED OVER THE WHOLE GAME, not the card: everything Imposter draws in the widget
+     but its one `.sub` line. It read `#imp-card` alone, and three of the four sentences that went had
+     lived in the note line UNDER the card — put `#imp-said` back with "Nobody else looks." in it and
+     every check stayed green (the review of 8 October). */
+  const game = () => card().closest('.wg-game') || card().parentElement;
+  const said = () => {
+    const c = game().cloneNode(true);
+    c.querySelectorAll('.sub').forEach(x => x.remove());
+    return String(c.textContent || '').replace(/\s+/g, ' ').trim();
+  };
+  const BUDGET = 4;
+  const budget = (where, drop) => {
+    const left = drop.filter(Boolean).reduce((x, p) => x.replace(new RegExp(lit(p), 'gi'), ' '), said());
+    const n = (left.match(/[A-Za-z’']+/g) || []).length;
+    if (n > BUDGET) bad.push(where + ' says ' + n + ' words, wanted ' + BUDGET + ' at most: "' + said() + '"');
+  };
+  /* AND THE WIDGET'S OWN LINE IS THE DECIDED ONE, with no note line under the card to write a sentence
+     into — the old "Three or more, one phone…" could come back as quietly as `#imp-said` could. */
+  const SUB = 'Everyone gets the word but one. Find the imposter.';
+  const sub = game().querySelector('.sub');
+  if (!sub || String(sub.textContent).replace(/\s+/g, ' ').trim() !== SUB) {
+    bad.push('the line over the card is not "' + SUB + '": "' + (sub ? sub.textContent.trim() : '(none)') + '"');
+  }
+  if (game().querySelector('#imp-said, .note')) bad.push('the imposter game has a note line again (#imp-said or .note), where the sentences used to live');
   const N = 5;
   for (let i = 0; i < 12; i++) press('imp-count', { 'data-d': '-1' });
   for (let i = 0; i < N - 3; i++) press('imp-count', { 'data-d': '1' });
   if (!/\b5\b/.test(text())) bad.push('two presses up from three players does not read 5: "' + text() + '"');
   press('imp-start');
+  const S = t.IMP();
+  if (!S || S.phase !== 'deal' || !S.word || !S.cat) return bad.concat(['Deal did not deal a round: ' + JSON.stringify(S)]);
+  const word = S.word, cat = S.cat;
+  /* NOTHING ON THE HAND-OVER IS ANYBODY'S: not the word, not the hint, not the word "imposter" — read
+     off `visible()`, so a `title` or an `aria-label` counts as much as the words do. */
+  const secret = (where, h) => {
+    if (has(h, word)) bad.push(where + ' has the word "' + word + '" on it');
+    if (has(h, cat)) bad.push(where + ' has the category "' + cat + '" on it');
+    if (/imposter/i.test(h)) bad.push(where + ' says "imposter"');
+  };
   const seen = [];
+  let pass0 = null;
   for (let i = 0; i < N; i++) {
     const before = text();
-    if (before.indexOf('Player ' + (i + 1)) === -1 || !/Hand the phone/.test(before)) {
+    if (!has(before, 'Player ' + (i + 1)) || !/^Pass to\b/.test(before)) {
       bad.push('before player ' + (i + 1) + ' presses anything the card reads "' + before + '"');
     }
-    seen.forEach(s => {
-      if (s.word && before.indexOf(s.word) !== -1) bad.push('the word is on the screen when the phone reaches player ' + (i + 1));
-    });
+    secret('the screen handed to player ' + (i + 1), visible());
+    /* AND IT IS THE SAME SCREEN FOR EVERYBODY bar the number, the imposter's included — a hand-over
+       that differed for one player would be the tell. */
+    const shape = html().replace(/Player \d+/g, 'Player #');
+    if (pass0 === null) pass0 = shape;
+    else if (shape !== pass0) bad.push('the screen handed to player ' + (i + 1) + ' is not the one handed to player 1');
+    budget('the hand-over to player ' + (i + 1), []);
     press('imp-show');
     const shown = text();
+    const big = String((card().querySelector('.imp-big') || {}).textContent || '').trim();
     const imposter = /imposter/i.test(shown);
-    /* THE WORD IS THE LARGE LINE, so it is read off the element that draws it rather than guessed
-       at from the text round it. */
-    const wordEl = card().querySelector('.art-word');
-    seen.push({ imposter: imposter,
-                word: imposter ? '' : String(wordEl ? wordEl.textContent : '').trim(),
-                cat: String((card().querySelector('.art-cat-of') || {}).textContent || '').trim() });
+    seen.push({ imposter: imposter, word: imposter ? '' : big });
+    if (i === S.imp) {
+      if (has(visible(), word)) bad.push('the imposter, player ' + (i + 1) + ', was shown the word');
+      if (!/\bHint\b/.test(shown) || !has(shown, cat)) bad.push('the imposter was not given the category as a hint: "' + shown + '"');
+      budget("the imposter's card", [cat]);
+    } else {
+      if (big !== word) bad.push('player ' + (i + 1) + "'s big line is \"" + big + '", not the word dealt');
+      if (has(visible(), cat)) bad.push('player ' + (i + 1) + ' was shown the category "' + cat + '" as well as the word');
+      if (/imposter/i.test(visible())) bad.push('player ' + (i + 1) + ' has the word and was told "imposter" too');
+      budget('player ' + (i + 1) + "'s card", [word]);
+    }
     if (i === 1) {
       /* LEAVING THE COLUMN HIDES A WORD LEFT UP, and keeps whose turn it was. */
       const wd = t.allWidgets().find(x => x.id === 'wordgames');
       if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
       else wd.stop();
       t.go('games', false, true);
-      if (!/Hand the phone to Player 2/.test(text())) {
+      if (!/^Pass to Player 2\b/.test(text())) {
         bad.push('leaving the column with a word up does not hide it: the card reads "' + text() + '"');
       }
+      secret('the card after leaving the column', visible());
       press('imp-show');
     }
     press('imp-hide');
   }
   const imps = seen.filter(s => s.imposter);
   if (imps.length !== 1) bad.push(imps.length + ' of ' + N + ' players were told they were the imposter');
+  else if (seen.findIndex(s => s.imposter) !== S.imp) bad.push('the player told they were the imposter is not the one dealt');
   const words = new Set(seen.filter(s => !s.imposter).map(s => s.word));
-  if (words.size !== 1 || [...words][0] === '') {
-    bad.push('the others were not all shown one word: ' + [...words].join(' / '));
+  if (words.size !== 1 || [...words][0] !== word) {
+    bad.push('the others were not all shown the one word dealt: ' + [...words].join(' / '));
   }
-  const cats = new Set(seen.map(s => s.cat));
-  if (cats.size !== 1 || [...cats][0] === '') bad.push('not everybody, imposter included, was shown one category');
+  /* THE PLAY SCREEN: the hint for everybody now, who starts, and still not the word. */
   const play = text();
-  if ([...words].some(wd => wd && play.indexOf(wd) !== -1)) bad.push('the word is on the screen once everybody has looked');
+  if (has(visible(), word)) bad.push('the word is on the screen once everybody has looked');
+  if (!has(play, cat)) bad.push('the play screen does not show the category: "' + play + '"');
+  if (!has(play, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen does not say who starts: "' + play + '"');
+  budget('the play screen', [cat]);
   press('imp-reveal');
   const rev = text();
-  const who = seen.findIndex(s => s.imposter) + 1;
-  if (rev.indexOf('Player ' + who) === -1) bad.push('the reveal does not name player ' + who + ': "' + rev + '"');
-  if ([...words].some(wd => rev.indexOf(wd) === -1)) bad.push('the reveal does not say the word');
+  if (!has(rev, 'Player ' + (S.imp + 1))) bad.push('the reveal does not name player ' + (S.imp + 1) + ': "' + rev + '"');
+  if (!has(rev, word)) bad.push('the reveal does not say the word');
   press('imp-players');
+  return bad;
+});
+
+/* ---------- IMPOSTER READ ALOUD: SAID TO THE ONE HOLDING THE PHONE, AND ONLY WHEN THEY ASK -----------
+   The owner, 8 Oct: "For the imposter game can you have have it so young ones who can’t read can play.
+   Like it will read it out for them." A VOICE IS THE ONE OUTPUT THE WHOLE TABLE GETS, so every way
+   this can go wrong is a secret told to the room — and nothing about it is drawn, so nothing else
+   here would notice: the word said as the card comes up, a word still being said when the phone is
+   handed on, the pass screen naming the word, a repaint that talks.
+
+   SO THE BROWSER'S VOICE IS STOOD IN FOR, before the first line of the app runs, by one that writes
+   down what it was asked to say and when it was told to stop — and the journey writes down its own
+   presses in the same list, so "the first thing after Hide was a stop" is a question about one list.
+   jsdom has no `speechSynthesis`, which is the third half: with none, nothing about it is drawn. */
+check('imposter read aloud says whose turn it is, and the word only to the one who presses Listen', async () => {
+  const said = [];
+  const voiced = w => {
+    w.SpeechSynthesisUtterance = function (txt) {
+      this.text = String(txt); this.lang = ''; this.voice = null; this.rate = 1; this.volume = 1;
+    };
+    w.speechSynthesis = {
+      speak: u => said.push({ say: u.text, lang: u.lang, voice: u.voice && u.voice.lang, rate: u.rate, volume: u.volume }),
+      cancel: () => said.push({ cancel: true }),
+      getVoices: () => [{ name: 'American', lang: 'en-US' }, { name: 'British', lang: 'en-GB' }],
+    };
+  };
+  const { w } = boot({ before: w => { voiced(w); try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t;
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(700);
+  const d = w.document;
+  const card = () => d.getElementById('imp-card');
+  if (!card()) return ['the imposter game did not draw on the Games column'];
+  const bad = [];
+  /* A MARK IN THE LIST FOR EVERYTHING THE JOURNEY DOES, a press or not, so "what came after" always
+     means "after this". */
+  const mark = (what, note) => said.push(Object.assign({ press: what }, note || {}));
+  const press = (act, note) => { mark(act, note); t.ACTIONS[act](d.createElement('button')); };
+  const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
+  const lit = p => String(p).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const has = (txt, p) => !!p && new RegExp('(^|[^A-Za-z])' + lit(p) + '($|[^A-Za-z])', 'i').test(txt);
+  /* WHAT CAME AFTER THE LAST MARK: everything said and stopped since the journey's last press. */
+  const since = () => { let i = said.length - 1; while (i >= 0 && !said[i].press) i--; return said.slice(i + 1); };
+  const says = list => list.filter(x => x.say !== undefined);
+  const sw = () => card().querySelector('[data-do="imp-aloud"]');
+  const listen = () => card().querySelector('[data-do="imp-listen"]');
+  /* `imp-count` reads `data-d`, so the presses that move it carry one. */
+  const step = dd => { const b = d.createElement('button'); b.setAttribute('data-d', String(dd)); t.ACTIONS['imp-count'](b); };
+  for (let i = 0; i < 12; i++) step(-1);
+  step(1);
+  const N = 4;
+
+  /* ---- OFF, WHICH IS HOW IT ARRIVES: a switch to turn it on, and not one word out of the phone. ---- */
+  if (!sw()) return bad.concat(['with a voice on the device there is no Read aloud switch on the setup screen']);
+  if (sw().getAttribute('aria-pressed') !== 'false') bad.push('Read aloud is not off until somebody turns it on');
+  press('imp-start');
+  for (let i = 0; i < N; i++) {
+    press('imp-show');
+    if (listen()) bad.push('with Read aloud off, player ' + (i + 1) + "'s card still has Listen on it");
+    press('imp-listen');
+    press('imp-hide');
+  }
+  press('imp-reveal');
+  press('imp-again');
+  press('imp-players');
+  if (says(said).length) bad.push('with Read aloud off the phone still said: ' + says(said).map(x => '"' + x.say + '"').join(', '));
+
+  /* ---- ON, AND REMEMBERED: the switch says so, the device keeps it, a repaint keeps it. ---- */
+  press('imp-aloud');
+  let kept = null;
+  try { kept = w.localStorage.getItem('imp-aloud'); } catch (e) {}
+  if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('pressing Read aloud did not turn it on');
+  if (kept !== '1') bad.push('Read aloud is not remembered on the device (imp-aloud is ' + JSON.stringify(kept) + ')');
+  t.repaint(true);
+  await wait(50);
+  if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('a repaint turned Read aloud off');
+
+  /* ---- A ROUND WITH THE SWITCH ON, two of them, with known words on top of the pile ---- */
+  const passes = [];
+  const passSaid = (who, list) => {
+    const s = says(list);
+    const line = s.find(x => /Player \d+/.test(x.say));
+    if (!line) { bad.push('nothing said ' + who + ' (heard: ' + JSON.stringify(s.map(x => x.say)) + ')'); return; }
+    passes.push(line.say);
+    /* SHOW, THEN THE SPEAKER, THEN THE EAR — the order the presses go. It said "Hold the phone to your
+       ear, then press Show", and Show makes no sound: a child who did exactly that heard nothing, and
+       the gold button under their thumb was Hide (the review of 8 October). */
+    if (!/press Show, then the speaker\b.*\bear\b/i.test(line.say)) bad.push('the pass screen did not say Show, then the speaker, then the ear: "' + line.say + '"');
+  };
+  /* HOW LONG EACH LISTEN TALKED, per round. The table cannot make out a word said at 0.6 into an ear
+     and can hear how long a phone talks: "Pizza." against "You’re the imposter. The hint is food." was
+     five times longer for the imposter, and in one round every other player's line is the same length,
+     so the odd one out WAS the answer. Characters for duration — near enough for a rule whose old
+     failure was a factor of five. */
+  const LONGER = 1.5;
+  const round = (cat, word) => {
+    const S = t.IMP();
+    const lens = { me: 0, them: 0 };
+    if (!S || S.word !== word || S.cat !== cat) { bad.push('the round did not deal the card put on the pile: ' + JSON.stringify(S && [S.cat, S.word])); return null; }
+    passSaid('to player 1 when the round was dealt', since());
+    for (let i = 0; i < N; i++) {
+      const me = i === S.imp;
+      if (i === 2) {
+        /* A REPAINT IS NOBODY'S PRESS, so it says nothing — and keeps the round. */
+        mark('repaint');
+        t.repaint(true);
+        if (says(since()).length) bad.push('a repaint said: ' + says(since()).map(x => '"' + x.say + '"').join(', '));
+        if (!/^Pass to Player 3\b/.test(text())) bad.push('a repaint lost the round: "' + text() + '"');
+      }
+      press('imp-show', { i: i, me: me });
+      if (says(since()).length) bad.push("player " + (i + 1) + "'s card said something by itself: " + JSON.stringify(says(since()).map(x => x.say)));
+      if (!listen()) bad.push('with Read aloud on, player ' + (i + 1) + "'s card has no Listen");
+      press('imp-listen', { i: i, me: me });
+      const heard = says(since());
+      if (heard.length !== 1) bad.push('Listen for player ' + (i + 1) + ' said ' + heard.length + ' things');
+      else {
+        const h = heard[0];
+        lens[me ? 'me' : 'them'] = String(h.say).length;
+        if (me) {
+          if (!/imposter/i.test(h.say) || !has(h.say, cat)) bad.push("the imposter's Listen did not say imposter and the hint: \"" + h.say + '"');
+          if (has(h.say, word)) bad.push("the imposter's Listen said the word: \"" + h.say + '"');
+        } else if (!has(h.say, word)) bad.push('player ' + (i + 1) + "'s Listen did not say the word: \"" + h.say + '"');
+        if (!(h.volume <= 0.7)) bad.push('Listen was said at volume ' + h.volume + ', not quietly');
+        if (!(h.rate >= 0.8 && h.rate < 1)) bad.push('Listen was said at rate ' + h.rate + ', not a little slower');
+        if (h.lang !== 'en-GB' && h.voice !== 'en-GB') bad.push('Listen asked for no British voice (' + h.lang + ' / ' + h.voice + ')');
+        /* AND AGAIN, BECAUSE "WHAT WAS IT?" IS THE FIRST THING A SIX-YEAR-OLD ASKS. */
+        press('imp-listen', { i: i, me: me });
+        const again = says(since());
+        if (again.length !== 1 || again[0].say !== h.say) bad.push('a second Listen did not say it again: ' + JSON.stringify(again.map(x => x.say)));
+      }
+      if (i === 1) {
+        /* LEAVING THE COLUMN STOPS THE VOICE FIRST, and coming back says nothing. */
+        const wd = t.allWidgets().find(x => x.id === 'wordgames');
+        mark('stop');
+        if (wd && wd.stop) wd.stop();
+        else bad.push('the word games widget has no stop');
+        const first = since()[0];
+        if (!first || !first.cancel) bad.push('leaving the column did not stop the voice first (next: ' + JSON.stringify(first) + ')');
+        mark('go');
+        t.go('games', false, true);
+        if (says(since()).length) bad.push('coming back to the column said: ' + JSON.stringify(says(since()).map(x => x.say)));
+        press('imp-show', { i: i, me: me });
+      }
+      press('imp-hide', { i: i });
+      const after = since();
+      if (!after.length || !after[0].cancel) bad.push('Hide for player ' + (i + 1) + ' did not stop the voice before anything else (next: ' + JSON.stringify(after[0]) + ')');
+      if (i < N - 1) passSaid('to player ' + (i + 2) + ' when player ' + (i + 1) + ' pressed Hide', after);
+      else {
+        const p = says(after).map(x => x.say).join(' | ');
+        if (!has(p, cat) || !has(p, 'Player ' + (S.first + 1) + ' starts')) bad.push('the play screen did not say the hint and who starts: "' + p + '"');
+        if (has(p, word)) bad.push('the play screen said the word: "' + p + '"');
+      }
+    }
+    if (!lens.me || !lens.them) bad.push('a round with no Listen heard from the imposter and from a player: ' + JSON.stringify(lens));
+    else if (Math.max(lens.me, lens.them) / Math.min(lens.me, lens.them) > LONGER) {
+      bad.push('the imposter\'s Listen and a player\'s are ' + lens.me + ' and ' + lens.them + ' characters, more than '
+               + LONGER + ' times apart — the table can hear which phone talked longer');
+    }
+    press('imp-reveal');
+    const r = says(since()).map(x => x.say).join(' | ');
+    if (!/imposter was/i.test(r) || !has(r, 'Player ' + (S.imp + 1)) || !has(r, word)) bad.push('the reveal did not say who it was and the word: "' + r + '"');
+    return S;
+  };
+  t.impStack('Sea life', 'octopus');
+  press('imp-start');
+  round('Sea life', 'octopus');
+  t.impStack('Music', 'tambourine');
+  press('imp-again');
+  const again = since();
+  if (!again.length || !again[0].cancel) bad.push('Play again did not stop the voice before anything else (next: ' + JSON.stringify(again[0]) + ')');
+  round('Music', 'tambourine');
+  press('imp-players');
+  const back = since();
+  if (!back.length || !back[0].cancel) bad.push('Players did not stop the voice (next: ' + JSON.stringify(back[0]) + ')');
+  if (says(back).length) bad.push('Players said: ' + JSON.stringify(says(back).map(x => x.say)));
+
+  /* THE PASS SCREEN SAYS THE SAME SENTENCE TO EVERYBODY, bar the number, in both rounds — which is
+     the proof that nothing dealt is in it, the imposter's own hand-over included. */
+  const shapes = new Set(passes.map(p => p.replace(/Player \d+/, 'Player #')));
+  if (passes.length !== 2 * N || shapes.size !== 1) bad.push('the pass screen did not say one sentence to everybody: ' + JSON.stringify([...shapes]));
+  /* AND THE WORD WAS SAID ONLY TO A PLAYER WHO HAD IT AND PRESSED LISTEN: the press nearest before
+     every line that holds it is a Listen by somebody who is not the imposter — or Reveal, which says
+     it to the whole table once the round is over. */
+  let lastPress = null;
+  said.forEach(x => {
+    if (x.press) { lastPress = x; return; }
+    if (x.say === undefined) return;
+    const words = ['octopus', 'tambourine'].filter(wd => has(x.say, wd));
+    if (!words.length || (lastPress && lastPress.press === 'imp-reveal')) return;
+    if (!lastPress || lastPress.press !== 'imp-listen' || lastPress.me) {
+      bad.push('"' + x.say + '" was said after ' + JSON.stringify(lastPress) + ', not after a player with the word pressed Listen');
+    }
+  });
+
+  /* ---- AND ON A PHONE WITH NO VOICE, NONE OF IT IS DRAWN, even with the switch remembered on. ---- */
+  const quiet = boot({ before: w2 => { try { w2.localStorage.setItem('imp-aloud', '1'); w2.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  await wait(300);
+  const t2 = quiet.w.__t;
+  try { t2.go('games', false, true); } catch (e) { return bad.concat(['go("games") threw with no voice: ' + e.message]); }
+  await wait(700);
+  const card2 = quiet.w.document.getElementById('imp-card');
+  if (!card2) return bad.concat(['with no voice the imposter game did not draw']);
+  if (card2.querySelector('[data-do="imp-aloud"]')) bad.push('with no speechSynthesis the Read aloud switch is still drawn');
+  t2.ACTIONS['imp-start'](quiet.w.document.createElement('button'));
+  t2.ACTIONS['imp-show'](quiet.w.document.createElement('button'));
+  if (card2.querySelector('[data-do="imp-listen"]')) bad.push('with no speechSynthesis a card still has Listen on it');
+  if (!/Hide/.test(card2.textContent || '')) bad.push('with no speechSynthesis the card did not come up: "' + card2.textContent + '"');
+  return bad;
+});
+
+/* ---------- IMPOSTER: A DOUBLE TAP IS ONE PRESS ------------------------------------------------------
+   SHOW, HIDE AND REVEAL ARE DRAWN ON THE SAME PIXELS, so the second tap of a double tap lands on the
+   button the first one drew. Measured in Chromium with two touch taps 120ms apart, the review of
+   8 October: Show then Hide (the card flashed and the turn moved on unseen), Hide then the next
+   player's Show (Player 1 holding Player 2's card), the last Hide then Reveal (the imposter named
+   before anybody had played). Nothing drawn tells these apart from a good round, so every other
+   journey here walked straight past them.
+
+   A FINGER IS A PRESS WITH AN EVENT — the click listener in shell.js always passes one — and a check
+   walking the round is a press without, which `impTooSoon_` lets through. So the second tap is
+   fired IN THE SAME TICK as the first, which is sooner than any double tap and cannot be made late
+   by a loaded machine; and each deliberate press waits past the gap first, which a loaded machine
+   can only make longer. Neither half depends on how fast this runs. */
+check('imposter takes a double tap on Show, Hide or Reveal as one press', async () => {
+  const { w } = boot({ before: w => { try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {} } });
+  await wait(300);
+  const t = w.__t;
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(700);
+  const d = w.document;
+  if (!d.getElementById('imp-card')) return ['the imposter game did not draw on the Games column'];
+  const bad = [];
+  const press = act => t.ACTIONS[act](d.createElement('button'));
+  const tap = act => t.ACTIONS[act](d.createElement('button'), { type: 'click' });
+  const PAST = 750;
+  const now = () => { const S = t.IMP(); return S.phase + ' ' + (S.at + 1) + (S.shown ? ' shown' : ''); };
+  const want = (is, why) => { if (now() !== is) bad.push(why + ' (the round is at "' + now() + '", wanted "' + is + '")'); };
+  press('imp-start');
+  await wait(PAST);
+
+  tap('imp-show');
+  want('deal 1 shown', 'Show pressed on its own did not bring up the card');
+  tap('imp-hide');
+  want('deal 1 shown', "a second tap straight after Show pressed Hide, and player 1's turn went by unseen");
+
+  await wait(PAST);
+  tap('imp-hide');
+  want('deal 2', 'Hide pressed on its own did not hand the phone on');
+  tap('imp-show');
+  want('deal 2', "a second tap straight after Hide pressed Show, and player 2's card opened in player 1's hands");
+
+  /* TO THE LAST PLAYER WITHOUT A FINGER, then the last Hide by one. */
+  const n = t.IMP().n;
+  while (t.IMP().phase === 'deal' && t.IMP().at < n - 1) { press('imp-show'); press('imp-hide'); }
+  press('imp-show');
+  await wait(PAST);
+  tap('imp-hide');
+  if (t.IMP().phase !== 'play') bad.push('the last Hide pressed on its own did not start play: "' + now() + '"');
+  tap('imp-reveal');
+  if (t.IMP().phase !== 'play') bad.push('a second tap straight after the last Hide pressed Reveal, and the imposter was named before anybody played');
+
+  await wait(PAST);
+  tap('imp-reveal');
+  if (t.IMP().phase !== 'reveal') bad.push('Reveal pressed on its own did not reveal: "' + now() + '"');
+
+  /* PLAY AGAIN AND DEAL OVERLAP SHOW'S BOX TOO, so a second tap on either is a card shown to whoever
+     dealt. */
+  tap('imp-again');
+  tap('imp-show');
+  want('deal 1', 'a second tap straight after Play again pressed Show');
+
+  /* AND A CARD THAT ARRIVED WITHOUT A PRESS TAKES THE FIRST TAP ON IT. The guard first timed the card
+     being DRAWN, and a card is drawn by a repaint or a return to the column too: `check/press.js`
+     pressed Show, Hide and Reveal inside 600ms of arriving and none of them did anything (8 Oct).
+     Dealt here without a finger -- as a repaint draws -- and tapped at once. */
+  await wait(PAST);
+  press('imp-players');
+  press('imp-start');
+  tap('imp-show');
+  want('deal 1 shown', 'a card drawn without a press refused the first tap on it — the guard timed the draw, not the last press');
   return bad;
 });
 /* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------
@@ -1906,6 +2266,382 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
+  return bad;
+});
+
+/* ---------- THE FILMS IN THE VIDEOS CARD: AN ADMIN FINDS THEM, A STUDENT NEVER SEES THEY EXIST ------------
+   *"Ensure the video searcher is hooked up. Let admin be able to search up films which are in the
+   notflix folder on gdrive."* The journey above never set `DATA.films`, so nothing here had ever asked
+   the card about a film — the admin's half, the student's half, a placeholder, or the Sync tile. Each
+   draws a perfectly good card when it is wrong: a list with no films in it looks like a folder with no
+   films in it, and a Sync tile on a child's screen looks like any other tile.
+
+   THE FILMS ARE INVENTED and in the shape `filmsFor_` sends: a film, two kids films, a series, a
+   documentary, one asked for by name that is not in the Drive yet, and one with the owner's note. */
+const FILMS_ = [
+  { id: 'FM001', title: 'Paper Moon Rising', year: '1993', kind: 'film', audience: 'adults', director: '', lead: '',
+    seasons: '', url: 'https://drive.google.com/file/d/example-f-001/view', fileKind: 'file', sizeGb: '2.25', placeholder: false, notes: '' },
+  { id: 'FM002', title: 'Invented Cartoon', year: '', kind: 'film', audience: 'kids', director: '', lead: '',
+    seasons: '', url: 'https://drive.google.com/file/d/example-f-002/view', fileKind: 'file', sizeGb: '1.0', placeholder: false, notes: '' },
+  { id: 'FM003', title: 'Pretend Puppets', year: '2001', kind: 'film', audience: 'kids', director: '', lead: '',
+    seasons: '', url: 'https://drive.google.com/file/d/example-f-003/view', fileKind: 'file', sizeGb: '2.0', placeholder: false, notes: '' },
+  { id: 'FM004', title: 'Example Flat Show', year: '', kind: 'series', audience: 'adults', director: '', lead: '',
+    seasons: '3', url: 'https://drive.google.com/drive/folders/example-d-002', fileKind: 'folder', sizeGb: '18.4', placeholder: false, notes: '' },
+  { id: 'FM005', title: 'Pretend Science Hour', year: '', kind: 'documentary', audience: '', director: '', lead: '',
+    seasons: '', url: 'https://drive.google.com/file/d/example-f-005/view', fileKind: 'file', sizeGb: '0.5', placeholder: false, notes: 'XY9' },
+  { id: 'FM006', title: 'Wanted By Name', year: '', kind: 'film', audience: 'adults', director: '', lead: '',
+    seasons: '', url: '', fileKind: '', sizeGb: '', placeholder: true, notes: '' },
+  { id: 'FM007', title: 'Night Ferry', year: '1987', kind: 'film', audience: 'adults', director: '', lead: '',
+    seasons: '', url: 'https://drive.google.com/file/d/example-f-007/view', fileKind: 'file', sizeGb: '0.8', placeholder: false, notes: 'unfinished' },
+];
+const vidCard_ = async (w, who) => {
+  const t = w.__t;
+  for (let n = 0; n < 80 && !t; n++) await wait(100);
+  if (who) t.USER(who);
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const d = w.document;
+  const box = d.querySelector('#s-games #wgt-videos .vid-box');
+  const q = box && box.querySelector('input.vid-q');
+  const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  const titles = () => [...box.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  return { t, d, box, q, type, titles };
+};
+const vidAdmin_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin' };
+
+check('the videos card finds an admin’s films by title, year, kids, series and documentaries, and a placeholder says so', async () => {
+  const data = payload();
+  data.films = FILMS_;
+  data.filmsSync = { at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
+                     found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } };
+  const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
+  const { box, type, titles } = await vidCard_(w, vidAdmin_);
+  if (!box) return ['the videos card did not draw on the Games column'];
+  const bad = [];
+  const all = titles();
+  if (all.length !== FILMS_.length) bad.push('the card lists ' + all.length + ' of the admin’s ' + FILMS_.length + ' films: ' + all.join(' | '));
+  const want = (q, list) => {
+    type(q);
+    const got = titles();
+    if (got.join('|') !== list.join('|')) bad.push('typing "' + q + '" found ' + (got.join(' | ') || 'nothing') + ' — wanted ' + list.join(' | '));
+  };
+  want('paper moon', ['Paper Moon Rising']);
+  want('1993', ['Paper Moon Rising']);
+  want('kids', ['Invented Cartoon', 'Pretend Puppets']);
+  want('films kids', ['Invented Cartoon', 'Pretend Puppets']);
+  want('series', ['Example Flat Show']);
+  want('documentaries', ['Pretend Science Hour']);
+  want('ferry unfinished', ['Night Ferry']);
+  /* A FILM IS A DOOR TO DRIVE, never a player in the card. */
+  type('paper moon');
+  const a = box.querySelector('.vid-list a.vid-row.is-out');
+  if (!a || a.getAttribute('href') !== FILMS_[0].url || a.getAttribute('target') !== '_blank') bad.push('a film is not a link out to its Drive address: ' + (a ? a.outerHTML.slice(0, 120) : 'no link'));
+  if (box.querySelector('.vid-list [data-do="vid-play"]')) bad.push('a film row is a play button — a 3 GB .mkv plays in no browser (note 068)');
+  /* WHAT EACH ROW SAYS IT IS. */
+  type('example flat');
+  const k = box.querySelector('.vid-list .vid-k');
+  if (!k || !/^Series\b/.test(k.textContent.trim())) bad.push('a series is labelled "' + (k && k.textContent.trim()) + '" — every film row used to say Film');
+  type('science hour');
+  const k2 = box.querySelector('.vid-list .vid-k');
+  if (!k2 || !/^Documentary\b/.test(k2.textContent.trim())) bad.push('a documentary is labelled "' + (k2 && k2.textContent.trim()) + '"');
+  /* THE PLACEHOLDER: listed, says so, opens nothing. */
+  type('wanted');
+  const ph = box.querySelector('.vid-list .vid-row');
+  if (!ph) bad.push('a film not in the Drive yet is not listed — the card said "Nothing matches that." where Find says "Not in the drive yet"');
+  else {
+    if (!ph.classList.contains('is-off') || ph.matches('a, button') || !/not in the Drive yet/.test(ph.textContent)) bad.push('the placeholder row is ' + ph.outerHTML.slice(0, 160));
+  }
+  /* THE ADMIN'S ROW: a silver Sync from Drive tile and when it last ran. */
+  const tile = box.querySelector('.vid-admin .tile.is-admin[data-do="vid-sync"]');
+  if (!tile) bad.push('an admin has no silver Sync from Drive tile on the videos card');
+  const said = (box.querySelector('.vid-admin .vid-synced') || {}).textContent || '';
+  if (!/synced from Drive 2 hours ago/.test(said) || !/7 in the folder|6 in the folder/.test(said)) bad.push('the line beside the tile says "' + said + '" — wanted when it last synced and how many are in the folder');
+  /* A STAMP TWO HOURS OLD ASKS FOR NOTHING. */
+  if (sent.some(b => b.action === 'filmsSync')) bad.push('the card synced on its own with a stamp two hours old');
+  return bad;
+});
+
+check('the videos card syncs an admin’s films from Drive on its own when never synced, finishes a part-way pass, and the Sync tile refreshes the list', async () => {
+  const data = payload();
+  data.films = [];
+  data.filmsSync = { at: '', more: false, folder: '', found: null };
+  let calls = 0;
+  let hold = null;
+  const now = () => new Date().toISOString();
+  const { w, sent } = boot({
+    payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
+    reply: b => {
+      if (b.action !== 'filmsSync') return undefined;
+      calls++;
+      if (calls === 1) return { success: true, more: true, done: false, films: FILMS_.slice(0, 2),
+                                sync: { at: '', more: true, folder: 'Notflix' }, message: 'Part-way through Notflix.' };
+      if (calls === 2) return { success: true, more: false, done: true, films: FILMS_.slice(0, 4),
+                                sync: { at: now(), more: false, folder: 'Notflix', found: { films: 3, series: 1, documentaries: 0, placeholders: 0 } },
+                                message: 'Synced from Notflix (found by its name).' };
+      if (calls === 3) return new Promise(r => { hold = () => r({ success: true, more: false, done: true, films: FILMS_,
+                                sync: { at: now(), more: false, folder: 'Notflix', found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } },
+                                message: 'Synced from Notflix (found by its name).' }); });
+      return { success: true, done: true, films: FILMS_.slice(0, 1), sync: { at: now(), more: false, folder: 'Notflix' } };
+    },
+  });
+  const { t, box, titles } = await vidCard_(w, vidAdmin_);
+  if (!box) return ['the videos card did not draw on the Games column'];
+  const bad = [];
+  for (let n = 0; n < 40 && calls < 2; n++) await wait(50);
+  await wait(50);
+  const asks = sent.filter(b => b.action === 'filmsSync');
+  if (asks.length !== 2) bad.push('opening the card for an admin who has never synced posted filmsSync ' + asks.length + ' time(s) — wanted once, and once more for the part-way pass');
+  if (asks.some(b => b.token !== 'tk-admin')) bad.push('filmsSync went without the admin’s token');
+  if (titles().join('|') !== FILMS_.slice(0, 4).map(f => f.title).join('|')) bad.push('after the sync the card lists ' + titles().join(' | ') + ' — wanted the four the reply carried');
+  if (!/synced from Drive just now/.test((box.querySelector('.vid-synced') || {}).textContent || '')) bad.push('the line beside the tile says "' + ((box.querySelector('.vid-synced') || {}).textContent || '') + '" after a sync');
+  /* AND FIND IS TOLD: its lists are kept against `DATA` by identity, and the sync changed `DATA` in place. */
+  try {
+    const n = w.stuffItemsAll_().filter(x => x.kind === 'film').length;
+    if (n !== 4) bad.push('Find has ' + n + ' films after the sync — wanted the four the reply carried (its memo was not dropped)');
+  } catch (e) { bad.push('could not ask Find for its films: ' + e.message); }
+  /* ONCE A VISIT: a repaint of the column does not sync again. */
+  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('games', false, true); await wait(LEAVE_MS); await woken_();
+  if (sent.filter(b => b.action === 'filmsSync').length !== 2) bad.push('coming back to the card synced again in the same visit');
+  /* THE TILE, BY HAND: busy while it asks, and the list refreshed when it answers. */
+  const tile = box.querySelector('.vid-admin [data-do="vid-sync"]');
+  if (!tile) return bad.concat(['there is no Sync from Drive tile to press']);
+  t.ACTIONS['vid-sync'](tile);
+  await wait(20);
+  const busy = box.querySelector('.vid-admin [data-do="vid-sync"]');
+  if (!busy || !busy.disabled || !busy.classList.contains('is-busy')) bad.push('the tile is not busy while the sync runs: ' + (busy ? busy.outerHTML.slice(0, 120) : 'gone'));
+  if (!/Syncing/.test((box.querySelector('.vid-synced') || {}).textContent || '')) bad.push('the line does not say it is syncing');
+  t.ACTIONS['vid-sync'](busy);
+  await wait(20);
+  if (calls !== 3) bad.push('pressing the tile twice while it was busy posted ' + (calls - 2) + ' syncs');
+  if (hold) hold();
+  await wait(80);
+  if (titles().length !== FILMS_.length) bad.push('after Sync from Drive the card lists ' + titles().length + ' — wanted all ' + FILMS_.length + ' the reply carried');
+  const after = box.querySelector('.vid-admin [data-do="vid-sync"]');
+  if (!after || after.disabled) bad.push('the tile stayed busy after the sync answered');
+  /* A REPLY FOR SOMEBODY WHO HAS GONE IS DROPPED — through the real Sign out, which takes the films with
+     it: so NONE are left. One would be the late reply adopted for nobody; seven, the admin's list left on
+     the device. This asked `t.USER(null)` and wanted all seven still there — it asserted the leak. */
+  t.ACTIONS['vid-sync'](after);
+  t.ACTIONS.signout(w.document.createElement('button'));
+  await wait(80);
+  const left = (t.DATA().films || []).length;
+  if (left !== 0) bad.push('after a sync pressed and Sign out, DATA holds ' + left + ' film(s) — '
+                           + (left === 1 ? 'the late reply was adopted for nobody' : 'the admin’s list stayed on the device'));
+  if ('filmsSync' in t.DATA()) bad.push('the sync’s stamp outlived Sign out');
+  return bad;
+});
+
+check('the videos card says a failed sync in the admin’s line and does not ask again on every return', async () => {
+  const data = payload();
+  data.films = [];
+  data.filmsSync = { at: '', more: false, folder: '', found: null };
+  const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
+    reply: b => (b.action === 'filmsSync' ? { error: 'No folder named Notflix is visible to this script.' } : undefined) });
+  const { t, box } = await vidCard_(w, vidAdmin_);
+  if (!box) return ['the videos card did not draw on the Games column'];
+  const bad = [];
+  await wait(120);
+  const line = () => (box.querySelector('.vid-admin .vid-synced') || {}).textContent || '';
+  if (sent.filter(b => b.action === 'filmsSync').length !== 1) bad.push('a never-synced admin’s card posted filmsSync ' + sent.filter(b => b.action === 'filmsSync').length + ' time(s), wanted once');
+  if (!/Not synced — No folder named Notflix/.test(line())) bad.push('the refusal is not said beside the tile: "' + line() + '"');
+  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('games', false, true); await wait(LEAVE_MS); await woken_();
+  await wait(120);
+  if (sent.filter(b => b.action === 'filmsSync').length !== 1) bad.push('coming back to the card posted a failing sync again — once a visit, or it is a refusal on every swipe');
+  return bad;
+});
+
+check('a student’s and a stranger’s videos card has no film, no Sync tile and no word that films exist', async () => {
+  const data = payload();
+  data.films = [];          // what `doGet` sends anybody who is not an admin — and no `filmsSync` at all
+  const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
+  const bad = [];
+  const look = (who, box) => {
+    if (!box) { bad.push(who + ': the videos card did not draw'); return; }
+    if (box.querySelector('[data-do="vid-sync"]')) bad.push(who + ' is drawn the Sync from Drive tile');
+    const adm = box.querySelector('.vid-admin');
+    if (adm && adm.innerHTML.trim()) bad.push(who + '’s card has something in the admin row: ' + adm.innerHTML.slice(0, 100));
+    if (/film|drive|notflix|sync/i.test(box.textContent)) bad.push(who + '’s card says "' + box.textContent.replace(/\s+/g, ' ').trim().slice(0, 120) + '" — a word that says films exist');
+  };
+  const { t, box } = await vidCard_(w, { name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' });
+  look('a student', box);
+  t.ACTIONS['vid-sync'] && t.ACTIONS['vid-sync'](box && box.querySelector('.vid-q'));
+  await wait(50);
+  t.USER(null);
+  t.repaint && t.repaint(true);
+  t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('games', false, true); await wait(LEAVE_MS); await woken_();
+  look('a stranger', w.document.querySelector('#s-games #wgt-videos .vid-box'));
+  if (sent.some(b => b.action === 'filmsSync')) bad.push('a student’s or a stranger’s phone posted filmsSync');
+  const name = String((t.widgetsOf('game').find(x => String(x.id) === 'videos') || {}).name || '');
+  if (/film/i.test(name)) bad.push('the videos card is called "' + name + '" on everybody’s roster');
+  return bad;
+});
+
+/* ---------- SIGNING OUT TAKES THE FILMS WITH IT ------------------------------------------------------------
+   `DATA.films` is the admin's whole list, Drive links included, and nothing that draws it asks whose it is
+   — the payload was the only gate, and signing out does not reload the payload. So an admin who signed out
+   on the family's iPad left every film in Games → Videos and in Find for whoever picked it up next, and a
+   child signing in after them saw the list until their own payload landed (review of 9 Oct, through the
+   real `signout`). Both doors: the Sign out tile, and `signedIn_` for somebody else while their payload is
+   still on its way — the one way in that every sign-in door goes through. */
+check('signing out takes an admin’s films off the device, and a student signing in after an admin sees none before their payload lands', async () => {
+  const stamp = () => ({ at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
+                         found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } });
+  const bad = [];
+  const filmsIn = w => { try { return w.stuffItemsAll_().filter(x => x.kind === 'film').length; } catch (e) { return -1; } };
+  const shown = w => {
+    const box = w.document.querySelector('#s-games #wgt-videos .vid-box');
+    const html = w.document.body.innerHTML;
+    return { rows: box ? box.querySelectorAll('.vid-list .vid-row').length : -1,
+             drive: box ? box.querySelectorAll('.vid-list a[href*="drive.google.com"]').length : -1,
+             named: FILMS_.filter(f => html.indexOf(f.title) !== -1).length };
+  };
+  const away = async t => {
+    t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
+    t.go('games', false, true); await wait(LEAVE_MS); await woken_();
+  };
+  /* ---- THE SIGN OUT TILE ---- */
+  {
+    const { w } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
+                         serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
+    const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
+    if (!box) return ['the videos card did not draw on the Games column'];
+    if (titles().length !== FILMS_.length || filmsIn(w) !== FILMS_.length)
+      return ['the setup: the admin’s card lists ' + titles().length + ' and Find ' + filmsIn(w) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
+    type('paper moon');
+    t.ACTIONS.signout(w.document.createElement('button'));
+    await wait(50);
+    if (t.whoami()) bad.push('Sign out left somebody signed in: ' + JSON.stringify(t.whoami()));
+    await away(t);
+    const s = shown(w);
+    if (s.rows !== 0 || s.drive !== 0) bad.push('after Sign out the videos card lists ' + s.rows + ' row(s), ' + s.drive + ' of them a Drive link');
+    if (s.named) bad.push('after Sign out the page still names ' + s.named + ' of the admin’s films');
+    if (filmsIn(w) !== 0) bad.push('after Sign out Find still has ' + filmsIn(w) + ' films');
+    if ((t.DATA().films || []).length) bad.push('DATA.films still holds ' + t.DATA().films.length + ' after Sign out');
+    if ('filmsSync' in t.DATA()) bad.push('DATA.filmsSync — the folder’s name and its counts — outlived Sign out');
+    const q = w.document.querySelector('#s-games #wgt-videos .vid-q');
+    if (q && q.value) bad.push('what the admin typed is still in the videos box: ' + JSON.stringify(q.value));
+  }
+  /* ---- A STUDENT SIGNS IN AFTER AN ADMIN, AND THEIR PAYLOAD IS STILL ON ITS WAY ---- */
+  {
+    let hold = false;
+    const { w } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
+                         serve: u => (/data\/videos\.json/.test(u) ? [] : hold ? new Promise(() => {}) : undefined) });
+    const { t, box, titles } = await vidCard_(w, vidAdmin_);
+    if (!box || titles().length !== FILMS_.length) return bad.concat(['the setup: the admin’s card did not list the films, so the hand-over was NOT checked']);
+    if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the hand-over was NOT checked']);
+    hold = true;   // the student's payload never lands: what is on the screen is what the device held
+    w.signedIn_({ success: true, name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' }, 'sam');
+    if ((t.whoami() || {}).personId !== 'P-S1') return bad.concat(['the student did not sign in: ' + JSON.stringify(t.whoami())]);
+    await away(t);
+    const s = shown(w);
+    if (s.rows !== 0 || s.named) bad.push('a student signed in after an admin is shown ' + s.rows + ' row(s) naming ' + s.named + ' of the admin’s films before their own payload lands');
+    if (filmsIn(w) !== 0) bad.push('a student signed in after an admin has ' + filmsIn(w) + ' films in Find before their payload lands');
+    if ('filmsSync' in t.DATA()) bad.push('a student signed in after an admin holds the admin’s DATA.filmsSync');
+  }
+  /* ---- A SYNC IN FLIGHT WHEN AN ADMIN SIGNS OUT IS LET GO: the next admin's tile is theirs ----
+     Held, it left the next admin's Sync tile busy, and pressing it did nothing, until the first admin's
+     reply came back to be dropped; and that reply ending must not mark the next admin's sync finished. */
+  {
+    let hold = false, releaseA = null, releaseB = null;
+    const done = films => ({ success: true, done: true, more: false, films: films,
+                             sync: { at: new Date().toISOString(), more: false, folder: 'Notflix', found: null } });
+    const { w, sent } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
+      serve: u => (/data\/videos\.json/.test(u) ? [] : hold ? new Promise(() => {}) : undefined),
+      reply: b => (b.action !== 'filmsSync' ? undefined
+        : b.personId === 'P001' ? new Promise(r => { releaseA = () => r(done(FILMS_)); })
+        : new Promise(r => { releaseB = () => r(done(FILMS_.slice(0, 1))); })) });
+    const { t, box } = await vidCard_(w, vidAdmin_);
+    const tile = () => w.document.querySelector('#s-games #wgt-videos .vid-admin [data-do="vid-sync"]');
+    if (!box || !tile()) return bad.concat(['the setup: the first admin has no Sync tile, so a sync in flight was NOT checked']);
+    t.ACTIONS['vid-sync'](tile());
+    await wait(20);
+    if (!releaseA) return bad.concat(['the setup: pressing Sync posted nothing for the first admin']);
+    t.ACTIONS.signout(w.document.createElement('button'));
+    hold = true;
+    w.signedIn_({ success: true, name: 'Bea Admin', personId: 'P002', role: 'admin', roles: ['admin'], token: 'tk-admin2' }, 'bea');
+    await away(t);
+    if (!tile()) bad.push('the second admin has no Sync tile');
+    else {
+      if (tile().disabled) bad.push('the second admin’s Sync tile is busy with the first admin’s sync, which they never pressed');
+      t.ACTIONS['vid-sync'](tile());
+      await wait(20);
+      const theirs = sent.filter(b => b.action === 'filmsSync' && b.token === 'tk-admin2').length;
+      if (theirs !== 1) bad.push('pressing the second admin’s Sync tile posted ' + theirs + ' sync(s) for them — wanted one');
+      releaseA();
+      await wait(50);
+      if (!tile() || !tile().disabled) bad.push('the first admin’s late reply marked the second admin’s sync finished');
+      if ((t.DATA().films || []).length) bad.push('the first admin’s late reply was adopted for the second: ' + t.DATA().films.length + ' film(s)');
+      if (releaseB) releaseB();
+      await wait(50);
+      if ((t.DATA().films || []).length !== 1) bad.push('the second admin’s own sync was not adopted: ' + (t.DATA().films || []).length + ' film(s)');
+    }
+  }
+  return bad;
+});
+
+/* ---------- ONCE A DAY, ON ITS OWN -------------------------------------------------------------------------
+   How the card keeps the films current: the last whole pass more than a day old asks for one. The journeys
+   above asked a card never synced and a pass left part-way, never a stamp that is simply old — and
+   `filmsSyncDue_` with its age test deleted passed every one (review of 9 Oct). A list that looks complete
+   and is stale is the failure this whole sync exists to end. */
+check('the videos card syncs an admin’s films on its own once the last whole pass is over a day old, and not when it is an hour old', async () => {
+  const bad = [];
+  const visit = async ago => {
+    const data = Object.assign(payload(), { films: FILMS_.slice(0, 2),
+      filmsSync: { at: new Date(Date.now() - ago).toISOString(), more: false, folder: 'Notflix', found: { films: 2, series: 0, documentaries: 0, placeholders: 0 } } });
+    const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
+      reply: b => (b.action === 'filmsSync' ? { success: true, done: true, more: false, films: FILMS_,
+        sync: { at: new Date().toISOString(), more: false, folder: 'Notflix', found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } } } : undefined) });
+    const { box, titles } = await vidCard_(w, vidAdmin_);
+    if (!box) { bad.push('the videos card did not draw on the Games column'); return null; }
+    for (let n = 0; n < 20 && !sent.some(b => b.action === 'filmsSync'); n++) await wait(25);
+    await wait(80);
+    return { asked: sent.filter(b => b.action === 'filmsSync').length, listed: titles().length };
+  };
+  const old = await visit(2 * 24 * 3600e3);
+  if (old && old.asked !== 1) bad.push('a card whose last whole pass is two days old posted filmsSync ' + old.asked + ' time(s) — wanted once');
+  if (old && old.listed !== FILMS_.length) bad.push('after the day-old card synced it lists ' + old.listed + ' — wanted the ' + FILMS_.length + ' the reply carried');
+  const fresh = await visit(3600e3);
+  if (fresh && fresh.asked !== 0) bad.push('a card synced an hour ago posted filmsSync ' + fresh.asked + ' time(s) — wanted none');
+  return bad;
+});
+
+/* ---------- A SPACE TYPED INTO A SEARCH BOX IS A SPACE, AFTER THE GAMES COLUMN HAS BEEN OPENED ------------
+   Flappy Bird flaps on Space, and its key handler sat on `document`, stayed on once the Games column was
+   drawn, and asked nothing but whether its canvas existed — so after one visit to Games a laptop typing
+   "two words" into the videos box got "twowords" and found nothing (and Find's box the same). Measured in
+   Chromium by the audit of 9 Oct. jsdom has no canvas and no layout, so the canvas is given a size and a
+   context that draws nothing — enough for the game to set itself up, which is the part being asked. */
+check('a Space typed into the videos search box is not eaten by Flappy Bird, and still flaps everywhere else', async () => {
+  const { w } = boot({ serve: u => (/data\/videos\.json/.test(u) ? [] : undefined), before: win => {
+    const ctx = new Proxy({}, { get: (o, k) => (k in o ? o[k] : () => ({ width: 10 })), set: (o, k, v) => { o[k] = v; return true; } });
+    win.HTMLCanvasElement.prototype.getContext = function () { return ctx; };
+    const r0 = win.HTMLElement.prototype.getBoundingClientRect;
+    win.HTMLCanvasElement.prototype.getBoundingClientRect = function () {
+      return { width: 300, height: 200, left: 0, top: 0, right: 300, bottom: 200, x: 0, y: 0 };
+    };
+    void r0;
+  } });
+  const { box, q } = await vidCard_(w);
+  const d = w.document;
+  if (!box || !q) return ['the videos card did not draw'];
+  const flappy = d.getElementById('flappy-canvas');
+  if (!flappy) return ['there is no Flappy Bird canvas on the Games column, so this asked nothing'];
+  try { w.initFlappy(); } catch (e) { return ['Flappy Bird could not set itself up here: ' + e.message]; }
+  if (typeof w._flappyKey !== 'function') return ['Flappy Bird’s key handler was never installed, so this asked nothing'];
+  const press = (el, code) => {
+    const e = new w.KeyboardEvent('keydown', { code: code, key: code === 'Space' ? ' ' : code, bubbles: true, cancelable: true });
+    el.dispatchEvent(e);
+    return e.defaultPrevented;
+  };
+  const bad = [];
+  q.focus();
+  if (press(q, 'Space')) bad.push('a Space typed into the videos search box was swallowed — "two words" becomes "twowords"');
+  if (press(q, 'ArrowUp')) bad.push('an ArrowUp in the search box was swallowed');
+  if (!press(d.body, 'Space')) bad.push('a Space outside any box no longer flaps — the fix took the game’s key away');
   return bad;
 });
 
@@ -7019,10 +7755,11 @@ check('marking, revealing and tapping leave the question where it is, and typing
 /* ---------- A FRACTION, TYPED ON THE KEYPAD, MARKED RIGHT --------------------------------------------
    ASKED FOR AS "make the input better … like hegarty maths … desmos". keypad.js says how; this presses
    it the way a thumb would, through the real handlers, on a real question card: the box keeps the
-   phone's keyboard down (`inputmode="none"`), the pad has the keys the owner listed, the fraction is
+   phone's keyboard out (`readonly` and `inputmode="none"`), the pad has the keys the owner listed, the fraction is
    drawn STACKED with a dashed slot while it is still empty, and ✓ runs Check — against a scheme of
    `0.75`, so the keypad's `(3)/(4)` has to go through the bracket fold in `markNorm_` and `markFrac_`'s
-   "or equivalent" to be marked right. A worded question beside it keeps its textarea. */
+   "or equivalent" to be marked right. A worded question beside it is the pad's box too, on the
+   letters -- *"I just want self contained system really"* (8 Oct). */
 check('a fraction typed on the maths keypad is drawn stacked, saved, and marked right against 0.75', async () => {
   const { w, errs } = boot();
   await wait(300);
@@ -7036,9 +7773,10 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
   const card = draw(x);
   const inp = card.querySelector('.qp-ans-in');
-  if (!inp || inp.tagName !== 'INPUT' || inp.getAttribute('inputmode') !== 'none') {
-    return ['a calculation’s answer box is ' + (inp ? '<' + inp.tagName.toLowerCase() + ' inputmode="' + inp.getAttribute('inputmode') + '">' : 'missing')
-      + ' — wanted an <input inputmode="none"> so the phone keyboard stays down'];
+  if (!inp || inp.tagName !== 'INPUT' || inp.getAttribute('inputmode') !== 'none' || !inp.readOnly) {
+    return ['a calculation’s answer box is ' + (inp ? '<' + inp.tagName.toLowerCase() + ' inputmode="' + inp.getAttribute('inputmode') + '"'
+      + (inp.readOnly ? ' readonly' : '') + '>' : 'missing')
+      + ' — wanted an <input readonly inputmode="none">, so the phone’s keyboard has no way in'];
   }
   if (card.querySelector('textarea.qp-ans-in')) bad.push('the maths card drew a textarea as well as the keypad box');
   if (card.querySelector('.qp-ai')) bad.push('a maths question with a scheme was offered "Mark with AI" — Check is exact there');
@@ -7129,13 +7867,25 @@ check('a fraction typed on the maths keypad is drawn stacked, saved, and marked 
   setTo('x');
   press('!pow'); press('2'); press('!done');
   if (i2.value !== 'x^(2)' || !c2.querySelector('.qp-mark.is-right')) bad.push('x^(2) against x^2 was not marked right: ' + i2.value);
-  /* AND A WORDED ANSWER IS STILL WORDS, on the phone's own keyboard. */
+  /* AND A WORDED ANSWER IS WORDS, ON THE PAD'S LETTERS -- it was the phone's own keyboard until the
+     owner, 8 Oct: *"Make the keypad never need to use their own keyboard … I just want self contained
+     system really"*. A textarea still (an answer typed before may hold a newline), but the pad's: in a
+     `.kp-field.kp-words` under its drawing, `readonly` and `inputmode="none"`, and focusing it opens
+     the pad on the letters. */
   const wd = draw(Object.assign({}, base, { key: 'q-kp-words', answerType: 'explain', accept: '',
     row: Object.assign({}, base.row, { row_id: 'Q-KP-6' }) }));
   const ta = wd.querySelector('.qp-ans-in');
-  if (!ta || ta.tagName !== 'TEXTAREA' || ta.hasAttribute('inputmode')) bad.push('an explain question lost its textarea and the device keyboard');
-  /* IN THE SAME BAR, saying what it is for while it is empty -- the box nobody could find in the sun. */
-  else if (!ta.closest('.qp-bar') || ta.getAttribute('placeholder') !== 'Type your answer') bad.push('the worded box is not in the chat bar with "Type your answer" in it');
+  if (!ta || !ta.matches('.kp-field.kp-words > textarea.kp-in[data-kp="words"][readonly][inputmode="none"]')) {
+    bad.push('an explain question\'s box is not the pad\'s locked words box: ' + (ta ? ta.outerHTML.slice(0, 160) : '(none)'));
+  } else {
+    /* IN THE SAME BAR, saying what it is for while it is empty -- the box nobody could find in the sun.
+       The words are the drawing's (`.kp-show:empty::before`), because the textarea is invisible. */
+    if (!ta.closest('.qp-bar') || ta.hasAttribute('placeholder') || ta.parentNode.querySelector('.kp-show').innerHTML !== '') bad.push('the worded box is not in the chat bar with an empty drawing to say "Type your answer"');
+    ta.focus();
+    if (pad.hidden || pad.getAttribute('data-layer') !== 'abc' || !pad.querySelector('.kp-key[data-v="q"]')) bad.push('focusing a worded box did not open the pad on its letters (layer ' + pad.getAttribute('data-layer') + ')');
+    ta.blur();
+    await wait(10);
+  }
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -7190,6 +7940,367 @@ check('a redraw with the keypad up keeps typing into the same question', async (
   if (!pad.hidden) bad.push('with the question gone from the page, a key still left the pad up');
   if (host.querySelector('.kp-in').value) bad.push('a key typed into a different question\'s box after a redraw');
   try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- NO ANSWER BOX CAN BRING UP THE PHONE'S KEYBOARD, ON ANY ROUTE ----------------------------------
+   THE OWNER, 8 Oct: *"Make the keypad never need to use their own keyboard the key pad seems to allow ios
+   keyboard to show I just want self contained system really"*. Counted that day, the iPad's keyboard came
+   up on every worded box and every worksheet box (plain textareas), and from `abc` on every maths box,
+   which set `inputmode="text"` on purpose -- and WebKit's own source says `inputmode="none"` alone
+   leaves a hardware keyboard, Scribble and Scan Text a way in, where `readonly` does not (keypad.js).
+
+   SO THE RULE IS ASKED OF EVERY KIND OF BOX A QUESTION'S PAGES DRAW -- a maths answer, an explain
+   answer, a short worded one, a drawing question's card AND its pen page, a passage to ring words in,
+   and a practical's worksheet -- and of every route the pad has: a box focused, `abc`, `123`, a
+   redraw under the pad (`kpLive_`), Enter, ✓. Every text field there must be the pad's box, locked in
+   its markup (`readonly`, `inputmode="none"`) inside its drawing; and a MutationObserver over the whole
+   document says whether ANY script touched either attribute on the way, which is what the old `abc`
+   did. And the same promise asked of the source: nothing in js/ writes `inputmode` or `readonly` by
+   script, so a new route cannot be opened without this saying so. */
+check('no answer box on a question\'s pages can bring up the phone\'s keyboard — maths, words, worksheet, pen — on any route', async () => {
+  /* A REAL PRACTICAL, through the real mapper, as the sameness journey brings one: the fixture has none. */
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so no practical could be drawn — nothing was checked'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { practicals: JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8')) })));
+  const { w, errs } = boot({ payload: Object.assign(payload(), { practicals: made.practicals || [] }) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  const need = ['kpField_', 'questionCard_', 'questionFigCard_', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
+  if (!A['kp-key'] || need.length) return ['the keypad or the cards are not reachable (' + need.join(', ') + ') — nothing was checked'];
+  /* EVERY attribute change to `readonly` or `inputmode` anywhere, from here to the end. */
+  const touched = [];
+  const mo = new w.MutationObserver(list => list.forEach(m => {
+    if (m.target.classList && m.target.classList.contains('kp-in')) touched.push(m.attributeName + ' on ' + m.target.getAttribute('data-k') + ' (was ' + JSON.stringify(m.oldValue) + ')');
+  }));
+  mo.observe(d.body, { subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ['readonly', 'inputmode'] });
+  const host = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = (id, extra) => Object.assign({ row_id: id, paper_id: 'P-OWN', subject: 'Maths', name: 'Own keyboard' }, extra || {});
+  const q = (key, extra, rowExtra) => Object.assign({ kind: 'question', name: 'Q1', qNumber: '1', marks: 2, key: key, stems: [],
+    html: '<p>Answer it.</p>', answer: '<b>it</b>', row: row('Q-OWN-' + key, rowExtra) }, extra || {});
+  const maths = q('q-own-m', { answerType: 'calculation', accept: '12' });
+  const words = q('q-own-w', { answerType: 'explain', accept: '' });
+  const shortW = q('q-own-s', { answerType: 'short', accept: 'egestion' });
+  const pen = q('q:Q-OWN-P', { answerType: 'drawing' }, { figure: 'grid-blank' });
+  const passage = q('q:Q-OWN-T', { answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' });
+  const prac = w.stuffItems().find(x => x.kind === 'practical');
+  [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
+  const drawn = {
+    'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
+    'a short worded answer': host(w.questionCard_(shortW)), 'a drawing question\'s card': host(w.questionCard_(pen)),
+    'a drawing question\'s pen page': host(w.questionFigCard_(pen)), 'a passage to ring words in': host(w.questionCard_(passage)),
+    'a practical\'s worksheet': prac ? host(w.stuffPart_(prac, 'work')) : null,
+  };
+  if (!prac) bad.push('no practical in the fixture — its worksheet boxes were NOT checked');
+  const locked = b => b.matches('.kp-field > .kp-in.qp-ans-in[readonly][inputmode="none"][data-kp]') && b.readOnly
+    && !!b.closest('label.qp-ans');
+  const WANT = { 'a maths answer': 1, 'an explain answer': 1, 'a short worded answer': 1, 'a drawing question\'s card': 1,
+    'a drawing question\'s pen page': 0, 'a passage to ring words in': 1, 'a practical\'s worksheet': 3 };
+  let boxes = 0;
+  Object.keys(drawn).forEach(name => {
+    const h = drawn[name];
+    if (!h) return;
+    const fields = [...h.querySelectorAll('input, textarea, select, [contenteditable]')];
+    const open = fields.filter(f => !locked(f));
+    if (open.length) bad.push(name + ' draws a field the phone could type into: ' + open.map(f => f.outerHTML.slice(0, 140)).join(' | '));
+    if (fields.length !== WANT[name]) bad.push(name + ' draws ' + fields.length + ' text field(s), wanted ' + WANT[name]);
+    boxes += fields.length;
+  });
+  const pad = () => d.getElementById('kp');
+  const key = v => pad() && pad().querySelector('.kp-key[data-v="' + v + '"]');
+  const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + (pad() && pad().getAttribute('data-layer')) + ' face'); };
+  const live = () => d.activeElement;
+  const still = (where) => {
+    const b = live();
+    if (!b || !b.classList.contains('kp-in')) return bad.push(where + ': the focus is on ' + (b ? b.tagName + '.' + b.className : 'nothing') + ', not an answer box');
+    if (!locked(b)) bad.push(where + ': the focused box is not locked: ' + b.outerHTML.slice(0, 140));
+  };
+  /* THE ROUTES, ON THE MATHS BOX: focused, `abc`, a letter, `123`, a redraw under the pad on the letters,
+     a key after it, Enter. */
+  const mHost = drawn['a maths answer'];
+  mHost.querySelector('.kp-in').focus();
+  if (!pad() || pad().hidden) bad.push('focusing the maths box did not open the pad');
+  still('the maths box focused');
+  press('!abc');
+  if (pad().getAttribute('data-layer') !== 'abc' || !key('q')) bad.push('`abc` did not turn the pad to its letters');
+  still('after `abc`');
+  press('n');
+  press('!123');
+  if (pad().getAttribute('data-layer') !== 'maths' || !key('7')) bad.push('`123` did not turn the pad back to the maths keys');
+  still('after `123`');
+  press('!abc');
+  mHost.innerHTML = w.questionCard_(maths);
+  press('m');
+  const mNow = mHost.querySelector('.kp-in');
+  if (!mNow || mNow.value !== 'nm') bad.push('a letter after a redraw on the letters face typed into ' + (mNow ? JSON.stringify(mNow.value) : 'nothing') + ', wanted "nm" in the box that replaced it');
+  if (pad().getAttribute('data-layer') !== 'abc') bad.push('a redraw under the pad turned it back from the letters -- the child was on ' + 'abc');
+  still('after a redraw under the pad (`kpLive_`)');
+  mNow.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  if (!pad().hidden) bad.push('Enter on the maths box left the pad up');
+  if (mNow.matches('[readonly][inputmode="none"]') === false) bad.push('after Enter the maths box is not locked');
+  /* AND THE WORDED BOX: focused, it opens on the letters; `123`, `abc`, ✓. */
+  const ta = drawn['an explain answer'].querySelector('.kp-in');
+  ta.focus();
+  if (pad().hidden || pad().getAttribute('data-layer') !== 'abc') bad.push('focusing a worded box did not open the pad on its letters');
+  still('the worded box focused');
+  press('!123'); press('!abc'); press('!done');
+  if (!pad().hidden) bad.push('✓ on a worded box left the pad up');
+  /* AND EACH WORKSHEET BOX, one after another. */
+  if (drawn['a practical\'s worksheet']) {
+    [...drawn['a practical\'s worksheet'].querySelectorAll('.kp-in')].forEach((b, i) => {
+      b.focus();
+      if (pad().hidden || pad().getAttribute('data-layer') !== 'abc') bad.push('worksheet box ' + (i + 1) + ' did not open the pad on its letters');
+      still('worksheet box ' + (i + 1) + ' focused');
+    });
+    if (live() && live().blur) live().blur();
+  }
+  await wait(20);
+  mo.disconnect();
+  if (touched.length) bad.push('a script changed a box\'s lock on the way: ' + touched.join(' | ') + ' -- the lock is written in the markup and nowhere else');
+  /* AND THE SOURCE: nothing that ships writes `inputmode`, `readonly` or `contenteditable` by script. `abc`
+     was exactly that.
+
+     EVERY SPELLING OF THE WRITE, NOT TWO OF THEM. The review of 8 Oct added one line to keypad.js --
+     a double tap calling `toggleAttribute('readonly', false)` and `setAttribute('inputMode', 'text')`
+     -- and this stayed green: the pattern knew `setAttribute`/`removeAttribute` in lower case and
+     `.readOnly =`, and an HTML attribute name ignores case, `toggleAttribute` unlocks as surely as
+     `removeAttribute`, and a backtick or a bracket write is the same write. The MutationObserver above
+     sees only the routes this journey walks, so a double tap or a long press is the source's to catch. */
+  const Q = '[\'"`]';
+  const SRC = new RegExp([
+    '(?:set|remove|toggle)Attribute\\(\\s*' + Q + '(?:inputmode|readonly|contenteditable)' + Q,
+    '(?:set|remove)AttributeNS\\([^,()]*,\\s*' + Q + '(?:inputmode|readonly|contenteditable)' + Q,
+    'removeNamedItem(?:NS)?\\([^)]*' + Q + '(?:inputmode|readonly|contenteditable)' + Q,
+    '\\.(?:readOnly|inputMode|contentEditable)\\s*=(?!=)',
+    '\\[\\s*' + Q + '(?:readOnly|inputMode|contentEditable)' + Q + '\\s*\\]\\s*=(?!=)',
+  ].join('|'), 'i');
+  /* AND ONLY `kpField_` DRAWS AN ANSWER BOX. Every box that saves as an answer carries `data-do="qp-ans"`
+     (the `input` listener in find.js) and `.qp-ans-in` (what Send and Mark with AI read), and today
+     `kpField_` is the one place that writes either -- locked. A new kind of card that drew its own field
+     would only be asked about here if this journey were taught to draw it; written outside `kpField_`,
+     it fails now, whoever draws it. A selector that FINDS a box (`[data-do="qp-ans"]`, `.qp-ans-in`) is
+     a read and is not counted. */
+  const BOX = new RegExp([
+    '(?<!\\[)data-do=\\\\?' + Q + 'qp-ans\\\\?' + Q,
+    'setAttribute\\(\\s*' + Q + 'data-do' + Q + '\\s*,\\s*' + Q + 'qp-ans' + Q,
+    'dataset\\.do\\s*=(?!=)\\s*' + Q + 'qp-ans' + Q,
+    'class(?:Name)?\\s*=\\s*\\\\?' + Q + '[^\'"`]*\\bqp-ans-in\\b',
+    'classList\\.(?:add|toggle|replace)\\([^)]*' + Q + 'qp-ans-in' + Q,
+  ].join('|'));
+  const jsDir = path.join(dir);
+  let field = '';
+  fs.readdirSync(jsDir).filter(f => /\.js$/.test(f) && !/^check/.test(f)).forEach(f => {
+    let src = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const m = src.match(SRC);
+    if (m) bad.push('js/' + f + ' writes a box\'s lock by script: `' + m[0] + '` -- a box unlocked by script is the phone\'s keyboard let back in');
+    if (f === 'keypad.js') {
+      const cut = src.match(/function kpField_\([\s\S]*?\n\}\n/);
+      field = cut ? cut[0] : '';
+      if (cut) src = src.replace(cut[0], '');
+    }
+    const b = src.match(BOX);
+    if (b) bad.push('js/' + f + ' draws an answer box outside kpField_: `' + b[0] + '` -- a box not drawn by kpField_ is a box nobody locked');
+  });
+  if (!field || !/data-do="qp-ans"/.test(field) || !/qp-ans-in/.test(field)) bad.push('kpField_ was not found in js/keypad.js drawing `data-do="qp-ans"` and `.qp-ans-in` -- the rule that only it draws a box asked about nothing');
+  if (boxes < 7) bad.push('only ' + boxes + ' boxes were drawn to ask about — the rule was not asked of them all');
+  [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- THE LETTERS ARE TYPED, SAVED AND MARKED; 123 IS THE MATHS KEYS; A LAPTOP STILL TYPES ------------
+   WHAT THE PHONE'S KEYBOARD DID FOR A WORDED ANSWER, DONE BY THE PAD (8 Oct). Pressed through the real
+   handlers on a short answer whose scheme is a word: the letters land in the box, a capital comes by
+   itself at the start, the answer is saved under `ansKey_` by the same `input` listener, and ✓ marks it
+   right through `qp-check` -- `markNorm_` lowercases, so "Egestion" is "egestion". `123` is the maths
+   face, whose 5 types into a worded box; ⇧ once is one capital and twice is caps lock; ⌫ in prose
+   deletes a bracket like any letter. And a laptop: `readonly` stops the browser typing, so its keys go
+   through the pad's own edit -- letters, Backspace, ←, Shift+Enter, Enter, a paste -- each one's own
+   default cancelled, and what `readonly` took from a text box is put back: ⇧ with an arrow selects,
+   Ctrl+Z and Ctrl+Y walk the box's own history, a cut cuts, AltGr types. And the pad's other promises:
+   a worded answer filled from another device is drawn as the words it is, never typeset; the signs row
+   is on a box whose scheme needs one, and on no other -- a worded box's on its `123` face. */
+check('the pad\'s letters type, save and mark a worded answer; 123 is the maths keys; ⇧, a laptop\'s keys and a paste all type', async () => {
+  const { w, errs } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key'] || !A['qp-check']) return ['the keypad or Check has no handler — nothing was checked'];
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const base = { kind: 'question', name: 'Q3', marks: 1, html: '<p>Name the process.</p>', answer: '<b>egestion</b>',
+    row: { row_id: 'Q-ABC-1', paper_id: 'P-ABC', subject: 'Biology', name: 'Letters' } };
+  const x = Object.assign({}, base, { key: 'q-abc-short', answerType: 'short', accept: 'egestion' });
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const card = draw(x);
+  const inp = card.querySelector('.kp-in');
+  if (!inp || inp.getAttribute('data-kp') !== 'words') return ['a short answer whose scheme is a word did not get the pad\'s words box: ' + (inp ? inp.outerHTML.slice(0, 120) : '(none)')];
+  inp.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return ['focusing the worded box did not open the pad'];
+  const key = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+  const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + pad.getAttribute('data-layer') + ' face'); };
+  /* THE LETTERS FACE: every letter, the punctuation, and the maths pad's bottom row in its places. */
+  const letters = 'qwertyuiopasdfghjklzxcvbnm'.split('').filter(c => !key(c));
+  if (letters.length) bad.push('the letters face has no key for ' + letters.join(' '));
+  ["'", ',', '.', '?', '-', ' ', '!shift'].forEach(v => { if (!key(v)) bad.push('the letters face has no ' + JSON.stringify(v) + ' key'); });
+  const bottom = [...pad.querySelectorAll('.kp-key')].slice(-6).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!left|!right|!nl|!back|!done') bad.push('the letters\' bottom row is ' + bottom.join(' ') + ', wanted 123 ← → ↵ ⌫ ✓ in the maths pad\'s places');
+  if (key('!back') && !key('!back').classList.contains('kp-del')) bad.push('⌫ on the letters is not the red key');
+  'egestion'.split('').forEach(press);
+  if (inp.value !== 'Egestion') bad.push('typing e-g-e-s-t-i-o-n on the letters gave ' + JSON.stringify(inp.value) + ', wanted "Egestion" -- the first letter a capital by itself');
+  let kept = null;
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (kept !== inp.value) bad.push('the letters\' answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
+  if (!/Egestion/.test(card.querySelector('.kp-show').textContent)) bad.push('the drawing does not show the letters typed: ' + card.querySelector('.kp-show').innerHTML.slice(0, 120));
+  press('!done');
+  const mark = card.querySelector('.qp-mark');
+  if (!mark || !mark.classList.contains('is-right')) bad.push('✓ on "Egestion" against egestion was not marked right: ' + (mark ? mark.className + ' / ' + mark.textContent.trim() : 'no mark row'));
+  if (!pad.hidden) bad.push('✓ left the pad up');
+  /* `123` AND BACK, ⇧ AND CAPS LOCK, ⌫ IN PROSE. */
+  inp.focus();
+  press('!123');
+  if (pad.getAttribute('data-layer') !== 'maths' || pad.querySelectorAll('.kp-key').length !== 30 || !key('7') || !key('!abc')) bad.push('`123` did not show the maths pad\'s 30 keys with `abc` on it');
+  press('5');
+  press('!abc');
+  if (pad.getAttribute('data-layer') !== 'abc') bad.push('`abc` did not turn the pad back to its letters');
+  press(' ');
+  press('!shift'); press('a'); press('b');
+  if (!/5 Ab$/.test(inp.value)) bad.push('5 from the maths face, a space, ⇧ a b gave ' + JSON.stringify(inp.value) + ', wanted it to end "5 Ab" -- one capital, then lower case');
+  press('!shift'); press('!shift'); press('c'); press('d');
+  if (!/CD$/.test(inp.value) || !key('!shift').classList.contains('is-lock')) bad.push('⇧ twice did not lock capitals: ' + JSON.stringify(inp.value));
+  press('!shift');
+  if (key('!shift').classList.contains('is-on')) bad.push('⇧ pressed while locked did not turn capitals off');
+  inp.value = inp.value + '(e)';
+  inp.setSelectionRange(inp.value.length, inp.value.length);
+  press('!back');
+  if (!/\(e$/.test(inp.value)) bad.push('⌫ after a bracket in a worded box gave ' + JSON.stringify(inp.value) + ' -- in prose a bracket is deleted like any letter');
+  /* A LAPTOP'S KEYS, INTO THE READONLY BOX THROUGH THE PAD'S EDIT. */
+  const kd = (k, o) => { const e = new w.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, o || {})); inp.dispatchEvent(e); return e.defaultPrevented; };
+  inp.value = ''; inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  inp.setSelectionRange(0, 0);
+  const took = ['R', 'a', 't', 'e', ' ', 'u', 'p'].map(k => kd(k));
+  kd('Backspace'); kd('ArrowLeft'); kd('Enter', { shiftKey: true });
+  if (inp.value !== 'Rate \nu') bad.push('a laptop typing "Rate up", Backspace, ←, Shift+Enter gave ' + JSON.stringify(inp.value) + ', wanted "Rate \\nu"');
+  if (took.some(t => !t)) bad.push('a laptop\'s key was left to the browser as well as typed by the pad');
+  kd('Home');
+  const paste = new w.Event('paste', { bubbles: true, cancelable: true });
+  Object.defineProperty(paste, 'clipboardData', { value: { getData: () => 'It ' } });
+  inp.dispatchEvent(paste);
+  if (inp.value !== 'It Rate \nu' || !paste.defaultPrevented) bad.push('a paste at the start gave ' + JSON.stringify(inp.value) + ', wanted "It Rate \\nu" typed through the pad');
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (kept !== 'It Rate \nu') bad.push('the laptop\'s answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
+  /* AND WHAT `readonly` TOOK FROM A LAPTOP, PUT BACK -- the review of 8 Oct measured each one gone: ⇧ with
+     an arrow moved the caret and dropped the selection; Ctrl+Z did nothing, so Ctrl+A and a letter lost a
+     paragraph; Ctrl+X did nothing; AltGr (Ctrl+Alt on Windows) dropped `€`. */
+  const L = inp.value.length;
+  kd('End'); kd('ArrowLeft', { shiftKey: true }); kd('ArrowLeft', { shiftKey: true });
+  if (inp.selectionStart !== L - 2 || inp.selectionEnd !== L || inp.selectionDirection !== 'backward') bad.push('⇧← twice from the end selected ' + inp.selectionStart + '-' + inp.selectionEnd + ' ' + inp.selectionDirection + ', wanted ' + (L - 2) + '-' + L + ' backward -- the selection grows from where it began');
+  if (!card.querySelector('.kp-show mark.kp-sel')) bad.push('a selection made with ⇧← is not drawn');
+  kd('ArrowRight', { shiftKey: true });
+  if (inp.selectionStart !== L - 1 || inp.selectionEnd !== L) bad.push('⇧→ after ⇧←⇧← left ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted ' + (L - 1) + '-' + L + ' -- the moving end comes back, the anchor stays');
+  kd('Home', { shiftKey: true });
+  if (inp.selectionStart !== 0 || inp.selectionEnd !== L) bad.push('⇧Home from the end selected ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted 0-' + L);
+  /* Ctrl+A (all selected) and a letter, then Ctrl+Z: the paragraph back, selected as it was; ⇧Ctrl+Z, Ctrl+Y forward. */
+  const para = inp.value;
+  kd('Z');
+  if (inp.value !== 'Z') bad.push('a letter over everything selected gave ' + JSON.stringify(inp.value) + ', wanted "Z"');
+  const undid = kd('z', { ctrlKey: true });
+  if (inp.value !== para || inp.selectionStart !== 0 || inp.selectionEnd !== L) bad.push('Ctrl+Z after a letter over the whole answer gave ' + JSON.stringify(inp.value) + ' ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted the paragraph back, all selected');
+  if (!undid) bad.push('Ctrl+Z was left to the browser as well -- its own undo is another field\'s');
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (kept !== para) bad.push('an undo was not saved under ansKey_ (got ' + JSON.stringify(kept) + ')');
+  kd('z', { ctrlKey: true, shiftKey: true });
+  if (inp.value !== 'Z') bad.push('⇧Ctrl+Z after an undo gave ' + JSON.stringify(inp.value) + ', wanted "Z" again');
+  kd('z', { metaKey: true });
+  kd('y', { ctrlKey: true });
+  if (inp.value !== 'Z') bad.push('⌘Z then Ctrl+Y gave ' + JSON.stringify(inp.value) + ', wanted "Z" -- undone and redone');
+  kd('z', { ctrlKey: true });
+  /* A RUN OF LETTERS IS ONE STEP, A WORD AT A TIME. */
+  kd('End'); [' ', 'o', 'k'].forEach(c => kd(c));
+  kd('z', { ctrlKey: true });
+  if (inp.value !== para + ' ') bad.push('Ctrl+Z after typing " ok" gave ' + JSON.stringify(inp.value) + ', wanted the word "ok" gone and the space kept');
+  kd('z', { ctrlKey: true });
+  if (inp.value !== para) bad.push('a second Ctrl+Z gave ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(para));
+  /* ALTGR: Ctrl+Alt with a one-character key is a character. */
+  kd('End'); kd('€', { ctrlKey: true, altKey: true });
+  if (inp.value !== para + '€') bad.push('AltGr+E (€, Ctrl+Alt on Windows) gave ' + JSON.stringify(inp.value) + ' -- dropped as a shortcut');
+  /* A CUT: the selection to the clipboard and out of the box, and Ctrl+Z puts it back. */
+  inp.setSelectionRange(0, 3);
+  let clip = null;
+  const cut = new w.Event('cut', { bubbles: true, cancelable: true });
+  Object.defineProperty(cut, 'clipboardData', { value: { setData: (t, v) => { clip = v; } } });
+  inp.dispatchEvent(cut);
+  if (clip !== 'It ' || inp.value !== para.slice(3) + '€' || !cut.defaultPrevented) bad.push('a cut of "It " put ' + JSON.stringify(clip) + ' on the clipboard and left ' + JSON.stringify(inp.value));
+  kd('z', { ctrlKey: true });
+  if (inp.value !== para + '€') bad.push('Ctrl+Z after a cut gave ' + JSON.stringify(inp.value));
+  inp.value = para; inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  kd('Enter');
+  if (!pad.hidden) bad.push('Enter on the worded box left the pad up');
+  /* A MATHS BOX TYPED ON A LAPTOP KEEPS ITS SLOTS: Backspace steps into a filled fraction, as ⌫ does. */
+  const m = Object.assign({}, base, { key: 'q-abc-maths', answerType: 'calculation', accept: '0.75', row: Object.assign({}, base.row, { row_id: 'Q-ABC-2' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(m)); } catch (e) {}
+  const mi = draw(m).querySelector('.kp-in');
+  mi.focus();
+  if (pad.getAttribute('data-layer') !== 'maths') bad.push('a maths box opened the pad on ' + pad.getAttribute('data-layer'));
+  if (key('<')) bad.push('a maths box whose scheme is 0.75 has the signs row');
+  ['3', '*', '4'].forEach(k => mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })));
+  if (mi.value !== '3×4') bad.push('a laptop typing 3*4 into a maths box gave ' + JSON.stringify(mi.value) + ', wanted "3×4"');
+  mi.value = '(3)/(4)'; mi.setSelectionRange(7, 7);
+  mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
+  if (mi.value !== '(3)/(4)' || mi.selectionStart !== 6) bad.push('a laptop Backspace after a filled fraction gave ' + JSON.stringify(mi.value) + ' at ' + mi.selectionStart + ' -- wanted the caret stepped inside, as ⌫ does');
+  /* ⇧Home IN A MATHS BOX SELECTS, AND THE SELECTION IS DRAWN: its two ends in the typeset answer, no caret. */
+  mi.setSelectionRange(7, 7);
+  mi.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Home', shiftKey: true, bubbles: true, cancelable: true }));
+  const mShow = mi.parentNode.querySelector('.kp-show');
+  if (mi.selectionStart !== 0 || mi.selectionEnd !== 7) bad.push('⇧Home in a maths box selected ' + mi.selectionStart + '-' + mi.selectionEnd + ', wanted 0-7');
+  if (!mShow.querySelector('.kp-sel-a') || !mShow.querySelector('.kp-sel-b') || mShow.querySelector('.kp-caret')) bad.push('a maths selection is not drawn by its two ends: ' + mShow.innerHTML.slice(0, 160));
+  mi.blur();
+  await wait(10);
+  /* THE SIGNS ROW WHERE THE SCHEME NEEDS IT: an inequality's box has < ≤ ≥ > : ± above the digits. */
+  const ineq = Object.assign({}, base, { key: 'q-abc-ineq', answerType: 'calculation', accept: 'x<3', row: Object.assign({}, base.row, { row_id: 'Q-ABC-3' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(ineq)); } catch (e) {}
+  const ii = draw(ineq).querySelector('.kp-in');
+  ii.focus();
+  ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('an inequality\'s box has no ' + v + ' key'); });
+  press('x'); press('<'); press('3'); press('!done');
+  if (ii.value !== 'x<3' || !ii.closest('.qcard').querySelector('.qp-mark.is-right')) bad.push('x < 3 typed on the signs row gave ' + JSON.stringify(ii.value) + ' and was not marked right');
+  /* AND ONLY THERE: with no scheme, the answer the worked answer LEADS with decides -- never its prose, which
+     names wrong forms ("eg 5 : 9") and gave 411 more boxes a sixth row, one of them lifted off the screen. */
+  const signed = (id, extra) => draw(Object.assign({}, base, { key: 'q-abc-' + id, answerType: 'calculation',
+    row: Object.assign({}, base.row, { row_id: 'Q-ABC-' + id }) }, extra)).querySelector('.kp-in').hasAttribute('data-kp-signs');
+  if (!signed('lead', { accept: '', answer: '140 &lt; <i>h</i> &le; 150 &mdash; the class the median is in' })) bad.push('a box with no scheme whose answer leads "140 < h ≤ 150" has no signs row');
+  if (signed('prose', { accept: '', answer: '<sup>5</sup>&frasl;<sub>9</sub> &mdash; M1 for the right numbers in the wrong form, eg 5 : 9' })) bad.push('a box whose answer is 5/9 was given the signs row off its mark scheme\'s prose ("eg 5 : 9")');
+  if (signed('scheme', { accept: '5/9 | 0.56', answer: '<b>5 : 9</b>' })) bad.push('a box whose scheme is 5/9 was given the signs row off its worked answer -- the scheme decides where there is one');
+  /* AND ON A WORDED BOX THAT NEEDS ONE. The review of 8 Oct: eleven marked questions -- `x < 4 or x > 5`,
+     `93.5 ≤ length < 94.5`, `6:18 pm` -- have a word in their scheme, so they are WORDS boxes, and the row
+     was drawn on maths boxes only; neither face had `<` or `:`, and no way the marker accepts could be
+     typed. Its letters stay five rows; `123` has the row; the answer typed across both faces is marked right. */
+  const wi = Object.assign({}, base, { key: 'q-abc-wineq', answerType: 'calculation', accept: 'x < 4 or x > 5 | x > 5 or x < 4',
+    row: Object.assign({}, base.row, { row_id: 'Q-ABC-WINEQ' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(wi)); } catch (e) {}
+  const wb = draw(wi).querySelector('.kp-in');
+  if (wb.getAttribute('data-kp') !== 'words' || !wb.hasAttribute('data-kp-signs')) bad.push('a calculation whose scheme is "x < 4 or x > 5" is not a words box marked for the signs row: ' + wb.outerHTML.slice(0, 160));
+  wb.focus();
+  if (pad.getAttribute('data-layer') !== 'abc' || key('<')) bad.push('a worded box with the signs row did not open on its plain letters');
+  press('!123');
+  ['<', '≤', '≥', '>', ':', '±'].forEach(v => { if (!key(v)) bad.push('the 123 face of a worded box whose scheme is "x < 4 or x > 5" has no ' + v + ' key'); });
+  ['x', '<', '4', ' '].forEach(press); press('!abc'); ['o', 'r', ' '].forEach(press); press('!123'); ['x', '>', '5'].forEach(press);
+  press('!done');
+  if (wb.value !== 'x<4 or x>5' || !wb.closest('.qcard').querySelector('.qp-mark.is-right')) bad.push('"x<4 or x>5" typed on the pad into a worded box gave ' + JSON.stringify(wb.value) + ' and was not marked right');
+  try { w.localStorage.removeItem(w.__t.ansKey(wi)); } catch (e) {}
+  /* A WORDED ANSWER FROM ANOTHER DEVICE IS DRAWN AS WORDS: `ansRefresh_` through the pad's own drawing. */
+  if (typeof w.ansRefresh_ === 'function') {
+    const k = w.__t.ansKey(x);
+    try { w.localStorage.setItem(k, 'a well-known and/or 3/4 fact'); } catch (e) {}
+    w.ansRefresh_([k]);
+    const show = card.querySelector('.kp-show');
+    if (inp.value !== 'a well-known and/or 3/4 fact' || show.textContent !== 'a well-known and/or 3/4 fact' || show.querySelector('.frac, sup, sub')) {
+      bad.push('a worded answer filled from the account is drawn as ' + JSON.stringify(show.innerHTML.slice(0, 160)) + ' -- typeset, not the words it is');
+    }
+  } else bad.push('ansRefresh_ is not reachable — a worded box filled from the account was NOT checked');
+  [x, m, ineq].forEach(it => { try { w.localStorage.removeItem(w.__t.ansKey(it)); } catch (e) {} });
   if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
@@ -9789,10 +10900,13 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   const x = left.find(i => i.kind === 'textbook') || w.stuffItems().find(i => i.kind === 'textbook');
   if (!x) return bad.concat(['Find offers no textbook at all']);
 
-  /* CARD, THEN A PAGE PER CHAPTER IN ORDER. */
+  /* CARD, THEN A PAGE PER CHAPTER IN ORDER — AND AFTER EACH CHAPTER ITS ANIMATIONS. "Add the animations
+     from loading to respective subject text books" (the owner, 8 Oct): Statistics teaches the mean, Bayes,
+     Pascal and the Galton board, each a page straight after its chapter. */
   const parts = w.pageParts_(x);
-  const want = [null].concat(book.chapters.map(c => 'ch' + c.n));
-  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order');
+  const want = [null].concat(...book.chapters.map(c => ['ch' + c.n].concat((c.animations || []).map(a => 'an' + c.n + '-' + a.id))));
+  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order, each with its animations after it');
+  ['an8-mean', 'an15-bayes', 'an16-pas', 'an16-gal'].forEach(a => { if (parts.indexOf(a) < 0) bad.push('GCSE Statistics has no ' + a + ' page — data/textbooks.json put it under that chapter'); });
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.tb')) bad.push('the book card is not drawn as a textbook');
@@ -9828,6 +10942,250 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
     t.ACTIONS.fav(fav);
     if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
   }
+  return bad;
+});
+
+/* ---------- THE SPLASH'S PICKER, AS index.html HOLDS IT ---------------------------------------------
+   `boot()` STRIPS EVERY SCRIPT FROM THE PAGE, the picker with them — so a journey about which splash
+   is drawn runs the real one itself, out of the file, in the window the app booted in. Cut by its id:
+   it is `<script id="pick-splash">`, the first thing inside `#splash` (see check-css.js). */
+const pickerSrc_ = () => {
+  const h = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
+  const m = /<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h);
+  return m ? m[1] : null;
+};
+/* EVERY ANSWER THE COIN CAN GIVE, by forcing `Math.random` across its range: N evenly spaced values
+   reach every index of any pool of N or fewer. The splash is put back as the markup has it between
+   runs, so each pick starts where a fresh page does. Answers the class each run left, and the root
+   it drew if it drew one. */
+const pickEvery_ = (w, src, n) => {
+  const sp = w.document.getElementById('splash');
+  const was = w.Math.random, out = [];
+  const reset = () => {
+    sp.className = 'is-tag';
+    [...sp.querySelectorAll(':scope > [class|="an"]')].forEach(e => e.remove());
+    [...w.document.head.querySelectorAll('style[data-anim]')].forEach(e => e.remove());
+  };
+  try {
+    for (let k = 0; k < (n || 64); k++) {
+      reset();
+      w.Math.random = () => (k + 0.5) / (n || 64);
+      w.eval(src);
+      const root = sp.querySelector(':scope > [class|="an"]');
+      out.push({ cls: sp.className, root: root ? root.className : '' });
+    }
+  } finally { w.Math.random = was; reset(); }
+  return out;
+};
+/* UNTIL `load()` HAS READ THE FILES AND BUILT `DATA` — a poll rather than a fixed sleep, because the
+   suite runs beside four browsers and a fixed sleep is the timer that fails only there. */
+const loaded_ = async (t, ms) => {
+  for (let i = 0; i < (ms || 5000) / 25; i++) {
+    const d = t.DATA && t.DATA();
+    if (d && d.splashOff) return true;
+    await wait(25);
+  }
+  return false;
+};
+
+/* ---------- A RETIRED SPLASH STAYS RETIRED ----------------------------------------------------------
+   data/settings/splashes.json IS THE SHEET'S SWITCH, and the picker reads what the last load left in
+   `splashOff`. That was written from the PAYLOAD, before the file had been read — and `doGet` sends
+   `[]` — so turning a splash off in the sheet never reached a single device. This serves the real
+   file with Pythagoras switched off, lets the real `load()` run, and asks what the device kept; then
+   runs the real picker from index.html with every answer the coin can give, and Pythagoras must never
+   be the one drawn. */
+check('a retired splash stays retired: the file\'s list reaches the device, and the picker never draws it', async () => {
+  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'))
+    .map(r => r.splash_id === 'pyth' ? Object.assign({}, r, { active: false }) : r);
+  /* AND THE BOOKS, because Pythagoras lives in one: the picker could only draw it from the copy a load
+     of data/textbooks.json kept, so without them the retirement would be proved of nothing. */
+  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const { w } = boot({ serve: u => /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? rows
+    : /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : undefined });
+  if (!w.__t) return ['the app did not finish loading'];
+  if (!(await loaded_(w.__t))) return ['`load()` never built DATA.splashOff — the splashes file was NOT read, so nothing was checked'];
+  for (let i = 0; i < 100 && !w.localStorage.getItem('splashAnims'); i++) await wait(25);
+  if (((JSON.parse(w.localStorage.getItem('splashAnims') || '{}').ids) || []).indexOf('pyth') < 0) return ['the load kept no copy of Pythagoras from the books — the retirement was NOT proved of anything'];
+  const bad = [];
+  let off = null;
+  try { off = JSON.parse(w.localStorage.getItem('splashOff') || 'null'); } catch (e) { off = 'unreadable'; }
+  if (!Array.isArray(off) || off.indexOf('is-pyth') < 0) {
+    bad.push('the device kept splashOff = ' + JSON.stringify(off) + ' — Pythagoras is off in the file and the next load can still draw it');
+  }
+  const src = pickerSrc_();
+  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — the picker was NOT run']);
+  const picks = pickEvery_(w, src, 64);
+  const drew = picks.filter(p => p.cls === 'is-pyth' || p.root === 'an-pyth');
+  if (drew.length) bad.push('the picker drew Pythagoras ' + drew.length + ' times in 64 — retired in the sheet, and still on the splash');
+  const kinds = new Set(picks.map(p => p.root || p.cls));
+  if (kinds.size < 10) bad.push('64 forced picks drew only ' + kinds.size + ' different splashes (' + [...kinds].join(' ') + ') — the coin was NOT exercised');
+  return bad;
+});
+
+/* ---------- A CHAPTER PLAYS ITS ANIMATION ------------------------------------------------------------
+   "Add the animations from loading to respective subject text books." — the owner, 8 Oct. The real
+   books through the real mapper, GCSE Maths opened on Find, and the page after chapter 17 turned to:
+   Pythagoras, drawn from its row. Then what the page has to be true of: it plays on arrival and stops
+   when the page turns; its stylesheet is in the page once and is the row's; the drawing is the row's
+   markup with its ids made its own; no id inside any drawing on the page is shared; the chapter's
+   formula under it is typeset; the book's search words hold no markup; and Play again starts it over. */
+check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable — NOT checked'];
+  const rows = read('textbooks');
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { textbooks: rows })));
+  const p = payload();
+  Object.assign(p, { textbooks: made.textbooks || [] });
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const row = rows.find(r => r.anim === 'pyth');
+  if (!row) return ['data/textbooks.json has no pyth row — NOT checked'];
+  t.go('stuff');
+  const S = t.STUFF();
+  S.q = ''; S.filters.length = 0;
+  S.filters.push({ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
+  w.paintStuff();
+  const pages = w.stuffPages_();
+  const at = pages.findIndex(pg => pg.part === 'an17-pyth');
+  if (at < 0) return ['GCSE Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
+  if (!pages[at - 1] || pages[at - 1].part !== 'ch17') bad.push('Pythagoras is not the page straight after chapter 17 (it follows ' + (pages[at - 1] && pages[at - 1].part) + ')');
+  const first = w.stuffFirstResult_();
+  t.goPage('stuff', first + at);
+  await wait(450); await woken_();
+  const host = w.document.getElementById('s-stuff');
+  /* THE PAGE IN FRONT, AS FIND MARKS IT — `.on` on the page the column is placed at. */
+  const cardEl = host.querySelector('.card.is-an17-pyth');
+  const here = cardEl && cardEl.closest('.page');
+  const stage = here && here.querySelector('.tb-an-stage[data-anim="pyth"]');
+  if (!stage) return bad.concat(['the page turned to has no Pythagoras stage']);
+  if (!stage.classList.contains('is-on')) bad.push('the stage on the page in front is not `.is-on` — it stands paused');
+  const others = [...host.querySelectorAll('.tb-an-stage.is-on')].filter(e => e !== stage);
+  if (others.length) bad.push(others.length + ' other stage(s) are playing off the page in front: ' + others.map(e => e.dataset.anim).join(' '));
+  /* ITS STYLESHEET: ONE, THE ROW'S. */
+  const st = w.document.head.querySelectorAll('style[data-anim="pyth"]');
+  if (st.length !== 1) bad.push(st.length + ' <style data-anim="pyth"> in the page — one, shared');
+  else if (st[0].textContent !== row.css) bad.push('the page\'s Pythagoras stylesheet is not the row\'s CSS');
+  /* ITS MARKUP: THE ROW'S, IDS ITS OWN. */
+  const n = (/-t(\d+)"/.exec(stage.innerHTML) || [])[1];
+  const box = w.document.createElement('div');
+  box.innerHTML = w.animIds_(row.html, n || 1);
+  if (stage.innerHTML !== box.innerHTML) bad.push('the stage is not the row\'s markup as `animIds_` gives it');
+  const ids = [...host.querySelectorAll('.tb-an-stage [id]')].map(e => e.id);
+  const dup = ids.filter((v, i) => ids.indexOf(v) !== i);
+  if (dup.length) bad.push('ids shared between drawings on the page: ' + [...new Set(dup)].join(' '));
+  const plain = ids.filter(v => !/-t\d+$/.test(v));
+  if (plain.length) bad.push('ids inside a drawing that were not made its own: ' + plain.join(' '));
+  if (!ids.length) bad.push('no drawing near the page has an id, so the id rule was NOT exercised (the Venn two pages on has four)');
+  /* WHAT IT IS ABOUT, IN THE CHAPTER'S WORDS AND TYPESET. */
+  const card = here.querySelector('.card.tb-an');
+  if (!card) bad.push('the page is not drawn as a textbook animation card');
+  else {
+    if (!/Pythagoras/.test(card.querySelector('h3').textContent)) bad.push('the page is not headed Pythagoras');
+    if (!/chapter 17/.test(card.querySelector('.fc-kick').textContent)) bad.push('the kicker does not say chapter 17');
+    const fm = card.querySelector('.tb-about .tb-math .tb-fm');
+    if (!fm || !fm.querySelector('sup')) bad.push('the Pythagoras formula under the drawing is not typeset (no raised power)');
+    if (card.querySelectorAll('.tb-about li').length > 4) bad.push('the page lists ' + card.querySelectorAll('.tb-about li').length + ' lines — only what it is about, not the whole chapter');
+    if (/@family\./.test(card.querySelector('.tb-an-stage').textContent)) bad.push('the drawing in the chapter signs itself');
+  }
+  /* THE BOOK IS FOUND BY THE ANIMATION'S TITLE, AND ITS WORDS HOLD NO MARKUP. */
+  const bk = (made.textbooks || []).find(b => b.name === 'GCSE Maths');
+  const words = w.textbookText_(bk);
+  /* NOT `<` ITSELF: the chapters' own words have inequalities in them. The drawing's tags and rules. */
+  if (/class=|<svg|<div|@keyframes|py-cell|an-pyth/.test(words)) bad.push('the book\'s search words hold markup — the drawing\'s html or css went into the haystack');
+  /* AND NOT ITS WORDS EITHER: the haystack strips tags, so markup put into it arrives as the drawing's
+     own captions. Bayes's "people take a test" is on the drawing and nowhere in the chapter. */
+  const statsBook = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
+  if (w.textbookText_(statsBook).indexOf('people take a test') !== -1) bad.push('GCSE Statistics is found by "people take a test", which is Bayes\'s drawing, not its chapter — the drawing went into the haystack');
+  if (words.indexOf('Galton') !== -1) bad.push('GCSE Maths\'s words hold Galton, which is a Statistics animation');
+  const stats = (made.textbooks || []).find(b => b.name === 'GCSE Statistics');
+  if (w.textbookText_(stats).indexOf('Galton board') < 0) bad.push('"Galton board" does not find GCSE Statistics');
+  /* PLAY AGAIN PUTS THE MARKUP BACK, which starts it over. */
+  const tile = card && card.querySelector('[data-do="tb-an-again"]');
+  if (!tile || typeof t.ACTIONS['tb-an-again'] !== 'function') bad.push('no Play again tile, or no handler for it');
+  else {
+    const before = stage.firstElementChild;
+    t.ACTIONS['tb-an-again'](tile);
+    if (stage.firstElementChild === before) bad.push('Play again left the drawing\'s elements in place — nothing restarted');
+    if (stage.innerHTML !== box.innerHTML) bad.push('Play again changed the drawing');
+  }
+  /* AND IT STOPS WHEN THE PAGE TURNS. */
+  t.goPage('stuff', first + at + 1);
+  await wait(450); await woken_();
+  if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
+  return bad;
+});
+
+/* ---------- THE SPLASH IS DRAWN FROM THE TEXTBOOKS' COPY ---------------------------------------------
+   "The animation from loading screen are pulling and syncing from the text book animations." — the
+   owner. Boot 1 is a real load that reads the real books and keeps the copy. Boot 2 is the next visit
+   on the same device: its storage carried over, Pythagoras the one the coin can land on, the real
+   picker run as index.html runs it. The drawing on the splash is the chapter's drawing; and when the
+   load finishes, it is taken off and the splash goes back to the tag for any Try again. */
+check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
+  const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
+  const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
+  const serve = u => /(^|\/)data\/textbooks\.json(\?|$)/.test(u) ? books : /(^|\/)data\/settings\/splashes\.json(\?|$)/.test(u) ? sheet : undefined;
+  const one = boot({ serve });
+  for (let i = 0; i < 200 && !one.w.localStorage.getItem('splashAnims'); i++) await wait(25);
+  const kept = {};
+  for (let i = 0; i < one.w.localStorage.length; i++) { const k = one.w.localStorage.key(i); kept[k] = one.w.localStorage.getItem(k); }
+  const idx = JSON.parse(kept.splashAnims || 'null');
+  if (!idx || !(idx.ids || []).length) return ['the first load kept no copy of the books\' animations — NOT checked'];
+  const bad = [];
+  const want = books.filter(r => r.anim).map(r => r.anim);
+  if (idx.ids.join() !== want.join()) bad.push('the first load kept ' + idx.ids.length + ' animations, not the books\' ' + want.length + ' in order');
+  const src = pickerSrc_();
+  if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — NOT checked']);
+  const inline = ((/var kinds = \[([^\]]*)\]/.exec(src.replace(/\/\*[\s\S]*?\*\//g, '')) || [])[1] || '').match(/'([a-z0-9]+)'/g).map(x => x.slice(1, -1));
+  const two = boot({ serve, before: w2 => {
+    Object.keys(kept).forEach(k => w2.localStorage.setItem(k, kept[k]));
+    w2.localStorage.setItem('splashOff', JSON.stringify(inline.concat(idx.ids).filter(k => k !== 'pyth').map(k => 'is-' + k)));
+  } });
+  const w = two.w;
+  const sp = w.document.getElementById('splash');
+  sp.className = 'is-tag';
+  w.eval(src);
+  const root = sp.querySelector(':scope > .an-pyth');
+  if (sp.className !== 'is-an' || !root) return bad.concat(['the next visit drew "' + sp.className + '", not Pythagoras from the kept copy']);
+  if (root !== sp.firstElementChild) bad.push('the drawing is not the first thing in the splash');
+  if (!root.querySelector(':scope > .sp-sig')) bad.push('the splash did not sign the drawing');
+  /* THE CHAPTER'S DRAWING, ONCE THE PAGE'S OWN IDS ARE TAKEN OUT. */
+  const made = w.libraryExtras_({}, { textbooks: books });
+  const maths = made.textbooks.find(b => b.name === 'GCSE Maths');
+  const page = w.document.createElement('div');
+  page.innerHTML = w.textbookAnimPart_({ name: maths.name, row: maths, kind: 'textbook' }, 'an17-pyth');
+  const stage = page.querySelector('.tb-an-stage');
+  const splashCopy = root.cloneNode(true); splashCopy.querySelector('.sp-sig').remove();
+  const unsuffix = h => h.replace(/(id="|url\(#|href="#)([\w-]+?)-t\d+/g, '$1$2');
+  if (!stage || unsuffix(stage.innerHTML).trim() !== splashCopy.outerHTML.trim()) bad.push('the splash\'s Pythagoras is not the chapter\'s');
+  const styles = w.document.head.querySelectorAll('style[data-anim="pyth"]');
+  if (styles.length !== 1) bad.push(styles.length + ' Pythagoras stylesheets after the splash and the chapter both drew it — one, shared');
+  /* AND OFF WITH THE SPLASH. */
+  w.splashOff_();
+  await wait(650);
+  if (sp.querySelector(':scope > [class|="an"]')) bad.push('half a second after the splash came off, its drawing is still in it');
+  if (sp.className.split(/\s+/).indexOf('is-tag') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash');
+  return bad;
+});
+
+/* ---------- THE BOOKS AND THE SETTINGS ARE ASKED FOR WITH THE DEPLOY'S STAMP --------------------------
+   `sw.js` answers an exact URL out of its store with no network; a bare `data/textbooks.json` was the
+   first copy a device ever saw, for good. `check/deploy.js` proves the effect in a browser; this is
+   the cause, asked of the real fetch: every library and settings file carries `?t=` and the deploy. */
+check('the books and the settings files are fetched with the deploy stamp', async () => {
+  const { w, gets } = boot({ before: w2 => { w2.LOAD = 'STAMP42'; } });
+  for (let i = 0; i < 100 && !gets.some(u => /data\/textbooks\.json/.test(u)); i++) await wait(25);
+  const bad = [];
+  ['textbooks', 'practicals', 'settings/splashes', 'settings/brand'].forEach(n => {
+    const asked = gets.filter(u => u.indexOf('data/' + n + '.json') === 0);
+    if (!asked.length) bad.push('data/' + n + '.json was never asked for — NOT checked');
+    else if (!asked.every(u => u === 'data/' + n + '.json?t=STAMP42')) bad.push('data/' + n + '.json was asked for as ' + asked.join(', ') + ' — without the deploy stamp the worker keeps the first copy for good');
+  });
   return bad;
 });
 
@@ -10572,8 +11930,14 @@ check('every Find kind that is not a question is made of the shared parts: head,
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const all = w.stuffItemsAll_();
   /* THE CARD'S OWN MARKUP, NOT A DRAWING'S. A practical's diagram is hand-written SVG and some of it
-     carries a `style` attribute of its own, which is the drawing's business rather than the card's. */
-  const onCard = el => !el.closest('svg, figure');
+     carries a `style` attribute of its own, which is the drawing's business rather than the card's.
+     SO DOES A TEXTBOOK'S ANIMATION, and it is not SVG: the sieve's numbers, the coin's tallies and the
+     sort's bars are HTML, each carrying its own `--kf`, `--h` or `--i` inline, which is how one rule
+     is told apart across thirty elements. Seven of the 27 chapter pages were named here as "a stray
+     shape" the first time the rows were real. What a drawing may carry inline is `check-anims.js`'s
+     question — custom properties and its own `animation-name`, nothing else — so its stage is a
+     drawing here, as an `<svg>` is. */
+  const onCard = el => !el.closest('svg, figure, .tb-an-stage');
   const KINDS_HERE =['practical', 'project', 'textbook', 'film', 'boxer', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);
@@ -12599,6 +13963,201 @@ check('a second payload repaints the column in front and leaves the others for w
   await wait(100);
   const redrawn = ids.filter(id => { const el = d.getElementById('s-' + id); return el && !(el.firstElementChild && el.firstElementChild.hasAttribute('data-was')); });
   if (redrawn.filter(id => id !== t.AT()).length) bad.push('a second payload rebuilt ' + redrawn.length + ' columns (' + redrawn.join(', ') + ') — wanted only the one in front, ' + t.AT() + '; the rest are drawn when visited');
+  return bad;
+});
+
+/* ---------- AN ORDERING IS TAPPED IN ORDER, ON THE REAL CARD ----------------------------------------
+   THE OWNER, 8 Oct, of June 2024 Foundation Paper 1 Q4: *"I would prefer it be like an ordering
+   system?? Idk. But simpler to mark for a machine."* (docs/history/303). The REAL row, out of
+   data/questions.json, through the real loader (library.js) and Find's own `questionItems`, drawn by
+   `questionCard_` and pressed by CLICKS, so the app's own dispatcher and the answers' "send at once"
+   listener are what run: tap, tap a placed one back out of its slot (a hole, nothing slides), its
+   ghost pressed and nothing happening (a double-tap undid itself), the keyboard's focus handed on,
+   Clear, Send on an empty strip, the reversed row, one swap, the right row; the verdict in its
+   reserved line and the question not redrawn; the stored positions, on the account at once on Send,
+   the day it was done, drawn again from the store, and a row from another device redrawn where it
+   stands. And a typed list left under the same key from before, which must draw an empty strip.
+
+   AND A SECOND, MADE-UP ROW WITH TWO RIGHT ORDERS (`2,1,3 | 1,2,3`), served beside Q4, because no
+   library row has two yet and so nothing proved the loader keeps the second: changed to keep only the
+   first, this journey, check-library and check-marking all stayed green (check-marking feeds
+   `markOrder_` hand-written arrays, never the loader's). The second order, tapped and sent, must say
+   "Correct". jsdom lays nothing out -- that marking moves nothing in PIXELS is `check/states.js`'s. */
+check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order, kept on the account and drawn back', async () => {
+  const ID = 'Q-1MA1-2406-1F-4';
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const row = LIB.find(r => r.row_id === ID);
+  if (!row) return [ID + ' is not in data/questions.json — nothing was tapped'];
+  const TIE = 'Q-1MA1-2406-1F-4-TIE';
+  const paper = LIB.filter(r => r.paper_id === row.paper_id).concat([Object.assign({}, row, {
+    row_id: TIE, question: '4x', html: '<p>Write these in order of size. Start with the smallest.</p>',
+    choices: '0.5 | <sup>1</sup>&frasl;<sub>2</sub> | 0.7', choice_right: '2,1,3 | 1,2,3', answer: '<b>0.5, &frac12;, 0.7</b>' })]);
+  const server = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES.concat(['markDone']) }),
+    reply: ansBackend_(server), serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
+  await wait(300);
+  const need = ansNeed_(w).concat(['orderBox_', 'markOrder_', 'ansRefresh_', 'stuffItemsAll_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? No ordering was checked'];
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  ['qp-place', 'qp-order-clear', 'qp-order-send'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
+  if (bad.length) return bad;
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+  if (!x) return ['the real ' + ID + ' did not come through the loader into Find — nothing was tapped'];
+  /* THE LOADER CARRIED ALL FOUR COLUMNS */
+  const said = JSON.stringify({ t: x.answerType, c: x.choices, w: x.choiceWays, e: x.orderEnds });
+  if (said !== JSON.stringify({ t: 'order', c: ['0.21', '0.2', '0.03', '0.1', '0.16'], w: [[3, 4, 5, 2, 1]], e: ['smallest', 'largest'] })) {
+    bad.push('the loader made the row into ' + said);
+  }
+  const k = w.__t.ansKey(x);
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  host.innerHTML = w.questionCard_(x, 0);
+  let card = host.querySelector('.qcard');
+  const box = () => card.querySelector('.qp-order');
+  if (!box()) return bad.concat(['the card drew no order box: ' + card.innerHTML.replace(/\s+/g, ' ').slice(-240)]);
+  if (card.querySelector('.qp-ans-in, textarea, .qp-opt')) bad.push('the ordering drew a typed box or multiple-choice options as well');
+  const items = () => [...box().querySelectorAll('.qp-items > button.qp-item')];
+  const words = items().map(b => b.textContent.trim()).join(' ');
+  if (words !== '0.21 0.2 0.03 0.1 0.16') bad.push('the items read "' + words + '", wanted the paper\'s order as buttons');
+  /* THE ENDS ARE A LINE OF THEIR OWN OVER THE SLOTS, first end first, in sentence case. */
+  const strip = [...box().querySelector('.qp-slots').children];
+  const ends = [...box().querySelectorAll('.qp-slots > .qp-ends > .qp-end')].map(e => e.textContent.trim());
+  if (ends.join('|') !== 'Smallest|Largest' || !strip[0].classList.contains('qp-ends') || strip.slice(1).some(e => !e.classList.contains('qp-slot'))) {
+    bad.push('the strip\'s ends are ' + JSON.stringify(ends) + ' — wanted a line of "Smallest" and "Largest" over the slots, and only slots under it');
+  }
+  /* A POWER IS ONE FACE: every item's words in one `.qp-face`, so a <sup> stays raised (it was a flex
+     item of its own, and 2² read as "22"). */
+  if (box().querySelectorAll('.qp-item').length !== box().querySelectorAll('.qp-item > .qp-face:only-child').length) bad.push('an item\'s face is not one `.qp-face` — a <sup> in it is a flex item and loses its raise');
+  const slots = () => [...box().querySelectorAll('.qp-slots > .qp-slot')]
+    .map(s => (s.classList.contains('is-full') ? s.getAttribute('data-n') : '_')).join(' ');
+  const stored = () => w.localStorage.getItem(k) || '';
+  const verdict = () => (box().querySelector('.qp-mark > .qp-verdict') || {}).textContent;
+  const marked = () => ['is-right', 'is-near'].filter(c => box().classList.contains(c)).join(' ');
+  const press = el => { if (!el) { bad.push('a control to press is missing'); return; } el.click(); };
+  const tap = n => press(box().querySelector('.qp-item[data-n="' + n + '"]'));
+  const back = n => press(box().querySelector('.qp-slot.is-full[data-n="' + n + '"]'));
+  const clear = () => press(box().querySelector('.qp-order-clear'));
+  const send = () => press(box().querySelector('.qp-order-send'));
+  if (slots() !== '_ _ _ _ _') bad.push('a fresh card\'s strip reads ' + slots());
+  if (verdict() !== '') bad.push('no reserved verdict line under the items before marking — the verdict would arrive as a new line');
+  const sendT = box().querySelector('.qp-order-send');
+  if (!sendT || !sendT.matches('.qp-mark > .tile.is-send[data-do="qp-order-send"]') || !sendT.querySelector('.tile-i-send')) bad.push('Send is not the gold send tile on the verdict line');
+  /* THE QUESTION ABOVE IS NEVER REDRAWN -- the nodes, their markup, and the card's blocks. */
+  const sheet = card.querySelector('.qsheet'), tags = card.querySelector('.qcard-tags');
+  const sheetHtml = sheet.outerHTML, blocks = [...card.children].map(c => c.classList[0]).join(',');
+  const unmoved = when => {
+    if (card.querySelector('.qsheet') !== sheet || sheet.outerHTML !== sheetHtml || card.querySelector('.qcard-tags') !== tags) bad.push(when + ': the question was redrawn');
+    if ([...card.children].map(c => c.classList[0]).join(',') !== blocks) bad.push(when + ': the card\'s blocks changed');
+  };
+  /* TAP: the first empty slot, and a ghost left where it was */
+  tap(3);
+  if (slots() !== '3 _ _ _ _' || stored() !== '3') bad.push('tapping 0.03 left the strip ' + slots() + ' and stored "' + stored() + '"');
+  const ghost = box().querySelector('.qp-item[data-n="3"]');
+  if (!ghost || !ghost.classList.contains('is-placed') || ghost.getAttribute('aria-pressed') !== 'true') bad.push('a placed item does not say so in the row under the strip');
+  if (items().length !== 5) bad.push('placing an item took it out of the row under the strip — the row closes up under the finger');
+  tap(4); tap(5);
+  if (slots() !== '3 4 5 _ _' || stored() !== '3,4,5') bad.push('three taps left ' + slots() + ', stored "' + stored() + '"');
+  /* UNTAP FROM ITS SLOT: a hole where it was, nothing slides, and the next tap fills the hole */
+  back(4);
+  if (slots() !== '3 _ 5 _ _' || stored() !== '3,,5') bad.push('taking 0.1 back out of its slot left ' + slots() + ', stored "' + stored() + '" — wanted a hole where it was, "3,,5"');
+  tap(4);
+  if (slots() !== '3 4 5 _ _') bad.push('the next tap did not fill the hole: ' + slots());
+  /* THE GHOST DOES NOTHING -- a quick second tap on the item just placed undid it (two real touch taps
+     70ms apart on 0.2: in, and straight back out). `disabled`, so the press never arrives, and the
+     handler refuses it too, which is the half that does not depend on the browser: pressed directly. */
+  const ghost5 = box().querySelector('.qp-item[data-n="5"]');
+  if (!ghost5 || !ghost5.disabled) bad.push('the ghost of a placed item is still a live button — a double-tap undoes itself');
+  tap(5);
+  A['qp-place'](box().querySelector('.qp-item[data-n="5"]'));
+  if (slots() !== '3 4 5 _ _' || stored() !== '3,4,5') bad.push('pressing the ghost of 0.16 changed the strip to ' + slots() + ', stored "' + stored() + '" — only its slot takes it back');
+  back(5);
+  if (slots() !== '3 4 _ _ _' || stored() !== '3,4') bad.push('taking 0.16 back out of its slot left ' + slots() + ', stored "' + stored() + '"');
+  /* THE KEYBOARD'S FOCUS GOES ON: placed from the keyboard, to the next item still to place, because
+     the ghost is disabled and cannot hold it; and to Send once every item is placed. */
+  const k5 = box().querySelector('.qp-item[data-n="5"]');
+  k5.focus(); k5.click();
+  if (!d.activeElement || d.activeElement.getAttribute('data-n') !== '1' || !d.activeElement.matches('.qp-item')) bad.push('placing 0.16 from the keyboard left the focus on ' + (d.activeElement ? d.activeElement.outerHTML.slice(0, 60) : 'nothing') + ' — wanted the next item to place, 0.21');
+  back(5);
+  /* CLEAR */
+  clear();
+  if (slots() !== '_ _ _ _ _' || stored() !== '' || box().querySelector('.qp-item.is-placed')) bad.push('Clear left ' + slots() + ', stored "' + stored() + '"');
+  if (!box().querySelector('.qp-order-clear[disabled]')) bad.push('Clear on an empty strip is still pressable — a control that does nothing');
+  /* SEND, EMPTY: not a verdict */
+  send();
+  if (!/^Put all 5 in the row first$/.test(verdict()) || marked()) bad.push('Send on an empty strip said "' + verdict() + '" (' + (marked() || 'unmarked') + ') — wanted "Put all 5 in the row first", which is not a verdict');
+  /* THE ROW REVERSED: largest under "smallest" */
+  [1, 2, 5, 4, 3].forEach(tap);
+  if (verdict()) bad.push('placing items left "' + verdict() + '" on a row that has changed');
+  send();
+  if (verdict() !== 'Not yet — have another go' || marked() !== 'is-near') bad.push('the reversed row was marked "' + verdict() + '" (' + marked() + ')');
+  unmoved('after a wrong Send');
+  /* MOVING ONE TAKES THE VERDICT OFF */
+  back(3);
+  if (verdict() || marked()) bad.push('taking an item back left the old verdict, "' + verdict() + '", on a row that has changed');
+  /* ONE SWAP */
+  clear();
+  [4, 3, 5, 2, 1].forEach(tap);
+  send();
+  if (verdict() !== 'Not yet — have another go') bad.push('one swap (0.1 before 0.03) was marked "' + verdict() + '"');
+  /* RIGHT */
+  clear();
+  const asked = sent.length;
+  [3, 4, 5, 2, 1].forEach(tap);
+  send();
+  if (verdict() !== 'Correct' || marked() !== 'is-right') bad.push('0.03, 0.1, 0.16, 0.2, 0.21 was marked "' + verdict() + '" (' + marked() + ')');
+  if (stored() !== '3,4,5,2,1') bad.push('the right row is stored as "' + stored() + '", wanted "3,4,5,2,1"');
+  unmoved('after a right Send');
+  if (card.querySelector('.qans')) bad.push('a right order put the answer on the question card');
+  /* ON THE ACCOUNT AT ONCE, AND THE DAY IT WAS DONE */
+  await wait(80);
+  const up = sent.slice(asked).filter(b => b.action === 'saveAnswers')
+    .map(b => (b.items || []).find(it => it.key === 'ans:q:' + ID)).filter(Boolean).pop();
+  if (!up || up.v !== '3,4,5,2,1') bad.push('Send did not put the row on the account at once: ' + JSON.stringify(up || null));
+  if (!sent.some(b => b.action === 'markDone' && JSON.stringify(b.items || []).indexOf(ID) !== -1)) bad.push('placing and sending the order did not record the day it was done (markDone)');
+  /* DRAWN AGAIN FROM THE STORE: the row and, while it is the row that was sent, its verdict */
+  host.innerHTML = w.questionCard_(x, 0);
+  card = host.querySelector('.qcard');
+  if (slots() !== '3 4 5 2 1' || verdict() !== 'Correct') bad.push('drawn again the strip reads ' + slots() + ' and "' + verdict() + '"');
+  /* A ROW FROM ANOTHER DEVICE, redrawn where it stands, and the old verdict goes with the old row */
+  server['ans:q:' + ID] = { v: '2,1', at: Date.now() + 60000 };
+  const ok = await w.answersPull_(true);
+  if (!ok) bad.push('the read from the account did not land');
+  if (slots() !== '2 1 _ _ _' || stored() !== '2,1') bad.push('the account\'s "2,1" did not reach the strip: ' + slots() + ', stored "' + stored() + '"');
+  if (verdict()) bad.push('a row from another device kept the verdict about the old one: "' + verdict() + '"');
+  if (host.querySelectorAll('.qp-saved[data-k="' + k + '"]').length !== 1) bad.push('a redraw left two saved lines under the strip');
+  /* A TYPED LIST LEFT UNDER THE SAME KEY, from before Q4 was an ordering, draws an empty strip -- read
+     piece by piece it drew a half-row nobody made, and the next tap wrote it to the account. */
+  w.localStorage.setItem(k, '0.03, 0.1, 0.16, 0.2, 0.21');
+  host.innerHTML = w.questionCard_(x, 0);
+  card = host.querySelector('.qcard');
+  if (slots() !== '_ _ _ _ _') bad.push('a typed list under the key drew the strip ' + slots() + ' — wanted it empty');
+  w.localStorage.setItem(k, '1, 2, 7');
+  host.innerHTML = w.questionCard_(x, 0);
+  card = host.querySelector('.qcard');
+  if (slots() !== '_ _ _ _ _') bad.push('"1, 2, 7", with 7 past the five items, drew the strip ' + slots() + ' — wanted it empty');
+  tap(3);
+  if (stored() !== '3') bad.push('the first tap over a typed list stored "' + stored() + '", wanted "3"');
+  /* TWO RIGHT ORDERS, THROUGH THE LOADER, AND THE SECOND ONE MARKED RIGHT */
+  const y = w.stuffItemsAll_().find(it => it.row && it.row.row_id === TIE);
+  if (!y) return bad.concat(['the made-up ordering with two right orders did not come through the loader']);
+  if (JSON.stringify(y.choiceWays) !== '[[2,1,3],[1,2,3]]') bad.push('the loader kept the orders ' + JSON.stringify(y.choiceWays) + ' of "2,1,3 | 1,2,3" — an order dropped here is a right answer marked wrong');
+  const ky = w.__t.ansKey(y);
+  try { w.localStorage.removeItem(ky); } catch (e) {}
+  host.innerHTML = w.questionCard_(y, 0);
+  card = host.querySelector('.qcard');
+  [1, 2, 3].forEach(tap);
+  send();
+  if (verdict() !== 'Correct' || marked() !== 'is-right') bad.push('0.5, ½, 0.7 -- the second order "2,1,3 | 1,2,3" lists -- was marked "' + verdict() + '" (' + (marked() || 'unmarked') + ')');
+  clear();
+  [2, 1, 3].forEach(tap);
+  send();
+  if (verdict() !== 'Correct') bad.push('½, 0.5, 0.7 -- the first order -- was marked "' + verdict() + '"');
+  clear();
+  [3, 1, 2].forEach(tap);
+  send();
+  if (verdict() !== 'Not yet — have another go') bad.push('0.7 first was marked "' + verdict() + '" on a row with two right orders');
   return bad;
 });
 

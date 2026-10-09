@@ -478,6 +478,79 @@ const STATES = {
       },
       wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
+       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
+       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
+       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
+       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
+       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
+       by its page; the pages either side are in the DOM beside it and are measured too. */
+    { name: 'a textbook animation: Pythagoras',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
+        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
+        goPage('stuff', stuffFirstResult_() + at);
+      },
+      expect: () => {
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an17-pyth');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
+        return !!stage && !!stage.querySelector('.an-pyth')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="pyth"]');
+      },
+      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'a textbook animation: Bayes',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
+        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
+        goPage('stuff', stuffFirstResult_() + at);
+      },
+      expect: () => {
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an15-bayes');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
+        return !!stage && !!stage.querySelector('.an-bayes')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="bayes"]');
+      },
+      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'a textbook animation: standard form',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
+        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
+        goPage('stuff', stuffFirstResult_() + at);
+      },
+      expect: () => {
+        const card = document.querySelector('#s-stuff .card.tb-an.is-an2-sf');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
+        return !!stage && !!stage.querySelector('.an-sf')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="sf"]');
+      },
+      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
        THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
        want a pen and 26 carry the picture to put one over — and every one of them is inside the
@@ -534,8 +607,11 @@ const STATES = {
        measures perfectly and is the thing that was asked to stop. */
     { name: 'a multiple-choice question',
       enter: () => {
+        /* NOT AN ORDERING: it has `choices` and a `choiceRight` too, and draws a strip, not options
+           (`orderBox_`) -- it has states of its own below. */
         const mc = stuffItemsAll_().find(it => it.kind === 'question'
-          && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length);
+          && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length
+          && !orderIs_(it));
         if (!mc) throw new Error('no question in the list carries choices');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(mc) }];
@@ -1191,6 +1267,162 @@ const STATES = {
         ANS_SHOWN.clear();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
+    /* ---------- AN ORDERING, HALF PLACED, AND THEN SENT RIGHT -------------------------------------------
+       THE OWNER, 8 Oct: *"I would prefer it be like an ordering system?? … simpler to mark for a
+       machine."* (`orderBox_`, docs/history/303.) The real June 2024 1F Q4, its five numbers tapped by
+       CLICKS on the real buttons. Half placed is the strip with two items in it, two ghosts in the row
+       under it and three dashed slots -- the picture worth measuring at 320, where the strip wraps.
+       Then the whole row WRONG, and Send, and then right, and Send: the question, the strip, the
+       verdict's line and the card's height measured before and after each, because marking moves
+       nothing (261) -- and Send and Clear too, because the long "Not yet — have another go" took room
+       from them: at 320 Send went from 48x48 to 39x48 and Clear from 44 to 36 wide, and they moved 9
+       and 17px. Only the short "Correct" had been measured, and it never squeezes the row. */
+    { name: 'an ordering, half placed',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
+        if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
+        if (!orderIs_(it)) throw new Error('Q-1MA1-2406-1F-4 is not an ordering — its answer_type is ' + it.answerType);
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ORDER_SENT.clear();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
+        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const run = () => {
+          if (!box()) return false;
+          [3, 4].forEach(n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); });
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const card = box && box.closest('.qcard');
+        const full = box ? [...box.querySelectorAll('.qp-slot')].map(s => (s.classList.contains('is-full') ? s.getAttribute('data-n') : '_')).join(' ') : '';
+        return !!box && full === '3 4 _ _ _' && box.querySelectorAll('.qp-item.is-placed').length === 2
+               && box.querySelectorAll('.qp-item').length === 5 && !card.querySelector('textarea, .qp-ans-in, .qp-opt');
+      },
+      wants: 'the real 1F Q4 as an ordering: 0.03 and 0.1 in the first two slots, their ghosts in the row under it, three slots empty, no text box',
+      leave: () => {
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'an ordering, sent wrong then right, nothing moved',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
+        if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ORDER_SENT.clear();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
+        window.__qStable = null;
+        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const run = () => {
+          if (!box()) return false;
+          /* AND FILLING IT MOVES NOTHING EITHER: every slot, and the row of items where the finger is,
+             measured before the first tap and after the last -- the strip is one shape throughout. */
+          const shape = () => [...box().querySelectorAll('.qp-slot')].map(s => { const r = s.getBoundingClientRect(); return [r.left, r.top, r.width]; })
+            .concat([[0, box().querySelector('.qp-items').getBoundingClientRect().top, 0]]);
+          const shape0 = shape();
+          const tap = n => { const b = box(); const el = b && b.querySelector('.qp-item[data-n="' + n + '"]'); if (el) el.click(); };
+          const card = box().closest('.qcard');
+          const at = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
+                            box().querySelector('.qp-slots').getBoundingClientRect().top,
+                            box().querySelector('.qp-verdict').getBoundingClientRect().top,
+                            card.getBoundingClientRect().height];
+          const tiles = () => ['.qp-order-send', '.qp-order-clear'].map(q => { const r = box().querySelector(q).getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
+          /* WRONG FIRST: the row reversed, its long verdict beside the two tiles. Measured by the verdict's
+             ROW (`.qp-mark`), its top and height, not the sentence's own top: "Not yet — have another go"
+             wraps to two lines INSIDE its slot at 320 and 390, as the typed bar's verdict does by design,
+             so its first line starts higher in a row that has not moved -- nothing else is there to move. */
+          const row = () => { const r = box().querySelector('.qp-mark').getBoundingClientRect(); return [r.top, r.height]; };
+          const atRow = () => [card.querySelector('.qsheet').getBoundingClientRect().top,
+                               box().querySelector('.qp-slots').getBoundingClientRect().top,
+                               card.getBoundingClientRect().height].concat(row(), ...tiles());
+          [1, 2, 5, 4, 3].forEach(tap);
+          const w0 = atRow();
+          box().querySelector('.qp-order-send').click();
+          const wrong = { a: w0, b: atRow(), say: (box().querySelector('.qp-verdict') || {}).textContent };
+          box().querySelector('.qp-order-clear').click();
+          [3, 4, 5, 2, 1].forEach(tap);
+          const a = at();
+          box().querySelector('.qp-order-send').click();
+          window.__qStable = { a, b: at(), fill: [shape0, shape()], wrong };
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const s = window.__qStable;
+        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        return !!s && !!box && box.classList.contains('is-right')
+               && (box.querySelector('.qp-verdict') || {}).textContent === 'Correct'
+               && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5)
+               && s.wrong.say === 'Not yet — have another go'
+               && s.wrong.a.length === 13 && s.wrong.a.every((v, i) => Math.abs(v - s.wrong.b[i]) < 0.5)
+               && s.fill[0].length === s.fill[1].length
+               && s.fill[0].every((p, i) => p.every((v, j) => Math.abs(v - s.fill[1][i][j]) < 0.5));
+      },
+      wants: 'the reversed order sent and marked Not yet, then the right one marked Correct, with the question, the strip, the verdict\'s row, the card\'s height and the Send and Clear tiles (place and size) where they were each time, and every slot and the items where they were before the first tap',
+      leave: () => {
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        ORDER_SENT.clear();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE ROW AS IT IS IN THE QUESTION ------------
+       5-a-day 3 June Q1, "2² ∛27 1³ √25". A slot and an item are `inline-flex`, and a bare `<sup>` in one
+       was a flex item of its own: not raised, centred beside its digit, so the row read "22 ∛27 13 √25"
+       -- and standard form "6 × 104" -- and a child who reads them that way orders them wrong. Measured
+       at 390 before the fix: the exponent level with its digit (sup 488-503, digit 487-504) where the
+       question prints it 6px up. 2² is placed, so a slot holds one too, and every `<sup>` in the strip
+       and the row must sit at least 2px above the bottom of the digit before it. Fractions never showed
+       it -- `typeset_` draws one as a single element -- which is why the first shots missed it. */
+    { name: 'an ordering of powers, raised as printed',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-5AD-F-0603-1');
+        if (!it) throw new Error('Q-CBM-5AD-F-0603-1 is not in the library');
+        if (!orderIs_(it)) throw new Error('Q-CBM-5AD-F-0603-1 is not an ordering — its answer_type is ' + it.answerType);
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ORDER_SENT.clear();
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__ordKey = ansKey_(it);
+        const box = () => [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        const run = () => {
+          if (!box()) return false;
+          const el = box().querySelector('.qp-item[data-n="1"]');
+          if (el) el.click();
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const box = [...document.querySelectorAll('#s-stuff .qp-order')].find(b => b.getAttribute('data-k') === window.__ordKey);
+        if (!box || !box.querySelector('.qp-slot.is-full[data-n="1"]')) return false;
+        /* HOW FAR A <sup> SITS ABOVE THE BOTTOM OF THE TEXT JUST BEFORE IT, in px. */
+        const raise = sup => {
+          const t = sup.previousSibling;
+          if (!t || t.nodeType !== 3 || !t.textContent.trim()) return null;
+          const r = document.createRange(); r.selectNodeContents(t);
+          return r.getBoundingClientRect().bottom - sup.getBoundingClientRect().bottom;
+        };
+        const sups = [...box.querySelectorAll('.qp-slot sup, .qp-item sup')];
+        const q = box.closest('.qcard').querySelector('.qsheet sup');
+        return sups.length >= 3 && q && raise(q) > 2 && sups.every(x => raise(x) !== null && raise(x) >= 2);
+      },
+      wants: '2² placed in slot 1, and every power in the strip and the row (2² and 1³, the ghost included) raised at least 2px above its digit, as the question prints it',
+      leave: () => {
+        try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
+        ORDER_SENT.clear();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     { name: 'a tapped answer, not yet, nothing moved',
       enter: () => {
         const id = 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12';
@@ -1541,14 +1773,76 @@ const STATES = {
         const marked = (typeof USER === 'object' && USER && USER.token)
           ? /2 of 3 marks/.test(said.textContent) && /peak/.test(why.textContent)
           : /Sign in/.test(said.textContent);
-        return !!go && !card.querySelector('.kp-in') && !!said && marked;
+        /* NO MATHS BOX ON IT: the worded box is the pad's too since 8 Oct, on the letters (`data-kp="words"`). */
+        return !!go && !card.querySelector('.kp-in[data-kp="maths"]') && !!ta.matches('.kp-in[data-kp="words"][readonly]') && !!said && marked;
       },
-      wants: 'a three-mark explain question with its textarea, "Mark with AI" beside it in the bar, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
+      wants: 'a three-mark explain question with the pad\'s locked words box, "Mark with AI" beside it in the bar, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
       leave: () => {
         if (window.__aiApi) api = window.__aiApi;
         if (window.__aiTok && USER) delete USER.token;
         try { localStorage.removeItem(window.__aiKey); } catch (e) {}
         DATA.aiMarking = false;
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- A WORDED ANSWER, THE PAD UP ON ITS LETTERS ---------------------------------------------
+       THE OWNER, 8 Oct: *"Make the keypad never need to use their own keyboard the key pad seems to allow
+       ios keyboard to show I just want self contained system really"*. A worded box was a textarea and the
+       iPad's keyboard; it is the pad's box now, opening on the letters (keypad.js, `KP_ABC`). Pictured so
+       `check/ui.js` measures the letters as it measures the maths keys -- every key's face against the
+       pad (EDGE), its size (the letters are narrower than 44px and carry their reason, `ACCEPTED_TAP`),
+       its contrast -- at every width. Q33 of AQA Biology June 2024 Foundation, the explain question the
+       Mark-with-AI state uses, focused and typed into by the pad's own keys: "Hi" with its capital put in
+       by itself. Expect: the letters face up (sixty columns, 39 keys, the bottom row the maths pad's),
+       every key as tall as the maths keys for the screen, the box still locked and its pill wholly above
+       the pad, and the drawing saying what was typed. */
+    { name: 'a worded answer, the pad up on its letters',
+      enter: () => {
+        const id = 'Q-AQA-8461-2406-1F-033';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__abcKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* ON THE SETTLED PAGE, as the Figure state above opens its pad and for its reason: the lift is
+           worked out on the page in front, and a page still sliding is not yet in front. */
+        let tries = 0;
+        const up = () => {
+          const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__abcKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!ta || moving || !ta.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          ta.focus();
+          if (KP_AT !== ta) kpOpen_(ta);
+          ['h', 'i'].forEach(v => {
+            const k = document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+            if (k) k.click();
+          });
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__abcKey);
+        if (!pad || pad.hidden || !ta) return false;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        const pill = ta.closest('.qp-ans');
+        return pad.getAttribute('data-layer') === 'abc' && pad.classList.contains('is-abc')
+               && getComputedStyle(pad).gridTemplateColumns.split(' ').length === 60
+               && keys.length === 39 && keys.every(b => b.getBoundingClientRect().height >= tall - 0.5)
+               && keys.slice(-6).map(b => b.getAttribute('data-v')).join('|') === '!123|!left|!right|!nl|!back|!done'
+               && ta.readOnly && ta.getAttribute('inputmode') === 'none' && ta.value === 'Hi'
+               && ta.parentNode.querySelector('.kp-show').textContent === 'Hi'
+               && !!pill && pill.getBoundingClientRect().bottom <= pad.getBoundingClientRect().top;
+      },
+      wants: 'Q33\u2019s worded box focused, the pad up on its letters (39 keys on sixty columns, the maths pad\u2019s bottom row), "Hi" typed by the pad, the box locked and wholly above the pad',
+      leave: () => {
+        try { localStorage.removeItem(window.__abcKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- WHERE A TYPED ANSWER IS KEPT, SAID UNDER THE BOX ----------------------------------------
@@ -4293,6 +4587,196 @@ const STATES = {
       wants: 'the count, Yes and No, and no secret on the screen',
       leave: () => { PARTY.twq = null; twqPaint(); } },
 
+    /* ---------- IMPOSTER, EVERY SCREEN OF A ROUND -----------------------------------------------
+       The owner, 8 Oct: "info over load on the reading parts", and "so young ones who can’t read can
+       play. Like it will read it out for them." Every screen after Deal is past the one `go()` reaches,
+       and two of them — the switch and Listen — exist only with Read aloud on, so none of it had ever
+       been measured. Entered through the game's own handlers; then the LONGEST word and the LONGEST
+       category in `IMP_DECK` are put on the card, the Articulate states' rule, because the one worth
+       measuring is the one that wraps — and the big line is meant to hold two lines without moving the
+       button under it. A real Chromium has `speechSynthesis`, so the switch is drawn; a state that
+       finds no switch fails, which is what it should do on a browser with no voice.
+
+       READ ALOUD IS TURNED OFF AGAIN ON THE WAY OUT, because it is remembered on the device and every
+       state after these would otherwise be measured with it on. */
+    { name: 'imposter setup with read aloud on',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        ACTIONS['imp-players'](document.createElement('button'));
+        if (!impAloud_()) ACTIONS['imp-aloud'](document.createElement('button'));
+      },
+      expect: () => !!document.querySelector('#s-games #imp-card .imp-aloud[aria-pressed="true"]')
+                 && document.querySelectorAll('#s-games #imp-card .imp-step').length === 2,
+      wants: 'Players, the stepper, Read aloud switched on, and Deal',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter pass',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        /* WITH READ ALOUD ON, like the two cards after it, so the four screens a child presses alone
+           are measured — and photographed — at the one height `impFrame_` keeps them at. */
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+      },
+      expect: () => !!document.querySelector('#s-games #imp-card [data-do="imp-show"] .tile-i')
+                 && !!document.querySelector('#s-games #imp-card .imp-foot')
+                 && /^Pass to Player 1/.test((document.querySelector('#s-games #imp-card') || {}).textContent.replace(/\s+/g, ' ').trim()),
+      wants: 'Pass to, Player 1, and Show with its eye — nothing secret, and room kept for Listen',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter a players card with listen',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+        const all = [];
+        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push([c, w])));
+        const [c, w] = all.reduce((a, b) => (b[1].length > a[1].length ? b : a));
+        IMP.imp = 1; IMP.cat = c; IMP.word = w;
+        ACTIONS['imp-show'](document.createElement('button'));
+      },
+      expect: () => !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]')
+                 && !!document.querySelector('#s-games #imp-card [data-do="imp-hide"] .tile-i')
+                 && (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === IMP.word,
+      wants: 'the longest word in the deck, Hide with its shut eye, and the Listen speaker',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter the imposters card',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+        IMP.imp = 0;
+        IMP.cat = Object.keys(IMP_DECK).reduce((a, b) => (b.length > a.length ? b : a));
+        ACTIONS['imp-show'](document.createElement('button'));
+      },
+      expect: () => (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === 'Imposter'
+                 && (document.querySelector('#s-games #imp-card') || {}).textContent.indexOf('Hint: ' + IMP.cat) !== -1
+                 && !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]'),
+      wants: 'Imposter, the longest category as the hint, Hide and Listen',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter play',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        impAloud_(true);
+        ACTIONS['imp-start'](document.createElement('button'));
+        for (let i = 0; i < IMP.n; i++) {
+          ACTIONS['imp-show'](document.createElement('button'));
+          ACTIONS['imp-hide'](document.createElement('button'));
+        }
+        IMP.cat = Object.keys(IMP_DECK).reduce((a, b) => (b.length > a.length ? b : a));
+        impPaint();
+      },
+      expect: () => IMP.phase === 'play'
+                 && !!document.querySelector('#s-games #imp-card [data-do="imp-reveal"]')
+                 && / starts$/.test((document.querySelector('#s-games #imp-card .imp-big') || {}).textContent || ''),
+      wants: 'the category, who starts, and Reveal — no word',
+      leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+    { name: 'imposter reveal',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        ACTIONS['imp-start'](document.createElement('button'));
+        for (let i = 0; i < IMP.n; i++) {
+          ACTIONS['imp-show'](document.createElement('button'));
+          ACTIONS['imp-hide'](document.createElement('button'));
+        }
+        ACTIONS['imp-reveal'](document.createElement('button'));
+        const all = [];
+        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push(w)));
+        IMP.word = all.reduce((a, b) => (b.length > a.length ? b : a));
+        impPaint();
+      },
+      expect: () => IMP.phase === 'reveal'
+                 && !!document.querySelector('#s-games #imp-acts [data-do="imp-again"]')
+                 && !!document.querySelector('#s-games #imp-acts [data-do="imp-players"]'),
+      wants: 'Imposter and the player, Word and the longest word, Play again and Players',
+      leave: () => { ACTIONS['imp-players'](document.createElement('button')); } },
+    /* THE BIG LINE AND THE BUTTON, MEASURED STAYING WHERE THEY ARE. "The gold one under the big word"
+       has to be one place on every screen a child presses alone, and the first build broke it — Hide
+       36px above where Show had been — where only a screenshot saw it. The six states above only ask
+       that each thing EXISTS: with `.imp-foot` set to `display: none` and `.imp-big`'s two-line floor
+       taken out, so Hide sat 36px above Show and a two-line word moved the button, they and the whole
+       of check/ui.js still said "nothing NEW to report" (the review of 8 October).
+
+       SO ONE ROUND IS WALKED THROUGH THE HANDLERS, the `Q0664` way above: the top of the big line and
+       of the gold button on the pass screen, a player's card holding the LONGEST word in the deck, the
+       next pass, the imposter's card holding the LONGEST category, and play — every one read in the
+       same tick, so nothing moves between them but the card itself. With Read aloud on, which is the
+       card with the speaker under it, and again with it off. Each top within 0.5px of the first. */
+    { name: 'imposter the big line and the button stay put',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
+        window.__impStill = null;
+        const b = () => document.createElement('button');
+        const words = [];
+        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => words.push(w)));
+        const word = words.reduce((a, x) => (x.length > a.length ? x : a));
+        const cat = Object.keys(IMP_DECK).reduce((a, x) => (x.length > a.length ? x : a));
+        /* EACH TOP READ TWO FRAMES AFTER ITS PRESS, NOT IN THE SAME TICK. A card that changes height is
+           put back in the middle of the pane by the `ResizeObserver` in find.js (`holdColumn_`), after
+           layout and before paint — so a reading taken straight after the press is the card before it
+           was re-centred, which no finger ever sees. The first version here read every screen in one
+           tick and had Read aloud on and off at identical heights: blind to exactly the 36px it is for. */
+        const frames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        /* AND AT REST: a slide the column is still running is a card on its way, not where it stops —
+           `settled` in check/ui.js asks the same of a whole screen. Bounded, and a card still moving
+           after it is measured where it is and fails, which is right. */
+        const moving = () => [...document.querySelectorAll('#s-games, #s-games .page')].some(el =>
+          typeof el.getAnimations === 'function' && el.getAnimations().some(a => a.playState === 'running'));
+        const rest = async () => {
+          await frames();
+          const t1 = performance.now();
+          while (moving() && performance.now() - t1 < 1500) await new Promise(r => setTimeout(r, 50));
+          await frames();
+        };
+        const at = where => {
+          const q = sel => document.querySelector('#s-games #imp-card ' + sel);
+          const big = q('.imp-big'), go = q('.imp-go');
+          return { where: where, big: big ? +big.getBoundingClientRect().top.toFixed(1) : NaN,
+                   go: go ? +go.getBoundingClientRect().top.toFixed(1) : NaN };
+        };
+        const walk = async aloud => {
+          const got = [];
+          const look = async where => { await rest(); got.push(at(where)); };
+          impAloud_(aloud);
+          ACTIONS['imp-players'](b());
+          ACTIONS['imp-start'](b());
+          IMP.imp = 1; IMP.word = word; IMP.cat = cat;
+          impPaint();
+          await look('pass to player 1');
+          ACTIONS['imp-show'](b()); await look('player 1, ' + word);
+          ACTIONS['imp-hide'](b()); await look('pass to player 2');
+          ACTIONS['imp-show'](b()); await look('player 2, the imposter, ' + cat);
+          ACTIONS['imp-hide'](b());
+          while (IMP.phase === 'deal') { ACTIONS['imp-show'](b()); ACTIONS['imp-hide'](b()); }
+          await look('play');
+          return got;
+        };
+        /* AND NOT UNTIL THE PAGE IS ON THE GLASS, with nothing booked: `goPage` places on a frame. */
+        const t0 = performance.now();
+        const settle = () => {
+          const card = document.querySelector('#s-games #imp-card');
+          const r = card && card.getBoundingClientRect();
+          const placed = r && r.top >= 0 && r.bottom <= innerHeight && !moving()
+            && !(typeof PLACE_FRAME !== 'undefined' && PLACE_FRAME);
+          if (!placed && performance.now() - t0 < 2000) { setTimeout(settle, 100); return; }
+          (async () => { const on = await walk(true); const off = await walk(false); window.__impStill = { on: on, off: off }; })();
+        };
+        setTimeout(settle, 100);
+      },
+      expect: () => {
+        const s = window.__impStill;
+        const still = list => list.length === 5 && list.every(r => Number.isFinite(r.big) && Number.isFinite(r.go)
+          && Math.abs(r.big - list[0].big) < 0.5 && Math.abs(r.go - list[0].go) < 0.5);
+        return !!s && still(s.on) && still(s.off);
+      },
+      wants: 'the big line and the gold button at one height on pass, the longest word, the imposter\'s longest hint and play — Read aloud on and off',
+      leave: () => { window.__impStill = null; impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
+
     /* `an alibi case card` AND `an alibi interview` WERE HERE, and went with the game ("delete alibi
        game.") — a state that enters a widget nobody can open fails loudly, which is right, and a
        state measuring nothing has no business being kept to say so. */
@@ -4412,6 +4896,41 @@ const STATES = {
                  && /^2 of \d+ videos$/.test((document.querySelector('#s-games .vid-said') || {}).textContent || ''),
       wants: 'the player holding the chosen clip, a Full screen tile under it, and two of the list left',
       leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
+
+    /* ---------- THE FILMS IN THE VIDEOS CARD — THE ADMIN'S, AND NOBODY ELSE'S ------------------------
+       *"Let admin be able to search up films which are in the notflix folder on gdrive."* Two states for
+       one card, `only:` each way round, because what the card holds is the PAYLOAD's decision: the
+       admin is served the fixture's three invented films and a sync stamp, and the signed-out visitor
+       what `doGet` sends a stranger — no film and no stamp (`FIXTURE_ANON` in ui.js). The admin's card
+       carries a row nobody else's has — the silver Sync from Drive tile and the line beside it — and a
+       film not in the Drive yet, dimmed; both are new widths to fit at 320. */
+    { name: 'the films in the videos card, an admin’s',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        VID.q = ''; VID.at = '';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => !!document.querySelector('#s-games .vid-admin .tile.is-admin[data-do="vid-sync"]')
+                 && !!document.querySelector('#s-games .vid-admin .vid-synced')
+                 && document.querySelectorAll('#s-games .vid-list .vid-row').length >= 3
+                 && !!document.querySelector('#s-games .vid-list .vid-row.is-off'),
+      wants: 'the silver Sync from Drive tile and when it last ran, the films, and the one not in the Drive yet dimmed' },
+    { name: 'the videos card, nobody’s films',
+      only: () => !(typeof isAdmin === 'function' && isAdmin()),
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        VID.q = ''; VID.at = '';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => !document.querySelector('#s-games .vid-admin *')
+                 && !document.querySelector('#s-games [data-do="vid-sync"]')
+                 && !/film|drive|sync/i.test((document.querySelector('#s-games .vid-box') || {}).textContent || 'film'),
+      wants: 'no Sync tile, nothing in the admin row, and no word on the card that says films exist' },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------

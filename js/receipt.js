@@ -1589,7 +1589,18 @@ function initFlappy() {
     flap();
   };
   // space/arrow to flap (only when arcade canvas exists)
-  S.keyHandler = e => { if ((e.code === 'Space' || e.code === 'ArrowUp') && $('flappy-canvas')) { e.preventDefault(); flap(); } };
+  /* ---------- NOT WHILE SOMEBODY IS TYPING -----------------------------------------------------------
+     THIS ATE EVERY SPACE ON THE PAGE. It is on `document`, it stays on once the Games column has been
+     drawn, and it asked only whether the canvas exists — so after one visit to Games a laptop could not
+     type "two words" into the videos search (it became "twowords", and found nothing), nor into Find's
+     box. Found by the audit of the video searcher on 9 Oct. A key that lands in something you type into
+     is that box's key: the bird flaps on a Space anywhere else, as before. */
+  S.keyHandler = e => {
+    if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
+    const t = e.target;
+    if (t && t.closest && (t.isContentEditable || t.closest('input, textarea, select, [contenteditable]'))) return;
+    if ($('flappy-canvas')) { e.preventDefault(); flap(); }
+  };
   document.removeEventListener('keydown', window._flappyKey || (()=>{}));
   window._flappyKey = S.keyHandler;
   document.addEventListener('keydown', window._flappyKey);

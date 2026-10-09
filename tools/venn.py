@@ -1,6 +1,6 @@
-# The A ∩ B splash: prints the <div id="splash-venn"> for index.html, then the block of rules and
-# @keyframes for style.css, from one table of geometry and one timeline. Edit either and re-run,
-# then paste both halves over the old ones. Run: python3 tools/venn.py
+# The A ∩ B animation (the textbooks' Maths chapter 19, and a loading splash): writes the <div> and
+# the block of rules and @keyframes into its row of data/textbooks.json, from one table of geometry
+# and one timeline. Edit either and re-run. Run: python3 tools/venn.py
 #
 # WHAT IT DRAWS, in one loop of T seconds: the universal set ξ is always there; circle A slides in
 # from the left and B from the right; then the three regions a GCSE paper asks about are shaded in
@@ -11,6 +11,7 @@
 # shaded on paper, and the hatch drifts sideways by exactly one line spacing per turn of its own loop
 # — so a shaded region is never a still picture and `npm run splash -- is-venn` sees every frame move.
 import math
+import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import anim_row
 
 T = 10.0                        # seconds, one whole loop
 W, H = 160, 108                 # the viewBox
@@ -53,9 +54,9 @@ LEAVE = 9.0                     # and start leaving here, gone at T
 # A REGION HANDS OVER TO THE NEXT IN ONE CROSSFADE, the same half second for both. Staggered, the
 # two dipped together and the lens went blank between A ∩ B and A ∪ B — the one area both shade.
 REGIONS = [  # class, path, rule, caption, fade in from, to, fade out from, to
-    ('and', AND,   'nonzero', '<b class="a">A</b> &#8745; <b class="b">B</b>', 0.8, 1.3, 3.2, 3.7),
-    ('or',  OR,    'nonzero', '<b class="a">A</b> &#8746; <b class="b">B</b>', 3.2, 3.7, 5.9, 6.4),
-    ('not', NOT_A, 'evenodd', '<b class="a">A</b>&#8242;',                     5.9, 6.4, 8.6, 9.1),
+    ('and', AND,   'nonzero', '<b class="vn-ta">A</b> &#8745; <b class="vn-tb">B</b>', 0.8, 1.3, 3.2, 3.7),
+    ('or',  OR,    'nonzero', '<b class="vn-ta">A</b> &#8746; <b class="vn-tb">B</b>', 3.2, 3.7, 5.9, 6.4),
+    ('not', NOT_A, 'evenodd', '<b class="vn-ta">A</b>&#8242;',                     5.9, 6.4, 8.6, 9.1),
 ]
 assert REGIONS[-1][-1] <= T and LEAVE + 0.9 <= T + 0.01
 
@@ -106,7 +107,7 @@ svg.append('  </div>')
 
 # ---- the rules -----------------------------------------------------------------------------------
 css = []
-css.append('#splash-venn .vn-svg { width: min(66vw, 16rem); height: auto; }')
+css.append('#splash-venn .vn-svg { width: min(66vw, 16rem); max-width: 100%; height: auto; }')
 css.append('.vn-box { fill: none; stroke: rgb(244 241 232 / .35); stroke-width: 1.2; }')
 # THE LETTERS SIT ON THE HATCH, so each carries a stroke of the page's own black painted under its
 # fill: a hatch line running through a letter would turn "A" into a different glyph.
@@ -132,7 +133,7 @@ css.append(come('cb', 1))
 css.append('.vn-say { display: grid; margin-top: .7rem; font: 700 1.3rem var(--mono); color: var(--paper);')
 css.append('          text-align: center; }')
 css.append('.vn-s { grid-area: 1 / 1; }')
-css.append('.vn-say b.a { color: #6fa8dc; } .vn-say b.b { color: #e8862c; }')
+css.append('.vn-say b.vn-ta { color: #6fa8dc; } .vn-say b.vn-tb { color: #e8862c; }')
 # base opacities ARE the reduced-motion still: the circles in, A ∩ B shaded and named
 # said as one rule rather than "0, then 1 for the first" — two rules at one specificity would leave
 # the still frame decided by which happens to be written later
@@ -155,6 +156,6 @@ css.append('@media (prefers-reduced-motion: reduce) {')
 css.append('  .vn-g, .vn-r, .vn-s, .vn-h { animation: none; }')
 css.append('}')
 
-print('\n'.join(svg))
-print()
-print('\n'.join(css))
+# INTO ITS ROW IN data/textbooks.json — see tools/anim_row.py. It printed text to paste before.
+anim_row.write_anim('venn', html='\n'.join(svg), css='\n'.join(css))
+print('venn: %d lines of markup, %d of CSS' % (len(svg), len(css)))

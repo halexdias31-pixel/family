@@ -48,6 +48,16 @@ let LIBRARY_ROWS = null;
    added to the global scope: `core.js` already has `norm`, and four more one-letter globals in a
    file that shares one scope with thirty-nine others is how a name gets taken twice. */
 const libS = v => (v === undefined || v === null ? '' : String(v));
+/* ---------- A FINGERPRINT OF AN ANIMATION, SO A CHANGED ONE REPLACES THE COPY A DEVICE KEPT ------------
+   FNV-1a, 32 bits, over the UTF-16 code units, as eight hex digits. Not a security hash and it does not
+   need to be one: it answers "is the copy this phone kept the drawing the book has now", and two
+   drawings colliding would mean one load showing yesterday's version of one splash. The picker in
+   index.html compares it as a string, so it never has to know how it was made. */
+function animHash_(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return ('0000000' + h.toString(16)).slice(-8);
+}
 const libN = v => { const n = Number(String(v).replace(/[^0-9.-]/g, '')); return isFinite(n) ? n : 0; };
 /* ---------- `libN` BUT ABSENT STAYS ABSENT -------------------------------------------------------
    `libN('')` IS 0, deliberately: a blank count is none of something, and every caller it was
@@ -236,7 +246,15 @@ async function libraryExtraRows_() {
     try {
       const early = (window.BOOT_LIB_EXTRA || {})[name] || null;
       if (window.BOOT_LIB_EXTRA) window.BOOT_LIB_EXTRA[name] = null;
-      const res = early ? await early : await fetch('data/' + name + '.json', { cache: 'default' });
+      /* ---------- WITH THE DEPLOY'S STAMP, AS THE BOXERS ALREADY WERE --------------------------------
+         `sw.js` SERVES AN EXACT URL STRAIGHT OUT OF ITS STORE, with no network at all — that is its
+         warm visit, and it is safe only because every URL it holds carries `?t=` + the deploy. These
+         did not: `data/textbooks.json` and every `data/settings/` file were bare, so a device that had
+         the worker kept the first copy it ever fetched, for good. A chapter rewritten, a splash retired
+         in the sheet, a facet renamed — none of it reached a phone that had opened the site before.
+         `index.html`'s early fetch of the boxers stamps them; this is the same stamp for the rest. */
+      const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+      const res = early ? await early : await fetch('data/' + name + '.json' + stamp, { cache: 'default' });
       if (res && res.ok) rows = await res.json();
     } catch (e) { rows = null; }
     out[name] = Array.isArray(rows) ? rows : [];
@@ -457,8 +475,23 @@ function libraryExtras_(d, extra) {
 
      ORDERED BY `chapter`, NOT BY LINE. A row pasted at the bottom of the file is chapter 7 if it
      says 7, which is what the sheet would do with a sort. */
+  /* ---------- AND THE CHAPTER'S ANIMATIONS, WHICH ARE ROWS OF THEIR OWN ---------------------------
+     "Add the animations from loading to respective subject text books. Matter of fact the source for
+     the animations should be in text books. The animation from loading screen are pulling and syncing
+     from the text book animations." — the owner, 8 Oct. So a teaching animation (a proof, a law, a
+     process) is a row of this file, under the chapter it teaches: `anim` is its id (the
+     `splash_id` in data/settings/splashes.json), `title` its page's heading, `about` the chapter's own
+     key words, formulas or worked lines it is about, and `html` and `css` the drawing itself, once.
+     The loading screen keeps a copy of what this reads (`splashSync_` in shell.js) and draws from it.
+
+     A ROW OF ITS OWN, NOT A COLUMN ON THE CHAPTER: Galton's is 23 KB, which would make every edit to
+     a chapter's words a diff nobody can read, and a chapter that also named its animations would be
+     a second link that could disagree with this one.
+
+     NOT TRIMMED. `libS` hands the cell back exactly, because the device's copy is compared with this
+     one by hash and a trim on one side would be a copy that is never the same. */
   if (extra.textbooks && extra.textbooks.length) {
-    const books = {}, order = [];
+    const books = {}, order = [], anims = [];
     const item = s => {
       const t = libS(s).trim(), higher = /^\[H\]\s*/.test(t), body = t.replace(/^\[H\]\s*/, '');
       const at = body.indexOf(' — ');
@@ -469,6 +502,8 @@ function libraryExtras_(d, extra) {
     extra.textbooks.forEach(r => {
       const id = libS(r.book_id).trim();
       if (!id || !libOn(r.active)) return;
+      /* AN ANIMATION IS SET ASIDE until every chapter is read, then hung on its own. */
+      if (libS(r.anim).trim()) { anims.push(r); return; }
       if (!books[id]) { books[id] = { id: id, chapters: [] }; order.push(id); }
       const b = books[id], n = libN(r.chapter);
       if (n === 0) {
@@ -479,7 +514,20 @@ function libraryExtras_(d, extra) {
       b.chapters.push({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()),
                         topics: libS(r.topics), words: list(r.words), formulas: list(r.formulas),
                         points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text,
-                                                           higher: p.higher })) });
+                                                           higher: p.higher })),
+                        animations: [] });
+    });
+    /* IN FILE ORDER, which is page order: the first under a chapter is the first page after it. An
+       animation whose chapter is not here (switched off, or a number that does not exist) goes
+       nowhere — `check-textbooks.js` refuses the file first. */
+    anims.forEach(r => {
+      const b = books[libS(r.book_id).trim()];
+      const c = b && b.chapters.find(ch => ch.n === libN(r.chapter));
+      if (!c) return;
+      const html = libS(r.html), css = libS(r.css);
+      c.animations.push({ id: libS(r.anim).trim(), title: libS(r.title),
+                          about: libS(r.about).split('|').map(t => t.trim()).filter(Boolean),
+                          html: html, css: css, h: animHash_(html + '\u0000' + css) });
     });
     /* A BOOK WITH NO TITLE PAGE IS NOT A BOOK: it has no name to be found by, so it is left out
        rather than drawn as a blank card. The check refuses the file first. */
@@ -674,7 +722,18 @@ function libraryInto_(d, rows) {
          `choice_right` is the 1-based positions the mark scheme credits, a comma for "tick two".
          Positions rather than option text, so marking is exact and folds nothing. See `choiceBox_`. */
       choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
-      choiceRight: libS(r.choice_right).split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
+      /* ---------- AN ORDERING IS THE SAME TWO COLUMNS AND ONE MORE --------------------------------
+         `answer_type: order` (see `orderBox_`): `choices` are the items in the order the paper prints
+         them, and `choice_right` is the right ORDER -- `3,4,5,2,1`, the 3rd item first -- and, where
+         equal values make more than one order right, the others after a pipe: `2,1,3 | 1,2,3`.
+         `choiceRight` is the FIRST of them, so a multiple-choice row (which never has a pipe) reads
+         exactly as it did; `choiceWays` keeps every one, because an alternative dropped here is a
+         right answer marked wrong. `order_ends` is the row's two ends in the question's own words,
+         first end first -- "smallest | largest". */
+      choiceRight: libS(r.choice_right).split('|')[0].split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
+      choiceWays: libS(r.choice_right).split('|')
+        .map(w => w.split(',').map(t => parseInt(t, 10)).filter(n => n > 0)).filter(w => w.length),
+      orderEnds: libS(r.order_ends).split('|').map(t => t.trim()).filter(Boolean),
       /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. `needs_print` is True on 252 rows and
          `print_required` on 104, and **not one row is True in both** — two imports over two
          subsets, neither ever given the other's rows. `find.js` noticed and said so where the

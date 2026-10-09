@@ -707,6 +707,29 @@ function signedOut_(opts) {
     DATA.family = []; DATA.familyFor = '';
     DATA.favourites = []; DATA.everyone = [];
   } catch (e) {}
+  /* ---------- AND THE FILMS, WHICH HAVE NO `for` CHECK AT ALL --------------------------------------
+     `DATA.films` IS AN ADMIN'S WHOLE FILM LIST, Drive links included (note 068: the list is secret,
+     and the links are the folder's only lock), and unlike the keys above nothing reading it asks
+     whose it is — the videos card and Find draw whatever is there, and the payload was the only
+     gate. Signing out does not reload the payload, so after an admin signed out on the family's
+     iPad the next person to pick it up found every film in Games → Videos and in Find, and a child
+     signing in after them saw the list until their own payload landed, fifteen to thirty-five
+     seconds later (found by the review of the Notflix sync, 9 Oct, through the real `signout`).
+     The sync made it worse by filling the list the moment an admin opens Games. So the films and
+     the sync's stamp go with the admin; and the card's own note of whom it synced for, and the sync
+     still in flight — whose reply `filmsSyncRun_` already drops for somebody who has gone, and which
+     held would leave the next admin's Sync tile busy with a sync they never pressed. Find's memo is
+     dropped as well, though today its key names the person and a sign-out rebuilds it anyway: it is
+     kept against `DATA` by identity and this is an edit in place, so the day the key stops naming
+     the person (the role has already left it) this is what keeps the films out of Find.
+     The search typed into the videos box goes for the reason `STUFF.q` does above: it may be a
+     title. `typeof`, because games.js and find.js load after this file. */
+  try { DATA.films = []; delete DATA.filmsSync; } catch (e) {}
+  try { if (typeof stuffForget_ === 'function') stuffForget_(); } catch (e) {}
+  try {
+    if (typeof FILMSYNC !== 'undefined') { FILMSYNC.asking = null; FILMSYNC.autoFor = ''; FILMSYNC.err = ''; }
+    if (typeof VID !== 'undefined') VID.q = '';
+  } catch (e) {}
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) {}
   if (!opts.quiet) repaint();

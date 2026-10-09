@@ -157,6 +157,11 @@ const TILE_ICONS = {
      the set as one more outline. */
   full:  '<path d="M2.5 6.5v-4h4"/><path d="M11.5 2.5h4v4"/>'
        + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
+  /* SYNC: two arrows chasing each other round a circle, the mark every phone puts on "fetch it again
+     from where it really lives" — the videos card's Sync from Drive, which refills the films from the
+     Notflix folder. Open paths at the set's 1.4, so it is one more outline beside Full screen. */
+  sync:  '<path d="M3.1 6.3a6.3 6.3 0 0 1 10.4-2.35L16.7 7"/><path d="M16.7 2.8V7h-4.2"/>'
+       + '<path d="M14.9 10.7a6.3 6.3 0 0 1-10.4 2.35L1.3 10"/><path d="M1.3 14.2V10h4.2"/>',
   /* ---------- A QUESTION'S PAGES, WHICH ARE ALL TILES NOW ---------------------------------------
      ASKED FOR AS *"lock should be a tile too. same as undo and clear. it should all be tiles."* and
      *"some questions require a compass or ruler. so should have a tile for these things."* Marks
@@ -185,6 +190,12 @@ const TILE_ICONS = {
      the card (`q-fig` in find.js). */
   figure: '<rect x="2" y="2.5" width="14" height="12" rx="1.5"/><path d="m2.5 13 4.5-5 3.5 3.5 2-2 3 3.2"/>'
         + '<circle cx="12" cy="6" r="1.2"/>',
+  /* A SPEAKER WITH ITS TWO WAVES, FOR IMPOSTER'S LISTEN AND ITS READ ALOUD SWITCH -- "so young ones who
+     can’t read can play. Like it will read it out for them." (8 Oct.) The mark every phone puts on its
+     volume, because the children pressing it cannot read the word beside it: the cone and two arcs at
+     the set's 1.4, open like the rest, so it reads as one more outline beside the eyes on Show and Hide. */
+  speak: '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/><path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/>'
+       + '<path d="M14 4a6 6 0 0 1 0 9"/>',
 };
 
 function tileIcon_(name) {

@@ -241,7 +241,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-08-c-answers";
+const BACKEND_VERSION = "2026-10-09-a-films";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -878,10 +878,28 @@ const SCHEMA = {
 
      `audience` IS `adults` OR `kids` AND IT IS NOT A RATING. It is which of the owner's two
      folders a thing came out of. Nothing in this app decides who may watch what from it; the
-     whole tab is admin-only before it leaves the server. */
+     whole tab is admin-only before it leaves the server.
+
+     ---------- AND THE FOLDER FILLS IT NOW, NOT A PERSON ----------------------------------------
+     *"Let admin be able to search up films which are in the notflix folder on gdrive."* It was
+     filled once by hand, and the Ledger it went into was replaced with headers only — so an admin
+     searched and found nothing, and nothing anywhere could see why. `filmsSync_` in content.gs
+     walks the folder and upserts this tab BY `drive_id`. THE MACHINE'S COLUMNS are `kind`,
+     `audience`, `drive_name`, `drive_url`, `file_kind` (file | folder), `size_gb`, `seasons`,
+     `placeholder` and `active`, refreshed on every pass. A PERSON'S COLUMNS are `title`, `year`,
+     `director`, `lead` and `notes`. The sync never writes `director` or `lead` (a name says
+     neither). `title`, `year` and `notes` are read out of the file's name, and they FOLLOW A RENAME
+     for as long as they still say what the last name said — `drive_name` is that name, which is how
+     the sync can tell its own cell from a typed one. A cell a person typed something else into is
+     never written over — so a corrected title survives. `drive_name` IS LAST, where `ensureSchema`
+     appends it, and like `drive_id` it is never sent: the title is the name, read. A row whose file
+     has left the folder is switched off, never deleted; a row with no `drive_id` is somebody's own
+     and is not touched (a title typed with no id is ADOPTED by the file of that name when it
+     arrives, rather than duplicated). */
   films: [
     "film_id", "title", "year", "kind", "audience", "director", "lead", "seasons",
-    "drive_id", "drive_url", "file_kind", "size_gb", "placeholder", "notes", "active"
+    "drive_id", "drive_url", "file_kind", "size_gb", "placeholder", "notes", "active",
+    "drive_name"
   ],
 
   posts: [
@@ -1490,6 +1508,14 @@ const CONFIG_DEFAULTS = [
      works — so this is a row for somebody who wants faces kept apart from the feed, not a thing that
      has to be set before the picker does anything. See `getPhotoFolder_` in content.gs. */
   ['photos_folder', '', 'Drive folder id (or its URL) for profile pictures chosen in Settings. BLANK uses the posts folder'],
+  /* ---------- WHERE THE FILMS COME FROM, AND IT NEVER LEAVES THE SERVER ---------------------------
+     THE ONE ROW IN THIS TAB THAT IS A SECRET. The Notflix folder is shared "anyone with the link",
+     so its id IS the protection (note 068) — and this whole tab goes to every phone as
+     `constants.vars`. So it is named in `CONFIG_PRIVATE` below and `configPublic_` takes it out
+     before anything is sent; a value typed here reaches `filmsRoot_` and nobody else. Blank uses
+     the folder synced before, or else finds it by its name — which works today because there is
+     exactly one, and refuses when there are two (see `filmsRoot_`). */
+  ['films_folder', '', 'Drive folder id (or its URL) the admin film search is filled from. BLANK uses the folder synced before, or the one folder named Notflix. Never sent to any phone'],
 
   /* PRINTING. The file is free and always will be; this is paper and toner, at cost.
      A rate of 0 switches printing off entirely rather than making it free — a resource offered at
@@ -1557,6 +1583,47 @@ const CONFIG_DEFAULTS = [
      the end described a version of the formula that hadn't run for weeks. The pricing card shows
      the live formula, derived from the code that actually prices, so it can't fall behind. */
 ];
+
+/* ---------- THE CONFIG KEYS NO PHONE IS SENT ------------------------------------------------------
+   `constants.vars` IS THE WHOLE CONFIG TAB, sent to every visitor including the anonymous one —
+   which is right for a price and a switch, and was right for everything in the tab until a key held
+   something that is only safe while nobody else knows it. Lower case, compared after `norm`.
+   `check-films.js` asks every payload, signed out, student and admin, for the value set here. */
+const FILMS_FOLDER_KEY = 'films_folder';
+const CONFIG_PRIVATE = [FILMS_FOLDER_KEY];
+
+/* ---------- THE FILMS SYNC — see `filmsSync_` in content.gs ---------------------------------------
+   THE FOLDER IS FOUND BY THIS NAME when `films_folder` is blank: a folder whose name, lower-cased,
+   is exactly this. `Notflix adults` and `Notflix kids` contain it and are not it.
+
+   THE BUDGET IS A WALL CLOCK, because what can run long is Drive and Drive is slow by the call. The
+   phone's run is short — the admin is looking at a card, and the script lock is held for the write
+   at the end — and the editor's is most of Apps Script's six minutes. A pass that does not fit stops
+   between two things, writes what it has, records where, and the next run carries on from there
+   (`FILMS_SYNC` in Script Properties). EVERY RUN DOES AT LEAST ONE THING, so a slow folder is slow
+   rather than stuck; the ceiling is the line no run crosses whatever it has done.
+
+   STALE AFTER A DAY: the videos card asks for a sync for an admin when the last whole pass is older
+   than this (js/games.js keeps the same number), and the owner can press Sync from Drive any time. */
+const FILMS_FOLDER_NAME = 'notflix';
+const FILMS_SYNC_PROP = 'FILMS_SYNC';
+const FILMS_SYNC_BUDGET_MS = 20000;
+const FILMS_SYNC_EDITOR_MS = 270000;
+const FILMS_SYNC_CEILING_MS = 330000;
+/* WHAT EACH LEVEL OF THE TREE IS CALLED, as the map of the folder found it on 9 Oct: `Films` and
+   `films`, `Tv shows` and `tv shows`, `s1`..`s6`. Matched, never compared — the case already differs
+   between the two audiences. */
+const FILMS_RE_FILMS = /^(films?|movies?)$/i;
+const FILMS_RE_TV = /^(tv(\s*(shows?|series))?|series|shows?)$/i;
+const FILMS_RE_DOCS = /^documentar/i;
+const FILMS_RE_SEASON = /^s(?:eason)?\s*0*(\d{1,2})$/i;
+/* A FOLDER INSIDE A FILM THAT IS NOT THE FILM — extras, a sample, the subtitles. */
+const FILMS_RE_EXTRA = /^(extras?|samples?|featurettes?|bonus|subs?|subtitles?|trailers?)$/i;
+/* A VIDEO BY ITS TYPE OR, WHEN DRIVE DID NOT KNOW THE TYPE, BY ITS NAME. Three different video types
+   are in the folder today (two spellings of Matroska and mp4), so the rule is the prefix, never one
+   type — an exact match on one Matroska spelling would have dropped eight films without a word. */
+const FILMS_RE_VIDEO_EXT = /\.(mkv|mp4|m4v|avi|mov|webm|wmv|mpe?g|ts)$/i;
+const FILMS_MIME_DOC = 'application/vnd.google-apps.document';
 
 /* The option lists the CODE owns. These aren't preferences — the code branches on them, so a
    value in the sheet that the code doesn't produce is just a dropdown entry nothing can ever set.
@@ -2702,6 +2769,10 @@ const RUNNABLE = {
   warmPayload:       () => warmPayload(),
   checkEverything:   () => checkEverything(),
   checkPostsFolder:  () => checkPostsFolder(),
+  /* THE FILMS SYNC BY HAND, with the editor's budget rather than the phone's — the same run
+     `syncFilms` is in the function dropdown. The report is counts and the folder's name, never a
+     title. */
+  syncFilms:         () => syncFilms(),
   /* Reachable from a URL like everything else — but note that a URL CANNOT grant a scope. This
      will report what the deployment's existing token can do; raising the consent screen has to be
      a run from the editor. */
@@ -3080,6 +3151,10 @@ const ACTION_ACCESS = {
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */
   digestPreview: 'admin',
+  /* THE FILMS, FILLED FROM THE NOTFLIX FOLDER. Admin and nobody else: it walks a folder of the
+     owner's Drive and its reply is the whole films list, which is admin-only before it leaves the
+     server (note 068). The handler asks the role again — see `filmsSync` in dopost.gs. */
+  filmsSync: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

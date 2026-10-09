@@ -96,7 +96,7 @@ try {
 const bare = css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
 const rules = [];          // { sel, decls: {prop: val}, media }
 const frames = {};         // name -> [{ keys: [0..100], decls }]
-(function walk(src, media) {
+function walk_(src, media) {
   let i = 0;
   while (i < src.length) {
     const open = src.indexOf('{', i);
@@ -120,13 +120,29 @@ const frames = {};         // name -> [{ keys: [0..100], decls }]
       }
       frames[name] = stops;
     } else if (/^@(media|supports)/.test(head)) {
-      walk(body, head);
+      walk_(body, head);
     } else if (!head.startsWith('@')) {
       rules.push({ sel: head, decls: decls_(body), media });
     }
     i = j;
   }
-})(bare, '');
+}
+walk_(bare, '');
+
+/* ---------- SIX OF THE SEVEN ARE IN THE TEXTBOOKS NOW ----------------------------------------------
+   Pythagoras, the circle, the index laws, the angle at the centre, y = mx + c and Bayes are rows of
+   data/textbooks.json — "the source for the animations should be in text books", the owner, 8 Oct —
+   read through check-anims.js's one reader. Each row's CSS is read by the same walker into the same
+   two tables, so every sentence below asks the same question of a row as it did of the stylesheet;
+   the ring is still in style.css and index.html. */
+const { animRow } = require('./check-anims.js');
+const ROWS = {};
+for (const L of LOOPS) {
+  const row = animRow(L.id);
+  if (!row) continue;
+  ROWS[L.id] = row;
+  walk_(row.css.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')), '');
+}
 
 const isStill = r => /prefers-reduced-motion:\s*reduce/.test(r.media);
 const parts = sel => sel.split(',').map(s => s.trim());
@@ -144,6 +160,7 @@ const halfTurn_ = (a, b) => {
    From its opening tag to the `</div>` at the splash's own indent — the same boundary the
    generators in tools/ replace, so this reads exactly what they write. */
 function markup_(id) {
+  if (ROWS[id]) return ROWS[id].html;
   const a = html.indexOf('<div id="splash-' + id + '"');
   if (a < 0) return null;
   const b = html.indexOf('\n  </div>', a);
@@ -174,10 +191,10 @@ function pathPoints_(d) {
 
 for (const L of LOOPS) {
   const m = markup_(L.id);
-  if (!m) { fault(L.id, 'is not in index.html — the check cannot reach it'); continue; }
+  if (!m) { fault(L.id, 'is not in index.html or data/textbooks.json — the check cannot reach it'); continue; }
 
-  const mine = rules.filter(r => parts(r.sel).some(p => p.includes('#splash-' + L.id) || p.includes('.' + L.prefix)));
-  if (!mine.length) { fault(L.id, 'has no rules in style.css with .' + L.prefix + ' — nothing to read'); continue; }
+  const mine = rules.filter(r => parts(r.sel).some(p => p.includes('#splash-' + L.id) || p.includes('.an-' + L.id) || p.includes('.' + L.prefix)));
+  if (!mine.length) { fault(L.id, 'has no rules with .' + L.prefix + ' in its row or in style.css — nothing to read'); continue; }
 
   /* ---- A DASH IS A WIPE. Pythagoras's triangle was erased by one. ---- */
   mine.filter(r => !isStill(r)).forEach(r => Object.keys(r.decls).forEach(p => {
@@ -307,7 +324,7 @@ function areaOwn_(L, m) {
    rules, and the two groups must move by plus and minus half of it. */
 function indexOwn_(L, m) {
   const rule = sel => rules.find(r => r.sel === sel && !isStill(r)) || { decls: {} };
-  const shift = (rule('#splash-index').decls['--ix-shift'] || '').replace(/\s+/g, '');
+  const shift = (rule('.an-index').decls['--ix-shift'] || '').replace(/\s+/g, '');
   if (shift !== 'calc((2*var(--ix-out)+var(--ix-op)-var(--ix-in))/2)')
     fault(L.id, '--ix-shift is "' + shift + '", not half of (2 × the gap either side of the × + the × − the gap between tiles) — the joined row will not be evenly spaced');
   if (rule('.ix-line').decls.gap !== 'var(--ix-out)') fault(L.id, '.ix-line gap is not var(--ix-out) — the distance the groups close is computed from it');

@@ -111,6 +111,9 @@ const GLOBALS=new Set(('window document navigator localStorage sessionStorage co
 /* XMLSerializer — sharing a booking puts the receipt's clone in an SVG, and an SVG is XML: an HTML
    serialisation would leave `<br>` unclosed and the picture would not parse. See `rcPng_`. */
 'XMLSerializer '+
+/* NodeFilter — the keypad walks a worded answer's drawing for its text nodes (`kpHitWords_`) to put
+   the caret where a finger landed. A browser global beside `Node`. */
+'NodeFilter '+
 /* GOOGLE IDENTITY SERVICES. `google.accounts.id` is put on the window by the script me.js appends
    at sign-in time, so it is a global that arrives late rather than a name anybody forgot to
    declare — and me.js already guards it with `if (!window.google)`, which is the right check for
@@ -194,8 +197,16 @@ files.forEach((f,i)=>{
        So a call at load time to a function in the SAME file is followed one level in: if that
        function reads a top-level value declared below the call, it is reported. One level is
        enough for the shape that actually occurs — a registrar writing to a table — and stops well
-       short of chasing every branch of the program. */
-    if (kindOf[n] === 'function') return;   // reaching it is fine; what it touches is checked below
+       short of chasing every branch of the program.
+
+       AND HOISTED ONLY WITHIN ITS OWN SCRIPT. Each file is a separate <script>, and a function
+       declared in one that has not run yet does not exist at all — so this line said "reaching it is
+       fine" for every function in every file, and a top-level `const X = tileIcon_('hide')` in
+       games.js (tiles.js loads later) passed as "nothing is read before it exists" and would have
+       thrown in the browser. Imposter's first version did exactly that and only a screenshot run
+       caught it (docs/history/300). Now an EARLIER file's function is reached safely and a LATER
+       file's is reported, call or bare reference alike. */
+    if (kindOf[n] === 'function' && ORDER.indexOf(home) < i) return;   // reached; what it touches is checked below
     if(ORDER.indexOf(home)>i) tdz.push(f.name+'.js reads '+n+' at load, but '+home+'.js declares it later');
   });
 });

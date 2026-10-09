@@ -515,6 +515,9 @@ function startScreen_(id, arriving) {
      clip playing on a screen nobody was looking at, started by a booking made for the screen
      before. */
   if (id === 'reel' && typeof reelsWatch_ === 'function') reelsWatch_();
+  /* AND A TEXTBOOK'S ANIMATION PLAYS ONLY ON FIND, ONLY ON THE PAGE IN FRONT — for EVERY screen, because
+     arriving anywhere else is what pauses the one on Find. See `tbAnimWatch_` in find.js. */
+  if (typeof tbAnimWatch_ === 'function') tbAnimWatch_();
   /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR THE FIRST TIME THE SETTINGS COLUMN IS REACHED — a
      POST, once, and never the payload (see js/records.js). */
   if (id === 'settings' && typeof bizStart_ === 'function') bizStart_();
@@ -2745,6 +2748,8 @@ function goPage(id, to, instant) {
      on rather than starting and pausing one per swipe. A fresh arrow here would be a different key
      every call and would undo exactly that. */
   if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
+  /* AND THE TEXTBOOK'S ANIMATION ON THE PAGE TURNED TO, by name for the reason `reelsWatch_` is. */
+  if (id === 'stuff' && typeof tbAnimWatch_ === 'function') afterSlide_(tbAnimWatch_);
   /* AND THE CAMERA, WHICH IS A PAGE OF THE FEED — started when its page arrives and let go when the
      page turns away, booked under its own name for the reason `reelsWatch_` is: a run of quick
      flicks is one decision at the end rather than a camera started and stopped per swipe. */
@@ -3637,6 +3642,7 @@ async function filesOnly_() {
     const extra = await libraryExtraRows_();
     libraryExtras_(d, extra);
     settingsInto_(d, extra);
+    try { splashSync_(d, extra); } catch (e) {}
   } catch (e) {}
   /* THE SAME THREE REPAIRS THE PAYLOAD PATH MAKES, because every reader downstream expects them
      and an absent `checklists` is a throw rather than an empty screen. */
@@ -3832,11 +3838,11 @@ async function load() {
          the console says what they were.
 
          Costs nothing. A Proxy is only consulted on a property that is not there. */
-      /* REMEMBERED FOR THE NEXT LOAD. The splash is chosen while the page is still parsing — that
-         is what makes it right on the first frame — so it cannot ask DATA which have been retired.
-         It reads what the last visit left here instead: one load behind, which for a decorative
-         choice nobody will notice, and the alternative is a splash that changes after it appears. */
-      try { localStorage.setItem('splashOff', JSON.stringify(d.splashOff || [])); } catch (e) {}
+      /* `splashOff` WAS WRITTEN HERE, and that is why retiring a splash never reached a device. This
+         line ran BEFORE `settingsInto_` below, so it wrote the payload's `splashOff` -- which
+         `doGet` sends as `[]` on every load, the list having moved to data/settings/splashes.json --
+         and the file's list, built a few lines later, was never written anywhere. It is written by
+         `splashSync_` now, after the file has been read; see there. */
       /* AND THE STARS THE SHEET KNOWS ABOUT — see `adoptFavourites_`. Called here rather than in
          `find.js` because this is the moment a payload becomes DATA, and a favourite read before
          that is the last device's guess. */
@@ -3883,6 +3889,9 @@ async function load() {
            and it is what keeps the site standing if the spreadsheet is deleted before the Apps
            Script sync has run, which is the ordering this project cannot control. */
         settingsInto_(d, extra);
+        /* AND WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM — see `splashSync_`. Its own `try`, so a
+           full or forbidden storage cannot cost this payload its library. */
+        try { splashSync_(d, extra); } catch (e) {}
       } catch (e) {
         d.questions = d.questions || [];
         d.dropdowns = d.dropdowns || {};
@@ -4160,13 +4169,127 @@ function splashWaitWatch_() {
     if (now && !now.classList.contains('done')) splashSay_(true);
   }, SPLASH_SAY_AFTER);
 }
+/* ---------- WHAT THE NEXT LOAD'S SPLASH IS CHOSEN FROM ----------------------------------------------
+   THE SPLASH IS CHOSEN WHILE THE PAGE IS STILL PARSING — that is what makes it right on the first
+   frame — so it cannot ask `DATA` anything, and it cannot fetch. It reads what the last visit left in
+   this device's storage instead: one load behind, which for a decorative choice nobody will notice,
+   and the alternative is a splash that changes after it appears.
+
+   `splashOff` IS THE SHEET'S RETIRED SPLASHES, as `settingsInto_` reads them off
+   data/settings/splashes.json. Written only when that file came back with rows: a fetch that failed
+   is not the sheet saying "retire nothing", and writing `[]` for it would bring every retired splash
+   back until the next good load. It was written once before, from the payload and before the file had
+   been read, which is why no splash retired in the sheet ever left anybody's phone.
+
+   AND THE TEACHING ANIMATIONS THEMSELVES. "The animation from loading screen are pulling and syncing
+   from the text book animations" — the owner, 8 Oct. The books are where each one lives (a row of
+   data/textbooks.json under its chapter, `libraryExtras_`); the splash draws from a copy kept here:
+     `splashAnims`        {f, ids, h}: the shape's number, the ids in the books' order, each one's hash
+     `splashAnim:<id>`    {h, html, css}: one drawing, exactly as its row has it
+   A drawing is written again only when its hash moved, so a load where nothing changed writes one
+   small index. The index goes LAST and names only what was written, so a load cut off half way leaves
+   either the old index or none — never one that names a record that is not there; and the picker
+   checks every record's hash against the index before it draws, so a damaged one costs an inline
+   splash and a full rewrite next time, never a garbled screen.
+   A FAILED FETCH LEAVES THE COPY ALONE, for the reason a failed splashes file leaves `splashOff`.
+   OUT OF STORAGE, THE WHOLE COPY GOES (`splashGiveWay_`). This said "out of storage on one drawing
+   leaves that one out, and nothing else is touched … a child's saved answers and drawings cannot be
+   pushed out by a loading screen", and both halves were true word for word and the effect was the
+   opposite: a `setItem` that throws evicts nothing, so the drawings that DID fit stayed — in the last
+   free space on the device, where a child's next answer needed to go. Measured on a store with about
+   100 000 characters free: fourteen drawings kept, and a 2 000-character answer then refused, which
+   `ansLocalPut_` swallowed, so a child who was not signed in lost it on reload. And on a store with
+   room for the 27 but not for the index after them, all 27 were written, the index failed, and the
+   27 stayed behind with nothing naming them — never drawn, rewritten whole on every load, the index
+   failing again each time. A decoration has no claim on the last of the room. So: any write here that
+   throws takes the index and every `splashAnim:` key with it, and the splash falls back to the inline
+   ones, as on a first visit; the next load tries again from nothing. And a child's write that throws
+   (`ansLocalPut_`, answers.js) takes the copy away and tries once more, so a copy that fitted
+   yesterday cannot hold space a child needs today. WHAT IS GUARANTEED, then: this never removes
+   anything but its own keys, never keeps a part-copy after a refusal, and never stands between an
+   answer or a drawing and the store. Other writes (`favs`, the signed-in user) are not covered.
+   `SPLASH_CACHE_MAX` is the ceiling on the lot, in a 5 MB store shared with everything else this app
+   keeps. THE 28 COME TO ABOUT 173 000 OF ITS 200 000 — this said "about twice" when it was written,
+   before the rows were real, and it was not. The room left is a few drawings, not twenty-eight; a
+   drawing past the ceiling is left off the splash (never out of its chapter), and `check-anims.js`
+   fails before the books get there, so raising it is a decision made in the open.
+   `SPLASH_CACHE_F` IS THE SHAPE. The picker in index.html reads `f === 1` written out, because it runs
+   before any of this file exists; `check-anims.js` holds the two to the same number. Change the shape
+   and both move, and every device starts again from an empty copy. */
+const SPLASH_CACHE_F = 1;
+const SPLASH_CACHE_MAX = 200000;
+function splashSync_(d, extra) {
+  const rows = extra && extra['settings/splashes'];
+  if (rows && rows.length) {
+    try { localStorage.setItem('splashOff', JSON.stringify((d && d.splashOff) || [])); } catch (e) {}
+  }
+  const tb = extra && extra.textbooks;
+  if (!tb || !tb.length || !d || !d.textbooks || !d.textbooks.length) return;
+  let was = null;
+  try { was = JSON.parse(localStorage.getItem('splashAnims') || 'null'); } catch (e) { was = null; }
+  const old = was && was.f === SPLASH_CACHE_F && was.h && typeof was.h === 'object' ? was.h : {};
+  const idx = { f: SPLASH_CACHE_F, ids: [], h: {} };
+  let size = 0, full = false;
+  d.textbooks.forEach(b => (b.chapters || []).forEach(c => (c.animations || []).forEach(a => {
+    if (full || !a || !a.id || idx.h[a.id]) return;
+    const n = String(a.html).length + String(a.css).length;
+    if (size + n > SPLASH_CACHE_MAX) return;
+    if (old[a.id] !== a.h) {
+      try { localStorage.setItem('splashAnim:' + a.id, JSON.stringify({ h: a.h, html: a.html, css: a.css })); }
+      catch (e) { full = true; return; }
+    }
+    size += n;
+    idx.ids.push(a.id);
+    idx.h[a.id] = a.h;
+  })));
+  /* A REFUSED WRITE GIVES THE WHOLE COPY BACK — see above. Before the sweep, which would only be
+     tidying what is about to go. */
+  if (full) { splashGiveWay_(); return; }
+  /* EVERY KEPT DRAWING THE BOOKS NO LONGER HAVE GOES, and so does one left half-written by a load that
+     stopped. Only this file's own prefix: nothing else in the store is this function's to touch. */
+  try {
+    const gone = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf('splashAnim:') === 0 && !idx.h[k.slice(11)]) gone.push(k);
+    }
+    gone.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  /* AND AN INDEX THE STORE REFUSES TAKES ITS DRAWINGS WITH IT: without it nothing can name them, so
+     they are room taken for a splash nobody will be shown. */
+  try { localStorage.setItem('splashAnims', JSON.stringify(idx)); }
+  catch (e) { splashGiveWay_(); }
+}
+/* THE WHOLE KEPT COPY, OUT: the index and every drawing, and nothing that is not this file's own
+   prefix. Called when the store refuses a write — here, or a child's in `ansLocalPut_` — and answers
+   whether there was anything to give, so the caller knows whether trying again can help. */
+function splashGiveWay_() {
+  const gone = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k === 'splashAnims' || k.indexOf('splashAnim:') === 0)) gone.push(k);
+    }
+    gone.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  return gone.length > 0;
+}
 function splashOff_() {
   clearTimeout(splashSayTimer); clearTimeout(splashEarlyTimer); splashSay_(false);
   const el = $('splash'); if (el) el.classList.add('done');
   /* AND OUT OF THE DOCUMENT ONCE IT HAS FADED. `done` hides it, and a hidden splash still runs its
      endless animations — one kept eight of them restyling on every frame, drags included. Half a
      second is past the fade; `splashOn_` puts it back. */
-  if (el) setTimeout(() => { if (el.classList.contains('done')) el.style.display = 'none'; }, 500);
+  /* AND A DRAWING THE PICKER PUT ON IT FROM THE BOOKS' COPY GOES WITH IT, back to the tag — so a
+     Try again (`splashOn_`) shows a splash rather than an empty black screen whose class names a root
+     that is no longer there. The drawing's `<style>` stays: a chapter page may be using it. */
+  if (el) setTimeout(() => {
+    if (!el.classList.contains('done')) return;
+    el.style.display = 'none';
+    const root = el.querySelector(':scope > [class|="an"]');
+    if (root) root.remove();
+    if (el.classList.contains('is-an')) { el.classList.remove('is-an'); el.classList.add('is-tag'); }
+  }, 500);
 }
 function splashOn_()  { const el = $('splash'); if (el) { el.style.display = ''; el.classList.remove('done'); } }
 

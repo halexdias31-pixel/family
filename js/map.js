@@ -1310,8 +1310,12 @@ const WIDGETS = [
 
      NOT `solid`, like every other game: the funnel drawing a search box inside a search result is a
      search inside a search. `.vid-box` is a class as well as an id — the timetable's reason, the
-     Saved column draws this markup again and `vidPaint_` writes every copy. */
-  { id: 'videos', kind: 'game', name: 'Videos (films, reels and clips)', start: () => initVideos?.(),
+     Saved column draws this markup again and `vidPaint_` writes every copy.
+
+     `name` WAS "Videos (films, reels and clips)". The reels left the card a while ago (*"the video
+     widget shouldn't acknowledge reels"*), and "films" was a word every visitor read for a list only
+     an admin is sent — the one sign, on a student's screen, that the films exist. */
+  { id: 'videos', kind: 'game', name: 'Videos', start: () => initVideos?.(),
     stop: () => videosStop_?.(),
     into: 'vid-box', what: 'The videos',
     html: `<h3>Videos</h3>

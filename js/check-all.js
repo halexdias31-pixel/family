@@ -163,6 +163,11 @@ const SUITE = [
      five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
+  /* ---------- AND THE ANIMATIONS IN THEM, WHICH THE LOADING SCREEN DRAWS FROM A COPY -------------------
+     "the source for the animations should be in text books. The animation from loading screen are
+     pulling and syncing from the text book animations." — the owner, 8 Oct. One row each; the sync and
+     the picker are run, not read, and a copy that is not the row is never drawn. */
+  { file: 'check-anims.js', what: 'the books\' animations: one source, kept and drawn as their rows' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN -----------------------------
      "i want to add the bible to resources as a book. but only admin can see the bible." — and then
      "tags in finder ... each verse is a widget." The split out of `data/archive/bible.json` checked
@@ -205,6 +210,11 @@ const SUITE = [
   /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
      from the token, and nobody sent another learner's — through the same backend. */
   { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. *"Let admin be able to search up films which are in
+     the notflix folder on gdrive"* — the card was wired and the tab it reads was empty. The sync that
+     fills it, over an invented Drive: once each, a second pass writes nothing, typed cells survive,
+     a missing file goes off, only an admin, no id sent, no payload retired, and the clock bounds it. */
+  { file: 'check-films.js', what: 'the films from the Notflix folder: the upsert, admin only, no id sent, the clock' },
   /* WHAT A CHILD WROTE, ON THEIR ACCOUNT. *"it didnt have his answers already written in when he went to
      see them on the computer"* — the answers tab: the token's person, the later edit, every value as text,
      and the sign-in reply carrying the child's own work. Same backend, same harness. */
@@ -243,7 +253,12 @@ const SUITE = [
      together once left SEVEN reads of `r.link` on rows that call the URL `source_url`, every
      checklist topic arriving with no link on it, and nothing throwing. */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
-  { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something' },
+  /* SLOW, LIKE THE BROWSERS, AND FOR THE SAME REASON. The funnel walks the real library and took 283s
+     in a full run on 8 Oct, seventeen seconds inside the five-minute clock the file checks get; the
+     journeys below were killed at 300.4s the same evening, all of them passing alone. A check that
+     grows with the library and the app does not belong under a clock sized for "has it hung" — so
+     both run in the pool beside the browsers, each timed from its own start, with fifteen minutes. */
+  { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something', slow: true },
   /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS --------------------------------
      A bundle is the whole papers on the list, a trolley that puts them in the basket, and a Send
      that tells the owner. `check-flow` cannot reach it — its fake backend answers the library with
@@ -252,7 +267,7 @@ const SUITE = [
      that empties the basket on a refusal. This runs the real library and works the right papers out
      from the file on its own. */
   { file: 'check-bundle.js', what: 'a bundle names its papers, and an order reaches the owner' },
-  { file: 'check-flow.js',    what: 'the app, actually running' },
+  { file: 'check-flow.js',    what: 'the app, actually running', slow: true },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT ---------------------------------------------------
      `check/ui.js` MEASURES THE APP AND SAMPLES THE LIBRARY. The Find screen's results are pages
      filled five either side of where you are, so one run renders about six question cards out of
@@ -280,6 +295,11 @@ const SUITE = [
      asks the question neither can: after a deploy, does the browser run the new code. Deterministic,
      seven seconds, and it runs at both base paths because the base path is what hid the fault. */
   { file: 'check/deploy.js',  what: 'a deploy reaching a browser that already has the site', slow: true },
+  /* ---------- EVERY TEXTBOOK ANIMATION IN ITS CHAPTER, AND STILL WHEN ASKED ---------------------------
+     Twenty-seven drawings made for the middle of a black screen are drawn in a card as well. Each is
+     measured on its page at 320 and 390, at six moments of its loop, for leaving the card; and with
+     less movement asked for, in the chapter and on the splash, for holding still. */
+  { file: 'check/anims.js',   what: 'every textbook animation inside its card, and still when asked', slow: true },
   /* ---------- AND WHETHER PRESSING ANYTHING DOES ANYTHING ----------------------------------------
      REPORTED BY THE OWNER AS "grid not working when click", and it was true: `paintBook_` repainted
      `s-stuff`, which on the Booking column is not merely the wrong element but a dead one. Every

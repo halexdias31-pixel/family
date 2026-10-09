@@ -47,7 +47,37 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..');
+const REPO = path.join(__dirname, '..');
+/* ---------- A COPY OF THE SITE, NOT THE SITE -------------------------------------------------------
+   THIS USED TO DEPLOY INTO THE WORKING TREE — rewrite js/posts.js and data/textbooks.json, touch
+   index.html's date — and put them back on exit. That was safe while it ran alone and stopped being
+   safe the day check-all ran it beside the journeys (8–9 Oct): check-flow reads every js file from
+   disk for each journey it boots, read posts.js in the instant this had truncated it to rewrite it,
+   and booted an app with no posts.js in it — `ReferenceError: openSharedPost is not defined` inside
+   `load()`, a crash of the whole run that never happened alone. A check must not change what the
+   other checks are reading. So the deploy happens to a private copy: the code and the page copied,
+   every data file but the one this edits linked rather than copied (the library is tens of
+   megabytes), and the server serves the copy. The working tree is never written. */
+const ROOT = fs.mkdtempSync(path.join(require('os').tmpdir(), 'family-deploy-'));
+(function copySite_() {
+  const DEEP = { js: 1 };
+  fs.readdirSync(REPO).forEach(n => {
+    if (n === '.git' || n === 'node_modules' || n === '.claude') return;
+    const from = path.join(REPO, n), to = path.join(ROOT, n);
+    const st = fs.statSync(from);
+    if (!st.isDirectory()) return fs.copyFileSync(from, to);
+    if (DEEP[n]) return fs.cpSync(from, to, { recursive: true });
+    if (n === 'data') {
+      fs.mkdirSync(to);
+      fs.readdirSync(from).forEach(d => {
+        if (d === 'textbooks.json') fs.copyFileSync(path.join(from, d), path.join(to, d));
+        else fs.symlinkSync(path.join(from, d), path.join(to, d));
+      });
+      return;
+    }
+    fs.symlinkSync(from, to);
+  });
+})();
 const PORT = Number(process.env.DEPLOY_PORT || 8731);
 
 let chromium;
@@ -61,15 +91,30 @@ const CHROME = process.env.CHROME ||
       .map(n => path.join('/opt/pw-browsers', n, 'chrome-linux', 'chrome'))
       .find(p => fs.existsSync(p)))) || undefined;
 
-/* THE FILES THE DEPLOY TOUCHES, and they are put back whatever happens — including on a throw.
-   A check that leaves the working tree edited is a check somebody commits by accident. */
+/* THE FILES THE DEPLOY TOUCHES — in the copy above, which is thrown away whatever happens. */
 const POSTS = path.join(ROOT, 'js', 'posts.js');
 const PAGE = path.join(ROOT, 'index.html');
+/* ---------- AND A DATA FILE, BECAUSE THE WORKER PINNED THOSE TOO --------------------------------------
+   `data/textbooks.json` and every `data/settings/` file were fetched with no `?t=`, so the worker held
+   the first copy a device ever saw and answered every later load out of it: a deploy reached the code
+   and never the books. Each deploy below also renames a chapter, and the next load has to show the new
+   name. Restored with the rest, whatever happens.
+   AND CHANGES ONE ANIMATION. Pythagoras is a row of that file too, and the loading screen draws the
+   copy a load keeps of it (`splashSync_`): after a deploy the device's copy must be the new drawing,
+   by its hash — or the splash would show yesterday's Pythagoras for good. */
+const BOOKS = path.join(ROOT, 'data', 'textbooks.json');
+const BOOK_LINE = '{"book_id":"TB-GCSE-MATHS","chapter":1,"title":"Number, factors and primes"';
 const postsWas = fs.readFileSync(POSTS);
 const pageWas = fs.statSync(PAGE);
-const restore = () => {
+const booksWas = fs.readFileSync(BOOKS);
+/* BETWEEN THE TWO BASE PATHS THE COPY IS PUT BACK AS IT WAS; AT EXIT IT IS THROWN AWAY. */
+const reset = () => {
   try { fs.writeFileSync(POSTS, postsWas); } catch (err) { /* nothing better to do */ }
+  try { fs.writeFileSync(BOOKS, booksWas); } catch (err) { /* same */ }
   try { fs.utimesSync(PAGE, pageWas.atime, pageWas.mtime); } catch (err) { /* same */ }
+};
+const restore = () => {
+  try { fs.rmSync(ROOT, { recursive: true, force: true }); } catch (err) { /* nothing better to do */ }
 };
 process.on('exit', restore);
 
@@ -111,6 +156,12 @@ function serve(base) {
 
 function deploy(marker, hours) {
   fs.writeFileSync(POSTS, postsWas + '\nfunction ' + marker + '() { return 1; }\n');
+  const books = booksWas.toString('utf8');
+  if (books.indexOf(BOOK_LINE) < 0) throw new Error('data/textbooks.json has no line starting ' + BOOK_LINE + ' — the data half was NOT deployed');
+  const PY = '.py-say b { color: var(--py); }';
+  if (books.indexOf(PY) < 0) throw new Error('the Pythagoras row has no `' + PY + '` — the animation half was NOT deployed');
+  fs.writeFileSync(BOOKS, books.replace(BOOK_LINE, BOOK_LINE.slice(0, -1) + ' ' + marker + '"')
+    .replace(PY, PY + ' .py-say b.' + marker.toLowerCase().replace(/_/g, '') + ' { color: inherit; }'));
   const when = new Date(Date.now() + hours * 3600e3);
   fs.utimesSync(PAGE, when, when);
 }
@@ -147,6 +198,24 @@ async function run(base) {
       const got = await pg.evaluate(m => ({
         ran: typeof window[m] === 'function', load: window.LOAD,
       }), marker);
+      /* THE CHAPTER'S NEW NAME, read off what the app built rather than off the network: `DATA` is the
+         textbooks as `libraryExtras_` made them, so it is the copy a student would be shown. */
+      got.book = await pg.waitForFunction(m => {
+        try {
+          const b = (DATA.textbooks || []).find(x => x.id === 'TB-GCSE-MATHS');
+          const c = b && b.chapters.find(x => x.n === 1);
+          return !!c && c.title.indexOf(m) !== -1;
+        } catch (e) { return false; }
+      }, marker, { timeout: 30000 }).then(() => true, () => false);
+      /* AND THE DEVICE'S COPY OF PYTHAGORAS IS THE NEW ONE: its CSS has this deploy's change, and the
+         hash the picker checks it by is the record's own. */
+      got.anim = await pg.waitForFunction(m => {
+        try {
+          const idx = JSON.parse(localStorage.getItem('splashAnims'));
+          const rec = JSON.parse(localStorage.getItem('splashAnim:pyth'));
+          return rec.css.indexOf('.py-say b.' + m + ' ') !== -1 && idx.h.pyth === rec.h;
+        } catch (e) { return false; }
+      }, marker.toLowerCase().replace(/_/g, ''), { timeout: 30000 }).then(() => true, () => false);
       got.asked = seen.length;
       rounds.push(got);
       await pg.close();
@@ -155,7 +224,7 @@ async function run(base) {
   } finally {
     await br.close();
     srv.close();
-    restore();
+    reset();
   }
 }
 
@@ -172,8 +241,12 @@ async function run(base) {
     }
     rounds.forEach((r, i) => {
       console.log('  deploy ' + (i + 1) + ': entry point asked for ' + r.asked + 'x, LOAD ' + r.load +
-                  ', new code ' + (r.ran ? 'RAN' : 'DID NOT RUN'));
+                  ', new code ' + (r.ran ? 'RAN' : 'DID NOT RUN') +
+                  ', the renamed chapter ' + (r.book ? 'SHOWN' : 'NOT SHOWN') +
+                  ', the changed animation ' + (r.anim ? 'KEPT' : 'NOT KEPT'));
       if (!r.ran) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' did not reach the browser');
+      if (!r.book) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' renamed a chapter in data/textbooks.json and the browser still had the old name');
+      if (!r.anim) bad.push((base || '/') + ' — deploy ' + (i + 1) + ' changed Pythagoras in data/textbooks.json and the device kept the old drawing for its splash');
     });
     console.log('');
   }
@@ -186,5 +259,5 @@ async function run(base) {
                 'fault a hard refresh hides and nobody should have to know about.');
     process.exit(1);
   }
-  console.log('OK — two deploys at two base paths, each running on the next ordinary load.');
+  console.log('OK — two deploys at two base paths, each running on the next ordinary load, data included.');
 })().catch(err => { restore(); console.error(err); process.exit(1); });

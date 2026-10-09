@@ -1,5 +1,8 @@
 ## A films database nobody may see, and the repository is the one place it cannot go
 
+*Scrubbed 9 Oct: this note printed the start of the folder's id and named four real titles; they are
+taken out of the current file (git history still holds them — see 305).*
+
 **Asked for as "i want to add a database for films but i dont want people to be able to see them.
 i want to add everything from drive… films, tv shows and so on. adult and kids and docs ect."**
 
@@ -10,7 +13,7 @@ is secret by that description, so `data/films.json` was never available — not 
 the rule this file opens with.
 
 **And the Drive folder is already `anyone: reader`.** Measured before anything was written:
-`{"role":"reader","type":"anyone"}` on `1SIFvXCYBghJMiGc…`, inherited by every film, every series
+`{"role":"reader","type":"anyone"}` on the folder (its id is not written here), inherited by every film, every series
 and every episode under it. **So the file ids ARE the protection** — publishing them in a public
 repository turns "anyone with the link" into "anyone", permanently, for about twenty-five films and
 several hundred episodes of commercial television. Reported to the owner, who chose to leave the
@@ -50,16 +53,16 @@ because the whole tab is admin-only before it leaves the server. And it is its o
 `subject` put Heavyweight on the Subject question beside Maths.
 
 **What is filled in and what is blank is the rule this file states three times.** A year only where
-the filename says it; a director or a lead only where the title is unambiguous. `Michael` and
-`Obsession` each name more than one film and the file does not settle which, so both carry a note
+the filename says it; a director or a lead only where the title is unambiguous. Two titles
+each name more than one film and the file does not settle which, so both carry a note
 saying so and nothing else — **16 of 22 have a year, 12 a director, 12 a lead**. A wrong director on
 a card is a fact nobody re-checks.
 
-**`There Will Be Blood` was asked for by name and is NOT in the Drive.** The folder holds an entry
+**One film asked for by name was NOT in the Drive.** The folder holds an entry
 with that title and it is a **1 KB Google Doc**, not the film. So the row is there, marked
 `placeholder`, drawing *"Not in the drive yet"* where the link would be — the library's own column
 one table along, and the same argument: a card that states the gap beats a link that opens nothing.
-`The Case for Christ`, also asked for, was **already there** as a real 1 GB file.
+Another, also asked for, was **already there** as a real 1 GB file.
 
 **The catalogue itself is a private Google Sheet in the owner's Drive**, owner-only, for importing
 into `Ledger` — which is the path every bulk import in this project has taken. Nothing real is in

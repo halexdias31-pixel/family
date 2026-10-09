@@ -3612,13 +3612,16 @@ function guideBox_(x, slot, ask, hint) {
      (`(a)`, `ANSWER`), and a sentence like "the one thing you will change" set in it at .62rem
      with .08em of letter-spacing is a smear rather than a question.
 
-     SPELLCHECK STAYS ON, where `ansBox_` turns it off. That one holds `3.42 x 10^7`; these hold
-     prose somebody writes about what they think will happen. */
+     AND IT IS THE PAD'S BOX, opening on the letters (`kpField_`, keypad.js). It was a plain textarea
+     with spellcheck on -- "these hold prose somebody writes about what they think will happen" --
+     and so it was one of the ways the phone's keyboard came up on a question's pages, which the owner
+     ruled out on 8 Oct (*"I just want self contained system really"*). Spelling help went with the
+     phone's keyboard; that is the trade, said here where it was the reason. Named by its question,
+     so a screen reader says what it is asking rather than "Your answer" three times. */
   return `<label class="qp-ans gd-box">
     <span class="gd-ask">${esc(ask)}</span>
     ${hint ? `<span class="gd-hint">${esc(hint)}</span>` : ''}
-    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="2" autocomplete="off">${esc(ansRead_(k))}</textarea>
+    ${kpField_(k, ansRead_(k), 'words', false, ask)}
   </label>`;
 }
 
@@ -3856,35 +3859,152 @@ function textbookCard_(x) {
 
 /* ONE CHAPTER. `part` is `ch` and the chapter's number — `ch7` — because it also lands in a class
    name, `is-ch7`, and a colon there would need escaping in every selector that reads it. */
+/* AND ONE ANIMATION. `an7-mean` is the mean's page after chapter 7 — see `textbookAnimPart_`. */
 function textbookPart_(x, part) {
+  if (/^an\d+-/.test(String(part || ''))) return textbookAnimPart_(x, part);
   const b = x.row, n = Number(String(part || '').slice(2));
   const c = (b.chapters || []).find(ch => ch.n === n);
   if (!c) return '';
-  const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   return `<div class="card fc prac prac-part tb is-${esc(part)}">
     <p class="fc-kick">${esc(x.name)} · chapter ${c.n}</p>
     <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
-    ${c.words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul class="fc-list">${
-      c.words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
-    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
-         and an `H` trailing it sat alone on a third, measured at 320px. */''}
-    ${c.formulas.length ? `<section class="fc-sec tb-math"><h4>Formulas</h4><ul>${
-      c.formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
-        tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
-    ${c.points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul class="fc-list">${
-      c.points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}
+    ${tbSections_(c)}
     ${c.topics ? `<p class="fc-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
   </div>`;
 }
 
+/* ---------- A CHAPTER'S KEY WORDS, FORMULAS AND WORKED LINES — ALL OF THEM, OR THE ONES ASKED FOR ---------
+   ONE RENDERER FOR BOTH PAGES. The chapter draws every line; the page of an animation draws the lines it
+   is ABOUT (`keep`, the row's `about`): a key word or a formula by its name, a worked line by how it
+   opens. Two copies of this markup would be two places for a Higher mark or a fraction to be drawn
+   differently, which is the shape `typeset_` exists to end. With no `keep` this is, byte for byte, what
+   `textbookPart_` drew before it moved here — proved over every chapter of every book when it moved. */
+function tbSections_(c, keep) {
+  const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
+  const named = i => !keep || keep.indexOf(i.name) !== -1;
+  /* A WORKED LINE IS NAMED BY HOW IT OPENS — "Exact values: sin 30° …" is about Exact values — and the
+     next character must not carry the word on: "Mean" is not the opening of "Meanwhile". */
+  const opens = p => !keep || keep.some(k => p.text.indexOf(k) === 0 && !/[A-Za-z0-9]/.test(p.text.charAt(k.length)));
+  const words = c.words.filter(named), formulas = c.formulas.filter(named), points = c.points.filter(opens);
+  return `${words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul class="fc-list">${
+      words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
+    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
+         and an `H` trailing it sat alone on a third, measured at 320px. */''}
+    ${formulas.length ? `<section class="fc-sec tb-math"><h4>Formulas</h4><ul>${
+      formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
+        tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
+    ${points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul class="fc-list">${
+      points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}`;
+}
+
+/* ==================================================================================================
+   A CHAPTER'S ANIMATION, ON A PAGE OF ITS OWN STRAIGHT AFTER IT.
+
+   "Add the animations from loading to respective subject text books. Matter of fact the source for the
+   animations should be in text books." — the owner, 8 Oct. Each teaching animation (Pythagoras counted,
+   the sieve, Bayes with a hundred people) is a row of data/textbooks.json under the chapter it teaches,
+   and this is where the book plays it: the drawing, a Play again tile, and under it the chapter's own
+   words about it — its `about`, drawn by the chapter's renderer, so the page says what the picture shows
+   in the words the chapter uses. The loading screen draws the same rows from a copy the device keeps;
+   see `splashSync_` in shell.js.
+
+   NO "@family." LINE. The splash signs every drawing because it is the first thing anybody sees and has
+   to say whose app it is; here the kicker already names the book. The row's markup carries no
+   signature at all — the picker in index.html adds one when it draws on the splash.
+
+   A THING HAS TILES (CLAUDE.md), and an animation is a thing: Play again is a tile, not a button. */
+let TB_AN_SEQ = 0;
+function textbookAnimPart_(x, part) {
+  const m = /^an(\d+)-([a-z0-9]+)$/.exec(String(part || ''));
+  const b = x && x.row;
+  const c = m && b && (b.chapters || []).find(ch => ch.n === Number(m[1]));
+  const a = c && (c.animations || []).find(y => y.id === m[2]);
+  if (!a) return '';
+  animStyle_(a);
+  return `<div class="card fc prac prac-part tb tb-an is-${esc(part)}">
+    <p class="fc-kick">${esc(x.name)} · chapter ${c.n} · ${esc(c.title)}${tbHigher_(c.higher)}</p>
+    <h3>${esc(a.title)}</h3>
+    <div class="tb-an-stage" data-anim="${esc(a.id)}">${animIds_(a.html, ++TB_AN_SEQ)}</div>
+    <div class="tile-row">${tile_({ icon: 'undo', label: 'Play again', note: 'from the start', act: 'tb-an-again' })}</div>
+    <section class="tb-about">${tbSections_(c, a.about)}</section>
+  </div>`;
+}
+
+/* ---------- AN ANIMATION'S STYLESHEET, ONCE, SHARED WITH THE SPLASH ---------------------------------
+   ONE `<style data-anim="id">` PER ANIMATION in `<head>`, holding the row's CSS and its hash. The splash
+   makes the same element when it draws one from the device's copy, so a book opened while that splash
+   is still fading finds it there: left alone if the hash is the book's, its text replaced if the book
+   has a newer drawing. Every rule in it is anchored on the animation's own root or its own prefix
+   (`check-anims.js`), so nothing in it can reach anything else on the page. */
+function animStyle_(a) {
+  if (!a || !a.id) return;
+  let st = document.head.querySelector('style[data-anim="' + a.id + '"]');
+  if (st && st.getAttribute('data-h') === a.h) return;
+  if (!st) {
+    st = document.createElement('style');
+    st.setAttribute('data-anim', a.id);
+    document.head.appendChild(st);
+  }
+  st.textContent = a.css;
+  st.setAttribute('data-h', a.h);
+}
+
+/* ---------- AN id IS ONE ELEMENT, AND A DRAWING CAN BE ON THE PAGE TWICE ------------------------------
+   THE SINE WAVE'S FADE, THE VENN'S CLIPS AND y = mx + c's CLIP ARE `id`s, reached by `url(#…)` and
+   `href="#…"` from inside the drawing. Find keeps the pages either side filled, so two copies of one
+   chapter's drawing — or the splash's and a chapter's — would be two elements with one id, and
+   `url(#sn-fade)` resolves to whichever came first: the fault check-css's id sweep was written for.
+   So each drawing put on a page is given its own: every `id` in it gains `-t` and a number that only
+   goes up, and every reference inside it follows. The CSS never names an id (check-anims), so nothing
+   outside the drawing needs telling. */
+function animIds_(html, n) {
+  const ids = [...String(html).matchAll(/\sid="([^"]+)"/g)].map(m => m[1]);
+  if (!ids.length) return String(html);
+  const any = ids.map(i => i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  return String(html).replace(new RegExp('(\\sid="|url\\(#|href="#)(' + any + ')(?=["\\)])', 'g'),
+    (all, at, id) => at + id + '-t' + n);
+}
+
+/* ---------- ONLY THE ONE ON THE PAGE IN FRONT PLAYS, AND IT PLAYS FROM THE START ----------------------
+   FIND KEEPS ELEVEN PAGES FILLED (`STUFF_NEAR`), so a book with four drawings near the page you are on
+   would run four animations nobody can see — and the one you swipe to would already be half way through
+   its story. So the stage on the page in front is `.is-on`, and arriving there puts its markup back
+   (`innerHTML = innerHTML`), which starts every animation in it again; every other stage stands paused
+   by `.tb-an-stage:not(.is-on)` in style.css. Off the Find screen, nothing plays.
+   BOOKED BY NAME through `afterSlide_` from `goPage`, so a run of quick flicks is one decision at the
+   end, and called when a screen arrives and at the end of a fill. */
+function tbAnimWatch_() {
+  const host = $('s-stuff');
+  if (!host) return;
+  const stages = host.querySelectorAll('.tb-an-stage');
+  if (!stages.length) return;
+  const here = AT === 'stuff' ? host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)] : null;
+  stages.forEach(st => {
+    const on = !!here && here.contains(st);
+    if (on && !st.classList.contains('is-on')) {
+      st.innerHTML = st.innerHTML;
+      st.classList.add('is-on');
+    } else if (!on && st.classList.contains('is-on')) st.classList.remove('is-on');
+  });
+}
+/* PLAY AGAIN: the same restart, on the tile's own stage. */
+on('tb-an-again', el => {
+  const card = el && el.closest('.card');
+  const st = card && card.querySelector('.tb-an-stage');
+  if (st) st.innerHTML = st.innerHTML;
+});
+
 /* `textbookText_` — `projectText_`'s move for a book: `frequency density` and `stratified` are what
    somebody types, and they are only ever inside a chapter. The formulas go in as typed, so `IQR`
    finds the chapter that defines it. */
+/* AN ANIMATION IS FOUND BY ITS TITLE — "Galton board" finds the statistics book — and never by its
+   markup or its CSS, which are not words anybody types. */
 function textbookText_(b) {
   const parts = [b.summary, b.board, b.spec];
   (b.chapters || []).forEach(c => {
     parts.push(c.title);
     c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
+    (c.animations || []).forEach(a => parts.push(a.title));
   });
   return plainText_(parts.filter(Boolean).join(' '));
 }
@@ -4554,9 +4674,16 @@ function pageParts_(x, prev) {
     return out;
   }
   /* A TEXTBOOK IS ITS CONTENTS CARD AND A PAGE PER CHAPTER, in the chapters' own order — the
-     mapper sorted them by number, so this is the book read front to back. */
+     mapper sorted them by number, so this is the book read front to back. AND A PAGE PER ANIMATION,
+     straight after the chapter it teaches: `an17-pyth` after `ch17`. Saved and Spotlight keep the
+     cover only (`cardPages_` takes none of these). */
   if (x && x.kind === 'textbook' && x.row) {
-    return [null].concat((x.row.chapters || []).map(c => 'ch' + c.n));
+    const out = [null];
+    (x.row.chapters || []).forEach(c => {
+      out.push('ch' + c.n);
+      (c.animations || []).forEach(a => out.push('an' + c.n + '-' + a.id));
+    });
+    return out;
   }
   /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
      default below; the cover's three lists of books and the open book's pages went with the reader
@@ -4670,7 +4797,7 @@ function filmCard_(x) {
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${/* A ROW ASKED FOR BY NAME WHOSE FILE IS NOT THERE SAYS SO, and says it where the link would
           be. The library's `placeholder` column, one table along: a card that states the gap beats
-          a link that opens nothing, and it is the reason `There Will Be Blood` is a row at all. */''}
+          a link that opens nothing, and it is the reason a film asked for by name is a row at all. */''}
     ${f.placeholder
       ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>` : ''}
     ${/* ---------- THE WATCH TILE IS IN THE CARD'S ONE ROW NOW, see `filmTiles_` --------------------
@@ -6326,6 +6453,8 @@ function questionItems() {
       uses: r.uses || '',
       accept: r.accept || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
+      /* AN ORDERING'S EVERY RIGHT ORDER AND ITS TWO ENDS -- see `orderBox_` and library.js. */
+      choiceWays: r.choiceWays || [], orderEnds: r.orderEnds || [],
       examinerNote: r.examinerNote || '',
       /* EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST — see `preamble_`. It was one stem or
          none; a list is what makes an AQA source text and a question's own scene-setting the same
@@ -7385,6 +7514,9 @@ function markAnswer_(typed, accept, again) {
    DRAWN FROM THE STORED PICK, never left on the element by the handler: a repaint rebuilds the
    card, and a mark the handler added would go while the answer stayed — the `REEL_HELD` fault. */
 function choiceBox_(x) {
+  /* AN ORDERING HAS `choices` TOO, and they are not options to pick one of: every one is used, and the
+     answer is the order. Its own box, below (`orderBox_`). */
+  if (orderIs_(x)) return orderBox_(x);
   const k = ansKey_(x);
   const right = (x.choiceRight || []).slice().sort((a, b) => a - b);
   const need = Math.max(1, right.length);
@@ -7455,6 +7587,263 @@ function choiceRedraw_(box) {
   box.replaceWith(...wrap.childNodes);
 }
 
+/* ==================================================================================================
+   AN ORDERING IS TAPPED IN ORDER, NOT TYPED.
+
+   THE OWNER, 8 Oct, of June 2024 Foundation Paper 1 Q4 -- "Write these numbers in order of size. Start
+   with the smallest number. 0.21 0.2 0.03 0.1 0.16" -- after a pupil met it: *"as you can see there are
+   multiple answers. I would prefer it be like an ordering system?? Idk. But simpler to mark for a
+   machine."*
+
+   WHY A BOX COULD NOT DO IT. `markParts_` reads a typed list as a SET: right for "list the factors of
+   12", exactly wrong where the order IS the answer -- the question's own list, copied out unsorted, was
+   marked right. So 299 cleared the `accept` of every ordering (045's rule, "an ordering has no
+   accept"), and the card became words nobody could mark. And a list typed into a box has a dozen
+   spellings -- commas, spaces, "and", 0.10 for 0.1 -- each one a way for a marker to be wrong.
+
+   SO THE ITEMS ARE BUTTONS AND THE ANSWER IS THE ORDER THEY GO IN. A strip of numbered slots, the
+   question's own two ends written over it, one at each edge with an arrow between ("Smallest ->
+   Largest"), and the items under it in the order the paper prints them. A tap puts an item in the
+   first empty slot; a tap on a placed one IN ITS SLOT takes it back and leaves its slot empty, so
+   nothing else slides under the finger. Clear puts them all back.
+
+   THE GHOST AN ITEM LEAVES IN THE ROW DOES NOTHING. It took the item back too, and it is the same size
+   in the same place as the item, so a quick second tap -- which children make all the time -- undid
+   the first: two real touch taps 70ms apart on 0.2 in Q4 put it in slot 2 and took it straight out
+   again, nothing placed (`#screen` is `touch-action: none`, so neither tap is eaten as a zoom). And it
+   is drawn dashed and faint, which reads as switched off, so what pressing it did was hidden. It is
+   `disabled` now, and the handler refuses one as well; the slot is where an item is taken back.
+
+   BUTTONS, NOT TILES, for the reason `choiceBox_`'s options are: an item is the answer being given, not
+   an action done to it (CLAUDE.md). Clear and Send ARE actions on it, so they are tiles.
+
+   MARKED ON SEND, POSITIONS AGAINST POSITIONS (`markOrder_`): right only when the row is one of the
+   orders `choice_right` lists, so nothing is folded and nothing is guessed. A row with a slot still
+   empty is not an answer, and Send says so rather than awarding a "not yet" -- the rule "Write
+   something first" makes for an empty box. A miss can be rearranged and sent again, as a typed answer
+   can: unlike three options, a hundred and twenty orders are not a thing anybody finds by elimination.
+
+   STORED AS ITS POSITIONS under the card's `ansKey_` -- `3,4,5,2,1`, or `3,,5` with a hole -- through
+   `ansStore_`, so it goes to the account and comes back on another device like a pick does
+   (`ansRefresh_` redraws it), the line under it says where it went, and the first item placed is the
+   day you did it (`doneMark_`), as the first letter typed is.
+
+   DRAWN FROM THE STORE, every time, never patched by the handler -- the `REEL_HELD` rule `choiceBox_`
+   keeps. The verdict is the one thing not in the store: what was SENT is held for the visit
+   (`ORDER_SENT`), and the verdict is drawn only while the row is still the row that was sent. Move one
+   item and it goes, the way typing takes a verdict off the box. */
+const ORDER_SENT = new Map();
+
+function orderIs_(x) {
+  return !!x && String(x.answerType || '').trim().toLowerCase() === 'order'
+    && Array.isArray(x.choices) && x.choices.length >= 2;
+}
+
+/* THE STORED ROW READ BACK AS n PLACES, 0 FOR AN EMPTY ONE -- AND ONLY IF IT IS A ROW AT ALL.
+
+   A TYPED LIST IS UNDER THE SAME KEY. Before these were orderings, 52 of them drew the keypad and 16 a
+   text box, and what pupils typed is kept under this `ansKey_`, on the device and in the account's
+   answers tab, which `myAnswers` brings back. Read piece by piece with `parseInt`, a typed list became
+   a strip the pupil never made: 2406-2F-1's "-3, -1, 2, 4, 7" drew `_ _ −3 2 _`, 0617-5's "3/5, 65%,
+   2/3, 0.68, 7/10" drew `0.68 _ 7/10 _ _`, and the next tap wrote that half-row to the account. No
+   wrong verdict followed (a holed row is never marked), but a strip that opens already wrong is a
+   wrong strip.
+
+   SO THE WHOLE VALUE IS READ OR NONE OF IT: digits and commas only, at most n pieces, every piece that
+   is not empty a whole number from 1 to n, none twice -- the only shape `orderSay_` ever writes.
+   Anything else (a decimal, a fraction, a minus sign, %, a letter, a number past n) is an empty row,
+   and the first tap replaces it. */
+function orderSeq_(v, n) {
+  const out = [];
+  const s = String(v == null ? '' : v);
+  const parts = s.split(',');
+  const row = /^\s*\d*\s*(,\s*\d*\s*)*$/.test(s) && parts.length <= n;
+  const seen = new Set();
+  if (row) {
+    for (const t of parts) {
+      if (t.trim() === '') { out.push(0); continue; }
+      const m = parseInt(t, 10);
+      if (!(m >= 1 && m <= n) || seen.has(m)) { out.length = 0; break; }
+      seen.add(m);
+      out.push(m);
+    }
+  }
+  while (out.length < n) out.push(0);
+  return out;
+}
+/* AND WRITTEN: `3,,5` for a hole, nothing after the last placed item, '' for an empty row. */
+function orderSay_(seq) {
+  const s = seq.map(m => (m ? String(m) : ''));
+  while (s.length && s[s.length - 1] === '') s.pop();
+  return s.join(',');
+}
+/* EVERY RIGHT ORDER THE ROW KNOWS. `choiceWays` from the loader; a card built by hand with only
+   `choiceRight` is one order. */
+function orderWays_(x) {
+  const ways = (x && x.choiceWays) || [];
+  if (ways.length) return ways;
+  return x && (x.choiceRight || []).length ? [x.choiceRight] : [];
+}
+
+/* ---------- MARKING AN ORDER --------------------------------------------------------------------------
+   `seq` is the row as stored (`3,4,5,2,1`) and `ways` every order that is right -- a `choice_right`
+   cell (`2,1,3 | 1,2,3`) or the loader's arrays. TRUE when the row IS one of them; FALSE when every
+   place is filled and it is none of them; NULL when there is nothing to mark against or a place is
+   still empty, which is not an answer yet. Self-contained, so `check-marking.js` can cut it out and run
+   it, as it runs `markAnswer_`. */
+function markOrder_(seq, ways) {
+  const list = v => (Array.isArray(v) ? v : String(v == null ? '' : v).split(',')).map(t => String(t).trim());
+  const alts = (Array.isArray(ways) ? ways : String(ways == null ? '' : ways).split('|'))
+    .map(w => list(w).filter(Boolean).map(t => String(parseInt(t, 10))).join(','))
+    .filter(Boolean);
+  if (!alts.length) return null;
+  const got = list(seq);
+  if (got.length < alts[0].split(',').length || got.some(t => t === '')) return null;
+  return alts.indexOf(got.map(t => String(parseInt(t, 10))).join(',')) !== -1;
+}
+
+function orderBox_(x) {
+  const k = ansKey_(x);
+  const n = x.choices.length;
+  const seq = orderSeq_(ansRead_(k), n);
+  const said = orderSay_(seq);
+  const ways = orderWays_(x);
+  /* THE QUESTION'S OWN WORDS FOR ITS ENDS, and a neutral pair where the row has none --
+     `check-library.js` fails such a row, and the box still has to make sense while it does. */
+  const ends = (x.orderEnds || []).length === 2 ? x.orderEnds : ['first', 'last'];
+  const sent = ORDER_SENT.get(k) === said;
+  const verdict = sent ? markOrder_(said, ways) : undefined;
+  const cls = verdict === true ? ' is-right' : verdict === false ? ' is-near' : '';
+  const say = !sent ? ''
+    : verdict === null ? 'Put all ' + n + ' in the row first'
+    : verdict ? 'Correct' : 'Not yet — have another go';
+  const placed = new Set(seq.filter(Boolean));
+  /* EVERY SLOT AS WIDE AS THE WIDEST ITEM, EMPTY OR FULL, so the strip is the same shape from the first
+     tap to the last. Sized to what it held, an empty slot was 44px and a full one as wide as its
+     number, so every tap pushed the slots after it along -- including the one the finger was going to
+     next -- and at 320 the strip wrapped one way empty and another way full, dropping the row of items
+     16px under the finger (measured, `check/states.js`). Counted in characters, because the face is
+     monospaced (`--font`); an entity counts as one, so a stacked fraction is over-counted, which only
+     errs wide. The stylesheet caps it at the strip's width. */
+  const wide = Math.max(1, ...x.choices.map(c => String(c).replace(/<[^>]*>/g, '')
+    .replace(/&[a-z0-9#]+;/gi, '_').replace(/\s+/g, ' ').trim().length));
+  /* THE FACE IS ONE ELEMENT, `.qp-face`, IN THE SLOT AND IN THE ROW. A slot and an item are
+     `inline-flex`, and every child of a flex box is a flex item of its own: a bare `<sup>` stopped being
+     raised (`vertical-align` does not apply to a flex item) and was centred beside its digit, so 2² read
+     as "22", 1³ as "13" and 6 × 10⁴ as "6 × 104" -- measured at 390, the exponent level with the digit
+     where the question prints it 6px up. An ordering read that way is ordered wrong. Wrapped, the face
+     is one flex item with an ordinary line inside it, and a power is a power again. Fractions never
+     showed it: `typeset_` already draws one as a single element. */
+  const face = c => `<span class="qp-face">${typeset_(c)}</span>`;
+  /* A PLACED ITEM IS A BUTTON IN ITS SLOT, to take it back; an empty slot is a numbered space and not a
+     button, because pressing it does nothing. Its number stays on it once it is filled, small, so a row
+     that has wrapped at 320 still reads 1 to n. */
+  const slots = seq.map((m, i) => (m
+    ? `<button type="button" class="qp-slot is-full" data-do="qp-place" data-n="${m}"><span class="qp-slot-i">${i + 1}</span>${face(x.choices[m - 1])}</button>`
+    : `<span class="qp-slot"><span class="qp-slot-i">${i + 1}</span></span>`)).join('');
+  /* THE ITEMS STAY WHERE THE PAPER PRINTS THEM. A placed one is a ghost of itself, the same size in the
+     same place, so the row under the finger never closes up -- and the ghost is `disabled`, because a
+     ghost that took the item back made a quick second tap undo the first (see the note over
+     `ORDER_SENT`). An item is taken back from its slot. */
+  const items = x.choices.map((c, i) => {
+    const on = placed.has(i + 1);
+    return `<button type="button" class="qp-item${on ? ' is-placed' : ''}" data-do="qp-place" data-n="${i + 1}"
+      aria-pressed="${on}"${on ? ' disabled' : ''}>${face(c)}</button>`;
+  }).join('');
+  /* THE VERDICT'S LINE IS RESERVED AND THE TILES SIT IN IT, so "Correct" lands in a space that was already
+     there and marking moves nothing (261). No Send where no order is right: a Send that marks nothing is
+     the control that sometimes does nothing. */
+  const clear = tile_({ icon: 'bin', label: 'Clear', note: 'put them all back', act: 'qp-order-clear', cls: 'qp-order-clear', off: !placed.size });
+  const send = ways.length ? tile_({ icon: 'send', label: 'Send', note: 'mark the order', act: 'qp-order-send', cls: 'qp-order-send', tone: 'send' }) : '';
+  /* THE TWO ENDS ARE THE ONLY WORDS SAYING WHICH WAY THE ROW RUNS, so they are a line of their own over
+     the slots, one at each edge with an arrow between, at the verdict's size in the paper's own ink.
+     They were .62rem capitals in `--paper-dim` at the two ends of the slots' own row -- 9.2px at 390,
+     about 8.4px at 320, the smallest words on the card, for a KS1 child to read -- and as flex items in
+     that row they forced a wrap at every width: at 768 "LARGEST" sat alone on a line under slot 5.
+     Sentence case, because they are words to read and not a label. Hidden from a screen reader only
+     because the group's label already says them, in order. */
+  const word = e => String(e).charAt(0).toUpperCase() + String(e).slice(1);
+  return `<div class="qp-order${cls}" data-k="${esc(k)}" data-n="${n}">
+    <div class="qp-slots" role="group" style="--qp-ch:${wide}" aria-label="${esc('Your order, ' + ends[0] + ' to ' + ends[1])}">
+      <div class="qp-ends" aria-hidden="true"><span class="qp-end">${esc(word(ends[0]))}</span><span class="qp-way"></span><span class="qp-end">${esc(word(ends[1]))}</span></div>${slots}
+    </div>
+    <div class="qp-items">${items}</div>
+    <div class="qp-mark${cls}">
+      <span class="qp-verdict" role="status" aria-live="polite">${esc(say)}</span>${clear}${send}
+    </div>
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
+  </div>`;
+}
+
+/* DRAWN AGAIN FROM THE STORE, where it stands -- a tap, Clear and Send do this, and so does a row arriving
+   from the account on another device (`ansRefresh_`, js/answers.js). `focus` is the control to hand the
+   focus back to, so a keyboard is not dropped onto the page by the redraw. */
+function orderRedraw_(box, focus) {
+  const k = box && box.getAttribute('data-k');
+  const x = k && stuffItemsAll_().find(it => ansKey_(it) === k);
+  if (!x || !orderIs_(x)) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = orderBox_(x);
+  const next = wrap.firstElementChild;
+  box.replaceWith(next);
+  const f = focus && next.querySelector(focus);
+  if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} }
+}
+const orderOf_ = el => {
+  const box = el && el.closest('.qp-order');
+  const k = box && box.getAttribute('data-k');
+  const n = box ? +box.getAttribute('data-n') || 0 : 0;
+  return k && n ? { box, k, n, seq: orderSeq_(ansRead_(k), n), had: document.activeElement === el } : null;
+};
+
+on('qp-place', (el) => {
+  const o = orderOf_(el);
+  const m = +el.getAttribute('data-n');
+  if (!o || !(m >= 1 && m <= o.n)) return;
+  const at = o.seq.indexOf(m);
+  /* A SLOT TAKES BACK AND AN ITEM PLACES, AND NOTHING ELSE. An item already in the row -- its ghost,
+     pressed after all, or a strip on screen older than the store -- changes nothing: the stored row is
+     drawn again and the press is done. That refusal is what stops a double-tap undoing itself (the
+     ghost is `disabled` as well; this is the half that does not depend on the browser). */
+  const fromSlot = el.classList.contains('qp-slot');
+  if (fromSlot !== (at !== -1)) { orderRedraw_(o.box, ''); return; }
+  /* WHERE THE FOCUS GOES: taken back, to the item, live again in its row; placed, to the next item still
+     to place (its ghost is disabled and cannot hold it), and to Send once every one is placed. */
+  let focus = '.qp-item[data-n="' + m + '"]';
+  if (fromSlot) o.seq[at] = 0;
+  else {
+    const free = o.seq.indexOf(0);
+    if (free === -1) return;
+    o.seq[free] = m;
+    const left = [];
+    for (let i = 1; i <= o.n; i++) if (o.seq.indexOf(i) === -1) left.push(i);
+    const next = left.find(i => i > m) || left[0];
+    focus = next ? '.qp-item[data-n="' + next + '"]' : '.qp-order-send';
+  }
+  /* THROUGH `ansStore_`, the one writer -- kept here, and on the account a moment later. */
+  ansStore_(o.k, orderSay_(o.seq));
+  if (o.seq.some(Boolean)) doneMark_(o.k);
+  orderRedraw_(o.box, o.had ? focus : '');
+});
+
+on('qp-order-clear', (el) => {
+  const o = orderOf_(el);
+  if (!o) return;
+  ansStore_(o.k, '');
+  orderRedraw_(o.box, o.had ? '.qp-item[data-n="1"]' : '');
+});
+
+on('qp-order-send', (el) => {
+  const o = orderOf_(el);
+  if (!o) return;
+  const said = orderSay_(o.seq);
+  ORDER_SENT.set(o.k, said);
+  /* MARKED IS DONE, right or not yet -- and a row with a place still empty is neither. */
+  const x = stuffItemsAll_().find(it => ansKey_(it) === o.k);
+  if (x && markOrder_(said, orderWays_(x)) !== null) doneMark_(o.k);
+  orderRedraw_(o.box, o.had ? '.qp-order-send' : '');
+});
+
 on('qp-choose', (el) => {
   const box = el.closest('.qp-choices');
   const card = el.closest('.qcard');
@@ -7485,11 +7874,20 @@ function ansBox_(x) {
      box it always had and no button, rather than a Check that shrugs -- a control that sometimes
      does nothing is worse than one that is not there. */
   const can = String(x && x.accept || '').trim();
-  /* A MATHS ANSWER GETS THE KEYPAD AND A WORDED ONE THE PHONE'S KEYBOARD — "like hegarty maths …
-     worded answer normal device keyboard". Which is which, the pad, and "Mark with AI" for a
-     worded box are all keypad.js; this only chooses. Both boxes are `.qp-ans-in` with the same
-     `data-k`, so Send, the save on `input` and every check that types into one are unchanged. */
+  /* EVERY ANSWER IS TYPED ON THE SITE'S OWN PAD, a maths one opening on the maths keys and a worded
+     one on the letters. It was "worded answer normal device keyboard" until the owner, 8 Oct: *"Make
+     the keypad never need to use their own keyboard … I just want self contained system really"* --
+     keypad.js says why and how. Which is which, the pad, the box (`kpField_`, the one place it is
+     drawn and locked) and "Mark with AI" are all keypad.js; this only chooses. Both boxes are
+     `.qp-ans-in` with the same `data-k`, so Send, the save on `input` and every check that types into
+     one are unchanged. */
   const maths = ansMaths_(x);
+  /* THE SIGNS ROW GOES BY THE SCHEME, WHATEVER KIND OF BOX IT IS. This passed `maths && kpSigns_(x)`,
+     and the review of 8 Oct found the eleven it shut out: `x < 4 or x > 5`, `93.5 ≤ length < 94.5`,
+     `6:18 pm` -- schemes with a word in them, so `ansMaths_` gives them a WORDS box, and every way
+     `markAnswer_` accepts needs a sign the letters do not have. Before 8 Oct the phone's keyboard typed
+     them; after it nothing did. On a worded box the row is on the `123` face (`kpLayout_`). */
+  const signs = kpSigns_(x);
   /* NO CAPTION OVER THE BOX. It said "<name>'s answer", and the owner: *"remove 'names answer'.
      that is redundant."* The name is still what the answer is filed under (`ansKey_`), and a screen
      reader still hears "Your answer" from `aria-label`. */
@@ -7511,9 +7909,9 @@ function ansBox_(x) {
 
      SO THE FIELD IS PAPER, the second palette (`--paper`, `--paper-ink`): 17:1 against the card, and
      it always stood in for the sheet the answer is written on. It says "Type your answer" while it is
-     empty -- a placeholder on the textarea, and the drawing's own line on the maths box (`.kp-show`),
-     because that input is invisible. A field rounded like every phone's message bar, which is a shape
-     everybody already reads as "type here".
+     empty -- the drawing's own line (`.kp-show:empty`), because the box under it is invisible. A
+     field rounded like every phone's message bar, which is a shape everybody already reads as "type
+     here".
 
      SEND IS A TILE, GOLD AND ROUND, BESIDE THE FIELD AND NOT IN IT. A tile because a question's pages
      are all tiles (*"it should all be tiles"*), the paper aeroplane because that is the mark for send
@@ -7530,8 +7928,7 @@ function ansBox_(x) {
   const ai = can ? '' : aiTile_(x);
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
-    ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="1" placeholder="Type your answer" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
+    ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', signs)}
   </label>${fig}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
@@ -7612,8 +8009,12 @@ document.addEventListener('input', e => {
      (`rows="1"`, the chat bar in `ansBox_`), then downward a line at a time to the stylesheet's cap,
      then it scrolls inside. `field-sizing: content` does this where the browser has it; Safari -- the
      owner's iPad -- does not, so the height is set here as well. Downward, because the card is held
-     where it is while its box has the focus (`HOLD_AT`). */
-  if (el.tagName === 'TEXTAREA' && el.closest('.qp-bar')) {
+     where it is while its box has the focus (`HOLD_AT`).
+     NOT THE PAD'S BOX (`.kp-in`), which is every answer box now: it is invisible and laid over its
+     drawing, and the drawing is what grows (`.kp-words > .kp-show`). Measured with the prototype on 8
+     Oct, a height written here on that box made it about 600px tall, and the keypad's lift, measuring
+     it, threw the card 654px off the top of the screen. */
+  if (el.tagName === 'TEXTAREA' && el.closest('.qp-bar') && !el.classList.contains('kp-in')) {
     el.style.height = '';
     if (el.scrollHeight) el.style.height = el.scrollHeight + 'px';
   }
@@ -9760,6 +10161,17 @@ function stuffItemsAll_() {
   return built;
 }
 
+/* ---------- FORGET EVERY LIST BUILT FROM `DATA`, FOR A WRITE THAT CHANGED `DATA` IN PLACE ----------------
+   The three memos test `DATA` by identity, which a new payload changes and an edit in place does not —
+   and the films sync from the videos card (`filmsAdopt_` in games.js) is an edit in place: a reply that
+   carries the films, written over `DATA.films` so the admin has them without a reload. Without this,
+   Find would go on drawing the films from before the sync until the next payload. */
+function stuffForget_() {
+  ITEM_MEMO = { key: null, from: null, items: null };
+  ALL_MEMO = { key: null, from: null, items: null };
+  FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+}
+
 function stuffItems() {
   const key = itemMemoKey_();
   if (ITEM_MEMO.from === DATA && ITEM_MEMO.key === key) return ITEM_MEMO.items;
@@ -10154,8 +10566,8 @@ function stuffItemsRaw_() {
          and is one fewer thing to keep in step if the tab grows. */
       audience: f.audience, filmKind: f.kind,
       /* EVERY WORD SOMEBODY MIGHT TYPE. The lesson one commit old: a thing whose own words are not
-         in the haystack is findable by its title and by nothing else, so `daniel day-lewis`,
-         `gosling` and `documentary` have to be in here or they find nothing. */
+         in the haystack is findable by its title and by nothing else, so a director's surname,
+         a lead's and `documentary` have to be in here or they find nothing. */
       text: [f.director, f.lead, f.kind, f.audience, f.notes, f.seasons].filter(Boolean).join(' '),
       row: f,
     })),
@@ -13686,6 +14098,11 @@ function fillStuffPages(all) {
     STUFF_LATE = setTimeout(() => paneReach_(
       host.querySelectorAll(':scope > .page[data-filled="1"] > .pane')), 0);
   }
+
+  /* A TEXTBOOK'S ANIMATION ON THE PAGE IN FRONT PLAYS, AND ONLY THAT ONE — see `tbAnimWatch_`. Here,
+     after the pages near you are filled, because a stage that was not on the page a moment ago is
+     on it now. */
+  tbAnimWatch_();
 
   /* AND START THE ONE YOU ARE LOOKING AT — if it is one that runs.
      THE CANVAS IS WHY THIS STAYS LATE FOR THOSE TWO. A canvas measures itself from its box, and the
