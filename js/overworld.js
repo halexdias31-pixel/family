@@ -112,10 +112,8 @@ function drawFeed() {
 
      NO SOUND BUTTON, AND THAT IS A DIFFERENCE WORTH KEEPING. This card is one tap target — the tap
      deals the next fact — so a second control inside it would take the tap the widget is for. A
-     clip here is muted and looping, which is what it is on the column until somebody asks.
-     A YOUTUBE SHORT IS ASKED THE SAME WAY — `reelPlay_` hands its box on to the player's own driver —
-     and the tap still deals the next fact: the layer over the player has no `data-do` of its own. */
-  const vid = host.querySelector('video.feed-vid, .feed-yt');
+     clip here is muted and looping, which is what it is on the column until somebody asks. */
+  const vid = host.querySelector('video.feed-vid');
   if (vid && typeof reelPlay_ === 'function') reelPlay_(vid);
 
   const at = FEED_AT;

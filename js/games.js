@@ -806,8 +806,12 @@ function feedColours(seed) {
    AND A DRIVE ADDRESS IS REFUSED AS AN ADDRESS, not only as a bare id. `data/reels/README.md`
    measured it: Drive answers a `<video>` with a redirect or an HTML page, never the bytes, so
    `https://drive.google.com/…` was let through here as "a whole URL to a video file" and drawn as a
-   slide that could only ever be dark. */
-const CLIP_EMBED_ONLY = /(?:^|\/\/)(?:www\.)?(?:instagram\.com|drive\.google\.com|docs\.google\.com)\//i;
+   slide that could only ever be dark.
+
+   ANY SUBDOMAIN, NOT ONLY `www.` — the YouTube test beside it already took any. `m.instagram.com`
+   is what a phone's share sheet copies, and it passed as an `http` file and drew a slide that never
+   played (review, 9 Oct: a mutant row of exactly that went through `check-reels.js` green). */
+const CLIP_EMBED_ONLY = /(?:^|\/\/)(?:[a-z0-9-]+\.)*(?:instagram\.com|drive\.google\.com|docs\.google\.com)\//i;
 const CLIP_YT_HOST = /^https?:\/\/(?:[a-z0-9-]+\.)*(?:youtube\.com|youtube-nocookie\.com|youtu\.be)(?:[\/?#]|$)/i;
 function clipPlayable_(clip) {
   const c = String(clip || '').trim();
@@ -906,6 +910,15 @@ function feedSlide(it) {
    moment you arrive — the same promise the mp4 reels' `x.jpg` keeps, and for the same complaint ("the
    reel isnt loading"). `has-photo` from the first paint for that reason. NO REFERRER: the picture
    needs nothing from this page, so it is told nothing about it.
+
+   SAID PLAINLY, BECAUSE IT IS A CHOICE AND THE VIEWERS ARE CHILDREN — the Videos card says the same
+   of its thumbnails. The Reels column is drawn at boot, and with three clips its first three pages
+   hold every one, so EVERY LOAD fetches this picture from `i.ytimg.com`, Reels opened or not. No
+   cookie (it is YouTube's cookieless image host) and no referrer, but the device's address reaches
+   Google. Kept, because the poster in the markup is what makes the Short a picture on arrival like
+   the mp4 reels: set later, from `reelsWatch_`, it would be the gradient for the first moments of
+   every visit. Taking it back is the address written here as `data-src` and moved to `src` by
+   `reelTurn_` for the page in front and its neighbours (review, 9 Oct, note 319).
 
    THREE SIZES, TRIED IN ORDER. `oar2.jpg` is the thumbnail at the video's Original Aspect Ratio — for a
    vertical Short, a portrait picture that fills a portrait slide. Not every video has one, so a 404

@@ -59,7 +59,7 @@ const fs = require('fs');
    is wrong even when `js/games.js` is the thing that is wrong. It is about the DATA, so it carries
    its own copy, and a drift between them shows up as a row this names and the app draws, or the
    reverse. */
-const EMBED_ONLY = /(?:^|\/\/)(?:www\.)?(?:instagram\.com|drive\.google\.com|docs\.google\.com)\//i;
+const EMBED_ONLY = /(?:^|\/\/)(?:[a-z0-9-]+\.)*(?:instagram\.com|drive\.google\.com|docs\.google\.com)\//i;
 /* A YOUTUBE ADDRESS, EVERY SHAPE IT IS COPIED IN — and an id of exactly eleven characters, so a
    channel or a playlist page is not mistaken for a video. Copied for the reason the line above is. */
 const YT_ID = /^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/)|youtube-nocookie\.com\/embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/i;
@@ -290,8 +290,9 @@ function run() {
      Every address is asked three times: what it SHOULD be (written here, by hand), what this file's
      copy says, and what the real `clipPlayable_` / `clipSrc_` / `vidYouTubeId_` in games.js say.
      Each row is a shape somebody will paste: the four ways a YouTube link is copied, the nocookie host
-     the Videos card embeds, a mobile link with its id after another parameter — and the six that must
-     stay out. A YouTube clip's `clipSrc_` must be '' — it is never a `<video>`'s source. */
+     the Videos card embeds, a mobile link with its id after another parameter — and the eight that
+     must stay out, the mobile Instagram link among them (it passed while only `www.` was refused).
+     A YouTube clip's `clipSrc_` must be '' — it is never a `<video>`'s source. */
   const app = appClips_();
   if (!app) {
     bad.push('clipPlayable_, clipSrc_ and vidYouTubeId_ could not be cut out of js/games.js — renamed? '
@@ -310,6 +311,7 @@ function run() {
       ['https://drive.google.com/file/d/1AbCdEfGhIjK/view', false, ''],
       ['https://drive.google.com/uc?export=download&id=1AbCdEfGhIjK', false, ''],
       ['https://www.instagram.com/reel/Cabcdefghij/', false, ''],
+      ['https://m.instagram.com/reel/Cabcdefghij/', false, ''],
       ['https://www.youtube.com/@examplechannel', false, ''],
       ['https://www.youtube.com/playlist?list=PLabcdefghijklmnop', false, ''],
       ['ftp://example.org/clip.mp4', false, ''],

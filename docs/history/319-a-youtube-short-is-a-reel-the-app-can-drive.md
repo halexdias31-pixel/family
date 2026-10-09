@@ -50,7 +50,7 @@ does to an mp4 reel:
 | Sound | `muted` | `unMute` / `mute`, the same button and words |
 | leaving the page | paused | `pauseVideo`; **a page further, the iframe is removed** |
 | leaving the column | paused | removed |
-| cannot play | stays its poster | offline, video removed, embedding off (`onError` 100/101/150), or no first frame in 20s → the iframe goes, the poster stays, and one **Watch on YouTube** link (a door, `target=_blank rel=noopener`) |
+| cannot play | stays its poster | offline, video removed, embedding off (`onError` 100/101/150), a player that says nothing for 20s, or one asked to play for 20s that never plays → the iframe goes, the poster stays, any ▶ comes off, and one **Watch on YouTube** link (a door, `target=_blank rel=noopener`) |
 
 **Why removed rather than paused a page away.** A paused `<video>` is a decoded frame; a paused YouTube
 player is a whole page in its own process. The column deals in laps — the same Short every third page,
@@ -112,4 +112,63 @@ first open on a phone.
   columns are the base commit's own. swipe.js, a width at a time (both at once ran the browser out of
   memory on a machine at load 55): 390 green, 320 green — on its second run; the first reported two
   REACH findings on Find at 1280 that its own rule, run alone, does not.
-- `--css-version` is `2026-10-09-a-short-is-a-reel`.
+- `--css-version` was `2026-10-09-a-short-is-a-reel`; after the review below it is
+  `2026-10-09-a-short-after-review`.
+
+### After review, the same day
+
+Two reviewers, ten findings, each reproduced before it was touched (a stand-in player in Chromium, and
+the jsdom journey):
+
+- **A player that never answered could be stuck for good.** The give-up clock was wound once, when the
+  player was built, and acted only if the Short was being asked to play at that one moment. Tap the
+  still poster once (which holds it) or flick one page away inside the twenty seconds, and nothing ever
+  looked again: no door at sixty seconds, a live Sound button. Now the clock is wound by **every ask to
+  play** (`reelYtClock_`, one at a time per slide, stopped when the player is taken down), and when it
+  runs out a player that has **said nothing at all** is given up on whatever was wanted of it — it is
+  not being held, it is not there — while one that answered but never played is given up on only if it
+  was being asked to play; otherwise the next ask winds a fresh clock. Measured after: the door at 20s,
+  both ways.
+- **The poster flashed in once a lap.** A playlist loop restarts as ended, unstarted, buffering,
+  playing, and ended and unstarted both took the player off the screen: hidden for half a second, partly
+  for a second, every lap, where an mp4 loops without a seam. A Short that is showing and wanted now
+  stays showing through them for `YT_LAP` (2.5s); an end that has not restarted by then goes back under
+  the poster, because a loop that did not happen leaves YouTube's grid of other videos on the slide.
+  Measured after: the frame's opacity at 1.00 through three laps.
+- **A held Short that errored kept its ▶ over the door**, and no tap could clear it (`reel-tap` does
+  nothing on a dead Short). `reelYtDead_` now takes the mark off and clears `REEL_HELD` for that page.
+- **The page just left stayed dimmed, not blurred.** `soft-dim` is decided at the turn, while the reel
+  being left is still playing; `reelTurn_` runs after the slide. For an mp4 that lasted until the grid
+  was placed again; for a Short it lasted as long as it kept its player, because `softDim_` dimmed any
+  pane holding an iframe. Two halves: `softDim_` does not count a Short's player that is not showing
+  (paused, opacity 0 — a still picture), and `reelTurn_` reads the neighbours' `soft-dim` again once it
+  has paused them. Measured after, at 390 and 1440: every neighbour blurred, mp4 and Short alike.
+- **One colour in three components.** The charcoal wash, hairline and white of the Sound button, the
+  ▶ disc and the door were literals in each; they are `--over-wash`, `--over-edge`, `--over-ink` at
+  `:root`. Same values, nothing moves.
+- **`m.instagram.com` passed.** The embed-only test allowed only `www.`; it takes any subdomain now, in
+  the app and in `check-reels.js`, which asks the mobile address as one more refused case.
+- **The "One more thing" widget never gets a clip** — `feedItem` keeps `subject`, `heading`, `body` and
+  `pic` and drops `clip` — so the sentence added to `overworld.js` about a Short there described a path
+  that cannot run. It is gone, and so is the hand-on in `reelPlay_` that served only it.
+
+**Left as they are, on purpose:**
+
+- **A held Short shows its poster, not the frame it stopped on.** A held mp4 keeps its frame; a paused
+  YouTube embed draws its own pause screen — the title and a row of other videos — which is the other
+  company's chrome the embeds were removed over. The poster is the smaller difference.
+- **Every load fetches the Short's thumbnail from `i.ytimg.com`**, Reels opened or not: the column is
+  drawn at boot and, with three clips, its first three pages hold all of them. No cookie, no referrer;
+  the device's address does reach Google. The poster in the markup is what makes the Short a picture on
+  arrival; deferring it to `reelTurn_` would make it the gradient for the first moments of every
+  visit. Said in `feedYtSlide_`, with the way to take it back.
+
+**Checked:** a second journey in `check-flow.js` catches the two clocks rather than waiting for them
+(only the timers whose bodies are the Short's clocks are stood in for) and asks: a silent player held
+when the clock runs out ends at its door with no ▶; one a page away ends at its door; one that answered
+and was held is not given up on, and the next ask winds exactly one fresh clock that is; a lap keeps the
+picture; an end with no restart hides it; a held Short that errors loses its ▶ and a tap does not bring it
+back. Five mutations, each red then green on the real files: the clock acting only when wanted, the
+clock wound only at build, a lap hiding at once, the lap never giving up, the dead Short keeping its
+hold. `check-reels.js`: a mobile Instagram row in `FEED_FACTS`, and the app's regex put back to `www.`
+only — both red.

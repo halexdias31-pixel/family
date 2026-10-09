@@ -1541,8 +1541,12 @@ function softMotion_() {
   catch (e) { return true; }
 }
 const glassOf_ = page => (page && page.querySelector(':scope > .pane')) || null;
-/* A PANE THAT REPAINTS ITSELF is dimmed rather than blurred — see above. */
-const softDim_ = page => !!(page && (page.querySelector('iframe')
+/* A PANE THAT REPAINTS ITSELF is dimmed rather than blurred — see above. EXCEPT A SHORT'S PLAYER
+   THAT IS NOT SHOWING: a Reels neighbour keeps its YouTube iframe paused at opacity 0 under the
+   poster (`.feed-yt` without `is-live`, posts.js), so that pane is a still picture whose state this
+   CAN see, and it was the one neighbour left sharp among blurred ones (review, 9 Oct). */
+const softDim_ = page => !!(page && (
+  [...page.querySelectorAll('iframe')].some(f => !f.closest('.feed-yt:not(.is-live)'))
   || [...page.querySelectorAll('video')].some(v => !v.paused && !v.ended)));
 /* AND ONE THE KEYBOARD IS TYPING INTO is left sharp while a finger drags it away. */
 function softKeep_(page) {

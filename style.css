@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-a-short-is-a-reel";
+  --css-version: "2026-10-09-a-short-after-review";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -212,6 +212,16 @@
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
+
+  /* ---------- A CONTROL LAID OVER A MOVING PICTURE ----------------------------------------------
+     The reels' Sound button, the ▶ on a held reel and a dead Short's "Watch on YouTube": a charcoal
+     wash with a hairline edge and white words, which reads on a bright frame and a dark one alike.
+     ONE COLOUR IN THREE COMPONENTS, so it is named here; it was written out by hand in each, and the
+     third copy is what review caught (note 319). Beside `--letterbox` in spirit — a picture's own
+     colours, the same whatever the page round it is. */
+  --over-wash: rgb(0 0 0 / .55);
+  --over-edge: rgb(255 255 255 / .28);
+  --over-ink:  #fff;
 }
 
 /* ---------- THE TYPEFACE, SELF-HOSTED ------------------------------------------------------------
@@ -10804,8 +10814,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; justify-content: center;
   min-height: 44px; padding: 0 16px; border-radius: 22px;
-  background: rgb(0 0 0 / .55); border: 1px solid rgb(255 255 255 / .28);
-  color: #fff; font-size: .82rem; white-space: nowrap; text-decoration: none;
+  background: var(--over-wash); border: 1px solid var(--over-edge);
+  color: var(--over-ink); font-size: .82rem; white-space: nowrap; text-decoration: none;
 }
 /* A SOUND BUTTON ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
 .reel:has(.feed-art.is-dead) .reel-sound { display: none; }
@@ -10827,8 +10837,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   width: 4rem; height: 4rem;
   display: flex; align-items: center; justify-content: center;
   border-radius: 50%;
-  background: rgb(0 0 0 / .55);
-  color: #fff; font-size: 1.5rem; line-height: 1;
+  background: var(--over-wash);
+  color: var(--over-ink); font-size: 1.5rem; line-height: 1;
   /* The glyph's own bearing sits it left of centre in its box; a video's play mark is centred on
      the disc by eye, which is what every player does and what a screenshot showed this needed. */
   padding-left: .18em;
@@ -10845,16 +10855,17 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
      `.btn` IS GOLD, which is right for the one thing a form wants you to press and wrong laid over
      a moving picture: a screenshot of a whole slide showed a gold slab reading "Sound off" as the
      loudest thing on a card whose whole content is the clip. The same wash the paused mark uses,
-     which is also the wash `.feed-art.has-photo::before` lays under the words — so a control over a
-     picture looks the same wherever this feature draws one, on a bright frame and a dark one alike.
+     which is also the wash `.feed-art.has-photo:has(> .feed-text)::before` lays under the words — so
+     a control over a picture looks the same wherever this feature draws one, on a bright frame and a
+     dark one alike. `--over-wash` and its two partners at `:root` are that one colour, named.
 
      THE WORDS STAY. A glyph would have said the same thing in less room and the note below is the
      reason it does not: the button says the state it is IN, which is what every other switch in
      this app does, and "Sound off" cannot be read as "press to turn the sound off" by mistake the
      way a crossed-out speaker can. */
-  background: rgb(0 0 0 / .55);
-  border-color: rgb(255 255 255 / .28);
-  color: #fff;
+  background: var(--over-wash);
+  border-color: var(--over-edge);
+  color: var(--over-ink);
   /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
      Absolutely positioned it made a gold bar across the top of the slide, which is what the
      screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the
