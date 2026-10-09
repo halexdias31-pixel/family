@@ -426,6 +426,10 @@ function ansRefresh_(keys) {
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
+        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh
+           if they are the ones it read, "before your changes" if not -- rather than blanked: blanking took
+           the verdict and left its points under an empty line (docs/history/312, `aiKeptPaint_`). */
+        if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
         if (out) out.textContent = '';

@@ -72,6 +72,9 @@ function world(config) {
   const p = b.get({});
   if (p.aiMarking !== false) bad.push('the payload says aiMarking: ' + JSON.stringify(p.aiMarking) + ' with no key — wanted false');
   if (!(p.features || []).includes('aiMark')) bad.push('`features` does not list aiMark, so the phone will never draw the button');
+  /* AND THAT IT READS THE WHOLE ANSWER: the phone sends nothing over the old 2,000-character cut to a
+     backend that does not say so (`aiWhole_`, js/keypad.js), so without this no essay is ever marked. */
+  if (!(p.features || []).includes('aiMarkWhole')) bad.push('`features` does not list aiMarkWhole, so no phone will send an essay longer than 2,000 characters');
   b.props.GEMINI_API_KEY = KEY;
   b.ev('clearCache()');
   b.cache.clear();
@@ -234,6 +237,29 @@ function world(config) {
   });
   const keep = b.ev('typeof ANSWER_TEXT_MAX === "number" ? ANSWER_TEXT_MAX : 0');
   if (!(keep >= (front.AI_ANSWER_MAX || Infinity))) bad.push('the account keeps ' + keep + ' characters of an answer and AI marks ' + front.AI_ANSWER_MAX + ' — an essay marked would be "too long for the account"');
+  gem.reply = null;
+}
+
+/* ---------- NO TOTAL AND STRANDS THAT DO NOT ADD UP IS NOT A NOUGHT ------------------------------------
+   A reply that breaks the schema -- no `awarded`, a blank one, a word -- with no breakdown to sum was
+   drawn as "0 of 40 marks · AI"; it is a "try again" (the review of 9 Oct). Its own world, because each
+   of these spends one of the day's marks as a real one would. */
+{
+  const { b, ask } = world({ ai_marks_per_day: 10 });
+  b.props.GEMINI_API_KEY = KEY;
+  const essay = 'The bus lurched forward and the rain drew long silver threads across the glass.';
+  [{ parts: [{ name: 'A', awarded: 10, available: 20 }], points: ['x'] },
+   { parts: [], points: ['x'] },
+   { awarded: 'thirty', parts: [] },
+   { awarded: '', parts: [{ name: 'A', awarded: 5, available: 39 }] }].forEach(body => {
+    gem.reply = { code: 200, body: body };
+    const r = ask('s1@example.org', { answer: essay, marks: 40, essay: true });
+    if (r.success !== false || !/did not give a mark/i.test(String(r.message || ''))) bad.push('an essay reply of ' + JSON.stringify(body) + ' answered ' + JSON.stringify({ success: r.success, awarded: r.awarded, message: r.message }) + ' — wanted "did not give a mark", never a mark of 0');
+  });
+  /* AND A TOTAL OF NOUGHT THAT WAS GIVEN IS STILL A NOUGHT. */
+  gem.reply = { code: 200, body: { awarded: 0, parts: [], points: ['Write more than one sentence.'] } };
+  const z = ask('s1@example.org', { answer: essay, marks: 40, essay: true });
+  if (!z.success || z.awarded !== 0) bad.push('an essay given 0 by the model answered ' + JSON.stringify({ success: z.success, awarded: z.awarded, message: z.message }) + ' — a real 0 is a mark');
   gem.reply = null;
 }
 

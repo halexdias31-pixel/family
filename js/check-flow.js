@@ -8315,7 +8315,12 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   kd('Backspace'); kd('ArrowLeft'); kd('Enter', { shiftKey: true });
   if (inp.value !== 'Rate \nu') bad.push('a laptop typing "Rate up", Backspace, ←, Shift+Enter gave ' + JSON.stringify(inp.value) + ', wanted "Rate \\nu"');
   if (took.some(t => !t)) bad.push('a laptop\'s key was left to the browser as well as typed by the pad');
+  /* THE START OF THE ANSWER IS CTRL+HOME SINCE 9 OCT: Home alone stops at the start of the line the
+     caret is in (`kpLineStart_`, keypad.js), which here, just after the Shift+Enter, is the second line
+     -- the review of 9 Oct measured Home jumping from an essay's third paragraph to its first word. */
   kd('Home');
+  if (inp.selectionStart !== 6) bad.push('Home on the second line put the caret at ' + inp.selectionStart + ', wanted 6, the start of that line');
+  kd('Home', { ctrlKey: true });
   const paste = new w.Event('paste', { bubbles: true, cancelable: true });
   Object.defineProperty(paste, 'clipboardData', { value: { getData: () => 'It ' } });
   inp.dispatchEvent(paste);
@@ -8326,13 +8331,13 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
      an arrow moved the caret and dropped the selection; Ctrl+Z did nothing, so Ctrl+A and a letter lost a
      paragraph; Ctrl+X did nothing; AltGr (Ctrl+Alt on Windows) dropped `€`. */
   const L = inp.value.length;
-  kd('End'); kd('ArrowLeft', { shiftKey: true }); kd('ArrowLeft', { shiftKey: true });
+  kd('End', { ctrlKey: true }); kd('ArrowLeft', { shiftKey: true }); kd('ArrowLeft', { shiftKey: true });
   if (inp.selectionStart !== L - 2 || inp.selectionEnd !== L || inp.selectionDirection !== 'backward') bad.push('⇧← twice from the end selected ' + inp.selectionStart + '-' + inp.selectionEnd + ' ' + inp.selectionDirection + ', wanted ' + (L - 2) + '-' + L + ' backward -- the selection grows from where it began');
   if (!card.querySelector('.kp-show mark.kp-sel')) bad.push('a selection made with ⇧← is not drawn');
   kd('ArrowRight', { shiftKey: true });
   if (inp.selectionStart !== L - 1 || inp.selectionEnd !== L) bad.push('⇧→ after ⇧←⇧← left ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted ' + (L - 1) + '-' + L + ' -- the moving end comes back, the anchor stays');
-  kd('Home', { shiftKey: true });
-  if (inp.selectionStart !== 0 || inp.selectionEnd !== L) bad.push('⇧Home from the end selected ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted 0-' + L);
+  kd('Home', { shiftKey: true, ctrlKey: true });
+  if (inp.selectionStart !== 0 || inp.selectionEnd !== L) bad.push('⇧Ctrl+Home from the end selected ' + inp.selectionStart + '-' + inp.selectionEnd + ', wanted 0-' + L);
   /* Ctrl+A (all selected) and a letter, then Ctrl+Z: the paragraph back, selected as it was; ⇧Ctrl+Z, Ctrl+Y forward. */
   const para = inp.value;
   kd('Z');
@@ -8349,13 +8354,13 @@ check('the pad\'s letters type, save and mark a worded answer; 123 is the maths 
   if (inp.value !== 'Z') bad.push('⌘Z then Ctrl+Y gave ' + JSON.stringify(inp.value) + ', wanted "Z" -- undone and redone');
   kd('z', { ctrlKey: true });
   /* A RUN OF LETTERS IS ONE STEP, A WORD AT A TIME. */
-  kd('End'); [' ', 'o', 'k'].forEach(c => kd(c));
+  kd('End', { ctrlKey: true }); [' ', 'o', 'k'].forEach(c => kd(c));
   kd('z', { ctrlKey: true });
   if (inp.value !== para + ' ') bad.push('Ctrl+Z after typing " ok" gave ' + JSON.stringify(inp.value) + ', wanted the word "ok" gone and the space kept');
   kd('z', { ctrlKey: true });
   if (inp.value !== para) bad.push('a second Ctrl+Z gave ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(para));
   /* ALTGR: Ctrl+Alt with a one-character key is a character. */
-  kd('End'); kd('€', { ctrlKey: true, altKey: true });
+  kd('End', { ctrlKey: true }); kd('€', { ctrlKey: true, altKey: true });
   if (inp.value !== para + '€') bad.push('AltGr+E (€, Ctrl+Alt on Windows) gave ' + JSON.stringify(inp.value) + ' -- dropped as a shortcut');
   /* A CUT: the selection to the clipboard and out of the box, and Ctrl+Z puts it back. */
   inp.setSelectionRange(0, 3);
@@ -8539,6 +8544,12 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
      · a SHORT worded box is still the bar, Enter is still ✓ there, and its ↵ is still in the bottom row;
      · with AI marking off, the sheet says so in one faint line to a pupil signed in, and to nobody
        else; and no control is drawn that does nothing.
+   AND WHAT THE REVIEW OF 9 OCT FOUND, each asked here: the mark and its points are KEPT while the essay
+   is revised -- "before your changes" after a key, fresh again on undo, and drawn again by a window
+   that never saw the reply (a reload) -- where one space used to wipe them; a Maths "show that" worth
+   six is not an essay; the hint stays on a blank sheet with the pad up; Home and End stop at the
+   paragraph; the essay's ✓ says "done"; and the sparkle has its name beside it. A backend that does not
+   say `aiMarkWhole` is the next journey's.
    jsdom lays nothing out: the sheet's height, the pad's 44px and the line kept in view are
    `check/states.js`'s ("an essay, three paragraphs on its sheet, the pad up"), measured by check/ui.js. */
 check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragraphs, the words are counted, and Mark with AI sends all of it', async () => {
@@ -8548,7 +8559,7 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (!row) return [ID + ' is not in data/questions.json — no essay was written'];
   const paper = LIB.filter(r => r.paper_id === row.paper_id);
   const FEEDBACK = 'Content and organisation: 16 of 24 (Level 3) · Technical accuracy: 11 of 16 (Level 3)\n• Vary how your sentences open.\n• Use one semi-colon.';
-  const withAi = Object.assign(payload(), { features: ['aiMark'], aiMarking: true });
+  const withAi = Object.assign(payload(), { features: ['aiMark', 'aiMarkWhole'], aiMarking: true });
   const { w, sent, errs } = boot({ payload: withAi,
     reply: b => (b.action === 'aiMark' ? { success: true, awarded: 27, available: 40, feedback: FEEDBACK, left: 19 } : null),
     serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
@@ -8565,6 +8576,11 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (w.ansEssay_(shortOf('written', 1)) || w.ansEssay_(shortOf('explain', 3)) || !w.ansEssay_(shortOf('explain', 8)) || w.ansEssay_(shortOf('calculation', 6))) {
     bad.push('`ansEssay_` does not draw its line at written/explain worth 6 or more');
   }
+  /* AND NEVER MATHS: a six-mark "show that" is working, and `essay` is what asks Gemini to judge writing. */
+  if (w.ansEssay_(Object.assign(shortOf('explain', 6), { subject: 'Maths' })) || w.ansEssay_(Object.assign(shortOf('explain', 7), { row: { subject: 'Maths' } }))
+      || !w.ansEssay_(Object.assign(shortOf('explain', 6), { subject: 'Physics' }))) {
+    bad.push('`ansEssay_` takes a six-mark Maths explain for an essay (or a Physics one for not) — its scheme is method steps, and the essay prompt marks writing on levels');
+  }
   const k = w.__t.ansKey(x);
   try { w.localStorage.removeItem(k); } catch (e) {}
   const host = d.createElement('div');
@@ -8579,6 +8595,10 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   if (card.querySelector('.qp-bar')) bad.push('the essay card still draws a chat bar');
   const go = card.querySelector('.qp-sheet-foot.tile-row > .tile.qp-ai-go[data-do="qp-ai"]');
   if (!go) bad.push('Mark with AI is not a tile in the row under the sheet');
+  const sayIt = card.querySelector('.qp-sheet-foot > .qp-ai-say');
+  if (!sayIt || sayIt.textContent !== 'Mark with AI' || sayIt.previousElementSibling !== go) bad.push('the Mark with AI tile has no name beside it — on a touch screen a sparkle alone says nothing');
+  const blank = () => !!card.querySelector('.qp-sheet > .kp-field.kp-essay.is-blank');
+  if (!blank()) bad.push('an empty sheet is not marked is-blank, so it shows no "press return" hint');
   const words = () => (card.querySelector('.qp-essay .qp-sheet-foot .qp-words') || {}).textContent;
   if (words() !== '0 words') bad.push('an empty sheet\'s count says ' + JSON.stringify(words()) + ', wanted "0 words"');
   const mark = card.querySelector('.qp-mark.qp-ai.qp-essay');
@@ -8601,9 +8621,13 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   }
   const bottom = keys.slice(-6).map(b => b.getAttribute('data-v'));
   if (bottom.join('|') !== '!123|!left|!right| |!back|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted the maths pad\'s own: 123 ← → ␣ ⌫ ✓');
+  const doneKey = keys[keys.length - 1];
+  if (!doneKey || !doneKey.classList.contains('kp-done-k') || doneKey.textContent.trim() !== 'done' || doneKey.querySelector('svg')) bad.push('the essay\'s ✓ still wears Send\'s aeroplane — on an essay it only puts the pad away, so it says "done"');
+  if (!blank()) bad.push('the sheet stopped being blank when it was focused, so the hint went before a letter was written');
   const press = v => { const b = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the essay\'s pad'); };
   /* ---------- TWO PARAGRAPHS ON THE PAD'S KEYS ---------- */
   'the bus'.split('').forEach(press);
+  if (blank()) bad.push('the sheet still says it is blank after "The bus"');
   press('!nl'); press('!nl');
   'it rained.'.split('').forEach(press);
   const TWO = 'The bus\n\nIt rained.';
@@ -8623,6 +8647,22 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   kd('Enter', { shiftKey: true });
   if (inp.value !== THREE + '\n' || pad.hidden) bad.push('Shift+Enter in an essay was not a new line');
   kd('Backspace');
+  /* ---------- HOME AND END ARE THE PARAGRAPH'S, CTRL WITH THEM THE ESSAY'S ---------- */
+  const p3 = THREE.lastIndexOf('\n') + 1;
+  inp.setSelectionRange(p3 + 4, p3 + 4);
+  kd('Home');
+  if (inp.selectionStart !== p3) bad.push('Home in the third paragraph put the caret at ' + inp.selectionStart + ', wanted ' + p3 + ', the paragraph\'s start');
+  inp.setSelectionRange(TWO.indexOf('It') + 2, TWO.indexOf('It') + 2);
+  kd('End');
+  if (inp.selectionStart !== TWO.length) bad.push('End in the second paragraph put the caret at ' + inp.selectionStart + ', wanted ' + TWO.length + ', the paragraph\'s end');
+  kd('Home', { shiftKey: true });
+  if (inp.selectionStart !== TWO.indexOf('It') || inp.selectionEnd !== TWO.length) bad.push('Shift+Home selected ' + inp.selectionStart + '–' + inp.selectionEnd + ', wanted the second paragraph');
+  kd('End', { ctrlKey: true });
+  if (inp.selectionStart !== THREE.length || inp.selectionEnd !== THREE.length) bad.push('Ctrl+End did not go to the end of the essay');
+  kd('Home', { ctrlKey: true });
+  if (inp.selectionStart !== 0) bad.push('Ctrl+Home did not go to the start of the essay');
+  if (inp.value !== THREE) bad.push('Home and End changed the essay: ' + JSON.stringify(inp.value));
+  inp.setSelectionRange(THREE.length, THREE.length);
   let kept = null;
   try { kept = w.localStorage.getItem(k); } catch (e) {}
   if (kept !== THREE) bad.push('the essay was not saved under ansKey_ as it was typed (got ' + JSON.stringify(kept) + ')');
@@ -8656,12 +8696,64 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   const why = card.querySelector('.qp-ai-why');
   if (!/27 of 40 marks/.test(verdict)) bad.push('27 of 40 was drawn as ' + JSON.stringify(verdict));
   if (!why || why.textContent !== FEEDBACK) bad.push('the AI\'s strands and points were not drawn as the lines they are: ' + JSON.stringify(why && why.textContent));
-  /* AND A NEW LINE TYPED TAKES THE MARK OFF, as on any box. */
+  /* ---------- A KEY TYPED AFTER THE MARK KEEPS IT, SAID TO BE STALE ----------
+     It took the mark and every point off, and a reload lost them (the review of 9 Oct): the points are
+     what the pupil revises from. So: "before your changes" and no ring, the points still there; undone
+     back to the marked text, fresh again. THIS WAS "a return typed takes the mark off", the chat bar's
+     rule, which is still asked of a short box by the Mark-with-AI journey above. */
+  const aiBox = card.querySelector('.qp-ai.qp-essay');
+  if (!aiBox || !aiBox.classList.contains('is-near')) bad.push('27 of 40 is not drawn as a near mark');
   inp.focus();
+  inp.setSelectionRange(big.length, big.length);
   press('!nl');
-  if ((card.querySelector('.qp-ai .qp-verdict') || {}).textContent || (why && why.textContent)) bad.push('a return typed after the mark left the old verdict on a changed essay');
+  const v2 = (card.querySelector('.qp-ai .qp-verdict') || {}).textContent || '';
+  if (v2 !== '27 of 40 marks \u00b7 AI \u00b7 before your changes' || !aiBox.classList.contains('is-stale') || aiBox.classList.contains('is-near')) bad.push('a return typed after the mark drew ' + JSON.stringify(v2) + ' (' + aiBox.className + ') — wanted the mark kept and said to be "before your changes", its colour off');
+  if (!why || why.textContent !== FEEDBACK) bad.push('a return typed after the mark took the AI\'s points away: ' + JSON.stringify(why && why.textContent));
+  press('!back');
+  if ((card.querySelector('.qp-ai .qp-verdict') || {}).textContent !== '27 of 40 marks \u00b7 AI' || !aiBox.classList.contains('is-near') || aiBox.classList.contains('is-stale')) bad.push('back to the marked text, the mark is still said to be stale');
+  press('!nl');
   inp.blur();
   await wait(10);
+  /* ---------- AND IT IS DRAWN AGAIN: THE CARD REDRAWN, AND A WINDOW THAT NEVER SAW THE REPLY ---------- */
+  card = draw(x);
+  const redrawn = card.querySelector('.qp-ai.qp-essay');
+  if (!redrawn || !redrawn.classList.contains('is-stale') || !/before your changes/.test((redrawn.querySelector('.qp-verdict') || {}).textContent || '')
+      || (card.querySelector('.qp-ai-why') || {}).textContent !== FEEDBACK) bad.push('the card drawn again lost the kept mark: ' + JSON.stringify(redrawn && redrawn.outerHTML.slice(-300)));
+  /* ---------- THE ACCOUNT'S COPY ARRIVING FROM ANOTHER DEVICE SAYS IT AGAIN, AND NEVER BLANKS IT ----------
+     `ansRefresh_` puts a value in with no `input` event and took every verdict off, which on an essay
+     left the points under an empty line and the sheet still ringed stale. The marked text arriving: fresh;
+     other text: "before your changes"; the points under it both times. */
+  if (redrawn && typeof w.ansRefresh_ === 'function') {
+    const said = () => ({ v: (redrawn.querySelector('.qp-verdict') || {}).textContent || '', cls: ' ' + redrawn.className + ' ',
+                          why: (card.querySelector('.qp-ai-why') || {}).textContent });
+    try { w.localStorage.setItem(k, big); } catch (e) {}
+    w.ansRefresh_([k]);
+    let r = said();
+    if (r.v !== '27 of 40 marks · AI' || r.cls.indexOf(' is-near ') < 0 || r.cls.indexOf(' is-stale ') >= 0 || r.why !== FEEDBACK) bad.push('the marked text arriving from the account drew ' + JSON.stringify(r) + ' — wanted the mark fresh again, its points kept');
+    try { w.localStorage.setItem(k, big + ' And then the sea.'); } catch (e) {}
+    w.ansRefresh_([k]);
+    r = said();
+    if (r.v !== '27 of 40 marks · AI · before your changes' || r.cls.indexOf(' is-stale ') < 0 || r.cls.indexOf(' is-near ') >= 0 || r.why !== FEEDBACK) bad.push('other text arriving from the account drew ' + JSON.stringify(r) + ' — wanted the mark kept and said to be "before your changes", its points under it');
+  } else bad.push('ansRefresh_ is not reachable — the account\'s copy over a kept mark was NOT checked');
+  let keptRec = null;
+  try { keptRec = w.localStorage.getItem('aiMark:' + k); } catch (e) {}
+  if (!keptRec) bad.push('the essay\'s mark was not kept on the device (aiMark:' + k + ')');
+  else {
+    const b3 = boot({ payload: Object.assign(payload(), { features: ['aiMark', 'aiMarkWhole'], aiMarking: true }),
+      before: w3 => { try { w3.localStorage.setItem('aiMark:' + k, keptRec); w3.localStorage.setItem(k, big); } catch (e) {} },
+      serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
+    await wait(300);
+    b3.w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+    const x3 = b3.w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+    const h3 = b3.w.document.createElement('div');
+    b3.w.document.body.appendChild(h3);
+    h3.innerHTML = x3 ? b3.w.questionCard_(x3, 0) : '';
+    const fresh3 = h3.querySelector('.qp-ai.qp-essay');
+    if (!fresh3 || (fresh3.querySelector('.qp-verdict') || {}).textContent !== '27 of 40 marks \u00b7 AI' || !fresh3.classList.contains('is-near')
+        || (h3.querySelector('.qp-ai-why') || {}).textContent !== FEEDBACK) bad.push('after a reload the essay\'s mark and points are gone: ' + JSON.stringify(fresh3 && fresh3.outerHTML.slice(-300)));
+    if (b3.sent.some(b => b.action === 'aiMark')) bad.push('a reload asked Gemini again to show a mark it already had');
+  }
+  try { w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
   /* ---------- A SHORT WORDED BOX IS STILL THE BAR, AND ENTER IS STILL ✓ ---------- */
   const sx = { kind: 'question', key: 'q-essay-short', name: 'Q2', marks: 3, answerType: 'explain', accept: '',
     row: { row_id: 'Q-ESSAY-SHORT', paper_id: 'P-ESSAY', subject: 'Chemistry', name: 'Rates' },
@@ -8694,6 +8786,60 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
     if (signedIn && !(note && /isn.t switched on/.test(note.textContent))) bad.push('with AI marking off a signed-in pupil is told nothing about why there is no Mark tile');
     if (!signedIn && note) bad.push('a stranger browsing is told about AI marking: ' + note.textContent);
   }
+  return bad;
+});
+
+/* ---------- A BACKEND NOT YET PULLED IS SENT NO ESSAY IT WOULD CUT -----------------------------------------
+   THE REVIEW OF 9 OCT, the must-fix: GitHub Pages serves the new front end a minute after a push, and the
+   backend changes only when the owner pulls it into the Apps Script editor. Until then the live `aiMark`
+   is in `features`, cuts the answer at 2,000 characters and ignores `essay` -- so the phone drew Mark with
+   AI, posted a 6,000-character essay, and showed the mark for its first third as the essay's. The new
+   backend says `aiMarkWhole` (doget.gs); without it the phone sends nothing over 2,000 characters and
+   says why, spending none of the day's marks -- and an essay under 2,000, which either backend reads
+   whole, still goes. The real Q-R0398-5 through the real handler. */
+check('a backend without aiMarkWhole is sent no essay over its old 2,000-character cut, and the pupil is told why', async () => {
+  const ID = 'Q-R0398-5';
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const row = LIB.find(r => r.row_id === ID);
+  if (!row) return [ID + ' is not in data/questions.json — nothing was sent'];
+  const paper = LIB.filter(r => r.paper_id === row.paper_id);
+  const { w, sent, errs } = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: true }),
+    reply: b => (b.action === 'aiMark' ? { success: true, awarded: 9, available: 40, feedback: '• Use paragraphs.', left: 19 } : null),
+    serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['qp-ai'] || typeof w.questionCard_ !== 'function') return ['Mark with AI is not reachable — nothing was sent'];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+  const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+  if (!x) return ['the real ' + ID + ' did not come through the loader — nothing was sent'];
+  const k = w.__t.ansKey(x);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const mark = async text => {
+    try { w.localStorage.setItem(k, text); w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+    host.innerHTML = w.questionCard_(x, 0);
+    const go = host.querySelector('.qp-ai-go');
+    if (!go) return null;
+    const n = sent.filter(b => b.action === 'aiMark').length;
+    A['qp-ai'](go);
+    await wait(50);
+    return { went: sent.filter(b => b.action === 'aiMark').slice(n), said: (host.querySelector('.qp-ai .qp-verdict') || {}).textContent || '' };
+  };
+  let long = '';
+  while (long.length < 6000) long += 'The rain drew long silver threads across the glass, and the town slid by. ';
+  const a = await mark(long);
+  if (!a) return ['with aiMark and no aiMarkWhole the essay drew no Mark with AI tile — a short essay could still be marked'];
+  if (a.went.length) bad.push('a ' + long.length + '-character essay was sent to a backend that cuts at 2,000 — its mark would be shown as the whole essay\'s');
+  if (!/reads only the first 2,000 characters until it is updated/.test(a.said) || !/6,0\d\d/.test(a.said)) bad.push('the pupil was told ' + JSON.stringify(a.said) + ' — wanted why it was not sent, with the two numbers');
+  const short = await mark('The rain drew long silver threads across the glass.\n\nThe town slid by.');
+  if (!short || short.went.length !== 1 || short.went[0].essay !== true) bad.push('an essay under 2,000 characters, which the old backend reads whole, was not sent: ' + JSON.stringify(short && short.went));
+  else if (!/9 of 40 marks/.test(short.said)) bad.push('the short essay\'s mark was drawn as ' + JSON.stringify(short.said));
+  /* AND WITH IT, THE SAME 6,000 GO WHOLE -- the essay journey above asks the rest. */
+  w.__t.DATA().features = ['aiMark', 'aiMarkWhole'];
+  const whole = await mark(long);
+  if (!whole || whole.went.length !== 1 || whole.went[0].answer !== long) bad.push('with aiMarkWhole the essay was not sent whole: ' + JSON.stringify(whole && whole.went.map(b => String(b.answer).length)));
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem('aiMark:' + k); } catch (e) {}
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
   return bad;
 });
 

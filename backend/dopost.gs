@@ -3231,9 +3231,10 @@ function doPost(e) {
       const question = S(body.question).slice(0, AI_QUESTION_MAX);
       const scheme = S(body.scheme).slice(0, AI_SCHEME_MAX);
       const answer = S(body.answer);
-      /* AN ESSAY (`ansEssay_` on the phone: `written` or `explain`, six marks or more) IS MARKED ON THE
-         SCHEME'S LEVELS, strand by strand, with two or three things to do next -- `aiMarkAsk_`. Anything
-         but a real `true` is a short answer, marked as it always was. */
+      /* AN ESSAY (`ansEssay_` on the phone: `written` or `explain`, six marks or more, never Maths -- a
+         page of "show that" working is not writing to be judged on levels) IS MARKED ON THE SCHEME'S
+         LEVELS, strand by strand, with two or three things to do next -- `aiMarkAsk_`. Anything but a
+         real `true` is a short answer, marked as it always was. */
       const essay = body.essay === true || body.essay === 'true';
       if (!answer) return jsonOut({ success: false, message: 'Write something first.' });
       if (answer.length > AI_ANSWER_MAX) return jsonOut({ success: false,
@@ -4770,16 +4771,21 @@ function aiMarkAsk_(key, model, question, scheme, answer, avail, essay) {
 }
 /* AN ESSAY'S REPLY, BELIEVED ONLY AS FAR AS IT ADDS UP -- see the note over `aiMarkAsk_`. */
 function aiMarkEssay_(out, avail, clamp) {
-  if (!out || (out.awarded == null && !Array.isArray(out.parts))) {
-    return { error: 'Gemini did not give a mark for that one — try again in a moment.' };
-  }
+  const said = 'Gemini did not give a mark for that one — try again in a moment.';
+  if (!out) return { error: said };
   const parts = (Array.isArray(out.parts) ? out.parts : []).slice(0, 4).map(p => {
     const of = Math.max(1, Math.min(avail, Math.round(Number(p && p.available) || 0)));
     return { name: S(p && p.name).replace(/\s+/g, ' ').slice(0, 80), level: S(p && p.level).replace(/\s+/g, ' ').slice(0, 40),
              awarded: clamp(p && p.awarded, of), available: of };
   }).filter(p => p.name);
   const adds = parts.length > 0 && parts.reduce((n, p) => n + p.available, 0) === avail;
-  const awarded = adds ? clamp(parts.reduce((n, p) => n + p.awarded, 0), avail) : clamp(out.awarded, avail);
+  /* NO MARK IS NOT A MARK OF NOUGHT. With strands that do not add up the model's own total is the mark,
+     and a reply with none -- missing, blank, or words -- was `clamp`ed to 0 and drawn as "0 of 40 marks
+     · AI" (the review of 9 Oct, `aiMarkEssay_` run in node). Only a reply that breaks `responseSchema`
+     can do it, and when one does "try again" is the truth and nought is a verdict nobody gave. */
+  const total = out.awarded;
+  if (!adds && (total == null || String(total).trim() === '' || !isFinite(Number(total)))) return { error: said };
+  const awarded = adds ? clamp(parts.reduce((n, p) => n + p.awarded, 0), avail) : clamp(total, avail);
   const points = (Array.isArray(out.points) ? out.points : []).map(t => S(t).replace(/\s+/g, ' ').slice(0, 240))
     .filter(Boolean).slice(0, AI_ESSAY_POINTS);
   /* ONE LINE OF STRANDS WHEN THERE IS MORE THAN ONE (a single strand is the total said twice), then a

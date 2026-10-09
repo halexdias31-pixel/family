@@ -142,12 +142,21 @@ function ansMaths_(x) {
    decides which boxes get one -- the box, the pad's return key, a laptop's Enter and the AI's prompt all
    ask it, and nothing asks the sheet's own class.
 
-   A WORDED BOX WHOSE QUESTION ASKS FOR EXTENDED WRITING: `written` or `explain`, worth 6 marks or more.
-   Counted over data/questions.json on 9 Oct, 8,010 question rows:
+   A WORDED BOX WHOSE QUESTION ASKS FOR EXTENDED WRITING: `written` or `explain`, worth 6 marks or more,
+   in a subject that is not Maths. Counted over data/questions.json on 9 Oct, 8,010 question rows:
      · `written`, 6 marks or more   201 -- Religious Studies 152, English Language 21, the sciences 28
-     · `explain`, 6 marks or more    80 -- English Language 71, Physics 4, Maths 4, Combined Science 1
-     · together                     281, every one with a scheme and none with `accept`, so every one is
-                                        Gemini's to mark and none is Check's
+     · `explain`, 6 marks or more    76 -- English Language 71, Physics 4, Combined Science 1
+     · together                     277, every one with a scheme and none with `accept`, so every one is
+                                        Gemini's to mark and none is Check's; 275 of the 277 schemes
+                                        name their levels
+   NOT MATHS, AND THE REVIEW OF 9 OCT IS WHY. The rule was 281 and four of them were Maths `explain`
+   worth six or seven -- "Using the model, show that y = ...", a tangent's equation, two histograms
+   compared, "Is Jim correct?" over a wage sum. Their schemes are method steps, not levels, and this
+   predicate is also what asks Gemini for the levelled marking (`essay` in the `qp-ai` handler): it was
+   telling a model to "judge the quality of the writing" of a page of algebra. Working is not prose, the
+   reason five-mark `explain` was already left out -- so a Maths row is never an essay, however many
+   marks it carries, and goes back to the bar and the short marking it had. No Maths `written` row was
+   ever caught (all 40 are worth 1 to 5 or carry no mark), so the line costs nothing else.
    `written` WAS TO COUNT AT ANY MARK, and the count said no: 90 of its 291 rows are worth under 6 (or
    carry no mark at all) and they are short answers -- "State the defining property of a black hole" [1],
    a Greek comprehension's "Give two details" [2], "Interpret what the gradient represents" [1]. Ten ruled
@@ -158,9 +167,11 @@ function ansMaths_(x) {
    "show that") is working, not prose. */
 const KP_ESSAY_TYPES = { written: 1, explain: 1 };
 const KP_ESSAY_MARKS = 6;
+const KP_ESSAY_NOT = /\bmath|statistic/i;
 function ansEssay_(x) {
   if (!x || ansMaths_(x) || padWanted_(x)) return false;
   if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
+  if (KP_ESSAY_NOT.test(String(x.subject || (x.row && x.row.subject) || ''))) return false;
   return !!KP_ESSAY_TYPES[String(x.answerType || '').trim().toLowerCase()] && Number(x.marks) >= KP_ESSAY_MARKS;
 }
 /* AND HOW LONG IT IS, in words -- the one thing a pupil checks about an essay while writing it, so the
@@ -296,10 +307,17 @@ const KP_ABC = [].concat(
    (↵), because the space bar is a row above and a paragraph is the one thing a sentence keyboard has
    that this would otherwise lack; ✓ stays "done", as on the phone's own `return`-less pad.
    ON AN ESSAY (`ansEssay_`) THAT SLOT IS THE SPACE AGAIN, exactly as on the maths face, because the
-   essay's return has a key of its own on the row above (`KP_ABC_ESSAY`) -- one return, and a big one. */
+   essay's return has a key of its own on the row above (`KP_ABC_ESSAY`) -- one return, and a big one.
+   AND ITS ✓ SAYS "done", NOT THE PAPER AEROPLANE. The aeroplane is Send's mark (`KP_KEYS`), and on an
+   essay ✓ never sends: no essay has `accept`, so there is no Check for `kpDone_` to press, and it does
+   not press Mark with AI (that spends one of the day's marks). Measured in the review of 9 Oct on an
+   iPad: three paragraphs, the orange aeroplane tapped, the pad went away and nothing was marked -- the
+   key promised the one thing it does not do. So on an essay it says what it does. */
+const KP_DONE_ESSAY = { v: '!done', a: 'done, put the keypad away', c: ' kp-done kp-done-k', t: 'done' };
 const kpBottom_ = (words, essay) => KP_KEYS.slice(-6).map(k =>
   k.v === '!abc' ? { v: '!123', a: 'numbers and maths', c: ' kp-mode', t: '123' }
-  : (words && !essay && k.v === ' ') ? { v: '!nl', a: 'new line', c: ' kp-mode', t: '\u21b5' } : k)
+  : (words && !essay && k.v === ' ') ? { v: '!nl', a: 'new line', c: ' kp-mode', t: '\u21b5' }
+  : (essay && k.v === '!done') ? KP_DONE_ESSAY : k)
   .map(k => Object.assign({}, k, { span: 10 }));
 /* ---------- AN ESSAY'S LETTERS: A RETURN KEY YOU CAN SEE -------------------------------------------------
    *"it doesnt let him do paragraphs"* (the owner, 9 Oct). It did, in a way nobody would find: the new
@@ -331,7 +349,7 @@ const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="k
    whether it is under words (`kpBottom_`). */
 function kpPadHtml_(layer, words, signs, essay) {
   if (layer === 'abc') return (essay ? KP_ABC_ESSAY : KP_ABC).concat(kpBottom_(words, essay)).map(kpKey_).join('');
-  return (signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(kpKey_).join('');
+  return (signs ? KP_SIGN_KEYS : []).concat(KP_KEYS).map(k => (essay && k.v === '!done' ? KP_DONE_ESSAY : k)).map(kpKey_).join('');
 }
 
 /* ---------- THE BOX -----------------------------------------------------------------------------------
@@ -362,7 +380,7 @@ function kpField_(k, val, kind, signs, name) {
   const lock = `class="qp-ans-in kp-in" data-do="qp-ans" data-k="${esc(k)}" data-kp="${words ? 'words' : 'maths'}"${
     signs ? ' data-kp-signs="1"' : ''}${essay ? ' data-kp-essay="1"' : ''} aria-label="${esc(name || 'Your answer')}"
         readonly inputmode="none" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="${essay ? 'enter' : 'done'}"`;
-  return `<span class="kp-field kp-${words ? 'words' : 'maths'}${essay ? ' kp-essay' : ''}">
+  return `<span class="kp-field kp-${words ? 'words' : 'maths'}${essay ? ' kp-essay' + (v ? '' : ' is-blank') : ''}">
       <span class="kp-show" aria-hidden="true">${kpDraw_(v, -1, words)}</span>
       ${words ? `<textarea ${lock} rows="1">${esc(v)}</textarea>` : `<input ${lock} value="${esc(v)}">`}
     </span>`;
@@ -466,7 +484,14 @@ function kpRender_(inp) {
    a laptop's key, an undo, a paste, the account's copy arriving from another device (`ansRefresh_`) --
    comes through `kpRender_`, so the count under the sheet cannot say one thing while the sheet says
    another. Written only when it changes. */
+/* AND WHETHER THE SHEET IS BLANK (`is-blank` on its field), which is what shows the hint on it -- "Press
+   return to start a new paragraph". It was `:empty` on the drawing, and the caret is a span in the
+   drawing: the review of 9 Oct watched the hint go the moment the sheet was tapped, before a letter,
+   which is the moment it is for. So the field says "nothing written" for itself, and the stylesheet lays
+   the hint behind the caret (`.qp-sheet .is-blank`) until the first key. */
 function kpCount_(inp) {
+  const field = inp.parentNode;
+  if (field && field.classList) field.classList.toggle('is-blank', !inp.value);
   const box = inp.closest && inp.closest('.qp-essay');
   const out = box && box.querySelector('.qp-words');
   if (!out) return;
@@ -583,8 +608,7 @@ function kpLayout_(inp) {
   const words = !!inp && inp.getAttribute('data-kp') === 'words';
   const signs = !!inp && inp.hasAttribute('data-kp-signs');
   const essay = !!inp && inp.hasAttribute('data-kp-essay');
-  const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '')
-    + (essay && KP_LAYER === 'abc' ? ':e' : '');
+  const sig = KP_LAYER + (words ? ':w' : ':m') + (signs && KP_LAYER === 'maths' ? ':s' : '') + (essay ? ':e' : '');
   if (pad.getAttribute('data-sig') !== sig) {
     pad.innerHTML = kpPadHtml_(KP_LAYER, words, signs, essay);
     pad.setAttribute('data-sig', sig);
@@ -744,7 +768,9 @@ function kpKeepClear_(inp) {
    three paragraphs: zoomed to 0.87, the 16px writing at 14, the Mark with AI tile at 38px, the sheet
    242px wide on a 390px phone. A sheet already scrolls inside, so it is the one thing on the card
    that can give room back without losing anything: it is capped, here, at what keeps its card inside
-   the pane -- never under five lines -- and `paneReach_` then finds nothing to shrink. Called by
+   the pane -- never under five lines -- and `paneReach_` then finds nothing to shrink. Where five lines
+   and the question still do not fit (320x568), the card is not drawn smaller either: its pane scrolls
+   (`PANE_ZOOM_ESSAY` in find.js). Called by
    `paneReach_` itself, at zoom 1 and before it measures, every time it measures a pane that holds an
    essay: on a paint, on a rotation, and whenever the card grows (its `ResizeObserver`). The cap is
    taken off first, so the sheet is measured at the stylesheet's, then every read, then the one write
@@ -845,6 +871,18 @@ function kpPartner_(v, i) {
   }
   return -1;
 }
+/* ---------- HOME AND END ARE THE LINE'S, CTRL/⌘ WITH THEM THE WHOLE ANSWER'S ----------------------------
+   THEY WERE THE WHOLE ANSWER'S, and while every answer was one line nobody could tell. Then an essay
+   became an answer (docs/history/312) and the review of 9 Oct measured it on a laptop: the caret in the
+   third paragraph, Home, and it was at the start of the essay (58 -> 0); End went to its last letter.
+   So Home and End stop at the line the caret is in -- the stretch between two newlines, which in an
+   essay is a paragraph -- and Ctrl/⌘ with them goes to the very start or end, as in every editor. The
+   paragraph and not the wrapped line on the screen, because the value knows where its newlines are and
+   only the drawing knows where it wrapped: one line read off the value is the same answer on every
+   device and in `check-flow.js`, where nothing is laid out. A maths box is one line, so for it nothing
+   changes. */
+function kpLineStart_(v, i) { return i <= 0 ? 0 : v.lastIndexOf('\n', i - 1) + 1; }
+function kpLineEnd_(v, i) { const n = v.indexOf('\n', i); return n < 0 ? v.length : n; }
 function kpEdit_(inp, cmd) {
   const v = inp.value;
   const words = inp.getAttribute('data-kp') === 'words';
@@ -861,8 +899,10 @@ function kpEdit_(inp, cmd) {
   if (cmd === '!frac') { if (term) put('/()', 2); else put('()/()', 1); }
   else if (cmd === '!pow') put('^()', 2);
   else if (cmd === '!sqrt') put('\u221a()', 2);
-  else if (cmd === '!home') to(0);
-  else if (cmd === '!end') to(v.length);
+  else if (cmd === '!home') to(kpLineStart_(v, a));
+  else if (cmd === '!end') to(kpLineEnd_(v, b));
+  else if (cmd === '!top') to(0);
+  else if (cmd === '!bottom') to(v.length);
   else if (cmd === '!left') {
     to(b > a ? a : !words && v.slice(a - 3, a) === ')/(' ? a - 3 : Math.max(0, a - 1));
   } else if (cmd === '!right') {
@@ -977,7 +1017,7 @@ function kpType_(inp, cmd, typed) {
    screen reader hears. Undo comes through here too. */
 function kpAfter_(inp, c) {
   kpRender_(inp);
-  if (!/^!(left|right|home|end)$/.test(c)) kpAutoShift_(inp);
+  if (!/^!(left|right|home|end|top|bottom)$/.test(c)) kpAutoShift_(inp);
   kpShiftPaint_();
   kpKeepClear_(inp);
   kpSay_(inp);
@@ -1297,6 +1337,12 @@ function kpKeys_(e) {
     t.blur();
     kpClose_();
     return;
+  } else if ((e.ctrlKey || e.metaKey) && !altGr && (k === 'Home' || k === 'End')) {
+    /* THE WHOLE ANSWER'S START OR END (`kpLineStart_`), with ⇧ the selection to it. */
+    e.preventDefault();
+    if (KP_AT !== t) kpOpen_(t);
+    if (e.shiftKey) return kpExtend_(t, k, true);
+    return kpType_(t, k === 'Home' ? '!top' : '!bottom', true);
   } else if ((e.ctrlKey || e.metaKey) && !altGr) {
     const c = k.toLowerCase();
     const redo = (c === 'z' && e.shiftKey) || (c === 'y' && e.ctrlKey && !e.metaKey);
@@ -1354,7 +1400,7 @@ function kpLine_(inp, dir, grow) {
 }
 /* ⇧ WITH ← → HOME END: the selection's moving end goes one character, or to an end, and its anchor --
    where it began -- stays, whichever side of it the moving end has crossed to. */
-function kpExtend_(inp, k) {
+function kpExtend_(inp, k, whole) {
   const v = inp.value;
   let s = inp.selectionStart, e = inp.selectionEnd;
   if (s == null) s = e = v.length;
@@ -1363,8 +1409,8 @@ function kpExtend_(inp, k) {
   let to = back ? s : e;
   if (k === 'ArrowLeft') to = Math.max(0, to - 1);
   else if (k === 'ArrowRight') to = Math.min(v.length, to + 1);
-  else if (k === 'Home') to = 0;
-  else if (k === 'End') to = v.length;
+  else if (k === 'Home') to = whole ? 0 : kpLineStart_(v, to);
+  else if (k === 'End') to = whole ? v.length : kpLineEnd_(v, to);
   kpSelect_(inp, anchor, to);
 }
 function kpSelect_(inp, anchor, to) {
@@ -1535,6 +1581,77 @@ function aiOff_(said) {
   });
 }
 
+/* ---------- A BACKEND THAT READS THE WHOLE ESSAY SAYS SO (`aiMarkWhole` in `features`) ----------------
+   THE FRONT END GOES LIVE A MINUTE AFTER A PUSH AND THE BACKEND WHEN THE OWNER PULLS IT INTO THE APPS
+   SCRIPT EDITOR (CLAUDE.md, "Deploying") -- and until that pull the live `aiMark` still lists itself in
+   `features`, still cuts the answer at 2,000 characters and ignores `essay`. Found in the review of 9 Oct:
+   this phone drew Mark with AI, posted a 6,000-character essay whole, and showed "N of 40 marks · AI" for
+   its first 350 words with nothing to say a third was read -- the very fault the raised ceiling was for,
+   carried by a deploy gap. So the backend that keeps the whole answer says so in `features`, the way
+   `attemptWords` says the attempts tab keeps a question's words, and a phone told nothing sends no answer
+   longer than the old cut: it says why in one sentence instead of spending one of the day's marks on a
+   mark for part of an essay. A short answer, or an essay under 2,000 characters, is read whole by either
+   backend and goes as it always went. */
+const AI_ANSWER_OLD = 2000;
+function aiWhole_() {
+  try { return (DATA.features || []).indexOf('aiMarkWhole') !== -1; }
+  catch (e) { return false; }
+}
+const aiCount_ = n => String(n).replace(/\B(?=(\d{3})+$)/g, ',');
+
+/* ---------- AN ESSAY'S MARK STAYS WHILE IT IS REVISED, AND ACROSS A RELOAD ----------------------------
+   TYPING TOOK THE AI'S VERDICT OFF, for every box (the `input` listener below) -- right for "egestion",
+   where the next key is a new answer. Wrong for an essay, measured in the review of 9 Oct: marked 27 of
+   40 with three things to do next, the sheet tapped to start on them, one space typed -- and the mark and
+   every point were gone, and gone after a reload, and the only way back was another request, one of the
+   day's twenty. The points are meant to be acted on WHILE the essay is edited.
+   SO AN ESSAY'S MARK IS KEPT WITH ITS ANSWER: on this device, under the answer's own key (`ansKey_`, so
+   it is this person's and nobody else's on a shared iPad), with the exact text it marked. Drawn again
+   when the card is (`ansBox_`), and while the essay is not the text that was marked it is said to be
+   STALE -- "· before your changes", in the plain dim of a line with no verdict, the green or amber ring
+   taken off the sheet -- and the points stay under it. Undo back to the marked text and it is fresh
+   again. In memory too (`AI_KEPT`), so private mode, which throws on `localStorage`, still keeps it for
+   the visit. Not on the account: a mark is a reading of one draft, and the draft is what is synced. */
+const AI_KEPT = new Map();
+function aiKeep_(k, rec) {
+  if (!k) return;
+  AI_KEPT.set(k, rec);
+  try { localStorage.setItem('aiMark:' + k, JSON.stringify(rec)); } catch (e) { /* this visit only */ }
+}
+function aiKept_(k) {
+  if (!k) return null;
+  if (AI_KEPT.has(k)) return AI_KEPT.get(k);
+  let rec = null;
+  try { rec = JSON.parse(localStorage.getItem('aiMark:' + k) || 'null'); } catch (e) { rec = null; }
+  if (!rec || typeof rec.a !== 'string' || typeof rec.v !== 'string') return null;
+  AI_KEPT.set(k, rec);
+  return rec;
+}
+/* WHAT THE ROW SHOWS FOR A KEPT MARK against the answer as it is now -- read by `ansBox_` when the card
+   is drawn and by the `input` listener as it is typed into. */
+function aiKeptView_(k, now) {
+  const rec = aiKept_(k);
+  if (!rec) return null;
+  const fresh = String(now == null ? '' : now) === rec.a;
+  return { fresh: fresh, cls: fresh ? (rec.c === 'is-right' ? 'is-right' : 'is-near') : 'is-stale',
+           verdict: rec.v + (fresh ? '' : ' \u00b7 before your changes'), why: String(rec.f || '') };
+}
+function aiKeptPaint_(box, inp) {
+  const view = aiKeptView_(inp.getAttribute('data-k'), inp.value);
+  if (!view) return false;
+  /* ONE OF THE THREE, and a forced `toggle` writes nothing that is already so -- this is asked on every
+     key typed into an essay that has a kept mark. ASKED BY THREE: the `input` listener below (a key),
+     `ansBox_` through `aiKeptView_` (the card drawn), and `ansRefresh_` in answers.js (the account's
+     copy arriving from another device, which comes with no `input` event and used to blank the verdict
+     and leave its points under an empty line). */
+  ['is-right', 'is-near', 'is-stale'].forEach(c => box.classList.toggle(c, c === view.cls));
+  const out = box.querySelector('.qp-verdict');
+  if (out && out.textContent !== view.verdict) out.textContent = view.verdict;
+  const why = box.nextElementSibling;
+  if (why && why.classList.contains('qp-ai-why') && why.textContent !== view.why) why.textContent = view.why;
+  return true;
+}
+
 on('qp-ai', (el) => {
   const box = el.closest('.qp-ai');
   const card = el.closest('.qcard');
@@ -1543,8 +1660,11 @@ on('qp-ai', (el) => {
   const why = box && box.nextElementSibling && box.nextElementSibling.classList.contains('qp-ai-why')
     ? box.nextElementSibling : null;
   if (!inp || !out || el.disabled) return;
+  /* AN ESSAY'S KEPT POINTS STAY UNDER IT UNTIL NEW ONES ARRIVE (`aiKeep_`): a request that fails must not
+     take away the only feedback the pupil has. A short answer's sentence goes, as it always did. */
+  const essayBox = box.classList.contains('qp-essay');
   box.classList.remove('is-right', 'is-near');
-  if (why) why.textContent = '';
+  if (why && !essayBox) why.textContent = '';
   /* NOTHING TYPED IS NOT A WRONG ANSWER, and it is not worth a request either. */
   if (!inp.value.trim()) { out.textContent = 'Write something first'; return; }
   if (typeof USER !== 'object' || !USER || !USER.token) { out.textContent = 'Sign in to have it marked'; return; }
@@ -1553,7 +1673,13 @@ on('qp-ai', (el) => {
   const sent = inp.value;
   /* TOO LONG IS SAID, NEVER CUT: a mark for part of an essay, shown as a mark for the essay, is the fault
      the 2,000-character cut was. */
-  if (sent.length > AI_ANSWER_MAX) { out.textContent = 'Too long to mark \u2014 ' + String(AI_ANSWER_MAX).replace(/\B(?=(\d{3})+$)/g, ',') + ' characters at most'; return; }
+  if (sent.length > AI_ANSWER_MAX) { out.textContent = 'Too long to mark \u2014 ' + aiCount_(AI_ANSWER_MAX) + ' characters at most'; return; }
+  /* AND A BACKEND THAT HAS NOT BEEN PULLED YET WOULD CUT IT -- `aiWhole_` above. */
+  if (sent.length > AI_ANSWER_OLD && !aiWhole_()) {
+    out.textContent = 'The AI marker reads only the first ' + aiCount_(AI_ANSWER_OLD) + ' characters until it is updated \u2014 this is '
+      + aiCount_(sent.length) + ', so it was not sent';
+    return;
+  }
   el.disabled = true;
   /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: a disabled
      tile loses its plate, which says "nothing to press" -- the wrong sentence for "pressed, marking". */
@@ -1564,32 +1690,48 @@ on('qp-ai', (el) => {
   /* `essay` ASKS FOR THE LEVELLED MARKING (`aiMarkAsk_` in dopost.gs): each strand the scheme names
      marked on its own levels and summed, and two or three things to do next rather than one sentence.
      The same predicate that drew the sheet, so a box drawn as an essay is marked as one. */
+  const essay = ansEssay_(x);
   api({ action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
-        answer: sent, marks: Number(x.marks) || 1, essay: ansEssay_(x) })
+        answer: sent, marks: Number(x.marks) || 1, essay: essay })
     .then(d => {
       done();
       if (d && d.why === 'ai-off') return aiOff_(d.message);
       /* A VERDICT IS ABOUT THE ANSWER IT MARKED. Typed over while Gemini was thinking, it is about an
-         answer that is no longer in the box — the rule the `input` listener in find.js keeps for Check. */
-      if (inp.value !== sent) { out.textContent = ''; return; }
-      if (!d || !d.success) { out.textContent = (d && (d.message || d.error)) || 'Could not mark that just now'; return; }
+         answer that is no longer in the box — the rule the `input` listener in find.js keeps for Check.
+         AN ESSAY'S IS KEPT ANYWAY, as the mark of the draft it read, and drawn as stale (`aiKeep_`). */
+      if (inp.value !== sent && !essayBox) { out.textContent = ''; return; }
+      if (!d || !d.success) {
+        out.textContent = (d && (d.message || d.error)) || 'Could not mark that just now';
+        return;
+      }
       const full = d.awarded >= d.available;
+      const said = d.awarded + ' of ' + d.available + ' mark' + (d.available === 1 ? '' : 's') + ' \u00b7 AI';
+      if (essayBox) {
+        aiKeep_(inp.getAttribute('data-k'), { a: sent, v: said, f: String(d.feedback || ''), c: full ? 'is-right' : 'is-near' });
+        aiKeptPaint_(box, inp);
+        return;
+      }
       box.classList.add(full ? 'is-right' : 'is-near');
-      out.textContent = d.awarded + ' of ' + d.available + ' mark' + (d.available === 1 ? '' : 's') + ' \u00b7 AI';
+      out.textContent = said;
       if (why) why.textContent = d.feedback || '';
     })
-    .catch(() => { done(); out.textContent = 'Could not reach the marker \u2014 try again'; });
+    .catch(() => {
+      done();
+      out.textContent = 'Could not reach the marker \u2014 try again';
+    });
 });
 
 /* TYPING TAKES THE AI'S VERDICT OFF, as it takes Check's off — find.js's listener does that for a box
    with a scheme, and this is the same rule for the AI's row. Not while it is still marking: the
-   answer it was sent is compared when the reply lands. */
+   answer it was sent is compared when the reply lands. AN ESSAY'S KEPT MARK IS NOT TAKEN OFF BUT SAID
+   TO BE STALE (`aiKeptPaint_`, above): its points are what the pupil is revising from. */
 document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   const card = el && el.closest('.qcard');
   const box = card && card.querySelector('.qp-ai');
   if (!box || box.classList.contains('is-busy') || box.classList.contains('is-off')) return;
-  box.classList.remove('is-right', 'is-near');
+  if (box.classList.contains('qp-essay') && aiKeptPaint_(box, el)) return;
+  box.classList.remove('is-right', 'is-near', 'is-stale');
   const out = box.querySelector('.qp-verdict');
   if (out) out.textContent = '';
   const why = box.nextElementSibling;

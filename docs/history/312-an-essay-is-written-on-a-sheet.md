@@ -31,14 +31,20 @@ deployment) drew no tile and no word about why, under an answer nobody else was 
 ### What was built
 
 **ONE PREDICATE, `ansEssay_(x)`** (js/keypad.js): a worded box (not maths, not choices, not a pen)
-whose `answer_type` is `written` or `explain`, worth **6 marks or more**. Counted over
-data/questions.json on 9 Oct, 8,010 question rows:
+whose `answer_type` is `written` or `explain`, worth **6 marks or more**, **in a subject that is not
+Maths**. Counted over data/questions.json on 9 Oct, 8,010 question rows:
 
 | | rows |
 |---|---|
 | `written`, 6 marks or more | 201 — Religious Studies 152, English Language 21, sciences 28 |
-| `explain`, 6 marks or more | 80 — English Language 71, Physics 4, Maths 4, Combined Science 1 |
-| **essays** | **281**, every one with a scheme and none with `accept` — all Gemini's, none Check's |
+| `explain`, 6 marks or more | 76 — English Language 71, Physics 4, Combined Science 1 |
+| **essays** | **277**, every one with a scheme and none with `accept` — all Gemini's, none Check's; 275 of the schemes name their levels |
+
+**Not Maths** came from the review (below): the first count was 281, and four of them were Maths
+`explain` rows worth six or seven — a "show that", a tangent's equation, two histograms compared, a
+wage sum. Their schemes are method steps, and this predicate is also what asks Gemini for the levelled
+marking, so it was telling a model to judge the writing of a page of algebra. No Maths `written` row
+was ever caught (all 40 are worth 1 to 5 or carry no mark).
 
 **`written` at any mark was the first rule, and the count said no:** 90 of its 291 rows are under 6
 marks or have none — "State the defining property of a black hole" [1], Greek comprehension's "Give two
@@ -101,9 +107,63 @@ cap (`ai_marks_per_day`, 20) is unchanged and a refusal for length does not spen
 cache to read, and none was added: `check-aimark.js`'s cap journeys send the same answer twenty-one
 times, and a pupil pressing Mark twice on an unchanged essay is rare enough to cost one mark.
 
-**THE FOUR VERSION STAMPS** are `2026-10-09-b-essay`; `--css-version` is `2026-10-09-essay-sheet`.
-**Backend changed: run `pullFromGitHub` (or the editor's GitHub route) for the new limits and prompt to
-go live** — until then the live `aiMark` still cuts at 2,000 and marks one sentence.
+**THE FOUR VERSION STAMPS** are `2026-10-09-b-essay`; `--css-version` is `2026-10-09-essay-sheet-b`.
+**Backend changed, so it has to be pulled into the Apps Script editor for the new limits and prompt to
+go live — by the GitHub Assistant extension in the editor's toolbar** (`Repository ▾ / Branch ▾ / ↓`),
+which is the route that works today (CLAUDE.md, "So: three routes"); `pullFromGitHub` is the third
+choice and blocked by the default Cloud project. Until the pull, the live `aiMark` still cuts at 2,000
+and marks one sentence — and the phone knows it, because only the new backend lists `aiMarkWhole`
+(below), so a longer essay is not sent to the old one.
+
+### What the review of 9 Oct changed
+
+Two reviewers used it on an iPad, a phone and a laptop. What they found, and what was done:
+
+- **A DEPLOY GAP WOULD HAVE SHOWN A MARK FOR A THIRD OF AN ESSAY AS THE ESSAY'S** (the must-fix).
+  Pages serves the front end a minute after a push; the backend changes when the owner pulls it. Until
+  then the live `aiMark` is still in `features`, still cuts at 2,000 and ignores `essay` — so the new
+  phone posted 6,000 characters and drew "N of 40 marks · AI" for the first 350 words. Now the backend
+  that reads the whole answer says so: **`aiMarkWhole`** in doGet's `features`, the `attemptWords`
+  precedent. A phone that does not see it sends nothing over 2,000 characters and says why, in the
+  verdict's line — *"The AI marker reads only the first 2,000 characters until it is updated — this is
+  6,214, so it was not sent"* — spending none of the day's marks. An essay under 2,000 is read whole by
+  either backend and still goes.
+- **THE FIRST KEY AFTER MARKING WIPED THE FEEDBACK**, and a reload lost it: the points the pupil was
+  meant to revise from went the moment they started revising, and getting them back cost another of
+  the day's twenty. An essay's mark is now **kept with its answer** — on the device, under the
+  answer's own key, so it is that person's — with the exact text it marked. Typed over, it stays and
+  says **"· before your changes"**, its colour and the sheet's ring taken off; undone back to that text,
+  it is fresh again; the card drawn again, or the page reloaded, draws it again without asking Gemini.
+  A failed re-mark leaves the old points where they are. A short answer still loses its verdict on the
+  next key — there the next key is a new answer. **And the account's copy arriving from another device**
+  (`ansRefresh_`, which sets the value with no `input` event and took every verdict off) says the kept
+  mark again against the words that arrived instead of blanking it: blanking left the points under an
+  empty line on a sheet still ringed stale. Found while fixing the rest, not by the review.
+- **AT 320x568 THE ESSAY CARD WAS DRAWN SMALLER** (zoom 0.843: Mark with AI 40px, the sheet 188px wide)
+  — the one size where the sheet was worse than the bar it replaced. Five lines of sheet and the
+  question do not fit a 568px pane however the sheet gives way. So an essay's card is drawn smaller
+  only while that keeps its tiles at 44px (`PANE_ZOOM_ESSAY`, 0.92, in find.js); past it the card is
+  full size and its pane scrolls, as any card past the zoom floor does. Measured after: no zoom at
+  320x568, the tile 48px, the sheet 223px wide and five lines; 375 to 1366 unchanged.
+- **FOUR MATHS ROWS WERE SENT THE ESSAY PROMPT** — see "Not Maths" above.
+- **THE HINT WENT AS THE SHEET WAS TAPPED**: `:empty` on the drawing, and the caret is a span in it. The
+  field now says `is-blank` for itself while nothing is written (`kpCount_`), and the hint is laid
+  behind the caret until the first key.
+- **MARK WITH AI WAS AN UNLABELLED SPARKLE ON TOUCH**, and the pad's ✓ wore Send's aeroplane on an essay
+  where it only puts the pad away. The tile has its name beside it (`.qp-ai-say`), and an essay's ✓
+  says **done**.
+- **HOME AND END WENT TO THE ESSAY'S START AND END.** They stop at the paragraph now (`kpLineStart_`),
+  Ctrl/⌘ with them goes to the very start or end, and ⇧ selects to either.
+- **AN ESSAY REPLY WITH NO TOTAL WAS A SUCCESSFUL 0.** With strands that do not add up and `awarded`
+  missing, blank or a word, `aiMarkEssay_` clamped it to nought; it is "try again" now.
+
+**Looked at and left.** *Marking shrinks the sheet* (to about 6–8 lines on a phone or a laptop, from 12
+or 14): the points take room on the card, and the sheet is the one thing on it that scrolls; the other
+ways to find that room are a smaller card or a scrolling pane, which are the two things this note was
+written to avoid. With the mark now kept while revising, the pupil reads the points with the pad down
+and writes with it up, where the sheet has the room above the pad. *↑ and ↓ forget the column* over a
+short line (83 → 57 → 58): a remembered "goal column" across presses is a feature of its own, and it
+predates this change.
 
 ### The checks
 
@@ -111,13 +171,27 @@ go live** — until then the live `aiMark` still cuts at 2,000 and marks one sen
   bar; one labelled return twelve columns wide and the bottom row ␣; two paragraphs on the pad's keys
   and return, a third on a laptop's Enter — `\n\n` in the value and the drawing, the count right;
   Shift+Enter a new line, Ctrl+Enter ✓; a 6,000-character paste sent to Mark with AI **whole**, as an
-  essay, out of 40, its strands and points drawn as lines; a typed return takes the mark off; a
-  three-mark explain box still the bar with Enter as ✓; AI off — one line to a pupil, nothing to a
-  stranger, no dead control. Mutated three ways (Enter back to ✓, the answer sliced at 2,000, ↵ back in
-  the bottom row): red each time, green on the real files.
-- **`check-aimark.js`**, through the real `doPost`: a 6,000-character essay reaches Gemini whole; the
-  question and scheme past their old cuts; the essay prompt asks for strands on levels and two or three
-  points; strands clamped and summed (17/24 + 99/16 → 33); strands that do not add up → the model's
+  essay, out of 40, its strands and points drawn as lines; a three-mark explain box still the bar with
+  Enter as ✓; AI off — one line to a pupil, nothing to a stranger, no dead control. Mutated three ways
+  (Enter back to ✓, the answer sliced at 2,000, ↵ back in the bottom row): red each time, green on the
+  real files. **And after the review**: a six-mark Maths explain is not an essay; the tile has its name
+  beside it; the sheet is `is-blank` before and after it is focused and not after a letter; the essay's
+  ✓ says "done"; Home, End, ⇧+Home and Ctrl+Home/End; a return typed after the mark leaves it **"before
+  your changes"** with its points, undo makes it fresh, the card redrawn keeps it, the account's copy
+  arriving (`ansRefresh_`) makes it fresh or stale and never blank, and **a second window seeded only
+  with the device's storage draws it without asking Gemini**. The one expectation that was
+  obsolete by design: *"a typed return takes the mark off"* — the chat bar's rule, still asked of a short
+  box by the Mark-with-AI journey. Mutated seven ways (the stale paint, the `aiMarkWhole` gate, the Maths
+  line, `is-blank`, Home, the done key, the device copy), and an eighth for `ansRefresh_` (its kept-mark
+  line taken out: the verdict blank over its points): red each time, green on the real files.
+- **`check-flow.js`**, *"a backend without aiMarkWhole…"*: features `['aiMark']` only — a 6,000-character
+  essay is not sent and the pupil is told why with both numbers; a short essay is sent as an essay and
+  marked; `aiMarkWhole` added, the same 6,000 go whole.
+- **`check-aimark.js`**, through the real `doPost` (and after the review: `aiMarkWhole` in doGet's
+  `features`; an essay reply with no total and no strands that add up — missing, blank, a word — is
+  "did not give a mark", never 0, and a total of 0 that was given is still 0; mutated, red): a
+  6,000-character essay reaches Gemini whole; the question and scheme past their old cuts; the essay
+  prompt asks for strands on levels and two or three points; strands clamped and summed (17/24 + 99/16 → 33); strands that do not add up → the model's
   total, clamped, and no breakdown; a fourth point dropped; 20,001 characters refused before Gemini or
   the cap; a short answer still one sentence; and the phone's three ceilings equal the server's, and
   the account's at least as long. Mutated (the server slicing at 2,000; the phone's ceiling at 2,000):

@@ -7944,17 +7944,25 @@ function ansBox_(x) {
      reserved lines, so `qp-ai`, `qp-check`, the `input` listener below and every check find them where
      they always were. `.qp-compose` for the verdict's reserved line; `.qp-mark` only when there is a
      verdict to hold, as on the bar. */
+  /* THE REVIEW OF 9 OCT ADDED TWO THINGS TO THIS ROW. THE TILE'S NAME, SAID BESIDE IT (`.qp-ai-say`): a
+     tile is a mark with its name in `aria-label`, and on an iPad Mark with AI was a gold sparkle beside
+     "177 words" with nothing saying what it would do -- for the one action this whole sheet exists to
+     end in. Hidden from a screen reader, which already hears the tile's own name. AND A KEPT MARK
+     (`aiKeptView_`, keypad.js): an essay marked earlier is drawn with its verdict and its points, fresh
+     or "before your changes", so a reload or a swipe away and back does not throw the feedback out. */
   if (ansEssay_(x)) {
     const v = ansRead_(k);
     const note = send ? '' : aiWhyNot_(x);
-    const foot = `<div class="tile-row qp-sheet-foot">${send}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+    const say = ai ? '<span class="qp-ai-say" aria-hidden="true">Mark with AI</span>' : '';
+    const kept = ai && typeof aiKeptView_ === 'function' ? aiKeptView_(k, v) : null;
+    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
       <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
     const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
-    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${kept ? ' ' + kept.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
     ${sheet}${foot}
-    ${send ? '<span class="qp-verdict" role="status" aria-live="polite"></span>' : ''}
+    ${send ? `<span class="qp-verdict" role="status" aria-live="polite">${kept ? esc(kept.verdict) : ''}</span>` : ''}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
+  </div>${ai ? `<p class="qp-ai-why">${kept ? esc(kept.why) : ''}</p>` : ''}`;
   }
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', signs)}
@@ -13707,6 +13715,18 @@ const STUFF_SOON = 1;
 const PANE_REACH = 24;
 /* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead. See `paneReach_`. */
 const PANE_ZOOM_MIN = 0.7;
+/* ---------- AND AN ESSAY'S CARD, NO SMALLER THAN KEEPS ITS TILES AT 44px ------------------------------
+   A CARD WITH AN ESSAY SHEET ON IT (`ansEssay_`, docs/history/312) is drawn smaller only while that
+   alone makes it fit with its 48px tiles still 44px or more (44 / 48 is 0.917); past that it is drawn
+   at full size and its pane scrolls, as every card past `PANE_ZOOM_MIN` does. The review of 9 Oct found
+   it at 320x568: the sheet had already given way to its five-line floor (`kpSheetFit_`, keypad.js) and
+   the question over it still did not leave room, so the card went to 0.843 -- Mark with AI 40px, the
+   sheet 188px wide, writing at 13.5px -- the one size where the essay was worse than the chat bar it
+   replaced, which fitted there at full size. Zoom is the owner's answer for a card a little too tall;
+   a card a page of writing tall is the case it was never for, because the thing being shrunk is the
+   page the pupil writes on and the tile they mark it with. With the pad up, `kpRoom_` finds the pane
+   as its scroller and scrolls the sheet and its row above the pad, as for any scrolling card. */
+const PANE_ZOOM_ESSAY = 0.92;
 
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. The first version took
    one pane at a time -- read `scrollHeight`, write `overflowY` -- and a CPU profile of the tap put
@@ -13764,13 +13784,16 @@ function paneReach_(panes) {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     };
-    const want = list.map(p => {
+    const essay = list.map(p => !!p.querySelector('.qp-essay'));
+    const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
-      return Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+      const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+      /* AN ESSAY'S CARD: that zoom, or none and a scrolling pane -- `PANE_ZOOM_ESSAY`. */
+      return essay[i] && z < PANE_ZOOM_ESSAY ? 1 : z;
     });
     /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider
        card re-flowed. Zoom alone does not shrink anything whose height follows its width — a game
@@ -13831,7 +13854,7 @@ function paneReach_(panes) {
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
     /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
-    const over = list.map((p, i) => want[i] <= PANE_ZOOM_MIN
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || (essay[i] && want[i] === 1))
       && p.scrollHeight - p.clientHeight > PANE_REACH);
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
