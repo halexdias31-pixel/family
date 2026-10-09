@@ -162,6 +162,18 @@ const TILE_ICONS = {
      Notflix folder. Open paths at the set's 1.4, so it is one more outline beside Full screen. */
   sync:  '<path d="M3.1 6.3a6.3 6.3 0 0 1 10.4-2.35L16.7 7"/><path d="M16.7 2.8V7h-4.2"/>'
        + '<path d="M14.9 10.7a6.3 6.3 0 0 1-10.4 2.35L1.3 10"/><path d="M1.3 14.2V10h4.2"/>',
+  /* ---------- AND THREE THAT ARE NOT ON A TILE: THE VIDEOS CARD'S, AFTER YOUTUBE -----------------------
+     *"Can you also make the video serger widget look more like YouTube."* (9 Oct.) A MAGNIFIER inside
+     the search pill, which is the one mark every search box on every phone carries; a FILM STRIP on
+     the poster of a film that has no picture; and A BOX WITH AN ARROW LEAVING IT on the badge of a row
+     that opens Drive in a new tab -- the mark every browser puts on "this goes elsewhere", and NOT
+     `out`, which is a door frame and means sign out. Drawn here rather than in games.js so the set
+     stays one set at one stroke: a magnifier at 1.6 beside a full-screen mark at 1.4 would read as
+     two apps. `tileIcon_` draws them; nothing about them is a tile. */
+  search: '<circle cx="7.6" cy="7.4" r="4.9"/><path d="m11.2 11 4.6 4.5"/>',
+  film:  '<rect x="2.5" y="2.5" width="13" height="12" rx="1.5"/>'
+       + '<path d="M5.5 2.5v12M12.5 2.5v12M2.5 6.5h3M2.5 10.5h3M12.5 6.5h3M12.5 10.5h3"/>',
+  ext:   '<path d="M8 3.5H3.5v11h11V10"/><path d="M10.5 2.5h5v5"/><path d="m15.5 2.5-7 7"/>',
   /* ---------- A QUESTION'S PAGES, WHICH ARE ALL TILES NOW ---------------------------------------
      ASKED FOR AS *"lock should be a tile too. same as undo and clear. it should all be tiles."* and
      *"some questions require a compass or ruler. so should have a tile for these things."* Marks

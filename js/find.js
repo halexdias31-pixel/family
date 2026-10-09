@@ -50,7 +50,10 @@
    above the funnel reading "or the 227 papers these are in" was a second way of narrowing sitting
    above the first, and a screen with two of those is a pivot table. A paper is now an ANSWER to an
    ordinary question — see `paperId` in FACETS — which is what it should always have been. */
-const STUFF = { q: '', filters: [] };
+/* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: the person whose session died under them with this
+   question on Find (`ended` in `signedOut_`), so that only they, signing in again, are handed it back.
+   Empty otherwise — signed in, the question is `USER`'s; signed out, it is the holder's. */
+const STUFF = { q: '', filters: [], whose: '' };
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -3744,6 +3747,24 @@ function practicalPart_(x, part) {
    where a tutor already reads what a student writes. `check-projects.js` refuses a step that tells
    a child to put the work online.
 ================================================================================================== */
+/* ---------- A PROJECT OR A COURSEWORK -------------------------------------------------------------
+   THE OWNER, 9 Oct: "i would like to add course works. make it bare bones. its within projects in
+   finder. like i remember i did dt graphics coursewoork in gcse which was to make products for a
+   movie coming out." So a coursework is a project with a board, and this is `PRAC_TYPE` one kind
+   along: the file holds the word (`project_type`, blank reading as `project` -- see library.js),
+   this holds the label, and the card, the funnel's answer and its chip all say the label. A value
+   the map has never heard of is drawn raw, `PRAC_TYPE`'s rule: visibly wrong beats invisible.
+
+   BARE BONES IS THE SPEC, "i am just trying to set up infrastructure". A coursework is the project's
+   card, its materials, its STAGES and the share page, and nothing else. The obvious next things are
+   all NOT built: marking against a board's criteria, deadlines per stage, a record of which stage a
+   pupil has reached. And uploading a pupil's work is not built ON PURPOSE rather than for later --
+   note 253's reason: storing children's work is consent and moderation, so the share page sends
+   them to Messages and to the next session, and `check-projects.js` fails a stage that says
+   upload or publish. */
+const PROJ_TYPE = { project: 'Project', coursework: 'Coursework' };
+const projType_ = p => PROJ_TYPE[(p && p.projectType) || 'project'] || String(p.projectType);
+
 function projectCard_(x) {
   const p = x.row;
   /* AGES AS A RANGE, because "8+" on a podcast for sixteen-year-olds would be true and useless. */
@@ -3751,12 +3772,18 @@ function projectCard_(x) {
     : p.ageMin ? p.ageMin + '+' : '';
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
                  ages].filter(Boolean).join(' · ');
+  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work
+     counts towards, and a project has neither, so its line is unchanged.
+     ONE UNBREAKABLE PAIR, NOT TWO ITEMS OF THE LIST. Joined by ` · ` like the rest, the line broke
+     at 320px after `AQA ·` and left `8552` alone on a line of its own: a spec code means nothing
+     without its board, so the two are joined by a no-break space and wrap as one. */
+  const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
   return `<div class="card fc prac proj">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Project</span></span>
+      <span class="fc-flags"><span class="fc-flag is-type">${esc(projType_(p))}</span></span>
     </div>
-    <p class="sub">${esc([p.subject, p.level].filter(Boolean).join(' · '))}</p>
+    <p class="sub">${esc([p.subject, p.level, qual].filter(Boolean).join(' · '))}</p>
     <p class="fc-lede">${esc(p.summary)}</p>
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
@@ -3776,7 +3803,11 @@ function projectPart_(x, part) {
     /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminTiles_`'s rule. On a
        project it is mostly about who is in the shot and what stays offline, which is a thing to
        read before filming rather than after. */
-    inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
+    /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development,
+       models, making, evaluation -- and that is the word a GCSE pupil and their teacher use for
+       them. One word chosen by the type, on the same page, rather than a second page to keep in
+       step with this one. */
+    inner = `${head(p.projectType === 'coursework' ? 'Stages' : 'Steps')}<div class="gd"><section class="prac-steps">
       <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
       ${p.safety ? `<p class="fc-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
   } else if (part === 'share') {
@@ -3786,11 +3817,30 @@ function projectPart_(x, part) {
        opening the same project read an instruction to message themselves. *"No distinction between
        tutor and student on the finder. All the same."* -- so it says what to do with the thing, and
        who it goes to is the Messages screen's question, as the note under this function says. */
+    /* ---------- AND ON A COURSEWORK, WHOSE WORK IT IS ------------------------------------------
+       A COURSEWORK IS MARKED AS THE PUPIL'S OWN WORK, and a tutoring business pointing a pupil's
+       real coursework at a tutor, with nothing said about where help stops, reads as an offer to
+       go over work that will be handed in. JCQ's instructions for conducting non-exam assessment,
+       which every board follows, say the work submitted must be the candidate's own and that the
+       school must be able to confirm it; nothing found there names private tutors, so this says
+       the cautious thing.
+
+       IN CODE, NOT IN THE ROW, so every coursework carries it and the next one's writer cannot
+       forget it -- the argument `projectText_` makes about a coursework's names. ONE PARAGRAPH
+       UNDER THE TILE ROW, `jobAdminTiles_`'s rule for a warning, and on THIS page because this is
+       the page that sends work to a tutor. It also carries the sentence the brief's first stage
+       used to: a real coursework starts from the board's context, not from this practice brief. */
+    const own = p.projectType === 'coursework'
+      ? `<p class="fc-note"><b>Your real coursework</b> This brief is practice. The one you hand in
+          starts from the context your exam board sets, and it must be your own work: a tutor can
+          teach the stages on this brief, but must not comment on, correct or improve work that
+          will be handed in. Tell your teacher about any help you have outside school.</p>`
+      : '';
     inner = `${head('Share it')}
       <p class="fc-lede">When it is finished, send it in Messages.</p>
       ${p.share ? `<p class="fc-say"><b>What to send</b> ${esc(p.share)}</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'send it',
-        act: 'proj-share' })}</div>`;
+        act: 'proj-share' })}</div>${own}`;
   }
   return inner ? `<div class="card fc prac prac-part proj is-${part}">${inner}</div>` : '';
 }
@@ -6138,10 +6188,41 @@ function practicalText_(p) {
 /* `projectText_` — `practicalText_`'s move for the projects: `podcast`, `stop-motion`, `bearing`
    and `alt text` are words somebody types, and they are only ever in the summary, the steps and
    the kit. Both halves of a kit line, for the `[object Object]` reason written above. */
+/* A COURSEWORK IS LOOKED FOR BY ITS NAMES, whether or not its row happens to say them: `coursework`,
+   `NEA` (what a school calls it now) and `non-exam assessment` are what somebody types, and the board
+   and the spec are how a parent holding the letter from school looks. Written here rather than into
+   each row, so the next coursework is found by them without its writer having to remember.
+
+   `NEA` ON ITS OWN FINDS IT AND DOES NOT FIND IT FIRST. The search is a substring test shared by
+   every kind (`stuffNarrow_`), so `nea` is also inside `near`, `nearest` and `linear`: measured, 335
+   results with the coursework 82nd of them. `nea coursework` puts it first, and `non-exam` finds it
+   among six. Ranking whole words above parts of words is a change to every kind's search, not to
+   this one's, and is not made here. */
+/* ---------- THE NAMES A SUBJECT GOES BY IN A TIMETABLE -----------------------------------------------
+   THE OWNER'S OWN WORD FOUND NOTHING: "i did dt graphics coursewoork", and `dt` gave 43 results
+   without the coursework among them (`dt` is inside `width`, which is how a website project got
+   in), while `d&t` gave none at all. The row
+   says `Design and Technology`, which is the subject's name and not what anybody calls it.
+
+   KEYED ON THE SUBJECT, NOT WRITTEN INTO A ROW, so every Design and Technology project is found by
+   them. One entry today, `SHEET_BUCKETS`'s shape: the next subject with a short name (`PE`, `food
+   tech`) is one line here. Only a project's haystack reads it -- the D&T textbook is not found by
+   `d&t` either, and that is the textbooks' search to change, not this. */
+const PROJ_SUBJECT_SAID = { 'Design and Technology': 'DT D&T' };
+
 function projectText_(p) {
-  return plainText_([p.summary, p.makes, p.safety, p.share,
-                     (p.materials || []).map(e => e.name + ' ' + e.qty).join(' '),
-                     (p.steps || []).join(' ')].filter(Boolean).join(' '));
+  const said = plainText_([p.projectType === 'coursework' ? 'coursework NEA non-exam assessment' : '',
+                           PROJ_SUBJECT_SAID[p.subject] || '',
+                           p.board, p.specRef, p.summary, p.makes, p.safety, p.share,
+                           (p.materials || []).map(e => e.name + ' ' + e.qty).join(' '),
+                           (p.steps || []).join(' ')].filter(Boolean).join(' '));
+  /* AND EVERY HYPHENATED WORD AGAIN WITHOUT ITS HYPHEN. The owner wrote `cutout`, the row says
+     `cut-out`, and the search found nothing -- the same with `stopmotion` and `freestanding`. (Not
+     `3d`: `3-D Shapes` is a topic, and the topics join the haystack beside this, not through it.)
+     Both spellings are in use and a row can only print one; `cut out`, two words, already matched,
+     since every word is looked for separately. Appended, so the row's own spelling still matches. */
+  const joined = (said.match(/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+/g) || []).map(w => w.replace(/-/g, ''));
+  return joined.length ? said + ' ' + joined.join(' ') : said;
 }
 
 /* `paperText_` AND ITS MEMO WERE HERE. It folded every question's words into its PAPER's search
@@ -6612,7 +6693,10 @@ function ansRead_(k) {
        MOVED, NOT COPIED — `padAdopt_`'s rule for the pen. The answer becomes this person's (and goes up
        to their account with the rest, through `ansStore_`), and the signed-out copy goes: a copy left
        behind would be read by the next child to sign in on the same iPad, which is the fault itself
-       carried forward. Only into an empty box — a box this person has written in keeps theirs. */
+       carried forward. Only into an empty box — a box this person has written in keeps theirs.
+       SIGNING IN FROM SIGNED OUT DECIDES THEM ALL FIRST NOW (`answersClaim_`, js/answers.js): here, only
+       into an empty box, a signed-out answer lost to an older one on the account and was left for the next
+       child. This is what is left for a device that was already signed in with one still on it. */
     const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
     if (bare === k) return '';
     const was = localStorage.getItem(bare);
@@ -7927,6 +8011,43 @@ function ansBox_(x) {
      still finds `.qp-mark[data-accept]` on the card. */
   const ai = can ? '' : aiTile_(x);
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
+  /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR -----------------------------------------
+     THE OWNER, 9 Oct, about a pupil on a forty-mark creative writing question: *"firstly it doesnt let him
+     do paragraphs and also i want it to mark with ai."* The chat bar above is a pill that grows to five
+     lines and scrolls inside -- four paragraphs seen through a letterbox. So an answer that is extended
+     writing (`ansEssay_`, keypad.js, which says which 281 rows and why six marks) is drawn as a SHEET:
+     the card's full width, the paper palette, ruled, eight lines tall on a phone and twelve on a tablet
+     before a word is written, growing with the essay up to the room above the pad (and the room its card
+     has, `kpSheetFit_`), then scrolling inside with the line being typed kept in view (`kpBox_`,
+     `kpCaretSeen_`). Its newlines are drawn, so a paragraph is a paragraph.
+
+     THE ROW UNDER IT IS TILES, because it is the action row under a thing (CLAUDE.md): Mark with AI, or
+     Send where a scheme can be checked, the Figure tile, and the word count -- a count rather than a
+     silence, and the number a pupil looks at while writing. With no tile to draw, one faint line says
+     why (`aiWhyNot_`). The verdict, the saved line and the AI's points keep their classes and their
+     reserved lines, so `qp-ai`, `qp-check`, the `input` listener below and every check find them where
+     they always were. `.qp-compose` for the verdict's reserved line; `.qp-mark` only when there is a
+     verdict to hold, as on the bar. */
+  /* THE REVIEW OF 9 OCT ADDED TWO THINGS TO THIS ROW. THE TILE'S NAME, SAID BESIDE IT (`.qp-ai-say`): a
+     tile is a mark with its name in `aria-label`, and on an iPad Mark with AI was a gold sparkle beside
+     "177 words" with nothing saying what it would do -- for the one action this whole sheet exists to
+     end in. Hidden from a screen reader, which already hears the tile's own name. AND A KEPT MARK
+     (`aiKeptView_`, keypad.js): an essay marked earlier is drawn with its verdict and its points, fresh
+     or "before your changes", so a reload or a swipe away and back does not throw the feedback out. */
+  if (ansEssay_(x)) {
+    const v = ansRead_(k);
+    const note = send ? '' : aiWhyNot_(x);
+    const say = ai ? '<span class="qp-ai-say" aria-hidden="true">Mark with AI</span>' : '';
+    const kept = ai && typeof aiKeptView_ === 'function' ? aiKeptView_(k, v) : null;
+    const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+      <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
+    const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
+    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${kept ? ' ' + kept.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+    ${sheet}${foot}
+    ${send ? `<span class="qp-verdict" role="status" aria-live="polite">${kept ? esc(kept.verdict) : ''}</span>` : ''}
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
+  </div>${ai ? `<p class="qp-ai-why">${kept ? esc(kept.why) : ''}</p>` : ''}`;
+  }
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', signs)}
   </label>${fig}${send}</div>`;
@@ -8095,7 +8216,17 @@ document.addEventListener('input', e => {
    person too, which is the fault itself carried forward. Never over marks the person already has:
    those are newer than anything the phone kept. */
 const padItemKey_ = x => (x && (x.key || x.name)) || '?';
-const padKey_ = x => 'pad:' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
+/* ---------- `pad:` IS A QUESTION'S, AND A PEN THAT IS NOT ON A QUESTION SAYS SO IN ITS KEY ----------
+   EVERY `pad:` KEY IS AN ANSWER as far as the rest of the app is concerned: answers.js sends it to the
+   account's `answers` tab (`ansStore_`, and the backlog sweep in `answersAdopt_` that walks every
+   `pad:<who>:` on the device), and that tab is the record of what a child answered. So the one pen
+   that is not on a question -- the whiteboard, `WB_ITEM` below -- names its own prefix (`prefix:
+   'board'`), and its marks are `board:u:P7:whiteboard`: the same per-person key, the same handlers,
+   and a shape answers.js does not recognise, so it is kept on the device and never read as a
+   question somebody answered. The argument is written over `WB_ITEM`. A question names nothing and is
+   `pad:` exactly as it always was. */
+const padPrefix_ = x => (x && x.prefix) || 'pad';
+const padKey_ = x => padPrefix_(x) + ':' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
 function padAdopt_(k, bare) {
   if (!k || !bare || k === bare) return;
   try {
@@ -8192,9 +8323,17 @@ function padTools_(x) {
   return out();
 }
 
+/* THROUGH `ansValue_`, THE WRITER'S OWN READER (js/answers.js), and not `localStorage` beside it.
+   Every stroke is read, appended to and written back whole, so a read that disagrees with the last
+   write builds the next one on a stale list. Read straight from `localStorage`, a store that THROWS
+   (private mode) answered an empty list every time, so each stroke replaced the last in `ANS_MEM`
+   and Undo found nothing; `ansValue_` falls back to the visit's copy exactly then. A store that is
+   merely FULL still answers the old list -- that case is caught where the stroke is written
+   (`padSave_`, below), because only the write knows it was refused. */
 function padRead_(k) {
   try {
-    const v = JSON.parse(localStorage.getItem(k) || '[]');
+    const raw = typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k);
+    const v = JSON.parse(raw || '[]');
     return Array.isArray(v) ? v : [];
   } catch (e) { return []; }
 }
@@ -8271,7 +8410,7 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
-  padAdopt_(k, 'pad:' + padItemKey_(x));
+  padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
   const marks = padRead_(k);
   /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
      its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
@@ -8307,7 +8446,9 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    <p class="qpad-note">${esc(padKeptSay_())}</p>
+    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padKeptSay_` says "Saved to Ada's
+          account" signed in, which is true of a question's and false of the whiteboard's (`padPrefix_`). */''}
+    <p class="qpad-note">${esc(padPrefix_(x) === 'pad' ? padKeptSay_() : PAD_HERE_ONLY)}</p>
   </div>`;
 }
 
@@ -8371,6 +8512,9 @@ let PAD_GO = null;                // the drag behind it: which tool, on which in
 /* WHICH TOOL EACH PAD IS HOLDING, by the pad's key, for the visit: a card is rebuilt on every repaint
    and a tool left on the element would be dropped with it, the `PAD_ON` argument one line up. */
 const PAD_TOOL = new Map();
+/* WHAT CLEAR LAST TOOK OFF EACH PAD, by key, for the visit -- so Undo straight after it puts the marks
+   back. See `on('pad-clear')`. */
+const PAD_CLEARED = new Map();
 
 function padAt_(ink, e) {
   const r = ink.getBoundingClientRect();
@@ -8495,17 +8639,33 @@ function padAid_(g) {
   aid.innerHTML = pin + rad;
 }
 
+/* ---------- ONE FINGER IS ONE STROKE, AND A SECOND ONE IS NOT A TAKEOVER ---------------------------
+   FOUND BY THE REVIEW OF THE WHITEBOARD with real touches through CDP: finger 1 drawing, a second
+   touch down near the bottom of the board -- a palm resting, or a second child's finger, which on a
+   board the size of a page is the ordinary case and not the odd one -- and the second `pointerdown`
+   replaced the stroke in progress while `pointermove` took every pointer's moves as the stroke's. The
+   stored line alternated between the two (`[272,306,272,305,156,68,272,304,169,68,…]`, a fan of
+   spokes from the palm), finger 1's first 60px were gone, and the first live preview was left in the
+   DOM as a path nothing had stored. The question pages' pen had the same three lines; a question's
+   picture is small enough that nobody rests a hand on it.
+   SO A STROKE BELONGS TO THE POINTER THAT STARTED IT (`PAD_GO.id`): another pointer going down while
+   it is drawn is ignored, and only that pointer's moves and lift are the stroke's. THE SAME ID GOING
+   DOWN AGAIN means its own lift never arrived -- a mouse is always pointer 1 -- so that starts afresh
+   rather than wedging the pen, and so does a stroke whose ink a repaint has already replaced. */
 document.addEventListener('pointerdown', e => {
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
   if (!ink) return;
   const pad = ink.closest('.qpad');
   if (!pad || pad.getAttribute('data-k') !== PAD_ON) return;
+  if (PAD_GO && PAD_GO.id !== e.pointerId && PAD_GO.ink.isConnected) { e.preventDefault(); return; }
   const at = padAt_(ink, e);
   if (!at) return;
   e.preventDefault();
+  /* A STROKE LEFT HALF DRAWN BY A LIFT THAT NEVER CAME takes its preview with it. */
+  if (PAD_GO) { const old = PAD_GO.ink.querySelector('[data-live]'); if (old) old.remove(); }
   const r = ink.getBoundingClientRect();
   PAD_GO = { tool: padToolNow_(pad), ink: ink, from: at, sx: r.width / 340, sy: r.height / 340,
-             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null };
+             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: e.pointerId };
   /* THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
      because a ring of no width is not a mark -- its point is the aid's. */
   PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
@@ -8520,7 +8680,7 @@ document.addEventListener('pointerdown', e => {
 });
 
 document.addEventListener('pointermove', e => {
-  if (!PAD_ST || !PAD_GO) return;
+  if (!PAD_ST || !PAD_GO || e.pointerId !== PAD_GO.id) return;
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
   if (!ink || ink !== PAD_GO.ink) return;
   const at = padAt_(ink, e);
@@ -8535,21 +8695,51 @@ document.addEventListener('pointermove', e => {
 
 function padEnd_(e) {
   if (!PAD_ST || !PAD_GO) { PAD_ST = null; PAD_GO = null; return; }
+  /* ANOTHER FINGER LIFTING IS NOT THE END OF THIS STROKE -- the note over `pointerdown`. */
+  if (e && e.pointerId !== PAD_GO.id) return;
   const g = PAD_GO;
-  const st = PAD_DRAW[g.tool].end(g, PAD_ST);
+  let st = PAD_DRAW[g.tool].end(g, PAD_ST);
   PAD_ST = null; PAD_GO = null;
   const live = g.ink.querySelector('[data-live]');
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
   /* A SLIP IS TAKEN BACK OFF THE SCREEN as well as never stored: the preview is not a mark. */
   if (!st) { if (live) live.remove(); return; }
-  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
   const pad = g.ink.closest('.qpad');
+  const k = (pad && pad.getAttribute('data-k')) || '';
+  /* THE WHITEBOARD'S STROKE IS STORED THINNED -- see `PAD_BOARD_MAX`. A question's keeps every point. */
+  if (padIsBoard_(k) && typeof ansSimplify_ === 'function') st = ansSimplify_(st, 1);
+  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
   if (!pad) return;
-  const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k); all.push(st);
-  /* `ansStore_`, the one writer: here, and on the account (js/answers.js). */
-  ansStore_(k, JSON.stringify(all));
+  padSave_(pad, k, all);
+}
+
+/* ---------- A STROKE THE DEVICE REFUSED IS NOT LEFT ON THE SCREEN ---------------------------------
+   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT SWALLOWS A FULL
+   STORE: `ansLocalPut_` keeps the value in `ANS_MEM` and carries on, which is right for a typed answer
+   and was wrong here. Measured by the review of the whiteboard, store filled to the quota: two more
+   strokes, and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the
+   stale list `localStorage` still answered), and Undo then took off a stroke the child could still
+   see. Nothing on the screen said any of it. So the write is read back: a stroke the device did not
+   keep is taken off the screen -- which then shows exactly what a reload would -- and the toast says
+   why. A store that throws on every read is the visit's `ANS_MEM`, which `ansValue_` reads, so
+   private mode is not mistaken for a full one.
+   AND THE BOARD HAS A CEILING OF ITS OWN, `PAD_BOARD_MAX`, said in the same way before it is reached. */
+function padSave_(pad, k, all) {
+  const v = JSON.stringify(all);
+  if (padIsBoard_(k) && v.length > PAD_BOARD_MAX) {
+    padRepaint_(pad, padRead_(k));
+    toast('The board is full. Clear it to carry on.');
+    return false;
+  }
+  ansStore_(k, v);
+  let kept = true;
+  try { kept = (typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k)) === v; } catch (e) {}
+  if (kept) return true;
+  padRepaint_(pad, padRead_(k));
+  toast('This device is full, so that line was not kept.');
+  return false;
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -8602,20 +8792,41 @@ on('pad-undo', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k);
+  /* AN EMPTY PAD THAT CLEAR EMPTIED: the last thing done was the Clear, so it is what Undo undoes. */
+  if (!all.length && PAD_CLEARED.has(k)) {
+    const back = PAD_CLEARED.get(k);
+    PAD_CLEARED.delete(k);
+    ansStore_(k, JSON.stringify(back));
+    padRepaint_(pad, back);
+    toast('Put back');
+    return;
+  }
   if (!all.length) { toast('Nothing to undo'); return; }
   all.pop();
   ansStore_(k, JSON.stringify(all));
   padRepaint_(pad, all);
 });
 
+/* ---------- CLEAR CAN BE UNDONE ------------------------------------------------------------------
+   IT COULD NOT, AND ON THE WHITEBOARD THAT WAS THE WHOLE PAGE. Found by both reviews of the board: draw
+   a page, one tap on the bin -- which sits 4px from Undo in a row of 44px tiles -- and the key was
+   removed, and Undo answered "Nothing to undo". On a question a slip costs one diagram's marks; on a
+   board it costs everything on it. So what Clear takes off is held for the visit (`PAD_CLEARED`), and
+   Undo on the emptied pad puts it back -- also after strokes drawn since have been undone one by one,
+   which is the order an undo history runs in. One level: a second Clear holds what IT took. Not kept
+   past the visit, and dropped at a change of person (`padWhoChanged_`). No dialog: a question that
+   interrupts every deliberate Clear to guard against the odd slip is the wrong way round when the
+   slip can simply be undone. */
 on('pad-clear', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
-  if (!padRead_(k).length) return;
+  const had = padRead_(k);
+  if (!had.length) return;
+  PAD_CLEARED.set(k, had);
   /* CLEARED IS A VALUE TOO — sent as nothing, so the drawing goes from the other device as well. */
   ansStore_(k, null);
   padRepaint_(pad, []);
-  toast('Cleared');
+  toast('Cleared. Undo puts it back.');
 });
 
 /* REPAINTED FROM THE STORED MARKS RATHER THAN BY REMOVING A NODE, so that what is on the screen is
@@ -8627,6 +8838,155 @@ function padRepaint_(pad, all) {
   if (g) g.innerHTML = (all || [])
     .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
 }
+
+/* ==================================================================================================
+   THE WHITEBOARD IS THIS PEN, ON NOTHING.
+
+   ASKED FOR AS *"Can you also add a whiteboard widget in tools. Make it bare bones for now."* The
+   widget is `whiteboard` in WIDGETS (map.js); this is all of its code, and most of that is comment.
+
+   NOT A SECOND DRAWING SURFACE. Everything hard about a pen in this app is already paid for above, in
+   bug reports: the lock that holds the column still while a finger draws (`data-noswipe` for the grid,
+   `touch-action: none` for the browser -- two halves of one sentence, see `on('pad-draw')`), the
+   picture that is a door while the pen is off and a drag that is still a swipe (`PRESS_MOVED`), the
+   pen that survives a repaint because it is read off `PAD_ON` rather than left on an element, strokes
+   as flat polylines in the device's storage written once per stroke, Undo and Clear redrawn from
+   storage, a key per person signed in, and the phone's old marks moving once to whoever opens them. A
+   board of its own would have to be paid for again, one report at a time. So `padWrap_` is handed a
+   pseudo-item and a blank surface and does what it does for a question.
+
+   WHAT `padWrap_` ASKS OF A QUESTION, AND WHY NONE OF IT BITES HERE -- read rather than assumed:
+     `usesUnder_`   an earlier part's marks: `usesOf_` answers null for anything not `kind: 'question'`
+     `padTools_`    no `needs`, no words, so the pen alone -- and a lone Pen is drawn as no tool tile
+     `padKeptSay_`  "Saved to Ada's account" -- not true of this one, so the note says it is kept here
+                    (`padPrefix_` decides; one line in `padWrap_`)
+   and the key's prefix, two lines over `padKey_`. That is the whole generalisation.
+
+   BARE BONES, AND THAT IS THE BRIEF RATHER THAN AN UNFINISHED JOB: draw (with the lock), Undo, Clear.
+   No colours, no eraser, no shapes, no ruler or compass, no export, no sharing, no pages. What it
+   would grow into next, in the order somebody would miss them:
+     a second colour   the stroke is a flat list of numbers and nothing else (`padPath_`), so a colour
+                       is a change to the FORMAT -- say `{c, p}` beside the bare list, read by `padPath_`
+                       -- not a class on the path
+     an eraser         Undo is the eraser today; a real one is a tool in `PAD_DRAW` that removes the
+                       strokes a drag crosses, which is where the ruler and the compass already live
+     the ruler/compass `padTools_` could offer them here with one line (`WB_ITEM.needs`); left off
+                       because "bare bones" was the word
+     the account       see the next paragraph -- it needs a key the answers tab can tell from a question
+     pages, export     a list of boards under one key; a PNG from the two SVGs. Nobody has asked.
+
+   ITS OWN PREFIX, `board:`, SO IT IS NEVER A QUESTION SOMEBODY ANSWERED. Under `pad:` the board would
+   be `pad:u:P7:whiteboard`, and every reader of `pad:` keys takes it for an answer: `ansStore_` sends it
+   to the `answers` tab as `pad:whiteboard`, and so does the backlog sweep in `answersAdopt_`, which
+   walks every `pad:<who>:` key on the device whether or not a question drew it. That tab is the record
+   of what a child answered, and anything that ever lists or counts answers from it -- a progress page,
+   a parent's summary, a log of what was handed in -- would count a question called `whiteboard` that
+   nobody can find. Teaching every reader of that tab, now and later, to skip one name is a rule in N
+   places that the next reader will not know about; a key that does not look like an answer is a rule
+   in none. answers.js matches `^(ans|pad):` throughout, so a `board:` key goes through the same
+   `ansStore_` the pen always calls, is written to the device, has no person in it as far as the
+   account is concerned, and is sent nowhere.
+   WHAT IT DOES NOT TOUCH, checked: the weekly parent email reads `attempts`, which only `doneMark_`
+   writes, and the pen has never called it (a stroke is not "done"); Saved keeps the widget's star as
+   `w:whiteboard` in `FAVS`, a widget like the calculator, not a question; and nothing else walks the
+   store but that sweep, `attemptsSync_` (`done:`) and the splash (`splashAnim:`) -- and, since the
+   signed-out answers began moving to whoever signs in, `answersClaim_`, which takes `^(ans|pad):` only,
+   so a board drawn signed out stays the device's and is never handed to the next child.
+   WHAT IT COSTS: the board stays on the device it was drawn on, per person signed in there. For a board
+   that is the ordinary thing -- you wipe it -- and the note under it says so. And its size is bounded
+   here rather than by the device's store running out: `PAD_BOARD_MAX`, below.
+
+   WHAT THE BOARD FOUND IN THE PEN. "The pen has already paid for it" held for the lock, the swipe and
+   the per-person key, and the two reviews of the board still found four faults a question's small
+   picture had never shown, each fixed in the pen for both rather than here for one: a second finger
+   or a palm taking over the stroke (the note over `pointerdown`), a repaint cutting a stroke on any
+   column but Find (`padHold_`), Clear with no way back (`on('pad-clear')`), and a full device keeping
+   strokes on the screen it had refused to store (`padSave_`). And two that are the board's own: a
+   sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`), and its size.
+
+   THE SURFACE IS PAPER, because it stands in for a physical board: `--paper` with the ink in
+   `--paper-ink`, never gold. The pen is gold on a question because the question's own figure is
+   printed in `currentColor` and your line has to be told from its axis; here there is nothing on the
+   board but your marks, and gold on cream is a line you can barely see. Sized in `style.css` (`.wb`),
+   where the reason for its shape is written: the ink is stretched to its box, so the box keeps ONE
+   shape everywhere or yesterday's circle comes back an ellipse. */
+const WB_ITEM = { key: 'whiteboard', prefix: 'board' };
+const PAD_HERE_ONLY = 'Kept on this device only.';
+/* EMPTY, BECAUSE THE BOX IS THE BOARD. On a question `.qpad-art` takes its size from the figure in it;
+   here `.wb .qpad-art` is given its paper and its 3:4 itself (style.css) and this only fills it, so
+   the ink is laid over it exactly as over any figure. */
+const WB_SURF = '<svg class="wb-surf" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true"></svg>';
+
+/* THE BOARD'S KEYS -- `board:` signed out, `board:u:<who>:` signed in -- which the pen asks about in
+   two places: `padEnd_` thins the board's strokes and `padSave_` holds it to its ceiling. */
+const padIsBoard_ = k => String(k || '').indexOf(WB_ITEM.prefix + ':') === 0;
+
+/* ---------- HOW BIG A BOARD MAY GET, AND WHAT A STROKE ON IT COSTS ---------------------------------
+   UNBOUNDED, AND REWRITTEN WHOLE ON EVERY LIFT. Measured by the review in Chromium on the board's own
+   key: a stroke as `PAD_DRAW.pen` builds it is one point per unit moved, about 2,500 characters across
+   the board, so 100 strokes were 254K characters and 3-5ms a lift on a desktop, 1,000 were 2.5M and
+   66-83ms -- all of it synchronous, on a phone slower -- in a store of about five million characters
+   that every typed answer is written to as well. A question's pad is bounded by its one question and,
+   signed in, by `ANS_PAD_MAX`; the board is one open-ended key per person and was bounded by nothing.
+   SO EACH STROKE IS STORED THINNED, and the board has a ceiling. Thinned by `ansSimplify_` at one unit
+   (js/answers.js) -- what a question's drawing gets on its way to the account, the same line to within
+   a unit, which is finer than the finger, at a fraction of the characters. Only what is STORED is
+   thinned: the line under the finger keeps every point while it is drawn. The ceiling is 100,000
+   characters -- two and a half times a question's, a few hundred strokes as stored, and four people's
+   boards on one iPad well under a tenth of the store; reached, the stroke is taken back off and the
+   toast says to Clear (`padSave_`). Measured after, in note 310. */
+const PAD_BOARD_MAX = 100000;
+
+/* ---------- AND NO COLUMN IS REDRAWN UNDER A STROKE --------------------------------------------------
+   FOUND BY THE REVIEW OF THE WHITEBOARD: lock it, start a stroke, and call `repaint()` half way -- which
+   is what a payload landing does, and the inbox reply after every load -- and the stroke was cut where
+   the repaint came. `paint` held a column back for Find only (`findKeep_`, js/answers.js, whose own
+   note records this exact fault on Find), so Tools and Saved were rebuilt under the finger: the ink was
+   replaced, `pointermove` ignored the new one, and the lift stored the half already drawn -- 34 to 142
+   units of a stroke that went to 306 -- through a detached copy, so the board on the screen drew none
+   of it and Undo then took off a stroke nobody could see.
+   SO THE RULE IS WHICHEVER COLUMN HOLDS THE STROKE. `paint` (shell.js) asks this beside `findKeep_`,
+   and a column with `PAD_GO`'s ink in it is marked STALE instead of drawn, and drawn the next time it is
+   arrived at, as `settingsKeep_` does for a half-typed card. A repaint ALSO restarts the column's
+   widgets, so `startScreen_` asks this too and leaves the held column running, as it does for
+   `reconnectKeep_`; and `wbPaint_`, which a change of person still runs, skips the copy being drawn
+   on, for the same reason. */
+function padHold_(id) {
+  try {
+    if (!PAD_ST || !PAD_GO || !PAD_GO.ink || !PAD_GO.ink.isConnected) return false;
+    const host = document.getElementById('s-' + id);
+    return !!host && host.contains(PAD_GO.ink);
+  } catch (e) { return false; }
+}
+
+/* ---------- A CHANGE OF PERSON PUTS THE PEN DOWN AND DRAWS EVERY BOARD AGAIN ------------------------
+   FOUND BY THE REVIEW OF THE WHITEBOARD, with real touches at 390x844: lock the board signed in, draw,
+   swipe to Account and Sign out -- and Tools, which a sign-out marks STALE rather than redraws, still
+   held the last person's board: their three strokes, the frame lit, `data-k` and `PAD_ON` both still
+   theirs, all the way to the next arrival, and on the screen mid-swipe on the way there. A line drawn on
+   it would have gone into their key. The family's shared iPad, which is what `signedOut_` is for.
+   SO `signedOut_` AND `signedIn_` (me.js) CALL THIS: every pad on the page disarmed, the stroke and the
+   held Clears forgotten, and every copy of the board drawn again under whoever is signed in now. The
+   board is the one widget whose markup is a person's and whose column a repaint may leave stale; any
+   question's pad left on a stale column is disarmed here too, so none can take a stroke meanwhile. */
+function padWhoChanged_() {
+  [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
+  PAD_ON = ''; PAD_ST = null; PAD_GO = null;
+  PAD_CLEARED.clear();
+  wbPaint_();
+}
+
+/* EVERY COPY, BY CLASS -- `tmtPaint_`'s reason: the Saved column draws this same markup, and two
+   elements under one id is the `$('msg-text')` fault. The same key in both, so a stroke on one is on
+   the other the next time it is drawn. EXCEPT THE COPY A FINGER IS DRAWING ON, `padHold_`'s reason. */
+function wbPaint_() {
+  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, '')}</div>`;
+  document.querySelectorAll('.wb-box').forEach(el => {
+    if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
+    el.innerHTML = html;
+  });
+}
+function initWhiteboard() { wbPaint_(); }
 
 /* ==================================================================================================
    "USE YOUR GRAPH" SHOWS YOUR GRAPH.
@@ -10517,6 +10877,20 @@ function stuffItemsRaw_() {
       sub: [p.subject, p.sessions ? p.sessions + ' sessions' : ''].filter(Boolean).join(' · '),
       image: '',
       subject: p.subject, topics: p.topics, level: p.level,
+      /* ---------- PROJECT OR COURSEWORK, ASKED ONCE `Projects` IS CHOSEN ----------------------
+         `practicalType`'s arrangement exactly: no facet in code, one row in
+         `data/settings/facets.json` naming the field, and `facetFromSheet_` reads it off the item.
+         The LABEL goes on the item rather than the file's word, so the answer and its chip say
+         `Coursework` and not `coursework`. Every project answers it -- blank is `Project` -- and
+         its row's `min_coverage` of 1 asks it only of a list that is ALL projects: at the default
+         half, a search for `blade` holding two projects, a textbook and a practical was asked it,
+         and Coursework dropped the other two without a word. Its row's `sort_order` puts it ahead
+         of Subject, and that is load-bearing too: see the row's own note, and docs/history/314. */
+      projectType: projType_(p),
+      /* A BOARD WHERE THE ROW NAMES ONE, in the column a practical's board already fills -- so a
+         second coursework under another board is told apart by the Exam board question with
+         nothing added here. Blank on every project, which the coverage rule keeps quiet. */
+      examBoard: p.board || '',
       text: projectText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
     })),
@@ -11486,6 +11860,42 @@ function wholeQuestions_(items) {
 function stuffPageOf_(x, part) {
   const i = stuffPages_().findIndex(pg => pg.x === x && (pg.part || null) === (part || null));
   return i < 0 ? 0 : i;
+}
+
+/* ---------- AND BACK ONTO THE CARD YOU WERE ON WHEN THE LIST UNDER IT CHANGES -------------------------
+   `PAGE.stuff` IS A NUMBER, and a redraw that keeps your place keeps the number. That is right while the
+   list is the same list, and it is how a child signing in landed on the card they left (docs/history/318)
+   — but the payload that lands after signing in is that person's, and a signed-in child can be shown
+   more (their friends answer a search; the Bible's index lands for an admin and joins the list mid-read).
+   Measured in check-flow: one more row in front of June 2023 1H Q13 and the redraw put the child on Q12,
+   the same page number on a different card, with nothing anywhere saying why.
+
+   SO A FILLED PAGE SAYS WHICH CARD IT IS (`FIND_AT`, written by `stuffFillOne_`, read only while the page
+   is still marked filled), and the two redraws that keep your place — `screen('stuff')` and
+   `paintStuff(true)` — look that card up in the new list and stand on it. ASKED OF THE PAGE ON THE SCREEN
+   RATHER THAN REMEMBERED, because the page is what the child is actually looking at; a number noted when
+   the page was turned is a guess the moment anything in front of it moves. AND ONLY FOR THE SAME QUESTION:
+   a page drawn for other chips is not the place the new chips were asked for, and the redraws that change
+   the chips go to the question as they always did. A card that is no longer there leaves the number as
+   it was, which is the behaviour before this. */
+const stuffPageId_ = pg => (pg && pg.x ? String(pg.x.key || pg.x.name || '') + '\u0000' + (pg.part || '') : '');
+const stuffAsk_ = () => JSON.stringify([S_(STUFF.q), STUFF.filters || []]);
+function stuffHeld_() {
+  try {
+    const host = $('s-stuff');
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)];
+    const at = el && el.dataset.filled === '1' && el.FIND_AT;
+    return at && at.ask === stuffAsk_() ? at.id : '';
+  } catch (e) { return ''; }
+}
+function stuffBackTo_(id, keep) {
+  if (!id) return;
+  const pages = stuffPages_();
+  /* STILL WHERE IT WAS — the commonest case by far (a star, the same list again), and one comparison
+     rather than a walk over a list that can be thousands of pages long. */
+  if (stuffPageId_(pages[(PAGE.stuff || 0) - keep]) === id) return;
+  const i = pages.findIndex(pg => stuffPageId_(pg) === id);
+  if (i >= 0) PAGE.stuff = keep + i;
 }
 
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST ---------------------------
@@ -13024,6 +13434,8 @@ const TAG_OF = {
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
   documentType: 'type', practicalType: 'type', boxKind: 'type',
+  /* A COURSEWORK OR A PROJECT IS WHAT KIND OF THING IT IS, as experiment-or-build is: the same colour. */
+  projectType: 'type',
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
   /* `topicArea` was `topic` too, and is retired — see `RETIRED_FACETS`. */
@@ -13350,6 +13762,8 @@ function paintStuff(keepPage) {
   /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
      what says how much the pages in front moved by. */
   const was = PAGE.stuff || 0;
+  /* AND WHICH CARD THAT IS, off the page itself before it is replaced — see `stuffHeld_`. */
+  const held = keepPage ? stuffHeld_() : '';
   /* ---------- WHAT MOVED IS THE FIRST RESULT, NOT THE QUESTION ---------------------------------
      THIS READ `stuffQuestionPage_()` AND THAT NUMBER IS ALWAYS NOUGHT. `screen('stuff')` builds
      `[the question], frontPages_(), savedPages_(), …` — the question is FIRST and everything that
@@ -13490,6 +13904,9 @@ function paintStuff(keepPage) {
     ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
                            pageCount('stuff') - 1))
     : stuffQuestionPage_();
+  /* THE SHIFT ABOVE IS WHAT MOVED IN FRONT OF THE RESULTS; THIS IS WHAT MOVED AMONG THEM — the card
+     looked up by name in the list as it is now (`stuffBackTo_`), when the list has changed under it. */
+  if (keepPage) stuffBackTo_(held, stuffFirstResult_());
   /* AND THE WINDOW IS BUILT AROUND THE PAGE WE ARE GOING TO BE ON, so it is decided first. Built
      around the old one, a shift of a page or two in front could put the new page just past the
      window's edge, where there is no element to fill. */
@@ -13678,6 +14095,18 @@ const STUFF_SOON = 1;
 const PANE_REACH = 24;
 /* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead. See `paneReach_`. */
 const PANE_ZOOM_MIN = 0.7;
+/* ---------- AND AN ESSAY'S CARD, NO SMALLER THAN KEEPS ITS TILES AT 44px ------------------------------
+   A CARD WITH AN ESSAY SHEET ON IT (`ansEssay_`, docs/history/312) is drawn smaller only while that
+   alone makes it fit with its 48px tiles still 44px or more (44 / 48 is 0.917); past that it is drawn
+   at full size and its pane scrolls, as every card past `PANE_ZOOM_MIN` does. The review of 9 Oct found
+   it at 320x568: the sheet had already given way to its five-line floor (`kpSheetFit_`, keypad.js) and
+   the question over it still did not leave room, so the card went to 0.843 -- Mark with AI 40px, the
+   sheet 188px wide, writing at 13.5px -- the one size where the essay was worse than the chat bar it
+   replaced, which fitted there at full size. Zoom is the owner's answer for a card a little too tall;
+   a card a page of writing tall is the case it was never for, because the thing being shrunk is the
+   page the pupil writes on and the tile they mark it with. With the pad up, `kpRoom_` finds the pane
+   as its scroller and scrolls the sheet and its row above the pad, as for any scrolling card. */
+const PANE_ZOOM_ESSAY = 0.92;
 
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. The first version took
    one pane at a time -- read `scrollHeight`, write `overflowY` -- and a CPU profile of the tap put
@@ -13725,17 +14154,26 @@ function paneReach_(panes) {
         k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
       }
     }));
+    /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. Measured
+       on 9 Oct: a three-paragraph essay grew its sheet, its card passed the pane at 390x844, and this
+       zoomed the whole card to 0.87 -- the writing smaller, the Mark tile 38px, the sheet 242px wide.
+       The sheet scrolls inside anyway; so it is the sheet that gets shorter, and the card stays at
+       full size. Only panes that hold one, so every other pane is measured exactly as before. */
+    if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
     const pad = p => {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     };
-    const want = list.map(p => {
+    const essay = list.map(p => !!p.querySelector('.qp-essay'));
+    const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
-      return Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+      const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+      /* AN ESSAY'S CARD: that zoom, or none and a scrolling pane -- `PANE_ZOOM_ESSAY`. */
+      return essay[i] && z < PANE_ZOOM_ESSAY ? 1 : z;
     });
     /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider
        card re-flowed. Zoom alone does not shrink anything whose height follows its width — a game
@@ -13796,7 +14234,7 @@ function paneReach_(panes) {
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
     /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
-    const over = list.map((p, i) => want[i] <= PANE_ZOOM_MIN
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || (essay[i] && want[i] === 1))
       && p.scrollHeight - p.clientHeight > PANE_REACH);
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
@@ -13946,6 +14384,9 @@ function stuffFillOne_(i, ctx) {
   const pane = paneOf_(el);
   pane.innerHTML = stuffPageHtml(i - first);
   el.dataset.filled = '1';
+  /* WHICH CARD THIS IS, AND FOR WHICH QUESTION — so a redraw over a changed list can find it again
+     (`stuffHeld_`). An expando, as `pane.LAST_H` is: nothing reads it out of the markup. */
+  el.FIND_AT = { ask: stuffAsk_(), id: stuffPageId_(stuffPages_()[i - first]) };
   /* THE HEIGHT IT WAS HELD AT WHILE EMPTY GOES, in the same task as the card arrives, so the page is
      its card's height from the first frame it is drawn — see `stuffPin_`. */
   el.style.minHeight = '';
@@ -14615,9 +15056,17 @@ screen('stuff', () => {
      window, with `PAGE_KEEP` and `PAGE_LO` set to describe exactly that. The count in front is
      `1 + frontPages_().length` because the question is page nought here, which is what
      `stuffFirstResult_` reads back off the DOM once it exists. */
+  /* ---------- AND THE CARD YOU WERE ON, BY NAME, NOT BY NUMBER ----------------------------------------
+     A REPAINT KEEPS `PAGE.stuff`, and a repaint is what a payload landing is — the one after signing in
+     is that person's, and its list can be longer than the one the card was found in. So the page on the
+     screen is asked which card it is BEFORE this draw replaces it (`paint` writes the markup after this
+     returns, so the old strip is still the one in the document), and the new list is asked where that
+     card is now (`stuffBackTo_`). The window below is then built around the page that is right. */
+  const held = stuffHeld_();
   const front = frontPages_();
   const keep = 1 + front.length;
   const want = stuffPageCount();
+  stuffBackTo_(held, keep);
   PAGE_KEEP.stuff = keep;
   PAGE_LO.stuff = stuffLo_(want, keep, PAGE_LO.stuff);
   /* AND THE WINDOW IS FILLED A MOMENT LATER, because a page cannot be filled until it is in the

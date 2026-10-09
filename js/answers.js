@@ -65,7 +65,9 @@ const ansIsRing_ = k => /^pad:/.test(String(k || '')) && /:words$/.test(String(k
    it would refuse stays on the device rather than being retried for ever. `ANSWER_TEXT_MAX`,
    `ANSWER_PAD_MAX` and `ANSWERS_PER_POST` in backend/constants.gs; `check-saved-answers.js` asks the
    server's. */
-const ANS_TEXT_MAX = 2000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
+/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): at 2,000 a forty-mark essay stopped going to the account
+   at its fourth paragraph. See `ANSWER_TEXT_MAX`. */
+const ANS_TEXT_MAX = 20000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
 /* AND WHAT A `keepalive` REQUEST MAY CARRY. A browser refuses one over 64 KB, so the flush as the app
    goes away sends what fits and leaves the rest dirty for next time. */
 const ANS_KEEPALIVE_MAX = 60000;
@@ -139,15 +141,16 @@ function ansDirtyKeep_(who) {
 
 /* ---------- THE ONE WRITER ---------------------------------------------------------------------------
    `v` is the value as stored (`null` takes the key away — a cleared drawing, the last ring taken off).
-   SIGNED OUT IT IS EXACTLY WHAT IT ALWAYS WAS: the value, on the device, and nothing else — there is
-   nobody to send it to, and the line under the box says so. */
+   SIGNED OUT IT IS WHAT IT ALWAYS WAS: the value, on the device — there is nobody to send it to, and the
+   line under the box says so. AND ITS TIME: that is what lets `answersClaim_` tell an answer typed a
+   minute ago from an older one already on the account, when somebody signs in. */
 function ansStore_(k, v) {
   k = String(k || '');
   if (!k) return;
   ansLocalPut_(k, v === undefined ? null : (v === null ? null : String(v)));
   const who = ansWhoOf_(k);
+  ansAtSet_(k, Date.now());
   if (who) {
-    ansAtSet_(k, Date.now());
     ansDirtySet_(who).add(k);
     ansDirtyKeep_(who);
     answersPush_();
@@ -402,6 +405,58 @@ function answersAdopt_(pid, got) {
   ansSavedPaint_();
 }
 
+/* ---------- WHAT WAS WRITTEN SIGNED OUT, CLAIMED BY WHOEVER SIGNS IN FROM SIGNED OUT --------------------
+   `signedIn_` (me.js) calls this when nobody was signed in — the same seat that keeps Find's place
+   (docs/history/318) — after the sign-in reply's answers have gone into the boxes.
+
+   IT WAS LEFT TO `ansRead_` AND `padAdopt_` (find.js), which move a signed-out answer the first time its
+   box is drawn for somebody, and ONLY INTO AN EMPTY BOX. Measured (review of 318, 820x1180): Sol's
+   account held Q13 = "75" from three days before; signed out, Sol typed "80" on Q13 and signed in. The
+   reply put "75" in Sol's box, so the box was not empty, and "80" stayed under the signed-out key —
+   not shown, not sent. Sol signed out, Kit signed in and opened Q13: Kit's box was empty, "80" moved
+   into it, and went up to KIT'S account. The work of the child who typed it, in the next child's.
+
+   SO EVERY SIGNED-OUT ANSWER ON THE DEVICE IS DECIDED HERE, AT ONCE, and none is left behind:
+     this person has nothing in that box    it moves to them, and is due
+     the signed-out one is the later edit   it replaces theirs, and is due — the account then decides
+                                            against its own copy by the same rule (`answersUpsert_`:
+                                            the later edit wins, and the reply carries the winner)
+     theirs is the later edit               theirs stays, and the signed-out one goes
+   `ansStore_` stamps a signed-out edit; one from before it did has no time, and counts as older than
+   anything this person has — so it fills an empty box, stamped as it moves, which is what `ansRead_`
+   always did, and never replaces one. A STAMPED ONE MOVES WITH ITS OWN TIME, not now's, so "later" means
+   when it was typed, not when the child signed in. */
+function answersClaim_(pid) {
+  const who = 'u:' + String(pid || '');
+  if (who === 'u:') return [];
+  const dirty = ansDirtySet_(who);
+  const moved = [];
+  let keys = [];
+  try { for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i)); }
+  catch (e) { keys = [...ANS_MEM.keys()]; }
+  keys.filter(k => k && /^(ans|pad):/.test(k) && !ansWhoOf_(k)).forEach(bare => {
+    const v = ansValue_(bare);
+    const at = ansAt_(bare);
+    /* GONE FROM UNDER THE SIGNED-OUT KEY WHATEVER HAPPENS NEXT — moved, or the older of two. */
+    ansLocalPut_(bare, null);
+    ANS_AT_MEM.delete(bare);
+    try { localStorage.removeItem('ansAt:' + bare); } catch (e) {}
+    if (v === null || !String(v).trim() || v === '[]') return;
+    const k = ansLocalKey_(bare, who);
+    const mine = ansValue_(k);
+    const has = mine !== null && !!String(mine).trim() && mine !== '[]';
+    if (has && !(at && at > ansAt_(k))) return;
+    ansLocalPut_(k, v);
+    ansAtSet_(k, at || Date.now());
+    dirty.add(k);
+    moved.push(k);
+  });
+  ansDirtyKeep_(who);
+  if (moved.length) { ansRefresh_(moved); answersPush_(); }
+  ansSavedPaint_();
+  return moved;
+}
+
 /* ---------- AND WHAT IS ON THE SCREEN, CHANGED WHERE IT STANDS -------------------------------------------
    NOT A REPAINT. A repaint of Find is the thing `findKeep_` exists to hold back, and it would throw away
    every verdict on the column. Each kind of answer is put back by the code that draws it: a box's value
@@ -424,6 +479,10 @@ function ansRefresh_(keys) {
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
+        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh
+           if they are the ones it read, "before your changes" if not -- rather than blanked: blanking took
+           the verdict and left its points under an empty line (docs/history/312, `aiKeptPaint_`). */
+        if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
         if (out) out.textContent = '';

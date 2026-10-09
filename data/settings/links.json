@@ -1268,5 +1268,15 @@
   "description": "The AQA GCSE periodic table, the one handed out in the exam. Combined Science Trilogy and Chemistry both use it. Elements, symbols, atomic numbers, relative atomic masses, groups and periods.",
   "photo": "",
   "visibility": "public"
+ },
+ {
+  "link_id": "L131",
+  "name": "halo — in the browser",
+  "category": "Games",
+  "url": "https://mitchellhynes.com/halo/halo.html",
+  "colour": "",
+  "description": "The original Xbox Halo: Combat Evolved, played in the browser — the campaign, co-op, and multiplayer by sharing a room link. An unofficial fan port. PEGI 16.",
+  "photo": "",
+  "visibility": "admin"
  }
 ]

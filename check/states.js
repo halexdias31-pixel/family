@@ -439,6 +439,33 @@ const STATES = {
       },
       wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A COURSEWORK, ON ITS STAGES PAGE ------------------------------------------------
+       "i would like to add course works. make it bare bones. its within projects in finder." — the
+       owner, 9 Oct. The project's state with the type chosen, as the funnel's own two answers:
+       Projects, then Coursework, then the coursework's STAGES page — so the card with the board on
+       its strip, the Stages list and the share tile beside them are the ones measured, and the
+       longest strip and longest list any project card carries is the one at 320px. */
+    { name: 'a coursework',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'project' && it.row && it.row.projectType === 'coursework');
+        if (!x) throw new Error('no coursework in the list — data/projects.json has no `project_type: coursework` row');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'projectType', value: x.projectType }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'steps')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        const main = document.querySelector('#s-stuff .card.proj:not(.prac-part)');
+        const steps = document.querySelector('#s-stuff .card.proj.is-steps');
+        const flags = [...document.querySelectorAll('#s-stuff .card.proj:not(.prac-part) .fc-flag')].map(f => f.textContent.trim());
+        return !!main && !!steps
+               && flags.length > 0 && flags.every(f => f === 'Coursework')
+               && ((steps.querySelector('h3') || {}).textContent || '') === 'Stages'
+               && !!steps.querySelector('.prac-steps ol > li');
+      },
+      wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
        "the @family textbook should be bare bones for now and the textbooks will be in the resources
        tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
@@ -1841,6 +1868,82 @@ const STATES = {
       wants: 'Q33\u2019s worded box focused, the pad up on its letters (39 keys on sixty columns, the maths pad\u2019s bottom row), "Hi" typed by the pad, the box locked and wholly above the pad',
       leave: () => {
         try { localStorage.removeItem(window.__abcKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AN ESSAY, WRITTEN ON ITS SHEET IN PARAGRAPHS, THE PAD UP ---------------------------------
+       THE OWNER, 9 Oct, about a pupil on AQA English Language Paper 1, June 2017, Section B: *"firstly it
+       doesnt let him do paragraphs and also i want it to mark with ai."* The real Q-R0398-5 -- forty marks
+       of writing -- drawn as a SHEET (`ansEssay_`, keypad.js; `.qp-sheet` in style.css), focused, and three
+       paragraphs written into it through the pad: words on the letters' keys, each paragraph break on
+       the essay's own RETURN key (two presses, a blank line), the rest of each paragraph handed to the
+       pad's edit as a laptop's keys are. Pictured so `check/ui.js` measures the sheet and the essay's
+       letters at every width -- the return key's size and face, the paper against the card (EDGE), the
+       word count's contrast. Expect: the pad up on the essay's letters (40 keys, one return, labelled),
+       the value holding two paragraph breaks, the drawing the same, the count right, the row under the
+       sheet (and so the sheet) wholly above the pad, and the line being written -- the caret -- inside
+       the sheet's window and above the pad, the thing "growing, then scrolling inside" is for. */
+    { name: 'an essay, three paragraphs on its sheet, the pad up',
+      enter: () => {
+        const id = 'Q-R0398-5';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__essayKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const PARAS = ['the bus shuddered away from the kerb and the town slid past the window like a film somebody had forgotten to stop. Rain had been falling since breakfast.',
+          'beside me an old man held a paper bag of oranges on his knee as if it were something precious, and each time the driver braked he steadied it with both hands.',
+          'by the time we reached the coast road the clouds had torn open, and the old man stepped down into the brightness, leaving the smell of oranges behind him.'];
+        let tries = 0;
+        const up = () => {
+          const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!ta || moving || !ta.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          ta.focus();
+          if (KP_AT !== ta) kpOpen_(ta);
+          const key = v => document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+          PARAS.forEach((p, i) => {
+            if (i) { key('!nl').click(); key('!nl').click(); }
+            /* THE FIRST WORD ON THE KEYS, the capital put in by itself; the rest as a laptop types it. */
+            const first = p.split(' ')[0];
+            first.split('').forEach(c => { const k = key(c); if (k) k.click(); });
+            kpType_(ta, p.slice(first.length), true);
+          });
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+        if (!pad || pad.hidden || !ta || !ta.hasAttribute('data-kp-essay')) return false;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
+        const essay = ta.closest('.qp-essay');
+        const foot = essay && essay.querySelector('.qp-sheet-foot');
+        const show = ta.parentNode.querySelector('.kp-show');
+        const caret = show && show.querySelector('.kp-caret');
+        const v = ta.value;
+        if (!ret || !foot || !caret || (v.match(/\n\n/g) || []).length !== 2 || !/^The bus/.test(v) || !/\n\nBeside/.test(v) || !/\n\nBy the time/.test(v)) return false;
+        const padTop = pad.getBoundingClientRect().top;
+        const c = caret.getBoundingClientRect(), sr = show.getBoundingClientRect();
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        return pad.getAttribute('data-layer') === 'abc' && keys.length === 40
+               && keys.filter(b => b.getAttribute('data-v') === '!nl').length === 1 && /return/.test(ret.textContent)
+               && ret.getBoundingClientRect().height >= tall - 0.5 && ret.getBoundingClientRect().width >= 44
+               && ta.readOnly && ta.getAttribute('inputmode') === 'none'
+               && show.textContent === v
+               && essay.querySelector('.qp-words').textContent === kpWordsSay_(kpWordCount_(v))
+               && foot.getBoundingClientRect().bottom <= padTop + 0.5
+               && c.top >= sr.top - 1 && c.bottom <= sr.bottom + 1 && c.bottom <= padTop && c.top >= 0;
+      },
+      wants: 'Q-R0398-5 drawn as a sheet, the pad up on the essay\u2019s letters (40 keys, one labelled return at least 44px), three paragraphs typed with two blank lines between them, the count right, the row under the sheet above the pad and the caret in the sheet\u2019s window',
+      leave: () => {
+        try { localStorage.removeItem(window.__essayKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
@@ -4357,6 +4460,38 @@ const STATES = {
         KT = null;
         document.activeElement && document.activeElement.blur && document.activeElement.blur();
         initTyping();
+      } },
+
+    /* ---------- THE WHITEBOARD, LOCKED, WITH SOMETHING ON IT --------------------------------------
+       KEPT ON THE DEVICE, so it opens blank and unlocked on every run -- a cream rectangle measures
+       perfectly. The state somebody is actually in is the other one: the padlock lit, the gold frame
+       round the board, marks on it, and the bar and the note still inside a pane that clips. That is
+       the case the board's height is capped for (`.wb` in style.css), at 320x568 above all.
+       Seeded through the app's own key (`padKey_(WB_ITEM)`) and the app's own writer (`ansStore_`),
+       and locked the way a repaint finds it (`PAD_ON`), so nothing here spells the key out. A ruled
+       line across the top, a triangle and a ring: a stroke that touches the board's edges is the one
+       that would show a board drawn the wrong shape. */
+    { name: 'a whiteboard with a drawing on it',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard');
+        if (n < 0) throw new Error('no whiteboard widget in the roster');
+        goPage('tools', n, true);
+        const k = padKey_(WB_ITEM);
+        const ring = [];
+        for (let i = 0; i <= 48; i++) ring.push(Math.round(170 + 60 * Math.cos(i / 24 * Math.PI)), Math.round(255 + 45 * Math.sin(i / 24 * Math.PI)));
+        ansStore_(k, JSON.stringify([[0, 20, 340, 20], [70, 190, 170, 50, 270, 190, 70, 190], ring]));
+        PAD_ON = k;
+        initWhiteboard();
+      },
+      expect: () => document.querySelectorAll('#s-tools #wgt-whiteboard .qpad.is-drawing .qpad-g path').length === 3
+                    && document.querySelector('#s-tools #wgt-whiteboard .qpad-ink[data-noswipe]')
+                    && document.querySelectorAll('#s-tools #wgt-whiteboard .qpad-bar .tile').length === 3,
+      wants: 'the board locked, three marks on it, and the padlock, Undo and Clear under it',
+      leave: () => {
+        const k = padKey_(WB_ITEM);
+        PAD_ON = '';
+        ansStore_(k, null);
+        initWhiteboard();
       } },
   ],
 
