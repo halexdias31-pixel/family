@@ -47,7 +47,37 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..');
+const REPO = path.join(__dirname, '..');
+/* ---------- A COPY OF THE SITE, NOT THE SITE -------------------------------------------------------
+   THIS USED TO DEPLOY INTO THE WORKING TREE — rewrite js/posts.js and data/textbooks.json, touch
+   index.html's date — and put them back on exit. That was safe while it ran alone and stopped being
+   safe the day check-all ran it beside the journeys (8–9 Oct): check-flow reads every js file from
+   disk for each journey it boots, read posts.js in the instant this had truncated it to rewrite it,
+   and booted an app with no posts.js in it — `ReferenceError: openSharedPost is not defined` inside
+   `load()`, a crash of the whole run that never happened alone. A check must not change what the
+   other checks are reading. So the deploy happens to a private copy: the code and the page copied,
+   every data file but the one this edits linked rather than copied (the library is tens of
+   megabytes), and the server serves the copy. The working tree is never written. */
+const ROOT = fs.mkdtempSync(path.join(require('os').tmpdir(), 'family-deploy-'));
+(function copySite_() {
+  const DEEP = { js: 1 };
+  fs.readdirSync(REPO).forEach(n => {
+    if (n === '.git' || n === 'node_modules' || n === '.claude') return;
+    const from = path.join(REPO, n), to = path.join(ROOT, n);
+    const st = fs.statSync(from);
+    if (!st.isDirectory()) return fs.copyFileSync(from, to);
+    if (DEEP[n]) return fs.cpSync(from, to, { recursive: true });
+    if (n === 'data') {
+      fs.mkdirSync(to);
+      fs.readdirSync(from).forEach(d => {
+        if (d === 'textbooks.json') fs.copyFileSync(path.join(from, d), path.join(to, d));
+        else fs.symlinkSync(path.join(from, d), path.join(to, d));
+      });
+      return;
+    }
+    fs.symlinkSync(from, to);
+  });
+})();
 const PORT = Number(process.env.DEPLOY_PORT || 8731);
 
 let chromium;
@@ -61,8 +91,7 @@ const CHROME = process.env.CHROME ||
       .map(n => path.join('/opt/pw-browsers', n, 'chrome-linux', 'chrome'))
       .find(p => fs.existsSync(p)))) || undefined;
 
-/* THE FILES THE DEPLOY TOUCHES, and they are put back whatever happens — including on a throw.
-   A check that leaves the working tree edited is a check somebody commits by accident. */
+/* THE FILES THE DEPLOY TOUCHES — in the copy above, which is thrown away whatever happens. */
 const POSTS = path.join(ROOT, 'js', 'posts.js');
 const PAGE = path.join(ROOT, 'index.html');
 /* ---------- AND A DATA FILE, BECAUSE THE WORKER PINNED THOSE TOO --------------------------------------
@@ -78,10 +107,14 @@ const BOOK_LINE = '{"book_id":"TB-GCSE-MATHS","chapter":1,"title":"Number, facto
 const postsWas = fs.readFileSync(POSTS);
 const pageWas = fs.statSync(PAGE);
 const booksWas = fs.readFileSync(BOOKS);
-const restore = () => {
+/* BETWEEN THE TWO BASE PATHS THE COPY IS PUT BACK AS IT WAS; AT EXIT IT IS THROWN AWAY. */
+const reset = () => {
   try { fs.writeFileSync(POSTS, postsWas); } catch (err) { /* nothing better to do */ }
   try { fs.writeFileSync(BOOKS, booksWas); } catch (err) { /* same */ }
   try { fs.utimesSync(PAGE, pageWas.atime, pageWas.mtime); } catch (err) { /* same */ }
+};
+const restore = () => {
+  try { fs.rmSync(ROOT, { recursive: true, force: true }); } catch (err) { /* nothing better to do */ }
 };
 process.on('exit', restore);
 
@@ -191,7 +224,7 @@ async function run(base) {
   } finally {
     await br.close();
     srv.close();
-    restore();
+    reset();
   }
 }
 
