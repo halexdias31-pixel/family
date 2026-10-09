@@ -94,14 +94,20 @@ control would be a wall."* The wall is still kept out, because the drawn pill is
 
 ### Measured, after
 
-Seeded in Chromium (Playwright, no comments on the post so no `paneReach_` zoom):
+Seeded in Chromium (Playwright): a post with a picture and no comments, both visitors. **At 320×568
+that post is still taller than its pane**, comments or not, so `paneReach_` draws it at 92% signed in
+and 95% signed out. The 320 column is in layout px (the box on screen divided by that zoom), which is
+what `check/ui.js` reports too, and its left edge is from a post with no picture, drawn at 100%. On
+the zoomed card the three edges still coincide on screen (47.7 signed in, 44.5 signed out); the
+mock's 48.2 at 320 was a zoomed number of the same kind.
 
 | | 320 | 390 | 820 |
 |---|---|---|---|
 | cell | 41.3×44 | 50.7×44 | 58.1×44 |
 | pill | 37.3×32 | 46.7×32 | 54.1×32 |
-| photograph → pill | 8.7 | 9.0 | 9.1 |
-| first pill, caption, Share tile: one left edge | 47.0 | 44.8 | 207.2 |
+| photograph → pill | 9.0–9.2 | 8.9 | 9.1 |
+| pill → caption | 9.6–9.9 | 9.7 | 9.9 |
+| first pill, caption, Share tile: one left edge | 38.1 | 44.8 | 207.2 |
 | lines for the six, any counts | 1 | 1 | 1 |
 
 - **👏 9 → 10** moves no cell and no pill. The tapped face re-centres 3.4px inside its own pill
