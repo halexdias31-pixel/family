@@ -243,9 +243,26 @@ function outcome(pos) {
    `check-reels.js`, which refuses one in this list outright.
 
    `pic` IS THE SUBJECT AND THE SUBJECT IS THE AUTHOR, which is also the word `feedColours` hashes. */
+/* ---------- AND A YOUTUBE ADDRESS IS A CLIP TOO, BECAUSE THE COLUMN CAN DRIVE IT -------------------
+   THE OWNER, 9 OCT, with a Short's address: *"i want to add this to reels, maybe embedd? or work fine
+   without? i just want it to look like other reels"*. YouTube's player takes orders — play, pause,
+   mute — which is what the two removed above never did; `clipPlayable_` says the rest. Nothing is
+   downloaded or committed: the README's rule is that a FILE here is published under the owner's
+   name, and this video is not theirs. YouTube serves it and keeps its name on it.
+
+   THE `?si=` IS CUT OFF. It is the share link's tag for WHO SHARED IT, and this file is public;
+   `check-reels.js` refuses a row that still carries one. The subject is the clip rows' own '@family.',
+   which no clip slide prints — it only picks the gradient behind the poster.
+
+   HERE AND NOT IN `data/settings/facts.json`, though the README says new reels belong in the sheet
+   "once the tab exists". The file has 400 rows and no `clip` column, and `clipsNow_` is per LIST: the
+   first clip row there becomes the WHOLE clip list and the two mp4 reels above stop being dealt. Moving
+   all three is a choice about the sheet; adding one beside its two siblings is not. And this list is
+   the one `check-reels.js` reads. */
 const FEED_FACTS = [
   ['@family.', '', '', '', 'data/reels/archetest.mp4'],
   ['@family.', '', '', '', 'data/reels/v24044gl0000d88i15nog65im2kilnbg.mp4'],
+  ['@family.', '', '', '', 'https://youtube.com/shorts/jD2Yy_wCBLE'],
   ['Space', 'You are seeing the sun as it was eight minutes ago',
    'Light takes 8 minutes 20 seconds to cross 150 million km. If it went out you would carry on reading in bright daylight for the length of a song.', 'sun solar corona'],
   ['Space', 'There is a planet where it rains glass, sideways',
@@ -383,7 +400,7 @@ const FEED_FACTS = [
    IT WAS AN EXACT DUPLICATE OF THE TAB and CLAUDE.md records that: 58 rows here, the same 58 in
    `data/settings/facts.json`, and nothing anywhere saying which was the source. It is not a
    duplicate any more — the file holds FOUR HUNDRED and this holds the original fifty-eight plus the
-   two clips.
+   clips.
 
    WHICH MATTERS, BECAUSE THE ANSWER IS NOT THE OBVIOUS ONE. `factsNow_` below prefers `DATA.facts`,
    `settingsInto_` fills that from the file, and the file has rows — so a fact added HERE and not

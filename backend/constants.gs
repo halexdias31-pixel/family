@@ -241,7 +241,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-09-a-films";
+const BACKEND_VERSION = "2026-10-09-c-essay-autosave";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2125,17 +2125,33 @@ const ATTEMPT_LABEL_MAX = 120;
 const ATTEMPT_WORDS_MAX = 1200;
 
 /* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers ------------------------------------
-   A TYPED ANSWER, the same ceiling as an answer sent to "Mark with AI" (`aiMark`): no answer box in the
-   library wants more, and a cell is not a place for an essay pasted in by accident.
+   A TYPED ANSWER, the same ceiling as an answer sent to "Mark with AI" (`AI_ANSWER_MAX`): an essay is an
+   answer now (`ansEssay_` in js/keypad.js, 9 Oct) and this was 2,000 characters, about 350 words -- so a
+   forty-mark essay saved to the account until its fourth paragraph and then said "On this device only —
+   too long for the account" while the pupil was still writing it. 20,000 is three top-band essays and
+   well under the 50,000 a Sheets cell holds.
    THE PEN'S STROKES, under the 50,000 characters a Sheets cell holds, with room. The phone simplifies a
    stroke before it sends it (a 504-point freehand line is 33 points after), so a whole graph is a few
    kilobytes; one bigger than this stays on the device that drew it and is never cut — half a JSON list
    is not a drawing. A value over its ceiling is refused, never truncated.
    AND HOW MANY ONE REQUEST CARRIES, under the script lock every other write waits on. The phone sends
    what changed in the last second and a half, which is one or two; the cap is for a backlog. */
-const ANSWER_TEXT_MAX = 2000;
+const ANSWER_TEXT_MAX = 20000;
 const ANSWER_PAD_MAX = 40000;
 const ANSWERS_PER_POST = 25;
+
+/* ---------- WHAT "MARK WITH AI" SENDS GEMINI — `aiMark` in dopost.gs ----------------------------------
+   THE ANSWER WAS CUT AT 2,000 CHARACTERS, and silently: Gemini marked the first third of a 40-mark essay
+   and the phone drew the mark as the essay's. Now the whole of it, up to 20,000 characters (a top-band
+   GCSE essay is 600–1,000 words, about 6,000), and anything longer is REFUSED with a sentence rather than
+   cut. The question and the scheme to 8,000 each: an English stem can be a source extract, and a levelled
+   scheme with both of its assessment objectives written out is longer than the one-line schemes 3,000
+   was sized for. Together that is under 40,000 characters, about 10,000 tokens -- a small fraction of
+   what the model takes in. THE SAME NUMBERS ARE IN js/keypad.js (`AI_ANSWER_MAX`), because a phone that
+   sends more than this keeps would believe the whole essay was marked. */
+const AI_ANSWER_MAX = 20000;
+const AI_QUESTION_MAX = 8000;
+const AI_SCHEME_MAX = 8000;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ------------------------------------------
    `DIGEST_MODES` is the whole vocabulary of `weekly_digest` on the config tab, OFF FIRST: anything not

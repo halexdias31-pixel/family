@@ -106,6 +106,11 @@ const SUITE = [
      written after making exactly that mistake on the Message control, where a stubbed refusal
      closed the sheet, discarded what had been typed, and said it had gone. */
   { file: 'check-replies.js', what: 'a refusal reported as a refusal' },
+  /* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD ------------------------------------------
+     *"the box should be autosaving his work like everywhere else should be doing this"* — the owner,
+     9 Oct, after an essay went with a refresh (docs/history/317). Every box the app draws is an answer,
+     a draft, kept by its own code, or exempt with a reason; a new one that is none of them fails here. */
+  { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },

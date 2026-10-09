@@ -65,7 +65,9 @@ const ansIsRing_ = k => /^pad:/.test(String(k || '')) && /:words$/.test(String(k
    it would refuse stays on the device rather than being retried for ever. `ANSWER_TEXT_MAX`,
    `ANSWER_PAD_MAX` and `ANSWERS_PER_POST` in backend/constants.gs; `check-saved-answers.js` asks the
    server's. */
-const ANS_TEXT_MAX = 2000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
+/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): at 2,000 a forty-mark essay stopped going to the account
+   at its fourth paragraph. See `ANSWER_TEXT_MAX`. */
+const ANS_TEXT_MAX = 20000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
 /* AND WHAT A `keepalive` REQUEST MAY CARRY. A browser refuses one over 64 KB, so the flush as the app
    goes away sends what fits and leaves the rest dirty for next time. */
 const ANS_KEEPALIVE_MAX = 60000;
@@ -82,24 +84,31 @@ const ANS_HERE_ONLY = -1;
    clear, a move to whoever signed in, or another tab — and the visit's old copy must not bring it back. */
 const ANS_MEM = new Map();
 function ansValue_(k) {
+  /* A KEY THE STORE REFUSED IS READ FROM THE VISIT FIRST (`keepHeld_`, data.js) — the stored copy is
+     older, or nothing, and drawing it is how the next key saved it over the newer one (317). */
+  const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
+  if (held !== undefined) return held;
   try { return localStorage.getItem(k); } catch (e) {}
   return ANS_MEM.has(k) ? ANS_MEM.get(k) : null;
 }
-function ansLocalPut_(k, v) {
+/* `words` IS TRUE FOR A WORDED BOX (the essay's too), from the `input` listener in find.js — what
+   `ansJoin_` asks before it puts two answers of one person's together. */
+function ansLocalPut_(k, v, words) {
   ANS_MEM.set(k, v);
-  try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
-  catch (e) {
-    /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. The splash
-       keeps the books' drawings here (`splashSync_`, shell.js), and on a nearly full device they were
-       the last 170 000 characters of room: a 2 000-character answer was refused, this swallowed it,
-       and a child who was not signed in lost it on reload. So a refused write takes that copy away and
-       tries once more — once, and only if there was a copy to take; a store full of other things
-       refuses again and the visit's `ANS_MEM` is all there is, as before. The splash draws an inline
-       one until a load finds room again. */
-    if (v !== null && typeof splashGiveWay_ === 'function' && splashGiveWay_()) {
-      try { localStorage.setItem(k, v); } catch (e2) {}
-    }
-  }
+  /* SIGNED OUT, WHILE A SESSION THE SERVER ENDED IS FRESH, IT IS THAT PERSON'S — `ansGoneMark_` below.
+     MARKED FIRST, THEN WRITTEN: an answer the mark is waiting on is not written without it
+     (`keepWaits_`), and as the page goes the mark is tried again before the answers (`keepRetry_`). */
+  if (!ansWhoOf_(k)) ansGoneMark_(k, v, words);
+  /* A FULL STORE GIVES UP THE LOADING SCREEN'S COPY BEFORE IT GIVES UP A CHILD'S WORK. The splash
+     keeps the books' drawings here (`splashSync_`, shell.js), and on a nearly full device they were
+     the last 170 000 characters of room: a 2 000-character answer was refused, this swallowed it,
+     and a child who was not signed in lost it on reload. So a refused write takes that copy away and
+     tries once more — `keepPut_` in data.js now, the one writer for answers and drafts alike. A write
+     refused even then is REMEMBERED there, read from the visit by every reader, and SAID under the box
+     ("Not saved — this browser is not keeping it", below) — it was swallowed here, and the line read
+     "On this device only" over an answer that was on no device at all (317). */
+  if (typeof keepPut_ === 'function') keepPut_(k, v);
+  else { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
   if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) {}
@@ -139,15 +148,16 @@ function ansDirtyKeep_(who) {
 
 /* ---------- THE ONE WRITER ---------------------------------------------------------------------------
    `v` is the value as stored (`null` takes the key away — a cleared drawing, the last ring taken off).
-   SIGNED OUT IT IS EXACTLY WHAT IT ALWAYS WAS: the value, on the device, and nothing else — there is
-   nobody to send it to, and the line under the box says so. */
-function ansStore_(k, v) {
+   SIGNED OUT IT IS WHAT IT ALWAYS WAS: the value, on the device — there is nobody to send it to, and the
+   line under the box says so. AND ITS TIME: that is what lets `answersClaim_` tell an answer typed a
+   minute ago from an older one already on the account, when somebody signs in. */
+function ansStore_(k, v, words) {
   k = String(k || '');
   if (!k) return;
-  ansLocalPut_(k, v === undefined ? null : (v === null ? null : String(v)));
+  ansLocalPut_(k, v === undefined ? null : (v === null ? null : String(v)), words);
   const who = ansWhoOf_(k);
+  ansAtSet_(k, Date.now());
   if (who) {
-    ansAtSet_(k, Date.now());
     ansDirtySet_(who).add(k);
     ansDirtyKeep_(who);
     answersPush_();
@@ -402,6 +412,83 @@ function answersAdopt_(pid, got) {
   ansSavedPaint_();
 }
 
+/* ---------- WHAT WAS WRITTEN SIGNED OUT, CLAIMED BY WHOEVER SIGNS IN FROM SIGNED OUT --------------------
+   `signedIn_` (me.js) calls this when nobody was signed in — the same seat that keeps Find's place
+   (docs/history/318) — after the sign-in reply's answers have gone into the boxes.
+
+   IT WAS LEFT TO `ansRead_` AND `padAdopt_` (find.js), which move a signed-out answer the first time its
+   box is drawn for somebody, and ONLY INTO AN EMPTY BOX. Measured (review of 318, 820x1180): Sol's
+   account held Q13 = "75" from three days before; signed out, Sol typed "80" on Q13 and signed in. The
+   reply put "75" in Sol's box, so the box was not empty, and "80" stayed under the signed-out key —
+   not shown, not sent. Sol signed out, Kit signed in and opened Q13: Kit's box was empty, "80" moved
+   into it, and went up to KIT'S account. The work of the child who typed it, in the next child's.
+
+   SO EVERY SIGNED-OUT ANSWER ON THE DEVICE IS DECIDED HERE, AT ONCE, and none is left behind:
+     this person has nothing in that box    it moves to them, and is due
+     the signed-out one is the later edit   it replaces theirs, and is due — the account then decides
+                                            against its own copy by the same rule (`answersUpsert_`:
+                                            the later edit wins, and the reply carries the winner)
+     theirs is the later edit               theirs stays, and the signed-out one goes
+   `ansStore_` stamps a signed-out edit; one from before it did has no time, and counts as older than
+   anything this person has — so it fills an empty box, stamped as it moves, which is what `ansRead_`
+   always did, and never replaces one. A STAMPED ONE MOVES WITH ITS OWN TIME, not now's, so "later" means
+   when it was typed, not when the child signed in.
+   EXCEPT WHAT AN ENDED SESSION LEFT (317), which this did not ask about until the two were merged — and
+   then Ada's words, typed signed out after the server ended her session, went into Ben's box and up to
+   Ben's account the moment he signed in. `ansMayMove_` is asked FIRST, before anything is taken from
+   under the signed-out key: another person's stays exactly where it is, for them. The same question
+   `ansRead_` and `padAdopt_` ask.
+   AND THE PERSON'S OWN IS ALL DECIDED HERE TOO, none of it left behind (review of the merge, P1). It was
+   moved only into an EMPTY box of theirs — "the later edit wins" had put Ada's "More words" in place of
+   her 3,000-character essay — and the rest stayed under the signed-out key for good: not shown to her,
+   and drawn in the box for every signed-out visitor after her, the hour `ANS_GONE_MS` keeps the line to
+   notwithstanding. Beside an answer of theirs it is now JOINED to it where the two can be one answer
+   (`ansJoin_`: words after words, strokes after strokes, rings with rings), and otherwise decided by
+   the later edit like anything else; either way the signed-out key is empty once they are back. */
+function answersClaim_(pid) {
+  const who = 'u:' + String(pid || '');
+  if (who === 'u:') return [];
+  const dirty = ansDirtySet_(who);
+  const moved = [];
+  let keys = [];
+  try { for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i)); }
+  catch (e) { keys = [...ANS_MEM.keys()]; }
+  keys.filter(k => k && /^(ans|pad):/.test(k) && !ansWhoOf_(k)).forEach(bare => {
+    const k = ansLocalKey_(bare, who);
+    const may = ansMayMove_(bare, k);
+    if (!may) return;
+    /* READ BEFORE THE REMOVAL BELOW TAKES THE MARK WITH THE ANSWER. */
+    const mark = may === 'own' ? ansGoneOf_(bare) : null;
+    const v = ansValue_(bare);
+    const at = ansAt_(bare);
+    const mine = ansValue_(k);
+    const has = mine !== null && !!String(mine).trim() && mine !== '[]';
+    /* GONE FROM UNDER THE SIGNED-OUT KEY WHATEVER HAPPENS NEXT — moved, joined, or the older of two. */
+    ansLocalPut_(bare, null);
+    ANS_AT_MEM.delete(bare);
+    try { localStorage.removeItem('ansAt:' + bare); } catch (e) {}
+    if (v === null || !String(v).trim() || v === '[]') return;
+    const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
+    if (joined !== null) {
+      if (joined === mine) return;
+      ansLocalPut_(k, joined);
+      ansAtSet_(k, Date.now());
+      dirty.add(k);
+      moved.push(k);
+      return;
+    }
+    if (has && !(at && at > ansAt_(k))) return;
+    ansLocalPut_(k, v);
+    ansAtSet_(k, at || Date.now());
+    dirty.add(k);
+    moved.push(k);
+  });
+  ansDirtyKeep_(who);
+  if (moved.length) { ansRefresh_(moved); answersPush_(); }
+  ansSavedPaint_();
+  return moved;
+}
+
 /* ---------- AND WHAT IS ON THE SCREEN, CHANGED WHERE IT STANDS -------------------------------------------
    NOT A REPAINT. A repaint of Find is the thing `findKeep_` exists to hold back, and it would throw away
    every verdict on the column. Each kind of answer is put back by the code that draws it: a box's value
@@ -424,6 +511,10 @@ function ansRefresh_(keys) {
       const card = el.closest('.qcard');
       [card && card.querySelector('.qp-mark[data-accept]'), card && card.querySelector('.qp-ai')].forEach(m => {
         if (!m) return;
+        /* EXCEPT AN ESSAY'S KEPT AI MARK, which is said again against the words now on the sheet -- fresh
+           if they are the ones it read, "before your changes" if not -- rather than blanked: blanking took
+           the verdict and left its points under an empty line (docs/history/312, `aiKeptPaint_`). */
+        if (m.classList.contains('qp-essay') && m.classList.contains('qp-ai') && typeof aiKeptPaint_ === 'function' && aiKeptPaint_(m, el)) return;
         m.classList.remove('is-right', 'is-near');
         const out = m.querySelector('.qp-verdict');
         if (out) out.textContent = '';
@@ -470,11 +561,198 @@ function ansFirstName_() {
   try { return String((USER && (USER.name || USER.handle)) || '').trim().split(/\s+/)[0] || ''; }
   catch (e) { return ''; }
 }
+/* ON THE ACCOUNT, AS THIS DEVICE LAST WROTE IT — so a store refusing the device's copy loses nothing
+   that a reload cannot bring back down. Asked by `keepAtRisk_` (data.js) before the browser is told to
+   ask "Leave site?". */
+function ansOnAccount_(k) {
+  try {
+    const who = ansWhoOf_(k);
+    return !!who && answersCan_('saveAnswers') && who === 'u:' + String(USER.personId)
+      && ansAt_(k) > 0 && !ansDirtySet_(who).has(k);
+  } catch (e) { return false; }
+}
+const ANS_NOT_KEPT = 'Not saved — this browser is not keeping it';
+/* ---------- AN EMPTY BOX OVER AN ANSWER THAT IS STILL HERE ---------------------------------------------
+   THE OTHER LOSS THE HUNT REPRODUCED (317, scenario B): a session the SERVER ended — signed out on
+   another device, a PIN changed, thirty days — answers `why: 'signed-out'` on the reload, `signedOut_`
+   forgets the person, and the box is drawn under the signed-out key: empty, over an essay of 3,015
+   characters still sitting under the person's own key. Nothing was deleted and nothing said so. `api()`
+   (shell.js) notes whose session the server ended (`familyGone`) and this says it under the box that
+   person had written in, until anybody signs in, and for an hour at most. The words only; the answer
+   stays theirs. */
+/* ---------- FOR AN HOUR, NOT UNTIL SOMEBODY SIGNS IN -----------------------------------------------------
+   `familyGone` IS `{ who, at }`. It was the bare key, cleared only by a sign-in or a chosen sign-out, so
+   on the family's iPad every signed-out visitor after the server ended a child's session was told
+   "your answer is back" under each question that child had answered — words addressed to somebody else,
+   and a list of what they had done (review of 317). It is for the person who was in front of the screen
+   when it happened, so it lasts `ANS_GONE_MS`: a reload in the same lesson, not tomorrow's visitor. */
+const ANS_GONE_MS = 60 * 60 * 1000;
+/* ---------- AND THE RECORD OF IT IS KEPT AS CAREFULLY AS THE WORK IT GUARDS ------------------------------
+   `familyGone` (whose session the server ended, and when) and `familyGoneKeys` (which signed-out answers
+   are theirs, below) were bare `setItem`s read back with `getItem`. A browser keeping no site data THROWS on
+   both, so `ansMayMove_` never knew whose an answer was and answered "anybody's" — and 318's claim, which
+   walks the visit's copies (`ANS_MEM`) exactly when storage throws, moved Ada's "(5)/(6)" into Ben's box and
+   up to Ben's account (review of the merge, P3). A store merely full at that moment lost the record the same
+   way. So both go through `keepPut_` (data.js) as a `'record'`: held for the visit when the store refuses
+   or throws, given the loading screen's room like an answer, tried again as the page goes — before the
+   answers waiting on it — and read with the visit's copy first (`ansValue_` → `keepHeld_`). */
+const ansRec_ = name => ansValue_(name);
+function ansRecPut_(name, v) {
+  if (typeof keepPut_ === 'function') { keepPut_(name, v, 'record'); return; }
+  try { if (v === null) localStorage.removeItem(name); else localStorage.setItem(name, v); } catch (e) {}
+}
+function ansGone_() {
+  try {
+    const g = JSON.parse(ansRec_('familyGone') || 'null');
+    return g && /^u:[^:]+$/.test(String(g.who || '')) && Date.now() - (Number(g.at) || 0) < ANS_GONE_MS ? String(g.who) : '';
+  } catch (e) { return ''; }
+}
+function ansGoneSay_(k) {
+  if (ansWhoOf_(k)) return '';
+  const gone = ansGone_();
+  if (!gone) return '';
+  const theirs = ansValue_(ansLocalKey_(ansServerKey_(k), gone));
+  return theirs !== null && String(theirs).trim() && theirs !== '[]'
+    ? 'Signed out — sign in again and your answer is back' : '';
+}
+/* ---------- AND WHAT THEY TYPE SIGNED OUT MEANWHILE IS STILL THEIRS ---------------------------------------
+   FOUND BY THE REVIEW OF 317, ON THE PATH THE LINE ABOVE PROTECTS: the server ended Sam's session, the
+   reload drew his essay's box empty and signed out, and he typed "More words" into it. Kit signed in next
+   and opened the question — and `ansRead_` (find.js), which moves a signed-out answer into whoever signs
+   in if their box is empty, moved Sam's words into KIT'S account. So a signed-out answer written while a
+   session the server ended is fresh (`ansGone_`) is marked as that person's, in `familyGoneKeys`, and
+   nothing moves it into anybody else's box: every path that moves a signed-out answer asks `ansMayMove_`
+   (below). It stays under the signed-out key, as it always did, until that person signs in. The mark
+   goes with the answer — emptied, or moved to them — and is never taken off by a later write: an answer
+   half one person's is not handed to the next.
+   A MARK IS `{ who, words }`: whose, and whether it was typed in a worded box (the `input` listener in
+   find.js says), which is what `ansJoin_` needs to know when they sign in again. */
+const ANS_GONE_KEYS = 'familyGoneKeys';
+function ansGoneMark_(k, v, words) {
+  if (!/^(ans|pad):/.test(String(k || ''))) return;
+  try {
+    const empty = v === null || v === undefined || !String(v).trim() || v === '[]';
+    const gone = empty ? '' : ansGone_();
+    if (!empty && !gone) return;
+    const raw = ansRec_(ANS_GONE_KEYS);
+    if (!raw && empty) return;
+    const map = JSON.parse(raw || '{}') || {};
+    const want = { who: gone, words: !!words };
+    const had = ansGoneRead_(map[k]);
+    if (empty ? !(k in map) : had && had.who === want.who && had.words === want.words) return;
+    if (empty) delete map[k]; else map[k] = want;
+    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway — ASKED OF `ansValue_`, which answers
+       with the visit's copy of a key the store refused. This asked `localStorage` alone, and so took the
+       mark off an answer the visit was holding (`keepPut_`, data.js) the moment the next box was typed
+       in; the store took the answer once there was room again, unmarked, and the next child to sign in
+       was given it (review of the merge, P6). */
+    Object.keys(map).forEach(x => { if (x !== k && ansValue_(x) === null) delete map[x]; });
+    ansRecPut_(ANS_GONE_KEYS, Object.keys(map).length ? JSON.stringify(map) : null);
+  } catch (e) {}
+}
+/* ONE MARK, READ — `{ who, words }`, or null. A bare string is a mark from before marks said how the
+   answer was typed. */
+function ansGoneRead_(m) {
+  if (!m) return null;
+  if (typeof m === 'string') return { who: m, words: false };
+  return typeof m === 'object' && m.who ? { who: String(m.who), words: !!m.words } : null;
+}
+function ansGoneOf_(bare) {
+  try { return ansGoneRead_((JSON.parse(ansRec_(ANS_GONE_KEYS) || '{}') || {})[bare]); } catch (e) { return null; }
+}
+/* ---------- AND NEVER ON THE DEVICE WITHOUT ITS MARK -------------------------------------------------------
+   Asked by `keepPut_` and `keepRetry_` (data.js) before they write a key. WHILE THE STORE IS REFUSING THE
+   MARKS, an answer they name waits for them in the visit, like any refused write ("Not saved" under its
+   box): written alone, it would be on the device with nothing to say whose it is, and after a reload it
+   would be anybody's. The marks are written first as the page goes, so the two land together. */
+function keepWaits_(k) {
+  if (typeof KEEP_UNKEPT === 'undefined' || !KEEP_UNKEPT.has(ANS_GONE_KEYS)) return false;
+  if (!/^(ans|pad):/.test(String(k || '')) || ansWhoOf_(k)) return false;
+  const held = ansGoneOf_(k);
+  if (!held) return false;
+  /* NOT WHEN THE STORED MARKS SAY THE SAME ALREADY — the refused write was about some other answer. */
+  let kept = null;
+  try { kept = ansGoneRead_((JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[k]); } catch (e) {}
+  return !(kept && kept.who === held.who);
+}
+/* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER -------------------------------------
+   `padKeptSay_` (below) says where drawings are kept, and only that: the review of 317 found it reading
+   "Kept on this device only" over strokes the store had refused, and saying nothing over a pad drawn
+   empty by a session the server ended. So the two lines the answer box gives come first here too.
+   AND THE WHITEBOARD'S (`board:`, find.js), which is a pen's note too: refused, it is "Not saved" like
+   anything else the store refused (the rule the board took from 317 when the two were merged — note
+   310); otherwise it is on this device and nowhere else, so never an account's sentence and never an
+   ended session's — `PAD_HERE_ONLY`. */
+function padNoteSay_(k) {
+  k = String(k || '');
+  const v = ansValue_(k);
+  const has = v !== null && !!String(v).trim() && v !== '[]';
+  if (has && typeof KEEP_UNKEPT !== 'undefined' && KEEP_UNKEPT.has(k) && !ansOnAccount_(k)) return ANS_NOT_KEPT + '.';
+  if (!/^(ans|pad):/.test(k)) return typeof PAD_HERE_ONLY === 'string' ? PAD_HERE_ONLY : 'Kept on this device only.';
+  const gone = has ? '' : ansGoneSay_(k);
+  return gone ? gone + '.' : padKeptSay_();
+}
+/* ---------- MAY THE SIGNED-OUT `bare` BECOME `k`'S — THE ONE QUESTION EVERY MOVE ASKS --------------------
+   FOUR PATHS MOVE A SIGNED-OUT ANSWER INTO SOMEBODY'S KEY: `answersClaim_` (above — signing in from
+   nobody), `ansRead_` and `padAdopt_` (find.js — a box or a pad drawn for somebody signed in) and
+   `circOf_` (find.js — the visit's rings, when storage throws). The guard used to be `ansGoneOthers_`,
+   which `ansRead_` and `padAdopt_` asked, `circOf_` did not, and `answersClaim_` had never heard of: 317
+   and 318 were built on separate branches, and once merged, 318's claim moved Ada's "More words" — typed
+   signed out after the server ended HER session — into Ben's box and up to Ben's account the moment Ben
+   signed in, the fault 317's review had just closed at the other doors. So all four ask this, and only
+   this:
+     ''        it was written while ANOTHER person's ended session was fresh (`familyGoneKeys`): it is
+               theirs, and stays under the signed-out key for them. Never moved, never sent.
+     'own'     it is THIS person's own, typed after the server ended their session. Drawn for them
+               (`ansRead_`, `padAdopt_`, `circOf_`) it moves only into an EMPTY box, as anything does
+               there. Signing in from nobody (`answersClaim_`) it is all theirs and none of it is left:
+               into an empty box, or JOINED to the answer there (`ansJoin_`, below) — never "the later
+               edit wins" over a worded answer. The box it was typed into was drawn empty because the
+               session had gone, over the answer the line under it promised back (`ansGoneSay_`), so it
+               was typed beside that answer, not over it: by the later edit, "More words" went in place
+               of a 3,000-character essay and up to the account — the owner's 9 Oct report again.
+               It was 'empty', and moved ONLY into an empty box at sign-in too, which left the words
+               typed beside the essay under the signed-out key for good (review of the merge, P1).
+     'later'   anybody's: no session ended. Whoever signs in, by 318's rule (`answersClaim_`).
+   WHOSE IS READ FROM THE VISIT'S COPY FIRST (`ansRec_`), so a store that throws or is full still knows. */
+function ansMayMove_(bare, k) {
+  const m = ansGoneOf_(bare);
+  if (!m) return 'later';
+  return m.who === ansWhoOf_(k) ? 'own' : '';
+}
+/* ---------- TWO ANSWERS OF ONE PERSON'S, PUT TOGETHER WHERE THEY CAN BE ONE --------------------------------
+   `mine` is what the box holds for them, `v` what they wrote signed out beside it after their session
+   ended (`answersClaim_`). Nothing of either is lost, and nothing is said twice:
+     a drawing   their strokes, then the ones drawn signed out
+     rings       every word either rang
+     words       theirs, a blank line, then the words typed signed out — the essay, then what was typed
+                 after it — unless theirs already holds them
+   ANYTHING ELSE IS ONE ANSWER, NOT TWO — a number, a pick, an order: `null`, and the later edit wins, as it
+   does for every other signed-out answer. So does a worded answer whose mark is from before marks said
+   how it was typed (`ansGoneRead_`). */
+function ansJoin_(bare, mine, v, words) {
+  if (ansIsPad_(bare) || ansIsRing_(bare)) {
+    try {
+      const a = JSON.parse(mine), b = JSON.parse(v);
+      if (!Array.isArray(a) || !Array.isArray(b)) return null;
+      const seen = new Set(a.map(x => JSON.stringify(x)));
+      const add = b.filter(x => { const s = JSON.stringify(x); if (seen.has(s)) return false; seen.add(s); return true; });
+      return add.length ? JSON.stringify(a.concat(add)) : mine;
+    } catch (e) { return null; }
+  }
+  if (!words) return null;
+  const add = String(v).trim();
+  if (String(mine).indexOf(add) !== -1) return mine;
+  return String(mine).replace(/\s+$/, '') + '\n\n' + add;
+}
 function ansSavedSay_(k) {
   k = String(k || '');
   const v = ansValue_(k);
-  if (v === null || !String(v).trim() || v === '[]') return '';
+  if (v === null || !String(v).trim() || v === '[]') return ansGoneSay_(k);
   const who = ansWhoOf_(k);
+  /* REFUSED BY THE STORE AND NOT ON THE ACCOUNT EITHER — the one line that must never say "on this
+     device", because it is on no device. `keepPut_` in data.js. */
+  if (typeof KEEP_UNKEPT !== 'undefined' && KEEP_UNKEPT.has(k) && !ansOnAccount_(k)) return ANS_NOT_KEPT;
   if (!who) return 'On this device only — sign in to keep it';
   if (!answersCan_('saveAnswers') || who !== 'u:' + String(USER.personId)) return 'On this device only';
   if (ansAt_(k) === ANS_HERE_ONLY) return 'On this device only \u2014 too long for the account';
@@ -483,6 +761,13 @@ function ansSavedSay_(k) {
   return name ? 'Saved to ' + name + '’s account' : 'Saved to your account';
 }
 function ansSavedPaint_() {
+  /* AND THE PEN'S AND THE RINGS' NOTE, which a refused stroke or an ended session changes too. */
+  try {
+    document.querySelectorAll('[data-kept-k]').forEach(el => {
+      const say = padNoteSay_(el.getAttribute('data-kept-k'));
+      if (el.textContent !== say) el.textContent = say;
+    });
+  } catch (e) {}
   try {
     document.querySelectorAll('.qp-saved[data-k]').forEach(el => {
       const say = ansSavedSay_(el.getAttribute('data-k'));
@@ -520,6 +805,33 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && Date.now() - ANS_PULL_AT > 60000) answersPull_(true);
 });
 window.addEventListener('pagehide', () => { answersPush_(true, true); });
+
+/* ---------- AND AN ANSWER WRITTEN IN ANOTHER TAB IS THE ANSWER IN THIS ONE -------------------------------
+   FOUND BY THE HUNT (317): the card open in two tabs, the essay (1,369 characters) written in one, a
+   single key pressed in the other — whose box was drawn empty before the first tab wrote — and that one
+   letter was saved over the essay, because the box saves its whole value. Nothing here listened for
+   `storage`, which a browser fires in every OTHER tab of the site when one writes. So a box, a pick, an
+   ordering, a drawing or a ring showing a key another tab has just written is given that tab's value
+   where it stands — a focused box too, since a `storage` event is never this tab's own keystroke — and
+   the keypad's undo for it forgets a history that is no longer this box's. */
+window.addEventListener('storage', e => {
+  const k = e && e.key;
+  if (!k || !/^(ans|pad):/.test(k)) return;
+  try {
+    if (typeof KEEP_UNKEPT !== 'undefined') KEEP_UNKEPT.delete(k);
+    ANS_MEM.delete(k);
+    if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') CIRC_HELD.delete(k);
+    const v = e.newValue === null ? '' : String(e.newValue);
+    document.querySelectorAll('[data-do="qp-ans"][data-k]').forEach(el => {
+      if (el.getAttribute('data-k') !== k || el.value === v) return;
+      el.value = v;
+      if (el.classList.contains('kp-in') && typeof kpRender_ === 'function') kpRender_(el);
+    });
+    if (typeof KP_UNDO !== 'undefined' && KP_UNDO && typeof KP_UNDO.delete === 'function') KP_UNDO.delete(k);
+    ansRefresh_([k]);
+    ansSavedPaint_();
+  } catch (err) {}
+});
 
 /* ==================================================================================================
    AND THE FIND COLUMN IS NOT REBUILT UNDER A CHILD WHO IS WRITING.
@@ -583,4 +895,8 @@ function answersForget_() {
   ANS_PULL_AT = 0;
   clearTimeout(ANS_RETRY);
   ANS_BACKOFF = 0;
+  /* AND THE NOTE OF A SESSION THE SERVER ENDED (`ansGoneSay_`): whoever signs in next, or a sign-out
+     somebody chose, is a new start. `api()` writes it again AFTER this, for the sign-out it causes.
+     Through `ansRecPut_`, so the visit's copy goes with the stored one. */
+  try { ansRecPut_('familyGone', null); } catch (e) {}
 }

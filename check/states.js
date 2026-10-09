@@ -443,6 +443,33 @@ const STATES = {
       },
       wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A COURSEWORK, ON ITS STAGES PAGE ------------------------------------------------
+       "i would like to add course works. make it bare bones. its within projects in finder." — the
+       owner, 9 Oct. The project's state with the type chosen, as the funnel's own two answers:
+       Projects, then Coursework, then the coursework's STAGES page — so the card with the board on
+       its strip, the Stages list and the share tile beside them are the ones measured, and the
+       longest strip and longest list any project card carries is the one at 320px. */
+    { name: 'a coursework',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'project' && it.row && it.row.projectType === 'coursework');
+        if (!x) throw new Error('no coursework in the list — data/projects.json has no `project_type: coursework` row');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'projectType', value: x.projectType }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'steps')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        const main = document.querySelector('#s-stuff .card.proj:not(.prac-part)');
+        const steps = document.querySelector('#s-stuff .card.proj.is-steps');
+        const flags = [...document.querySelectorAll('#s-stuff .card.proj:not(.prac-part) .fc-flag')].map(f => f.textContent.trim());
+        return !!main && !!steps
+               && flags.length > 0 && flags.every(f => f === 'Coursework')
+               && ((steps.querySelector('h3') || {}).textContent || '') === 'Stages'
+               && !!steps.querySelector('.prac-steps ol > li');
+      },
+      wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
        "the @family textbook should be bare bones for now and the textbooks will be in the resources
        tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
@@ -1845,6 +1872,82 @@ const STATES = {
       wants: 'Q33\u2019s worded box focused, the pad up on its letters (39 keys on sixty columns, the maths pad\u2019s bottom row), "Hi" typed by the pad, the box locked and wholly above the pad',
       leave: () => {
         try { localStorage.removeItem(window.__abcKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AN ESSAY, WRITTEN ON ITS SHEET IN PARAGRAPHS, THE PAD UP ---------------------------------
+       THE OWNER, 9 Oct, about a pupil on AQA English Language Paper 1, June 2017, Section B: *"firstly it
+       doesnt let him do paragraphs and also i want it to mark with ai."* The real Q-R0398-5 -- forty marks
+       of writing -- drawn as a SHEET (`ansEssay_`, keypad.js; `.qp-sheet` in style.css), focused, and three
+       paragraphs written into it through the pad: words on the letters' keys, each paragraph break on
+       the essay's own RETURN key (two presses, a blank line), the rest of each paragraph handed to the
+       pad's edit as a laptop's keys are. Pictured so `check/ui.js` measures the sheet and the essay's
+       letters at every width -- the return key's size and face, the paper against the card (EDGE), the
+       word count's contrast. Expect: the pad up on the essay's letters (40 keys, one return, labelled),
+       the value holding two paragraph breaks, the drawing the same, the count right, the row under the
+       sheet (and so the sheet) wholly above the pad, and the line being written -- the caret -- inside
+       the sheet's window and above the pad, the thing "growing, then scrolling inside" is for. */
+    { name: 'an essay, three paragraphs on its sheet, the pad up',
+      enter: () => {
+        const id = 'Q-R0398-5';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__essayKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const PARAS = ['the bus shuddered away from the kerb and the town slid past the window like a film somebody had forgotten to stop. Rain had been falling since breakfast.',
+          'beside me an old man held a paper bag of oranges on his knee as if it were something precious, and each time the driver braked he steadied it with both hands.',
+          'by the time we reached the coast road the clouds had torn open, and the old man stepped down into the brightness, leaving the smell of oranges behind him.'];
+        let tries = 0;
+        const up = () => {
+          const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!ta || moving || !ta.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          ta.focus();
+          if (KP_AT !== ta) kpOpen_(ta);
+          const key = v => document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+          PARAS.forEach((p, i) => {
+            if (i) { key('!nl').click(); key('!nl').click(); }
+            /* THE FIRST WORD ON THE KEYS, the capital put in by itself; the rest as a laptop types it. */
+            const first = p.split(' ')[0];
+            first.split('').forEach(c => { const k = key(c); if (k) k.click(); });
+            kpType_(ta, p.slice(first.length), true);
+          });
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+        if (!pad || pad.hidden || !ta || !ta.hasAttribute('data-kp-essay')) return false;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
+        const essay = ta.closest('.qp-essay');
+        const foot = essay && essay.querySelector('.qp-sheet-foot');
+        const show = ta.parentNode.querySelector('.kp-show');
+        const caret = show && show.querySelector('.kp-caret');
+        const v = ta.value;
+        if (!ret || !foot || !caret || (v.match(/\n\n/g) || []).length !== 2 || !/^The bus/.test(v) || !/\n\nBeside/.test(v) || !/\n\nBy the time/.test(v)) return false;
+        const padTop = pad.getBoundingClientRect().top;
+        const c = caret.getBoundingClientRect(), sr = show.getBoundingClientRect();
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        return pad.getAttribute('data-layer') === 'abc' && keys.length === 40
+               && keys.filter(b => b.getAttribute('data-v') === '!nl').length === 1 && /return/.test(ret.textContent)
+               && ret.getBoundingClientRect().height >= tall - 0.5 && ret.getBoundingClientRect().width >= 44
+               && ta.readOnly && ta.getAttribute('inputmode') === 'none'
+               && show.textContent === v
+               && essay.querySelector('.qp-words').textContent === kpWordsSay_(kpWordCount_(v))
+               && foot.getBoundingClientRect().bottom <= padTop + 0.5
+               && c.top >= sr.top - 1 && c.bottom <= sr.bottom + 1 && c.bottom <= padTop && c.top >= 0;
+      },
+      wants: 'Q-R0398-5 drawn as a sheet, the pad up on the essay\u2019s letters (40 keys, one labelled return at least 44px), three paragraphs typed with two blank lines between them, the count right, the row under the sheet above the pad and the caret in the sheet\u2019s window',
+      leave: () => {
+        try { localStorage.removeItem(window.__essayKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
@@ -3978,6 +4081,35 @@ const STATES = {
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
   ],
 
+  /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
+     NOT LEFT TO THE DEFAULT. A column with no entry here is measured in the state it opens in with
+     nothing asked of it, and "nothing to press" printed by `check/press.js` is the same silence
+     whether the column drew its card or drew nothing. So the one state says what it must be looking
+     at — the card, "Not built yet.", and not a control on it — for both visitors, which is the
+     placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup.
+     The day the column is built this entry is where its states go.
+
+     BOTH HALVES OF THE RULE, the three questions `placeholderFaults_` asks in check-flow.js — written
+     out again here because `expect` is sent to the page as a string and can reach nothing of this
+     file. The first version asked only "is there a control", with a selector that did not name a
+     `<summary>`: a card given "Streak: 0 days · 0% of the course done", a bar at nought per cent and
+     a `<details>` was measured as this state, and `check/ui.js` went red on it only because the
+     summary was too small to tap (review, 9 October). So: nothing pressable anywhere in the column,
+     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. */
+  progress: [
+    { name: '',
+      expect: () => {
+        const h = document.getElementById('s-progress');
+        const pane = h && h.querySelector(':scope > .page > .pane');
+        if (!pane || !pane.querySelector('.card h3') || !/Not built yet/.test(pane.textContent)) return false;
+        if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
+          + '[tabindex], [onclick], [role], [contenteditable]')) return false;
+        if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
+        return !/\d/.test(pane.textContent);
+      },
+      wants: 'Progress card saying it is not built yet: drill\'s markup only, no number, nothing on it to press' },
+  ],
+
   /* ---------- THE SHOP ------------------------------------------------------------------------
      THE UNNAMED STATE IS PAGE 0, the basket, empty — which is what every visitor lands on. The two
      below are what a fixture with no shop rows could never have drawn: a shelf of shop cards, and a
@@ -4436,6 +4568,38 @@ const STATES = {
         KT = null;
         document.activeElement && document.activeElement.blur && document.activeElement.blur();
         initTyping();
+      } },
+
+    /* ---------- THE WHITEBOARD, LOCKED, WITH SOMETHING ON IT --------------------------------------
+       KEPT ON THE DEVICE, so it opens blank and unlocked on every run -- a cream rectangle measures
+       perfectly. The state somebody is actually in is the other one: the padlock lit, the gold frame
+       round the board, marks on it, and the bar and the note still inside a pane that clips. That is
+       the case the board's height is capped for (`.wb` in style.css), at 320x568 above all.
+       Seeded through the app's own key (`padKey_(WB_ITEM)`) and the app's own writer (`ansStore_`),
+       and locked the way a repaint finds it (`PAD_ON`), so nothing here spells the key out. A ruled
+       line across the top, a triangle and a ring: a stroke that touches the board's edges is the one
+       that would show a board drawn the wrong shape. */
+    { name: 'a whiteboard with a drawing on it',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard');
+        if (n < 0) throw new Error('no whiteboard widget in the roster');
+        goPage('tools', n, true);
+        const k = padKey_(WB_ITEM);
+        const ring = [];
+        for (let i = 0; i <= 48; i++) ring.push(Math.round(170 + 60 * Math.cos(i / 24 * Math.PI)), Math.round(255 + 45 * Math.sin(i / 24 * Math.PI)));
+        ansStore_(k, JSON.stringify([[0, 20, 340, 20], [70, 190, 170, 50, 270, 190, 70, 190], ring]));
+        PAD_ON = k;
+        initWhiteboard();
+      },
+      expect: () => document.querySelectorAll('#s-tools #wgt-whiteboard .qpad.is-drawing .qpad-g path').length === 3
+                    && document.querySelector('#s-tools #wgt-whiteboard .qpad-ink[data-noswipe]')
+                    && document.querySelectorAll('#s-tools #wgt-whiteboard .qpad-bar .tile').length === 3,
+      wants: 'the board locked, three marks on it, and the padlock, Undo and Clear under it',
+      leave: () => {
+        const k = padKey_(WB_ITEM);
+        PAD_ON = '';
+        ansStore_(k, null);
+        initWhiteboard();
       } },
   ],
 
@@ -5182,6 +5346,170 @@ const STATES = {
         try { camStop_(); } catch (e) {}
         CAM_FAILED = null;
       } },
+    /* ---------- A POST'S FACES, IN EVERY STATE THEY ARE DRAWN IN ---------------------------------
+       THE OWNER, 9 Oct: *"Also refine how the post reactions look. Looks abit scuffed right bow"* —
+       and this lab had never drawn the row. The fixture's post sent `{"👍": 3}`, a shape `doGet` has
+       never sent, which `reacts()` draws as nothing; so tap size, contrast and sideways overflow had
+       been measured across every width on a post with no faces on it. The fixture sends the real
+       shape now (six house faces, counts, total, yours, by) and these are the states the row is in:
+       nobody, some, yours, a post's own set of more than six with three-digit and four-digit counts,
+       and the who-reacted sheet open. Signed out is the other visitor, and runs all but "yours".
+
+       SEEDED THROUGH `DATA.posts`, THE APP'S OWN DOOR — the post's `reactions` is exactly what the
+       payload's arrival puts there — then `repaint` and `goPage` to the post, which is what a finger
+       does. `PO1` because it is the fixture's post with a picture, so the row is where it is on most
+       posts: directly under the photograph. AND PUT BACK, because states run in order down one page
+       and the next would otherwise be measuring this one's counts. */
+    { name: 'reactions nobody',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                        total: 0, yours: '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        return !!el && el.querySelectorAll('.reacts .react').length === 6
+          && !el.querySelector('.react-n') && !el.querySelector('.react-who');
+      },
+      wants: 'the post on the screen with six empty pills and no total',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    { name: 'reactions some',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
+                        total: 4, yours: '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
+                             { name: 'Carl Everyclient', emoji: '👍' },
+                             { name: 'Evie Everystudent-Longername', emoji: '❤️' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        /* ONE LINE FOR THE STRANGER TOO: "yours" runs only signed in, and this runs for both. */
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
+        return !!el && el.querySelectorAll('.reacts .react-n').length === 2
+          && faces.length === 6 && tops.size === 1
+          && /4 reactions/.test((el.querySelector('.post-when .react-who') || {}).textContent || '');
+      },
+      wants: 'the post on the screen with six faces on one line, two counted, and "4 reactions" on its time line',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* EVERY FACE COUNTED IN TWO DIGITS AND ONE OF THEM YOURS — the widest the house row gets on a
+       busy post, and the gold one with its heavier count inside a 41px cell at 320.
+       AND ALL SIX ON ONE LINE, which is the redesign's whole claim: the scuff was a row that wrapped
+       🎉 onto a line of its own, and a count that grew reflowing the row. Nothing held it — a grid
+       changed to wrap the six as 5+1 at 320 passed this file clean, because this asked only for
+       `.mine` and six counts. The same idiom as the wrapping state: one distinct top, one line. */
+    { name: 'reactions yours',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [12, 9, 15, 3, 27, 11],
+                        total: 77, yours: '❤️',
+                        by: [{ name: USER.name, emoji: '❤️' }, { name: 'Ada Tutor', emoji: '👍' },
+                             { name: 'Priya Parent', emoji: '😂' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        const mine = el && el.querySelector('.react.mine');
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
+        return !!mine && mine.dataset.emoji === '❤️' && mine.getAttribute('aria-pressed') === 'true'
+          && el.querySelectorAll('.reacts .react-n').length === 6
+          && faces.length === 6 && tops.size === 1;
+      },
+      wants: 'the post on the screen with six counted faces on ONE line and ❤️ drawn as yours',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* A POST'S OWN CELL NAMING NINE FACES, with three- and four-digit counts: the one case the row
+       wraps (into the same columns, six and three), and the one case a count steps down a size
+       (`is-long`) or rounds (`1k`). Yours too when signed in, on a three-digit face. */
+    { name: 'reactions many and wrapping',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉', '🔥', '🙏', '💯'],
+                        counts: [999, 1500, 212, 7, 0, 45, 3, 0, 1], total: 2767,
+                        yours: signed ? '😂' : '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        if (!el) return false;
+        const faces = [...el.querySelectorAll('.reacts .react')];
+        const top = faces.map(f => Math.round(f.getBoundingClientRect().top));
+        const tops = new Set(top);
+        /* SIX ON THE FIRST LINE, NOT JUST TWO LINES: a grid that wrapped at five drew 5+4, which is
+           also two lines and passed. The house set's six columns are the claim; a ninth face starts
+           the second line in them. */
+        const first = top.filter(t => t === Math.min(...top)).length;
+        return faces.length === 9 && tops.size === 2 && first === 6 && !!el.querySelector('.react.is-long')
+          && [...el.querySelectorAll('.react-n')].some(n => n.textContent === '1k');
+      },
+      wants: 'the post on the screen with nine faces on two lines (six, then three), a three-digit count stepped down and 1500 drawn as 1k',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* WHO REACTED, OPEN — the sheet is outside `#s-feed`, and `check/ui.js` measures it when one is
+       open. Groups most-used first, a long name, and yours the gold pill when signed in. Opened
+       through the total's own handler, and shut on the way out (a sheet survives `go()`). */
+    { name: 'reactions who reacted',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [2, 1, 3, 0, 0, 0],
+                        total: 6, yours: signed ? '😂' : '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '😂' },
+                             { name: 'Evie Everystudent-Longername', emoji: '😂' },
+                             { name: 'Carl Everyclient', emoji: '❤️' }]
+                             .concat(signed ? [{ name: USER.name, emoji: '😂' }] : []) };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const t = document.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+        if (!t) throw new Error('no total on the post to open who reacted from');
+        ACTIONS['who-reacted'](t);
+      },
+      expect: () => {
+        const sh = document.getElementById('sheet');
+        const g = [...document.querySelectorAll('#sheet-body .rx-group .rx-pill .react-e')].map(x => x.textContent);
+        return !!sh && !sh.classList.contains('hidden') && g.join(' ') === '😂 👍 ❤️';
+      },
+      wants: 'the who-reacted sheet open with 😂, 👍 and ❤️ in that order',
+      leave: () => {
+        closeSheet();
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
   ],
 
   booking: [
@@ -5757,10 +6085,13 @@ const STATES = {
           && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
       },
       wants: 'two chips waiting, a paragraph in the box and Send beside it rather than under it',
+      /* EMPTIED AS A PERSON EMPTIES IT, with `input`: the paragraph is a DRAFT now (data.js; docs/history
+         317), kept as it was typed and drawn back by every redraw of Messages — set to '' without telling
+         anybody, it came back in the next state's composer. */
       leave: () => {
         delete MSG_QUEUE['P009'];
         const b = document.querySelector('#s-dm .msg-text');
-        if (b) { b.value = ''; b.style.height = ''; }
+        if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],
 };

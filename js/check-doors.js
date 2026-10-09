@@ -234,6 +234,29 @@ const noPager    = [...paged].filter(t => !pagerKeys.has(t)).sort();
 const orderOff   = [...new Set([...tabIds].filter(t => !tabOrder.includes(t))
                      .concat(tabOrder.filter(t => !tabIds.has(t))))].sort();
 
+/* ---------- AND THE SIXTH PLACE, WHICH IS THE ONE THE PHONE ACTUALLY OBEYS ---------------------------
+   `data/settings/columns.json` DECIDES WHICH COLUMNS THE APP HAS, not only their order: `applyColumns_`
+   in shell.js rebuilds `TABS` from the rows it is handed, so a tab with no row is not drawn on any
+   phone — with every comparison above green, because all five of them read the code. Found adding
+   `progress` (docs/history/320): the five agreed, and without its row the column would have shipped
+   to nobody. `check-flow` cannot see it either — its stub answers that file with the payload, which
+   has no `length`, so `settingsInto_` skips it and the journeys run on the code's own list.
+
+   A ROW THAT IS SWITCHED OFF COUNTS. `active` FALSE is somebody's decision and this asks only that
+   there was one. A row naming a screen the build does not have is reported the other way round —
+   it is ignored rather than drawn, and a row nobody can act on is the `make` row that outlived its
+   column. A file that cannot be read is said, not skipped: a check that cannot reach its subject is
+   not a pass. */
+let colRows = null;
+try {
+  colRows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+} catch (e) { colRows = null; }
+const colNamed = new Set(Array.isArray(colRows)
+  ? colRows.map(r => String((r && r.screen) || '').trim()).filter(Boolean) : []);
+const noColumnRow = !Array.isArray(colRows) ? ['(data/settings/columns.json could not be read)']
+  : [...new Set([...tabIds].filter(t => !colNamed.has(t))
+       .concat([...colNamed].filter(t => !tabIds.has(t))))].sort();
+
 const noDoor = [...handlers.keys()]
   .filter(a => !doors.has(a) && !dynamicDoors.has(a) && !deliberatelyIdle.has(a)).sort();
 const noHandler = [...doors.keys()].filter(a => a !== '${…}' && !handlers.has(a)).sort();
@@ -258,6 +281,9 @@ say('A PAGED SCREEN WITH NO PAGER ENTRY — no `paged` class, no vertical axis, 
     noPager, t => 'pages(\'' + t + '\', …) is built, PAGER has no \'' + t + '\'');
 say('TABS AND TAB_ORDER NAME DIFFERENT SCREENS — an unknown id sorts to the FRONT, at index −1',
     orderOff, t => 'in one and not the other');
+say('TABS AND data/settings/columns.json NAME DIFFERENT SCREENS — a tab with no row is on no phone',
+    noColumnRow, t => t.startsWith('(') ? ''
+      : tabIds.has(t) ? 'TABS has it, no row in columns.json' : 'a row, and no tab in TABS');
 
 say('HANDLER WITH NO DOOR — nothing on screen can reach it', noDoor,
     a => 'on(\'' + a + '\') in ' + handlers.get(a) + '.js, no data-do anywhere');
@@ -277,4 +303,5 @@ console.log('');
 console.log('handlers: ' + handlers.size + '   doors: ' + (doors.size - (doors.has('${…}') ? 1 : 0))
             + '   screens: ' + screens.size);
 process.exit(noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
-             + noSection.length + noDraw.length + noPager.length + orderOff.length ? 1 : 0);
+             + noSection.length + noDraw.length + noPager.length + orderOff.length
+             + noColumnRow.length ? 1 : 0);

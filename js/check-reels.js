@@ -14,6 +14,20 @@
    end in somebody else's player in an iframe — no autoplay, no mute, no pause — and that route was
    removed on "remove the embedded reels. they suck." `clipPlayable_` in games.js drops such a row
    from the column; this refuses one in `FEED_FACTS`, so the code's own list cannot grow one again.
+   A Drive ADDRESS is refused as well as a bare id: Drive never hands a `<video>` the bytes.
+
+   AND A YOUTUBE ADDRESS IS ACCEPTED, AS THE ONE EMBED THE COLUMN CAN DRIVE (note 319). Its player
+   takes play, pause, mute and unmute by message, which is what the other two never did. It is not a
+   file, so none of the four questions below is asked of it — no path, no codec, no `moov`, no
+   `x.jpg` (its poster is YouTube's own thumbnail). Two things are asked instead: that the address
+   names ONE video (a channel or a playlist is refused), and that it carries no `si=` — the share
+   link's tag for who shared it, which in a public repository is a person's trail left in the code.
+
+   AND THIS FILE'S COPY OF THE TEST IS HELD AGAINST THE APP'S. The copy exists so a wrong `games.js`
+   cannot vouch for itself; it is only worth that while the two agree. So the real `clipPlayable_`,
+   `clipSrc_` and `vidYouTubeId_` are cut out of games.js by name and asked the same addresses —
+   every shape a YouTube link is copied in, Drive both ways, Instagram, a channel, a playlist — and a
+   disagreement is a failure rather than a drift nobody sees.
 
    FOUR QUESTIONS, AND EVERY ONE OF THEM IS A FAULT THAT HAPPENED OR NEARLY DID:
 
@@ -45,10 +59,16 @@ const fs = require('fs');
    is wrong even when `js/games.js` is the thing that is wrong. It is about the DATA, so it carries
    its own copy, and a drift between them shows up as a row this names and the app draws, or the
    reverse. */
-const EMBED_ONLY = /(?:^|\/\/)(?:www\.)?instagram\.com\//i;
-const playable = c => !!c && !EMBED_ONLY.test(c)
-  && (/^[a-z][a-z0-9+.-]*:/i.test(c) ? /^https?:\/\//i.test(c) : c.indexOf('/') !== -1);
+const EMBED_ONLY = /(?:^|\/\/)(?:[a-z0-9-]+\.)*(?:instagram\.com|drive\.google\.com|docs\.google\.com)\//i;
+/* A YOUTUBE ADDRESS, EVERY SHAPE IT IS COPIED IN — and an id of exactly eleven characters, so a
+   channel or a playlist page is not mistaken for a video. Copied for the reason the line above is. */
+const YT_ID = /^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/)|youtube-nocookie\.com\/embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/i;
+const YT_HOST = /^https?:\/\/(?:[a-z0-9-]+\.)*(?:youtube\.com|youtube-nocookie\.com|youtu\.be)(?:[\/?#]|$)/i;
+const ytId = c => (String(c || '').trim().match(YT_ID) || [])[1] || '';
+const playable = c => !!c && !EMBED_ONLY.test(c) && (!!ytId(c) || (!YT_HOST.test(c)
+  && (/^[a-z][a-z0-9+.-]*:/i.test(c) ? /^https?:\/\//i.test(c) : c.indexOf('/') !== -1)));
 const path = require('path');
+const { cutFrom } = require('./check-marks-load.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -131,6 +151,21 @@ function look(file) {
   };
 }
 
+/* THE APP'S OWN TEST, cut out of games.js by name with the repository's one cutter (the marking
+   checks' — brace-counted, so a regex's `{11}` cannot end a function early) and run here on its own.
+   They touch nothing but each other, which is what makes that safe. `null` if any is missing, and the
+   caller fails: a check that cannot reach its subject must not report that the subject is fine. */
+function appClips_() {
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'games.js'), 'utf8');
+  const names = ['CLIP_EMBED_ONLY', 'CLIP_YT_HOST', 'clipPlayable_', 'clipYt_', 'clipSrc_', 'vidYouTubeId_'];
+  const parts = names.map(n => cutFrom(src, n));
+  if (parts.some(x => !x)) return null;
+  try {
+    return new Function(parts.join('\n')
+      + '\nreturn { clipPlayable_: clipPlayable_, clipSrc_: clipSrc_, vidYouTubeId_: vidYouTubeId_ };')();
+  } catch (e) { return null; }
+}
+
 function run() {
   const rows = clips();
   if (!rows) {
@@ -145,9 +180,27 @@ function run() {
 
   rows.forEach(r => {
     if (!playable(r.clip)) {
-      bad.push('row ' + r.n + ': ' + JSON.stringify(r.clip.slice(0, 60)) + ' can only be played in '
-             + 'somebody else\'s embedded player (a Drive id or an Instagram post). Embedded reels '
-             + 'were removed — put the video file in data/reels/ and name its path');
+      bad.push('row ' + r.n + ': ' + JSON.stringify(r.clip.slice(0, 60)) + (YT_HOST.test(r.clip)
+        ? ' is a YouTube page with no one video in it (a channel, a playlist, a search). Name the '
+          + 'video: a watch, Shorts or youtu.be address'
+        : ' can only be played in somebody else\'s embedded player (a Drive file or an Instagram '
+          + 'post). Embedded reels were removed — put the video file in data/reels/ and name its path'));
+      return;
+    }
+    /* ---------- A YOUTUBE ROW: ONE VIDEO, AND NOBODY'S SHARE TAG ON IT -----------------------------
+       `?si=` IS WHAT THE SHARE BUTTON ADDS, and it is the sharer's, not the video's: the link works
+       exactly the same without it. The owner's Short arrived with one. In a public file it is a
+       thread from this repository back to whoever pressed Share, so it is refused here rather than
+       trusted to be noticed in review. */
+    const yt = ytId(r.clip);
+    if (yt) {
+      if (/[?&]si=/i.test(r.clip)) {
+        bad.push('row ' + r.n + ': ' + r.clip + ' carries a ?si= share tag — it identifies who shared '
+               + 'it and the video plays the same without it. Cut it off: '
+               + r.clip.replace(/[?&]si=[^&#]*/i, '').replace(/[?&]$/, ''));
+        return;
+      }
+      seen.push({ r: r, where: 'youtube', id: yt });
       return;
     }
     if (!isRepoPath(r.clip)) { seen.push({ r: r, where: 'elsewhere' }); return; }
@@ -203,6 +256,11 @@ function run() {
 
   console.log('\nREELS');
   seen.forEach(s => {
+    if (s.where === 'youtube') {
+      console.log('  row ' + s.r.n + '  ' + s.r.clip.slice(0, 60) + '   (YouTube ' + s.id
+        + ', driven by the column — no file here; its poster is YouTube\'s thumbnail)');
+      return;
+    }
     if (s.where === 'elsewhere') {
       console.log('  row ' + s.r.n + '  ' + s.r.clip.slice(0, 60) + '   (a file on another server)');
       return;
@@ -228,6 +286,58 @@ function run() {
     + (heavy.length ? ' · ' + heavy.length + ' over 10 MB' : '')
     + (noStill.length ? ' · ' + noStill.length + ' with no poster' : ' · every one has a poster'));
 
+  /* ---------- THE COPY ABOVE, HELD AGAINST THE APP'S OWN FUNCTIONS -------------------------------
+     Every address is asked three times: what it SHOULD be (written here, by hand), what this file's
+     copy says, and what the real `clipPlayable_` / `clipSrc_` / `vidYouTubeId_` in games.js say.
+     Each row is a shape somebody will paste: the four ways a YouTube link is copied, the nocookie host
+     the Videos card embeds, a mobile link with its id after another parameter — and the eight that
+     must stay out, the mobile Instagram link among them (it passed while only `www.` was refused).
+     A YouTube clip's `clipSrc_` must be '' — it is never a `<video>`'s source. */
+  const app = appClips_();
+  if (!app) {
+    bad.push('clipPlayable_, clipSrc_ and vidYouTubeId_ could not be cut out of js/games.js — renamed? '
+           + 'This check cannot say the app agrees with it without them');
+  } else {
+    const CASES = [
+      ['data/reels/archetest.mp4', true, ''],
+      ['https://example.org/clip.mp4', true, ''],
+      ['https://youtube.com/shorts/jD2Yy_wCBLE', true, 'jD2Yy_wCBLE'],
+      ['https://www.youtube.com/watch?v=abcdefghijk', true, 'abcdefghijk'],
+      ['https://youtu.be/abcdefghijk', true, 'abcdefghijk'],
+      ['https://www.youtube.com/embed/abcdefghijk', true, 'abcdefghijk'],
+      ['https://www.youtube-nocookie.com/embed/abcdefghijk', true, 'abcdefghijk'],
+      ['https://m.youtube.com/watch?feature=share&v=abcdefghijk', true, 'abcdefghijk'],
+      ['1AbCdEfGhIjKlMnOpQrStUvWxYz012345', false, ''],
+      ['https://drive.google.com/file/d/1AbCdEfGhIjK/view', false, ''],
+      ['https://drive.google.com/uc?export=download&id=1AbCdEfGhIjK', false, ''],
+      ['https://www.instagram.com/reel/Cabcdefghij/', false, ''],
+      ['https://m.instagram.com/reel/Cabcdefghij/', false, ''],
+      ['https://www.youtube.com/@examplechannel', false, ''],
+      ['https://www.youtube.com/playlist?list=PLabcdefghijklmnop', false, ''],
+      ['ftp://example.org/clip.mp4', false, ''],
+    ];
+    const say = (c, what, want, mine, theirs) => {
+      if (mine !== want) bad.push('this check\'s copy says ' + JSON.stringify(c) + ' ' + what + ' is '
+        + JSON.stringify(mine) + ', and it should be ' + JSON.stringify(want));
+      if (theirs !== want) bad.push('js/games.js says ' + JSON.stringify(c) + ' ' + what + ' is '
+        + JSON.stringify(theirs) + ', and it should be ' + JSON.stringify(want));
+    };
+    let asked = 0;
+    CASES.forEach(([c, ok, id]) => {
+      say(c, 'playable', ok, playable(c), !!app.clipPlayable_(c));
+      say(c, '→ YouTube id', id, ytId(c), app.vidYouTubeId_(c) || '');
+      if (id && app.clipSrc_(c) !== '') bad.push('js/games.js hands the YouTube clip ' + c
+        + ' to a <video> as its src — a web page is not a file');
+      asked++;
+    });
+    rows.forEach(r => {
+      if (playable(r.clip) !== !!app.clipPlayable_(r.clip)) bad.push('row ' + r.n + ': this check and '
+        + 'js/games.js disagree about whether ' + r.clip + ' is a reel');
+    });
+    console.log('\nthe app\'s clipPlayable_ / vidYouTubeId_ asked ' + asked + ' addresses and every row; '
+      + 'this file\'s copy asked the same');
+  }
+
   console.log('\nA REEL THAT WOULD BE DARK  (' + bad.length + ')');
   if (!bad.length) console.log('  none');
   bad.forEach(b => console.log('  ' + b));
@@ -238,7 +348,8 @@ function run() {
     process.exitCode = 1;
   } else {
     console.log('OK — every clip named in FEED_FACTS is a file that is there, spelled the way the '
-              + 'row spells it, and shaped so a phone can start it before it has all of it.');
+              + 'row spells it, and shaped so a phone can start it before it has all of it — or one '
+              + 'YouTube video, with nobody\'s share tag on it.');
   }
 }
 
