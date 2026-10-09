@@ -759,7 +759,7 @@ function feedColours(seed) {
 }
 
 /* The card. The HEADING is the fact, so it takes the space; the body is why, so it is small. */
-/* ---------- WHERE A CLIP IS, AND THE ONLY KIND THERE IS NOW ---------------------------------------
+/* ---------- WHERE A CLIP IS, AND THE TWO KINDS THERE ARE --------------------------------------------
    A `clip` IS A VIDEO FILE — a path beside this site (`data/reels/x.mp4`) or a whole `http(s)` URL
    to one. That is the one thing a `<video>` can mute, autoplay, loop and pause, which is what every
    other line of the Reels column is written against.
@@ -779,19 +779,61 @@ function feedColours(seed) {
    SO A ROW THAT CAN ONLY BE EMBEDDED IS NOT A REEL AND IS DROPPED FROM THE LIST, rather than drawn as
    a slide that never plays. `clipPlayable_` is the one test and `clipsNow_` filters on it, so the
    column, the "One more thing" widget and the pager all agree about what counts. `check-reels.js`
-   refuses such a row in `FEED_FACTS` outright, so the code's own list cannot grow one again. */
-const CLIP_EMBED_ONLY = /(?:^|\/\/)(?:www\.)?instagram\.com\//i;
+   refuses such a row in `FEED_FACTS` outright, so the code's own list cannot grow one again.
+
+   ---------- AND A YOUTUBE ADDRESS IS THE SECOND KIND, BECAUSE ITS PLAYER TAKES ORDERS -------------
+   ASKED FOR ON 9 OCT WITH A SHORT'S ADDRESS: *"i want to add this to reels, maybe embedd? or work
+   fine without? i just want it to look like other reels"*. A YouTube video has no address a
+   `<video>` can read, so it is the embed or nothing — and that sounds like the thing that was
+   removed. It is not, and the difference is the whole of the owner's complaint about the other two:
+   what sucked was a player THIS COLUMN COULD NOT DRIVE. Drive's and Instagram's would not start by
+   themselves, would not be muted or paused from outside, and drew their own controls.
+
+   YOUTUBE'S IFRAME PLAYER IS DRIVEN BY MESSAGES. With `enablejsapi=1` it answers `postMessage` —
+   `playVideo`, `pauseVideo`, `mute`, `unMute` — says what it is doing (`onStateChange`) and what went
+   wrong (`onError`), and every browser lets it start by itself muted. So a Short gets everything an
+   mp4 reel has, done by the app: it plays when it is the reel on screen and stops when it is not, a
+   tap holds it and draws the ▶, the app's own Sound button speaks, and its own first frame is on the
+   slide from the moment you arrive. `reelYtPlay_` and the functions round it in posts.js are that half.
+   YouTube's buttons are never pressed: a clear layer over the player takes every touch.
+
+   THE ADDRESS IS READ BY `vidYouTubeId_`, the Videos card's own parser below, and not by a second
+   one here — every shape a YouTube address is copied in (watch, Shorts, youtu.be, embed) and an id
+   of exactly eleven characters. A YouTube address it finds no video in (a channel, a playlist, a
+   search) is refused rather than handed to a `<video>` to fail in, which is what an `https` address
+   that is not a file used to get.
+
+   AND A DRIVE ADDRESS IS REFUSED AS AN ADDRESS, not only as a bare id. `data/reels/README.md`
+   measured it: Drive answers a `<video>` with a redirect or an HTML page, never the bytes, so
+   `https://drive.google.com/…` was let through here as "a whole URL to a video file" and drawn as a
+   slide that could only ever be dark.
+
+   ANY SUBDOMAIN, NOT ONLY `www.` — the YouTube test beside it already took any. `m.instagram.com`
+   is what a phone's share sheet copies, and it passed as an `http` file and drew a slide that never
+   played (review, 9 Oct: a mutant row of exactly that went through `check-reels.js` green). */
+const CLIP_EMBED_ONLY = /(?:^|\/\/)(?:[a-z0-9-]+\.)*(?:instagram\.com|drive\.google\.com|docs\.google\.com)\//i;
+const CLIP_YT_HOST = /^https?:\/\/(?:[a-z0-9-]+\.)*(?:youtube\.com|youtube-nocookie\.com|youtu\.be)(?:[\/?#]|$)/i;
 function clipPlayable_(clip) {
   const c = String(clip || '').trim();
   if (!c || CLIP_EMBED_ONLY.test(c)) return false;
+  if (clipYt_(c)) return true;
+  if (CLIP_YT_HOST.test(c)) return false;
   /* A SCHEME MEANS A WHOLE ADDRESS, and only http(s) is a file a browser will fetch into a
      `<video>`. No scheme and a slash is a path into this repository. No scheme and NO slash is a
      Drive id — the one kind that can only ever be embedded — and is refused. */
   if (/^[a-z][a-z0-9+.-]*:/i.test(c)) return /^https?:\/\//i.test(c);
   return c.indexOf('/') !== -1;
 }
+/* THE YOUTUBE ID A CLIP NAMES, or '' for a file. One question asked by `feedSlide`, `clipSrc_` and
+   `clipPlayable_`, so the three cannot disagree about which kind a row is. */
+function clipYt_(clip) {
+  return typeof vidYouTubeId_ === 'function' ? vidYouTubeId_(clip) : '';
+}
+/* A FILE'S ADDRESS, FOR A `<video>`. A YouTube clip has none — it is never a `<video>`'s `src` — so
+   this answers '' for one, which is `reelPlay_`'s "nothing to fetch" and marks it dead rather than
+   asking a browser to download a web page. */
 function clipSrc_(clip) {
-  return clipPlayable_(clip) ? String(clip).trim() : '';
+  return clipPlayable_(clip) && !clipYt_(clip) ? String(clip).trim() : '';
 }
 function feedSlide(it) {
   const c = feedColours(it.subject);
@@ -815,6 +857,9 @@ function feedSlide(it) {
      looking at, which is the same arithmetic `reelsWatch_` already makes about the photographs —
      `preload="none"` is a hint browsers are free to ignore and an absent `src` is not. */
   if (it.clip) {
+    /* A SHORT IS ITS OWN SLIDE — a poster and a place for a player, never a `<video>`. */
+    const yt = clipYt_(it.clip);
+    if (yt) return feedYtSlide_(it, yt, c, words);
     /* ---------- THE FIRST FRAME ARRIVES FIRST, AND THAT IS MOST OF "IT TAKES LONG TO LOAD" --------
        REPORTED AS "the reel isnt loading. or it takes long to load". Measured, the two clips in this
        repository are 576x576, 104 and 92 seconds long, 7.3 and 7.9 MB — so on a phone there really
@@ -859,6 +904,79 @@ function feedSlide(it) {
     ${words}
   </div>`;
 }
+
+/* ---------- A YOUTUBE SHORT'S SLIDE: ITS OWN PICTURE FIRST, THE PLAYER WHEN IT IS REACHED ----------
+   THE POSTER IS THE SHORT'S OWN THUMBNAIL, from `i.ytimg.com`, so the slide is a picture from the
+   moment you arrive — the same promise the mp4 reels' `x.jpg` keeps, and for the same complaint ("the
+   reel isnt loading"). `has-photo` from the first paint for that reason. NO REFERRER: the picture
+   needs nothing from this page, so it is told nothing about it.
+
+   SAID PLAINLY, BECAUSE IT IS A CHOICE AND THE VIEWERS ARE CHILDREN — the Videos card says the same
+   of its thumbnails. The Reels column is drawn at boot, and with three clips its first three pages
+   hold every one, so EVERY LOAD fetches this picture from `i.ytimg.com`, Reels opened or not. No
+   cookie (it is YouTube's cookieless image host) and no referrer, but the device's address reaches
+   Google. Kept, because the poster in the markup is what makes the Short a picture on arrival like
+   the mp4 reels: set later, from `reelsWatch_`, it would be the gradient for the first moments of
+   every visit. Taking it back is the address written here as `data-src` and moved to `src` by
+   `reelTurn_` for the page in front and its neighbours (review, 9 Oct, note 319).
+
+   THREE SIZES, TRIED IN ORDER. `oar2.jpg` is the thumbnail at the video's Original Aspect Ratio — for a
+   vertical Short, a portrait picture that fills a portrait slide. Not every video has one, so a 404
+   falls to `hqdefault.jpg` and then `mqdefault.jpg`, which every video has: a landscape frame, cover-
+   cropped to its middle, which for a Short is the Short (YouTube pillarboxes it inside the landscape
+   frame and the crop lands inside the pillars). Stepped by one capture-phase listener for the whole
+   document, `postVidFail_`'s shape — an `error` does not bubble, and a listener added after the
+   markup is drawn can miss it.
+
+   AND YOUTUBE'S "NO SUCH PICTURE" IS A PICTURE. A missing thumbnail is answered with a 120x90 grey
+   placeholder rather than nothing, so a browser draws it and reports a load: a small grey box
+   stretched over the whole slide. Anything that narrow is treated as the miss it is.
+
+   THE PLAYER IS NOT IN THIS MARKUP. `.feed-yt` is where `reelYtPlay_` (posts.js) puts it when the
+   slide is the one on screen — never fifty-eight at once, the rule this file writes about the
+   videos' `src`. The veil inside it is the layer that keeps every touch for the column.
+
+   "WATCH ON YOUTUBE" IS DRAWN NOW AND SHOWN ONLY IF THE PLAYER CANNOT PLAY, so nothing on the slide
+   moves when it appears. A Short's own address when the clip was a Short, the watch page otherwise —
+   the id alone, so a `?si=` somebody pasted into the sheet goes nowhere. */
+const YT_POSTERS = ['oar2.jpg', 'hqdefault.jpg', 'mqdefault.jpg'];
+const ytPoster_ = (id, n) => 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/' + YT_POSTERS[n];
+function feedYtSlide_(it, id, c, words) {
+  const out = /\/shorts\//i.test(it.clip) ? 'https://www.youtube.com/shorts/' + id
+    : 'https://www.youtube.com/watch?v=' + id;
+  return `<div class="feed-art is-clip is-yt has-photo" style="--a:${c[0]};--b:${c[1]};--c:${c[2]}">
+      <span class="feed-mark">${esc(initial(it.subject))}</span>
+      <img class="feed-poster" src="${esc(ytPoster_(id, 0))}" data-yt="${esc(id)}" data-rung="0"
+           alt="" referrerpolicy="no-referrer" decoding="async">
+      <div class="feed-yt" data-yt="${esc(id)}"><span class="feed-yt-veil"></span></div>
+      <a class="feed-yt-out" href="${esc(out)}" target="_blank" rel="noopener">Watch on YouTube</a>
+      <span class="feed-credit"></span>
+      ${words}
+    </div>`;
+}
+/* THE NEXT RUNG, OR NONE. With every size refused the slide goes back to its own gradient and letter —
+   the floor every reel has — rather than keeping the class that says a picture is there. Unless the
+   player is already playing, in which case the picture is the video and nothing changes. */
+function feedPosterNext_(img) {
+  const n = Number(img.dataset.rung || 0) + 1;
+  if (n < YT_POSTERS.length && img.dataset.yt) {
+    img.dataset.rung = String(n);
+    img.src = ytPoster_(img.dataset.yt, n);
+    return;
+  }
+  const art = img.closest('.feed-art');
+  img.remove();
+  if (art && !art.querySelector('.feed-yt.is-live')) art.classList.remove('has-photo');
+}
+document.addEventListener('error', e => {
+  const el = e.target;
+  if (el && el.matches && el.matches('img.feed-poster')) feedPosterNext_(el);
+}, true);
+document.addEventListener('load', e => {
+  const el = e.target;
+  if (el && el.matches && el.matches('img.feed-poster') && el.naturalWidth > 0 && el.naturalWidth <= 120)
+    feedPosterNext_(el);
+}, true);
 /* ==================================================================================================
    CONNECT 4, OTHELLO AND HERD MENTALITY
 

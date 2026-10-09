@@ -660,6 +660,26 @@ function inspect(opts) {
        NARROW ON PURPOSE: clipped to nothing AND no wider than a pixel, so `overflow: hidden` on any
        visible box is still the fault it always was. */
     if (/inset\(50%\)/.test(s.clipPath || '') && el.getBoundingClientRect().width <= 1.5) continue;
+    /* ---------- AND A PLAYER CROPPED TO COVER ITS FRAME IS THE FOURTH -----------------------------
+       `object-fit: cover` IS HOW A `<video>` OR AN `<img>` FILLS A BOX OF ANOTHER SHAPE, and it is
+       invisible to this rule because the element's own box never grows. An `<iframe>` has no such
+       property — YouTube's player inside one letterboxes — so a Short in a reel (note 319) is the
+       same crop done the only way an iframe allows: the frame is made the size a 9:16 picture needs
+       to cover the slide, centred, and `.feed-yt` clips it. At 390 that is 333px in a 272px box, and
+       this rule reported the crop working as a 31px sideways scroll.
+
+       CENTRED IS WHAT MAKES IT NARROW. A cover crop takes the same off both sides; a layout fault —
+       a box too wide for its column — starts at the left edge and spills off the right only. So the
+       box must clip (`overflow: hidden` on its own is still not permission), every child painted
+       past it must be an `<iframe>`, and each must overhang left and right by the same amount to
+       2px. A player that is merely too wide is still reported. */
+    if (/hidden|clip/.test(s.overflowX) && el.children.length) {
+      const b0 = el.getBoundingClientRect();
+      const kids = [...el.children].map(k => ({ k, r: k.getBoundingClientRect() }))
+        .filter(x => x.r.width > 0 && (x.r.right - b0.right > 2 || b0.left - x.r.left > 2));
+      if (kids.length && kids.every(x => x.k.tagName === 'IFRAME'
+          && Math.abs((x.r.right - b0.right) - (b0.left - x.r.left)) <= 2)) continue;
+    }
     const over = el.scrollWidth - el.clientWidth;
     if (over > 1 && el.clientWidth > 0) {
       const box = el.getBoundingClientRect();

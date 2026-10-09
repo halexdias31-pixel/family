@@ -312,3 +312,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The site asks again by itself: a payload that did not arrive is retried under one quiet line, the banner is an admin's, and a page older than the site reloads once](313-the-site-asks-again-by-itself.md)
 - [Coursework is a type of project: one column, one question, and the stages of a design-and-make](314-coursework-is-a-type-of-project.md)
 - [Signing in keeps your place in Find: the same chips, the same card, the same page, and the answer moves to you](318-signing-in-keeps-your-place-in-find.md)
+- [A YouTube Short is a reel the app can drive: poster first, one muted player under a veil, tap and Sound by message, a door when it cannot play — and the grey was the words' scrim on reels with no words](319-a-youtube-short-is-a-reel-the-app-can-drive.md)

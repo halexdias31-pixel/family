@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-asks-again";
+  --css-version: "2026-10-09-a-short-after-review";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -212,6 +212,16 @@
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
+
+  /* ---------- A CONTROL LAID OVER A MOVING PICTURE ----------------------------------------------
+     The reels' Sound button, the ▶ on a held reel and a dead Short's "Watch on YouTube": a charcoal
+     wash with a hairline edge and white words, which reads on a bright frame and a dark one alike.
+     ONE COLOUR IN THREE COMPONENTS, so it is named here; it was written out by hand in each, and the
+     third copy is what review caught (note 319). Beside `--letterbox` in spirit — a picture's own
+     colours, the same whatever the page round it is. */
+  --over-wash: rgb(0 0 0 / .55);
+  --over-edge: rgb(255 255 255 / .28);
+  --over-ink:  #fff;
 }
 
 /* ---------- THE TYPEFACE, SELF-HOSTED ------------------------------------------------------------
@@ -2826,7 +2836,20 @@ button.text-drop { color: var(--bad); }
    picture is a snowfield, and then it is gone — so a scrim is laid over the bottom two-thirds
    once there is something behind it. Only then: over the gradient it would be a shadow over a
    shadow. */
-.feed-art.has-photo::before {
+/* ---------- AND ONLY WHERE THERE ARE WORDS: IT WAS THE GREY ON EVERY REEL ---------------------------
+   ASKED ON 9 OCT: *"is there a grey effect on reels? i dont like that if there is remove it."* There
+   was, and it was this. A reel is a clip with no words on it — `feedSlide` draws no `.feed-text` for
+   one — and the scrim was laid on `has-photo` alone, so every reel had black at 92% across its
+   bottom eighth, 55% at the middle and a fade up to three-quarters of the way: on a bright frame (both
+   clips here are white buildings on a pale model), the lower two-thirds of the picture read as a
+   grey wash with no text above it to explain it. Screenshot at 390x844 before and after, note 319.
+
+   THE FLOOR WAS FOR THE WORDS, SO IT GOES WHERE THE WORDS ARE. `:has()` rather than a class, the
+   receipts' argument: whether a slide carries words is a fact about its contents, and a class would
+   be that fact written a second time in the one place nothing checks it. A fact with a photograph
+   keeps its scrim exactly as it was; a clip with a caption gets one; a clip with none gets the
+   picture and nothing over it. */
+.feed-art.has-photo:has(> .feed-text)::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(to top, rgba(0,0,0,.92) 12%, rgba(0,0,0,.55) 45%, transparent 78%);
 }
@@ -10747,6 +10770,56 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
 
+/* ---------- A YOUTUBE SHORT ---------------------------------------------------------------------
+   FOUR LAYERS IN THE PLACE ONE `<video>` HOLDS, numbered for the reason the three above are:
+
+     .feed-poster    the Short's own thumbnail, filling the frame as the mp4 reels' posters do
+     .feed-yt        the player's place — empty until `reelYtPlay_` (posts.js) builds one
+       iframe        YouTube's player, INVISIBLE until it says it is playing (`is-live`), so its black
+                     box, spinner, title, pause screen and error screen are never on the slide
+       .feed-yt-veil a clear layer over it that takes every touch for the column (see posts.js)
+
+   COVER, BY ARITHMETIC. An `<iframe>` has no `object-fit`, and YouTube's player inside it letterboxes
+   — so the frame is made the size that a 9:16 picture needs to COVER the slide and the slide crops it,
+   which is what `object-fit: cover` does for the videos. The slide is not 9:16: at 390x844 it is
+   272x593, narrower, so the Short is cropped about 31px each side. Sized in the box's own `cq`
+   units, which is why `.feed-yt` is a size container; a browser without them gets the frame the size
+   of the slide, letterboxed, which is the worst case and still a picture. */
+.feed-poster {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+.feed-yt { position: absolute; inset: 0; z-index: 0; overflow: hidden; container-type: size; }
+.feed-yt-frame {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  border: 0; opacity: 0; transition: opacity .3s ease;
+  /* THE VEIL TAKES THE TOUCH; this makes sure the frame cannot, even where a browser hit-tests an
+     iframe ahead of an empty span over it. */
+  pointer-events: none;
+}
+@supports (width: 1cqh) {
+  .feed-yt-frame { width: max(100cqw, 100cqh * 9 / 16); height: max(100cqh, 100cqw * 16 / 9); }
+}
+.feed-yt.is-live .feed-yt-frame { opacity: 1; }
+.feed-yt-veil { position: absolute; inset: 0; z-index: 1; }
+
+/* ---------- AND WHEN IT CANNOT PLAY: THE POSTER, AND ONE WAY OUT ------------------------------------
+   Drawn from the first paint and shown only on `is-dead`, so nothing moves when it appears. In the
+   middle, where the ▶ would be — a dead Short cannot be held, so that place is free — and in the
+   same charcoal wash as the Sound button, which is what a control over a picture looks like
+   everywhere this feature draws one. In px, the house rule for anything a finger aims at. */
+.feed-yt-out { display: none; }
+.feed-art.is-dead .feed-yt-out {
+  position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 16px; border-radius: 22px;
+  background: var(--over-wash); border: 1px solid var(--over-edge);
+  color: var(--over-ink); font-size: .82rem; white-space: nowrap; text-decoration: none;
+}
+/* A SOUND BUTTON ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
+.reel:has(.feed-art.is-dead) .reel-sound { display: none; }
+
 /* ---------- A STOPPED REEL SAYS SO ----------------------------------------------------------------
    A VIDEO THAT IS PAUSED ON ITS FIRST FRAME LOOKS EXACTLY LIKE ONE THAT IS PLAYING A STILL SHOT,
    and the tap that stopped it left nothing on the screen to say it had worked. That is the sentence
@@ -10764,8 +10837,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   width: 4rem; height: 4rem;
   display: flex; align-items: center; justify-content: center;
   border-radius: 50%;
-  background: rgb(0 0 0 / .55);
-  color: #fff; font-size: 1.5rem; line-height: 1;
+  background: var(--over-wash);
+  color: var(--over-ink); font-size: 1.5rem; line-height: 1;
   /* The glyph's own bearing sits it left of centre in its box; a video's play mark is centred on
      the disc by eye, which is what every player does and what a screenshot showed this needed. */
   padding-left: .18em;
@@ -10782,16 +10855,17 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
      `.btn` IS GOLD, which is right for the one thing a form wants you to press and wrong laid over
      a moving picture: a screenshot of a whole slide showed a gold slab reading "Sound off" as the
      loudest thing on a card whose whole content is the clip. The same wash the paused mark uses,
-     which is also the wash `.feed-art.has-photo::before` lays under the words — so a control over a
-     picture looks the same wherever this feature draws one, on a bright frame and a dark one alike.
+     which is also the wash `.feed-art.has-photo:has(> .feed-text)::before` lays under the words — so
+     a control over a picture looks the same wherever this feature draws one, on a bright frame and a
+     dark one alike. `--over-wash` and its two partners at `:root` are that one colour, named.
 
      THE WORDS STAY. A glyph would have said the same thing in less room and the note below is the
      reason it does not: the button says the state it is IN, which is what every other switch in
      this app does, and "Sound off" cannot be read as "press to turn the sound off" by mistake the
      way a crossed-out speaker can. */
-  background: rgb(0 0 0 / .55);
-  border-color: rgb(255 255 255 / .28);
-  color: #fff;
+  background: var(--over-wash);
+  border-color: var(--over-edge);
+  color: var(--over-ink);
   /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
      Absolutely positioned it made a gold bar across the top of the slide, which is what the
      screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the

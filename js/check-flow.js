@@ -527,6 +527,278 @@ check('the app loads and draws without throwing', async () => {
   return bad;
 });
 
+/* ---------- A YOUTUBE SHORT IS A REEL, AND THE COLUMN DRIVES IT ------------------------------------
+   THE OWNER, 9 OCT: *"i want to add this to reels, maybe embedd? or work fine without? i just want it
+   to look like other reels... also is there a grey effect on reels? i dont like that if there is
+   remove it."* Every half of the answer draws a perfectly good slide when it is wrong: a player built
+   for every Short dealt (one a lap), a player with YouTube's touch on it so the column will not swipe,
+   a tap that pauses nothing, a Sound button talking to an element that is not there, a player left
+   playing a page away, YouTube's error screen where the poster should be — and the grey, which was a
+   wash laid over every clip whether or not there were words on it.
+
+   JSDOM LOADS NO FRAME, so this stands in for YouTube at the one place the app can hear it: messages
+   from the frame's window, in the player's own shapes (`onReady`, `infoDelivery`, `onError`), and a
+   spy on the frame's `postMessage` for what the app tells it. Which page the Short is dealt to is
+   random per open, so the journey finds it rather than assuming it. */
+check('a YouTube Short is a reel: poster first, one muted nocookie player when reached under a veil, tap/Sound/leave say pause/unMute/pause, broken stays a picture, and no wash without words', async () => {
+  const { w } = boot();
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t;
+  if (!t) return ['the app did not finish loading'];
+  const d = w.document;
+  const bad = [];
+  const at = () => ((typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {}).reel || 0;
+  const turn = async n => { t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_(); };
+  t.go('reel', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const host = d.querySelector('#s-reel');
+  if (!host) return ['the Reels column did not draw'];
+  const ytAway = () => [...host.querySelectorAll('.reel')]
+    .find(r => r.querySelector('.feed-yt') && Number(r.dataset.reel) > at());
+  /* DEALT TO THE PAGE IN FRONT, its next copy is one lap on — and turning one page appends that lap. */
+  if (!ytAway()) await turn(1);
+  const reel = ytAway();
+  if (!reel) return ['no slide in the Reels column holds the YouTube row: ' + [...host.querySelectorAll('.reel')].length + ' reels drawn'];
+  const n = Number(reel.dataset.reel);
+  const art = reel.querySelector('.feed-art');
+  const box = reel.querySelector('.feed-yt');
+  const frames = () => reel.querySelectorAll('iframe');
+
+  /* THE POSTER FIRST, AND NO PLAYER BEFORE THE SLIDE IS REACHED. */
+  const img = art.querySelector('img.feed-poster');
+  if (!img || img.getAttribute('src') !== 'https://i.ytimg.com/vi/jD2Yy_wCBLE/oar2.jpg')
+    bad.push('the Short\'s slide is not its own portrait thumbnail first: ' + (img ? img.getAttribute('src') : 'no poster'));
+  else if (img.getAttribute('referrerpolicy') !== 'no-referrer') bad.push('the poster sends a referrer to i.ytimg.com');
+  if (!art.classList.contains('has-photo')) bad.push('the Short\'s slide does not say it has a picture from the first paint');
+  if (art.querySelector('video')) bad.push('a <video> was drawn for a YouTube address, which is a web page and not a file');
+  if (frames().length) bad.push('a YouTube player was built on page ' + n + ' while page ' + at() + ' was in front — one would be built per Short dealt');
+  if ([...host.querySelectorAll('.feed-yt')].some(b => b.querySelector('iframe') && Number(b.closest('.reel').dataset.reel) > at()))
+    bad.push('a player exists on a page nobody has turned to');
+
+  /* REACHED: ONE PLAYER, MUTED, DRIVABLE, ON THE NOCOOKIE HOST, UNDER A VEIL. */
+  await turn(n);
+  if (frames().length !== 1) return bad.concat(['turning to the Short built ' + frames().length + ' players, not one']);
+  const f = frames()[0];
+  const src = f.getAttribute('src') || '';
+  if (!/^https:\/\/www\.youtube-nocookie\.com\/embed\/jD2Yy_wCBLE\?/.test(src)) bad.push('the player is not the nocookie embed of jD2Yy_wCBLE: ' + src);
+  ['enablejsapi=1', 'mute=1', 'autoplay=1', 'loop=1', 'playlist=jD2Yy_wCBLE', 'controls=0', 'playsinline=1', 'rel=0']
+    .forEach(q => { if (src.split(/[?&]/).indexOf(q) === -1) bad.push('the player address has no ' + q + ': ' + src); });
+  if (f.getAttribute('referrerpolicy') !== 'strict-origin-when-cross-origin') bad.push('the player sends no referrer, which YouTube answers with error 153');
+  if (!/\bautoplay\b/.test(f.getAttribute('allow') || '')) bad.push('the player is not allowed to autoplay');
+  const veil = box.querySelector('.feed-yt-veil');
+  if (!veil) bad.push('there is no layer over the player to take the touch');
+  else if (!(f.compareDocumentPosition(veil) & w.Node.DOCUMENT_POSITION_FOLLOWING)) bad.push('the veil is under the player, so the player takes the touch');
+  const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  if (!/\.feed-yt-veil\s*\{[^}]*inset:\s*0[^}]*z-index:\s*1/.test(css)) bad.push('.feed-yt-veil does not cover the slide above the player in style.css');
+  if (!/\.feed-yt-frame\s*\{[^}]*pointer-events:\s*none/.test(css)) bad.push('.feed-yt-frame can take a touch in style.css');
+
+  /* WHAT THE APP SAYS TO THE PLAYER, AND WHAT THE PLAYER SAYS BACK. */
+  const said = [];
+  const spy = fr => { fr.contentWindow.postMessage = (m, o) => { try { said.push(Object.assign(JSON.parse(m), { to: o })); } catch (e) {} }; };
+  spy(f);
+  const funcs = () => said.filter(x => x.event === 'command').map(x => x.func);
+  const hear = (fr, o) => w.dispatchEvent(new w.MessageEvent('message', {
+    data: JSON.stringify(Object.assign({ id: 1, channel: 'widget' }, o)),
+    origin: 'https://www.youtube-nocookie.com', source: fr.contentWindow }));
+  hear(f, { event: 'onReady' });
+  if (funcs().indexOf('mute') === -1 || funcs().indexOf('playVideo') === -1)
+    bad.push('a player that said it was ready was not told mute and playVideo: ' + funcs().join(', '));
+  if (said.some(x => x.to !== 'https://www.youtube-nocookie.com')) bad.push('an order went to an origin other than the nocookie host');
+  if (box.classList.contains('is-live')) bad.push('the player was shown before it said it was playing');
+  hear(f, { event: 'infoDelivery', info: { playerState: 1 } });
+  if (!box.classList.contains('is-live')) bad.push('a player that says it is playing is still hidden behind the poster');
+
+  /* TAP HOLDS IT, AND THE ▶ SAYS SO; TAP AGAIN PLAYS. */
+  said.length = 0;
+  t.ACTIONS['reel-tap'](reel);
+  if (funcs().join() !== 'pauseVideo') bad.push('a tap on a playing Short said ' + (funcs().join(', ') || 'nothing') + ', not pauseVideo');
+  if (!reel.classList.contains('is-held')) bad.push('a held Short has no ▶ on it');
+  if (box.classList.contains('is-live')) bad.push('a held Short shows YouTube\'s pause screen rather than its poster');
+  said.length = 0;
+  t.ACTIONS['reel-tap'](reel);
+  if (funcs().join() !== 'playVideo') bad.push('a second tap said ' + (funcs().join(', ') || 'nothing') + ', not playVideo');
+  if (reel.classList.contains('is-held')) bad.push('the ▶ stayed after the Short was started again');
+
+  /* THE APP'S OWN SOUND BUTTON, THE SAME WORDS. */
+  said.length = 0;
+  const snd = reel.querySelector('.reel-sound');
+  t.ACTIONS['reel-sound'](snd);
+  if (funcs().indexOf('unMute') === -1) bad.push('Sound on a Short said ' + (funcs().join(', ') || 'nothing') + ', not unMute');
+  if (snd.textContent !== 'Sound on') bad.push('the Sound button reads "' + snd.textContent + '" after turning the sound on');
+
+  /* LEAVING PAUSES IT; A PAGE FURTHER TAKES IT DOWN, AND THE BUTTON IS PUT BACK. */
+  said.length = 0;
+  await turn(n + 1);
+  if (funcs().indexOf('pauseVideo') === -1) bad.push('turning past the Short did not pause it: ' + (funcs().join(', ') || 'nothing said'));
+  if (frames().length !== 1) bad.push('the page next door lost its player — a flick back would reload it');
+  await turn(n + 2);
+  if (frames().length) bad.push('a player two pages away is still in the column');
+  if (snd.textContent !== 'Sound off') bad.push('a player taken down left its button reading "' + snd.textContent + '"');
+
+  /* LEAVING THE COLUMN TAKES IT DOWN TOO. */
+  await turn(n);
+  if (frames().length !== 1) bad.push('turning back to the Short did not build its player again');
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (host.querySelector('iframe')) bad.push('leaving the Reels column left a YouTube player in it');
+
+  /* AND A PLAYER THAT CANNOT PLAY LEAVES THE POSTER AND ONE WAY OUT. */
+  t.go('reel', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const f2 = reel.querySelector('iframe');
+  if (!f2) bad.push('coming back to the column did not build the Short\'s player again');
+  else {
+    hear(f2, { event: 'onError', info: 150 });
+    if (!art.classList.contains('is-dead')) bad.push('a player answering onError 150 (embedding switched off) did not mark the slide');
+    if (reel.querySelector('iframe')) bad.push('YouTube\'s error screen was left on the slide');
+    if (!art.querySelector('img.feed-poster')) bad.push('the poster went with the player');
+    const out = art.querySelector('a.feed-yt-out');
+    if (!out || out.getAttribute('href') !== 'https://www.youtube.com/shorts/jD2Yy_wCBLE'
+        || out.getAttribute('target') !== '_blank' || out.getAttribute('rel') !== 'noopener')
+      bad.push('a Short that cannot play has no "Watch on YouTube" door to it: ' + (out ? out.outerHTML.slice(0, 120) : 'none'));
+    t.ACTIONS['reel-tap'](reel);
+    if (reel.classList.contains('is-held')) bad.push('a tap on a Short that cannot play drew a ▶ over it');
+  }
+
+  /* THE GREY: NO WASH WHERE THERE ARE NO WORDS. A clip slide draws no words, and the stylesheet's
+     scrim is only for a slide that has them. */
+  const worded = [...host.querySelectorAll('.feed-art.is-clip')].filter(a => a.querySelector('.feed-text'));
+  if (worded.length) bad.push(worded.length + ' clip slide(s) drew a words block over a clip with no words');
+  const scrims = (css.match(/[^{}]*has-photo[^{}]*::before\s*\{/g) || []).map(x => x.trim());
+  if (!scrims.length) bad.push('the scrim rule could not be found in style.css — this half checked nothing');
+  scrims.filter(x => !/:has\(>\s*\.feed-text\)/.test(x))
+    .forEach(x => bad.push('a scrim is laid on a slide whether or not it has words: ' + x.replace(/\s+/g, ' ')));
+  return bad;
+});
+
+/* ---------- A SHORT ALWAYS ENDS PLAYING OR AT ITS DOOR, AND A LAP IS NOT A FLASH --------------------
+   THE REVIEW OF 9 OCT, four ways the Short above draws a perfectly good slide and is wrong:
+     - its give-up clock was wound ONCE, when the player was built, and decided at one moment: a player
+       that never answered, held or flicked one page away when the twenty seconds ran out, was left a
+       poster with a live Sound button and no door, for good;
+     - a player that ANSWERED and was then held when the clock ran out must NOT be given up on — and the
+       next ask to play must wind a fresh clock, or that one is stuck the same way;
+     - a looping Short says ended / unstarted / buffering / playing at every lap, and each lap
+       cross-faded the poster in over the picture — and an end that does NOT restart must still go
+       back under the poster, or YouTube's grid of other videos is left on the slide;
+     - a held Short whose player errors kept its ▶ over the door, and no tap could clear it.
+   THE CLOCKS ARE CAUGHT, NOT WAITED FOR: twenty seconds a case would make this the slowest journey in
+   the file. `setTimeout` is stood in for while this journey runs, and only for the two timers whose
+   bodies are the Short's clocks; everything else is handed to the real one. A clock is rung by
+   calling it, which is exactly what the browser does when it runs out. If the clocks cannot be
+   recognised, the journey says so rather than passing on nothing. */
+check('a YouTube Short that never answers ends at its door even held or a page away, a held one that errors loses its ▶, and a lap keeps the picture', async () => {
+  const clocks = [];
+  let fake = 1e9;
+  const { w } = boot({ before: win => {
+    const realSet = win.setTimeout.bind(win), realClear = win.clearTimeout.bind(win);
+    win.setTimeout = (fn, ms, ...a) => {
+      const body = typeof fn === 'function' ? String(fn) : '';
+      const kind = /\bo\.clock = 0\b/.test(body) ? 'clock' : /\bo\.lap = 0\b/.test(body) ? 'lap' : '';
+      if (!kind) return realSet(fn, ms, ...a);
+      const c = { id: ++fake, fn: fn, kind: kind, off: false };
+      clocks.push(c);
+      return c.id;
+    };
+    win.clearTimeout = id => { const c = clocks.find(x => x.id === id); if (c) c.off = true; else realClear(id); };
+  } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t;
+  if (!t) return ['the app did not finish loading'];
+  const d = w.document;
+  const bad = [];
+  const live = kind => clocks.filter(c => c.kind === kind && !c.off);
+  const ring = kind => { const l = live(kind); l.forEach(c => { c.off = true; c.fn(); }); return l.length; };
+  const at = () => ((typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {}).reel || 0;
+  const turn = async n => { t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_(); };
+  const reelAt = n => d.querySelector('#s-reel .reel[data-reel="' + n + '"]');
+  /* A PAGE IS DRAWN ONLY ONCE THE COLUMN HAS GROWN TO IT, so a far page is walked to. */
+  const reach = async n => { for (let k = 0; k < 12 && !reelAt(n); k++) await turn(Math.max(at() + 1, n - 2)); await turn(n); };
+  const hear = (fr, o) => w.dispatchEvent(new w.MessageEvent('message', {
+    data: JSON.stringify(Object.assign({ id: 1, channel: 'widget' }, o)),
+    origin: 'https://www.youtube-nocookie.com', source: fr.contentWindow }));
+  const tap = reel => t.ACTIONS['reel-tap'](reel);
+  const dead = reel => reel.querySelector('.feed-art').classList.contains('is-dead');
+  t.go('reel', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (!d.querySelector('#s-reel')) return ['the Reels column did not draw'];
+  /* THE SHORT IS DEALT ONE CLIP IN THREE, at a random page per open. Its copies are a lap apart, and
+     if it was dealt to the page in front its next copy is drawn by the first turn. */
+  const ahead = () => [...d.querySelectorAll('#s-reel .reel')].find(r => r.querySelector('.feed-yt') && Number(r.dataset.reel) > at());
+  if (!ahead()) await turn(1);
+  const first = ahead();
+  if (!first) return ['no YouTube Short ahead in the Reels column to ask about'];
+  const n = Number(first.dataset.reel);
+
+  /* A: NEVER ANSWERS, AND IS TAPPED ONCE — which holds it — before the clock runs out. */
+  await reach(n);
+  let reel = reelAt(n);
+  if (!reel.querySelector('iframe')) return bad.concat(['turning to the Short built no player']);
+  if (live('clock').length !== 1) return bad.concat(['turning to the Short wound ' + live('clock').length
+    + ' give-up clocks, not one — and this journey cannot ring a clock it cannot see']);
+  tap(reel);
+  if (!reel.classList.contains('is-held')) bad.push('A: a tap on a Short that has not started did not hold it');
+  ring('clock');
+  if (!dead(reel)) bad.push('A: a player that said nothing for the whole clock, held when it ran out, was not given up on — a poster for good, with no door');
+  if (reel.classList.contains('is-held')) bad.push('A: the ▶ of a held Short stayed over its door');
+  if (reel.querySelector('iframe')) bad.push('A: a player given up on was left in the slide');
+  tap(reel);
+  if (reel.classList.contains('is-held')) bad.push('A: a tap on a Short that cannot play drew a ▶ over its door');
+
+  /* B: NEVER ANSWERS, AND IS FLICKED ONE PAGE AWAY before the clock runs out. */
+  await reach(n + 3);
+  reel = reelAt(n + 3);
+  if (!reel || !reel.querySelector('.feed-yt')) return bad.concat(['the Short\'s next lap is not on page ' + (n + 3)]);
+  await turn(n + 4);
+  if (!reel.querySelector('iframe')) bad.push('B: the page next door lost its player — a flick back would reload it');
+  ring('clock');
+  if (!dead(reel)) bad.push('B: a player that said nothing for the whole clock, a page away when it ran out, was not given up on — no door when you flick back');
+
+  /* C: ANSWERS, NEVER PLAYS, AND IS HELD WHEN THE CLOCK RUNS OUT — waits; the next ask winds a fresh clock. */
+  await reach(n + 6);
+  reel = reelAt(n + 6);
+  const fc = reel && reel.querySelector('iframe');
+  if (!fc) return bad.concat(['the Short on page ' + (n + 6) + ' built no player']);
+  hear(fc, { event: 'onReady' });
+  tap(reel);
+  ring('clock');
+  if (dead(reel)) bad.push('C: a player that answered and was held when the clock ran out was given up on');
+  tap(reel);
+  if (live('clock').length !== 1) bad.push('C: asking a held player that has never played to play again wound '
+    + live('clock').length + ' clocks, not one — it would be left with no door if it never does');
+  ring('clock');
+  if (!dead(reel)) bad.push('C: a player asked to play for a whole clock that never played its first frame was not given up on');
+
+  /* D: A LAP. Ended, unstarted, buffering, playing — the picture stays up through all of it. */
+  await reach(n + 9);
+  reel = reelAt(n + 9);
+  const fd = reel && reel.querySelector('iframe');
+  if (!fd) return bad.concat(['the Short on page ' + (n + 9) + ' built no player']);
+  const box = reel.querySelector('.feed-yt');
+  hear(fd, { event: 'onReady' });
+  hear(fd, { event: 'onStateChange', info: 1 });
+  if (!box.classList.contains('is-live')) bad.push('D: a player that said PLAYING is still behind its poster');
+  [0, -1, 3].forEach(s => hear(fd, { event: 'onStateChange', info: s }));
+  if (!box.classList.contains('is-live')) bad.push('D: a lap boundary (ended, unstarted, buffering) put the poster back over the picture — the Short flashes once a lap');
+  hear(fd, { event: 'onStateChange', info: 1 });
+  if (live('lap').length) bad.push('D: a lap that restarted left its clock running');
+  hear(fd, { event: 'onStateChange', info: 0 });
+  if (ring('lap') !== 1) bad.push('D: an end with no restart wound no lap clock');
+  if (box.classList.contains('is-live')) bad.push('D: an end that never restarted left YouTube\'s end screen showing');
+  hear(fd, { event: 'onStateChange', info: 1 });
+  if (!box.classList.contains('is-live')) bad.push('D: playing again after an end did not show the picture');
+
+  /* E: HELD, THEN THE PLAYER ERRORS (onError 150 can come a second or two after load). */
+  tap(reel);
+  if (!reel.classList.contains('is-held')) bad.push('E: a tap on a playing Short did not hold it');
+  hear(fd, { event: 'onError', info: 150 });
+  if (!dead(reel)) bad.push('E: onError 150 did not mark the slide');
+  if (reel.classList.contains('is-held')) bad.push('E: a held Short that errored kept its ▶ over the door');
+  tap(reel);
+  if (reel.classList.contains('is-held')) bad.push('E: a tap after the error drew the ▶ back');
+  return bad;
+});
+
 /* ---------- THE UPGRADE HAS TO BE IN THE PRICE, AND HAS TO COME BACK OUT --------------------------
    THE FAULT THIS GUARDS AGAINST is the one the design avoids on purpose: a laminate upgrade stored
    as a NUMBER added into the line's `money`. That works the first time and breaks the first time
