@@ -5065,17 +5065,25 @@ const STATES = {
       },
       expect: () => {
         const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        /* ONE LINE FOR THE STRANGER TOO: "yours" runs only signed in, and this runs for both. */
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
         return !!el && el.querySelectorAll('.reacts .react-n').length === 2
+          && faces.length === 6 && tops.size === 1
           && /4 reactions/.test((el.querySelector('.post-when .react-who') || {}).textContent || '');
       },
-      wants: 'the post on the screen with two counted faces and "4 reactions" on its time line',
+      wants: 'the post on the screen with six faces on one line, two counted, and "4 reactions" on its time line',
       leave: () => {
         const p = (DATA.posts || []).find(x => x.id === 'PO1');
         if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
         repaint(true);
       } },
     /* EVERY FACE COUNTED IN TWO DIGITS AND ONE OF THEM YOURS — the widest the house row gets on a
-       busy post, and the gold one with its heavier count inside a 41px cell at 320. */
+       busy post, and the gold one with its heavier count inside a 41px cell at 320.
+       AND ALL SIX ON ONE LINE, which is the redesign's whole claim: the scuff was a row that wrapped
+       🎉 onto a line of its own, and a count that grew reflowing the row. Nothing held it — a grid
+       changed to wrap the six as 5+1 at 320 passed this file clean, because this asked only for
+       `.mine` and six counts. The same idiom as the wrapping state: one distinct top, one line. */
     { name: 'reactions yours',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -5092,10 +5100,13 @@ const STATES = {
       expect: () => {
         const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
         const mine = el && el.querySelector('.react.mine');
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
         return !!mine && mine.dataset.emoji === '❤️' && mine.getAttribute('aria-pressed') === 'true'
-          && el.querySelectorAll('.reacts .react-n').length === 6;
+          && el.querySelectorAll('.reacts .react-n').length === 6
+          && faces.length === 6 && tops.size === 1;
       },
-      wants: 'the post on the screen with six counted faces and ❤️ drawn as yours',
+      wants: 'the post on the screen with six counted faces on ONE line and ❤️ drawn as yours',
       leave: () => {
         const p = (DATA.posts || []).find(x => x.id === 'PO1');
         if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
@@ -5120,11 +5131,16 @@ const STATES = {
         const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
         if (!el) return false;
         const faces = [...el.querySelectorAll('.reacts .react')];
-        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
-        return faces.length === 9 && tops.size === 2 && !!el.querySelector('.react.is-long')
+        const top = faces.map(f => Math.round(f.getBoundingClientRect().top));
+        const tops = new Set(top);
+        /* SIX ON THE FIRST LINE, NOT JUST TWO LINES: a grid that wrapped at five drew 5+4, which is
+           also two lines and passed. The house set's six columns are the claim; a ninth face starts
+           the second line in them. */
+        const first = top.filter(t => t === Math.min(...top)).length;
+        return faces.length === 9 && tops.size === 2 && first === 6 && !!el.querySelector('.react.is-long')
           && [...el.querySelectorAll('.react-n')].some(n => n.textContent === '1k');
       },
-      wants: 'the post on the screen with nine faces on two lines, a three-digit count stepped down and 1500 drawn as 1k',
+      wants: 'the post on the screen with nine faces on two lines (six, then three), a three-digit count stepped down and 1500 drawn as 1k',
       leave: () => {
         const p = (DATA.posts || []).find(x => x.id === 'PO1');
         if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);

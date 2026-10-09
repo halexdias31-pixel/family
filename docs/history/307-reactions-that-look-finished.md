@@ -137,4 +137,34 @@ mock's 48.2 at 320 was a zoomed number of the same kind.
   `doGet` sends, in place of `{}`.
 
 No backend change, so the four version constants stay where they are. `--css-version` is
-`2026-10-09-reaction-pills`.
+`2026-10-09-reaction-pills-pressed` (it was `-reaction-pills` before the review below).
+
+### What the review found, and what changed
+
+- **A press threw the focus away.** `on('react')` repaints, and the repaint replaces the button that
+  was pressed. Measured at 390x844: Enter on a focused ❤️ landed the reaction (1 → 2) and left
+  `document.activeElement` as BODY. The next Tab went to "Write a post" on a page parked off-screen.
+  So the `aria-pressed` added for screen readers was never heard at the moment it changed. The
+  `.catch` undo after a failed save dropped focus the same way. **Fixed with `reactRepaint_`
+  (posts.js).** If a face held the focus, the face's replacement gets it back, matched on
+  `data-id` and `data-emoji` inside the same screen with `preventScroll`. It does not filter on
+  `.page.on`, because that class arrives at a deferred placement. Re-measured in Chromium: Enter
+  leaves the focus on ❤️ with `aria-pressed=true`, the post moves 0px, Space takes it back with the
+  focus still on ❤️, the next Tab goes to 😂, and a touch tap gets the focus with no
+  `:focus-visible` ring. `check-flow` now focuses before pressing and fails if the focus is not on
+  the replacement after an add, a take-back or a failed save's undo, or if a face pressed with
+  nothing focused takes the focus. Proved by mutation: with the refocus removed it fails on all
+  three, and it went green again when the refocus was put back.
+- **No press look on touch.** The new rules set `-webkit-tap-highlight-color: transparent` and wrote
+  the press only as `:active`. Safari withholds `:active` on touch because every listener in this app
+  is on the window. A CDP touch held 120ms on 😮 carried `is-pressed`, but nothing drew it: the
+  `::before` stayed at `.04`. **Fixed:** every press rule is written as `:active, .is-pressed`, as
+  the chips and `.row.tap.counted` are. That covers `.react`, its `::before`, the `.mine` twin, the
+  reduced-motion line and `.post-when .react-who`. Re-measured with the same touch: `scale(.94)`, a
+  `.1` wash, and the darker gold on yours.
+- **No check held the row on one line.** A grid that wrapped the six as 5+1 at 320 passed
+  `check/ui.js` clean. Now `reactions yours` (signed in, six two-digit counts) and `reactions some`
+  (both visitors) require one distinct top across the six faces. `reactions many and wrapping`
+  requires six on the first line, so 5+4 can no longer pass as 6+3. Proved by mutation:
+  `repeat(auto-fill, minmax(48px, 1fr))` makes `ui.js --screen=feed --width=320` exit 1 with all
+  three states NOT measured. It went green again when the grid was put back.

@@ -1467,12 +1467,41 @@ function camStop_(keepShown) {
    is a sentence on the time line (`postWhen_`). A post's own cell naming more than six wraps into the
    same columns. See docs/history/307.
 --------------------------------------------------------------------------------------------- */
-/* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". `.react:active` was cut off: the repaint replaces
-   the button mid-press, so the press was never seen to finish. Set by on('react') round its
-   `repaint()` and cleared straight after, so the `.catch` repaint and every later one draw no
-   animation — a face that lands once, not one that bounces whenever anything else redraws the feed.
-   `var`, because it is reassigned (`check-const.js`). */
+/* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". The press itself is `:active` and `.is-pressed`
+   (style.css, the chips' pair) and lasts while the finger is down; the repaint after the tap
+   replaces the button, so nothing on the OLD button can say the reaction landed. This marks the NEW
+   one. Set by on('react') round its repaint and cleared straight after, so the `.catch` repaint and
+   every later one draw no animation — a face that lands once, not one that bounces whenever anything
+   else redraws the feed. `var`, because it is reassigned (`check-const.js`). */
 var REACT_POP_ = '';
+
+/* ---------- THE FOCUS STAYS ON THE FACE THAT WAS PRESSED ------------------------------------------
+   `repaint` REPLACES EVERY BUTTON ON THE SCREEN, and focus on a removed element falls to `<body>`.
+   Measured at 390x844: a face focused and Enter pressed — the same click a screen reader's
+   double-tap or a switch sends — and the reaction landed, but `document.activeElement` was BODY
+   afterwards, and the next Tab went to "Write a post" on a page parked off-screen. So the
+   `aria-pressed` that exists to say which face is yours was never heard at the moment it changed,
+   and a VoiceOver or TalkBack user lost their place in the feed with every reaction.
+
+   ONLY WHEN A FACE HELD THE FOCUS, and it is handed to that same face's replacement — the house rule
+   from `ansSet_` (find.js) and `qualRedraw_` (me.js): a redraw must not pull focus off whatever else
+   somebody is in. Matched on `data-id` + `data-emoji` by comparing `dataset`, not by building a
+   selector, so an emoji or a post id never has to be escaped into one. Searched in the SCREEN the face
+   was on (the `<section>` survives `paint`, only its markup is replaced), and NOT filtered by
+   `.page.on`, which `placeCells` applies at a deferred placement after this returns.
+   `preventScroll`, because the pages are parked side by side with transforms (CLAUDE.md) and a
+   focus that scrolled would slide the strip. A tap gives focus too in most browsers, and a focus
+   set by script after a pointer press draws no `:focus-visible` ring, so a finger sees nothing new. */
+function reactRepaint_() {
+  const a = document.activeElement;
+  const held = a && a.dataset && a.dataset.do === 'react'
+    ? { id: a.dataset.id, emoji: a.dataset.emoji, host: a.closest('section.screen') } : null;
+  repaint();
+  if (!held || !held.host) return;
+  const again = [...held.host.querySelectorAll('[data-do="react"]')]
+    .find(b => b.dataset.id === held.id && b.dataset.emoji === held.emoji);
+  if (again) { try { again.focus({ preventScroll: true }); } catch (e) {} }
+}
 
 /* A COUNT IS AT MOST THREE CHARACTERS, so a pill never grows for its number: 999, then 1k…999k.
    NOT "1.5k", which is four mono characters and was measured past the edge of a 41px cell at 320.
@@ -1638,9 +1667,10 @@ on('react', el => {
     r.by.push({ name: USER.name, emoji: emoji });
   }
   /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `repaint` is
-     synchronous (shell.js), so clearing it on the next line is safe and nothing later replays it. */
+     synchronous (shell.js), so clearing it on the next line is safe and nothing later replays it.
+     `reactRepaint_`, not `repaint`, so a keyboard or screen reader stays on the face it pressed. */
   REACT_POP_ = r.yours === emoji ? id + ' ' + emoji : '';   // added or moved: it lands; taken back: quiet
-  repaint();
+  reactRepaint_();
   REACT_POP_ = '';
 
   /* `personId` AS WELL AS `name`. The handler resolves the person with
@@ -1653,7 +1683,7 @@ on('react', el => {
     .catch(err => {
       r.yours = before.yours; r.counts = before.counts; r.total = before.total;
       r.by = before.by;             // the fourth field, or the sheet disagrees after a failed save
-      repaint();
+      reactRepaint_();              // whichever face holds the focus NOW keeps it through the undo
       toast(String(err.message || 'Could not save that'));
     });
 });

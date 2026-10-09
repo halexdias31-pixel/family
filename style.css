@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-reaction-pills";
+  --css-version: "2026-10-09-reaction-pills-pressed";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2053,7 +2053,8 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    because it must not be louder than the caption above it. No side padding, so it sits one dot after
    the time rather than a gap and a dot after it. The 44px box and the dotted line stay the class's. */
 .post-when .react-who { padding-inline: 0; color: var(--dim); font-variant-numeric: tabular-nums; }
-.post-when .react-who:active { color: var(--ink); }
+/* AND `.is-pressed`: Safari withholds `:active` on touch — see `.react.is-pressed` below. */
+.post-when .react-who:active, .post-when .react-who.is-pressed { color: var(--ink); }
 
 /* ==================================================================================================
    WHAT PEOPLE SAID UNDER A POST.
@@ -2285,19 +2286,28 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    it. Gold is "the one action" in this app, and this is the one you took. */
 .react.mine::before { border-color: var(--gold); background: var(--react-mine); }
 .react.mine .react-n { color: var(--gold); font-weight: 650; }
-.react:active { transform: scale(.94); }
-.react:active::before { background: rgb(255 255 255 / .1); }
-.react.mine:active::before { background: var(--react-mine-down); }
+/* PRESSED IS `.is-pressed` AS WELL AS `:active`, as on the chips these pills joined — see the note over
+   `.row.tap.counted:active`. Safari withholds `:active` on touch because every listener here is on the
+   window, and `-webkit-tap-highlight-color: transparent` above takes away the grey flash that was the
+   only other sign; `pressMark_` (shell.js) puts the class on at `pointerdown`. Without it, on an
+   iPhone, taking a reaction back or pressing a face signed out showed nothing at all. */
+.react:active, .react.is-pressed { transform: scale(.94); }
+.react:active::before, .react.is-pressed::before { background: rgb(255 255 255 / .1); }
+.react.mine:active::before, .react.mine.is-pressed::before { background: var(--react-mine-down); }
 /* THE RING GOES ON THE PILL, not on the 44px cell around it, which would draw a box round a pill. */
 .react:focus-visible { outline: 0; }
 .react:focus-visible::before { outline: 2px solid var(--gold); outline-offset: 1px; }
-/* THE FACE YOU JUST PRESSED LANDS, ONCE. `:active` cannot show it: the repaint that follows the tap
-   replaces the button before the press is released, so the old scale was cut off half way. `is-pop`
-   is set for exactly one paint (`REACT_POP_` in posts.js) — on a face added or moved to, never on one
-   taken back, and never for somebody who has asked for less movement. */
+/* THE FACE YOU JUST PRESSED LANDS, ONCE. The press above lasts while the finger is down; the repaint
+   that follows the tap replaces the button, so the press cannot also say it LANDED — the new button
+   has never been pressed. `is-pop` is set on the new one for exactly one paint (`REACT_POP_` in
+   posts.js) — on a face added or moved to, never on one taken back, and never for somebody who has
+   asked for less movement. */
 .react.is-pop { animation: react-land .24s cubic-bezier(.2, .9, .3, 1.35); }
 @keyframes react-land { from { transform: scale(.82); } }
-@media (prefers-reduced-motion: reduce) { .react.is-pop { animation: none; } .react:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .react.is-pop { animation: none; }
+  .react:active, .react.is-pressed { transform: none; }
+}
 
 /* ---------- WHO REACTED: THE FACE IS THE HEADING ---------------------------------------------------
    The sheet's section-label style (`#sheet-body h2`: .7rem, small caps, dim) made the face the

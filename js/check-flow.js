@@ -6733,7 +6733,12 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
      · THE SAME TAP TAKES IT BACK: no `.mine`, the count gone (a 0 is drawn as nothing), the total back
      · THE TOTAL OPENS WHO REACTED, most-used first and ties in the house order, yours the gold pill
        with your name first under it
-     · SIGNED OUT, a face sends nothing and goes to sign in; the total still opens the sheet */
+     · SIGNED OUT, a face sends nothing and goes to sign in; the total still opens the sheet
+     · THE FOCUS STAYS ON THE FACE PRESSED — through the add, the take-back and a failed save's undo —
+       and a face pressed while focus was elsewhere does not take it. `repaint` replaces every button,
+       and focus on a removed one falls to <body>: measured at 390, Enter on a focused face landed the
+       reaction and left `activeElement` BODY, so a screen reader never heard the new `aria-pressed`
+       and the next Tab went to a page parked off-screen (`reactRepaint_` in posts.js). */
 check('a post\'s faces: a tap adds yours, the same tap takes it back, the total opens who reacted', async () => {
   const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const FACES = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
@@ -6750,7 +6755,10 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
     return p;
   };
   const bad = [];
+  /* ONE SAVE CAN BE MADE TO FAIL, so the `.catch` undo's repaint is walked as well as the happy one. */
+  let failNext = false;
   const { w, sent } = boot({ payload: seed(),
+    reply: b => { if (b.action === 'reactPost' && failNext) { failNext = false; return { error: 'Could not save that' }; } },
     before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
   await wait(400);
   const d = w.document;
@@ -6776,10 +6784,15 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
 
   /* ---------- A TAP ADDS YOURS ------------------------------------------------------------------- */
   sent.length = 0;
+  /* FOCUSED FIRST, as a keyboard, a switch or a screen reader's cursor has it when it presses. */
+  face('😂').focus();
   face('😂').click(); await wait(50);
   shape('after a tap');
   const f = face('😂');
   if (!f) return bad.concat(['after a tap there is no 😂 on the post']);
+  const held = () => { const a = d.activeElement;
+                       return a && a.dataset && a.dataset.do === 'react' ? a.dataset.emoji : (a && a.tagName) || 'nothing'; };
+  if (d.activeElement !== f) bad.push(`after Enter on a focused 😂, the focus is on ${held()} — not the 😂 that replaced it`);
   if (String(f.className).split(/\s+/)[1] !== 'mine') {
     bad.push(`after a tap, 😂 is ${JSON.stringify(f.className)} — \`mine\` must be its second class (ACCEPTED_TAP keys on it)`);
   }
@@ -6799,6 +6812,9 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
 
   /* ---------- THE SAME TAP TAKES IT BACK --------------------------------------------------------- */
   sent.length = 0;
+  /* FOCUSED AGAIN: the plain `repaint` above stands for a payload landing, which is not a press and
+     hands nobody their focus back. */
+  face('😂').focus();
   face('😂').click(); await wait(50);
   shape('after taking it back');
   if (d.querySelector('#s-feed .react.mine')) bad.push('after taking it back, a face is still `.mine`');
@@ -6807,10 +6823,25 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (face('😂') && face('😂').classList.contains('is-pop')) bad.push('taking it back landed the face — only a face added or moved to lands');
   if (total() !== '3 reactions') bad.push(`after taking it back, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
   if (!sent.some(b => b.action === 'reactPost' && b.emoji === '😂')) bad.push('taking it back sent no reactPost');
+  if (face('😂') && d.activeElement !== face('😂')) bad.push(`after taking 😂 back, the focus is on ${held()} — not on 😂`);
   await wait(150);
 
+  /* ---------- A SAVE THAT FAILS IS PUT BACK, AND THE FOCUS STAYS THROUGH THE UNDO ------------------ */
+  failNext = true;
+  face('👏').focus();
+  face('👏').click(); await wait(150);
+  if (d.querySelector('#s-feed .react.mine')) bad.push('a failed save left a face `.mine` — the undo did not put it back');
+  if (total() !== '3 reactions') bad.push(`after a failed save, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
+  if (face('👏') && d.activeElement !== face('👏')) bad.push(`after a failed save's undo, the focus is on ${held()} — not on 👏`);
+
   /* ---------- THE TOTAL OPENS WHO REACTED -------------------------------------------------------- */
+  /* AND A FACE PRESSED WHILE THE FOCUS WAS ELSEWHERE DOES NOT TAKE IT: a redraw must not pull focus
+     off whatever somebody is in (the rule `ansSet_` and `qualRedraw_` follow). */
+  if (d.activeElement && d.activeElement.blur) d.activeElement.blur();
   face('❤️').click(); await wait(150);          // now yours is ❤️: 👍 2, ❤️ 2 — a tie
+  if (d.activeElement && d.activeElement.dataset && d.activeElement.dataset.do === 'react') {
+    bad.push(`a face pressed with nothing focused pulled the focus onto ${held()}`);
+  }
   const who = d.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
   if (!who) return bad.concat(['there is no total on the time line to open who reacted']);
   who.click(); await wait(100);
