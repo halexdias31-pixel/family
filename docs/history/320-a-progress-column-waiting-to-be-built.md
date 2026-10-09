@@ -24,9 +24,13 @@ on it to show.
 
 **WHAT IT WILL DRAW FROM**, written in the code because it is the first thing whoever builds it needs:
 what the app already keeps about each person's work. Every answer — typed, picked, drawn or ringed — is
-on the person's account (the `answers` tab, note 296; `js/answers.js` is the phone's half), and the
-`submissions` log being added on another branch records each one checked and how it was marked. "What
-you got right" and "what to work on next" are questions about those rows, not a new tab.
+on the person's account (the `answers` tab, note 296; `js/answers.js` is the phone's half), and which
+questions each person has done, and when, is the `attempts` tab. "What you got right" and "what to work
+on next" are questions about those rows, not a new tab. **Only tabs in the tree are named.** The first
+version of the comment also named a log of how each answer was marked, which was being built on
+another branch that day and is not in this one — so the first thing whoever builds Progress read would
+have been a name `grep` cannot find. The comment now names `answers` and `attempts` and points at `TAB`
+in backend/constants.gs for whatever has joined or replaced them since.
 
 ### Where it is named
 
@@ -107,6 +111,30 @@ with a sentence saying a screen with no row is on no phone.
   (*"the card never asked for data/videos.json"*); the booking-share one passes alone.
 - `check.js`, `check-const.js`, `check-css.js`, `check-settings.js`, `check-spine.js`: green. No
   stylesheet change, so `--css-version` stands. No backend change.
+
+### After review: the guard asked half the rule
+
+The three placeholder journeys in `check-flow.js` — contest, LEGO trade-in and this one — and Progress's
+state in `check/states.js` each asked only *"is there a control on it"*, with one selector copied four
+times: `button, [data-do], input, select, textarea, a[href]`. A reviewer gave the card *"Streak: 0 days
+· 0% of the course done"*, a bar at nought per cent and a `<details>` with a `<summary>`, and the journey
+passed, `check-doors` passed, and `check/ui.js` went red only because the summary was too small a tap
+target. The streak and the bar are the half of `drill`'s rule nobody asked about (*"Give it a streak
+counter and three greyed-out buttons"*), and a `<summary>` is a thing a finger opens that the selector
+did not name.
+
+**`placeholderFaults_` in check-flow.js asks the whole rule once**, and all three journeys call it:
+nothing pressable, by tag (`summary`, `details`, `label` added) or by attribute (`tabindex`,
+`onclick`, `role`, `contenteditable`); nothing but `drill`'s markup (`div.card`, `h3`, `p.sub`,
+`p.empty`, `br`, `span.faint`) — naming what is allowed catches the bar, a meter and whatever nobody
+thought of; and no digit. Progress's journey asks it of the pane, so a second thing beside the card is
+caught too, and still asks the whole column for controls. `states.js` carries the same three questions
+inline, because its `expect` goes to the page as a string.
+
+Checked: the reviewer's card red in the journey for all five visitors, with all three faults named;
+then each fault alone — the number, the summary, a `tabindex` on the heading — red; a bar on the LEGO
+card and a number on the contest card red in their journeys. `check/ui.js --screen=progress` with the
+number: *"that state was NOT measured"*, exit 1. All green again on the real files.
 
 ### Not done, and worth knowing
 

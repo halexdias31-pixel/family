@@ -442,7 +442,8 @@ screen('spotlight', () => pages('spotlight', spotlightCards_()));
    `contest` and `legotrade` follow it. A streak, a bar at nought per cent or a greyed-out tile is a
    thing to tap that does nothing, and the app reads as broken rather than as unbuilt. So it is
    `drill`'s markup and nothing more: a heading, one line on what it will be, "Not built yet." No
-   tile, no `data-do`, nothing `check/press.js` could find that does nothing.
+   tile, no `data-do`, nothing `check/press.js` could find that does nothing — and no number.
+   `placeholderFaults_` in check-flow.js asks both halves of that of every placeholder.
 
    THE SAME CARD FOR EVERYBODY, signed out included. Who sees whose progress — a student their own,
    a parent their children's, a tutor their students', an admin anybody's — is the first decision
@@ -450,9 +451,13 @@ screen('spotlight', () => pages('spotlight', spotlightCards_()));
 
    WHAT IT WILL DRAW FROM, written here because it is the first thing whoever builds it needs: what
    the app already keeps about each person's work. Every answer — typed, picked, drawn or ringed —
-   is on the person's account (the `answers` tab; `js/answers.js` is the phone's half), and the
-   `submissions` log being added beside this records each one checked and how it was marked. "What
-   you got right" and "what to work on next" are questions about those rows, not a new tab.
+   is on the person's account (the `answers` tab; `js/answers.js` is the phone's half), and which
+   questions each person has done, and when, is the `attempts` tab (`SCHEMA.attempts`). "What you
+   got right" and "what to work on next" are questions about those rows, not a new tab. ONLY TABS
+   THAT EXIST ARE NAMED HERE: a record of how each answer was marked was being built elsewhere the
+   day this was written, and naming it before it landed would send whoever builds this looking for
+   something that might arrive under another name or not at all. Look in `TAB` in
+   backend/constants.gs for what has joined or replaced these two since.
 
    NOTHING STARTS OR STOPS, Spotlight's reason above: nothing on this column runs. */
 function progressCards_() {

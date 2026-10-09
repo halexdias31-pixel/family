@@ -2129,6 +2129,41 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
+/* ---------- WHAT A PLACEHOLDER MAY HOLD, ASKED ONE WAY OF EVERY PLACEHOLDER --------------------------
+   `drill`'S RULE IN map.js HAS TWO HALVES: *"Give it a streak counter and three greyed-out buttons and
+   somebody taps them."* The three journeys below — contest, LEGO trade-in, Progress — each asked only
+   the second, with one selector copied three times, `button, [data-do], input, select, textarea,
+   a[href]`. Found in review on 9 October, adding Progress: a card given *"Streak: 0 days · 0% of the
+   course done"*, a bar at nought per cent and a `<details>` with a `<summary>` passed all three
+   asks. The number and the bar are the first half of the rule and nothing looked for them; the
+   summary is a thing a finger opens and the selector did not name it. `check/ui.js` went red on that
+   card only because the summary was too small to tap — the right answer for the wrong reason, and
+   gone the day somebody pads it.
+
+   SO THE RULE IS ASKED HERE, ONCE, as three questions of what is inside the card:
+   - **Is anything on it pressable** — by tag (a `<summary>`, a `<label>`, a `<details>`) or by what
+     makes any element pressable (`data-do`, `tabindex`, `onclick`, a `role`, `contenteditable`).
+   - **Is there anything but `drill`'s markup** — a heading, a `.sub` line, the `.empty` "Not built
+     yet." with drill's `<br>` and `.faint` aside. A bar, a meter, a picture or a second card is
+     something that looks finished, and naming what IS allowed catches the one nobody thought of.
+   - **Is there a digit in it.** A count, a percentage or a date on a thing with nothing behind it
+     is a number that is wrong. No placeholder has needed one: contest's house name comes from
+     `brand()`, which this payload leaves to its `@family.` fallback.
+   It returns faults rather than a pass, so each journey says which visitor and which card. */
+const PLACEHOLDER_KEYS_ = 'button, [data-do], input, select, textarea, a[href], summary, details, label, '
+  + '[tabindex], [onclick], [role], [contenteditable]';
+const PLACEHOLDER_MARKUP_ = 'div.card, h3, p.sub, p.empty, br, span.faint';
+const placeholderFaults_ = box => {
+  const bad = [];
+  const live = [...box.querySelectorAll(PLACEHOLDER_KEYS_)];
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  const more = [...box.querySelectorAll('*')].filter(e => !e.matches(PLACEHOLDER_MARKUP_) && live.indexOf(e) < 0);
+  if (more.length) bad.push('a placeholder draws more than a heading, one line and "Not built yet.": ' + more.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  const nums = String(box.textContent || '').match(/\d[\d.,:%]*/g);
+  if (nums) bad.push('a placeholder shows a number with nothing behind it: ' + nums.join(', '));
+  return bad;
+};
+
 /* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS -----------------
    ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
    for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
@@ -2151,9 +2186,7 @@ check('the contest placeholder comes straight after One more thing on the Games 
   const h = slot.querySelector('h3');
   if (!h || h.textContent.trim() !== 'Contest') bad.push('the card is not headed Contest');
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
-  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  return bad;
+  return bad.concat(placeholderFaults_(slot));
 });
 
 /* ---------- LEGO TRADE-IN: THE LAST CARD ON THE TOOLS COLUMN, AND NOTHING ON IT TO PRESS ------------
@@ -2175,9 +2208,7 @@ check('the LEGO trade-in placeholder is the last card on the Tools column, says 
   const h = slot.querySelector('h3');
   if (!h || h.textContent.trim() !== 'LEGO trade-in') bad.push('the card is not headed LEGO trade-in');
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
-  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  return bad;
+  return bad.concat(placeholderFaults_(slot));
 });
 
 /* ---------- VIDEOS: TYPING NARROWS, A TAP PLAYS IN THE CARD, FULL SCREEN ASKS FOR FULL SCREEN -------
@@ -7153,8 +7184,15 @@ check('progress is the last column, one card that says it is not built yet with 
     const h = host.querySelector('h3');
     if (!h || h.textContent.trim() !== 'Progress') bad.push(as + ': the card is not headed Progress');
     if (!/Not built yet/.test(host.textContent)) bad.push(as + ': the card does not say it is not built yet');
-    const live = host.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
-    if (live.length) bad.push(as + ': a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+    /* THE PANE, NOT THE COLUMN: `#s-progress` holds the page and pane `pages()` wraps every card in,
+       which are not the card's markup. The pane's contents are, and asking of the pane rather than
+       of the card means a second thing drawn beside the card is caught as well. And a control
+       anywhere else in the column is still a control, so the whole column is asked that one. */
+    const pane = host.querySelector(':scope > .page > .pane');
+    if (!pane) bad.push(as + ': the column has no pane — the card was NOT checked');
+    else for (const f of placeholderFaults_(pane)) bad.push(as + ': ' + f);
+    const outside = [...host.querySelectorAll(PLACEHOLDER_KEYS_)].filter(e => !pane || !pane.contains(e));
+    if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
   }
   t.USER(null);
   return bad;
