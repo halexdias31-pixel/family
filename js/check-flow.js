@@ -6956,6 +6956,79 @@ check('each column opens on the page worth reading', async () => {
   return bad;
 });
 
+/* ---------- PROGRESS: THE LAST COLUMN, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS ---------------
+   ASKED FOR AS "i want to add a new column for students to track their progress and everythinh. you
+   can leave it at the end of the columns for now. just leave a place holder for now." The contest
+   journey's two questions, asked of a column — arriving anywhere but LAST, and growing a control
+   before there is anything behind it — and a third a column has and a widget does not: can a person
+   get there.
+
+   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served.
+   Without it this stub answers that file with the payload, `settingsInto_` skips a thing with no
+   `length`, and the app runs on `TAB_ORDER` — where Settings is last and Spotlight's neighbour is
+   Settings. A journey asking about the code's order would be asking about an order no phone has.
+
+   A SWIPE AS A TRACKPAD SENDS IT. Two fingers sideways is a `wheel` event, and `overworld.js` answers
+   it with `ax.go(ax.at() + 1)` — the same call a finger's release makes — so this is the app's own
+   gesture rather than `go('progress')`, which would reach the column whether or not anything sat
+   next to it. And one more past the end stays put: the last column is an end, not a wrap.
+
+   THE SAME CARD FOR EVERYBODY until it is built — signed out, a student, a parent, a tutor, an
+   admin — so all five are asked, and a card that grew a role's control would fail here. */
+check('progress is the last column, one card that says it is not built yet with nothing to press, and a swipe off Spotlight lands on it', async () => {
+  const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+  const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
+  await wait(600);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const ids = () => t.TABS.map(x => x.id);
+  if (ids().indexOf('progress') < 0) return ['there is no `progress` column on the phone — the order reads ' + ids().join(', ')];
+  if (ids()[ids().length - 1] === 'settings') {
+    return ['columns.json was not applied (Settings is last, which is the code\'s own order) — the order a phone gets was NOT checked'];
+  }
+  if (ids()[ids().length - 1] !== 'progress') bad.push('Progress is not the last column — the order reads ' + ids().join(', '));
+  if (ids().indexOf('progress') !== ids().indexOf('spotlight') + 1) bad.push('Progress is not straight after Spotlight — the order reads ' + ids().join(', '));
+
+  /* THE SWIPE. */
+  const swipe = async from => {
+    const at = d.querySelector('#s-' + from + ' .page .pane') || d.getElementById('s-' + from);
+    at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
+    await wait(LEAVE_MS); await woken_();
+  };
+  t.go('spotlight', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'spotlight') return bad.concat(['go("spotlight") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await swipe('spotlight');
+  if (t.AT() !== 'progress') bad.push('a sideways swipe off Spotlight landed on ' + t.AT() + ', wanted Progress');
+  else {
+    await swipe('progress');
+    if (t.AT() !== 'progress') bad.push('a sideways swipe past the last column moved off Progress, to ' + t.AT());
+  }
+
+  /* THE CARD, FOR EVERY VISITOR. */
+  const who = [['signed out', null],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }],
+    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }]];
+  for (const [as, u] of who) {
+    t.USER(u);
+    w.paint('progress');
+    const host = d.getElementById('s-progress');
+    if (!host) return bad.concat(['there is no #s-progress to draw into']);
+    const n = host.querySelectorAll(':scope > .page').length;
+    if (n !== 1) bad.push(as + ': the column draws ' + n + ' pages, wanted the one card');
+    if (t.pageCount('progress') !== n) bad.push(as + ': the pager counts ' + t.pageCount('progress') + ' pages over ' + n + ' drawn');
+    const h = host.querySelector('h3');
+    if (!h || h.textContent.trim() !== 'Progress') bad.push(as + ': the card is not headed Progress');
+    if (!/Not built yet/.test(host.textContent)) bad.push(as + ': the card does not say it is not built yet');
+    const live = host.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
+    if (live.length) bad.push(as + ': a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  }
+  t.USER(null);
+  return bad;
+});
+
 check('a landmark is the same shape whichever way it is turned', async () => {
   /* THE FAULT THIS PREVENTS. Turning a site used to rotate the POLYGON and re-sample it against the
      tile grid — and re-sampling a shape at a different angle gives a different set of tiles. A T

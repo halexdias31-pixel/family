@@ -146,6 +146,29 @@ const TABS = [
      APPENDED, because this table is append-only; `TAB_ORDER` and `data/settings/columns.json` are
      what put it second-but-one. */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
+  /* ---------- AND PROGRESS, AT THE FAR END OF THE ROW, WAITING TO BE BUILT ------------------------
+     ASKED FOR AS "i want to add a new column for students to track their progress and everythinh.
+     you can leave it at the end of the columns for now. just leave a place holder for now." (9 Oct)
+
+     A PLACE, NOT A QUESTION, which is the test every column in this table is judged by. Nobody
+     narrows "how am I doing" down by answering the funnel's questions: it is the same page whatever
+     you were looking for, and a child opens the app to look at it with no errand at all. So it is a
+     column, and not a kind in `data/settings/kinds.json`.
+
+     A PLACEHOLDER, AND IT SAYS SO — `progressCards_` in arcade.js, on `drill`'s rule from map.js.
+
+     APPENDED, because this table is append-only: `AT` is remembered by id and the X axis clamps by
+     index. `TAB_ORDER` and the last row of `data/settings/columns.json` are what put it last, which
+     is the "for now" the request asked for — moving it is one row of that file with no deploy.
+
+     📈 RATHER THAN A PLAIN SYMBOL. The row is two kinds of glyph: emoji (🏠 📅 🛒 🔎 👤 🧰 🎮) and
+     plain shapes that already mean the thing (★ kept, ✦ featured, ⚙ settings, ✉ a letter). No plain
+     shape means a chart, and the near ones are taken here — ↗ was a post's share mark (`tiles.js`),
+     ▲ is the calculator's up key — so it is the emoji half: 📈 is Unicode 6.0, in Apple's emoji font
+     since iOS 5, and a line going up reads at any size. NOTHING DRAWS IT TODAY: the bar went (see
+     `<nav id="tabs">` in index.html), so like every icon here it is carried for `applyColumns_`
+     and for whatever names a column next. */
+  { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -163,7 +186,8 @@ const TABS = [
    they are widgets standing for what the column holds, not columns of their own. */
 const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
                    'spotlight',
-                   'settings'];
+                   'settings',
+                   'progress'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
@@ -2197,6 +2221,10 @@ const PAGER = {
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
+  /* PROGRESS, COUNTED FROM `progressCards_`, the list `screen('progress')` draws. One card today —
+     the placeholder — and counted anyway rather than written as 1: the day it is built it will be
+     a page per something, and a count kept here by hand is the fault every entry above records. */
+  progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -2444,7 +2472,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0, shop: 0 };
+               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.

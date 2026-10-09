@@ -3899,6 +3899,23 @@ const STATES = {
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
   ],
 
+  /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
+     NOT LEFT TO THE DEFAULT. A column with no entry here is measured in the state it opens in with
+     nothing asked of it, and "nothing to press" printed by `check/press.js` is the same silence
+     whether the column drew its card or drew nothing. So the one state says what it must be looking
+     at — the card, "Not built yet.", and not a control on it — for both visitors, which is the
+     placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup.
+     The day the column is built this entry is where its states go. */
+  progress: [
+    { name: '',
+      expect: () => {
+        const h = document.getElementById('s-progress');
+        return !!(h && h.querySelector(':scope > .page .card h3') && /Not built yet/.test(h.textContent)
+          && !h.querySelector('button, [data-do], input, select, textarea, a[href]'));
+      },
+      wants: 'Progress card saying it is not built yet, with nothing on it to press' },
+  ],
+
   /* ---------- THE SHOP ------------------------------------------------------------------------
      THE UNNAMED STATE IS PAGE 0, the basket, empty — which is what every visitor lands on. The two
      below are what a fixture with no shop rows could never have drawn: a shelf of shop cards, and a
