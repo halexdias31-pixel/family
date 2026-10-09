@@ -13992,11 +13992,16 @@ check('answers: a refused save keeps the answer due and it goes on the next try;
   if ((server['ans:q:Q-ANS-W-I'] || {}).v !== 'second, longer') bad.push('an answer typed over while the last one was being sent was taken as saved — the account has ' + JSON.stringify((server['ans:q:Q-ANS-W-I'] || {}).v) + ' and the box says "second, longer" (sent: ' + JSON.stringify(after) + ')');
   if (due().length) bad.push('after the follow-up save something is still due: ' + JSON.stringify(due()));
   /* AND AN ANSWER TOO LONG FOR THE ACCOUNT (ANSWER_TEXT_MAX): never sent, never due — it would be refused
-     for ever — and the line under the box does not claim a save that never happened. */
+     for ever — and the line under the box does not claim a save that never happened.
+     THE CEILING READ FROM js/answers.js, NOT WRITTEN HERE: it was 2,000 and this said `2001`, and on 9 Oct
+     it went to 20,000 because an essay is an answer (docs/history/312) -- a number copied into a check is
+     a check that fails the day the rule it holds is changed on purpose. */
+  const CEIL = +((fs.readFileSync(path.join(dir, 'answers.js'), 'utf8').match(/\bANS_TEXT_MAX = (\d+)/) || [])[1] || 0);
+  if (!(CEIL >= 2000)) return bad.concat(['ANS_TEXT_MAX was not found in js/answers.js — the ceiling was NOT checked']);
   const n2 = sent.filter(b => b.action === 'saveAnswers').length;
-  ansType_(w, c.ta(), 'x'.repeat(2001));
+  ansType_(w, c.ta(), 'x'.repeat(CEIL + 1));
   await w.answersPush_(true);
-  if (sent.filter(b => b.action === 'saveAnswers').slice(n2).some(b => (b.items || []).some(i => String(i.v).length > 2000))) bad.push('an answer over the account’s ceiling was sent — the server refuses it every time');
+  if (sent.filter(b => b.action === 'saveAnswers').slice(n2).some(b => (b.items || []).some(i => String(i.v).length > CEIL))) bad.push('an answer over the account’s ceiling was sent — the server refuses it every time');
   if (due().length) bad.push('an answer over the ceiling is still due: ' + JSON.stringify(due()));
   if (c.saidFor(c.words) !== 'On this device only \u2014 too long for the account') bad.push('under an answer too long for the account the line says ' + JSON.stringify(c.saidFor(c.words)));
   return bad;
