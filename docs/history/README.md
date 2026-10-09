@@ -307,3 +307,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [An ordering is tapped in order: the items are buttons, the answer is the order, and a machine marks it](303-an-ordering-is-tapped-in-order.md)
 - [The textbooks hold the teaching animations, and the loading screen draws its copy of them](304-the-textbooks-hold-the-animations.md)
 - [The films are whatever is in the Notflix folder: a sync from Drive, asked for by the videos card, and only an admin ever sees one](305-the-films-are-whatever-is-in-the-notflix-folder.md)
+- [The whiteboard is the question pages' pen on a blank sheet, and what is drawn on it is never an answer](310-the-whiteboard.md)

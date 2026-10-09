@@ -8095,7 +8095,17 @@ document.addEventListener('input', e => {
    person too, which is the fault itself carried forward. Never over marks the person already has:
    those are newer than anything the phone kept. */
 const padItemKey_ = x => (x && (x.key || x.name)) || '?';
-const padKey_ = x => 'pad:' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
+/* ---------- `pad:` IS A QUESTION'S, AND A PEN THAT IS NOT ON A QUESTION SAYS SO IN ITS KEY ----------
+   EVERY `pad:` KEY IS AN ANSWER as far as the rest of the app is concerned: answers.js sends it to the
+   account's `answers` tab (`ansStore_`, and the backlog sweep in `answersAdopt_` that walks every
+   `pad:<who>:` on the device), and that tab is the record of what a child answered. So the one pen
+   that is not on a question -- the whiteboard, `WB_ITEM` below -- names its own prefix (`prefix:
+   'board'`), and its marks are `board:u:P7:whiteboard`: the same per-person key, the same handlers,
+   and a shape answers.js does not recognise, so it is kept on the device and never read as a
+   question somebody answered. The argument is written over `WB_ITEM`. A question names nothing and is
+   `pad:` exactly as it always was. */
+const padPrefix_ = x => (x && x.prefix) || 'pad';
+const padKey_ = x => padPrefix_(x) + ':' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
 function padAdopt_(k, bare) {
   if (!k || !bare || k === bare) return;
   try {
@@ -8271,7 +8281,7 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
-  padAdopt_(k, 'pad:' + padItemKey_(x));
+  padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
   const marks = padRead_(k);
   /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
      its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
@@ -8307,7 +8317,9 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    <p class="qpad-note">${esc(padKeptSay_())}</p>
+    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padKeptSay_` says "Saved to Ada's
+          account" signed in, which is true of a question's and false of the whiteboard's (`padPrefix_`). */''}
+    <p class="qpad-note">${esc(padPrefix_(x) === 'pad' ? padKeptSay_() : PAD_HERE_ONLY)}</p>
   </div>`;
 }
 
@@ -8627,6 +8639,82 @@ function padRepaint_(pad, all) {
   if (g) g.innerHTML = (all || [])
     .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
 }
+
+/* ==================================================================================================
+   THE WHITEBOARD IS THIS PEN, ON NOTHING.
+
+   ASKED FOR AS *"Can you also add a whiteboard widget in tools. Make it bare bones for now."* The
+   widget is `whiteboard` in WIDGETS (map.js); this is all of its code, and most of that is comment.
+
+   NOT A SECOND DRAWING SURFACE. Everything hard about a pen in this app is already paid for above, in
+   bug reports: the lock that holds the column still while a finger draws (`data-noswipe` for the grid,
+   `touch-action: none` for the browser -- two halves of one sentence, see `on('pad-draw')`), the
+   picture that is a door while the pen is off and a drag that is still a swipe (`PRESS_MOVED`), the
+   pen that survives a repaint because it is read off `PAD_ON` rather than left on an element, strokes
+   as flat polylines in the device's storage written once per stroke, Undo and Clear redrawn from
+   storage, a key per person signed in, and the phone's old marks moving once to whoever opens them. A
+   board of its own would have to be paid for again, one report at a time. So `padWrap_` is handed a
+   pseudo-item and a blank surface and does what it does for a question.
+
+   WHAT `padWrap_` ASKS OF A QUESTION, AND WHY NONE OF IT BITES HERE -- read rather than assumed:
+     `usesUnder_`   an earlier part's marks: `usesOf_` answers null for anything not `kind: 'question'`
+     `padTools_`    no `needs`, no words, so the pen alone -- and a lone Pen is drawn as no tool tile
+     `padKeptSay_`  "Saved to Ada's account" -- not true of this one, so the note says it is kept here
+                    (`padPrefix_` decides; one line in `padWrap_`)
+   and the key's prefix, two lines over `padKey_`. That is the whole generalisation.
+
+   BARE BONES, AND THAT IS THE BRIEF RATHER THAN AN UNFINISHED JOB: draw (with the lock), Undo, Clear.
+   No colours, no eraser, no shapes, no ruler or compass, no export, no sharing, no pages. What it
+   would grow into next, in the order somebody would miss them:
+     a second colour   the stroke is a flat list of numbers and nothing else (`padPath_`), so a colour
+                       is a change to the FORMAT -- say `{c, p}` beside the bare list, read by `padPath_`
+                       -- not a class on the path
+     an eraser         Undo is the eraser today; a real one is a tool in `PAD_DRAW` that removes the
+                       strokes a drag crosses, which is where the ruler and the compass already live
+     the ruler/compass `padTools_` could offer them here with one line (`WB_ITEM.needs`); left off
+                       because "bare bones" was the word
+     the account       see the next paragraph -- it needs a key the answers tab can tell from a question
+     pages, export     a list of boards under one key; a PNG from the two SVGs. Nobody has asked.
+
+   ITS OWN PREFIX, `board:`, SO IT IS NEVER A QUESTION SOMEBODY ANSWERED. Under `pad:` the board would
+   be `pad:u:P7:whiteboard`, and every reader of `pad:` keys takes it for an answer: `ansStore_` sends it
+   to the `answers` tab as `pad:whiteboard`, and so does the backlog sweep in `answersAdopt_`, which
+   walks every `pad:<who>:` key on the device whether or not a question drew it. That tab is the record
+   of what a child answered, and anything that ever lists or counts answers from it -- a progress page,
+   a parent's summary, a log of what was handed in -- would count a question called `whiteboard` that
+   nobody can find. Teaching every reader of that tab, now and later, to skip one name is a rule in N
+   places that the next reader will not know about; a key that does not look like an answer is a rule
+   in none. answers.js matches `^(ans|pad):` throughout, so a `board:` key goes through the same
+   `ansStore_` the pen always calls, is written to the device, has no person in it as far as the
+   account is concerned, and is sent nowhere.
+   WHAT IT DOES NOT TOUCH, checked: the weekly parent email reads `attempts`, which only `doneMark_`
+   writes, and the pen has never called it (a stroke is not "done"); Saved keeps the widget's star as
+   `w:whiteboard` in `FAVS`, a widget like the calculator, not a question; and nothing else walks the
+   store but that sweep, `attemptsSync_` (`done:`) and the splash (`splashAnim:`).
+   WHAT IT COSTS: the board stays on the device it was drawn on, per person signed in there. For a board
+   that is the ordinary thing -- you wipe it -- and the note under it says so.
+
+   THE SURFACE IS PAPER, because it stands in for a physical board: `--paper` with the ink in
+   `--paper-ink`, never gold. The pen is gold on a question because the question's own figure is
+   printed in `currentColor` and your line has to be told from its axis; here there is nothing on the
+   board but your marks, and gold on cream is a line you can barely see. Sized in `style.css` (`.wb`),
+   where the reason for its shape is written: the ink is stretched to its box, so the box keeps ONE
+   shape everywhere or yesterday's circle comes back an ellipse. */
+const WB_ITEM = { key: 'whiteboard', prefix: 'board' };
+const PAD_HERE_ONLY = 'Kept on this device only.';
+/* EMPTY, BECAUSE THE BOX IS THE BOARD. On a question `.qpad-art` takes its size from the figure in it;
+   here `.wb .qpad-art` is given its paper and its 3:4 itself (style.css) and this only fills it, so
+   the ink is laid over it exactly as over any figure. */
+const WB_SURF = '<svg class="wb-surf" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true"></svg>';
+
+/* EVERY COPY, BY CLASS -- `tmtPaint_`'s reason: the Saved column draws this same markup, and two
+   elements under one id is the `$('msg-text')` fault. The same key in both, so a stroke on one is on
+   the other the next time it is drawn. */
+function wbPaint_() {
+  const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, '')}</div>`;
+  document.querySelectorAll('.wb-box').forEach(el => { el.innerHTML = html; });
+}
+function initWhiteboard() { wbPaint_(); }
 
 /* ==================================================================================================
    "USE YOUR GRAPH" SHOWS YOUR GRAPH.

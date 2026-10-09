@@ -4358,6 +4358,38 @@ const STATES = {
         document.activeElement && document.activeElement.blur && document.activeElement.blur();
         initTyping();
       } },
+
+    /* ---------- THE WHITEBOARD, LOCKED, WITH SOMETHING ON IT --------------------------------------
+       KEPT ON THE DEVICE, so it opens blank and unlocked on every run -- a cream rectangle measures
+       perfectly. The state somebody is actually in is the other one: the padlock lit, the gold frame
+       round the board, marks on it, and the bar and the note still inside a pane that clips. That is
+       the case the board's height is capped for (`.wb` in style.css), at 320x568 above all.
+       Seeded through the app's own key (`padKey_(WB_ITEM)`) and the app's own writer (`ansStore_`),
+       and locked the way a repaint finds it (`PAD_ON`), so nothing here spells the key out. A ruled
+       line across the top, a triangle and a ring: a stroke that touches the board's edges is the one
+       that would show a board drawn the wrong shape. */
+    { name: 'a whiteboard with a drawing on it',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard');
+        if (n < 0) throw new Error('no whiteboard widget in the roster');
+        goPage('tools', n, true);
+        const k = padKey_(WB_ITEM);
+        const ring = [];
+        for (let i = 0; i <= 48; i++) ring.push(Math.round(170 + 60 * Math.cos(i / 24 * Math.PI)), Math.round(255 + 45 * Math.sin(i / 24 * Math.PI)));
+        ansStore_(k, JSON.stringify([[0, 20, 340, 20], [70, 190, 170, 50, 270, 190, 70, 190], ring]));
+        PAD_ON = k;
+        initWhiteboard();
+      },
+      expect: () => document.querySelectorAll('#s-tools #wgt-whiteboard .qpad.is-drawing .qpad-g path').length === 3
+                    && document.querySelector('#s-tools #wgt-whiteboard .qpad-ink[data-noswipe]')
+                    && document.querySelectorAll('#s-tools #wgt-whiteboard .qpad-bar .tile').length === 3,
+      wants: 'the board locked, three marks on it, and the padlock, Undo and Clear under it',
+      leave: () => {
+        const k = padKey_(WB_ITEM);
+        PAD_ON = '';
+        ansStore_(k, null);
+        initWhiteboard();
+      } },
   ],
 
   /* ---------- A HIGH-SCORE BOARD WITH SCORES ON IT ---------------------------------------------

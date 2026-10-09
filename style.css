@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-films-from-notflix";
+  --css-version: "2026-10-09-whiteboard";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11975,6 +11975,56 @@ button.scr-sq { cursor: pointer; }
 .qseen > .fig-by { margin: .5rem 0 0; text-align: left; opacity: 1;
                    font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 .qseen-note { margin: .5rem 0 0; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+
+/* ---------- THE WHITEBOARD: THE PEN ABOVE, ON A BLANK SHEET OF PAPER ----------------------------------
+   `WB_ITEM` in find.js is the argument for it being this pen rather than a second one, so everything
+   above applies unchanged -- the frame, the `touch-action` that only an armed pad carries, the bar.
+   What is the board's own is its paper and its shape.
+
+   PAPER, FROM THE TOKENS. It stands in for a physical board, which is the second palette's job (the
+   receipt, the calendar, the splash); and the ink is `--paper-ink`, not the pen's gold. Gold is right
+   on a question because the figure is printed in `currentColor` and your line must be told from its
+   axis. Here nothing is on the board but you, and gold on cream is a line you can hardly see.
+
+   ONE SHAPE, ALWAYS 3:4, AND THAT IS A PROMISE TO THE MARKS ALREADY STORED. The ink is stretched to its
+   box (`preserveAspectRatio="none"`, see `padWrap_`): 340 units across and 340 down, whatever the box.
+   A board that was the card's width and the screen's height would be a different shape on every
+   phone and on the same iPad turned round, and every stroke on it would be stretched with it --
+   yesterday's circle back as an ellipse. So the shape is fixed and only the SIZE follows the screen.
+   3:4 is the iPad's own, and on a 320x568 phone it is the shape that is still the card's full width.
+   Changing it later redraws every board anybody has, squashed; it wants a stored shape first.
+
+   THE WIDTH IS THE CARD'S, UNTIL THE SCREEN IS TOO SHORT FOR THAT. `.pane` is capped at the screen
+   (`100dvh` less 2.5rem), and a board taller than what is left under the heading would push the bar
+   out of the bottom of a pane that clips -- a padlock you cannot reach, on a board you cannot draw on.
+   So the board is at most as tall as the screen less `--wb-chrome`, everything else the card holds
+   at that height: the pane's cap and padding, the card's padding, the star's row, the heading, the
+   bar and the note. Two 44px rows of tiles in px (a fingertip, CLAUDE.md), the rest in rem, MEASURED
+   signed in at 320x568, 390x844, 768x1024, 1280x800 and 1920x1080 as the screen's height less the
+   most the board could have been without the pane clipping: 88px and 13.13 to 13.16rem every time,
+   so 13.6 leaves about six pixels to spare. Signed out there is no star, and the board simply has
+   44px more than it needs. At every one of those five sizes the WIDTH decides (the board is the
+   card's width, 3:4); the cap is for the screen that is wide and short -- a laptop at 720, measured:
+   a 316x421 board in a pane 674px inside its 681 -- and a phone on its side, where the board is small
+   but the bar is still there. Without it the bar is the first thing cut off. `check/ui.js
+   --screen=tools` measures the pane at all five, and the whiteboard's state in check/states.js puts a
+   drawing on it there. */
+.wb { --wb-chrome: calc(88px + 13.6rem); }
+.wb .qpad { margin: .25rem 0 0; }
+.wb .qpad-art {
+  display: block; margin: 0 auto;
+  width: min(100%, calc((100dvh - var(--wb-chrome)) * 3 / 4));
+  aspect-ratio: 3 / 4;
+  background: var(--paper);
+  border: 1px solid var(--paper-rule); border-radius: var(--r-sm);
+}
+.wb .qpad-art > svg:first-child { width: 100%; height: 100%; }
+.wb .qpad-g path { stroke: var(--paper-ink); }
+.wb .qpad-note { text-align: center; }
+/* CLEAR OF THE FRAME. Locked, the gold outline stands 6px outside the paper (`outline-offset: 4px`,
+   2px wide), and the tile row's own .5rem left it a pixel from the padlock -- a frame round the whole
+   page reads as touching the controls under it. The extra .35rem is in `--wb-chrome`. */
+.wb .qpad-bar { justify-content: center; margin-top: .85rem; }
 
 /* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT ----------------------
    "Circle the three adjectives in the passage below." `circWords_` makes every word of the part a

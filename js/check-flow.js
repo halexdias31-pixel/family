@@ -2147,18 +2147,22 @@ check('the contest placeholder comes straight after One more thing on the Games 
   return bad;
 });
 
-/* ---------- LEGO TRADE-IN: THE LAST CARD ON THE TOOLS COLUMN, AND NOTHING ON IT TO PRESS ------------
+/* ---------- LEGO TRADE-IN: APPENDED AFTER THE CALENDAR, AND NOTHING ON IT TO PRESS -------------------
    ASKED FOR AS "the lego trade in should be a widget in tools. you dont have to make it just leave a
-   placeholder." The contest journey's two questions on the other column: appended LAST, so no page
-   `PAGE.tools` remembers moves, and no control before there is anything behind one. */
-check('the LEGO trade-in placeholder is the last card on the Tools column, says so, and has nothing to press', async () => {
+   placeholder." The contest journey's two questions on the other column: appended, so no page
+   `PAGE.tools` remembers moves, and no control before there is anything behind one.
+   IT ASKED FOR "THE LAST TOOL" WHILE IT WAS ONE, and the whiteboard was appended after it (310) --
+   which is the same rule kept, not broken: what `PAGE.tools` needs is that nothing goes in ABOVE an
+   existing tool. So this asks that it still sits straight after the calendar it was appended to, and
+   the whiteboard's journey asks that the newest tool is the last. */
+check('the LEGO trade-in placeholder comes straight after the calendar on the Tools column, says so, and has nothing to press', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
   const bad = [];
   const roster = t.widgetsOf('tool').map(x => String(x.id));
   if (roster.indexOf('legotrade') === -1) return ['there is no legotrade widget on the Tools column'];
-  if (roster[roster.length - 1] !== 'legotrade') bad.push('legotrade is not the last tool: ' + roster.join(', '));
+  if (roster.indexOf('legotrade') !== roster.indexOf('calendar') + 1) bad.push('legotrade does not come straight after calendar: ' + roster.join(', '));
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   const slot = w.document.querySelector('#s-tools #wgt-legotrade');
@@ -2168,6 +2172,121 @@ check('the LEGO trade-in placeholder is the last card on the Tools column, says 
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
   const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
   if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
+/* ---------- THE WHITEBOARD: LOCK, DRAW, UNDO, KEPT THROUGH A REPAINT, CLEAR -- AND NEVER AN ANSWER ------
+   ASKED FOR AS *"Can you also add a whiteboard widget in tools. Make it bare bones for now."* It is the
+   question pages' pen on a blank sheet (`WB_ITEM` in find.js), so this walks it through the pen's own
+   listeners and handlers on the Tools column, the way a finger does, and asks what is stored and what
+   is drawn after each step:
+     * the newest tool is LAST, after `uploads` in the roster -- `PAGE.tools` keeps a page by its index
+     * the bar is the padlock, Undo and Clear, and nothing else -- bare bones, no tool tiles
+     * unlocked, a drag draws nothing and the grid may have the gesture (`axisFree`); locked, the ink
+       is `data-noswipe` and a drag is ONE stroke under the board's key, drawn as one path
+     * Undo takes it off, a second stroke goes on, and `repaint` -- the app's own, which restarts the
+       column's widgets -- draws it back from storage with the pen still locked
+     * THE KEY IS NOT AN ANSWER'S. `board:u:<who>:whiteboard`, and the backlog sweep that sends every
+       `pad:<who>:` key on the device to the account (`answersAdopt_`) leaves it alone -- the reason
+       it has its own prefix. The note under it says it is kept here.
+     * somebody else signed in on the phone gets a blank board; Clear empties the first one's */
+check('the whiteboard locks, draws, undoes, survives a repaint and clears — and is never sent as an answer', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
+  if (!t || typeof w.initWhiteboard !== 'function' || typeof t.widgetsOf !== 'function' || typeof t.allWidgets !== 'function'
+      || !A['pad-draw'] || !A['pad-undo'] || !A['pad-clear'] || typeof w.answersAdopt_ !== 'function' || typeof w.axisFree !== 'function') {
+    return ['initWhiteboard, the pad-draw / pad-undo / pad-clear handlers, answersAdopt_ or axisFree are not reachable — the whiteboard was NOT checked'];
+  }
+  const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
+  if (tools.slice(-2).join(' ') !== 'uploads whiteboard') bad.push('the whiteboard is not appended last, after uploads: ' + tools.join(', '));
+  const wb = t.allWidgets().find(x => x.id === 'whiteboard');
+  if (!wb || !wb.solid || wb.name !== 'Whiteboard') bad.push('the whiteboard is not a solid tool called Whiteboard');
+
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
+  const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
+  t.USER(sam);
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  if (roster[roster.length - 1] !== 'whiteboard') bad.push('the whiteboard is not the last page of a student\'s Tools column: ' + roster.join(', '));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  t.goPage('tools', roster.indexOf('whiteboard'), true);
+  await wait(50);
+  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  if (!pad()) return bad.concat(['the whiteboard did not draw a pad on the Tools column']);
+  const k = pad().getAttribute('data-k');
+  if (k !== 'board:u:P9:whiteboard') bad.push('the board is kept under ' + JSON.stringify(k) + ', wanted "board:u:P9:whiteboard" — a `pad:` key is a question\'s answer');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  w.initWhiteboard();
+
+  /* THE BAR: the padlock, Undo, Clear -- and no Pen, Ruler or Compass. */
+  const bar = [...pad().querySelectorAll('.qpad-bar [data-do]')].map(b => b.getAttribute('data-do')).join(' ');
+  if (bar !== 'pad-draw pad-undo pad-clear') bad.push('the bar offers [' + bar + '], wanted the padlock, Undo and Clear and nothing else');
+  if (!/Kept on this device only/.test((pad().querySelector('.qpad-note') || {}).textContent || '')) {
+    bad.push('the note under the board does not say it is kept on this device — signed in, the pen\'s own note claims the account');
+  }
+
+  /* A REAL DRAG, through the pen's own listeners, on a 300 x 400 board at (20, 100). */
+  const L = 20, T = 100, W = 300, H = 400;
+  const ink = () => pad().querySelector('.qpad-ink');
+  const fix = () => { ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
+  const Ev = w.PointerEvent || w.MouseEvent;
+  const fire = (type, px, py) => ink().dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 1 }));
+  const drag = pts => { fire('pointerdown', pts[0][0], pts[0][1]); pts.slice(1).forEach(p => fire('pointermove', p[0], p[1])); fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); };
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
+  const paths = () => pad().querySelectorAll('.qpad-g path').length;
+  fix();
+
+  if (!w.axisFree(ink(), 'x', -1)) bad.push('unlocked, the board refuses the grid a sideways swipe — an empty widget eating the swipe, the notepad\'s fault');
+  drag([[60, 200], [160, 220], [260, 240]]);
+  if (stored().length || paths()) bad.push('unlocked, a drag drew ' + stored().length + ' stroke(s) — the pen must be off until the padlock is pressed');
+
+  A['pad-draw'](pad().querySelector('.qpad-lock'));
+  if (!pad().classList.contains('is-drawing') || !ink().hasAttribute('data-noswipe')) bad.push('the padlock did not lock the board: no frame or no `data-noswipe`');
+  if (w.axisFree(ink(), 'x', -1) || w.axisFree(ink(), 'y', 1)) bad.push('locked, the grid may still take a drag that starts on the board, so a stroke slides the column');
+  /* (20+30, 100+40) is units (34, 34); (20+150, 100+200) is (170, 170); (20+270, 100+360) is (306, 306). */
+  drag([[50, 140], [170, 300], [290, 460]]);
+  let s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[34,34,170,170,306,306]') bad.push('a locked drag stored ' + JSON.stringify(s) + ', wanted one stroke [34,34,170,170,306,306]');
+  if (paths() !== 1) bad.push('a locked drag drew ' + paths() + ' path(s), wanted 1');
+
+  A['pad-undo'](pad().querySelector('.qpad-undo'));
+  if (stored().length || paths()) bad.push('Undo left ' + stored().length + ' stroke(s) stored and ' + paths() + ' drawn');
+
+  drag([[80, 150], [120, 170]]);
+  if (stored().length !== 1) bad.push('the stroke after Undo was not kept: ' + JSON.stringify(stored()));
+
+  /* THE APP'S OWN REPAINT, which rebuilds the column and restarts its widgets -- not a call to
+     `initWhiteboard`, which would pass with a roster entry that had lost its `start`. */
+  try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  await wait(50);
+  if (!pad()) return bad.concat(['the whiteboard was not drawn again after a repaint']);
+  if (paths() !== 1) bad.push('after a repaint the board shows ' + paths() + ' mark(s), wanted the one kept');
+  if (!pad().classList.contains('is-drawing') || !ink().hasAttribute('data-noswipe')) bad.push('a repaint unlocked the board while `PAD_ON` still says it is locked — the half-armed pad');
+
+  /* NEVER AN ANSWER: the backlog sweep is what sends every `pad:<who>:` on the device to the account. */
+  w.answersAdopt_('P9', {});
+  let dirty = [];
+  try { dirty = JSON.parse(w.localStorage.getItem('ansDirty:u:P9') || '[]') || []; } catch (e) {}
+  if (dirty.some(x => /whiteboard/.test(x))) bad.push('the answers sweep marked the board to be sent to the account as an answer: ' + JSON.stringify(dirty));
+  const keys = []; for (let i = 0; i < w.localStorage.length; i++) keys.push(w.localStorage.key(i));
+  if (keys.some(x => /^(ans|pad):/.test(x) && /whiteboard/.test(x))) bad.push('the board left a key an answer reader would take for a question: ' + keys.filter(x => /whiteboard/.test(x)).join(', '));
+
+  /* SOMEBODY ELSE ON THE SAME PHONE GETS A BLANK BOARD, through the repaint a sign-in does. */
+  t.USER(kit);
+  try { t.repaint(); } catch (e) {}
+  await wait(50);
+  if (pad() && paths()) bad.push('a second person signed in on the phone sees the first one\'s board');
+  t.USER(sam);
+  try { t.repaint(); } catch (e) {}
+  await wait(50);
+  if (!pad() || paths() !== 1) bad.push('signing back in does not bring the board back');
+
+  A['pad-clear'](pad().querySelector('.qpad-clear'));
+  if (w.localStorage.getItem(k) !== null || paths()) bad.push('Clear left ' + stored().length + ' stroke(s) stored and ' + paths() + ' drawn');
+
+  if (typeof t.padOn === 'function') t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
   return bad;
 });
 
