@@ -2228,6 +2228,42 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   /* AND NOT THE REELS: *"the video widget shouldn't acknowledge reels."* They were a third list here. */
   if (before.some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + before.join(' | '));
 
+  /* ---------- AND IT LOOKS LIKE YOUTUBE (note 311): A PICTURE ON EVERY ROW, AND A POSTER UNDER IT --------
+     *"Can you also make the video serger widget look more like YouTube."* Each half below draws a
+     perfectly good card when it is wrong: a YouTube row whose picture asks the tracking host (or the
+     wrong id) looks like any other thumbnail, a row with no picture that is a grey hole looks like a
+     picture still loading, and a picture that failed and was left in place is a broken-image mark on a
+     phone. Nothing plays yet, so there is no player and no Full screen tile — YouTube shows the list. */
+  const rowOf = title => [...box.querySelectorAll('.vid-list .vid-row')]
+    .find(r => (r.querySelector('.vid-t') || {}).textContent === title);
+  const yt = rowOf('How volcanoes erupt');
+  const ytImg = yt && yt.querySelector('.vid-th img.vid-img');
+  if (!ytImg || ytImg.getAttribute('src') !== 'https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg')
+    bad.push('the YouTube row\'s picture is not its i.ytimg.com mqdefault: ' + (ytImg ? ytImg.getAttribute('src') : 'no <img>'));
+  else if (ytImg.getAttribute('alt') !== '' || ytImg.getAttribute('loading') !== 'lazy'
+           || ytImg.getAttribute('referrerpolicy') !== 'no-referrer')
+    bad.push('the YouTube row\'s picture is not alt="", lazy and no-referrer: ' + ytImg.outerHTML.slice(0, 200));
+  if (yt && !yt.querySelector('.vid-th .vid-poster')) bad.push('the YouTube row has no poster under its picture, so a failed one would leave a hole');
+  if (!yt || !/^Clip$/.test(((yt.querySelector('.vid-badge') || {}).textContent || '').trim()))
+    bad.push('the YouTube row\'s badge does not say Clip');
+  const mp4 = rowOf('Fractions in two minutes');
+  if (!mp4 || mp4.querySelector('img') || !mp4.querySelector('.vid-th .vid-poster b'))
+    bad.push('an .mp4 row has no picture to show and is not drawn a poster with its letter: ' + (mp4 ? mp4.innerHTML.slice(0, 200) : 'no row'));
+  if (box.querySelector('.vid-watch.on') || box.querySelector('.vid-stage .vid-player') || box.querySelector('[data-do="vid-full"]'))
+    bad.push('with nothing playing the card draws a player or a Full screen tile — YouTube shows the list');
+  if (box.querySelector('.vid-hint')) bad.push('the empty stage still says "Tap a video to play it here."');
+  /* A PICTURE THAT FAILS IS TAKEN AWAY and the poster under it is what shows — through the one listener
+     (`error` does not bubble, so it has to be the capture phase), and the next paint does not ask again. */
+  if (ytImg) {
+    ytImg.dispatchEvent(new w.Event('error'));
+    if (!ytImg.classList.contains('is-gone')) bad.push('a picture that failed to load was left in place over its poster');
+    q.value = 'volc'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    const again = rowOf('How volcanoes erupt');
+    if (!again || again.querySelector('img.vid-img') || !again.querySelector('.vid-poster'))
+      bad.push('after its picture failed, the next paint asked for it again instead of drawing the poster');
+    q.value = ''; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+  }
+
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
   type('volc');
   const narrowed = titles();
@@ -2247,6 +2283,16 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   const fr = box.querySelector('.vid-stage iframe.vid-player');
   if (!fr || !/^https:\/\/www\.youtube-nocookie\.com\/embed\/abcdefghijk\b/.test(fr.getAttribute('src') || ''))
     bad.push('tapping the YouTube row did not put its nocookie embed in the card: ' + (fr ? fr.getAttribute('src') : 'no iframe'));
+  /* THE WATCH PAGE: its title under the player, then its line — and the row it came from says Playing. */
+  const nowT = box.querySelector('.vid-watch.on .vid-now .vid-now-t');
+  if (!nowT || nowT.textContent !== 'How volcanoes erupt') bad.push('the title under the player is "' + (nowT ? nowT.textContent : 'not there') + '"');
+  const nowK = box.querySelector('.vid-watch.on .vid-now .vid-now-k');
+  if (!nowK || nowK.textContent !== 'Clip · 7+') bad.push('the line under the title is "' + (nowK ? nowK.textContent : 'not there') + '" — wanted the kind and the age');
+  const onRow = box.querySelector('.vid-list .vid-row.on');
+  if (!onRow || !onRow.querySelector('.vid-th .vid-playing')) bad.push('the row that is playing carries no Playing mark on its picture');
+  /* AND A KEYSTROKE DOES NOT REBUILD THE PLAYER — the video would restart under somebody searching. */
+  type('volcanoes');
+  if (fr && box.querySelector('.vid-stage iframe.vid-player') !== fr) bad.push('typing rebuilt the player, which restarts the video that is playing');
   /* AN MP4 ROW: a `<video>`, inline, on that file. */
   type('fractions');
   t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
@@ -2337,13 +2383,22 @@ check('the videos card finds an admin’s films by title, year, kids, series and
   const a = box.querySelector('.vid-list a.vid-row.is-out');
   if (!a || a.getAttribute('href') !== FILMS_[0].url || a.getAttribute('target') !== '_blank') bad.push('a film is not a link out to its Drive address: ' + (a ? a.outerHTML.slice(0, 120) : 'no link'));
   if (box.querySelector('.vid-list [data-do="vid-play"]')) bad.push('a film row is a play button — a 3 GB .mkv plays in no browser (note 068)');
-  /* WHAT EACH ROW SAYS IT IS. */
+  /* A FILM'S PICTURE IS DRIVE'S OWN, its file id read from the Drive address the row carries (`drive_id`
+     itself is never sent) — and a picture that fails leaves the poster drawn under it. */
+  const im = box.querySelector('.vid-list a.vid-row.is-out .vid-th img.vid-img');
+  if (!im || im.getAttribute('src') !== 'https://drive.google.com/thumbnail?id=example-f-001&sz=w320')
+    bad.push('a Drive film\'s picture is not Drive\'s thumbnail of its file: ' + (im ? im.getAttribute('src') : 'no <img>'));
+  if (!box.querySelector('.vid-list a.vid-row.is-out .vid-th .vid-poster')) bad.push('a Drive film has no poster under its picture');
+  /* WHAT EACH ROW SAYS IT IS — in YouTube's duration spot now, the badge on the picture. It was the first
+     word of the dim line (`.vid-k`) until note 311 moved the kind onto the picture; the line keeps the rest. */
   type('example flat');
-  const k = box.querySelector('.vid-list .vid-k');
-  if (!k || !/^Series\b/.test(k.textContent.trim())) bad.push('a series is labelled "' + (k && k.textContent.trim()) + '" — every film row used to say Film');
+  const k = box.querySelector('.vid-list .vid-badge');
+  if (!k || !/^Series$/.test(k.textContent.trim())) bad.push('a series is labelled "' + (k && k.textContent.trim()) + '" — every film row used to say Film');
+  if (box.querySelector('.vid-list .vid-th img')) bad.push('a series is a FOLDER and Drive has no picture of one, but its row asks for a thumbnail');
+  if (!/3 seasons/.test((box.querySelector('.vid-list .vid-k') || {}).textContent || '')) bad.push('a series\' line does not say how many seasons');
   type('science hour');
-  const k2 = box.querySelector('.vid-list .vid-k');
-  if (!k2 || !/^Documentary\b/.test(k2.textContent.trim())) bad.push('a documentary is labelled "' + (k2 && k2.textContent.trim()) + '"');
+  const k2 = box.querySelector('.vid-list .vid-badge');
+  if (!k2 || !/^Documentary$/.test(k2.textContent.trim())) bad.push('a documentary is labelled "' + (k2 && k2.textContent.trim()) + '"');
   /* THE PLACEHOLDER: listed, says so, opens nothing. */
   type('wanted');
   const ph = box.querySelector('.vid-list .vid-row');

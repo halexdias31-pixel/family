@@ -307,3 +307,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [An ordering is tapped in order: the items are buttons, the answer is the order, and a machine marks it](303-an-ordering-is-tapped-in-order.md)
 - [The textbooks hold the teaching animations, and the loading screen draws its copy of them](304-the-textbooks-hold-the-animations.md)
 - [The films are whatever is in the Notflix folder: a sync from Drive, asked for by the videos card, and only an admin ever sees one](305-the-films-are-whatever-is-in-the-notflix-folder.md)
+- [The videos card reads like YouTube: a pill to search in, a picture on every row, and the watch page when something plays](311-the-videos-card-reads-like-youtube.md)
