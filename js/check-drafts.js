@@ -96,6 +96,12 @@ const KEPT = [
   { file: 'games.js', fn: 'tmtHtml_', has: 'tmt-weekend',
     why: 'the timetable\'s weekend tick — kept as it changes, like the rest of the timetable',
     proof: [['games.js', /tmt-weekend/]] },
+  { file: 'book.js', fn: 'stepManyList_', has: 'book-many-pick',
+    why: 'a booking several-of-a-list tick — an answer in `BOOKING` (`book-many-pick`), and every answer goes through `drawBooker`, which keeps the form whole (`bookKeep_`)',
+    proof: [['book.js', /on\('book-many-pick'[\s\S]{0,300}?drawBooker\(\);/], ['receipt.js', /function drawBooker\(\) \{[\s\S]{0,200}?bookKeep_\(\)/]] },
+  { file: 'me.js', fn: 'fieldHtml', has: 'data-many-of',
+    why: 'a settings several-of-a-list tick (the venues you teach at) — its `change` writes the hidden answer and keeps it as the field\'s draft (315 met 317)',
+    proof: [['me.js', /matches\('input\[type="checkbox"\]\[data-many-of\]'\)[\s\S]{0,1500}?draftKeep_\(surface, id, box\.value/], ['me.js', /<input type="hidden" \$\{attr\}="\$\{esc\(name\)\}" value="\$\{esc\(said\)\}"\$\{da\}>/]] },
 ];
 const PIN = 'a PIN — never written to the device, by a draft or anything else';
 const EXEMPT = [

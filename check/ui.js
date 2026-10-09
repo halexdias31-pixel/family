@@ -374,13 +374,19 @@ const ACCEPTED_TAP = [
   + '345px wide every cell is 44 or more. What was done instead of the width: every cell is 44px TALL, in px; the cell '
   + 'is the whole button and the 32px pill only its drawing (`::before`), so no pixel of the row is dead; under 320 the '
   + 'row falls back to 44px columns that wrap. A wrong face costs one tap: the same tap takes it back, another moves it.' },
-  { cls: /^bk-(sel|in|v)\b/, why:
+  { cls: /^bk-(sel|in|v|k)\b/, why:
     'THE BOOKING ROW IS ONE LINE AND ITS UNDERLINE IS THE CELL\'S BOTTOM BORDER. Tried twice and '
   + 'photographed both times: `min-height: 44px` on the control grows the grid cell to 44px and '
   + 'leaves the dashed underline sitting 24px below the label it belongs to, with `align-items: '
   + 'center` no better than `baseline`. The card goes 754px to 1016px and reads as a list of '
   + 'detached rules. It is fixable — the underline has to move off the cell and onto the control — '
-  + 'but that is a redesign of the row, not a number, and it is the app\'s main form.' },
+  + 'but that is a redesign of the row, not a number, and it is the app\'s main form.\n'
+  + '        AND IT IS THE ONE SELECT NOT DRAWN AS THE FIELD. On 9 October every dropdown went back to '
+  + 'the platform\'s own and every other select took the field\'s 44px box (note 315); this row kept '
+  + 'its receipt clothes for exactly the reason above, and carries the same arrow, smaller.\n'
+  + '        AND THE ROW\'S WORD IS ITS LABEL. `Kind` is a `<label for>` the row\'s select (`bk-k`, receiptRow in '
+  + 'book.js), so a tap on the word reaches the select too — the row\'s reach is the word and the answer, not the '
+  + '15px box alone (review, 9 October). It is one line of the same receipt, for the same reason.' },
 ];
 
 /* 4.5:1 is WCAG AA for body text. Large text is allowed 3:1, which is why size is checked too —
@@ -565,14 +571,9 @@ function inspect(opts) {
   const sheet = document.getElementById('sheet');
   const onSheet = sheet && !sheet.classList.contains('hidden') && vis(sheet)
     ? [sheet, ...sheet.querySelectorAll('*')] : [];
-  /* ---------- AND THE DROP-DOWN, FOR THE SAME REASON ---------------------------------------------
-     `#drop` IS THE BOOKING FORM'S LIST OF ANSWERS and it is a sibling of the screens because `.pane`
-     is `overflow: hidden` and would clip it anywhere else. So its twelve 44px options are outside
-     `#s-booking` entirely, and a measurement that stopped at the screen would report a clean sweep
-     of the card behind them. Same sentence as the sheet above, one control along. */
-  const drop = document.getElementById('drop');
-  const onDrop = drop && !drop.classList.contains('hidden') && vis(drop)
-    ? [drop, ...drop.querySelectorAll('*')] : [];
+  /* `#drop` WAS MEASURED HERE, for the sheet's reason: the booking form's list of answers was a panel
+     outside the screens. Since 9 October it is checkboxes in the card (note 315), inside `#s-booking`,
+     so the screen's own sweep measures every box — and there is no panel left to add. */
   /* ---------- AND THE MATHS KEYPAD, FOR THE SAME REASON AGAIN -------------------------------------
      `#kp` IS ONE ELEMENT ON <body> (keypad.js), fixed to the foot of the app, so its thirty keys were
      outside every screen this file measured -- tap size, contrast, all of it -- for as long as the pad
@@ -580,7 +581,7 @@ function inspect(opts) {
      keys could not be seen in the sun and nothing here had ever looked at one. */
   const kp = document.getElementById('kp');
   const onPad = kp && !kp.hidden && vis(kp) ? [kp, ...kp.querySelectorAll('*')] : [];
-  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onDrop, ...onPad].filter(vis);
+  const inside = [...live.querySelectorAll('*'), ...onSheet, ...onPad].filter(vis);
 
   /* ---------- 1. SIDEWAYS SCROLL THAT NOBODY ASKED FOR ------------------------------------------
      `scrollWidth > clientWidth` on a box whose overflow-x is not auto or scroll. This is the honest
@@ -1189,7 +1190,42 @@ function inspect(opts) {
       const img = String(cs.backgroundImage || '');
       if (!/gradient\(/.test(img)) continue;
       /* EACH LAYER, TOP LAYER LAST: CSS paints the first one listed on top. */
-      const layers = img.split(/,\s*(?=(?:repeating-)?(?:linear|radial|conic)-gradient\(|url\()/).reverse();
+      const listed = img.split(/,\s*(?=(?:repeating-)?(?:linear|radial|conic)-gradient\(|url\()/);
+      /* ---------- A TILE IS READ ONLY WHERE IT IS PAINTED ----------------------------------------------
+         EVERY GRADIENT WAS TAKEN TO COVER ITS WHOLE BOX, which was true of every one this app had until
+         the dropdown arrow (note 315): two 5px gradients, `no-repeat`, at the box's right edge — and read
+         as the ground under the words, they put `Autumn 1` on the booking row's button at 2.25:1 on
+         `--dim`, a grey the words never touch. So a layer that does not repeat and has a size in pixels
+         is placed as CSS places it — `background-position` resolves to `(box − tile) × P% + N px` in the
+         padding box, which is how the computed `calc(100% - 4px)` reads — and counts only when the
+         text's centre is inside it. A layer that repeats, or is sized to its box, is read as before. */
+      const split = v => String(v || '').split(/,\s*(?![^()]*\))/);
+      const sizes = split(cs.backgroundSize), reps = split(cs.backgroundRepeat);
+      const posX = split(cs.backgroundPositionX), posY = split(cs.backgroundPositionY);
+      const off = (v, room) => {
+        const m = /^calc\(\s*(-?[\d.]+)%\s*([+-])\s*([\d.]+)px\s*\)$/.exec(String(v).trim());
+        if (m) return room * Number(m[1]) / 100 + (m[2] === '-' ? -1 : 1) * Number(m[3]);
+        const pc = /^(-?[\d.]+)%$/.exec(String(v).trim());
+        if (pc) return room * Number(pc[1]) / 100;
+        const pxv = /^(-?[\d.]+)px$/.exec(String(v).trim());
+        return pxv ? Number(pxv[1]) : null;
+      };
+      const under = i => {
+        const size = (sizes[i % sizes.length] || '').trim(), rep = (reps[i % reps.length] || '').trim();
+        const wh = /^([\d.]+)px\s+([\d.]+)px$/.exec(size);
+        if (rep !== 'no-repeat' || !wh) return true;
+        const r = n.getBoundingClientRect();
+        const bl = parseFloat(cs.borderLeftWidth) || 0, bt = parseFloat(cs.borderTopWidth) || 0;
+        const W = r.width - bl - (parseFloat(cs.borderRightWidth) || 0);
+        const H = r.height - bt - (parseFloat(cs.borderBottomWidth) || 0);
+        const tw = Number(wh[1]), th = Number(wh[2]);
+        const x = off(posX[i % posX.length], W - tw), y = off(posY[i % posY.length], H - th);
+        if (x === null || y === null) return true;
+        const left = r.left + bl + x, top = r.top + bt + y;
+        return px >= left && px <= left + tw && py >= top && py <= top + th;
+      };
+      const layers = listed.map((layer, i) => ({ layer, i })).reverse()
+        .filter(o => under(o.i)).map(o => o.layer);
       layers.forEach(layer => {
         const stops = stopsOf(layer);
         if (!stops.length) return;

@@ -1955,11 +1955,11 @@ on('book-block', el => {
    AN EMPTY CHOICE CLEARS THE STEP, which is what the "—" option is: putting a field back to unset
    without a separate control for it. `done` goes too, or a cleared field would refuse to be asked
    again — the same fault `book-undo` had. */
-/* ---------- TICKING ONE ANSWER OF SEVERAL, WHICH TWO CONTROLS NOW DO ------------------------------
+/* ---------- TICKING ONE ANSWER OF SEVERAL ------------------------------------------------------------
    IT WAS INLINE IN THE `change` HANDLER, which was right while a dropdown was the only way to
-   answer a multiple-answer question. The sheet below is a second way — see `stepMulti_` — and two
-   copies of *toggle, then re-sort into the offered order* is the second reader this file keeps
-   finding, with the sort as the half that would quietly drift. */
+   answer a multiple-answer question. The checkboxes under the row are that way now — see
+   `stepMulti_` — and it stays lifted out, because *toggle, then re-sort into the offered order* is
+   the half that drifts when a second control ever answers the same question. */
 function bookToggle_(step, v) {
   if (v) {
     const list = BOOKING[step.id] || [];
@@ -2000,19 +2000,19 @@ document.addEventListener('change', e => {
   const step = bookStep_(el.dataset.step);
   if (!step) return;
 
-  if (step.multi) {
-    /* TOGGLE, AND NEVER ON THE DASH. Choosing "—" on a multi is choosing nothing — it is what the
-       select falls back to after every pick — so it must not clear the list somebody has built. */
-    bookToggle_(step, el.value);
-  } else {
-    /* AN OPTION THE LIST DREW DISABLED IS NOT TAKEN HOWEVER IT ARRIVES — a keyboard, an old
-       browser that lets a disabled option through, a hand-built event. Said, and the row redrawn
-       on what it held. */
-    const no = step.off && el.value ? String(step.off(el.value) || '') : '';
-    if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
-    BOOKING[step.id] = el.value || '';
-    BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
-  }
+  /* A SEVERAL-OF-A-LIST QUESTION IS NEVER A SELECT — it is checkboxes, answered by `book-many-pick`.
+     This toggled one when it was a select that dropped back to "—" after every pick; nothing has
+     drawn that select since `stepControl_` sent every open multi to `stepMulti_`, so a `book-set`
+     naming a multi is a stale event, and it is refused rather than allowed to replace a list with a
+     string. */
+  if (step.multi) return;
+  /* AN OPTION THE LIST DREW DISABLED IS NOT TAKEN HOWEVER IT ARRIVES — a keyboard, an old browser
+     that lets a disabled option through, a hand-built event. Said, and the row redrawn on what it
+     held. */
+  const no = step.off && el.value ? String(step.off(el.value) || '') : '';
+  if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
+  BOOKING[step.id] = el.value || '';
+  BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
 
   /* ---------- SWITCHING THE KIND CLEARS THE ANSWER ONLY THE OTHER KIND COULD HAVE GIVEN ---------
      REPORTED AS *"when i want to do a waitlist session it just defualts to sasha motola and wont
@@ -2476,22 +2476,20 @@ function breakdownRows(L) {
    whole interaction, it costs no height at all, and every row can be open to being changed at once
    rather than one at a time in an order the form decides.
 
-   THE WHEEL IS GONE, AND THE SELECT IS NOT. *"should be consistent with the booking multiselect drop
-   down list"* — so a tap on this select opens `#drop` with the booking list's own rows, and choosing
-   fires `change` exactly as the wheel did. Nothing here changed for it; see `SEL_OK`.
+   THE WHEEL WAS GONE FOR A WEEK AND IS BACK. *"should be consistent with the booking multiselect
+   drop down list"* hung the app's own panel off this select (note 226); *"i want a more stable
+   standard simple conventional drop down list"* (9 October) took it away again. A tap is the
+   phone's own picker once more — see the banner over `dropOnFront_`.
 
-   A QUESTION WITH SEVERAL ANSWERS IS STILL A DROPDOWN. `subjects` and `kids` take more than one, and
-   the obvious move — `<select multiple>` — is the one to avoid: on a phone it renders as a list box
-   with its own scrollbar, which is the panel again in a worse shape.
-
-   SO PICKING TOGGLES. Choose Maths and it joins the list; choose it again and it leaves. The row
-   shows what is in the list, the options show a tick against the ones that are, and the select
-   drops back to "—" after every pick so the next one is one tap away. It is the same gesture as the
-   single-answer rows and it needs nothing new on screen.
+   A QUESTION WITH SEVERAL ANSWERS IS NOT A SELECT. `subjects`, `interval` and `kids` take more than
+   one; a select closes on every pick, so they are a row that opens a list of checkboxes under it —
+   see `stepMulti_`. This function drew a toggling select for them once (a ✓ in front of each ticked
+   option, the box dropping back to "—" after every pick) and that branch had been unreachable since
+   `stepControl_` sent every open multi to `stepMulti_`; it went with the panel. A LOCKED multi still
+   comes here, for the settled text below.
 
    ONE STEP GENUINELY CANNOT BE ONE. `slots` is a week to tick — seven days of hours, which is not a
-   choice from a list and cannot be a dropdown. It keeps the panel, and it opens only when you press
-   its row.
+   choice from a list and cannot be a dropdown. It is seven rows of the card (`weekRows_`).
 
    `split` IS TYPING, NOT CHOOSING, so it is a text box in its row rather than a panel of email
    fields. Addresses separated by commas: one line instead of a stack of labelled inputs and a
@@ -2501,6 +2499,7 @@ function breakdownRows(L) {
    as it did before and cannot be submitted by accident. */
 function stepSelect_(st) {
   const opts = st.options().filter(Boolean);
+  /* WHAT A LOCKED MULTI HAS TICKED — the one reason a multi reaches this function. */
   const chosen = st.multi ? (BOOKING[st.id] || []) : [];
   /* ---------- A FALLBACK HAS TO REACH THE CONTROL, NOT ONLY THE TEXT -------------------------------
      `receiptRow` DRAWS THE DROPDOWN INSTEAD OF THE VALUE when a row has one — rightly, since a
@@ -2510,9 +2509,9 @@ function stepSelect_(st) {
      selected because `BOOKING.client` is only set by choosing.
      So the same one rule is read here too. The control opens on whoever is signed in — which is
      what the booking would be submitted as — and picking a family still overwrites it. */
-  /* READ ONCE, BECAUSE THREE PLACES IN THIS FUNCTION WANT IT: the value a single-answer control
-     opens on, the text a LOCKED row prints, and the first option of an open multi. It was inlined
-     into the first of those alone, so a multi never saw it — see the two notes below. */
+  /* READ ONCE, BECAUSE TWO PLACES IN THIS FUNCTION WANT IT: the value a single-answer control opens
+     on and the text a LOCKED row prints. It was inlined into the first alone, so a locked multi never
+     saw it — see the note below. */
   const fb = st.fallback ? String(st.fallback() || '') : '';
   const v = st.multi ? '' : (BOOKING[st.id] || fb);
 
@@ -2538,30 +2537,27 @@ function stepSelect_(st) {
       : (st.label_ && v ? st.label_(v) : v);   /* `v` already carries the fallback — see above */
     return `<span class="bk-set">${esc(String(said || '—'))}</span>`;
   }
-  const isOn = o => st.multi
-    ? chosen.some(c => norm(c) === norm(o))
-    : norm(o) === norm(v);
+  const isOn = o => norm(o) === norm(v);
+  /* ---------- THE BLANK OPTION DOES NOT REPEAT AN ANSWER ON THE LIST ------------------------------
+     THE FALLBACK IS THE BLANK'S WORDS, so "Who is this for?" read `Test Admin` on its empty option
+     and `Test Admin` again on the person — two lines nobody could tell apart, one ticked and one not,
+     which a screenshot of the panel caught and the panel hid (note 226). The phone's own list draws
+     every option it is given, so it is settled here, where the options are written: when the
+     fallback is already an answer on the list, the blank is the dash that clears the row. When it is
+     not — the tutor's `No preference` — the blank IS that answer and keeps its words. */
+  const said = o => String(st.label_ ? st.label_(o) : o);
+  const dup = !!fb && opts.some(o => norm(said(o)) === norm(fb));
   /* DISABLED, NOT ABSENT. The row keeps its height, its label and its answer; only the pointer
      changes. A form whose rows come and go cannot be learnt. */
   const off = stepLocked_(st);
-  return `<select class="bk-sel" data-do="book-set" data-step="${esc(st.id)}"
+  return `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
       ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
-    ${/* THE FIRST OPTION IS ALWAYS SELECTED ON A MULTI, because the select is a way of picking the
-          NEXT one rather than a display of what is picked. WHICH MEANS IT HAS TO SAY WHAT IS PICKED:
-          it is the only label on the row, so leaving it as "—" made a row with three subjects on it
-          read as empty. */''}
-    ${/* AND AN OPEN MULTI WITH NOTHING TICKED SHOWS THE FALLBACK, for the same reason the locked
-          one does. No step reaches this today — `interval` is the only multi with a fallback and it
-          is locked wherever that fallback answers — and writing the dash here instead would be a
-          third place for one rule, which is how the other two came to disagree. */''}
-    <option value=""${(st.multi || !v) ? ' selected' : ''}>${
-      st.multi && chosen.length ? esc(chosen.join(', ')) : esc(fb || '—')}</option>
+    <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(dup ? '\u2014' : (fb || '\u2014'))}</option>
     ${/* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off`
           on the tutor step. The one already chosen is left pressable, so the row can show it. */''}
     ${opts.map(o => { const no = st.off ? String(st.off(o) || '') : '';
-      return `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}${
-        no && !isOn(o) ? ' disabled' : ''}>${st.multi && isOn(o) ? '✓ ' : ''}${
-        esc((st.label_ ? st.label_(o) : o) + (no ? ' · ' + no : ''))}</option>`; }).join('')}
+      return `<option value="${esc(o)}"${isOn(o) ? ' selected' : ''}${
+        no && !isOn(o) ? ' disabled' : ''}>${esc(said(o) + (no ? ' · ' + no : ''))}</option>`; }).join('')}
   </select>`;
 }
 
@@ -2583,7 +2579,8 @@ function stepSelect_(st) {
    sideways inside its own input the way every other text field on the card does. */
 function noteRow_() {
   return { n: '', k: 'Note', v: '', mul: '', rate: '', total: '', step: '',
-    sel: `<input class="bk-in bk-in-l" type="text" data-do="book-note"
+    ctl: bkCtl_('note'),
+    sel: `<input class="bk-in bk-in-l" id="${bkCtl_('note')}" type="text" data-do="book-note"
       value="${esc(BOOKING.note || '')}" placeholder="anything else we should know"
       aria-label="Anything else we should know">` };
 }
@@ -2599,7 +2596,7 @@ function stepInput_(st) {
   /* THE ADDRESSES AS TYPED ARE A DRAFT of their own (data.js; 317) until `change` makes them answers —
      typed and reloaded before leaving the box, they were not in `BOOKING` yet. Drawn holding the
      draft; the answer it becomes is the value that takes it away. */
-  return `<input class="bk-in" type="text" data-do="book-emails" data-step="${esc(st.id)}"
+  return `<input class="bk-in" id="${bkCtl_(st.id)}" type="text" data-do="book-emails" data-step="${esc(st.id)}"
     value="${esc(draftVal_('book', 'emails:' + st.id, v))}"${draftAttr_('book', 'emails:' + st.id, v)} placeholder="—" aria-label="${esc(st.label)}"
     ${stepLocked_(st) ? 'readonly' : ''} autocomplete="off" spellcheck="false">`;
 }
@@ -2613,122 +2610,87 @@ function stepInput_(st) {
    choose — that is what choosing MEANS to it — so a question taking three answers is three opens,
    three scrolls and three closes. The toggling worked perfectly; the gesture was the cost.
 
-   `<select multiple>` IS STILL REFUSED, for the reason written over `stepSelect_`: on a phone it
-   renders as a list box with its own scrollbar, which is the deleted panel in a worse shape.
+   FOUR SHAPES WERE TRIED AND THREE WERE REPORTED (notes 144, 147, 153): a sheet (*"this is shit. no
+   pop up menus"*), the page drawing the list instead of the form (*"i hate this"*), and a panel
+   hanging off the field, `#drop`, which lasted until 9 October and is described in the banner over
+   `dropOnFront_` below. What was asked for every time is one thing — *"one that allows multiselect,
+   but doesnt disapear after each option click"* — and on 9 October, *"standard simple conventional"*.
 
-   THEN A SHEET, THEN A PAGE, AND BOTH WERE REPORTED. `#sheet-body` scrolls where `.pane` does not,
-   which is this app's answer to anything longer than a row — and it came back as *"i dont like
-   this. this is shit. no pop up menus."* So the page the form was on drew the LIST instead of the
-   form: nothing covered anything, the page count did not change, and it came back the next morning
-   as *"i hate this."*
+   SO IT IS THE CONVENTIONAL ONE: A LIST OF CHECKBOXES, OPENED UNDER ITS ROW, IN THE CARD. The row
+   says what is ticked; pressing it opens the list directly underneath, one real
+   `<input type="checkbox">` per option, each a full-width 44px row; pressing the row again closes it.
+   Nothing floats and nothing is positioned by script, so nothing can hang off the wrong field.
 
-   WHAT WAS ASKED FOR ALL THREE TIMES IS ONE THING. *"i prefer drop down list, one that allows
-   multiselect, but doesnt disapear after each option click."* That is the ordinary control, and the
-   only reason the app did not have it is that this card has nowhere to put one.
+   IT PUSHES THE ROWS BELOW IT DOWN, and note 147 ruled that out by arithmetic — 544px of card in a
+   534px pane at 320, so an in-flow list put Send past a fold with no scroll. That was before
+   `paneReach_` (find.js): a card taller than its pane is drawn smaller to 0.7 and scrolled past
+   that, so Send is reached by scrolling rather than lost. Measured again on 9 October, recorded in
+   note 315.
 
-   IT CANNOT BE DRAWN IN THE CARD, AND THAT IS MEASURED. `.pane` is `overflow: hidden` and the
-   booking card is **544px of content in a 534px pane at 320 and 605.7 in 613 at 390** — ten pixels
-   past the fold at the narrowest phone. A list that opens IN FLOW under a row pushes the rows below
-   it past that fold with no scroll and no page to turn to; twelve subjects is about 276px at 320,
-   and the Send tile ends up somewhere nobody can reach. An OVERLAY does not push anything, so the
-   arithmetic does not apply to it — but `overflow: hidden` clips an absolutely positioned child just
-   as readily, and `position: fixed` does not escape either: `placeCells` puts a `transform` on every
-   column, and a transformed ancestor becomes the containing block for a fixed descendant AND goes on
-   clipping it. So the panel is `#drop` in index.html, a sibling of the screens like `#sheet`, and
-   three numbers reach it from here.
+   `<select multiple>` IS STILL REFUSED, though not for 144's reason. A phone draws it well — iOS a
+   list with ticks, Android a dialog of checkboxes — but a laptop draws a list box you Ctrl-click,
+   which nobody discovers, and an admin books from a laptop.
 
    `BOOKING.picking` IS STILL THE WHOLE OF THE STATE, and it is an answer like every other one — kept
-   with them rather than in the DOM, so a redraw cannot lose it. Every tick redraws the card AND the
-   panel, which is what makes the ✓, the row's own summary and the running price land together;
-   `bookToggle_` is the one place either control changes the list.
+   with them rather than in the DOM, so a redraw cannot lose it. Every tick redraws the card, which is
+   what makes the tick, the row's own summary and the running price land together; `bookToggle_` is
+   the one place the list changes.
 
    THE ROW'S CONTROL IS A BUTTON WEARING `.bk-sel`. It is the same object as far as the card is
-   concerned — right-aligned, no chrome, the answer as its text — and drawing it as a second thing
-   would be the `.reel .over` fault, where one object was described twice in this stylesheet and the
-   two drifted. What it cannot inherit is `:has(option[value=""]:checked)`, which is how an
-   unanswered select recedes: a button has no options, so it says so with a class instead. */
+   concerned — right-aligned, no chrome, the answer as its text, the same chevron as a select — and
+   drawing it as a second thing would be the `.reel .over` fault, where one object was described
+   twice in this stylesheet and the two drifted. What it cannot inherit is
+   `:has(option[value=""]:checked)`, which is how an unanswered select recedes: a button has no
+   options, so it says so with a class instead. */
 function stepMulti_(st) {
   const chosen = BOOKING[st.id] || [];
   const fb = st.fallback ? String(st.fallback() || '') : '';
   const said = chosen.join(', ') || fb;
-  /* `aria-expanded` BECAUSE IT IS A DROP-DOWN NOW and that is the one fact a screen reader cannot
-     get from anywhere else: the panel is `#drop`, outside this markup entirely, so nothing about the
-     row says a list is open unless the row says it. */
-  return `<button type="button" class="bk-sel bk-many${said ? '' : ' is-unset'}"
-    data-do="book-many" data-step="${esc(st.id)}"
-    aria-expanded="${BOOKING.picking === st.id ? 'true' : 'false'}"
-    aria-label="${esc(st.label)}">${esc(said || '\u2014')}</button>`;
+  /* `aria-expanded` AND `aria-controls`, which is the disclosure pattern every screen reader knows:
+     the button says whether its list is open and which element that list is. */
+  return `<button type="button" class="bk-sel bk-many${said ? '' : ' is-unset'}" id="${bkCtl_(st.id)}"
+    data-do="book-many" data-step="${esc(st.id)}" aria-controls="bk-many-${esc(st.id)}"
+    aria-expanded="${manyOpen_(st) ? 'true' : 'false'}"
+    aria-label="${esc(st.label)}">${esc(said || '—')}</button>`;
 }
 
-/* ---------- THE PANEL, HANGING OFF THE FIELD ------------------------------------------------------
-   A FORM'S CONTROLS ARE BUTTONS RATHER THAN TILES — the house style settles that — and one per
-   option is the shape every list in this app has.
+/* WHICH QUESTION'S LIST IS OPEN. A STEP THAT CANNOT BE ANSWERED CLOSES IT rather than drawing an
+   unpressable one: changing Kind can lock the very question being picked — a joined class settles
+   its own subjects — and a list of greyed boxes under a row that is now plain text is a state nobody
+   chose to be in. */
+function manyOpen_(st) {
+  if (!st || BOOKING.picking !== st.id) return false;
+  if (stepLocked_(st)) { BOOKING.picking = ''; return false; }
+  return true;
+}
 
-   TWO COLUMNS RATHER THAN A STACK, AND THAT IS ARITHMETIC. Twelve full-width 44px buttons is 528px,
-   which is more than a 568px phone has either above or below a field — so a stack would scroll
-   whatever it hangs off. `minmax(7.5rem, 1fr)` gives two columns on a phone and as many as fit on
-   anything wider: six rows of 44 is 276px, and the panel measures inside the space on the side it
-   chose at every width.
+/* ---------- THE LIST, UNDER ITS ROW ---------------------------------------------------------------
+   `.check`, THE APP'S OWN CHECKBOX ROW — the roles card's and every yes/no field's — so a tick here
+   looks like a tick anywhere else in the app. The `<input>` is real and only drawn over: its value,
+   its `change`, Space to tick it and what a screen reader says about it are all the browser's.
 
-   44px EACH, IN px, because a fingertip does not scale — this stylesheet's own rule, and the one
-   thing on this control that was never negotiable.
+   FULL WIDTH AND ONE COLUMN, under the whole row rather than in the 80px answer column, because the
+   answer column ellipsises at the second subject and a list is read down its left edge. `receiptRow`
+   draws it after the row, where `.bk-say` goes.
 
-   WHAT IS TICKED, AND NOT THE QUESTION. The panel hangs BELOW the row rather than over it, so the
-   question is still on screen an inch above — printing it again is the fault this file records where
-   the roster's `name` drew an `<h3>` over every widget's own heading. What is NOT readable up there
-   is the answer: `.bk-sel` is right-aligned in an 80px column and ellipsises at the second subject. */
-function dropCard_(st) {
+   `role="group"` NAMED BY THE QUESTION, so the list is announced as the answers to it and not as
+   twelve loose checkboxes. Empty, it says so in a sentence rather than drawing an empty box. */
+function stepManyList_(st) {
+  if (!manyOpen_(st)) return '';
   let opts = [];
   try { opts = (st.options() || []).filter(Boolean); } catch (e) {}
   const chosen = BOOKING[st.id] || [];
   const on = o => chosen.some(c => norm(c) === norm(o));
-  const said = chosen.join(', ');
-  return `<p class="drop-say${said ? '' : ' is-none'}">${said ? esc(said)
-      : 'Nothing chosen yet — tap as many as apply.'}</p>
-    ${opts.length ? `<div class="pick-list">${opts.map(o => `<button type="button"
-        class="btn quiet pick-opt${on(o) ? ' on' : ''}" data-do="book-many-pick"
-        data-step="${esc(st.id)}" data-val="${esc(o)}"
-        aria-pressed="${on(o) ? 'true' : 'false'}"
-        >${on(o) ? '✓ ' : ''}${esc(st.label_ ? st.label_(o) : o)}</button>`).join('')}</div>`
-      : `<p class="muted">Nothing to choose here yet.</p>`}
-    ${/* QUIET, AND A SCREENSHOT IS WHAT SAID SO. A gold `.btn` is the ONE thing to press on a card,
-          and on a panel whose whole content is twelve things to press it was the loudest object on
-          the screen — competing with the gold border a ticked option wears an inch above it. This is
-          the `.reel-sound` correction and the Messages column's `Refresh` one: a dismissal is not
-          the action. 44px either way, which is the measurement that does not move. */''}
-    <button type="button" class="btn quiet drop-done" data-do="book-many-done">Done</button>`;
+  return `<div class="bk-many-list many-list" id="bk-many-${esc(st.id)}" role="group"
+      aria-label="${esc(st.label)}">${opts.length ? opts.map(o => `<label class="check many-opt">
+        <input type="checkbox" data-do="book-many-pick" data-step="${esc(st.id)}" value="${esc(o)}"${
+        on(o) ? ' checked' : ''}><span class="box"></span><span>${esc(st.label_ ? st.label_(o) : o)}</span></label>`).join('')
+      : '<p class="muted">Nothing to choose here yet.</p>'}</div>`;
 }
 
-/* WHICH QUESTION IS OPEN, OR NOTHING. A STEP THAT CANNOT BE ANSWERED CLOSES THE LIST rather than
-   drawing an unpressable one: changing Kind can lock the very question being picked — a joined class
-   settles its own subjects — and a panel of twelve greyed buttons with a Done under it is a state
-   nobody chose to be in. */
-function dropStep_() {
-  if (!BOOKING.picking) return null;
-  const st = bookStep_(BOOKING.picking);
-  if (!st || stepLocked_(st)) { BOOKING.picking = ''; return null; }
-  return st;
-}
-
-/* WHERE IT HANGS FROM, ASKED OF THE DOM RATHER THAN HELD. A repaint replaces the row with a new
-   node, so a reference kept from the press would be pointing at an element that is no longer in the
-   document — the `$('msg-text')` shape one step along. `#bookr` is the form's own wrapper, which is
-   also how `paintBook_` answers "which screen is this on".
-
-   AND IT IS NOT ENOUGH THAT THE ROW EXISTS. A fixed panel is measured against the VIEWPORT, so it
-   does not travel with a column that slides away underneath it: the booking card lives in a section
-   that stays in the document whichever column you are on, and every page of a paged column is in
-   there too. So the row has to be on the screen you are actually on, on the page that is actually
-   in front of you, or there is nothing for a drop-down to hang off. */
-function dropRow_(st) {
-  const box = $('bookr');
-  const row = box && box.querySelector('[data-do="book-many"][data-step="' + st.id + '"]');
-  return row && dropOnFront_(row) ? row : null;
-}
-
-/* ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU. Lifted out of `dropRow_` when every
-   `<select>` in the app started hanging the same panel — two copies of "is this field somewhere
-   anybody can see" is the second reader this repository keeps finding. */
+/* ON THE SCREEN YOU ARE ON, ON THE PAGE IN FRONT OF YOU. Written for the booking list when it hung
+   off its field outside the screens, and kept when that list went into the card: the maze's arrow
+   keys ask it whether the maze is the board in front of you (`mzInFront_` in games.js). */
 function dropOnFront_(row) {
   const host = row.closest('.screen');
   if (!host || host.id !== 's-' + AT) return false;
@@ -2748,534 +2710,154 @@ function dropOnFront_(row) {
   return true;
 }
 
-/* ---------- THREE NUMBERS AND NOTHING ELSE -------------------------------------------------------
-   RIGHT EDGES TOGETHER, because the value it hangs off is right-aligned — a panel left-aligned to an
-   80px column would sit two thirds of the card away from the answer it is about. Clamped to the
-   gutter this app keeps at every width, so a field near the edge does not push it off screen.
+/* ---------- THE ROW'S LABEL IS THE ROW'S CONTROL'S LABEL ---------------------------------------------
+   FOUND BY REVIEW ON 9 OCTOBER, with real touch at 390x844: a tap on `Kind` — the word at the left of
+   the row — reached nothing at all, and the stylesheet said "the whole ROW is the target". While the
+   panel stood that was true, because its own hit test took any tap on `.bk-row`; with the platform's
+   own select, the only thing a finger could open was the select itself, 81 by 15 pixels in a 19px row.
 
-   WHICHEVER SIDE HAS MORE ROOM, and `max-height` from that room rather than a number chosen here. A
-   list that always opened downwards would be cut off by the bottom of the screen on the last few
-   rows of a twelve-row form, which is exactly where the subjects row is on a saved booking.
+   SO THE WORD IS A `<label for>` THE CONTROL, which is what a form has always done to make its caption
+   part of the target: a tap on it focuses the select (an iPhone opens its wheel from that focus), clicks
+   the several-answers button (a label's activation is the control's click), and puts the caret in a
+   typed row. A locked row draws text, not a control, and keeps a plain `<span>`.
 
-   `touch-action` FROM THE MEASURED OVERFLOW, which is `padReach_`'s rule on the notepad: a box that
-   keeps a gesture it cannot use is a box you cannot swipe off, and this one is over the app. Six
-   pixels is the same floor `axisFree` uses, because two places asking one question have to ask it
-   the same way. */
-function dropPlace_(el, row) {
-  const pad = 8;
-  el.style.maxHeight = '';                 /* measured from nothing, or yesterday's cap decides */
-  const r = row.getBoundingClientRect();
-  const w = el.offsetWidth;
-  const left = Math.max(pad, Math.min(r.right - w, window.innerWidth - w - pad));
-  const below = window.innerHeight - r.bottom - pad * 2;
-  const above = r.top - pad * 2;
-  const under = below >= above;
-  el.style.maxHeight = Math.max(140, under ? below : above) + 'px';
-  el.style.left = Math.round(left) + 'px';
-  el.style.top = Math.round(under ? r.bottom + 4 : r.top - 4 - el.offsetHeight) + 'px';
-  el.style.touchAction = el.scrollHeight > el.clientHeight + 6 ? 'pan-y' : 'none';
-}
+   AND ON A BROWSER THAT CAN, THE LIST OPENS FROM THE LABEL TOO. A laptop's Chrome and Android's focus a
+   select from its label without opening it, which on a phone is invisible, so a tap on the word asks
+   for the platform's own list with `showPicker()` — the standard call for exactly this, riding the tap's
+   own activation. Where it does not exist (Safari) the label's focus is the whole of it. Not on a swipe:
+   the drag guard cancels a label's click (`FIELD_ACTS_` in shell.js), and a cancelled click asks for
+   nothing.
 
-/* THE BUILD. Called from `drawBooker`, which is the one entry point everything that changes an
-   answer already goes through — so the panel is rebuilt by the same call that rebuilds the card and
-   the two cannot disagree about what is ticked. */
-function bookDrop_() {
-  const el = $('drop'), back = $('drop-back');
-  if (!el || !back) return;
-  /* ---------- THE PANEL MAY BE THE SETTINGS COLUMN'S -------------------------------------------
-     `meDrop_` in me.js borrows `#drop` for a several-of-a-list profile field and writes
-     `data-owner="me"` on it. `drawBooker` calls this on every redraw of the booking card — a
-     payload landing is enough — and without this line that redraw would find no booking question
-     open and shut somebody else's list under their thumb. */
-  if (el.dataset.owner === 'me' && !BOOKING.picking) return;
-  /* AND IT MAY BE AN ORDINARY SELECT'S — see `selOpen_`. A booking redraw REPLACES the select a
-     booking dropdown hangs off, so this one rebuilds from the new node rather than leaving the panel
-     over an element that is no longer in the document. */
-  if (el.dataset.owner === 'sel' && !BOOKING.picking) { selDraw_(); return; }
-  const st = dropStep_();
-  const row = st && dropRow_(st);
-  if (!row) { dropShut_(); return; }
-  el.innerHTML = dropCard_(st);
-  el.dataset.owner = 'book';
-  el.setAttribute('aria-label', st.label);
-  back.classList.remove('hidden');
-  el.classList.remove('hidden');
-  dropPlace_(el, row);
-}
-
-/* THE MOVE, WITHOUT THE BUILD. `placeNow_` calls this on every placement the grid makes — a column
-   swipe, a page turn, a resize — and a rebuild there would throw away the panel's own scroll
-   position sixty times a second while a finger is down. Nothing is rebuilt; the panel either follows
-   the field or, once the field is on a screen or a page nobody is looking at, closes. */
-function bookDropMove_() {
-  const el = $('drop');
-  if (!el || el.classList.contains('hidden')) return;
-  /* THE SETTINGS COLUMN'S PANEL FOLLOWS ITS OWN FIELD. See the note in `bookDrop_`. */
-  if (el.dataset.owner === 'me') { if (typeof meDropMove_ === 'function') meDropMove_(); return; }
-  if (el.dataset.owner === 'sel') { selMove_(); return; }
-  const st = dropStep_();
-  const row = st && dropRow_(st);
-  if (!row) { dropShut_(); return; }
-  dropPlace_(el, row);
-}
-
-/* HIDDEN AND EMPTIED. Emptied because the options are a live answer — a panel left holding
-   yesterday's list is a list that can be reopened by a stray class. */
-function dropShut_() {
-  const el = $('drop'), back = $('drop-back');
-  if (el) {
-    el.classList.add('hidden'); el.classList.remove('over-sheet', 'is-one');
-    el.innerHTML = ''; delete el.dataset.owner;
-  }
-  if (back) { back.classList.add('hidden'); back.classList.remove('over-sheet'); }
-}
-
-/* ESCAPE, from the keydown handler beside the sheet's. Answers whether there was anything to close,
-   so the same keystroke does not then also close a sheet that was never open. */
-function bookDropShut_() {
-  const el = $('drop');
-  if (!el || el.classList.contains('hidden')) return false;
-  if (el.dataset.owner === 'me') { if (typeof meDropShut_ === 'function') meDropShut_(); return true; }
-  if (el.dataset.owner === 'sel') { selShut_(); return true; }
-  BOOKING.picking = '';
-  drawBooker();
-  return true;
-}
+   ONE ID PER STEP, on the card that `#bookr` already names once: the booking form is drawn in one place
+   at a time, which `#bookr` and `aria-controls` already rely on. */
+const bkCtl_ = id => 'bk-ctl-' + String(id || '').replace(/[^\w-]/g, '');
+document.addEventListener('click', e => {
+  if (e.defaultPrevented) return;
+  const lab = e.target && e.target.closest && e.target.closest('label.bk-k[for]');
+  const sel = lab && lab.control;
+  if (!sel || sel.tagName !== 'SELECT' || sel.disabled || typeof sel.showPicker !== 'function') return;
+  try { sel.showPicker(); } catch (err) { /* not rendered, or no activation: the label's focus stands */ }
+});
 
 on('book-many', el => {
   const st = bookStep_(el.dataset.step);
   if (!st || stepLocked_(st)) return;
-  /* PRESSING THE OPEN ONE SHUTS IT, which is what every drop-down does and is the second way out
-     besides Done and a tap anywhere else. */
+  /* PRESSING THE OPEN ONE SHUTS IT, which is what every disclosure does; pressing another moves the
+     one open list there, so the card never carries two. */
   BOOKING.picking = BOOKING.picking === st.id ? '' : st.id;
   drawBooker();
+  if (BOOKING.picking) bookManyShow_(st.id);
 });
 
+/* ---------- AND THE LIST JUST OPENED IS BROUGHT ONTO THE SCREEN ------------------------------------
+   A PANE WITH A LIST OPEN IN IT IS DRAWN AT FULL SIZE AND SCROLLS (`paneReach_`, find.js) rather than
+   shrinking every tick under 44px. So a card that was drawn smaller to fit grows when a list opens in
+   it, and the row just pressed can go below the glass with its list: measured at 320x568, the settings
+   column's venues field and the booking form's Child row both opened out of sight, the only sign
+   anything had happened an arrow turning over. So the pane is scrolled — that pane only, never
+   `scrollIntoView`, which would also scroll the overflow-hidden ancestors the columns are placed in —
+   by as much as puts the list's foot on screen, and never so far that the row it opened from leaves the
+   top. Asked twice, because the pane's zoom and its scroll are settled by an observer and a frame of
+   their own after the redraw. `head` is the row (or the summary); `still` says whether it is still the
+   list somebody opened, so a list shut in the meantime is left alone. Used by me.js for the venues
+   field as well. */
+function tickListShow_(find, still) {
+  const fit = () => {
+    const got = find();
+    const list = got && got.list, head = (got && got.head) || list;
+    const pane = list && list.closest('.pane');
+    if (!pane || (still && !still()) || pane.scrollHeight <= pane.clientHeight) return;
+    const pr = pane.getBoundingClientRect(), lr = list.getBoundingClientRect(), hr = head.getBoundingClientRect();
+    const by = Math.min(lr.bottom - pr.bottom + 8, hr.top - pr.top - 8);
+    if (by > 1) pane.scrollTop += by;
+  };
+  setTimeout(fit, 120);
+  setTimeout(fit, 420);
+}
+function bookManyShow_(id) {
+  tickListShow_(() => {
+    const ctl = document.getElementById(bkCtl_(id));
+    return { list: $('bk-many-' + id), head: ctl && ctl.closest('.bk-row') };
+  }, () => BOOKING.picking === id);
+}
+
+/* A BOX TICKED OR UNTICKED. Through `change`, which `cards.js` hands a checkbox's `data-do` — the
+   click handler refuses a checkbox because its `checked` can be read mid-flight there.
+
+   THE BOX SAYS WHAT IT WANTS AND THE LIST IS MADE TO AGREE, rather than toggled blind: a redraw
+   between the tap and this handler, or a second event for one tap, would otherwise turn one tick
+   into two and leave the box and the row disagreeing.
+
+   THE LIST STAYS OPEN, which is the whole feature, and the box keeps the focus the redraw took from
+   it — a keyboard's Tab carries on from the box it was on rather than from the top of the page. That
+   is `redrawBooker_`'s now, for every control on the card (`bookFocusOf_`). */
 on('book-many-pick', el => {
   const st = bookStep_(el.dataset.step);
-  if (!st) return;
-  bookToggle_(st, el.dataset.val);
-  /* THE LIST STAYS OPEN, which is the whole feature. `drawBooker` redraws the card and then the
-     panel, so the ✓, the row's own summary and the running price move together and none of them is
-     patched by hand. */
+  if (!st || stepLocked_(st)) return;
+  const v = el.value;
+  const has = (BOOKING[st.id] || []).some(x => norm(x) === norm(v));
+  if (has !== !!el.checked) bookToggle_(st, v);
   drawBooker();
-});
-
-/* `#drop-back` CARRIES THIS ACTION, so a tap outside either surface's panel arrives here — the
-   settings column's is shut by its own function rather than by a booking redraw it has no part in. */
-on('book-many-done', () => {
-  const el = $('drop');
-  if (el && el.dataset.owner === 'me' && typeof meDropShut_ === 'function') { meDropShut_(); return; }
-  if (el && el.dataset.owner === 'sel') { selShut_(); return; }
-  BOOKING.picking = ''; drawBooker();
 });
 
 /* ==================================================================================================
-   EVERY ORDINARY `<select>` OPENS THIS PANEL
+   EVERY `<select>` IS THE PLATFORM'S OWN AGAIN
    ==================================================================================================
-   ASKED FOR AS *"i dont like how it currently looks with the drop down list for menus. should be
-   consistent with the booking multiselect drop down list."* Until this, every single-choice dropdown
-   in the app was the PLATFORM's picker — a wheel at the foot of an iPhone, a sheet on Android, a grey
-   system list on a laptop — while the booking form's several-of-a-list questions hung `#drop` off
-   their field in the app's own colours. One app, two kinds of drop-down, and the one the owner had
-   been looking at all week was the one that did not look like anything else here.
+   THE OWNER, 9 OCTOBER: *"i dont like currect drop down list thing. i want a more stable standard
+   simple conventional drop down list."* This is the reverse of what stood here until that morning,
+   and both halves are kept here because the next request about a dropdown will arrive at one of them.
 
-   ONE IMPLEMENTATION, AND NO CALLER WAS TOUCHED. The booking steps, the settings fields, the
-   qualification shelf's `Something else…` swap, the cheat sheet, the flyer maker, Scrabble's blank and
-   the business records all go on drawing a real `<select>` and listening for `change` exactly as they
-   did. This sits in front of all of them: a tap opens `#drop`, choosing sets `.value` and fires
-   `input` and `change` — bubbling, the way the browser's own do — so every handler runs unchanged.
-   That is also why it is a select underneath rather than a button that pretends to be one: the
-   value, the form, `me-save`'s gather, the disabled state and the keyboard all keep working because
-   nothing about the control changed.
+   WHAT STOOD HERE. Asked for in note 226 as *"should be consistent with the booking multiselect drop
+   down list"*: every single-choice `<select>` in the app was `pointer-events: none`, and a tap near
+   one was caught, hit-tested against the select's rectangle and answered with the app's own floating
+   panel, `#drop` — the one the booking form's several-of-a-list questions hung off their row (147,
+   153). It worked, and it cost more than any other control in the app:
+     · capture listeners for click, for focus (a phone's keyboard bar focuses a select, and iOS draws
+       its wheel from focus) and for scroll, and an eight-pixel slop, because a 15px select that no
+       longer took the finger could no longer be snapped onto by the browser's touch adjustment (226);
+     · the select found again after every repaint, because a repaint under an open list hands back a
+       new node (226);
+     · a visibility test that shut every list opened while a column was still settling, until it was
+       rewritten against `AT` and `PAGE` rather than the viewport (226, 153);
+     · a z-order lifted over the sheet for a select inside one, and a rectangle test that opened a
+       hidden select's list BEHIND a sheet until it asked which page the tap was on (226);
+     · and three numbers written by script on every placement the grid made, because a panel outside
+       the screens does not travel with a column sliding under it (153).
+   All of that to draw by hand what every phone already draws — and a screen reader was never claimed
+   for it (226): VoiceOver opened the platform's list anyway.
 
-   ---------- HOW THE NATIVE PICKER IS KEPT SHUT, WHICH IS THE ONLY HARD PART ----------------------
-   THREE WAYS WERE WEIGHED, AND THE TWO OBVIOUS ONES LOSE ON THE PHONE THIS WAS REPORTED FROM.
+   WHY NATIVE IS WHAT "STABLE" MEANS. The open list is drawn by the platform, over the page, and
+   nothing in this app positions it: the wheel on an iPhone, the sheet on Android, the system list on
+   a laptop. It cannot hang off the wrong field, shut under a settling column or open behind a sheet,
+   because none of those is a thing it does.
 
-   · `preventDefault` ON `mousedown` / `touchstart`. Works on a laptop. iOS Safari opens its wheel off
-     the FOCUS that follows a tap, and which of the touch events it honours a cancel on has changed
-     between releases; a non-passive `touchstart` that cancels also kills the click the drag guard
-     needs and every scroll that begins on the field. A technique whose correctness is a fact about
-     one browser's version is not one to ship blind — this environment cannot open an iPhone.
-   · A BUTTON DRAWN OVER A HIDDEN SELECT. Robust everywhere, and it needs a second element beside
-     every select in the app: twelve callers, each with its own CSS for its own select, and a wrapper
-     each of them has to remember. That is "touch each caller" with extra steps.
-   · `pointer-events: none` ON THE SELECT — chosen. A finger, a pen and a mouse then never TARGET the
-     select at all, so no browser on any platform has a tap on it to open a picker from: the tap lands
-     on whatever is behind it — its `.field` label, its booking row — and is caught here, hit-tested
-     against the select's own rectangle. Nothing has to be cancelled because nothing is ever started.
-     One CSS rule (beside `#drop` in the stylesheet) and one listener, for every select that exists
-     and every one anybody adds.
+   WHAT IT CAN STILL LOSE IS ITS SELECT. The first version of this banner said a repaint could not take
+   it, and review proved otherwise the same day: tap Kind, let the payload land, and the column was
+   rebuilt — the list belonged to a select no longer in the document, and the pick went nowhere. The
+   panel had found its select again after a repaint (226); the platform's list cannot, because the
+   list IS that element's. So a landing reply leaves a column whose select is focused alone, as it
+   leaves a box being typed in (`landRepaint_`, shell.js), and draws it once the select is left. And
+   the keyboard keeps its place across this card's own redraws (`bookFocusOf_`). Every caller drew a real
+   `<select>` and listened for `change` the whole time — that was the panel's own design — so not one
+   caller changed in either direction: the booking steps, the settings fields, the qualification
+   shelf's `Something else…`, the cheat sheet, the flyer maker, the word games and Scrabble's blank.
 
-   THE LABEL IS THE ONE THING THAT COULD STILL REACH IT. A `<label>` passes its click on to its
-   control, and a focused select is exactly what iOS opens a wheel for — so a tap on a select's own
-   caption is caught too, opens the panel like a tap on the box would, and has its default prevented.
+   WHAT THE APP STILL OWNS IS THE CLOSED BOX: the field's ground, edge and type, one chevron, a 44px
+   floor and 16px text, in one rule beside `input, select, textarea` in the stylesheet. The booking
+   card's rows are the one exception and the stylesheet says why (`.bk-sel`, note 031).
 
-   A KEYBOARD ON A LAPTOP IS LEFT NATIVE. `pointer-events` does not touch focus, so Tab still reaches
-   every select, the arrow keys still step through it and Space or Alt+↓ still opens the browser's
-   own list. ON A PHONE FOCUS IS ANOTHER DOOR TO THE WHEEL, and it is shut: the keyboard bar's
-   previous / next arrows move focus from the e-mail box straight onto the country code, and a select
-   focused that way is shown as the platform's picker in place of the keyboard. So on a coarse
-   pointer a select that takes focus is blurred and the panel opens instead — see the `focusin`
-   listener below. A click sent AT the select itself — which is what a test sends — opens the panel
-   too. A screen reader is NOT claimed: VoiceOver's press and Chrome's accessibility default action
-   open a select's own popup without sending a DOM click, so a screen-reader user most likely still
-   gets the platform's list, which is a list they already know how to use.
+   THE SWIPE. With the panel, no select took the finger, so a swipe that began on one moved the
+   column like a swipe anywhere else. That is kept: `axisFree` (overworld.js) and the stylesheet's
+   `touch-action` list no longer name `select`, and a drag that the app counts as a swipe cannot also
+   open the list — see the `mousedown` guard beside `PRESS_MOVED` in shell.js.
 
-   THE DRAG GUARD STILL DECIDES WHETHER IT OPENS. `PRESS_MOVED` in shell.js swallows the click a swipe
-   produces, in the document's own bubble handler — and it SWALLOWS it, it does not cancel it, so a
-   drag that ended on a select's caption would still run the label's activation, focus the select and
-   send it a second click after the flag had been cleared. That opened the panel AND focused the
-   select from a gesture the app counts as a swipe, which on an iPhone is the wheel and the panel at
-   once. So the click is resolved first and ALWAYS cancelled when it was for a select, and only then
-   is the flag read: a swipe opens nothing and leaves `stopPropagation` alone, so the shell still sees
-   it and clears the flag. And because the select no longer catches the finger, a
-   swipe that begins on a dropdown now moves the column like a swipe anywhere else on the card — the
-   "a select opens by dragging on some phones" exemption in `axisFree` has nothing left to protect.
-
-   `data-native` IS THE WAY OUT, and nothing carries it today. A select that genuinely needs the
-   platform's own picker — a list so long that only a wheel is usable — opts out with that attribute
-   and a sentence beside it saying why. `<select multiple>` is not touched at all.
+   FOR WHOEVER IS ASKED NEXT TO MAKE THE OPEN LIST LOOK LIKE THE APP. It cannot be done. An iPhone's
+   wheel and Android's sheet take no CSS at all, and a laptop's list honours an option's two colours
+   and nothing else (the `option` rule in the stylesheet sets them). A request for the open list to
+   look like this app is a request for the panel back, with every line of the list above, and that
+   is the thing to say before building it a third time. Note 315 records the reversal; note 226 holds
+   the panel.
 ================================================================================================== */
-const SEL_OK = 'select:not([multiple]):not([data-native])';
-
-/* WHICH SELECT IS OPEN, AND HOW TO FIND IT AGAIN. A repaint replaces the markup a select lives in —
-   a payload landing is enough — so a reference kept from the tap would point at a node that has left
-   the document: the `dropRow_` argument one surface along. So the panel remembers how to ASK for it:
-   its id, or every `data-*` and `name` it carries, which is what every caller in this app identifies
-   its own selects by. Re-asked only when the remembered node has gone, and only on the page in front
-   (or in the sheet), so two cards that each carry `data-rec="category"` cannot be confused. */
-let SEL_OPEN = null;
-function selKey_(s) {
-  const q = v => String(v).replace(/["\\]/g, '\\$&');
-  if (s.id) return 'select[id="' + q(s.id) + '"]';
-  const bits = [...s.attributes].filter(a => /^(data-|name$)/.test(a.name))
-    .map(a => '[' + a.name + '="' + q(a.value) + '"]');
-  return bits.length ? 'select' + bits.join('') : '';
-}
-function selFind_() {
-  if (!SEL_OPEN) return null;
-  if (SEL_OPEN.el && SEL_OPEN.el.isConnected) return SEL_OPEN.el;
-  if (!SEL_OPEN.key) return null;
-  let scope = null;
-  if (SEL_OPEN.sheet) scope = $('sheet');
-  else {
-    const host = document.getElementById('s-' + AT);
-    const kids = host ? host.querySelectorAll(':scope > .page') : [];
-    const at = typeof domIndex_ === 'function' ? domIndex_(AT, PAGE[AT] || 0) : (PAGE[AT] || 0);
-    scope = kids.length ? kids[at] : host;
-  }
-  const s = scope && scope.querySelector(SEL_OPEN.key);
-  if (s) SEL_OPEN.el = s;
-  return s || null;
-}
-
-/* CAN ANYBODY SEE IT. On the screen and page in front of them, or in an open sheet — and inside the
-   box that clips it, because a pane that has scrolled a field out of its own view has hidden it as
-   surely as a column sliding away has, and a panel hanging off nothing is the fault this guards.
-
-   NOT AGAINST THE VIEWPORT, WHICH WAS THE FIRST VERSION AND SHUT EVERY LIST IT OPENED ON A COLUMN
-   STILL SETTLING. `placeNow_` calls the move on every placement, and during a settle the field's
-   rectangle is partway through a transition: measured, the lab's state turned to the page, clicked,
-   and the select reported itself two thousand pixels to the right — so the next placement shut the
-   list the click had just opened. A column that has slid away is already answered by "this screen,
-   this page", which `dropOnFront_` reads off `AT` and `PAGE` and no transition can blur. The pane
-   test stays, because a field and the pane round it ride the same transform: their two rectangles
-   are compared with each other, never with the glass. */
-function selVisible_(s) {
-  if (s.disabled) return false;
-  const sheet = s.closest('#sheet');
-  if (sheet) { if (sheet.classList.contains('hidden')) return false; }
-  else if (!dropOnFront_(s)) return false;
-  const clip = s.closest('.pane, #sheet-body');
-  if (clip) {
-    const r = s.getBoundingClientRect(), c = clip.getBoundingClientRect();
-    if (r.bottom < c.top || r.top > c.bottom) return false;
-  }
-  return true;
-}
-
-/* WHAT THE SELECT IS CALLED, for the panel's own `aria-label`. Its own label first, then the caption
-   of the `<label>` round it with the options' text left out — a label's `textContent` includes every
-   option, which would name the list after its contents. */
-function selName_(s) {
-  const own = s.getAttribute('aria-label');
-  if (own) return own;
-  const lab = s.closest('label');
-  const said = lab ? [...lab.childNodes].filter(n => n !== s && !(n.contains && n.contains(s)))
-    .map(n => n.textContent).join(' ').replace(/\s+/g, ' ').trim() : '';
-  return said || 'Choose one';
-}
-
-/* ---------- THE SAME ROWS AS THE BOOKING LIST ----------------------------------------------------
-   `.btn quiet pick-opt`, two columns from `.pick-list`, a gold edge and a ✓ on the chosen one — the
-   markup `dropCard_` draws, so the two cannot look different without one of them being edited.
-
-   WHAT IS LEFT OFF, AND WHY THAT IS NOT A DIFFERENCE IN THE CONTROL. The booking panel has a line
-   saying what is ticked and a Done button, because it stays open across several picks and the row it
-   hangs off ellipsises at the second subject. A single choice CLOSES on the pick, so a Done would be
-   a button for a state that never lasts, and the one answer is already on the field and ticked in the
-   list. A tap anywhere else, the field again and Escape all still shut it, as they do the other one.
-
-   `data-i` IS THE OPTION'S INDEX AND `data-v` ITS VALUE. The index is what `selectedIndex` takes, so
-   two options sharing a value stay two answers; the value is what finds the right one again if a
-   repaint has rebuilt the select under an open panel and moved its options. */
-function selHtml_(s) {
-  const opt = o => {
-    const i = Array.prototype.indexOf.call(s.options, o);
-    const on = i === s.selectedIndex;
-    return `<button type="button" class="btn quiet pick-opt${on ? ' on' : ''}" role="option"
-      data-do="sel-pick" data-i="${i}" data-v="${esc(o.value)}"
-      aria-selected="${on ? 'true' : 'false'}"${o.disabled ? ' disabled aria-disabled="true"' : ''}
-      >${on ? '✓ ' : ''}${esc(o.label || o.text || '\u2014')}</button>`;
-  };
-  /* AN EMPTY OPTION THAT ONLY REPEATS ANOTHER IS LEFT OFF. The booking form's "Who is this for?"
-     opens on whoever is signed in, so its blank option READS as that person — and the list showed
-     `Test Admin` twice, one ticked and one not, which is a choice nobody can tell apart. A screenshot
-     is what said so. Only a blank that is not the one chosen, and only when another option already
-     says the same words; every other blank, a `—` or a `Level` placeholder, stays a real answer. */
-  const said = o => String(o.label || o.text || '').trim();
-  const shown = o => !o.hidden && !(o.value === '' && !o.selected && said(o)
-    && [...s.options].some(x => x !== o && x.value !== '' && said(x) === said(o)));
-  const loose = [], out = [];
-  const flush = () => {
-    if (loose.length) out.push(`<div class="pick-list">${loose.map(opt).join('')}</div>`);
-    loose.length = 0;
-  };
-  [...s.children].forEach(c => {
-    if (c.tagName === 'OPTGROUP') {
-      flush();
-      const kids = [...c.children].filter(o => o.tagName === 'OPTION' && shown(o));
-      /* THE GROUP'S OWN LABEL, in the type `.pick-head` already gives the subject over its levels in
-         the "also teach" list — one caption style for "these answers belong together". Not
-         `.pick-group`, whose four-character columns are sized for a level and would cut a phrase. */
-      if (kids.length) {
-        out.push(`<div class="sel-group" role="group" aria-label="${esc(c.label)}">
-          <span class="pick-head">${esc(c.label)}</span>
-          <div class="pick-list">${kids.map(opt).join('')}</div></div>`);
-      }
-    } else if (c.tagName === 'OPTION' && shown(c)) loose.push(c);
-  });
-  flush();
-  return `<div class="sel-list" role="listbox" aria-label="${esc(selName_(s))}">${
-    out.join('') || '<p class="muted">Nothing to choose here yet.</p>'}</div>`;
-}
-
-/* THE BUILD, AND THE REBUILD. The panel's own scroll is kept across a rebuild — a long list that
-   jumped to its top under a repaint is a list that lost your place — and on FIRST opening the chosen
-   option is scrolled to the middle, which is where a native list opens and the only way to see what
-   is chosen in a list of sixty years. */
-function selDraw_() {
-  const el = $('drop'), back = $('drop-back');
-  const s = selFind_();
-  const again = !!el && el.dataset.owner === 'sel' && !el.classList.contains('hidden');
-  if (!el || !back || !s || !selVisible_(s)) { selShut_(); return; }
-  const scroll = again ? el.scrollTop : 0;
-  el.innerHTML = selHtml_(s);
-  el.dataset.owner = 'sel';
-  el.setAttribute('aria-label', selName_(s));
-  /* OVER THE SHEET WHEN IT HANGS FROM ONE. `#drop` sits under the sheet (43/44 against 45/46) so that
-     a booking list cannot cover a modal — right for that, and it would put a select inside a sheet's
-     panel BEHIND the sheet it was opened from. */
-  const over = !!s.closest('#sheet');
-  el.classList.toggle('over-sheet', over); back.classList.toggle('over-sheet', over);
-  el.classList.add('is-one');
-  back.classList.remove('hidden');
-  el.classList.remove('hidden');
-  s.setAttribute('aria-expanded', 'true');
-  dropPlace_(el, s);
-  if (again) el.scrollTop = scroll;
-  else {
-    /* AND ONCE MORE WHEN A SETTLE HAS FINISHED — see `selVisible_`. Placed off a rectangle taken
-       mid-transition, the panel would hang where the field was rather than where it is going; the
-       longest settle is 420ms. */
-    setTimeout(() => { if (SEL_OPEN && SEL_OPEN.el === s) selMove_(); }, 460);
-    const on = el.querySelector('.pick-opt.on');
-    if (on && el.scrollHeight > el.clientHeight) {
-      el.scrollTop = Math.max(0, on.offsetTop - (el.clientHeight - on.offsetHeight) / 2);
-    }
-  }
-}
-
-/* FOLLOW THE FIELD, OR SHUT — from `bookDropMove_`, so every placement the grid makes and every
-   scroll of the pane under it lands here. */
-function selMove_() {
-  const el = $('drop');
-  const s = selFind_();
-  if (!el || !s || !selVisible_(s)) { selShut_(); return; }
-  /* A REPAINT UNDER AN OPEN LIST hands back a NEW select, which `selFind_` has just found — and only
-     `selDraw_` used to mark one open, so the field lost its gold edge and its `aria-expanded` while
-     its list was still on the screen. */
-  s.setAttribute('aria-expanded', 'true');
-  dropPlace_(el, s);
-}
-
-function selShut_() {
-  document.querySelectorAll('select[aria-expanded="true"]')
-    .forEach(x => x.setAttribute('aria-expanded', 'false'));
-  SEL_OPEN = null;
-  const el = $('drop');
-  if (el && el.dataset.owner === 'sel') dropShut_();
-}
-
-/* OPEN, OR SHUT IF IT IS THE ONE ALREADY OPEN — which is what every drop-down does. A disabled select
-   opens nothing, as a disabled native one does: the booking form's locked rows and every field `send_`
-   holds still while a save is on the wire. */
-function selOpen_(s, keep) {
-  if (!s || !s.matches || !s.matches(SEL_OK) || s.disabled) return false;
-  const el = $('drop');
-  if (el && !el.classList.contains('hidden')) {
-    const mine = el.dataset.owner === 'sel' && SEL_OPEN && SEL_OPEN.el === s;
-    /* `keep` IS FOCUS ARRIVING, not a tap: focus landing on the select whose list is already up must
-       not read as the second tap that shuts it. */
-    if (mine && keep) return true;
-    bookDropShut_();
-    if (mine) return true;
-  }
-  SEL_OPEN = { el: s, key: selKey_(s), sheet: !!s.closest('#sheet') };
-  selDraw_();
-  return true;
-}
-
-/* WHAT KIND OF POINTER THE LAST PRESS WAS. The tolerance below is for a fingertip and the refocus
-   after a pick is for a mouse, and the click event cannot say which it was on every browser —
-   Safari's `click` is a plain MouseEvent — so the press that started it is asked instead. */
-let SEL_PTR = '';
-addEventListener('pointerdown', e => { SEL_PTR = e.pointerType || ''; }, { capture: true, passive: true });
-const selCoarse_ = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-
-/* HOW NEAR A FINGERTIP HAS TO LAND. A booking select is 81 by 15px in a 19px row, and while it took
-   the finger the browser's own touch adjustment snapped a tap a few pixels off onto it. With
-   `pointer-events: none` that snapping has nothing to snap to: measured with a radius-11 touch, a tap
-   3px under the Kind box landed on its row and opened nothing. Eight pixels is under half a
-   fingertip, and it is only ever asked of a touch or a pen — a mouse is where it was pointed. */
-const SEL_SLOP = 8;
-
-/* WHICH SELECT A TAP WAS FOR, given that no tap ever targets one. In this order:
-   · the control itself — a click sent AT it, which is what a test sends;
-   · its `<label>` — whose activation would focus it, and a focused select is what iOS opens its
-     wheel for;
-   · the ROW it is the one select in — a booking row or the cheat sheet's caption — so the question
-     beside the box is as good a place to tap as the box itself;
-   · and the ordinary case, the element behind it, hit-tested against the rectangle of every select a
-     few levels up, with `SEL_SLOP` for a finger.
-   Never a tap that landed on some OTHER control: a button, a link or anything carrying its own
-   `data-do` near a select is that control's tap.
-
-   AND ONLY A SELECT ON THE SAME PAGE OR SHEET AS THE TAP, that anybody can see. A rectangle is a
-   position, not a fact about what is in front of it: with a sheet open, a tap on its dimmed backdrop
-   or on its own text could land inside the rectangle of a select on the page BEHIND it, and that tap
-   was swallowed and opened the hidden select's list behind the sheet — one tap to do nothing visible,
-   a second to shut what could not be seen, a third to close the sheet. So the tap's own page or sheet
-   is its home, a select elsewhere is never a candidate, and `selVisible_` is asked of every one,
-   the label's included. */
-function selAt_(e) {
-  const t = e.target;
-  if (!t || !t.closest || t.closest('#drop, #drop-back')) return null;
-  const ok = c => !!c && c.matches(SEL_OK) && !c.disabled && selVisible_(c);
-  if (t.tagName === 'SELECT') return ok(t) ? t : null;
-  if (t.closest('button, a, input, textarea, [contenteditable="true"]')) return null;
-  const home = t.closest('.page, #sheet');
-  if (!home) return null;
-  const mine = c => ok(c) && c.closest('.page, #sheet') === home;
-  const lab = t.closest('label');
-  if (lab) {
-    const c = lab.control || lab.querySelector('select, input, textarea, button');
-    if (c && c.tagName === 'SELECT') return mine(c) ? c : null;
-    if (c) return null;
-  }
-  if (t.closest('[data-do]')) return null;
-  const row = t.closest('.bk-row, .mat-sel');
-  if (row) {
-    const own = [...row.querySelectorAll(SEL_OK)].filter(mine);
-    if (own.length === 1) return own[0];
-  }
-  const x = e.clientX, y = e.clientY;
-  const slop = SEL_PTR === 'touch' || SEL_PTR === 'pen' ? SEL_SLOP : 0;
-  let best = null, near = Infinity;
-  for (let n = t, k = 0; n && k < 5; n = n.parentElement, k++) {
-    if (!n.querySelectorAll) continue;
-    for (const s of n.querySelectorAll(SEL_OK)) {
-      if (!mine(s)) continue;
-      const r = s.getBoundingClientRect();
-      if (!r.width) continue;
-      const dx = Math.max(r.left - x, 0, x - r.right), dy = Math.max(r.top - y, 0, y - r.bottom);
-      const d = Math.hypot(dx, dy);
-      if (d <= slop && d < near) { best = s; near = d; }
-    }
-    if (best) break;
-  }
-  return best;
-}
-
-document.addEventListener('click', e => {
-  const s = selAt_(e);
-  if (!s) return;
-  /* ALWAYS CANCELLED, AND BEFORE THE DRAG GUARD — see the header. */
-  e.preventDefault();
-  if (typeof PRESS_MOVED !== 'undefined' && PRESS_MOVED) return;
-  e.stopPropagation();
-  if (typeof pressClear_ === 'function') pressClear_();
-  selOpen_(s);
-}, true);
-
-/* FOCUS ON A PHONE OPENS THE PANEL, NEVER THE WHEEL — see the header. Blurred first, because a select
-   left focused is exactly what the platform draws its own picker for, and only where the pointer is
-   coarse: on a laptop, Tab onto a select and the arrow keys are how a keyboard uses one. */
-document.addEventListener('focusin', e => {
-  const s = e.target;
-  if (!s || s.tagName !== 'SELECT' || !s.matches(SEL_OK) || s.disabled || !selCoarse_()) return;
-  s.blur();
-  if (selVisible_(s)) selOpen_(s, true);
-}, true);
-
-/* THE PANE SCROLLS UNDER AN OPEN LIST. `paneReach_` lets a tall card scroll, and a fixed panel does
-   not travel with it — so a scroll anywhere but inside the panel itself re-places whichever list is
-   open, or shuts it once its field has scrolled out of the pane. Capture, because `scroll` does not
-   bubble. */
-document.addEventListener('scroll', e => {
-  const el = $('drop');
-  if (!el || el.classList.contains('hidden')) return;
-  if (e.target && e.target.nodeType === 1 && el.contains(e.target)) return;
-  bookDropMove_();
-}, { capture: true, passive: true });
-
-/* CHOOSING CLOSES THE LIST AND THEN TELLS THE SELECT — in that order, so a handler that redraws the
-   card, swaps the select for a text box (`Something else…`) or opens something of its own does it
-   with no panel in the way. `change` only when the answer moved, which is what the browser does: a
-   handler that recomputes a price must not run for a pick of the answer that was already there.
-   `input` first and then `change`, the order a native select fires them. */
-on('sel-pick', b => {
-  const s = selFind_();
-  selShut_();
-  if (!s || s.disabled) return;
-  let i = Number(b.dataset.i);
-  const v = b.dataset.v;
-  if (!s.options[i] || s.options[i].value !== v) {
-    i = [...s.options].findIndex(o => o.value === v);
-  }
-  if (i < 0 || !s.options[i] || s.options[i].disabled) return;
-  const key = selKey_(s), sheet = !!s.closest('#sheet');
-  if (s.selectedIndex !== i) {
-    s.selectedIndex = i;
-    s.dispatchEvent(new Event('input', { bubbles: true }));
-    s.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-  /* FOCUS GOES BACK TO THE FIELD AFTER A MOUSE PICK, so a keyboard user's Tab carries on from where
-     they were rather than from the top of the page. Only after a mouse — focusing a select is exactly
-     what opens the wheel on a phone — and only if nothing else took focus: `Something else…` swaps
-     the select for a text box and puts the caret in it, and a refocus must not take that away. A
-     handler that redrew the card has REPLACED the select, so it is found again by the same key. */
-  if (SEL_PTR !== 'mouse') return;
-  const a = document.activeElement;
-  if (a && a !== document.body && a !== document.documentElement) return;
-  let f = s.isConnected ? s : null;
-  if (!f && key) {
-    const scope = sheet ? $('sheet') : document.getElementById('s-' + AT);
-    f = scope && [...scope.querySelectorAll(key)].find(x => selVisible_(x)) || null;
-  }
-  if (f && !f.disabled) f.focus({ preventScroll: true });
-});
 
 /* ---------- ELEVEN HOURS, SAID ONCE --------------------------------------------------------------
    SEVENTY-SEVEN NUMBERS FOR ELEVEN FACTS. Every day drew its own `10 11 12 … 20`, so the week was
@@ -3582,8 +3164,9 @@ function stepLocked_(st) {
 function stepControl_(st) {
   if (st.grid) return '';
   if (st.emails) return stepInput_(st);
-  /* A QUESTION TAKING SEVERAL ANSWERS OPENS A SHEET — see `stepMulti_`. A locked one has nothing to
-     open, so it falls through to the text `stepSelect_` draws for a settled answer. */
+  /* A QUESTION TAKING SEVERAL ANSWERS OPENS A LIST OF CHECKBOXES UNDER ITS ROW — see `stepMulti_`. A
+     locked one has nothing to open, so it falls through to the text `stepSelect_` draws for a
+     settled answer. */
   if (st.multi && !stepLocked_(st)) return stepMulti_(st);
   return stepSelect_(st);
 }
@@ -3676,6 +3259,12 @@ function stepRows_() {
                   under a control that did nothing. */
                id: st.id,
                sel: stepControl_(st),
+               /* THE CONTROL THE ROW'S LABEL IS FOR — see `bkCtl_`. Only when one was drawn: a locked
+                  row is text and a grid row has none, and a `for` naming nothing is a label that lies. */
+               ctl: st.grid ? '' : st.emails || !stepLocked_(st) ? bkCtl_(st.id) : '',
+               /* THE LIST OF CHECKBOXES UNDER A SEVERAL-OF-A-LIST ROW, when it is the one open —
+                  see `stepManyList_`. Markup, like `sel`, and drawn by `receiptRow` after the row. */
+               many: st.multi && !st.grid ? stepManyList_(st) : '',
                /* ---------- `why` WAS WRITTEN OUT ON FOUR STEPS AND DRAWN NOWHERE ---------------
                   MEASURED WHEN IT WAS WIRED UP: `st.why(` occurred nowhere in `js/`, so the form
                   could tell you that the tutor you picked does not teach your subject and that you
@@ -4888,7 +4477,10 @@ function receiptRow(r) {
   const heads = !!r.open || !!r.strip || !!r.tally;
   return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}">
     <span class="bk-n">${esc(r.n)}</span>
-    <span class="bk-k">${esc(r.k)}</span>
+    ${/* A ROW WITH A CONTROL LABELS IT — see `bkCtl_`. `for` before `class`, so the receipt's own
+          readers that look for `class="bk-k">` find the words either way. */
+      r.ctl && r.sel ? `<label for="${esc(r.ctl)}" class="bk-k">${esc(r.k)}</label>`
+                     : `<span class="bk-k">${esc(r.k)}</span>`}
     <span class="bk-v">${heads && String(r.v) === '\u2014' ? '' : value}</span>
     <span class="bk-m">${esc(r.mul)}</span>
     <span class="bk-r">${esc(r.rate)}</span>
@@ -4910,7 +4502,11 @@ function receiptRow(r) {
           grid step carries one today, so nothing moved; it is the better order if one ever does,
           because a sentence about a control belongs under the control. */''}
     ${r.open || ''}
-  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}`;
+  </div>${r.say ? `<p class="bk-say${r.say.warn ? ' is-warn' : ''}">${esc(r.say.text)}</p>` : ''}${
+    /* THE CHECKBOXES OF A SEVERAL-OF-A-LIST ROW THAT IS OPEN, under the row and the full width of
+       the card — see `stepManyList_`. After the refusal rather than before it, because the sentence
+       is about the answer on the row and the list is what changes it. Markup for `sel`'s reason. */
+    r.many || ''}`;
 }
 
 /**
@@ -5529,7 +5125,9 @@ function redrawBooker_(draw) {
   const before = $('bookr');
   const pane = before && before.closest('.pane');
   const was = pane ? pane.scrollTop : 0;
+  const held = bookFocusOf_(before);
   draw();
+  bookFocusBack_(held);
   if (!was) return;
   const after = $('bookr');
   const now = after && after.closest('.pane');
@@ -5537,6 +5135,43 @@ function redrawBooker_(draw) {
   requestAnimationFrame(() => {
     now.scrollTop = Math.min(was, Math.max(0, now.scrollHeight - now.clientHeight));
   });
+}
+
+/* ---------- AND THE FOCUS STAYS ON WHAT WAS JUST ANSWERED ---------------------------------------------
+   FOUND BY REVIEW ON A LAPTOP, 9 October: every answer on this card rebuilds it, and the rebuild threw
+   the keyboard's place away. Enter on the Subject row opened its list and left the focus on `<body>`,
+   so the next Tab started from the top of the form, not from the ticks just opened; ArrowDown on the
+   For select changed it once and the second ArrowDown went nowhere; a pick made with the keyboard in a
+   select's open list did the same. The conventional form keeps its place: the control you answered
+   still has the focus afterwards. So the control holding it is named before the redraw — by its tag,
+   EVERY `data-` attribute it carries (an hour of the week is told from the next by its `data-code`,
+   a block by its `data-when`) and, for a tick, its value, since the element itself is about to be
+   replaced — and the same control on the new card takes it back. `book-many-pick` did this for a tick alone;
+   this is that rule for every control on the card.
+
+   NOT A TEXT BOX. The note and the addresses answer on `change`, which fires as the box is LEFT — the
+   focus is already on its way to whatever was pressed, and pulling it back would steal it.
+
+   A SELECT ONLY ON A KEYBOARD-AND-MOUSE MACHINE (`pointer: fine`, the test me.js already uses for
+   Enter in a message). On a phone a focused select is its list (iOS draws the wheel from focus), and
+   focusing the new select from script after a pick could put the list straight back up. A phone has
+   no Tab to lose. */
+function bookFocusOf_(card) {
+  const a = document.activeElement;
+  if (!card || !a || a === document.body || !card.contains(a) || !a.dataset || !a.dataset.do) return null;
+  const fine = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
+  const tick = a.tagName === 'INPUT' && a.type === 'checkbox';
+  if (!(tick || a.tagName === 'BUTTON' || (a.tagName === 'SELECT' && fine))) return null;
+  return { tag: a.tagName, data: bookDataOf_(a), value: tick ? a.value : null };
+}
+const bookDataOf_ = el => JSON.stringify(Object.keys(el.dataset).sort().map(k => [k, el.dataset[k]]));
+function bookFocusBack_(k) {
+  if (!k) return;
+  const card = $('bookr');
+  if (!card) return;
+  const el = [...card.querySelectorAll('[data-do]')].find(x => x.tagName === k.tag && bookDataOf_(x) === k.data
+    && (k.value === null || x.value === k.value));
+  if (el && !el.disabled && document.activeElement !== el) { try { el.focus({ preventScroll: true }); } catch (e) {} }
 }
 
 /* ==================================================================================================

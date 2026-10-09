@@ -2766,8 +2766,8 @@ function settingsPages_() {
    like multiselect."*
 
    THREE `.check` TICKS, the app's own several-of-a-few control — the box the tutor agreement and
-   every yes/no field on this column already draw — and not the `meDrop_` drop-down, which is for a
-   list too long to show. Three answers fit on the card and should be SEEN, because the card's whole
+   every yes/no field on this column already draw — and not the several-of-a-list field that opens
+   under its summary, which is for a list too long to show shut. Three answers fit on the card and should be SEEN, because the card's whole
    job is to say what you are. Each says in a few words what it means here, since "client" is this
    business's word for the parent who pays, and nobody outside it would guess that.
 
@@ -3139,7 +3139,7 @@ function send_(body, o) {
      the boxes are still locked, so what is on the wire is still what is on the screen. */
   const box = o.lock
     ? (typeof o.lock === 'string' ? $(o.lock) : o.lock)
-    : btn && btn.closest('.me-form, .msg-form, .rc, #drop, #sheet-body, .card');
+    : btn && btn.closest('.me-form, .msg-form, .rc, #sheet-body, .card');
   const had = document.activeElement;
   const locked = [];
   if (box) {
@@ -3344,8 +3344,9 @@ function fieldOptions_(f) {
  * @param o.readonly whether it may be changed
  * @param o.label   an override for the label
  */
-/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. */
-const setDraftOk_ = name => typeof draftAttr_ === 'function' && !FIELD_MULTI[name]
+/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. A SEVERAL-OF-A-LIST DOES NOW
+   (`FIELD_MULTI` was refused here while its ticks lived in `#drop`; 315 put them in the card). */
+const setDraftOk_ = name => typeof draftAttr_ === 'function'
   && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
 /* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO ----------------------------------------------------------
    SAVE SENDS EVERY BOX OF ITS CARD (`meSave_`), so a box holding an edit made before a reload and never
@@ -3377,8 +3378,12 @@ function fieldHtml(name, value, o) {
      is typed as a draft and is drawn holding it, with the saved value as the one that takes the draft
      away again; `meSave_` drops each field it sent. NOT A LIBRARY CARD (its PIN is on it, and a
      card is drafted whole or not at all), NOT THE QUALIFICATION SHELF (saved the moment each answer
-     changes, `qualCommit_`), NOT a several-of-a-list's hidden answer, and never anything named a PIN —
-     `draftKeep_` refuses those whatever asks. */
+     changes, `qualCommit_`), and never anything named a PIN — `draftKeep_` refuses those whatever asks.
+     A SEVERAL-OF-A-LIST IS DRAFTED TOO NOW: it was left out while its ticks lived in `#drop`, a panel
+     the draft could not reach; since 315 they are checkboxes in this card, so a reload between a tick
+     and Save put every tick back -- the essay of 317 in a smaller box. The hidden answer carries the
+     draft (`da`) and the ticks' `change` keeps it (below `fieldHtml`); `v` above is already the draft's,
+     so the boxes are drawn ticked from it. */
   const keep = attr === 'data-me' && !ro && setDraftOk_(name);
   const saved = FIELD_IS_BOOL.test(name) ? (TRUEish_(v0) ? '1' : '0') : String(v0);
   const da = keep ? draftAttr_('set', name, saved) : '';
@@ -3392,21 +3397,48 @@ function fieldHtml(name, value, o) {
       <span class="box"></span><span>${esc(label)}</span></label>`;
   }
 
-  /* ---------- SEVERAL OF A LIST IS A DROP-DOWN THAT STAYS OPEN ----------------------------------
-     NOT `<select multiple>`, which a phone draws as a list box with its own scrollbar, and not a
-     `<select>` that shuts after every pick — *"doesnt disapear after each option click"* is the
-     booking form's accepted answer and this is the same control: a field that opens `#drop`
-     anchored under it, several ticks, Done or a tap outside to close. See `meDrop_` below.
+  /* ---------- SEVERAL OF A LIST IS A LIST OF CHECKBOXES, OPENED UNDER ITS FIELD ------------------
+     IT WAS A BUTTON THAT HUNG `#drop`, the booking form's floating panel, off the field (note 226),
+     until the owner asked on 9 October for *"a more stable standard simple conventional drop down
+     list"* (note 315). A floating panel is the opposite of every one of those words, so this is the
+     conventional control: a `<details>` whose summary IS the field — the box's own clothes, saying
+     what is ticked — and which, opened, puts one `.check` row per option directly under it, in the
+     card, pushing what is below it down. The browser opens it and shuts it, a keyboard's Enter does
+     too, and a screen reader says expanded or collapsed; nothing here positions anything.
 
-     THE ANSWER IS A HIDDEN INPUT CARRYING THE ATTRIBUTE, so `me-save` gathers it exactly like every
-     other box on the card and nothing about saving had to change. The button shows what is ticked. */
+     NOT `<select multiple>`, which a laptop draws as a list box you Ctrl-click, and not a `<select>`
+     that shuts after every pick — *"doesnt disapear after each option click"* is the booking form's
+     accepted answer, and this is the same answer in the settings column's clothes.
+
+     THE ANSWER IS STILL THE HIDDEN INPUT CARRYING THE ATTRIBUTE, so `me-save` gathers it exactly like
+     every other box on the card and nothing about saving changed. A tick rewrites it (the `change`
+     listener below `fieldHtml`), and the tick's own `change`, bubbling, is what marks the card dirty —
+     which the panel's buttons never did, so a repaint before Save could put every tick back.
+
+     THE BOXES CARRY `data-many-of`, NOT THE ATTRIBUTE. `me-save` reads every checkbox carrying it as
+     TRUE or FALSE, and fifteen boxes under one name would each have overwritten the list.
+
+     ANYTHING ALREADY IN THE CELL IS OFFERED, list or not. The column was free text once, so a row may
+     hold a name the list does not — leaving it off would make it impossible to untick and easy to
+     lose on the next save.
+
+     OPEN IS DRAWN OPEN — see `MANY_OPEN_` below: a repaint keeps the list open under the person who
+     opened it, as `BOOKING.picking` keeps the booking form's. */
   if (FIELD_MULTI[name] && (o.options || []).length) {
     const got = profList_(v);
-    return `<label class="field"><span>${esc(label)}</span>
-      <input type="hidden" ${attr}="${esc(name)}" value="${esc(got.join(', '))}">
-      <button type="button" class="me-many${got.length ? '' : ' is-unset'}" data-do="me-many"
-        data-field="${esc(name)}" aria-expanded="false" ${ro ? 'disabled' : ''}
-        aria-label="${esc(label)}">${esc(got.join(', ') || 'Tap to choose')}</button></label>`;
+    const on = x => got.some(g => norm(g) === norm(x));
+    const opts = (o.options || []).slice();
+    got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
+    const said = got.join(', ');
+    const key = attr + ':' + name;
+    return `<div class="field many"><span class="many-cap">${esc(label)}</span>
+      <input type="hidden" ${attr}="${esc(name)}" value="${esc(said)}"${da}>
+      <details class="many-d" data-many="${esc(key)}"${MANY_OPEN_ === key ? ' open' : ''}><summary class="many-sum${said ? '' : ' is-unset'}"
+        aria-label="${esc(label + ': ' + (said || 'nothing chosen'))}">${esc(said || 'Tap to choose')}</summary>
+        <div class="many-list" role="group" aria-label="${esc(label)}">${opts.map(x => `<label class="check many-opt">
+          <input type="checkbox" data-many-of="${esc(name)}" value="${esc(x)}"${on(x) ? ' checked' : ''}${
+          ro ? ' disabled' : ''}><span class="box"></span><span>${esc(x)}</span></label>`).join('')}</div>
+      </details></div>`;
   }
 
   /* A FIXED LIST IS A SELECT. Somebody choosing an exam board should not be able to invent one —
@@ -3414,7 +3446,7 @@ function fieldHtml(name, value, o) {
      AND A SAVED VALUE THE LIST DOES NOT HOLD IS KEPT AS ITS FIRST OPTION. Without it the empty
      option was the one selected, so pressing Save with nothing touched wrote '' over a borough, a
      town, a favourite colour, or a qualification's Merit or Grade 8 — whatever the options tab
-     happened not to list. `qualYears_` and `meDropHtml_` already keep theirs this way. */
+     happened not to list. `qualYears_` and the several-of-a-list field above keep theirs this way. */
   const opts = o.options || [];
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a
@@ -3480,105 +3512,72 @@ function fieldHtml(name, value, o) {
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
 }
 
-/* ---------- THE PANEL FOR A SEVERAL-OF-A-LIST FIELD, ON THE SETTINGS COLUMN ----------------------
-   `#drop` IS THE BOOKING FORM'S PANEL AND THIS BORROWS IT RATHER THAN BUILDING A SECOND. The reason
-   it is a sibling of the screens is the same here: `.pane` clips, a transformed column is the
-   containing block for anything fixed inside it, and only a panel outside every column can hang
-   off a field without being cut in half. Its placing (`dropPlace_`) and its closing (`dropShut_`)
-   are book.js's; what is new is which surface owns it, written on the panel as `data-owner`, so
-   the booking form's own redraws leave this one alone and its move and Escape hooks hand over.
+/* ---------- WHICH SEVERAL-OF-A-LIST FIELD IS OPEN, KEPT AS STATE RATHER THAN IN THE DOM ---------------
+   FOUND BY REVIEW ON 9 OCTOBER: open the venues field, tick nothing, and let a payload land — the
+   list shut under the person. Opening a `<details>` fires no `input` and no `change`, so the card was
+   clean, `settingsKeep_` let `paint` redraw it, and the open state had lived only in the element that
+   was replaced. The panel it replaced survived the same repaint, and so does the booking form's list,
+   because `BOOKING.picking` is state; this is that, for the settings column. Not by marking the card
+   dirty, which is the qualification shelf's answer for an open LINE (*"AN OPEN LINE COUNTS"*): a card
+   held dirty is a column that is never redrawn until Save, and opening a list to read it is not an
+   edit. Written by the browser's own `toggle` (it does not bubble, hence the capture), so a keyboard's
+   Enter, a tap and a redraw drawing it `open` all say the same thing. One is remembered, the last
+   opened, which is the booking form's rule too; there is one such field today (`venues_ok`). The shut
+   of an element being thrown away by a repaint is not a person shutting it, hence `isConnected`. */
+let MANY_OPEN_ = '';
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d || !d.matches || !d.matches('details.many-d')) return;
+  const k = d.dataset.many || '';
+  /* A PERSON OPENING IT, as against a repaint drawing it open: the list is brought onto the screen, as
+     the booking form's is (`tickListShow_` in book.js) — at 320 the card grows when it stops being
+     drawn smaller, and the field went below the glass as it opened. */
+  if (d.open && MANY_OPEN_ !== k && typeof tickListShow_ === 'function') {
+    tickListShow_(() => ({ list: d.querySelector('.many-list'), head: d.querySelector('summary') }),
+                  () => d.isConnected && d.open);
+  }
+  if (d.open) MANY_OPEN_ = k;
+  else if (MANY_OPEN_ === k && d.isConnected) MANY_OPEN_ = '';
+}, true);
 
-   THE STATE IS THE HIDDEN INPUT, NOT A VARIABLE. What is ticked lives in the box `me-save` reads,
-   so the panel, the button's summary and what is posted are one value and cannot disagree —
-   `ME_PICK` only says WHICH field is open. */
-let ME_PICK = '';
-function mePickRow_() {
-  if (!ME_PICK || AT !== 'settings') return null;
-  const pages = document.querySelectorAll('#s-settings > .page');
-  const pg = pages[PAGE.settings || 0];
-  return (pg && pg.querySelector('[data-do="me-many"][data-field="' + ME_PICK + '"]')) || null;
-}
-function meDropHtml_(field, box) {
-  const got = profList_(box.value);
-  const on = x => got.some(g => norm(g) === norm(x));
-  /* ANYTHING ALREADY IN THE CELL IS OFFERED, list or not. The column was free text until today, so
-     a row may hold "Grade 8 piano" — leaving it off the panel would make it impossible to untick and
-     easy to lose on the next save. */
-  const opts = (fieldOptions_(field) || []).slice();
-  got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
-  const btn = (x, text) => `<button type="button"
-        class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
-        aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(text)}</button>`;
-  const body = `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
-  return `<p class="drop-say${got.length ? '' : ' is-none'}">${got.length ? esc(got.join(', '))
-      : 'Nothing chosen yet — tap as many as apply.'}</p>
-    ${body}
-    <button type="button" class="btn quiet drop-done" data-do="me-many-done">Done</button>`;
-}
-function meDrop_() {
-  const el = $('drop'), back = $('drop-back');
-  const row = mePickRow_();
-  const box = row && row.parentNode.querySelector('input[type="hidden"]');
-  if (!el || !back || !row || !box) { meDropShut_(); return; }
-  const scroll = el.dataset.owner === 'me' ? el.scrollTop : 0;
-  el.innerHTML = meDropHtml_(ME_PICK, box);
-  el.dataset.owner = 'me';
-  el.setAttribute('aria-label', row.getAttribute('aria-label') || 'Choose');
-  back.classList.remove('hidden');
-  el.classList.remove('hidden');
-  row.setAttribute('aria-expanded', 'true');
-  dropPlace_(el, row);
-  /* A TICK REBUILDS THE LIST, AND A REBUILT LIST STARTS AT THE TOP. Forty-odd options is a list you
-     scroll, and losing your place on every tick is the panel shutting by another name. */
-  el.scrollTop = scroll;
-}
-/* Called by `bookDropMove_` on every placement the grid makes, while this surface owns the panel. */
-function meDropMove_() {
-  const el = $('drop');
-  const row = mePickRow_();
-  if (!el || !row) { meDropShut_(); return; }
-  dropPlace_(el, row);
-}
-function meDropShut_() {
-  document.querySelectorAll('[data-do="me-many"][aria-expanded="true"]')
-    .forEach(b => b.setAttribute('aria-expanded', 'false'));
-  ME_PICK = '';
-  const el = $('drop');
-  if (el && el.dataset.owner === 'me' && typeof dropShut_ === 'function') dropShut_();
-}
-on('me-many', el => {
-  /* PRESSING THE OPEN ONE SHUTS IT, which is what every drop-down does. */
-  const open = ME_PICK === el.dataset.field && !$('drop').classList.contains('hidden');
-  if (open) { meDropShut_(); return; }
-  ME_PICK = el.dataset.field;
-  /* ON THE PAGE THE FIELD IS ON. `mePickRow_` looks on the page in front, so a press that reached a
-     field on another page — a keyboard, or `check/press.js` — found no row and silently shut. Turn to
-     it first, then open. */
-  const pg = el.closest('.page');
-  const at = pg ? [...document.querySelectorAll('#s-settings > .page')].indexOf(pg) : -1;
-  if (AT === 'settings' && at >= 0 && at !== (PAGE.settings || 0)) goPage('settings', at, true);
-  meDrop_();
-});
-on('me-many-pick', el => {
-  const row = mePickRow_();
-  const box = row && row.parentNode.querySelector('input[type="hidden"]');
-  if (!box) { meDropShut_(); return; }
-  const val = el.dataset.val;
-  let got = profList_(box.value);
-  got = got.some(g => norm(g) === norm(val)) ? got.filter(g => norm(g) !== norm(val)) : got.concat(val);
-  /* IN THE LIST'S OWN ORDER, which is `bookToggle_`'s rule: a summary in the order things were
-     tapped reads as a different answer every time. Anything not on the list keeps its place at the
-     end. */
-  const order = fieldOptions_(ME_PICK) || [];
-  const rank = x => { const i = order.findIndex(o => norm(o) === norm(x)); return i < 0 ? 1e6 : i; };
-  got.sort((a, b) => rank(a) - rank(b));
+/* ---------- A TICK UNDER A SEVERAL-OF-A-LIST FIELD -------------------------------------------------
+   WRITES THE HIDDEN INPUT AND THE SUMMARY, AND NOTHING ELSE. The list is read off the boxes in the
+   order they are drawn — the list's own order, then anything the cell held that the list does not —
+   which is `bookToggle_`'s rule: a summary in the order things were tapped reads as a different
+   answer every time.
+
+   THIS WAS `meDrop_` AND SIX FUNCTIONS BESIDE IT — the settings column's half of `#drop`, the
+   floating panel: which field owned it, where it hung, following the field on every placement of the
+   grid, shutting when the page turned, and handing its moves and its Escape over to book.js. The
+   panel went on 9 October (note 315); a box in the card needs none of that. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('input[type="checkbox"][data-many-of]')) return;
+  const field = t.closest('.many');
+  const box = field && field.querySelector(':scope > input[type="hidden"]');
+  if (!box) return;
+  const got = [...field.querySelectorAll('input[type="checkbox"][data-many-of]')]
+    .filter(c => c.checked).map(c => c.value);
   box.value = got.join(', ');
-  row.textContent = got.join(', ') || 'Tap to choose';
-  row.classList.toggle('is-unset', !got.length);
-  /* THE LIST STAYS OPEN, which is the whole feature. */
-  meDrop_();
+  /* AND KEPT AS A DRAFT, as every other box on your own card is -- `draftFrom_` (data.js) skips a hidden
+     input on purpose, so the ticks hand theirs over here. The saved list is the value that takes it away. */
+  const spec = box.getAttribute('data-draft');
+  if (spec && typeof draftKeep_ === 'function') {
+    try {
+      const at = spec.indexOf(':'), surface = spec.slice(0, at), id = spec.slice(at + 1);
+      const was = box.getAttribute('data-draft-was') || '';
+      if (typeof draftSame_ === 'function' && draftSame_(box.value, was)) draftDrop_(surface, id);
+      else draftKeep_(surface, id, box.value, false, was);
+    } catch (err) {}
+  }
+  const sum = field.querySelector('summary');
+  const cap = field.querySelector('.many-cap');
+  if (sum) {
+    sum.textContent = box.value || 'Tap to choose';
+    sum.classList.toggle('is-unset', !got.length);
+    sum.setAttribute('aria-label', ((cap && cap.textContent) || '') + ': ' + (box.value || 'nothing chosen'));
+  }
 });
-on('me-many-done', () => meDropShut_());
 
 /* ---------- A TICKED HOUR SAYS SO WITH `.on` AS WELL AS WITH `:checked` ------------------------------
    THE JOINED BAR IS DRAWN OFF `.on` — `.hr.on + .hr.on` — and the availability grid set that class
@@ -3964,8 +3963,8 @@ function qualSay_(q) {
    the chosen option, for the reason `fieldHtml` gives. The last option turns the select into a text
    box in place (the listener below), because a subject or a level may be one nobody listed.
 
-   `mine` PUTS YOUR OWN SUBJECTS FIRST, under their own heading in the list (`selHtml_` draws an
-   optgroup as one). Fifty-odd subjects is a scroll to reach Maths; a tutor adding a level to a subject
+   `mine` PUTS YOUR OWN SUBJECTS FIRST, under their own heading in the list — an `<optgroup>`, which
+   the platform's own list draws as a caption over its options on every phone and laptop. Fifty-odd subjects is a scroll to reach Maths; a tutor adding a level to a subject
    they already hold is the commonest add there is. Only the first option matching the value is
    marked chosen, so the subject is ticked once, in your list. */
 const QUAL_OTHER = '__other';
@@ -4032,10 +4031,24 @@ function qualFaceNow_(slot) {
   const slot = t && t.closest && t.closest('.q-shelf .q-slot');
   if (slot) qualFaceNow_(slot);
 }));
+/* ---------- THE NEXT BOX THE PERSON NEEDS, GIVEN THE FOCUS — NOT OPENED ---------------------------------
+   THIS OPENED THE LIST, through `selOpen_` and the app's own panel (note 284: "a pick from a list is two
+   taps: the field, then the answer"). A platform's list cannot be opened from script: `showPicker()`
+   needs a tap of its own to ride on, which a timer after a `change` is not, and an iPhone does not offer
+   it on a select at all. So the box is FOCUSED instead: its gold edge says where the next answer goes, a
+   keyboard carries on from it, and a phone that draws its picker from focus shows it. One tap on the box
+   opens it everywhere else. Without scrolling, because the line was scrolled into the pane when it was
+   made. On the next turn, so the `change` or the press that asked has finished first (note 315). */
+function qualNext_(sel) {
+  setTimeout(() => {
+    if (sel && sel.isConnected && !sel.disabled) { try { sel.focus({ preventScroll: true }); } catch (e) {} }
+  }, 0);
+}
 /* ---------- AN ANSWER CHOSEN IS AN ANSWER SAVED --------------------------------------------------------
    Only in an OPEN line, and only on `change` — a pick from a list, a box left after typing — never on
    each keystroke. A line being added asks for its level the moment it has a subject, which is the
-   "subject, then level, in one step" the `+` tile promises; it is saved once it has both. */
+   "subject, then level, in one step" the `+` tile promises — the level box takes the focus (`qualNext_`)
+   — and it is saved once it has both. */
 document.addEventListener('change', e => {
   const t = e.target;
   if (!t || !t.matches || !t.matches('[data-me]') || t.value === QUAL_OTHER) return;
@@ -4043,8 +4056,7 @@ document.addEventListener('change', e => {
   if (!slot) return;
   const q = qualRead_(slot);
   if (slot.dataset.new && q.subject && !q.level && t.matches('.q-name')) {
-    const lv = slot.querySelector('select[data-me$="_level"]');
-    setTimeout(() => { if (lv && lv.isConnected && typeof selOpen_ === 'function') selOpen_(lv); }, 0);
+    qualNext_(slot.querySelector('select[data-me$="_level"]'));
     return;
   }
   qualCommit_(slot);
@@ -4260,10 +4272,10 @@ function qualTake_(shelf) {
   if (!slot) toast('That is the most this card holds — ten qualifications in all.');
   return slot || null;
 }
-/* ---------- `+`: A NEW LINE AT THE FOOT, AND ITS SUBJECT LIST ALREADY OPEN ------------------------------
-   The list is opened for the person rather than waiting for a second tap on a box they have just been
-   handed, and `selOpen_` (book.js) is the same panel every select in the app hangs. Scrolled into the
-   pane first, because a list is only hung from a field that can be seen. */
+/* ---------- `+`: A NEW LINE AT THE FOOT, ITS SUBJECT BOX READY ------------------------------------------
+   The subject box takes the focus rather than waiting to be found on a card that has just grown a line —
+   see `qualNext_` for why it is focused and no longer opened. Scrolled into the pane first, because the
+   next answer goes in a box that can be seen. */
 on('qual-add', el => {
   if (qualWhenSaved_(el)) return;
   const shelf = el.closest('.q-shelf');
@@ -4284,8 +4296,7 @@ function qualStart_(next, slot) {
   qualFaceNow_(slot);
   qualOpen_(slot);
   try { slot.scrollIntoView({ block: 'nearest' }); } catch (e) {}
-  const s = slot.querySelector('select.q-name');
-  setTimeout(() => { if (s && s.isConnected && typeof selOpen_ === 'function') selOpen_(s); }, 0);
+  qualNext_(slot.querySelector('select.q-name'));
 }
 /* ---------- REMOVING SAVES AT ONCE ------------------------------------------------------------------
    The line's seven boxes are emptied and the card is saved — an emptied slot is dropped by `qualsIn`
@@ -4835,8 +4846,8 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM -----------------------------------
    A CARD IS DIRTY FROM ITS FIRST KEYSTROKE UNTIL IT IS SAVED, and while any card on the column is,
    `paint` leaves the column alone — see the note there. Marked from the events rather than by
-   comparing each box with its `defaultValue`, because the qualification shelf and the anchored
-   multi-selects keep their answer in a HIDDEN input, whose `value` and `defaultValue` are the same
+   comparing each box with its `defaultValue`, because the qualification shelf and the
+   several-of-a-list field keep their answer in a HIDDEN input, whose `value` and `defaultValue` are the same
    attribute: a comparison would call a picked subject clean. */
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
@@ -4918,10 +4929,14 @@ function profileRefresh_(loud, onOld) {
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
       const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      if (roleMoved) { try { repaint(); } catch (e) {} return; }
+      /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: a
+         select somebody has open, or a box they are in, is not rebuilt under them. Found by review on
+         9 October — the favourite colour tapped, its list up, and this repaint took the select away. */
+      const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
+      if (roleMoved) { try { land(); } catch (e) {} return; }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
-        try { paint('settings'); placeCells('y', true, 0, 'settings'); } catch (e) {}
+        try { land(() => { paint('settings'); placeCells('y', true, 0, 'settings'); }); } catch (e) {}
       }
     })
     .catch(() => { PROFILE_ASKING = false; });

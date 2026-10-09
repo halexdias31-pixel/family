@@ -122,6 +122,13 @@ const SUITE = [
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
   { file: 'check-spine.js',     what: 'one row order, both documents' },
   { file: 'check-surfaces.js',  what: 'nothing opens over the app' },
+  /* ---------- AND NOTHING STANDS IN FRONT OF A DROPDOWN ------------------------------------------
+     For a week every `<select>` was `pointer-events: none` and answered by a floating panel of the
+     app's own (note 226); on 9 October the owner asked for *"a more stable standard simple
+     conventional drop down list"* and got the platform's own back (note 315). That panel was built
+     from three small pieces — a CSS rule, a listener, a box in index.html — and this fails on any of
+     them coming back. Static and quick, beside `check-surfaces`, which asks the same of sheets. */
+  { file: 'check-dropdowns.js', what: 'every dropdown the platform\'s own, nothing in front of one' },
   /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ ------------------------------------
      Every check above this line reads the CODE. `data/questions.json` is 4,264 rows of committed
      content — the library the whole Find screen is about — and no check had ever opened it. A wrong

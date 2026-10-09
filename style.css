@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-reaction-pills-pressed";
+  --css-version: "2026-10-09-dropdowns-after-review";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -776,10 +776,12 @@ html.wide body { max-width: none; box-shadow: none; }
 .btn-row { display: flex; gap: .5rem; }
 .btn-row .btn { width: auto; flex: 1; }
 
-input, select, textarea {
+/* `.many-sum` IS IN THIS GROUP — the closed face of a several-of-a-list field (`fieldHtml` in me.js) is
+   a field, so it is drawn by the field's own rule rather than by a copy of it that could drift. */
+input, select, textarea, .many-sum {
   width: 100%;
   min-height: max(44px, 2.9rem); padding: .7rem .75rem;
-  background: var(--sunk);
+  background-color: var(--sunk);
   border: 1px solid var(--line); border-radius: var(--r-sm);
   color: var(--ink);
   /* 16px EXACTLY, not a rem — below 16px iOS zooms the page when a field is focused and never
@@ -789,6 +791,71 @@ input, select, textarea {
   -webkit-appearance: none; appearance: none;
   transition: border-color var(--quick) ease;
 }
+/* ---------- A DROPDOWN LOOKS LIKE A DROPDOWN, AND THE OPEN LIST IS THE PLATFORM'S -----------------
+   THE CLOSED BOX IS THIS APP'S AND THE OPEN LIST IS NOT. Asked for on 9 October as *"a more stable
+   standard simple conventional drop down list"*: a tap opens the phone's own picker — the wheel on an
+   iPhone, the sheet on Android, the system list on a laptop — and nothing in this stylesheet or in any
+   script positions it. The banner over `dropOnFront_` in book.js has the whole reversal; note 315.
+   Restyling the OPEN list is not possible (see the `option` rule below) and asking for it is asking
+   for the floating panel back.
+
+   ONE ARROW, DRAWN ON THE SELECT ITSELF. `appearance: none` above takes the platform's arrow off with
+   its grey well — a light box in a dark form — so every select in the app looked like a text box but
+   the cheat sheet's, which drew a `▾` on a wrapper of its own. A select cannot hold a pseudo-element and
+   a wrapper is a second element every caller has to remember, so the arrow is two gradients in the
+   select's own background: the same ten-by-five `▾`, in a token, on every select, on the booking row's
+   button and on the settings column's several-of-a-list field, because those two are dropdowns to the
+   person pressing them. The three custom properties are the only things a caller may change — the
+   booking row does, and says why beside `.bk-sel`.
+
+   `background-color`, NEVER THE `background` SHORTHAND, on anything this reaches: the shorthand resets
+   the image, and the arrow would vanish from whichever select a later rule happened to paint.
+
+   AN OPEN LIST POINTS UP — the arrow on a several-of-a-list field turns over while its list is open
+   under it, which is the one thing a disclosure says that a select never needs to.
+
+   THE ARROW SITS CLOSE TO THE EDGE, AND THE WORDS CLOSE TO THE ARROW. It was first drawn with its
+   middle 1.05rem in and .7rem of air before the words, 31px of a 390 phone's select given to a 10px
+   arrow, and the review of 9 October measured what that cost: `youngest` in the Ages box at 320 was
+   75px of words in 70px of room — `younge…` where it had fitted with room to spare before the arrow —
+   and the flyer maker cut twice as many answers as it used to. The tip now stands .55rem in, inside
+   the box's own left inset, and the words stop .3rem before it: 22px rather than 31. */
+select, .bk-many, .many-sum {
+  --sel-arrow: var(--dim);
+  --sel-tri: 5px;      /* half the arrow's width, and all of its height */
+  --sel-at: calc(.55rem + var(--sel-tri));   /* the arrow's middle, from the box's right edge */
+  padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem);
+  background-image: linear-gradient(45deg, transparent 50%, var(--sel-arrow) 50%),
+                    linear-gradient(135deg, var(--sel-arrow) 50%, transparent 50%);
+  background-position: right var(--sel-at) center, right calc(var(--sel-at) - var(--sel-tri)) center;
+  background-size: var(--sel-tri) var(--sel-tri);
+  background-repeat: no-repeat;
+  text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+  cursor: pointer;
+}
+.bk-many[aria-expanded="true"], details[open] > .many-sum {
+  background-image: linear-gradient(135deg, transparent 50%, var(--sel-arrow) 50%),
+                    linear-gradient(45deg, var(--sel-arrow) 50%, transparent 50%);
+}
+/* A LIST BOX HAS NO ARROW. `multiple` or `size` draws a select open, as a box of rows; none exists
+   today, and one that ever does should not carry a dropdown's arrow over its scrollbar. */
+select[multiple], select[size] { background-image: none; padding-right: .75rem; }
+/* ---------- THE OPEN LIST TAKES TWO COLOURS FROM US AND NOTHING ELSE ------------------------------
+   REPORTED AS *"the drop down list for the booking widget is hard to see. its like white on white
+   or something, unless i hover over it."* Measured then: every `<option>` computed to
+   `background-color: rgba(0,0,0,0)` and `color: rgb(128,128,128)`. The list a laptop opens is a
+   surface the page does not paint, so a transparent option is drawn on the SYSTEM's sheet, which is
+   white nearly everywhere — and an option inherits its select's ink, so a select that recedes while
+   unanswered (`--faint`, on the qualification shelf, the library shelf and the ranges) handed that
+   grey to every option in its list.
+
+   SO EVERY OPTION IS TOLD BOTH. This was `.bk-sel option` alone, which left the three faint selects
+   above with grey on white in a laptop's list. A phone's wheel and sheet ignore both colours and draw
+   their own, legibly — which is exactly why nothing else about the open list can be styled at all. */
+select option, select optgroup { background-color: var(--bg); color: var(--ink); }
+/* THE BLANK IS THE QUIET ONE — inside the list, where there is something to be quiet against — but
+   readable, because on several selects (`Not sure`, `No preference`) the blank is a real answer. */
+select option[value=""] { color: var(--dim); }
 
 /* ---------- A FIELD THAT IS WAITING HAS TO LOOK LIKE IT IS ----------------------------------------
    REPORTED AS *"i can still backspace login details while its loading logging in. this is not
@@ -807,13 +874,14 @@ input, select, textarea {
 input:disabled, select:disabled, textarea:disabled {
   opacity: .62;
   cursor: not-allowed;
-  background: var(--sunk);
+  background-color: var(--sunk);
 }
 /* AND THE CAPTION WITH IT, or the label stands at full strength over a box that has receded and
    the pair reads as a rendering fault rather than as a state. */
 .is-sending .field > span { opacity: .62; }
 textarea { min-height: 5.8rem; resize: vertical; }
-input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--gold); }
+input:focus, select:focus, textarea:focus, .many-sum:focus-visible, details[open] > .many-sum {
+  outline: 0; border-color: var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
 /* ---------- A WRONG PIN SAYS WHICH BOX -----------------------------------------------------------------
    The toast still says it (the owner's choice, docs/history/134); the box it was about is emptied,
@@ -849,7 +917,7 @@ input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var
    version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
    claiming it matched this. One selector, one caption style, and the row reads as one more field
    down the same column because it IS one. */
-label.field > span, .dob-cap, .handle-cap, .reg-cap {
+label.field > span, .dob-cap, .handle-cap, .reg-cap, .many-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
@@ -1023,10 +1091,14 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   font-size: max(9px, .58rem); line-height: 1; color: var(--dim); pointer-events: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.q-ed .q-f > select, .q-ed .q-f > input { min-width: 0; padding: 16px .6rem 4px; }
+/* THE RIGHT PADDING IS LEFT TO THE SELECT RULE on a select, because the dropdown arrow lives in it —
+   a shorthand here would put the answer's last letters under the arrow. */
+.q-ed .q-f > select, .q-ed .q-f > input { min-width: 0; padding-top: 16px; padding-bottom: 4px;
+  padding-left: .6rem; }
+.q-ed .q-f > input { padding-right: .6rem; }
 /* A NAME TOO LONG FOR HALF A 320 CARD ENDS IN AN ELLIPSIS — *walked:* "English Lan", cut with nothing to
-   say it was cut. The full name is the option's own label, one tap away. */
-.q-ed .q-f > select { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+   say it was cut. The full name is the option's own label, one tap away. The ellipsis itself is the
+   select rule's now, for every select, beside the arrow it has to stop short of. */
 /* TEACH / CAN TEACH / NOT TEACHING, ONE CONTROL. Words that say the answer, so the question that sat
    over it and the sentence that sat under it are not needed; what each does on the profile is its
    `title`. */
@@ -1067,20 +1139,23 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .me-said { margin: .6rem 0 0; }
 .me-said:empty { margin: 0; }
 
-/* ---------- A SEVERAL-OF-A-LIST FIELD LOOKS LIKE THE BOX IT REPLACES --------------------------------
-   `extra_quals` was a text box and is a button that opens `#drop` — see `meDrop_` in me.js. It is
-   drawn in the box's own clothes, so a card of boxes and one drop-down still reads as one form: the
-   same height, edge, fill and type as `input, select`, left-aligned because what it shows is a list
-   read from its start, and ellipsised because the panel under it is where the whole list is read.
-   44px in px, because it is a tap target. */
-.me-many {
-  display: block; width: 100%; min-height: 44px; padding: .7rem .75rem;
-  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
-  color: var(--ink); font: 16px/1.3 var(--font); text-align: left; cursor: pointer;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.me-many.is-unset { color: var(--faint); }
-.me-many[aria-expanded="true"] { border-color: var(--gold); }
+/* ---------- A SEVERAL-OF-A-LIST FIELD IS A FIELD THAT OPENS INTO TICKS -------------------------------
+   `fieldHtml` in me.js: a `<details>` whose summary is drawn by the field's own rule (it is in the
+   `input, select, textarea` group) and carries the dropdown's arrow, and under it, open, one `.check`
+   row per option — the app's own checkbox, 44px a row, the row the whole target. In the card, pushing
+   what is below it down: it was a button that hung `#drop` over the column until 9 October (note 315).
+
+   THE CAPTION IS `label.field > span`'s — it is in that rule's group — because a `<details>` full of
+   `<label>`s cannot itself be a `<label>`; the field is a `<div>` and keeps the label's margin here.
+   The summary's own disclosure triangle goes: the arrow on the right is the one this app draws. */
+.field.many { display: block; margin-bottom: .75rem; }
+.many-sum { display: block; list-style: none; text-align: left; }
+.many-sum::-webkit-details-marker { display: none; }
+.many-sum.is-unset { color: var(--faint); }
+/* THE TICKS SIT UNDER THE BOX, inset by the box's own padding so the words line up with the summary's,
+   and a hair apart: twelve rows that touch read as one block, twelve with air read as twelve. */
+.many-list { display: grid; padding: .2rem .1rem 0 .75rem; }
+.check.many-opt { gap: .6rem; padding: .45rem 0; }
 /* THE BUILD STAMPS UNDER AN ADMIN'S SIGNING-IN CARD. Small and faint: a line for the one person who
    asks which build is running, printed where nobody else ever sees it. */
 .me-build { margin-top: .9rem; padding-top: .6rem; border-top: 1px dashed var(--line);
@@ -4122,20 +4197,49 @@ button.text-drop { color: var(--bad); }
 
    `line-height` AND `height: auto` TOGETHER. Setting one and not the other leaves the other doing
    the padding; both, and the row is as tall as the word in it. */
+/* ---------- THE ONE SELECT THAT IS NOT THE FIELD, AND WHY ------------------------------------------
+   EVERY OTHER SELECT IN THE APP IS THE FIELD'S BOX — 44px, 16px, the arrow — and the owner's request of
+   9 October was for one ordinary dropdown everywhere. THIS ROW KEEPS ITS RECEIPT CLOTHES, and that is
+   measured rather than preferred: the answer column is **56 / 75 / 81px** at 320 / 390 / 768, and a
+   16px answer in a 44px box with a 2rem arrow in 75px is three letters and an ellipsis; and a 44px row
+   detaches the dashed rule it sits on by 24px, which was built twice and reverted twice (note 031 —
+   `ACCEPTED_TAP` in check/ui.js carries it). So the row's WORD is part of the target as well: `Kind`
+   is a `<label for>` its select (`receiptRow`, `bkCtl_` in book.js), a tap on it focuses the select and
+   asks for the platform's list, and a tap on the answer opens it directly. The row's figures are not:
+   they are the price, not the question. Until review found it on 9 October this said "the whole ROW is
+   the target", which had been the panel's hit test and stopped being true when the panel went.
+
+   WHAT IT SHARES IS THE ARROW, smaller — the same `▾`, from the same rule, so a dropdown on the receipt
+   reads as a dropdown, which for a week it did not (a dashed word with nothing to say it opens).
+
+   AND THE TEXT IS UNDER 16px, which on an iPhone zooms the page into a focused field — the reason the
+   field's rule is 16px exactly. The viewport's `maximum-scale=1` (index.html) is what stops that zoom
+   on this row, and it was already what stopped it on every row while the panel stood. */
 .bk-sel {
   appearance: none; -webkit-appearance: none;
   width: 100%; height: auto; min-height: 0;
-  padding: 0; margin: 0;
+  --sel-tri: 4px; --sel-at: 4px;   /* whole pixels: the two halves of the arrow must meet on one */
+  padding: 0 calc(var(--sel-tri) * 2 + .3em) 0 0; margin: 0;
   font: inherit; line-height: 1.35;
   text-align: right; text-align-last: right;
-  color: inherit; background: none; border: 0; border-radius: 0;
+  color: inherit; background-color: transparent; border: 0; border-radius: 0;
   cursor: pointer;
   /* A SELECT CANNOT WRAP. "Halex Dias" in a 55px column was cut mid-word with no sign it had been —
      `Halex Dia` reads as somebody's name, not as a truncation. An ellipsis says the rest is there,
      and the full text is in the picker the moment it is opened. */
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* A DISABLED ROW HAS NO ARROW, because it opens nothing: `send_` (me.js) disables every control on the
+   card while a booking is on the wire, and an arrow on a box that will not open is a promise broken. */
+.bk-sel:disabled { background-image: none; padding-right: 0; }
+/* THE WORD THAT OPENS ITS ROW SAYS SO TO A MOUSE, as the answer beside it does. */
+label.bk-k { cursor: pointer; }
 .bk-sel:focus { outline: 0; }
+/* A KEYBOARD ON THIS ROW HAD NOTHING TO SEE. The box has no edge to turn gold, so the arrow does, and
+   the answer comes up to full ink: the same "this one" the field's gold edge says, on the one select
+   that has no edge (note 315). `:focus-visible`, so a tap — which opens the platform's list over it
+   anyway — leaves the row as it was. */
+.bk-sel:focus-visible { --sel-arrow: var(--gold); color: var(--ink); }
 /* ---------- LOCKED, NOT MISSING --------------------------------------------------------------------
    A ROW WHOSE ANSWER IS NOT YOURS TO GIVE keeps its place, its label and its value — the venue of the
    class you are joining is worth reading even though you cannot change it. What it loses is the
@@ -4210,137 +4314,29 @@ button.text-drop { color: var(--bad); }
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
 /* ---------- AND THE SAME, SAID BY A CLASS, FOR THE CONTROL THAT IS NOT A SELECT ------------------
-   A QUESTION TAKING SEVERAL ANSWERS IS A BUTTON THAT OPENS A SHEET — see `stepMulti_` — wearing
-   `.bk-sel` because it is the same object on the card: right-aligned, no chrome, the answer as its
-   own text. What it cannot inherit is the rule above, which recedes an unanswered row by asking a
-   `<select>` whether its blank option is chosen. A button has no options, so it says so itself.
-   A `<button>`'s own font and alignment are not inherited either, which `font: inherit` and the
-   `text-align` on `.bk-sel` already set — the one thing left is the browser's centring of button
-   text, which that rule's `text-align: right` overrides. */
+   A QUESTION TAKING SEVERAL ANSWERS IS A BUTTON THAT OPENS A LIST OF CHECKBOXES UNDER ITS ROW — see
+   `stepMulti_` — wearing `.bk-sel` because it is the same object on the card: right-aligned, no
+   chrome, the answer as its own text, the arrow. What it cannot inherit is the rule above, which
+   recedes an unanswered row by asking a `<select>` whether its blank option is chosen. A button has no
+   options, so it says so itself. A `<button>`'s own font and alignment are not inherited either, which
+   `font: inherit` and the `text-align` on `.bk-sel` already set. */
 .bk-sel.is-unset { color: var(--faint); }
-/* ---------- THE LIST INSIDE THAT SHEET -----------------------------------------------------------
-   ONE FULL-WIDTH BUTTON PER OPTION, which is the shape every other list in a sheet has, and the
-   reason this is a sheet at all: `#sheet-body` scrolls where `.pane` does not, so a subject list
-   forty long costs nothing and every option is a real fingertip. `.btn` is already `width: 100%`
-   and already carries the 44px floor, so this is the gap between them and the tick in front.
-   THE TICK IS A GLYPH RATHER THAN A FILL. `.btn-row .btn.on` is the gold-filled chosen button, and
-   a column of eight gold slabs is the loudest thing in the app on a list where several are normally
-   chosen. Full ink and a ✓ says the same thing at reading volume — and `aria-pressed` says it to a
-   screen reader, which no colour can. */
-/* ---------- THE LIST HANGS OFF THE FIELD ----------------------------------------------------------
-   THREE SHAPES OF THIS CONTROL HAVE BEEN REPORTED AND THIS IS THE FOURTH. A `<select>` shut on
-   every choice; a sheet covered the app; a page that REPLACED the form was worse than either. What
-   was asked for each time is one thing — *"i prefer drop down list, one that allows multiselect, but
-   doesnt disapear after each option click"* — and it is what this is.
-
-   `#drop` IS A SIBLING OF THE SCREENS, not a box in the card, and the reason is `overflow: hidden`
-   on `.pane`. A panel inside the card is clipped by it at any position, and `position: fixed` does
-   not get out either: `placeCells` transforms every column, and a transformed ancestor becomes the
-   containing block for a fixed descendant and goes on clipping it. Three numbers come from
-   JavaScript — `left`, `top` and `max-height` — and everything else is here.
-
-   THE WIDTH IS NOT THE FIELD'S WIDTH, and it cannot be. The answer column on that card is
-   **56.3 / 75.3 / 80.9px** at 320 / 390 / 768, which is a drop-down four characters wide. `20rem`
-   capped at the viewport's own gutter is the widest a phone can hold, and the right edges are lined
-   up in JavaScript because the value it hangs off is right-aligned.
-
-   IT SCROLLS ONLY IF IT HAS TO. `max-height` is set from whichever side of the field has more room,
-   so a long list gets a scroller and a short one never does — and `touch-action` is set from the
-   measured overflow rather than declared here, which is `padReach_`'s rule on the notepad: a box
-   that keeps a gesture it cannot use is a box you cannot swipe off. One writer, so there is no
-   cascade to lose.
-
-   43 AND 44, WHICH PUTS IT OVER THE APP AND UNDER THE SHEET (45/46) AND THE TOAST (50). A drop-down
-   that covered a sheet would be a popover over a modal, and nothing here opens both. */
-#drop-back { position: fixed; inset: 0; z-index: 43; }
-#drop {
-  position: fixed; z-index: 44;
-  width: min(20rem, calc(100vw - 2rem));
-  padding: .55rem .6rem .6rem;
-  border: 1px solid var(--line); border-radius: var(--r);
-  background: var(--raised);
-  /* THE SHADOW IS WHAT SAYS "OVER", and it is doing the job a scrim would otherwise do. Without it
-     a panel the same colour as a raised card reads as part of the card behind it. */
-  box-shadow: 0 .6rem 1.6rem rgba(0,0,0,.55);
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-}
-/* WHAT IS TICKED, ABOVE THE LIST. The field itself stays visible — the panel hangs below it rather
-   than over it — but its text is right-aligned in an 80px column and ellipsises at the second
-   subject, so this is the only place several answers can be read at once. The QUESTION is not
-   repeated: it is on the row this is hanging off, and one fact drawn twice is the fault this
-   stylesheet already records where a widget printed its own name over its own heading. */
-.drop-say { margin: 0 .1rem .1rem; font-size: .72rem; color: var(--dim); }
-.drop-say.is-none { color: var(--faint); }
-/* THE WAY OUT IS NOT THE ACTION. The options are what this panel is for; Done dismisses it, and so
-   does the row above and a tap anywhere else. `.btn quiet` rather than the gold one, and no top
-   margin of its own — `.pick-list` already carries the gap below it. */
-.drop-done { margin: 0; }
-/* ---------- AND EVERY OTHER `<select>` HANGS THE SAME PANEL -----------------------------------------
-   *"should be consistent with the booking multiselect drop down list"*. `selOpen_` in book.js draws a
-   single-choice select's options into `#drop` with the same `.pick-list` and `.pick-opt` as the
-   booking list, and this is the one rule that stops the platform's own picker opening instead: a
-   finger, a pen or a mouse never TARGETS the select, so no browser has a tap on it to open a wheel
-   from. The tap lands on the label or row behind it and is caught there. The whole argument —
-   including why this beats cancelling `touchstart` on an iPhone — is over `SEL_OK`.
-
-   NOT A DISABLED ONE, which keeps its `not-allowed` cursor and opens nothing either way; not
-   `multiple`; and not one carrying `data-native`, which is the way out for a select that genuinely
-   needs the platform's picker and says why beside it. Focus is untouched, so the keyboard reaches
-   every select as before. */
-select:not([multiple]):not([data-native]):not(:disabled) { pointer-events: none; }
-/* THE POINTER CURSOR GOES ON WHATEVER HOLDS ONE, since the select itself is no longer under the
-   mouse. `:where` so it outranks nothing: a parent that states its own cursor keeps it. */
-:where(:has(> select:not([multiple]):not([data-native]):not(:disabled))) { cursor: pointer; }
-/* OPEN SAYS SO ON THE FIELD, as the booking list's button already does with `.me-many`. */
-select[aria-expanded="true"] { border-color: var(--gold); }
-/* ONE LIST, NO DONE AND NO SUMMARY LINE, so the panel's own padding is the only space round it —
-   `.pick-list`'s margin is there to part it from the line above and the button below, neither of
-   which a single choice draws. */
-.sel-list > :first-child { margin-top: 0; }
-.sel-list > :last-child { margin-bottom: 0; }
-.sel-group .pick-list { margin: 0; }
-.sel-list > * + .sel-group, .sel-group + .pick-list { margin-top: .45rem; }
-/* OVER A SHEET WHEN IT HANGS FROM ONE. `#drop` is 43/44, under the sheet's 45/46, so that a booking
-   list can never cover a modal; a select INSIDE a sheet would open its list behind the sheet it is
-   in. Still under the toast (50). */
-#drop-back.over-sheet { z-index: 47; }
-#drop.over-sheet { z-index: 48; }
-/* THE `.pick-list` GRID IS UNCHANGED FROM THE PAGE VERSION and the arithmetic that chose it still
-   holds: twelve 44px buttons stacked is 528px, which no phone has room for above or below a field.
-   Two columns is six rows and 276px. `minmax(7.5rem, 1fr)` rather than `repeat(2, 1fr)`, so a wider
-   screen gets more columns and the number is never one somebody has to keep in step with a width. */
-.pick-list { display: grid; gap: .4rem; margin: .6rem 0;
-             grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); }
-/* ---------- `text-align: left` DID NOTHING, WHICH A SCREENSHOT IS WHAT SAID ---------------------
-   `.btn` IS `display: flex; justify-content: center`, so the label is an anonymous flex item sized
-   to its own content and centred by the CONTAINER — there is no line box for `text-align` to move.
-   It read as a decision and behaved as nothing, which is the `.price.faint` shape, and no check
-   here can see it: nothing overrides the declaration, so `check/cascade.js` and `check-css.js` are
-   both correctly silent.
-   LEFT, BECAUSE A LIST IS SCANNED DOWN ITS LEFT EDGE. Centred labels of different lengths put every
-   word in a different place, and the ✓ that marks a chosen one moves with them. */
-.pick-opt { justify-content: flex-start; text-align: left; min-height: 44px; }
-.pick-opt.on { color: var(--ink); border-color: var(--gold); }
-/* ---------- THE PICKER IS NOT THE CONTROL, AND IT WAS INHERITING BOTH THE WRONG COLOURS -----------
-   REPORTED AS *"the drop down list for the booking widget is hard to see. its like white on white
-   or something, unless i hover over it."* Measured: every `<option>` computed to
-   `background-color: rgba(0,0,0,0)` and `color: rgb(128,128,128)`.
-
-   BOTH HALVES COME FROM RULES THAT ARE RIGHT ABOUT THE CONTROL. `background: none` on `.bk-sel` is
-   what makes a dropdown look like a dashed value on a receipt rather than a form field — and the
-   list the browser opens is a separate surface the page does not paint, so a transparent option is
-   drawn on whatever the SYSTEM sheet is, which is white nearly everywhere. And the `--faint` above
-   is how an unanswered row recedes on the card; inherited into the popup it is grey on white,
-   which is exactly "hard to see unless I hover over it" — the hover is the only thing supplying
-   contrast, because it is the one colour the OS paints itself.
-
-   SO THE POPUP IS TOLD BOTH, and it is the one place in this stylesheet where a control's own
-   colours have to be restated rather than inherited: the option is not inside the card and cannot
-   read anything from it. `--bg` and `--ink` rather than the card's grey, because a native list
-   sits over the page and the page's own ground is what it should look like it came from. */
-.bk-sel option { background-color: var(--bg); color: var(--ink); }
-/* THE DASH IS STILL THE QUIET ONE — inside the list, where there is something to be quiet against. */
-.bk-sel option[value=""] { color: var(--faint); }
+/* ---------- THE TICKS UNDER THAT ROW ---------------------------------------------------------------
+   `stepManyList_` in book.js: the full width of the card, a row of it like `.bk-say`, and one
+   `.check` per option — the app's own checkbox, 44px a row in px. LARGER TYPE THAN THE RECEIPT'S,
+   because these are things to read and press rather than lines to check, and the receipt's
+   `min(.74rem, 2.85vw)` is eleven pixels on a phone. A dashed rule above and below, the receipt's own
+   line, so the list reads as opened out of the row above it rather than as a second card. */
+.bk > .bk-many-list { grid-column: 1 / -1; }
+.bk-many-list { margin: .1rem 0 .35rem; padding: 0 .1rem;
+  border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
+  font-size: .86rem; text-align: left; }
+/* `#drop`, THE PANEL THAT HUNG OFF A FIELD, WAS HERE — its place, its z-order over a sheet, its
+   two-column `.pick-list` of `.pick-opt` buttons, and `select { pointer-events: none }`, the one rule
+   that kept every platform's own list shut so the panel could open instead (notes 153, 226). All of
+   it went on 9 October, when the owner asked for *"a more stable standard simple conventional drop
+   down list"* (note 315). The option colours that sat at the foot of it are the select rule's now,
+   beside `input, select, textarea`, for every select rather than this card's alone. */
 .bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is
    quieter; the running total is the answer, so it is the only one in full ink. */
@@ -5611,7 +5607,10 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    drag for its own reasons. Written in both places on purpose — the stylesheet decides whether the
    browser hands the movement over, the script decides what to do with it once it has, and neither
    can do the other's half. */
-select, [data-noswipe],
+/* `select` WAS FIRST IN THIS LIST, beside `[data-noswipe]`, and goes with it in `axisFree` — a swipe
+   that begins on a dropdown moves the column like a swipe anywhere else on the card, which is what it
+   did for the week the app's own panel made every select `pointer-events: none` (note 315). */
+[data-noswipe],
 /* THE FEW BOXES THAT STILL SCROLL, and every one of them is a thing you are IN rather than a card
    you are swiping past: a notepad you type in, a docket you tick off, a thread you read. Losing a
    swipe to one of those is not a fault — it is what you reached for.
@@ -7674,13 +7673,39 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    each on its own line, and the flyer somewhere below the fold. The point of drawing it underneath
    is that you see the change as you make it, and that is lost if you have to scroll to find it.
    A grid of even columns instead: three across on a phone, more on anything wider. */
-.fm-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+/* ---------- A ROW FOR AN ANSWER IN WORDS, HALF A ROW FOR A WORD, A SIXTH FOR A COLOUR ---------------
+   EVEN COLUMNS CUT THE ANSWERS. With the flyer's eight dropdowns in the select rule's own field (note
+   315), two even columns at 390 left 96px of room beside the arrow, and the review of 9 October found
+   half the defaults cut there — `Back to …`, `Waiting …`, `Colliers…`, `A5 · hal…` — where the old
+   small boxes had cut two. The answers are the campaign's name, the venue's, a size in words: data, in
+   a monospace face, twenty-one characters for `Colliers Wood Library`. The card is under 380px wide at
+   every size measured (218 / 272 / 376 / 342 at 320 / 390 / 768 / 1280), so no two of those can ever
+   sit side by side in it whole.
+
+   SO SIX TRACKS, AND EACH CONTROL TAKES WHAT ITS ANSWER NEEDS: a select whose answer is words is the
+   whole row (the labels with no class), one whose answer is a number is half (`fm-half`: Hours, To a
+   class), and a colour well a third (`fm-ink`), the three wells one row. Style is a word and has a row:
+   beside the three wells it left each a sixth, 31px at 320, and a well is a fingertip's target like
+   any other (`check/ui.js` said so the first time this was tried). Two rows taller than the even grid,
+   and the controls already scroll inside `.widget-squeeze`. */
+.fm-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
           gap: .4rem .5rem; margin-bottom: .45rem; }
 .fm-bar label { display: flex; flex-direction: column; gap: .1rem; min-width: 0;
+                grid-column: 1 / -1;
                 font-size: .54rem; letter-spacing: .09em; text-transform: uppercase;
                 color: var(--faint); }
-.fm-bar select { font: inherit; font-size: .78rem; background: var(--sunk); color: var(--ink);
-                 border: 1px solid var(--line); border-radius: var(--r); padding: .3rem .4rem; }
+.fm-bar label.fm-half { grid-column: span 3; }
+.fm-bar label.fm-ink { grid-column: span 2; }
+/* `.fm-bar select` WAS HERE AT .78rem IN A 1.7rem BOX — a flyer's eight dropdowns drawn smaller than
+   every other select in the app, under the 16px an iPhone zooms on and under a fingertip. They are the
+   select rule's own field now (note 315: one dropdown everywhere), 44px and 16px.
+
+   EXCEPT UNDER 348px WIDE, WHERE THE WORDS GIVE WAY BEFORE THE ANSWER IS CUT. A whole row at 320 is
+   184px of room and `Colliers Wood Library` is 197px at 16px, so the answer comes down with the screen:
+   `4.6vw` is 14.7px at 320, where both twenty-character defaults fit, and 16px from 348 up. In `vw`
+   because the root's rem stops shrinking at 13.5px, under this width. The box stays 44px, which is the
+   fingertip; iOS does not zoom into it, for the reason the booking row gives (`maximum-scale=1`). */
+.fm-bar select { font-size: min(16px, 4.6vw); }
 /* A NATIVE COLOUR INPUT is a real picker on every platform, and a hex field is six characters of
    typing to find out you wanted a different green. */
 .fm-bar input[type=color] { width: 2.4rem; height: 1.7rem; padding: 0; cursor: pointer;
@@ -7957,14 +7982,11 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    on a laptop as on a phone. The first version said "they sit together on a tablet" over a
    `flex-basis` that could never be met; a grid of one column says what actually happens.
 
-   THE ARROW IS DRAWN, because the global rule takes the platform's off (`appearance: none`) and a
-   select with nothing on it reads as a text box. On the wrapper rather than the control, since a
-   `select` cannot hold a pseudo-element; `pointer-events: none` so a tap on it opens the list. */
+   THE ARROW WAS DRAWN HERE, on the wrapper, as the one select in the app that looked like a dropdown
+   — a `▾` in `::after`, because the global rule takes the platform's off. Every select carries that
+   arrow now, from the select rule itself (note 315), so the wrapper's went rather than draw a second. */
 .mat-pick { display: grid; gap: .3rem; margin-bottom: .35rem; }
-.mat-sel { position: relative; min-width: 0; display: block; }
-.mat-sel select { font-size: 16px; padding-right: 1.8rem; text-overflow: ellipsis; }
-.mat-sel::after { content: '▾'; position: absolute; right: .7rem; top: 50%;
-                  transform: translateY(-50%); color: var(--dim); pointer-events: none; }
+.mat-sel { min-width: 0; display: block; }
 /* THE BOX IS THE APP'S OWN CHECKBOX — `.check`, a 44px row with the tick drawn — and tighter than
    its usual padding, because it sits between two rows of controls rather than in a form of them. */
 /* NO PADDING NOW, because the row is already 44px and there are three selects above it rather than
@@ -11814,14 +11836,8 @@ button.scr-sq { cursor: pointer; }
 
 /* ---------- WHAT THE BLANK STANDS FOR ----------------------------------------------------------
    ONE CONTROL, NOT TWENTY-SIX. See `scrRackHtml_` in games.js for what an alphabet of 44px keys did
-   to this card's height. Its own class rather than `.bk-sel`: that select belongs to the booking
-   form and carries its dashed underline and its grid-cell border, which are facts about a form
-   rather than about a select. */
-.scr-sel {
-  display: block; width: 100%; min-height: 44px; padding: 0 .6rem;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font: 600 .9rem/1 var(--font); cursor: pointer;
-}
+   to this card's height. `.scr-sel` drew its own box here — .9rem, 600, a padding of its own — and is
+   the select rule's field now, like every other select (note 315), so no rule names the class. */
 
 /* ---------- THE FOUR ACTIONS ------------------------------------------------------------------- */
 /* NOT `.btn`, WHICH IS `width: 100%` — right for the one action on a card and wrong for a row of
