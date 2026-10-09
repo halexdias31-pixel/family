@@ -130,7 +130,7 @@ list of its own. `setMyRoles` sends it too: tick Tutor and two more lines appear
    `referrals_email` and `approvals_email` at the end of the people tab. To do it at once, run `ensureSchema`
    from the function dropdown, or open `/exec?setup=1`. Until they exist a tick is refused with "Run
    ensureSchema()", and everybody is emailed exactly as before.
-4. **Check the You screen**: all four stamps read `2026-10-09-b-notifications`.
+4. **Check the You screen**: all four stamps read `2026-10-09-d-prefs`.
 5. *Optional:* sign in as a parent, Settings → last card, untick Messages — the parent's `messages_email`
    cell says `no`. Tick it again and the cell is blank.
 6. **Nothing to do for `weekly_email`.** Every `no` already typed there is the Weekly progress email switch,
@@ -229,5 +229,13 @@ list of its own. `setMyRoles` sends it too: tick Tutor and two more lines appear
 `referrals`; `ACT.WITHDRAW` out of `move`'s test; `setNotify` back on `hasRole`; `joinFestive`'s subject
 reworded. check-flow (two new journeys, five Notifications journeys in all): the lock back on the card (no
 second request); the reply's whole list kept (the repaint ticks Weekly again); the empty-list sentence out.
-The version stamps stay `2026-10-09-b-notifications`: this branch has not been deployed, so the review's fixes
-ship in the same paste as the feature.
+The review's fixes ship in the same paste as the feature — this branch was never deployed. **The stamps are
+`2026-10-09-d-prefs`, all four together**, because the branch took in `claude/focused-wright-blx2g6` (the
+essay sheet, autosave, the quiet retry and the rest), which had moved them to `c-essay-autosave`: its
+`booking.gs`, `constants.gs`, `doget.gs` and `dopost.gs` changes are inside the six files above, so one pull
+carries both, and a stamp of either side's alone would have the You screen calling the other "Not deployed".
+
+**After the merge, `check-drafts` (new on the other side, docs/history/317) named the Notifications tick** as a
+box a reload would lose. It is not: a tick is a `setNotify` the moment it is ticked and a failure puts it back
+to the server's answer, so there is nothing half-made on the device to keep — the agreement box's reason, and
+it is on `EXEMPT` beside it with that reason.
