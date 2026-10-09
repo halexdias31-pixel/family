@@ -3162,9 +3162,12 @@ function api(body, opts) {
          do. So the phone forgets the account the way Sign out does, once, and says why. A code rather
          than the sentence, so a reworded refusal cannot turn this off. */
       /* THROUGH `signedOut_` (me.js), THE ONE WAY OUT — this branch cleared `USER` and nothing else, so
-         the person's inbox, stars and done dates outlived a session the server had already ended. */
+         the person's inbox, stars and done dates outlived a session the server had already ended.
+         `ended`, BECAUSE NOBODY LEFT: the person is still holding the phone, often mid-question — the
+         refusal is usually the answer they just typed going up — so Find keeps its place for them to sign
+         in again to (docs/history/318). Everything else of theirs goes, as for Sign out. */
       if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
-        if (typeof signedOut_ === 'function') { try { signedOut_(); } catch (e) {} }
+        if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) {} }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
         toast('Signed out — please sign in again');
       }

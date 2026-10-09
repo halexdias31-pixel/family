@@ -15060,6 +15060,233 @@ check('Find is still started again when an admin signs out from an admin-only sh
   return bad;
 });
 
+/* ---------- A SESSION THAT ENDS UNDER THE CHILD IS THE OWNER'S COMPLAINT BY ANOTHER DOOR -----------------
+   FOUND BY THE REVIEW OF 318, and identical on the commit before it: a child signed in on the family iPad
+   walks to Q13 and types "80"; the answer goes up a second and a half later on a token the server has
+   ended (thirty days, or the PIN changed on another phone) and is refused `why: 'signed-out'`; `api()`
+   signs the phone out through `signedOut_`, which emptied Find under the card they were reading. Then the
+   child signs in again and starts from the first question — *"it wipes their finder"*, exactly. Nobody
+   left, so Find stays (`ended`), and `STUFF.whose` hands it back to that child alone. The counter-cases:
+   the next child signing in over the dead session starts again, and so does an admin's dead session —
+   the one Find that can name a shelf only an admin is shown. */
+const KEEP_KIT_ = { name: 'Kit Pupil', personId: 'P13', role: 'student', roles: ['student'], token: 'tok-P13', handle: 'kit_bold13' };
+const keepAt_ = w => {
+  const pg = w.stuffPages_()[w.__t.PAGE().stuff - w.stuffFirstResult_()];
+  return pg && pg.x && pg.x.row ? pg.x.row.row_id + (pg.part ? ':' + pg.part : '') : '(page ' + w.__t.PAGE().stuff + ', no result)';
+};
+/* A CHILD SIGNED IN, ON Q13'S CARD WITH "80" TYPED AND THE BOX LEFT, ON A TOKEN THE SERVER HAS ENDED. */
+const keepDead_ = async (more) => {
+  const ID = 'Q-1MA1-2306-1H-13';
+  const rows = keepRows_();
+  const server = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(KEEP_SOL_)); },
+    reply: ansBackend_(server, b => {
+      if (b.token === 'tok-P12') return b.action === 'saveAnswers' ? { error: 'Please sign in again.', why: 'signed-out' } : { success: true, messages: [] };
+      return more ? more(b) : undefined;
+    }),
+    serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  for (let i = 0; i < 80 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)); i++) await wait(50);
+  const t = w.__t, d = w.document;
+  if (!w.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)) return { fail: 'the library did not bring ' + ID + ' into Find — nothing was walked' };
+  if ((t.whoami() || {}).personId !== 'P12') return { fail: 'the app did not open signed in as the child: ' + JSON.stringify(t.whoami()) };
+  t.go('stuff', false, true);
+  await wait(50);
+  const walked = await keepWalk_(w, ID);
+  const idx = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
+  if (walked.length < 3 || idx < 0) return { fail: 'the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + ' — nothing was checked' };
+  const x = w.stuffPages_()[idx].x;
+  const page = w.stuffFirstResult_() + idx;
+  t.goPage('stuff', page, true);
+  await wait(400);
+  const box = who => d.querySelector('#s-stuff .qp-ans-in[data-k="ans:' + (who ? 'u:' + who + ':' : '') + x.key + '"]');
+  if (!box('P12')) return { fail: 'no keypad box under the child’s key on ' + ID + '’s page — nothing was typed' };
+  box('P12').focus();
+  const pad = d.getElementById('kp');
+  ['8', '0'].forEach(v => { const k = pad && pad.querySelector('.kp-key[data-v="' + v + '"]'); if (k) t.ACTIONS['kp-key'](k); });
+  if (w.localStorage.getItem('ans:u:P12:' + x.key) !== '80') return { fail: '"80" was not stored under the child: ' + JSON.stringify(w.localStorage.getItem('ans:u:P12:' + x.key)) };
+  const chips = JSON.stringify(t.STUFF().filters);
+  /* LEAVING THE BOX SENDS IT NOW — and the refusal signs the phone out. */
+  box('P12').blur();
+  for (let i = 0; i < 40 && t.whoami(); i++) await wait(25);
+  await wait(600);
+  return { w, t, d, sent, x, ID, page, chips, box };
+};
+check('a session that ends while a child types keeps Find for them to sign in again to, and not for the next child or an admin', async () => {
+  const bad = [];
+  /* ---- THE SAME CHILD, SIGNING IN AGAIN THROUGH THE REAL CARD ---- */
+  {
+    const s = await keepDead_(b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, KEEP_SOL_, { token: 'tok-P12-again' }) : undefined));
+    if (s.fail) return [s.fail];
+    const { w, t, d, sent, x, ID, page, chips, box } = s;
+    if (!sent.some(b => b.action === 'saveAnswers' && b.token === 'tok-P12')) return ['the answer never went up on the ended token, so the refusal was NOT checked'];
+    if (t.whoami()) return ['the refused save did not sign the phone out: ' + JSON.stringify(t.whoami()) + ' — the dead session was NOT checked'];
+    const said = (d.getElementById('toast') || {}).textContent || '';
+    if (!/Signed out/.test(said)) bad.push('the phone signed out without saying so: the toast reads ' + JSON.stringify(said));
+    const look = when => {
+      if (JSON.stringify(t.STUFF().filters) !== chips) bad.push(when + ': Find’s chips are ' + JSON.stringify(t.STUFF().filters) + ', were ' + chips + ' — the funnel was thrown away');
+      if (t.PAGE().stuff !== page) bad.push(when + ': Find is on page ' + t.PAGE().stuff + ', was ' + page);
+      if (keepAt_(w) !== ID) bad.push(when + ': Find is on ' + keepAt_(w) + ', not ' + ID + '’s card');
+    };
+    look('the session ended under the child');
+    if (t.STUFF().whose !== 'P12') bad.push('the kept Find does not say whose it is: STUFF.whose = ' + JSON.stringify(t.STUFF().whose));
+    if (w.localStorage.getItem('ans:u:P12:' + x.key) !== '80') bad.push('the session ending took the child’s answer off the device: ' + JSON.stringify(w.localStorage.getItem('ans:u:P12:' + x.key)));
+    t.go('account');
+    await wait(50);
+    const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+    if (!name || !pin) return bad.concat(['no sign-in card on the account column after the session ended']);
+    name.value = KEEP_SOL_.handle; pin.value = '0000';
+    t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+    for (let i = 0; i < 40 && !t.whoami(); i++) await wait(25);
+    await wait(300);
+    if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the child did not sign in again: ' + JSON.stringify(t.whoami())]);
+    if (t.AT() !== 'stuff') bad.push('signed in again, the child is on ' + t.AT() + ', not back on Find');
+    look('signed in again');
+    const b = box('P12');
+    if (!b) bad.push('signed in again, no box under the child’s key on Find');
+    else if (b.value !== '80') bad.push('signed in again, the box holds ' + JSON.stringify(b.value) + ', not the "80" typed before the session ended');
+    if (t.STUFF().whose) bad.push('signed in, STUFF.whose still names ' + JSON.stringify(t.STUFF().whose));
+    await wait(1700);
+    if (!sent.some(b2 => b2.action === 'saveAnswers' && b2.token === 'tok-P12-again' && (b2.items || []).some(it => it.key === 'ans:' + x.key && it.v === '80'))) bad.push('the answer typed as the session ended never went up on the new session');
+  }
+  /* ---- THE NEXT CHILD SIGNS IN OVER THE DEAD SESSION: a switch, so Find starts again ---- */
+  {
+    const s = await keepDead_();
+    if (s.fail) return bad.concat([s.fail]);
+    const { w, t } = s;
+    if (t.whoami()) return bad.concat(['the refused save did not sign the phone out — the next child was NOT checked']);
+    w.signedIn_(Object.assign({ success: true }, KEEP_KIT_), 'kit');
+    if ((t.whoami() || {}).personId !== 'P13') return bad.concat(['the next child did not sign in: ' + JSON.stringify(t.whoami())]);
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('the next child signing in over a dead session is handed the last child’s Find: ' + JSON.stringify(t.STUFF().filters));
+    if (t.STUFF().whose) bad.push('the next child signed in, STUFF.whose still names ' + JSON.stringify(t.STUFF().whose));
+  }
+  /* ---- AN ADMIN'S SESSION ENDS ON THE BOOKS SHELF: cleared, as Sign out clears it ---- */
+  {
+    const { w } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); },
+      /* ANY REQUEST ON THE ENDED TOKEN — one only this journey sends, so the boot's own requests do not end it first. */
+      reply: b => (b.action === 'sessionProbe' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+    await wait(300);
+    const t = w.__t;
+    t.go('stuff', false, true);
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+    t.STUFF().q = 'genesis';
+    w.paintStuff();
+    await w.api({ action: 'sessionProbe', personId: 'P001' });
+    await wait(30);
+    if (t.whoami()) return bad.concat(['the admin’s refused request did not sign the phone out — the admin case was NOT checked']);
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin’s session ending on the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (t.STUFF().whose) bad.push('an admin’s dead session left STUFF.whose = ' + JSON.stringify(t.STUFF().whose));
+  }
+  return bad;
+});
+
+/* ---------- WHAT WAS TYPED SIGNED OUT IS DECIDED AT SIGN-IN, AND NONE OF IT IS LEFT FOR THE NEXT CHILD ------
+   FOUND BY THE REVIEW OF 318, and identical on the commit before it: the signed-out answer moved only into
+   an EMPTY box (`ansRead_`), so an older answer on the account — put in the box by the sign-in reply —
+   beat the one typed a minute ago, and the "80" stayed under the signed-out key until the NEXT child
+   opened Q13, when it moved into their box and up to their account. `answersClaim_` decides every one at
+   sign-in, by when each was typed: Ada's account has an older answer in the words box (the signed-out one
+   wins and goes up) and a later one in the keypad box (the account's stays); a drawing typed before signed-
+   out answers were dated fills an empty box. Then Ada signs out, Ben signs in: nothing of Ada's in his
+   boxes, nothing sent to his account. */
+check('an answer typed signed out beats an older one on the account at sign-in, and none is left for the next child', async () => {
+  const acct = {
+    P7: { 'ans:q:Q-ANS-W-K': { v: 'the account’s, three days old', at: Date.now() - 3 * 864e5 },
+          'ans:q:Q-ANS-M-K': { v: '(1)/(2)', at: Date.now() + 60000 } },
+    P8: {},
+  };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: b => ansBackend_(acct[b.personId] || (acct[b.personId] = {}))(b) });
+  await wait(300);
+  const need = ansNeed_(w).concat(typeof w.signedIn_ === 'function' ? [] : ['signedIn_']);
+  if (need.length) return [need.join(', ') + ' not reachable — the claim was NOT checked'];
+  const bad = [], t = w.__t;
+  if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
+  const c = ansCards_(w, 'K');
+  ansType_(w, c.ta(), 'typed a minute ago');
+  ansType_(w, c.kp(), '(3)/(4)');
+  /* A DRAWING FROM BEFORE SIGNED-OUT ANSWERS WERE DATED: on the device, with no time. */
+  const penBare = w.__t.padKey(c.pen);
+  w.localStorage.setItem(penBare, JSON.stringify([[10, 10, 20, 20, 30, 30]]));
+  const bare = [ 'ans:' + c.words.key, 'ans:' + c.maths.key, penBare ];
+  if (w.localStorage.getItem(bare[0]) !== 'typed a minute ago' || !Number(w.localStorage.getItem('ansAt:' + bare[0])))
+    bad.push('signed out, the answer was not kept with its time: ' + JSON.stringify([w.localStorage.getItem(bare[0]), w.localStorage.getItem('ansAt:' + bare[0])]));
+  const typedAt = Number(w.localStorage.getItem('ansAt:' + bare[0]));
+  /* ---- ADA SIGNS IN, AND THE REPLY CARRIES HER ACCOUNT'S ANSWERS, as `loginReplyFor_` sends them ---- */
+  w.signedIn_(Object.assign({ success: true }, ANS_ADA, { answers: JSON.parse(JSON.stringify(acct.P7)) }), 'ada');
+  await wait(300);
+  c.draw();
+  if (c.ta().value !== 'typed a minute ago') bad.push('the words box reads ' + JSON.stringify(c.ta().value) + ' — the account’s older answer beat the one typed signed out');
+  if (c.kp().value !== '(1)/(2)') bad.push('the keypad box reads ' + JSON.stringify(c.kp().value) + ' — the signed-out answer beat a LATER one on the account');
+  const penMine = 'pad:u:P7:' + penBare.slice('pad:'.length);
+  if (!w.localStorage.getItem(penMine)) bad.push('the undated drawing did not move into Ada’s empty pad');
+  bare.forEach(k => { if (w.localStorage.getItem(k) !== null) bad.push('still under the signed-out key after Ada signed in, for the next child: ' + k + ' = ' + JSON.stringify(w.localStorage.getItem(k))); });
+  await wait(1700);
+  const toAda = sent.filter(b => b.action === 'saveAnswers' && b.personId === 'P7').flatMap(b => b.items || []);
+  const words = toAda.find(it => it.key === 'ans:' + c.words.key);
+  if (!words || words.v !== 'typed a minute ago') bad.push('the signed-out answer did not go up to Ada’s account: ' + JSON.stringify(toAda.map(it => it.key + '=' + it.v)));
+  else if (words.at !== typedAt) bad.push('it went up stamped ' + words.at + ', not when it was typed (' + typedAt + ') — "later" would mean when Ada signed in');
+  if ((acct.P7['ans:q:Q-ANS-W-K'] || {}).v !== 'typed a minute ago') bad.push('Ada’s account still holds ' + JSON.stringify(acct.P7['ans:q:Q-ANS-W-K']));
+  if ((acct.P7['ans:q:Q-ANS-M-K'] || {}).v !== '(1)/(2)') bad.push('Ada’s later answer on the account was replaced: ' + JSON.stringify(acct.P7['ans:q:Q-ANS-M-K']));
+  /* ---- ADA SIGNS OUT, BEN SIGNS IN ON THE SAME iPAD ---- */
+  t.ACTIONS.signout(w.document.createElement('button'));
+  await wait(50);
+  w.signedIn_(Object.assign({ success: true }, ANS_BEN, { answers: {} }), 'ben');
+  await wait(300);
+  c.draw();
+  if (c.ta().value || c.kp().value) bad.push('BEN’S BOXES HOLD ADA’S ANSWERS: ' + JSON.stringify([c.ta().value, c.kp().value]));
+  await wait(1700);
+  const toBen = sent.filter(b => b.action === 'saveAnswers' && b.personId === 'P8').flatMap(b => b.items || []);
+  if (toBen.length) bad.push('Ben’s account was sent ' + JSON.stringify(toBen.map(it => it.key + '=' + it.v)));
+  return bad;
+});
+
+/* ---------- A PAYLOAD ASKED FOR BY SOMEBODY WHO HAS SINCE SIGNED OUT DOES NOT LAND ---------------------------
+   FOUND BY THE REVIEW OF 318: `load()` adopted whatever landed. An admin's payload — asked for by every
+   sign-in, fifteen to thirty-five seconds on the wire — that lands after Sign out put the whole film list
+   back on a signed-out phone, the Drive links with it (note 068), a moment after `signedOut_` had emptied
+   it; and the signed-out funnel offered "Films", a chip a visitor could press and carry into the next
+   child's Find. Now a payload whose person has gone is not adopted, and one is asked for whoever is here. */
+check('an admin’s payload that lands after Sign out is not adopted, and the signed-out phone asks for its own', async () => {
+  let hold = false, release = null;
+  const adminPayload = () => Object.assign(payload(), { films: FILMS_ });
+  const { w, gets } = boot({ payload: adminPayload(),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(vidAdmin_)); },
+    /* THE SERVER'S GATE, PLAYED: a GET with the admin's token is sent the films, one with none is not. */
+    serve: url => {
+      if (/data\/videos\.json/.test(url)) return [];
+      if (url.indexOf('script.google.com') === -1) return undefined;
+      if (hold) return new Promise(r => { release = () => r(adminPayload()); });
+      return /[?&]token=/.test(url) ? undefined : Object.assign(payload(), { films: [] });
+    } });
+  await wait(400);
+  const t = w.__t, bad = [];
+  const films = () => { try { return w.stuffItemsAll_().filter(x => x.kind === 'film').length; } catch (e) { return -1; } };
+  if (films() !== FILMS_.length) return ['the setup: the admin’s Find has ' + films() + ' of ' + FILMS_.length + ' films, so their going was NOT checked'];
+  if (typeof w.load !== 'function') return ['load is not reachable — nothing was checked'];
+  hold = true;
+  w.load();
+  await wait(20);
+  t.ACTIONS.signout(w.document.createElement('button'));
+  await wait(50);
+  if (t.whoami()) return ['Sign out left somebody signed in — nothing was checked'];
+  hold = false;
+  const before = gets.length;
+  if (!release) return ['the admin’s second payload was never asked for, so its landing was NOT checked'];
+  release();
+  await wait(400);
+  if ((t.DATA().films || []).length) bad.push('the admin’s payload landed after Sign out: DATA.films holds ' + t.DATA().films.length + ' films on a signed-out phone');
+  if (films() !== 0) bad.push('signed out, Find has ' + films() + ' of the admin’s films');
+  t.go('stuff', false, true);
+  await wait(30);
+  const offers = [...w.document.querySelectorAll('#s-stuff #stuff-groups [data-do="facet-pick"]')].map(b => b.dataset.value);
+  if (offers.indexOf('Films') !== -1) bad.push('the signed-out funnel offers "Films": ' + JSON.stringify(offers));
+  const asked = gets.slice(before).filter(u => u.indexOf('script.google.com') !== -1);
+  if (!asked.length) bad.push('nothing was asked for the signed-out phone after the admin’s payload was dropped');
+  else if (asked.some(u => /[?&]token=/.test(u))) bad.push('the payload asked after Sign out carries a token: ' + asked.join(' '));
+  return bad;
+});
+
 check('the payload landing does not rebuild Find under a keypad box with the focus, and does rebuild it once the box is left', async () => {
   const { w } = boot();
   await wait(400);

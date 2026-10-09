@@ -675,6 +675,10 @@ on('signout', () => {
    next child starts from nothing of the last one's, whichever door either of them used. */
 function signedOut_(opts) {
   opts = opts || {};
+  /* WHO IS LEAVING, AND WHETHER THEY WERE AN ADMIN — read before they are forgotten, for `ended` below. */
+  const was = USER;
+  let wasAdmin = false;
+  try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) {}
   USER = null;
   try { localStorage.removeItem('familyUser'); } catch (e) {}
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM --------------------------------------
@@ -691,12 +695,26 @@ function signedOut_(opts) {
      their finder so they have to click all the way to get back there."* `signedIn_` calls this for
      nobody-signed-in as well as for somebody else, and this line could not tell the two apart — so a
      child who walked the funnel to Q13 signed out, typed an answer and signed in was put back on the
-     first question. Signed out is the least anybody can be shown, so what was asked for then is nobody's
-     but the person holding the phone, and it stays: the search, the chips, and — since nothing here
-     touches `PAGE` — the card and the page they were on. `signedIn_` decides, and passes it from that
-     one case only; Sign out and a switch from one person to another clear Find as above. */
+     first question. Signed out is the least anybody can be shown — `load()` drops a payload asked for by
+     somebody who has gone since, so an admin's cannot land on a signed-out phone (docs/history/318) — and
+     what was asked for then is nobody's but the person holding the phone, so it stays: the search, the
+     chips, and — since nothing here touches `PAGE` — the card and the page they were on.
+     ---------- `ended`: THE SESSION DIED UNDER THE PERSON STILL HOLDING THE PHONE --------------------------
+     `api()` CALLS THIS WHEN THE SERVER SAYS THE TOKEN IS NO GOOD — thirty days up, or the PIN changed on
+     another phone — and it is the owner's complaint by another door: a child on Q13 types "80", the answer
+     goes up a second and a half later, the refusal comes back, and Find was emptied under the card they
+     were reading. Nobody left; the same child is holding the iPad. So Find stays, and `STUFF.whose` says
+     whose question it is: the same person signing in again keeps it, and anybody else signing in next is
+     a switch and starts again (`signedIn_`). AN ADMIN'S IS STILL CLEARED: theirs is the one question that
+     can name a shelf only an admin is shown, which is the reason above.
+     ONE DECIDER PER DOOR: `signedIn_` passes `keepFind`, `api()` passes `ended`; Sign out and a switch from
+     one person to another pass neither and clear Find. */
   try {
-    if (!opts.keepFind && typeof STUFF !== 'undefined') { STUFF.q = ''; STUFF.filters = []; }
+    if (typeof STUFF !== 'undefined') {
+      if (opts.keepFind) { /* nobody → somebody: `signedIn_` keeps it, and says whose it is now */ }
+      else if (opts.ended && was && !wasAdmin) STUFF.whose = String(was.personId || was.name || '');
+      else { STUFF.q = ''; STUFF.filters = []; STUFF.whose = ''; }
+    }
   } catch (err) {}
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
@@ -759,16 +777,23 @@ function signedIn_(d, typed) {
   const me = Object.assign({}, d);
   EXTRA.forEach(k => { if (k in me) { got[k] = me[k]; delete me[k]; } });
   const pid = String(me.personId || '');
-  /* A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD — or nobody held — starts clean. */
-  /* ---------- BUT NOBODY HELD IS NOT SOMEBODY ELSE, AND FIND KEEPS ITS PLACE ------------------------------
-     THIS WAS ONE CONDITION, `!USER || … !== pid || !pid`, and so signing in from signed out threw away
-     the funnel exactly as a switch between two children does (*"it wipes their finder"*, 9 Oct). The
-     stars, the inbox, the per-person keys and the films still go — they are the device's last person's,
-     or nobody's — but Find is the same seat: the same child, now with a name. ONE PLACE DECIDES, and it
-     is this line; `signedOut_` only does what it is told. The answer they typed signed out is already
-     theirs by `ansRead_`'s rule, which moves it under their key the first time the box is drawn. */
-  if (!USER) signedOut_({ quiet: true, keepFind: true });
+  /* ---------- A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD STARTS CLEAN; NOBODY HELD KEEPS FIND ----
+     THIS WAS ONE CONDITION, `!USER || … !== pid || !pid` — "a different person, or nobody held, starts
+     clean" — and so signing in from signed out threw away the funnel exactly as a switch between two
+     children does (*"it wipes their finder"*, 9 Oct). Somebody else signed in still goes through
+     `signedOut_` whole. From nobody, the stars, the inbox, the per-person keys and the films still go —
+     they are the device's last person's, or nobody's — but Find is the same seat: the same child, now with
+     a name. UNLESS FIND SAYS IT IS SOMEBODY ELSE'S: `STUFF.whose` is set only when a session died under
+     its person (`ended` in `signedOut_`), and then only that person signing in again keeps it — anybody
+     else is the next child on the iPad, and starts from the first question. ONE PLACE DECIDES, and it is
+     these lines; `signedOut_` only does what it is told. */
+  const fromNobody = !USER;
+  let whose = '';
+  try { whose = typeof STUFF !== 'undefined' ? String(STUFF.whose || '') : ''; } catch (e) {}
+  if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
   else if (String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
+  /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
+  try { if (typeof STUFF !== 'undefined') STUFF.whose = ''; } catch (e) {}
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
@@ -784,6 +809,10 @@ function signedIn_(d, typed) {
   /* THE ANSWERS, INTO THE BOXES — the reply's copy now, and a fresh read at once beside it, which also
      sends whatever this device has had waiting for this person (js/answers.js). */
   try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) {}
+  /* AND WHAT WAS WRITTEN SIGNED OUT IS THIS PERSON'S, from nobody only — the same seat as Find above. ALL
+     OF IT, NOW, AFTER THE ACCOUNT'S COPY: the later edit wins, and none is left on the device for the
+     next child to sign in (`answersClaim_`, js/answers.js). */
+  try { if (fromNobody && pid && typeof answersClaim_ === 'function') answersClaim_(pid); } catch (e) {}
   try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
   handleRemember_(me.handle);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed

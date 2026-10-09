@@ -50,7 +50,10 @@
    above the funnel reading "or the 227 papers these are in" was a second way of narrowing sitting
    above the first, and a screen with two of those is a pivot table. A paper is now an ANSWER to an
    ordinary question — see `paperId` in FACETS — which is what it should always have been. */
-const STUFF = { q: '', filters: [] };
+/* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: the person whose session died under them with this
+   question on Find (`ended` in `signedOut_`), so that only they, signing in again, are handed it back.
+   Empty otherwise — signed in, the question is `USER`'s; signed out, it is the holder's. */
+const STUFF = { q: '', filters: [], whose: '' };
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -6612,7 +6615,10 @@ function ansRead_(k) {
        MOVED, NOT COPIED — `padAdopt_`'s rule for the pen. The answer becomes this person's (and goes up
        to their account with the rest, through `ansStore_`), and the signed-out copy goes: a copy left
        behind would be read by the next child to sign in on the same iPad, which is the fault itself
-       carried forward. Only into an empty box — a box this person has written in keeps theirs. */
+       carried forward. Only into an empty box — a box this person has written in keeps theirs.
+       SIGNING IN FROM SIGNED OUT DECIDES THEM ALL FIRST NOW (`answersClaim_`, js/answers.js): here, only
+       into an empty box, a signed-out answer lost to an older one on the account and was left for the next
+       child. This is what is left for a device that was already signed in with one still on it. */
     const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
     if (bare === k) return '';
     const was = localStorage.getItem(bare);

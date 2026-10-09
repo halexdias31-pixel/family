@@ -31,12 +31,66 @@ signed-out key and nothing under the child's.
 |---|---|
 | **`signedIn_` decides, in one place** | `if (!USER) signedOut_({ quiet: true, keepFind: true }); else if (… !== pid \|\| !pid) signedOut_({ quiet: true });`. Nobody → somebody is the same seat: the same child, now with a name. |
 | **`signedOut_` takes `keepFind`** | and leaves `STUFF.q` and `STUFF.filters` alone when told. Everything else it clears still goes, because it is the device's last person's or nobody's: the stars, the inbox and its poll, the done dates held, the keypad and any sheet, the payload's per-person keys, the films, the answers' read. Nothing in it touches `PAGE`, so the card and the page come back with the chips. |
-| **Sign out, the dead session, and A → B** | unchanged: Find starts again. Only `signedIn_`'s nobody-held branch passes `keepFind`. |
+| **Sign out and A → B** | unchanged: Find starts again. The dead session was in this row too, and should not have been — see the review below. |
 | **Find stands on the card by name when the list under it changes** | `PAGE.stuff` is a number and a redraw kept the number — right while the list is the same list. The payload that lands after signing in is that person's, and a signed-in child can be shown more (their friends answer a search; for an admin, the Bible's index joins the list mid-read). Measured: one more row in front of Q13 and the redraw put the child on Q12. So a filled page now says which card it is (`FIND_AT` on the page element, written by `stuffFillOne_`, read only while the page is still marked filled), and the two redraws that keep your place — `screen('stuff')` and `paintStuff(true)` — look that card up in the new list (`stuffHeld_`, `stuffBackTo_`). Asked of the page on the screen rather than remembered, because that is what the child is looking at. Only for the same search and chips; a card that is gone leaves the number as it was. |
 
 **Why not split Find's reset into its own function.** It is two lines and one caller decides; an option
 passed from the one branch that wants it reads as what it is, and `signedOut_` stays the single list of
 what is one person's.
+
+### The review: the same complaint by another door, an answer left for the next child, and a payload for somebody who had gone
+
+Two reviewers, three faults the first version left standing. All three were on the commit before it as
+well; the first version made two of them easier to meet, because it put the child straight back on the card.
+
+**A SESSION THAT DIES UNDER THE CHILD WIPED FIND, AND THAT IS THE OWNER'S SENTENCE WORD FOR WORD.** The
+table above listed "the dead session" as unchanged on purpose, for the admin-shelf reason. Measured in
+Chromium at 820x1180, and again in jsdom: a student signed in on the iPad walks the funnel to June 2023
+1H Q13 (page 28), types "80" and leaves the box; the answer goes up on a token the server has ended
+(thirty days, or the PIN changed on another phone), comes back `why: 'signed-out'`, and `api()` calls
+`signedOut_()`, which emptied Find under the card. *Signed out — please sign in again*, page 0, no chips.
+Signed in again as the same child: page 0, no chips. *"Writes something in an answer box then goes to sign
+in, it wipes their finder"*, by another door. Nobody had left. So:
+
+| | |
+|---|---|
+| **`api()` passes `ended`** | `signedOut_({ ended: true })`. Everything of the person's still goes, as for Sign out. |
+| **`signedOut_` keeps Find on `ended`, and says whose it is** | `STUFF.whose = <their personId>`. **Not for an admin**: an admin's Find is the one that can name a shelf only an admin is shown (note 292), so theirs is cleared as Sign out clears it. |
+| **`signedIn_` hands it back to that person only** | from nobody, `keepFind: !whose \|\| whose === pid`. The same child signing in again: the chips, the card, the page, and the "80" (it never left their key). Anybody else signing in next is the next child on the iPad, and Find starts again. Signed in, `whose` is emptied: the question is `USER`'s. |
+
+After, in Chromium: session ended, still on Q13, page 28, the eight chips, the toast; signed in again, the
+same, with "80" and *Saved to Sol's account* under it.
+
+**AN ANSWER TYPED SIGNED OUT LOST TO AN OLDER ONE ON THE ACCOUNT, THEN WENT INTO THE NEXT CHILD'S.** The
+first version said "the typed answer moves to the child" — true only when their box was empty. `ansRead_`
+moves a signed-out answer *only into an empty box*, and the sign-in reply fills the box from the account
+first. Measured: Sol's account held Q13 = "75" from three days before; signed out, Sol typed "80" and
+signed in. The box said "75" and *Saved to Sol's account*; "80" stayed under `ans:q:…`, not shown, not
+sent. Sol signed out, Kit signed in and opened Q13: Kit's box was empty, so "80" moved into it and went up
+to **Kit's** account. So:
+
+| | |
+|---|---|
+| **`ansStore_` stamps a signed-out edit too** | `ansAt:` was written only signed in, so nothing could say whether the answer on the device was newer than the account's. |
+| **`answersClaim_` (js/answers.js), from `signedIn_`, from nobody only** | after the reply's answers are in the boxes, every signed-out answer on the device is decided at once: nothing in the person's box — it moves; the signed-out one is the later edit — it replaces theirs; theirs is later — theirs stays. Moved with its own time, and due, so the account decides against its own copy by the rule `answersUpsert_` already has (the later edit wins, the reply carries the winner). **None is left under the signed-out key**, so the next child is handed nothing. One typed before signed-out answers were stamped has no time: it fills an empty box, as `ansRead_` always let it, and never replaces one. |
+| **`ansRead_` and `padAdopt_` stay** | for a device that was already signed in with a signed-out answer still on it. |
+
+After, in Chromium: Sol signed in onto Q13 with "80", sent to Sol's account; Kit on Q13 with an empty box
+and nothing sent.
+
+**A PAYLOAD ASKED FOR BY SOMEBODY WHO HAD GONE WAS ADOPTED ANYWAY.** The first version's safety argument
+was "signed out is the least anybody can be shown". `load()` made that false: it adopted whatever landed,
+whoever was signed in by then. Signing in starts a payload that takes fifteen to thirty-five seconds; an
+admin who signed out inside that window had theirs land on the signed-out phone, and `signedOut_` had
+just emptied `DATA.films` — so the whole film list with its Drive links was back in Find and on the videos
+card (note 068: the list is secret), and the signed-out funnel offered *Films*. Pressed, that chip was
+then kept into the next child's account by the first version (*"Films ✕"* over "Nothing matches"). The
+films on a signed-out phone were the older and worse half. So **a payload whose person has gone is dropped** — signed out, a session ended, or somebody else signed in — before anything of it is written. This branch first did it with a guard of its own (`loadFor_` and `LOAD_N` in `load()`); merged after note 313's quiet retry, which had reached the same fault from the other side, the two were one rule written twice, so 313's is the one kept: `loadStale_` checks every reply against the query it was asked with (`loadWho_`), and when the person here now has no payload of their own, `load()`'s `finally` asks for them. The difference is one case: a payload asked for nobody that lands after a child has signed in is dropped too, rather than drawn — the child's own, which their sign-in already asked for, fills the screen when it lands.
+
+**Not done, the nit that the line under the box (*On this device only — sign in to keep it*) is not a way
+to sign in.** True, and the Mark-with-AI line is the same. But a pressable control on the question card is
+a layout decision, not a fix: the line is one dim row reserved at a fixed height, a link in it is not a
+44px target, and a tile there is one more tile on every question's page. Left for the owner.
 
 ### Checked
 
@@ -64,13 +118,43 @@ what is one person's.
   committed): before the fix, signed in onto the funnel's first question; after it, on Q13 with "80" and
   *Saved to Sol's account* under it, the card centred (589px against 590), and still there after a
   second repaint.
-- `check.js`, `check-const.js`, `check-signin.js`, `check-answers.js`, `check-saved-answers.js` green.
-  **check-flow: 199 journeys, 198 pass.** The one that does not — "the videos widget is last on Games…"
-  (*the card never asked for data/videos.json*, *there is no search box on the videos card*) — fails the
-  same way on the commit this was built on with neither file changed, so it is not this note's. A
-  second full run, at a load average of over forty, also failed two journeys that time themselves —
-  the imposter game drawing and the timetable saving; the timetable passed run alone, and the imposter
-  journey failed the same way on the base commit at that load.
+- **check-flow, "a session that ends while a child types keeps Find for them to sign in again to, and
+  not for the next child or an admin"** (the review): a student signed in at boot, the funnel walked by
+  its own chips to Q13's page, "80" on the keypad, the box left; `saveAnswers` on that token answered
+  `why: 'signed-out'`. Asserted: signed out, with the toast; the same chips, page and card;
+  `STUFF.whose` the child's; "80" still under their key. Then the handle and PIN on the account column
+  and Sign in pressed: back on Find, the same chips, page and card, "80" in the box, `whose` emptied, and
+  "80" sent up on the new token. Counter-cases: another child signing in over the dead session gets an
+  empty Find; an admin's session ending on the Books shelf (the real `api()`) clears Find.
+- **check-flow, "an answer typed signed out beats an older one on the account at sign-in, and none is
+  left for the next child"** (the review): signed out, a worded answer and a keypad answer typed, an
+  undated drawing on the device; `signedIn_` with a reply carrying the account's answers (the worded one
+  three days old, the keypad one a minute later than the typing). The worded box holds what was typed,
+  sent with the time it was typed; the keypad box holds the account's later one; the drawing filled the
+  empty pad; nothing left under a signed-out key. Ada signs out, Ben signs in: empty boxes, nothing sent
+  to his account.
+- **check-flow, "an admin's payload that lands after Sign out is not adopted, and the signed-out phone
+  asks for its own"** (the review): an admin with the films; a `load()` held; Sign out; released. No film
+  in `DATA` or Find, no *Films* in the signed-out funnel, and a payload asked again with no token.
+- **The review's three, proved by mutation**, each red and the real files green again: `api()` calling
+  `signedOut_()` without `ended` (Find on page 0, "the funnel was thrown away"); `whose` ignored (the
+  next child "is handed the last child's Find"); `ended` keeping an admin's Find (the Books shelf left);
+  the `answersClaim_` call removed (Ben's boxes hold Ada's answers, and they go to his account — the
+  review's finding exactly); signed-out edits unstamped (the account's three-day-old answer wins);
+  `load()` adopting whatever lands (7 films on the signed-out phone).
+- **In Chromium**, the reviewers' own walks (scratch, not committed), at 820x1180 touch and 1280x800,
+  before and after: listed in the review section above.
+- `check.js`, `check-const.js`, `check-signin.js`, `check-answers.js`, `check-saved-answers.js`,
+  `check-payload.js`, `check-post.js`, `check-films.js` green. **check-flow: all 202 journeys work**
+  (199 and the review's three). The first version of this note said 199 with one failing — "the videos
+  widget is last on Games…" — and that it failed the same on the base commit; it passes here, on the
+  same files, so it was the load on that machine (forty-odd) and not a standing red. The imposter and
+  timetable journeys that time themselves were the same.
+- `npm run check`: everything green but four harnesses that bind fixed ports — `check/press.js`,
+  `check/cascade.js` and `check/ui.js --part=1/3` stopped on EADDRINUSE (another worktree's run on the
+  same port), and `--part=2/3` failed under the same load. Each run again alone: `press.js` on its own
+  port, nothing threw and nothing was inert; `cascade.js`, nothing decided by order; `ui.js` parts 1 and
+  2, nothing new (585 and 330 combinations).
 - `check/states.js` is the list of states, not a runner (it loads); its runner, `check/ui.js`, on the
   account column: 100 combinations, nothing new, and the same states unreachable as on the commit
   before. On Find: 584 combinations, nothing new; one state ("a worded answer, the pad up on its
@@ -82,5 +166,13 @@ what is one person's.
 - **A switch from one child to another still starts Find again**, as it must (their chips may name what
   the next child is not shown). On the family iPad that means the second child walks the funnel again;
   the chips chosen are not remembered per person.
-- **The answer moves when the card is drawn**, by `ansRead_`'s rule — so an answer typed signed out on a
-  card the child never returns to stays under the signed-out key until somebody draws it.
+- **The answer moves at sign-in now, all of it** (`answersClaim_`), from nobody only. `ansRead_`'s rule —
+  moved when the card is drawn, only into an empty box — is what is left for a device that was already
+  signed in with a signed-out answer on it.
+- **Answers typed signed out after a session ended go to whoever signs in next**, while Find goes only to
+  the person whose session it was. That is the same-seat rule `ansRead_` has always had for answers:
+  nothing on a signed-out device says who typed them. Find can say, because the question was the dead
+  session's person's.
+- **Signed out after a session ended, the box on the card is empty**: "80" is under the child's key and a
+  signed-out box reads the signed-out key. It comes back the moment they sign in again; the toast says
+  why it went.
