@@ -456,6 +456,23 @@ function libraryExtras_(d, extra) {
         steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
         safety: libS(r.safety), share: libS(r.share),
         order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
+        /* ---------- A PROJECT OR A COURSEWORK, ONE COLUMN ---------------------------------------
+           THE OWNER, 9 Oct: "i would like to add course works. make it bare bones. its within
+           projects in finder." So coursework is a TYPE of project, as `practical_type` is a type of
+           practical, and not a kind of its own: a design-and-make coursework has the project's
+           whole shape -- sessions, materials, an ordered list, something made at the end -- and
+           the one thing it has that a project does not is a board.
+
+           BLANK READS AS `project`, so the eight rows written before the column existed keep
+           working untouched and a row pasted in without it is a project. Lower-cased here, so
+           `Coursework` typed into a cell is the same word; anything else is drawn raw on the card
+           (`PROJ_TYPE` in find.js) and refused at the file by `check-projects.js`.
+
+           `exam_board` AND `spec` ONLY MEAN SOMETHING ON A COURSEWORK -- note 253: "a how-to video
+           has no ... exam board" -- and the card's strip shows them where present, as a textbook's
+           does. `board`/`spec`, the textbook's names for the same two facts. */
+        projectType: libS(r.project_type).trim().toLowerCase() || 'project',
+        board: libS(r.exam_board).trim(), spec: libS(r.spec).trim(),
       });
     });
     d.projects = out;

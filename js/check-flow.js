@@ -10799,6 +10799,127 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
   return bad;
 });
 
+/* ---------- COURSEWORK, A TYPE OF PROJECT --------------------------------------------------------
+   THE OWNER, 9 Oct: "i would like to add course works. make it bare bones. its within projects in
+   finder." So the claim is a ROUTE, pressed on the real answer buttons: Learning → Projects, and the
+   next question is Project or coursework with exactly those two answers; Coursework leaves the
+   coursework rows and nothing else. Then the card says Coursework and its board, the ordered page
+   is titled Stages (a project's still says Steps), and typing `coursework` or `nea` finds it.
+
+   THE FACETS FILE IS SERVED, which no other journey here does, and it has to be: like
+   `practicalType`, the question has no facet in code — it is one row of `data/settings/facets.json`
+   read through `facetFromSheet_` — so a journey on the code's own order would find no question to
+   press and would be measuring a funnel no phone draws. The projects go through the real mapper as
+   the journey above sends them; the facets through the real fetch and `settingsInto_`. */
+check('Coursework is a type of project: Projects asks Project or coursework, which narrows to it; tagged, its board, Stages, found by name', async () => {
+  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'projects.json'), 'utf8'));
+  const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'facets.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the coursework was NOT checked — not a pass'];
+  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { projects: rows, practicals: prac })));
+  const mapped = made.projects || [];
+  const cws = mapped.filter(p => p.projectType === 'coursework');
+  if (!cws.length) return ['the mapper made no coursework of the ' + rows.length + ' rows in data/projects.json — NOT checked'];
+  const p = payload();
+  p.projects = mapped;
+  p.practicals = made.practicals || [];
+  const { w } = boot({ payload: p, serve: u => (/(^|\/)data\/settings\/facets\.json(\?|$)/.test(u) ? sheet : undefined) });
+  const t = w.__t;
+  const hasRow = () => ((t.DATA() || {}).facets || []).some(f => f.field === 'projectType');
+  for (let i = 0; i < 120 && !hasRow(); i++) await wait(25);
+  if (!hasRow()) return ['data/settings/facets.json was served and DATA.facets has no projectType row — the question was NOT checked'];
+  const bad = [];
+  const cwItems = w.stuffItems().filter(x => x.kind === 'project' && x.row.projectType === 'coursework');
+  if (cwItems.length !== cws.length) bad.push('Find offers ' + cwItems.length + ' of ' + cws.length + ' coursework(s)');
+  if (!cwItems.length) return bad;
+
+  /* THE ROUTE. A rung the fixture answers one way is skipped by the one-answer rule — `What for` is
+     only Learning here — and a grouped rung draws its bucket first, which is pressed on the way. */
+  t.go('stuff');
+  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  w.paintStuff();
+  const btns = () => [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+  const pressed = [];
+  const press = async (field, value) => {
+    for (let guard = 0; guard < 4; guard++) {
+      const here = btns();
+      let el = here.find(b => b.dataset.field === field && b.dataset.value === value);
+      if (!el) {
+        const f = w.facetList().find(x => x.field === field);
+        const only = f ? w.facetValues(w.stuffFiltered(), f).map(v => String(v.value)) : [];
+        if (only.length === 1 && only[0] === value) { pressed.push('(' + value + ')'); return true; }
+        const grp = (() => { try { return f.bucketOf(value); } catch (e) { return ''; } })();
+        el = grp && here.find(b => b.dataset.value === grp && b.dataset.bucket);
+        if (!el) {
+          bad.push('after ' + (pressed.join(' → ') || 'nothing') + ' the funnel did not offer ' + field + ' "' + value
+            + '" — it offered ' + (here.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
+          return false;
+        }
+      }
+      pressed.push(el.dataset.value);
+      t.ACTIONS['facet-pick'](el);
+      await wait(20);
+      if (!el.dataset.bucket) return true;
+    }
+    return false;
+  };
+  if (!(await press('forLabel', 'Learning')) || !(await press('kindLabel', 'Projects'))) return bad;
+
+  /* THE NEXT QUESTION IS PROJECT OR COURSEWORK, AND ITS TWO ANSWERS ARE THE TWO WORDS. Asked of the
+     buttons drawn, not of `nextFacet`, because the claim is what a person sees after pressing
+     Projects. */
+  const asked = btns();
+  const fields = [...new Set(asked.map(b => b.dataset.field))];
+  const answers = asked.filter(b => b.dataset.field === 'projectType').map(b => b.dataset.value).sort();
+  if (fields.join() !== 'projectType') bad.push('after ' + pressed.join(' → ') + ' the funnel asks ' + (fields.join(', ') || 'nothing') + ', not Project or coursework');
+  if (answers.join('|') !== 'Coursework|Project') bad.push('Project or coursework offers ' + (answers.join(' | ') || 'nothing') + ', not Project and Coursework');
+  const typeFacet = w.facetList().find(f => f.field === 'projectType');
+  if (!typeFacet) bad.push('no facet reads `projectType` — the facets file was not applied');
+  else if (typeFacet.label !== 'Project or coursework') bad.push('the question is labelled "' + typeFacet.label + '"');
+  /* THE TYPE COLOUR, the one Experiment or build wears — read off the answer as drawn, since
+     `TAG_OF` is a `const` and not on the window. */
+  const cwBtn = asked.find(b => b.dataset.field === 'projectType' && b.dataset.value === 'Coursework');
+  if (!cwBtn) return bad;
+  if (cwBtn.dataset.tag !== 'type') bad.push('the Coursework answer is drawn with tag "' + (cwBtn.dataset.tag || '') + '", not the type colour');
+  if (!(await press('projectType', 'Coursework'))) return bad;
+  const left = w.stuffFiltered();
+  if (left.length !== cwItems.length || left.some(x => x.kind !== 'project' || x.row.projectType !== 'coursework')) {
+    bad.push('Coursework leaves ' + left.length + ' item(s) — ' + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ')
+      + ' — not the ' + cwItems.length + ' coursework(s)');
+  }
+
+  /* THE CARD: FLAGGED, AND ITS BOARD ON THE SUBJECT'S LINE. */
+  const x = cwItems[0];
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const card = box(w.stuffCard(x));
+  const flag = card.querySelector('.card.proj .fc-flag');
+  if (!flag || flag.textContent.trim() !== 'Coursework') bad.push('the coursework card is flagged "' + (flag ? flag.textContent.trim() : 'nothing') + '", not Coursework');
+  const sub = (card.querySelector('.sub') || {}).textContent || '';
+  if (x.row.board && sub.indexOf(x.row.board) < 0) bad.push('the card\'s strip reads "' + sub + '" — no ' + x.row.board);
+  if (x.row.spec && sub.indexOf(x.row.spec) < 0) bad.push('the card\'s strip reads "' + sub + '" — no spec ' + x.row.spec);
+  /* STAGES ON A COURSEWORK, STEPS ON A PROJECT — one word, the same page. */
+  const parts = w.pageParts_(x);
+  if (JSON.stringify(parts) !== JSON.stringify([null, 'kit', 'steps', 'share'])) bad.push('a coursework is pages ' + JSON.stringify(parts) + ', not a project\'s four');
+  const stages = box(w.stuffPart_(x, 'steps'));
+  const h = (stages.querySelector('h3') || {}).textContent || '';
+  if (h !== 'Stages') bad.push('the coursework\'s ordered page is titled "' + h + '", not Stages');
+  if (stages.querySelectorAll('.prac-steps ol > li').length !== x.row.steps.length) bad.push('the Stages page does not number every stage');
+  const proj = w.stuffItems().find(i => i.kind === 'project' && i.row.projectType !== 'coursework');
+  if (proj && ((box(w.stuffPart_(proj, 'steps')).querySelector('h3') || {}).textContent || '') !== 'Steps') bad.push('a project\'s ordered page is no longer titled Steps');
+  if (proj && ((box(w.stuffCard(proj)).querySelector('.fc-flag') || {}).textContent || '').trim() !== 'Project') bad.push('a project card is no longer flagged Project');
+
+  /* FOUND BY WHAT IT IS CALLED, with nothing chosen. `nea` is nowhere in the row's own words — it is
+     `projectText_` that adds it — so that half fails if the coursework's names leave the haystack. */
+  ['coursework', 'nea'].forEach(q => {
+    t.STUFF().filters.length = 0; t.STUFF().q = q;
+    if (!w.stuffFiltered().some(i => i.key === x.key)) bad.push('typing "' + q + '" does not find ' + x.name);
+  });
+  t.STUFF().q = '';
+  return bad;
+});
+
 /* ---------- THE @family. TEXTBOOK, REACHED THE WAY THE OWNER SAID --------------------------------
    ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
    resources tag in the finder. first one can be gcse statistics." So the route is the claim:

@@ -3744,6 +3744,24 @@ function practicalPart_(x, part) {
    where a tutor already reads what a student writes. `check-projects.js` refuses a step that tells
    a child to put the work online.
 ================================================================================================== */
+/* ---------- A PROJECT OR A COURSEWORK -------------------------------------------------------------
+   THE OWNER, 9 Oct: "i would like to add course works. make it bare bones. its within projects in
+   finder. like i remember i did dt graphics coursewoork in gcse which was to make products for a
+   movie coming out." So a coursework is a project with a board, and this is `PRAC_TYPE` one kind
+   along: the file holds the word (`project_type`, blank reading as `project` -- see library.js),
+   this holds the label, and the card, the funnel's answer and its chip all say the label. A value
+   the map has never heard of is drawn raw, `PRAC_TYPE`'s rule: visibly wrong beats invisible.
+
+   BARE BONES IS THE SPEC, "i am just trying to set up infrastructure". A coursework is the project's
+   card, its materials, its STAGES and the share page, and nothing else. The obvious next things are
+   all NOT built: marking against a board's criteria, deadlines per stage, a record of which stage a
+   pupil has reached. And uploading a pupil's work is not built ON PURPOSE rather than for later --
+   note 253's reason: storing children's work is consent and moderation, so the share page sends
+   them to Messages and to the next session, and `check-projects.js` fails a stage that says
+   upload or publish. */
+const PROJ_TYPE = { project: 'Project', coursework: 'Coursework' };
+const projType_ = p => PROJ_TYPE[(p && p.projectType) || 'project'] || String(p.projectType);
+
 function projectCard_(x) {
   const p = x.row;
   /* AGES AS A RANGE, because "8+" on a podcast for sixteen-year-olds would be true and useless. */
@@ -3751,12 +3769,15 @@ function projectCard_(x) {
     : p.ageMin ? p.ageMin + '+' : '';
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
                  ages].filter(Boolean).join(' · ');
+  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE, as a textbook's cover has them -- `AQA · 8552` is
+     which qualification the work counts towards, and a project has neither, so its line is
+     unchanged. */
   return `<div class="card fc prac proj">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Project</span></span>
+      <span class="fc-flags"><span class="fc-flag is-type">${esc(projType_(p))}</span></span>
     </div>
-    <p class="sub">${esc([p.subject, p.level].filter(Boolean).join(' · '))}</p>
+    <p class="sub">${esc([p.subject, p.level, p.board, p.spec].filter(Boolean).join(' · '))}</p>
     <p class="fc-lede">${esc(p.summary)}</p>
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
@@ -3776,7 +3797,11 @@ function projectPart_(x, part) {
     /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminTiles_`'s rule. On a
        project it is mostly about who is in the shot and what stays offline, which is a thing to
        read before filming rather than after. */
-    inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
+    /* A COURSEWORK'S STEPS ARE ITS STAGES -- brief, research, specification, ideas, development,
+       models, making, evaluation -- and that is the word a GCSE pupil and their teacher use for
+       them. One word chosen by the type, on the same page, rather than a second page to keep in
+       step with this one. */
+    inner = `${head(p.projectType === 'coursework' ? 'Stages' : 'Steps')}<div class="gd"><section class="prac-steps">
       <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
       ${p.safety ? `<p class="fc-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
   } else if (part === 'share') {
@@ -6138,8 +6163,13 @@ function practicalText_(p) {
 /* `projectText_` — `practicalText_`'s move for the projects: `podcast`, `stop-motion`, `bearing`
    and `alt text` are words somebody types, and they are only ever in the summary, the steps and
    the kit. Both halves of a kit line, for the `[object Object]` reason written above. */
+/* A COURSEWORK IS LOOKED FOR BY ITS NAMES, whether or not its row happens to say them: `coursework`,
+   `NEA` (what a school calls it now) and `non-exam assessment` are what somebody types, and the board
+   and the spec are how a parent holding the letter from school looks. Written here rather than into
+   each row, so the next coursework is found by them without its writer having to remember. */
 function projectText_(p) {
-  return plainText_([p.summary, p.makes, p.safety, p.share,
+  return plainText_([p.projectType === 'coursework' ? 'coursework NEA non-exam assessment' : '',
+                     p.board, p.spec, p.summary, p.makes, p.safety, p.share,
                      (p.materials || []).map(e => e.name + ' ' + e.qty).join(' '),
                      (p.steps || []).join(' ')].filter(Boolean).join(' '));
 }
@@ -10517,6 +10547,19 @@ function stuffItemsRaw_() {
       sub: [p.subject, p.sessions ? p.sessions + ' sessions' : ''].filter(Boolean).join(' · '),
       image: '',
       subject: p.subject, topics: p.topics, level: p.level,
+      /* ---------- PROJECT OR COURSEWORK, ASKED ONCE `Projects` IS CHOSEN ----------------------
+         `practicalType`'s arrangement exactly: no facet in code, one row in
+         `data/settings/facets.json` naming the field, and `facetFromSheet_` reads it off the item.
+         The LABEL goes on the item rather than the file's word, so the answer and its chip say
+         `Coursework` and not `coursework`. Every project answers it -- blank is `Project` -- so
+         the coverage rule asks it the moment the list is projects and on no list that is mostly
+         something else. Its row's `sort_order` puts it ahead of Subject, and that is load-bearing:
+         see the row's own note, and docs/history/314. */
+      projectType: projType_(p),
+      /* A BOARD WHERE THE ROW NAMES ONE, in the column a practical's board already fills -- so a
+         second coursework under another board is told apart by the Exam board question with
+         nothing added here. Blank on every project, which the coverage rule keeps quiet. */
+      examBoard: p.board || '',
       text: projectText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
     })),
@@ -13024,6 +13067,8 @@ const TAG_OF = {
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
   documentType: 'type', practicalType: 'type', boxKind: 'type',
+  /* A COURSEWORK OR A PROJECT IS WHAT KIND OF THING IT IS, as experiment-or-build is: the same colour. */
+  projectType: 'type',
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
   /* `topicArea` was `topic` too, and is retired — see `RETIRED_FACETS`. */

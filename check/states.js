@@ -439,6 +439,33 @@ const STATES = {
       },
       wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A COURSEWORK, ON ITS STAGES PAGE ------------------------------------------------
+       "i would like to add course works. make it bare bones. its within projects in finder." — the
+       owner, 9 Oct. The project's state with the type chosen, as the funnel's own two answers:
+       Projects, then Coursework, then the coursework's STAGES page — so the card with the board on
+       its strip, the Stages list and the share tile beside them are the ones measured, and the
+       longest strip and longest list any project card carries is the one at 320px. */
+    { name: 'a coursework',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'project' && it.row && it.row.projectType === 'coursework');
+        if (!x) throw new Error('no coursework in the list — data/projects.json has no `project_type: coursework` row');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'projectType', value: x.projectType }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'steps')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        const main = document.querySelector('#s-stuff .card.proj:not(.prac-part)');
+        const steps = document.querySelector('#s-stuff .card.proj.is-steps');
+        const flags = [...document.querySelectorAll('#s-stuff .card.proj:not(.prac-part) .fc-flag')].map(f => f.textContent.trim());
+        return !!main && !!steps
+               && flags.length > 0 && flags.every(f => f === 'Coursework')
+               && ((steps.querySelector('h3') || {}).textContent || '') === 'Stages'
+               && !!steps.querySelector('.prac-steps ol > li');
+      },
+      wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
        "the @family textbook should be bare bones for now and the textbooks will be in the resources
        tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
