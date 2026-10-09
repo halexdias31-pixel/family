@@ -1223,6 +1223,36 @@ let proofRules = 0;
       { wyn: wyn.success, error: wyn.error, message: wyn.message, moving: (wp.profile || wp).email_moving });
   }
 }
+/* ==================================================================================================
+   SIGNING OUT ON ONE DEVICE IS SIGNING OUT OF THAT DEVICE (docs/history/317)
+   THE ESSAY: a child writing on the computer, the same account signed in on the iPad and signed out
+   there — and every session ended, so the computer's next request was refused `signed-out` and its box
+   was drawn empty over 3,015 characters. Reproduced in a sandbox of the live backend; held here: two
+   sessions, the iPad signs out, the computer is still signed in, and the iPad's own token is refused.
+   A PIN CHANGED STILL ENDS THEM ALL — that is `authEndSession_`'s job, and asked here so the two are
+   not confused the other way.
+   ================================================================================================== */
+{
+  const b = fresh();
+  b.seed('people', [person('P-SO', 'student', 'Sam', 'Student', { email: 'sam@example.org', handle: 'sam_kind90' })]);
+  const pc = signIn(b, 'sam@example.org', PLACE), pad = signIn(b, 'sam@example.org', PLACE);
+  if (!pc.token || !pad.token) no('the child could not sign in twice, so signing out of one device was NOT checked', { pc: pc.error, pad: pad.error });
+  else {
+    const out = post(b, { action: 'signOut', token: pad.token });
+    if (!out.success) no('signOut on the iPad was refused', out);
+    const still = post(b, { action: 'myProfile', token: pc.token });
+    if (!still.success) no('signing out on the iPad signed the computer out too — its next request was refused, and its answer box is drawn under the signed-out key', still);
+    const gone = post(b, { action: 'myProfile', token: pad.token });
+    if (gone.success || gone.why !== 'signed-out') no('the token that signed out still works', gone);
+    /* AND A PIN CHANGED ON ONE ENDS THE OTHER, as it always did. */
+    const pc2 = signIn(b, 'sam@example.org', PLACE);
+    /* THE FILE'S OWN SECOND PIN (`ZERO2`, at the top) — no new one is written into a public repository. */
+    const ch = post(b, { action: 'changePin', token: pc2.token, currentPin: PLACE, newPin: ZERO2 });
+    if (!ch.success) no('changePin refused, so the PIN half was NOT checked', ch);
+    else if (post(b, { action: 'myProfile', token: pc.token }).success) no('a PIN changed on one device left the other signed in — that is the case where ending every session is the point');
+  }
+}
+
 const PROOF_RULES = 81;
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 

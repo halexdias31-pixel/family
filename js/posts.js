@@ -328,8 +328,11 @@ function commentsHtml_(p) {
           row, not a sheet — and the line is for the merge to bring into step. */''}
     ${USER
       ? `<div class="cmt-form">
+           ${/* A DRAFT (data.js), per post and per person: a payload landing redraws the feed, which
+                 emptied this box under somebody mid-sentence, and a reload lost it. Dropped when the
+                 comment is on the sheet (`cmt-add`). docs/history/317. */''}
            <textarea class="cmt-text" rows="1" maxlength="2000"
-             placeholder="Say something…"></textarea>
+             placeholder="Say something…"${draftAttr_('cmt', p.id)}>${esc(draftVal_('cmt', p.id))}</textarea>
            ${tile_({ icon: 'send', label: 'Post', note: 'your comment', act: 'cmt-add', cls: 'cmt-go',
                      data: { id: p.id } })}
            <p class="faint cmt-said"></p>
@@ -368,14 +371,20 @@ on('cmt-add', el => {
   el.classList.add('is-busy');
   const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
 
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered put the comment back in
+     the box after it was on the post (`draftSent_`, data.js; the review of 317). Dropped by the reply,
+     given back by a refusal. */
+  try { draftSent_('cmt', el.dataset.id, text); } catch (e) {}
   send({ action: 'addComment', name: USER.name, personId: USER.personId,
          postId: el.dataset.id, body: text })
     .then(() => { done(); if (box) { box.value = ''; box.style.height = ''; }
+                  try { draftSentDone_('cmt', el.dataset.id, text); } catch (e) {}
                   if (said) said.textContent = ''; load(); })
     /* THE SERVER'S OWN SENTENCE. Every refusal it can give is written for a person to read — the
        length, the post being gone, not being signed in — and "Not posted" would throw away the
        only part that says what to do about it. */
-    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not posted.'); });
+    .catch(err => { done(); try { draftSentBack_('cmt', el.dataset.id, text); } catch (e) {}
+                    if (said) said.textContent = String(err.message || 'Not posted.'); });
 });
 
 /* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where
@@ -1699,6 +1708,11 @@ function openSharedPost() {
    Deleted rather than left unused. Dead code reads as a thing the app does, and the next person to
    wonder why posting is slow would have found a resizer and believed it. */
 
+/* ---------- THE SHEET'S BOXES ARE DRAFTS (data.js; docs/history/317) -------------------------------------
+   A post written into this sheet lived in the sheet: closed by a tap outside, or the page reloaded, and
+   the links, caption and words were gone. Each box keeps a draft as it is typed and is drawn holding it
+   the next time the sheet opens, until the post is up. `posting as` is a choice of two and is not kept. */
+const POST_DRAFT_FIELDS = ['link', 'cap', 'loc', 'body', 'poll'];
 on('new-post', () => {
   openSheet('New post', `
   ${/* CHOOSE ONE THAT IS ALREADY THERE, before being offered the upload.
@@ -1717,19 +1731,19 @@ on('new-post', () => {
        any space, comma or pipe as well, so a list pasted in one line works too. */''}
   <label class="field"><span>links to the pictures or clips — one per line</span>
     <textarea id="post-link" rows="2" placeholder="https://…" inputmode="url"
-              autocomplete="off"></textarea></label>
+              autocomplete="off"${draftAttr_('post', 'link')}>${esc(draftVal_('post', 'link'))}</textarea></label>
   <div id="post-preview"></div>
   <label class="field"><span>caption</span>
-    <input id="post-cap" placeholder="One line about it"></label>
+    <input id="post-cap" placeholder="One line about it"${draftAttr_('post', 'cap')} value="${esc(draftVal_('post', 'cap'))}"></label>
   <label class="field"><span>where</span>
-    <input id="post-loc" placeholder="Colliers Wood Library" list="known-places">
+    <input id="post-loc" placeholder="Colliers Wood Library" list="known-places"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}">
     <datalist id="known-places">
       ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
     </datalist></label>
   <label class="field"><span>more, if you want it</span>
-    <textarea id="post-body" placeholder="Optional"></textarea></label>
+    <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <label class="field"><span>poll, if you want one</span>
-    <input id="post-poll" placeholder="Yes, No, Maybe"></label>
+    <input id="post-poll" placeholder="Yes, No, Maybe"${draftAttr_('post', 'poll')} value="${esc(draftVal_('post', 'poll'))}"></label>
   <label class="field"><span>posting as</span>
     <span class="btn-row" id="post-as" data-as="brand">
       <button class="btn quiet on" data-do="as" data-as="brand">
@@ -1739,6 +1753,8 @@ on('new-post', () => {
   <button class="btn" data-do="post-send">Post it</button>
   <p class="faint" id="post-said" style="margin:.6rem 0 0"></p>`);
 
+  /* A LINK KEPT FROM BEFORE A RELOAD (a draft, data.js) is previewed as a typed one is. */
+  if (($('post-link') || {}).value) showPostPreview();
   /* Fetched after the sheet is up, so the form is usable while the folder is being read. */
   send_({ action: 'folderFiles', name: USER.name, adminName: USER.name })
     .then(d => {
@@ -1807,11 +1823,13 @@ on('post-pick', el => {
     const next = had.indexOf(url) < 0 ? had.concat(url) : had.filter(x => x !== url);
     box.value = next.join('\n');
     el.classList.toggle('on', next.indexOf(url) >= 0);
+    /* A VALUE SET HERE FIRES NO `input`, so the draft is told by hand (data.js). */
+    try { draftFrom_(box); } catch (e) {}
   }
   /* The caption comes from the file's name, and only while the box is empty — somebody who has
      already typed one meant it. */
   const cap = $('post-cap');
-  if (cap && !cap.value) cap.value = el.dataset.caption || '';
+  if (cap && !cap.value) { cap.value = el.dataset.caption || ''; try { draftFrom_(cap); } catch (e) {} }
   showPostPreview();
 });
 
@@ -1854,6 +1872,9 @@ on('post-send', el => {
   if (!link) { if (said) said.textContent = 'A link to the picture, first.'; return; }
   el.disabled = true;
   if (said) said.textContent = 'Posting…';
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered opened the sheet holding
+     the post that had just gone up, for a second one (`draftSent_`, data.js). */
+  POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });
 
   api({ action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
@@ -1871,10 +1892,13 @@ on('post-send', el => {
     body: ($('post-body') || {}).value || '' })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
+      /* ON THE SHEET, SO THE SHEET'S DRAFTS GO — see the note over `new-post`'s boxes. */
+      POST_DRAFT_FIELDS.forEach(f => { try { draftDrop_('post', f); } catch (e) {} });
       closeSheet(); toast('Posted'); load();
     })
     .catch(err => {
       el.disabled = false;
+      POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} });
       if (said) said.textContent = String(err.message || 'Could not post that');
     });
 });
@@ -1898,12 +1922,14 @@ on('post-edit', el => {
   openSheet('Edit post', `
     ${p.image ? `<img src="${esc(pic(p.image))}" alt=""
          style="width:100%;margin-bottom:.7rem">` : ''}
+    ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
+          dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
     <label class="field"><span>caption</span>
-      <input id="pe-cap" value="${esc(p.caption || '')}"></label>
+      <input id="pe-cap" value="${esc(draftVal_('post-edit', p.id + ':cap', p.caption || ''))}"${draftAttr_('post-edit', p.id + ':cap', p.caption || '')}></label>
     <label class="field"><span>more</span>
-      <textarea id="pe-body">${esc(p.body || '')}</textarea></label>
+      <textarea id="pe-body"${draftAttr_('post-edit', p.id + ':body', p.body || '')}>${esc(draftVal_('post-edit', p.id + ':body', p.body || ''))}</textarea></label>
     <label class="field"><span>where</span>
-      <input id="pe-loc" value="${esc(p.location || '')}" list="known-places">
+      <input id="pe-loc" value="${esc(draftVal_('post-edit', p.id + ':loc', p.location || ''))}" list="known-places"${draftAttr_('post-edit', p.id + ':loc', p.location || '')}>
       <datalist id="known-places">
         ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
       </datalist></label>
@@ -1911,13 +1937,13 @@ on('post-edit', el => {
           with the wrong timestamp sits in the wrong place for ever otherwise, and the only way to
           fix it was to open the spreadsheet. */''}
     <label class="field"><span>posted on</span>
-      <input id="pe-when" value="${esc(p.when || '')}" placeholder="DD/MM/YYYY HH:MM:SS"></label>
+      <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
     ${/* A VOTE IS STORED AGAINST THE WORDS. Rename an option and every vote cast for it points at
           something that no longer exists — the count survives, its option does not, and the
           percentages quietly stop adding up. Nothing throws, which is the worst version of it. So
           the options are editable only while nobody has voted. */''}
     <label class="field"><span>poll</span>
-      <input id="pe-poll" value="${esc(opts)}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : ''}>
+      <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
       ${voted ? `<span class="faint">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'} cast —
         the options are fixed now. A vote is stored against the words, so changing them would
         strand it.</span>` : ''}</label>
@@ -1988,6 +2014,7 @@ on('post-save', el => {
     name: USER.name, adminName: USER.name, id: el.dataset.id, fields })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
+      ['cap', 'body', 'loc', 'when', 'poll'].forEach(f => { try { draftDrop_('post-edit', el.dataset.id + ':' + f); } catch (e) {} });
       closeSheet(); toast('Saved'); load();
     })
     .catch(err => {

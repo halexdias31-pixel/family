@@ -6680,6 +6680,11 @@ const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key |
    signed in (`ansKey_`); only the words saying so on the box are gone. */
 
 function ansRead_(k) {
+  /* THE VISIT'S COPY OF A WRITE THE STORE REFUSED (`keepHeld_`, data.js), never the older stored one or
+     the empty box a browser keeping nothing answers with: a redraw drew that, and the next key saved it
+     over the essay (docs/history/317). */
+  const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
+  if (held !== undefined) return held || '';
   try {
     const v = localStorage.getItem(k);
     if (v !== null) return v;
@@ -6701,8 +6706,13 @@ function ansRead_(k) {
     if (bare === k) return '';
     const was = localStorage.getItem(bare);
     if (was === null) return '';
+    /* NOT INTO SOMEBODY ELSE'S BOX: written signed out just after the server ended ANOTHER person's
+       session, so it is theirs (`ansGoneOthers_`, js/answers.js) — the review of 317 found a child's
+       words moved into the next child's account this way. */
+    if (typeof ansGoneOthers_ === 'function' && ansGoneOthers_(bare, k)) return '';
     if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
     localStorage.removeItem(bare);
+    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
     return was;
   } catch (e) { return ''; }
 }
@@ -8233,9 +8243,12 @@ function padAdopt_(k, bare) {
     if (localStorage.getItem(k) !== null) return;
     const v = localStorage.getItem(bare);
     if (v === null) return;
+    /* NOR A DRAWING SOMEBODY ELSE MADE SIGNED OUT — `ansRead_`'s rule (`ansGoneOthers_`, answers.js). */
+    if (typeof ansGoneOthers_ === 'function' && ansGoneOthers_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
     if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
     localStorage.removeItem(bare);
+    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
   } catch (e) {}
 }
 
@@ -8446,9 +8459,11 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padKeptSay_` says "Saved to Ada's
-          account" signed in, which is true of a question's and false of the whiteboard's (`padPrefix_`). */''}
-    <p class="qpad-note">${esc(padPrefix_(x) === 'pad' ? padKeptSay_() : PAD_HERE_ONLY)}</p>
+    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padNoteSay_` says "Saved to Ada's
+          account" signed in, "Not saved" when the store refused it and who was signed out when a session ended
+          (317) -- all true of a question's and false of the whiteboard's (`padPrefix_`), which stays on this
+          device and carries no `data-kept-k`, so `ansSavedPaint_` never rewrites it to an account's sentence. */''}
+    <p class="qpad-note"${padPrefix_(x) === 'pad' ? ` data-kept-k="${esc(k)}"` : ''}>${esc(padPrefix_(x) === 'pad' ? padNoteSay_(k) : PAD_HERE_ONLY)}</p>
   </div>`;
 }
 
@@ -9238,7 +9253,9 @@ const circKey_ = x => padKey_(x) + ':words';
 const CIRC_HELD = new Map();
 function circRead_(k) {
   try {
-    const raw = localStorage.getItem(k);
+    /* THE VISIT'S COPY FIRST when the store refused it — `ansRead_`'s reason (317). */
+    const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
+    const raw = held !== undefined ? (held === null ? '[]' : held) : localStorage.getItem(k);
     if (raw !== null) {
       const v = JSON.parse(raw);
       return Array.isArray(v) ? v.map(String) : [];
@@ -9878,7 +9895,7 @@ function chunkHtml_(chunk, circ) {
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
-        the ring off. ${esc(padKeptSay_())}</p>` : ''}`;
+        the ring off. <span data-kept-k="${esc(circ.k)}">${esc(padNoteSay_(circ.k))}</span></p>` : ''}`;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -10530,6 +10547,58 @@ function stuffForget_() {
   ITEM_MEMO = { key: null, from: null, items: null };
   ALL_MEMO = { key: null, from: null, items: null };
   FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+}
+
+/* ---------- WHERE YOU WERE IN FIND, KEPT FOR A RELOAD --------------------------------------------------
+   THE ESSAY WAS STILL THERE AND THE PAGE WAS NOT (docs/history/317). The chips, the search and the page
+   in front lived in memory only, and the column itself came back after a reload only if it had been
+   CHOSEN in the last six minutes — so a child who had been writing for twenty minutes, refreshed, and
+   landed on the Feed (or on Find's first question) had to walk the funnel back to Q5 to find out
+   whether anything had survived, and an empty-looking screen is what "lost all his progress" looks
+   like. `familyTabAt` is now written as the page is LEFT as well (shell.js), and this keeps the place
+   beside it: the chips, the search, and the item and part on the page in front — by key, not by page
+   number, because a page number means a different question once the library changes.
+
+   THE SEARCH BOX COMES BACK WITH IT, AND ONLY WITH IT: it is half of where you were, and a search
+   restored on its own would be a list narrowed by words nobody can see being typed. The films' search
+   (`VID.q`) is not kept — retyped in a second, and it may be a title (me.js clears it on sign-out).
+
+   THE SAME CLOCK AS THE COLUMN: a reload within `AWAY_AGAIN` of leaving, on Find, for the same person
+   (a draft is the signed-in person's, so an admin's shelf is never somebody else's place), and only if
+   nothing has been asked of Find since the page opened. Tomorrow's visit opens where it always did. */
+function findPlaceKeep_() {
+  try {
+    if (typeof AT === 'undefined' || AT !== 'stuff' || typeof draftKeep_ !== 'function') return;
+    const at = (PAGE.stuff || 0) - stuffFirstResult_();
+    const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
+    const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
+    /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
+    draftKeep_('find', 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
+      key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
+  } catch (e) {}
+}
+window.addEventListener('pagehide', findPlaceKeep_);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
+let FIND_PLACE_TRIED = false;
+function findPlaceBack_() {
+  if (FIND_PLACE_TRIED || typeof draftRead_ !== 'function') return;
+  FIND_PLACE_TRIED = true;
+  try {
+    const raw = draftRead_('find', 'place');
+    if (raw === null) return;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
+    if (AT !== 'stuff' || (STUFF.filters || []).length || STUFF.q) return;
+    STUFF.filters = (Array.isArray(p.f) ? p.f : []).filter(f => f && typeof f === 'object' && typeof f.field === 'string');
+    STUFF.q = typeof p.q === 'string' ? p.q : '';
+    const box = $('stuff-q');
+    if (box) box.value = STUFF.q;
+    paintStuff();
+    if (!p.key) return;
+    const i = stuffPages_().findIndex(pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key
+      && (pg.part || null) === (p.part || null));
+    if (i >= 0) goPage('stuff', stuffFirstResult_() + i, true);
+  } catch (e) {}
 }
 
 function stuffItems() {
@@ -15165,9 +15234,13 @@ function docketSave(list) {
   clearTimeout(dockTimer);
   const said = $('dock-said');
   if (said) said.textContent = 'Saving…';
-  dockTimer = setTimeout(() => {
-    api({ action: 'saveTodo',
-      name: USER.name, personId: USER.personId, todo: USER.todo })
+  /* AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`, data.js; 317). */
+  const sendTodo = keepalive => {
+    clearTimeout(dockTimer);
+    keepDue_('docket', null);
+    if (!USER) return;
+    return api({ action: 'saveTodo',
+      name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
       .then(d => {
         if (d && d.error) throw new Error(d.error);
         const el = $('dock-said');
@@ -15179,7 +15252,9 @@ function docketSave(list) {
         const el = $('dock-said');
         if (el) el.textContent = String(err.message || 'Not saved — no connection.');
       });
-  }, 900);
+  };
+  dockTimer = setTimeout(sendTodo, 900);
+  keepDue_('docket', sendTodo);
 }
 
 function paintDocket() {
@@ -15328,18 +15403,24 @@ document.addEventListener('input', e => {
   const said = $('pad-said');
   if (said) said.textContent = 'Saving…';
   /* Longer than the docket's, because this is typed continuously rather than tapped. Nine hundred
-     milliseconds into a sentence is a write per word. */
-  padTimer = setTimeout(() => {
-    api({ action: 'saveNotepad',
-      name: USER.name, personId: USER.personId, notepad: USER.notepad })
-      .then(d => {
-        if (d && d.error) throw new Error(d.error);
-        const el = $('pad-said');
-        if (el) el.textContent = 'Saved';
-      })
-      .catch(err => {
-        const el = $('pad-said');
-        if (el) el.textContent = String(err.message || 'Not saved — no connection.');
-      });
-  }, 1400);
+     milliseconds into a sentence is a write per word. AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`,
+     data.js; 317), so a reload inside the 1.4 s does not leave the account a sentence behind. */
+  padTimer = setTimeout(padSend_, 1400);
+  keepDue_('notepad', padSend_);
 });
+function padSend_(keepalive) {
+  clearTimeout(padTimer);
+  keepDue_('notepad', null);
+  if (!USER) return;
+  return api({ action: 'saveNotepad',
+    name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
+    .then(d => {
+      if (d && d.error) throw new Error(d.error);
+      const el = $('pad-said');
+      if (el) el.textContent = 'Saved';
+    })
+    .catch(err => {
+      const el = $('pad-said');
+      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+    });
+}

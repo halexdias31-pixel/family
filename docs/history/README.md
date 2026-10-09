@@ -312,6 +312,7 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [An essay is written on a sheet: paragraphs with a return key you can see, and Gemini marks all of it](312-an-essay-is-written-on-a-sheet.md)
 - [The site asks again by itself: a payload that did not arrive is retried under one quiet line, the banner is an admin's, and a page older than the site reloads once](313-the-site-asks-again-by-itself.md)
 - [Coursework is a type of project: one column, one question, and the stages of a design-and-make](314-coursework-is-a-type-of-project.md)
+- [Every box survives a reload: a session ended on another device drew the essay's box empty, a refused write was read past, and every box that waits for a button keeps a draft](317-every-box-survives-a-reload.md)
 - [Signing in keeps your place in Find: the same chips, the same card, the same page, and the answer moves to you](318-signing-in-keeps-your-place-in-find.md)
 - [A YouTube Short is a reel the app can drive: poster first, one muted player under a veil, tap and Sound by message, a door when it cannot play — and the grey was the words' scrim on reels with no words](319-a-youtube-short-is-a-reel-the-app-can-drive.md)
 - [A Progress column at the end of the row, waiting to be built — and columns.json is the list of columns, not only their order](320-a-progress-column-waiting-to-be-built.md)
