@@ -235,13 +235,16 @@ const T1 = T0 + 60000, T2 = T0 + 120000;
 /* ---------- THE SIGN-IN REPLY BRINGS WHAT THE PAYLOAD WOULD HAVE, FOR THIS PERSON ONLY ------------------
    *"the logging in and everything feels so janky and unresponsive and slow"* — the Done dates, the stars,
    the family and the answers all waited for the person's own `doGet`, 15–35 s after "Signed in". They
-   come with the reply now, in the payload's own shapes, for the person who signed in and nobody else. */
+   come with the reply now, in the payload's own shapes, for the person who signed in and nobody else.
+   The Done dates are the latest SUBMISSIONS since 9 Oct (*"Just whether it's right or not"*), and a
+   child's verdicts are what the cards show the moment they are signed in. */
 {
   const { b, tok, save } = world();
   save(ADA, [{ key: 'ans:q:Q-SIGN', v: '3/4', at: T0 }]);
   save(BEN, [{ key: 'ans:q:Q-BEN', v: 'not Ada’s', at: T0 }]);
   asked++;
-  b.post({ action: 'markDone', token: tok[ADA], items: [{ key: 'q:Q-SIGN', day: '2026-10-08' }] });
+  b.post({ action: 'submitAnswer', token: tok[ADA], items: [{ id: '1760000000001-sg0001', key: 'q:Q-SIGN', answer: '3/4', verdict: 'right' }] });
+  b.post({ action: 'submitAnswer', token: tok[BEN], items: [{ id: '1760000000002-sg0002', key: 'q:Q-BEN', answer: 'not Ada’s', verdict: 'wrong' }] });
   b.seed('favourites', [{ fav_id: 'F1', person_id: 'P-S1', kind: 'question', item_id: 'q:Q-STAR', at: '2026-10-08' },
                         { fav_id: 'F2', person_id: 'P-S2', kind: 'question', item_id: 'q:Q-BENSTAR', at: '2026-10-08' }]);
   b.seed('family', [{ link_id: 'L1', parent_id: 'P-M1', child_id: 'P-S1', state: 'accepted' }]);
@@ -251,7 +254,9 @@ const T1 = T0 + 60000, T2 = T0 + 120000;
   else {
     if (!d.answers || !d.answers['ans:q:Q-SIGN'] || d.answers['ans:q:Q-SIGN'].v !== '3/4') bad.push('the sign-in reply does not carry Ada’s answers: ' + JSON.stringify(d.answers) + ' — the boxes would wait a round trip after "Signed in"');
     if (d.answers && d.answers['ans:q:Q-BEN']) bad.push('THE SIGN-IN REPLY CARRIES ANOTHER CHILD’S ANSWER');
-    if (!d.attempts || d.attempts.for !== 'P-S1' || !d.attempts.mine || !d.attempts.mine['q:Q-SIGN']) bad.push('the sign-in reply’s attempts are ' + JSON.stringify(d.attempts) + ' — wanted Ada’s, stamped for P-S1, as doGet builds them');
+    if (!d.submissions || d.submissions.for !== 'P-S1' || !d.submissions.mine || !d.submissions.mine['q:Q-SIGN'] || d.submissions.mine['q:Q-SIGN'].answer !== '3/4') bad.push('the sign-in reply’s submissions are ' + JSON.stringify(d.submissions) + ' — wanted Ada’s latest, 3/4, stamped for P-S1, as doGet builds them');
+    if (d.submissions && d.submissions.mine && d.submissions.mine['q:Q-BEN']) bad.push('THE SIGN-IN REPLY CARRIES ANOTHER CHILD’S SUBMISSION');
+    if ('attempts' in d) bad.push('the sign-in reply still carries `attempts` — the tab is read by nothing since 9 Oct');
     if (JSON.stringify(d.favourites) !== '["q:Q-STAR"]') bad.push('the sign-in reply’s favourites are ' + JSON.stringify(d.favourites) + ' — wanted Ada’s one star and nobody else’s');
     if (d.familyFor !== 'P-S1' || !Array.isArray(d.family) || d.family.length !== 1 || d.family[0].personId !== 'P-M1' || d.family[0].relation !== 'parent') bad.push('the sign-in reply’s family is ' + JSON.stringify({ familyFor: d.familyFor, family: d.family }) + ' — wanted Mo as Ada’s parent, stamped for P-S1');
     if (d.family && d.family[0] && (d.family[0].email || d.family[0].phone)) bad.push('a family card in the sign-in reply carries private fields: ' + JSON.stringify(d.family[0]));
@@ -260,7 +265,7 @@ const T1 = T0 + 60000, T2 = T0 + 120000;
     const g = b.get({ token: d.token });
     if (JSON.stringify(g.family) !== JSON.stringify(d.family) || g.familyFor !== d.familyFor) bad.push('the payload’s family and the sign-in reply’s differ: ' + JSON.stringify(g.family) + ' / ' + JSON.stringify(d.family));
     if (JSON.stringify(g.favourites) !== JSON.stringify(d.favourites)) bad.push('the payload’s favourites and the sign-in reply’s differ');
-    if (JSON.stringify(g.attempts) !== JSON.stringify(d.attempts)) bad.push('the payload’s attempts and the sign-in reply’s differ: ' + JSON.stringify(g.attempts) + ' / ' + JSON.stringify(d.attempts));
+    if (JSON.stringify(g.submissions) !== JSON.stringify(d.submissions)) bad.push('the payload’s submissions and the sign-in reply’s differ: ' + JSON.stringify(g.submissions) + ' / ' + JSON.stringify(d.submissions));
   }
 }
 

@@ -43,6 +43,17 @@
    other half of *"janky and unresponsive"*: a payload landing fifteen seconds after "Signed in" used to
    replace the box with the keypad up.
 
+   ---------- SINCE 9 OCT, ONLY WHAT HAS NO SEND --------------------------------------------------------
+   THE OWNER: *"I just want system to record each submition. So like if they submit a correct answer then
+   change it and submit an incorrect answer, that's 2 events. And it will leave the latest event up, so
+   they would see incorrect answer there next time they login."* So a typed, picked or ordered answer
+   reaches the account when it is SENT — each press an event, the latest the one every device opens on
+   (js/submit.js) — and this file stops sending those (`ans:` keys) to a backend that keeps submissions:
+   a draft typed after the last Send stays on THIS device, with no verdict, until it is sent. What has no
+   Send — the pen's strokes and the ringed words (`pad:` keys) — goes up as it always has. Against a
+   backend from before (no `submitAnswer` in its `features`) nothing here changed: the typed answers go
+   up as drafts, as they did, until it can take the presses instead.
+
    ITS OWN FILE because it is one idea with one vocabulary, and find.js is 940 KB that three people are
    working in at once. It loads after find.js and keypad.js; everything it calls in them is called at
    run time, never while loading, so the order between them is free.
@@ -147,12 +158,21 @@ function ansStore_(k, v) {
   ansLocalPut_(k, v === undefined ? null : (v === null ? null : String(v)));
   const who = ansWhoOf_(k);
   if (who) {
+    /* STAMPED ALWAYS — the time of the edit is what tells a draft typed here after the last press from
+       the press itself (`subAdopt_`). DUE only if this key still goes up as a draft (`ansSyncs_`). */
     ansAtSet_(k, Date.now());
-    ansDirtySet_(who).add(k);
-    ansDirtyKeep_(who);
-    answersPush_();
+    if (ansSyncs_(k)) {
+      ansDirtySet_(who).add(k);
+      ansDirtyKeep_(who);
+      answersPush_();
+    }
   }
   ansSavedPaint_();
+}
+/* DOES THIS KEY STILL GO TO THE ACCOUNT AS A DRAFT? A drawing always; a typed, picked or ordered answer
+   only to a backend that cannot take the presses (`submitAnswer`), where the draft is all it can keep. */
+function ansSyncs_(k) {
+  return !/^ans:/.test(String(k || '')) || !answersCan_('submitAnswer');
 }
 
 /* ---------- MAY THIS PHONE SEND, AND READ ------------------------------------------------------------
@@ -237,6 +257,11 @@ function answersPush_(now, keepalive) {
   if (ANS_BUSY) { ANS_AGAIN = true; return ANS_BUSY; }
   const pid = String(USER.personId), who = 'u:' + pid;
   const dirty = ansDirtySet_(who);
+  /* A TYPED ANSWER LEFT DUE FROM BEFORE — marked on an older visit, or before this payload said the
+     backend keeps submissions — is not a draft to send any more: what was SENT is its record. */
+  let dropped = false;
+  [...dirty].forEach(k => { if (!ansSyncs_(k)) { dirty.delete(k); dropped = true; } });
+  if (dropped) ansDirtyKeep_(who);
   if (!dirty.size) return Promise.resolve(true);
   const items = [], sent = [];
   let size = 0;
@@ -363,8 +388,13 @@ function answersAdopt_(pid, got) {
   const dirty = ansDirtySet_(who);
   const changed = [];
   const seen = new Set();
+  /* THE ACCOUNT'S OLD DRAFTS OF TYPED ANSWERS ARE NOT READ BACK to a phone whose backend keeps
+     submissions: the box opens on the latest answer SENT (`subAdopt_`, js/submit.js), and a draft from
+     8 Oct laid over it would be a box saying something nobody sent. */
+  const subs = answersCan_('submitAnswer');
   Object.keys(got || {}).forEach(sk => {
     if (!/^(ans|pad):/.test(sk)) return;
+    if (subs && /^ans:/.test(sk)) return;
     const g = got[sk];
     if (!g || typeof g !== 'object') return;
     const k = ansLocalKey_(sk, who);
@@ -386,7 +416,7 @@ function answersAdopt_(pid, got) {
     changed.push(k);
   });
   try {
-    const pre = ['ans:' + who + ':', 'pad:' + who + ':'];
+    const pre = subs ? ['pad:' + who + ':'] : ['ans:' + who + ':', 'pad:' + who + ':'];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k || seen.has(k) || dirty.has(k) || !pre.some(p => k.indexOf(p) === 0)) continue;
@@ -455,10 +485,16 @@ function ansRefresh_(keys) {
 
 /* ---------- THE LINE UNDER THE BOX ---------------------------------------------------------------------
    ONE LINE, ALWAYS THE SAME HEIGHT (`.qp-saved` reserves it), so a box that goes from nothing to
-   "Saving…" to "Saved" moves nothing under it — the rule 261 made for the verdict. Empty when there is
+   "Sending…" to "Sent" moves nothing under it — the rule 261 made for the verdict. Empty when there is
    nothing written: a line about saving an empty box is a line about nothing.
 
-     signed out                         On this device only — sign in to keep it
+   A TYPED, PICKED OR ORDERED ANSWER, to a backend that keeps submissions — the account has what was SENT:
+     signed out                                   On this device only — sign in to keep it
+     the box holds the latest press, on its way   Sending…
+     the box holds the latest press, on the sheet Sent to Ada’s account
+     typed since the last press, or never sent    On this device until you send it
+     the press was over the account's ceiling     On this device only — too long to send
+   A DRAWING, OR ANY ANSWER TO A BACKEND FROM BEFORE `submitAnswer` — the account has the draft:
      signed in, a backend that cannot   On this device only
      over the account's ceiling         On this device only — too long for the account
      due, or not yet reconciled         Saving…
@@ -476,6 +512,14 @@ function ansSavedSay_(k) {
   if (v === null || !String(v).trim() || v === '[]') return '';
   const who = ansWhoOf_(k);
   if (!who) return 'On this device only — sign in to keep it';
+  if (/^ans:/.test(k) && answersCan_('submitAnswer') && who === 'u:' + String(USER.personId)) {
+    const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
+    if (!latest || latest.a !== v) return 'On this device until you send it';
+    if (latest.far) return 'On this device only \u2014 too long to send';
+    if (latest.q) return 'Sending…';
+    const nm = ansFirstName_();
+    return nm ? 'Sent to ' + nm + '’s account' : 'Sent to your account';
+  }
   if (!answersCan_('saveAnswers') || who !== 'u:' + String(USER.personId)) return 'On this device only';
   if (ansAt_(k) === ANS_HERE_ONLY) return 'On this device only \u2014 too long for the account';
   if (ansDirtySet_(who).has(k) || !ansAt_(k)) return 'Saving…';
@@ -490,14 +534,15 @@ function ansSavedPaint_() {
     });
   } catch (e) {}
 }
-/* THE SAME FACT FOR THE PEN AND THE RINGED WORDS, in the note they already carried ("Kept on this phone
-   only, like the answer box" — true until today, and now true only signed out). Drawn with the card, so
-   it is the state at the last repaint. */
+/* THE SAME FACT FOR THE PEN AND THE RINGED WORDS, in the note they already carried. Drawn with the card,
+   so it is the state at the last repaint. It said "…account, like the answer box" — true while the box
+   went up as it was typed, and not since 9 Oct, when a typed answer goes up as it is SENT and a drawing,
+   which has no Send, still goes as it is drawn. */
 function padKeptSay_() {
   if (!(typeof whoIs_ === 'function' && whoIs_())) return 'Kept on this device only — sign in to keep it.';
   if (!answersCan_('saveAnswers')) return 'Kept on this device only.';
   const name = ansFirstName_();
-  return 'Saved to ' + (name ? name + '’s' : 'your') + ' account, like the answer box.';
+  return 'Saved to ' + (name ? name + '’s' : 'your') + ' account.';
 }
 
 /* ---------- WHEN IT SENDS AT ONCE ------------------------------------------------------------------------
@@ -510,8 +555,11 @@ document.addEventListener('focusout', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (el) answersPush_(true);
 });
+/* TO A BACKEND FROM BEFORE `submitAnswer` ONLY, now: there the typed answer is still a draft that goes up,
+   and a press is the moment to send it. To one that keeps submissions nothing typed is due, and the press
+   itself goes up by js/submit.js. */
 document.addEventListener('click', e => {
-  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-ai"]');
+  const t = e.target && e.target.closest && e.target.closest('[data-do="qp-check"], [data-do="qp-choose"], [data-do="qp-order-send"], [data-do="qp-ai"], [data-do="qp-send"]');
   if (t) answersPush_(true);
 });
 document.addEventListener('visibilitychange', () => {
@@ -551,7 +599,10 @@ function findKeep_(id) {
     return typeof PAD_ST !== 'undefined' && !!PAD_ST;
   } catch (e) { return false; }
 }
-/* A VERDICT ON THE SCREEN, which lives in the DOM only — Check writes it there and nothing stores it. */
+/* A VERDICT ON THE SCREEN. It lived in the DOM only until 9 Oct — Check wrote it there and nothing stored
+   it — and a redraw a moment after leaving the box wiped "Correct" a heartbeat after it appeared. It is
+   drawn from the latest submission now (js/submit.js) and a redraw draws it again; the redraw is still
+   held over one, which costs nothing and keeps the card still under a child reading it. */
 function findVerdictShown_() {
   try {
     const host = document.getElementById('s-stuff');

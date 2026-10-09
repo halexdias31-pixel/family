@@ -41,7 +41,7 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
    what is actually on disk. Rather than make somebody rename eight files to satisfy a checker, the
    checker looks for both — a tool that only runs against a naming convention is a tool that does
    not run. */
-/* `digest` LAST — the weekly parent email (backend/digest.gs) reads `attempts`, `people` and writes
+/* `digest` LAST — the weekly parent email (backend/digest.gs) reads `submissions`, `people` and writes
    `digest_log`, and a column it named wrong would be an email that silently says nothing. (A tenth
    file came after it for two days, the email after each session; it was removed — docs/history/295.) */
 const ORDER_ = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doGet', 'doPost', 'digest'];

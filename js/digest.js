@@ -101,8 +101,9 @@ function digestSheet_(d) {
     ${n ? emails.map(m => `<h2>To ${esc(m.parent || '')} · ${esc(m.to || '')}</h2>
       <p><b>${esc(m.subject || '')}</b></p>
       ${digestBody_(m.text)}`).join('')
-      /* NO `attempts` TAB IS NOT "NOBODY DID ANYTHING" — the server says which, and the card says it. */
-      : d.attempts === false ? `<p><b>${esc(d.warning || 'The Ledger has no attempts tab.')}</b></p>`
+      /* NO `submissions` TAB IS NOT "NOBODY DID ANYTHING" — the server says which, and the card says it.
+         (It said so of `attempts`, the tab the email read until 9 Oct.) */
+      : d.submissions === false ? `<p><b>${esc(d.warning || 'The Ledger has no submissions tab.')}</b></p>`
       : '<p>Nobody has done a question yet this week.</p>'}
     ${none.length ? `<h2>Nobody to tell</h2>
       ${none.map(u => `<p>${esc(u.name || u.id || '')} — ${esc(u.why || '')}</p>`).join('')}` : ''}`;

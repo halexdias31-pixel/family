@@ -569,7 +569,8 @@ function clearPayloadCache() {
 /* ---------- `retirePayloadOf_` WAS HERE — RETIRING A FEW PEOPLE'S PAYLOADS, NOT EVERYBODY'S ----------
    ITS ONE CALLER WAS `markDone`, which threw away a child's whole stored payload (and every admin's) for
    one date, so the child's next load anywhere was a cold rebuild. The stored body no longer carries
-   `attempts` — `doGet` adds them fresh for the token's person (`payloadWithFresh_` in doget.gs) — so
+   `attempts`, nor `submissions` which replaced it — `doGet` adds them fresh for the token's person
+   (`payloadWithFresh_` in doget.gs) — so
    there is nothing left that a write to one person's rows makes stale, and nothing to retire by key. */
 /** The generation number, which prefixes every key — see `clearPayloadCache`. */
 function payloadGen_() {

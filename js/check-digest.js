@@ -10,8 +10,12 @@
 
      · A WEEK IS MONDAY TO SUNDAY IN LONDON, including the two Sundays the clocks change, and a run on a
        Monday sends the week that just ended rather than starting one with nothing in it.
-     · ONLY THAT WEEK'S ATTEMPTS, grouped per learner, new and done-again apart, with the name the phone
-       sent — and never the key in its place: a question with no name is counted, not listed.
+     · ONLY THAT WEEK'S SUBMISSIONS (since 9 Oct — `attempts` before), one line per question however many
+       times it was sent, grouped per learner, new and gone-back-to apart, with the name the phone sent —
+       and never the key in its place: a question with no name is counted, not listed.
+     · EACH WITH THE WEEK'S LATEST VERDICT AS A MARK — ✓, ✗, `sent`, the AI's `3/4` — the owner's *"Just
+       whether it's right or not"*: the last press of the week decides it, a press after the week does
+       not, and a press before it makes the question "(again)".
      · ONLY THE LEARNER'S ACCEPTED PARENTS WITH AN ADDRESS. Not a pending link, not a refused one, not
        another family's parent, not the learner; a parent whose `weekly_email` says no is skipped; a
        learner nobody can be told about is listed with the reason and emailed to nobody.
@@ -21,9 +25,9 @@
      · `installWeeklyDigest` LEAVES EXACTLY ONE SUNDAY TRIGGER AT THE CONFIGURED HOUR, London, however
        many times it is run, and touches no other trigger. NOTHING CALLS IT, or the run, from anywhere.
      · `digestPreview` IS AN ADMIN'S, and writes, sends and books nothing.
-     · `markDone` KEEPS THE LABEL: tags out, capped, set where the row is written anyway — and a day
-       already covered still writes nothing.
-     · THE PLAN CARRIES EACH QUESTION'S WORDS (SCHEMA.attempts `words`): a practical's first box that
+     · `submitAnswer` KEEPS THE LABEL: tags out, capped — and a tab made without the column still takes
+       the press.
+     · THE PLAN CARRIES EACH QUESTION'S WORDS (SCHEMA.submissions `words`): a practical's latest box that
        has any, none that hold a link, an address or a domain anywhere in them — the question still
        listed by its name — and none on an item not printed.
      · AND THE EMAIL PRINTS THEM, since the owner made it the one parents get (*"should be at the end
@@ -93,20 +97,34 @@ function seeded(opts) {
     L(7, 'P-S1', 'P-S1', 'accepted'),       // a typo linking Ada to herself
     L(8, 'P-C7', 'P-S5', 'accepted'),
   ]);
-  const A = (pid, q, first, last, label, times) => ({ person_id: pid, question_key: q, first_done: first, last_done: last,
-    times: times || 1, label: label || '' });
-  b.seed('attempts', [
-    A('P-S1', 'q:ADA-1', '2026-09-28', '2026-09-28', 'Maths · Paper 1 (Calculator) — June 2024 · Q1'),
-    A('P-S1', 'q:ADA-SUN', '2026-10-04', '2026-10-04', 'Fractions & decimals · Q2'),
-    A('P-S1', 'q:ADA-AGAIN', '2026-09-10', '2026-10-02', '', 3),
-    A('P-S1', 'q:ADA-SUN-BEFORE', '2026-09-27', '2026-09-27', 'The Sunday before'),
-    A('P-S1', 'q:ADA-MON-AFTER', '2026-10-05', '2026-10-05', 'The Monday after'),
-    A('P-S2', 'q:BEN-1', '2026-10-01', '2026-10-01', 'Ben’s own'),
-    A('P-S3', 'q:CAL-1', '2026-10-02', '2026-10-02', 'Cal’s'),
-    A('P-S4', 'q:DEE-1', '2026-10-03', '2026-10-03', 'Dee’s'),
-    A('P-S5', 'q:EVE-OLD', '2026-09-20', '2026-09-20', 'Eve’s, last week'),
+  /* ONE ROW PER PRESS (SCHEMA.submissions). Ada sent q:ADA-1 three times in the week — right on the
+     Monday and the Wednesday, wrong on the Friday — and once more, right, on the Monday after, which is
+     next week's: the week's mark is the Friday's ✗, neither the week's first press nor next week's.
+     q:ADA-SUN was right on the Sunday afternoon, before the 18:00 run. */
+  b.seed('submissions', [
+    S('P-S1', 'q:ADA-1', '2026-09-28', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'right'),
+    S('P-S1', 'q:ADA-1', '2026-09-30', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'right'),
+    S('P-S1', 'q:ADA-1', '2026-10-02', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'wrong'),
+    S('P-S1', 'q:ADA-1', '2026-10-05', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'right'),
+    S('P-S1', 'q:ADA-SUN', '2026-10-04', 'Fractions & decimals · Q2', 'right'),
+    S('P-S1', 'q:ADA-AGAIN', '2026-09-10', '', 'wrong'),
+    S('P-S1', 'q:ADA-AGAIN', '2026-10-02', '', 'right'),
+    S('P-S1', 'q:ADA-SUN-BEFORE', '2026-09-27', 'The Sunday before'),
+    S('P-S1', 'q:ADA-MON-AFTER', '2026-10-05', 'The Monday after'),
+    S('P-S2', 'q:BEN-1', '2026-10-01', 'Ben’s own'),
+    S('P-S3', 'q:CAL-1', '2026-10-02', 'Cal’s'),
+    S('P-S4', 'q:DEE-1', '2026-10-03', 'Dee’s'),
+    S('P-S5', 'q:EVE-OLD', '2026-09-20', 'Eve’s, last week'),
   ]);
   return w;
+}
+/* A PRESS AS THE SHEET HOLDS IT: noon in London (13:00 BST is 12:00Z) on `day` unless `hh` says the hour,
+   an answer, a verdict (right by default), a name and words, and an id in the phone's shape. */
+let SEQ = 0;
+function S(pid, key, day, label, verdict, words, hh) {
+  return { person_id: pid, key: key, label: label || '', words: words || '', answer: 'an answer',
+           verdict: verdict || 'right', submitted_at: new Date(day + 'T' + String(hh == null ? 12 : hh).padStart(2, '0') + ':00:00Z'),
+           event_id: (1759000000000 + (++SEQ)) + '-dg' + String(SEQ).padStart(4, '0') };
 }
 
 /* ---------- 1. WHAT A WEEK IS ------------------------------------------------------------------------- */
@@ -151,7 +169,18 @@ function seeded(opts) {
   if (!ada) bad.push('Ada did three things this week and is not in the plan');
   else {
     if (keys(ada.fresh) !== 'q:ADA-1, q:ADA-SUN') bad.push('Ada’s new this week is [' + keys(ada.fresh) + '], wanted q:ADA-1 (the Monday) and q:ADA-SUN (the Sunday) — the week is Monday to Sunday inclusive');
-    if (keys(ada.again) !== 'q:ADA-AGAIN') bad.push('Ada’s done-again is [' + keys(ada.again) + '], wanted q:ADA-AGAIN (first done 10 Sep, again 2 Oct)');
+    if (keys(ada.again) !== 'q:ADA-AGAIN') bad.push('Ada’s gone-back-to is [' + keys(ada.again) + '], wanted q:ADA-AGAIN (sent on 10 Sep, again on 2 Oct)');
+    /* THE WEEK'S LATEST VERDICT, ONE LINE PER QUESTION: q:ADA-1 was sent three times in the week and once
+       the Monday after — one item, the Friday's `wrong`; never the week's first press, Monday's `right`,
+       and never next week's `right`. */
+    asked++;
+    const a1 = (ada.fresh || []).filter(q => q.key === 'q:ADA-1');
+    if (a1.length !== 1) bad.push('q:ADA-1, sent three times in the week, is ' + a1.length + ' items in the plan — one question is one line however often it was sent');
+    else if (a1[0].verdict !== 'wrong') bad.push('q:ADA-1’s verdict in the plan is ' + JSON.stringify(a1[0].verdict) + ' — wanted the week’s LAST press, Friday’s wrong; not Monday’s right, not next Monday’s');
+    const sun = (ada.fresh || []).find(q => q.key === 'q:ADA-SUN');
+    if (!sun || sun.verdict !== 'right') bad.push('q:ADA-SUN, right on the Sunday, is in the plan as ' + JSON.stringify(sun));
+    const ag = (ada.again || [])[0];
+    if (ag && ag.verdict !== 'right') bad.push('q:ADA-AGAIN’s verdict is ' + JSON.stringify(ag.verdict) + ' — wanted this week’s right, not the wrong from 10 Sep');
     if (/BEFORE|AFTER/.test(keys(ada.fresh) + keys(ada.again))) bad.push('a question from the Sunday before or the Monday after is in Ada’s week');
     /* A ROW WITH NO NAME IS IN THE PLAN BY ITS KEY AND WITH NO LABEL — never the key as its label, which
        is how a key reached a parent's email until the email listed each question with its words. */
@@ -180,9 +209,9 @@ function seeded(opts) {
   if (!pat) bad.push('Pat is not sent Ada’s week');
   else {
     if (pat.subject !== 'Ada’s week: 3 questions') bad.push('Pat’s subject is "' + pat.subject + '"');
-    /* THE WEEK'S LIST, GROUPED BY PAPER: the paper's name once, then its question; a question with no
-       name is the "1 more", never its key. */
-    ['Hello Pat,', '28 Sep – 4 Oct', '\nMaths · Paper 1 (Calculator) — June 2024\nQ1\n', '\nFractions & decimals\nQ2\n', '\n…and 1 more.\n',
+    /* THE WEEK'S LIST, GROUPED BY PAPER: the paper's name once, then its question with the week's latest
+       verdict beside its number; a question with no name is the "1 more", never its key. */
+    ['Hello Pat,', '28 Sep – 4 Oct', '\nMaths · Paper 1 (Calculator) — June 2024\nQ1 ✗\n', '\nFractions & decimals\nQ2 ✓\n', '\n…and 1 more.\n',
      '— 2 new and 1 gone back to.', 'https://halexdias31-pixel.github.io/family/', 'To stop these emails',
      /* WORDED FOR WHAT THE SHEET KNOWS: a first keystroke is "worked on", not "did"; the run is at 18:00 so
         the week is "up to 6pm"; and it is the child, not the parent, who can see them on the site. */
@@ -197,6 +226,23 @@ function seeded(opts) {
     if (other.test(pat.subject + pat.text + pat.html)) bad.push('Pat’s email about Ada names another child, a tutor or a price: ' + (pat.text.split('\n').find(x => other.test(x)) || pat.subject));
     if (/<script|Fractions & decimals/.test(pat.html)) bad.push('the HTML body carries a label unescaped');
   }
+}
+
+/* ---------- 2a. A PRESS IS IN THE WEEK BY LONDON'S CALENDAR, NOT BY UTC'S --------------------------------------
+   `submitted_at` is an instant, and in summer London is an hour ahead of it: 23:00 UTC on Sunday 4 Oct is
+   midnight starting Monday 5 Oct in London — next week's — and 23:00 UTC on Sunday 27 Sep is the first
+   minute of Monday 28 Sep, this week's. Eve's only other row is the week before. */
+{
+  const { b } = seeded();
+  b.seed('submissions', [
+    S('P-S5', 'q:EVE-EARLY', '2026-09-27', 'Maths · Late · Q1', 'right', '', 23),
+    S('P-S5', 'q:EVE-LATE', '2026-10-04', 'Maths · Late · Q2', 'right', '', 23),
+  ]);
+  asked++;
+  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const eve = plan.learners.find(x => x.id === 'P-S5');
+  const got = eve ? [].concat(eve.fresh || [], eve.again || []).map(q => q.key).sort().join(', ') : '';
+  if (got !== 'q:EVE-EARLY') bad.push('Eve’s week is [' + got + '] — wanted q:EVE-EARLY alone: 00:00 on Monday 28 Sep in London is this week, and 00:00 on Monday 5 Oct is next week, whatever UTC says');
 }
 
 /* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND PRINTED ---------------------
@@ -216,13 +262,14 @@ function seeded(opts) {
   const W1 = 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.';
   /* A LINK PAST THE FIRST 120 CHARACTERS — where `digestSafe_` stops looking. */
   const LATE = 'The diagram shows a right-angled triangle with sides of 6 cm and 8 cm, drawn accurately on squared paper below.\n---\nFor the answer, pay at www.pay-family.example';
-  const A = (q, label, words) => ({ person_id: 'P-S2', question_key: q, first_done: '2026-10-01', last_done: '2026-10-01', times: 1, label: label, words: words });
-  b.seed('attempts', [
+  const A = (q, label, words, hh) => S('P-S2', q, '2026-10-01', label, 'right', words, hh);
+  b.seed('submissions', [
     A('q:BEN-W1', 'Maths · Probability · Q4a', W1),
-    /* ONE PRACTICAL'S THREE BOXES: the first with no words, the next two with different ones. */
-    A('pr:PR-CH02#iv', 'Chemistry · Required practical · Rates of reaction · Worksheet', ''),
-    A('pr:PR-CH02#dv', '', 'What is the dependent variable?'),
-    A('pr:PR-CH02#cv', '', 'Name two control variables.'),
+    /* ONE PRACTICAL'S THREE BOXES: the first with no words, the next two with different ones — the
+       `#dv` sent LAST in the day, the `#cv` before it. */
+    A('pr:PR-CH02#iv', 'Chemistry · Required practical · Rates of reaction · Worksheet', '', 9),
+    A('pr:PR-CH02#dv', '', 'What is the dependent variable?', 15),
+    A('pr:PR-CH02#cv', '', 'Name two control variables.', 11),
     /* WORDS THAT ARE A MESSAGE: a link, an address, a bare domain, and a link the label rule cannot see. */
     A('q:BEN-W2', 'Maths · Equations · Q2', 'Solve 2x = 6\n---\nthen go to https://pay-family.example/now'),
     A('q:BEN-W3', 'Maths · Equations · Q3', 'Questions? Write to office.family@example.org'),
@@ -242,7 +289,7 @@ function seeded(opts) {
   if (!it('q:BEN-W1') || it('q:BEN-W1').words !== W1) bad.push('the plan carries q:BEN-W1’s words as ' + JSON.stringify(it('q:BEN-W1') && it('q:BEN-W1').words) + ' — wanted them as the sheet holds them, stem, `---` and ask');
   asked++;
   const pr = it('pr:PR-CH02');
-  if (!pr || pr.words !== 'What is the dependent variable?') bad.push('a practical’s three boxes carry the words ' + JSON.stringify(pr && pr.words) + ' — wanted the first box that has any ("What is the dependent variable?"), not none and not the last');
+  if (!pr || pr.words !== 'What is the dependent variable?') bad.push('a practical’s three boxes carry the words ' + JSON.stringify(pr && pr.words) + ' — wanted the words of the latest press that has any ("What is the dependent variable?", sent at 15:00), not none and not an earlier one');
   asked++;
   [['a link', 'q:BEN-W2', 'Maths · Equations · Q2'], ['an email address', 'q:BEN-W3', 'Maths · Equations · Q3'],
    ['a bare domain', 'q:BEN-W4', 'Maths · Equations · Q4'], ['an @ and no domain', 'q:BEN-W6', 'Maths · Equations · Q6'],
@@ -264,15 +311,15 @@ function seeded(opts) {
   const bo = plan.emails.find(m => m.to === 'bo@example.org');
   if (!bo) bad.push('Bo is not sent Ben’s week, so the words in Sunday’s email were NOT asked');
   else {
-    if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a: Work out the probability of red.\n') === -1
-        || bo.html.indexOf('<p><b>Maths · Probability</b></p><p><i>A bag holds 3 red and 5 blue counters.</i></p><p><b>Q4a</b> — Work out the probability of red.</p>') === -1)
-      bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / '));
-    if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet: What is the dependent variable?\n') === -1)
+    if (bo.text.indexOf('\nMaths · Probability\nA bag holds 3 red and 5 blue counters.\nQ4a ✓: Work out the probability of red.\n') === -1
+        || bo.html.indexOf('<p><b>Maths · Probability</b></p><p><i>A bag holds 3 red and 5 blue counters.</i></p><p><b>Q4a ✓</b> — Work out the probability of red.</p>') === -1)
+      bad.push('Sunday’s email does not print a question’s words under its paper — the stem, then "Q4a ✓: <its ask>": ' + bo.text.split('\n').slice(4, 20).join(' / '));
+    if (bo.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet ✓: What is the dependent variable?\n') === -1)
       bad.push('a practical’s worksheet is not printed with the first box’s words: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     /* REFUSED WORDS ARE NOT PRINTED, AND THE QUESTION STILL IS — by its number under its paper. */
     asked++;
-    if (bo.text.indexOf('\nMaths · Equations\nQ2, Q3, Q4, Q6\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5\n') === -1
-        || bo.html.indexOf('<p><b>Maths · Equations</b><br>Q2, Q3, Q4, Q6</p>') === -1)
+    if (bo.text.indexOf('\nMaths · Equations\nQ2 ✓, Q3 ✓, Q4 ✓, Q6 ✓\n') === -1 || bo.text.indexOf('\nMaths · Pythagoras\nQ5 ✓\n') === -1
+        || bo.html.indexOf('<p><b>Maths · Equations</b><br>Q2 ✓, Q3 ✓, Q4 ✓, Q6 ✓</p>') === -1)
       bad.push('questions whose words were refused are not still listed by their numbers under their papers: ' + bo.text.split('\n').slice(4, 20).join(' / '));
     ['pay-family', 'office.family', 'family-answers', 'NOTICE', 'www.', 'For the answer', 'diagram shows'].forEach(x => {
       if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Sunday’s email prints refused words ("' + x + '") — phone text that is a message must not go out under the business’s name');
@@ -287,7 +334,7 @@ function seeded(opts) {
      email listed names. With the column blank: the same subject, the same lead, the same papers and the
      same question numbers, each paper back to its line of numbers. */
   asked++;
-  const g = b.tabs.attempts, wi = g[0].indexOf('words');
+  const g = b.tabs.submissions, wi = g[0].indexOf('words');
   g.slice(1).forEach(r => { r[wi] = ''; });
   const bare = planOf();
   const bo0 = bare.emails.find(m => m.to === 'bo@example.org');
@@ -296,7 +343,7 @@ function seeded(opts) {
     if (bo.subject !== bo0.subject || bo.text.split('\n')[2] !== bo0.text.split('\n')[2]) bad.push('the words on the sheet change the subject or the lead: "' + bo.subject + '" / "' + bo0.subject + '"');
     const heads = t => t.split('\n').filter(x => / · /.test(x) || x === 'Ben’s own').join(' | ');
     if (heads(bo.text) !== heads(bo0.text)) bad.push('the words on the sheet change which papers are listed: ' + heads(bo.text) + ' — without words: ' + heads(bo0.text));
-    if (bo0.text.indexOf('\nMaths · Probability\nQ4a\n') === -1 || bo0.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet\n') === -1
+    if (bo0.text.indexOf('\nMaths · Probability\nQ4a ✓\n') === -1 || bo0.text.indexOf('\nChemistry · Required practical · Rates of reaction\nWorksheet ✓\n') === -1
         || /probability of red|dependent variable|---/.test(bo0.text + bo0.html))
       bad.push('with no words on the sheet the email does not list each question by its number alone: ' + bo0.text.split('\n').slice(4, 18).join(' / '));
   }
@@ -326,8 +373,8 @@ function seeded(opts) {
 
   /* THE KEY'S SHAPE: the same safe name and plain words under a key from the library and under a key
      somebody typed. Both are listed by name; only the first carries its words. */
-  const A = (q, label, words) => ({ person_id: 'P-S2', question_key: q, first_done: '2026-10-01', last_done: '2026-10-01', times: 1, label: label, words: words });
-  b.seed('attempts', [A('q:BEN-K1', 'Maths · Tables · Q1', 'Work out 7 × 8.'), A('Homework from Sam', 'Maths · Tables · Q2', 'Work out 6 × 9.')]);
+  const A = (q, label, words) => S('P-S2', q, '2026-10-01', label, 'right', words);
+  b.seed('submissions', [A('q:BEN-K1', 'Maths · Tables · Q1', 'Work out 7 × 8.'), A('Homework from Sam', 'Maths · Tables · Q2', 'Work out 6 × 9.')]);
   asked++;
   const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
   const items = [].concat(...plan.learners.filter(x => x.id === 'P-S2').map(x => (x.fresh || []).concat(x.again || [])));
@@ -344,7 +391,7 @@ function seeded(opts) {
      `DIGEST_WORDS_REFUSE` says each rule was measured so; this measures it every run, so a rule widened
      tomorrow cannot quietly cost real questions their words in every parent's email. The text is the
      phone's own: `doneWordsPlain_` and the constants above it, read out of js/find.js and run over jsdom,
-     then `attemptWords_`, as markDone keeps it — the html and the lead of every question and preamble. */
+     then `attemptWords_`, as submitAnswer keeps it — the html and the lead of every question and preamble. */
   asked++;
   let plain = null;
   try {
@@ -391,29 +438,31 @@ function seeded(opts) {
 {
   const { b, G } = seeded();
   const STEM = 'A bag holds 3 red beads and 5 blue beads.';
-  const A = (q, label, words, first) => ({ person_id: 'P-S2', question_key: q, first_done: first || '2026-10-01', last_done: '2026-10-01', times: 1, label: label, words: words });
-  b.seed('attempts', [
-    A('q:BEN-P7-3', 'Maths · Paper 7 · Q3', 'Solve x > 3 and x < 7 & "y" for whole numbers x.'),
-    A('q:BEN-P7-5a', 'Maths · Paper 7 · Q5a', STEM + '\n---\nFind P(red).'),
-    A('q:BEN-P7-5b', 'Maths · Paper 7 · Q5b', STEM + '\n---\nFind P(blue).'),
-    A('q:BEN-P7-5c', 'Maths · Paper 7 · Q5c', STEM + '\n---\nTwo beads are taken.\nFind P(both red).'),
-    /* FIRST DONE A FORTNIGHT BEFORE, AGAIN THIS WEEK. */
-    A('q:BEN-P7-9', 'Maths · Paper 7 · Q9', 'Expand (x + 2)(x - 3).', '2026-09-14'),
+  /* EVERY KIND OF MARK: right, wrong, sent (nothing could mark it), and the AI's 2 of 3. */
+  const A = (q, label, words, verdict, day) => S('P-S2', q, day || '2026-10-01', label, verdict, words);
+  b.seed('submissions', [
+    A('q:BEN-P7-3', 'Maths · Paper 7 · Q3', 'Solve x > 3 and x < 7 & "y" for whole numbers x.', 'right'),
+    A('q:BEN-P7-5a', 'Maths · Paper 7 · Q5a', STEM + '\n---\nFind P(red).', 'wrong'),
+    A('q:BEN-P7-5b', 'Maths · Paper 7 · Q5b', STEM + '\n---\nFind P(blue).', 'sent'),
+    A('q:BEN-P7-5c', 'Maths · Paper 7 · Q5c', STEM + '\n---\nTwo beads are taken.\nFind P(both red).', 'ai:2/3'),
+    /* SENT A FORTNIGHT BEFORE, AND AGAIN THIS WEEK. */
+    A('q:BEN-P7-9', 'Maths · Paper 7 · Q9', 'Expand (x + 2)(x - 3).', 'wrong', '2026-09-14'),
+    A('q:BEN-P7-9', 'Maths · Paper 7 · Q9', 'Expand (x + 2)(x - 3).', 'right'),
   ]);
   const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
   const m = plan.emails.find(e => e.to === 'bo@example.org') || { text: '', html: '' };
   asked++;
-  if (m.text.indexOf('\nMaths · Paper 7\nQ3: Solve x > 3 and x < 7 & "y" for whole numbers x.\n' + STEM + '\nQ5a: Find P(red).\nQ5b: Find P(blue).\nQ5c: Two beads are taken. Find P(both red).\n') === -1)
-    bad.push('Paper 7 is not its heading, then "Q3: <its words>", then the stem its parts share and each part’s own ask: ' + m.text.split('\n').slice(4, 14).join(' / '));
+  if (m.text.indexOf('\nMaths · Paper 7\nQ3 ✓: Solve x > 3 and x < 7 & "y" for whole numbers x.\n' + STEM + '\nQ5a ✗: Find P(red).\nQ5b sent: Find P(blue).\nQ5c 2/3: Two beads are taken. Find P(both red).\n') === -1)
+    bad.push('Paper 7 is not its heading, then "Q3 ✓: <its words>", then the stem its parts share and each part’s own ask, each with its mark — ✓, ✗, sent, the AI’s 2/3: ' + m.text.split('\n').slice(4, 14).join(' / '));
   asked++;
   const times = t => t.split(STEM).length - 1;
-  if (times(m.text) !== 1 || times(m.html) !== 1 || m.html.indexOf('<p><i>' + STEM + '</i></p><p><b>Q5a</b> — Find P(red).</p><p><b>Q5b</b> — Find P(blue).</p>') === -1)
+  if (times(m.text) !== 1 || times(m.html) !== 1 || m.html.indexOf('<p><i>' + STEM + '</i></p><p><b>Q5a ✗</b> — Find P(red).</p><p><b>Q5b sent</b> — Find P(blue).</p>') === -1)
     bad.push('the stem Q5a, Q5b and Q5c share is printed ' + times(m.text) + ' time(s) in the text and ' + times(m.html) + ' in the HTML — wanted once each, above the first of them');
   asked++;
-  if (m.text.indexOf('\nQ9 (again): Expand (x + 2)(x - 3).\n') === -1 || m.html.indexOf('<b>Q9 (again)</b> — Expand (x + 2)(x - 3).') === -1)
-    bad.push('a question first done before the week is not "Q9 (again): <its words>": ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
+  if (m.text.indexOf('\nQ9 (again) ✓: Expand (x + 2)(x - 3).\n') === -1 || m.html.indexOf('<b>Q9 (again) ✓</b> — Expand (x + 2)(x - 3).') === -1)
+    bad.push('a question first sent before the week is not "Q9 (again) ✓: <its words>", with this week’s mark and not the fortnight-old ✗: ' + JSON.stringify(m.text.split('\n').find(x => /^Q9/.test(x))));
   asked++;
-  if (m.html.indexOf('<b>Q3</b> — Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.') === -1 || /x < 7 &|"y"/.test(m.html))
+  if (m.html.indexOf('<b>Q3 ✓</b> — Solve x &gt; 3 and x &lt; 7 &amp; &quot;y&quot; for whole numbers x.') === -1 || /x < 7 &|"y"/.test(m.html))
     bad.push('the HTML does not escape a question’s words — "<", ">", "&" and quotes came off a phone: ' + JSON.stringify((m.html.match(/<b>Q3<\/b>[^<]*/) || [''])[0]));
 }
 {
@@ -425,16 +474,15 @@ function seeded(opts) {
   asked++;
   if (MAX !== 80) bad.push('DIGEST_WEEK_LIST_MAX is ' + MAX + ' — wanted 80: a week’s work, measured under Gmail’s clip (constants.gs)');
   const rows = [];
-  for (let i = 1; i <= 85; i++) rows.push({ person_id: 'P-S5', question_key: 'q:EVE-C' + i, first_done: '2026-10-02', last_done: '2026-10-02', times: 1,
-    label: 'Maths · Paper 8 · Q' + i, words: 'Work out ' + i + ' + ' + i + '.' });
-  rows.push({ person_id: 'P-S5', question_key: 'q:EVE-NONAME-1', first_done: '2026-10-02', last_done: '2026-10-02', times: 1, label: '', words: 'Work out 99 × 7.' });
-  rows.push({ person_id: 'P-S5', question_key: 'Somebody typed this', first_done: '2026-10-02', last_done: '2026-10-02', times: 1, label: '', words: '' });
-  b.seed('attempts', rows);
+  for (let i = 1; i <= 85; i++) rows.push(S('P-S5', 'q:EVE-C' + i, '2026-10-02', 'Maths · Paper 8 · Q' + i, 'right', 'Work out ' + i + ' + ' + i + '.'));
+  rows.push(S('P-S5', 'q:EVE-NONAME-1', '2026-10-02', '', 'right', 'Work out 99 × 7.'));
+  rows.push(S('P-S5', 'Somebody typed this', '2026-10-02', '', 'right', ''));
+  b.seed('submissions', rows);
   const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
   const m = plan.emails.find(e => e.to === 'yes@example.org') || { text: '', html: '', subject: '' };
-  const listed = m.text.split('\n').filter(x => /^Q\d+: Work out/.test(x));
+  const listed = m.text.split('\n').filter(x => /^Q\d+ ✓: Work out/.test(x));
   asked++;
-  if (listed.length !== 80 || listed[0] !== 'Q1: Work out 1 + 1.' || listed[79] !== 'Q80: Work out 80 + 80.' || /\nQ8[1-5]:/.test(m.text))
+  if (listed.length !== 80 || listed[0] !== 'Q1 ✓: Work out 1 + 1.' || listed[79] !== 'Q80 ✓: Work out 80 + 80.' || /\nQ8[1-5] /.test(m.text))
     bad.push('87 questions listed ' + listed.length + ' (' + JSON.stringify([listed[0], listed[listed.length - 1]]) + ') — wanted 80, Q1 to Q80 in number order, and none past');
   asked++;
   if (m.subject !== 'Eve’s week: 87 questions' || !/Eve worked on 87 questions/.test(m.text) || m.text.indexOf('\n…and 7 more.\n') === -1
@@ -452,7 +500,8 @@ function seeded(opts) {
   const long = (lead, n) => { let t = lead, i = 0; while (t.length < n) t += (++i % 9 ? ' word' + i : ' x < ' + i + ' & y'); return t; };
   const head = i => ('Maths · Paper ' + i + ' (Calculator) — November 2023 (Higher) · Statistics and probability · Set ' + i).slice(0, 110);
   const items = [];
-  for (let i = 0; i < MAX + 5; i++) items.push({ key: 'q:L-' + i, label: head(i) + ' · Q' + i + 'a', hidden: false, last: '2026-10-01', times: 1,
+  /* AND THE LONGEST MARK A VERDICT CAN BE, the AI's three digits a side. */
+  for (let i = 0; i < MAX + 5; i++) items.push({ key: 'q:L-' + i, label: head(i) + ' · Q' + i + 'a', hidden: false, last: '2026-10-01', verdict: 'ai:999/999',
     words: long('Stem ' + i + ': a scene', STEM_SHOWN + 200) + '\n---\n' + long('Ask ' + i + ': explain', SHOWN + 200) });
   G.__L = { id: 'P-S1', first: 'Ada', fresh: items, again: [] };
   const r = JSON.parse(JSON.stringify(b.ev('digestRender_(__L, { first: "Pat" }, { start: "2026-09-28", end: "2026-10-04" }, { brand: "@family.", site: "https://halexdias31-pixel.github.io/family/", hour: 18 })')));
@@ -462,50 +511,46 @@ function seeded(opts) {
     bad.push('80 of the longest questions make ' + kb.toFixed(1) + ' KB of HTML — wanted under Gmail’s ~102 KB clip (and over 40, the words printed at length), "…and 5 more." and the footer after them');
 }
 
-/* ---------- 3. THE LABEL MARKDONE KEEPS ------------------------------------------------------------------ */
+/* ---------- 3. THE LABEL submitAnswer KEEPS -------------------------------------------------------------
+   The name a parent reads came off a phone, so the row keeps it by the email's own rule (`attemptLabel_`):
+   tags out, spaces folded, capped. It was `markDone`'s to keep until 9 Oct, with a rule for filling a
+   blank cell on a day already covered; a press is a row of its own now, written once with whatever name
+   came with it, so that rule went with the upsert. */
 {
   const { b } = world();
   b.seed('people', [{ person_id: 'P-S1', first_name: 'Ada', last_name: 'Pupil', handle: 'adapupil', email: 's1@example.org',
                        role: 'student', pin: '0000', verified: 'TRUE' }]);
   const tok = b.post({ action: 'verifyLogin', email: 's1@example.org', pin: '0000' }).token;
   if (!tok) bad.push('could not sign Ada in, so the label was NOT checked');
-  const done = items => { asked++; return b.post({ action: 'markDone', token: tok, items: items }); };
-  const row = q => rowsOf(b, 'attempts').find(r => r.question_key === q) || {};
-  done([{ key: 'q:L1', day: '2026-09-29', label: '<b>Maths</b>  ·  Paper 1\n· Q3<script>x</script>' }]);
+  let n = 0;
+  const send = (key, label) => { asked++; n++;
+    return b.post({ action: 'submitAnswer', token: tok, items: [Object.assign({ id: (1758000000000 + n) + '-lb' + String(n).padStart(4, '0'), key: key, answer: '1', verdict: 'right' }, label === undefined ? {} : { label: label })] }); };
+  const row = q => rowsOf(b, 'submissions').find(r => r.key === q) || {};
+  send('q:L1', '<b>Maths</b>  ·  Paper 1\n· Q3<script>x</script>');
   if (row('q:L1').label !== 'Maths · Paper 1 · Q3 x') bad.push('a label with tags in it was kept as "' + row('q:L1').label + '" — wanted the tags out and the spaces folded');
-  done([{ key: 'q:L2', day: '2026-09-29', label: 'x'.repeat(400) }]);
+  send('q:L2', 'x'.repeat(400));
   if (String(row('q:L2').label).length !== 120) bad.push('a 400-character label was kept at ' + String(row('q:L2').label).length + ' — wanted the cap of 120');
-  done([{ key: 'q:L3', day: '2026-09-29' }]);
-  if (row('q:L3').label !== '') bad.push('a question sent with no label has "' + row('q:L3').label + '"');
-  /* A NAME FOR A DAY ALREADY COVERED FILLS THE BLANK CELL AND WRITES NOTHING ELSE. This said "that day
-     must still write nothing" until the parent email met rows the backlog had sent with no name, and
-     printed no raw key — see `attemptsUpsert_`. Still nothing is counted. */
-  const t0 = Number(row('q:L3').times);
-  const same = done([{ key: 'q:L3', day: '2026-09-29', label: 'Late name' }]);
-  if (same.writes !== 1) bad.push('a name arriving for a day already covered wrote ' + same.writes + ' cell(s) — wanted the one blank name, and nothing else');
-  if (row('q:L3').label !== 'Late name') bad.push('a name for a day already covered did not fill the blank label: "' + row('q:L3').label + '"');
-  if (Number(row('q:L3').times) !== t0) bad.push('naming a row on a covered day counted it: times ' + t0 + ' -> ' + row('q:L3').times);
-  done([{ key: 'q:L3', day: '2026-09-30', label: 'Late name' }]);
-  done([{ key: 'q:L3', day: '2026-10-01', label: 'A different name' }]);
-  if (row('q:L3').label !== 'Late name') bad.push('a label already on the row was overwritten with "' + row('q:L3').label + '"');
+  send('q:L3');
+  if (row('q:L3').label !== '') bad.push('a press sent with no label has "' + row('q:L3').label + '"');
 }
 
 {
-  /* A LIVE TAB FROM BEFORE THE `label` COLUMN — synced, the version stamps unmoved, so `autoMigrate`
-     has not added it. `addRow` reports every key with no column and `jsonOut` makes that an error, so
-     every `markDone` came back "Nothing was saved for: attempts.label", labelled or not, with the row
-     in fact written. The name is a nicety; the day must still save, and say it did. */
+  /* A TAB MADE BY HAND WITHOUT THE `label` AND `words` COLUMNS. `addRow` reports every key with no column
+     and `jsonOut` makes that an error, so a name written regardless would answer "Nothing was saved for:
+     submissions.label" over a row that was in fact written. The name and the words are the email's; the
+     press must still save, and say it did. */
   const { b } = world();
-  b.tabs.attempts[0] = b.tabs.attempts[0].filter(c => c !== 'label');
+  b.tabs.submissions[0] = b.tabs.submissions[0].filter(c => c !== 'label' && c !== 'words');
   b.seed('people', [{ person_id: 'P-S1', first_name: 'Ada', last_name: 'Pupil', handle: 'adapupil', email: 's1@example.org',
                        role: 'student', pin: '0000', verified: 'TRUE' }]);
   const tok = b.post({ action: 'verifyLogin', email: 's1@example.org', pin: '0000' }).token;
-  [[{ key: 'q:N1', day: '2026-09-29', label: 'Maths · Q1' }], [{ key: 'q:N2', day: '2026-09-29' }],
-   [{ key: 'q:N2', day: '2026-09-30', label: 'Maths · Q2' }]].forEach(items => {
+  [[{ id: '1758100000001-nl0001', key: 'q:N1', answer: '1', verdict: 'right', label: 'Maths · Q1', words: 'Work out 3 × 5.' }],
+   [{ id: '1758100000002-nl0002', key: 'q:N2', answer: '2', verdict: 'wrong' }]].forEach(items => {
     asked++;
-    const d = b.post({ action: 'markDone', token: tok, items: items });
-    if (!d.success || d.error) bad.push('with no label column, markDone ' + JSON.stringify(items) + ' answered ' + JSON.stringify(d).slice(0, 200) + ' — the day was written and must be reported saved');
+    const d = b.post({ action: 'submitAnswer', token: tok, items: items });
+    if (!d.success || d.error || !d.saved || !d.saved[items[0].id]) bad.push('with no label column, submitAnswer ' + JSON.stringify(items).slice(0, 80) + ' answered ' + JSON.stringify(d).slice(0, 200) + ' — the press was written and must be reported saved');
   });
+  if (rowsOf(b, 'submissions').length !== 2) bad.push('with no label column, ' + rowsOf(b, 'submissions').length + ' presses were written, wanted 2');
 }
 
 /* ---------- 3b. WHO MAY NOT BE TOLD, AND WHAT MAY NOT BE PRINTED ------------------------------------------ */
@@ -517,8 +562,8 @@ function seeded(opts) {
                       role: 'client', pin: '0000', verified: 'PENDING' }]);
   b.seed('family', [{ link_id: 'L9', parent_id: 'P-C8', child_id: 'P-S1', child_typed: '', state: 'accepted' }]);
   /* ONE PRACTICAL'S WORKSHEET, THREE BOXES (`guideBox_`): one question, by its name. */
-  const A = (pid, q, label) => ({ person_id: pid, question_key: q, first_done: '2026-10-01', last_done: '2026-10-01', times: 1, label: label || '' });
-  b.seed('attempts', [
+  const A = (pid, q, label) => S(pid, q, '2026-10-01', label || '');
+  b.seed('submissions', [
     /* THE CARD'S DURATION IN ONE OF THEM, as the phone sent a practical's name before `doneLabel_`:
        "60 min" reads to a parent as how long their child spent, so it never reaches an email. */
     A('P-S2', 'pr:PR-PH01#iv', 'Physics · AQA required practical · 60 min · Specific heat capacity · Worksheet'),
@@ -555,7 +600,7 @@ function seeded(opts) {
        a fault. The three whose text came off the phone — two labels and a key that is a sentence — are
        not printed at all, and are the "3 more". */
     if (!/Ben worked on 5 questions/.test(bo.text) || !/\n…and 3 more\.\n/.test(bo.text) || /q:BEN|pr:PR/.test(bo.subject + bo.text + bo.html)
-        || bo.text.indexOf('\nPhysics · AQA required practical · Specific heat capacity\nWorksheet\n') === -1)
+        || bo.text.indexOf('\nPhysics · AQA required practical · Specific heat capacity\nWorksheet ✓\n') === -1)
       bad.push('Bo’s email does not count what it does not print ("Ben worked on 5 questions", the practical by its name, "…and 3 more.", no raw key): ' + bo.text.split('\n').slice(2, 12).join(' / '));
   }
   /* AND THE CHILD'S OWN FIRST NAME, which goes in the subject and is a cell the child edits. */
@@ -718,34 +763,44 @@ function seeded(opts) {
   if (!r.week || r.week.start !== '2026-09-28' || mail.sent.length !== 2) bad.push('weeklyDigestRun on the Sunday clock ran ' + JSON.stringify(r) + ' and sent ' + mail.sent.length);
 }
 
-/* ---------- 5b. NO `attempts` TAB IS NOT A QUIET WEEK ------------------------------------------------------------
+/* ---------- 5b. NO `submissions` TAB IS NOT A QUIET WEEK ---------------------------------------------------------
    THE OWNER'S LEDGER HAD NO `attempts` TAB UNTIL 6 OCT, and `read` answers a missing tab with no rows —
-   so this run planned nothing, wrote nothing, and the Preview said "Nobody has done a question yet this
-   week" over a sheet that had never been told what anybody did. It must stop and say why, send nothing,
-   write nothing, and throw from the trigger so the owner is emailed the reason. */
+   so the run planned nothing, wrote nothing, and the Preview said "Nobody has done a question yet this
+   week" over a sheet that had never been told what anybody did. The same is true of `submissions`
+   until `ensureSchema` makes it: the run must stop and say why, send nothing, write nothing, and throw
+   from the trigger so the owner is emailed the reason. */
 {
   const { b, mail, setClock } = seeded();
   cfgSet(b, 'weekly_digest', 'send');
-  delete b.tabs.attempts;
+  delete b.tabs.submissions;
   b.ev('clearCache()');
   asked++;
   const w0 = b.log.writes;
   const r = run(b, SUN);
-  if (!/attempts tab/.test(String(r.error)) || !/setup=1/.test(String(r.error))) bad.push('with no attempts tab the Sunday run answered ' + JSON.stringify(r).slice(0, 200) + ' — wanted an error naming the attempts tab and /exec?setup=1');
-  if (mail.sent.length || b.log.writes !== w0) bad.push('with no attempts tab the run sent ' + mail.sent.length + ' and wrote ' + (b.log.writes - w0) + ' cell(s) — it must do neither');
+  if (!/submissions tab/.test(String(r.error)) || !/setup=1/.test(String(r.error))) bad.push('with no submissions tab the Sunday run answered ' + JSON.stringify(r).slice(0, 200) + ' — wanted an error naming the submissions tab and /exec?setup=1');
+  if (mail.sent.length || b.log.writes !== w0) bad.push('with no submissions tab the run sent ' + mail.sent.length + ' and wrote ' + (b.log.writes - w0) + ' cell(s) — it must do neither');
   setClock(at(SUN));
   let threw = '';
   try { b.ev('clearCache(); weeklyDigestRun({})'); } catch (e) { threw = String(e && e.message || e); }
-  if (!/attempts tab/.test(threw)) bad.push('weeklyDigestRun with no attempts tab did not throw saying so: "' + threw + '"');
+  if (!/submissions tab/.test(threw)) bad.push('weeklyDigestRun with no submissions tab did not throw saying so: "' + threw + '"');
   asked++;
   const tok = b.post({ action: 'verifyLogin', email: 'a1@example.org', pin: '0000' }).token;
   const pv = b.post({ action: 'digestPreview', token: tok });
-  if (pv.attempts !== false || !/attempts tab/.test(String(pv.warning))) bad.push('the Preview with no attempts tab answered attempts ' + pv.attempts + ', warning "' + pv.warning + '" — wanted false and the reason');
+  if (pv.submissions !== false || !/submissions tab/.test(String(pv.warning))) bad.push('the Preview with no submissions tab answered submissions ' + pv.submissions + ', warning "' + pv.warning + '" — wanted false and the reason');
   /* AND WITH THE TAB, IT SAYS SO THE OTHER WAY. */
   const ok = seeded();
   const tok2 = ok.b.post({ action: 'verifyLogin', email: 'a1@example.org', pin: '0000' }).token;
   const pv2 = ok.b.post({ action: 'digestPreview', token: tok2 });
-  if (pv2.attempts !== true || pv2.warning) bad.push('the Preview with an attempts tab answered attempts ' + pv2.attempts + ', warning "' + pv2.warning + '"');
+  if (pv2.submissions !== true || pv2.warning) bad.push('the Preview with a submissions tab answered submissions ' + pv2.submissions + ', warning "' + pv2.warning + '"');
+  /* AND THE `attempts` TAB IT LEFT BEHIND IS NOT READ: a week of rows there and none in `submissions` is
+     a week nobody sent anything, not a week of attempts. */
+  asked++;
+  const left = seeded();
+  left.b.tabs.submissions.splice(1);
+  left.b.tabs.attempts = [['person_id', 'question_key', 'first_done', 'last_done', 'times', 'label', 'words'],
+    ['P-S1', 'q:OLD-1', new Date(2026, 9, 1), new Date(2026, 9, 1), 1, 'Maths · Old · Q1', 'From the old tab.']];
+  const lp = JSON.parse(JSON.stringify(left.b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  if (lp.learners.length || /From the old tab|Old · Q1/.test(JSON.stringify(lp))) bad.push('the plan read the old attempts tab: ' + JSON.stringify(lp.learners).slice(0, 160));
 }
 /* ---------- 6. BOOKING THE SUNDAY ---------------------------------------------------------------------------- */
 {

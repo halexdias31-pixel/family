@@ -1354,12 +1354,23 @@ function aiScheme_(x) {
   return (aiPlain_(x.answer) + (note ? '\nExaminer\u2019s note: ' + note : '')).slice(0, 3000);
 }
 
+/* AND THE BOX KEEPS A WAY TO SEND. Greyed and left, the tile was a box with nothing to press: since 9 Oct
+   an answer reaches the account only when it is SENT (js/submit.js), so a worded answer written while
+   the AI went away would never leave the iPad. The tile becomes the plain Send (`qp-send`, verdict
+   `sent`) where it stands — the same gold disc in the same place — and the line still says why it is
+   not being marked. The next drawing of the card draws the plain Send itself (`aiTile_` answers '' once
+   `AI_OFF` is set). */
 function aiOff_(said) {
   AI_OFF = true;
   document.querySelectorAll('.qp-ai').forEach(box => {
     box.classList.add('is-off');
     const b = box.querySelector('.qp-ai-go');
-    if (b) b.disabled = true;
+    const send = typeof subSendTile_ === 'function' ? subSendTile_() : '';
+    if (b && send) {
+      const t = document.createElement('div');
+      t.innerHTML = send;
+      if (t.firstElementChild) b.replaceWith(t.firstElementChild);
+    } else if (b) b.disabled = true;
     const out = box.querySelector('.qp-verdict');
     if (out) out.textContent = said || 'AI marking isn\u2019t switched on';
   });
@@ -1401,21 +1412,27 @@ on('qp-ai', (el) => {
       box.classList.add(full ? 'is-right' : 'is-near');
       out.textContent = d.awarded + ' of ' + d.available + ' mark' + (d.available === 1 ? '' : 's') + ' \u00b7 AI';
       if (why) why.textContent = d.feedback || '';
+      /* MARKED IS A SUBMISSION — the answer and its marks, `ai:3/4`, one event on the account like a Check
+         (js/submit.js). The marks are whole numbers the server already held to the question's marks;
+         anything else is recorded as sent, never as a score nobody gave. The sentence is not kept: it is
+         about this answer, and the next device shows the marks. */
+      const a = Number(d.awarded), m = Number(d.available);
+      if (typeof subRecord_ === 'function') {
+        subRecord_(inp.getAttribute('data-k'), sent,
+          Number.isInteger(a) && Number.isInteger(m) && a >= 0 && m >= 1 && a <= m && m < 1000 ? 'ai:' + a + '/' + m : 'sent');
+      }
     })
     .catch(() => { done(); out.textContent = 'Could not reach the marker \u2014 try again'; });
 });
 
-/* TYPING TAKES THE AI'S VERDICT OFF, as it takes Check's off — find.js's listener does that for a box
-   with a scheme, and this is the same rule for the AI's row. Not while it is still marking: the
-   answer it was sent is compared when the reply lands. */
+/* TYPING TAKES THE AI'S SENTENCE OFF, as find.js's listener takes the verdict off every box — that one
+   draws the verdict line from the latest submission now (`subVerdictPaint_`), Mark with AI's included,
+   so this is left the one thing the store does not keep: the AI's sentence about the answer it marked.
+   Not while it is still marking: the answer it was sent is compared when the reply lands. */
 document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
-  const card = el && el.closest('.qcard');
-  const box = card && card.querySelector('.qp-ai');
+  const box = el && el.closest('.qp-ai');
   if (!box || box.classList.contains('is-busy') || box.classList.contains('is-off')) return;
-  box.classList.remove('is-right', 'is-near');
-  const out = box.querySelector('.qp-verdict');
-  if (out) out.textContent = '';
   const why = box.nextElementSibling;
   if (why && why.classList.contains('qp-ai-why')) why.textContent = '';
 });

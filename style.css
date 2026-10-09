@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-films-from-notflix";
+  --css-version: "2026-10-09-every-submission-an-event";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -8643,16 +8643,23 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .qcard-top span { font: 500 .68rem/1 var(--mono); color: var(--dim); white-space: nowrap; }
-/* ---------- `Done 4 Oct` -- THE DAY YOU LAST DID IT, BESIDE THE STAR ---------------------------------
-   ASKED FOR AS *"when a student does do a question, it should record the date they did it"*
-   (`doneSlot_` in find.js). It sat on the gold header's marks line; the header became tags, and the
-   date is not a tag -- it is yours, like the star, so it is in the row your marks are in
-   (`questionTiles_`). In the marks' old face and voice, not a verdict: green would read as "Correct",
-   which a date is not. The slot is there and empty until there is a date, so marking writes into it;
-   the row is 44px tiles tall whatever it holds, so nothing moves. `:empty` takes the gap off. */
-.tile-row .qcard-done { font: 500 .68rem/1 var(--mono); font-style: normal; color: var(--dim);
-                        white-space: nowrap; }
-.tile-row .qcard-done:not(:empty) { margin-left: .3rem; }
+/* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR -------------------------------------------------
+   IT WAS `Done 4 Oct` -- the day you last did it, in the marks' dim mono, deliberately NOT a verdict's
+   colour: "green would read as Correct, which a date is not". THE OWNER, 9 Oct: *"The kids don't need to
+   see the day they did something. Just whether it's right or not."* So it IS the verdict now, the latest
+   submission's (`subSlot_` in find.js), and takes the verdict line's own voice: its face and weight, its
+   `--good` and `--warn`, and its two marks drawn here rather than typed -- a tick, and for "not yet" the
+   turning arrow that says "go round again" (see `.qp-verdict` below for why never a cross). The AI's
+   "3/4" takes them as its own verdict line does -- full marks the tick, fewer the arrow -- and "Sent"
+   takes none, in the dim ink: nobody marked it. The slot is there and empty until there is a verdict, so a press writes into it; the
+   row is 44px tiles tall whatever it holds, so nothing moves. `:empty` takes the gap off. */
+.tile-row .qcard-verdict { font: 600 .74rem/1 var(--font); font-style: normal; color: var(--dim);
+                           white-space: nowrap; }
+.tile-row .qcard-verdict:not(:empty) { margin-left: .3rem; }
+.tile-row .qcard-verdict.is-right { color: var(--good); }
+.tile-row .qcard-verdict.is-near { color: var(--warn); }
+.tile-row .qcard-verdict.is-right::before { content: "\2713"; margin-right: .3rem; font-weight: 700; }
+.tile-row .qcard-verdict.is-near::before { content: "\21BB"; margin-right: .3rem; font-weight: 700; }
 /* ---------- THE CARD'S TAGS -------------------------------------------------------------------------
    ASKED FOR AS *"it has the title of it in one text name when it should still remain as tags."* The
    paper's name taken apart into the facts it is made of (`qTags_` in find.js), each in its kind's
@@ -9416,6 +9423,29 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .gd-box .kp-show:empty::before { color: var(--faint); }
 .gd-box .kp-caret { background: var(--gold); }
 .gd-box .kp-sel { background: var(--line); }
+/* ---------- AND A SEND BESIDE EACH BOX, SIGNED IN ---------------------------------------------------
+   *"I just want system to record each submition"* (9 Oct): a worksheet's answer reaches the account when
+   it is SENT, so each box has the plain Send (`guideBox_`). The box is `.qp-mark` -- the name the handler,
+   the verdict's colours and the input listener find a box by -- but laid out as a grid, not the verdict
+   row `.qp-mark` is everywhere else. THE LABEL'S OWN PARTS ARE ITS ITEMS (`display: contents`): the
+   question and its hint across the width, the field and the gold Send side by side under them -- the
+   disc at the field's foot, as at the chat bar -- then the verdict and where it went, a line each, the
+   verdict's reserved so "Sent" lands in a space that was already there. Send was a 48px row of its own
+   under each box at first, and three of them took the worksheet at 320 to the 70% floor and a scroll.
+   The label is still the label: a tap on the question still focuses its box. */
+/* `gap` WHOLE, not `column-gap`: `.qp-mark` is a flex row with `gap: .7rem`, and on a grid that is a
+   ROW gap too — 10px between the question and its hint, the hint and its box, that the box signed out
+   does not have (seen in the first shots, 390). */
+.qp-mark.gd-mark {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; align-items: end;
+  min-height: 0; margin: .35rem 0 0;
+}
+.qp-mark.gd-mark > .gd-box { display: contents; }
+.gd-mark > .gd-box > .gd-ask, .gd-mark > .gd-box > .gd-hint { grid-column: 1 / -1; }
+.gd-mark > .gd-box > .kp-field { grid-column: 1; }
+.gd-mark > .tile { grid-column: 2; flex: none; }
+.gd-mark > .qp-verdict { grid-column: 1 / -1; min-height: 1.3em; margin-top: 4px; }
+.gd-mark > .qp-saved { grid-column: 1 / -1; }
 
 
 /* ---------- A QUESTION CARD'S CHOICES ---------------------------------------------------------------

@@ -2784,9 +2784,11 @@ function goPage(id, to, instant) {
 function adoptMarks_() {
   try { adoptFavourites_(); } catch (e) {}
   try { adoptSpotlight_(); } catch (e) {}
-  /* AND THE DONE DATES THIS PHONE HAS THAT THE SHEET DOES NOT — see `attemptsSync_` in find.js. Here
-     for the same reason as the two above: `DATA` is the payload that has just landed. */
-  try { attemptsSync_(); } catch (e) {}
+  /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes —
+     and whatever this device has waiting to send goes up. See `subAdopt_` in js/submit.js. Here for the
+     same reason as the two above: `DATA` is the payload that has just landed. It was `attemptsSync_`,
+     the done dates, until the owner's *"Just whether it's right or not"* (9 Oct). */
+  try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
   /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
      waiting for the account goes up with it. See `answersPull_` in js/answers.js. */
   try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) {}
