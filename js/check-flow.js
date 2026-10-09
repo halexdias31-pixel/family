@@ -3030,7 +3030,12 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
      (`widgetsNear_`), which is the app's own answer to "I want this one now". */
   const vn = a.w.__t.widgetsOf('game').findIndex(x => String(x.id) === 'videos');
   a.w.__t.goPage('games', vn, true);
-  await wait(150);
+  /* AND THE CARD ITSELF WAITED FOR, the videos journey's rule above: under four of these runs at once
+     beside `check/ui.js` (9 Oct) the card was still drawn and not started 150ms after the turn — read
+     as "veiled as unstarted" and "not over the card it will fill", which is the queue being late and
+     not the loader being wrong. Bounded: a card that never starts still fails on what it shows. */
+  for (let n = 0; n < 150 && !a.w.document.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
+  await wait(50);
   const vid = a.w.document.querySelector('#s-games #wgt-videos');
   if (!vid) return ['the videos card did not draw on the Games column'];
   const l1 = one(vid, 'the videos card with its file held');
@@ -3039,7 +3044,9 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   if (vbox && !vbox.querySelector('input.vid-q')) bad.push('the search box is not drawn under the loader, so the card cannot hold its size');
   if (vid.getAttribute('aria-busy')) bad.push('the videos card is still veiled as unstarted — it started, and only its list is waiting');
   release();
-  await wait(120);
+  /* POLLED, BOUNDED — the same 120ms that is always enough alone was not under four runs at once. A
+     loader left on for good still fails here, five seconds later. */
+  for (let n = 0; n < 50 && (vid.querySelector('.loading') || !vid.querySelector('.vid-list .vid-row')); n++) await wait(100);
   if (vid.querySelector('.loading') || (vbox && vbox.getAttribute('aria-busy'))) bad.push('the videos file landed and the card still shows its loader');
   const got = [...vid.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
   if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the list reads ' + JSON.stringify(got) + ', not its one row');
@@ -3083,7 +3090,8 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   if (body && !body.querySelector('input[data-biz][data-k="reference"]')) bad.push('the boxes are not drawn under the loader, so the card cannot hold its size');
   answer({ success: true, records: [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
                                       provider: 'Example Insure', reference: 'PL-000000', due_on: '2030-01-01' }] });
-  await wait(120);
+  for (let n = 0; n < 50 && card.querySelector('.loading'); n++) await wait(100);
+  await wait(50);
   if (card.querySelector('.loading') || (body && body.getAttribute('aria-busy'))) bad.push('the records came back and the Insurance card is still under the loader');
   const ref = card.querySelector('[data-biz="pub_liability"][data-k="reference"]');
   if (!ref || ref.value !== 'PL-000000') bad.push('the records came back and the box under the loader reads ' + JSON.stringify(ref && ref.value) + ', not PL-000000');
@@ -8625,7 +8633,11 @@ check('while the app asks again, nobody is shown the failure\'s words or a Try a
     if (/Authorization is required|timeout/.test(text))
       bad.push(who + ' was shown the failure\'s own words: ' + (text.match(/.{0,40}(Authorization is required|timeout).{0,40}/) || [''])[0]);
     if (b.w.document.querySelector('[data-do="retry"]')) bad.push(who + ' was offered a Try again while the app is already trying');
-    if (!/Waiting for the server/.test(text)) bad.push(who + '\'s empty columns do not say they are waiting');
+    /* THE ONE LOADER, not "Waiting for the server" — a waiting sentence of its own until 9 Oct
+       (`nothingHere`; the owner: *"they should all have a simplistic simple loading thing"*). The quiet
+       line over the app is what says the app is asking again. The Spotlight column, because it is
+       empty for everybody until the payload lands — a visitor's Feed is the camera and "Sign in". */
+    if (!b.w.document.querySelector('#s-spotlight .loading[role="status"]')) bad.push(who + '\'s empty Spotlight column does not show the loader while the app asks again');
   });
   /* A DROPPED QUESTION FILE IS NOT MENDED BY ASKING THE BACKEND, so it keeps its sentence and its Try
      again — but its OWN reason: `why` was the backend's first, and printed Apps Script's page beside it. */

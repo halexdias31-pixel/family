@@ -135,6 +135,34 @@ the notepad do not move at all; Connect 4 and Othello grow by their status line 
 the widget's own drawing, and the task was to change what is drawn while waiting and nothing else; the
 loader adds nothing to it.
 
+### And after the merge with the integration branch (499ff0c), the same day
+
+The branch this was built on was merged with the day's other work — the Videos card made to look like
+YouTube (311), the essay sheet (312), the quiet retry (313), coursework (314), autosave (317), keeping
+Find's place (318), the YouTube reel (319), the whiteboard and reactions (307, 310) and the Progress
+column (320). Read for waits of their own:
+
+- **The quiet retry brought one.** While the app asks the backend again, every empty column said
+  *"Waiting for the server. The app is asking again by itself, and this fills in when it answers."* —
+  right about the state, and a twenty-fifth waiting sentence on the day the owner asked for none. It is
+  `loading_()` now (`nothingHere`, shell.js). The words are not lost: the quiet line over the app,
+  `#reconnect`, says "Reconnecting…" once for the whole app, and the columns under it wait the way every
+  card waits. "Waiting for the server" is on `check-loading`'s list of old phrases, and the retry's
+  journey in `check-flow` asks for the loader on the Spotlight column (empty for everybody until the
+  payload lands — a visitor's Feed is the camera and "Sign in") instead of the sentence.
+- **`#reconnect` itself is left**, for the splash's reason: it is the app's own line about the
+  connection, one per app and `role="status"`, not a card drawing its wait — the same family as the
+  splash's slow line and the 30-second banner, which the survey left.
+- **The whiteboard** is a widget with a `start`, so it waits under the veil like the other nine on Tools
+  with nothing written for it — the journey's list of Tools widgets left under the loader names it when
+  the veil is not taken off.
+- **The YouTube reel's poster under a veil** (319) is a picture standing in its own room while the player
+  behind it loads — media, rows 23 and 25–32's reason.
+- **The skeleton had been given a pill-round bar for the reactions' row** (307) the same day. It went
+  with the skeleton; the reactions keep their own row once the post is drawn.
+- **The essay's marking, autosave's "Saving…" lines and the coursework card** are presses in flight or
+  content already drawn, not waits — rows 33–38.
+
 ### The checks
 
 - **`js/check-loading.js`** (new, on check-all's roster after `check-css`). Reads every app file's strings
@@ -148,11 +176,13 @@ loader adds nothing to it.
   outside its block, or a `@keyframes` named for waiting (spin, load, wait, pulse, busy, shimmer,
   skeleton, sk) outside it; and the contract — `role="status"`, `aria-label="Loading"`, three dots, the
   block in tokens and `rem` with a reduced-motion rule — and at least fifteen callers of `loading_()`
-  (there are 23) and one of `loaded_()`. **Fifteen mutations, each on a copy of the files, each red:** a
-  waiting sentence back on the folder sheet, "Loading…" in a card, the loader copied by hand, a skeleton
-  post, `classList.add('is-loading')`, an inline spin, a shimmer keyframe, a `.loading` rule outside the
-  block, a colour literal, a px size, the animation left on under reduced motion, no `role`, no label,
-  `.bb-v.is-wait` put back, and every caller moved off. Green on the real files after.
+  (there are 25 after the merge) and one of `loaded_()`. **Mutations, each on a copy of the files, each
+  red, re-run after the merge:** the retry's "Waiting for the server" back in `nothingHere`, a waiting
+  sentence back on the folder sheet, "Fetching what is recorded…" back on the records, "Loading…" in a card, the loader copied by hand, a skeleton
+  post, `classList.add('is-loading')`, an inline spin, a shimmer keyframe inside the block and a spinning
+  one far outside it, a `.loading` rule outside the block, a colour literal, a px size, the animation
+  left on under reduced motion, no `role`, no label, two dots, `.bb-v.is-wait` put back, and every caller
+  moved off — nineteen, and a control copy with nothing changed, green. Green on the real files after.
 - **`check-flow`: "a widget waiting on its fetch shows the one loader and nothing else, and its content
   replaces it".** Three waits held and let go through the harness's own doors: the Videos card with
   `data/videos.json` held (`serve`), the Tools column's widgets drawn beside Games and not started, the
@@ -160,7 +190,14 @@ loader adds nothing to it.
   of the old words or classes beside it, over markup already drawn; released, the content where it stood
   and no loader. **Seven mutations, each red:** the queue never taking its veil off, the Videos card
   drawing no loader, "Looking for videos…" put back beside it, the Videos veil left on, the records' veil
-  left on, a widget drawn with no veil, two loaders on one card. The Bible journey's pins moved from
+  left on, a widget drawn with no veil, two loaders on one card — each re-run after the merge, four at a
+  time beside `check/ui.js`, each red with its own line and only its own, and a control copy green. That
+  last part took a change: under that load the card was still unstarted 150ms after the turn and the
+  records' answer not yet painted 120ms after it came, so a mutation of one wait was also reported as a
+  fault in the other two. The journey now waits for what it is about to read, bounded (fifteen seconds
+  for the card to start, five for each answer to land), the videos journey's own idiom; a loader left on
+  for good still fails, five seconds later. The retry's journey (above) is the eighth: the sentence put
+  back, red for a student and a visitor. The Bible journey's pins moved from
   `.is-wait`, "on its way" and "still coming" to the loader.
 - **`check/states.js` + `check/ui.js`.** Three widgets held on a real request: **settings · the business
   records still coming** (the `listRecords` POST), **games · the videos still coming** (`data/videos.json`,

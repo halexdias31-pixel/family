@@ -746,11 +746,14 @@ function nothingHere(whenEmpty, needsLibrary) {
      is asking, the column says it is waiting and fills in by itself. A dropped LIBRARY is not this:
      asking the backend again does not fetch the questions, so that still gets a reason and Try again —
      ITS OWN reason, never the backend's words beside it. */
+  /* AND THE COLUMN'S WAIT IS THE ONE LOADER. It arrived on 9 Oct as "Waiting for the server. The app is
+     asking again by itself, and this fills in when it answers." — right about the state, and a waiting
+     sentence of its own in every empty column, on the same day the owner asked for *"a simplistic
+     simple loading thing"* in place of every one of those (`loading_`, below). The words are not lost:
+     the quiet line over the app (`#reconnect`, "Reconnecting…") says what is happening once, for the
+     whole app, and the columns under it show that they are waiting the way every card does. */
   const asking = !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_();
-  if (asking && !LIBRARY_FAILED) {
-    return `<p class="empty">Waiting for the server.<br>
-        <span class="faint">The app is asking again by itself, and this fills in when it answers.</span></p>`;
-  }
+  if (asking && !LIBRARY_FAILED) return loading_();
   const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
     return `<p class="empty">Couldn’t load.<br>

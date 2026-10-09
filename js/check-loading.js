@@ -16,7 +16,8 @@
 
      1. AN OLD WAITING PHRASE in a string the app can draw — "Loading…", "Looking for", "Fetching",
         "Please wait", and the ones the inventory found ("Starting the camera", "still coming", the
-        Bible's "on its way" and "Opening the list"). Comments are not read: the prose in this
+        Bible's "on its way" and "Opening the list", and the quiet retry's "Waiting for the server",
+        which arrived in every empty column the same day). Comments are not read: the prose in this
         repository quotes the old words on purpose, so the next person knows what was there.
      2. A WAITING CLASS written into markup — a skeleton, a shimmer, a spinner, `is-wait`,
         `is-loading`, a `loader` — or the one loader's own class (`loading`) written out by hand
@@ -75,7 +76,10 @@ const PHRASES = [
   [/\bstill coming\b/i, 'Find\'s "The questions are still coming"'],
   [/\bOpening the list\b/i, 'the Bible cover\'s "Opening the list of books…"'],
   [/\bbooks is on its way\b/i, 'the Bible\'s "The list of the Bible\'s books is on its way"'],
-  [/\bhave not arrived yet\b/i, 'the score board\'s "Scores have not arrived yet" while they were on their way — the sentence is kept only where `scoreBoard_` knows the payload came'],
+  /* ARRIVED WITH THE QUIET RETRY ON THE SAME DAY (docs/history/313), in every empty column while the app
+     asked again — the column's wait is the loader; the line over the app says why, once. */
+  [/\bWaiting for the server\b/i, 'the retry\'s "Waiting for the server" in a column — the quiet line `#reconnect` says it, once, for the whole app'],
+  [/\bhave not arrived yet\b/i,'the score board\'s "Scores have not arrived yet" while they were on their way — the sentence is kept only where `scoreBoard_` knows the payload came'],
 ];
 /* THAT LAST ONE IS STILL IN THE APP, ONCE, AND IS RIGHT: `scoreBoard_` says it when the payload came
    (or failed) with nobody in it, which is a fact. It is let through only there, only after the line
@@ -209,7 +213,9 @@ for (const m of bare.matchAll(/@keyframes\s+([\w-]+)/g)) {
   if (!WAIT_KEYFRAME.test(name)) continue;
   if (ACCEPTED_KEYFRAMES[name]) { note.push(`style.css:${cssLine(m.index)}: @keyframes ${name} — ${ACCEPTED_KEYFRAMES[name]}`); continue; }
   if (name === 'loading' && inBlock(m.index)) continue;
-  bad.push(`style.css:${cssLine(m.index)}: @keyframes ${name} — a wait animated outside the one loader's block`);
+  bad.push(`style.css:${cssLine(m.index)}: @keyframes ${name} — ` + (inBlock(m.index)
+    ? 'a second waiting animation in the loader\'s block, which has one, `loading`'
+    : 'a wait animated outside the one loader\'s block'));
 }
 /* EVERY SELECTOR, with where it starts. A rule inside `@media` is read like any other: its selector
    still precedes a `{`. */
