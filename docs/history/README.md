@@ -307,4 +307,8 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [An ordering is tapped in order: the items are buttons, the answer is the order, and a machine marks it](303-an-ordering-is-tapped-in-order.md)
 - [The textbooks hold the teaching animations, and the loading screen draws its copy of them](304-the-textbooks-hold-the-animations.md)
 - [The films are whatever is in the Notflix folder: a sync from Drive, asked for by the videos card, and only an admin ever sees one](305-the-films-are-whatever-is-in-the-notflix-folder.md)
+- [The videos card reads like YouTube: a pill to search in, a picture on every row, and the watch page when something plays](311-the-videos-card-reads-like-youtube.md)
+- [An essay is written on a sheet: paragraphs with a return key you can see, and Gemini marks all of it](312-an-essay-is-written-on-a-sheet.md)
+- [The site asks again by itself: a payload that did not arrive is retried under one quiet line, the banner is an admin's, and a page older than the site reloads once](313-the-site-asks-again-by-itself.md)
+- [Signing in keeps your place in Find: the same chips, the same card, the same page, and the answer moves to you](318-signing-in-keeps-your-place-in-find.md)
 - [A YouTube Short is a reel the app can drive: poster first, one muted player under a veil, tap and Sound by message, a door when it cannot play — and the grey was the words' scrim on reels with no words](319-a-youtube-short-is-a-reel-the-app-can-drive.md)

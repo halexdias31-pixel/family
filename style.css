@@ -35,6 +35,9 @@
   --sunk:      #050505;
   --line:      #232323;
   --line-soft: #171717;
+  /* EVERY VIDEO'S LETTERBOX, a player's and a clip's in a message alike: black, not `--bg`, because the
+     bars round a picture are black on every screen there is, whatever colour the page around them. */
+  --letterbox: #000;
 
   --ink:       #e6e6e6;
   --dim:       #9a9a9a;
@@ -1416,6 +1419,25 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, .5rem); } }
 
+/* ---------- THE LINE WHILE THE APP ASKS AGAIN ---------------------------------------------------
+   `#reconnect` — see `RECONNECT` in shell.js. NOT THE BANNER, which is what the owner did not want:
+   no amber, no address, no advice, because the person reading it has nothing to do. The faint ink of
+   an aside at the size of one, in the strip the banner would use, on the raised black every card here
+   sits on. Under the banner and under a sheet; over the column, so a line that swallowed the tap
+   beneath it would be a fault of its own — it takes no presses at all.
+
+   EMPTY, IT IS NOTHING, and it is emptied rather than hidden — the note in index.html says why. */
+#reconnect {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 28;
+  top: calc(var(--top) + var(--safe-top) + .5rem);
+  margin: 0; max-width: calc(100% - 2rem);
+  padding: .3rem .8rem; border: 1px solid var(--line); border-radius: 2px;
+  background: var(--raised); color: var(--dim);
+  font-size: .78rem; line-height: 1.35; text-align: center;
+  pointer-events: none;
+}
+#reconnect:empty { padding: 0; border: 0; }
+
 /* Somebody who has asked their phone to stop animating things means it. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -2384,39 +2406,156 @@ button.text-drop { color: var(--bad); }
    it is sized in rem with the type and is about 18px a key at 320, which is a picture of a
    keyboard and not a breach of the 44px floor. The rungs and the line are the targets, and those
    are px. */
-/* ---------- VIDEOS: A BOX, A PLAYER, A TILE, A LIST ----------------------------------------------
-   THE PLAYER IS 16:9 AND STATES IT, so the card does not jump when a video is chosen and an iframe
-   (which has no size of its own worth having — 300x150) fills the width it is given. Black, not
-   `--sunk`, because it is a picture's letterbox and every player's letterbox is black.
-   THE ROWS ARE 44px TALL AT LEAST, in px: a fingertip does not scale with the root font. */
-.vid-box .vid-q { width: 100%; margin: 0 0 .5rem; }
-.vid-stage { display: none; position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;
-             border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.vid-stage.on { display: block; }
+/* ---------- VIDEOS: A PILL, A WATCH PAGE, AND A LIST OF PICTURES — YOUTUBE'S SHAPES IN OUR COLOURS --------
+   *"Can you also make the video serger widget look more like YouTube."* (9 Oct, note 311.) The shapes
+   are YouTube's — a fully rounded search box with a magnifier in it, a result that is a 16:9 picture
+   with a badge in its corner and a bold two-line title beside it, and a watch page that is the
+   player, then its title, then one dim line — and the colours are this app's. NOTHING IS RED, which
+   is the one colour every YouTube page leads with: here red only ever means something is wrong (the
+   note over `--bg`), and a red play mark on a list of cartoons would be a warning nobody meant.
+
+   THE CARD'S OWN COLOURS ARE DECLARED ON THE CARD, the chess board's rule: each is a mix of tokens
+   that already exist, named here so the card is the only place they are offered. (The player's black
+   is not one of them: a letterbox is every video's, so it is `--letterbox` at `:root`.)
+     --vid-scrim      the badge's plate: YouTube's black-at-80% behind its duration, so a word sits
+                      on any picture, light or dark.
+     --vid-veil       the lighter wash over the picture of the row that is playing.
+     --vid-frame      the poster: a flat neutral frame, YouTube's missing picture — about a tenth of the
+                      ink over the card, where YouTube's is a tenth of white over its page.
+     --vid-mark       the kind's mark in that frame, as quiet as the card's faint words.
+   THE RADIUS IS YOUTUBE'S 8px, not the app's 3: a thumbnail's rounded corner is half of what makes a
+   list read as YouTube's at a glance. px, like every radius here — a corner that grew with the root
+   font would round differently on every phone.
+
+   NO GRID FOR A WIDE CARD. There was one, from a 30rem container query, and no card ever reached it:
+   measured on 9 October the card is 217px wide at 320, 271 at 390, 376 at 768, 341 at 1280 and 303 at
+   1920, because a column is a phone-width card on every screen, and the Saved column draws it at 271.
+   Untested CSS shipped to every phone for a width that does not exist, so it went (review of 9 Oct).
+   Every width gets the compact row, which is what YouTube itself draws in a column that size — its
+   watch page's "up next" list. */
+.vid-box { --vid-r: 8px;
+           --vid-scrim: color-mix(in srgb, var(--bg) 80%, transparent);
+           --vid-veil: color-mix(in srgb, var(--bg) 72%, transparent);
+           --vid-frame: color-mix(in srgb, var(--ink) 11%, var(--raised));
+           --vid-mark: var(--faint); }
+
+/* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`,
+   and the `<label>` round both hands a tap on it to the box. The box keeps the stylesheet's 16px type
+   (iOS zooms on anything smaller) and its 44px floor; only its corners and its left room change. The
+   magnifier's own 18px is px because every `.tile-i` is; the room round it is rem, like every length
+   that is not a target. */
+.vid-search { position: relative; display: block; margin: 0 0 .5rem; }
+.vid-search .tile-i { position: absolute; left: 1rem; top: 0; bottom: 0; margin: auto 0;
+                      color: var(--dim); pointer-events: none; }
+.vid-search:focus-within .tile-i { color: var(--gold); }
+.vid-box .vid-q { width: 100%; margin: 0; padding-left: calc(1rem + 18px + .55rem); padding-right: 1rem;
+                  border-radius: 999px; }
+/* THE ✕ A BROWSER DRAWS IN A SEARCH BOX, IN THE CARD'S OWN GREY. `type="search"` is what puts it there,
+   and it is half of what makes the pill read as YouTube's — but Chromium draws it in its own default
+   blue, the one colour on the card from outside the palette, inside a pill whose ring has just turned
+   gold. Drawn here as the same 1.4-stroke cross the tiles use, as a mask, so it is painted in
+   `--dim` and goes gold with the magnifier. WebKit and Blink only; Firefox draws no ✕ at all. */
+.vid-box .vid-q::-webkit-search-cancel-button {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin: 0; cursor: pointer;
+  background: var(--dim);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat; }
+.vid-search:focus-within .vid-q::-webkit-search-cancel-button { background: var(--gold); }
+
+/* THE WATCH PAGE, ONLY WHILE SOMETHING PLAYS. The player is 16:9 and states it, so the card does not
+   jump when a video is chosen and an iframe (whose own size, 300x150, is worth nothing) fills the
+   width it is given. Then the title — YouTube's is the boldest line on the page — and the dim line,
+   with the Full screen tile BESIDE them rather than under them: see `vidNow_` for the 40px it cost. */
+.vid-watch { display: none; margin: 0 0 .6rem; }
+.vid-watch.on { display: block; }
+.vid-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--letterbox);
+             border-radius: var(--vid-r); overflow: hidden; }
 .vid-stage .vid-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
-                         background: #000; object-fit: contain; }
-.vid-acts { margin: .45rem 0 0; }
-.vid-stage:not(.on) + .vid-acts { display: none; }
+                         background: var(--letterbox); object-fit: contain; }
+.vid-under { display: flex; align-items: flex-start; gap: .5rem; }
+.vid-now { flex: 1 1 0; min-width: 0; padding: .5rem .1rem 0; }
+.vid-now-t { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.3; color: var(--ink);
+             overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical;
+             -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.vid-now-k { margin: .2rem 0 0; font-size: .74rem; line-height: 1.35; color: var(--dim); }
+/* `.vid-under` AND NOT `.vid-acts` ALONE: `.tile-row` sets its own margin far below this, and a single
+   class here would lose to it. */
+.vid-under .vid-acts { flex: none; margin: .4rem 0 0; }
+
 .vid-said { margin: .45rem 0 .3rem; font-size: .78rem; }
-.vid-list { list-style: none; margin: 0; padding: 0; }
-.vid-list li { margin: 0; padding: 0; }
-.vid-row { display: flex; flex-direction: column; align-items: flex-start; gap: .12rem; width: 100%;
-           min-height: 44px; padding: .45rem .1rem; text-align: left; text-decoration: none;
-           background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0;
-           color: var(--ink); font: inherit; cursor: pointer; }
-.vid-row .vid-t { font-size: .92rem; line-height: 1.25; overflow-wrap: anywhere; }
-.vid-row .vid-k { font-size: .72rem; color: var(--dim); }
+
+/* ---------- THE ROW: A PICTURE, A TITLE, A LINE ---------------------------------------------------
+   COMPACT: the picture on the left at 42% of the row — YouTube's "up next" proportion — and the words
+   on the right; no wider than 7rem, which a card at 1280 would otherwise pass, with every row a
+   picture 81px tall. No rule between rows; YouTube separates results with air, not lines.
+   THE AIR IS INSIDE THE ROW, as padding, not between rows as a gap: the same pitch, but the space
+   between two pictures is part of a row's target rather than a strip that belongs to neither. A card
+   with a long list is drawn at the 0.7 floor (`paneReach_`), and there a 51px picture alone is a 36px
+   target. The row is still 44px tall at least, in px: a fingertip does not scale with the root font.
+   THE WORDS COME FIRST IN THE MARKUP (`vidRow_` says why) and `order` draws the picture first. */
+.vid-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.vid-list li { margin: 0; padding: 0; min-width: 0; }
+.vid-row { display: flex; align-items: flex-start; gap: .6rem; width: 100%; min-height: 44px; margin: 0;
+           padding: .25rem 0; text-align: left; text-decoration: none; background: none; border: 0;
+           border-radius: var(--vid-r); color: var(--ink); font: inherit; cursor: pointer; }
+.vid-th { order: -1; position: relative; flex: 0 0 min(42%, 7rem); aspect-ratio: 16 / 9;
+          border-radius: var(--vid-r); overflow: hidden; background: var(--vid-frame); }
+/* THE POSTER IS UNDER EVERY PICTURE, NOT INSTEAD OF ONE: it is what shows while a picture loads and
+   what is left when one fails, so no row is ever a hole and the list keeps one rhythm. A flat frame
+   and the kind's mark — no letter, no gold: `vidPoster_` says why. The mark sits a little above the
+   middle (the padding), clear of a "Documentary" badge in the corner at 320. */
+.vid-poster { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+              padding-bottom: 12%; background: var(--vid-frame); color: var(--vid-mark); }
+.vid-poster .tile-i { width: 20px; height: 20px; }
+/* THE ROW THAT IS PLAYING SAYS "PLAYING" IN THE MIDDLE OF ITS PICTURE, and the poster's mark is in the
+   middle too: under the veil it showed through and ran into the word. A picture covers the mark
+   anyway; a poster that is playing has nothing else to say. */
+.vid-row.on .vid-poster .tile-i { visibility: hidden; }
+.vid-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+/* A PICTURE THAT FAILED, taken away by the listener in games.js, so the poster under it is what shows.
+   Not left to the browser: Safari draws its broken-picture mark even with `alt=""`. */
+.vid-img.is-gone { display: none; }
+/* THE BADGE, IN YOUTUBE'S DURATION SPOT: a kind that tells the row apart, and the out-arrow on a row
+   that leaves. YouTube's is about 12px; this was .62rem, 8px at 320 and 6px on an admin's card at the
+   zoom floor, which is a smudge — .68rem is as large as "Documentary" and its arrow can be and still
+   fit a 91px picture at 320. */
+.vid-badge { position: absolute; right: .3rem; bottom: .3rem; display: inline-flex; align-items: center;
+             gap: .2rem; padding: .08rem .3rem; border-radius: 4px; background: var(--vid-scrim);
+             color: var(--ink); font-size: .68rem; font-weight: 600; line-height: 1.35; }
+.vid-out { display: inline-flex; }
+.vid-badge .tile-i { width: 11px; height: 11px; }
+.vid-playing { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+               gap: .3rem; background: var(--vid-veil); color: var(--gold); font-size: .66rem;
+               font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.vid-playing .tile-i { width: 12px; height: 12px; fill: currentColor; }
+.vid-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .22rem; }
+/* TWO LINES OF TITLE AT MOST, then an ellipsis — YouTube's clamp, and the reason a long title no longer
+   makes one row three times the height of the rest. `overflow-wrap: anywhere` still holds a title with
+   no space in it inside the row at 320. */
+.vid-row .vid-t { font-size: .86rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
+                  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+                  line-clamp: 2; overflow: hidden; }
+/* AND ONE LINE OF META, clipped with an ellipsis, as YouTube's is. Two lines of title and one of this
+   are shorter than the picture at every width measured, so every row is the picture's height and the
+   list keeps one pitch. */
+.vid-row .vid-k { font-size: .7rem; line-height: 1.35; color: var(--dim);
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vid-row.on .vid-t { color: var(--gold); }
-.vid-row.is-out .vid-k { color: var(--faint); }
+/* A PRESS DIMS THE PICTURE for as long as the finger is on it — no movement, so nothing for
+   `prefers-reduced-motion` to take away. */
+.vid-row:active .vid-th { opacity: .82; }
+.vid-row:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .vid-none { padding: .45rem 0; font-size: .85rem; }
 /* A FILM NOT IN THE DRIVE YET IS A ROW THAT OPENS NOTHING, and looks it: dimmed, no pointer. The row is
    still 44px — it is read, not pressed, but it sits in a list of things that are pressed. */
 .vid-row.is-off { cursor: default; }
+.vid-row.is-off .vid-th { opacity: .5; }
 .vid-row.is-off .vid-t { color: var(--dim); }
+
 /* THE ADMIN'S SYNC ROW: the silver tile and, beside it, when it last ran — the tile's note made visible,
    since a 44px plate has no room for it. Drawn for an admin only; for anybody else `.vid-admin` is an
    empty element and takes no room. */
-.vid-admin .tile-row { margin: .45rem 0 0; }
+.vid-admin .tile-row { margin: 0 0 .5rem; }
 .vid-synced { flex: 1 1 0; min-width: 0; font-size: .72rem; line-height: 1.3; color: var(--dim);
               overflow-wrap: anywhere; }
 
@@ -3386,7 +3525,7 @@ button.text-drop { color: var(--bad); }
 .msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: .8rem; }
 .msg-pic img { display: block; width: 100%; border-radius: .8rem; }
 .msg-pic img { height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
-.msg-vid { max-height: 20rem; background: #000; }
+.msg-vid { max-height: 20rem; background: var(--letterbox); }
 /* A CLIP THAT WOULD NOT PLAY becomes a link (`postVidFail_` in posts.js) and kept `.msg-vid` — so it
    was a 16rem black slab with an underlined gold line at its top edge and nothing under it. Drawn as
    the file chip it now is: a plate, ink, no rule. */
@@ -11660,6 +11799,87 @@ button.scr-sq { cursor: pointer; }
 /* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
 .qp-compose > .qp-saved { margin: 2px 14px 0; }
 
+/* ---------- AN ESSAY'S SHEET -----------------------------------------------------------------------------
+   THE OWNER, 9 Oct, about a pupil on a forty-mark creative writing question: *"firstly it doesnt let him
+   do paragraphs and also i want it to mark with ai."* The pill above is five lines and then a letterbox;
+   an essay is four or five paragraphs. So a box that asks for extended writing (`ansEssay_`, keypad.js)
+   is a SHEET: the card's full width, the paper palette in tokens only (CLAUDE.md, two palettes), ruled in
+   the paper's own hairline (`--paper-rule`) one rule per line of writing, so the page reads as "write
+   here, at length" before a word is on it -- and a blank line between paragraphs is a ruled line with
+   nothing on it, which is what a paragraph break looks like on paper.
+
+   SIZED IN LINES OF WRITING, IN px. The ink is 16px (iOS zooms into anything smaller, keypad.js) on a
+   24px line, so a line is a pixel number on every screen and the rules land under the words. EIGHT LINES
+   TO START ON A PHONE, TWELVE ON A TABLET (`--sheet-lines`), growing with the essay to THE ROOM ABOVE THE
+   PAD and then scrolling inside, the line being typed kept in view (`kpCaretSeen_`). The room is the
+   screen less the pad's own height -- measured by keypad.js when it comes up (`--kp-h`) and the pad's
+   five rows of 48px until then -- less the paper's edges, the row under it and the 12px the pad is kept
+   clear by: 112px. The SAME CAP WITH THE PAD DOWN, so the sheet is the same height whether or not the
+   pad is up and putting it away moves nothing; and a capped sheet is what keeps a long essay from making
+   its card taller than its pane, which `paneReach_` answers by drawing the whole card smaller. Never less
+   than five lines, however short the screen. */
+.qp-essay {
+  --sheet-line: 24px;
+  --sheet-lines: 8;
+  --sheet-room: max(calc(var(--sheet-line) * 5), calc(100dvh - var(--kp-h, 273px) - 112px));
+}
+@media (min-width: 700px) { .qp-essay { --sheet-lines: 12; } }
+.qp-sheet {
+  display: block; margin: 0; padding: 12px 16px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border-radius: var(--r);
+}
+/* THE RING, AS ON THE BAR: gold while it is written in, green or amber once marked -- outside the paper,
+   on the card, where each reads at about 11:1. */
+.qp-sheet:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.qp-mark.is-right > .qp-sheet { box-shadow: 0 0 0 3px var(--good); }
+.qp-mark.is-near > .qp-sheet { box-shadow: 0 0 0 3px var(--warn); }
+/* THE DRAWING IS THE SHEET'S WRITING AREA: no padding of its own (the paper's is the margin), so line n
+   is 24n to 24n+24 from its top and its rule at 24n+23. `local`, so the rules scroll with the words. Four
+   classes, over the chat bar's `.kp-field.kp-words > .kp-show`. */
+.qp-sheet > .kp-field.kp-essay > .kp-show {
+  padding: 0; font: 400 16px/var(--sheet-line) var(--font);
+  min-height: min(calc(var(--sheet-line) * var(--sheet-lines)), var(--sheet-room));
+  max-height: var(--sheet-room);
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--sheet-line) - 1px),
+    var(--paper-rule) calc(var(--sheet-line) - 1px), var(--paper-rule) var(--sheet-line));
+  background-attachment: local;
+  overscroll-behavior: contain;
+}
+.qp-sheet > .kp-field.kp-essay .kp-caret { height: 1.2em; }
+/* HOW TO MAKE A PARAGRAPH, SAID WHERE THE PARAGRAPHS GO -- the question the owner asked, answered on the
+   empty sheet. GONE WITH THE FIRST LETTER, AND NOT BEFORE: this was `:empty`, and the caret is a span in
+   the drawing, so the hint went the moment the sheet was tapped -- the review of 9 Oct, on an iPad, saw
+   it on the sheet and then a blank ruled page with the pad up and "0 words", at the one moment it is
+   for. So it hangs on `is-blank`, which the field carries while nothing is written (`kpCount_`), and it
+   is laid BEHIND the caret, absolutely, so the caret blinks at the start of the first line over it as a
+   phone's placeholder does. */
+.qp-sheet > .kp-field.kp-essay.is-blank > .kp-show::before {
+  content: "Write your answer here. Press return to start a new paragraph.";
+  position: absolute; top: 0; left: 0; right: 0; color: var(--paper-dim); pointer-events: none;
+}
+/* THE ROW UNDER IT: the tiles at the start, the word count at the far end, where a glance finds it. */
+.qp-sheet-foot { margin: 8px 0 0; }
+.qp-words {
+  margin-left: auto; padding: 0 4px; white-space: nowrap;
+  font: 600 .78rem/1.3 var(--font); color: var(--dim); font-variant-numeric: tabular-nums;
+}
+.qp-ai-note { flex: 1 1 10rem; min-width: 0; padding: 0 4px; font: 400 .78rem/1.3 var(--font); color: var(--dim); }
+/* THE TILE'S NAME BESIDE IT (`ansBox_`): a mark alone was a sparkle nobody had been told the meaning of,
+   under the one action the sheet ends in. In the verdict's own voice, so it reads as the tile's caption
+   and not as a second control. */
+.qp-ai-say { padding: 0 2px; white-space: nowrap; font: 600 .78rem/1.3 var(--font); color: var(--ink); }
+/* AN ESSAY'S MARK, KEPT WHILE IT IS REVISED (`aiKeptPaint_`, keypad.js): said to be stale by its words
+   ("· before your changes") and by losing its colour -- the verdict in the plain dim of a line with no
+   verdict, and no green or amber ring on a sheet that is no longer the text that was marked. */
+.qp-essay.is-stale > .qp-verdict { color: var(--dim); }
+/* THE VERDICT AND THE SAVED LINE SIT UNDER THE ROW, in line with the paper's edge rather than the pill's
+   text, which is 14px in from a rounded end the sheet does not have.
+   `.qp-compose.qp-essay`, NOT `.qp-essay`: the chat bar's own margins are `.qp-compose > …` at the same
+   weight, and a rule that wins only by coming later is the one `check/cascade.js` exists to refuse --
+   move either block and the essay's lines would silently take the pill's 14px back. */
+.qp-compose.qp-essay > .qp-verdict { margin: 6px 4px 0; }
+.qp-compose.qp-essay > .qp-saved { margin: 2px 4px 0; }
+
 /* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
    TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
    `clamp(13.5px, 3.8vw, 16px)`, so 2.75rem is 40.75px on a phone. Fifth conviction of that rule
@@ -11872,6 +12092,16 @@ button.scr-sq { cursor: pointer; }
 /* ⇧ LIT WHILE IT IS ON, AND A BAR UNDER IT WHILE IT IS LOCKED -- the phone's own two signs for it. */
 .kp-key.kp-shift.is-on { background: var(--kp-face); color: var(--kp-ink); }
 .kp-key.kp-shift.is-lock { box-shadow: inset 0 -4px 0 var(--kp-ink); }
+/* AN ESSAY'S RETURN (`KP_RETURN`, keypad.js): two letters wide at the end of the space bar's row, where a
+   phone keeps it, and SAYING "return" under its arrow -- the `↵` alone, a glyph the size of ← and →, was
+   the new line nobody found (*"it doesnt let him do paragraphs"*, 9 Oct). The arrow over the word, so
+   both fit the 54px face it has at 320. */
+.kp-key.kp-ret { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.kp-ret-i { font: 600 1.15rem/1 var(--font); }
+.kp-ret-k { font: 600 .78rem/1 var(--font); letter-spacing: .02em; }
+/* AND AN ESSAY'S ✓ SAYS "done" (`KP_DONE_ESSAY`, keypad.js): on an essay it only puts the pad away, and
+   the paper aeroplane it wears elsewhere is Send's mark. */
+.kp-key.kp-done-k { font: 700 .95rem/1 var(--font); letter-spacing: .02em; }
 /* ---------- THE LETTER UNDER THE FINGER, SHOWN ABOVE IT ------------------------------------------------
    A FINGER COVERS A 29px KEY WHOLE, so the key says which it was where it can be seen, as the phone's
    does -- while it is pressed (`.is-pressed`, put on at `pointerdown` by shell.js) and no longer. The
@@ -11899,7 +12129,10 @@ button.scr-sq { cursor: pointer; }
    `.qp-ai-go`'s 120px width and its grey disabled fill WERE HERE, for the gold button it was; a tile
    draws its own disabled state (`.tile.is-send[disabled]`), so there is nothing left to say. */
 .qp-ai.is-busy .qp-verdict { color: var(--dim); }
-.qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+/* `pre-line`, because an essay's marking comes back as lines -- the strands' marks, then two or three
+   things to do next (`aiMarkAsk_` in dopost.gs) -- and run together they are one paragraph of advice. */
+.qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); white-space: pre-line; }
+.qp-essay + .qp-ai-why { margin-inline: 4px; }
 .qp-ai-why:empty { display: none; }
 
 /* ---------- `.resume` WAS HERE --------------------------------------------------------------------
