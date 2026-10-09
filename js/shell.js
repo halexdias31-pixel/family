@@ -499,6 +499,10 @@ function go(id, remember, instant) {
    `const` read before its own line throws, including through `typeof`, which is the one check that
    cannot see into a temporal dead zone. A function declaration is hoisted, so this is safe. */
 function startScreen_(id, arriving) {
+  /* NOT A COLUMN A LANDING PAYLOAD LEFT ALONE — its markup was not replaced, so what runs in it is still
+     running, and restarting it is what moves the caret: the notepad's `start` writes its value back.
+     See `landRepaint_`. */
+  if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) return;
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
   if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }
@@ -629,6 +633,8 @@ function paint(id) {
      column with the keypad up, and the box it was typing into was gone (diag-signin, A). `findKeep_`
      (js/answers.js) says when, and draws it again a moment after the box is left. */
   if (typeof findKeep_ === 'function' && findKeep_(id)) { STALE[id] = 1; return; }
+  /* AND NO COLUMN IS REBUILT BY A PAYLOAD LANDING UNDER SOMEBODY TYPING IN IT — see `landRepaint_`. */
+  if (typeof reconnectKeep_ === 'function' && reconnectKeep_(id)) { STALE[id] = 1; return; }
   /* Drawn is fresh, by definition, whoever asked for it. */
   delete STALE[id];
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
@@ -711,7 +717,20 @@ function nothingHere(whenEmpty, needsLibrary) {
      `data/questions.json`, and they fail independently — the library is a static file a weak signal
      can drop while the payload sails through. Reporting only the first meant a dropped library was
      drawn as "nothing in the library yet". See `libraryRows_` for the whole note. */
-  const why = LOAD_FAILED || LIBRARY_FAILED;
+  /* ---------- BUT NOT WHILE THE APP IS ASKING AGAIN BY ITSELF ----------------------------------------
+     FOUND BY REVIEW: "Couldn't load. timeout. Try again" in the middle of the Feed, under the quiet line
+     saying "Reconnecting…" — one telling the visitor it is in hand, the other telling them to act, with
+     the failure's own words (for an HTML reply, Apps Script's "Authorization is required" — the
+     diagnostic that is an admin's only) and a button that puts the splash back up. While `RECONNECT`
+     is asking, the column says it is waiting and fills in by itself. A dropped LIBRARY is not this:
+     asking the backend again does not fetch the questions, so that still gets a reason and Try again —
+     ITS OWN reason, never the backend's words beside it. */
+  const asking = !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_();
+  if (asking && !LIBRARY_FAILED) {
+    return `<p class="empty">Waiting for the server.<br>
+        <span class="faint">The app is asking again by itself, and this fills in when it answers.</span></p>`;
+  }
+  const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
     return `<p class="empty">Couldn’t load.<br>
         <span class="faint">${esc(why)}</span><br>
@@ -3171,9 +3190,12 @@ function api(body, opts) {
          do. So the phone forgets the account the way Sign out does, once, and says why. A code rather
          than the sentence, so a reworded refusal cannot turn this off. */
       /* THROUGH `signedOut_` (me.js), THE ONE WAY OUT — this branch cleared `USER` and nothing else, so
-         the person's inbox, stars and done dates outlived a session the server had already ended. */
+         the person's inbox, stars and done dates outlived a session the server had already ended.
+         `ended`, BECAUSE NOBODY LEFT: the person is still holding the phone, often mid-question — the
+         refusal is usually the answer they just typed going up — so Find keeps its place for them to sign
+         in again to (docs/history/318). Everything else of theirs goes, as for Sign out. */
       if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
-        if (typeof signedOut_ === 'function') { try { signedOut_(); } catch (e) {} }
+        if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) {} }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
         toast('Signed out — please sign in again');
       }
@@ -3697,14 +3719,313 @@ async function bootJson_(res) {
     /* The page's text rather than its title: an Apps Script error page is titled just "Error". */
     const said = String(body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
       .replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, 160);
-    throw new Error('The reply was not valid JSON (HTTP ' + res.status + ')'
+    const no = new Error('The reply was not valid JSON (HTTP ' + res.status + ')'
       + (said ? ': ' + said : ': it was empty'));
+    /* A WEB PAGE, as against an empty or cut-off reply. The second is a connection and asking again
+       mends it; the first is Apps Script saying something only a person can act on — see
+       `RECONNECT`, which shows an admin the advice at once for this and only this. */
+    no.page = /^\s*</.test(body);
+    throw no;
+  }
+}
+
+/* ==================================================================================================
+   A PAYLOAD THAT DID NOT ARRIVE IS ASKED FOR AGAIN BY THE APP, NOT REPORTED TO THE VISITOR.
+
+   REPORTED WITH A SCREENSHOT, 9 Oct: an orange bar across the top of Find — "Could not reach the
+   backend. Something else went wrong on the way. Open it in a tab — the page itself will say which
+   it is. timeout · site … · css …" — and *"I don't like when this happens I would rather site just
+   refreshed itself."* The owner had just run `clearPayloadCache`, so that load built the payload cold
+   and ran past the sixty-second deadline in `load()`. Apps Script finishes that work anyway and
+   caches it, so a second ask a moment later would have been answered at once — and nothing asked.
+   The app gave up after one try and handed whoever was holding the phone a deployment checklist.
+
+   SO A FAULT ON THE WAY — the deadline, no connection ("Failed to fetch", Safari's "Load failed",
+   NetworkError), a reply that is not JSON — books the next ask, and the app stays up on what it has:
+   the files (`filesOnly_`) and whatever was already drawn. STRAIGHT AWAY after a timeout, because the
+   server's own work finished and was cached; three seconds after a fast failure; then about 10s, 30s,
+   60s, and every two minutes for as long as the page is open. At once on `online`, and on coming
+   back to the page. A success stops it; a load somebody asked for — a sign-in, a save, Try again —
+   starts the count again.
+
+   AN ASK THAT COMES ROUND WHILE A LOAD IS IN THE AIR WAITS FOR IT, AND IS NOT FORGOTTEN. It was
+   dropped, on the word that "the one in the air books what comes next" — and found by review, that
+   one did not always: a retry overtaken by a Try again landed, saw it had been overtaken, and booked
+   nothing, so "Reconnecting…" stayed on the screen for good over a backend that had been healthy for
+   minutes. Now it is marked `due`, and `load()`'s `finally` asks the moment nothing is in the air,
+   unless the load that landed settled it (a success, or a failure that booked the next rung itself).
+
+   A REPLY IS CHECKED AGAINST WHOM IT WAS ASKED FOR (`loadWho_`), and against the newest payload
+   already drawn. Retries make a request in the air the ordinary state for the whole of an outage, so
+   the answer to an old question can arrive at any moment — and found by review: an admin signed out
+   while a retry carrying their token was out, the retry landed, and the signed-out phone held the
+   admin's payload, films and all. SIGNING OUT CALLS NO `load()`, so no counter moved on it, and only
+   the question itself could say. A reply for somebody who is no longer here, or older than what is on
+   the screen, is dropped whole — and if the person who IS here has no payload of their own yet, they
+   are owed an ask, which the same `finally` makes.
+
+   A SUCCESS TAKES THE ORDINARY PATH, which is what "refreshed itself" means here: the payload lands
+   and the late-payload repaint fills the screen in. NOT `location.reload()`. A reload throws away the
+   caret in a half-typed answer, the column the pupil is on and the keypad, and against a backend that
+   is down for an hour a reload every two minutes is a page that never holds still — worse than a line
+   of text. (A NEW BUILD is a different question and does reload, once: see `bootStale_`.)
+
+   A REFUSAL IS ASKED AGAIN, ON THE SLOWEST RUNG. `{ error }` from `doGet` was taken as a real answer
+   and never asked again — true of the refusals written on purpose (a missing tab), and not of the
+   one the client cannot tell from them: doGet's last line turns ANY exception into `{ error }`, so a
+   one-off throw while the payload was built stopped the app for good, which is the opposite of what
+   the owner asked for. Every two minutes is cheap against a deliberate refusal and mends a passing
+   one. What is still not asked again is a reply our own code threw on: the same reply would throw the
+   same way. The server's sentence and that throw are an admin's to read, and nobody else's.
+
+   WHILE IT ASKS, ONE QUIET LINE: `#reconnect` in index.html, a `role="status"` saying "Reconnecting…".
+   From the first failure, even when that retry is instant — by then a timeout has been a minute of
+   columns with no people and no sessions in them, and a minute with nothing said is the fault the
+   slow line under the splash was written for. After two minutes of failures it says the one plain
+   thing, "Can't reach the server — still trying.", and never the address. AND AN EMPTY COLUMN SAYS
+   THE SAME KIND OF THING: `nothingHere` printed "Couldn't load. timeout. Try again" in the middle of
+   the Feed under "Reconnecting…" — two statements contradicting each other, the second telling a
+   visitor to act and its Try again putting the splash back up. While the app is asking it says it is
+   waiting, with no reason and no button (`reconnecting_`).
+
+   A PAYLOAD THAT LANDS DOES NOT REBUILD THE BOX SOMEBODY IS TYPING IN. Before retries the late
+   repaint could land only in the first minute; now it can land at any moment, and found by review: a
+   pupil writing in the Tools notepad lost the focus mid-word when a retry succeeded, and the next key
+   with it. See `landRepaint_`.
+
+   THE DIAGNOSTIC BANNER IS AN ADMIN'S, AND ONLY FOR A FAULT A PERSON MUST FIX: a reply that is a web
+   page (the "Authorization is required" case), a page opened from `file:`, a refusal ("The server
+   said: …"), or failures still going on after two minutes. Its advice is kept word for word — every
+   paragraph of it is a fault that happened. THE ADMIN IS KNOWN BEFORE THE PAYLOAD: data.js reads
+   `USER` out of storage before any of this runs, so `isAdmin()` answers on a cold boot;
+   `hasRole('admin')` beside it for an admin looking at the app as a tutor, because the fix is theirs
+   whichever hat they have on.
+================================================================================================== */
+const RECONNECT = {
+  timer: 0,        /* the next ask, booked */
+  at: 0,           /* when it comes round */
+  tries: 0,        /* failures in a row; 0 is "nothing is failing" */
+  since: 0,        /* when the first of them happened */
+  flying: 0,       /* loads in the air */
+  asked: 0,        /* when the last one went */
+  due: false,      /* an ask is owed: it came round while nobody was looking or a load was in the air,
+                      or a reply was dropped and the person here has no payload of their own */
+  seq: 0,          /* every load's number, in the order they went */
+  shown: 0,        /* the number of the load whose payload is drawn */
+  shownFor: null,  /* and whom it was asked for — `loadWho_` */
+  banner: false,   /* the diagnostic is up, put there by this */
+  hold: null,      /* the box being typed in, only while a landing payload repaints — `landRepaint_` */
+  kept: null,      /* the box a landing payload was not drawn under, until it is left */
+};
+const RECONNECT_SOON = 3000;
+/* THE LADDER, and its last step repeats for as long as the page is open. */
+const RECONNECT_STEPS = [10000, 30000, 60000, 120000];
+/* "ABOUT TWO MINUTES" — when the line says the plain sentence and an admin is shown why. */
+const RECONNECT_TELL = 120000;
+/* COMING BACK TO THE PAGE within this long of the last ask is flicking between apps, not an ask. */
+const RECONNECT_FLICK = 5000;
+
+function reconnectAdmin_() {
+  try {
+    return (typeof isAdmin === 'function' && isAdmin())
+      || (typeof hasRole === 'function' && hasRole('admin'));
+  } catch (e) { return false; }
+}
+function reconnectSay_(text) {
+  const el = document.getElementById('reconnect');
+  if (el && el.textContent !== text) el.textContent = text;
+}
+/* WHETHER THE APP IS ASKING AGAIN BY ITSELF — what `nothingHere` asks before it prints a failure and a
+   Try again. A function rather than the object, because nothingHere is above this in the file. */
+function reconnecting_() {
+  try { return RECONNECT.tries > 0; } catch (e) { return false; }
+}
+function reconnectBook_(wait) {
+  const R = RECONNECT;
+  clearTimeout(R.timer);
+  R.at = Date.now() + wait;
+  R.timer = setTimeout(() => { R.timer = 0; reconnectAsk_('timer'); }, wait);
+}
+/* A real answer, or a load somebody asked for: nothing booked, nothing said. */
+function reconnectStop_() {
+  const R = RECONNECT;
+  clearTimeout(R.timer);
+  R.timer = 0; R.tries = 0; R.since = 0; R.due = false;
+  reconnectSay_('');
+}
+/* AND THE DIAGNOSTIC THIS PUT UP GOES WITH IT — but only while it still says what this put there. A
+   banner written since (a missing column, a newer build) is somebody else's, and true. */
+function reconnectDone_() {
+  const had = RECONNECT.banner;
+  RECONNECT.banner = false;
+  reconnectStop_();
+  const el = document.getElementById('banner');
+  if (had && el && /^(Could not reach the backend|The server said)/.test(el.textContent || '')) banner('');
+}
+/* A LOAD FAILED. Books the next ask, says the quiet line, and answers whether an admin should be
+   shown the diagnostic now. `how`: 'ours' — the reply arrived and our own code threw on it, which is
+   not asked again; 'refused' — `{ error }`, asked again on the slowest rung; anything else is a fault
+   on the way, and climbs the ladder. */
+function reconnectFail_(err, how) {
+  const R = RECONNECT;
+  if (how === 'ours') {
+    reconnectStop_();
+    R.banner = reconnectAdmin_();
+    return R.banner;
+  }
+  const now = Date.now();
+  if (!R.tries) R.since = now;
+  R.tries++;
+  const timeout = (err && err.name === 'AbortError') || String((err && err.message) || err) === 'timeout';
+  const slowest = RECONNECT_STEPS[RECONNECT_STEPS.length - 1];
+  let wait = how === 'refused' ? slowest
+    : R.tries === 1 ? (timeout ? 0 : RECONNECT_SOON)
+    : RECONNECT_STEPS[Math.min(R.tries - 2, RECONNECT_STEPS.length - 1)];
+  /* THE ASK THAT WOULD LAND PAST THE TWO-MINUTE MARK IS BROUGHT FORWARD TO IT, so the sentence that
+     says it has been two minutes is said at two minutes, and by a failure rather than by a clock. */
+  const left = R.since + RECONNECT_TELL - now;
+  if (left > 0 && wait > left) wait = left;
+  /* WHATEVER WAS OWED IS ANSWERED: this load was the ask, and the next one is booked here. */
+  R.due = false;
+  reconnectBook_(wait);
+  const late = now - R.since >= RECONNECT_TELL;
+  const tell = reconnectAdmin_()
+    && (how === 'refused' || !!(err && err.page) || location.protocol === 'file:' || late);
+  if (tell) R.banner = true;
+  /* THE BANNER SAYS IT FOR AN ADMIN, so the line says nothing under it: one statement at a time. */
+  reconnectSay_(tell ? '' : late ? 'Can’t reach the server — still trying.' : 'Reconnecting…');
+  return tell;
+}
+function reconnectAsk_(why) {
+  const R = RECONNECT;
+  if (!R.tries && !R.due) return;               /* nothing is failing, and nothing is owed */
+  /* A LOAD IN THE AIR: owed, and asked by `load()`'s `finally` if that one does not settle it. */
+  if (R.flying) { R.due = true; return; }
+  /* NOBODY IS LOOKING — a tab in the background, a phone in a pocket. Coming back asks at once, so a
+     backend that is down all afternoon is not asked every two minutes by a tab nobody has open. */
+  if (document.hidden) { R.due = true; return; }
+  /* FLICKING BETWEEN APPS IS NOT FIVE ASKS — but the ask is only put off to the end of the five
+     seconds, never left to a rung two minutes away. Found by review: back 3.5s after a failed ask, with
+     the backend mended meanwhile, and the next ask was the one booked for 120s later. */
+  if (why === 'back' && !R.due && Date.now() - R.asked < RECONNECT_FLICK) {
+    const end = R.asked + RECONNECT_FLICK;
+    if (!R.timer || R.at > end) reconnectBook_(Math.max(0, end - Date.now()));
+    return;
+  }
+  clearTimeout(R.timer);
+  R.timer = 0; R.due = false;
+  load(true);
+}
+addEventListener('online', () => reconnectAsk_('online'));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reconnectAsk_('back'); });
+
+/* ---------- WHOM A LOAD WAS ASKED FOR ----------------------------------------------------------------
+   The query string the payload is asked with — and so exactly what the server decided who you are
+   from (`doGet` reads these three and nothing else). One function for the request and for the check
+   on its reply, so the two cannot be spelt differently. */
+function loadWho_() {
+  const q = [];
+  if (USER && USER.personId) q.push('person=' + encodeURIComponent(USER.personId));
+  if (USER && USER.name) q.push('name=' + encodeURIComponent(USER.name));
+  if (USER && USER.token) q.push('token=' + encodeURIComponent(USER.token));
+  return q.length ? '?' + q.join('&') : '';
+}
+/* ---------- IS THIS REPLY STILL THE ANSWER ---------------------------------------------------------
+   NOT when it was asked for somebody who has since signed out, or in as somebody else; NOT when a
+   load sent after it has already drawn its payload. Either way it is dropped whole — painted, it would
+   be one person's payload on another's screen, or an older one over a newer; failed, it would put the
+   quiet line back over a payload that arrived. AND IF THE PERSON HERE NOW HAS NO PAYLOAD OF THEIR OWN,
+   they are owed an ask: nothing else will make one when it was their sign-out, which calls no `load()`. */
+function loadStale_(n, who) {
+  const R = RECONNECT;
+  const now = loadWho_();
+  if (who === now && n > R.shown) return false;
+  if (R.shownFor !== now) R.due = true;
+  return true;
+}
+
+/* ---------- A PAYLOAD THAT LANDS DOES NOT REBUILD THE BOX SOMEBODY IS TYPING IN ---------------------
+   FOUND BY REVIEW, 390x844 with touch: a pupil writing in the Tools notepad, the caret two from the
+   end, and a retry succeeded behind it. `repaint` rebuilt the column, the focus went to BODY, the
+   caret to the end, and the next key went nowhere — on a phone, the keyboard closing mid-word. The
+   text survived only because the notepad saves on every keystroke. Before retries the late repaint
+   could land only in the first minute; now it can land at any moment of an afternoon's outage.
+
+   SO THE REPAINTS A LANDING PAYLOAD MAKES — its own, and the inbox's a moment later — leave the column
+   holding the focused box alone: marked STALE, and NOT RESTARTED either (`startScreen_`), because a
+   widget's `start` writes its box's value back, which on its own moves the caret to the end. It is
+   drawn a moment after the box is left, or on arriving at it. Only those: the flag is up for the
+   length of the call, so a press that repaints (Send under a message) is never held. Find is not this
+   rule's — `findKeep_` holds it on its own, stricter terms, and redraws it itself; Settings' unsaved
+   cards are `settingsKeep_`'s and still are. */
+const TYPING_ = 'textarea, input[type="text"], input[type="search"], input[type="email"], '
+  + 'input[type="tel"], input[type="number"], input:not([type]), [contenteditable="true"]';
+function typingBox_() {
+  const a = document.activeElement;
+  if (!a || !a.matches || !a.matches(TYPING_)) return null;
+  const stuff = document.getElementById('s-stuff');
+  return stuff && stuff.contains(a) ? null : a;
+}
+function landRepaint_() {
+  const R = RECONNECT;
+  R.hold = typingBox_();
+  try { repaint(); } finally { R.hold = null; }
+}
+/* `paint` asks this beside `settingsKeep_` and `findKeep_`, and `startScreen_` before it restarts
+   anything. In a `try`, because both are hoisted and this const is not. */
+function reconnectKeep_(id) {
+  try {
+    const box = RECONNECT.hold;
+    if (!box || document.activeElement !== box) return false;
+    const host = document.getElementById('s-' + id);
+    if (!host || !host.contains(box)) return false;
+    RECONNECT.kept = box;
+    return true;
+  } catch (e) { return false; }
+}
+/* AND DRAWN WHEN IT IS LEFT — a moment after, so a tap from one box to the next in the same column
+   (focusout, then focusin) finds the next box focused and waits on that one instead. */
+document.addEventListener('focusout', () => {
+  if (!RECONNECT.kept) return;
+  setTimeout(() => {
+    const box = RECONNECT.kept;
+    if (!box) return;
+    const a = document.activeElement;
+    if (a === box && box.isConnected) return;
+    const host = box.isConnected && box.closest ? box.closest('[id^="s-"]') : null;
+    if (host && a && a !== box && host.contains(a) && a.matches && a.matches(TYPING_)) { RECONNECT.kept = a; return; }
+    RECONNECT.kept = null;
+    /* REDRAWN SINCE — a press, or arriving — and there is nothing left to do. */
+    try { if (host && host.id === 's-' + AT && STALE[AT]) repaint(); } catch (e) {}
+  }, 400);
+});
+
+/* THE LOAD, AS EVERY CALLER ASKS FOR IT. `again` is the retry above and nothing else passes it: any
+   other caller is somebody signing in, saving, or pressing Try again, and that starts the count over. */
+async function load(again) {
+  const R = RECONNECT;
+  if (!again) reconnectStop_();
+  R.asked = Date.now();
+  R.flying++;
+  try { await loadOnce_(again, ++R.seq); }
+  finally {
+    R.flying--;
+    /* THE ASK THAT WAITED FOR THIS ONE — see `due`. Not while another is still in the air: the last
+       to land makes it, so two that land together are still one ask. */
+    if (!R.flying && R.due) reconnectAsk_('owed');
   }
 }
 
 /* WHETHER A GOOD PAYLOAD HAS EVER BEEN PAINTED — see the end of `load()`. */
 let FIRST_PAINT_DONE = false;
-async function load() {
+async function loadOnce_(again, n) {
+  /* THE REPLY ARRIVED AND WAS DATA — so a throw after this is our own code, not the connection. */
+  let reached = false;
+  /* AND IT BECAME `DATA` — the one outcome a retry repaints for. */
+  let got = false;
+  /* WHOM IT IS ASKED FOR, kept to check the reply against — see `loadStale_`, and the note below on
+     why each of the three keys is sent. */
+  const who = loadWho_();
   try {
     /* The person's id goes with the request so the server can say which posts YOU liked — it
        cannot know otherwise, and sending every like to every phone to answer it would be absurd. */
@@ -3728,11 +4049,7 @@ async function load() {
        are written in. Old backend, new phone: `name` still decides, nothing changes. New backend, old
        phone: no token, so an admin is served the ordinary payload — degraded, and safe. Both new: the
        token decides. There is no ordering in which somebody is served more than they should be. */
-    const q = [];
-    if (USER && USER.personId) q.push('person=' + encodeURIComponent(USER.personId));
-    if (USER && USER.name) q.push('name=' + encodeURIComponent(USER.name));
-    if (USER && USER.token) q.push('token=' + encodeURIComponent(USER.token));
-    const who = q.length ? '?' + q.join('&') : '';
+    /* ALL THREE ARE BUILT BY `loadWho_` — `who`, at the top of this function. */
     /* NO CACHE, AND A DIFFERENT URL EVERY TIME. Both, because either alone can be got round.
        This is a plain GET, which a browser is entitled to hold — so an edit to the spreadsheet
        could be live, the deploy correct, the site current, and the phone still showing what it
@@ -3853,6 +4170,11 @@ async function load() {
        read did not. The message carries the page's title or first line, so the banner names the
        fault (an authorisation prompt, a script that failed to load) without anybody opening a tab. */
     const d = await bootJson_(res);
+    reached = true;
+    /* THE ANSWER TO A QUESTION NOBODY IS ASKING ANY MORE — for somebody who has signed out or been
+       signed in over since it went, or older than a payload already drawn. Dropped whole; see
+       `loadStale_`, and `load()`, which asks for whoever is here if they are owed it. */
+    if (loadStale_(n, who)) return;
     if (d && !d.error) {
       /* WHAT WAS ASKED FOR AND NOT SENT.
          `DATA.liveJobs` was read for weeks and never sent — the `|| []` beside it turned that into
@@ -3926,6 +4248,11 @@ async function load() {
         d.dropdowns.checklists = d.dropdowns.checklists || {};
       }
 
+      /* AND ASKED AGAIN AT THE MOMENT IT BECOMES `DATA`. The check above runs before the library's
+         awaits, and on a first load over a slow line those are seconds — the file is the largest the
+         app asks for. Measured in the harness with the file held: an admin signed out inside that
+         wait and their payload, films and all, was committed on the signed-out phone after all. */
+      if (loadStale_(n, who)) return;
       DATA = new Proxy(d, {
         get(t, k) {
           /* `then` is asked for by anything that awaits an object, to find out whether it is a
@@ -3938,6 +4265,8 @@ async function load() {
         }
       });
       LOAD_FAILED = '';
+      got = true;
+      RECONNECT.shown = n; RECONNECT.shownFor = who;
 
       /* THE STARS AND THE SPOTLIGHTS, from the payload that has just landed. Called HERE rather
          than a few lines above, which is where `adoptFavourites_` used to sit: up there `DATA` was
@@ -3963,6 +4292,9 @@ async function load() {
          own. If one of them has something to say it says it a line later and this has not eaten
          it; if none of them does, the banner goes, which is the truthful outcome. */
       if (LOAD_SLOW) banner('');
+      /* AND THE ASKING-AGAIN STOPS — the quiet line goes, and an admin's diagnostic with it. Here, for
+         the same reason as the line above: before the checks below write anything of their own. */
+      reconnectDone_();
 
       /* WHAT THE BACKEND CAN DO, against what this site needs. `features` has been in the payload
          since before the rewrite and nothing has ever read it — which is why a stale deploy shows
@@ -4016,7 +4348,7 @@ async function load() {
          loudly: `loadMessages` swallows its own errors by design (an unreachable backend is not an
          empty inbox), so this can only make widgets appear, never take a screen down. */
       if (USER && typeof loadMessages === 'function') {
-        loadMessages().then(() => { try { repaint(); } catch (e) {} });
+        loadMessages().then(() => { try { landRepaint_(); } catch (e) {} });
       }
       /* AND YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM — see `profileRefresh_` in me.js. Once per
          app open, beside the inbox and for the same reason: a private thing, fetched only for somebody
@@ -4053,11 +4385,21 @@ async function load() {
       /* THE FILES STILL STAND -- see `filesOnly_`. A refusal from the backend is not a reason for
          a student to lose the paper they are working through. */
       await filesOnly_();
-      banner('The server said: ' + (d.error || 'something went wrong'));
+      /* ASKED AGAIN, EVERY TWO MINUTES — doGet's catch-all answers ANY exception this way, and the
+         client cannot tell a throw that will pass from a refusal that will not; see `RECONNECT`. The
+         sentence is for whoever can act on it: a visitor has the files, the quiet line, and an empty
+         column that says it is waiting. */
+      if (reconnectFail_(null, 'refused')) banner('The server said: ' + (d.error || 'something went wrong'));
     }
   } catch (err) {
+    /* A FAILURE IS STALE THE SAME WAY — it would put the quiet line back over a payload that came. Not
+       once the payload is `DATA`: a throw after that is this load's own, and this load is current. */
+    if (!got && loadStale_(n, who)) return;
     LOAD_FAILED = String((err && err.message) || err || 'could not reach the backend');
     await filesOnly_();
+    /* ASKED AGAIN, AND SAID QUIETLY — see `RECONNECT`. What follows is the diagnostic, and it is drawn
+       only when `reconnectFail_` says an admin should see it now. */
+    const tell = reconnectFail_(err, reached ? 'ours' : 'way');
     /* WHICH URL IT TRIED, as something you can press.
        "Could not reach the server" is true of four different faults and useful for none of them:
        a wrong deployment id, a deployment whose access is still "Only myself", a browser with no
@@ -4065,9 +4407,13 @@ async function load() {
        one piece of evidence that separates them, and opening it in a tab answers the question in
        ten seconds — JSON means the address is right, a Google sign-in page means the deployment
        is private, a 404 means the id is wrong. */
-    const el = $('banner');
+    const el = tell ? $('banner') : null;
     if (el) {
       el.classList.remove('hidden');
+      /* NOT A DOOR. `banner(msg, true)` makes the whole bar a "tap to load the new build", and this
+         writes its own markup over it — found by review: an admin's diagnostic over the boot's
+         newer-version banner kept `data-do`, so pressing "Open it in a tab" reloaded the app as well. */
+      el.removeAttribute('data-do');
       /* THE ADVICE MATCHES THE FAULT. It used to print all of it every time — including "Failed
          to fetch means the reply never arrived" underneath an error that plainly was a reply. Two
          paragraphs of which one applied, and no way to tell which, is worse than one sentence. */
@@ -4101,9 +4447,19 @@ async function load() {
         ? 'The reply never arrived, so this URL is not being served. Check Manage deployments: the '
           + 'one under ACTIVE is the only one that answers, an archived id looks exactly like '
           + 'this, and “Only myself” access does too.'
+        /* ---------- THE DEADLINE, WHICH WAS FILED UNDER "SOMETHING ELSE" -------------------------
+           THE OWNER'S SCREENSHOT OF 9 OCT read "timeout" over "Something else went wrong on the
+           way" — the commonest fault of the lot, given no advice. A cold payload (after
+           `clearPayloadCache`, or a script redeployed) can outrun the minute; Apps Script finishes
+           and caches it anyway. An admin sees this only after two minutes of them, so by then it is
+           not one slow build. */
+        : /^timeout$/.test(msg)
+        ? 'The backend took longer than a minute, again and again. One slow answer is a payload '
+          + 'built cold (after clearPayloadCache) and the next ask gets the copy it kept; minutes of '
+          + 'them is the script itself — open it in a tab and see how long it takes.'
         : 'Something else went wrong on the way.';
 
-      el.innerHTML = 'Could not reach the backend.<br>'
+      el.innerHTML = 'Could not reach the backend.' + (reached ? '' : ' Still trying by itself.') + '<br>'
         + '<span class="faint">' + esc(why) + '</span><br>'
         + '<a class="link" href="' + esc(API) + '" target="_blank" rel="noopener">Open it in a '
         + 'tab</a> — the page itself will say which it is.<br>'
@@ -4111,6 +4467,15 @@ async function load() {
         + ' · site ' + esc(SITE_VERSION) + ' · css ' + esc(cssVersion()) + '</span>';
     }
   }
+  /* A RETRY THAT BROUGHT NO PAYLOAD CHANGED NOTHING — failed on the way, or refused: the files are
+     what they were, the splash came off with the load before it, and the next ask is booked.
+     Repainting every column under somebody using the app — the keypad, the column they are on — every
+     ten seconds, then every two minutes, for a load that brought nothing, is the disturbance asking
+     again exists to avoid. UNLESS NO LOAD HAS FINISHED YET — an ask owed after the first load's reply
+     was dropped (`loadStale_`) is the one that has to take the splash off — or the asking has
+     stopped, on a reply our own code threw on, when the columns that said "waiting" must now say
+     what went wrong and offer Try again. */
+  if (again && !got && LOADED && reconnecting_()) return;
   /* Set whether it SUCCEEDED or failed — a failed load is still a finished one, and leaving the
      skeleton up for ever would be the app pretending it is still trying. */
   LOADED = true;
@@ -4152,8 +4517,9 @@ async function load() {
   }
   if (!LOAD_FAILED) FIRST_PAINT_DONE = true;
 
-  /* AND THE WHOLE SEQUENCE, in the one order it may happen in — see `repaint`. */
-  repaint();
+  /* AND THE WHOLE SEQUENCE, in the one order it may happen in — see `repaint`. Around the box somebody
+     is typing in, if they are: see `landRepaint_`. */
+  landRepaint_();
   openSharedPost();     // if the app was opened on a shared link, go to that post
 }
 
@@ -4364,6 +4730,9 @@ function banner(msg, tap) {
    written that loop once. The banner is a sentence and a tap.
 ================================================================================================ */
 let BUILD_TAG = null;
+/* THE SERVER'S `Last-Modified` FOR THE ENTRY POINT, as a time — against the one this page was built
+   from. See `bootStale_`. */
+let BUILD_AT = 0;
 let BUILD_ASKED = 0;
 /* WHEN THE PAGE WENT AWAY, so a resume can be told from an app-switch. See `checkBuild_`. */
 let BUILD_HID = 0;
@@ -4377,6 +4746,7 @@ async function buildTag_() {
     const res = await fetch(location.pathname.replace(/[^/]*$/, '') + 'index.html',
                             { method: 'HEAD', cache: 'no-store' });
     if (!res || !res.ok) return null;
+    BUILD_AT = Date.parse(res.headers.get('last-modified') || '') || 0;
     return res.headers.get('etag') || res.headers.get('last-modified') || null;
   } catch (e) { return null; }
 }
@@ -4387,6 +4757,7 @@ async function watchBuild_() {
      boot check that killed the page: a confident sentence with nothing behind it. */
   BUILD_TAG = await buildTag_();
   if (!BUILD_TAG) return;
+  bootStale_();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { BUILD_HID = Date.now(); return; }
     checkBuild_();
@@ -4416,8 +4787,7 @@ async function checkBuild_() {
   BUILD_ASKED = Date.now();
   const now = await buildTag_();
   if (!now || !BUILD_TAG || now === BUILD_TAG) return;
-  if (buildMayReload_(now)) {
-    try { sessionStorage.setItem('familyBuiltFor', now); } catch (e) {}
+  if (buildMayReload_(now) && buildMark_(now)) {
     location.reload();
     return;
   }
@@ -4452,12 +4822,20 @@ async function checkBuild_() {
    ON A DESKTOP TAB THIS ALMOST NEVER FIRES, and that is correct rather than a limitation: a tab left
    open is one somebody is working in. The case this is for is an icon on a home screen opened the
    next morning, where iOS resumes a snapshot rather than loading anything. */
-function buildMayReload_(tag) {
+function buildMayReload_(tag, booted) {
   /* 1. NOT TWICE FOR ONE BUILD. */
   try { if (sessionStorage.getItem('familyBuiltFor') === tag) return false; } catch (e) { return false; }
   /* 2. A RESUME, NOT A GLANCE. `BUILD_HID` is 0 before the page has ever been hidden, which is the
-        first load — and reloading the load somebody just made is the loop this is avoiding. */
-  if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
+        first load — and reloading the load somebody just made is the loop this is avoiding.
+        EXCEPT A PAGE THAT OPENED OLDER THAN THE SERVER (`booted`, see `bootStale_`): that is not a
+        guess about a glance, it is a measured fact about the file, and 1 is what stops it looping.
+        Only in the first seconds, while there has not been time to start anything a reload loses;
+        after that it is the banner, the same as a resume too short to reload under. */
+  if (booted) {
+    const sp = document.getElementById('splash');
+    const up = !!(sp && !sp.classList.contains('done'));
+    if (!up && !(typeof performance !== 'undefined' && performance.now() < SPLASH_SAY_AFTER)) return false;
+  } else if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
   /* 3. NOTHING TYPED AND UNSAVED. `qp-ans` writes to localStorage on every keystroke and the
         notepad does the same, so both survive a reload; everything else in a box would not. */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
@@ -4467,6 +4845,69 @@ function buildMayReload_(tag) {
 }
 
 on('reload-build', () => location.reload());
+
+/* ---------- THE MARK THAT STOPS A SECOND RELOAD, WRITTEN AND READ BACK BEFORE THE FIRST --------------
+   "IT CANNOT LOOP" RESTED ON A WRITE NOBODY CHECKED. `setItem` was in a `try` that swallowed its
+   failure and the reload went ahead regardless — and found by review: a store that refuses the write
+   (full, or Safari's private mode before iOS 11, where `getItem` answers null and `setItem` throws)
+   booted the same stale page three times and reloaded three times, with nothing to stop a fourth.
+   `buildMayReload_`'s read fails closed only when `getItem` THROWS. So the reload goes only when the
+   mark can be read back; otherwise it is the banner and a tap, which cannot loop. */
+function buildMark_(tag) {
+  try {
+    sessionStorage.setItem('familyBuiltFor', tag);
+    return sessionStorage.getItem('familyBuiltFor') === tag;
+  } catch (e) { return false; }
+}
+
+/* ==================================================================================================
+   A PAGE THAT OPENS OLDER THAN THE SITE IT CAME FROM REFRESHES ITSELF, ONCE.
+
+   THE OWNER'S SCREENSHOT OF 9 OCT DATED ITS OWN ENTRY POINT. Its footer line read "site 06 Oct at
+   14:32 · css 2026-10-09-films-from-notflix": the stylesheet of that morning's deploy under an
+   `index.html` three days old. Not a misleading stamp — the minute is exactly when GitHub Pages built
+   PR #129 (its run started 13:32:33 UTC on 6 Oct, 14:32 on a phone in London), nine more Pages builds
+   had succeeded since, the last forty minutes before the screenshot, and that page's `window.FILES`
+   has no `answers` in it, so the phone was running the newest code minus a whole file. It is the PAGE
+   that was old, and the page decides which files exist.
+
+   HOW IT WAS HELD IS NOT SETTLED, AND THE TWO HALVES OF THE STORY DO NOT FIT. Each `?t=` comes from the
+   page's own stamp, so a 6 Oct page asks for 6 Oct URLs, which `sw.js` answers from its store unless
+   those paths were since re-filed under a later build's URLs (`file()` drops the old key then) — yet
+   a later build loaded on that phone went through `page()`, which re-files index.html on every
+   navigation that reaches the network and would have replaced the 6 Oct copy. Nothing that would say
+   which half is wrong can be measured from here (the live site is behind the proxy).
+
+   `watchBuild_` COULD NOT SEE IT, because it compares the server with the SERVER: the tag is taken at
+   boot, from a HEAD, and only a later change raises the banner — a page that boots stale records the
+   current tag as its baseline and is satisfied for ever. What knows which build is RUNNING is the
+   page's own `Last-Modified`, which index.html already reads as `LOAD_AT` (the footer's stamp).
+
+   SO THE TWO ARE COMPARED, ONCE, AT BOOT. The server's newer by more than a minute — a deploy, not a
+   clock — and the page reloads, under the three rules of `buildMayReload_`: once per build (a reload
+   that is still stale finds its own tag in sessionStorage and gets the banner — and the reload goes
+   only when that mark reads back, `buildMark_`), only in the first seconds, and never over something
+   typed. A server that sends no `Last-Modified` gives nothing to compare and nothing happens; an older
+   one never reloads anything.
+
+   WHAT IT DOES NOT COVER, said rather than assumed. It runs only after its HEAD reached the server, so
+   a reload normally reaches it too; but if the old page is `page()`'s own fallback because the
+   navigation keeps failing while the HEAD gets through, the reload returns the same copy, and so does
+   the banner's tap — a sentence that does nothing, though not a loop. A page RESTORED rather than
+   booted (an iOS resume) never runs this; `checkBuild_` is the resume's. If the stale entry point
+   comes back with the network up, the lever not yet pulled is `page()`'s `fetch(req)` in sw.js — its
+   own note records `cache: 'no-cache'` tried there and taken out because `check/deploy.js` passed with
+   and without it, and names it as the line to change if the stale page came back. Not changed here:
+   how this one was held is not known, and a service-worker change is a deploy of its own. */
+function bootStale_() {
+  const mine = typeof window.LOAD_AT === 'number' ? window.LOAD_AT : 0;
+  if (!mine || !BUILD_AT || BUILD_AT - mine < 60000) return;
+  if (buildMayReload_(BUILD_TAG, true) && buildMark_(BUILD_TAG)) {
+    location.reload();
+    return;
+  }
+  banner('A newer version of the app is ready. Tap to load it.', true);
+}
 
 /* ---------- NOTHING MAY BE HELD — AND THEN SOMETHING DELIBERATELY WAS -----------------------------
    `purge()` WAS HERE AND IT UNREGISTERED EVERY SERVICE WORKER ON EVERY LOAD, emptying every cache

@@ -1845,6 +1845,82 @@ const STATES = {
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
+    /* ---------- AN ESSAY, WRITTEN ON ITS SHEET IN PARAGRAPHS, THE PAD UP ---------------------------------
+       THE OWNER, 9 Oct, about a pupil on AQA English Language Paper 1, June 2017, Section B: *"firstly it
+       doesnt let him do paragraphs and also i want it to mark with ai."* The real Q-R0398-5 -- forty marks
+       of writing -- drawn as a SHEET (`ansEssay_`, keypad.js; `.qp-sheet` in style.css), focused, and three
+       paragraphs written into it through the pad: words on the letters' keys, each paragraph break on
+       the essay's own RETURN key (two presses, a blank line), the rest of each paragraph handed to the
+       pad's edit as a laptop's keys are. Pictured so `check/ui.js` measures the sheet and the essay's
+       letters at every width -- the return key's size and face, the paper against the card (EDGE), the
+       word count's contrast. Expect: the pad up on the essay's letters (40 keys, one return, labelled),
+       the value holding two paragraph breaks, the drawing the same, the count right, the row under the
+       sheet (and so the sheet) wholly above the pad, and the line being written -- the caret -- inside
+       the sheet's window and above the pad, the thing "growing, then scrolling inside" is for. */
+    { name: 'an essay, three paragraphs on its sheet, the pad up',
+      enter: () => {
+        const id = 'Q-R0398-5';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__essayKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const PARAS = ['the bus shuddered away from the kerb and the town slid past the window like a film somebody had forgotten to stop. Rain had been falling since breakfast.',
+          'beside me an old man held a paper bag of oranges on his knee as if it were something precious, and each time the driver braked he steadied it with both hands.',
+          'by the time we reached the coast road the clouds had torn open, and the old man stepped down into the brightness, leaving the smell of oranges behind him.'];
+        let tries = 0;
+        const up = () => {
+          const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!ta || moving || !ta.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          ta.focus();
+          if (KP_AT !== ta) kpOpen_(ta);
+          const key = v => document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+          PARAS.forEach((p, i) => {
+            if (i) { key('!nl').click(); key('!nl').click(); }
+            /* THE FIRST WORD ON THE KEYS, the capital put in by itself; the rest as a laptop types it. */
+            const first = p.split(' ')[0];
+            first.split('').forEach(c => { const k = key(c); if (k) k.click(); });
+            kpType_(ta, p.slice(first.length), true);
+          });
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+        if (!pad || pad.hidden || !ta || !ta.hasAttribute('data-kp-essay')) return false;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
+        const essay = ta.closest('.qp-essay');
+        const foot = essay && essay.querySelector('.qp-sheet-foot');
+        const show = ta.parentNode.querySelector('.kp-show');
+        const caret = show && show.querySelector('.kp-caret');
+        const v = ta.value;
+        if (!ret || !foot || !caret || (v.match(/\n\n/g) || []).length !== 2 || !/^The bus/.test(v) || !/\n\nBeside/.test(v) || !/\n\nBy the time/.test(v)) return false;
+        const padTop = pad.getBoundingClientRect().top;
+        const c = caret.getBoundingClientRect(), sr = show.getBoundingClientRect();
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        return pad.getAttribute('data-layer') === 'abc' && keys.length === 40
+               && keys.filter(b => b.getAttribute('data-v') === '!nl').length === 1 && /return/.test(ret.textContent)
+               && ret.getBoundingClientRect().height >= tall - 0.5 && ret.getBoundingClientRect().width >= 44
+               && ta.readOnly && ta.getAttribute('inputmode') === 'none'
+               && show.textContent === v
+               && essay.querySelector('.qp-words').textContent === kpWordsSay_(kpWordCount_(v))
+               && foot.getBoundingClientRect().bottom <= padTop + 0.5
+               && c.top >= sr.top - 1 && c.bottom <= sr.bottom + 1 && c.bottom <= padTop && c.top >= 0;
+      },
+      wants: 'Q-R0398-5 drawn as a sheet, the pad up on the essay\u2019s letters (40 keys, one labelled return at least 44px), three paragraphs typed with two blank lines between them, the count right, the row under the sheet above the pad and the caret in the sheet\u2019s window',
+      leave: () => {
+        try { localStorage.removeItem(window.__essayKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- WHERE A TYPED ANSWER IS KEPT, SAID UNDER THE BOX ----------------------------------------
        *"it doesnt seem to save their answers"* and *"i am very dissapointed it didnt have his answers
        already written in when he went to see them on the computer"* — js/answers.js. Two states, one per

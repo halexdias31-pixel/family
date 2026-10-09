@@ -295,6 +295,16 @@ function stateOf(id) {
        only the few hundred milliseconds the paper is there. What actually happened is that the
        browser was asked to print, so that is what is measured. */
     window.__press.prints,
+    /* AND FULL SCREEN, FOR PRINT'S REASON: its whole effect is outside the markup. The videos card's
+       Full screen tile hands the PLAYER to the browser (`requestFullscreen`), and the card underneath
+       is, correctly, exactly as it was — so a state read that stops at the page called it a press
+       that did nothing. IT HAD NEVER BEEN PRESSED HERE BEFORE note 311: the tile was drawn DISABLED
+       while nothing played, which is the state the Games column opens in, and `done` is per screen —
+       so it was filed "present and disabled" there and skipped in the state where it plays. Drawn
+       only while something plays now, it was pressed for the first time and read as quiet. What
+       happened is that the browser was asked for full screen, so that is what is measured. */
+    (() => { const f = document.fullscreenElement;
+      return f ? f.tagName + '.' + String(f.className || '') : ''; })(),
   ].join('|');
 }
 
@@ -453,6 +463,11 @@ for (const who of VISITORS) {
       /* A PRESS IS ALLOWED TO REMOVE ITS OWN CONTROL, so the next candidate may be a stale handle.
          One that is no longer in the document is not a control anybody can press. */
       if (!changed && cands[i + 1] && !document.contains(cands[i + 1])) break;
+    }
+    /* OUT OF FULL SCREEN AGAIN, the way the print stub dismisses its dialogue: the next press is about
+       the page, and a page with a player filling the glass is not the page anybody presses next. */
+    if (document.fullscreenElement && document.exitFullscreen) {
+      try { await document.exitFullscreen(); } catch (e) { /* measured as it stands */ }
     }
 
     const sh = document.getElementById('sheet');
