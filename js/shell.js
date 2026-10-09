@@ -1937,8 +1937,8 @@ function placeGrid(instant, drag) {
      the keypad stayed up, typing into a box on a card that was no longer on the screen (8 of 8). The
      keypad closes on `focusout` (keypad.js) and nothing took the focus away when the page did. So
      whatever has the focus is blurred once its page is not the one in front, which closes the keypad
-     and a phone's own keyboard alike. A field outside every page — the sheet, the booking form's
-     drop-down — is not a card's and is left alone. */
+     and a phone's own keyboard alike. A field outside every page — the sheet — is not a card's and is
+     left alone. */
   try {
     const fe = document.activeElement;
     const pg = fe && fe !== document.body && fe.closest ? fe.closest('#screen .page') : null;
@@ -2008,14 +2008,12 @@ function placeCells(which, instant, dragPx, id) {
 function placeNow_(which, instant, dragPx, id) {
   placeGrid(instant, dragPx ? { which, px: dragPx } : null);
 
-  /* THE ONE THING IN THIS APP THAT IS MEASURED AGAINST THE VIEWPORT rather than placed by the grid:
-     the booking form's drop-down, which is a sibling of the screens because `.pane` would clip it
-     anywhere else. So it does not travel with a column that slides away underneath it, and this is
-     the one place that knows a column has moved — a swipe, a page turn or a resize all arrive here.
-     It follows the field it hangs off, or closes once that field is on a screen or a page nobody is
-     looking at. BEFORE the drag guard below, because a finger sliding the columns is exactly when it
-     has to keep up. */
-  if (typeof bookDropMove_ === 'function') bookDropMove_();
+  /* `bookDropMove_` WAS CALLED HERE, before the drag guard below, for the one thing this app ever
+     placed against the viewport rather than the grid: `#drop`, the dropdown panel outside the
+     screens, which did not travel with a column sliding under it and had to be moved by hand on every
+     placement. The panel went on 9 October — every dropdown is the platform's own again and every
+     several-of-a-list question is checkboxes in its card (note 315) — so nothing here is placed by
+     anything but the grid. */
 
   /* THE TWO SWEEPS BELOW DO NOT RUN WHILE A FINGER IS DOWN.
 
@@ -3357,8 +3355,7 @@ addEventListener('pointerdown', e => {
   if (!e.isPrimary) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
   /* THE LAST 60ms ARE LET THROUGH — by then the card has all but arrived. AND ONLY ON THE CARDS: the
-     sheet, its backdrop, the keypad and the booking drop-down are not in `#screen` and do not move
-     with it. The first version swallowed any tap during a slide, and `check/press.js` caught it
+     sheet, its backdrop and the keypad are not in `#screen` and do not move with it. The first version swallowed any tap during a slide, and `check/press.js` caught it
      closing nothing — a tap on a sheet's backdrop opened over a column still sliding in. */
   PRESS_SLIDING = performance.now() < SLIDE_UNTIL - 60
     && !!(e.target && e.target.closest && e.target.closest('#screen'));
@@ -3369,7 +3366,8 @@ addEventListener('pointerdown', e => {
 addEventListener('pointercancel', pressClear_, { passive: true });
 /* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see
    `HOLD_AT`. A box that grows as you type grows downward, and the line you are typing on stays put.
-   `change` because a select's answer arrives through the app's own list, which is not on the card. */
+   `change` as well as `focusin` because a select's answer arrives from the platform's own list, which
+   is not on the card, and a checkbox is answered by a tap that may never focus it. */
 document.addEventListener('focusin', e => holdHere_(e.target), true);
 document.addEventListener('change', e => holdHere_(e.target), true);
 
@@ -3478,12 +3476,34 @@ function wideOverClear_() {
   } catch (e) { /* before this file has finished loading there is nothing to clear */ }
 }
 
+/* ---------- A SWIPE THAT BEGAN ON A FIELD OPENS NOTHING AND TICKS NOTHING -------------------------
+   THE GUARD BELOW SWALLOWS A SWIPE'S CLICK — `stopPropagation`, so no handler of this app runs — and
+   that is all it ever had to do while every control here was a `data-do`. A FORM'S CONTROLS ARE THE
+   BROWSER'S, AND THE BROWSER ACTS ON THE DEFAULT, NOT ON A HANDLER: a select opens its list from the
+   `mousedown` a phone sends at the lift of a tap, a `<label>` focuses its select (which is what an
+   iPhone opens its wheel for) or ticks its checkbox from the click. A drag of ten to fifteen pixels is
+   a swipe to this app and can still be a tap to the browser, and note 226 measured exactly that: a
+   12–14px drag ending on a select's caption ran the label's activation.
+
+   SO ON A FIELD, THE DEFAULT IS CANCELLED TOO — the `mousedown` here, before the select can open, and
+   the click in the guard below, before a label can act. Only while the gesture is a swipe or began on
+   a card still sliding; a tap that stayed put reaches the select exactly as the platform intends.
+   This is what lets a swipe that starts on a dropdown move the column (`axisFree`, overworld.js)
+   without the dropdown opening under the finger as it lifts. Note 315 has the measurements. */
+const FIELD_ACTS_ = 'select, label, input[type="checkbox"], input[type="radio"]';
+addEventListener('mousedown', e => {
+  if (!PRESS_MOVED && !PRESS_SLIDING) return;
+  if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
+}, true);
+
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
     PRESS_MOVED = false;
     PRESS_SLIDING = false;
     pressClear_();
+    /* AND ON A FIELD, NOT EVEN THE BROWSER'S OWN DEFAULT — see `FIELD_ACTS_` above. */
+    if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
     if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
     return;
   }
@@ -3491,6 +3511,7 @@ document.addEventListener('click', e => {
   if (PRESS_SLIDING) {
     PRESS_SLIDING = false;
     pressClear_();
+    if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
     if (CLICK_LOG) console.log('[click] swallowed — it began on a card still sliding');
     return;
   }
@@ -3569,9 +3590,9 @@ const ARROWS = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1],
                  ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
 
 addEventListener('keydown', e => {
-  /* THE DROP-DOWN FIRST, because it is the innermost thing open and nothing opens both. It answers
-     whether there was anything to close, so one Escape does not also shut a sheet behind it. */
-  if (e.key === 'Escape' && typeof bookDropShut_ === 'function' && bookDropShut_()) return;
+  /* ESCAPE SHUT `#drop` FIRST while there was one. A select's own list is the platform's, and the
+     platform closes it on Escape before this page ever hears the key; a list of checkboxes in a card
+     is not over anything, so there is nothing for Escape to close but the sheet. */
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 
   const arrow = ARROWS[e.key];

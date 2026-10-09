@@ -336,13 +336,16 @@ function boot(opts) {
       'JOB_STAGES: typeof JOB_STAGES !== "undefined" ? JOB_STAGES : [],' +
       'stageRows: typeof stageRows_ === "function" ? stageRows_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
-      /* THE CONTROL A ROW CARRIES, so the multi-sheet journey can ask whether the row reads back
+      /* THE CONTROL A ROW CARRIES, so the several-answers journey can ask whether the row reads back
          what has been ticked — the button is the only label on it, which is the half of that
-         feature a sheet full of ✓s cannot show. */
+         feature a list full of ticks cannot show. */
       'control: typeof stepControl_ === "function" ? stepControl_ : null,' +
-      /* THE FORM'S PAGE AS DRAWN, because a picker replaces it rather than covering it — so the
-         only way to ask "is the list on screen" is to ask what page 0 of the booking column holds. */
+      /* THE FORM'S PAGE AS DRAWN, because a picker once replaced it rather than covering it — so the
+         way to ask "is the form still there" is to ask what page 0 of the booking column holds. */
       'bookerCard: typeof bookerCard === "function" ? bookerCard : null,' +
+      /* THE DRAG GUARD, SET — a `let` in shell.js, which a second eval cannot reach. The select
+         journey plays a swipe that ends on a select with it, and asks that the list stays shut. */
+      'pressMoved: v => { PRESS_MOVED = !!v; },' +
       /* THE PEN ON A QUESTION'S DIAGRAM, both halves: the markup a card is built with, and the
          function the press mutates it with. A journey needs both because they are the two places
          the same four attributes are written, and the fault they guard is what happens when the two
@@ -1216,6 +1219,61 @@ check('a settings save still works against a server older than the site', async 
   return bad;
 });
 
+/* ---------- A SEVERAL-OF-A-LIST FIELD OPENS INTO TICKS IN ITS CARD, AND SAVE POSTS THE LIST ----------
+   IT WAS A BUTTON THAT HUNG `#drop` OVER THE COLUMN until the owner asked on 9 October for *"a more
+   stable standard simple conventional drop down list"* (note 315): a `<details>` now, whose summary is
+   the field and whose ticks are real checkboxes under it, in the card. What none of that may lose is
+   the save — `me-save` reads the one hidden `data-me="venues_ok"` box, and the ticks have to land in
+   it as a comma list in the list's own order. And what the panel never did, the ticks must: mark the
+   card dirty, because a card that is not dirty is a card the next payload repaints, ticks and all.
+
+   ON A CARD OF ITS OWN (`profileFields`), as the backend groups it, with the payload's two venues. */
+check('a several-of-a-list field opens into ticks under it, marks its card, and Save posts the list', async () => {
+  const { w, sent } = boot({ payload: Object.assign(payload(), { profileFields: { 'Contact & address': ['email', 'venues_ok'] } }),
+    reply: b => b.action === 'myProfile' ? { error: 'That action is not recognised.' } : { success: true, changed: 1 } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Ada Tutor', personId: 'P9', role: 'tutor', roles: ['tutor'], token: 'tk',
+           profile: { first_name: 'Ada', last_name: 'Tutor', email: 'ada@example.org', venues_ok: 'Mitcham library' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const box = () => d.querySelector('#s-settings input[type="hidden"][data-me="venues_ok"]');
+  if (!box()) return ['there is no venues_ok field on Settings — the several-of-a-list field was NOT checked'];
+  const field = box().closest('.many');
+  const det = field && field.querySelector('details');
+  const sum = det && det.querySelector(':scope > summary');
+  if (!det || !sum) return ['the venues field is not a <details> with a summary — drew ' + JSON.stringify(String(field && field.innerHTML).slice(0, 120))];
+  if (field.closest('#drop') || d.getElementById('drop')) bad.push('the field\'s list is in a panel outside the card');
+  if (det.open) bad.push('the list is open before anybody pressed it');
+  if (!/Mitcham library/.test(sum.textContent)) bad.push('the closed field does not say what is ticked: ' + JSON.stringify(sum.textContent));
+  const ticks = () => [...field.querySelectorAll('input[type="checkbox"][data-many-of="venues_ok"]')];
+  if (ticks().length !== 2) bad.push('the list draws ' + ticks().length + ' boxes for two venues');
+  if (ticks().some(c => c.hasAttribute('data-me'))) bad.push('a tick carries data-me, so me-save would post it as TRUE/FALSE over the list');
+  if (!ticks().every(c => c.closest('label.check'))) bad.push('a tick is not the app\'s own `.check` row');
+  det.open = true;
+  const form = field.closest('.me-form');
+  if (form) delete form.dataset.dirty;
+  const cw = ticks().find(c => c.value === 'Colliers Wood Library');
+  if (!cw) bad.push('no box for Colliers Wood Library');
+  else {
+    cw.checked = true;
+    cw.dispatchEvent(new w.Event('change', { bubbles: true }));
+  }
+  if (box().value !== 'Colliers Wood Library, Mitcham library') bad.push('a tick wrote ' + JSON.stringify(box().value) + ', not the two venues in the list\'s order');
+  if (!/Colliers Wood Library, Mitcham library/.test(sum.textContent)) bad.push('the summary did not follow the tick: ' + JSON.stringify(sum.textContent));
+  if (!form || !form.dataset.dirty) bad.push('a tick did not mark the card dirty, so a repaint before Save puts it back');
+  if (!det.open) bad.push('ticking a box shut the list');
+  sent.length = 0;
+  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  await wait(400);
+  const post = sent.find(b => b.action === 'updateProfile');
+  if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no updateProfile');
+  else if ((post.fields || {}).venues_ok !== 'Colliers Wood Library, Mitcham library') {
+    bad.push('Save posted venues_ok as ' + JSON.stringify((post.fields || {}).venues_ok));
+  }
+  return bad;
+});
+
 /* ---------- THE QUALIFICATIONS CARD: ONE LINE A QUALIFICATION, EDITED IN PLACE, SAVED AS YOU GO ----------
    ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take up
    less space"*. The card is a line per qualification in the profile chip's notation, a line opens its
@@ -1254,7 +1312,8 @@ async function qualCard_(profile) {
     box: (i, k) => (q.slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {},
     line: i => q.slot(i) && q.slot(i).querySelector(':scope > .q-line'),
     seg: (i, v) => q.slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]'),
-    /* A PICK FROM A LIST, the way `sel-pick` makes one: the value, then `input` and `change`. */
+    /* A PICK FROM A LIST, the way the platform's own list makes one: the value, then `input` and
+       `change`, both bubbling — which is also what `sel-pick` copied while the app had a panel. */
     pick: (el, v) => { el.value = v; el.dispatchEvent(new b.w.Event('input', { bubbles: true }));
                        el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
     posts: () => b.sent.filter(x => x.action === 'updateProfile'),
@@ -1446,8 +1505,12 @@ check('adding a qualification: the + asks for the subject, then the level, and s
   if (!fresh) return ['+ did not open a new line'];
   const n = fresh.dataset.slot;
   const subj = fresh.querySelector('select.q-name');
-  /* THE SUBJECT'S LIST IS ALREADY OPEN, YOURS FIRST. */
-  if (subj.getAttribute('aria-expanded') !== 'true') bad.push('+ did not open the subject list');
+  /* THE SUBJECT BOX HAS THE FOCUS, YOUR SUBJECTS FIRST IN ITS LIST. It was opened, in the app's own
+     panel, until the dropdowns went back to the platform's (note 315): a platform list cannot be opened
+     from script, so `qualNext_` focuses the box instead, and the focus is what is asserted. A tick
+     later, because it is given on the next turn. */
+  await wait(20);
+  if (q.d.activeElement !== subj) bad.push('+ did not give the subject box the focus');
   const first = subj.querySelector('optgroup');
   const yours = first ? [...first.querySelectorAll('option')].map(o => o.value) : [];
   if (!first || first.label !== 'Your subjects' || JSON.stringify(yours) !== JSON.stringify(['Maths', 'Physics', 'English Literature', 'Bible and Theology', 'DBS'])) {
@@ -1457,7 +1520,7 @@ check('adding a qualification: the + asks for the subject, then the level, and s
   q.pick(subj, 'Maths');
   await wait(100);
   if (q.posts().length) bad.push('a subject with no level was saved');
-  if ((q.box(n, '_level').getAttribute && q.box(n, '_level').getAttribute('aria-expanded')) !== 'true') bad.push('choosing the subject did not open the level list');
+  if (q.d.activeElement !== q.box(n, '_level')) bad.push('choosing the subject did not give the level box the focus');
   q.pick(q.box(n, '_level'), 'AS');
   await wait(300);
   const f = q.last();
@@ -3921,45 +3984,37 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   return bad;
 });
 
-check('picking several answers is one open, hanging off the field, over nothing', async () => {
-  /* ---------- FOUR SHAPES OF ONE CONTROL, THREE OF THEM REPORTED ---------------------------------
+check('picking several answers is one open, a list of checkboxes under its row, in the card', async () => {
+  /* ---------- FIVE SHAPES OF ONE CONTROL, FOUR OF THEM REPORTED ----------------------------------
      A `<select>` closed when you chose — that is what choosing means to it — so a question taking
      three answers was three opens, three scrolls and three closes: *"thats long."* A sheet was next
-     and came back as *"i dont like this. this is shit. no pop up menus."* A page that REPLACED the
-     form was third: *"i hate this."*
+     (*"no pop up menus"*), then a page that REPLACED the form (*"i hate this"*), then a panel hanging
+     off the field over the column, `#drop` — and on 9 October *"i want a more stable standard simple
+     conventional drop down list"* (note 315). So it is checkboxes, under the row, in the card.
 
-     SO THERE ARE THREE THINGS TO ASSERT AND THEY PULL AGAINST EACH OTHER. The list must stay open
-     across ticks; nothing may open over the app; and the form must still be on its page while the
-     list is up. A check asking only the first passes on both rejected shapes, and a check asking the
-     first two passes on the page-replacement — which is how the last version of this journey went
-     green over the thing that was about to be reported.
+     SO THERE ARE FOUR THINGS TO ASSERT AND THEY PULL AGAINST EACH OTHER. The list must stay open
+     across ticks; nothing may open over the app — no sheet and no panel outside the card; the form
+     must still be on its page; and the list must be IN the card, under the row it answers. A check
+     asking only the first passed on every rejected shape, which is how one version of this journey
+     went green over the thing that was about to be reported.
 
-     `check/ui.js` CANNOT ASK ANY OF THEM. It measures whether a control can be read and hit, and a
-     select that closes after every pick measures perfectly. `check/press.js` presses each action
-     once and asks whether anything changed, which is true of all four shapes.
-
-     ON THE BOOKING COLUMN, because the panel is `#drop` outside the screens and `dropRow_` will not
-     open it unless the field is on the screen somebody is on and the page in front of them — which
-     is the guard that stops a fixed box hanging in front of a column that has slid away. Driving the
-     handlers on a screen nobody is on would prove nothing about any of it.
-
-     THROUGH THE APP'S OWN HANDLERS, so the toggle, the panel and the re-render are the ones that
-     ship — a harness rewriting `BOOKING.interval` itself would prove nothing about them. */
+     THROUGH THE APP'S OWN HANDLERS AND A REAL `change`, so the toggle, the re-render and the
+     dispatcher that hands a checkbox to `book-many-pick` are the ones that ship — a harness rewriting
+     `BOOKING.interval` itself would prove nothing about them. */
   const { w } = boot();
   await wait(300);
+  const d = w.document;
   const A = w.__t.ACTIONS || {};
-  if (!A['book-many'] || !A['book-many-pick'] || !A['book-many-done']) {
-    return ['book-many / book-many-pick / book-many-done are not registered — cannot check the list'];
+  if (!A['book-many'] || !A['book-many-pick']) {
+    return ['book-many / book-many-pick are not registered — cannot check the list'];
   }
   if (!w.__t.bookerCard) return ['bookerCard is not exported — cannot see what the page holds'];
-  const panel = w.document.getElementById('drop');
-  if (!panel) return ['#drop is not in index.html — the list has nowhere to hang'];
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   /* `repaint()` BEFORE `go`, because `paintNeighbours` skips a screen that already has markup and
      the booking column was drawn at boot while nobody was signed in — so without this the column
-     is still the "Sign in to book" card and the field the list hangs off is not in the document.
+     is still the "Sign in to book" card and the row the list opens under is not in the document.
      That is `STALE`'s whole job and the app does the same thing when somebody signs in. */
   try { w.__t.repaint(true); } catch (e) { return ['repaint() threw: ' + e.message]; }
   try { w.__t.go('booking', false, true); } catch (e) { return ['go("booking") threw: ' + e.message]; }
@@ -3970,192 +4025,174 @@ check('picking several answers is one open, hanging off the field, over nothing'
   const opts = step.options().filter(Boolean);
   const bad = [];
 
-  const open = () => !panel.classList.contains('hidden');
-  const list = () => String(panel.innerHTML || '');
-  const marked = () => (list().match(/class="btn quiet pick-opt on"/g) || []).length;
-  const sheetOpen = () => !w.document.getElementById('sheet').classList.contains('hidden');
-  /* THE FORM, ON ITS OWN PAGE, WHICHEVER STATE THE LIST IS IN — the page-replacement half. */
+  const list = () => d.getElementById('bk-many-' + step.id);
+  const boxes = () => [...((list() || d).querySelectorAll('input[type="checkbox"][data-do="book-many-pick"]'))];
+  const sheetOpen = () => !d.getElementById('sheet').classList.contains('hidden');
   const formUp = () => String(w.__t.bookerCard() || '').indexOf('id="bookr"') !== -1;
+  /* A TICK THE WAY A FINGER MAKES ONE: the box flips, then `change` bubbles to the dispatcher. */
+  const tick = v => {
+    const b = boxes().find(x => x.value === v);
+    if (!b) return false;
+    b.checked = !b.checked;
+    b.dispatchEvent(new w.Event('change', { bubbles: true }));
+    return true;
+  };
 
   A['book-many']({ dataset: { step: step.id } });
-  if (!open()) bad.push('pressing the "' + step.id + '" row does not open the list');
-  if (list().indexOf('pick-list') === -1) {
-    bad.push('the list opens holding ' + JSON.stringify(list().slice(0, 80)) + ' rather than options');
+  const l = list();
+  if (!l) bad.push('pressing the "' + step.id + '" row does not open its list');
+  else {
+    /* IN THE CARD, UNDER ITS ROW — not a sibling of the screens, not over anything. */
+    if (!l.closest('#bookr .bk')) bad.push('the list is not inside the booking card');
+    let prev = l.previousElementSibling;
+    while (prev && prev.classList.contains('bk-say')) prev = prev.previousElementSibling;
+    if (!prev || !prev.querySelector('[data-do="book-many"][data-step="' + step.id + '"]')) {
+      bad.push('the list is not directly under the row that opened it');
+    }
+    if (l.getAttribute('role') !== 'group' || !l.getAttribute('aria-label')) {
+      bad.push('the list is not a named group, so a screen reader hears loose checkboxes');
+    }
+    if (boxes().length !== opts.length) bad.push('the list draws ' + boxes().length + ' boxes for a question with ' + opts.length);
+    if (!boxes().every(b => b.closest('label.check'))) bad.push('a box is not the app\'s own `.check` row, the label the target');
   }
+  if (d.getElementById('drop') || d.getElementById('drop-back')) bad.push('#drop is back in the document — a panel outside the card');
   if (sheetOpen()) bad.push('the "' + step.id + '" row opens a sheet over the app');
   if (!formUp()) bad.push('opening the list takes the form off its page');
-  const drawn = (list().match(/data-do="book-many-pick"/g) || []).length;
-  if (drawn !== opts.length) {
-    bad.push('the list draws ' + drawn + ' options for a question with ' + opts.length);
-  }
 
   /* TWO TICKS WITHOUT REOPENING — which is the whole of what was asked for. */
-  A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
-  if (!open()) bad.push('ticking an answer closes the list, so the next one is another open');
-  A['book-many-pick']({ dataset: { step: step.id, val: opts[1] } });
-  if (!open()) bad.push('ticking a second answer closes the list');
+  if (!tick(opts[0])) bad.push('no box for ' + JSON.stringify(opts[0]));
+  if (!list()) bad.push('ticking an answer closes the list, so the next one is another open');
+  if (!tick(opts[1])) bad.push('no box for ' + JSON.stringify(opts[1]));
+  if (!list()) bad.push('ticking a second answer closes the list');
   if (!formUp()) bad.push('ticking an answer takes the form off its page');
   if ((B[step.id] || []).length !== 2) {
     bad.push('two ticks left ' + JSON.stringify(B[step.id]) + ' rather than two answers');
   }
-  if (marked() !== 2) {
-    bad.push('the list shows ' + marked() + ' options marked, not the two that are chosen');
-  }
+  const ticked = boxes().filter(b => b.checked).map(b => b.value);
+  if (ticked.length !== 2) bad.push('the redrawn list shows ' + ticked.length + ' boxes ticked, not the two that are chosen');
+  /* A SECOND `change` FOR ONE TICK — a redraw between the tap and the handler, a doubled event — is
+     the box saying the same thing twice, and must not take the answer off again. */
+  const again = boxes().find(x => x.value === opts[1]);
+  if (again) again.dispatchEvent(new w.Event('change', { bubbles: true }));
+  if ((B[step.id] || []).length !== 2) bad.push('a second change for one tick turned it into ' + JSON.stringify(B[step.id]));
 
-  /* AND TICKING AGAIN TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
-  A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
+  /* AND UNTICKING TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
+  tick(opts[0]);
   if ((B[step.id] || []).length !== 1) {
-    bad.push('ticking a chosen answer again does not take it off: ' + JSON.stringify(B[step.id]));
+    bad.push('unticking a chosen answer does not take it off: ' + JSON.stringify(B[step.id]));
   }
 
-  /* ---------- AND THERE IS A WAY OUT, WHICH A DROP-DOWN HAS THREE OF ------------------------------
-     DONE, THE ROW AGAIN, AND A TAP ANYWHERE ELSE. The third is `#drop-back` carrying the same
-     action, so it is the same handler and there is nothing separate to keep in step. */
-  A['book-many-done']({ dataset: {} });
-  if (B.picking) bad.push('Done leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
-  if (open()) bad.push('Done leaves the list open');
-  if (list().indexOf('pick-list') !== -1) bad.push('Done leaves the options in #drop');
-  if (!formUp()) bad.push('the form is not on its page once the list has closed');
-
-  A['book-many']({ dataset: { step: step.id } });
-  A['book-many']({ dataset: { step: step.id } });
-  if (open()) bad.push('pressing the open row again does not shut the list');
-
-  const back = w.document.getElementById('drop-back');
-  if (!back) bad.push('#drop-back is not in index.html — a tap outside cannot close the list');
-  else if (back.getAttribute('data-do') !== 'book-many-done') {
-    bad.push('#drop-back carries ' + JSON.stringify(back.getAttribute('data-do'))
-             + ' rather than the action that closes the list');
-  }
-
-  /* ---------- AND THE ROW IS WHAT OPENS IT, WHICH THE REST OF THIS CANNOT SAY -------------------
+  /* ---------- AND THE ROW ITSELF, WHICH THE REST OF THIS CANNOT SAY ---------------------------------
      THE FIRST VERSION CALLED THE HANDLERS AND NOTHING ELSE, so putting the row back to a `<select>`
-     left every assertion above green: the panel still opened, because the journey opened it. A
-     check that cannot fail on the fault it was written for is the shape this file has deleted one
-     of — measured by mutation, which is the only way to know.
-     THREE THINGS OF THE CONTROL: it carries the action, it reads back what has been ticked — the
-     button is the only label on the row — and it says whether the list is up, which is the one fact
-     a screen reader cannot get from anywhere else now that the panel is outside this markup. */
+     left every assertion green: the list still opened, because the journey opened it. THREE THINGS OF
+     THE CONTROL: it carries the action, it reads back what has been ticked — the button is the only
+     label on the row — and it says whether its list is open and which element that list is. */
   const row = String(w.__t.control ? w.__t.control(step) : '');
   if (!w.__t.control) bad.push('stepControl_ is not exported — the row itself cannot be checked');
   else {
     if (row.indexOf('data-do="book-many"') === -1) {
-      bad.push('the "' + step.id + '" row does not open the list — it draws '
-               + JSON.stringify(row.slice(0, 80)));
+      bad.push('the "' + step.id + '" row does not open the list — it draws ' + JSON.stringify(row.slice(0, 80)));
     }
-    if (row.indexOf(opts[1]) === -1) {
-      bad.push('the row does not say what is chosen: ' + JSON.stringify(row.slice(0, 120)));
-    }
-    if (row.indexOf('aria-expanded') === -1) {
-      bad.push('the row does not say whether the list is open');
-    }
+    if (row.indexOf(opts[1]) === -1) bad.push('the row does not say what is chosen: ' + JSON.stringify(row.slice(0, 120)));
+    if (row.indexOf('aria-expanded="true"') === -1) bad.push('the row does not say its list is open');
+    if (row.indexOf('aria-controls="bk-many-' + step.id + '"') === -1) bad.push('the row does not name the list it opens (aria-controls)');
   }
+
+  /* PRESSING THE ROW AGAIN SHUTS IT — the one way out, and the one a disclosure has. */
+  A['book-many']({ dataset: { step: step.id } });
+  if (list()) bad.push('pressing the open row again does not shut the list');
+  if (B.picking) bad.push('a shut list leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
+  if ((B[step.id] || []).length !== 1) bad.push('shutting the list changed the answer: ' + JSON.stringify(B[step.id]));
   return bad;
 });
 
-/* ---------- A SINGLE-CHOICE SELECT OPENS THE SAME PANEL AND CLOSES ON THE PICK ---------------------
-   ASKED FOR AS *"should be consistent with the booking multiselect drop down list"*. Every ordinary
-   `<select>` now hangs `#drop` instead of opening the platform's picker — see `SEL_OK` in book.js.
-   What can break, and what nothing else here can see, is the contract with the callers that were
-   deliberately not touched: they listen for `change` on a real select, so the pick has to set the
-   select's value and fire `change` exactly once — twice would recompute a price twice and swap a
-   qualification box twice, none would be a pick that did nothing. And a disabled select must open
-   nothing, or a locked booking row and every field `send_` holds still become pressable again.
-
-   `check/ui.js` CANNOT ASK ANY OF IT: a panel that never opens measures perfectly, and so does a
-   select that opens its native wheel. So this drives the real booking column with a click AT the
-   select and a click on an option, through the app's own dispatcher — and asks the label route on
-   the settings column, because a tap on a `.field`'s caption is the one way a finger can still
-   reach a select whose own box takes no pointer. */
-check('a single-choice select opens the booking panel, and choosing closes it with one change', async () => {
+/* ---------- A SELECT IS THE PLATFORM'S OWN, AND NOTHING IN THE APP STANDS IN FRONT OF IT ----------
+   ASKED FOR ON 9 OCTOBER AS *"a more stable standard simple conventional drop down list"* (note 315).
+   For a week before that every ordinary `<select>` was `pointer-events: none` and a tap near one was
+   caught, CANCELLED, and answered with the app's own floating panel (note 226) — and this journey
+   asserted exactly that. It asserts the opposite now, through the same doors a finger and a keyboard
+   use, so that panel cannot come back one listener at a time:
+     · the press reaches the select and nothing cancels it — the `mousedown` a select opens its list
+       from, and the click a `<label>` focuses its select with;
+     · focus arriving on a select stays there on a phone — the old `focusin` listener blurred it;
+     · nothing appears in the document for the press: no listbox, no `#drop`, nothing new in `<body>`;
+     · the answer arrives as one `change` and reaches `BOOKING` — the contract every caller relies on;
+     · and the one thing the app does cancel: a press that the app took as a SWIPE (`PRESS_MOVED`),
+       whose `mousedown` and label click would otherwise open a list under a lifting thumb.
+   `js/check-dropdowns.js` reads the stylesheet for the other half — no select is `pointer-events:
+   none` — which jsdom cannot, having no cascade. */
+check('a select is the platform\'s own: its press is not cancelled, its focus is not taken, nothing opens over it', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
-  const panel = d.getElementById('drop');
-  if (!panel) return ['#drop is not in index.html — a select has nowhere to hang its list'];
-  if (typeof w.selOpen_ !== 'function') return ['selOpen_ is not declared, so NOTHING was checked — not a pass'];
+  /* A PHONE, because the focus listener that stood here acted only on a coarse pointer. */
+  w.matchMedia = q => ({ matches: /coarse/.test(String(q)), media: String(q), addEventListener() {}, removeEventListener() {} });
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
   const bad = [];
-  const open = () => !panel.classList.contains('hidden');
   const pick = () => d.querySelector('#bookr select.bk-sel:not(:disabled)');
   let sel = pick();
-  if (!sel) return ['the booking form draws no enabled select — cannot check the panel'];
+  if (!sel) return ['the booking form draws no enabled select — NOTHING was checked, not a pass'];
   const stepId = sel.dataset.step;
-  let changes = 0;
-  d.addEventListener('change', e => { if (e.target && e.target.dataset && e.target.dataset.step === stepId) changes++; });
+  const bodyKids = () => d.body.children.length;
+  const kids0 = bodyKids();
+  const floating = () => !!(d.getElementById('drop') || d.getElementById('drop-back')
+    || d.querySelector('[role="listbox"]'));
+  const press = (el, type) => {
+    const ev = new w.MouseEvent(type, { bubbles: true, cancelable: true, button: 0 });
+    el.dispatchEvent(ev);
+    return ev;
+  };
 
-  /* THE TAP. Its default has to be prevented, or a `<label>`'s activation focuses the select and a
-     focused select is exactly what iOS opens its own wheel for. */
-  const tap = el => { const ev = new w.MouseEvent('click', { bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev; };
-  const ev = tap(sel);
-  if (!open()) bad.push('a click on the "' + stepId + '" select does not open #drop');
-  if (!ev.defaultPrevented) bad.push('the click that opened the panel was not prevented, so the platform picker can open as well');
-  if (panel.dataset.owner !== 'sel') bad.push('the panel is owned by ' + JSON.stringify(panel.dataset.owner) + ', not by the select');
-  if (!panel.querySelector('[role="listbox"]')) bad.push('the open panel has no role="listbox"');
-  const btns = [...panel.querySelectorAll('[data-do="sel-pick"]')];
-  /* EVERY OPTION BUT A BLANK THAT ONLY REPEATS ANOTHER'S WORDS — see `selHtml_`. */
-  const said = o => String(o.label || o.text || '').trim();
-  const want = [...sel.options].filter(o => !o.hidden && !(o.value === '' && !o.selected && said(o)
-    && [...sel.options].some(x => x !== o && x.value !== '' && said(x) === said(o)))).length;
-  if (btns.length !== want) bad.push('the panel draws ' + btns.length + ' options for a select with ' + want);
-  if (!btns.every(b => /\bpick-opt\b/.test(b.className) && b.getAttribute('role') === 'option')) {
-    bad.push('the options are not `.pick-opt` with role="option" — not the booking list\'s rows');
-  }
-  const marked = btns.filter(b => b.getAttribute('aria-selected') === 'true');
-  if (marked.length !== 1 || Number(marked[0].dataset.i) !== sel.selectedIndex) {
-    bad.push('the panel marks ' + marked.length + ' options as chosen, not the one the select holds');
-  }
-  if (sel.getAttribute('aria-expanded') !== 'true') bad.push('the select does not say its list is open (aria-expanded)');
+  if (floating()) bad.push('a floating list is in the document before anything was pressed');
+  if (press(sel, 'mousedown').defaultPrevented) bad.push('the mousedown on the "' + stepId + '" select was cancelled — the platform\'s list opens from it');
+  if (press(sel, 'click').defaultPrevented) bad.push('the click on the "' + stepId + '" select was cancelled');
+  await wait(30);
+  if (floating()) bad.push('pressing a select put a list of the app\'s own in the document');
+  if (bodyKids() !== kids0) bad.push('pressing a select added ' + (bodyKids() - kids0) + ' element(s) to <body>');
 
-  /* PICK A DIFFERENT ONE, THROUGH THE DISPATCHER. */
-  const other = btns.find(b => Number(b.dataset.i) !== sel.selectedIndex && !b.disabled);
-  if (!other) bad.push('no second option to choose — the pick was NOT checked');
+  /* FOCUS STAYS. On a phone the old listener blurred a select the moment it took focus. */
+  sel = pick();
+  sel.focus();
+  await wait(30);
+  if (d.activeElement !== pick()) bad.push('a select that took focus on a phone lost it again — something is standing in for its list');
+  if (floating()) bad.push('focus on a select opened a list of the app\'s own');
+  try { sel.blur(); } catch (e) {}
+
+  /* THE ANSWER, AS THE PLATFORM'S LIST GIVES IT: the value, then `input` and `change`. */
+  sel = pick();
+  const other = [...sel.options].find(o => o.index !== sel.selectedIndex && !o.disabled && o.value);
+  if (!other) bad.push('no second answer to choose — the change was NOT checked');
   else {
-    const val = other.dataset.v;
-    tap(other);
+    let changes = 0;
+    const count = e => { if (e.target && e.target.dataset && e.target.dataset.step === stepId) changes++; };
+    d.addEventListener('change', count);
+    sel.value = other.value;
+    sel.dispatchEvent(new w.Event('input', { bubbles: true }));
+    sel.dispatchEvent(new w.Event('change', { bubbles: true }));
     await wait(30);
-    if (open()) bad.push('choosing an option leaves the panel open');
-    if (changes !== 1) bad.push('choosing an option fired change ' + changes + ' times, not once');
-    sel = pick();
-    if (!sel || sel.value !== val) bad.push('choosing ' + JSON.stringify(val) + ' left the select holding ' + JSON.stringify(sel && sel.value));
-    if (String(w.__t.BOOKING[stepId] || '') !== val) {
+    d.removeEventListener('change', count);
+    if (changes !== 1) bad.push('one pick reached the document as ' + changes + ' change events');
+    if (String(w.__t.BOOKING[stepId] || '') !== other.value) {
       bad.push('the booking handler never heard the pick: BOOKING.' + stepId + ' is ' + JSON.stringify(w.__t.BOOKING[stepId]));
     }
+    if (!pick() || pick().value !== other.value) bad.push('the redrawn select does not hold ' + JSON.stringify(other.value));
   }
 
-  /* THE SAME ANSWER AGAIN IS NOT A CHANGE, as a native select does not fire one. */
-  sel = pick();
-  if (sel) {
-    tap(sel);
-    const same = panel.querySelector('[data-do="sel-pick"][aria-selected="true"]');
-    const before = changes;
-    if (same) tap(same);
-    if (changes !== before) bad.push('choosing the answer already chosen fired change');
-    if (open()) bad.push('choosing the answer already chosen leaves the panel open');
+  /* A SWIPE THAT ENDS ON A SELECT OPENS NOTHING — the one press the app does cancel. */
+  if (typeof w.__t.pressMoved !== 'function') bad.push('pressMoved is not exported — the swipe guard was NOT checked');
+  else {
+    sel = pick();
+    w.__t.pressMoved(true);
+    const md = press(sel, 'mousedown');
+    const ck = press(sel, 'click');
+    w.__t.pressMoved(false);
+    if (!md.defaultPrevented) bad.push('a swipe\'s mousedown on a select was not cancelled — the list opens under a lifting thumb');
+    if (!ck.defaultPrevented) bad.push('a swipe\'s click on a select was not cancelled');
   }
 
-  /* A TAP OUTSIDE SHUTS IT, through `#drop-back` and the action it already carries. */
-  sel = pick();
-  if (sel) {
-    tap(sel);
-    if (!open()) bad.push('the select does not open a second time');
-    tap(d.getElementById('drop-back'));
-    if (open()) bad.push('a tap outside does not shut the panel');
-    if (sel.getAttribute('aria-expanded') === 'true') bad.push('a shut panel leaves the select saying it is open');
-  }
-
-  /* A DISABLED SELECT OPENS NOTHING. */
-  sel = pick();
-  if (sel) {
-    sel.disabled = true;
-    tap(sel);
-    if (open()) bad.push('a disabled select opens the panel');
-    sel.disabled = false;
-  }
-
-  /* THE CAPTION OF A `.field` IS A WAY IN TOO — the settings column's fields are selects in labels. */
+  /* THE CAPTION OF A `.field` IS A WAY IN TOO, and its activation is the browser's to run. */
   try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
   await wait(60);
   const pages = [...d.querySelectorAll('#s-settings > .page')];
@@ -4164,11 +4201,8 @@ check('a single-choice select opens the booking panel, and choosing closes it wi
   else {
     w.__t.goPage('settings', at, true);
     const lab = pages[at].querySelector('label.field > select:not(:disabled)').parentNode;
-    const ev2 = tap(lab);
-    if (!open()) bad.push('a tap on a select\'s label does not open the panel');
-    if (!ev2.defaultPrevented) bad.push('a tap on a select\'s label was not prevented, so its activation can focus the select');
-    w.bookDropShut_();
-    if (open()) bad.push('Escape (bookDropShut_) does not shut a select\'s panel');
+    if (press(lab, 'click').defaultPrevented) bad.push('a tap on a select\'s label was cancelled, so it cannot focus its select');
+    if (floating()) bad.push('a tap on a select\'s label opened a list of the app\'s own');
   }
   return bad;
 });

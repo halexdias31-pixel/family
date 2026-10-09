@@ -3526,7 +3526,6 @@ const STATES = {
         slot.querySelector('.q-line').click();
       },
       leave: () => {
-        if (typeof selShut_ === 'function') selShut_();
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -3579,11 +3578,12 @@ const STATES = {
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
         pages[at].querySelector('.q-shelf [data-do="qual-add"]').click();
-        /* THE SUBJECT LIST IS HUNG FOR THE PERSON a tick later — shut it, so what is measured is the card. */
-        return new Promise(r => setTimeout(() => { if (typeof selShut_ === 'function') selShut_(); r(); }, 60));
+        /* THE SUBJECT BOX TAKES THE FOCUS a tick later (`qualNext_`) — it opened the app's own list here
+           until the dropdowns were the platform's again (note 315), and this shut that list so the card
+           was what got measured. A focused box is part of the card a person is looking at, so it stays. */
+        return new Promise(r => setTimeout(r, 60));
       },
       leave: () => {
-        if (typeof selShut_ === 'function') selShut_();
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -3706,55 +3706,87 @@ const STATES = {
                        .length === 2 ? 2 : 0),
       wants: 'two exam-date boxes, both drawn as a date picker' },
 
-    /* ---------- MORE QUALIFICATIONS, WITH ITS LIST OPEN ------------------------------------------
-       `extra_quals` IS A DROP-DOWN THAT STAYS OPEN — `#drop`, borrowed from the booking form, which
-       is a sibling of the screens rather than inside one. So the only way this lab ever sees the
-       panel, or the press pass ever reaches `me-many-pick`, is a state that opens it: the same hole
-       `booking · a list of answers open` was written to close. Opened through the app's own door,
-       the field's button, and shut again on the way out because states run in order down one page
-       and an open panel would be measured as part of every state after this one. */
+    /* ---------- A SEVERAL-OF-A-LIST FIELD, OPEN, WITH A BOX TICKED ---------------------------------
+       IT WAS A BUTTON THAT HUNG `#drop`, the booking form's floating panel, which is a sibling of the
+       screens — so the only way this lab ever saw the panel, or the press pass ever reached
+       `me-many-pick`, was a state that opened it. On 9 October the owner asked for *"a more stable
+       standard simple conventional drop down list"* (note 315), and the field is a `<details>` now:
+       its summary is the field, and open, its ticks are real checkboxes under it IN the card, pushing
+       the card longer — which is exactly what `check/ui.js` has to lay out and measure at every width.
+
+       OPENED THROUGH THE SUMMARY, the browser's own door, and ONE BOX TICKED the way a finger ticks it —
+       the box flips and `change` bubbles — so what is measured is the field with an answer in it, and
+       what is asserted is that the answer reached the hidden box `me-save` reads. Shut and put back on
+       the way out, because states run in order down one page. */
     { name: 'a several-of-a-list field open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-settings .page')];
-        /* ANY SEVERAL-OF-A-LIST FIELD. It was `extra_quals`, which is gone — a PGCE or a DBS is an
-           ordinary qualification entry now — so this opens whichever one the column carries (a
-           tutor's venues, on Contact & address). */
-        const q = '[data-do="me-many"]';
+        const pages = [...document.querySelectorAll('#s-settings > .page')];
+        /* ANY SEVERAL-OF-A-LIST FIELD — whichever one the column carries (a tutor's venues, on Contact
+           & address). Which fields take several answers is `FIELD_MULTI`'s to say. */
+        const q = '.field.many details';
         const at = pages.findIndex(pg => pg.querySelector(q));
         if (at < 0) throw new Error('no several-of-a-list field on the settings column');
         goPage('settings', at, true);
-        pages[at].querySelector(q).click();
+        const det = pages[at].querySelector(q);
+        det.querySelector(':scope > summary').click();
+        const box = det.querySelector('input[type="checkbox"]:not(:disabled)');
+        if (!box) throw new Error('the open field draws no box to tick');
+        window.STATE_MANY_WAS = { name: box.dataset.manyOf, value: (det.closest('.many').querySelector('input[type="hidden"]') || {}).value };
+        box.checked = !box.checked;
+        box.dispatchEvent(new Event('change', { bubbles: true }));
       },
-      leave: () => { if (typeof meDropShut_ === 'function') meDropShut_(); },
+      leave: () => {
+        document.querySelectorAll('#s-settings .field.many details[open]').forEach(d => { d.open = false; });
+        delete window.STATE_MANY_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden')
-          && el.querySelectorAll('[data-do="me-many-pick"]').length > 0;
+        const det = document.querySelector('#s-settings .page.on .field.many details[open]');
+        const was = window.STATE_MANY_WAS || {};
+        const hidden = det && det.closest('.many').querySelector('input[type="hidden"]');
+        return !!det && !document.getElementById('drop')
+          && det.querySelectorAll('label.check input[type="checkbox"]').length > 0
+          && !!det.closest('.me-form[data-dirty]')
+          && !!hidden && hidden.value !== was.value ? 1 : 0;
       },
-      wants: 'a several-of-a-list field open under its button, with something to tick' },
+      wants: 'a several-of-a-list field open under its summary, in the card, with a box ticked into its hidden answer' },
 
-    /* ---------- AN ORDINARY SELECT, OPEN ------------------------------------------------------------
-       EVERY SINGLE-CHOICE `<select>` HANGS `#drop` NOW — see `SEL_OK` in book.js — and the settings
-       column is where most of them are. Opened through the select's own door, a click AT it, which is
-       the path `selAt_` takes for assistive technology; shut on the way out for the reason above. */
-    { name: 'a dropdown open',
+    /* ---------- AN ORDINARY SELECT, ANSWERED ------------------------------------------------------------
+       THIS WAS "A DROPDOWN OPEN" — a click AT a settings select, which hung the app's own panel off it
+       for this lab to measure (note 226). The open list is the platform's again (note 315) and no page
+       can draw, measure or press it, so there is no open state to enter. What a select still does to a
+       card is be ANSWERED: the value moves, `change` bubbles, the card is marked as holding an unsaved
+       answer. Answered here the way the platform's list answers — the value, then `input` and `change`,
+       bubbling — and put back on the way out. */
+    { name: 'a dropdown answered',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const pages = [...document.querySelectorAll('#s-settings > .page')];
         const at = pages.findIndex(pg => pg.querySelector('label.field > select:not(:disabled)'));
         if (at < 0) throw new Error('no select in a label on the settings column');
         goPage('settings', at, true);
-        pages[at].querySelector('label.field > select:not(:disabled)').click();
+        const sel = pages[at].querySelector('label.field > select:not(:disabled)');
+        const to = [...sel.options].find(o => o.index !== sel.selectedIndex && !o.disabled);
+        if (!to) throw new Error('the select has no second answer to choose');
+        window.STATE_SEL_WAS = { name: sel.dataset.me, to: to.value };
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
       },
-      leave: () => { if (typeof selShut_ === 'function') selShut_(); },
+      leave: () => {
+        delete window.STATE_SEL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
-          && el.querySelectorAll('[data-do="sel-pick"]').length >= 2
-          && el.querySelectorAll('[data-do="sel-pick"][aria-selected="true"]').length === 1;
+        const was = window.STATE_SEL_WAS || {};
+        const sel = document.querySelector('#s-settings .page.on select[data-me="' + was.name + '"]');
+        return !!sel && sel.value === was.to && !!sel.closest('.me-form[data-dirty]')
+          && !document.getElementById('drop') && !document.querySelector('[role="listbox"]') ? 1 : 0;
       },
-      wants: 'a settings select\'s options hanging off it in the booking list\'s panel, one marked' },
+      wants: 'a settings select holding a new answer, its card marked unsaved, and no list of the app\'s own anywhere' },
 
     /* "ALSO TEACH, OPEN" WENT WITH THE PAGE. What a tutor teaches is two ticks on each
        qualification now — `the qualifications` above counts them — and `teaches_also` is derived
@@ -5071,64 +5103,86 @@ const STATES = {
          empty it — the same call every send path ends with. */
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
-    /* ---------- THE LIST THAT HANGS OFF A FIELD ------------------------------------------------
-       `check/press.js` REPORTED IT BEFORE THIS EXISTED: *"named on a screen and then not found to
-       press (2): booking/book-many-pick, booking/book-many-done"*. Both controls are drawn only
-       once a field has been pressed, and the press pass builds its queue from what is on the screen
-       — so the two halves of the list were pressed by nothing. While it was a sheet they were
-       collected with everything else a press opens; anywhere else they are a state or they are
-       nowhere, which is exactly the hole this file's own header describes.
+    /* ---------- A SEVERAL-ANSWERS ROW, OPEN UNDER ITSELF, WITH A BOX TICKED -------------------------
+       `check/press.js` REPORTED THE HOLE BEFORE A STATE EXISTED: *"named on a screen and then not found
+       to press (2): booking/book-many-pick, booking/book-many-done"*. The ticks are drawn only once a
+       row has been pressed, and the press pass builds its queue from what is on the screen — so they
+       were pressed by nothing.
 
-       AND IT IS `#drop` NOW RATHER THAN THE PAGE. The list replaced the form for one commit and was
-       reported as *"i hate this"*; it hangs off its field, outside the screens, because `.pane` is
-       `overflow: hidden` and would clip it anywhere else. So the measured root is the panel, not
-       `#s-booking` — a selector scoped to the screen finds nothing and reads as the list being
-       absent, which is this file's own recurring fault about an instrument that cannot reach its
-       subject.
+       IT WAS `#drop`, a panel outside the screens, and this state's root was the panel. Since 9 October
+       (note 315) the list is checkboxes IN the card, under the row it answers, pushing the rows below
+       it down — so the measured root is `#s-booking` like every other booking state, and the card is
+       longer while it is open: twelve subjects at 44px a row is the arithmetic note 147 ruled the
+       in-flow shape out on, before `paneReach_` zoomed and scrolled a long card instead of clipping it.
+       `check/ui.js` lays that out at every width now, on every commit.
 
-       AND `check/ui.js` HAD NEVER LAID IT OUT EITHER. Twelve 44px options in whichever side of the
-       field has more room is the arithmetic the whole design turns on, and until this state it was
-       measured in a probe rather than on every commit.
-
-       SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does — the
-       app's own door rather than markup poked into the page. The step is found rather than named:
-       which questions take several answers is `BOOK_STEPS`'s to say, and a literal here would be a
-       second copy of that list. */
+       SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does, and ONE BOX
+       TICKED the way a finger ticks it — the box flips and `change` bubbles to `book-many-pick`. The step
+       is found rather than named: which questions take several answers is `BOOK_STEPS`'s to say. */
     { name: 'a list of answers open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const st = (typeof BOOK_STEPS !== 'undefined' ? BOOK_STEPS : []).filter(x => x.multi && !x.grid)
           .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 1; } catch (e) { return false; } })[0];
-        if (st) { BOOKING.picking = st.id; drawBooker(); }
+        if (!st) throw new Error('no several-answers question offers anything to tick');
+        window.STATE_MANY_STEP = st.id;
+        BOOKING.picking = st.id; drawBooker();
+        /* THE BOX IS TICKED ONCE IT IS DRAWN, asked again for up to two seconds. `check/ui.js` found it
+           missing once at 390 on a loaded machine and never in a replay of the same states, so the
+           repaint can land late; a box that never comes is still reported, by `expect`. */
+        return new Promise(ok => {
+          const t0 = Date.now();
+          const tick = () => {
+            if (BOOKING.picking !== st.id) { BOOKING.picking = st.id; drawBooker(); }
+            const box = document.querySelector('#bookr #bk-many-' + st.id + ' input[type="checkbox"]');
+            if (box) { box.checked = true; box.dispatchEvent(new Event('change', { bubbles: true })); return ok(); }
+            if (Date.now() - t0 > 2000) return ok();
+            setTimeout(tick, 50);
+          };
+          tick();
+        });
       },
-      expect: () => document.querySelectorAll('#drop .pick-opt').length >= 1
-        && !!document.querySelector('#drop [data-do="book-many-done"]')
-        /* AND OPEN, because `#drop` keeps its markup for as long as it is up and an assertion on the
-           options alone would pass on a panel that is hidden. */
-        && !document.getElementById('drop').classList.contains('hidden'),
-      wants: 'a list of options hanging off the field, with a Done under them',
-      /* PUT BACK, because states run in order down one page and the receipt state after this one
-         would otherwise be measuring a picker. */
-      leave: () => { BOOKING.picking = ''; drawBooker(); } },
+      expect: () => {
+        const id = window.STATE_MANY_STEP;
+        const list = id && document.querySelector('#s-booking #bookr #bk-many-' + id);
+        return !!list && !document.getElementById('drop')
+          && list.querySelectorAll('label.check input[type="checkbox"]').length >= 1
+          && list.querySelectorAll('input[type="checkbox"]:checked').length >= 1
+          && (BOOKING[id] || []).length >= 1 ? 1 : 0;
+      },
+      wants: 'a several-answers row open under itself in the card, with a box ticked into the booking',
+      /* PUT BACK, because states run in order down one page and the receipt state after this one would
+         otherwise be measuring a half-answered form with a list open on it. */
+      leave: () => { delete window.STATE_MANY_STEP;
+        if (typeof resetBooking_ === 'function') resetBooking_(); BOOKING.picking = ''; drawBooker(); } },
 
-    /* ---------- AND A SINGLE ANSWER, OPEN, IN THE SAME PANEL ---------------------------------------
-       *"should be consistent with the booking multiselect drop down list"* — so the one-of-a-list
-       rows on this card hang the same `#drop` the state above opens. Through the select's own door,
-       and shut again on the way out. */
-    { name: 'a single answer open',
+    /* ---------- AND A SINGLE ANSWER, CHOSEN --------------------------------------------------------------
+       THIS WAS "A SINGLE ANSWER OPEN" — a click AT a booking select, which hung the multi-select list's
+       panel off it (note 226). The open list is the platform's again (note 315); nothing on the page
+       draws it, so there is no open state for this lab to measure. What is left to measure is the card
+       ANSWERED through that list — the value, then `input` and `change`, which is all a platform's list
+       ever does — and that it reached `BOOKING` through the one `book-set` handler. */
+    { name: 'a single answer chosen',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const sel = document.querySelector('#bookr select.bk-sel:not(:disabled)');
         if (!sel) throw new Error('the booking form draws no enabled select');
-        sel.click();
+        const to = [...sel.options].find(o => o.value && o.index !== sel.selectedIndex && !o.disabled);
+        if (!to) throw new Error('the first booking select has no second answer to choose');
+        window.STATE_SEL_WAS = { step: sel.dataset.step, to: to.value };
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
       },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
-          && el.querySelectorAll('#drop .pick-opt[data-do="sel-pick"]').length >= 2;
+        const was = window.STATE_SEL_WAS || {};
+        const sel = document.querySelector('#bookr select.bk-sel[data-step="' + was.step + '"]');
+        return String(BOOKING[was.step] || '') === was.to && !!sel && sel.value === was.to
+          && !document.getElementById('drop') && !document.querySelector('[role="listbox"]') ? 1 : 0;
       },
-      wants: 'a single-answer row\'s options hanging off it, the multi-select list\'s rows',
-      leave: () => { if (typeof selShut_ === 'function') selShut_(); } },
+      wants: 'a booking row answered through its own select, the answer in BOOKING, and no list of the app\'s own',
+      leave: () => { delete window.STATE_SEL_WAS;
+        if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,

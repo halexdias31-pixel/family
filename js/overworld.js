@@ -279,13 +279,19 @@ function axisFree(target, axis, dir) {
      picked up by the sheet's own watcher below. This returns false so the grid ignores the gesture
      exactly as before; the sheet takes it instead. */
   if (!$('sheet').classList.contains('hidden')) return false;   // the sheet is over everything
-  /* ---------- A SELECT IS NAMED. A TEXTAREA IS MEASURED, AND IT USED TO BE NAMED -----------------
-     A SELECT OPENS BY DRAGGING ON SOME PHONES, which is not a scroll and not something the walk
-     below can see, so it stays named.
-     It is named for the few that still take the finger: `SEL_OK` in book.js gives every ordinary
-     select `pointer-events: none`, so a touch on one lands on the box behind it and a swipe that
-     begins there moves the column like anywhere else on the card. A disabled select, a `multiple`
-     one and one carrying `data-native` are what can still be the target here.
+  /* ---------- A SELECT IS NOT NAMED, AND A TEXTAREA IS MEASURED ------------------------------------
+     A SELECT WAS NAMED HERE, as *"a select opens by dragging on some phones"* — which is not a scroll
+     and not something the walk below can see. For the week of note 226 it was moot: the app's own
+     panel made every select `pointer-events: none`, so no finger landed on one, and a swipe that began
+     on a dropdown moved the column like a swipe anywhere else on the card. That is what a thumb now
+     expects of a card full of fields, and the owner asked on 9 October for the dropdowns to be the
+     platform's own again without asking for the swipe to go back to stopping on them.
+
+     SO IT IS NOT NAMED, and the drag that the app takes as a swipe opens no list either: past the
+     ten pixels that set `PRESS_MOVED`, the `mousedown` a phone may still send at the lift is
+     cancelled before the select can open from it (see beside `PRESS_MOVED` in shell.js). Measured
+     with real touch on the booking card and the settings column, note 315. `[data-noswipe]` is the
+     one name left — the boxes that say for themselves that a drag is theirs.
 
      A TEXTAREA WAS BESIDE IT AND THAT BLOCKED BOTH AXES ON EVERY ONE IN THE APP. Measured with
      real touch events on the notepad -- the widget that is mostly textarea -- a swipe left stayed
@@ -306,7 +312,7 @@ function axisFree(target, axis, dir) {
      -- proved by measurement, the browser really does pan a full notepad while the page stays put.
 
      This is the entry above it one line up: a blanket refusal where a measurement belongs. */
-  if (target.closest?.('select, [data-noswipe]')) return false;
+  if (target.closest?.('[data-noswipe]')) return false;
   /* A cell is not a scroll container any more, so the walk below stops at anything genuinely
      inside one — the docket's list, the notepad — and hands everything else to the grid. That is
      what makes a swipe up mean the next widget rather than a few pixels of nothing. */
@@ -554,7 +560,7 @@ addEventListener('pointermove', e => {
            the grid on the NEXT swipe, when there is nothing left to scroll and `axisFree` says yes.
            That is what a native scroller does at its end, and what the notepad already does. */
         const host = axis === 'y' && $('sheet').classList.contains('hidden')
-          && !SWIPE.target.closest?.('select, [data-noswipe]')
+          && !SWIPE.target.closest?.('[data-noswipe]')
           ? scrollHost_(SWIPE.target, axis, dir) : null;
         if (!host) { SWIPE.live = false; return; }
         SWIPE.scroll = host;

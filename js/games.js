@@ -1672,9 +1672,9 @@ on('maze-again', () => { mzDeal_(); mazePaint(); });
    Games column's pages are built, it is drawn whenever Tools or Saved is beside you, and its
    markup stays in the document once drawn. Measured: two arrow presses on the Find column moved a
    maze nobody could see. So it asks `dropOnFront_` in book.js — "on the screen you are on, on the
-   page in front of you", which is exactly this question and was lifted out of the drop-down code so
-   there would be one copy of it — and asks it of every copy of the grid, because a starred maze is
-   on the Saved column too.
+   page in front of you", which is exactly this question; it was written for the dropdown panel and
+   outlived it (note 315), so there is still one copy of it — and asks it of every copy of the grid,
+   because a starred maze is on the Saved column too.
 
    AND ONE KEY IS ONE MOVE. The pager listens for the same four keys on `window`, which this
    `document` listener runs before — and measured on the maze page, ArrowDown walked the maze AND

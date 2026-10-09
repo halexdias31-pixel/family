@@ -319,7 +319,6 @@ async function compare(page, a, b) {
           if (!s) return '';
           s.value = s.options[s.options.length - 1].value;
           s.dispatchEvent(new Event('change', { bubbles: true }));
-          if (typeof selShut_ === 'function') selShut_();
           return s.options[s.options.length - 1].text;
         });
         if (!chose) bad.push(`form at ${width}px: no select on the form with three options to answer`);

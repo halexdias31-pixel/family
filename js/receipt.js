@@ -379,24 +379,24 @@ on('book-share', el => {
 /* The one entry point. Everything that changes an answer calls this, and it is the only thing that
    calls `drawBooker_` — so nothing can redraw the card without keeping its place. It sat orphaned
    at the head of this file for as long as the shared picture was written between it and here. */
-/* AND THE PANEL, because the list that hangs off a field is `#drop` outside the screens entirely —
-   see `bookDrop_`. It is here rather than beside it in book.js so that a redraw cannot rebuild the
-   card without rebuilding the list on it: every tick goes through this one function, which is what
-   keeps the ✓, the row's own summary and the running price in step. */
+/* THE LIST OF CHECKBOXES UNDER A SEVERAL-OF-A-LIST ROW IS PART OF THE CARD — see `stepManyList_` —
+   so this one redraw is what keeps the tick, the row's own summary and the running price in step.
+   It also called `bookDrop_` while that list was `#drop`, a panel outside the screens with a redraw
+   of its own; the panel went on 9 October (note 315) and the second call with it. */
 function drawBooker() {
   redrawBooker_(paintBook_);
-  if (typeof bookDrop_ === 'function') bookDrop_();
 }
 
 /** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */
 function bookerCard() {
-  /* ---------- THE LIST IS NOT DRAWN HERE ANY MORE -------------------------------------------------
+  /* ---------- THE LIST IS NOT DRAWN INSTEAD OF THE CARD ---------------------------------------------
      FOR ONE COMMIT THIS RETURNED THE PICKER INSTEAD OF THE CARD, and it was reported as *"i hate
-     this."* The list hangs off its field now — `#drop`, a sibling of the screens, built by
-     `bookDrop_` off the same `BOOKING.picking` this used to read. The card is always the card.
+     this."* A several-of-a-list question's checkboxes are drawn IN the card now, under their row,
+     off the same `BOOKING.picking` this used to read (`stepManyList_`). The card is always the card.
 
      `#bookr` STILL HAS TO BE HERE, and that is not tidiness: `paintBook_` finds the screen to
-     repaint by walking up from it, and `dropRow_` finds the field to hang off inside it. */
+     repaint by walking up from it, and `book-many-pick` finds the box to give the focus back to
+     inside it. */
   const out = drawBooker_();
   if (!out) return '';
   return `<div id="bookr">
