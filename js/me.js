@@ -685,9 +685,18 @@ function signedOut_(opts) {
      shown, on the screen of somebody who is not one. Nothing was fetched or drawn, but a shelf
      nobody else may see was named to them. So Find starts again from its first question, as it
      does on a fresh visit. `typeof`, because me.js loads before find.js declares `STUFF`. The box is
-     not cleared here: `repaint` below draws Find's controls again from `STUFF.q`. */
+     not cleared here: `repaint` below draws Find's controls again from `STUFF.q`.
+     ---------- `keepFind`: NOBODY WAS SIGNED IN, SO THERE IS NOBODY ELSE'S QUESTION TO TAKE AWAY ----------
+     THE OWNER, 9 Oct: *"when the child writes something in an answer box then goes to sign in, it wipes
+     their finder so they have to click all the way to get back there."* `signedIn_` calls this for
+     nobody-signed-in as well as for somebody else, and this line could not tell the two apart — so a
+     child who walked the funnel to Q13 signed out, typed an answer and signed in was put back on the
+     first question. Signed out is the least anybody can be shown, so what was asked for then is nobody's
+     but the person holding the phone, and it stays: the search, the chips, and — since nothing here
+     touches `PAGE` — the card and the page they were on. `signedIn_` decides, and passes it from that
+     one case only; Sign out and a switch from one person to another clear Find as above. */
   try {
-    if (typeof STUFF !== 'undefined') { STUFF.q = ''; STUFF.filters = []; }
+    if (!opts.keepFind && typeof STUFF !== 'undefined') { STUFF.q = ''; STUFF.filters = []; }
   } catch (err) {}
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
@@ -751,7 +760,15 @@ function signedIn_(d, typed) {
   EXTRA.forEach(k => { if (k in me) { got[k] = me[k]; delete me[k]; } });
   const pid = String(me.personId || '');
   /* A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD — or nobody held — starts clean. */
-  if (!USER || String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
+  /* ---------- BUT NOBODY HELD IS NOT SOMEBODY ELSE, AND FIND KEEPS ITS PLACE ------------------------------
+     THIS WAS ONE CONDITION, `!USER || … !== pid || !pid`, and so signing in from signed out threw away
+     the funnel exactly as a switch between two children does (*"it wipes their finder"*, 9 Oct). The
+     stars, the inbox, the per-person keys and the films still go — they are the device's last person's,
+     or nobody's — but Find is the same seat: the same child, now with a name. ONE PLACE DECIDES, and it
+     is this line; `signedOut_` only does what it is told. The answer they typed signed out is already
+     theirs by `ansRead_`'s rule, which moves it under their key the first time the box is drawn. */
+  if (!USER) signedOut_({ quiet: true, keepFind: true });
+  else if (String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';

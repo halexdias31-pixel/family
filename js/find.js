@@ -11525,6 +11525,42 @@ function stuffPageOf_(x, part) {
   return i < 0 ? 0 : i;
 }
 
+/* ---------- AND BACK ONTO THE CARD YOU WERE ON WHEN THE LIST UNDER IT CHANGES -------------------------
+   `PAGE.stuff` IS A NUMBER, and a redraw that keeps your place keeps the number. That is right while the
+   list is the same list, and it is how a child signing in landed on the card they left (docs/history/318)
+   — but the payload that lands after signing in is that person's, and a signed-in child can be shown
+   more (their friends answer a search; the Bible's index lands for an admin and joins the list mid-read).
+   Measured in check-flow: one more row in front of June 2023 1H Q13 and the redraw put the child on Q12,
+   the same page number on a different card, with nothing anywhere saying why.
+
+   SO A FILLED PAGE SAYS WHICH CARD IT IS (`FIND_AT`, written by `stuffFillOne_`, read only while the page
+   is still marked filled), and the two redraws that keep your place — `screen('stuff')` and
+   `paintStuff(true)` — look that card up in the new list and stand on it. ASKED OF THE PAGE ON THE SCREEN
+   RATHER THAN REMEMBERED, because the page is what the child is actually looking at; a number noted when
+   the page was turned is a guess the moment anything in front of it moves. AND ONLY FOR THE SAME QUESTION:
+   a page drawn for other chips is not the place the new chips were asked for, and the redraws that change
+   the chips go to the question as they always did. A card that is no longer there leaves the number as
+   it was, which is the behaviour before this. */
+const stuffPageId_ = pg => (pg && pg.x ? String(pg.x.key || pg.x.name || '') + '\u0000' + (pg.part || '') : '');
+const stuffAsk_ = () => JSON.stringify([S_(STUFF.q), STUFF.filters || []]);
+function stuffHeld_() {
+  try {
+    const host = $('s-stuff');
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)];
+    const at = el && el.dataset.filled === '1' && el.FIND_AT;
+    return at && at.ask === stuffAsk_() ? at.id : '';
+  } catch (e) { return ''; }
+}
+function stuffBackTo_(id, keep) {
+  if (!id) return;
+  const pages = stuffPages_();
+  /* STILL WHERE IT WAS — the commonest case by far (a star, the same list again), and one comparison
+     rather than a walk over a list that can be thousands of pages long. */
+  if (stuffPageId_(pages[(PAGE.stuff || 0) - keep]) === id) return;
+  const i = pages.findIndex(pg => stuffPageId_(pg) === id);
+  if (i >= 0) PAGE.stuff = keep + i;
+}
+
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST ---------------------------
    `collectionAxes_`, `groupItems_`, `one_` and `plural_` WERE HERE, with `collect: true` on the
    facet they served. Together they drew a line above the funnel — "or the 227 papers these are in"
@@ -13387,6 +13423,8 @@ function paintStuff(keepPage) {
   /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
      what says how much the pages in front moved by. */
   const was = PAGE.stuff || 0;
+  /* AND WHICH CARD THAT IS, off the page itself before it is replaced — see `stuffHeld_`. */
+  const held = keepPage ? stuffHeld_() : '';
   /* ---------- WHAT MOVED IS THE FIRST RESULT, NOT THE QUESTION ---------------------------------
      THIS READ `stuffQuestionPage_()` AND THAT NUMBER IS ALWAYS NOUGHT. `screen('stuff')` builds
      `[the question], frontPages_(), savedPages_(), …` — the question is FIRST and everything that
@@ -13527,6 +13565,9 @@ function paintStuff(keepPage) {
     ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
                            pageCount('stuff') - 1))
     : stuffQuestionPage_();
+  /* THE SHIFT ABOVE IS WHAT MOVED IN FRONT OF THE RESULTS; THIS IS WHAT MOVED AMONG THEM — the card
+     looked up by name in the list as it is now (`stuffBackTo_`), when the list has changed under it. */
+  if (keepPage) stuffBackTo_(held, stuffFirstResult_());
   /* AND THE WINDOW IS BUILT AROUND THE PAGE WE ARE GOING TO BE ON, so it is decided first. Built
      around the old one, a shift of a page or two in front could put the new page just past the
      window's edge, where there is no element to fill. */
@@ -14004,6 +14045,9 @@ function stuffFillOne_(i, ctx) {
   const pane = paneOf_(el);
   pane.innerHTML = stuffPageHtml(i - first);
   el.dataset.filled = '1';
+  /* WHICH CARD THIS IS, AND FOR WHICH QUESTION — so a redraw over a changed list can find it again
+     (`stuffHeld_`). An expando, as `pane.LAST_H` is: nothing reads it out of the markup. */
+  el.FIND_AT = { ask: stuffAsk_(), id: stuffPageId_(stuffPages_()[i - first]) };
   /* THE HEIGHT IT WAS HELD AT WHILE EMPTY GOES, in the same task as the card arrives, so the page is
      its card's height from the first frame it is drawn — see `stuffPin_`. */
   el.style.minHeight = '';
@@ -14673,9 +14717,17 @@ screen('stuff', () => {
      window, with `PAGE_KEEP` and `PAGE_LO` set to describe exactly that. The count in front is
      `1 + frontPages_().length` because the question is page nought here, which is what
      `stuffFirstResult_` reads back off the DOM once it exists. */
+  /* ---------- AND THE CARD YOU WERE ON, BY NAME, NOT BY NUMBER ----------------------------------------
+     A REPAINT KEEPS `PAGE.stuff`, and a repaint is what a payload landing is — the one after signing in
+     is that person's, and its list can be longer than the one the card was found in. So the page on the
+     screen is asked which card it is BEFORE this draw replaces it (`paint` writes the markup after this
+     returns, so the old strip is still the one in the document), and the new list is asked where that
+     card is now (`stuffBackTo_`). The window below is then built around the page that is right. */
+  const held = stuffHeld_();
   const front = frontPages_();
   const keep = 1 + front.length;
   const want = stuffPageCount();
+  stuffBackTo_(held, keep);
   PAGE_KEEP.stuff = keep;
   PAGE_LO.stuff = stuffLo_(want, keep, PAGE_LO.stuff);
   /* AND THE WINDOW IS FILLED A MOMENT LATER, because a page cannot be filled until it is in the

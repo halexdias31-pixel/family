@@ -14894,6 +14894,172 @@ check('signing in on the account column goes back where you came from — and Fi
   return bad;
 });
 
+/* ---------- SIGNING IN FROM SIGNED OUT IS THE SAME SEAT, SO FIND KEEPS ITS PLACE -----------------------
+   THE OWNER, 9 Oct: *"when the child writes something in an answer box then goes to sign in, it wipes
+   their finder so they have to click all the way to get back there."* `signedIn_` ran `signedOut_` when
+   NOBODY had been signed in as well, and `signedOut_` empties Find's search and chips — written for an
+   admin leaving an admin-only shelf named on Find (docs/history/318). So this is the child's whole
+   errand, on the real handlers: the funnel walked by pressing its own chips over REAL rows of
+   data/questions.json (three Edexcel papers and a Corbettmaths sheet, so it has questions to ask) down
+   to June 2023 1H Q13; that card's page; "80" typed on the keypad, signed out; across to the account
+   column; the handle and the PIN typed and Sign in pressed, as a student. Back on Find: the same chips,
+   the same card on the same page, and the answer in the box under the student's key with the signed-out
+   copy gone (`ansRead_` moves it). THEN THE STUDENT'S OWN PAYLOAD LANDS, held until now, and the list
+   under the card is longer — a signed-in child can be shown more (their friends answer a search), played
+   here by one more library row in front of Q13, which the next payload's `libraryInto_` reads — and the
+   child is still on Q13, wherever its page has moved to. */
+const KEEP_SOL_ = { name: 'Sol Pupil', personId: 'P12', role: 'student', roles: ['student'], token: 'tok-P12', handle: 'sol_calm12' };
+const keepRows_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'))
+  .filter(r => /^P-1MA1-2306-[123]H$/.test(r.paper_id) || r.paper_id === 'W-CBM-addition');
+/* PRESS THE CHIPS A CHILD WOULD, to the row's card: at each question the first answer that keeps the
+   card of `id` on the strip, through the app's own click dispatcher. Returns the answers pressed. */
+const keepWalk_ = async (w, id) => {
+  const d = w.document, S = w.__t.STUFF(), said = [];
+  const cardOn = () => w.stuffPages_().some(pg => pg.x && pg.x.row && pg.x.row.row_id === id && !pg.part);
+  for (let step = 0; step < 16; step++) {
+    const picks = [...d.querySelectorAll('#s-stuff #stuff-groups [data-do="facet-pick"]')];
+    if (!picks.length) break;
+    const keeps = picks.find(b => {
+      S.filters.push({ field: b.dataset.field, value: b.dataset.value });
+      try { return cardOn(); } finally { S.filters.pop(); }
+    });
+    if (!keeps) break;
+    said.push(keeps.dataset.field + '=' + keeps.dataset.value);
+    keeps.click();
+    await wait(20);
+  }
+  return said;
+};
+check('signing in from signed out keeps Find’s chips, the card and its page — and the typed answer moves to the child', async () => {
+  const ID = 'Q-1MA1-2306-1H-13';
+  const rows = keepRows_();
+  if (!rows.some(r => r.row_id === ID)) return [ID + ' is not in data/questions.json — nothing was walked'];
+  const server = {};
+  /* THE PAYLOAD AFTER SIGNING IN IS HELD, so what is drawn the moment "Signed in" says so can be looked
+     at on its own, and then released with a longer list. */
+  let hold = false, release = null;
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: ansBackend_(server, b => (b.action === 'verifyLogin' ? Object.assign({ success: true }, KEEP_SOL_) : undefined)),
+    serve: url => (/data\/questions\.json/.test(url) ? rows
+      : hold ? new Promise(r => { release = () => r(Object.assign(payload(), { features: ANS_FEATURES })); }) : undefined) });
+  for (let i = 0; i < 80 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)); i++) await wait(50);
+  const t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  if (!w.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)) return ['the library did not bring ' + ID + ' into Find — nothing was walked'];
+  if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
+  if (typeof w.signedIn_ !== 'function' || typeof w.stuffPages_ !== 'function') return ['signedIn_ or stuffPages_ not reachable — nothing was checked'];
+  t.go('stuff', false, true);
+  await wait(50);
+  /* ---- SIGNED OUT: the funnel, the card, the answer ---- */
+  const walked = await keepWalk_(w, ID);
+  const at = () => {
+    const pg = w.stuffPages_()[t.PAGE().stuff - w.stuffFirstResult_()];
+    return pg && pg.x && pg.x.row ? pg.x.row.row_id + (pg.part ? ':' + pg.part : '') : '(page ' + t.PAGE().stuff + ', no result)';
+  };
+  const idx = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
+  if (walked.length < 3 || idx < 0) return ['the funnel walk pressed ' + JSON.stringify(walked) + ' and did not reach ' + ID + '’s card — nothing was checked'];
+  const x = w.stuffPages_()[idx].x;
+  const page = w.stuffFirstResult_() + idx;
+  if (idx < 5) bad.push('the card is result page ' + idx + ' — too near the first to prove the page is kept');
+  t.goPage('stuff', page, true);
+  await wait(400);
+  const box = who => d.querySelector('#s-stuff .qp-ans-in[data-k="ans:' + (who ? 'u:' + who + ':' : '') + x.key + '"]');
+  if (!box('')) return bad.concat(['no keypad box for ' + ID + ' on its page, signed out — nothing was typed']);
+  box('').focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return bad.concat(['focusing the box did not open the keypad']);
+  ['8', '0'].forEach(v => { const k = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (k) A['kp-key'](k); else bad.push('no key ' + v); });
+  if (w.localStorage.getItem('ans:' + x.key) !== '80') return bad.concat(['"80" typed signed out was stored as ' + JSON.stringify(w.localStorage.getItem('ans:' + x.key)) + ' — nothing to carry']);
+  const chips = JSON.stringify(t.STUFF().filters), q = t.STUFF().q;
+  /* ---- ACROSS TO THE ACCOUNT COLUMN, AND SIGNED IN ---- */
+  t.go('account');
+  await wait(50);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return bad.concat(['no sign-in card on the account column']);
+  name.focus(); name.value = KEEP_SOL_.handle; pin.value = '0000';
+  await wait(20);
+  hold = true;
+  A['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  for (let i = 0; i < 40 && !release; i++) await wait(25);
+  await wait(150);
+  if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the student did not sign in: ' + JSON.stringify(t.whoami())]);
+  const look = when => {
+    if (t.AT() !== 'stuff') bad.push(when + ': the child is on ' + t.AT() + ', not back on Find');
+    if (JSON.stringify(t.STUFF().filters) !== chips) bad.push(when + ': Find’s chips are ' + JSON.stringify(t.STUFF().filters) + ', were ' + chips + ' — the funnel was thrown away');
+    if (t.STUFF().q !== q) bad.push(when + ': the search is "' + t.STUFF().q + '", was "' + q + '"');
+    if (at() !== ID) bad.push(when + ': Find is on ' + at() + ', not ' + ID + '’s card');
+    const b = box('P12');
+    if (!b) bad.push(when + ': no box under the student’s key on Find' + (box('') ? ' (the signed-out one is still drawn)' : ''));
+    else if (b.value !== '80') bad.push(when + ': the student’s box holds ' + JSON.stringify(b.value) + ', not the "80" typed before signing in');
+    if (w.localStorage.getItem('ans:u:P12:' + x.key) !== '80') bad.push(when + ': the answer is not stored under the student: ' + JSON.stringify(w.localStorage.getItem('ans:u:P12:' + x.key)));
+    if (w.localStorage.getItem('ans:' + x.key) !== null) bad.push(when + ': the signed-out copy is still on the device — moved, not copied, or the next child reads it');
+  };
+  look('signed in, before the payload');
+  if (t.PAGE().stuff !== page) bad.push('signed in, Find is on page ' + t.PAGE().stuff + ', was ' + page);
+  /* ---- THE STUDENT'S PAYLOAD, WITH ONE MORE ROW IN FRONT OF THE CARD ---- */
+  if (!release) return bad.concat(['the payload after signing in was never asked for, so its landing was NOT checked']);
+  const q7 = rows.find(r => r.row_id === 'Q-1MA1-2306-1H-7');
+  rows.push(Object.assign({}, q7, { row_id: 'Q-1MA1-2306-1H-7-MORE', part: 'b' }));
+  release();
+  await wait(400);
+  const moved = w.stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.row_id === ID && !pg.part);
+  if (moved <= idx) bad.push('the payload’s extra row did not land in front of the card (it is result page ' + moved + ', was ' + idx + ') — the move was NOT checked');
+  look('after the student’s payload landed');
+  if (!sent.some(b => b.action === 'saveAnswers' && (b.items || []).some(it => it.key === 'ans:' + x.key && it.v === '80'))) {
+    await wait(1700);
+    if (!sent.some(b => b.action === 'saveAnswers' && (b.items || []).some(it => it.key === 'ans:' + x.key && it.v === '80'))) bad.push('the moved answer never went up to the student’s account');
+  }
+  return bad;
+});
+
+/* ---------- AND THE TWO WAYS THAT STILL START FIND AGAIN ------------------------------------------------
+   KEEPING FIND IS FOR NOBODY → SOMEBODY ONLY. An admin signing out from a shelf only admins see leaves it
+   named on a signed-out phone if Find is kept (the review of the Bible, recorded in `signedOut_`), and one
+   child signing in over another is the next person, not the same seat: both still clear the search and
+   the chips, through the real Sign out tile and through `signedIn_`, the door every sign-in uses. */
+check('Find is still started again when an admin signs out from an admin-only shelf, and when another child signs in over the last', async () => {
+  const bad = [];
+  /* ---- AN ADMIN, ON THE BOOKS SHELF, SIGNS OUT ---- */
+  {
+    const { w } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
+    await wait(300);
+    const t = w.__t, d = w.document;
+    t.go('stuff', false, true);
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+    t.STUFF().q = 'genesis';
+    w.paintStuff();
+    if (!/\bBooks\b/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('the setup: the admin’s chips do not name the Books shelf, so its going was NOT checked');
+    t.ACTIONS.signout(d.createElement('button'));
+    await wait(50);
+    t.go('stuff', false, true);
+    await wait(30);
+    if (t.whoami()) bad.push('Sign out left somebody signed in');
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out from the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (/\bBooks\b/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('signed out, Find’s chips still name the Books shelf');
+    /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — Find kept, and it holds nothing of the admin's. */
+    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
+  }
+  /* ---- ONE CHILD SIGNED IN, ANOTHER SIGNS IN OVER THEM ---- */
+  {
+    const { w } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } });
+    await wait(300);
+    const t = w.__t;
+    t.go('stuff', false, true);
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
+    t.STUFF().q = 'fractions';
+    w.paintStuff();
+    if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the switch was NOT checked']);
+    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
+    if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the second child did not sign in: ' + JSON.stringify(t.whoami())]);
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    /* THE SAME CHILD SIGNING IN AGAIN IS NOT A SWITCH: their Find stays. */
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }];
+    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
+    if (t.STUFF().filters.length !== 1) bad.push('the same child signing in again lost their chips');
+  }
+  return bad;
+});
+
 check('the payload landing does not rebuild Find under a keypad box with the focus, and does rebuild it once the box is left', async () => {
   const { w } = boot();
   await wait(400);
