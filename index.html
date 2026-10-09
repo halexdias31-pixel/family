@@ -1070,6 +1070,12 @@
 <!-- A banner for the things that must interrupt: a failed save, a sheet that needs fixing, a
      backend older than the site. -->
 <div id="banner" class="hidden"></div>
+<!-- THE ONE QUIET LINE WHILE THE APP ASKS THE BACKEND AGAIN — "Reconnecting…", and after two minutes
+     "Can't reach the server — still trying." Written by `reconnectSay_` (see `RECONNECT` in shell.js);
+     empty, it is nothing. ALWAYS IN THE DOCUMENT, never hidden: a live region that appears and speaks
+     in the same moment is announced by some screen readers and not others, and one that is there all
+     along and changes its words is announced by all of them. -->
+<p id="reconnect" role="status" aria-live="polite"></p>
 
 <main id="screen">
   <!-- Every screen lives here. Only one is ever un-hidden, so the page is never taller than the
@@ -1102,6 +1108,7 @@
   <section class="screen hidden" id="s-saved"></section>
   <section class="screen hidden" id="s-spotlight"></section>
   <section class="screen hidden" id="s-settings"></section>
+  <section class="screen hidden" id="s-progress"></section>
 </main>
 
 <!-- The sheet. One element, reused: anything that needs the whole screen — a booking, a profile,
