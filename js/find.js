@@ -8132,8 +8132,9 @@ document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (!el) return;
   /* THROUGH `ansStore_`, which keeps it here exactly as before and, signed in, sends it to the account a
-     second and a half after the last keystroke (js/answers.js). */
-  ansStore_(el.getAttribute('data-k') || '', el.value || '');
+     second and a half after the last keystroke (js/answers.js). AND WHETHER IT IS WORDS: an answer typed
+     signed out after a session ended is joined to that person's own as words are (`ansJoin_`). */
+  ansStore_(el.getAttribute('data-k') || '', el.value || '', el.getAttribute('data-kp') === 'words');
   /* WRITING AN ANSWER IS DOING THE QUESTION, and 427 of them have no Check to press (no `accept`),
      so the box is where most of the library is "done". Empty is not an attempt. */
   if (String(el.value || '').trim()) doneMark_(el.getAttribute('data-k') || '');

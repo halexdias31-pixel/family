@@ -167,7 +167,7 @@ a layout decision, not a fix: the line is one dim row reserved at a fixed height
   the next child is not shown). On the family iPad that means the second child walks the funnel again;
   the chips chosen are not remembered per person.
 - **The answer moves at sign-in now, all of it** (`answersClaim_`), from nobody only — all but what a
-  session the server ended left, since the merge with 317 (below). `ansRead_`'s rule —
+  session the server ended left for somebody else, since the merge with 317 (below). `ansRead_`'s rule —
   moved when the card is drawn, only into an empty box — is what is left for a device that was already
   signed in with a signed-out answer on it.
 - **Answers typed signed out after a session ended went to whoever signed in next**, while Find went only
@@ -195,3 +195,13 @@ the hole the ended session left, in place of their 3,000-character essay and sen
 every other signed-out answer the rule here stands as written: the later edit wins, moved with its own
 time, and nothing is left for the next child. Proved by mutation in note 317's journey, which now signs
 both children in from nobody.
+
+**After the review of the merge: the person's own, all of it, and the record kept in the visit.** "Only
+into an empty box" left Ada's "More words", typed beside her essay, under the signed-out key for good.
+She never saw them again, and every signed-out visitor after her did. Signing in from nobody now takes
+everything of hers off the signed-out key. It goes into an empty box, or it is **joined** to her answer
+(`ansJoin_`): words after her words, strokes after her strokes, rings with her rings. A number, a pick or
+an order is decided by this note's rule, the later edit wins. And this claim's own fallback, walking
+`ANS_MEM` when storage throws, is why the record of whose an answer is (`familyGone`, `familyGoneKeys`)
+is now held in the visit too: without that, a browser that keeps nothing let the claim hand Ada's answer
+to Ben. Note 317 has the detail and the mutations.

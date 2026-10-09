@@ -195,15 +195,26 @@ let KEEP_SAID = false;
 /* `quiet` IS FOR A CONVENIENCE, NOT WORK — where Find was (`findPlaceKeep_`). It is written if there is
    room and forgotten if there is not: it takes no cache's room, says nothing, and is never the reason the
    browser asks "Leave site?" — written as the page is hidden, in a browser keeping nothing it would have
-   made every refresh ask. */
+   made every refresh ask.
+   `'record'` IS FOR WHAT GUARDS WORK WITHOUT BEING ANYBODY'S WORK — whose a signed-out answer is
+   (`ansRecPut_`, answers.js). Lost, it hands the work to somebody else, so it is held, given the splash's
+   room and tried again like work, and FIRST as the page goes (`keepRetry_`); but it says nothing and is
+   never the reason the browser asks "Leave site?" (`KEEP_RECORD`). */
+const KEEP_RECORD = new Set();
 function keepPut_(k, v, quiet) {
   const put = () => { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); };
-  if (quiet) { try { put(); return true; } catch (e) { return false; } }
+  if (quiet === true) { try { put(); return true; } catch (e) { return false; } }
   KEEP_MEM.set(k, v);
-  try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) {}
-  try { if (v !== null && typeof splashGiveWay_ === 'function' && splashGiveWay_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) {}
+  if (quiet === 'record') KEEP_RECORD.add(k);
+  /* NOT WRITTEN BEFORE WHAT IT WAITS ON — an answer whose owner's mark the store has not taken yet
+     (`keepWaits_`, answers.js): held for the visit and said, as a refused write is. */
+  const waits = v !== null && typeof keepWaits_ === 'function' && keepWaits_(k);
+  if (!waits) {
+    try { put(); KEEP_UNKEPT.delete(k); return true; } catch (e) {}
+    try { if (v !== null && typeof splashGiveWay_ === 'function' && splashGiveWay_()) { put(); KEEP_UNKEPT.delete(k); return true; } } catch (e) {}
+  }
   KEEP_UNKEPT.add(k);
-  if (!KEEP_SAID && v !== null && String(v).trim()) {
+  if (quiet !== 'record' && !KEEP_SAID && v !== null && String(v).trim()) {
     KEEP_SAID = true;
     try { if (typeof toast === 'function') toast('This browser is not saving what you type — leaving the page would lose it.'); } catch (e) {}
   }
@@ -211,17 +222,22 @@ function keepPut_(k, v, quiet) {
 }
 /* THE VISIT'S COPY OF A KEY THE STORE REFUSED, or `undefined` for a key the store holds as written. */
 const keepHeld_ = k => (KEEP_UNKEPT.has(k) ? KEEP_MEM.get(k) : undefined);
-/* ONCE MORE, AS THE PAGE GOES — a draft sent or a copy given way since may have made the room. */
+/* ONCE MORE, AS THE PAGE GOES — a draft sent or a copy given way since may have made the room. THE
+   RECORDS FIRST, so an answer waiting on its owner's mark (`keepWaits_`) is asked after the mark has had
+   its chance, and is written only if the mark was. */
 function keepRetry_() {
-  [...KEEP_UNKEPT].forEach(k => {
+  [...KEEP_UNKEPT].sort((a, b) => KEEP_RECORD.has(b) - KEEP_RECORD.has(a)).forEach(k => {
     const v = KEEP_MEM.get(k);
+    if (v !== null && v !== undefined && typeof keepWaits_ === 'function' && keepWaits_(k)) return;
     try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, v); KEEP_UNKEPT.delete(k); } catch (e) {}
   });
 }
-/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js). */
+/* WHAT ONLY THIS VISIT HOLDS — non-empty, and not on the account either (`ansOnAccount_`, answers.js).
+   NOT A RECORD (`'record'` above): it is nobody's writing, and the answer it guards counts for itself. */
 function keepAtRisk_() {
   keepRetry_();
   return [...KEEP_UNKEPT].filter(k => {
+    if (KEEP_RECORD.has(k)) return false;
     const v = KEEP_MEM.get(k);
     if (v === null || v === undefined || !String(v).trim() || v === '[]') return false;
     try { if (typeof ansOnAccount_ === 'function' && ansOnAccount_(k)) return false; } catch (e) {}

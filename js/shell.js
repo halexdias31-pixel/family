@@ -3225,7 +3225,13 @@ function api(body, opts) {
         const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) {} }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
-        try { if (gone) localStorage.setItem('familyGone', JSON.stringify({ who: gone, at: Date.now() })); } catch (e) {}
+        /* THROUGH `ansRecPut_`, held for the visit when the store refuses or throws: without it a
+           browser keeping no site data never knew whose the next answer was (review of the merge). */
+        try {
+          const rec = gone ? JSON.stringify({ who: gone, at: Date.now() }) : '';
+          if (rec && typeof ansRecPut_ === 'function') ansRecPut_('familyGone', rec);
+          else if (rec) localStorage.setItem('familyGone', rec);
+        } catch (e) {}
         try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) {}
         toast('Signed out — please sign in again');
       }

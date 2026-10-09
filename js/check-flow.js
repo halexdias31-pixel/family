@@ -16023,11 +16023,13 @@ check('an unsaved settings edit is not drawn over a newer saved value, the next 
 check('the server ended a session: what is typed signed out afterwards is not handed to the next child who signs in, and the line is for the hour, not for ever', async () => {
   const one = boot({ before: signedInAs_(ANS_ADA) });
   await wait(300);
-  const need = ansNeed_(one.w).concat(['ansMayMove_', 'answersClaim_'].filter(n => typeof one.w[n] !== 'function'));
+  const need = ansNeed_(one.w).concat(['ansMayMove_', 'answersClaim_', 'circOf_'].filter(n => typeof one.w[n] !== 'function'));
   if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
   const bad = [];
   let c = ansCards_(one.w, 'H');
   ansType_(one.w, c.ta(), RELOAD_ESSAY);
+  /* AND A STROKE ON HER DRAWING, so the one she draws signed out has an answer of hers to go beside. */
+  ansStroke_(one.w, c, [[20, 300], [120, 300]]);
   one.w.dispatchEvent(new one.w.Event('pagehide'));
   const two = boot({ before: fromStore_(keptStore_(one.w)),
     reply: b => (b.token === 'tok-P7' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
@@ -16045,41 +16047,195 @@ check('the server ended a session: what is typed signed out afterwards is not ha
   w.localStorage.setItem('familyGone', JSON.stringify(gone));
   c.draw();
   /* ADA, STILL AT THE COMPUTER, TYPES ON INTO THE EMPTY BOX — and into the maths box, which she had
-     left empty while she was signed in. */
+     left empty while she was signed in — DRAWS on the pad drawn empty, and RINGS A WORD. Every kind of
+     answer, so every door that moves one is asked: the claim, the box (`ansRead_`), the pad
+     (`padAdopt_`) and the passage (`circOf_`, which asks `padAdopt_` and then the visit's rings). */
   ansType_(w, c.ta(), 'More words');
   ansType_(w, c.kp(), '(5)/(6)');
-  const bare = 'ans:' + c.words.key, bareM = 'ans:' + c.maths.key;
-  if (w.localStorage.getItem(bare) !== 'More words') bad.push('the words typed signed out are not under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(bare)));
+  ansStroke_(w, c, [[30, 30], [200, 200]]);
+  w.__t.ACTIONS['qw-tap'](c.host.querySelector('[data-circ] .qw'));
+  const bare = 'ans:' + c.words.key, bareM = 'ans:' + c.maths.key, bareP = 'pad:' + c.pen.key, bareR = bareP + ':words';
+  const ringX = { key: c.pen.key, surface: 'text' };
+  const was = {};
+  [bare, bareM, bareP, bareR].forEach(k => { was[k] = w.localStorage.getItem(k); });
+  if (was[bare] !== 'More words') bad.push('the words typed signed out are not under the signed-out key: ' + JSON.stringify(was[bare]));
+  if (!was[bareP] || !was[bareR]) bad.push('the stroke or the ring made signed out is not under the signed-out key (' + JSON.stringify([was[bareP], was[bareR]]) + ') — the pad and the passage were NOT checked');
   /* BEN SIGNS IN NEXT — FROM NOBODY, so `answersClaim_` runs (318), the door the merge left open — and
      opens the question: not his. */
   w.signedIn_(Object.assign({}, ANS_BEN));
   c.draw();
+  const benRings = w.circOf_(ringX).on;
   if (c.ta().value) bad.push('Ben signed in and his box holds ' + JSON.stringify(c.ta().value) + ' — Ada\'s words, filed under Ben');
   if (c.kp().value) bad.push('Ben signed in and his maths box holds ' + JSON.stringify(c.kp().value) + ' — Ada\'s, filed under Ben');
-  if (w.localStorage.getItem('ans:u:P8:' + c.words.key) !== null) bad.push('Ada\'s words were moved into Ben\'s account');
-  if (w.localStorage.getItem('ans:u:P8:' + c.maths.key) !== null) bad.push('Ada\'s maths answer was moved into Ben\'s account');
-  if (w.localStorage.getItem(bare) !== 'More words') bad.push('Ada\'s words are gone from under the signed-out key after Ben opened the question');
-  if (w.localStorage.getItem(bareM) !== '(5)/(6)') bad.push('Ada\'s maths answer is gone from under the signed-out key after Ben signed in');
-  /* ADA AGAIN, AS SHE WOULD: Ben signs out, and she signs in from nobody with a new session. Her essay is
-     whole — "More words" was typed into the hole the ended session left, beside the essay and not over
-     it, so "the later edit wins" must not put ten characters in place of three thousand — and stays
-     under the signed-out key for her; what she typed into a box of hers that was empty is hers now. */
+  if (c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ben signed in and his pad draws ' + c.pad().querySelectorAll('.qpad-g path').length + ' stroke(s) — Ada\'s, drawn signed out after her session ended (`padAdopt_`)');
+  if (benRings.length) bad.push('Ben signed in and the passage rings ' + JSON.stringify(benRings) + ' for him — Ada\'s (`circOf_`)');
+  [['ans:u:P8:' + c.words.key, 'words'], ['ans:u:P8:' + c.maths.key, 'maths answer'], ['pad:u:P8:' + c.pen.key, 'drawing'], ['pad:u:P8:' + c.pen.key + ':words', 'rings']].forEach(([k, what]) => {
+    if (w.localStorage.getItem(k) !== null) bad.push('Ada\'s ' + what + ' were moved into Ben\'s account: ' + k);
+  });
+  [bare, bareM, bareP, bareR].forEach(k => { if (w.localStorage.getItem(k) !== was[k]) bad.push('Ada\'s ' + k + ' is gone from under the signed-out key after Ben signed in and opened the question: ' + JSON.stringify(w.localStorage.getItem(k))); });
+  /* ADA AGAIN, AS SHE WOULD: Ben signs out, and she signs in from nobody with a new session. EVERYTHING
+     SHE TYPED SIGNED OUT IS HERS AND NONE OF IT IS LEFT (review of the merge, P1). "More words" was typed
+     into the hole the ended session left, beside the essay and not over it: "the later edit wins" must
+     not put ten characters in place of three thousand, and leaving them under the signed-out key left
+     them out of her answer for good and in the box for every signed-out visitor after her. So they go
+     after her essay. Her stroke goes beside the one she had; what she typed into empty boxes moves in. */
   w.signedOut_();
   w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-again' }));
   c.draw();
-  if (c.ta().value !== RELOAD_ESSAY) bad.push('Ada signed in again and her box holds ' + c.ta().value.length + ' characters ' + JSON.stringify(c.ta().value.slice(0, 20)) + ', wanted her essay — what she typed into the empty box replaced it');
-  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== RELOAD_ESSAY) bad.push('Ada\'s essay under her own key is ' + String(w.localStorage.getItem('ans:u:P7:' + c.words.key)).length + ' characters after she signed in again');
-  if (w.localStorage.getItem(bare) !== 'More words') bad.push('the words Ada typed beside her essay are no longer under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(bare)));
+  const JOINED = RELOAD_ESSAY.replace(/\s+$/, '') + '\n\nMore words';
+  if (c.ta().value !== JOINED) bad.push('Ada signed in again and her box holds ' + c.ta().value.length + ' characters ending ' + JSON.stringify(c.ta().value.slice(-24)) + ', wanted her essay with "More words" after it' + (c.ta().value === 'More words' ? ' — what she typed into the empty box REPLACED the essay' : c.ta().value === RELOAD_ESSAY ? ' — the words she typed beside it were left behind' : ''));
+  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== JOINED) bad.push('Ada\'s answer under her own key is ' + String(w.localStorage.getItem('ans:u:P7:' + c.words.key)).length + ' characters after she signed in again, wanted ' + JOINED.length);
+  if (!(w.ansDirtySet_('u:P7').has('ans:u:P7:' + c.words.key))) bad.push('the essay with her words after it is not due to go up to Ada\'s account');
   if (c.kp().value !== '(5)/(6)') bad.push('Ada signed in again and her empty maths box holds ' + JSON.stringify(c.kp().value) + ', not what she typed into it signed out');
-  if (w.localStorage.getItem(bareM) !== null) bad.push('what Ada typed signed out into her empty maths box was copied, not moved: still under the signed-out key');
-  /* AND A SIGNED-OUT ANSWER WITH NO SESSION ENDED STILL FOLLOWS WHOEVER SIGNS IN, as it always did. */
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 2) bad.push('Ada signed in again and her pad draws ' + c.pad().querySelectorAll('.qpad-g path').length + ' stroke(s), wanted the one she had and the one she drew signed out');
+  if (w.circOf_(ringX).on.length !== 1) bad.push('Ada signed in again and the passage rings ' + JSON.stringify(w.circOf_(ringX).on) + ' for her, wanted the word she rang signed out');
+  [bare, bareM, bareP, bareR].forEach(k => { if (w.localStorage.getItem(k) !== null) bad.push('after Ada signed in again ' + k + ' is still under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(k)).slice(0, 60)); });
+  if (w.localStorage.getItem('familyGoneKeys') !== null) bad.push('marks are left for answers that have gone: ' + w.localStorage.getItem('familyGoneKeys'));
+  /* AND THE NEXT SIGNED-OUT VISITOR ON THAT COMPUTER IS SHOWN NOTHING OF HERS. */
   w.signedOut_();
+  c.draw();
+  if (c.ta().value || c.kp().value) bad.push('Ada signed out and the signed-out boxes show ' + JSON.stringify([c.ta().value, c.kp().value]) + ' to whoever sits down next');
+  /* AND A SIGNED-OUT ANSWER WITH NO SESSION ENDED STILL FOLLOWS WHOEVER SIGNS IN, as it always did. */
   w.localStorage.removeItem('familyGone');
   const c2 = ansCards_(w, 'H2');
   ansType_(w, c2.ta(), 'mine, signed out');
   w.signedIn_(Object.assign({}, ANS_BEN));
   c2.draw();
   if (c2.ta().value !== 'mine, signed out') bad.push('with no session ended, a signed-out answer did not follow Ben into his account: ' + JSON.stringify(c2.ta().value));
+  return bad;
+});
+
+/* ---------- AND THE RECORD OF WHOSE IT IS IS KEPT AS CAREFULLY AS THE ANSWER (review of the merge) -------
+   `familyGone` and `familyGoneKeys` were bare `setItem`s: a browser keeping no site data lost both, a full
+   store lost them, and the tidy-up in `ansGoneMark_` took the mark off an answer the visit was holding.
+   Each time the next child to sign in was given the answer. */
+const ansEndedBoot_ = (before, server) => {
+  const ENDED = new Set();
+  const b = boot({ before: before, payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: q => (ENDED.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : ansBackend_(server)(q)) });
+  /* THE SERVER ENDS THE SESSION: the next request with her token is refused, and the app signs her out. */
+  b.end = async tok => {
+    ENDED.add(tok);
+    await b.w.answersPush_(true);
+    if (b.w.__t.whoami()) await b.w.api({ action: 'myProfile' });
+    for (let i = 0; i < 40 && b.w.__t.whoami(); i++) await wait(50);
+    return !b.w.__t.whoami();
+  };
+  return b;
+};
+const ansCarried_ = (sent, n0) => [].concat(...sent.slice(n0).filter(b => b.action === 'saveAnswers').map(b => b.items || []));
+
+check('a browser that keeps nothing: what is typed signed out after the server ended a session is still that person\'s, the record of it held in the visit, and the next child is given none of it', async () => {
+  const server = {};
+  const deny = win => { try { Object.defineProperty(win, 'localStorage', { configurable: true, get: () => { throw new win.DOMException('The operation is insecure.', 'SecurityError'); } }); } catch (e) {} };
+  const b = ansEndedBoot_(deny, server);
+  const { w, sent } = b;
+  await wait(300);
+  const need = ansNeed_(w).concat(['ansMayMove_', 'answersClaim_', 'circOf_', 'keepAtRisk_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  let threw = false;
+  try { w.localStorage.getItem('x'); } catch (e) { threw = true; }
+  if (!threw) return ['localStorage did not throw — NOT checked'];
+  const bad = [];
+  w.signedIn_(Object.assign({}, ANS_ADA, { answers: {} }));
+  const c = ansCards_(w, 'T');
+  ansType_(w, c.ta(), 'Ada, signed in');
+  if (!(await b.end('tok-P7'))) return ['the server refused the session and the app stayed signed in — NOT checked'];
+  c.draw();
+  ansType_(w, c.kp(), '(5)/(6)');
+  w.__t.ACTIONS['qw-tap'](c.host.querySelector('[data-circ] .qw'));
+  const bareM = 'ans:' + c.maths.key;
+  if (w.ansMayMove_(bareM, 'ans:u:P8:' + c.maths.key) !== '') bad.push('with storage throwing, nothing knows the maths answer is Ada\'s: `ansMayMove_` answers ' + JSON.stringify(w.ansMayMove_(bareM, 'ans:u:P8:' + c.maths.key)) + ' for Ben');
+  /* THE RECORD IS NOBODY'S WRITING: held, it is never why the browser asks "Leave site?". */
+  const risky = w.keepAtRisk_().filter(k => /^family/.test(k));
+  if (risky.length) bad.push('the record of the ended session counts as work only this page holds: ' + JSON.stringify(risky));
+  const n0 = sent.length;
+  w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+  await wait(1800);
+  c.draw();
+  const ringX = { key: c.pen.key, surface: 'text' };
+  if (c.kp().value) bad.push('Ben signed in and his maths box holds ' + JSON.stringify(c.kp().value) + ' — Ada\'s, typed signed out after the server ended her session');
+  if (w.circOf_(ringX).on.length) bad.push('Ben signed in and the passage rings ' + JSON.stringify(w.circOf_(ringX).on) + ' for him — Ada\'s, from the visit\'s rings (`circOf_`)');
+  const went = ansCarried_(sent, n0).filter(it => /\(5\)\/\(6\)|0\.0/.test(String(it.v)));
+  if (went.length) bad.push('saveAnswers after Ben signed in carried Ada\'s ' + JSON.stringify(went));
+  /* ADA BACK, FROM NOBODY: hers, from the visit. */
+  w.signedOut_();
+  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: {} }));
+  c.draw();
+  if (c.kp().value !== '(5)/(6)') bad.push('Ada signed in again and her maths box holds ' + JSON.stringify(c.kp().value) + ', not what she typed into it signed out');
+  if (w.circOf_(ringX).on.length !== 1) bad.push('Ada signed in again and the passage rings ' + JSON.stringify(w.circOf_(ringX).on) + ' for her, wanted the word she rang');
+  return bad;
+});
+
+check('a full store: the mark on an answer the visit is holding is not tidied away, and an answer whose mark the store refused is not written without it', async () => {
+  const bad = [];
+  /* ONE — THE STORE HAS ROOM FOR A MARK, NOT FOR THE WORDS (review of the merge, P6). The words are held for
+     the visit and marked; typing in the next box tidied the mark away, because the words were not in
+     `localStorage`; room came back as the page went, the words landed unmarked, and Ben was given them. */
+  {
+    const server = {};
+    const b = ansEndedBoot_(signedInAs_(ANS_ADA), server);
+    const { w, sent } = b;
+    await wait(300);
+    if (typeof w.ansMayMove_ !== 'function') return ['ansMayMove_ not reachable — nothing was checked'];
+    const c = ansCards_(w, 'F1');
+    ansType_(w, c.ta(), 'Ada signed in');
+    if (!(await b.end('tok-P7'))) return ['the server refused the session and the app stayed signed in — NOT checked'];
+    c.draw();
+    const bareW = 'ans:' + c.words.key, benW = 'ans:u:P8:' + c.words.key;
+    const S = w.Storage.prototype, realSet = S.setItem;
+    S.setItem = function (k, v) { if (k === bareW) { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return realSet.call(this, k, v); };
+    try {
+      ansType_(w, c.ta(), 'More words, held');
+      if (w.localStorage.getItem(bareW) !== null) bad.push('setup: the store took the words it was meant to refuse — NOT checked');
+      ansType_(w, c.kp(), '(5)/(6)');
+      if (w.ansMayMove_(bareW, benW) !== '') bad.push('typing in the next box took the mark off the words the visit is holding: `ansMayMove_` answers ' + JSON.stringify(w.ansMayMove_(bareW, benW)) + ' for Ben');
+    } finally { S.setItem = realSet; }
+    w.dispatchEvent(new w.Event('pagehide'));
+    if (w.localStorage.getItem(bareW) !== 'More words, held') bad.push('room came back as the page went and the held words did not land: ' + JSON.stringify(w.localStorage.getItem(bareW)));
+    if (w.ansMayMove_(bareW, benW) !== '') bad.push('the held words landed without their mark — anybody\'s now');
+    const n0 = sent.length;
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await wait(1800);
+    c.draw();
+    if (c.ta().value) bad.push('Ben signed in and his words box holds ' + JSON.stringify(c.ta().value));
+    const went = ansCarried_(sent, n0).filter(it => /More words, held/.test(String(it.v)));
+    if (went.length) bad.push('saveAnswers after Ben signed in carried Ada\'s words: ' + JSON.stringify(went));
+  }
+  /* TWO — THE STORE REFUSES THE MARKS THEMSELVES. The answer is the visit's until its mark is on the
+     device too: written alone it would be on the device with nothing to say whose, and anybody's after a
+     reload. Said under the box as any refused write is. */
+  {
+    const server = {};
+    const b = ansEndedBoot_(signedInAs_(ANS_ADA), server);
+    const { w, sent } = b;
+    await wait(300);
+    const c = ansCards_(w, 'F2');
+    ansType_(w, c.ta(), 'Ada signed in');
+    if (!(await b.end('tok-P7'))) return bad.concat(['the server refused the session and the app stayed signed in — NOT checked']);
+    c.draw();
+    const bareM = 'ans:' + c.maths.key;
+    const S = w.Storage.prototype, realSet = S.setItem;
+    S.setItem = function (k, v) { if (k === 'familyGoneKeys') { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return realSet.call(this, k, v); };
+    try {
+      ansType_(w, c.kp(), '(5)/(6)');
+      if (w.localStorage.getItem(bareM) !== null) bad.push('the store refused the marks and the answer was written without its own: ' + JSON.stringify(w.localStorage.getItem(bareM)));
+      c.draw();
+      if (c.kp().value !== '(5)/(6)') bad.push('the answer waiting on its mark is not drawn from the visit: ' + JSON.stringify(c.kp().value));
+      if (!/^Not saved/.test(c.saidFor(c.maths) || '')) bad.push('under an answer waiting on its mark the line says ' + JSON.stringify(c.saidFor(c.maths)) + ' — it is on no device');
+      w.dispatchEvent(new w.Event('pagehide'));
+      if (w.localStorage.getItem(bareM) !== null) bad.push('as the page went, the answer was written while its mark was still refused');
+    } finally { S.setItem = realSet; }
+    w.dispatchEvent(new w.Event('pagehide'));
+    if (w.localStorage.getItem(bareM) !== '(5)/(6)') bad.push('room came back and the answer did not land: ' + JSON.stringify(w.localStorage.getItem(bareM)));
+    if (!/u:P7/.test(String(w.localStorage.getItem('familyGoneKeys')))) bad.push('room came back and the mark did not land with it: ' + JSON.stringify(w.localStorage.getItem('familyGoneKeys')));
+    const n0 = sent.length;
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await wait(1800);
+    c.draw();
+    if (c.kp().value) bad.push('Ben signed in and his maths box holds ' + JSON.stringify(c.kp().value));
+    if (ansCarried_(sent, n0).some(it => /\(5\)\/\(6\)/.test(String(it.v)))) bad.push('saveAnswers after Ben signed in carried Ada\'s maths answer');
+  }
   return bad;
 });
 

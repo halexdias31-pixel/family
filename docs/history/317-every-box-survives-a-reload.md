@@ -279,7 +279,9 @@ The notepad and the docket reach the account. Tab B's composer shows tab A's dra
   so the child's "More words" are not added to the essay he signs back in to. The next signed-out
   visitor on that computer still sees them. **318's `answersClaim_`** (signing in claims every signed-out
   answer) must ask `ansGoneOthers_` too when the two are merged — it did not, and now asks `ansMayMove_`
-  (see "After the merge").
+  (see "After the merge"). **Done since, for a sign-in from nobody**: the words go after the essay and
+  nothing is left (see "After the review of the merge"). A device already signed in as somebody else
+  when that person comes back is still `ansRead_`'s rule — only into an empty box.
 - **A send the reload cut off before the server received it is not offered back.** It is marked sent and
   swept ten minutes later. Behaviour from before 317, and the rarer case: a request still out after the
   page has gone has almost always arrived.
@@ -313,3 +315,49 @@ it.
 **And the whiteboard took this note's rule for a refused write** — held for the visit, drawn, *"Not saved —
 this browser is not keeping it."* under it — over its own, which took the stroke off the screen. Its
 ceiling is a size, not a refusal, and still says the board is full. Note 310 has it.
+
+### After the review of the merge
+
+The merge was reviewed by driving every surface through the real handlers in jsdom, with the store
+refusing one key at a time and with `localStorage` throwing. Four findings, all one rule: **whose an
+answer is must last exactly as long as the answer does.**
+
+- **A HELD ANSWER LOST ITS MARK TO THE TIDY-UP (P6).** The store refused the essay's key and nothing else.
+  The words were held for the visit (`keepPut_`) and marked as Ada's. She typed in the maths box next, and
+  `ansGoneMark_`'s tidy-up, *"what no longer names an answer"*, asked `localStorage` whether the words were
+  there. They were not, because they were only in the visit, so the mark was deleted. Room came back as the
+  page went, the words landed with no mark, and Ben was given them when he signed in. The tidy-up now asks
+  `ansValue_`, which answers with the visit's copy first.
+- **A BROWSER KEEPING NOTHING HAD NO RECORD AT ALL (P3).** `familyGone` and `familyGoneKeys` were bare
+  `setItem` and `getItem` calls, and a browser that blocks site data throws on both. So `ansMayMove_`
+  always answered "anybody's". Before the merge nothing moved a signed-out answer in that browser
+  (`ansRead_` and `padAdopt_` throw), but 318's claim walks `ANS_MEM` exactly when storage throws, so
+  Ada's "(5)/(6)" went into Ben's box and to his account. A store that was merely full when either was
+  written lost the record the same way. Both now go through **`ansRecPut_` / `ansRec_`**, which is
+  `keepPut_` as a `'record'`. That means held for the visit, given the splash's room, tried again as the
+  page goes and read with the visit's copy first, but never counted by `keepAtRisk_`: a record is nobody's
+  writing and must not make the browser ask "Leave site?".
+- **AND AN ANSWER IS NEVER ON THE DEVICE WITHOUT ITS MARK.** The mark is now written before the answer
+  (`ansLocalPut_`). While the store is refusing the marks, an answer they name waits in the visit
+  (**`keepWaits_`**, asked by `keepPut_` and `keepRetry_`). Its box shows "Not saved", as for any refused
+  write. Written alone, it would be on the device with nothing to say whose it is, and after a reload it
+  would belong to anybody. `keepRetry_` writes the records first, so the two land together.
+- **THE OWNER'S WORDS BESIDE HER ESSAY NEVER CAME BACK, AND EVERY LATER VISITOR SAW THEM (P1).** This is
+  the "Not done" entry above, made worse by the merge. `'empty'` left them under the signed-out key for
+  good. Signed in, Ada saw only her essay. Signed out, every visitor after her saw "More words" in the box,
+  long after the hour `ANS_GONE_MS` keeps the line to. The rule is now **`'own'`**: signing in from nobody,
+  everything of hers leaves the signed-out key. It goes into an empty box, or it is **joined** to the
+  answer there (`ansJoin_`): words go after her words on a new paragraph, strokes after her strokes, and
+  rings go with her rings. A number, a pick or an order is one answer and not two, so the later edit wins
+  there, as everywhere else. To know words from maths, a mark is now `{ who, words }`, and the box's
+  `input` listener says which (`data-kp`).
+- **NO JOURNEY HELD `padAdopt_`'S GUARD OR `circOf_`'S.** Deleting either left all 240 green, because the
+  journey typed only into the words and maths boxes. It now draws a stroke and rings a word signed out
+  too, asks `circOf_` for Ben, and checks that Ada gets both back.
+
+Two new journeys, *a browser that keeps nothing* and *a full store*, and the privacy journey extended.
+**Mutations, each red on its own and the real files green**: the tidy-up asking `localStorage` again; the
+record read from the store alone; the record written with a bare `setItem`; `familyGone` written with a
+bare `setItem` in `api()`; no `keepWaits_`; `keepRetry_` not asking it; the mark written after the answer;
+the record counted as work at risk; `padAdopt_` without the guard; `circOf_` without it; the claim without
+it; no join; the owner's own left behind as before.
