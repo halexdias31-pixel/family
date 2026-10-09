@@ -496,7 +496,7 @@ async function settled(page) {
 
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], hidden: [], offscreen: [], strays: [], shrunk: [],
+  const found = { overflow: [], hidden: [], offscreen: [], lifted: [], strays: [], shrunk: [],
                  tinyTargets: [], lowContrast: [], noName: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
@@ -779,12 +779,37 @@ function inspect(opts) {
      THE RENDERED BOX, for the reason the rule above gives: a transform is invisible to layout, and
      a `getBoundingClientRect` is what a viewer can actually see. 2px of slack, the same rounding
      allowance as everywhere else here. */
+  /* ---------- EXCEPT A PANE THE KEYPAD LIFTED, WHOSE BOX IS WHOLE ON THE GLASS ABOVE IT ----------------
+     THE PAD COVERS THE FOOT OF THE SCREEN, and `kpLift_` (keypad.js) lifts the column by exactly what
+     the box being typed in is short of -- the phone's own keyboard pushes a page up the same way, and
+     putting the pad away puts the column back (`kpRoomBack_`). On a card with a tall box that takes the
+     card's TOP above the glass while the pad is up: an essay's sheet (docs/history/312), written with the
+     question scrolled out of the way and the sheet, its row of tiles and the line being typed all above
+     the pad. That is the design, not a pane placed for a card that has since changed size, so it is
+     printed as KNOWN -- and ONLY when all three hold: the pad is up, the hold carries a lift, and the
+     focused box's field and the row kept clear for it (`kpBox_`) are wholly on the glass above the pad.
+     A lift that took the box itself off the top is still PANE OFF THE SCREEN. */
   const onPage = live && live.querySelector ? live.querySelector(':scope > .page.on > .pane') : null;
   if (onPage) {
     const r = onPage.getBoundingClientRect();
     const past = Math.round(Math.max(r.bottom - innerHeight, -r.top));
     if (past > 2 && r.height > 0) {
-      found.offscreen.push({ tag: 'pane',
+      let lifted = false;
+      try {
+        const pad = document.getElementById('kp');
+        const f = document.activeElement;
+        /* THE APP'S OWN `let` AND `const`, read by an indirect eval in the page's global scope -- the way
+           check/states.js reads `KP_AT` -- because a function handed over by the harness may not see them. */
+        const app = (0, eval)('({ lift: typeof KP_LIFT !== "undefined" && KP_LIFT ? KP_LIFT.lift : 0,'
+          + ' box: typeof kpBox_ === "function" ? kpBox_ : null })');
+        if (document.documentElement.classList.contains('kp-up') && pad && !pad.hidden && f && onPage.contains(f)
+            && f.classList.contains('kp-in') && app.lift > 0 && app.box && r.bottom <= innerHeight + 2) {
+          const top = pad.getBoundingClientRect().top;
+          const field = (f.closest('.qp-ans') || f).getBoundingClientRect(), kept = app.box(f).getBoundingClientRect();
+          lifted = field.top >= -2 && kept.bottom <= top + 2 && field.bottom <= top + 2;
+        }
+      } catch (e) { lifted = false; }
+      (lifted ? found.lifted : found.offscreen).push({ tag: 'pane',
         cls: String((onPage.firstElementChild && onPage.firstElementChild.className) || '').slice(0, 40),
         by: past, height: Math.round(r.height) });
     }
@@ -1197,13 +1222,16 @@ function inspect(opts) {
      against the pad 1.03:1 and its edge 1.34:1. In glare that is glyphs floating on nothing, and no rule
      here could say so. WCAG 1.4.11 asks 3:1 of the boundary of a control against what is next to it.
 
-     ON THREE SUBJECTS AND NO OTHERS, on purpose: the keypad's keys, the answer field (`.qp-bar > .qp-ans`)
-     and the Send tile -- the three the complaint named and the redesign answered. Every plate-and-mark
-     tile in the app is ~1.1:1 by design (`.tile`: "the mark is the button"), so the rule asked of all of
-     them would be a red of two hundred lines that nobody reads, which is the fault this file keeps
-     recording. A control passes if its FACE or its BORDER reaches 3:1 against the ground behind it,
+     ON THREE SUBJECTS AND NO OTHERS, on purpose: the keypad's keys, the answer field (`.qp-bar > .qp-ans`,
+     and an essay's sheet since 9 Oct) and the Send tile -- the three the complaint named and the
+     redesign answered. Every plate-and-mark tile in the app is ~1.1:1 by design (`.tile`: "the mark is
+     the button"), so the rule asked of all of them would be a red of two hundred lines that nobody
+     reads, which is the fault this file keeps recording. A control passes if its FACE or its BORDER
+     reaches 3:1 against the ground behind it,
      both composited down the chain as rule 3 does. A disabled control is exempt, as WCAG exempts it. */
-  const EDGE_OF = ['.kp-key', '.qp-bar > .qp-ans', '.tile.is-send'];
+  /* AND AN ESSAY'S SHEET (9 Oct, `ansEssay_`), the same paper field at a page's size: the box a child
+     writes forty marks in is the box that has to be findable in the sun. */
+  const EDGE_OF = ['.kp-key', '.qp-bar > .qp-ans', '.qp-essay > .qp-sheet', '.tile.is-send'];
   const edgeN = {};
   EDGE_OF.forEach(sel => { edgeN[sel] = 0; });
   found.edges = [];
@@ -1710,6 +1738,12 @@ function inspect(opts) {
       `.${o.col} ${o.edge} edge varies by ${o.by}px down one card — "${o.hi}" against "${o.lo}"`, at));
     (r.offscreen || []).forEach(o => add('PANE OFF THE SCREEN',
       `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) sits ${o.by}px outside the viewport`, at));
+    (r.lifted || []).forEach(o => add('PANE LIFTED OVER THE PAD (known)',
+      `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) has its top ${o.by}px above the glass`, at,
+      `THE KEYPAD'S LIFT (\`kpLift_\`, keypad.js): with the pad up the column goes up by what the box being `
+      + `typed in is short of, as a phone's own keyboard pushes a page; an essay's sheet is tall, so the `
+      + `question goes above the glass while the sheet, its tiles and the line being typed are above the pad `
+      + `(docs/history/312). Counted only when that box is whole on the glass; the pad put away puts it back.`));
     (r.shrunk || []).forEach(o => add('CARD DRAWN SMALLER TO FIT (known)',
       `.${o.cls || 'card'} at ${Math.round(o.z * 100)}%`, at,
       `ASKED FOR: "I don't like scrolling. If you need to leave things more compact or smaller font. `
