@@ -826,8 +826,12 @@ function signedIn_(d, typed) {
   try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) {}
   /* AND WHAT WAS WRITTEN SIGNED OUT IS THIS PERSON'S, from nobody only — the same seat as Find above. ALL
      OF IT, NOW, AFTER THE ACCOUNT'S COPY: the later edit wins, and none is left on the device for the
-     next child to sign in (`answersClaim_`, js/answers.js). */
-  try { if (fromNobody && pid && typeof answersClaim_ === 'function') answersClaim_(pid); } catch (e) {}
+     next child to sign in (`answersClaim_`, js/answers.js).
+     AND OVER SOMEBODY ELSE, ONLY WHAT IS THEIRS: a switch is not the same seat, so nothing another visitor
+     made signed out is the arriving child's — but what THEY made after the server ended their session is,
+     and it was left for `ansRead_` to move into an empty box only: Ada back while Ben was still signed in
+     found her essay without the words she had typed beside it (317, "Six edges closed", G1). */
+  try { if (pid && typeof answersClaim_ === 'function') answersClaim_(pid, !fromNobody); } catch (e) {}
   try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
   handleRemember_(me.handle);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed

@@ -1835,11 +1835,12 @@ function bookKeep_() {
     if (bookBlank_()) draftDrop_('book', 'form'); else draftKeep_('book', 'form', bookJson_());
   } catch (e) {}
 }
-function bookBack_() {
+/* `who` IS ONLY EVER `'device'`: the device's form, read in for the person it is marked as (`bookFollow_`). */
+function bookBack_(who) {
   if (typeof draftRead_ !== 'function') return;
-  BOOK_WHO = draftWho_();
+  BOOK_WHO = who || draftWho_();
   try {
-    const raw = draftRead_('book', 'form');
+    const raw = draftRead_('book', 'form', undefined, who);
     if (raw === null) return;
     const o = JSON.parse(raw);
     if (!o || typeof o !== 'object' || Array.isArray(o)) return;
@@ -1891,18 +1892,34 @@ function bookElsewhere_(v, old) {
      · FROM SOMEBODY TO ANYBODY ELSE: the form is cleared off the screen — not dropped, it is still the
        person's who left — and whoever is in front now is given their own. `signingIn` is the sign-out
        on the way from one child to the next (`signedIn_`): the device's draft is not read in between,
-       or the next step would hand it to the child signing in as though they had filled it in. */
+       or the next step would hand it to the child signing in as though they had filled it in.
+   ---------- UNLESS THE DEVICE'S FORM IS SOMEBODY'S (317, "Six edges closed", P8) ---------------------------
+   "Filled in signed out, it is whoever signs in next's" is 318's seat, and it was the whole rule here — so
+   Ada's address, typed into the form on the family computer after the server ended her session, became
+   BEN'S booking when he signed in next. The form is a draft of the device's, and such a draft is marked as
+   hers (`draftMark_`, data.js) as a signed-out answer is; so this asks `ansMayMove_` (answers.js), the one
+   question every other door asks:
+     ''      somebody else's — not carried: off the screen, still the device's, and the person signing in
+             is given their own;
+     'own'   theirs — carried, from nobody AND over somebody else (whose sign-out step cleared the screen
+             without reading the device's form in, so it is read in here for them);
+     'later' nobody's — carried from nobody, as before; never over somebody else. */
 function bookFollow_(signingIn) {
   if (typeof draftWho_ !== 'function') return;
   const now = draftWho_();
   if (now === BOOK_WHO) return;
-  if (BOOK_WHO === 'device' && !bookBlank_()) {
-    bookKeep_();
-    try {
-      draftDrop_('book', 'form', 'device');
-      BOOK_STEPS.forEach(st => { if (st.emails) draftDrop_('book', 'emails:' + st.id, 'device'); });
-    } catch (e) {}
-    return;
+  if (BOOK_WHO === 'device' && now !== 'device') {
+    const may = typeof ansMayMove_ === 'function'
+      ? ansMayMove_(draftKey_('book', 'form', 'device'), draftKey_('book', 'form', now)) : 'later';
+    if (may === 'own' && bookBlank_()) bookBack_('device');
+    if (may && !bookBlank_()) {
+      bookKeep_();
+      try {
+        draftDrop_('book', 'form', 'device');
+        BOOK_STEPS.forEach(st => { if (st.emails) draftDrop_('book', 'emails:' + st.id, 'device'); });
+      } catch (e) {}
+      return;
+    }
   }
   resetBooking_(true);
   if (signingIn) BOOK_WHO = now; else bookBack_();

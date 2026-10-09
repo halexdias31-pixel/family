@@ -6701,10 +6701,13 @@ function ansRead_(k) {
        carried forward. Only into an empty box — a box this person has written in keeps theirs.
        SIGNING IN FROM SIGNED OUT DECIDES THEM ALL FIRST NOW (`answersClaim_`, js/answers.js): here, only
        into an empty box, a signed-out answer lost to an older one on the account and was left for the next
-       child. This is what is left for a device that was already signed in with one still on it. */
+       child. And signing in over somebody else claims the person's own (317, "Six edges closed"). This is
+       what is left for a device that was already signed in with one still on it. */
     const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
     if (bare === k) return '';
-    const was = localStorage.getItem(bare);
+    /* THE SIGNED-OUT ONE AS ITS WRITER'S OWN READER READS IT (`ansValue_`), the visit's copy of a write
+       the store refused first — `padAdopt_`'s reason below (317, "Six edges"). */
+    const was = typeof ansValue_ === 'function' ? ansValue_(bare) : localStorage.getItem(bare);
     if (was === null) return '';
     /* NOT INTO SOMEBODY ELSE'S BOX: written signed out just after the server ended ANOTHER person's
        session, so it is theirs — the review of 317 found a child's words moved into the next child's
@@ -6712,8 +6715,9 @@ function ansRead_(k) {
        box is empty, so any answer but "no" moves it. */
     if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return '';
     if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
-    localStorage.removeItem(bare);
-    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
+    /* AND THE SIGNED-OUT COPY GOES THROUGH THE WRITER — the stored one, the visit's held one (or the page
+       going would write it back, `keepRetry_`) and its mark (`ansGoneMark_`), all at once. */
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
     return was;
   } catch (e) { return ''; }
 }
@@ -8242,16 +8246,22 @@ const padKey_ = x => padPrefix_(x) + ':' + (whoIs_() ? whoIs_() + ':' : '') + pa
 function padAdopt_(k, bare) {
   if (!k || !bare || k === bare) return;
   try {
-    if (localStorage.getItem(k) !== null) return;
-    const v = localStorage.getItem(bare);
+    /* "EMPTY" IS ASKED OF THE WRITER'S OWN READER (`ansValue_`, answers.js), the visit's copy first. This
+       asked `localStorage`, and a pad the store had REFUSED — held by the visit and drawn, "Not saved" under
+       it (317) — was empty to it: a drawing made signed out (another tab, signed out there) was moved over
+       the person's strokes when their card was drawn again, and the page going wrote that over theirs
+       (317, "Six edges closed", P4). The signed-out one is read the same way, and goes the same way. */
+    const read = typeof ansValue_ === 'function' ? ansValue_ : (x => localStorage.getItem(x));
+    if (read(k) !== null) return;
+    const v = read(bare);
     if (v === null) return;
     /* NOR A DRAWING SOMEBODY ELSE MADE SIGNED OUT — `ansRead_`'s rule, asked of the same `ansMayMove_`
        (answers.js). Only into an empty pad, so any answer but "no" moves it. */
     if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
     if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
-    localStorage.removeItem(bare);
-    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
+    /* AND OFF THE SIGNED-OUT KEY THROUGH THE WRITER: the store's copy, the visit's, and the mark. */
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
   } catch (e) {}
 }
 
@@ -8915,8 +8925,10 @@ function padRepaint_(pad, all) {
    writes, and the pen has never called it (a stroke is not "done"); Saved keeps the widget's star as
    `w:whiteboard` in `FAVS`, a widget like the calculator, not a question; and nothing else walks the
    store but that sweep, `attemptsSync_` (`done:`) and the splash (`splashAnim:`) -- and, since the
-   signed-out answers began moving to whoever signs in, `answersClaim_`, which takes `^(ans|pad):` only,
-   so a board drawn signed out stays the device's and is never handed to the next child.
+   signed-out answers began moving to whoever signs in, `answersClaim_`, which takes a board only when it
+   is marked as the person's own -- drawn after the server ended their session (docs/history/317, "Six
+   edges closed") -- and never makes it due. Any other board drawn signed out stays the device's, and is
+   moved only into an EMPTY board, by whoever opens the board first (`padAdopt_`).
    WHAT IT COSTS: the board stays on the device it was drawn on, per person signed in there. For a board
    that is the ordinary thing -- you wipe it -- and the note under it says so. And its size is bounded
    here rather than by the device's store running out: `PAD_BOARD_MAX`, below.
