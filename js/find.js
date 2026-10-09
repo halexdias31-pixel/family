@@ -7927,6 +7927,35 @@ function ansBox_(x) {
      still finds `.qp-mark[data-accept]` on the card. */
   const ai = can ? '' : aiTile_(x);
   const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
+  /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR -----------------------------------------
+     THE OWNER, 9 Oct, about a pupil on a forty-mark creative writing question: *"firstly it doesnt let him
+     do paragraphs and also i want it to mark with ai."* The chat bar above is a pill that grows to five
+     lines and scrolls inside -- four paragraphs seen through a letterbox. So an answer that is extended
+     writing (`ansEssay_`, keypad.js, which says which 281 rows and why six marks) is drawn as a SHEET:
+     the card's full width, the paper palette, ruled, eight lines tall on a phone and twelve on a tablet
+     before a word is written, growing with the essay up to the room above the pad (and the room its card
+     has, `kpSheetFit_`), then scrolling inside with the line being typed kept in view (`kpBox_`,
+     `kpCaretSeen_`). Its newlines are drawn, so a paragraph is a paragraph.
+
+     THE ROW UNDER IT IS TILES, because it is the action row under a thing (CLAUDE.md): Mark with AI, or
+     Send where a scheme can be checked, the Figure tile, and the word count -- a count rather than a
+     silence, and the number a pupil looks at while writing. With no tile to draw, one faint line says
+     why (`aiWhyNot_`). The verdict, the saved line and the AI's points keep their classes and their
+     reserved lines, so `qp-ai`, `qp-check`, the `input` listener below and every check find them where
+     they always were. `.qp-compose` for the verdict's reserved line; `.qp-mark` only when there is a
+     verdict to hold, as on the bar. */
+  if (ansEssay_(x)) {
+    const v = ansRead_(k);
+    const note = send ? '' : aiWhyNot_(x);
+    const foot = `<div class="tile-row qp-sheet-foot">${send}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
+      <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
+    const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
+    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+    ${sheet}${foot}
+    ${send ? '<span class="qp-verdict" role="status" aria-live="polite"></span>' : ''}
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
+  </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
+  }
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', signs)}
   </label>${fig}${send}</div>`;
@@ -13725,6 +13754,12 @@ function paneReach_(panes) {
         k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
       }
     }));
+    /* AN ESSAY'S SHEET GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER -- `kpSheetFit_` in keypad.js. Measured
+       on 9 Oct: a three-paragraph essay grew its sheet, its card passed the pane at 390x844, and this
+       zoomed the whole card to 0.87 -- the writing smaller, the Mark tile 38px, the sheet 242px wide.
+       The sheet scrolls inside anyway; so it is the sheet that gets shorter, and the card stays at
+       full size. Only panes that hold one, so every other pane is measured exactly as before. */
+    if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
     const pad = p => {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);

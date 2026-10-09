@@ -8522,6 +8522,181 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   return bad;
 });
 
+/* ---------- AN ESSAY IS WRITTEN ON A SHEET, IN PARAGRAPHS, AND MARKED WHOLE -----------------------------
+   THE OWNER, 9 Oct, about a pupil on AQA English Language Paper 1, June 2017, Section B -- forty marks
+   of creative writing: *"firstly it doesnt let him do paragraphs and also i want it to mark with ai.
+   gemini."* The REAL row (Q-R0398-5) out of data/questions.json, through the real loader and
+   `questionCard_`, pressed through the real handlers:
+     · it is a SHEET and not the chat bar: `ansEssay_` says so, the box is the pad's locked textarea
+       marked `data-kp-essay`, Mark with AI is a tile in the row under it with the word count;
+     · the pad's letters carry ONE return key, labelled, twelve columns wide on the space bar's row --
+       and the bottom row is the maths pad's own again;
+     · two paragraphs typed on the pad's keys and its return, a third on a laptop's Enter: the value
+       holds `\n\n`, the drawing keeps it, the count is right; Shift+Enter is a new line too, and
+       Ctrl+Enter puts the pad away;
+     · Mark with AI sends the WHOLE answer -- 6,000 characters pasted in arrive whole, flagged as an
+       essay, out of 40 -- and draws the marks and the points as lines;
+     · a SHORT worded box is still the bar, Enter is still ✓ there, and its ↵ is still in the bottom row;
+     · with AI marking off, the sheet says so in one faint line to a pupil signed in, and to nobody
+       else; and no control is drawn that does nothing.
+   jsdom lays nothing out: the sheet's height, the pad's 44px and the line kept in view are
+   `check/states.js`'s ("an essay, three paragraphs on its sheet, the pad up"), measured by check/ui.js. */
+check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragraphs, the words are counted, and Mark with AI sends all of it', async () => {
+  const ID = 'Q-R0398-5';
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const row = LIB.find(r => r.row_id === ID);
+  if (!row) return [ID + ' is not in data/questions.json — no essay was written'];
+  const paper = LIB.filter(r => r.paper_id === row.paper_id);
+  const FEEDBACK = 'Content and organisation: 16 of 24 (Level 3) · Technical accuracy: 11 of 16 (Level 3)\n• Vary how your sentences open.\n• Use one semi-colon.';
+  const withAi = Object.assign(payload(), { features: ['aiMark'], aiMarking: true });
+  const { w, sent, errs } = boot({ payload: withAi,
+    reply: b => (b.action === 'aiMark' ? { success: true, awarded: 27, available: 40, feedback: FEEDBACK, left: 19 } : null),
+    serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  const need = ['ansEssay_', 'questionCard_', 'stuffItemsAll_', 'kpWordCount_'].filter(n => typeof w[n] !== 'function');
+  if (need.length || !A['kp-key'] || !A['qp-ai']) return [need.join(', ') + ' or the keypad / Mark with AI not reachable — no essay was written'];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+  const x = w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+  if (!x) return ['the real ' + ID + ' did not come through the loader into Find — no essay was written'];
+  if (!w.ansEssay_(x)) bad.push(ID + ' (' + x.answerType + ', ' + x.marks + ' marks) is not an essay to `ansEssay_`');
+  /* THE RULE'S EDGES: a one-mark `written` is a phrase, a three-mark `explain` a sentence or two. */
+  const shortOf = (t, m) => ({ kind: 'question', answerType: t, marks: m, accept: '', choices: [] });
+  if (w.ansEssay_(shortOf('written', 1)) || w.ansEssay_(shortOf('explain', 3)) || !w.ansEssay_(shortOf('explain', 8)) || w.ansEssay_(shortOf('calculation', 6))) {
+    bad.push('`ansEssay_` does not draw its line at written/explain worth 6 or more');
+  }
+  const k = w.__t.ansKey(x);
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const draw = it => { host.innerHTML = w.questionCard_(it, 0); return host.querySelector('.qcard'); };
+  let card = draw(x);
+  /* ---------- A SHEET, NOT A BAR ---------- */
+  const inp = card.querySelector('.qp-ans-in');
+  if (!inp || !inp.matches('.qp-essay > label.qp-ans.qp-sheet > .kp-field.kp-words.kp-essay > textarea.kp-in[data-kp="words"][data-kp-essay][readonly][inputmode="none"]')) {
+    return bad.concat(['the essay\'s box is not the pad\'s locked textarea on a sheet: ' + (inp ? inp.outerHTML.slice(0, 200) : '(none)')]);
+  }
+  if (card.querySelector('.qp-bar')) bad.push('the essay card still draws a chat bar');
+  const go = card.querySelector('.qp-sheet-foot.tile-row > .tile.qp-ai-go[data-do="qp-ai"]');
+  if (!go) bad.push('Mark with AI is not a tile in the row under the sheet');
+  const words = () => (card.querySelector('.qp-essay .qp-sheet-foot .qp-words') || {}).textContent;
+  if (words() !== '0 words') bad.push('an empty sheet\'s count says ' + JSON.stringify(words()) + ', wanted "0 words"');
+  const mark = card.querySelector('.qp-mark.qp-ai.qp-essay');
+  if (!mark || !mark.querySelector(':scope > .qp-verdict') || !mark.querySelector(':scope > .qp-saved')
+      || !(mark.nextElementSibling && mark.nextElementSibling.classList.contains('qp-ai-why'))) {
+    bad.push('the verdict line, the saved line and the AI\'s points are not where `qp-ai` looks for them');
+  }
+  /* ---------- THE PAD: ONE RETURN, AND IT SAYS SO ---------- */
+  inp.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden || pad.getAttribute('data-layer') !== 'abc') return bad.concat(['focusing the essay did not open the pad on its letters']);
+  const keys = [...pad.querySelectorAll('.kp-key')];
+  const nl = keys.filter(b => b.getAttribute('data-v') === '!nl');
+  const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
+  if (nl.length !== 1 || !ret) bad.push('the essay\'s letters have ' + nl.length + ' new-line keys and ' + (ret ? 'a' : 'no') + ' labelled return — wanted exactly one, the return');
+  else {
+    if (!/return/.test(ret.textContent) || !/span 12/.test(ret.getAttribute('style') || '')) bad.push('the return key is not labelled "return" and twelve columns wide: ' + ret.outerHTML.slice(0, 200));
+    const space = pad.querySelector('.kp-key.kp-space');
+    if (!space || !/span 24/.test(space.getAttribute('style') || '')) bad.push('the space bar did not give the return its twelve columns');
+  }
+  const bottom = keys.slice(-6).map(b => b.getAttribute('data-v'));
+  if (bottom.join('|') !== '!123|!left|!right| |!back|!done') bad.push('the essay\'s bottom row is ' + JSON.stringify(bottom) + ', wanted the maths pad\'s own: 123 ← → ␣ ⌫ ✓');
+  const press = v => { const b = pad.querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the essay\'s pad'); };
+  /* ---------- TWO PARAGRAPHS ON THE PAD'S KEYS ---------- */
+  'the bus'.split('').forEach(press);
+  press('!nl'); press('!nl');
+  'it rained.'.split('').forEach(press);
+  const TWO = 'The bus\n\nIt rained.';
+  if (inp.value !== TWO) bad.push('the pad typed ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(TWO) + ' -- a capital by itself after the paragraph break');
+  const show = () => card.querySelector('.qp-sheet .kp-show');
+  if (show().textContent !== TWO || show().textContent.split(/\n\s*\n/).length !== 2) bad.push('the drawing does not keep the paragraph break: ' + JSON.stringify(show().textContent));
+  if (words() !== '4 words') bad.push('"The bus / It rained." is counted as ' + JSON.stringify(words()));
+  /* ---------- A THIRD ON A LAPTOP: ENTER IS A NEW LINE HERE ---------- */
+  const kd = (key, o) => { const e = new w.KeyboardEvent('keydown', Object.assign({ key: key, bubbles: true, cancelable: true }, o || {})); inp.dispatchEvent(e); return e.defaultPrevented; };
+  kd('Enter'); kd('Enter');
+  if (pad.hidden) bad.push('Enter in an essay put the pad away — it is the new line there');
+  'A third one.'.split('').forEach(c => kd(c));
+  const THREE = TWO + '\n\nA third one.';
+  if (inp.value !== THREE) bad.push('a laptop\'s Enter, Enter, "A third one." gave ' + JSON.stringify(inp.value) + ', wanted ' + JSON.stringify(THREE));
+  if (show().textContent.split(/\n\s*\n/).length !== 3) bad.push('three paragraphs are not drawn as three');
+  if (words() !== '7 words') bad.push('three paragraphs of 7 words are counted as ' + JSON.stringify(words()));
+  kd('Enter', { shiftKey: true });
+  if (inp.value !== THREE + '\n' || pad.hidden) bad.push('Shift+Enter in an essay was not a new line');
+  kd('Backspace');
+  let kept = null;
+  try { kept = w.localStorage.getItem(k); } catch (e) {}
+  if (kept !== THREE) bad.push('the essay was not saved under ansKey_ as it was typed (got ' + JSON.stringify(kept) + ')');
+  kd('Enter', { ctrlKey: true });
+  if (!pad.hidden) bad.push('Ctrl+Enter did not put the pad away');
+  if (inp.value !== THREE) bad.push('Ctrl+Enter typed into the essay: ' + JSON.stringify(inp.value));
+  /* ---------- MARK WITH AI SENDS ALL OF IT ---------- */
+  let big = '';
+  for (let i = 1; big.length < 6000; i++) big += 'Paragraph ' + i + '. The rain drew long silver threads across the glass, and the town slid by.\n\n';
+  big += 'THE LAST WORDS.';
+  inp.focus();
+  inp.setSelectionRange(0, inp.value.length);
+  const paste = new w.Event('paste', { bubbles: true, cancelable: true });
+  Object.defineProperty(paste, 'clipboardData', { value: { getData: () => big } });
+  inp.dispatchEvent(paste);
+  if (inp.value !== big) bad.push('a pasted 6,000-character essay is ' + inp.value.length + ' characters in the box');
+  if (words() !== w.kpWordsSay_(w.kpWordCount_(big))) bad.push('the count after a paste says ' + JSON.stringify(words()));
+  inp.blur();
+  await wait(10);
+  A['qp-ai'](card.querySelector('.qp-ai-go'));
+  await wait(50);
+  const s = sent.filter(b => b.action === 'aiMark').pop();
+  if (!s) bad.push('Mark with AI sent nothing');
+  else {
+    if (s.answer !== big) bad.push('Mark with AI sent ' + String(s.answer || '').length + ' of the essay\'s ' + big.length + ' characters' + (/THE LAST WORDS/.test(s.answer || '') ? '' : ' — its last words never left the phone'));
+    if (s.essay !== true) bad.push('the essay was not sent as an essay (essay: ' + JSON.stringify(s.essay) + '), so it is marked as a short answer');
+    if (s.marks !== 40) bad.push('the essay was sent out of ' + s.marks + ', wanted 40');
+    if (!/two people/i.test(s.question || '') || !/content and organisation/i.test(s.scheme || '')) bad.push('the question or the levelled scheme did not go with it');
+  }
+  const verdict = (card.querySelector('.qp-ai .qp-verdict') || {}).textContent || '';
+  const why = card.querySelector('.qp-ai-why');
+  if (!/27 of 40 marks/.test(verdict)) bad.push('27 of 40 was drawn as ' + JSON.stringify(verdict));
+  if (!why || why.textContent !== FEEDBACK) bad.push('the AI\'s strands and points were not drawn as the lines they are: ' + JSON.stringify(why && why.textContent));
+  /* AND A NEW LINE TYPED TAKES THE MARK OFF, as on any box. */
+  inp.focus();
+  press('!nl');
+  if ((card.querySelector('.qp-ai .qp-verdict') || {}).textContent || (why && why.textContent)) bad.push('a return typed after the mark left the old verdict on a changed essay');
+  inp.blur();
+  await wait(10);
+  /* ---------- A SHORT WORDED BOX IS STILL THE BAR, AND ENTER IS STILL ✓ ---------- */
+  const sx = { kind: 'question', key: 'q-essay-short', name: 'Q2', marks: 3, answerType: 'explain', accept: '',
+    row: { row_id: 'Q-ESSAY-SHORT', paper_id: 'P-ESSAY', subject: 'Chemistry', name: 'Rates' },
+    html: '<p>Explain why the rate increases.</p>', answer: 'Particles move faster.' };
+  try { w.localStorage.removeItem(w.__t.ansKey(sx)); } catch (e) {}
+  card = draw(sx);
+  const si = card.querySelector('.qp-ans-in');
+  if (!si || !si.closest('.qp-bar') || si.hasAttribute('data-kp-essay') || card.querySelector('.qp-sheet, .qp-words')) bad.push('a three-mark explain box is not the chat bar any more');
+  else {
+    si.focus();
+    if (pad.querySelector('.kp-ret') || [...pad.querySelectorAll('.kp-key')].slice(-6).map(b => b.getAttribute('data-v')).join('|') !== '!123|!left|!right|!nl|!back|!done') bad.push('a short worded box lost its ↵ in the bottom row, or gained the essay\'s return');
+    si.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    if (!pad.hidden || si.value) bad.push('Enter on a short worded box did not put the pad away as ✓ (value ' + JSON.stringify(si.value) + ')');
+  }
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(w.__t.ansKey(sx)); } catch (e) {}
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  /* ---------- AI MARKING OFF: ONE LINE TO A PUPIL, NOTHING TO A STRANGER, NO DEAD CONTROL ---------- */
+  for (const signedIn of [true, false]) {
+    const b2 = boot({ payload: Object.assign(payload(), { features: ['aiMark'], aiMarking: false }),
+      serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
+    await wait(300);
+    if (signedIn) b2.w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+    const x2 = b2.w.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+    if (!x2) { bad.push('the essay did not load with AI marking off'); continue; }
+    const h2 = b2.w.document.createElement('div');
+    h2.innerHTML = b2.w.questionCard_(x2, 0);
+    const note = h2.querySelector('.qp-essay .qp-sheet-foot .qp-ai-note');
+    if (h2.querySelector('.qp-ai-go, .qp-ai, .qp-check')) bad.push('with AI marking off the essay still draws a marking control');
+    if (!h2.querySelector('.qp-sheet .kp-in') || !h2.querySelector('.qp-words')) bad.push('with AI marking off the essay lost its sheet or its count');
+    if (signedIn && !(note && /isn.t switched on/.test(note.textContent))) bad.push('with AI marking off a signed-in pupil is told nothing about why there is no Mark tile');
+    if (!signedIn && note) bad.push('a stranger browsing is told about AI marking: ' + note.textContent);
+  }
+  return bad;
+});
+
 /* ---------- THE ANSWER IS ITS OWN PAGE, AND NOBODY READS IT UNTIL THEY ASK --------------------------
    ASKED FOR AS *"what I want was answers to be short and to be their own widget"*, and then *"you
    should have to click to reveal the answer. Should behave the same whether it's a tutor or child. No

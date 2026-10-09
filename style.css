@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-videos-like-youtube";
+  --css-version: "2026-10-09-essay-sheet";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11717,6 +11717,68 @@ button.scr-sq { cursor: pointer; }
 /* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
 .qp-compose > .qp-saved { margin: 2px 14px 0; }
 
+/* ---------- AN ESSAY'S SHEET -----------------------------------------------------------------------------
+   THE OWNER, 9 Oct, about a pupil on a forty-mark creative writing question: *"firstly it doesnt let him
+   do paragraphs and also i want it to mark with ai."* The pill above is five lines and then a letterbox;
+   an essay is four or five paragraphs. So a box that asks for extended writing (`ansEssay_`, keypad.js)
+   is a SHEET: the card's full width, the paper palette in tokens only (CLAUDE.md, two palettes), ruled in
+   the paper's own hairline (`--paper-rule`) one rule per line of writing, so the page reads as "write
+   here, at length" before a word is on it -- and a blank line between paragraphs is a ruled line with
+   nothing on it, which is what a paragraph break looks like on paper.
+
+   SIZED IN LINES OF WRITING, IN px. The ink is 16px (iOS zooms into anything smaller, keypad.js) on a
+   24px line, so a line is a pixel number on every screen and the rules land under the words. EIGHT LINES
+   TO START ON A PHONE, TWELVE ON A TABLET (`--sheet-lines`), growing with the essay to THE ROOM ABOVE THE
+   PAD and then scrolling inside, the line being typed kept in view (`kpCaretSeen_`). The room is the
+   screen less the pad's own height -- measured by keypad.js when it comes up (`--kp-h`) and the pad's
+   five rows of 48px until then -- less the paper's edges, the row under it and the 12px the pad is kept
+   clear by: 112px. The SAME CAP WITH THE PAD DOWN, so the sheet is the same height whether or not the
+   pad is up and putting it away moves nothing; and a capped sheet is what keeps a long essay from making
+   its card taller than its pane, which `paneReach_` answers by drawing the whole card smaller. Never less
+   than five lines, however short the screen. */
+.qp-essay {
+  --sheet-line: 24px;
+  --sheet-lines: 8;
+  --sheet-room: max(calc(var(--sheet-line) * 5), calc(100dvh - var(--kp-h, 273px) - 112px));
+}
+@media (min-width: 700px) { .qp-essay { --sheet-lines: 12; } }
+.qp-sheet {
+  display: block; margin: 0; padding: 12px 16px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border-radius: var(--r);
+}
+/* THE RING, AS ON THE BAR: gold while it is written in, green or amber once marked -- outside the paper,
+   on the card, where each reads at about 11:1. */
+.qp-sheet:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.qp-mark.is-right > .qp-sheet { box-shadow: 0 0 0 3px var(--good); }
+.qp-mark.is-near > .qp-sheet { box-shadow: 0 0 0 3px var(--warn); }
+/* THE DRAWING IS THE SHEET'S WRITING AREA: no padding of its own (the paper's is the margin), so line n
+   is 24n to 24n+24 from its top and its rule at 24n+23. `local`, so the rules scroll with the words. Four
+   classes, over the chat bar's `.kp-field.kp-words > .kp-show`. */
+.qp-sheet > .kp-field.kp-essay > .kp-show {
+  padding: 0; font: 400 16px/var(--sheet-line) var(--font);
+  min-height: min(calc(var(--sheet-line) * var(--sheet-lines)), var(--sheet-room));
+  max-height: var(--sheet-room);
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--sheet-line) - 1px),
+    var(--paper-rule) calc(var(--sheet-line) - 1px), var(--paper-rule) var(--sheet-line));
+  background-attachment: local;
+  overscroll-behavior: contain;
+}
+.qp-sheet > .kp-field.kp-essay .kp-caret { height: 1.2em; }
+/* HOW TO MAKE A PARAGRAPH, SAID WHERE THE PARAGRAPHS GO -- the question the owner asked, answered on the
+   empty sheet. Gone with the first letter, as "Type your answer" goes from the bar. */
+.qp-sheet .kp-show:empty::before { content: "Write your answer here. Press return to start a new paragraph."; }
+/* THE ROW UNDER IT: the tiles at the start, the word count at the far end, where a glance finds it. */
+.qp-sheet-foot { margin: 8px 0 0; }
+.qp-words {
+  margin-left: auto; padding: 0 4px; white-space: nowrap;
+  font: 600 .78rem/1.3 var(--font); color: var(--dim); font-variant-numeric: tabular-nums;
+}
+.qp-ai-note { flex: 1 1 10rem; min-width: 0; padding: 0 4px; font: 400 .78rem/1.3 var(--font); color: var(--dim); }
+/* THE VERDICT AND THE SAVED LINE SIT UNDER THE ROW, in line with the paper's edge rather than the pill's
+   text, which is 14px in from a rounded end the sheet does not have. */
+.qp-essay > .qp-verdict { margin: 6px 4px 0; }
+.qp-essay > .qp-saved { margin: 2px 4px 0; }
+
 /* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
    TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
    `clamp(13.5px, 3.8vw, 16px)`, so 2.75rem is 40.75px on a phone. Fifth conviction of that rule
@@ -11929,6 +11991,13 @@ button.scr-sq { cursor: pointer; }
 /* ⇧ LIT WHILE IT IS ON, AND A BAR UNDER IT WHILE IT IS LOCKED -- the phone's own two signs for it. */
 .kp-key.kp-shift.is-on { background: var(--kp-face); color: var(--kp-ink); }
 .kp-key.kp-shift.is-lock { box-shadow: inset 0 -4px 0 var(--kp-ink); }
+/* AN ESSAY'S RETURN (`KP_RETURN`, keypad.js): two letters wide at the end of the space bar's row, where a
+   phone keeps it, and SAYING "return" under its arrow -- the `↵` alone, a glyph the size of ← and →, was
+   the new line nobody found (*"it doesnt let him do paragraphs"*, 9 Oct). The arrow over the word, so
+   both fit the 54px face it has at 320. */
+.kp-key.kp-ret { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.kp-ret-i { font: 600 1.15rem/1 var(--font); }
+.kp-ret-k { font: 600 .78rem/1 var(--font); letter-spacing: .02em; }
 /* ---------- THE LETTER UNDER THE FINGER, SHOWN ABOVE IT ------------------------------------------------
    A FINGER COVERS A 29px KEY WHOLE, so the key says which it was where it can be seen, as the phone's
    does -- while it is pressed (`.is-pressed`, put on at `pointerdown` by shell.js) and no longer. The
@@ -11956,7 +12025,10 @@ button.scr-sq { cursor: pointer; }
    `.qp-ai-go`'s 120px width and its grey disabled fill WERE HERE, for the gold button it was; a tile
    draws its own disabled state (`.tile.is-send[disabled]`), so there is nothing left to say. */
 .qp-ai.is-busy .qp-verdict { color: var(--dim); }
-.qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+/* `pre-line`, because an essay's marking comes back as lines -- the strands' marks, then two or three
+   things to do next (`aiMarkAsk_` in dopost.gs) -- and run together they are one paragraph of advice. */
+.qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); white-space: pre-line; }
+.qp-essay + .qp-ai-why { margin-inline: 4px; }
 .qp-ai-why:empty { display: none; }
 
 /* ---------- `.resume` WAS HERE --------------------------------------------------------------------

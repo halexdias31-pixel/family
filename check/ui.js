@@ -1197,13 +1197,16 @@ function inspect(opts) {
      against the pad 1.03:1 and its edge 1.34:1. In glare that is glyphs floating on nothing, and no rule
      here could say so. WCAG 1.4.11 asks 3:1 of the boundary of a control against what is next to it.
 
-     ON THREE SUBJECTS AND NO OTHERS, on purpose: the keypad's keys, the answer field (`.qp-bar > .qp-ans`)
-     and the Send tile -- the three the complaint named and the redesign answered. Every plate-and-mark
-     tile in the app is ~1.1:1 by design (`.tile`: "the mark is the button"), so the rule asked of all of
-     them would be a red of two hundred lines that nobody reads, which is the fault this file keeps
-     recording. A control passes if its FACE or its BORDER reaches 3:1 against the ground behind it,
+     ON THREE SUBJECTS AND NO OTHERS, on purpose: the keypad's keys, the answer field (`.qp-bar > .qp-ans`,
+     and an essay's sheet since 9 Oct) and the Send tile -- the three the complaint named and the
+     redesign answered. Every plate-and-mark tile in the app is ~1.1:1 by design (`.tile`: "the mark is
+     the button"), so the rule asked of all of them would be a red of two hundred lines that nobody
+     reads, which is the fault this file keeps recording. A control passes if its FACE or its BORDER
+     reaches 3:1 against the ground behind it,
      both composited down the chain as rule 3 does. A disabled control is exempt, as WCAG exempts it. */
-  const EDGE_OF = ['.kp-key', '.qp-bar > .qp-ans', '.tile.is-send'];
+  /* AND AN ESSAY'S SHEET (9 Oct, `ansEssay_`), the same paper field at a page's size: the box a child
+     writes forty marks in is the box that has to be findable in the sun. */
+  const EDGE_OF = ['.kp-key', '.qp-bar > .qp-ans', '.qp-essay > .qp-sheet', '.tile.is-send'];
   const edgeN = {};
   EDGE_OF.forEach(sel => { edgeN[sel] = 0; });
   found.edges = [];

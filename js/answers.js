@@ -65,7 +65,9 @@ const ansIsRing_ = k => /^pad:/.test(String(k || '')) && /:words$/.test(String(k
    it would refuse stays on the device rather than being retried for ever. `ANSWER_TEXT_MAX`,
    `ANSWER_PAD_MAX` and `ANSWERS_PER_POST` in backend/constants.gs; `check-saved-answers.js` asks the
    server's. */
-const ANS_TEXT_MAX = 2000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
+/* 20,000 SINCE AN ESSAY BECAME AN ANSWER (9 Oct): at 2,000 a forty-mark essay stopped going to the account
+   at its fourth paragraph. See `ANSWER_TEXT_MAX`. */
+const ANS_TEXT_MAX = 20000, ANS_PAD_MAX = 40000, ANS_PER_POST = 25;
 /* AND WHAT A `keepalive` REQUEST MAY CARRY. A browser refuses one over 64 KB, so the flush as the app
    goes away sends what fits and leaves the rest dirty for next time. */
 const ANS_KEEPALIVE_MAX = 60000;
