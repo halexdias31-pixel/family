@@ -2997,7 +2997,10 @@ function doPost(e) {
         if (hasRole(kid, 'admin')) return jsonOut({ error: 'An admin chooses their own emails. Nothing was changed.' });
         r = kid;
       }
-      if (!K.roles.some(x => hasRole(r, x))) {
+      /* `notifyHow_`, THE CARD'S OWN QUESTION, so the two cannot disagree. This was `hasRole` against the
+         kind's roles, which refused a `parent` cell everything and told an admin with a child that the
+         weekly email "is not an email that reaches you" — on the Sunday it reached them (review, 9 Oct). */
+      if (!notifyHow_(r, K).length) {
         return jsonOut({ error: '"' + K.label + '" is not an email that reaches ' + (r === me || S(r.person_id) === S(me.person_id) ? 'you' : 'them')
                               + '. Nothing was changed.' });
       }

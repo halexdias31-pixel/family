@@ -17,15 +17,15 @@ preference is a yes or a no per **kind of email**, and there were 30 senders to 
 
 | Kind | Column | Who gets it | What it is | Senders |
 |---|---|---|---|---|
-| **weekly** | `weekly_email` | parent | the Sunday email about a child | `digestPlan_` / `digestMail_` |
+| **weekly** | `weekly_email` | parent — by the role cell, **or anybody with an accepted child** (`parents: true`) | the Sunday email about a child | `digestPlan_` / `digestMail_` |
 | **messages** | `messages_email` | parent, kid, tutor, admin | "A message from …" | `sendMessage` |
 | **bookings** | `bookings_email` | parent, tutor, admin | a note, new terms or a payment on a session (`move` Say/Edit/Request/Pay); a paid place, to the tutor; printing posted; an invitation to a member's address; a festive sign-up, to the admin | `move`, `finalizePayment` (tutor), `orderPosted`, `sendInvite`, `joinFestive` |
 | **posts** | `posts_email` | parent, kid, tutor | your post went up / was not put up | `approvePost` |
-| **referrals** | `referrals_email` | everyone | somebody joined with your code | `register` |
+| **referrals** | `referrals_email` | everyone — **`hidden`: honoured, not drawn** | somebody joined with your code | `register` |
 | **approvals** | `approvals_email` | admin | a post is waiting — **off, it waits until somebody opens Posts**, and the card says so | `addPost` |
 | access | — | everyone | the confirmation link, a new address's link, a forgotten PIN, a no-email child's grown-up's yes, your child's handle | `linkMail_`, `moveMail_`, `register`, `forgotPin`, `makeChild` |
 | security | — | everyone | too many wrong PINs; your PIN was changed | `authWrong_`, `changePin`, `resetPin` |
-| family | — | parent, kid | somebody saying they are your parent; the child's answer | `claimChild`, `answerClaim` |
+| family | — | parent (by role or an accepted child), kid | somebody saying they are your parent; the child's answer | `claimChild`, `answerClaim` |
 | booked | — | parent, tutor | received (with the total), chosen, not taken forward, accepted, declined, **a family or tutor withdrawing**, paid / booked in, cancelled | `createJob`, `move` Accept/Decline/Withdraw, `markPaid`, `finalizePayment` (payer), `deleteJob` |
 | reported | — | admin | a message somebody reported | `flagMessage` |
 
@@ -95,7 +95,8 @@ offer it yet** — most children have no address of their own and are sent nothi
 list of its own. `setMyRoles` sends it too: tick Tutor and two more lines appear now, not on the next open.
 
 - **Ticks**: the `.check` row (the app's only checkbox, 44px floor in px) with the roles card's two-line
-  label — the CSS selectors were widened, not copied. **Saved on each tick** (`send_` with `lock`), like the
+  label — the CSS selectors were widened, not copied. **Saved on each tick** (`send_` with `lock` on that
+  box's own row — see the review below), like the
   agreement's box: nothing here asks anybody else for anything. A failure — refused *or* lost — puts the
   tick back to what the server last said, because the tick is the request and there is no Save tile to
   press again; `send_` writes why on the line under it.
@@ -190,3 +191,43 @@ list of its own. `setMyRoles` sends it too: tick Tutor and two more lines appear
   `check-const`, `check-doors`, `check-css`, `check-settings`, `check-manifest`, `check-strings`, `check.js`:
   green; all 200 `check-flow` journeys pass. `check-secrets` caught the first draft of `check-prefs` writing
   a registration PIN as a literal — it is built in pieces now, as check-signin's are.
+
+### Review, 9 Oct — six findings, all six fixed
+
+1. **Somebody sent the weekly email could not turn it off.** The Sunday run writes to `acceptedParents` —
+   the family tab, not the role cell — and an admin may make or link a child, a tutor who was a client may
+   untick Client and keep theirs. Walked through the real backend: a tutor-only row and an admin-only row,
+   each with an accepted child, were offered no weekly tick, `setNotify` told them it "is not an email that
+   reaches you", and `digestRun_` sent it anyway, footer pointing at the tick. The likeliest person is the
+   owner. **Fix:** `parents: true` on `weekly` and `family` in `NOTIFY_KINDS`, and **one helper,
+   `notifyHow_(row, kind)`** in people.gs, asked by both `notifyOf_` (the card) and `setNotify` (the
+   refusal), which counts an accepted child as being a parent. A tutor with no child is still not offered it.
+2. **A second tick while the first saved did nothing.** The whole card was locked for the round trip, and a
+   disabled `.check` was drawn exactly like a live one. **Fix:** only the row being saved is locked
+   (`lock: el.closest('label')`); each reply merges **only its own kind** into `USER.profile.notify`, so two
+   replies arriving in the other order cannot repaint a stale tick; a disabled box is drawn at 45% with a
+   `progress` cursor.
+3. **"Your code was used" was on every card and could never be sent** — nothing hands a code out (the
+   my-referral sheet is gone, the register form sends no `ref`). The rule printing was given: a switch nobody
+   could ever see work. **Fix:** `hidden: true` — the kind and its column stay, `wants_` and `setNotify` still
+   honour it, `notifyOf_` does not draw it. Deleting `hidden` is the whole change the day codes come back.
+4. **A role cell typed `parent`, `guardian`, `kid` or `teacher` got an empty card**, and `setNotify` refused
+   every kind — `notifyOf_` read `rolesOf` raw. **Fix:** `notifyRoles_` reads the cell through
+   `SELF_ROLE_ALIASES` (as `selfRolesOf_` does), and a cell naming none of the four is `client`, `mainRole`'s
+   answer. On the phone, a list with no kinds is now one sentence instead of "saved as you tick" over nothing.
+5. **Nothing checked that the real doGet lists `setNotify`** — the one line that turns the card on; the
+   journeys type it into their payloads. **Fix:** `check-prefs` asks `b.get({}).features`, as check-aimark
+   asks for `aiMark`.
+6. **A sender's kind was checked for membership only**, so the tutor's "Paid: a place is confirmed" moved to
+   `reported`, or `joinFestive` (the admin's only Booking-updates sender) moved to `booked`, stayed green.
+   **Fix:** `CALLS` in check-prefs pins all 22 `notify()` calls by place and subject to their kind(s), with
+   the test of `move`'s conditional pinned too; a call nobody pinned fails, and so does a row no call matches.
+
+**Mutations, each red, then green on the real files** — check-prefs: the tutor's paid mail to `reported`;
+`joinFestive` to `booked`; `'setNotify'` deleted from doget's features; the `parents` clause out of
+`notifyHow_`; the alias map out of `notifyRoles_`; `parents: true` off `weekly`; `hidden: true` off
+`referrals`; `ACT.WITHDRAW` out of `move`'s test; `setNotify` back on `hasRole`; `joinFestive`'s subject
+reworded. check-flow (two new journeys, five Notifications journeys in all): the lock back on the card (no
+second request); the reply's whole list kept (the repaint ticks Weekly again); the empty-list sentence out.
+The version stamps stay `2026-10-09-b-notifications`: this branch has not been deployed, so the review's fixes
+ship in the same paste as the feature.

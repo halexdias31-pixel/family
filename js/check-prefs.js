@@ -15,15 +15,21 @@
         has a column on the people tab (`SCHEMA.people`), an essential one says why it cannot be turned
         off. The weekly email's old opt-out IS one of them — folded in, not a second mechanism.
      2. THE SOURCE. Every `notify(` in backend/ names a kind that is in the table — a literal, or a
-        conditional of two literals, so it can be read here — and every `MailApp.sendEmail` sits in a
-        place this file names, either essential with a reason, or asking `wants_` for its kind. A new
-        sender fails here before it can mail somebody who said no. Every optional kind has a sender, or
-        its switch would be a tick that does nothing. Nothing reads one of the columns but `wants_`.
+        conditional of two literals, so it can be read here — and THE KIND THIS FILE PINS FOR THAT CALL
+        (`CALLS`, by where it is and what its subject says), so moving a sender from an optional kind to
+        an essential one is an edit to this file and not a quiet way to make a switch do nothing. Every
+        `MailApp.sendEmail` sits in a place this file names, either essential with a reason, or asking
+        `wants_` for its kind. A new sender fails here before it can mail somebody who said no. Every
+        optional kind has a sender, or its switch would be a tick that does nothing. Nothing reads one of
+        the columns but `wants_`.
      3. THE BEHAVIOUR, THROUGH THE REAL `doPost` — check-gas-load.js, MailApp stubbed: for every
         optional kind a real sender, switched off sends that person nothing and writes a line in the log
         (`notifyHeld_`), switched on sends; the essentials still go when every column on every row says
         `no`; the TOKEN decides whose row `setNotify` writes, by `resetPin`'s rule for a child; a stranger
         reads and writes nobody's; and a row from before the columns, or a sheet without them, is on.
+        And the card is drawn for whoever the sender writes to: a parent by the family tab whatever their
+        role cell says, a `parent` or `kid` typed into it, and the real doGet listing `setNotify` in
+        `features` — the one line that turns the card on for every phone.
 
    The people are invented, their addresses are on example.org and every PIN is 0000.
 ================================================================================================== */
@@ -59,6 +65,10 @@ Object.keys(KINDS).forEach(k => {
     rule(PEOPLE_COLS.indexOf(K.col) !== -1, 'NOTIFY_KINDS.' + k + "'s column `" + K.col + '` is not in SCHEMA.people, so ensureSchema never adds it');
     rule(OPTIONAL.filter(o => KINDS[o].col === K.col).length === 1, 'NOTIFY_KINDS.' + k + ' shares its column ' + K.col + ' with another kind');
   }
+  /* `hidden` IS A SWITCH LEFT OFF THE CARD — only an optional kind has one to leave off. `parents` widens
+     who a kind reaches to the family tab, and the role it is met by is `client`'s, so it must name it. */
+  if (K.hidden) rule(!K.essential, 'NOTIFY_KINDS.' + k + ' is essential and hidden — an essential kind has no switch to hide, and "Always sent" would be missing it');
+  if (K.parents) rule(K.roles.indexOf('client') !== -1, 'NOTIFY_KINDS.' + k + ' reaches parents by the family tab and does not name `client`, the role they meet it by');
 });
 rule(KINDS.weekly && KINDS.weekly.col === 'weekly_email',
   'the weekly email\'s choice is not `weekly_email` — the parents who already typed `no` there would be emailed again');
@@ -114,6 +124,50 @@ const DIRECT = {
   sendInvite:          { asks: 'bookings', in: 'sendInvite', why: 'an invitation typed for an address that is already a member' },
   digestMail_:         { asks: 'weekly', in: 'digestPlan_', why: 'the Sunday email: `digestPlan_` drops a parent who said no before anything is rendered' },
 };
+/* ---------- AND EVERY `notify(` CALL, PINNED TO THE KIND IT WAS DECIDED TO BE ----------------------------
+   READ FOR MEMBERSHIP ONLY, the kind was "some kind in the table", and only one real sender per optional
+   kind is driven below. So the tutor's "Paid: a place is confirmed" moved from `bookings` to `reported`,
+   and `joinFestive`'s mail to the admin from `bookings` to `booked`, both stayed green (review, 9 Oct) —
+   and `joinFestive` is the ONLY sender behind the admin's Booking updates tick, which would then do
+   nothing. Each call is keyed by where it is (`placeOf`) and the first words its subject says
+   (`subjectOf` — the first string, through a `+`, the `?`'s first answer, or the `||`'s first that has
+   one), and must name exactly the kind(s) written here, in that order. A call nobody listed fails, and so
+   does a row no call matches: a reclassification is an edit to this table, made on purpose, with the
+   reason in the comment beside the call in backend/. `when` pins the test of a `cond ? a : b` kind —
+   which acts of `move` are `booked` is as much the decision as the two words. */
+const CALLS = {
+  'authWrong_ · Too many sign-in attempts':                       ['security'],
+  'doPost:register · Somebody joined through you':                ['referrals'],
+  'doPost:approvePost · Your post is up':                         ['posts'],
+  'doPost:addPost · A post is waiting for you':                   ['approvals'],
+  'doPost:sendMessage · A message from ':                         ['messages'],
+  'doPost:flagMessage · A message was reported':                  ['reported'],
+  'doPost:claimChild · Someone has added you to their account':   ['family'],
+  'doPost:answerClaim · They accepted':                           ['family'],
+  'doPost:resetPin · Your PIN was changed':                       ['security'],
+  'doPost:changePin · Your PIN was changed':                      ['security'],
+  'doPost:orderPosted · Your printing is in the post':            ['bookings'],
+  'doPost:finalizePayment · Payment received — you are booked in': ['booked'],
+  'doPost:finalizePayment · Paid: a place is confirmed':          ['bookings'],
+  'doPost:markPaid · You are booked in: ':                        ['booked'],
+  'doPost:move · Not taken forward: ':                            ['booked'],
+  "doPost:move · You're teaching ":                               ['booked'],
+  'doPost:move · Cancelled: ':                                    ['booked'],
+  'doPost:move · Update on ':                                     { kinds: ['booked', 'bookings'],
+    when: 'act === ACT.ACCEPT || act === ACT.DECLINE || act === ACT.WITHDRAW' },
+  'doPost:createJob · Booking received 🎉':                       ['booked'],
+  'doPost:createJob · New request: ':                             ['booked'],
+  'doPost:joinFestive · Somebody is coming to ':                  ['bookings'],
+  'doPost:deleteJob · Cancelled: ':                               ['booked'],
+};
+const subjectOf = n => !n ? ''
+  : n.type === 'Literal' && typeof n.value === 'string' ? n.value
+  : n.type === 'TemplateLiteral' ? n.quasis[0].value.cooked
+  : n.type === 'BinaryExpression' && n.operator === '+' ? subjectOf(n.left)
+  : n.type === 'ConditionalExpression' ? subjectOf(n.consequent)
+  : n.type === 'LogicalExpression' ? (subjectOf(n.left) || subjectOf(n.right))
+  : '';
+const callSeen = {};
 const srcOf = {};
 const fnSrc = {};
 const usedKinds = new Set();
@@ -135,6 +189,22 @@ FILES.forEach(f => {
       const ks = kindsOf(n.arguments[3]);
       if (rule(ks, 'backend/' + f + ':' + line + ' calls notify() without a kind from NOTIFY_KINDS as its fourth argument — '
         + 'it would send whatever the person chose (a literal, or `cond ? \'a\' : \'b\'` of two)')) ks.forEach(k => usedKinds.add(k));
+      const id = placeOf(up) + ' · ' + subjectOf(n.arguments[1]);
+      callSeen[id] = (callSeen[id] || 0) + 1;
+      const C = CALLS[id];
+      const want = Array.isArray(C) ? C : C && C.kinds;
+      if (rule(want, 'backend/' + f + ':' + line + ' is a notify() this check has not pinned — `' + id + '` sends '
+            + JSON.stringify(ks) + '. Add it to CALLS with the kind it was decided to be')) {
+        rule(JSON.stringify(ks) === JSON.stringify(want), 'backend/' + f + ':' + line + ' `' + id + '` sends ' + JSON.stringify(ks)
+          + ', and it was decided to be ' + JSON.stringify(want) + ' — if that changed on purpose, change CALLS; if not, '
+          + (want.some(k => KINDS[k] && !KINDS[k].essential) ? 'somebody\'s switch has stopped holding it' : 'somebody who needs it can now turn it off'));
+        if (C && C.when) {
+          const a = n.arguments[3];
+          const test = a && a.type === 'ConditionalExpression' ? src.slice(a.test.start, a.test.end).replace(/[()\s]+/g, ' ').trim() : '';
+          rule(test === C.when.replace(/[()\s]+/g, ' ').trim(), 'backend/' + f + ':' + line + ' `' + id + '` decides its kind by `' + test
+            + '`, and it was decided by `' + C.when + '` — which acts are essential changed');
+        }
+      }
     }
     if (c.type === 'MemberExpression' && c.object.type === 'Identifier' && (c.object.name === 'MailApp' || c.object.name === 'GmailApp')
         && c.property && (c.property.name === 'sendEmail' || c.property.name === 'send')) {
@@ -147,6 +217,7 @@ FILES.forEach(f => {
   });
 });
 rule(notifyCalls >= 20, 'only ' + notifyCalls + ' notify() calls were found in backend/ — the parse is not reading what it should');
+Object.keys(CALLS).forEach(id => rule(callSeen[id], 'CALLS pins `' + id + '` and no notify() there says that any more — take it out, or this check believes a sender is pinned that is not'));
 Object.keys(DIRECT).forEach(p => {
   const D = DIRECT[p];
   rule(directSeen[p], 'DIRECT names `' + p + '` and nothing there sends any more — take it out, or this check believes a sender is covered that is not');
@@ -240,12 +311,13 @@ if (!W.tk['P-C1'] || !W.tk['P-T1'] || !W.tk['P-S1'] || !W.tk['P-A1']) {
 }
 
 /* 3a. WHAT THE CARD IS TOLD, PER ROLE — the sign-in reply's profile, which is `profileOf_`. The owner's ask,
-   written out: a parent's, a kid's, a tutor's and an admin's, and nothing of anybody else's. */
+   written out: a parent's, a kid's, a tutor's and an admin's, and nothing of anybody else's. NO `referrals`
+   for anybody: it is `hidden` (constants.gs), because nothing hands a code out any more. */
 const WANT = {
-  'P-C1': { opt: ['weekly', 'messages', 'bookings', 'posts', 'referrals'], must: ['access', 'security', 'family', 'booked'] },
-  'P-S1': { opt: ['messages', 'posts', 'referrals'], must: ['access', 'security', 'family'] },
-  'P-T1': { opt: ['messages', 'bookings', 'posts', 'referrals'], must: ['access', 'security', 'booked'] },
-  'P-A1': { opt: ['messages', 'bookings', 'referrals', 'approvals'], must: ['access', 'security', 'reported'] },
+  'P-C1': { opt: ['weekly', 'messages', 'bookings', 'posts'], must: ['access', 'security', 'family', 'booked'] },
+  'P-S1': { opt: ['messages', 'posts'], must: ['access', 'security', 'family'] },
+  'P-T1': { opt: ['messages', 'bookings', 'posts'], must: ['access', 'security', 'booked'] },
+  'P-A1': { opt: ['messages', 'bookings', 'approvals'], must: ['access', 'security', 'reported'] },
 };
 Object.keys(WANT).forEach(pid => {
   const n = (W.tk[pid].profile || {}).notify;
@@ -256,6 +328,12 @@ Object.keys(WANT).forEach(pid => {
   rule(n.kinds.every(k => k.essential ? !('on' in k) : k.on === true), pid + ': an untouched row is not on for every switch — ' + JSON.stringify(n.kinds));
   rule(n.to === PEOPLE.find(p => p.person_id === pid).email && n.held === false, pid + ': notify.to/held is ' + JSON.stringify([n.to, n.held]));
 });
+/* THE ONE LINE THAT TURNS THE CARD ON. `notifyCard_` draws "The live backend does not have notification
+   choices yet" for any doGet whose `features` does not name `setNotify`, and check-flow and check/states.js
+   type `features: ['setNotify']` into their payloads — so deleting it from doget.gs left every journey green
+   and every phone saying so for ever (review, 9 Oct). Asked of the real doGet, as check-aimark asks `aiMark`. */
+rule((W.b.get({}).features || []).includes('setNotify'),
+  '`setNotify` is not in doGet\'s features, so every phone draws the Notifications card as an old backend');
 {
   const wk = (W.tk['P-C1'].profile.notify.kinds.find(k => k.kind === 'weekly') || {});
   rule(/not being sent/i.test(String(wk.idle || '')), 'the weekly email is off on the config tab and the parent\'s card is not told — ' + JSON.stringify(wk));
@@ -448,6 +526,89 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
   rule(!d.success && /Run ensureSchema\(\)/.test(String(d.error)) && !d.writes, 'on a sheet without the column, setNotify did not refuse with the ensureSchema sentence, or wrote — ' + JSON.stringify(d));
 }
 
+/* 3f. WHOEVER A SENDER WRITES TO IS SHOWN ITS SWITCH, AND MAY USE IT.
+   PARENTS BY THE FAMILY TAB: the Sunday run writes to `acceptedParents`, which reads links, not role cells —
+   and an admin may make or link a child, and a tutor who was a client may untick Client and keep theirs.
+   Both were sent the weekly email, offered no tick for it, and told by `setNotify` that it "is not an email
+   that reaches you" (review, 9 Oct). So each of them, with an accepted child: the card has the weekly
+   switch and "Family links" under Always sent, `setNotify` takes it, and the real Sunday run then sends
+   them nothing (and logs it) — or, left on, sends.
+   THE WORDS PEOPLE TYPE: `parent` and `kid` in the role cell (`SELF_ROLE_ALIASES`). Read raw, a `parent`
+   row was drawn no kinds at all and refused every one. */
+{
+  const SUN = '2026-10-04T17:00:00Z';
+  const FAM = [
+    P('P-A1', 'Hal', 'Admin', 'admin', 'admin@example.org'),
+    P('P-T8', 'Tess', 'Tutorparent', 'tutor', 'tess@example.org'),
+    P('P-A8', 'Ari', 'Adminparent', 'admin', 'ari@example.org'),
+    P('P-S8', 'Kit', 'Kid', 'student', ''),
+    P('P-S7', 'Lou', 'Kid', 'student', ''),
+    P('P-G1', 'Gus', 'Typed', 'parent', 'gus@example.org'),
+    P('P-K1', 'Kim', 'Typed', 'kid', 'kim@example.org'),
+  ];
+  const FLINKS = [
+    { link_id: 'L8', parent_id: 'P-T8', child_id: 'P-S8', state: 'accepted' },
+    { link_id: 'L7', parent_id: 'P-A8', child_id: 'P-S7', state: 'accepted' },
+  ];
+  const famWorld = () => {
+    const w = world();
+    w.b.seed('people', FAM);
+    w.b.seed('family', FLINKS);
+    w.b.seed('attempts', ['P-S8', 'P-S7'].map((pid, i) => ({ person_id: pid, question_key: 'q:FAM-' + i, first_done: '2026-10-01',
+      last_done: '2026-10-01', times: 1, label: 'Maths · Paper 1 (Calculator) — June 2024 · Q' + (i + 1) })));
+    cfgSet(w.b, 'weekly_digest', 'send');
+    return w;
+  };
+  const kindsIn = n => ({ opt: (n && n.kinds || []).filter(k => !k.essential).map(k => k.kind),
+                          must: (n && n.kinds || []).filter(k => k.essential).map(k => k.kind) });
+  [['P-T8', 'tess@example.org', 'a tutor-only row'], ['P-A8', 'ari@example.org', 'an admin-only row']].forEach(([pid, addr, who]) => {
+    const runWith = off => {
+      const w = famWorld(), b = w.b;
+      const tk = b.post({ action: 'verifyLogin', email: addr, pin: '0000' });
+      if (!rule(tk && tk.success, who + ' with an accepted child could not sign in — ' + JSON.stringify(tk))) return null;
+      const n = kindsIn(tk.profile && tk.profile.notify);
+      let d = null;
+      if (off) d = b.post({ action: 'setNotify', token: tk.token, personId: pid, kind: 'weekly', on: false });
+      const out = JSON.parse(JSON.stringify(b.ev('clearCache(); digestRun_(new Date(' + at(SUN) + '))')));
+      return { n, d, out, sentTo: w.mail.sent.map(m => m.to), log: rowsOf(b, 'digest_log') };
+    };
+    const off = runWith(true), on = runWith(false);
+    if (!off || !on) return;
+    rule(off.n.opt.indexOf('weekly') !== -1, who + ' with an accepted child is sent the weekly email and offered no switch for it — ' + JSON.stringify(off.n.opt));
+    rule(off.n.must.indexOf('family') !== -1, who + ' with an accepted child is not told family links are always sent — ' + JSON.stringify(off.n.must));
+    rule(off.d && off.d.success && off.d.on === false, who + ' with an accepted child could not turn the weekly email off — ' + JSON.stringify(off.d));
+    rule(off.sentTo.indexOf(addr) === -1, 'weekly OFF: the Sunday run still emailed ' + who + ' with an accepted child — ' + JSON.stringify(off.out));
+    rule(off.log.some(r => r.parent_id === pid && r.status === 'opted out'), 'weekly OFF: no "opted out" row in digest_log for ' + who + ' — ' + JSON.stringify(off.log));
+    rule(on.sentTo.indexOf(addr) !== -1, 'weekly ON: the Sunday run did not email ' + who + ' with an accepted child, so OFF above proved nothing — ' + JSON.stringify(on.out));
+  });
+  /* AND NOT EVERY TUTOR: one with no child is not offered an email about a child they do not have. */
+  {
+    const w = world();
+    w.b.seed('people', FAM.concat([P('P-T7', 'Tom', 'Tutor', 'tutor', 'tom@example.org')]));
+    w.b.seed('family', FLINKS);
+    const tk = w.b.post({ action: 'verifyLogin', email: 'tom@example.org', pin: '0000' });
+    const n = kindsIn(tk && tk.profile && tk.profile.notify);
+    rule(tk && tk.success && n.opt.indexOf('weekly') === -1 && n.must.indexOf('family') === -1,
+      'a tutor with no child is offered the weekly email or told about family links — ' + JSON.stringify(n));
+  }
+  /* THE TYPED WORDS. */
+  {
+    const w = famWorld(), b = w.b;
+    const as = (addr, pid, body) => { const tk = b.post({ action: 'verifyLogin', email: addr, pin: '0000' });
+      return { tk, d: body ? b.post(Object.assign({ token: tk.token, personId: pid }, body)) : null }; };
+    const g = as('gus@example.org', 'P-G1', { action: 'setNotify', kind: 'weekly', on: false });
+    const gn = kindsIn(g.tk.profile && g.tk.profile.notify);
+    rule(JSON.stringify(gn) === JSON.stringify(WANT['P-C1']), 'a row whose role cell says `parent` is drawn ' + JSON.stringify(gn) + ', wanted a client\'s ' + JSON.stringify(WANT['P-C1']));
+    rule(g.d && g.d.success, 'a row whose role cell says `parent` could not turn the weekly email off — ' + JSON.stringify(g.d));
+    const k = as('kim@example.org', 'P-K1', { action: 'setNotify', kind: 'posts', on: false });
+    const kn = kindsIn(k.tk.profile && k.tk.profile.notify);
+    rule(JSON.stringify(kn) === JSON.stringify(WANT['P-S1']), 'a row whose role cell says `kid` is drawn ' + JSON.stringify(kn) + ', wanted a student\'s ' + JSON.stringify(WANT['P-S1']));
+    rule(k.d && k.d.success, 'a row whose role cell says `kid` could not turn their posts email off — ' + JSON.stringify(k.d));
+    const kw = b.post({ action: 'setNotify', token: k.tk.token, personId: 'P-K1', kind: 'weekly', on: false });
+    rule(!kw.success, 'a row whose role cell says `kid` turned off the weekly email about themselves — ' + JSON.stringify(kw));
+  }
+}
+
 /* ---------- THE VERDICT ------------------------------------------------------------------------------------ */
 console.log('');
 console.log('  ' + Object.keys(KINDS).length + ' kinds (' + OPTIONAL.length + ' optional: ' + OPTIONAL.join(', ') + '; '
@@ -461,5 +622,5 @@ if (bad.length) {
   console.log('FAILED — ' + bad.length + ' of ' + asked + '. Somebody who said no would be emailed, or somebody who needs an email would not be.');
   process.exit(1);
 }
-console.log('OK — every sender names its kind and asks; off is held and logged, on is sent, the essentials always go, '
-  + 'the token decides whose choices are written, and a row or a sheet from before the columns is on.');
+console.log('OK — every sender names its pinned kind and asks; off is held and logged, on is sent, the essentials always go, '
+  + 'the token decides whose choices are written, a row or a sheet from before the columns is on, and whoever is sent an email is shown its switch.');

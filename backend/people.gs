@@ -950,11 +950,48 @@ function notifyHeld_(r, kind, subject) {
   } catch (err) { /* a log that cannot be written must not stop the action that was being told about */ }
 }
 
+/* ---------- WHICH ROLES AN EMAIL REACHES SOMEBODY BY — ONE ANSWER FOR THE CARD AND FOR `setNotify` --------
+   THE CARD AND THE SERVER DISAGREED TWICE, and both times the sender was right and the card was not
+   (review, 9 Oct):
+
+   ALIASES. `rolesOf` gives the cell's words as typed, and people type `parent`, `guardian`, `kid` and
+   `teacher` there — that is why `SELF_ROLE_ALIASES` exists. Asked raw, a `parent` row reached no kind at
+   all: the card read "To x@… · saved as you tick." over nothing, while the Roles card just above showed
+   Client ticked, and `setNotify` refused every kind. So the words go through the alias map first, as
+   `selfRolesOf_` does. A cell that names none of the four after that — only a title, say — is `client`,
+   which is `mainRole`'s answer for the same row.
+
+   PARENTS BY THE FAMILY TAB. A kind marked `parents` (the weekly email, family links) also reaches
+   anybody with an ACCEPTED child, whatever their cell says, because that is who its sender writes to —
+   `acceptedParents`, not a role. They meet it as a parent, so it is `client`'s note they are shown.
+
+   Returns the roles it reaches them BY (empty: it does not reach them), because `notifyOf_` picks each
+   role's note from that list. `parent` is passed in by `notifyOf_`, which asks once for eleven kinds. */
+function notifyRoles_(r) {
+  const held = rolesOf(r).map(x => SELF_ROLE_ALIASES[x] || x).filter(x => NOTIFY_ALL_ROLES.indexOf(x) !== -1);
+  return held.length ? held.filter((x, i) => held.indexOf(x) === i) : ['client'];
+}
+function notifyParent_(r) {
+  /* A FAMILY TAB THAT CANNOT BE READ IS NOBODY'S CHILD — the roles still decide, which is what the card
+     drew before this was asked. AND A ROW WITH NO ID IS NOBODY'S PARENT, or a half-typed link with a blank
+     `parent_id` would make it one. */
+  const id = S(r && r.person_id);
+  if (!id) return false;
+  try { return acceptedLinks().some(l => S(l.parent_id) === id); } catch (err) { return false; }
+}
+function notifyHow_(r, K, parent) {
+  if (!K) return [];
+  const mine = notifyRoles_(r).filter(x => K.roles.indexOf(x) !== -1);
+  if (!mine.length && K.parents && (parent === undefined ? notifyParent_(r) : parent)) mine.push('client');
+  return mine;
+}
+
 /* ---------- WHAT THE NOTIFICATIONS CARD DRAWS FOR THIS PERSON ------------------------------------------
    Sent on the profile (`profileOf_` → `myProfile`, the sign-in reply, `updateProfile`), so the phone is
    told, by the same table the senders read, exactly which kinds reach this person and what each is set
    to — the phone keeps no list of its own to drift from this one. The kinds of EVERY role they hold
-   (`rolesOf`), in the table's order, optional ones with `on`, essential ones flagged.
+   (`notifyHow_` — aliases read, and a parent by the family tab as well as by the cell), in the table's
+   order, optional ones with `on`, essential ones flagged, `hidden` ones left out.
 
    `to` IS THE ROW'S OWN ADDRESS, because that is the only one `notify` writes to: a child with none is
    sent nothing at all (their sign-in help goes to their grown-ups, `authGrownUps_`), and the card says
@@ -962,13 +999,15 @@ function notifyHeld_(r, kind, subject) {
    the link goes to an address nobody has proved. `idle` on the weekly email while the owner has it off on
    the config tab (`digestMode_`): a switch for an email nobody is being sent must say so. */
 function notifyOf_(r) {
-  const roles = rolesOf(r);
+  const parent = notifyParent_(r);
   let mode = 'off';
   try { mode = digestMode_(config()); } catch (err) { mode = 'off'; }
   const kinds = [];
   Object.keys(NOTIFY_KINDS).forEach(k => {
     const K = NOTIFY_KINDS[k];
-    const mine = roles.filter(x => K.roles.indexOf(x) !== -1);
+    /* `hidden` — still a kind, still honoured by `wants_` and `setNotify`, just not drawn (see `referrals`). */
+    if (K.hidden) return;
+    const mine = notifyHow_(r, K, parent);
     if (!mine.length) return;
     const notes = [];
     mine.forEach(x => { const n = (K.noteFor && K.noteFor[x]) || K.note; if (notes.indexOf(n) === -1) notes.push(n); });

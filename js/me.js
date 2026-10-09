@@ -2779,7 +2779,10 @@ on('roles-save', el => {
    a tick is a control inside a form, and a card of yes/no answers is the roles card's shape. SAVED ON
    EACH TICK, like the agreement's box and unlike the roles card: nothing here asks anybody else for
    anything, so there is no request a passing thumb could send by accident — and a Save tile under six
-   ticks would be the one press everybody forgets. Locked while it saves (`send_` with `lock`).
+   ticks would be the one press everybody forgets. ONLY THE BOX BEING SAVED is locked while it saves
+   (`send_` with `lock` on its own row): each tick is one cell, so a parent unticking three emails in a row
+   is three saves, not one save and two taps that did nothing (review, 9 Oct — the whole card was locked,
+   and a locked `.check` looked exactly like a live one).
 
    WHAT IS ALWAYS SENT IS WORDS, NOT GREYED BOXES. The Signing-in card's argument: an input that cannot be
    typed into reads as broken. A greyed tick reads as "switched off by somebody", which is the opposite.
@@ -2821,6 +2824,12 @@ function notifyCard_() {
     inner = `<p class="sub notify-none">${esc(kid
       ? 'There is no email address on your account, so @family. emails you nothing — there is nothing to turn off. If you forget your PIN, a new one goes to your grown-up.'
       : 'There is no email address on your account, so nothing is emailed to you. Add one on your Contact card and your choices appear here.')}</p>`;
+  }
+  /* A LIST WITH NOTHING IN IT. The server sends every role at least `access` and `security`, so this is a
+     backend that sent `kinds: []` — the one that read a `parent` cell raw (`notifyHow_` in people.gs) did.
+     One sentence rather than "To x@… · saved as you tick." over no ticks at all. */
+  else if (!n.kinds.length) {
+    inner = `<p class="sub notify-none">${esc('We could not tell which emails reach your account, so nothing here can be switched yet — everything is sent as before.')}</p>`;
   } else {
     const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
     const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';
@@ -2863,14 +2872,25 @@ on('notify-pick', el => {
   const want = !!el.checked;
   const n = notifyList_();
   const label = ((n && n.kinds.find(x => x.kind === kind)) || {}).label || 'That email';
+  /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD ---------------------------------------------------
+     It locked the card, and a second tick while the first was saving (about two seconds of Apps Script)
+     landed on a disabled box that looked live: no request, the box stayed as it was, and "Saved" for the
+     first (review, 9 Oct, walked in Chromium). One tick is one cell, so the saves cannot step on each
+     other's writes — the row is locked so the same box is not sent twice at once. */
   send_({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want },
-        { where: said || undefined, saying: 'Saving…', lock: card })
+        { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
     .then(d => {
-      /* THE SERVER'S LIST, which is what every sender will read — kept like every other field of `USER`, so
-         a reload draws it and the next open's `myProfile` agrees. An older reply with no list keeps ours. */
-      if (d && d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
-      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. Two saves in flight
+         can answer in either order, and the earlier one's list still has the later tick as it was: kept
+         whole, the next repaint would put back a tick the server has already taken away. The reply's list
+         is taken whole only when there is none to merge into. An older reply with no list keeps ours. */
       const on = d && typeof d.on === 'boolean' ? d.on : want;
+      const held = notifyList_();
+      if (held && held.kinds.some(x => x.kind === kind)) {
+        USER.profile = Object.assign({}, USER.profile, { notify: Object.assign({}, held, {
+          kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
+      } else if (d && d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       NOTIFY_SAID = { pid: String(USER.personId || ''),
         text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
       /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the

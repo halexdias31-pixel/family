@@ -10616,11 +10616,13 @@ const notifyCardOf_ = async (o) => {
 check('the Notifications card shows a parent, a kid and a tutor only the emails that reach them, from the real backend', async () => {
   const { user, reply } = notifyWorld_();
   const payload_ = Object.assign(payload(), { features: ['setNotify'] });
-  /* THE OWNER'S ASK, WRITTEN OUT: each role's switches, and what is always sent. */
+  /* THE OWNER'S ASK, WRITTEN OUT: each role's switches, and what is always sent. No `referrals` for anybody
+     — it is `hidden` (constants.gs): nothing hands a code out any more, so it was a tick about a code
+     nobody had seen. */
   const WANT = {
-    'parent@example.org':  { opt: ['weekly', 'messages', 'bookings', 'posts', 'referrals'], must: 4 },
-    'student@example.org': { opt: ['messages', 'posts', 'referrals'], must: 3 },
-    'tutor@example.org':   { opt: ['messages', 'bookings', 'posts', 'referrals'], must: 3 },
+    'parent@example.org':  { opt: ['weekly', 'messages', 'bookings', 'posts'], must: 4 },
+    'student@example.org': { opt: ['messages', 'posts'], must: 3 },
+    'tutor@example.org':   { opt: ['messages', 'bookings', 'posts'], must: 3 },
   };
   const ALL = ['weekly', 'messages', 'bookings', 'posts', 'referrals', 'approvals'];
   const bad = [];
@@ -10700,6 +10702,77 @@ check('a Notifications tick saves to the real sheet, survives a reload, and a re
   const pb2 = no.card().querySelector('[data-kind="posts"]');
   if (!pb2.checked) bad.push('a refused save left Posts unticked — a box showing a choice the server never kept');
   if (!/ensureSchema/.test((no.card().querySelector('.notify-said') || {}).textContent || '')) bad.push('a refused save did not say why under the ticks');
+  return bad;
+});
+
+/* ---------- TWO TICKS IN A ROW ARE TWO SAVES, WHICHEVER ANSWERS FIRST ---------------------------------------
+   The card used to be locked whole while a tick saved, and a locked `.check` looked exactly like a live
+   one: the second tick, 400ms after the first, during Apps Script's two seconds, did nothing at all —
+   no request, the box as it was, weekly_email blank, and "Saved" for the first (review, 9 Oct, walked in
+   Chromium). Now only the box being saved is locked. The replies here are HELD, as Apps Script holds
+   them, and let go in the OTHER order: the server wrote both, so the earlier reply's list still shows
+   the later tick as it was, and a phone that kept that list whole would repaint a tick the server has
+   already taken away. (Mutations: `lock: card` — no second request; the reply's whole list kept — the
+   repaint ticks Weekly again.) */
+check('two Notifications ticks in a row are two saves, and the replies cannot undo each other', async () => {
+  const { real, user, reply } = notifyWorld_();
+  real.seed('family', [{ link_id: 'L1', parent_id: 'P-C1', child_id: 'P-S1', state: 'accepted' }]);
+  const payload_ = Object.assign(payload(), { features: ['setNotify'] });
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  const held = [];
+  /* ANSWERED BY THE REAL SERVER THE MOMENT IT ARRIVES, DELIVERED WHEN THE JOURNEY SAYS. */
+  const v = await notifyCardOf_({ payload: payload_, as: pat,
+    reply: b => { if (b.action !== 'setNotify') return reply(b); const ans = real.post(b); return new Promise(ok => held.push(() => ok(ans))); } });
+  if (v.err) return [v.err];
+  const bad = [];
+  const box = k => v.card() && v.card().querySelector('[data-kind="' + k + '"]');
+  if (!box('bookings') || !box('weekly')) return ['the parent has no Booking updates or no Weekly switch'];
+  v.sent.length = 0;
+  box('bookings').click();
+  await wait(50);
+  if (!box('bookings').disabled) bad.push('the box being saved is not locked while it saves — it could be sent twice at once');
+  if (box('weekly').disabled) bad.push('a tick being saved locked the OTHER boxes on the card — a second tick lands on a dead box');
+  box('weekly').click();
+  await wait(50);
+  const posts = v.sent.filter(b => b.action === 'setNotify').map(b => b.kind + '=' + b.on);
+  if (JSON.stringify(posts) !== JSON.stringify(['bookings=false', 'weekly=false'])) bad.push('two ticks in a row posted ' + JSON.stringify(posts) + ' — wanted bookings off, then weekly off');
+  /* THE LATER REPLY FIRST, then the earlier one. */
+  if (held[1]) held[1]();
+  await wait(100);
+  if (held[0]) held[0]();
+  await wait(300);
+  if (String(real.row('P-C1').bookings_email) !== 'no' || String(real.row('P-C1').weekly_email) !== 'no')
+    bad.push('the sheet has bookings_email "' + real.row('P-C1').bookings_email + '" and weekly_email "' + real.row('P-C1').weekly_email + '" — wanted both no');
+  const kinds = (((v.t.whoami().profile || {}).notify || {}).kinds || []);
+  const onOf = k => (kinds.find(x => x.kind === k) || {}).on;
+  if (onOf('bookings') !== false || onOf('weekly') !== false) bad.push('after both replies the phone holds bookings ' + onOf('bookings') + ', weekly ' + onOf('weekly') + ' — an older reply\'s list painted over a newer tick');
+  try { v.w.paint('settings'); } catch (e) { bad.push('repainting settings threw: ' + e.message); }
+  await wait(100);
+  if (!box('bookings') || box('bookings').checked || !box('weekly') || box('weekly').checked)
+    bad.push('after a repaint the card shows bookings ' + (box('bookings') && box('bookings').checked) + ', weekly ' + (box('weekly') && box('weekly').checked) + ' — wanted both unticked, as the sheet has them');
+  if (box('bookings').disabled || box('weekly').disabled) bad.push('a box is still locked after its save answered');
+  return bad;
+});
+
+/* ---------- A LIST WITH NOTHING IN IT IS ONE SENTENCE --------------------------------------------------------
+   Every role is sent at least sign-in links and security warnings, so an empty list is a server that could
+   not tell what reaches somebody — the first `notifyOf_` did that for a role cell typed `parent`. It drew
+   "To x@… · saved as you tick." over nothing. */
+check('a Notifications list with no kinds says so instead of "saved as you tick" over nothing', async () => {
+  const { user, reply } = notifyWorld_();
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  pat.profile.notify = Object.assign({}, pat.profile.notify, { kinds: [] });
+  const v = await notifyCardOf_({ payload: Object.assign(payload(), { features: ['setNotify'] }), as: pat,
+    reply: b => b.action === 'myProfile' ? { success: true, personId: 'P-C1', profile: pat.profile } : reply(b) });
+  if (v.err) return [v.err];
+  const c = v.card();
+  if (!c) return ['Settings has no Notifications card'];
+  const bad = [];
+  const words = c.textContent.replace(/\s+/g, ' ').trim();
+  if (/saved as you tick/.test(words)) bad.push('an empty list still says "saved as you tick" over no ticks — ' + JSON.stringify(words));
+  if (!/sent as before/.test(words)) bad.push('an empty list does not say everything is still sent — ' + JSON.stringify(words));
   return bad;
 });
 

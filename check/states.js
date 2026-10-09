@@ -5687,7 +5687,7 @@ const STATES = {
   const kid = listFor('student', ''), tutor = listFor('tutor', 'tutor@example.org'), admin = listFor('admin', 'admin@example.org');
   STATES.settings.push(
     state('a parent', { role: 'parent', roles: ['parent'] }, parent, true, ticks(count(parent, false), count(parent, true)),
-      'a parent\'s ticks — the weekly email "not being sent yet", messages, booking updates, posts, referrals — and the four always sent'),
+      'a parent\'s ticks — the weekly email "not being sent yet", messages, booking updates, posts — and the four always sent'),
     state('a parent whose address waits for its link', { role: 'parent', roles: ['parent'] }, held, true,
       new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
         + 'return c && c.querySelector(".notify-held") && c.querySelectorAll("[data-do=\\"notify-pick\\"]").length === ' + count(held, false)
@@ -5696,9 +5696,9 @@ const STATES = {
     state('a kid with no email', { role: 'kid', roles: ['kid'] }, kid, true, said('/no email address/'),
       'one sentence — nothing is emailed to a child with no address — and nothing to tick'),
     state('a tutor', { role: 'tutor', roles: ['tutor'] }, tutor, true, ticks(count(tutor, false), count(tutor, true)),
-      'a tutor\'s ticks — messages, booking updates, posts, referrals — and the three always sent'),
+      'a tutor\'s ticks — messages, booking updates, posts — and the three always sent'),
     state('the admin', { role: 'admin', roles: ['admin'] }, admin, true, ticks(count(admin, false), count(admin, true)),
-      'the admin\'s ticks — messages, festive sign-ups, referrals, posts waiting — and the three always sent'),
+      'the admin\'s ticks — messages, festive sign-ups, posts waiting — and the three always sent'),
     state('a backend older than the site', { role: 'parent', roles: ['parent'] }, null, false, said('/does not have notification choices yet/'),
       'one sentence saying the backend has no notification choices yet, and nothing to tick'));
 })();

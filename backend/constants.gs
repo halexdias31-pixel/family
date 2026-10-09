@@ -274,10 +274,21 @@ const ADMIN_NAME = "@family.";
    one run of words under "Always sent", so its label says the whole of it ("Bookings confirmed or
    cancelled", not "Your bookings") and its note is for a pointer that can hover. `noteFor` is the same kind
    as one role meets it — an admin's "booking updates" are festive sign-ups, not session notes. Order is the
-   card's order: optional first, then what is always sent. */
+   card's order: optional first, then what is always sent.
+
+   `parents: true` — IT ALSO REACHES ANYBODY WITH AN ACCEPTED CHILD, WHATEVER THEIR ROLE CELL SAYS. The
+   Sunday run sends to every parent `acceptedParents` names, and that reads the family tab, not the role
+   cell; an admin may make or link a child (`makeChild`, `claimChild`, `linkChild`), and a tutor who was a
+   client can untick Client and keep their children. So a role list alone left an admin with their own
+   child on the site being sent the weekly email, its footer pointing at a tick the card never drew, and
+   `setNotify` answering that it "is not an email that reaches you" (review, 9 Oct). The card and
+   `setNotify` both ask `notifyHow_` in people.gs, which reads the same fact the sender does.
+
+   `hidden: true` — A SWITCH LEFT OFF THE CARD, AND STILL HONOURED. The column stays, `wants_` still reads it
+   and a `no` typed in the sheet still holds; `notifyOf_` just does not draw it. See `referrals`. */
 const NOTIFY_ALL_ROLES = ['client', 'student', 'tutor', 'admin'];
 const NOTIFY_KINDS = {
-  weekly:    { col: 'weekly_email', roles: ['client'],
+  weekly:    { col: 'weekly_email', roles: ['client'], parents: true,
                label: 'Weekly progress email', note: 'Sundays: what your child worked on' },
   messages:  { col: 'messages_email', roles: NOTIFY_ALL_ROLES,
                label: 'Messages', note: 'When somebody messages you here' },
@@ -286,7 +297,14 @@ const NOTIFY_KINDS = {
                noteFor: { admin: 'Sign-ups to a festive event' } },
   posts:     { col: 'posts_email', roles: ['client', 'student', 'tutor'],
                label: 'Your posts', note: 'When one goes up, or is not put up' },
-  referrals: { col: 'referrals_email', roles: NOTIFY_ALL_ROLES,
+  /* HIDDEN: NOTHING HANDS A CODE OUT ANY MORE. The my-referral sheet went (js/me.js, `on('my-referral')`
+     WAS HERE) and the register form sends no `ref`, so `register`'s thank-you cannot be triggered from the
+     site — and a tick on every parent's and child's card about a code they have never seen is the rule
+     printing broke ("a column for a mail that cannot be triggered is a switch nobody could ever see work",
+     `orderPosted`), and a 60px row on a card that only fits 320 at 98% (review, 9 Oct). KEPT AS A KIND, with
+     its column, so the sender stays gated: a `ref` posted by hand still asks `wants_`, and a `no` already
+     typed holds. The day a code is handed out again, deleting `hidden` is the whole change. */
+  referrals: { col: 'referrals_email', roles: NOTIFY_ALL_ROLES, hidden: true,
                label: 'Your code was used', note: 'When somebody joins with it' },
   /* OFF MEANS A POST WAITS UNSEEN until the admin opens Posts — said on the card, because nothing else
      tells anybody a post is waiting. */
@@ -299,7 +317,7 @@ const NOTIFY_KINDS = {
   security:  { essential: true, roles: NOTIFY_ALL_ROLES,
                label: 'Security warnings', note: 'Too many wrong PINs, or your PIN changed',
                why: 'the only warning an account theft ever gives' },
-  family:    { essential: true, roles: ['client', 'student'],
+  family:    { essential: true, roles: ['client', 'student'], parents: true,
                label: 'Family links', note: 'Somebody adding you as their child, and the answer',
                why: 'a child is never put on an account they were not told about' },
   booked:    { essential: true, roles: ['client', 'tutor'],

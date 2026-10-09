@@ -1250,6 +1250,13 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .notify-card .notify-cap { margin: .7rem 0 .2rem; }
 .notify-card .notify-said, .notify-card .notify-held { margin: .6rem 0 0; }
 .notify-card .notify-said:empty { margin: 0; }
+/* THE BOX BEING SAVED LOOKS IT. `send_` disables the row's own box for the round trip, and a disabled
+   `.check` was drawn exactly like a live one — opacity 1, a pointer — so a second tap on it was a tap that
+   did nothing, with nothing to say so but a faint "Saving…" at the foot of the card (review, 9 Oct). Only
+   that row: every other box on the card stays live (`notify-pick` in me.js). Opacity, not a colour, so
+   it is the same box, ticked or not, only further away. */
+.notify-card .check input:disabled + .box { opacity: .45; }
+.notify-card .check:has(input:disabled) { cursor: progress; }
 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--dim); font-size: .82rem; }
