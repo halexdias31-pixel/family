@@ -7313,7 +7313,7 @@ check('a backend that never answers does not hang the app for ever', async () =>
                 seconds for it
      'fetch'    "Failed to fetch", a phone with no signal
      'html'     Apps Script's own error page, the "Authorization is required" case
-     'refuse'   `{ error }` — a real answer, which is not asked again
+     'refuse'   `{ error }` — doGet's answer to a refusal AND to any exception, asked again slowly
      a promise  the request held until the journey lets it through (and what it resolves to, below)
      { body }   that payload rather than the stub's
      anything else (or nothing): the payload, as on every other journey
@@ -7326,9 +7326,10 @@ const RC_PAGE_ = '<!DOCTYPE html><html><head><title>Error</title></head><body><d
   + 'required to perform that action.</div></body></html>';
 const RC_KID_ = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo' };
 const RC_ADMIN_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin' };
-function flaky_(plan, user) {
+/* `more` goes to `boot` as it is — `serve`, to hold a static file the way `plan` holds the payload. */
+function flaky_(plan, user, more) {
   const asked = [];
-  const b = boot({ payload: RC_PAYLOAD_(), before: w => {
+  const b = boot({ ...(more || {}), payload: RC_PAYLOAD_(), before: w => {
     if (user) signedInAs_(user)(w);
     const real = w.fetch;
     w.fetch = (url, o) => {
@@ -7445,10 +7446,15 @@ check('after two minutes of failures a student reads one plain sentence, never t
   if (a.bannerUp()) bad.push('an admin was shown the banner for a plain lost connection before two minutes had passed');
   if (slow.bannerUp()) bad.push('an admin was shown the banner for a timeout before two minutes had passed');
   /* TWO MINUTES ON, by the app's own clock — `Date` is this window's, so only the app moves. */
+  const moved = Date.now() + 125000 - 50;
   [k, a, slow].forEach(b => { const was = b.w.Date.now.bind(b.w.Date); b.w.Date.now = () => was() + 125000;
                         b.w.dispatchEvent(new b.w.Event('online')); });
   await wait(300);
-  if (k.asked.length !== 2) bad.push('the student\'s `online` made ' + (k.asked.length - 1) + ' request(s), so the two-minute failure was not measured');
+  /* ASKED AFTER THE CLOCK MOVED, read off the request's own `_=` stamp rather than counted: three
+     windows booting at once can hold this journey's event loop for seconds, long enough for the
+     three-second rung to come round first — which made "two requests" a race this journey lost
+     whenever the suite was busy, before and after the review alike. */
+  if (!k.asked.some(u => +(String(u).split('_=')[1] || 0) >= moved)) bad.push('the student\'s `online` made no request after the clock moved, so the two-minute failure was not measured');
   if (k.line() !== RC_LATE_) bad.push('after two minutes the student\'s line says "' + k.line() + '", not "' + RC_LATE_ + '"');
   if (k.bannerUp()) bad.push('after two minutes a student was shown the banner');
   if (/script\.google\.com/.test(k.w.document.body.textContent)) bad.push('after two minutes the backend\'s address is on a student\'s page');
@@ -7460,17 +7466,26 @@ check('after two minutes of failures a student reads one plain sentence, never t
   return bad;
 });
 
-check('a refusal is a real answer: not asked again, and only an admin is told what the server said', async () => {
+/* A REFUSAL IS ASKED AGAIN — but slowly. doGet's last line answers ANY exception with `{ error }`, so the
+   client cannot tell a throw that will pass from a refusal that will not (review, 9 Oct). Three and a
+   half seconds is past the fast rung a fault on the way would have been asked on; `online` is the quick
+   way to the next ask, and that one answers. */
+check('a refusal is asked again on the slow rung, mends when the server does, and only an admin is told what it said', async () => {
   const bad = [];
-  const k = flaky_(() => 'refuse', RC_KID_);
-  const a = flaky_(() => 'refuse', RC_ADMIN_);
-  await wait(400);
-  k.w.dispatchEvent(new k.w.Event('online'));
-  await wait(200);
-  if (k.asked.length !== 1) bad.push('a refusal was asked for again (' + k.asked.length + ' requests) — the same question gets the same answer');
-  if (k.line()) bad.push('a refusal put the quiet line up: "' + k.line() + '"');
+  const k = flaky_(n => (n === 0 ? 'refuse' : undefined), RC_KID_);
+  const a = flaky_(n => (n === 0 ? 'refuse' : undefined), RC_ADMIN_);
+  await wait(3600);
+  if (k.asked.length !== 1) bad.push('a refusal was asked again within seconds (' + k.asked.length + ' requests) — it waits on the two-minute rung');
+  if (k.line() !== 'Reconnecting…') bad.push('after a refusal a student\'s quiet line says "' + k.line() + '" — the app is still asking, and says so');
   if (k.bannerUp()) bad.push('a student was shown the server\'s refusal in the banner');
+  if (/No people \(expected/.test(k.w.document.body.textContent)) bad.push('the server\'s refusal is written on a student\'s page');
   if (!a.bannerUp() || !/The server said/.test(a.bannerText())) bad.push('an admin was not told what the server said');
+  [k, a].forEach(b => b.w.dispatchEvent(new b.w.Event('online')));
+  await wait(500);
+  if (k.asked.length !== 2) bad.push('after a refusal the app had stopped asking — `online` made ' + (k.asked.length - 1) + ' request(s)');
+  if (!k.arrived()) bad.push('the server answered the next ask and the payload is not in DATA');
+  if (k.line()) bad.push('the server answered and the quiet line still says "' + k.line() + '"');
+  if (a.bannerUp()) bad.push('the server answered and the admin\'s banner is still up: ' + a.bannerText().slice(0, 120));
   return bad;
 });
 
@@ -7499,6 +7514,207 @@ check('a retry overtaken by a sign-in does not paint the stranger\'s payload ove
   if ((b.w.__t.DATA() || {}).version !== 'signed-in')
     bad.push('the retry asked as nobody landed after the sign-in and replaced its payload — DATA is "' + (b.w.__t.DATA() || {}).version + '"');
   if (b.line()) bad.push('the quiet line came back after a good payload: "' + b.line() + '"');
+  return bad;
+});
+
+/* ---------- A REPLY IS CHECKED AGAINST WHOM IT WAS ASKED FOR, AND AN ASK THAT WAITED IS NOT LOST --------
+   Found by review, 9 Oct. SIGNING OUT CALLS NO `load()`, so the generation counter the race above was
+   first written against never moved for it: an admin signed out while a retry carrying their token was
+   in the air, the retry landed, and the signed-out phone held the admin's payload — films, Drive links
+   and `viewerIsAdmin`. See `loadStale_`. */
+check('a retry in the air when an admin signs out does not put their payload on the signed-out phone', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const theirs = Object.assign(RC_PAYLOAD_(), { version: 'admin-payload', viewerIsAdmin: true,
+    films: [{ title: 'Held Film', link: 'https://drive.example/held' }] });
+  const b = flaky_(n => (n === 0 ? 'fetch' : n === 1 ? gate.then(() => ({ body: theirs })) : undefined), RC_ADMIN_);
+  await wait(300);
+  b.w.dispatchEvent(new b.w.Event('online'));
+  await wait(100);
+  if (b.asked.length !== 2 || !/token=tk-admin/.test(b.asked[1] || ''))
+    return ['the retry did not go out as the admin (' + b.asked.length + ' requests), so the race was not run'];
+  b.w.__t.ACTIONS.signout();
+  await wait(100);
+  if (b.w.__t.whoami()) return ['Sign out left somebody signed in, so the race was not run'];
+  open();
+  await wait(500);
+  const bad = [];
+  const D = b.w.__t.DATA() || {};
+  if (D.version === 'admin-payload' || D.viewerIsAdmin) bad.push('the admin\'s retry landed after they signed out and its payload is on the signed-out phone');
+  if (JSON.stringify(D.films || []).indexOf('Held Film') !== -1) bad.push('the admin\'s films are in DATA on the signed-out phone');
+  /* AND THE VISITOR IS ASKED FOR — nothing else would ask, because signing out calls no `load()`. */
+  if (b.asked.length !== 3) bad.push('after the admin\'s reply was dropped the visitor was not asked for (' + b.asked.length + ' requests)');
+  else if (/token=/.test(b.asked[2])) bad.push('the ask after the sign-out still carried a token');
+  if (!b.arrived()) bad.push('the visitor\'s own payload did not arrive');
+  if (b.line()) bad.push('the quiet line outlived the visitor\'s payload: "' + b.line() + '"');
+  return bad;
+});
+
+/* AND THE SAME, WHEN THE REPLY HAS ARRIVED AND IS WAITING FOR THE LIBRARY. The check against whom it
+   was asked for ran as the reply was read — before `data/questions.json`, which on a first load over
+   a slow line is seconds behind — so a sign-out inside that wait still committed the admin's payload. */
+check('an admin who signs out while their payload waits for the question file does not leave it on the phone', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const theirs = Object.assign(RC_PAYLOAD_(), { version: 'admin-payload', viewerIsAdmin: true,
+    films: [{ title: 'Held Film', link: 'https://drive.example/held' }] });
+  const b = flaky_(n => (n === 0 ? { body: theirs } : undefined), RC_ADMIN_,
+    { serve: url => (/data\/questions\.json/.test(url) ? gate.then(() => []) : undefined) });
+  await wait(300);
+  if (b.asked.length !== 1 || !/token=tk-admin/.test(b.asked[0] || '')) return ['the payload was not asked for as the admin (' + b.asked.length + ' requests), so the race was not run'];
+  if ((b.w.__t.DATA() || {}).version === 'admin-payload') return ['the payload was committed before the question file arrived, so nothing was waiting when the admin signed out'];
+  b.w.__t.ACTIONS.signout();
+  await wait(100);
+  if (b.w.__t.whoami()) return ['Sign out left somebody signed in, so the race was not run'];
+  open();
+  await wait(600);
+  const bad = [];
+  const D = b.w.__t.DATA() || {};
+  if (D.version === 'admin-payload' || D.viewerIsAdmin) bad.push('the admin\'s payload was committed after they signed out, while it waited for the question file');
+  if (JSON.stringify(D.films || []).indexOf('Held Film') !== -1) bad.push('the admin\'s films are in DATA on the signed-out phone');
+  if (b.asked.length !== 2) bad.push('the visitor was not asked for after the admin\'s payload was dropped (' + b.asked.length + ' requests)');
+  else if (/token=/.test(b.asked[1])) bad.push('the ask after the sign-out still carried a token');
+  if (!b.arrived()) bad.push('the visitor\'s own payload did not arrive');
+  return bad;
+});
+
+/* "THE ONE IN THE AIR BOOKS WHAT COMES NEXT" — and it did not, when the one in the air had been
+   overtaken: a sign-in's load failed and booked its ask three seconds out, the ask came round while the
+   overtaken retry was still out and stood down for it, and the retry landed, saw it was stale, and
+   booked nothing. "Reconnecting…" for good (review, both reviewers, separately). */
+check('an ask that comes round while an overtaken retry is in the air is made when it lands, not lost', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const b = flaky_(n => (n === 0 ? 'fetch' : n === 1 ? gate.then(() => ({ body: RC_PAYLOAD_() })) : n === 2 ? 'fetch' : undefined));
+  await wait(300);
+  b.w.dispatchEvent(new b.w.Event('online'));
+  await wait(100);
+  if (b.asked.length !== 2) return ['`online` did not send the retry (' + b.asked.length + ' requests), so the race was not run'];
+  b.w.__t.USER(RC_KID_);
+  b.w.load();
+  await wait(3500);
+  const bad = [];
+  if (b.asked.length !== 3) bad.push('the ask booked by the sign-in\'s failure was made while the retry was in the air (' + b.asked.length + ' requests) — two in the air at once');
+  open();
+  await wait(500);
+  if (b.asked.length !== 4) bad.push('the overtaken retry landed and nothing asked for the person signed in (' + b.asked.length + ' requests)');
+  else if (!/token=tk-mo/.test(b.asked[3])) bad.push('the ask after it was not for the person signed in');
+  if (!b.arrived()) bad.push('the payload never arrived: the line says "' + b.line() + '" over a backend that is answering');
+  if (b.line()) bad.push('the quiet line is still up: "' + b.line() + '"');
+  return bad;
+});
+
+/* AND THE SAME PERSON'S PAYLOAD IS NOT THROWN AWAY FOR BEING LATE. Try again while a retry is out, its
+   own request failing fast, and then the retry answering well: the counter that moved on every load
+   dropped it as a stranger's, and asked nothing after (review, s9 — 150 seconds of "Reconnecting…"). */
+check('a retry overtaken by Try again from the same person still draws the payload it brings', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const b = flaky_(n => (n === 0 ? 'fetch' : n === 1 ? gate.then(() => ({ body: RC_PAYLOAD_() })) : n === 2 ? 'fetch' : 'fetch'), RC_KID_);
+  await wait(300);
+  b.w.dispatchEvent(new b.w.Event('online'));
+  await wait(100);
+  if (b.asked.length !== 2) return ['`online` did not send the retry (' + b.asked.length + ' requests), so the race was not run'];
+  b.w.load();
+  await wait(300);
+  open();
+  await wait(500);
+  const bad = [];
+  if (!b.arrived()) bad.push('the retry answered with this person\'s payload and it was thrown away');
+  if (b.line()) bad.push('a good payload landed and the quiet line still says "' + b.line() + '"');
+  return bad;
+});
+
+/* ---------- WHILE IT ASKS, AN EMPTY COLUMN SAYS IT IS WAITING ------------------------------------------
+   Found by review: the Feed, Shop and Spotlight drew "Couldn't load. timeout. Try again" under the line
+   saying "Reconnecting…" — and for an HTML reply, Apps Script's own "Authorization is required" on a
+   student's screen. Its Try again put the splash back up. */
+check('while the app asks again, nobody is shown the failure\'s words or a Try again in a column', async () => {
+  const bad = [];
+  const k = flaky_(() => 'html', RC_KID_);
+  const v = flaky_(() => 'timeout');
+  await wait(500);
+  [['a student', k], ['a visitor', v]].forEach(([who, b]) => {
+    const text = b.w.document.body.textContent;
+    if (/Couldn.t load/.test(text)) bad.push(who + '\'s columns say "Couldn\'t load" while the app is asking again');
+    if (/Authorization is required|timeout/.test(text))
+      bad.push(who + ' was shown the failure\'s own words: ' + (text.match(/.{0,40}(Authorization is required|timeout).{0,40}/) || [''])[0]);
+    if (b.w.document.querySelector('[data-do="retry"]')) bad.push(who + ' was offered a Try again while the app is already trying');
+    if (!/Waiting for the server/.test(text)) bad.push(who + '\'s empty columns do not say they are waiting');
+  });
+  /* A DROPPED QUESTION FILE IS NOT MENDED BY ASKING THE BACKEND, so it keeps its sentence and its Try
+     again — but its OWN reason: `why` was the backend's first, and printed Apps Script's page beside it. */
+  const l = flaky_(() => 'html', RC_KID_, { serve: url => (/data\/questions\.json/.test(url) ? null : undefined) });
+  await wait(500);
+  const lt = l.w.document.body.textContent;
+  if (/Authorization is required/.test(lt)) bad.push('with the question file dropped too, a student was shown the backend\'s reply: ' + (lt.match(/.{0,40}Authorization is required.{0,40}/) || [''])[0]);
+  if (!/question file/.test(lt)) bad.push('with the question file dropped, no column says so');
+  if (!l.w.document.querySelector('[data-do="retry"]')) bad.push('a dropped question file is not offered Try again — asking the backend again would never fetch it');
+  return bad;
+});
+
+/* ---------- A PAYLOAD THAT LANDS DOES NOT REBUILD THE BOX SOMEBODY IS TYPING IN ------------------------
+   Found by review at 390x844 with touch: writing in the Tools notepad, a retry succeeded, the column was
+   rebuilt, and the focus — and the next key — went with it. See `landRepaint_`. */
+check('a retry that succeeds does not rebuild the box somebody is typing in, and draws it once they leave', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  const b = flaky_(['fetch', gate], RC_KID_);
+  await wait(300);
+  const d = b.w.document;
+  b.w.__t.go('tools', false, true);
+  await wait(300);
+  /* ON ITS OWN PAGE, IN FRONT — a field on a page that is not the one in front is let go of by
+     `placeGrid`, which is a different rule and a right one. */
+  const pages = [...d.querySelectorAll('#s-tools > .page')];
+  const at = pages.findIndex(p => p.querySelector('#notepad'));
+  if (at < 0) return ['the Tools column has no notepad to type in, so nothing was tested'];
+  b.w.goPage('tools', at, true);
+  await wait(300);
+  const box = d.getElementById('notepad');
+  box.focus();
+  box.value = 'half a thought';
+  if (d.activeElement !== box) return ['the notepad would not take the focus, so nothing was tested'];
+  b.w.dispatchEvent(new b.w.Event('online'));
+  await wait(50);
+  open();
+  await wait(600);
+  const bad = [];
+  if (!b.arrived()) return ['the retry\'s payload did not arrive, so nothing was tested'];
+  if (!box.isConnected) bad.push('the payload landed and the column was rebuilt under the notepad — the box being typed in is gone');
+  else if (d.activeElement !== box) bad.push('the payload landed and the notepad lost the focus');
+  if (box.value !== 'half a thought') bad.push('the notepad lost what was in it: "' + box.value + '"');
+  box.blur();
+  await wait(600);
+  if (box.isConnected) bad.push('the notepad was left and the column was never drawn with the payload');
+  return bad;
+});
+
+/* ---------- COMING BACK TO THE PAGE WITHIN SECONDS OF A FAILED ASK -------------------------------------
+   "Flicking between apps is not five asks" put the ask off to whatever was booked — and on the slow
+   rungs that is two minutes away, so a backend mended in between was not seen for two minutes despite
+   "coming back to the page asks at once" (review, s6). It waits for the five seconds, no longer. */
+check('coming back to the page just after a failed ask asks again when five seconds are up, not a rung later', async () => {
+  let mended = false;
+  const b = flaky_(() => (mended ? undefined : 'fetch'));
+  const d = b.w.document;
+  let hidden = false;
+  Object.defineProperty(d, 'hidden', { configurable: true, get: () => hidden });
+  Object.defineProperty(d, 'visibilityState', { configurable: true, get: () => (hidden ? 'hidden' : 'visible') });
+  await wait(300);
+  b.w.dispatchEvent(new b.w.Event('online'));   /* the second failure: the next rung is ten seconds out */
+  await wait(150);
+  if (b.asked.length !== 2) return ['`online` did not ask (' + b.asked.length + ' requests), so the return was not measured'];
+  hidden = true; d.dispatchEvent(new b.w.Event('visibilitychange'));
+  await wait(100);
+  mended = true;
+  hidden = false; d.dispatchEvent(new b.w.Event('visibilitychange'));
+  await wait(200);
+  const bad = [];
+  if (b.asked.length !== 2) bad.push('coming back within five seconds of an ask asked at once — that is the flicking it is meant to absorb');
+  await wait(5200);
+  if (b.asked.length !== 3) bad.push('five seconds after the last ask, back on the page, nothing had asked again (' + b.asked.length + ' requests) — the mended backend waits for the next rung');
+  if (!b.arrived()) bad.push('the mended backend\'s payload did not arrive');
   return bad;
 });
 
@@ -7539,6 +7755,66 @@ check('a page that opens older than the server reloads once, and never twice for
   const ban = again.w.document.getElementById('banner');
   if (!ban || ban.classList.contains('hidden') || !/newer version/i.test(ban.textContent))
     bad.push('a page still stale after its one reload was not offered the tap to load the new build');
+  return bad;
+});
+
+/* "IT CANNOT LOOP" RESTED ON A WRITE NOBODY READ BACK — found by review: storage that refuses `setItem`
+   and answers `getItem` with null (a full store; Safari's private mode before iOS 11) reloaded on every
+   boot of a page that stayed stale. See `buildMark_`. */
+check('a page that cannot remember it reloaded for a build is offered the tap, not reloaded', async () => {
+  const { implSymbol } = require('jsdom/lib/jsdom/living/generated/utils');
+  const now = Date.now() - 5000;
+  let reloads = 0;
+  const b = boot({ payload: RC_PAYLOAD_(), before: w => {
+    w.LOAD_AT = now - 3 * 24 * 3600e3;
+    const refusing = { getItem: () => null, setItem: () => { throw Object.assign(new Error('full'), { name: 'QuotaExceededError' }); },
+      removeItem() {}, clear() {}, key: () => null, length: 0 };
+    Object.defineProperty(w, 'sessionStorage', { configurable: true, get: () => refusing });
+    try { w.location[implSymbol].reload = () => { reloads++; }; } catch (e) {}
+    const real = w.fetch;
+    w.fetch = (url, o) => (o && o.method === 'HEAD')
+      ? Promise.resolve({ ok: true, status: 200, headers: { get: k => ({ etag: '"build-b"',
+          'last-modified': new Date(now).toUTCString() })[k.toLowerCase()] || null } })
+      : real(url, o);
+  } });
+  await wait(400);
+  const bad = [];
+  if (reloads) bad.push('storage refused the once-per-build mark and the page reloaded anyway — the next boot would too');
+  const ban = b.w.document.getElementById('banner');
+  if (!ban || ban.classList.contains('hidden') || !/newer version/i.test(ban.textContent))
+    bad.push('a page it could not safely reload was not offered the tap to load the new build');
+  return bad;
+});
+
+/* AND AN ADMIN'S DIAGNOSTIC WRITTEN OVER THAT TAP IS NOT A DOOR — it kept `data-do="reload-build"`, so
+   pressing its "Open it in a tab" reloaded the app as well (review). */
+check('an admin\'s diagnostic written over the newer-version banner does not reload the app when pressed', async () => {
+  const { implSymbol } = require('jsdom/lib/jsdom/living/generated/utils');
+  const now = Date.now() - 5000;
+  let reloads = 0;
+  const b = boot({ payload: RC_PAYLOAD_(), before: w => {
+    signedInAs_(RC_ADMIN_)(w);
+    w.LOAD_AT = now - 3 * 24 * 3600e3;
+    try { w.sessionStorage.setItem('familyBuiltFor', '"build-b"'); } catch (e) {}
+    try { w.location[implSymbol].reload = () => { reloads++; }; } catch (e) {}
+    const real = w.fetch;
+    w.fetch = (url, o) => {
+      if (o && o.method === 'HEAD') return Promise.resolve({ ok: true, status: 200, headers: { get: k => ({ etag: '"build-b"',
+        'last-modified': new Date(now).toUTCString() })[k.toLowerCase()] || null } });
+      if (!(o && o.body) && /script\.google\.com\/macros\/.*[?&]_=\d+/.test(String(url)))
+        return new Promise(r => setTimeout(() => r({ ok: true, status: 200, text: () => Promise.resolve(RC_PAGE_) }), 150));
+      return real(url, o);
+    };
+  } });
+  await wait(600);
+  const el = b.w.document.getElementById('banner');
+  if (!/Could not reach the backend/.test(el.textContent || '')) return ['the admin was not shown the diagnostic, so nothing was pressed: ' + String(el.textContent).slice(0, 100)];
+  const bad = [];
+  if (el.getAttribute('data-do')) bad.push('the diagnostic carries data-do="' + el.getAttribute('data-do') + '" — a press anywhere on it acts');
+  const link = el.querySelector('a.link');
+  if (link) link.dispatchEvent(new b.w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await wait(50);
+  if (reloads) bad.push('pressing "Open it in a tab" reloaded the app');
   return bad;
 });
 
