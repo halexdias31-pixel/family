@@ -11769,8 +11769,11 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
    THE OWNER, 9 Oct: "i would like to add course works. make it bare bones. its within projects in
    finder." So the claim is a ROUTE, pressed on the real answer buttons: Learning → Projects, and the
    next question is Project or coursework with exactly those two answers; Coursework leaves the
-   coursework rows and nothing else. Then the card says Coursework and its board, the ordered page
-   is titled Stages (a project's still says Steps), and typing `coursework` or `nea` finds it.
+   coursework rows and nothing else; and a list only MOSTLY projects is never asked it. Then the
+   card says Coursework and the board its file row names, the ordered page is titled Stages (a
+   project's still says Steps), the share page says whose work a coursework is, and the owner's own
+   words find it — `dt`, `graphics`, `movie`, `cutout` — with the ones only `projectText_` adds
+   shown first to be absent from the row.
 
    THE FACETS FILE IS SERVED, which no other journey here does, and it has to be: like
    `practicalType`, the question has no facet in code — it is one row of `data/settings/facets.json`
@@ -11856,15 +11859,55 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
       + ' — not the ' + cwItems.length + ' coursework(s)');
   }
 
-  /* THE CARD: FLAGGED, AND ITS BOARD ON THE SUBJECT'S LINE. */
+  /* ---------- AND NOT OF A LIST THAT IS ONLY PARTLY PROJECTS -------------------------------------
+     THE REVIEW FOUND IT BY TYPING `blade` AND SKIPPING What kind: two projects, the D&T textbook and
+     a practical, the funnel asked Project or coursework — half the list could answer, which was the
+     default bar — and Coursework dropped the textbook and the practical without a word. `send`,
+     `folder` and `studio` did the same. So: every project in Find plus one thing of each of two
+     other kinds, the doors skipped, and the question must NOT be asked; the projects alone, with
+     the same doors skipped, and it must be. Built rather than searched for, so it does not depend
+     on which words the fixture happens to hold; mostly projects, so the old bar would have asked. */
+  const projs = w.stuffItems().filter(i => i.kind === 'project');
+  const others = [];
+  w.stuffItems().forEach(i => { if (i.kind !== 'project' && others.length < 2 && !others.some(o => o.kind === i.kind)) others.push(i); });
+  if (others.length < 1) bad.push('Find holds nothing but projects, so a mixed list could NOT be built — the leak was NOT checked');
+  else {
+    const held = t.STUFF().filters.slice();
+    t.STUFF().filters.length = 0;
+    t.STUFF().filters.push({ field: 'forLabel', any: true }, { field: 'kindLabel', any: true });
+    const mixed = projs.concat(others);
+    const nfMixed = w.nextFacet(mixed);
+    if (nfMixed && nfMixed.field === 'projectType') {
+      bad.push('Project or coursework is asked of ' + projs.length + ' projects with ' + others.map(o => 'a ' + o.kind).join(' and ')
+        + ' — either answer drops ' + (others.length === 1 ? 'it' : 'them') + ' without a word; the facets row needs min_coverage 1');
+    }
+    const nfAlone = w.nextFacet(projs);
+    if (!nfAlone || nfAlone.field !== 'projectType') bad.push('with the doors skipped, the projects alone ask ' + (nfAlone ? nfAlone.field : 'nothing') + ', not Project or coursework — so the mixed list above proves nothing');
+    t.STUFF().filters.length = 0;
+    held.forEach(f => t.STUFF().filters.push(f));
+  }
+
+  /* THE CARD: FLAGGED, AND ITS BOARD ON THE SUBJECT'S LINE — AGAINST THE FILE. The first version
+     compared the strip with the MAPPER's own `board`, so a mapper that dropped the board made the
+     test skip itself and pass. The row in data/projects.json is what the strip owes. */
   const x = cwItems[0];
+  const raw = rows.find(r => r && String(r.project_id || '').trim() === x.row.id);
+  if (!raw) return bad.concat(['no row in data/projects.json has id ' + x.row.id + ' — the card was NOT checked against its file']);
   const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
   const card = box(w.stuffCard(x));
   const flag = card.querySelector('.card.proj .fc-flag');
   if (!flag || flag.textContent.trim() !== 'Coursework') bad.push('the coursework card is flagged "' + (flag ? flag.textContent.trim() : 'nothing') + '", not Coursework');
   const sub = (card.querySelector('.sub') || {}).textContent || '';
-  if (x.row.board && sub.indexOf(x.row.board) < 0) bad.push('the card\'s strip reads "' + sub + '" — no ' + x.row.board);
-  if (x.row.spec && sub.indexOf(x.row.spec) < 0) bad.push('the card\'s strip reads "' + sub + '" — no spec ' + x.row.spec);
+  const wantBoard = typeof raw.exam_board === 'string' ? raw.exam_board.trim() : '';
+  const wantSpec = typeof raw.spec_ref === 'string' ? raw.spec_ref.trim() : '';
+  if (!wantBoard) bad.push(x.row.id + ' names no exam_board in data/projects.json, so the strip was NOT checked — check-projects requires one on a coursework');
+  else {
+    if (sub.indexOf(wantBoard) < 0) bad.push('the card\'s strip reads "' + sub + '" — no ' + wantBoard + ', which the row names');
+    if (x.examBoard !== wantBoard) bad.push('the item answers Exam board with "' + (x.examBoard || '') + '", not the row\'s ' + wantBoard);
+  }
+  if (wantSpec && sub.indexOf(wantSpec) < 0) bad.push('the card\'s strip reads "' + sub + '" — no spec ' + wantSpec + ', which the row names');
+  /* AND AS ONE PAIR: at 320px ` · ` between them let `8552` wrap onto a line of its own. */
+  if (wantBoard && wantSpec && sub.indexOf(wantBoard + '\u00a0' + wantSpec) < 0) bad.push('the strip does not hold "' + wantBoard + ' ' + wantSpec + '" joined by a no-break space — the spec can wrap away from its board');
   /* STAGES ON A COURSEWORK, STEPS ON A PROJECT — one word, the same page. */
   const parts = w.pageParts_(x);
   if (JSON.stringify(parts) !== JSON.stringify([null, 'kit', 'steps', 'share'])) bad.push('a coursework is pages ' + JSON.stringify(parts) + ', not a project\'s four');
@@ -11876,9 +11919,25 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
   if (proj && ((box(w.stuffPart_(proj, 'steps')).querySelector('h3') || {}).textContent || '') !== 'Steps') bad.push('a project\'s ordered page is no longer titled Steps');
   if (proj && ((box(w.stuffCard(proj)).querySelector('.fc-flag') || {}).textContent || '').trim() !== 'Project') bad.push('a project card is no longer flagged Project');
 
-  /* FOUND BY WHAT IT IS CALLED, with nothing chosen. `nea` is nowhere in the row's own words — it is
-     `projectText_` that adds it — so that half fails if the coursework's names leave the haystack. */
-  ['coursework', 'nea'].forEach(q => {
+  /* THE SHARE PAGE SAYS WHOSE WORK A COURSEWORK IS — the page that sends work to a tutor says where
+     a tutor's help stops — and a project's share page does not carry it. */
+  const ownNote = [...box(w.stuffPart_(x, 'share')).querySelectorAll('.fc-note')].map(n => n.textContent.replace(/\s+/g, ' ')).join(' ');
+  if (!/your own work/.test(ownNote) || !/teacher/.test(ownNote)) bad.push('the coursework\'s share page does not say the work handed in must be the pupil\'s own, and to tell their teacher about outside help');
+  if (proj && box(w.stuffPart_(proj, 'share')).querySelector('.fc-note')) bad.push('a project\'s share page carries the coursework\'s own-work note');
+
+  /* FOUND BY WHAT IT IS CALLED, with nothing chosen. TWO LISTS, AND THE DIFFERENCE IS THE POINT.
+     The first version searched `coursework` and `nea` and said `nea` was not in the row — but the
+     safety line said "nearby", and the row says `coursework` three times, so with every name taken
+     out of `projectText_` both searches still passed. So the words that prove `projectText_` are
+     first shown NOT to be in the row's own cells, its name or its strip; a word the row turns out to
+     say is reported as a check that proves nothing. The others are what the owner typed, which the
+     row may say for itself. */
+  const said = w.stuffHay_(Object.assign({}, x, { _hay: undefined, text: Object.values(raw).join(' ') }));
+  const ADDED = ['non-exam', 'dt', 'd&t', 'cutout'];
+  ADDED.forEach(q => {
+    if (said.indexOf(q) >= 0) bad.push('the row itself says "' + q + '", so searching for it cannot prove `projectText_` adds it — pick a word the row does not say');
+  });
+  ['coursework', 'graphics', 'movie', 'cut-out', 'cut out', 'nea coursework'].concat(ADDED).forEach(q => {
     t.STUFF().filters.length = 0; t.STUFF().q = q;
     if (!w.stuffFiltered().some(i => i.key === x.key)) bad.push('typing "' + q + '" does not find ' + x.name);
   });

@@ -310,5 +310,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The videos card reads like YouTube: a pill to search in, a picture on every row, and the watch page when something plays](311-the-videos-card-reads-like-youtube.md)
 - [An essay is written on a sheet: paragraphs with a return key you can see, and Gemini marks all of it](312-an-essay-is-written-on-a-sheet.md)
 - [The site asks again by itself: a payload that did not arrive is retried under one quiet line, the banner is an admin's, and a page older than the site reloads once](313-the-site-asks-again-by-itself.md)
-- [Coursework is a type of project: one column, one question, and the stages of a design-and-make](314-coursework-is-a-kind-of-project.md)
+- [Coursework is a type of project: one column, one question, and the stages of a design-and-make](314-coursework-is-a-type-of-project.md)
 - [Signing in keeps your place in Find: the same chips, the same card, the same page, and the answer moves to you](318-signing-in-keeps-your-place-in-find.md)

@@ -3772,15 +3772,18 @@ function projectCard_(x) {
     : p.ageMin ? p.ageMin + '+' : '';
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
                  ages].filter(Boolean).join(' · ');
-  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE, as a textbook's cover has them -- `AQA · 8552` is
-     which qualification the work counts towards, and a project has neither, so its line is
-     unchanged. */
+  /* THE BOARD AND THE SPEC ON THE SUBJECT'S LINE -- `AQA 8552` is which qualification the work
+     counts towards, and a project has neither, so its line is unchanged.
+     ONE UNBREAKABLE PAIR, NOT TWO ITEMS OF THE LIST. Joined by ` · ` like the rest, the line broke
+     at 320px after `AQA ·` and left `8552` alone on a line of its own: a spec code means nothing
+     without its board, so the two are joined by a no-break space and wrap as one. */
+  const qual = [p.board, p.specRef].filter(Boolean).join('\u00a0');
   return `<div class="card fc prac proj">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
       <span class="fc-flags"><span class="fc-flag is-type">${esc(projType_(p))}</span></span>
     </div>
-    <p class="sub">${esc([p.subject, p.level, p.board, p.spec].filter(Boolean).join(' · '))}</p>
+    <p class="sub">${esc([p.subject, p.level, qual].filter(Boolean).join(' · '))}</p>
     <p class="fc-lede">${esc(p.summary)}</p>
     ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
@@ -3814,11 +3817,30 @@ function projectPart_(x, part) {
        opening the same project read an instruction to message themselves. *"No distinction between
        tutor and student on the finder. All the same."* -- so it says what to do with the thing, and
        who it goes to is the Messages screen's question, as the note under this function says. */
+    /* ---------- AND ON A COURSEWORK, WHOSE WORK IT IS ------------------------------------------
+       A COURSEWORK IS MARKED AS THE PUPIL'S OWN WORK, and a tutoring business pointing a pupil's
+       real coursework at a tutor, with nothing said about where help stops, reads as an offer to
+       go over work that will be handed in. JCQ's instructions for conducting non-exam assessment,
+       which every board follows, say the work submitted must be the candidate's own and that the
+       school must be able to confirm it; nothing found there names private tutors, so this says
+       the cautious thing.
+
+       IN CODE, NOT IN THE ROW, so every coursework carries it and the next one's writer cannot
+       forget it -- the argument `projectText_` makes about a coursework's names. ONE PARAGRAPH
+       UNDER THE TILE ROW, `jobAdminTiles_`'s rule for a warning, and on THIS page because this is
+       the page that sends work to a tutor. It also carries the sentence the brief's first stage
+       used to: a real coursework starts from the board's context, not from this practice brief. */
+    const own = p.projectType === 'coursework'
+      ? `<p class="fc-note"><b>Your real coursework</b> This brief is practice. The one you hand in
+          starts from the context your exam board sets, and it must be your own work: a tutor can
+          teach the stages on this brief, but must not comment on, correct or improve work that
+          will be handed in. Tell your teacher about any help you have outside school.</p>`
+      : '';
     inner = `${head('Share it')}
       <p class="fc-lede">When it is finished, send it in Messages.</p>
       ${p.share ? `<p class="fc-say"><b>What to send</b> ${esc(p.share)}</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'send it',
-        act: 'proj-share' })}</div>`;
+        act: 'proj-share' })}</div>${own}`;
   }
   return inner ? `<div class="card fc prac prac-part proj is-${part}">${inner}</div>` : '';
 }
@@ -6169,12 +6191,38 @@ function practicalText_(p) {
 /* A COURSEWORK IS LOOKED FOR BY ITS NAMES, whether or not its row happens to say them: `coursework`,
    `NEA` (what a school calls it now) and `non-exam assessment` are what somebody types, and the board
    and the spec are how a parent holding the letter from school looks. Written here rather than into
-   each row, so the next coursework is found by them without its writer having to remember. */
+   each row, so the next coursework is found by them without its writer having to remember.
+
+   `NEA` ON ITS OWN FINDS IT AND DOES NOT FIND IT FIRST. The search is a substring test shared by
+   every kind (`stuffNarrow_`), so `nea` is also inside `near`, `nearest` and `linear`: measured, 335
+   results with the coursework 82nd of them. `nea coursework` puts it first, and `non-exam` finds it
+   among six. Ranking whole words above parts of words is a change to every kind's search, not to
+   this one's, and is not made here. */
+/* ---------- THE NAMES A SUBJECT GOES BY IN A TIMETABLE -----------------------------------------------
+   THE OWNER'S OWN WORD FOUND NOTHING: "i did dt graphics coursewoork", and `dt` gave 43 results
+   without the coursework among them (`dt` is inside `width`, which is how a website project got
+   in), while `d&t` gave none at all. The row
+   says `Design and Technology`, which is the subject's name and not what anybody calls it.
+
+   KEYED ON THE SUBJECT, NOT WRITTEN INTO A ROW, so every Design and Technology project is found by
+   them. One entry today, `SHEET_BUCKETS`'s shape: the next subject with a short name (`PE`, `food
+   tech`) is one line here. Only a project's haystack reads it -- the D&T textbook is not found by
+   `d&t` either, and that is the textbooks' search to change, not this. */
+const PROJ_SUBJECT_SAID = { 'Design and Technology': 'DT D&T' };
+
 function projectText_(p) {
-  return plainText_([p.projectType === 'coursework' ? 'coursework NEA non-exam assessment' : '',
-                     p.board, p.spec, p.summary, p.makes, p.safety, p.share,
-                     (p.materials || []).map(e => e.name + ' ' + e.qty).join(' '),
-                     (p.steps || []).join(' ')].filter(Boolean).join(' '));
+  const said = plainText_([p.projectType === 'coursework' ? 'coursework NEA non-exam assessment' : '',
+                           PROJ_SUBJECT_SAID[p.subject] || '',
+                           p.board, p.specRef, p.summary, p.makes, p.safety, p.share,
+                           (p.materials || []).map(e => e.name + ' ' + e.qty).join(' '),
+                           (p.steps || []).join(' ')].filter(Boolean).join(' '));
+  /* AND EVERY HYPHENATED WORD AGAIN WITHOUT ITS HYPHEN. The owner wrote `cutout`, the row says
+     `cut-out`, and the search found nothing -- the same with `stopmotion` and `freestanding`. (Not
+     `3d`: `3-D Shapes` is a topic, and the topics join the haystack beside this, not through it.)
+     Both spellings are in use and a row can only print one; `cut out`, two words, already matched,
+     since every word is looked for separately. Appended, so the row's own spelling still matches. */
+  const joined = (said.match(/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+/g) || []).map(w => w.replace(/-/g, ''));
+  return joined.length ? said + ' ' + joined.join(' ') : said;
 }
 
 /* `paperText_` AND ITS MEMO WERE HERE. It folded every question's words into its PAPER's search
@@ -10594,10 +10642,11 @@ function stuffItemsRaw_() {
          `practicalType`'s arrangement exactly: no facet in code, one row in
          `data/settings/facets.json` naming the field, and `facetFromSheet_` reads it off the item.
          The LABEL goes on the item rather than the file's word, so the answer and its chip say
-         `Coursework` and not `coursework`. Every project answers it -- blank is `Project` -- so
-         the coverage rule asks it the moment the list is projects and on no list that is mostly
-         something else. Its row's `sort_order` puts it ahead of Subject, and that is load-bearing:
-         see the row's own note, and docs/history/314. */
+         `Coursework` and not `coursework`. Every project answers it -- blank is `Project` -- and
+         its row's `min_coverage` of 1 asks it only of a list that is ALL projects: at the default
+         half, a search for `blade` holding two projects, a textbook and a practical was asked it,
+         and Coursework dropped the other two without a word. Its row's `sort_order` puts it ahead
+         of Subject, and that is load-bearing too: see the row's own note, and docs/history/314. */
       projectType: projType_(p),
       /* A BOARD WHERE THE ROW NAMES ONE, in the column a practical's board already fills -- so a
          second coursework under another board is told apart by the Exam board question with
