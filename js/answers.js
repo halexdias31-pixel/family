@@ -428,7 +428,12 @@ function answersAdopt_(pid, got) {
    `ansStore_` stamps a signed-out edit; one from before it did has no time, and counts as older than
    anything this person has — so it fills an empty box, stamped as it moves, which is what `ansRead_`
    always did, and never replaces one. A STAMPED ONE MOVES WITH ITS OWN TIME, not now's, so "later" means
-   when it was typed, not when the child signed in. */
+   when it was typed, not when the child signed in.
+   EXCEPT WHAT AN ENDED SESSION LEFT (317), which this did not ask about until the two were merged — and
+   then Ada's words, typed signed out after the server ended her session, went into Ben's box and up to
+   Ben's account the moment he signed in. `ansMayMove_` is asked FIRST, before anything is taken from
+   under the signed-out key: another person's stays exactly where it is, for them; the person's own
+   moves only into an empty box of theirs. The same question `ansRead_` and `padAdopt_` ask. */
 function answersClaim_(pid) {
   const who = 'u:' + String(pid || '');
   if (who === 'u:') return [];
@@ -438,16 +443,19 @@ function answersClaim_(pid) {
   try { for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i)); }
   catch (e) { keys = [...ANS_MEM.keys()]; }
   keys.filter(k => k && /^(ans|pad):/.test(k) && !ansWhoOf_(k)).forEach(bare => {
+    const k = ansLocalKey_(bare, who);
+    const may = ansMayMove_(bare, k);
+    if (!may) return;
     const v = ansValue_(bare);
     const at = ansAt_(bare);
+    const mine = ansValue_(k);
+    const has = mine !== null && !!String(mine).trim() && mine !== '[]';
+    if (may === 'empty' && has) return;
     /* GONE FROM UNDER THE SIGNED-OUT KEY WHATEVER HAPPENS NEXT — moved, or the older of two. */
     ansLocalPut_(bare, null);
     ANS_AT_MEM.delete(bare);
     try { localStorage.removeItem('ansAt:' + bare); } catch (e) {}
     if (v === null || !String(v).trim() || v === '[]') return;
-    const k = ansLocalKey_(bare, who);
-    const mine = ansValue_(k);
-    const has = mine !== null && !!String(mine).trim() && mine !== '[]';
     if (has && !(at && at > ansAt_(k))) return;
     ansLocalPut_(k, v);
     ansAtSet_(k, at || Date.now());
@@ -578,10 +586,10 @@ function ansGoneSay_(k) {
    and opened the question — and `ansRead_` (find.js), which moves a signed-out answer into whoever signs
    in if their box is empty, moved Sam's words into KIT'S account. So a signed-out answer written while a
    session the server ended is fresh (`ansGone_`) is marked as that person's, in `familyGoneKeys`, and
-   `ansRead_` and `padAdopt_` move it into nobody else's box (`ansGoneOthers_`). It stays under the
-   signed-out key, as it always did, until that person signs in. The mark goes with the answer — emptied,
-   or moved to them — and is never taken off by a later write: an answer half one person's is not handed
-   to the next. */
+   nothing moves it into anybody else's box: every path that moves a signed-out answer asks `ansMayMove_`
+   (below). It stays under the signed-out key, as it always did, until that person signs in. The mark
+   goes with the answer — emptied, or moved to them — and is never taken off by a later write: an answer
+   half one person's is not handed to the next. */
 const ANS_GONE_KEYS = 'familyGoneKeys';
 function ansGoneMark_(k, v) {
   if (!/^(ans|pad):/.test(String(k || ''))) return;
@@ -603,21 +611,43 @@ function ansGoneMark_(k, v) {
 /* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER -------------------------------------
    `padKeptSay_` (below) says where drawings are kept, and only that: the review of 317 found it reading
    "Kept on this device only" over strokes the store had refused, and saying nothing over a pad drawn
-   empty by a session the server ended. So the two lines the answer box gives come first here too. */
+   empty by a session the server ended. So the two lines the answer box gives come first here too.
+   AND THE WHITEBOARD'S (`board:`, find.js), which is a pen's note too: refused, it is "Not saved" like
+   anything else the store refused (the rule the board took from 317 when the two were merged — note
+   310); otherwise it is on this device and nowhere else, so never an account's sentence and never an
+   ended session's — `PAD_HERE_ONLY`. */
 function padNoteSay_(k) {
   k = String(k || '');
   const v = ansValue_(k);
   const has = v !== null && !!String(v).trim() && v !== '[]';
   if (has && typeof KEEP_UNKEPT !== 'undefined' && KEEP_UNKEPT.has(k) && !ansOnAccount_(k)) return ANS_NOT_KEPT + '.';
+  if (!/^(ans|pad):/.test(k)) return typeof PAD_HERE_ONLY === 'string' ? PAD_HERE_ONLY : 'Kept on this device only.';
   const gone = has ? '' : ansGoneSay_(k);
   return gone ? gone + '.' : padKeptSay_();
 }
-/* TRUE WHEN THE SIGNED-OUT `bare` WAS WRITTEN FOR SOMEBODY OTHER THAN THE OWNER OF `k`, who is asking. */
-function ansGoneOthers_(bare, k) {
-  try {
-    const owner = (JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[bare];
-    return !!owner && owner !== ansWhoOf_(k);
-  } catch (e) { return false; }
+/* ---------- MAY THE SIGNED-OUT `bare` BECOME `k`'S — THE ONE QUESTION EVERY MOVE ASKS --------------------
+   FOUR PATHS MOVE A SIGNED-OUT ANSWER INTO SOMEBODY'S KEY: `answersClaim_` (above — signing in from
+   nobody), `ansRead_` and `padAdopt_` (find.js — a box or a pad drawn for somebody signed in) and
+   `circOf_` (find.js — the visit's rings, when storage throws). The guard used to be `ansGoneOthers_`,
+   which `ansRead_` and `padAdopt_` asked, `circOf_` did not, and `answersClaim_` had never heard of: 317
+   and 318 were built on separate branches, and once merged, 318's claim moved Ada's "More words" — typed
+   signed out after the server ended HER session — into Ben's box and up to Ben's account the moment Ben
+   signed in, the fault 317's review had just closed at the other doors. So all four ask this, and only
+   this:
+     ''        it was written while ANOTHER person's ended session was fresh (`familyGoneKeys`): it is
+               theirs, and stays under the signed-out key for them. Never moved, never sent.
+     'empty'   it is THIS person's own, typed after the server ended their session: it moves only into
+               an EMPTY box of theirs. The box it was typed into was drawn empty because the session
+               had gone, over the answer the line under it promised back (`ansGoneSay_`) — so it was
+               typed beside that answer, not over it, and "the later edit wins" would put "More words"
+               in place of a 3,000-character essay and send that to the account: the owner's 9 Oct
+               report again. Not moved, it stays under the signed-out key, as it always did.
+     'later'   anybody's: no session ended. Whoever signs in, by 318's rule (`answersClaim_`). */
+function ansMayMove_(bare, k) {
+  let owner = '';
+  try { owner = String((JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[bare] || ''); } catch (e) {}
+  if (!owner) return 'later';
+  return owner === ansWhoOf_(k) ? 'empty' : '';
 }
 function ansSavedSay_(k) {
   k = String(k || '');

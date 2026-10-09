@@ -2617,8 +2617,11 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
      * A REPAINT DOES NOT CUT A STROKE: `repaint()` half way leaves the same board element under the
        finger (`padHold_`, and `wbPaint_` skipping the copy being drawn on), and the stroke is kept whole
      * CLEAR CAN BE UNDONE: Undo on the emptied board puts back exactly what Clear took
-     * A STROKE THE DEVICE REFUSED IS TAKEN OFF THE SCREEN and the toast says so; so is one past the
-       board's ceiling
+     * A STROKE THE DEVICE REFUSED STAYS DRAWN AND IS SAID TO BE UNSAVED -- 317's rule, which the board
+       took when the two were merged (note 310): held for the visit, the note under the board says
+       "Not saved", the toast says it, and with room again the next stroke keeps them all
+     * ONE PAST THE BOARD'S CEILING IS TAKEN BACK OFF and the toast says the board is full -- a board
+       the device stored, and one it is only holding for the visit
      * A SIGN-OUT, AWAY FROM TOOLS, takes the last person's board off the stale column: unarmed, keyed
        to nobody, blank -- and a sign-in draws the next person's there */
 check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, puts a Clear back, owns up to a refused stroke and leaves with whoever signs out', async () => {
@@ -2706,19 +2709,30 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   A['pad-undo'](pad().querySelector('.qpad-undo'));
   if (JSON.stringify(stored()) !== before || paths() !== stored().length) bad.push('Undo straight after Clear did not put the board back: ' + JSON.stringify(stored()) + ' against ' + before);
 
-  /* A STROKE THE DEVICE REFUSED: the store throws for the board's key, as a full one does. */
+  /* A STROKE THE DEVICE REFUSED: the store throws for the board's key, as a full one does. 317's rule,
+     the board's since the merge (note 310): HELD FOR THE VISIT AND DRAWN -- a line that vanishes under
+     the finger is worse than one said to be unsaved -- and said, under the board and once as a toast. */
   const S = w.Storage.prototype, realSet = S.setItem;
-  S.setItem = function (key, v) {
+  const refuse = () => { S.setItem = function (key, v) {
     if (key === k) { const e = new Error('the quota has been exceeded'); e.name = 'QuotaExceededError'; throw e; }
     return realSet.call(this, key, v);
-  };
+  }; };
+  const note = () => ((pad().querySelector('.qpad-note') || {}).textContent || '');
+  const held = () => { try { return JSON.parse(w.ansValue_(k) || '[]'); } catch (e) { return []; } };
   const n0 = stored().length;
   toasts.length = 0;
+  refuse();
   try {
     fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
   } finally { S.setItem = realSet; }
-  if (stored().length !== n0 || paths() !== n0) bad.push('a stroke the device refused is still drawn: ' + paths() + ' path(s) on the screen, ' + stored().length + ' kept');
-  if (!toasts.some(m => /device is full/i.test(m))) bad.push('nothing said the device refused the stroke (toasts: ' + JSON.stringify(toasts) + ')');
+  if (stored().length !== n0) bad.push('the refused write was NOT set up: the device holds ' + stored().length + ' stroke(s), wanted ' + n0);
+  if (paths() !== n0 + 1 || held().length !== n0 + 1) bad.push('a stroke the device refused is not held and drawn: ' + paths() + ' path(s) on the screen, ' + held().length + ' held for the visit, wanted ' + (n0 + 1) + ' of each — it vanished under the finger');
+  if (note() !== 'Not saved — this browser is not keeping it.') bad.push('under a stroke the device refused the board says ' + JSON.stringify(note()) + ' — nothing on the board says it is not kept');
+  if (!toasts.some(m => /not saving/i.test(m))) bad.push('nothing said the device refused the stroke (toasts: ' + JSON.stringify(toasts) + ')');
+  /* ROOM AGAIN: the next stroke is added to the list on the screen, and the device keeps them all. */
+  fire('pointerdown', 60, 440, 1); fire('pointermove', 200, 460, 1); fire('pointerup', 200, 460, 1);
+  if (stored().length !== n0 + 2 || paths() !== n0 + 2) bad.push('with room again the board stores ' + stored().length + ' and draws ' + paths() + ', wanted ' + (n0 + 2) + ' of each — the held stroke was lost');
+  if (!/Kept on this device only/.test(note())) bad.push('with every stroke stored again the board still says ' + JSON.stringify(note()));
 
   /* AND ONE PAST THE BOARD'S CEILING: a board already holding more than it may. */
   const big = []; for (let i = 0; i < 26000; i++) big.push(i % 340, (i * 7) % 340);
@@ -2728,7 +2742,24 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
   if (stored().length !== 1 || paths() !== 1) bad.push('a stroke past the board\'s ceiling was kept or left drawn: ' + stored().length + ' stored, ' + paths() + ' drawn');
   if (!toasts.some(m => /board is full/i.test(m))) bad.push('nothing said the board is full (toasts: ' + JSON.stringify(toasts) + ')');
-  w.localStorage.setItem(k, JSON.stringify([[34, 34, 306, 306]]));
+  /* AND WITH A HELD COPY IN THE WAY: the device stored a one-stroke board, then refused the board as it
+     grew past its ceiling, so the visit holds the full one (`keepHeld_`, read first by `padRead_`) over
+     a store that answers the old, small one. The ceiling is the board's size, not a refused write: it is
+     asked of the list on the screen -- not of the store's, which has room -- and still says so. */
+  w.ansStore_(k, JSON.stringify([[34, 34, 306, 306]]));
+  refuse();
+  try {
+    w.ansStore_(k, JSON.stringify([big]));
+    w.initWhiteboard(); fix();
+    toasts.length = 0;
+    fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
+  } finally { S.setItem = realSet; }
+  if (stored().length !== 1 || stored()[0].length !== 4) bad.push('the held board was NOT set up: the device holds ' + JSON.stringify(stored()).slice(0, 60));
+  const h = held();
+  if (h.length !== 1 || h[0].length !== big.length || paths() !== 1) bad.push('a stroke past the ceiling of a board the visit is holding was kept, or the board was rebuilt from the store: ' + h.length + ' stroke(s) held (the first ' + ((h[0] || []).length) + ' numbers long, wanted ' + big.length + '), ' + paths() + ' drawn');
+  if (!toasts.some(m => /board is full/i.test(m))) bad.push('nothing said the board is full while the device was refusing it (toasts: ' + JSON.stringify(toasts) + ')');
+  /* PUT BACK THROUGH THE APP'S OWN WRITER, which lets go of the held copy now that there is room. */
+  w.ansStore_(k, JSON.stringify([[34, 34, 306, 306]]));
   w.initWhiteboard();
 
   /* A SIGN-OUT FROM ANOTHER COLUMN: Tools is left STALE by its repaint, and its board must not be Sam's. */
@@ -15992,7 +16023,7 @@ check('an unsaved settings edit is not drawn over a newer saved value, the next 
 check('the server ended a session: what is typed signed out afterwards is not handed to the next child who signs in, and the line is for the hour, not for ever', async () => {
   const one = boot({ before: signedInAs_(ANS_ADA) });
   await wait(300);
-  const need = ansNeed_(one.w).concat(['ansGoneOthers_'].filter(n => typeof one.w[n] !== 'function'));
+  const need = ansNeed_(one.w).concat(['ansMayMove_', 'answersClaim_'].filter(n => typeof one.w[n] !== 'function'));
   if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
   const bad = [];
   let c = ansCards_(one.w, 'H');
@@ -16013,20 +16044,34 @@ check('the server ended a session: what is typed signed out afterwards is not ha
   if (c.saidFor(c.words) === LINE) bad.push('two hours after the session ended, every signed-out visitor is still told "your answer is back" under what Ada answered');
   w.localStorage.setItem('familyGone', JSON.stringify(gone));
   c.draw();
-  /* ADA, STILL AT THE COMPUTER, TYPES ON INTO THE EMPTY BOX. */
+  /* ADA, STILL AT THE COMPUTER, TYPES ON INTO THE EMPTY BOX — and into the maths box, which she had
+     left empty while she was signed in. */
   ansType_(w, c.ta(), 'More words');
-  const bare = 'ans:' + c.words.key;
+  ansType_(w, c.kp(), '(5)/(6)');
+  const bare = 'ans:' + c.words.key, bareM = 'ans:' + c.maths.key;
   if (w.localStorage.getItem(bare) !== 'More words') bad.push('the words typed signed out are not under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(bare)));
-  /* BEN SIGNS IN NEXT AND OPENS THE QUESTION: not his. */
+  /* BEN SIGNS IN NEXT — FROM NOBODY, so `answersClaim_` runs (318), the door the merge left open — and
+     opens the question: not his. */
   w.signedIn_(Object.assign({}, ANS_BEN));
   c.draw();
   if (c.ta().value) bad.push('Ben signed in and his box holds ' + JSON.stringify(c.ta().value) + ' — Ada\'s words, filed under Ben');
+  if (c.kp().value) bad.push('Ben signed in and his maths box holds ' + JSON.stringify(c.kp().value) + ' — Ada\'s, filed under Ben');
   if (w.localStorage.getItem('ans:u:P8:' + c.words.key) !== null) bad.push('Ada\'s words were moved into Ben\'s account');
+  if (w.localStorage.getItem('ans:u:P8:' + c.maths.key) !== null) bad.push('Ada\'s maths answer was moved into Ben\'s account');
   if (w.localStorage.getItem(bare) !== 'More words') bad.push('Ada\'s words are gone from under the signed-out key after Ben opened the question');
-  /* ADA AGAIN: her essay, whole. */
-  w.signedIn_(Object.assign({}, ANS_ADA));
+  if (w.localStorage.getItem(bareM) !== '(5)/(6)') bad.push('Ada\'s maths answer is gone from under the signed-out key after Ben signed in');
+  /* ADA AGAIN, AS SHE WOULD: Ben signs out, and she signs in from nobody with a new session. Her essay is
+     whole — "More words" was typed into the hole the ended session left, beside the essay and not over
+     it, so "the later edit wins" must not put ten characters in place of three thousand — and stays
+     under the signed-out key for her; what she typed into a box of hers that was empty is hers now. */
+  w.signedOut_();
+  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-again' }));
   c.draw();
-  if (c.ta().value !== RELOAD_ESSAY) bad.push('Ada signed in again and her box holds ' + c.ta().value.length + ' characters, wanted her essay');
+  if (c.ta().value !== RELOAD_ESSAY) bad.push('Ada signed in again and her box holds ' + c.ta().value.length + ' characters ' + JSON.stringify(c.ta().value.slice(0, 20)) + ', wanted her essay — what she typed into the empty box replaced it');
+  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== RELOAD_ESSAY) bad.push('Ada\'s essay under her own key is ' + String(w.localStorage.getItem('ans:u:P7:' + c.words.key)).length + ' characters after she signed in again');
+  if (w.localStorage.getItem(bare) !== 'More words') bad.push('the words Ada typed beside her essay are no longer under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(bare)));
+  if (c.kp().value !== '(5)/(6)') bad.push('Ada signed in again and her empty maths box holds ' + JSON.stringify(c.kp().value) + ', not what she typed into it signed out');
+  if (w.localStorage.getItem(bareM) !== null) bad.push('what Ada typed signed out into her empty maths box was copied, not moved: still under the signed-out key');
   /* AND A SIGNED-OUT ANSWER WITH NO SESSION ENDED STILL FOLLOWS WHOEVER SIGNS IN, as it always did. */
   w.signedOut_();
   w.localStorage.removeItem('familyGone');

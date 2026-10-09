@@ -6707,9 +6707,10 @@ function ansRead_(k) {
     const was = localStorage.getItem(bare);
     if (was === null) return '';
     /* NOT INTO SOMEBODY ELSE'S BOX: written signed out just after the server ended ANOTHER person's
-       session, so it is theirs (`ansGoneOthers_`, js/answers.js) — the review of 317 found a child's
-       words moved into the next child's account this way. */
-    if (typeof ansGoneOthers_ === 'function' && ansGoneOthers_(bare, k)) return '';
+       session, so it is theirs — the review of 317 found a child's words moved into the next child's
+       account this way. `ansMayMove_` (js/answers.js) is the one question every move asks; here the
+       box is empty, so any answer but "no" moves it. */
+    if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return '';
     if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
     localStorage.removeItem(bare);
     if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
@@ -8243,8 +8244,9 @@ function padAdopt_(k, bare) {
     if (localStorage.getItem(k) !== null) return;
     const v = localStorage.getItem(bare);
     if (v === null) return;
-    /* NOR A DRAWING SOMEBODY ELSE MADE SIGNED OUT — `ansRead_`'s rule (`ansGoneOthers_`, answers.js). */
-    if (typeof ansGoneOthers_ === 'function' && ansGoneOthers_(bare, k)) return;
+    /* NOR A DRAWING SOMEBODY ELSE MADE SIGNED OUT — `ansRead_`'s rule, asked of the same `ansMayMove_`
+       (answers.js). Only into an empty pad, so any answer but "no" moves it. */
+    if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
     if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
     localStorage.removeItem(bare);
@@ -8341,8 +8343,9 @@ function padTools_(x) {
    write builds the next one on a stale list. Read straight from `localStorage`, a store that THROWS
    (private mode) answered an empty list every time, so each stroke replaced the last in `ANS_MEM`
    and Undo found nothing; `ansValue_` falls back to the visit's copy exactly then. A store that is
-   merely FULL still answers the old list -- that case is caught where the stroke is written
-   (`padSave_`, below), because only the write knows it was refused. */
+   merely FULL still answers the old list -- so `ansValue_` asks `keepHeld_` (data.js) before it asks
+   the store, and a stroke the store refused is read back from the visit, the list on the screen (317;
+   `padSave_`, below). */
 function padRead_(k) {
   try {
     const raw = typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k);
@@ -8461,9 +8464,12 @@ function padWrap_(x, svg, credit) {
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padNoteSay_` says "Saved to Ada's
           account" signed in, "Not saved" when the store refused it and who was signed out when a session ended
-          (317) -- all true of a question's and false of the whiteboard's (`padPrefix_`), which stays on this
-          device and carries no `data-kept-k`, so `ansSavedPaint_` never rewrites it to an account's sentence. */''}
-    <p class="qpad-note"${padPrefix_(x) === 'pad' ? ` data-kept-k="${esc(k)}"` : ''}>${esc(padPrefix_(x) === 'pad' ? padNoteSay_(k) : PAD_HERE_ONLY)}</p>
+          (317). The whiteboard's (`padPrefix_`) stays on this device, so of those only "Not saved" is ever
+          true of it: `padNoteSay_` gives a `board:` key that line or `PAD_HERE_ONLY`, never an account's
+          sentence. It carries `data-kept-k` like a question's, so `ansSavedPaint_` -- run by every write --
+          says "Not saved" the moment a stroke is refused and takes it back when one lands (310, after the
+          merge with 317). */''}
+    <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
   </div>`;
 }
 
@@ -8730,17 +8736,25 @@ function padEnd_(e) {
   padSave_(pad, k, all);
 }
 
-/* ---------- A STROKE THE DEVICE REFUSED IS NOT LEFT ON THE SCREEN ---------------------------------
-   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT SWALLOWS A FULL
-   STORE: `ansLocalPut_` keeps the value in `ANS_MEM` and carries on, which is right for a typed answer
-   and was wrong here. Measured by the review of the whiteboard, store filled to the quota: two more
-   strokes, and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the
-   stale list `localStorage` still answered), and Undo then took off a stroke the child could still
-   see. Nothing on the screen said any of it. So the write is read back: a stroke the device did not
-   keep is taken off the screen -- which then shows exactly what a reload would -- and the toast says
-   why. A store that throws on every read is the visit's `ANS_MEM`, which `ansValue_` reads, so
-   private mode is not mistaken for a full one.
-   AND THE BOARD HAS A CEILING OF ITS OWN, `PAD_BOARD_MAX`, said in the same way before it is reached. */
+/* ---------- A STROKE THE DEVICE REFUSED STAYS ON THE SCREEN, AND THE NOTE SAYS IT IS NOT SAVED -------
+   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT USED TO SWALLOW A
+   FULL STORE: measured by the review of the whiteboard, store filled to the quota, two more strokes,
+   and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the stale list
+   `localStorage` still answered), and Undo then took off a stroke the child could still see. Nothing on
+   the screen said any of it. 310's answer was to read the write back and take a refused stroke off the
+   screen, with a toast that the device was full.
+   AFTER THE MERGE WITH 317 THAT READ-BACK COULD NEVER FAIL, and the rule is 317's, for the board as for
+   every answer: a write the store refuses is HELD FOR THE VISIT (`keepPut_`, data.js) and every reader
+   asks for the held copy first (`padRead_` through `ansValue_` → `keepHeld_`), so the list the next
+   stroke is added to is the list on the screen, and Undo takes off the stroke you can see. The stroke
+   stays drawn; the note under the pad says "Not saved — this browser is not keeping it." (`padNoteSay_`,
+   repainted by every `ansStore_`), once a visit a toast says it too, and leaving the page asks first.
+   Chosen over taking it off because a line that vanishes under the finger is worse than one that is
+   said to be unsaved — and a stroke taken off is lost, where a held one lands when the room comes back.
+   THE BOARD'S CEILING IS NOT A REFUSED WRITE and is unchanged: `PAD_BOARD_MAX` is the board's size, so
+   a stroke past it is never written, is taken back off, and the toast says the board is full. Asked of
+   `padRead_`, which is the held list while there is one -- so a board the device has stopped storing is
+   still held to its ceiling, and a board that is full says so whether or not the device kept it. */
 function padSave_(pad, k, all) {
   const v = JSON.stringify(all);
   if (padIsBoard_(k) && v.length > PAD_BOARD_MAX) {
@@ -8749,12 +8763,7 @@ function padSave_(pad, k, all) {
     return false;
   }
   ansStore_(k, v);
-  let kept = true;
-  try { kept = (typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k)) === v; } catch (e) {}
-  if (kept) return true;
-  padRepaint_(pad, padRead_(k));
-  toast('This device is full, so that line was not kept.');
-  return false;
+  return true;
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -8916,8 +8925,10 @@ function padRepaint_(pad, all) {
    picture had never shown, each fixed in the pen for both rather than here for one: a second finger
    or a palm taking over the stroke (the note over `pointerdown`), a repaint cutting a stroke on any
    column but Find (`padHold_`), Clear with no way back (`on('pad-clear')`), and a full device keeping
-   strokes on the screen it had refused to store (`padSave_`). And two that are the board's own: a
-   sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`), and its size.
+   strokes on the screen it had refused to store with nothing said (`padSave_` -- since the merge with
+   317 the stroke is held for the visit and the note says it is not saved). And two that are the
+   board's own: a sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`),
+   and its size.
 
    THE SURFACE IS PAPER, because it stands in for a physical board: `--paper` with the ink in
    `--paper-ink`, never gold. The pen is gold on a question because the question's own figure is
@@ -9903,7 +9914,10 @@ function circOf_(x) {
   if (padSurface_(x) !== 'text') return null;
   const k = circKey_(x), bare = 'pad:' + padItemKey_(x) + ':words';
   padAdopt_(k, bare);
-  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)) {
+  /* THE VISIT'S RINGS ARE A SIGNED-OUT ANSWER TOO, and move only where `padAdopt_` would move the stored
+     ones: the one question every move asks (`ansMayMove_`, answers.js). */
+  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)
+      && (typeof ansMayMove_ !== 'function' || ansMayMove_(bare, k))) {
     CIRC_HELD.set(k, CIRC_HELD.get(bare));
     CIRC_HELD.delete(bare);
   }

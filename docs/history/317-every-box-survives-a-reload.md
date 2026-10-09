@@ -278,7 +278,8 @@ The notepad and the docket reach the account. Tab B's composer shows tab A's dra
   into anybody else's account (above), but `ansRead_` moves a signed-out answer only into an EMPTY box,
   so the child's "More words" are not added to the essay he signs back in to. The next signed-out
   visitor on that computer still sees them. **318's `answersClaim_`** (signing in claims every signed-out
-  answer) must ask `ansGoneOthers_` too when the two are merged.
+  answer) must ask `ansGoneOthers_` too when the two are merged — it did not, and now asks `ansMayMove_`
+  (see "After the merge").
 - **A send the reload cut off before the server received it is not offered back.** It is marked sent and
   swept ten minutes later. Behaviour from before 317, and the rarer case: a request still out after the
   page has gone has almost always arrived.
@@ -287,3 +288,28 @@ The notepad and the docket reach the account. Tab B's composer shows tab A's dra
 - Not kept, and listed as arguable by the inventory: a Check or AI verdict (an AI mark costs one of the
   day's credits), the camera tray and attachments (File objects need IndexedDB), a game in progress, a
   running timer, the flyer maker.
+
+### After the merge with 318 and 310
+
+**318'S CLAIM MET THE GONE MARK AND NEVER ASKED IT.** Merged on one branch, the review's own journey went
+red: the server ended Ada's session, she typed "More words" signed out, Ben signed in from nobody — and
+318's `answersClaim_`, which decides every signed-out answer on the device at sign-in, moved them into
+Ben's box and up to Ben's account before any card was drawn. `ansRead_` and `padAdopt_` asked
+`ansGoneOthers_`; the third door had never heard of it, and `circOf_`'s visit-held rings (when storage
+throws) asked nothing either. So there is one predicate, **`ansMayMove_(bare, k)`** (answers.js), and all
+four movers ask it: no (written while another person's ended session was fresh — it stays under the
+signed-out key, for them), `'empty'` (the person's own — only into an empty box of theirs), or `'later'`
+(no session ended — 318's rule). **317's rule won, and went one step further for the owner.** Signing back
+in from nobody, 318's "the later edit wins" put "More words" in place of the 3,000-character essay and sent
+it to the account: 10 characters where the essay was, measured by mutation — the owner's 9 Oct report by a
+new door. The box was drawn empty because the session had gone, so what was typed there was typed beside
+the essay, not over it; not moved, it stays under the signed-out key, as the "Not done" entry above says.
+The journey now signs Ben in from nobody, then Ada from nobody on a new session: Ben's boxes empty and
+nothing under his key; Ada's essay whole, and her empty maths box given what she typed into it signed out.
+**Three mutations red, the real files green**: `answersClaim_` skipping the guard (the three original
+failures and five more), the owner's own judged by the later edit (the essay replaced), `ansRead_` without
+it.
+
+**And the whiteboard took this note's rule for a refused write** — held for the visit, drawn, *"Not saved —
+this browser is not keeping it."* under it — over its own, which took the stroke off the screen. Its
+ceiling is a size, not a refusal, and still says the board is full. Note 310 has it.

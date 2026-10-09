@@ -166,13 +166,32 @@ a layout decision, not a fix: the line is one dim row reserved at a fixed height
 - **A switch from one child to another still starts Find again**, as it must (their chips may name what
   the next child is not shown). On the family iPad that means the second child walks the funnel again;
   the chips chosen are not remembered per person.
-- **The answer moves at sign-in now, all of it** (`answersClaim_`), from nobody only. `ansRead_`'s rule —
+- **The answer moves at sign-in now, all of it** (`answersClaim_`), from nobody only — all but what a
+  session the server ended left, since the merge with 317 (below). `ansRead_`'s rule —
   moved when the card is drawn, only into an empty box — is what is left for a device that was already
   signed in with a signed-out answer on it.
-- **Answers typed signed out after a session ended go to whoever signs in next**, while Find goes only to
-  the person whose session it was. That is the same-seat rule `ansRead_` has always had for answers:
-  nothing on a signed-out device says who typed them. Find can say, because the question was the dead
-  session's person's.
+- **Answers typed signed out after a session ended went to whoever signed in next**, while Find went only
+  to the person whose session it was. True when this was written; no longer. 317's review marked such an
+  answer as that person's (`familyGoneKeys`), and since the merge every door that moves one asks — see
+  below.
 - **Signed out after a session ended, the box on the card is empty**: "80" is under the child's key and a
   signed-out box reads the signed-out key. It comes back the moment they sign in again; the toast says
   why it went.
+
+### After the merge with 317
+
+**THE CLAIM MET 317'S GONE MARK, AND 317'S RULE WON.** The two were built on separate branches. 317's review
+found a child's words, typed signed out after the server ended *their* session, moved into the next
+child's box when the card was drawn, and marked such an answer as that person's (`familyGoneKeys`) for
+`ansRead_` and `padAdopt_` to refuse to move. `answersClaim_` was written without knowing the mark existed,
+and it runs at sign-in, before any card is drawn: merged, Ada's "More words" went into Ben's box and up to
+Ben's account the moment he signed in from nobody — 317's journey, red on its three privacy lines. Now
+`answersClaim_` asks **`ansMayMove_`** (answers.js) before it takes anything from under the signed-out key,
+the one question `ansRead_`, `padAdopt_` and `circOf_`'s held rings ask too. So "every signed-out answer is
+decided at once, and none is left" has one exception: an answer typed after the server ended a session is
+that person's — never claimed by anybody else, and stays under the signed-out key for them. And claimed by
+them **only into an empty box**: this note's "the later edit wins" would have put "More words", typed into
+the hole the ended session left, in place of their 3,000-character essay and sent it to the account. For
+every other signed-out answer the rule here stands as written: the later edit wins, moved with its own
+time, and nothing is left for the next child. Proved by mutation in note 317's journey, which now signs
+both children in from nobody.
