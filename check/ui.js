@@ -367,6 +367,13 @@ const ACCEPTED_TAP = [
   + 'scrolled sideways hides the words it is asking you to find. What makes it liveable is that a '
   + 'wrong tap costs nothing: a first tap on the wrong letter is replaced by tapping the right one, '
   + 'and a second tap that is not in a line with the first simply becomes the new start.' },
+  { cls: /^react(\.|$)/, why:
+    'SIX FACES ACROSS A CARD AT 320 ARE 41.3px EACH, AND SIX IS THE HOUSE SET. The owner, 9 Oct: *"refine how the post '
+  + 'reactions look. Looks abit scuffed"* -- the scuffed row wrapped, orphaning a face and the total, so the six now sit '
+  + 'in one line of equal cells. Six 44px cells need 264px; the card has 247.8 inside its padding at 320, and from about '
+  + '345px wide every cell is 44 or more. What was done instead of the width: every cell is 44px TALL, in px; the cell '
+  + 'is the whole button and the 32px pill only its drawing (`::before`), so no pixel of the row is dead; under 320 the '
+  + 'row falls back to 44px columns that wrap. A wrong face costs one tap: the same tap takes it back, another moves it.' },
   { cls: /^bk-(sel|in|v)\b/, why:
     'THE BOOKING ROW IS ONE LINE AND ITS UNDERLINE IS THE CELL\'S BOTTOM BORDER. Tried twice and '
   + 'photographed both times: `min-height: 44px` on the control grows the grid cell to 44px and '

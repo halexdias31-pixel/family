@@ -4978,7 +4978,12 @@ function skeleton() {
         ${bar('6rem', '.7rem', .08)}
       </header>
       <span class="sk-box sk-pic" style="animation-delay:.16s"></span>
-      <div class="post-acts">${bar('9rem', '2.3rem', .24)}</div>
+      ${/* THE ROW OF FACES' SHAPE: one 32px pill-round bar where the pills will be, inside the same
+            `.post-acts` slot, 6px in top and bottom as each pill is inside its 44px cell — so the
+            caption bars under it are where the caption lands and nothing jumps when it swaps in.
+            As wide as the six pills are at most (`.reacts` caps a column at 3.75rem), so on a wide
+            card the shape stops where the faces will. */''}
+      <div class="post-acts">${bar('min(100%, 22.5rem)', '32px', .24, 'border-radius:16px;margin-block:6px')}</div>
       ${bar('80%', '.7rem', .32, 'margin-top:.5rem')}
       ${bar('45%', '.7rem', .4, 'margin-top:.35rem')}
     </article>`];

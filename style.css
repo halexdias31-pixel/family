@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-whiteboard-on-its-side";
+  --css-version: "2026-10-09-reaction-pills-pressed";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2060,15 +2060,33 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
              font-size: 1.1rem; line-height: 1; cursor: pointer; flex: none; }
 .post-edit:active { color: var(--gold); }
 
-/* The reactions and the share button, on one line under the picture — the place the heart held,
-   which is where the eye already goes and where the thing you can do about a photograph belongs.
-   `align-items: flex-start` because the reactions WRAP: with two rows of faces, a centred share
-   button would float in the middle of them. */
-.post-acts { display: flex; align-items: flex-start; gap: .3rem; padding: .35rem 0 .1rem; }
-.post-acts .reacts { flex: 1 1 auto; margin: 0; min-width: 0; }
+/* ---------- THE SLOT FOR THE FACES, UNDER THE PICTURE ---------------------------------------------
+   The place the heart held, which is where the eye already goes and where the thing you can do about
+   a photograph belongs. ONE CHILD NOW, SO A BLOCK AND NOT A FLEX ROW: it was a flex row because the
+   Share button sat beside the faces, `align-items: flex-start` because the faces wrapped. Share is a
+   tile in the row below (`postTiles_`) and the six faces never wrap (see REACTIONS below), so there
+   is nothing left to align. The 6px each pill keeps above and below it inside its own 44px cell is
+   most of the gap to the photograph and the caption; the padding only tops it up to about 9px each
+   side, where it was 5.2px above and 3.7 below and the row looked jammed between the two.
+   STILL `flex: none` IN `.page` (above), with `.post-when`: the skeleton in me.js draws one too. */
+.post-acts { padding: .2rem 0 .1rem; }
 .post-cap { margin: .15rem 0 0; font-size: .88rem; line-height: 1.5; }
 .post-cap b { font-weight: 600; margin-right: .3rem; }
-.post-when { margin: .35rem 0 0; }
+/* ---------- WHEN, AND HOW MANY ------------------------------------------------------------------
+   "3 weeks ago · 77 reactions". The total moved here off the end of the row of faces, where a bare
+   "77" read as one more face's count. The line is 44px tall whether or not there is a total, so the
+   first reaction on a post moves nothing below it: the tile row stays where the thumb left it. */
+.post-when { display: flex; align-items: center; flex-wrap: wrap; gap: 0 .45rem;
+             min-height: 44px; margin: 0; }
+.post-when + .tile-row { margin-top: 0; }   /* the 44px line already holds the space */
+/* (0,2,0), SO IT BEATS `button.text-action` (0,1,1), which gives every inline action `color: inherit`
+   and `.4rem` of side padding. Inherited here, the total would be the time's own `--faint`; it is
+   `--dim`, one step up, because it is the one thing on the line you can press — and a step, not ink,
+   because it must not be louder than the caption above it. No side padding, so it sits one dot after
+   the time rather than a gap and a dot after it. The 44px box and the dotted line stay the class's. */
+.post-when .react-who { padding-inline: 0; color: var(--dim); font-variant-numeric: tabular-nums; }
+/* AND `.is-pressed`: Safari withholds `:active` on touch — see `.react.is-pressed` below. */
+.post-when .react-who:active, .post-when .react-who.is-pressed { color: var(--ink); }
 
 /* ==================================================================================================
    WHAT PEOPLE SAID UNDER A POST.
@@ -2222,40 +2240,121 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .btn-row .btn.on { background: var(--gold); color: #000; border-color: var(--gold); }
 
 /* ---------- REACTIONS -----------------------------------------------------------------------------
-   A row of faces. Wraps rather than scrolls — a sideways scroller inside a vertical feed is a
-   gesture fighting a gesture, and with five or six emoji there is nothing to scroll to anyway.
+   THE OWNER, 9 Oct: *"Also refine how the post reactions look. Looks abit scuffed right bow"*. What was
+   scuffed, measured on the row that was here: 2px-radius boxes whose edges were `--line-soft` (1.0:1
+   against the card) or `--line` (1.15:1), so some faces looked boxed and some loose; a box as wide as
+   its count (36.8, 46.7 or 59.2px), so 🎉 and the total dropped to a second line and a tap that added
+   a digit threw a face 43px down; a bare "77" at the end that read as another face's count; and
+   squares beside the real Share tile that looked like tiles left unfinished. docs/history/307.
+
+   PILLS, BECAUSE THE APP ALREADY HAS A PILL. The funnel's chips are a 32px, 16px-radius outline in
+   `--chip-line`, filled when chosen — a shape everybody using this app has pressed. A face is the same
+   kind of thing (pick one, see it chosen, take it back), so it joins that family rather than being a
+   third shape beside the chips and the tiles.
 
    With no emoji at all there is no row, and the markup says so in words for an admin rather than
-   leaving a gap that reads as a styling fault. That used to mean an empty `brand!reactions` cell;
-   the brand tab is a file in git now and `HOUSE_REACTIONS` is the floor, so the only way to see
-   that sentence is a payload older than the house set. See the note over `reacts()`.
+   leaving a gap that reads as a styling fault. See the note over `reacts()`.
 --------------------------------------------------------------------------------------------- */
-.reacts { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0 .2rem; }
+/* "YOURS" IS A GOLD TINT, AND IT IS THIS COMPONENT'S OWN. Declared on the two places it is drawn rather
+   than at `:root`, which is the house rule for a colour that belongs to one component — the chess
+   board's cream and charcoal are the precedent. Derived from `--gold`, so no new colour. */
+.reacts, .rx-head {
+  --react-mine: color-mix(in srgb, var(--gold) 16%, transparent);
+  --react-mine-down: color-mix(in srgb, var(--gold) 26%, transparent);
+}
+/* ---------- SIX EQUAL COLUMNS, WHATEVER THE COUNTS ARE ---------------------------------------------
+   A grid and not a wrapping flex row, because a flex row sized each face by its count, and one tap
+   that added a digit reflowed the row and threw a face onto the next line. Six columns of one width
+   cannot move. FACES WRAP ONLY WHEN THERE ARE MORE THAN SIX: the house set never does, at any width
+   from 320 up; a post's own cell naming more starts a second line IN THE SAME COLUMNS; a set of four
+   uses four of the six at the house set's width, so every post's row looks like every other's. The
+   3.75rem cap stops a wide card stretching them into lozenges, and they sit left, on the text edge.
+   `margin-inline: -2px` puts the first pill's edge back on the text column: each cell is its pill
+   plus 2px either side, so there is no dead pixel between two faces and none outside the first. */
+.reacts { display: grid; grid-template-columns: repeat(6, minmax(0, 3.75rem)); gap: 0; margin: 0 -2px; }
+/* UNDER 320, SIX CELLS WOULD BE NARROWER THAN THE FACES, so the row goes back to fingertip columns
+   that wrap — four and two at 280. Nothing in the app's measured widths is that narrow; this is the
+   floor, so the faces are never squeezed past a face. */
+@media (max-width: 319px) { .reacts { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); } }
+/* ---------- THE CELL IS THE BUTTON, THE PILL IS DRAWN INSIDE IT -----------------------------------
+   THE OLD NOTE SAID "Below the 44px rule on purpose: these sit in a row of five or six and a
+   full-height control would be a wall." The wall was right and is kept out — in spirit. In letter it
+   is reversed: the button is the whole 44px cell, in px as a finger needs, and the pill is its 32px
+   `::before`, 6px in from top and bottom — `.chip.sm`'s reach turned inside out, so what `check/ui.js`
+   measures IS what a thumb can hit, and the drawn chrome is smaller than the old 38px box was. At 320
+   six cells are 41.3px wide, which is the one thing under the floor: `ACCEPTED_TAP` in check/ui.js. */
 .react {
-  display: flex; align-items: center; gap: .25rem;
-  min-height: max(38px, 2.3rem); padding: 0 .55rem;
-  background: none; border: 1px solid var(--line-soft); border-radius: 2px;
-  color: var(--dim); font: inherit; font-size: .9rem; cursor: pointer;
-  transition: transform var(--quick) ease, border-color var(--quick) ease;
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: .2rem;
+  min-width: 0; height: 44px; margin: 0; padding: 0 4px;
+  background: none; border: 0; color: var(--dim);
+  font: inherit; line-height: 1; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--quick) ease;
 }
-/* Below the 44px rule on purpose: these sit in a row of five or six and a full-height control
-   would be a wall. They are an aside, not the thing you came to press. */
-.react:active { transform: scale(.9); }
-.react.any { border-color: var(--line); }
-.react.mine { border-color: var(--gold); }
-.react-e { font-size: 1rem; line-height: 1; }
-.react-n { font-size: .72rem; font-variant-numeric: tabular-nums; }
-.react.mine .react-n { color: var(--gold); }
+/* THE PLATE IS VISIBLE ON A CARD. `--line-soft` was 1.0:1 against the post's grey and `--line` 1.15;
+   the chip family's outline is the step a reader can see, over the 4% white wash the tick boxes and
+   the booking ticks already sit on (`.check .box`, `.bk-tick`). EVERY
+   FACE GETS IT, counted or not: a row of six identical pills is the tidy version, and the number
+   inside is what says somebody pressed it. Radius half the height — a pill, not a rounded square.
+   `::before` AND NOT `::after`: the house rule `.react::after { content: none }` (with the chips, the
+   buttons and the tiles, under "THE ONES THAT ARE ALREADY OBVIOUS") stays exactly as it is. */
+.react::before {
+  content: ''; position: absolute; inset: 6px 2px;
+  border: 1px solid var(--chip-line); border-radius: 16px;
+  background: rgb(255 255 255 / .04);
+  transition: background var(--quick) ease, border-color var(--quick) ease;
+}
+.react > span { position: relative; }
+.react-e { font-size: 1.05rem; line-height: 1; }
+/* THE COUNT IS READ, NOT A FOOTNOTE: .8rem in ink beside a 1.05rem face, where it was .72rem dim. */
+.react-n { font-size: .8rem; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+/* THREE CHARACTERS (100-999, or 1k-999k) STEP DOWN ONE SIZE rather than widen the column: at 320 a
+   cell is 41px and "212" beside a face at .8rem measured 1.4px past the pill's edge. On the BUTTON,
+   set by `reacts()`, rather than `:has()` on the count — one class, read by one rule, in every browser. */
+.react.is-long { gap: .1rem; }
+.react.is-long .react-n { font-size: .7rem; letter-spacing: -.05em; }
+/* YOURS IS GOLD, OUTLINED, FILLED AND HEAVIER — four ways at once, so it is not colour alone that says
+   it. Gold is "the one action" in this app, and this is the one you took. */
+.react.mine::before { border-color: var(--gold); background: var(--react-mine); }
+.react.mine .react-n { color: var(--gold); font-weight: 650; }
+/* PRESSED IS `.is-pressed` AS WELL AS `:active`, as on the chips these pills joined — see the note over
+   `.row.tap.counted:active`. Safari withholds `:active` on touch because every listener here is on the
+   window, and `-webkit-tap-highlight-color: transparent` above takes away the grey flash that was the
+   only other sign; `pressMark_` (shell.js) puts the class on at `pointerdown`. Without it, on an
+   iPhone, taking a reaction back or pressing a face signed out showed nothing at all. */
+.react:active, .react.is-pressed { transform: scale(.94); }
+.react:active::before, .react.is-pressed::before { background: rgb(255 255 255 / .1); }
+.react.mine:active::before, .react.mine.is-pressed::before { background: var(--react-mine-down); }
+/* THE RING GOES ON THE PILL, not on the 44px cell around it, which would draw a box round a pill. */
+.react:focus-visible { outline: 0; }
+.react:focus-visible::before { outline: 2px solid var(--gold); outline-offset: 1px; }
+/* THE FACE YOU JUST PRESSED LANDS, ONCE. The press above lasts while the finger is down; the repaint
+   that follows the tap replaces the button, so the press cannot also say it LANDED — the new button
+   has never been pressed. `is-pop` is set on the new one for exactly one paint (`REACT_POP_` in
+   posts.js) — on a face added or moved to, never on one taken back, and never for somebody who has
+   asked for less movement. */
+.react.is-pop { animation: react-land .24s cubic-bezier(.2, .9, .3, 1.35); }
+@keyframes react-land { from { transform: scale(.82); } }
+@media (prefers-reduced-motion: reduce) {
+  .react.is-pop { animation: none; }
+  .react:active, .react.is-pressed { transform: none; }
+}
 
-/* THE TOTAL, at the end of the row of faces. Deliberately not a face: it is a number you press to
-   ask a question, not a reaction you can add, and giving it a border like the others would put a
-   seventh button in a row of six. */
-.react-who {
-  min-height: max(38px, 2.3rem); padding: 0 .4rem;
-  background: none; border: 0; color: var(--faint);
-  font: inherit; font-size: .78rem; font-variant-numeric: tabular-nums; cursor: pointer;
-}
-.react-who:active { color: var(--ink); }
+/* ---------- WHO REACTED: THE FACE IS THE HEADING ---------------------------------------------------
+   The sheet's section-label style (`#sheet-body h2`: .7rem, small caps, dim) made the face the
+   smallest thing in the sheet, about 10px, and glued its count to it. Each group is a `<section>`
+   headed by the same pill as the row, bigger, and yours is the gold one; your own name comes first
+   with a gold "you" after it. Groups run most-used first (`on('who-reacted')`). */
+.rx-group + .rx-group { margin-top: 1.1rem; }
+#sheet-body .rx-head { display: flex; align-items: center; margin: 0 0 .25rem; padding: 0; }
+.rx-pill { display: inline-flex; align-items: center; gap: .3rem; height: 32px; padding: 0 .75rem;
+  border: 1px solid var(--chip-line); border-radius: 16px; background: rgb(255 255 255 / .04); }
+.rx-pill .react-e { font-size: 1.25rem; }
+.rx-pill .react-n { font-size: .9rem; }
+.rx-pill.mine { border-color: var(--gold); background: var(--react-mine); }
+.rx-pill.mine .react-n { color: var(--gold); font-weight: 650; }
+.rx-you { color: var(--gold); font-size: .72rem; margin-left: .3rem; }
 
 /* Dropping something from the basket. A small ✕ beside the price rather than a swipe — a swipe
    here would fight the one that changes tabs. */
@@ -10582,8 +10681,11 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    cream and charcoal set. `--line` is a hairline between rows, and as the only edge of a chip on
    black it measured as nearly nothing; this is the step a reader can see without it competing with
    the words. The card's TAGS are the third member: a tag with no kind keeps this outline, so it is
-   offered to `.qtags` too rather than written out there as `#3d3d3d` a second time. */
-.answers, .chips, .qtags { --chip-line: #3d3d3d; }
+   offered to `.qtags` too rather than written out there as `#3d3d3d` a second time.
+   A POST'S REACTIONS ARE THE FOURTH, and the sheet's heading pill for each face with them: the faces
+   are pills in this family's shape since the owner's *"Looks abit scuffed"* (9 Oct), and the outline
+   that made a chip visible on black is the one their old `--line-soft` boxes were missing. */
+.answers, .chips, .qtags, .reacts, .rx-head { --chip-line: #3d3d3d; }
 .answers { display: flex; flex-wrap: wrap; gap: .4rem .35rem; align-items: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
