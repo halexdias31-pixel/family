@@ -729,6 +729,9 @@ function signedOut_(opts) {
   try {
     if (typeof FILMSYNC !== 'undefined') { FILMSYNC.asking = null; FILMSYNC.autoFor = ''; FILMSYNC.err = ''; }
     if (typeof VID !== 'undefined') VID.q = '';
+    /* AND THE PICTURES THAT FAILED, which are remembered by address — and a Drive film's address is its
+       file id (`VID_BROKEN` in games.js). */
+    if (typeof VID_BROKEN !== 'undefined') VID_BROKEN.clear();
   } catch (e) {}
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) {}

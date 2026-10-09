@@ -303,6 +303,9 @@ function boot(opts) {
          it, so the read-aloud journey knows the word it is listening for: a random deal can be `ear`,
          which is in the pass screen's own sentence ("Hold the phone to your ear"). */
       'IMP: () => (typeof IMP !== "undefined" ? IMP : null),' +
+      /* THE VIDEOS CARD'S FAILED PICTURES, a `const` Set — a Drive film's address in it is the film's
+         file id, so a journey asks whether signing out empties it. A copy, not the Set. */
+      'vidBroken: () => (typeof VID_BROKEN !== "undefined" ? [...VID_BROKEN] : null),' +
       'impStack: (c, wd) => { IMP_PILE.push([c, wd]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
@@ -1553,6 +1556,9 @@ check('the imposter game tells everybody the word but one, and hides it between 
   await wait(700);
   const d = w.document;
   const card = () => d.getElementById('imp-card');
+  /* THE CARD IS WAITED FOR, NOT GUESSED AT — `partyBoot_`'s rule. A fixed 700ms failed every run at a
+     load average of 57 on four cores (9 Oct), on the commit before as well, with nothing wrong. */
+  for (let n = 0; n < 150 && !card(); n++) await wait(100);
   if (!card()) return ['the imposter game did not draw on the Games column'];
   const press = (act, attrs) => {
     const el = d.createElement('button');
@@ -1708,6 +1714,9 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   await wait(700);
   const d = w.document;
   const card = () => d.getElementById('imp-card');
+  /* THE CARD IS WAITED FOR, NOT GUESSED AT — `partyBoot_`'s rule. A fixed 700ms failed every run at a
+     load average of 57 on four cores (9 Oct), on the commit before as well, with nothing wrong. */
+  for (let n = 0; n < 150 && !card(); n++) await wait(100);
   if (!card()) return ['the imposter game did not draw on the Games column'];
   const bad = [];
   /* A MARK IN THE LIST FOR EVERYTHING THE JOURNEY DOES, a press or not, so "what came after" always
@@ -2190,6 +2199,12 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
       tags: 'maths', age: '', notes: '', active: '' },
     { title: 'A switched-off volcano', url: 'https://youtu.be/zyxwvutsrqp', kind: 'clip',
       tags: 'science', age: '', notes: '', active: false },
+    /* note 311's review: a YouTube id that answers YouTube's grey 404 stand-in, and an owner's clip that
+       lives in Drive — which a child's phone must not ask Drive a picture of. Both invented. */
+    { title: 'A clip taken down since', url: 'https://www.youtube.com/watch?v=takendown01', kind: 'clip',
+      tags: 'history', age: '', notes: '', active: true },
+    { title: 'A clip kept in Drive', url: 'https://drive.google.com/file/d/example-o-001/view', kind: 'clip',
+      tags: 'history', age: '', notes: '', active: true },
   ];
   let asked = 0;
   const full = [];
@@ -2215,6 +2230,11 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   if (roster[roster.length - 1] !== 'videos') bad.push('videos is not the last game: ' + roster.join(', '));
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
+  /* AND THE CARD ITSELF IS WAITED FOR, `partyBoot_`'s rule below: it is the last of a long column and
+     wakes last. Under a load average of 33-39 on four cores (9 Oct) `quiet()` came back with the card
+     drawn and not yet started — no box, nothing asked — on the commit before this check changed as
+     well as after it, one run in two. Bounded: a card that never starts still fails on what it asked. */
+  for (let n = 0; n < 150 && !(asked && d.querySelector('#s-games #wgt-videos .vid-box .vid-q')); n++) await wait(100);
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   if (!box) return bad.concat(['the videos card did not draw on the Games column']);
   if (!asked) bad.push('the card never asked for data/videos.json');
@@ -2244,11 +2264,30 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
            || ytImg.getAttribute('referrerpolicy') !== 'no-referrer')
     bad.push('the YouTube row\'s picture is not alt="", lazy and no-referrer: ' + ytImg.outerHTML.slice(0, 200));
   if (yt && !yt.querySelector('.vid-th .vid-poster')) bad.push('the YouTube row has no poster under its picture, so a failed one would leave a hole');
-  if (!yt || !/^Clip$/.test(((yt.querySelector('.vid-badge') || {}).textContent || '').trim()))
-    bad.push('the YouTube row\'s badge does not say Clip');
+  /* A PLAIN CLIP HAS NO BADGE: "Clip" is what every row a student is shown would say, in the one spot
+     where YouTube puts something that differs per row (review of 9 Oct). */
+  if (!yt || yt.querySelector('.vid-badge'))
+    bad.push('a plain clip\'s picture carries a badge — the same word on every row a student is shown: ' + (yt ? yt.querySelector('.vid-badge').textContent : 'no row'));
+  /* THE POSTER IS A FLAT FRAME AND THE KIND'S MARK — NO LETTER. A letter in gold read as a contacts list,
+     and forty rows of one title's pattern drew a column of the same letter (review of 9 Oct). */
   const mp4 = rowOf('Fractions in two minutes');
-  if (!mp4 || mp4.querySelector('img') || !mp4.querySelector('.vid-th .vid-poster b'))
-    bad.push('an .mp4 row has no picture to show and is not drawn a poster with its letter: ' + (mp4 ? mp4.innerHTML.slice(0, 200) : 'no row'));
+  if (!mp4 || mp4.querySelector('img') || !mp4.querySelector('.vid-th .vid-poster svg.tile-i-play'))
+    bad.push('an .mp4 row has no picture to show and is not drawn a poster with the play mark: ' + (mp4 ? mp4.innerHTML.slice(0, 200) : 'no row'));
+  if (box.querySelector('.vid-poster b') || /\S/.test([...box.querySelectorAll('.vid-poster')].map(p => p.textContent).join('')))
+    bad.push('a poster carries a letter or a word, where YouTube\'s missing picture is a plain frame');
+  /* A DRIVE ADDRESS IN THE OWNER'S LIST ASKS DRIVE FOR NOTHING. Only the films list — which reaches an
+     admin alone — may: `drive.google.com` carries Google's cookies, and the owner's list reaches every
+     child (review of 9 Oct). It is a door, so its badge is the out-arrow, named for a screen reader,
+     and the line beside it no longer says "opens in a new tab" a second time. */
+  const kept = rowOf('A clip kept in Drive');
+  if (!kept) bad.push('the owner\'s Drive clip is not listed');
+  else {
+    if (kept.querySelector('img') || /drive\.google\.com\/thumbnail/.test(box.innerHTML))
+      bad.push('an owner\'s Drive clip asks Drive for a picture on a phone that never asked for a film: ' + kept.innerHTML.slice(0, 200));
+    if (!kept.querySelector('.vid-badge .vid-out[role="img"][aria-label="opens in a new tab"]'))
+      bad.push('a row that opens in a new tab has no named out-arrow on its picture');
+    if (/opens in a new tab/.test(kept.textContent)) bad.push('a row\'s line says "opens in a new tab" beside the arrow that says it');
+  }
   if (box.querySelector('.vid-watch.on') || box.querySelector('.vid-stage .vid-player') || box.querySelector('[data-do="vid-full"]'))
     bad.push('with nothing playing the card draws a player or a Full screen tile — YouTube shows the list');
   if (box.querySelector('.vid-hint')) bad.push('the empty stage still says "Tap a video to play it here."');
@@ -2262,6 +2301,22 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
     if (!again || again.querySelector('img.vid-img') || !again.querySelector('.vid-poster'))
       bad.push('after its picture failed, the next paint asked for it again instead of drawing the poster');
     q.value = ''; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+  }
+  /* AND A YOUTUBE PICTURE THAT LOADED AS YOUTUBE'S GREY STAND-IN — 404 with a 120x90 picture, which a
+     browser draws and calls loaded, so `error` never fires. A real `mqdefault` is 320 wide and stays.
+     jsdom loads no pictures, so the width is said here and the `load` is the browser's own event. */
+  const gone = rowOf('A clip taken down since');
+  const goneImg = gone && gone.querySelector('img.vid-img');
+  if (!goneImg) bad.push('the second YouTube row has no picture to test the grey stand-in on');
+  else {
+    const loaded = width => {
+      Object.defineProperty(goneImg, 'naturalWidth', { value: width, configurable: true });
+      goneImg.dispatchEvent(new w.Event('load'));
+    };
+    loaded(320);
+    if (goneImg.classList.contains('is-gone')) bad.push('a real 320px YouTube picture was taken away as though it had failed');
+    loaded(120);
+    if (!goneImg.classList.contains('is-gone')) bad.push('YouTube\'s grey 120x90 stand-in for a removed video was left over the poster');
   }
 
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
@@ -2290,6 +2345,14 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   if (!nowK || nowK.textContent !== 'Clip · 7+') bad.push('the line under the title is "' + (nowK ? nowK.textContent : 'not there') + '" — wanted the kind and the age');
   const onRow = box.querySelector('.vid-list .vid-row.on');
   if (!onRow || !onRow.querySelector('.vid-th .vid-playing')) bad.push('the row that is playing carries no Playing mark on its picture');
+  /* AND A SCREEN READER HEARS THE TITLE FIRST: the words come before the picture in the markup, and the
+     picture's "Playing" is hidden from it — `aria-current` says that, once (review of 9 Oct). */
+  else {
+    if (onRow.getAttribute('aria-current') !== 'true') bad.push('the row that is playing is not aria-current');
+    if (onRow.querySelector('.vid-playing').getAttribute('aria-hidden') !== 'true') bad.push('"Playing" on the picture is read aloud as well as aria-current');
+    if (!(onRow.firstElementChild && onRow.firstElementChild.classList.contains('vid-txt')))
+      bad.push('a row\'s picture comes before its title in the markup, so its labels are read before what it is called');
+  }
   /* AND A KEYSTROKE DOES NOT REBUILD THE PLAYER — the video would restart under somebody searching. */
   type('volcanoes');
   if (fr && box.querySelector('.vid-stage iframe.vid-player') !== fr) bad.push('typing rebuilt the player, which restarts the video that is playing');
@@ -2347,6 +2410,8 @@ const vidCard_ = async (w, who) => {
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
   const d = w.document;
+  /* THE CARD ITSELF, WAITED FOR — see the first videos journey. */
+  for (let n = 0; n < 150 && !d.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   const q = box && box.querySelector('input.vid-q');
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
@@ -2389,6 +2454,11 @@ check('the videos card finds an admin’s films by title, year, kids, series and
   if (!im || im.getAttribute('src') !== 'https://drive.google.com/thumbnail?id=example-f-001&sz=w320')
     bad.push('a Drive film\'s picture is not Drive\'s thumbnail of its file: ' + (im ? im.getAttribute('src') : 'no <img>'));
   if (!box.querySelector('.vid-list a.vid-row.is-out .vid-th .vid-poster')) bad.push('a Drive film has no poster under its picture');
+  if (!/^Film$/.test(((box.querySelector('.vid-list a.vid-row.is-out .vid-badge') || {}).textContent || '').trim())
+      || !box.querySelector('.vid-list a.vid-row.is-out .vid-badge .vid-out[aria-label="opens in a new tab"]'))
+    bad.push('a film\'s badge is not "Film" with a named out-arrow');
+  if ((box.querySelector('.vid-list a.vid-row.is-out .vid-k') || {}).textContent !== '1993')
+    bad.push('a film\'s line is "' + (box.querySelector('.vid-list a.vid-row.is-out .vid-k') || {}).textContent + '" — wanted its year, and the arrow saying where it opens');
   /* WHAT EACH ROW SAYS IT IS — in YouTube's duration spot now, the badge on the picture. It was the first
      word of the dim line (`.vid-k`) until note 311 moved the kind onto the picture; the line keeps the rest. */
   type('example flat');
@@ -2566,9 +2636,15 @@ check('signing out takes an admin’s films off the device, and a student signin
     if (titles().length !== FILMS_.length || filmsIn(w) !== FILMS_.length)
       return ['the setup: the admin’s card lists ' + titles().length + ' and Find ' + filmsIn(w) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
     type('paper moon');
+    /* A FILM'S PICTURE THAT FAILED is remembered by its address, and that address is the film's file id. */
+    const pic = box.querySelector('.vid-list img.vid-img');
+    if (pic) pic.dispatchEvent(new w.Event('error'));
+    if (!(t.vidBroken() || []).some(u => /drive\.google\.com/.test(u)))
+      bad.push('the setup: a film\'s failed picture was not remembered, so its clearing at Sign out was NOT checked');
     t.ACTIONS.signout(w.document.createElement('button'));
     await wait(50);
     if (t.whoami()) bad.push('Sign out left somebody signed in: ' + JSON.stringify(t.whoami()));
+    if ((t.vidBroken() || []).length) bad.push('the failed pictures\' addresses — Drive file ids — outlived Sign out: ' + t.vidBroken().join(' '));
     await away(t);
     const s = shown(w);
     if (s.rows !== 0 || s.drive !== 0) bad.push('after Sign out the videos card lists ' + s.rows + ' row(s), ' + s.drive + ' of them a Drive link');

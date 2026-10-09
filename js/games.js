@@ -5501,7 +5501,10 @@ function videosAll_() {
     /* `year` AND `seasons` RIDE ALONG FOR THE ROW'S META LINE -- YouTube's "3 years ago" spot (note 311).
        Both were already on the row and searched through `tags`; they were never said. */
     const seasons = Number(f.seasons) || 0;
+    /* `fromFilms` SAYS WHERE THE ROW CAME FROM, and it is the one thing that lets a row ask Drive for a
+       picture (`vidThumb_`): only the backend's films list, which only an admin is sent, may. */
     add({ key: 'f' + (f.id || i), title: String(f.title), url: door ? url : '', kind: 'film', label: label,
+          fromFilms: true,
           year: String(f.year || '').trim(),
           seasons: k === 'series' && seasons ? seasons + (seasons === 1 ? ' season' : ' seasons') : '',
           how: door ? 'out' : 'none', none: f.placeholder ? 'not in the Drive yet' : 'no Drive link yet',
@@ -5546,14 +5549,28 @@ function videosFound_(q) {
        `referrerpolicy="no-referrer"` keeps this page's address out of the request — what YouTube
        learns is that some device fetched that picture, which is the price of showing one at all. The
        embed is still the only thing that talks to YouTube proper, and only after a tap.
+       SAID PLAINLY, BECAUSE IT IS A CHOICE AND THE VIEWERS ARE CHILDREN: before note 311 nothing on a
+       device reached any YouTube host until a row was tapped. Now opening the card fetches one
+       picture per YouTube row from `i.ytimg.com`, before any tap. No cookie and no referrer, but the
+       device's address does reach Google. Taking it back is one line: `vidThumb_` answering '' for
+       `yt`, and every row is the poster.
      - A DRIVE FILM'S is Drive's own `thumbnail?id=<file id>`, the id read here from the row's Drive
        address — `drive_id` never leaves the server (note 068), and the address it is built into is
        the one fact the row does carry. A SERIES is a FOLDER, and a folder has no picture.
+       ONLY A ROW FROM THE FILMS LIST ASKS (`fromFilms`), never the owner's list. `drive.google.com`
+       is a cookie-carrying Google host, unlike `i.ytimg.com`; the films list reaches an admin alone,
+       and a Drive address the owner typed into data/videos.json reaches every child. It was asked
+       for any row with a Drive address, so a student's phone would have called Drive the moment the
+       card drew, untapped (review of 9 Oct). An owner's Drive row is the poster, for everybody.
      - EVERY PICTURE CAN FAIL, and Drive's fail often: no thumbnail for a big `.mkv`, none at all once
        the folder's sharing changes, none when a browser keeps Google's cookies from this site. So the
        POSTER is drawn UNDER every picture, always — it is what shows while one loads and what is left
        when one fails — and a failed picture is taken away by ONE listener below, not by an `onerror`
        written into the markup: a script string built beside a title is a door this file keeps shut.
+       AND YOUTUBE FAILS WITHOUT AN ERROR: an unknown, removed or private id answers 404 WITH A PICTURE,
+       a grey 120x90 one, which the browser draws and calls loaded. So a second listener, on `load`,
+       takes away a YouTube picture that is 120px wide or less — `mqdefault` is always 320 — and the
+       poster shows instead of a flat grey block.
 
    A ROW IS A LIST ITEM, NOT A TILE, and this is the one place a reader could wonder, since CLAUDE.md
    says a thing has tiles. A row IS the thing — the picture and the title are what is pressed, the
@@ -5564,7 +5581,9 @@ function videosFound_(q) {
 
 /* EVERY PICTURE THAT FAILED THIS VISIT, by address, so the list repainted on the next keystroke draws
    the poster straight away rather than asking again and flashing a broken picture for a frame each
-   time. A visit, not for ever: a folder shared again tomorrow should get its pictures back. */
+   time. A visit, not for ever: a folder shared again tomorrow should get its pictures back. AND NOT
+   PAST A SIGN-OUT: a Drive address here carries a film's file id, the folder's only lock (note 068),
+   so `signedOut_` empties it beside `DATA.films`. */
 const VID_BROKEN = new Set();
 
 /* THE FILE ID IN A DRIVE ADDRESS: the viewer link `filmsUrl_` writes (`/file/d/<id>/view`) and the two
@@ -5583,24 +5602,27 @@ function vidThumb_(r) {
     const id = vidYouTubeId_(r.url);
     return id ? 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/mqdefault.jpg' : '';
   }
+  /* A FILM FROM THE FOLDER, AND NOTHING ELSE — see "ONLY A ROW FROM THE FILMS LIST ASKS" above. */
+  if (!r.fromFilms) return '';
   const id = vidDriveId_(r.url);
   return id ? 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w320' : '';
 }
 
 /* THE POSTER: what a row with no picture shows, so the list keeps ONE rhythm — every row the same 16:9
-   block — rather than a picture, a grey hole, a picture. The kind's mark (a play mark for a clip, a
-   film strip for anything from the folder) and the title's first letter, in the card's own colours.
-   `aria-hidden`: the title is the text right beside it, and a screen reader reading "C" first would
-   be the second explanation this app keeps refusing to give. */
+   block — rather than a picture, a grey hole, a picture. A FLAT FRAME AND THE KIND'S MARK, NOTHING ELSE:
+   a play mark for a clip, a film strip for anything from the folder. YouTube's own missing picture is
+   a flat neutral 16:9 frame, and that is what this copies.
+   IT WAS A GOLD GRADIENT WITH THE TITLE'S FIRST LETTER IN IT, and that was the one thing on the card
+   that did not read as YouTube — it read as a contacts list. Initials repeat and tell rows apart badly:
+   two T's in an admin's fourteen, and forty-two "Invented Film Number …" rows drew a column of identical
+   gold I's. The title beside the frame is what tells rows apart; the frame only keeps the rhythm.
+   `aria-hidden`: a mark is not a word, and the title is the text right beside it. */
 function vidPoster_(r) {
-  const ch = (String(r.title || '').match(/[\p{L}\p{N}]/u) || [''])[0].toUpperCase();
-  return `<span class="vid-poster" aria-hidden="true">${tileIcon_(r.kind === 'film' ? 'film' : 'play')}${
-    ch ? `<b>${esc(ch)}</b>` : ''}</span>`;
+  return `<span class="vid-poster" aria-hidden="true">${tileIcon_(r.kind === 'film' ? 'film' : 'play')}</span>`;
 }
 
 /* THE KIND, AS EACH VIEWER ALREADY SEES IT. A student's rows are the owner's list and say Clip (or Film,
-   if the owner typed it); only an admin's rows from the folder ever say Film, Series or Documentary.
-   The badge says exactly what the row said before it — no new word reaches anybody. */
+   if the owner typed it); only an admin's rows from the folder ever say Film, Series or Documentary. */
 const vidFlag_ = r => r.label || (r.kind === 'film' ? 'Film' : 'Clip');
 
 function vidPlayer_(r) {
@@ -5622,7 +5644,12 @@ function vidPlayer_(r) {
 }
 
 /* UNDER THE PLAYER: ITS TITLE AND ONE LINE — YouTube's watch page, where the first thing under the
-   picture is what it is called. The line is the row's: the kind, then the age. */
+   picture is what it is called. The line is the row's: the kind, then the age.
+   THE FULL SCREEN TILE SITS BESIDE THEM, NOT UNDER (`.vid-under`), where YouTube keeps the control on
+   the title's row. Under them it was a 44px row of its own on top of the title's two lines, and that
+   made a student's card with something playing taller than its pane at 390x844, so `paneReach_` drew
+   it at 0.91 and every target on it, Full screen and the search box among them, came out at 40px
+   where the old card kept 44 (review of 9 Oct). */
 function vidNow_(r) {
   if (!r) return '';
   const k = [vidFlag_(r), r.age].filter(Boolean).join(' · ');
@@ -5632,21 +5659,37 @@ function vidNow_(r) {
 function vidRow_(r) {
   const flag = vidFlag_(r);
   const on = VID.at === r.key && (r.how === 'yt' || r.how === 'file');
-  /* THE DIM LINE: what the row already said after its kind, which has moved to the badge — the year, a
-     series' seasons, the age, and whether it leaves ("opens in a new tab") or opens nothing ("not in
-     the Drive yet"). Absent when there is nothing to say, rather than an empty line. */
-  const sub = [r.year, r.seasons, r.age, r.how === 'out' ? 'opens in a new tab' : r.how === 'none' ? r.none : '']
-    .filter(Boolean).join(' · ');
+  /* THE DIM LINE: what the row already said after its kind, which has moved to the badge — a placeholder's
+     reason, the year, a series' seasons, the age. Absent when there is nothing to say, rather than an
+     empty line. ONE LINE, as YouTube's is: the stylesheet clips it, so the reason a row opens nothing
+     ("not in the Drive yet") comes FIRST and a narrow row loses the year rather than the reason.
+     "OPENS IN A NEW TAB" IS NOT HERE ANY MORE: the badge's out-arrow says it, and said twice it wrapped
+     six of nine film rows at 320 onto a second line, past the bottom of their pictures, so the rows
+     came at two different pitches (review of 9 Oct). */
+  const sub = [r.how === 'none' ? r.none : '', r.year, r.seasons, r.age].filter(Boolean).join(' · ');
   const src = vidThumb_(r);
   /* `loading="lazy"`: forty pictures for a list somebody may only read the top of, on a column most of
      which is parked off the glass. `decoding="async"` keeps the decode off the keystroke that drew it. */
   const img = src && !VID_BROKEN.has(src)
     ? `<img class="vid-img" src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : '';
+  /* THE BADGE, IN YOUTUBE'S DURATION SPOT — AND ONLY WHEN IT TELLS THIS ROW FROM ITS NEIGHBOURS. YouTube
+     puts something different on every picture there; "Clip" is what every row a student is ever shown
+     says, so it was the same word five times down a student's list. The plain kind is left off; a kind
+     that tells a row apart (Film, Series, Documentary) is drawn, and so is the out-arrow on a row that
+     leaves. The arrow is `role="img"` WITH A NAME because the words "opens in a new tab" are no longer
+     in the line beside it, and a screen reader would otherwise never hear where the link goes. */
+  const word = flag === 'Clip' ? '' : flag;
+  const out = r.how === 'out'
+    ? `<span class="vid-out" role="img" aria-label="opens in a new tab">${tileIcon_('ext')}</span>` : '';
+  const badge = word || out ? `<span class="vid-badge">${esc(word)}${out}</span>` : '';
+  /* THE WORDS COME FIRST IN THE MARKUP, AND THE PICTURE IS DRAWN FIRST (`order` on `.vid-th`). So a screen
+     reader hears the title, then its line, then the kind — it was "Playing, Clip, How volcanoes erupt",
+     the picture's labels before what the row is called. `Playing` is aria-hidden as well: `aria-current`
+     on the button is what says it to a screen reader, and it says it once. */
   const th = `<span class="vid-th">${vidPoster_(r)}${img}${
-    on ? `<span class="vid-playing">${tileIcon_('play')}Playing</span>` : ''}<span class="vid-badge">${esc(flag)}${
-    r.how === 'out' ? tileIcon_('ext') : ''}</span></span>`;
-  const inner = `${th}<span class="vid-txt"><span class="vid-t">${esc(r.title)}</span>${
-    sub ? `<span class="vid-k">${esc(sub)}</span>` : ''}</span>`;
+    on ? `<span class="vid-playing" aria-hidden="true">${tileIcon_('play')}Playing</span>` : ''}${badge}</span>`;
+  const inner = `<span class="vid-txt"><span class="vid-t">${esc(r.title)}</span>${
+    sub ? `<span class="vid-k">${esc(sub)}</span>` : ''}</span>${th}`;
   /* NOTHING TO OPEN, AND IT SAYS SO — not a button that does nothing when pressed. */
   if (r.how === 'none') return `<li><div class="vid-row is-off">${inner}</div></li>`;
   /* A DOOR IS A LINK, NOT A BUTTON THAT PRETENDS TO PLAY. `out` is absolute http(s), tested in
@@ -5662,11 +5705,25 @@ function vidRow_(r) {
    copy of the card, in the CAPTURE phase because `error` does not bubble — a listener on the list in
    the bubbling phase would never hear it. It swaps a class and remembers the address; it runs nothing
    built from data. */
+const vidGone_ = im => {
+  VID_BROKEN.add(im.getAttribute('src') || '');
+  im.classList.add('is-gone');
+};
 document.addEventListener('error', e => {
   const im = e.target;
   if (!im || !im.classList || !im.classList.contains('vid-img')) return;
-  VID_BROKEN.add(im.getAttribute('src') || '');
-  im.classList.add('is-gone');
+  vidGone_(im);
+}, true);
+/* AND A YOUTUBE PICTURE THAT "LOADED" AS YOUTUBE'S GREY STAND-IN. `i.ytimg.com` answers an unknown,
+   removed or private id with 404 AND A 120x90 GREY PICTURE; the browser draws the picture and fires
+   `load`, never `error`, so the listener above never heard it and a flat grey block covered the poster
+   (review of 9 Oct). `mqdefault` is 320x180 whenever the video exists, so 120 wide or less is the
+   stand-in. YouTube's host only: Drive's picture of a small or portrait file can honestly be narrow. */
+document.addEventListener('load', e => {
+  const im = e.target;
+  if (!im || !im.classList || !im.classList.contains('vid-img')) return;
+  if (!/^https:\/\/i\.ytimg\.com\//.test(im.getAttribute('src') || '')) return;
+  if (im.naturalWidth > 0 && im.naturalWidth <= 120) vidGone_(im);
 }, true);
 
 /* THE LIST AND THE PLAYER ARE REPAINTED; THE BOX IS NOT. Rewriting the `<input>` on every keystroke
@@ -5694,8 +5751,7 @@ function vidPaint_(only) {
         autocomplete="off" enterkeyhint="search" aria-label="Search videos"></label>
       <div class="vid-watch">
         <div class="vid-stage"></div>
-        <div class="vid-now"></div>
-        <div class="tile-row vid-acts"></div>
+        <div class="vid-under"><div class="vid-now"></div><div class="tile-row vid-acts"></div></div>
       </div>
       <div class="vid-admin"></div>
       <p class="faint vid-said"></p>

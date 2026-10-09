@@ -35,6 +35,9 @@
   --sunk:      #050505;
   --line:      #232323;
   --line-soft: #171717;
+  /* EVERY VIDEO'S LETTERBOX, a player's and a clip's in a message alike: black, not `--bg`, because the
+     bars round a picture are black on every screen there is, whatever colour the page around them. */
+  --letterbox: #000;
 
   --ink:       #e6e6e6;
   --dim:       #9a9a9a;
@@ -2393,107 +2396,131 @@ button.text-drop { color: var(--bad); }
    note over `--bg`), and a red play mark on a list of cartoons would be a warning nobody meant.
 
    THE CARD'S OWN COLOURS ARE DECLARED ON THE CARD, the chess board's rule: each is a mix of tokens
-   that already exist, named here so the card is the only place they are offered.
-     --vid-black      the player's letterbox. Black, not `--sunk`, because every player's letterbox
-                      is black and a picture with near-black bars reads as a picture badly fitted.
+   that already exist, named here so the card is the only place they are offered. (The player's black
+   is not one of them: a letterbox is every video's, so it is `--letterbox` at `:root`.)
      --vid-scrim      the badge's plate: YouTube's black-at-80% behind its duration, so a word sits
                       on any picture, light or dark.
      --vid-veil       the lighter wash over the picture of the row that is playing.
-     --vid-poster-*   the poster: a gold-touched corner fading to the sunk black, and its letter.
+     --vid-frame      the poster: a flat neutral frame, YouTube's missing picture — about a tenth of the
+                      ink over the card, where YouTube's is a tenth of white over its page.
+     --vid-mark       the kind's mark in that frame, as quiet as the card's faint words.
    THE RADIUS IS YOUTUBE'S 8px, not the app's 3: a thumbnail's rounded corner is half of what makes a
    list read as YouTube's at a glance. px, like every radius here — a corner that grew with the root
    font would round differently on every phone.
 
-   THE BOX IS A CONTAINER, so the list can be a GRID where the card is wide enough for two pictures
-   of a useful size side by side, and the compact row everywhere else — YouTube's own split: its grid
-   needs room, and its watch page's "up next" column, about 400px, is compact rows. MEASURED ON 9
-   OCTOBER, THE CARD IS NEVER THAT WIDE YET: 217px at 320, 271 at 390, 376 at 768, 341 at 1280 and 303
-   at 1920, because a column is a phone-width card on every screen. So the grid is written for the day
-   a card is wider (`--app`, the Saved column), and today every width gets the compact row — which is
-   what YouTube itself draws at every one of those widths. */
-.vid-box { container: vidbox / inline-size;
-           --vid-r: 8px;
-           --vid-black: #000;
+   NO GRID FOR A WIDE CARD. There was one, from a 30rem container query, and no card ever reached it:
+   measured on 9 October the card is 217px wide at 320, 271 at 390, 376 at 768, 341 at 1280 and 303 at
+   1920, because a column is a phone-width card on every screen, and the Saved column draws it at 271.
+   Untested CSS shipped to every phone for a width that does not exist, so it went (review of 9 Oct).
+   Every width gets the compact row, which is what YouTube itself draws in a column that size — its
+   watch page's "up next" list. */
+.vid-box { --vid-r: 8px;
            --vid-scrim: color-mix(in srgb, var(--bg) 80%, transparent);
            --vid-veil: color-mix(in srgb, var(--bg) 72%, transparent);
-           --vid-poster-a: color-mix(in srgb, var(--gold) 16%, var(--raised));
-           --vid-poster-b: var(--sunk);
-           --vid-poster-ink: color-mix(in srgb, var(--gold) 70%, var(--dim)); }
+           --vid-frame: color-mix(in srgb, var(--ink) 11%, var(--raised));
+           --vid-mark: var(--faint); }
 
 /* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`,
    and the `<label>` round both hands a tap on it to the box. The box keeps the stylesheet's 16px type
-   (iOS zooms on anything smaller) and its 44px floor; only its corners and its left room change. */
+   (iOS zooms on anything smaller) and its 44px floor; only its corners and its left room change. The
+   magnifier's own 18px is px because every `.tile-i` is; the room round it is rem, like every length
+   that is not a target. */
 .vid-search { position: relative; display: block; margin: 0 0 .5rem; }
-.vid-search .tile-i { position: absolute; left: 15px; top: 0; bottom: 0; margin: auto 0;
+.vid-search .tile-i { position: absolute; left: 1rem; top: 0; bottom: 0; margin: auto 0;
                       color: var(--dim); pointer-events: none; }
 .vid-search:focus-within .tile-i { color: var(--gold); }
-.vid-box .vid-q { width: 100%; margin: 0; padding-left: calc(15px + 18px + .55rem); padding-right: 1rem;
+.vid-box .vid-q { width: 100%; margin: 0; padding-left: calc(1rem + 18px + .55rem); padding-right: 1rem;
                   border-radius: 999px; }
+/* THE ✕ A BROWSER DRAWS IN A SEARCH BOX, IN THE CARD'S OWN GREY. `type="search"` is what puts it there,
+   and it is half of what makes the pill read as YouTube's — but Chromium draws it in its own default
+   blue, the one colour on the card from outside the palette, inside a pill whose ring has just turned
+   gold. Drawn here as the same 1.4-stroke cross the tiles use, as a mask, so it is painted in
+   `--dim` and goes gold with the magnifier. WebKit and Blink only; Firefox draws no ✕ at all. */
+.vid-box .vid-q::-webkit-search-cancel-button {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin: 0; cursor: pointer;
+  background: var(--dim);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat; }
+.vid-search:focus-within .vid-q::-webkit-search-cancel-button { background: var(--gold); }
 
 /* THE WATCH PAGE, ONLY WHILE SOMETHING PLAYS. The player is 16:9 and states it, so the card does not
    jump when a video is chosen and an iframe (whose own size, 300x150, is worth nothing) fills the
-   width it is given. Then the title — YouTube's is the boldest line on the page — and the dim line. */
-.vid-watch { display: none; margin: 0 0 .7rem; }
+   width it is given. Then the title — YouTube's is the boldest line on the page — and the dim line,
+   with the Full screen tile BESIDE them rather than under them: see `vidNow_` for the 40px it cost. */
+.vid-watch { display: none; margin: 0 0 .6rem; }
 .vid-watch.on { display: block; }
-.vid-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--vid-black);
+.vid-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--letterbox);
              border-radius: var(--vid-r); overflow: hidden; }
 .vid-stage .vid-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
-                         background: var(--vid-black); object-fit: contain; }
-.vid-now { padding: .55rem .1rem 0; }
+                         background: var(--letterbox); object-fit: contain; }
+.vid-under { display: flex; align-items: flex-start; gap: .5rem; }
+.vid-now { flex: 1 1 0; min-width: 0; padding: .5rem .1rem 0; }
 .vid-now-t { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.3; color: var(--ink);
              overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical;
              -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .vid-now-k { margin: .2rem 0 0; font-size: .74rem; line-height: 1.35; color: var(--dim); }
-.vid-acts { margin: .45rem 0 0; }
+/* `.vid-under` AND NOT `.vid-acts` ALONE: `.tile-row` sets its own margin far below this, and a single
+   class here would lose to it. */
+.vid-under .vid-acts { flex: none; margin: .4rem 0 0; }
 
-/* THE COUNT, SMALL AND FAINT, between the box and the list: still a count rather than a silence, and
-   no louder than YouTube's "About 1,000 results". */
-.vid-said { margin: 0 0 .5rem; font-size: .68rem; }
+.vid-said { margin: .45rem 0 .3rem; font-size: .78rem; }
 
 /* ---------- THE ROW: A PICTURE, A TITLE, A LINE ---------------------------------------------------
    COMPACT: the picture on the left at 42% of the row — YouTube's "up next" proportion — and the words
-   on the right. No rule between rows; YouTube separates results with air, not lines. The row is still
-   44px tall at least, in px: a fingertip does not scale with the root font, though the picture makes
-   every row taller than that anyway. */
-.vid-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+   on the right; no wider than 7rem, which a card at 1280 would otherwise pass, with every row a
+   picture 81px tall. No rule between rows; YouTube separates results with air, not lines.
+   THE AIR IS INSIDE THE ROW, as padding, not between rows as a gap: the same pitch, but the space
+   between two pictures is part of a row's target rather than a strip that belongs to neither. A card
+   with a long list is drawn at the 0.7 floor (`paneReach_`), and there a 51px picture alone is a 36px
+   target. The row is still 44px tall at least, in px: a fingertip does not scale with the root font.
+   THE WORDS COME FIRST IN THE MARKUP (`vidRow_` says why) and `order` draws the picture first. */
+.vid-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .vid-list li { margin: 0; padding: 0; min-width: 0; }
 .vid-row { display: flex; align-items: flex-start; gap: .6rem; width: 100%; min-height: 44px; margin: 0;
-           padding: 0; text-align: left; text-decoration: none; background: none; border: 0;
+           padding: .25rem 0; text-align: left; text-decoration: none; background: none; border: 0;
            border-radius: var(--vid-r); color: var(--ink); font: inherit; cursor: pointer; }
-/* A CONTAINER ITSELF, so the poster's letter is a share of the PICTURE (`cqi`) and the same share in a
-   91px compact row at 320 as in a grid card three times the width. */
-.vid-th { position: relative; flex: 0 0 42%; aspect-ratio: 16 / 9; border-radius: var(--vid-r);
-          overflow: hidden; background: var(--vid-poster-b); container-type: inline-size; }
+.vid-th { order: -1; position: relative; flex: 0 0 min(42%, 7rem); aspect-ratio: 16 / 9;
+          border-radius: var(--vid-r); overflow: hidden; background: var(--vid-frame); }
 /* THE POSTER IS UNDER EVERY PICTURE, NOT INSTEAD OF ONE: it is what shows while a picture loads and
-   what is left when one fails, so no row is ever a grey hole and the list keeps one rhythm. */
+   what is left when one fails, so no row is ever a hole and the list keeps one rhythm. A flat frame
+   and the kind's mark — no letter, no gold: `vidPoster_` says why. The mark sits a little above the
+   middle (the padding), clear of a "Documentary" badge in the corner at 320. */
 .vid-poster { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-              background: linear-gradient(135deg, var(--vid-poster-a), var(--vid-poster-b));
-              color: var(--vid-poster-ink); }
-/* THE LETTER SITS A LITTLE ABOVE THE MIDDLE, clear of the badge in the corner below it — centred, a
-   "Documentary" badge at 320 covered the foot of it. */
-.vid-poster b { margin-bottom: 9cqi; font-size: 26cqi; font-weight: 700; line-height: 1; }
-.vid-poster .tile-i { position: absolute; left: .4rem; top: .4rem; width: 14px; height: 14px; }
+              padding-bottom: 12%; background: var(--vid-frame); color: var(--vid-mark); }
+.vid-poster .tile-i { width: 20px; height: 20px; }
+/* THE ROW THAT IS PLAYING SAYS "PLAYING" IN THE MIDDLE OF ITS PICTURE, and the poster's mark is in the
+   middle too: under the veil it showed through and ran into the word. A picture covers the mark
+   anyway; a poster that is playing has nothing else to say. */
+.vid-row.on .vid-poster .tile-i { visibility: hidden; }
 .vid-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
 /* A PICTURE THAT FAILED, taken away by the listener in games.js, so the poster under it is what shows.
    Not left to the browser: Safari draws its broken-picture mark even with `alt=""`. */
 .vid-img.is-gone { display: none; }
-/* THE BADGE, IN YOUTUBE'S DURATION SPOT: the row's kind, and the out-arrow on a row that leaves. */
+/* THE BADGE, IN YOUTUBE'S DURATION SPOT: a kind that tells the row apart, and the out-arrow on a row
+   that leaves. YouTube's is about 12px; this was .62rem, 8px at 320 and 6px on an admin's card at the
+   zoom floor, which is a smudge — .68rem is as large as "Documentary" and its arrow can be and still
+   fit a 91px picture at 320. */
 .vid-badge { position: absolute; right: .3rem; bottom: .3rem; display: inline-flex; align-items: center;
              gap: .2rem; padding: .08rem .3rem; border-radius: 4px; background: var(--vid-scrim);
-             color: var(--ink); font-size: .62rem; font-weight: 600; line-height: 1.35; }
-.vid-badge .tile-i { width: 10px; height: 10px; }
+             color: var(--ink); font-size: .68rem; font-weight: 600; line-height: 1.35; }
+.vid-out { display: inline-flex; }
+.vid-badge .tile-i { width: 11px; height: 11px; }
 .vid-playing { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
                gap: .3rem; background: var(--vid-veil); color: var(--gold); font-size: .66rem;
                font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .vid-playing .tile-i { width: 12px; height: 12px; fill: currentColor; }
-.vid-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .22rem; padding-top: .05rem; }
+.vid-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .22rem; }
 /* TWO LINES OF TITLE AT MOST, then an ellipsis — YouTube's clamp, and the reason a long title no longer
    makes one row three times the height of the rest. `overflow-wrap: anywhere` still holds a title with
    no space in it inside the row at 320. */
 .vid-row .vid-t { font-size: .86rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
                   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
                   line-clamp: 2; overflow: hidden; }
-.vid-row .vid-k { font-size: .7rem; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+/* AND ONE LINE OF META, clipped with an ellipsis, as YouTube's is. Two lines of title and one of this
+   are shorter than the picture at every width measured, so every row is the picture's height and the
+   list keeps one pitch. */
+.vid-row .vid-k { font-size: .7rem; line-height: 1.35; color: var(--dim);
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vid-row.on .vid-t { color: var(--gold); }
 /* A PRESS DIMS THE PICTURE for as long as the finger is on it — no movement, so nothing for
    `prefers-reduced-motion` to take away. */
@@ -2505,18 +2532,6 @@ button.text-drop { color: var(--bad); }
 .vid-row.is-off { cursor: default; }
 .vid-row.is-off .vid-th { opacity: .5; }
 .vid-row.is-off .vid-t { color: var(--dim); }
-
-/* WIDE ENOUGH FOR TWO PICTURES OF A USEFUL SIZE: YouTube's grid, the picture on top and the words under
-   it. 14rem is about 220px — under that a grid card's two lines of monospace title hold about twenty
-   characters, which is a title cut off rather than a title. See the measurements above for why no
-   card reaches this yet. */
-@container vidbox (min-width: 30rem) {
-  .vid-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1rem .75rem; }
-  .vid-row { flex-direction: column; gap: .5rem; }
-  .vid-th { flex: 0 0 auto; width: 100%; }
-  .vid-txt { flex: 0 0 auto; width: 100%; }
-  .vid-none { grid-column: 1 / -1; }
-}
 
 /* THE ADMIN'S SYNC ROW: the silver tile and, beside it, when it last ran — the tile's note made visible,
    since a 44px plate has no room for it. Drawn for an admin only; for anybody else `.vid-admin` is an
@@ -3478,7 +3493,7 @@ button.text-drop { color: var(--bad); }
 .msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: .8rem; }
 .msg-pic img { display: block; width: 100%; border-radius: .8rem; }
 .msg-pic img { height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
-.msg-vid { max-height: 20rem; background: #000; }
+.msg-vid { max-height: 20rem; background: var(--letterbox); }
 /* A CLIP THAT WOULD NOT PLAY becomes a link (`postVidFail_` in posts.js) and kept `.msg-vid` — so it
    was a 16rem black slab with an underlined gold line at its top edge and nothing under it. Drawn as
    the file chip it now is: a plate, ink, no rule. */
