@@ -88,12 +88,17 @@ function signInCard_() {
              the placeholder stopped saying "if you have no email" — that clause told a student with
              an address that their handle would not work, which is no longer true. `type="text"`
              stays, because `type="email"` would refuse a handle before it was sent.
-             THE PLACEHOLDER IS ONE OF EACH, SHORT, because the label above already says "email or
-             handle" and the sentence it used to be was cut off at `— or you` on a 320 phone. */''}
+             ---------- NO EXAMPLE, AND WHERE THERE IS ONE IT IS THE ADMIN'S OWN NAME ----------
+             IT SAID `ada@x.com or ada_kind7`, and the owner, 9 Oct: *"remove the example login. i dont
+             want it to have an example, or matter of fact let it be the admin login name."* So a box on
+             a device nobody has run the business from says nothing — the label already says "email or
+             handle" — and on a device an admin has signed in on, the grey text is what that admin signs
+             in with (`signInHint_`). FROM THIS DEVICE ONLY, never the repository or the payload: the
+             repository is public and a stranger's phone has no business being told the admin's name. */''}
         ${handleChips_()}
         <label class="field"><span>email or handle</span>
           <input id="in-name" type="text" inputmode="email" autocomplete="username" autocapitalize="off"
-                 spellcheck="false" placeholder="ada@x.com or ada_kind7"></label>
+                 spellcheck="false"${signInHint_() ? ` placeholder="${esc(signInHint_())}"` : ''}></label>
         ${/* ---------- THE PIN, ON A SHARED iPAD ---------------------------------------------------------
              *"i feel very insecure when signing into the kids accounts"*. It was `type="password"` with
              `autocomplete="current-password"`, beside a `username` box: exactly the pair Safari offers to
@@ -830,6 +835,7 @@ function signedIn_(d, typed) {
   try { if (fromNobody && pid && typeof answersClaim_ === 'function') answersClaim_(pid); } catch (e) {}
   try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
   handleRemember_(me.handle);
+  signInHintKeep_(typed, me);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
      between children, "Signed in" does not say into whose account. */
   const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
@@ -874,6 +880,35 @@ function handleRemember_(h) {
   const list = [h].concat(handlesKnown_().filter(x => x.toLowerCase() !== h.toLowerCase())).slice(0, HANDLES_MAX);
   try { localStorage.setItem(HANDLES_KEY, JSON.stringify(list)); } catch (e) {}
 }
+/* ---------- THE ADMIN'S SIGN-IN NAME, AS THIS DEVICE LAST SAW IT -----------------------------------------
+   THE GREY TEXT IN THE SIGN-IN BOX (`signInCard_`). What the admin TYPED, email or handle, because that is
+   their "login name" in the owner's sentence — not the handle the reply carries, which an admin who signs
+   in by address may never have typed. Only an admin's: a child's handle is already a chip, one tap away,
+   and a placeholder naming whichever child signed in last would be the wrong child for the next one.
+   Kept when they sign out — it is a hint, like the chips, and no secret; ✕ on the admin's own chip
+   forgets it with the chip. */
+const ADMIN_HINT_KEY = 'familyAdminHint';
+/* `{ s, h }`: `s` what was typed, shown; `h` the account's handle, so that chip's ✕ can find it. */
+const HINT_OK = /^[\w.@+-]{1,80}$/;
+function signInHintRead_() {
+  try {
+    const v = JSON.parse(localStorage.getItem(ADMIN_HINT_KEY) || 'null');
+    return v && typeof v === 'object' && HINT_OK.test(String(v.s || '')) ? v : null;
+  } catch (e) { return null; }
+}
+function signInHint_() {
+  const v = signInHintRead_();
+  return v ? String(v.s) : '';
+}
+function signInHintKeep_(typed, me) {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const h = String((me && me.handle) || '').trim();
+  const t = String(typed || '').trim();
+  const s = HINT_OK.test(t) ? t : h;
+  if (!HINT_OK.test(s)) return;
+  try { localStorage.setItem(ADMIN_HINT_KEY, JSON.stringify({ s: s, h: h })); } catch (e) {}
+}
+
 function handleChips_() {
   const list = handlesKnown_();
   if (!list.length) return '';
@@ -902,6 +937,10 @@ on('handle-pick', el => {
 on('handle-forget', el => {
   const h = String(el.getAttribute('data-h') || '').toLowerCase();
   try { localStorage.setItem(HANDLES_KEY, JSON.stringify(handlesKnown_().filter(x => x.toLowerCase() !== h))); } catch (e) {}
+  /* THE ADMIN'S CHIP TAKES THE BOX'S GREY TEXT WITH IT — see `signInHint_`. Nothing to repaint: the next
+     time the card is drawn the box is blank. */
+  const hint = signInHintRead_();
+  if (hint && String(hint.h || '').toLowerCase() === h) { try { localStorage.removeItem(ADMIN_HINT_KEY); } catch (e) {} }
   const chip = el.closest('.hchip');
   const row = chip && chip.parentNode;
   if (chip) chip.remove();

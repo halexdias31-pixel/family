@@ -16831,6 +16831,44 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   return bad;
 });
 
+/* ---------- NO EXAMPLE IN THE SIGN-IN BOX; THE ADMIN'S OWN NAME WHERE THIS DEVICE KNOWS IT ----------------
+   The owner, 9 Oct: *"remove the example login ... let it be the admin login name."* A fresh device's box is
+   blank; once an admin has signed in here, its grey text is what they typed (an address or a handle), and a
+   child signing in after them does not replace it; ✕ on the admin's chip forgets it. Never a PIN. */
+check('the sign-in box has no example; on a device an admin signed in on, it shows what the admin signs in with', async () => {
+  const ADMIN = { name: 'Test Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'test_admin1' };
+  let who = ADMIN;
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, who) : { success: true, messages: [] };
+  const { w } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const box = () => { t.go('account', false, true); w.paint('account'); return d.getElementById('in-name'); };
+  t.USER(null);
+  if (!box()) return ['no sign-in box on the account column'];
+  if (box().hasAttribute('placeholder')) bad.push('a fresh device\'s sign-in box still shows an example: ' + JSON.stringify(box().getAttribute('placeholder')));
+  if (/ada@x\.com|ada_kind7/.test(d.getElementById('s-account').innerHTML)) bad.push('the old example is still on the card');
+  const signIn = async (name, pin) => {
+    box().value = name; d.getElementById('in-pin').value = pin;
+    t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+    await wait(300);
+    t.ACTIONS.signout(d.createElement('button'));
+  };
+  await signIn('admin@example.com', '4826');
+  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('after an admin signed in by address the box says ' + JSON.stringify(box().getAttribute('placeholder')));
+  who = ANS_ADA;
+  await signIn('ada_kind7', '1239');
+  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('a child signing in replaced the admin\'s name with ' + JSON.stringify(box().getAttribute('placeholder')));
+  const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
+  if (all.some(x => /4826|1239/.test(x))) bad.push('A PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826|1239/.test(x)).join(' | '));
+  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="test_admin1"]');
+  if (!drop) bad.push('the admin has no chip to forget');
+  else {
+    t.ACTIONS['handle-forget'](drop);
+    if (box().hasAttribute('placeholder')) bad.push('✕ on the admin\'s chip left their name in the box: ' + JSON.stringify(box().getAttribute('placeholder')));
+  }
+  return bad;
+});
+
 check('signing in brings the done dates, stars, family and answers with the reply, before the payload', async () => {
   let hold = false;
   const reply = b => b.action === 'verifyLogin'
