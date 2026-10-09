@@ -371,15 +371,20 @@ on('cmt-add', el => {
   el.classList.add('is-busy');
   const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
 
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered put the comment back in
+     the box after it was on the post (`draftSent_`, data.js; the review of 317). Dropped by the reply,
+     given back by a refusal. */
+  try { draftSent_('cmt', el.dataset.id, text); } catch (e) {}
   send({ action: 'addComment', name: USER.name, personId: USER.personId,
          postId: el.dataset.id, body: text })
     .then(() => { done(); if (box) { box.value = ''; box.style.height = ''; }
-                  try { draftDrop_('cmt', el.dataset.id); } catch (e) {}
+                  try { draftSentDone_('cmt', el.dataset.id, text); } catch (e) {}
                   if (said) said.textContent = ''; load(); })
     /* THE SERVER'S OWN SENTENCE. Every refusal it can give is written for a person to read — the
        length, the post being gone, not being signed in — and "Not posted" would throw away the
        only part that says what to do about it. */
-    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not posted.'); });
+    .catch(err => { done(); try { draftSentBack_('cmt', el.dataset.id, text); } catch (e) {}
+                    if (said) said.textContent = String(err.message || 'Not posted.'); });
 });
 
 /* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where
@@ -1867,6 +1872,9 @@ on('post-send', el => {
   if (!link) { if (said) said.textContent = 'A link to the picture, first.'; return; }
   el.disabled = true;
   if (said) said.textContent = 'Posting…';
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered opened the sheet holding
+     the post that had just gone up, for a second one (`draftSent_`, data.js). */
+  POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });
 
   api({ action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
@@ -1890,6 +1898,7 @@ on('post-send', el => {
     })
     .catch(err => {
       el.disabled = false;
+      POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} });
       if (said) said.textContent = String(err.message || 'Could not post that');
     });
 });

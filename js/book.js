@@ -1822,13 +1822,17 @@ const bookBlank_ = () => Object.keys(BOOKING).every(k => k === 'done' || k === '
   || ![].concat(BOOKING[k] == null ? [] : BOOKING[k]).join('').trim());
 /* WHOSE FORM IS IN `BOOKING` — the draft it was read from or last written to. See `bookFollow_`. */
 let BOOK_WHO = '';
+/* THE FORM AS ITS DRAFT IS WRITTEN — one function, so another tab's copy can be told from this one's. */
+function bookJson_() {
+  const o = {};
+  Object.keys(BOOKING).forEach(k => { if (k !== 'picking') o[k] = BOOKING[k]; });
+  return JSON.stringify(o);
+}
 function bookKeep_() {
   if (typeof draftKeep_ !== 'function') return;
   try {
     BOOK_WHO = draftWho_();
-    const o = {};
-    Object.keys(BOOKING).forEach(k => { if (k !== 'picking') o[k] = BOOKING[k]; });
-    if (bookBlank_()) draftDrop_('book', 'form'); else draftKeep_('book', 'form', JSON.stringify(o));
+    if (bookBlank_()) draftDrop_('book', 'form'); else draftKeep_('book', 'form', bookJson_());
   } catch (e) {}
 }
 function bookBack_() {
@@ -1848,6 +1852,33 @@ function bookBack_() {
   } catch (e) {}
 }
 bookBack_();
+/* ---------- SENT IS NOT A DRAFT (`draftSent_`, data.js) ---------------------------------------------------
+   FOUND BY THE REVIEW OF 317: Send pressed, the page reloaded while Apps Script was still answering, and
+   the form came back whole — subjects, hours, note — after the server had the booking, so Send asked for
+   it a second time, with a new requestId the backend could not match. `book-send` (receipt.js) marks the
+   form and its addresses SENT as each request goes; `resetBooking_` drops them when it is answered, and a
+   refusal gives them back (`false`). Another page reads a sent form as no form. */
+function bookSending_(going) {
+  try {
+    [['form']].concat(BOOK_STEPS.filter(st => st.emails).map(st => ['emails:' + st.id])).forEach(([id]) => {
+      if (going) draftSent_('book', id); else draftSentBack_('book', id);
+    });
+  } catch (e) {}
+}
+/* ---------- AND ANOTHER TAB'S FORM IS THIS TAB'S (the `storage` listener in data.js) ----------------------
+   Two tabs on the Booking column: an answer given in a tab drawn before the other filled the form in
+   wrote that stale tab's near-blank `BOOKING` over the whole draft. So the other tab's copy is read in
+   — or, sent or started again there, this tab's identical form is cleared — and redrawn WITHOUT writing
+   (`redrawBooker_`, not `drawBooker`), so two tabs never answer each other's writes back and forth. */
+function bookElsewhere_(v, old) {
+  try {
+    const mine = bookJson_();
+    if (v !== null ? v === mine : old !== mine) return;
+    resetBooking_(true);
+    bookBack_();
+    if ($('bookr') && typeof redrawBooker_ === 'function' && typeof paintBook_ === 'function') redrawBooker_(paintBook_);
+  } catch (e) {}
+}
 /* ---------- AND THE FORM IS THE PERSON'S, ON A SHARED iPAD -------------------------------------------------
    `BOOKING` IS ONE OBJECT IN MEMORY, and it outlived a sign-out: the next family to pick the iPad up was
    shown the last one's subjects, hours, other families' addresses and note — and now that the form is a
@@ -2094,6 +2125,8 @@ document.addEventListener('change', e => {
   if (!step) return;
   const list = String(el.value || '').split(',').map(x => x.trim()).filter(Boolean);
   BOOKING[step.id] = list;
+  /* AN ANSWER NOW, SO NO LONGER A DRAFT OF ITS OWN — `BOOKING`'s draft has it (`stepInput_`). */
+  try { draftDrop_('book', 'emails:' + step.id); } catch (err) {}
   BOOKING.done = list.length
     ? uniq((BOOKING.done || []).concat([step.id]))
     : (BOOKING.done || []).filter(id => id !== step.id);

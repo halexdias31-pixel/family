@@ -3162,7 +3162,7 @@ function api(body, opts) {
         const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_(); } catch (e) {} }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
-        try { if (gone) localStorage.setItem('familyGone', gone); } catch (e) {}
+        try { if (gone) localStorage.setItem('familyGone', JSON.stringify({ who: gone, at: Date.now() })); } catch (e) {}
         try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) {}
         toast('Signed out — please sign in again');
       }

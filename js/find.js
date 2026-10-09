@@ -6622,8 +6622,13 @@ function ansRead_(k) {
     if (bare === k) return '';
     const was = localStorage.getItem(bare);
     if (was === null) return '';
+    /* NOT INTO SOMEBODY ELSE'S BOX: written signed out just after the server ended ANOTHER person's
+       session, so it is theirs (`ansGoneOthers_`, js/answers.js) — the review of 317 found a child's
+       words moved into the next child's account this way. */
+    if (typeof ansGoneOthers_ === 'function' && ansGoneOthers_(bare, k)) return '';
     if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
     localStorage.removeItem(bare);
+    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
     return was;
   } catch (e) { return ''; }
 }
@@ -8107,9 +8112,12 @@ function padAdopt_(k, bare) {
     if (localStorage.getItem(k) !== null) return;
     const v = localStorage.getItem(bare);
     if (v === null) return;
+    /* NOR A DRAWING SOMEBODY ELSE MADE SIGNED OUT — `ansRead_`'s rule (`ansGoneOthers_`, answers.js). */
+    if (typeof ansGoneOthers_ === 'function' && ansGoneOthers_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
     if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
     localStorage.removeItem(bare);
+    if (typeof ansGoneMark_ === 'function') ansGoneMark_(bare, null);
   } catch (e) {}
 }
 
@@ -8314,7 +8322,7 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    <p class="qpad-note">${esc(padKeptSay_())}</p>
+    <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
   </div>`;
 }
 
@@ -9527,7 +9535,7 @@ function chunkHtml_(chunk, circ) {
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
-        the ring off. ${esc(padKeptSay_())}</p>` : ''}`;
+        the ring off. <span data-kept-k="${esc(circ.k)}">${esc(padNoteSay_(circ.k))}</span></p>` : ''}`;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -14782,7 +14790,7 @@ function docketSave(list) {
     clearTimeout(dockTimer);
     keepDue_('docket', null);
     if (!USER) return;
-    api({ action: 'saveTodo',
+    return api({ action: 'saveTodo',
       name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
       .then(d => {
         if (d && d.error) throw new Error(d.error);
@@ -14955,7 +14963,7 @@ function padSend_(keepalive) {
   clearTimeout(padTimer);
   keepDue_('notepad', null);
   if (!USER) return;
-  api({ action: 'saveNotepad',
+  return api({ action: 'saveNotepad',
     name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
     .then(d => {
       if (d && d.error) throw new Error(d.error);

@@ -101,6 +101,8 @@ function ansLocalPut_(k, v) {
      "On this device only" over an answer that was on no device at all (317). */
   if (typeof keepPut_ === 'function') keepPut_(k, v);
   else { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  /* SIGNED OUT, WHILE A SESSION THE SERVER ENDED IS FRESH, IT IS THAT PERSON'S — `ansGoneMark_` below. */
+  if (!ansWhoOf_(k)) ansGoneMark_(k, v);
   /* A RING HELD FOR THE VISIT (`CIRC_HELD`) is the copy `circRead_` falls back to, and must say the same. */
   if (ansIsRing_(k) && typeof CIRC_HELD !== 'undefined') {
     try { if (v === null || v === '') CIRC_HELD.delete(k); else CIRC_HELD.set(k, JSON.parse(v)); } catch (e) {}
@@ -488,15 +490,75 @@ const ANS_NOT_KEPT = 'Not saved — this browser is not keeping it';
    forgets the person, and the box is drawn under the signed-out key: empty, over an essay of 3,015
    characters still sitting under the person's own key. Nothing was deleted and nothing said so. `api()`
    (shell.js) notes whose session the server ended (`familyGone`) and this says it under the box that
-   person had written in, until anybody signs in. The words only; the answer stays theirs. */
+   person had written in, until anybody signs in, and for an hour at most. The words only; the answer
+   stays theirs. */
+/* ---------- FOR AN HOUR, NOT UNTIL SOMEBODY SIGNS IN -----------------------------------------------------
+   `familyGone` IS `{ who, at }`. It was the bare key, cleared only by a sign-in or a chosen sign-out, so
+   on the family's iPad every signed-out visitor after the server ended a child's session was told
+   "your answer is back" under each question that child had answered — words addressed to somebody else,
+   and a list of what they had done (review of 317). It is for the person who was in front of the screen
+   when it happened, so it lasts `ANS_GONE_MS`: a reload in the same lesson, not tomorrow's visitor. */
+const ANS_GONE_MS = 60 * 60 * 1000;
+function ansGone_() {
+  try {
+    const g = JSON.parse(localStorage.getItem('familyGone') || 'null');
+    return g && /^u:[^:]+$/.test(String(g.who || '')) && Date.now() - (Number(g.at) || 0) < ANS_GONE_MS ? String(g.who) : '';
+  } catch (e) { return ''; }
+}
 function ansGoneSay_(k) {
   if (ansWhoOf_(k)) return '';
-  let gone = '';
-  try { gone = String(localStorage.getItem('familyGone') || ''); } catch (e) {}
-  if (!/^u:[^:]+$/.test(gone)) return '';
+  const gone = ansGone_();
+  if (!gone) return '';
   const theirs = ansValue_(ansLocalKey_(ansServerKey_(k), gone));
   return theirs !== null && String(theirs).trim() && theirs !== '[]'
     ? 'Signed out — sign in again and your answer is back' : '';
+}
+/* ---------- AND WHAT THEY TYPE SIGNED OUT MEANWHILE IS STILL THEIRS ---------------------------------------
+   FOUND BY THE REVIEW OF 317, ON THE PATH THE LINE ABOVE PROTECTS: the server ended Sam's session, the
+   reload drew his essay's box empty and signed out, and he typed "More words" into it. Kit signed in next
+   and opened the question — and `ansRead_` (find.js), which moves a signed-out answer into whoever signs
+   in if their box is empty, moved Sam's words into KIT'S account. So a signed-out answer written while a
+   session the server ended is fresh (`ansGone_`) is marked as that person's, in `familyGoneKeys`, and
+   `ansRead_` and `padAdopt_` move it into nobody else's box (`ansGoneOthers_`). It stays under the
+   signed-out key, as it always did, until that person signs in. The mark goes with the answer — emptied,
+   or moved to them — and is never taken off by a later write: an answer half one person's is not handed
+   to the next. */
+const ANS_GONE_KEYS = 'familyGoneKeys';
+function ansGoneMark_(k, v) {
+  if (!/^(ans|pad):/.test(String(k || ''))) return;
+  try {
+    const empty = v === null || v === undefined || !String(v).trim() || v === '[]';
+    const gone = empty ? '' : ansGone_();
+    if (!empty && !gone) return;
+    const raw = localStorage.getItem(ANS_GONE_KEYS);
+    if (!raw && empty) return;
+    const map = JSON.parse(raw || '{}') || {};
+    if (empty ? !(k in map) : map[k] === gone) return;
+    if (empty) delete map[k]; else map[k] = gone;
+    /* AND WHAT NO LONGER NAMES AN ANSWER, while it is open anyway. */
+    Object.keys(map).forEach(x => { if (x !== k && localStorage.getItem(x) === null) delete map[x]; });
+    if (Object.keys(map).length) localStorage.setItem(ANS_GONE_KEYS, JSON.stringify(map));
+    else localStorage.removeItem(ANS_GONE_KEYS);
+  } catch (e) {}
+}
+/* ---------- THE PEN'S AND THE RINGS' NOTE, FOR THE KEY IT IS UNDER -------------------------------------
+   `padKeptSay_` (below) says where drawings are kept, and only that: the review of 317 found it reading
+   "Kept on this device only" over strokes the store had refused, and saying nothing over a pad drawn
+   empty by a session the server ended. So the two lines the answer box gives come first here too. */
+function padNoteSay_(k) {
+  k = String(k || '');
+  const v = ansValue_(k);
+  const has = v !== null && !!String(v).trim() && v !== '[]';
+  if (has && typeof KEEP_UNKEPT !== 'undefined' && KEEP_UNKEPT.has(k) && !ansOnAccount_(k)) return ANS_NOT_KEPT + '.';
+  const gone = has ? '' : ansGoneSay_(k);
+  return gone ? gone + '.' : padKeptSay_();
+}
+/* TRUE WHEN THE SIGNED-OUT `bare` WAS WRITTEN FOR SOMEBODY OTHER THAN THE OWNER OF `k`, who is asking. */
+function ansGoneOthers_(bare, k) {
+  try {
+    const owner = (JSON.parse(localStorage.getItem(ANS_GONE_KEYS) || '{}') || {})[bare];
+    return !!owner && owner !== ansWhoOf_(k);
+  } catch (e) { return false; }
 }
 function ansSavedSay_(k) {
   k = String(k || '');
@@ -514,6 +576,13 @@ function ansSavedSay_(k) {
   return name ? 'Saved to ' + name + '’s account' : 'Saved to your account';
 }
 function ansSavedPaint_() {
+  /* AND THE PEN'S AND THE RINGS' NOTE, which a refused stroke or an ended session changes too. */
+  try {
+    document.querySelectorAll('[data-kept-k]').forEach(el => {
+      const say = padNoteSay_(el.getAttribute('data-kept-k'));
+      if (el.textContent !== say) el.textContent = say;
+    });
+  } catch (e) {}
   try {
     document.querySelectorAll('.qp-saved[data-k]').forEach(el => {
       const say = ansSavedSay_(el.getAttribute('data-k'));

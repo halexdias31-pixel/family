@@ -1246,8 +1246,8 @@ let proofRules = 0;
     if (gone.success || gone.why !== 'signed-out') no('the token that signed out still works', gone);
     /* AND A PIN CHANGED ON ONE ENDS THE OTHER, as it always did. */
     const pc2 = signIn(b, 'sam@example.org', PLACE);
-    const NEWPIN = ['8', '3', '6', '1', '4', '7'].join('');
-    const ch = post(b, { action: 'changePin', token: pc2.token, currentPin: PLACE, newPin: NEWPIN });
+    /* THE FILE'S OWN SECOND PIN (`ZERO2`, at the top) — no new one is written into a public repository. */
+    const ch = post(b, { action: 'changePin', token: pc2.token, currentPin: PLACE, newPin: ZERO2 });
     if (!ch.success) no('changePin refused, so the PIN half was NOT checked', ch);
     else if (post(b, { action: 'myProfile', token: pc.token }).success) no('a PIN changed on one device left the other signed in — that is the case where ending every session is the point');
   }

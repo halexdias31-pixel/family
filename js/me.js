@@ -653,7 +653,12 @@ on('signout', () => {
   const tok = USER && USER.token;
   let last = Promise.resolve();
   try { if (typeof answersPush_ === 'function') last = answersPush_(true); } catch (err) {}
-  Promise.resolve(last).catch(() => {}).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
+  /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up
+     (`keepDue_`, data.js) — each is sent only while somebody is signed in, so after `signedOut_` below
+     the words typed in the last second and a half reached nobody (review of 317). */
+  let due = Promise.resolve();
+  try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) {}
+  Promise.all([Promise.resolve(last).catch(() => {}), due]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
   signedOut_();
   toast('Signed out');
 });
@@ -1649,6 +1654,9 @@ document.addEventListener('keydown', e => {
 
 function msgPost_(p) {
   p.state = 'sending'; p.err = ''; p.why = '';
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server is still answering drew these
+     words back in the composer, after the server had them, for a second Send (`draftSent_`, data.js). */
+  try { if (typeof draftSent_ === 'function') draftSent_('msg', p.withId, p.body); } catch (e) {}
   const files = p.queue.length ? Promise.all(p.queue.map(msgRead_)) : Promise.resolve([]);
   return files.then(read => {
     /* ---------- A FILE THAT COULD NOT BE READ IS NEVER LEFT OUT IN SILENCE ------------------------
@@ -1673,7 +1681,7 @@ function msgPost_(p) {
   }).then(d => {
     p.state = 'sent'; p.id = (d && d.id) || '';
     /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
-    try { if (typeof draftRead_ === 'function' && String(draftRead_('msg', p.withId) || '').trim() === p.body) draftDrop_('msg', p.withId); } catch (e) {}
+    try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) {}
     toast(p.inSheet ? 'Sent to ' + p.withName : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
@@ -1683,6 +1691,8 @@ function msgPost_(p) {
     });
   }).catch(err => {
     p.state = 'failed';
+    /* NOT SENT, SO A DRAFT AGAIN — kept for a reload, as the bubble keeps it for this page. */
+    try { if (typeof draftSentBack_ === 'function') draftSentBack_('msg', p.withId, p.body); } catch (e) {}
     /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
        what is shown, rather than a "Not sent" that throws that away. */
     p.err = String((err && err.message) || 'Not sent.');
@@ -2556,7 +2566,7 @@ function settingsPages_() {
      grid and everything else is a column of boxes, and a second walk here would be a second answer
      to that question. Its own note says so: "one walk now, so a group of hour codes becomes a
      timetable everywhere rather than only where somebody remembered." */
-  const pages = Object.keys(groups).map(g => `<div class="card">
+  const pages = Object.keys(groups).map(g => setHeldSay_(`<div class="card">
     <div class="me-form">${fieldsHtml({ [g]: groups[g] }, {
       /* A CARD'S TITLE IS AN `h3` — see the note over `fieldsHtml`. Each group is a card here, so
          the group's name IS that card's title rather than a divider inside it. */
@@ -2579,7 +2589,7 @@ function settingsPages_() {
             (groups[g] || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
       ${(groups[g] || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
       <p class="faint me-said"></p></div>
-  </div>`);
+  </div>`));
 
   /* ---------- YOUR HANDLE, BEFORE THE PIN AND FOR THE SAME REASON -------------------------------
      THE TWO THINGS ABOUT AN ACCOUNT THAT DO NOT GO THROUGH `Save`. Everything above is
@@ -3283,6 +3293,16 @@ function fieldOptions_(f) {
 /* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. */
 const setDraftOk_ = name => typeof draftAttr_ === 'function' && !FIELD_MULTI[name]
   && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
+/* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO ----------------------------------------------------------
+   SAVE SENDS EVERY BOX OF ITS CARD (`meSave_`), so a box holding an edit made before a reload and never
+   saved went up with a Save pressed for the box beside it — and nothing on the card said the city in
+   front of you was not the one on the sheet (review of 317). `draftAttr_` marks a box drawn holding a
+   draft (`data-draft-held`); its card's line says so until the next Save writes over it. */
+const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in its box. Save keeps it.';
+function setHeldSay_(html) {
+  return /\sdata-draft-held\b/.test(html)
+    ? html.replace('<p class="faint me-said"></p>', '<p class="faint me-said">' + esc(SET_HELD_SAY) + '</p>') : html;
+}
 function fieldHtml(name, value, o) {
   o = o || {};
   /* THE EXTRA-SEAT FIGURE IS A SHARE OF THE RATE, NOT POUNDS, and nothing on the box said so: a tutor

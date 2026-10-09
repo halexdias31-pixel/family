@@ -74,7 +74,8 @@ protects a child.
 **AN EMPTY BOX OVER AN ANSWER THAT IS STILL HERE SAYS SO.** `api()` notes whose session the server ended
 (`familyGone`, read before `signedOut_` forgets them), and `ansGoneSay_` puts *"Signed out — sign in
 again and your answer is back"* under a signed-out box whose question that person had answered. Words
-only; the answer stays theirs and comes back on sign-in. Cleared by any sign-in or chosen sign-out.
+only; the answer stays theirs and comes back on sign-in. Cleared by any sign-in or chosen sign-out, and
+said for an hour at most (see "After the review").
 
 **ONE WRITER FOR WHAT A PERSON MADE: `keepPut_` (data.js).** Answers (`ansLocalPut_`) and drafts both go
 through it.
@@ -101,9 +102,10 @@ drawing and ring showing a key another tab just wrote that tab's value — a foc
 it, `draftDrop_` when it is sent, saved or cancelled, and ONE delegated `input`/`change` listener that
 keeps every `[data-draft]` box. Keys are `draft:<who>:<surface>:<id>` — `u:<person>` signed in, `device`
 signed out, and a device's draft lasts `DRAFT_DEVICE_MS` (six hours: a reload, not tomorrow's visitor).
-Typed back to the saved value, it is no draft. **Never a PIN**: `DRAFT_NEVER` refuses any surface or id
-naming a PIN, password, passcode, CVC or CVV, and `draftFrom_` skips password, file and hidden boxes
-whatever the markup says.
+Typed back to the saved value, it is no draft. **Never a PIN**: `DRAFT_NEVER` (through `draftNever_`)
+refuses any surface or id naming a PIN, password, passcode, CVC or CVV, a card, sort code or account
+number — camelCase and joined names too — and `draftFrom_` skips password, file and hidden boxes whatever
+the markup says.
 
 | Surface | Draft | Dropped when |
 |---|---|---|
@@ -191,13 +193,74 @@ it is re-made in one tap, and the settings ones are drafts anyway.
   backend — so nothing new was needed in `check/`. The hunts' Chromium scripts stay in the session's
   scratchpad, not here.
 
+### After the review
+
+Two reviewers drove the change in Chromium. What they found, and what was done:
+
+- **SENT, THEN RELOADED WHILE APPS SCRIPT WAS STILL ANSWERING, AND IT CAME BACK AS A DRAFT.** The draft was
+  dropped only in the reply's `.then`, and a page that has gone never gets the reply. So the message
+  came back in the composer, the comment came back in its box and the whole booking came back in its
+  form, all after the server had them, and Send sent them again. A booking got a new requestId on each
+  press, so the backend's guard could not catch it. Now the press marks the draft **sent** (`draftSent_`).
+  The page that sent it still draws it, so a slow reply does not empty a comment box. Every other page
+  (the reload, another tab) draws the box without it. The reply drops it (`draftSentDone_`) and a refusal
+  gives it back (`draftSentBack_`). This covers messages, comments, the new-post sheet and all three of the
+  booking's requests (`bookSending_`). **The first fix did not hold in Chromium.** A reload aborts the
+  request that is still out. The abort reaches each `.catch` as a failure, so the draft was given back on
+  the way out. `draftSentBack_` now does nothing once `pagehide` has fired, and the journey's first page
+  aborts on `pagehide` in the same way.
+- **AN UNSAVED SETTINGS EDIT WON OVER A NEWER SAVED VALUE, AND THE NEXT SAVE OF ITS CARD WROTE IT.** Take a
+  city: "Oldtown" on the sheet, "Samtown" typed on the computer and never saved, "Newtown" saved on the
+  iPad. After a reload the computer drew "Samtown", and Save pressed for the postcode wrote "Samtown" over
+  "Newtown". A Save sends every box of its card, and the edit-post sheet and the business records do the
+  same. Now a draft keeps the saved value it was typed over (`from`). A box drawn over a different saved
+  value draws the saved one. That draft is not dropped there, because a card drawn before its values
+  arrive is drawn over blanks. A box drawn holding a draft carries `data-draft-held`, and a settings card
+  holding one says *"Not saved yet — what you typed here before is still in its box. Save keeps it."*
+- **AFTER A SESSION THE SERVER ENDED, WHAT WAS TYPED SIGNED OUT WENT TO THE NEXT CHILD.** Sam's session was
+  ended and he typed "More words" into his empty signed-out box. Kit signed in next and opened the
+  question. `ansRead_` moves a signed-out answer into an empty signed-in box, so Sam's words went into
+  Kit's account. Now a signed-out answer written while such a session is fresh is marked as that
+  person's (`familyGoneKeys`, `ansGoneMark_`). `ansRead_` and `padAdopt_` move it into nobody else's box
+  (`ansGoneOthers_`), and it stays under the signed-out key. A signed-out answer with no ended session
+  still follows whoever signs in, as before. **`familyGone` is `{ who, at }` and is said for an hour**
+  (`ANS_GONE_MS`). Before, every later signed-out visitor on the iPad was told "your answer is back" under
+  each question the other child had answered.
+- **SIGN OUT BEFORE THE NOTEPAD'S 1.4 S** (or the docket's 0.9 s): those sends go only while somebody is
+  signed in, so the words reached nobody. Sign out now sends what `keepDue_` holds (`keepFlush_` returns a
+  promise of them) before it ends the session.
+- **TWO TABS, A DRAFT:** a stale tab's first key wrote over the other tab's draft. A `storage` listener in
+  data.js now does for drafts what answers.js does for answers. A draft the other tab sent empties this
+  tab's identical box. The booking form is read in again (`bookElsewhere_`) without being written back.
+- **NOTHING SWEPT DRAFTS.** `draftSweep_` runs at load. It removes a device's draft after 6 hours, a sent
+  one never answered after 10 minutes, anybody's after 30 days, and the oldest past 200.
+- **`check-drafts` PASSED A BOX THAT KEPT A DRAFT AND NEVER DREW IT BACK.** It now asks for
+  `draftVal_('<surface>', <same id>` in the tag, in a textarea's words, in the tag's function or in a
+  helper the tag calls. A function with one box of that surface may use another name for the id. It also
+  runs the real `draftNever_` on `pinNew`, `newPin`, `pincode`, `card_number`, `sortcode`, …
+- **The booking's addresses** stay a draft only until `change`. **The pen's and the rings' note** says
+  "Not saved" over strokes the store refused, and "Signed out" over a pad an ended session emptied
+  (`padNoteSay_`, refreshed with the answer lines). **No PIN but `0000`** is written in the new journeys.
+
+Checked by five more `check-flow` journeys, plus a line on the refused-store journey for the pen's note.
+**Fourteen mutations went red, and the real files are green**: the sent mark ignored, the abort giving the
+draft back, the booking, the comment and the refusal each unwired, `from` ignored, no held marker, the gone
+mark ignored, `familyGone` never expiring, sign-out not flushing, no draft `storage` listener, no sweep,
+the addresses not dropped, and the pen's note ignoring a refusal. `check-drafts` was mutated five ways and
+went red each time. In Chromium, the reviewers' own scripts now show: the composer and the comment box
+empty after the reload with the server holding one message, and Send sending nothing more. The booking
+form comes back blank. Sending a blank form still posts, as it did before 317. The city is drawn as
+"Newtown" and Save sends "Newtown". Kit's box is empty and "More words" stays under the signed-out key.
+The notepad and the docket reach the account. Tab B's composer shows tab A's draft.
+
 ### For the owner
 
 1. **Now, before anything is deployed:** sign the child in again on that computer and open Q5. If the
    session had been ended from the iPad, the essay is still there.
 2. **To stop it happening that way again**, `backend/` has to reach Apps Script (route 1 in CLAUDE.md,
    the GitHub Assistant's ↓) and the web app needs **Deploy → Manage deployments → edit → New version**.
-   The You screen shows `2026-10-09-b-autosave` on all four when it has landed. Until then, a session
+   The You screen shows `2026-10-09-b-autosave` on all four when it has landed (or the single stamp the
+   merge chose: the essay and submissions work set the same four lines). Until then, a session
    ended elsewhere still empties the box on the screen — but the box now says why, and signing in again
    brings the answer back.
 
@@ -211,9 +274,14 @@ it is re-made in one tap, and the settings ones are drafts anyway.
 - **A late payload takes the focus off the box** (shell.js's "a field on a card that has left is let go
   of", reached ~4 s after the payload landed with the column held) and the next word is dropped. Nothing
   stored is lost. Not traced further.
-- **Keys typed while signed out by the server stay under the signed-out key**: `ansRead_` moves a
-  signed-out answer only into an EMPTY signed-in box, so a child who typed five characters there finds
-  them under the next signed-out visitor's box. The line under the box now makes typing there unlikely.
+- **Keys typed while signed out by the server stay under the signed-out key**: they are no longer moved
+  into anybody else's account (above), but `ansRead_` moves a signed-out answer only into an EMPTY box,
+  so the child's "More words" are not added to the essay he signs back in to. The next signed-out
+  visitor on that computer still sees them. **318's `answersClaim_`** (signing in claims every signed-out
+  answer) must ask `ansGoneOthers_` too when the two are merged.
+- **A send the reload cut off before the server received it is not offered back.** It is marked sent and
+  swept ten minutes later. Behaviour from before 317, and the rarer case: a request still out after the
+  page has gone has almost always arrived.
 - **A `USER` with no `personId`** filed answers under `u:<name>`; `profileRefresh_` fills the id in, and
   the key changes. Read in the code, not reproduced; every sign-in reply carries the id.
 - Not kept, and listed as arguable by the inventory: a Check or AI verdict (an AI mark costs one of the

@@ -13830,12 +13830,15 @@ check('a reload keeps what was typed and not yet sent: the composer, a comment, 
   else { type(W, pc, 'Thursday at the library'); type(W, pb, 'Twelve of them, and'); }
   /* A PIN IS NEVER WRITTEN DOWN — not a sheet's, and not one a box carrying a draft would have kept. */
   W.closeSheet && W.closeSheet();
-  const PIN = ['4', '9', '1', '7'].join('');
+  /* `0000`, the one PIN this public repository writes down — so a leak is looked for as a VALUE: the PIN
+     itself, or quoted inside a stored JSON (a draft's `"v":"0000"`), never as digits in a timestamp. */
+  const PIN = '0000';
+  const holds = v => String(v) === PIN || String(v).indexOf('"' + PIN + '"') !== -1;
   const trap = draw(W, '<input type="text" data-draft="set:lib1_pin"><input type="password" data-draft="reg:pin">');
   trap.querySelectorAll('input').forEach(el => type(W, el, PIN));
   W.dispatchEvent(new W.Event('pagehide'));
   const kept = keptStore_(W);
-  const leak = Object.keys(kept).filter(k => String(kept[k]).indexOf(PIN) !== -1);
+  const leak = Object.keys(kept).filter(k => holds(kept[k]));
   if (leak.length) bad.push('a PIN was written to the device under ' + leak.join(', '));
   const two = boot({ before: fromStore_(kept) });
   await wait(300);
@@ -13875,7 +13878,7 @@ check('a reload keeps what was typed and not yet sent: the composer, a comment, 
     type(w, rp, PIN);
     w.dispatchEvent(new w.Event('pagehide'));
     const kept3 = keptStore_(w);
-    if (Object.keys(kept3).some(k => String(kept3[k]).indexOf(PIN) !== -1)) bad.push('the PIN typed into the make-an-account sheet was written to the device');
+    if (Object.keys(kept3).some(k => holds(kept3[k]))) bad.push('the PIN typed into the make-an-account sheet was written to the device');
     const three = boot({ before: fromStore_(kept3) });
     await wait(300);
     three.w.registerSheet_();
@@ -13942,6 +13945,10 @@ check('a store that refuses the write: the box keeps the visit\'s copy through a
     c.draw();
     if (c.ta().value.length !== 252) bad.push('a redraw drew the box with ' + c.ta().value.length + ' characters — the store\'s older copy over the visit\'s 252');
     if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('under a refused answer the line says ' + JSON.stringify(c.saidFor(c.words)));
+    /* AND THE PEN'S NOTE (review of 317): a stroke the store refused is not "kept on this device". */
+    ansStroke_(w, c, [[10, 10], [60, 60], [90, 20]]);
+    const note = c.pad() && c.pad().querySelector('[data-kept-k]');
+    if (!note || note.textContent !== 'Not saved — this browser is not keeping it.') bad.push('under a drawing the store refused, the pad says ' + JSON.stringify(note && note.textContent));
     ansType_(w, c.ta(), c.ta().value + 'b');
     if (String(w.ansValue_(k)).length !== 253) bad.push('the next key after the redraw left the visit\'s copy at ' + String(w.ansValue_(k)).length + ', wanted 253');
     const ev = new w.Event('beforeunload', { cancelable: true });
@@ -14082,6 +14089,210 @@ check('a reload puts Find back on the question: the column, the paper\'s chip an
   const three = boot({ serve, before: fromStore_(stale) });
   await wait(1200);
   if (three.w.__t.AT() === 'stuff' && (three.w.__t.STUFF().filters || []).length) bad.push('a visit seven minutes after leaving was put back on the essay — "remembered for a reload, not for tomorrow"');
+  return bad;
+});
+
+/* ---------- AND WHAT THE REVIEW OF 317 FOUND (docs/history/317, "After the review") ------------------ */
+const draftBox_ = (w, html) => { const h = w.document.createElement('div'); w.document.body.appendChild(h); h.innerHTML = html; return h; };
+const draftType_ = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+
+check('sent while the server is still answering, then reloaded: the message, the comment and the booking are not drawn back — and a refusal gives the words back', async () => {
+  /* THE FIRST PAGE NEVER HEARS BACK: Apps Script is still answering when the page goes, and the browser
+     ABORTS what is still out as the page goes — which reaches each `.catch` as a failure (measured in
+     Chromium: that failure gave the draft back on the way out, and the reload drew the message again). */
+  let one = null;
+  const cut = () => new Promise((_, no) => one.w.addEventListener('pagehide', () => setTimeout(() => no(new TypeError('Failed to fetch')), 0)));
+  one = boot({ before: signedInAs_(ANS_ADA), reply: b => (/^(sendMessage|addComment|createJob)$/.test(b.action) ? cut() : undefined) });
+  await wait(300);
+  const W = one.w;
+  const fns = ['msgForm_', 'commentsHtml_', 'noteRow_', 'draftRead_', 'draftSent_'].filter(n => typeof W[n] !== 'function');
+  if (fns.length) return [fns.join(', ') + ' not reachable — nothing was sent'];
+  const bad = [];
+  const MSG = 'Can we move Tuesday to Wednesday please', CMT = 'Lovely photo of the library', NOTE = 'Tuesdays after school';
+  const form = draftBox_(W, W.msgForm_('Tom Tutor', 'P-TOM'));
+  draftType_(W, form.querySelector('.msg-text'), MSG);
+  W.__t.ACTIONS['msg-send'](form.querySelector('[data-do="msg-send"]'));
+  const post = { id: 'POST-S', comments: { list: [], total: 0 } };
+  const cf = draftBox_(W, W.commentsHtml_(post));
+  draftType_(W, cf.querySelector('.cmt-text'), CMT);
+  W.__t.ACTIONS['cmt-add'](cf.querySelector('[data-do="cmt-add"]'));
+  draftType_(W, draftBox_(W, W.noteRow_().sel).querySelector('[data-do="book-note"]'), NOTE);
+  W.__t.ACTIONS['book-send'](W.document.createElement('button'));
+  await wait(50);
+  const went = one.sent.map(b => b.action);
+  ['sendMessage', 'addComment', 'createJob'].forEach(a => { if (went.indexOf(a) < 0) bad.push(a + ' was never sent, so it was NOT checked: ' + JSON.stringify(went)); });
+  /* IN THE PAGE THAT IS SENDING: a redraw keeps the comment in its box under a slow reply, as it always did. */
+  if (draftBox_(W, W.commentsHtml_(post)).querySelector('.cmt-text').value !== CMT) bad.push('in the page sending it, a redraw emptied the comment box while the server was still answering');
+  W.dispatchEvent(new W.Event('pagehide'));
+  await wait(30);
+  /* THE RELOAD: the server has all three by now, and says so if asked again. */
+  const two = boot({ before: fromStore_(keptStore_(W)), reply: b => (b.action === 'sendMessage' ? { error: 'One message every five minutes.' } : undefined) });
+  await wait(300);
+  const w = two.w;
+  const msg2 = draftBox_(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  if (msg2.value) bad.push('after the reload the composer holds ' + JSON.stringify(msg2.value) + ' — sent already, and one press from going twice');
+  const cmt2 = draftBox_(w, w.commentsHtml_(post)).querySelector('.cmt-text');
+  if (cmt2.value) bad.push('after the reload the comment box holds ' + JSON.stringify(cmt2.value));
+  if (w.__t.BOOKING.note) bad.push('after the reload the booking form came back with the note ' + JSON.stringify(w.__t.BOOKING.note) + ' — one press from a second createJob');
+  /* A REFUSAL GIVES THE WORDS BACK, for this page and the next. */
+  const f2 = msg2.closest('.msg-form');
+  draftType_(w, msg2, 'Second try');
+  w.__t.ACTIONS['msg-send'](f2.querySelector('[data-do="msg-send"]'));
+  await wait(100);
+  if (w.draftRead_('msg', 'P-TOM') !== 'Second try') bad.push('a message the server refused is not a draft again: ' + JSON.stringify(w.draftRead_('msg', 'P-TOM')));
+  w.dispatchEvent(new w.Event('pagehide'));
+  const three = boot({ before: fromStore_(keptStore_(w)) });
+  await wait(300);
+  const msg3 = draftBox_(three.w, three.w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  if (msg3.value !== 'Second try') bad.push('after a refusal and a reload the composer holds ' + JSON.stringify(msg3.value) + ', wanted the words that did not go');
+  return bad;
+});
+
+check('an unsaved settings edit is not drawn over a newer saved value, the next Save of its card does not send it, and a card holding one says so', async () => {
+  let posted = null;
+  const PROFILE = { phone_cc: '+44', headline: 'NEWER, saved on the iPad', favourite_colour: 'blue', first_name: 'Ada' };
+  const { w } = boot({ before: signedInAs_(Object.assign({}, ANS_ADA, { profile: PROFILE })),
+    reply: b => { if (b.action === 'updateProfile') { posted = b; return { success: true, profile: Object.assign({}, PROFILE, b.fields) }; } } });
+  await wait(300);
+  if (typeof w.fieldHtml !== 'function' || typeof w.meSave_ !== 'function') return ['fieldHtml / meSave_ not reachable — nothing was checked'];
+  const bad = [];
+  const card = head => draftBox_(w, '<div class="me-form">' + w.fieldHtml('headline', head, {}) + w.fieldHtml('favourite_colour', 'blue', {})
+    + '<button data-do="me-save" class="sv">Save</button><p class="faint me-said"></p></div>');
+  /* ON THE LAPTOP: typed over "Maths, mostly" and never saved. */
+  draftType_(w, card('Maths, mostly').querySelector('[data-me="headline"]'), 'typed on the laptop, never saved');
+  /* THE SAME SAVED VALUE AGAIN: drawn holding the edit, and marked as holding one. */
+  const same = card('Maths, mostly').querySelector('[data-me="headline"]');
+  if (same.value !== 'typed on the laptop, never saved') bad.push('over the value it was typed over, the box was drawn holding ' + JSON.stringify(same.value) + ' — the draft is lost');
+  if (!same.hasAttribute('data-draft-held')) bad.push('a box drawn holding an unsaved edit is not marked as holding one');
+  if (!/Not saved yet/.test(w.setHeldSay_(w.fieldHtml('headline', 'Maths, mostly', {}) + '<p class="faint me-said"></p>'))) bad.push('a card holding an unsaved edit does not say so under it');
+  /* SAVED ON THE iPAD SINCE: the newer value is drawn, and Save on the card for another box sends that. */
+  const f = card(PROFILE.headline);
+  const hb = f.querySelector('[data-me="headline"]');
+  if (hb.value !== PROFILE.headline) bad.push('drawn over a value saved elsewhere since, the box holds ' + JSON.stringify(hb.value) + ' — the older edit over the newer save');
+  if (hb.hasAttribute('data-draft-held')) bad.push('a box drawn holding the saved value is marked as holding a draft');
+  draftType_(w, f.querySelector('[data-me="favourite_colour"]'), 'green');
+  await w.meSave_(f.querySelector('.sv'));
+  await wait(100);
+  const fields = (posted && posted.fields) || {};
+  if (!posted) bad.push('Save sent nothing, so what it sends was NOT checked');
+  else if (fields.headline !== PROFILE.headline) bad.push('Save for the colour sent the headline ' + JSON.stringify(fields.headline) + ' over the newer ' + JSON.stringify(PROFILE.headline));
+  if (w.draftRead_('set', 'headline') !== null) bad.push('the stale edit is still kept after its card was saved');
+  return bad;
+});
+
+check('the server ended a session: what is typed signed out afterwards is not handed to the next child who signs in, and the line is for the hour, not for ever', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(one.w).concat(['ansGoneOthers_'].filter(n => typeof one.w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  let c = ansCards_(one.w, 'H');
+  ansType_(one.w, c.ta(), RELOAD_ESSAY);
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  const two = boot({ before: fromStore_(keptStore_(one.w)),
+    reply: b => (b.token === 'tok-P7' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+  for (let i = 0; i < 40 && two.w.__t.whoami(); i++) await wait(50);
+  const w = two.w;
+  if (w.__t.whoami()) return ['the server refused the session and the app stayed signed in — NOT checked'];
+  c = ansCards_(w, 'H');
+  const LINE = 'Signed out — sign in again and your answer is back';
+  if (c.saidFor(c.words) !== LINE) bad.push('under the empty box the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — NOT the setup this journey needs');
+  /* AN HOUR ON, THE LINE IS NOBODY'S BUSINESS: the next visitor is not told what Ada answered. */
+  const gone = JSON.parse(w.localStorage.getItem('familyGone') || '{}');
+  w.localStorage.setItem('familyGone', JSON.stringify(Object.assign({}, gone, { at: Date.now() - 2 * 60 * 60 * 1000 })));
+  c.draw();
+  if (c.saidFor(c.words) === LINE) bad.push('two hours after the session ended, every signed-out visitor is still told "your answer is back" under what Ada answered');
+  w.localStorage.setItem('familyGone', JSON.stringify(gone));
+  c.draw();
+  /* ADA, STILL AT THE COMPUTER, TYPES ON INTO THE EMPTY BOX. */
+  ansType_(w, c.ta(), 'More words');
+  const bare = 'ans:' + c.words.key;
+  if (w.localStorage.getItem(bare) !== 'More words') bad.push('the words typed signed out are not under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(bare)));
+  /* BEN SIGNS IN NEXT AND OPENS THE QUESTION: not his. */
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  c.draw();
+  if (c.ta().value) bad.push('Ben signed in and his box holds ' + JSON.stringify(c.ta().value) + ' — Ada\'s words, filed under Ben');
+  if (w.localStorage.getItem('ans:u:P8:' + c.words.key) !== null) bad.push('Ada\'s words were moved into Ben\'s account');
+  if (w.localStorage.getItem(bare) !== 'More words') bad.push('Ada\'s words are gone from under the signed-out key after Ben opened the question');
+  /* ADA AGAIN: her essay, whole. */
+  w.signedIn_(Object.assign({}, ANS_ADA));
+  c.draw();
+  if (c.ta().value !== RELOAD_ESSAY) bad.push('Ada signed in again and her box holds ' + c.ta().value.length + ' characters, wanted her essay');
+  /* AND A SIGNED-OUT ANSWER WITH NO SESSION ENDED STILL FOLLOWS WHOEVER SIGNS IN, as it always did. */
+  w.signedOut_();
+  w.localStorage.removeItem('familyGone');
+  const c2 = ansCards_(w, 'H2');
+  ansType_(w, c2.ta(), 'mine, signed out');
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  c2.draw();
+  if (c2.ta().value !== 'mine, signed out') bad.push('with no session ended, a signed-out answer did not follow Ben into his account: ' + JSON.stringify(c2.ta().value));
+  return bad;
+});
+
+check('signing out sends the notepad typed a moment before — what waits for its moment goes before the session it needs is ended', async () => {
+  const { w, sent } = boot({ before: signedInAs_(Object.assign({}, ANS_ADA, { notepad: 'saved earlier' })) });
+  await wait(300);
+  if (typeof w.keepFlush_ !== 'function') return ['keepFlush_ not reachable — nothing was checked'];
+  const bad = [];
+  const pad = draftBox_(w, '<textarea id="notepad"></textarea>').querySelector('#notepad');
+  draftType_(w, pad, 'Revise circles before Thursday');
+  w.__t.ACTIONS.signout(w.document.createElement('button'));
+  await wait(100);
+  const order = sent.map(b => b.action);
+  const save = sent.find(b => b.action === 'saveNotepad');
+  if (!save) bad.push('signing out 100 ms after typing in the notepad sent ' + JSON.stringify(order) + ' — the words never reach the account');
+  else if (save.notepad !== 'Revise circles before Thursday' || save.token !== 'tok-P7') bad.push('the notepad went up as ' + JSON.stringify({ notepad: save.notepad, token: save.token }));
+  if (save && order.indexOf('signOut') >= 0 && order.indexOf('signOut') < order.indexOf('saveNotepad')) bad.push('the session was ended before the notepad went: ' + JSON.stringify(order));
+  return bad;
+});
+
+check('drafts across tabs, the booking\'s addresses, and nothing kept for ever', async () => {
+  const OLD = Date.now() - 31 * 24 * 60 * 60 * 1000;
+  const seed = win => {
+    signedInAs_(ANS_ADA)(win);
+    const put = (k, d) => win.localStorage.setItem(k, JSON.stringify(d));
+    put('draft:u:P7:cmt:GONE', { v: 'on a post deleted last month', at: OLD });
+    put('draft:device:reg:first', { v: 'Ivy', at: Date.now() - 7 * 60 * 60 * 1000 });
+    put('draft:u:P7:msg:LONG', { v: 'sent, and never heard back', at: Date.now() - 20 * 60 * 1000, sent: Date.now() - 11 * 60 * 1000 });
+    put('draft:u:P7:msg:OUT', { v: 'on its way in another tab', at: Date.now() - 60 * 1000, sent: Date.now() - 60 * 1000 });
+    put('draft:u:P7:msg:KEEP', { v: 'half a sentence', at: Date.now() - 60 * 1000 });
+  };
+  const { w } = boot({ before: seed });
+  await wait(300);
+  const bad = [];
+  const has = k => w.localStorage.getItem(k) !== null;
+  if (has('draft:u:P7:cmt:GONE')) bad.push('a draft a month old was not swept');
+  if (has('draft:device:reg:first')) bad.push('a signed-out device\'s draft from seven hours ago was not swept');
+  if (has('draft:u:P7:msg:LONG')) bad.push('a draft sent eleven minutes ago and never answered was not swept');
+  if (!has('draft:u:P7:msg:OUT')) bad.push('a draft another tab sent a minute ago was swept from under it');
+  if (w.draftRead_('msg', 'OUT') !== null) bad.push('a draft on its way from another tab is drawn here as a draft');
+  if (w.draftRead_('msg', 'KEEP') !== 'half a sentence') bad.push('a fresh draft was swept');
+  /* ANOTHER TAB WRITES THE COMPOSER'S DRAFT, then sends it. */
+  const box = draftBox_(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  const k = 'draft:u:P7:msg:P-TOM', v1 = JSON.stringify({ v: 'Dear Tom, I could not do question five because', at: Date.now(), from: '' });
+  w.localStorage.setItem(k, v1);
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: null, newValue: v1 }));
+  if (box.value !== 'Dear Tom, I could not do question five because') bad.push('the other tab\'s draft did not reach this tab\'s composer: ' + JSON.stringify(box.value));
+  draftType_(w, box, box.value + '?');
+  if (w.draftRead_('msg', 'P-TOM') !== 'Dear Tom, I could not do question five because?') bad.push('one key here wrote ' + JSON.stringify(w.draftRead_('msg', 'P-TOM')) + ' over the other tab\'s draft');
+  const v1b = w.localStorage.getItem(k), v2 = JSON.stringify({ v: box.value, at: Date.now(), from: '', sent: Date.now() });
+  w.localStorage.setItem(k, v2);
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: v1b, newValue: v2 }));
+  if (box.value) bad.push('the other tab sent the message and this composer still holds it, for a second Send: ' + JSON.stringify(box.value));
+  /* THE ADDRESSES: a draft until `change` makes them answers, and then not. */
+  const st = w.__t.STEPS.find(s => s.emails);
+  if (!st || typeof w.stepInput_ !== 'function') bad.push('no addresses step to type into, so it was NOT checked');
+  else {
+    const h = draftBox_(w, w.stepInput_(st));
+    const el = h.querySelector('[data-do="book-emails"]');
+    el.value = 'a@example.org,b@example.org,';
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    el.dispatchEvent(new w.Event('change', { bubbles: true }));
+    if (JSON.stringify(w.__t.BOOKING[st.id]) !== '["a@example.org","b@example.org"]') bad.push('the addresses did not become answers: ' + JSON.stringify(w.__t.BOOKING[st.id]));
+    if (w.draftRead_('book', 'emails:' + st.id) !== null) bad.push('the addresses as typed are still a draft after `change` made them answers: ' + JSON.stringify(w.draftRead_('book', 'emails:' + st.id)));
+    h.innerHTML = w.stepInput_(st);
+    if (h.querySelector('[data-do="book-emails"]').value !== 'a@example.org, b@example.org') bad.push('the redrawn box holds ' + JSON.stringify(h.querySelector('[data-do="book-emails"]').value) + ', not the answers');
+  }
   return bad;
 });
 

@@ -13,9 +13,13 @@
 
    SO EVERY `<input>`, `<textarea>` AND `contenteditable` THE APP DRAWS is one of:
      ANSWER   an answer box — saved on every keystroke through `ansStore_` (js/answers.js)
-     DRAFT    carries `draftAttr_(…)` (js/data.js), so it is kept as it is typed and drawn back holding
-              it — and the surface it names must be dropped somewhere (`draftDrop_`), or a sent message
-              would come back in the box after the next reload
+     DRAFT    carries `draftAttr_(…)` (js/data.js), so it is kept as it is typed — and is DRAWN BACK
+              holding it: `draftVal_` for the same surface and id, in the tag, in a textarea's words, in
+              the function the tag is written in, or in a helper the tag calls (the review of 317 took
+              `draftVal_` out of the comment box and this still said OK — a draft kept and never shown
+              is a reload that loses the words while the device holds them). And the surface it names
+              must be dropped somewhere (`draftDrop_`), or a sent message would come back in the box
+              after the next reload
      KEPT     saved by its own code the moment it changes (the notepad, the timetable, the cheat sheet,
               the docket, the qualification shelf, the booking note through `BOOKING`) — each with a
               PROOF: a line of the code that does it, which must still be there
@@ -161,7 +165,10 @@ for (const f of FILES) {
         const tag = t[1].toLowerCase();
         const text = tagAt(src, a + t.index);
         if (!(tag === 'input' || tag === 'textarea' || /\scontenteditable\b/i.test(text))) continue;
-        sites.push({ file: f, fn: name, line: src.slice(0, a + t.index).split('\n').length, tag, text: text.replace(/\s+/g, ' ') });
+        /* A TEXTAREA'S VALUE IS ITS WORDS, between the tag and `</textarea>` — where its draft is drawn. */
+        const from = a + t.index + text.length, close = tag === 'textarea' ? src.indexOf('</textarea>', from) : -1;
+        const body = close > from && close - from < 600 ? src.slice(from, close) : '';
+        sites.push({ file: f, fn: name, line: src.slice(0, a + t.index).split('\n').length, tag, text: text.replace(/\s+/g, ' '), body });
       }
     }
     if (n.type === 'CallExpression' && n.callee && n.callee.property && n.callee.property.name === 'createElement'
@@ -182,15 +189,35 @@ const bad = [];
 const said = [];
 const hits = new Map();
 const matches = (e, s) => s.file === e.file && (!e.fn || s.fn === e.fn) && (!e.has || s.text.indexOf(e.has) !== -1);
-/* A DRAFT: `draftAttr_(` in the tag, or `${name}` where the function the tag is in sets `name` from it. */
-function draftOf(s) {
-  if (/draftAttr_\(|data-draft=/.test(s.text)) return (s.text.match(/draftAttr_\(\s*'([\w-]+)'/) || [])[1] || '?';
+/* A DRAFT: `draftAttr_(` in the tag, or `${name}` where the function the tag is in sets `name` from it.
+   The surface, and the id as written (`'first'`, `p.id`, `item.id + ':' + k`), for `drawnBack` below. */
+const ATTR = /draftAttr_\(\s*'([\w-]+)'\s*(?:,\s*([^,)]+))?/;
+function draftCall(s) {
+  if (/draftAttr_\(/.test(s.text)) { const m = ATTR.exec(s.text); return m ? { surface: m[1], id: (m[2] || '').trim() } : { surface: '?', id: '' }; }
+  const lit = /data-draft="([\w-]+):([^"]*)"/.exec(s.text);
+  if (lit) return { surface: lit[1], id: '' };
   const body = fnSrc[s.file + ':' + s.fn] || '';
   for (const x of s.text.matchAll(/\$\{\s*([A-Za-z_$][\w$]*)\s*\}/g)) {
-    const set = new RegExp('\\b' + x[1] + '\\s*=\\s*[^;]*?draftAttr_\\(\\s*\'([\\w-]+)\'').exec(body);
-    if (set) return set[1];
+    const set = new RegExp('\\b' + x[1] + '\\s*=\\s*[^;]*?' + ATTR.source).exec(body);
+    if (set) return { surface: set[1], id: (set[2] || '').trim() };
   }
-  return '';
+  return null;
+}
+const draftOf = s => { const c = draftCall(s); return c ? c.surface : ''; };
+/* AND DRAWN BACK: `draftVal_('<surface>', <the same id>` in the tag or a textarea's words, in the
+   function the tag is in, or in a helper either of them calls (`msgDraft_`). A function with ONE box of
+   that surface may draw it under another name for the id (`availGrid_`: `h.code` in the tag, `f` in
+   `on`); with several, each must be drawn by its own id — that is how one of three is caught. */
+const squash = x => String(x || '').replace(/\s+/g, '');
+function drawnBack(s, c) {
+  const want = squash("draftVal_('" + c.surface + "'," + c.id);
+  const fn = fnSrc[s.file + ':' + s.fn] || '';
+  const near = s.text + ' ' + (s.body || '');
+  const helpers = [...near.matchAll(/\b([A-Za-z_$][\w$]*)\(/g)].map(m => fnSrc[s.file + ':' + m[1]] || '').join(' ');
+  if (c.id && [near, fn, helpers].some(t => squash(t).indexOf(want) !== -1)) return true;
+  const sf = c.surface.replace(/-/g, '\\-');
+  const attrs = (fn.match(new RegExp("draftAttr_\\(\\s*'" + sf + "'", 'g')) || []).length;
+  return attrs <= 1 && [near, fn, helpers].some(t => new RegExp("draftVal_\\(\\s*'" + sf + "'").test(t));
 }
 const count = { answer: 0, draft: 0, kept: 0, exempt: 0, none: 0 };
 const surfaces = new Set();
@@ -198,11 +225,13 @@ for (const s of sites) {
   const where = s.file + ':' + s.line + ' (' + s.fn + ')';
   const type = (s.text.match(/\btype="([a-z-]+)"/i) || [])[1] || '';
   if (/^(hidden|file)$/i.test(type)) { count.none++; continue; }
-  const d = draftOf(s);
-  if (d) {
+  const c = draftCall(s);
+  if (c) {
+    const d = c.surface;
     count.draft++;
     surfaces.add(d);
     if (/^password$/i.test(type) || /type="password"/.test(s.text)) bad.push(where + ' is a password box carrying a draft — a PIN would be written to the device');
+    if (d !== '?' && !drawnBack(s, c)) bad.push(where + ' keeps a "' + d + '" draft (' + (c.id || 'no id') + ') and never draws it back — no `draftVal_(\'' + d + '\', ' + (c.id || '…') + ', …)` in the tag, its function or a helper it calls. The device holds the words and the reload shows an empty box.');
     continue;
   }
   const k = KEPT.find(e => matches(e, s));
@@ -222,7 +251,7 @@ KEPT.forEach(e => (e.proof || []).forEach(([f, re]) => {
 /* EVERY DRAFTED SURFACE IS DROPPED SOMEWHERE — sent, saved or started again. */
 surfaces.forEach(sf => {
   if (sf === '?') { bad.push('a draft is drawn with a surface name that is not a plain string — it cannot be checked'); return; }
-  if (!new RegExp('draftDrop_\\(\\s*\'' + sf.replace(/[-]/g, '\\-') + '\'').test(ALL)) bad.push('the "' + sf + '" drafts are kept and never dropped — what was sent comes back in the box after the next reload');
+  if (!new RegExp('(draftDrop_|draftSentDone_)\\(\\s*\'' + sf.replace(/[-]/g, '\\-') + '\'').test(ALL)) bad.push('the "' + sf + '" drafts are kept and never dropped — what was sent comes back in the box after the next reload');
 });
 
 /* ---------- AND THE HELPER --------------------------------------------------------------------------- */
@@ -231,11 +260,18 @@ if (!/\['input', 'change'\]\.forEach\(ev => document\.addEventListener\(ev, e =>
   bad.push('data.js has no delegated input/change listener calling `draftFrom_` — every DRAFT above is drawn back and never kept');
 }
 const never = /const DRAFT_NEVER = (\/.+\/[a-z]*);/.exec(data);
-if (!never) bad.push('data.js has no `DRAFT_NEVER` — nothing refuses a PIN that a draft box asks to keep');
+const neverFn = /function draftNever_\(name\) \{[^\n]*\}/.exec(data);
+if (!never || !neverFn) bad.push('data.js has no `DRAFT_NEVER` and `draftNever_` — nothing refuses a PIN that a draft box asks to keep');
 else {
-  const re = eval(never[1]);
-  ['set:lib1_pin', 'reg:pin', 'kid-new:pin', 'set:pin', 'x:password', 'set:lib3_pin'].forEach(k => { if (!re.test(k)) bad.push('`DRAFT_NEVER` lets "' + k + '" be kept'); });
-  ['set:pinned', 'post:cap', 'set:headline', 'msg:P-12', 'set:spinner'].forEach(k => { if (re.test(k)) bad.push('`DRAFT_NEVER` refuses "' + k + '", which is not a PIN'); });
+  /* THE REAL RULE, AS data.js WRITES IT — the pattern and the camelCase split together. */
+  const refuses = new Function(never[0] + '\n' + neverFn[0] + '\nreturn draftNever_;')();
+  ['set:lib1_pin', 'reg:pin', 'kid-new:pin', 'set:pin', 'x:password', 'set:lib3_pin',
+   /* the review of 317's: camelCase, joined, and what pays */
+   'set:pinNew', 'x:newPin', 'x:pincode', 'x:pinNumber', 'x:card_number', 'x:sortcode', 'x:security_code',
+   'set:account_number', 'set:sort_code', 'x:cardNo', 'x:cvv2'].forEach(k => { if (!refuses(k)) bad.push('`DRAFT_NEVER` lets "' + k + '" be kept'); });
+  ['set:pinned', 'post:cap', 'set:headline', 'msg:P-12', 'set:spinner', 'set:opinion', 'set:phone_no',
+   'rec:R1:reference', 'post-edit:PO2:when', 'set:account_name', 'msg:P002'].forEach(k => { if (refuses(k)) bad.push('`DRAFT_NEVER` refuses "' + k + '", which is not a PIN'); });
+  if (!/function draftKeep_\([^)]*\) \{\s*if \(draftNever_\(/.test(data)) bad.push('`draftKeep_` does not ask `draftNever_` first — the rule above refuses nothing');
 }
 if (!/\^\(password\|file\|hidden\)\$/.test(data)) bad.push('`draftFrom_` no longer skips password, file and hidden boxes');
 const leave = /window\.addEventListener\('beforeunload', e => \{([\s\S]*?)\n\}\);/.exec(data);
