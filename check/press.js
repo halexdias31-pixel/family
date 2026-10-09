@@ -81,6 +81,15 @@ const { statesOf } = require('./states.js');
 const ROOT = path.join(__dirname, '..');
 const PORT = Number(process.env.PRESS_PORT || 8123);   /* overridable: parallel runs in worktrees share one machine */
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
+/* AND A STRANGER IS SENT WHAT `doGet` SENDS A STRANGER — `check/ui.js`'s rule, which this file did
+   not have. The fixture is the admin's payload, films and all, and the signed-out pass was served it
+   too: the state "the videos card, nobody's films" read a stranger's card listing three films that
+   `filmsFor_` never builds for anybody but an admin, and could not be reached (9 Oct). For the visitor
+   who is not signed in, `films` is `[]` and `filmsSync` is absent, as the backend sends them. */
+const FIXTURE_ANON = (() => {
+  try { const o = JSON.parse(FIXTURE); o.films = []; delete o.filmsSync; return JSON.stringify(o); }
+  catch (e) { return FIXTURE; }
+})();
 const ONLY = (process.argv.find(a => a.startsWith('--screen=')) || '').split('=')[1] || '';
 const VERBOSE = process.argv.includes('--verbose');
 
@@ -334,7 +343,7 @@ for (const who of VISITORS) {
 
 
   await page.route('**://script.google.com/**', r =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+    r.fulfill({ status: 200, contentType: 'application/json', body: who.user ? FIXTURE : FIXTURE_ANON }));
 
   if (who.user) await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, who.user);
   await page.addInitScript(GUARDS);
