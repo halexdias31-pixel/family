@@ -1504,39 +1504,101 @@ function camStop_(keepShown) {
    same columns. See docs/history/307.
 --------------------------------------------------------------------------------------------- */
 /* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". The press itself is `:active` and `.is-pressed`
-   (style.css, the chips' pair) and lasts while the finger is down; the repaint after the tap
-   replaces the button, so nothing on the OLD button can say the reaction landed. This marks the NEW
-   one. Set by on('react') round its repaint and cleared straight after, so the `.catch` repaint and
-   every later one draw no animation — a face that lands once, not one that bounces whenever anything
-   else redraws the feed. `var`, because it is reassigned (`check-const.js`). */
+   (style.css, the chips' pair) and lasts while the finger is down; the redraw after the tap
+   replaces the button — the row, not the post (`postRedraw_` below) — so nothing on the OLD button
+   can say the reaction landed. This marks the NEW one. Set by on('react') round its redraw and
+   cleared straight after, so the `.catch` redraw and every later one draw no animation — a face that
+   lands once, not one that bounces whenever anything else redraws the feed. `var`, because it is
+   reassigned (`check-const.js`). */
 var REACT_POP_ = '';
 
-/* ---------- THE FOCUS STAYS ON THE FACE THAT WAS PRESSED ------------------------------------------
-   `repaint` REPLACES EVERY BUTTON ON THE SCREEN, and focus on a removed element falls to `<body>`.
-   Measured at 390x844: a face focused and Enter pressed — the same click a screen reader's
-   double-tap or a switch sends — and the reaction landed, but `document.activeElement` was BODY
-   afterwards, and the next Tab went to "Write a post" on a page parked off-screen. So the
-   `aria-pressed` that exists to say which face is yours was never heard at the moment it changed,
-   and a VoiceOver or TalkBack user lost their place in the feed with every reaction.
+/* ---------- A PRESS ON ONE POST REDRAWS THAT POST'S OWN PARTS, WHERE THEY STAND — NEVER THE COLUMN --
+   THE OWNER, 10 Oct: *"The post section is a bit buggy. When I click a reaction it bugs out a bit. On
+   only some of them."* A face, and a poll vote, both called `repaint()` — and `repaint` is
+   `paint(AT)`: the feed's whole `innerHTML`, every card on the column thrown away and drawn again to
+   change one row of pills. So every `<img>`, `<video>` and pane on the column was a NEW element, and
+   a new element has none of what the old one had already worked out:
 
-   ONLY WHEN A FACE HELD THE FOCUS, and it is handed to that same face's replacement — the house rule
-   from `ansSet_` (find.js) and `qualRedraw_` (me.js): a redraw must not pull focus off whatever else
-   somebody is in. Matched on `data-id` + `data-emoji` by comparing `dataset`, not by building a
-   selector, so an emoji or a post id never has to be escaped into one. Searched in the SCREEN the face
-   was on (the `<section>` survives `paint`, only its markup is replaced), and NOT filtered by
-   `.page.on`, which `placeCells` applies at a deferred placement after this returns.
-   `preventScroll`, because the pages are parked side by side with transforms (CLAUDE.md) and a
-   focus that scrolled would slide the strip. A tap gives focus too in most browsers, and a focus
-   set by script after a pointer press draws no `:focus-visible` ring, so a finger sees nothing new. */
-function reactRepaint_() {
+     · A PICTURE HAS NEITHER ITS PIXELS NOR ITS SIZE. It is `decoding="async"`, `loading="lazy"` from
+       the third post on, and `.page .post-pic { aspect-ratio: auto 4 / 5 }` holds a 4:5 box until the
+       file is read again. Measured in Chromium with the picture not handed straight back (the cache
+       off, which is a phone that has let a Drive thumbnail go): the photograph blank for 0.3–0.9s, a
+       16:9 card grown to 4:5 and back (+183px at 390x844), and a card taller than its pane zoomed by
+       `paneReach_` for the 4:5 stand-in and then drawn at that zoom over the real picture — a 9:16
+       portrait 0.782 → 0.947 → 0.782 at 390, its comments and composer clipped — until `paneWatch_`
+       measured it again a frame or two later.
+     · A CLIP STOPPED AND WENT BACK TO 0:00, cache or no cache. It sat as a grey 4:5 box until its
+       metadata came again, and the card went 773 → 669 → 841 → 773px tall around it (a 9:16 clip at
+       390x844): the faces jumped 122px up from under the finger, then 50 down, then back.
+     · A PANE SCROLLED PAST `PANE_ZOOM_MIN` WAS A NEW PANE AT `scrollTop` 0, so a long post jumped back
+       to its top and the face somebody had scrolled down to press left the screen — 388px at 320x568.
+
+   WHICH IS WHY IT WAS "ONLY SOME OF THEM". A text post or a poll has nothing to rebuild but its
+   avatar; a photograph that is already 4:5 only blinks, because the stand-in is its own shape; grid
+   cells are fixed squares and only blink. A clip, a single photograph of any other shape, and a post
+   taller than its pane bugged out. Which face, and whether it was added, moved or taken back, made
+   no difference — the post decided it.
+
+   SO A PRESS NAMES THE PARTS IT CHANGED, and every copy of this post on the page has those parts
+   replaced and nothing else: `[selector, drawer]` pairs, each drawer the same function `postCard_`
+   builds the part with, so the redrawn part cannot drift from the card's. The picture, its zoom, a
+   playing clip and a scrolled pane are never touched. A part that now draws nothing is taken out. A
+   card without a part that now draws something — a first total on a post with no time line — falls
+   back to the whole `repaint`, which is what every press did before. `repaint` stays for a payload
+   landing, where anything on any card may have changed; it is never for a press on one post.
+   NO PLACEMENT AND NO STALE MARK, because nothing moved and no other screen draws these parts. The
+   row is a fixed grid and the time line is 44px either way (docs/history/307), so a face never
+   changes the card's height; a poll whose bars appear may, and a card whose height changes is the
+   one the `ResizeObserver` from `paneWatch_` (find.js) already re-asks its pane about. See
+   docs/history/335.
+
+   ---------- AND THE FOCUS STAYS ON THE CONTROL THAT WAS PRESSED --------------------------------------
+   A REPLACED BUTTON TAKES THE FOCUS WITH IT, and focus on a removed element falls to `<body>`.
+   Measured at 390x844 when every press repainted: a face focused and Enter pressed — the same click a
+   screen reader's double-tap or a switch sends — and the reaction landed, but `document.activeElement`
+   was BODY afterwards, and the next Tab went to "Write a post" on a page parked off-screen. So the
+   `aria-pressed` that exists to say which face is yours was never heard at the moment it changed, and
+   a VoiceOver or TalkBack user lost their place in the feed with every reaction. A vote's row is the
+   same button in the same position, which is why this lives here and not in the reaction's handler.
+
+   ONLY WHEN THE CONTROL THAT HELD THE FOCUS WAS REPLACED, and it is handed to that control's
+   replacement — the house rule from `ansSet_` (find.js) and `qualRedraw_` (me.js): a redraw must not
+   pull focus off whatever else somebody is in. A control the redraw did not reach still has it, and
+   is left alone. Matched on every `data-` attribute (`data-do`, `data-id`, and the `data-emoji` or
+   `data-choice`), compared as strings rather than built into a selector, so an emoji or a post id
+   never has to be escaped into one. Searched in the SCREEN it was on (the `<section>` survives
+   `paint`, only its markup is replaced), and NOT filtered by `.page.on`, which `placeCells` applies at
+   a deferred placement after a repaint returns. `preventScroll`, because the pages are parked side by
+   side with transforms (CLAUDE.md) and a focus that scrolled would slide the strip. A tap gives focus
+   too in most browsers, and a focus set by script after a pointer press draws no `:focus-visible`
+   ring, so a finger sees nothing new. */
+function postRedraw_(id, parts) {
+  const data = el => [].filter.call(el.attributes, x => x.name.indexOf('data-') === 0)
+    .map(x => x.name + '=' + x.value).sort().join('\n');
   const a = document.activeElement;
-  const held = a && a.dataset && a.dataset.do === 'react'
-    ? { id: a.dataset.id, emoji: a.dataset.emoji, host: a.closest('section.screen') } : null;
-  repaint();
-  if (!held || !held.host) return;
-  const again = [...held.host.querySelectorAll('[data-do="react"]')]
-    .find(b => b.dataset.id === held.id && b.dataset.emoji === held.emoji);
+  const held = a && a.dataset && a.dataset.do && a.closest
+    ? { el: a, data: data(a), host: a.closest('section.screen') } : null;
+
+  const p = (DATA.posts || []).find(x => x.id === id);
+  const cards = p ? [].filter.call(document.querySelectorAll('article.post[data-post]'),
+                                   x => x.dataset.post === id) : [];
+  const drawn = parts.map(([, draw]) => (p ? draw(p) || '' : ''));
+  const fits = cards.length > 0
+    && cards.every(c => parts.every(([sel], i) => !!c.querySelector(sel) || !drawn[i]));
+  if (!fits) repaint();
+  else cards.forEach(c => parts.forEach(([sel], i) => {
+    const old = c.querySelector(sel);
+    if (!old) return;
+    if (drawn[i]) old.outerHTML = drawn[i]; else old.remove();
+  }));
+
+  if (!held || !held.host || held.el.isConnected) return;
+  const again = [].find.call(held.host.querySelectorAll('[data-do]'), b => data(b) === held.data);
   if (again) { try { again.focus({ preventScroll: true }); } catch (e) {} }
+}
+/* A REACTION CHANGES TWO PARTS: the row of faces, and the total on the time line. */
+function reactRepaint_(id) {
+  postRedraw_(id, [['.reacts', reacts], ['.post-when', postWhen_]]);
 }
 
 /* A COUNT IS AT MOST THREE CHARACTERS, so a pill never grows for its number: 999, then 1k…999k.
@@ -1702,11 +1764,14 @@ on('react', el => {
     r.yours = emoji; r.counts[at(emoji)]++; r.total++;
     r.by.push({ name: USER.name, emoji: emoji });
   }
-  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `repaint` is
-     synchronous (shell.js), so clearing it on the next line is safe and nothing later replays it.
-     `reactRepaint_`, not `repaint`, so a keyboard or screen reader stays on the face it pressed. */
+  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `postRedraw_` is
+     synchronous, and so is the `repaint` it falls back to, so clearing it on the next line is safe and
+     nothing later replays it. `reactRepaint_`, NOT `repaint`: this post's faces and total and nothing
+     else, so its picture, its clip and its pane are the ones that were there (the owner, 10 Oct: *"When
+     I click a reaction it bugs out a bit. On only some of them."*), and a keyboard or screen reader
+     stays on the face it pressed. See `postRedraw_`. */
   REACT_POP_ = r.yours === emoji ? id + ' ' + emoji : '';   // added or moved: it lands; taken back: quiet
-  reactRepaint_();
+  reactRepaint_(id);
   REACT_POP_ = '';
 
   /* `personId` AS WELL AS `name`. The handler resolves the person with
@@ -1719,7 +1784,7 @@ on('react', el => {
     .catch(err => {
       r.yours = before.yours; r.counts = before.counts; r.total = before.total;
       r.by = before.by;             // the fourth field, or the sheet disagrees after a failed save
-      reactRepaint_();              // whichever face holds the focus NOW keeps it through the undo
+      reactRepaint_(id);            // in place again, and whichever face holds the focus NOW keeps it
       toast(String(err.message || 'Could not save that'));
     });
 });
@@ -1768,19 +1833,21 @@ on('vote', el => {
   const before = { yours: q.yours, counts: q.counts.slice(), total: q.total };
 
   /* Moved on screen before the server answers, the same as a like — and the whole poll is redrawn
-     rather than one row, because a vote changes every percentage on it. */
+     rather than one row, because a vote changes every percentage on it.
+     THE POLL, NOT THE COLUMN. This was `repaint()`, the same whole-feed rebuild a face was, and it
+     replaced the post and every picture and clip on the feed to move one bar — see `postRedraw_`. */
   const at = i => q.options.indexOf(i);
   if (q.yours) { q.counts[at(q.yours)]--; q.total--; }
   if (q.yours === choice) { q.yours = ''; }
   else { q.yours = choice; q.counts[at(choice)]++; q.total++; }
-  repaint();
+  postRedraw_(id, [['.poll', poll]]);
 
   api({ action: 'votePoll',
     name: USER.name, personId: (USER && USER.personId) || '', postId: id, choice })
     .then(d => { if (d && d.error) throw new Error(d.error); })
     .catch(err => {
       q.yours = before.yours; q.counts = before.counts; q.total = before.total;
-      repaint();
+      postRedraw_(id, [['.poll', poll]]);
       toast(String(err.message || 'Could not save that vote'));
     });
 });

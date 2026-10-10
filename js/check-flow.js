@@ -7792,14 +7792,25 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
        and a face pressed while focus was elsewhere does not take it. `repaint` replaces every button,
        and focus on a removed one falls to <body>: measured at 390, Enter on a focused face landed the
        reaction and left `activeElement` BODY, so a screen reader never heard the new `aria-pressed`
-       and the next Tab went to a page parked off-screen (`reactRepaint_` in posts.js). */
+       and the next Tab went to a page parked off-screen (`reactRepaint_` in posts.js).
+     · THE POST IS NOT REBUILT — the same `<article>`, the same pane, the same picture and the same
+       clip after the add, the take-back and a failed save's undo. The owner, 10 Oct: *"When I click a
+       reaction it bugs out a bit. On only some of them."* A face repainted the whole column, so every
+       picture and clip on it was a new element: a clip stopped and went back to 0:00 behind a grey 4:5
+       box, a picture the browser could not hand straight back blanked and held 4:5 until it was read
+       again (a 16:9 card +183px at 390), a card taller than its pane was zoomed for the wrong height,
+       and a scrolled pane went back to its top. Only the posts with something to rebuild showed it,
+       which is "only some of them" (docs/history/335). So PO1 carries a picture AND a clip here, and
+       the elements are held by identity: a press that goes back to `repaint()` fails on all three. */
 check('a post\'s faces: a tap adds yours, the same tap takes it back, the total opens who reacted', async () => {
   const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const FACES = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
   const seed = () => {
     const p = payload();
     p.festive = [];
-    p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: '', media: [],
+    /* A PICTURE AND A CLIP, the two things a rebuilt post loses — see the last point above. */
+    p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
+      media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
       caption: 'A Tuesday at the library', body: '', location: '', when: '01/09/2026',
       at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
       reactions: { emoji: FACES.slice(), counts: [2, 1, 0, 0, 0, 0], total: 3, yours: '',
@@ -7836,6 +7847,26 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (count('😂')) bad.push(`drawn, 😂 with nobody behind it shows ${JSON.stringify(count('😂'))} — a 0 is drawn as nothing`);
   if (d.querySelector('#s-feed .react.mine')) bad.push('drawn, a face is `.mine` before anybody signed in here pressed one');
 
+  /* ---------- THE POST ITSELF, HELD BY IDENTITY THROUGH EVERY PRESS BELOW ---------------------------
+     The card, the pane it sits in, and its picture and clip. Compared as ELEMENTS, not as markup: a
+     rebuilt picture has the same `src` and none of its pixels, and a rebuilt clip the same `src` and
+     none of its playing — which is the whole fault, and invisible to anything that reads the HTML. */
+  const held0 = () => {
+    const art = d.querySelector('#s-feed [data-post="PO1"]');
+    return { art, pane: art && art.closest('.pane'),
+             media: art ? [...art.querySelectorAll('img.post-cell, img.post-pic, video')] : [] };
+  };
+  let kept = held0();
+  if (kept.media.length !== 2) bad.push(`drawn, PO1 holds ${kept.media.length} pictures and clips, not the picture and the clip it was sent`);
+  const same = when => {
+    const now = held0();
+    if (now.art !== kept.art) bad.push(`${when}, PO1 is a new <article> — a press on one face rebuilt the post, when only its faces and total changed`);
+    else if (now.pane !== kept.pane) bad.push(`${when}, PO1's pane is a new element — a scrolled pane would be back at its top`);
+    if (now.media.length !== kept.media.length || now.media.some((m, i) => m !== kept.media[i])) {
+      bad.push(`${when}, PO1's picture and clip are new elements — a playing clip stops at 0:00 and a picture blanks and holds 4:5 until it is read again`);
+    }
+  };
+
   /* ---------- A TAP ADDS YOURS ------------------------------------------------------------------- */
   sent.length = 0;
   /* FOCUSED FIRST, as a keyboard, a switch or a screen reader's cursor has it when it presses. */
@@ -7854,6 +7885,7 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (count('😂') !== '1') bad.push(`after a tap, 😂 counts ${JSON.stringify(count('😂'))}, not "1"`);
   if (total() !== '4 reactions') bad.push(`after a tap, the time line says ${JSON.stringify(total())}, not "4 reactions"`);
   if (!f.classList.contains('is-pop')) bad.push('after a tap, the face that landed is not marked to land (`is-pop`)');
+  same('after a tap');
   const r1 = sent.find(b => b.action === 'reactPost');
   if (!r1) bad.push(`a tap on a face posted ${JSON.stringify(sent.map(b => b.action))}, not reactPost`);
   else if (r1.postId !== 'PO1' || r1.emoji !== '😂' || r1.personId !== 'P1')
@@ -7863,6 +7895,9 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   w.__t.repaint(); await wait(50);
   if (face('😂') && face('😂').classList.contains('is-pop')) bad.push('a later repaint landed 😂 again — `REACT_POP_` was not cleared');
   if (!face('😂') || !face('😂').classList.contains('mine')) bad.push('a later repaint lost yours');
+  /* THAT REPAINT STANDS FOR A PAYLOAD LANDING, which does rebuild the post — so the elements held from
+     here on are the ones it drew. */
+  kept = held0();
 
   /* ---------- THE SAME TAP TAKES IT BACK --------------------------------------------------------- */
   sent.length = 0;
@@ -7878,6 +7913,7 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (total() !== '3 reactions') bad.push(`after taking it back, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
   if (!sent.some(b => b.action === 'reactPost' && b.emoji === '😂')) bad.push('taking it back sent no reactPost');
   if (face('😂') && d.activeElement !== face('😂')) bad.push(`after taking 😂 back, the focus is on ${held()} — not on 😂`);
+  same('after taking it back');
   await wait(150);
 
   /* ---------- A SAVE THAT FAILS IS PUT BACK, AND THE FOCUS STAYS THROUGH THE UNDO ------------------ */
@@ -7887,6 +7923,7 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (d.querySelector('#s-feed .react.mine')) bad.push('a failed save left a face `.mine` — the undo did not put it back');
   if (total() !== '3 reactions') bad.push(`after a failed save, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
   if (face('👏') && d.activeElement !== face('👏')) bad.push(`after a failed save's undo, the focus is on ${held()} — not on 👏`);
+  same('after a failed save\'s undo');
 
   /* ---------- THE TOTAL OPENS WHO REACTED -------------------------------------------------------- */
   /* AND A FACE PRESSED WHILE THE FOCUS WAS ELSEWHERE DOES NOT TAKE IT: a redraw must not pull focus
@@ -7955,6 +7992,84 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
       }
     }
   }
+  return bad;
+});
+
+/* ---------- A POLL VOTE REDRAWS THE POLL, NOT THE COLUMN ---------------------------------------------
+   THE SAME FAULT AS THE FACES, ONE HANDLER DOWN. `on('vote')` called `repaint()` to move one bar, so a
+   vote replaced the post and every picture and clip on the feed, exactly as a face did before the
+   owner's *"When I click a reaction it bugs out a bit. On only some of them."* (10 Oct,
+   docs/history/335). Fixed at the rule — a press on one post redraws that post's changed parts
+   (`postRedraw_`, posts.js) — so it is held here for the vote too:
+     · THE POST STAYS THE SAME ELEMENTS: its `<article>`, its pane, its picture and its clip, after a
+       vote and after a refused vote's undo
+     · THE POLL MOVES: yours ticked, "4 votes", `votePoll` with the `personId`
+     · A REFUSAL PUTS IT BACK — your first answer still yours, "4 votes" — and says why
+     · THE FOCUS STAYS ON THE ROW PRESSED, through the vote and through the undo: the poll's rows are
+       replaced as a face is, and focus on a removed button falls to <body> */
+check('a poll vote redraws only the poll, as a reaction redraws only its faces: the post, its picture and its clip stay', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
+    media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
+    caption: 'Which day suits the club?', body: '', location: '', when: '01/09/2026',
+    at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
+    poll: { options: ['Tuesday', 'Thursday'], counts: [2, 1], total: 3, yours: '' },
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }];
+  let refuse = false;
+  const { w, sent } = boot({ payload: p,
+    reply: b => (b.action === 'votePoll' && refuse ? { error: 'The poll has closed.' } : undefined),
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document, bad = [];
+  if (!w.__t) return ['the app did not load, so the poll was NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  const row = c => d.querySelector(`#s-feed [data-post="PO1"] .poll-row[data-choice="${c}"]`);
+  const tot = () => ((d.querySelector('#s-feed [data-post="PO1"] .poll-tot') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const grab = () => {
+    const art = d.querySelector('#s-feed [data-post="PO1"]');
+    return { art, pane: art && art.closest('.pane'),
+             media: art ? [...art.querySelectorAll('img.post-cell, img.post-pic, video')] : [] };
+  };
+  const kept = grab();
+  if (!kept.art || !row('Tuesday')) return ['the poll post drew no poll to vote in — nothing was pressed, not a pass'];
+  if (kept.media.length !== 2) bad.push(`drawn, the poll post holds ${kept.media.length} pictures and clips, not the two it was sent`);
+  const same = when => {
+    const now = grab();
+    if (now.art !== kept.art) bad.push(`${when}, the post is a new <article> — a vote rebuilt the post, when only its poll changed`);
+    else if (now.pane !== kept.pane) bad.push(`${when}, the post's pane is a new element`);
+    if (now.media.length !== kept.media.length || now.media.some((m, i) => m !== kept.media[i])) {
+      bad.push(`${when}, the post's picture and clip are new elements — a playing clip stops and a picture blanks`);
+    }
+  };
+  const on_ = () => { const a = d.activeElement; return a && a.dataset && a.dataset.do === 'vote' ? a.dataset.choice : (a && a.tagName) || 'nothing'; };
+
+  /* ---------- A VOTE ---------------------------------------------------------------------------- */
+  sent.length = 0;
+  row('Tuesday').focus();
+  row('Tuesday').click(); await wait(80);
+  same('after a vote');
+  if (!row('Tuesday') || !row('Tuesday').classList.contains('mine')) bad.push('after a vote, Tuesday is not ticked as yours');
+  if (!/^4 votes/.test(tot())) bad.push(`after a vote, the poll says ${JSON.stringify(tot())}, not "4 votes…"`);
+  const v = sent.find(b => b.action === 'votePoll');
+  if (!v) bad.push(`a vote posted ${JSON.stringify(sent.map(b => b.action))}, not votePoll`);
+  else if (v.postId !== 'PO1' || v.choice !== 'Tuesday' || v.personId !== 'P1')
+    bad.push('votePoll went out as ' + JSON.stringify({ postId: v.postId, choice: v.choice, personId: v.personId }));
+  if (row('Tuesday') && d.activeElement !== row('Tuesday')) bad.push(`after a vote, the focus is on ${on_()} — not on Tuesday`);
+
+  /* ---------- A REFUSED VOTE IS PUT BACK, IN PLACE --------------------------------------------------- */
+  refuse = true;
+  row('Thursday').focus();
+  row('Thursday').click(); await wait(200);
+  same('after a refused vote\'s undo');
+  if (!row('Tuesday') || !row('Tuesday').classList.contains('mine')) bad.push('after a refused vote, Tuesday is no longer yours — the undo did not put it back');
+  if (row('Thursday') && row('Thursday').classList.contains('mine')) bad.push('after a refused vote, Thursday is still ticked');
+  if (!/^4 votes/.test(tot())) bad.push(`after a refused vote, the poll says ${JSON.stringify(tot())}, not "4 votes…"`);
+  const said = (d.getElementById('toast') || {}).textContent || '';
+  if (!/closed/.test(said)) bad.push(`a refused vote said ${JSON.stringify(said)}, not the server's reason`);
+  if (row('Thursday') && d.activeElement !== row('Thursday')) bad.push(`after a refused vote's undo, the focus is on ${on_()} — not on Thursday`);
   return bad;
 });
 
