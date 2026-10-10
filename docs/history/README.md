@@ -308,6 +308,7 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The textbooks hold the teaching animations, and the loading screen draws its copy of them](304-the-textbooks-hold-the-animations.md)
 - [The films are whatever is in the Notflix folder: a sync from Drive, asked for by the videos card, and only an admin ever sees one](305-the-films-are-whatever-is-in-the-notflix-folder.md)
 - [Reactions that look finished: one line of pills under the picture, the total on the time line](307-reactions-that-look-finished.md)
+- [Everyone chooses what they are emailed: a Notifications card on Settings for parents, kids, tutors and the admin, and every sender asks before it sends](309-everyone-chooses-what-they-are-sent.md)
 - [The whiteboard is the question pages' pen on a blank sheet, and what is drawn on it is never an answer](310-the-whiteboard.md)
 - [The videos card reads like YouTube: a pill to search in, a picture on every row, and the watch page when something plays](311-the-videos-card-reads-like-youtube.md)
 - [An essay is written on a sheet: paragraphs with a return key you can see, and Gemini marks all of it](312-an-essay-is-written-on-a-sheet.md)

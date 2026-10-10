@@ -12625,6 +12625,232 @@ check('a refused roles save puts the ticks back to what you hold; a lost reply k
   return bad;
 });
 
+/* ---------- NOTIFICATIONS: WHICH EMAILS YOU WANT, ON SETTINGS ---------------------------------------------
+   ASKED FOR AS *"Also let parents select their communication preferences like notification. And kids and
+   tutors too I guess"* (the owner, 9 Oct). The server's half — every sender asks, off is held, the token
+   decides whose row — is `check-prefs.js`. This is the phone's, and it is pressed against the REAL backend
+   (check-gas-load.js) rather than a reply typed here: the list a parent, a kid and a tutor are each shown
+   comes out of `notifyOf_` in people.gs exactly as the sign-in reply carries it, a tick posts `setNotify`
+   to the real `doPost`, and "survives a reload" is a fresh phone whose saved copy has had the list taken
+   off it, so only the server's `myProfile` can put the tick back where it was. A fixture that typed the
+   lists out would be checking the fixture. Invented people, example.org, PIN 0000. */
+const notifyWorld_ = () => {
+  const real = require('./check-gas-load.js').backend();
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London' };
+  const P = (id, first, last, role, email) => Object.assign({ person_id: id, first_name: first, last_name: last,
+    handle: (first + last).toLowerCase(), email: email, role: role }, base);
+  real.seed('people', [
+    P('P-C1', 'Pat', 'Parent', 'client', 'parent@example.org'),
+    P('P-S1', 'Sam', 'Student', 'student', 'student@example.org'),
+    P('P-S2', 'Nell', 'Nomail', 'student', ''),
+    P('P-T1', 'Ada', 'Tutor', 'tutor', 'tutor@example.org'),
+  ]);
+  const user = (who) => {
+    const d = real.post({ action: 'verifyLogin', email: who, name: who, pin: '0000' });
+    return d && d.success ? { name: d.name, personId: d.personId, role: d.role, roles: d.roles, token: d.token,
+      handle: d.handle, profile: d.profile } : null;
+  };
+  /* THE TWO ACTIONS THIS CARD IS ABOUT GO TO THE REAL `doPost`; the app's other polls are answered plainly. */
+  const reply = b => (b.action === 'setNotify' || b.action === 'myProfile') ? real.post(b) : { success: true, messages: [] };
+  return { real, user, reply };
+};
+const notifyCardOf_ = async (o) => {
+  const { w, sent } = boot({ payload: o.payload, reply: o.reply, before: o.before });
+  await wait(o.before ? 700 : 300);
+  const t = w.__t, d = w.document;
+  if (o.as) t.USER(o.as);
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return { err: 'drawing settings threw: ' + e.message }; }
+  await wait(300);
+  const card = () => d.querySelector('#s-settings .notify-card');
+  return { w, t, d, sent, card };
+};
+check('the Notifications card shows a parent, a kid and a tutor only the emails that reach them, from the real backend', async () => {
+  const { user, reply } = notifyWorld_();
+  const payload_ = Object.assign(payload(), { features: ['setNotify'] });
+  /* THE OWNER'S ASK, WRITTEN OUT: each role's switches, and what is always sent. No `referrals` for anybody
+     — it is `hidden` (constants.gs): nothing hands a code out any more, so it was a tick about a code
+     nobody had seen. */
+  const WANT = {
+    'parent@example.org':  { opt: ['weekly', 'messages', 'bookings', 'posts'], must: 4 },
+    'student@example.org': { opt: ['messages', 'posts'], must: 3 },
+    'tutor@example.org':   { opt: ['messages', 'bookings', 'posts'], must: 3 },
+  };
+  const ALL = ['weekly', 'messages', 'bookings', 'posts', 'referrals', 'approvals'];
+  const bad = [];
+  for (const who of Object.keys(WANT)) {
+    const u = user(who);
+    if (!u) { bad.push(who + ' could not sign in to the real backend'); continue; }
+    const v = await notifyCardOf_({ payload: payload_, reply, as: u });
+    if (v.err) { bad.push(who + ': ' + v.err); continue; }
+    const c = v.card();
+    if (!c) { bad.push(who + ': Settings has no Notifications card'); continue; }
+    const ticks = [...c.querySelectorAll('[data-do="notify-pick"]')];
+    const kinds = ticks.map(b => b.dataset.kind);
+    if (JSON.stringify(kinds) !== JSON.stringify(WANT[who].opt)) bad.push(who + ' is offered ' + JSON.stringify(kinds) + ', wanted ' + JSON.stringify(WANT[who].opt));
+    const others = ALL.filter(k => WANT[who].opt.indexOf(k) === -1 && kinds.indexOf(k) !== -1);
+    if (others.length) bad.push(who + ' is offered somebody else\'s emails: ' + others.join(', '));
+    if (!ticks.every(b => b.checked && b.type === 'checkbox' && b.closest('label.check'))) bad.push(who + ': not every switch is a ticked `.check` box — ' + ticks.map(b => b.dataset.kind + '=' + b.checked).join(' '));
+    const must = c.querySelectorAll('.notify-always li');
+    if (must.length !== WANT[who].must) bad.push(who + ' is told ' + must.length + ' kinds are always sent, wanted ' + WANT[who].must);
+    if (c.querySelector('.notify-always input')) bad.push(who + ': what is always sent is drawn with a box — it is words, not a greyed control');
+    if (!/Sign-in links and new PINs/.test(c.textContent)) bad.push(who + ': sign-in links and new PINs are not listed as always sent');
+    if (who === 'parent@example.org' && !/not being sent yet/i.test(c.textContent)) bad.push('the parent\'s weekly line does not say it is not being sent yet (weekly_digest is off)');
+    const pages = [...v.d.querySelectorAll('#s-settings .page')];
+    if (pages.length && !pages[pages.length - 1].querySelector('.notify-card')) bad.push(who + ': the Notifications card is not the last page — a card in front moves every page a returning visitor remembers');
+  }
+  /* A CHILD WITH NO EMAIL OF THEIR OWN: one sentence, nothing to tick. */
+  const nell = user('nellnomail');
+  if (!nell) bad.push('the child with no email could not sign in by handle');
+  else {
+    const v = await notifyCardOf_({ payload: payload_, reply, as: nell });
+    const c = v.card && v.card();
+    if (!c) bad.push('the child with no email has no Notifications card');
+    else {
+      if (c.querySelector('[data-do="notify-pick"]')) bad.push('a child with no email is offered switches for mail that never comes');
+      if (!/no email address/i.test(c.textContent) || !/grown-up/.test(c.textContent)) bad.push('a child with no email is not told so: ' + JSON.stringify(c.textContent.replace(/\s+/g, ' ').trim()));
+    }
+  }
+  return bad;
+});
+
+check('a Notifications tick saves to the real sheet, survives a reload, and a refusal puts it back', async () => {
+  const { real, user, reply } = notifyWorld_();
+  const payload_ = Object.assign(payload(), { features: ['setNotify'] });
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  const v = await notifyCardOf_({ payload: payload_, reply, as: pat });
+  if (v.err) return [v.err];
+  const bad = [];
+  const box = () => v.card() && v.card().querySelector('[data-kind="messages"]');
+  if (!box() || !box().checked) return ['the parent\'s Messages switch is missing or not ticked'];
+  v.sent.length = 0;
+  box().click();
+  await wait(400);
+  const post = v.sent.find(b => b.action === 'setNotify');
+  if (!post) bad.push('unticking Messages posted ' + JSON.stringify(v.sent.map(b => b.action)) + ' and no setNotify');
+  else if (post.kind !== 'messages' || post.on !== false || post.personId !== 'P-C1' || !post.token) bad.push('setNotify carried ' + JSON.stringify(post) + ' — wanted kind messages, on false, the parent\'s id and token');
+  if (String(real.row('P-C1').messages_email) !== 'no') bad.push('the sheet\'s messages_email is "' + real.row('P-C1').messages_email + '" after unticking, wanted no');
+  if (!box() || box().checked) bad.push('after the save the box is ticked again');
+  if (!/off/.test((v.card().querySelector('.notify-said') || {}).textContent || '')) bad.push('the line under the ticks does not say Messages is off');
+  if ((((v.t.whoami().profile || {}).notify || {}).kinds || []).find(k => k.kind === 'messages').on !== false) bad.push('USER.profile.notify was not given the server\'s list');
+  /* A RELOAD WHOSE SAVED COPY HAS NO LIST: only the server's myProfile can put the tick where it was. */
+  const kept = JSON.parse(JSON.stringify(v.t.whoami()));
+  delete kept.profile.notify;
+  const r = await notifyCardOf_({ payload: payload_, reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(kept)); } catch (e) {} } });
+  if (r.err) return bad.concat([r.err]);
+  await wait(400);
+  const again = r.card() && r.card().querySelector('[data-kind="messages"]');
+  if (!r.sent.some(b => b.action === 'myProfile')) bad.push('the reloaded phone never asked myProfile');
+  if (!again) bad.push('after a reload the parent\'s card has no Messages switch — ' + JSON.stringify(((r.card() || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160)));
+  else if (again.checked) bad.push('after a reload Messages is ticked again — the choice did not survive');
+  /* A REFUSAL — the sheet without the column — PUTS THE TICK BACK and says why. */
+  const no = await notifyCardOf_({ payload: payload_, as: pat,
+    reply: b => b.action === 'setNotify' ? { error: 'The sheet has no `posts_email` column. Run ensureSchema() — nothing was saved.' } : reply(b) });
+  const pb = no.card() && no.card().querySelector('[data-kind="posts"]');
+  if (!pb) return bad.concat(['the refusal journey has no Posts switch']);
+  pb.click();
+  await wait(400);
+  const pb2 = no.card().querySelector('[data-kind="posts"]');
+  if (!pb2.checked) bad.push('a refused save left Posts unticked — a box showing a choice the server never kept');
+  if (!/ensureSchema/.test((no.card().querySelector('.notify-said') || {}).textContent || '')) bad.push('a refused save did not say why under the ticks');
+  return bad;
+});
+
+/* ---------- TWO TICKS IN A ROW ARE TWO SAVES, WHICHEVER ANSWERS FIRST ---------------------------------------
+   The card used to be locked whole while a tick saved, and a locked `.check` looked exactly like a live
+   one: the second tick, 400ms after the first, during Apps Script's two seconds, did nothing at all —
+   no request, the box as it was, weekly_email blank, and "Saved" for the first (review, 9 Oct, walked in
+   Chromium). Now only the box being saved is locked. The replies here are HELD, as Apps Script holds
+   them, and let go in the OTHER order: the server wrote both, so the earlier reply's list still shows
+   the later tick as it was, and a phone that kept that list whole would repaint a tick the server has
+   already taken away. (Mutations: `lock: card` — no second request; the reply's whole list kept — the
+   repaint ticks Weekly again.) */
+check('two Notifications ticks in a row are two saves, and the replies cannot undo each other', async () => {
+  const { real, user, reply } = notifyWorld_();
+  real.seed('family', [{ link_id: 'L1', parent_id: 'P-C1', child_id: 'P-S1', state: 'accepted' }]);
+  const payload_ = Object.assign(payload(), { features: ['setNotify'] });
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  const held = [];
+  /* ANSWERED BY THE REAL SERVER THE MOMENT IT ARRIVES, DELIVERED WHEN THE JOURNEY SAYS. */
+  const v = await notifyCardOf_({ payload: payload_, as: pat,
+    reply: b => { if (b.action !== 'setNotify') return reply(b); const ans = real.post(b); return new Promise(ok => held.push(() => ok(ans))); } });
+  if (v.err) return [v.err];
+  const bad = [];
+  const box = k => v.card() && v.card().querySelector('[data-kind="' + k + '"]');
+  if (!box('bookings') || !box('weekly')) return ['the parent has no Booking updates or no Weekly switch'];
+  v.sent.length = 0;
+  box('bookings').click();
+  await wait(50);
+  if (!box('bookings').disabled) bad.push('the box being saved is not locked while it saves — it could be sent twice at once');
+  if (box('weekly').disabled) bad.push('a tick being saved locked the OTHER boxes on the card — a second tick lands on a dead box');
+  box('weekly').click();
+  await wait(50);
+  const posts = v.sent.filter(b => b.action === 'setNotify').map(b => b.kind + '=' + b.on);
+  if (JSON.stringify(posts) !== JSON.stringify(['bookings=false', 'weekly=false'])) bad.push('two ticks in a row posted ' + JSON.stringify(posts) + ' — wanted bookings off, then weekly off');
+  /* THE LATER REPLY FIRST, then the earlier one. */
+  if (held[1]) held[1]();
+  await wait(100);
+  if (held[0]) held[0]();
+  await wait(300);
+  if (String(real.row('P-C1').bookings_email) !== 'no' || String(real.row('P-C1').weekly_email) !== 'no')
+    bad.push('the sheet has bookings_email "' + real.row('P-C1').bookings_email + '" and weekly_email "' + real.row('P-C1').weekly_email + '" — wanted both no');
+  const kinds = (((v.t.whoami().profile || {}).notify || {}).kinds || []);
+  const onOf = k => (kinds.find(x => x.kind === k) || {}).on;
+  if (onOf('bookings') !== false || onOf('weekly') !== false) bad.push('after both replies the phone holds bookings ' + onOf('bookings') + ', weekly ' + onOf('weekly') + ' — an older reply\'s list painted over a newer tick');
+  try { v.w.paint('settings'); } catch (e) { bad.push('repainting settings threw: ' + e.message); }
+  await wait(100);
+  if (!box('bookings') || box('bookings').checked || !box('weekly') || box('weekly').checked)
+    bad.push('after a repaint the card shows bookings ' + (box('bookings') && box('bookings').checked) + ', weekly ' + (box('weekly') && box('weekly').checked) + ' — wanted both unticked, as the sheet has them');
+  if (box('bookings').disabled || box('weekly').disabled) bad.push('a box is still locked after its save answered');
+  return bad;
+});
+
+/* ---------- A LIST WITH NOTHING IN IT IS ONE SENTENCE --------------------------------------------------------
+   Every role is sent at least sign-in links and security warnings, so an empty list is a server that could
+   not tell what reaches somebody — the first `notifyOf_` did that for a role cell typed `parent`. It drew
+   "To x@… · saved as you tick." over nothing. */
+check('a Notifications list with no kinds says so instead of "saved as you tick" over nothing', async () => {
+  const { user, reply } = notifyWorld_();
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  pat.profile.notify = Object.assign({}, pat.profile.notify, { kinds: [] });
+  const v = await notifyCardOf_({ payload: Object.assign(payload(), { features: ['setNotify'] }), as: pat,
+    reply: b => b.action === 'myProfile' ? { success: true, personId: 'P-C1', profile: pat.profile } : reply(b) });
+  if (v.err) return [v.err];
+  const c = v.card();
+  if (!c) return ['Settings has no Notifications card'];
+  const bad = [];
+  const words = c.textContent.replace(/\s+/g, ' ').trim();
+  if (/saved as you tick/.test(words)) bad.push('an empty list still says "saved as you tick" over no ticks — ' + JSON.stringify(words));
+  if (!/sent as before/.test(words)) bad.push('an empty list does not say everything is still sent — ' + JSON.stringify(words));
+  return bad;
+});
+
+check('an old backend leaves the Notifications card saying so, with nothing to tick', async () => {
+  const { user, reply } = notifyWorld_();
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  /* THE PAYLOAD OF A BACKEND FROM BEFORE `setNotify`: features that do not name it, and a profile with no list. */
+  delete pat.profile.notify;
+  const v = await notifyCardOf_({ payload: Object.assign(payload(), { features: ['openWaitlist', 'myProfile'] }),
+    reply: b => b.action === 'myProfile' ? { error: 'That action is not recognised.' } : reply(b), as: pat });
+  if (v.err) return [v.err];
+  const bad = [];
+  const c = v.card();
+  if (!c) return ['an old backend took the Notifications card away — Settings should still draw it and say why'];
+  if (c.querySelector('[data-do="notify-pick"]')) bad.push('an old backend is offered ticks it would refuse');
+  if (!/does not have notification choices yet/.test(c.textContent) || !/sent as before/.test(c.textContent)) bad.push('the card does not say the backend is older than the site, and that everything is still sent: ' + JSON.stringify(c.textContent.replace(/\s+/g, ' ').trim()));
+  /* THE INSTRUCTION IS THE ADMIN'S: a parent cannot sync anything. */
+  if (/sync backend/i.test(c.textContent)) bad.push('a parent is told to sync the backend — an instruction only the admin can follow');
+  v.t.USER(Object.assign({}, pat, { role: 'admin', roles: ['admin'] }));
+  try { v.w.paint('settings'); } catch (e) { bad.push('drawing settings for the admin threw: ' + e.message); }
+  const ca = v.card();
+  if (!ca || !/Sync backend\//.test(ca.textContent)) bad.push('the admin is not told to sync backend/: ' + JSON.stringify(ca && ca.textContent.replace(/\s+/g, ' ').trim()));
+  if (!v.d.querySelector('#s-settings .roles-card')) bad.push('an old backend broke the rest of Settings');
+  return bad;
+});
+
 /* ---------- THE SHOP IS A COLUMN, AND FIND IS LEARNING -------------------------------------------
    ASKED FOR AS *"Get rid of shop tag. I will make a new coloumn for shop stuff. So finder now will
    become just learning stuff."* — the door and the column in ONE change, because the shop's things

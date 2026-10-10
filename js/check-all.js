@@ -235,6 +235,10 @@ const SUITE = [
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
+  /* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. *"Also let parents select their communication preferences
+     like notification. And kids and tutors too I guess"* — every sender names its kind and asks
+     `wants_`, through the real doPost: off is held and logged, on is sent, the essentials always go. */
+  { file: 'check-prefs.js', what: 'notification choices: every sender asks, off is held and logged, essentials always go, the token decides whose' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
      images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the

@@ -2795,6 +2795,10 @@ function settingsPages_() {
   /* AND THE WEEKLY PARENT EMAIL, AFTER THEM AND FOR AN ADMIN — see js/digest.js. Appended for the
      wardrobe's reason above. */
   if (typeof digestPages_ === 'function') pages.push(...digestPages_());
+  /* AND WHICH EMAILS YOU WANT, LAST OF ALL AND FOR EVERYBODY SIGNED IN — see `notifyCard_`. Appended for
+     the wardrobe's reason above: a card put in front would move every page behind it, and `PAGE.settings`
+     would open a returning visitor on the wrong one. */
+  pages.push(notifyCard_());
 
   return pages;
 }
@@ -2865,6 +2869,9 @@ on('roles-save', el => {
       USER.role = d.role || USER.role;
       USER.roles = Array.isArray(d.roles) ? d.roles : USER.roles;
       USER.tutorPending = !!d.tutorPending;
+      /* AND WHICH EMAILS REACH YOU NOW — they follow the roles (`notifyOf_`), so the Notifications card
+         is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
+      if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       toast(d.changed ? 'Roles saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
@@ -2889,6 +2896,156 @@ on('roles-save', el => {
       [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => {
         b.checked = held.indexOf(b.dataset.rolePick) !== -1;
       });
+    });
+});
+
+/* ---------- NOTIFICATIONS: WHAT @family. EMAILS YOU, AND WHAT YOU CAN TURN OFF ---------------------------
+   ASKED FOR AS *"Also let parents select their communication preferences like notification. And kids and
+   tutors too I guess"* (the owner, 9 Oct). The site sends email and nothing else, so this is one card of
+   the kinds of email that reach YOU — a parent, a learner, a tutor, an admin, or several — each a tick,
+   and under them what is always sent and cannot be turned off.
+
+   THE PHONE KEEPS NO LIST. Which kinds reach whom, what each is called and what each is set to come from
+   the server on the profile (`notifyOf_` in people.gs, out of `NOTIFY_KINDS` in constants.gs) — the same
+   table every sender asks before it sends — so the card cannot offer a tick for an email the server never
+   sends you, or miss one it does.
+
+   `.check` TICKS, the app's only checkbox, with the two-line label the roles card uses (`role-pick-say`):
+   a tick is a control inside a form, and a card of yes/no answers is the roles card's shape. SAVED ON
+   EACH TICK, like the agreement's box and unlike the roles card: nothing here asks anybody else for
+   anything, so there is no request a passing thumb could send by accident — and a Save tile under six
+   ticks would be the one press everybody forgets. ONLY THE BOX BEING SAVED is locked while it saves
+   (`send_` with `lock` on its own row): each tick is one cell, so a parent unticking three emails in a row
+   is three saves, not one save and two taps that did nothing (review, 9 Oct — the whole card was locked,
+   and a locked `.check` looked exactly like a live one).
+
+   WHAT IS ALWAYS SENT IS WORDS, NOT GREYED BOXES. The Signing-in card's argument: an input that cannot be
+   typed into reads as broken. A greyed tick reads as "switched off by somebody", which is the opposite.
+
+   AND THE STATES BETWEEN, each one sentence rather than ticks that would be refused: a backend older than
+   this site (`setNotify` not in `DATA.features` — everything is still sent), the choices not yet in (the profile is from a phone
+   signed in before the server sent them; `myProfile` brings them on this open), an account with no email
+   of its own — most children, whose mail goes to their grown-ups — and an address nobody has proved yet,
+   which is sent nothing but its link (`addressPending_`). NOT added to `profileShapeOk_`: an old backend
+   never sends `notify`, and that test would ask it for the profile on every save, for ever. */
+/* WHAT A BACKEND OLDER THAN THIS SITE MEANS FOR THE PERSON READING IT: nothing is held, everything still
+   goes. The instruction is the admin's alone — a parent cannot sync anything — and it does not say "Apps
+   Script": `\bapps?\b` is one of the words `check-flow`'s install journey reads as an offer to install, and a
+   parent's screen must never seem to make one. */
+const NOTIFY_OLD_SAY_ = 'The live backend does not have notification choices yet, so every email is sent as before.';
+const NOTIFY_OLD_ADMIN_ = ' Sync backend/ and deploy a new version to switch them on.';
+/* WHAT THE LINE UNDER THE TICKS SAYS AFTER ONE IS SAVED, kept as state for `HANDLE_SAID`'s reason: the
+   payload landing repaints this column, and a sentence written only on the element would be gone before
+   it was read. Keyed by the person, so the next person on this phone is not told about somebody else's. */
+let NOTIFY_SAID = { pid: '', text: '' };
+const notifyList_ = () => {
+  const n = USER && USER.profile && USER.profile.notify;
+  return n && Array.isArray(n.kinds) ? n : null;
+};
+function notifyCard_() {
+  const f = (DATA && Array.isArray(DATA.features)) ? DATA.features : [];
+  const n = notifyList_();
+  const said = t => `<p class="faint notify-said" aria-live="polite">${esc(t)}</p>`;
+  let inner;
+  /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
+  if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
+    inner = `<p class="sub notify-old">${esc(NOTIFY_OLD_SAY_ + (isAdmin() ? NOTIFY_OLD_ADMIN_ : ''))}</p>`;
+  }
+  else if (!n) inner = said('Your choices are on their way from the sheet.');
+  else if (!n.to) {
+    /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
+       all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
+    const kid = heldRoles().map(roleOf).indexOf('student') !== -1;
+    inner = `<p class="sub notify-none">${esc(kid
+      ? 'There is no email address on your account, so @family. emails you nothing — there is nothing to turn off. If you forget your PIN, a new one goes to your grown-up.'
+      : 'There is no email address on your account, so nothing is emailed to you. Add one on your Contact card and your choices appear here.')}</p>`;
+  }
+  /* A LIST WITH NOTHING IN IT. The server sends every role at least `access` and `security`, so this is a
+     backend that sent `kinds: []` — the one that read a `parent` cell raw (`notifyHow_` in people.gs) did.
+     One sentence rather than "To x@… · saved as you tick." over no ticks at all. */
+  else if (!n.kinds.length) {
+    inner = `<p class="sub notify-none">${esc('We could not tell which emails reach your account, so nothing here can be switched yet — everything is sent as before.')}</p>`;
+  } else {
+    const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
+    const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';
+    /* ---------- SHORT, BECAUSE IT HAS TO FIT A 320 PHONE WITHOUT SCROLLING ---------------------------
+       The owner: *"I don't like scrolling. If you need to leave things more compact or smaller font."* The
+       first drawing — a sentence of instructions, each always-sent kind as a two-line item, a standing line
+       at the foot — was 800px at 390 and scrolled at 320 even shrunk to the floor (`paneReach_`). So the
+       address and "saved as you tick" are one line; what is always sent is ONE RUN of its labels, each label
+       saying the whole of it (`NOTIFY_KINDS` in constants.gs), its note a hover for a pointer; and the line at
+       the foot is empty until a tick has something to say. The ticks keep their 44px rows. */
+    inner = `<p class="sub">To <b style="overflow-wrap:anywhere">${esc(n.to)}</b> · saved as you tick.</p>
+      ${n.held ? `<p class="faint notify-held">Until you open the link we sent there, that link is the only
+        thing we send to it.</p>` : ''}
+      ${opt.map(k => `<label class="check role-pick notify-pick">
+        <input type="checkbox" data-do="notify-pick" data-kind="${esc(k.kind)}"${k.on ? ' checked' : ''}>
+        <span class="box"></span><span class="role-pick-say"><b>${esc(k.label)}</b>
+          <span class="faint">${esc(k.note)}${k.idle ? ' — ' + esc(String(k.idle).toLowerCase()) : ''}</span></span></label>`).join('')}
+      ${must.length ? `<p class="notify-cap">Always sent</p>
+      <ul class="notify-always">${must.map(k => `<li title="${esc(k.note)}">${esc(k.label)}</li>`).join('')}</ul>` : ''}
+      ${said(mine)}`;
+  }
+  return `<div class="card notify-card">
+    <h3>Notifications</h3>
+    ${inner}
+  </div>`;
+}
+
+/* WHAT THE SERVER LAST SAID THIS KIND IS SET TO — the profile's list, not the box. */
+const notifyOnNow_ = kind => {
+  const n = notifyList_();
+  const k = n && n.kinds.find(x => x.kind === kind);
+  return !!(k && k.on);
+};
+
+on('notify-pick', el => {
+  if (!USER || !el || el.disabled) return;
+  const card = el.closest('.card');
+  const said = card && card.querySelector('.notify-said');
+  const kind = String(el.dataset.kind || '');
+  const want = !!el.checked;
+  const n = notifyList_();
+  const label = ((n && n.kinds.find(x => x.kind === kind)) || {}).label || 'That email';
+  /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD ---------------------------------------------------
+     It locked the card, and a second tick while the first was saving (about two seconds of Apps Script)
+     landed on a disabled box that looked live: no request, the box stayed as it was, and "Saved" for the
+     first (review, 9 Oct, walked in Chromium). One tick is one cell, so the saves cannot step on each
+     other's writes — the row is locked so the same box is not sent twice at once. */
+  send_({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want },
+        { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
+    .then(d => {
+      /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. Two saves in flight
+         can answer in either order, and the earlier one's list still has the later tick as it was: kept
+         whole, the next repaint would put back a tick the server has already taken away. The reply's list
+         is taken whole only when there is none to merge into. An older reply with no list keeps ours. */
+      const on = d && typeof d.on === 'boolean' ? d.on : want;
+      const held = notifyList_();
+      if (held && held.kinds.some(x => x.kind === kind)) {
+        USER.profile = Object.assign({}, USER.profile, { notify: Object.assign({}, held, {
+          kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
+      } else if (d && d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      NOTIFY_SAID = { pid: String(USER.personId || ''),
+        text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
+      /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
+         column, and the card held from the press would be a detached copy. */
+      const live = document.querySelector('#s-settings .notify-card') || card;
+      const box = live && live.querySelector('[data-kind="' + kind + '"]');
+      if (box) box.checked = on;
+      const line = live && live.querySelector('.notify-said');
+      if (line) line.textContent = NOTIFY_SAID.text;
+      toast('Saved');
+    })
+    /* ---------- A FAILURE PUTS THE TICK BACK TO WHAT THE SERVER HAS — REFUSED OR LOST ------------------
+       Unlike the roles card, which leaves the ticks on a lost reply because its Save tile is how somebody
+       sends them again. Here the tick IS the request and there is no tile: a box left showing a choice the
+       server never heard reads as saved, and every sender goes on reading the other answer. So the box
+       goes back to the last thing the server said, and `send_` has already written why on the line under
+       it — tick it again to try again. */
+    .catch(() => {
+      const live = document.querySelector('#s-settings .notify-card [data-kind="' + kind + '"]') || el;
+      live.checked = notifyOnNow_(kind);
     });
 });
 
