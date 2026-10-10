@@ -600,8 +600,11 @@ const STATES = {
        before it is paged, so `stuffItemsAll_()`'s first is not the card the screen shows. */
     { name: 'a diagram you can draw on',
       enter: () => {
+        /* THE PAPER'S OWN PICTURE UNDER THE PEN, NOT A MADE-UP SURFACE: a surface is the answer box's other
+           face on the card now (`ansArea_`, docs/history/327), with no figure page to turn to -- its states
+           are below. */
         const pen = stuffItemsAll_().find(it => it.kind === 'question'
-          && typeof padSource_ === 'function' && padSource_(it));
+          && typeof padSource_ === 'function' && padSource_(it) && padSource_(it).from !== 'surface');
         if (!pen) throw new Error('no question in the list carries a pen');
         /* THE VALUE THE FACET ITSELF WOULD READ, not a field name written out here. `paperId`'s
            `of` is `x.row.paper_id` and the item carries no `paperId` of its own — so a state that
@@ -708,32 +711,138 @@ const STATES = {
       },
       wants: 'the Venn diagram on its own page, tagged Figure first, with no question number, no marks and no box',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A DRAWING QUESTION WITH NO PICTURE: A SQUARED GRID UNDER THE PEN ----------------------
-       *"some questions require answers on diagram. So should have a diagram for them to draw on"*. The
-       first question in the library that `padSource_` gives a SURFACE rather than a figure, and whose
-       surface is squared paper -- found by the app's own rule, not named, so the state follows the
-       data as the data workflow redraws the real figures. On its own page, after the ask, headed
-       "Squared grid", saying it is not the paper's figure. */
-    { name: 'a drawing question\'s squared grid, under the pen',
+    /* ---------- A QUESTION ANSWERED ON A MADE-UP SURFACE: ONE CARD, THE BOX, AND `Draw` -----------------
+       THE OWNER, 10 Oct, over this very card: *"this is confusing. theres an answer box and draw box? in
+       questions which require a drawing, just leave it as an answer box like before but theres an option
+       to switch to drawing box."* KS1 "How many sides has a hexagon?" -- a one-word answer whose row gives
+       it a blank space to count on -- was the box, "Space to draw on the next page", and a page after it
+       headed "Space to draw". Now it is ONE card: the box as on any question, no line pointing on, and a
+       `Draw` tile in the row under the card; and no surface page anywhere in the strip. Named, because it
+       is the owner's own screenshot. The face is set to the box first, as a device that never chose. */
+    { name: 'a question answered on a surface, on its answer box with a Draw tile',
       enter: () => {
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && typeof padSource_ === 'function'
-          && (padSource_(x) || {}).from === 'surface' && padSurface_(x) === 'grid');
-        if (!it) throw new Error('no question in the library stands on a squared-grid surface');
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-2d-shapes-2');
+        if (!it) throw new Error('Q-CBM-2d-shapes-2 ("How many sides has a hexagon?") is not in the library');
+        if (typeof surfaceOf_ !== 'function' || !surfaceOf_(it)) throw new Error('Q-CBM-2d-shapes-2 is not answered on a surface any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        window.__surfRow = it.row.row_id;
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
       },
       expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
-        return !!c && c.getAttribute('data-of') === window.__surfRow
-               && !!c.querySelector('.qpad .qpad-art > svg.qsurf.is-grid')
-               && ((c.querySelector('.qcard-tags [data-tag="kind"]') || {}).textContent || '') === 'Squared grid'
-               && /not the paper.s own figure/i.test(c.textContent);
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const page = a && a.closest('.page');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        return !!tile && !a.classList.contains('is-draw') && !!a.querySelector('.qp-ans .kp-in') && !a.querySelector('.qpad')
+               && /^Draw\b/.test(tile.getAttribute('aria-label') || '') && !page.querySelector('.qsheet-figref')
+               && !stuffPages_().some(pg => pg.x === it && pg.part === 'fig');
       },
-      wants: 'a squared grid on its own page after its question, under the pen, tagged "Squared grid" and saying it is not the paper\'s figure',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the hexagon question as one card: its answer box, no "on the next page" line, a Draw tile in the row under it, and no surface page in the strip',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE SAME CARD, SWITCHED TO THE DRAWING ------------------------------------------------------
+       `Draw` pressed through its own handler, as a finger does: the box gives way IN PLACE to the blank
+       space under the pen -- lock, Undo, Clear, the line saying it is not the paper's own figure -- and the
+       tile reads `Type`. The page does not change: both faces are one page. */
+    { name: 'a question answered on a surface, switched to the drawing',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-2d-shapes-2');
+        if (!it) throw new Error('Q-CBM-2d-shapes-2 ("How many sides has a hexagon?") is not in the library');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__facePage = (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it);
+        goPage('stuff', window.__facePage, true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-CBM-2d-shapes-2 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const page = a && a.closest('.page');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        return !!tile && a.classList.contains('is-draw') && !a.querySelector('.qp-ans')
+               && !!a.querySelector('.qpad .qpad-art > svg.qsurf.is-blank') && !!a.querySelector('.qpad-lock')
+               && !!a.querySelector('.qpad-undo') && !!a.querySelector('.qpad-clear')
+               && /not the paper.s own figure/i.test(a.textContent) && /^Type\b/.test(tile.getAttribute('aria-label') || '')
+               && PAGE.stuff === window.__facePage;
+      },
+      wants: 'the hexagon card with a blank space under the pen where its box was, lock, Undo and Clear under it, saying it is not the paper\'s figure, the tile reading Type, on the same page',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A SQUARED GRID, SWITCHED TO ------------------------------------------------------------------
+       *"some questions require answers on diagram. So should have a diagram for them to draw on"* -- the
+       first question in the library on a squared-grid SURFACE, found by the app's own rule so the state
+       follows the data as the paper's own figures are redrawn. Switched to through `Draw`; the grid under
+       the pen with every tool its question asks for (`padTools_`: KS2 "Draw the reflection... Use a ruler"
+       brings the Ruler), and nothing of it on a page of its own. */
+    { name: 'a question answered on a squared grid, switched to the drawing',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && typeof surfaceOf_ === 'function'
+          && surfaceOf_(x) && padSurface_(x) === 'grid');
+        if (!it) throw new Error('no question in the library stands on a squared-grid surface');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error(it.row.row_id + ' has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const tools = a ? [...a.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' ') : '';
+        const want = padToolsOf_(it).length > 1 ? padToolsOf_(it).join(' ') : '';
+        return !!a && a.classList.contains('is-draw') && !!a.querySelector('.qpad .qpad-art > svg.qsurf.is-grid')
+               && !a.querySelector('.qp-ans') && tools === want
+               && !stuffPages_().some(pg => pg.x === it && pg.part === 'fig');
+      },
+      wants: 'a squared grid under the pen on the question card, in the box\'s place, with the tools its question asks for, and no page of its own',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AXES, SWITCHED TO ----------------------------------------------------------------------------
+       NO ROW IN THE LIBRARY IS ON AXES TODAY (every coordinate grid the papers print has been drawn), so,
+       as the passage state does for `text`, this gives a real squared-grid row `surface: "coord"` for the
+       length of the state -- the value a row would carry -- through the app's own memo, and switches to it. */
+    { name: 'a question answered on axes, switched to the drawing',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && typeof surfaceOf_ === 'function'
+          && surfaceOf_(x) && padSurface_(x) === 'grid');
+        if (!it) throw new Error('no question in the library stands on a squared-grid surface to put axes on');
+        window.__faceItem = it;
+        window.__faceHad = it.surface;
+        it.surface = 'coord';
+        CHUNK_MEMO.delete(it);
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error(it.row.row_id + ' has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        return !!a && a.classList.contains('is-draw') && !!a.querySelector('.qpad .qpad-art > svg.qsurf.is-coord line.axis')
+               && !a.querySelector('.qp-ans');
+      },
+      wants: 'axes on a grid under the pen on the question card, in the box\'s place',
+      leave: () => {
+        const it = window.__faceItem;
+        if (it) { it.surface = window.__faceHad || ''; CHUNK_MEMO.delete(it); }
+        padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- "USE YOUR GRAPH", WITH THE GRAPH IN FRONT OF IT --------------------------------------------
        The multi-part audit's finding 5, on the row it named: June 2024 Foundation Paper 2, Q24(c) "Use your
        graph to find estimates for the solutions of x^2 - x = 4", whose `uses` is (b). The curve (b) asks

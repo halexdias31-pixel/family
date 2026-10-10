@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-tutor-photos-still";
+  --css-version: "2026-10-10-draw-is-a-switch";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9259,9 +9259,13 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    is the only reason this is a decision rather than a thing the font change missed. */
 .qsheet .lbl, .gd .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
 .qsheet .num, .gd .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
-.qsheet .ax, .gd .ax { font: italic 9px serif; fill: currentColor; }
-.qsheet .axis, .gd .axis { stroke: currentColor; stroke-width: 1.2; }
-.qsheet .grid, .gd .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
+/* `.qsurf` TOO: A MADE-UP SURFACE INKS ITSELF WHEREVER IT IS DRAWN. It was only ever drawn inside a
+   `.qsheet`, on its own page; on the card it stands in the answer box's place, outside the sheet (327),
+   and the first screenshot of it there was an empty card -- a squared grid with no squares and a blank
+   space with no dashed edge, the lines present and unstroked. */
+.qsheet .ax, .gd .ax, .qsurf .ax { font: italic 9px serif; fill: currentColor; }
+.qsheet .axis, .gd .axis, .qsurf .axis { stroke: currentColor; stroke-width: 1.2; }
+.qsheet .grid, .gd .grid, .qsurf .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
 .qsheet .pt, .gd .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
 
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM -------------------------------------------
@@ -12434,6 +12438,18 @@ button.scr-sq { cursor: pointer; }
 .qpad { margin: 1rem 0; }
 .qpad-art { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
 .qpad-art > svg:first-child { width: min(100%, 20rem); height: auto; display: block; }
+/* ---------- A MADE-UP SURFACE, ON THE CARD, IN THE ANSWER BOX'S PLACE ----------------------------------
+   THE OWNER, 10 Oct: *"just leave it as an answer box like before but theres an option to switch to
+   drawing box."* `.qp-area` holds one face of the answer -- the box, or the surface under the pen -- and
+   `Draw` in the row under the card swaps them in place (`ansArea_`, docs/history/327). The surface takes
+   the box's own margins. AND IT IS HELD SHORTER THAN ON ITS OLD PAGE: there it had the page to itself;
+   here it shares the screen with the ask, the pen's bar and the row with `Type` in it, and a grid that
+   pushed `Type` under the fold of a 568px phone is a switch you can turn on and then not see to turn
+   off. `svh`, the smallest the screen is, because the bar a browser hides on scroll comes back exactly
+   when a finger is reaching for the row. This is the first guess; a card still too tall has its grid
+   made smaller again by `padFaceFit_` (find.js) before the card itself is drawn smaller. */
+.qp-area.is-draw > .qpad { margin: .9rem 0 .2rem; }
+.qp-area.is-draw .qpad-art > svg:first-child { width: min(100%, 20rem, 44svh); }
 .qpad-ink {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;

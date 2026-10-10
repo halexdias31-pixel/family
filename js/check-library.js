@@ -1804,7 +1804,8 @@ console.log(`papers saying whether a calculator is allowed: ${saysCalc} of ${doc
    tutoring from it -- so a drawing question with no picture gets a SURFACE under the pen (squared
    paper, axes, a blank space) or, for "circle the words in the passage", its own passage to tap
    (`padSurface_` in find.js, cut out below by name so this count is the app's rule and not a copy of
-   it). The surface says on its page that it is not the paper's figure, which is the answer to the
+   it). The surface says under it -- on the card, as the answer box's other face since 327 -- that it is
+   not the paper's figure, which is the answer to the
    old objection that a grid with no triangle T dresses one question up as another. The count below
    says how many stand on each, so the backlog of real figures is still a number. */
 const preDiag_ = {};
