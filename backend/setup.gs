@@ -3,7 +3,11 @@
 
    BRINGING THE SHEET UP TO DATE, AND SAYING WHAT IS WRONG WITH IT.
 
-   `ensureSchema` and `autoMigrate` run themselves on the first request after a deploy.
+   `ensureSchema` and `autoMigrate` run when somebody asks — `?setup=1`, `?run=…`, or the editor's function
+   list — and never on an ordinary request (doGet says why: it landed on whoever opened the app next).
+   THIS LINE SAID THEY RAN THEMSELVES ON THE FIRST REQUEST AFTER A DEPLOY, and the owner's steps were
+   written from it twice (309 said there was nothing to run; 308 offered `/exec?setup=1` before the New
+   version, when /exec is still the OLD code — review of 10 Oct).
    `dataProblems` and `checkEverything` are the two that answer "why is this not appearing" without
    anybody having to guess.
 
@@ -20,21 +24,50 @@
 ================================================================================================== */
 
 
-/** Replace the code-owned option lists; leave every other list untouched. */
+/* ---------- THE CODE'S OWN OPTION VALUES, ADDED WHERE MISSING — AND NOTHING ELSE TOUCHED --------------
+   IT REWROTE THE WHOLE TAB, on every `ensureSchema`. It read every row, kept the lists the code does not
+   own as `[list_name, value, sort_order]`, cleared columns A to C from row 2 down and wrote the kept rows
+   back, closed up, with the code's four lists rebuilt after them. Found on 10 Oct, before the owner
+   runs `ensureSchema` on the live Ledger to add the `submissions` tab (note 308), where the options
+   tab holds 145 rows the owner has edited:
+     · THE FOURTH COLUMN DID NOT MOVE WITH THE OTHER THREE. `focus` (D) is what says a subject is
+       academic or sporty, and it was never read or cleared — so every row that closed up over a blank
+       row or a rebuilt list was written beside the `focus` of the row that used to be there, and the
+       subjects' kinds shifted down the sheet.
+     · EVERY CELL WENT THROUGH `S()` AND BACK: a value the sheet held as a number or a date came back
+       as the text of it.
+     · AND AN EDIT TO ONE OF THE CODE'S LISTS — a wording, an order, a value added — was put back to
+       the code's every time.
+   NOW IT ONLY ADDS. For each list the code owns (`OPTION_DEFAULTS`), a value that list does not have
+   yet — compared without case or surrounding spaces — is appended as a new row at the end of that
+   list's numbering. No row is rewritten, moved, reordered or removed; a second run adds nothing.
+   A value the owner took out of one of these lists comes back, because the code branches on it
+   (the note over `OPTION_DEFAULTS`); one the owner added stays, and so does every word of theirs.
+   `check-submissions.js` runs `ensureSchema` over an owner's tab and asks that every row is as it was. */
 function seedOptions() {
   const t = read(TAB.options);
   if (!t.sheet) return [];
-  const owned = Object.keys(OPTION_DEFAULTS);
-  const keep = t.rows.filter(r => owned.indexOf(S(r.list_name)) === -1)
-                     .map(r => [S(r.list_name), S(r.value), r.sort_order]);
-  const rebuilt = [];
-  owned.forEach(l => OPTION_DEFAULTS[l].forEach((v, i) => rebuilt.push([l, v, i + 1])));
-  const all = keep.concat(rebuilt);
-  t.sheet.getRange(2, 1, Math.max(t.sheet.getLastRow() - 1, all.length), 3)
-    .clearContent();
-  if (all.length) t.sheet.getRange(2, 1, all.length, 3).setValues(all);
-  clearCache();
-  return owned;
+  const have = {}, top = {};
+  t.rows.forEach(r => {
+    const l = S(r.list_name);
+    if (!l) return;
+    have[l + '\u0001' + norm(r.value)] = true;
+    const n = Number(r.sort_order);
+    if (isFinite(n) && n > (top[l] || 0)) top[l] = n;
+  });
+  const added = [];
+  Object.keys(OPTION_DEFAULTS).forEach(l => {
+    OPTION_DEFAULTS[l].forEach(v => {
+      if (have[l + '\u0001' + norm(v)]) return;
+      top[l] = (top[l] || 0) + 1;
+      if (addRow(t, { list_name: l, value: v, sort_order: top[l] })) {
+        have[l + '\u0001' + norm(v)] = true;
+        added.push(l + ': ' + v);
+      }
+    });
+  });
+  if (added.length) clearCache();
+  return added;
 }
 
 /** Put the wearables into the shop, once. Also labels existing rows as physical stock, since
@@ -873,7 +906,7 @@ function ensureSchema() {
   const seededItems = seedAvatarItems();
   if (seededItems) report.shop = (report.shop || 'up to date') + ' | seeded ' + seededItems + ' wearables';
   const lists = seedOptions();
-  if (lists.length) report.options = (report.options || 'up to date') + ' | rewrote: ' + lists.join(', ');
+  if (lists.length) report.options = (report.options || 'up to date') + ' | added: ' + lists.join(', ');
   clearCache();
   Logger.log(JSON.stringify(report));
   return report;
@@ -1014,14 +1047,14 @@ function dataProblems(deep) {
       })() : '';
       add('the sheet is behind the code',
           which || ('The schema has not been brought up to date for ' + BACKEND_VERSION),
-          'It runs itself on the first request after a deploy and retries a couple of minutes '
-          + 'after a failure. To force it now: ?run=ensureSchema&name=…&pin=…');
+          'Run ensureSchema from the editor\u2019s function list, or open ?setup=1 once the new version is '
+          + 'deployed (before that, /exec is the old code). Nothing runs it on an ordinary request.');
     }
     MIGRATIONS.forEach(m => {
       if (seen['MIGRATED_' + m.id]) return;
       add('a one-off job has not run', m.id + ' — ' + m.what,
-          'It runs itself on the next request. If it keeps saying this, that attempt failed — '
-          + 'run it from the editor and read the error.');
+          'It runs on the next ?setup=1 or ?run= request, or from the editor. If it keeps saying this, that '
+          + 'attempt failed — run it from the editor and read the error.');
     });
   }
 
@@ -1682,9 +1715,10 @@ function authoriseDrive() {
 /**
  * EVERYTHING THE SHEET NEEDS, WITHOUT ANYBODY REMEMBERING ANYTHING.
  *
- * Deploying is the whole procedure now. The first request afterwards brings the columns up to date
- * if the version moved, and runs any named job that has never run. Every request after that is one
- * properties read and nothing else.
+ * Run by `?setup=1` and `?run=…` (doGet) — somebody asking on purpose — and never by an ordinary page
+ * load, which once paid for it. It brings the columns up to date if the version moved and runs any named
+ * job that has never run. (This said deploying was the whole procedure and the first request did it; it
+ * has not been true since the schema work came off the page load — review of 10 Oct.)
  *
  * ONE READ for both questions. `getProperties()` returns the lot, so asking whether the schema is
  * current and whether four migrations have run costs the same as asking either on its own.

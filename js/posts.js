@@ -169,6 +169,32 @@ function postCard_(p, i) {
     const face = pic(p.avatar || brand('logo_square') || brand('logo_circle'));
     const who = p.handle || p.author || brand('name', '@family.');
 
+    /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES ---------------
+       Under the picture when there is one, after the words when there is not — see the two places
+       it is dropped in below. Built here so the two cannot drift into two versions of one row.
+
+       WHAT AN EMPTY ROW MEANS, WHICH IS NOT WHAT IT USED TO MEAN. IT SAID "fill in
+       `brand!reactions`" AND THAT RUNG NO LONGER EXISTS. The brand tab became
+       `data/settings/brand.json`, which the phone reads and Apps Script cannot — so `reactionSet`
+       is down to the post's own cell and `HOUSE_REACTIONS`, and that second one is six faces in
+       `constants.gs` that are never empty. Measured: `reactionSet` cannot return an empty list, so
+       `doGet` cannot send `reactions: null`.
+
+       WHICH MAKES THIS BRANCH UNREACHABLE ON ANY CURRENT BACKEND, and that is exactly what it
+       should now say. An empty row means the payload came from a deployment older than the house
+       set — nothing to type into a cell, and the remedy is a sync. Sending somebody to edit a tab
+       that is not there any more is the fault this repository records under `.favwrap.is-fav` and
+       under the dead `kind === 'paper'` guard: a sentence that outlived the thing it described.
+
+       AND EVERYBODY ELSE GETS NO SLOT AT ALL. It used to be an empty `<span></span>`, which existed
+       only to balance a flex row against the Share button beside it; Share is a tile in the row
+       below now and there is nothing left here to balance. */
+    const acts = reacts(p) || (isAdmin()
+      ? '<span class="faint">No reactions — this payload predates them. '
+        + 'Check the build stamp on You.</span>'
+      : '');
+    const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
+
     /* The order is Instagram's, and it is right: WHO first, then the picture, then what you can do
        about it, then what it says.
        Who first because a photograph with no attribution is an advert; the caption last because it
@@ -206,36 +232,23 @@ function postCard_(p, i) {
              none, which is what the overlap was. */''}
       ${postMediaHtml_(media, i)}
 
-      ${/* THE ACTIONS ROW, which is now reactions and sharing and nothing else.
+      ${/* THE FACES, DIRECTLY UNDER THE PICTURE — the place the heart held, where the eye already
+            goes and where the thing you can do about a photograph belongs.
             The heart has gone. A like is a reaction with exactly one option, so having both was
             two counts of the same gesture — and a heart sitting beside a 👍 asking for the same
             press, with no way to tell somebody which one you meant.
-            The reactions move UP here, into the place the heart held: directly under the picture,
-            where the eye already goes and where the thing you can do about a photograph belongs. */''}
-      <div class="post-acts">
-        ${/* ---------- WHAT AN EMPTY ROW MEANS, WHICH IS NOT WHAT IT USED TO MEAN ----------------
-              IT SAID "fill in `brand!reactions`" AND THAT RUNG NO LONGER EXISTS. The brand tab
-              became `data/settings/brand.json`, which the phone reads and Apps Script cannot — so
-              `reactionSet` is down to the post's own cell and `HOUSE_REACTIONS`, and that second
-              one is six faces in `constants.gs` that are never empty. Measured: `reactionSet`
-              cannot return an empty list, so `doGet` cannot send `reactions: null`.
 
-              WHICH MAKES THIS BRANCH UNREACHABLE ON ANY CURRENT BACKEND, and that is exactly what
-              it should now say. An empty row means the payload came from a deployment older than
-              the house set — nothing to type into a cell, and the remedy is a sync. Sending
-              somebody to edit a tab that is not there any more is the fault this repository
-              records under `.favwrap.is-fav` and under the dead `kind === 'paper'` guard: a
-              sentence that outlived the thing it described. */''}
-        ${reacts(p) || (isAdmin()
-          ? '<span class="faint">No reactions — this payload predates them. '
-            + 'Check the build stamp on You.</span>'
-          : '<span></span>')}
-        ${/* SHARING MOVED DOWN INTO THE TILE ROW. It was the one action living in this row, drawn
-              as a `.post-act` — its own class, its own 44px rule, its own hover — for a control
-              that is the same act as sharing a booking and now uses the same renderer. What is left
-              here is the reactions, which are a counted response rather than an action on the post,
-              and which is why the row is aligned to flex-start: they wrap. */''}
-      </div>
+            `.post-acts` IS THE SLOT FOR THE FACES AND NOTHING ELSE NOW: one line of equal pills,
+            wrapping only when a post's own cell names more than six. Share went down into the tile
+            row (see `postTiles_`), and the total went onto the time line (see `postWhen_`), so
+            this is no longer a flex row with things to align — the owner, 9 Oct: *"refine how the
+            post reactions look. Looks abit scuffed"*, and the scuff was most of all a row of
+            different-width boxes wrapping a face and a bare number onto a line of their own.
+
+            ON A POST WITH NO PICTURE THE FACES COME AFTER THE WORDS. Directly under the header
+            they would be a row of faces reacting to nothing yet read; there, the words are the
+            thing you are reacting to, so they go first. */''}
+      ${media.length ? actsHtml : ''}
 
       ${/* The name leads the caption, as it does everywhere — but ONLY when there is a caption.
             Without a caption it was printing the name on its own under the picture, which is the
@@ -243,7 +256,8 @@ function postCard_(p, i) {
       ${p.caption ? `<p class="post-cap"><b>${esc(who)}</b> ${mark(p.caption)}</p>` : ''}
       ${p.poll ? poll(p) : ''}
       ${p.body ? `<p class="note">${mark(p.body)}</p>` : ''}
-      ${p.when || p.at ? `<p class="faint post-when">${esc(ago(p.at || p.when))}</p>` : ''}
+      ${media.length ? '' : actsHtml}
+      ${postWhen_(p)}
       ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. Sharing, editing, and the decision to put it up were
             three controls in three places drawn three ways — a `<span>` in the header, a
             `.post-act` beside the reactions, and a `.btn-row` down here. A post is a THING, and a
@@ -328,8 +342,11 @@ function commentsHtml_(p) {
           row, not a sheet — and the line is for the merge to bring into step. */''}
     ${USER
       ? `<div class="cmt-form">
+           ${/* A DRAFT (data.js), per post and per person: a payload landing redraws the feed, which
+                 emptied this box under somebody mid-sentence, and a reload lost it. Dropped when the
+                 comment is on the sheet (`cmt-add`). docs/history/317. */''}
            <textarea class="cmt-text" rows="1" maxlength="2000"
-             placeholder="Say something…"></textarea>
+             placeholder="Say something…"${draftAttr_('cmt', p.id)}>${esc(draftVal_('cmt', p.id))}</textarea>
            ${tile_({ icon: 'send', label: 'Post', note: 'your comment', act: 'cmt-add', cls: 'cmt-go',
                      data: { id: p.id } })}
            <p class="faint cmt-said"></p>
@@ -368,14 +385,20 @@ on('cmt-add', el => {
   el.classList.add('is-busy');
   const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
 
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered put the comment back in
+     the box after it was on the post (`draftSent_`, data.js; the review of 317). Dropped by the reply,
+     given back by a refusal. */
+  try { draftSent_('cmt', el.dataset.id, text); } catch (e) {}
   send({ action: 'addComment', name: USER.name, personId: USER.personId,
          postId: el.dataset.id, body: text })
     .then(() => { done(); if (box) { box.value = ''; box.style.height = ''; }
+                  try { draftSentDone_('cmt', el.dataset.id, text); } catch (e) {}
                   if (said) said.textContent = ''; load(); })
     /* THE SERVER'S OWN SENTENCE. Every refusal it can give is written for a person to read — the
        length, the post being gone, not being signed in — and "Not posted" would throw away the
        only part that says what to do about it. */
-    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not posted.'); });
+    .catch(err => { done(); try { draftSentBack_('cmt', el.dataset.id, text); } catch (e) {}
+                    if (said) said.textContent = String(err.message || 'Not posted.'); });
 });
 
 /* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where
@@ -431,8 +454,12 @@ function feedPosts() {
 function postsBlocks() {
   /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: one is a
      wait and the other is a fact. Telling somebody "nothing posted yet" while the request is still
-     in flight is a lie the app corrects a second later, which is worse than saying nothing. */
-  if (!LOADED) return skeleton();
+     in flight is a lie the app corrects a second later, which is worse than saying nothing.
+     THE WAIT IS `loading_()`, the one every card draws (shell.js) — a page of its own, the dots with
+     no card round them at the middle of the cell, where the post that lands is centred. It was a
+     skeleton post of its own until the owner, 9 Oct: *"They should all have a simplistic simple
+     loading thing."* */
+  if (!LOADED) return [loading_()];
 
   const posts = feedPosts();
   /* ---------- WHAT THE CALENDAR IS OFFERING, AT THE FRONT OF THE FEED -------------------------------
@@ -580,7 +607,7 @@ let CAM_STREAM = null;
    was a prompt nobody swiped for, which is the report this was written for arriving by another road.
    Held until the page is left (`feedCamWatch_`, `camStop_`) or `Try the camera again` is pressed,
    and drawn back onto every redrawn card by `camFailed_`, so a repaint cannot quietly turn the
-   sentence saying why back into "Starting the camera…". */
+   sentence saying why back into the loader that says it is starting. */
 let CAM_ASKING = false;
 let CAM_FAILED = null;
 /* ---------- WHICH WAY IT IS POINTING, AND WHY IT IS A VARIABLE NOW --------------------------------
@@ -602,10 +629,12 @@ function cameraCard() {
       <canvas id="cam-still" hidden></canvas>
       ${/* "Starting" RATHER THAN "off", BECAUSE IT IS. This panel shows for the moment between the
             column arriving and the first frame, and `The camera is off.` was a statement about a
-            state the card no longer has — read while the thing it denied was already happening. */''}
-      <div class="cam-off" id="cam-off">
-        <p class="sub">Starting the camera…</p>
-      </div>
+            state the card no longer has — read while the thing it denied was already happening.
+            AND "STARTING" IS THE ONE LOADER NOW, not a sentence of its own: the owner, 9 Oct, *"they
+            should all have a simplistic simple loading thing"*. It sits in the middle of the
+            viewfinder, where the picture will be; a camera that did NOT start is a fact, not a wait,
+            and keeps its words (`camFailed_`). */''}
+      <div class="cam-off" id="cam-off">${loading_()}</div>
     </div>
     ${/* ---------- FOUR CONTROLS, WHICH IS WHAT A CAMERA HAS ------------------------------------
           ASKED FOR ON THE WHITEBOARD BY SHAPE AND COLOUR: "white circle for take pic, Red for
@@ -814,11 +843,31 @@ async function camStart_() {
 
   let said = $('cam-said'), retry = $('cam-on');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    if (said) said.textContent = 'This browser has no camera support.';
+    /* A FACT, SO THE VIEWFINDER SAYS IT — and the loader comes out of it. This wrote the sentence into
+       the line under the card and left `#cam-off` as `cameraCard` and `camStop_` draw it: the one
+       loader, pulsing over "This browser has no camera support." for as long as the page was up, and
+       back again on every return. Found by review with `mediaDevices` taken away. A wait drawn over a
+       failure is the one thing `loading_` must never be; `camFailed_` already does this for a refused
+       camera. The reason is said once, in the panel, and the line under the card is cleared. */
+    const off = $('cam-off');
+    if (off) { off.hidden = false; off.innerHTML = '<p class="sub">This browser has no camera support.</p>'; }
+    if (said) said.textContent = '';
     if (retry) retry.hidden = true;          // nothing a retry could change
+    camSettle_();
     return;
   }
   if (retry) retry.disabled = true;
+  /* ---------- A NEW ASK IS A WAIT AGAIN, AND IT LOOKS LIKE ONE --------------------------------------
+     After a refusal the viewfinder said "The camera did not start." and the line under it why — and
+     `Try the camera again`, or coming back up to the page, asked again with both still standing, so
+     the card read as refused for the whole of a fresh prompt. Measured on 9 Oct by `check/ui.js`'s
+     `the camera still starting`: the stale reason was the line that went when the stream came, and the
+     card moved 40px at the moment the picture arrived. So asking puts the one loader back in the
+     viewfinder (`loading_`, shell.js — the owner, 9 Oct, *"they should all have a simplistic simple
+     loading thing"*) and clears the line; a refusal writes both back in `camFailed_`. */
+  const off = $('cam-off');
+  if (off) { off.hidden = false; if (!off.querySelector('.loading')) off.innerHTML = loading_(); }
+  if (said) said.textContent = '';
   CAM_ASKING = true;
   try {
     /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
@@ -844,7 +893,7 @@ async function camStart_() {
   /* ---------- AND THE CARD MAY HAVE BEEN DRAWN AGAIN WHILE IT WAS UP --------------------------------
      `v`, `said` and `retry` were found before the prompt, and a repaint in the meantime replaced all
      three — so the stream went into a `<video>` no longer in the document while the one on the screen
-     said "Starting the camera…" until something else repainted. Found again here, after the wait,
+     said it was starting the camera until something else repainted. Found again here, after the wait,
      which is the half `CAM_ASKING` makes necessary: the repaint no longer asks a second time, so this
      answer is the only one that will arrive. */
   const now = $('cam-view');
@@ -866,7 +915,7 @@ async function camStart_() {
 
 /* ---------- WHAT THE CARD SAYS WHEN THE CAMERA DID NOT START -----------------------------------------
    DRAWN FROM TWO PLACES NOW: the ask that failed, and every card redrawn after it while the refusal
-   is remembered. A repaint puts back a card reading "Starting the camera…" with its retry hidden, and
+   is remembered. A repaint puts back a card with the loader in its viewfinder and its retry hidden, and
    `camStart_` no longer asks again behind it — so without this the card would claim to be starting a
    camera nobody is asking for, with no way to ask. */
 function camFailed_(err) {
@@ -875,7 +924,9 @@ function camFailed_(err) {
   /* THE WAY BACK APPEARS ONLY NOW. Until something fails there is nothing to retry, and a button
      offering to start a camera that is already running is the thing this replaced. */
   if (retry) { retry.hidden = false; retry.disabled = false; }
-  if (off) { off.hidden = false; const t = off.querySelector('.sub'); if (t) t.textContent = 'The camera did not start.'; }
+  /* THE PANEL'S WHOLE CONTENT, NOT A LINE INSIDE IT: while it waits it holds the loader and no
+     sentence, so there is no line to find and rewrite. */
+  if (off) { off.hidden = false; off.innerHTML = '<p class="sub">The camera did not start.</p>'; }
   /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
   camSettle_();
 }
@@ -1426,8 +1477,7 @@ function camStop_(keepShown) {
   if (v) v.hidden = false;
   const c = $('cam-still'); if (c) c.hidden = true;
   const off = $('cam-off');
-  if (off) { off.hidden = false;
-             const t = off.querySelector('.sub'); if (t) t.textContent = 'Starting the camera…'; }
+  if (off) { off.hidden = false; off.innerHTML = loading_(); }
   $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
   /* LEAVING THE COLUMN LETS THE POST GO TOO, the tray with it — the same thing it has always done to
      a single held picture. */
@@ -1437,13 +1487,67 @@ function camStop_(keepShown) {
 }
 
 /* ---------- REACTIONS ---------------------------------------------------------------------------
-   A row of faces with a count under each. Unlike the poll, the counts are NOT hidden — a poll asks
-   a question and wants an unanchored answer; a reaction is a room agreeing with itself, and seeing
-   that eleven people laughed is most of why anybody adds a twelfth.
+   A row of faces, each with its count beside it INSIDE its own pill. Unlike the poll, the counts are
+   NOT hidden — a poll asks a question and wants an unanchored answer; a reaction is a room agreeing
+   with itself, and seeing that eleven people laughed is most of why anybody adds a twelfth.
 
    A face with nobody behind it shows no number rather than a 0 — a row of zeroes reads as
-   indifference, and an empty space reads as nothing having happened yet.
+   indifference, and an empty pill reads as nothing having happened yet.
+
+   ONE LINE OF SIX EQUAL CELLS, AND NO TOTAL IN IT. The owner, 9 Oct: *"Also refine how the post
+   reactions look. Looks abit scuffed right bow"*. Measured on the row that was there: each face's box
+   was as wide as its count (36.8px with none, 59.2 with three digits), so a tap that added a digit
+   reflowed the row — 👏 going 9 → 10 threw 🎉 onto a second line 43px down — and the total sat at the
+   end as a bare "77" that read as one more face's count. The six house faces never wrap now: the
+   cells are a grid of one width, the count is capped at three characters (`reactN_`), and the total
+   is a sentence on the time line (`postWhen_`). A post's own cell naming more than six wraps into the
+   same columns. See docs/history/307.
 --------------------------------------------------------------------------------------------- */
+/* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". The press itself is `:active` and `.is-pressed`
+   (style.css, the chips' pair) and lasts while the finger is down; the repaint after the tap
+   replaces the button, so nothing on the OLD button can say the reaction landed. This marks the NEW
+   one. Set by on('react') round its repaint and cleared straight after, so the `.catch` repaint and
+   every later one draw no animation — a face that lands once, not one that bounces whenever anything
+   else redraws the feed. `var`, because it is reassigned (`check-const.js`). */
+var REACT_POP_ = '';
+
+/* ---------- THE FOCUS STAYS ON THE FACE THAT WAS PRESSED ------------------------------------------
+   `repaint` REPLACES EVERY BUTTON ON THE SCREEN, and focus on a removed element falls to `<body>`.
+   Measured at 390x844: a face focused and Enter pressed — the same click a screen reader's
+   double-tap or a switch sends — and the reaction landed, but `document.activeElement` was BODY
+   afterwards, and the next Tab went to "Write a post" on a page parked off-screen. So the
+   `aria-pressed` that exists to say which face is yours was never heard at the moment it changed,
+   and a VoiceOver or TalkBack user lost their place in the feed with every reaction.
+
+   ONLY WHEN A FACE HELD THE FOCUS, and it is handed to that same face's replacement — the house rule
+   from `ansSet_` (find.js) and `qualRedraw_` (me.js): a redraw must not pull focus off whatever else
+   somebody is in. Matched on `data-id` + `data-emoji` by comparing `dataset`, not by building a
+   selector, so an emoji or a post id never has to be escaped into one. Searched in the SCREEN the face
+   was on (the `<section>` survives `paint`, only its markup is replaced), and NOT filtered by
+   `.page.on`, which `placeCells` applies at a deferred placement after this returns.
+   `preventScroll`, because the pages are parked side by side with transforms (CLAUDE.md) and a
+   focus that scrolled would slide the strip. A tap gives focus too in most browsers, and a focus
+   set by script after a pointer press draws no `:focus-visible` ring, so a finger sees nothing new. */
+function reactRepaint_() {
+  const a = document.activeElement;
+  const held = a && a.dataset && a.dataset.do === 'react'
+    ? { id: a.dataset.id, emoji: a.dataset.emoji, host: a.closest('section.screen') } : null;
+  repaint();
+  if (!held || !held.host) return;
+  const again = [...held.host.querySelectorAll('[data-do="react"]')]
+    .find(b => b.dataset.id === held.id && b.dataset.emoji === held.emoji);
+  if (again) { try { again.focus({ preventScroll: true }); } catch (e) {} }
+}
+
+/* A COUNT IS AT MOST THREE CHARACTERS, so a pill never grows for its number: 999, then 1k…999k.
+   NOT "1.5k", which is four mono characters and was measured past the edge of a 41px cell at 320.
+   Four digits of reactions on a tutoring feed is not a real case; if it comes, it is rounded down
+   rather than a wider pill, and the sheet behind the total still has the exact number. */
+function reactN_(n) {
+  n = Number(n) || 0;
+  return n < 1000 ? String(n) : Math.floor(n / 1000) + 'k';
+}
+
 function reacts(p) {
   const r = p.reactions;
   /* NO FACES, NO ROW — and the caller is told, rather than being handed an empty div.
@@ -1457,48 +1561,83 @@ function reacts(p) {
      means the payload predates the house set rather than that a cell is blank. */
   if (!r || !Array.isArray(r.emoji) || !r.emoji.length) return '';
   const counts = Array.isArray(r.counts) ? r.counts : [];
-  return `<div class="reacts">
-    ${r.emoji.map((e, i) => {
-      const n = counts[i] || 0;
-      const mine = r.yours === e;
-      return `<button class="react${mine ? ' mine' : ''}${n ? ' any' : ''}"
-                 data-do="react" data-id="${esc(p.id)}" data-emoji="${esc(e)}">
-        <span class="react-e">${esc(e)}</span>${n ? `<span class="react-n">${n}</span>` : ''}
-      </button>`;
-    }).join('')}
-    ${/* THE TOTAL, and it is its own button. Pressing a face adds YOUR reaction; pressing the
-          number asks who — two different questions, and one control answering both means somebody
-          who wants to see the list has to react to the post to find out.
-          Only there when somebody has: a 0 that opens an empty panel is a promise broken. */''}
-    ${r.total ? `<button class="react-who" data-do="who-reacted" data-id="${esc(p.id)}"
-        >${r.total}</button>` : ''}
-  </div>`;
+  /* `mine` RIGHT AFTER `react` IN THE CLASS LIST, because `check/ui.js` names a control by its first
+     two classes and its `ACCEPTED_TAP` entry for these cells is written against that name.
+     `aria-pressed`, because "yours" was a gold 11px number and nothing else — a screen reader had no
+     way to hear which face was the one you had pressed. `.any` is gone: nothing styles it now that
+     every face has the same plate and the number inside is what says somebody pressed it. */
+  return `<div class="reacts" role="group" aria-label="Reactions">${r.emoji.map((e, i) => {
+    const n = Number(counts[i]) || 0;
+    const t = n ? reactN_(n) : '';            // no zero counts: an empty pill, not a 0
+    const mine = r.yours === e;
+    const cls = 'react' + (mine ? ' mine' : '') + (t.length > 2 ? ' is-long' : '')
+              + (REACT_POP_ && REACT_POP_ === p.id + ' ' + e ? ' is-pop' : '');
+    return `<button class="${cls}" data-do="react" data-id="${esc(p.id)}" data-emoji="${esc(e)}"
+               aria-pressed="${mine}"><span class="react-e">${esc(e)}</span>${
+      t ? `<span class="react-n">${t}</span>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+
+/* THE TOTAL, and it is its own button. Pressing a face adds YOUR reaction; pressing the total asks
+   who — two different questions, and one control answering both means somebody who wants to see
+   the list has to react to the post to find out.
+   Only there when somebody has: a 0 that opens an empty panel is a promise broken.
+
+   AND IT SAYS WHAT IT IS NOW: "3 reactions", on the time line, not "3" at the end of the row of
+   faces. A bare number at the end of a row of numbers read as one more face's count, was announced
+   as just "77", and measured 18.6x38 at 390 — a faint digit nobody could find or hit. A text action
+   like every other in the app (`button.text-action` gives it the 44px box and the dotted line that
+   says "this acts"), so it is still its own button and still not a seventh pill. */
+function reactWho_(p) {
+  const r = p && p.reactions;
+  const n = r ? Number(r.total) || 0 : 0;
+  if (!n) return '';                          // a 0 that opens an empty sheet is a promise broken
+  return `<button class="text-action react-who" data-do="who-reacted" data-id="${esc(p.id)}"
+             aria-haspopup="dialog">${n} reaction${n === 1 ? '' : 's'}</button>`;
+}
+/* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the
+   first reaction on a post moves nothing below it — the tile row stays where your thumb left it.
+   INLINE AFTER THE TIME, NOT PUSHED TO THE RIGHT EDGE: at 820 the faces stop at about 349px of a
+   410px card, and a total out at the far edge was a number belonging to nothing beside it. */
+function postWhen_(p) {
+  const at = p.at || p.when;
+  const when = at ? `<span>${esc(ago(at))}</span>` : '';
+  const who = reactWho_(p);
+  if (!when && !who) return '';
+  return `<p class="faint post-when">${when}${when && who ? '<span aria-hidden="true">·</span>' : ''}${who}</p>`;
 }
 
 /* WHO REACTED, AND WITH WHAT. Grouped by face rather than listed flat: "four people laughed" is
    the shape of the answer, and a list of twenty rows each carrying its own emoji makes you count
-   them yourself. */
+   them yourself.
+   THE FACE IS THE GROUP'S HEADING, drawn as the same pill as the row and bigger. It was an `<h2>` in
+   the sheet's small-caps label style, which made the face about 10px — the smallest thing in the
+   sheet — with its count glued to it. Yours is the gold pill, and your name comes first under it. */
 on('who-reacted', el => {
   const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
   const r = p && p.reactions;
   if (!r || !r.total) return;
-
+  const me = USER ? norm(USER.name) : '';
+  const isMe = n => !!me && norm(n) === me;
   const by = r.by || [];
   const groups = (r.emoji || []).map((e, i) => ({
-    emoji: e, n: (r.counts || [])[i] || 0,
-    names: by.filter(x => x.emoji === e).map(x => x.name),
-  })).filter(g => g.n);
+    emoji: e, at: i, mine: r.yours === e, n: Number((r.counts || [])[i]) || 0,
+    /* YOU FIRST in your own group — the one name in the sheet you are looking for. */
+    names: by.filter(x => x && x.emoji === e).map(x => x.name).sort((a, b) => isMe(b) - isMe(a)),
+  })).filter(g => g.n)
+    /* MOST FIRST, ties in the house order: "four people laughed" is the shape of the answer. */
+    .sort((a, b) => b.n - a.n || a.at - b.at);
 
   openSheet(r.total + ' reaction' + (r.total === 1 ? '' : 's'),
-    groups.map(g => `
-      <h2><span>${esc(g.emoji)}</span><span class="faint">${g.n}</span></h2>
-      ${g.names.length
-        ? g.names.map(n => rowValue(mark(n))).join('')
-        : ''}
+    groups.map(g => `<section class="rx-group">
+      <h3 class="rx-head"><span class="rx-pill${g.mine ? ' mine' : ''}"><span class="react-e">${
+        esc(g.emoji)}</span><span class="react-n">${g.n}</span></span></h3>
+      ${g.names.map(n => rowValue(mark(n) + (isMe(n) ? '<span class="rx-you">you</span>' : ''))).join('')}
       ${g.n > g.names.length
         /* Reacted by people whose names the site cannot resolve — somebody removed from the sheet,
            or a reaction from before they were added. The count is still true. */
-        ? `<p class="faint">…and ${g.n - g.names.length} more</p>` : ''}`).join(''));
+        ? `<p class="faint">…and ${g.n - g.names.length} more</p>` : ''}
+    </section>`).join(''));
 });
 
 on('react', el => {
@@ -1563,7 +1702,12 @@ on('react', el => {
     r.yours = emoji; r.counts[at(emoji)]++; r.total++;
     r.by.push({ name: USER.name, emoji: emoji });
   }
-  repaint();
+  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `repaint` is
+     synchronous (shell.js), so clearing it on the next line is safe and nothing later replays it.
+     `reactRepaint_`, not `repaint`, so a keyboard or screen reader stays on the face it pressed. */
+  REACT_POP_ = r.yours === emoji ? id + ' ' + emoji : '';   // added or moved: it lands; taken back: quiet
+  reactRepaint_();
+  REACT_POP_ = '';
 
   /* `personId` AS WELL AS `name`. The handler resolves the person with
      `findPerson(S(body.name), S(body.personId))`, which prefers the id and falls back to matching
@@ -1575,7 +1719,7 @@ on('react', el => {
     .catch(err => {
       r.yours = before.yours; r.counts = before.counts; r.total = before.total;
       r.by = before.by;             // the fourth field, or the sheet disagrees after a failed save
-      repaint();
+      reactRepaint_();              // whichever face holds the focus NOW keeps it through the undo
       toast(String(err.message || 'Could not save that'));
     });
 });
@@ -1699,13 +1843,22 @@ function openSharedPost() {
    Deleted rather than left unused. Dead code reads as a thing the app does, and the next person to
    wonder why posting is slow would have found a resizer and believed it. */
 
+/* ---------- THE SHEET'S BOXES ARE DRAFTS (data.js; docs/history/317) -------------------------------------
+   A post written into this sheet lived in the sheet: closed by a tap outside, or the page reloaded, and
+   the links, caption and words were gone. Each box keeps a draft as it is typed and is drawn holding it
+   the next time the sheet opens, until the post is up. `posting as` is a choice of two and is not kept. */
+const POST_DRAFT_FIELDS = ['link', 'cap', 'loc', 'body', 'poll'];
 on('new-post', () => {
   openSheet('New post', `
   ${/* CHOOSE ONE THAT IS ALREADY THERE, before being offered the upload.
        Uploading writes to Drive; choosing only reads it. That difference matters because a
        deployment can hold read and not write — and for a photograph taken on a phone this is the
        shorter route anyway: share it to the folder from the camera roll and it is here. */''}
-  <div id="post-from-folder"><p class="faint">Looking in the folder…</p></div>
+  ${/* WHILE THE FOLDER IS READ, THE ONE LOADER — it said "Looking in the folder…" in faint ink, a
+       wait of its own on a sheet; the owner, 9 Oct, *"they should all have a simplistic simple
+       loading thing"*. What it turns into — the pictures, "Nothing new", "Could not look" — is a
+       result, and keeps its words. */''}
+  <div id="post-from-folder">${loading_()}</div>
   ${/* A LINK, not a file.
        Uploading meant this app had to be allowed to write to your Drive, which is a large
        permission to hold for the sake of one button — and the picture has to be somewhere with a
@@ -1717,19 +1870,19 @@ on('new-post', () => {
        any space, comma or pipe as well, so a list pasted in one line works too. */''}
   <label class="field"><span>links to the pictures or clips — one per line</span>
     <textarea id="post-link" rows="2" placeholder="https://…" inputmode="url"
-              autocomplete="off"></textarea></label>
+              autocomplete="off"${draftAttr_('post', 'link')}>${esc(draftVal_('post', 'link'))}</textarea></label>
   <div id="post-preview"></div>
   <label class="field"><span>caption</span>
-    <input id="post-cap" placeholder="One line about it"></label>
+    <input id="post-cap" placeholder="One line about it"${draftAttr_('post', 'cap')} value="${esc(draftVal_('post', 'cap'))}"></label>
   <label class="field"><span>where</span>
-    <input id="post-loc" placeholder="Colliers Wood Library" list="known-places">
+    <input id="post-loc" placeholder="Colliers Wood Library" list="known-places"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}">
     <datalist id="known-places">
       ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
     </datalist></label>
   <label class="field"><span>more, if you want it</span>
-    <textarea id="post-body" placeholder="Optional"></textarea></label>
+    <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <label class="field"><span>poll, if you want one</span>
-    <input id="post-poll" placeholder="Yes, No, Maybe"></label>
+    <input id="post-poll" placeholder="Yes, No, Maybe"${draftAttr_('post', 'poll')} value="${esc(draftVal_('post', 'poll'))}"></label>
   <label class="field"><span>posting as</span>
     <span class="btn-row" id="post-as" data-as="brand">
       <button class="btn quiet on" data-do="as" data-as="brand">
@@ -1739,6 +1892,8 @@ on('new-post', () => {
   <button class="btn" data-do="post-send">Post it</button>
   <p class="faint" id="post-said" style="margin:.6rem 0 0"></p>`);
 
+  /* A LINK KEPT FROM BEFORE A RELOAD (a draft, data.js) is previewed as a typed one is. */
+  if (($('post-link') || {}).value) showPostPreview();
   /* Fetched after the sheet is up, so the form is usable while the folder is being read. */
   send_({ action: 'folderFiles', name: USER.name, adminName: USER.name })
     .then(d => {
@@ -1807,11 +1962,13 @@ on('post-pick', el => {
     const next = had.indexOf(url) < 0 ? had.concat(url) : had.filter(x => x !== url);
     box.value = next.join('\n');
     el.classList.toggle('on', next.indexOf(url) >= 0);
+    /* A VALUE SET HERE FIRES NO `input`, so the draft is told by hand (data.js). */
+    try { draftFrom_(box); } catch (e) {}
   }
   /* The caption comes from the file's name, and only while the box is empty — somebody who has
      already typed one meant it. */
   const cap = $('post-cap');
-  if (cap && !cap.value) cap.value = el.dataset.caption || '';
+  if (cap && !cap.value) { cap.value = el.dataset.caption || ''; try { draftFrom_(cap); } catch (e) {} }
   showPostPreview();
 });
 
@@ -1854,6 +2011,9 @@ on('post-send', el => {
   if (!link) { if (said) said.textContent = 'A link to the picture, first.'; return; }
   el.disabled = true;
   if (said) said.textContent = 'Posting…';
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered opened the sheet holding
+     the post that had just gone up, for a second one (`draftSent_`, data.js). */
+  POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });
 
   api({ action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
@@ -1871,10 +2031,13 @@ on('post-send', el => {
     body: ($('post-body') || {}).value || '' })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
+      /* ON THE SHEET, SO THE SHEET'S DRAFTS GO — see the note over `new-post`'s boxes. */
+      POST_DRAFT_FIELDS.forEach(f => { try { draftDrop_('post', f); } catch (e) {} });
       closeSheet(); toast('Posted'); load();
     })
     .catch(err => {
       el.disabled = false;
+      POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} });
       if (said) said.textContent = String(err.message || 'Could not post that');
     });
 });
@@ -1898,12 +2061,14 @@ on('post-edit', el => {
   openSheet('Edit post', `
     ${p.image ? `<img src="${esc(pic(p.image))}" alt=""
          style="width:100%;margin-bottom:.7rem">` : ''}
+    ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
+          dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
     <label class="field"><span>caption</span>
-      <input id="pe-cap" value="${esc(p.caption || '')}"></label>
+      <input id="pe-cap" value="${esc(draftVal_('post-edit', p.id + ':cap', p.caption || ''))}"${draftAttr_('post-edit', p.id + ':cap', p.caption || '')}></label>
     <label class="field"><span>more</span>
-      <textarea id="pe-body">${esc(p.body || '')}</textarea></label>
+      <textarea id="pe-body"${draftAttr_('post-edit', p.id + ':body', p.body || '')}>${esc(draftVal_('post-edit', p.id + ':body', p.body || ''))}</textarea></label>
     <label class="field"><span>where</span>
-      <input id="pe-loc" value="${esc(p.location || '')}" list="known-places">
+      <input id="pe-loc" value="${esc(draftVal_('post-edit', p.id + ':loc', p.location || ''))}" list="known-places"${draftAttr_('post-edit', p.id + ':loc', p.location || '')}>
       <datalist id="known-places">
         ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
       </datalist></label>
@@ -1911,13 +2076,13 @@ on('post-edit', el => {
           with the wrong timestamp sits in the wrong place for ever otherwise, and the only way to
           fix it was to open the spreadsheet. */''}
     <label class="field"><span>posted on</span>
-      <input id="pe-when" value="${esc(p.when || '')}" placeholder="DD/MM/YYYY HH:MM:SS"></label>
+      <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
     ${/* A VOTE IS STORED AGAINST THE WORDS. Rename an option and every vote cast for it points at
           something that no longer exists — the count survives, its option does not, and the
           percentages quietly stop adding up. Nothing throws, which is the worst version of it. So
           the options are editable only while nobody has voted. */''}
     <label class="field"><span>poll</span>
-      <input id="pe-poll" value="${esc(opts)}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : ''}>
+      <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
       ${voted ? `<span class="faint">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'} cast —
         the options are fixed now. A vote is stored against the words, so changing them would
         strand it.</span>` : ''}</label>
@@ -1988,6 +2153,7 @@ on('post-save', el => {
     name: USER.name, adminName: USER.name, id: el.dataset.id, fields })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
+      ['cap', 'body', 'loc', 'when', 'poll'].forEach(f => { try { draftDrop_('post-edit', el.dataset.id + ':' + f); } catch (e) {} });
       closeSheet(); toast('Saved'); load();
     })
     .catch(err => {
@@ -2172,7 +2338,8 @@ function feedCamWatch_() {
    pointed the other way. The sheet still wins the moment it has a row, so nothing about the
    migration is undone — it just stops being a cliff. */
 screen('reel', () => {
-  if (!LOADED) return `<section class="page"><div class="pane">${skeleton()}</div></section>`;
+  /* WAITING, AS EVERY COLUMN WAITS — `loading_()` on a page of its own. */
+  if (!LOADED) return `<section class="page"><div class="pane">${loading_()}</div></section>`;
   /* ---------- CLIPS ONLY, AND THE FACTS ARE NOT A FALLBACK ---------------------------------------
      REPORTED FROM A SCREENSHOT OF THIS COLUMN: "no more factoids on this yh? its just the videos".
      The column opened on a green gradient reading "Notre-Dame took nearly 200 years", which is a
@@ -2395,7 +2562,11 @@ function reelTurn_(n) {
   /* MORE REELS BEFORE THE BOTTOM RATHER THAN AT IT. Appending when the last one is reached puts a
      blank page where the flick should have been; two early is the same cost paid while nobody is
      waiting. Same number and same reason as the observer that used to do it. */
-  if (n >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
+  /* AND NOT WHILE THE COLUMN IS STILL WAITING. Measured on 9 Oct with the payload held: page 0 was
+     the waiting card and pages 1 and 2 were clips, added by this top-up behind it — a column that
+     said "on its way" and "here it is" at once. `screen('reel')` draws the clips the moment the
+     payload lands; until then the one loader is the whole column, as on every other. */
+  if (LOADED && n >= REEL_SHOWN - REEL_AHEAD) reelMore_(host);
 
   /* THE ONE BEING WATCHED PLAYS AND THE REST DO NOT — and the rest are two pixels off the screen
      rather than gone, because the column peeks above and below. A clip left running up there is
@@ -2942,8 +3113,8 @@ screen('dm', () => { dmSync_(); return pages('dm', dmPages_().map(p => p.html));
 let DM_ASKED = false;
 /* AND WHETHER IT CAME BACK, which `MESSAGES` cannot say. `loadMessages` leaves it alone on a
    failure — deliberately, so a blip does not read as an empty inbox — so "still null" means both
-   *waiting* and *asked and refused*, and showing the skeleton for the second is a column that
-   never finishes loading. This is the fact the skeleton actually depends on. */
+   *waiting* and *asked and refused*, and showing the loader for the second is a column that
+   never finishes loading. This is the fact the loader actually depends on. */
 let DM_DONE  = false;
 
 /* IS ONE IN FLIGHT. Two overlapping asks against this backend is two round trips for one answer,
@@ -3012,7 +3183,7 @@ function dmTyping_() {
 
 /* THE ONE SIDE EFFECT. `loadMessages` swallows its own failures and always resolves, so there is no
    rejection path to handle — and the first answer must repaint either way, or a failed first fetch
-   leaves the skeleton on screen for ever with nothing saying why. */
+   leaves the loader on screen for ever with nothing saying why. */
 function dmSync_(force) {
   if (!USER || !LOADED || DM_BUSY) return;
   if (!force && DM_ASKED && Date.now() - DM_LAST < DM_EVERY) return;
@@ -3085,7 +3256,8 @@ function dmFace_(t) {
 function dmPages_() {
   if (!USER) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
     <p class="sub">Sign in to see your messages.</p></div>` }];
-  if (!LOADED || !DM_DONE) return [{ name: '', html: skeleton() }];
+  /* THE PAYLOAD AND THE FIRST ANSWER FOR MESSAGES — `loading_()` until both, as every column waits. */
+  if (!LOADED || !DM_DONE) return [{ name: '', html: loading_() }];
 
   const threads = messageThreads_();
   /* ---------- THE HEAD CARD WAS A PAGE WITH NO MESSAGE ON IT -------------------------------------

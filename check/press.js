@@ -77,6 +77,14 @@ const path = require('path');
 const http = require('http');
 const { chromium } = require('playwright');
 const { statesOf } = require('./states.js');
+/* ---------- THE PAYLOAD AND THE LIBRARY IN, NOT A GUESS AT WHEN THEY WILL BE ---------------------
+   Until `load()` has finished, every column is the one loader (`loading_`, shell.js — the owner, 9 Oct)
+   and there is nothing on it to press. The fixed sleeps after `goto` were always enough on a quiet
+   machine; at a load average of sixty on 9 Oct they were not, and a column of loaders pressed as if it
+   were the column reports controls missing that are only late. Asked for, bounded, and then on — a
+   page that never loads is still measured as it stands and fails on what it lacks. */
+const appIn_ = page => page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED
+  && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null, null, { timeout: 30000 }).catch(() => {});
 
 const ROOT = path.join(__dirname, '..');
 const PORT = Number(process.env.PRESS_PORT || 8123);   /* overridable: parallel runs in worktrees share one machine */
@@ -277,12 +285,9 @@ function stateOf(id) {
        read as a press that did nothing. Counted per screen; there are a few dozen. */
     scr ? [...scr.querySelectorAll('input[type=checkbox],input[type=radio]')].map(x => x.checked ? 1 : 0).join('') : '',
     sheet && !sheet.classList.contains('hidden') ? hash((document.getElementById('sheet-body') || {}).innerHTML || '1') : 0,
-    /* AND THE DROP-DOWN, which is the booking form's list of answers and is a sibling of the screens
-       for the reason `#sheet` is: `.pane` is `overflow: hidden` and would clip it. So opening it,
-       ticking in it and closing it all happen outside `#s-booking` entirely, and a state read that
-       stopped at the screen would call every one of them a press that did nothing. */
-    (() => { const d = document.getElementById('drop');
-      return d && !d.classList.contains('hidden') ? hash(d.innerHTML || '1') : 0; })(),
+    /* `#drop` WAS READ HERE, the booking form's list of answers while it was a panel outside the
+       screens. It went on 9 October (note 315): the list is checkboxes in the card now, so opening it
+       and ticking in it change `#s-booking` itself and the two reads above see both. */
     typeof AT === 'undefined' ? '?' : AT,
     typeof PAGE === 'undefined' ? '?' : JSON.stringify(PAGE),
     toast ? (toast.textContent || '').trim() : '',
@@ -360,6 +365,7 @@ for (const who of VISITORS) {
   await page.addInitScript({ content: PAGE_HELPERS });
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2200);
+  await appIn_(page);
 
   /* THE SEED MUST ACTUALLY HAVE WORKED, and so must its absence. A seeded key the app ignores
      would press the stranger's controls twice and report it as coverage — "I did not press it"
@@ -386,10 +392,6 @@ for (const who of VISITORS) {
     const scr = document.getElementById('s-' + sid);
     const sheet = document.getElementById('sheet');
     const open = sheet && !sheet.classList.contains('hidden');
-    /* AND THE DROP-DOWN, for `#sheet`'s reason: the booking form's list of answers is outside the
-       screens, so its options and its Done are on no screen and would be pressed by nothing. */
-    const drop = document.getElementById('drop');
-    const dropOpen = drop && !drop.classList.contains('hidden');
     /* THE ONE THAT IS NOT ALREADY CHOSEN, WHERE THERE IS A CHOICE. The first honest run reported
        `mat-level`, `mat-exam` and `timer-set` as presses that changed nothing, and all three were
        this harness pressing the option that was already selected — the answer a person gets for
@@ -405,14 +407,13 @@ for (const who of VISITORS) {
       return [...all.filter(e => !chosen(e)), ...all.filter(chosen)];
     };
     /* THE SHEET FIRST WHEN ONE IS OPEN, because it is in front and it is what a finger would reach. */
-    const cands = (dropOpen ? pick(drop) : []).concat(open ? pick(sheet) : []).concat(pick(scr));
+    const cands = (open ? pick(sheet) : []).concat(pick(scr));
     /* PRESENT AND DISABLED IS NOT ABSENT, and it is not a fault either. `mat-print` is greyed until
        the sheet has something on it to print, and a disabled control doing nothing when it is
        pressed is the browser working correctly. Reported apart from "could not find it at all",
        because those two want opposite responses. */
     if (!cands.length) {
-      const any = (dropOpen && drop ? [...drop.querySelectorAll('[data-do="' + act + '"]')] : [])
-        .concat(open && sheet ? [...sheet.querySelectorAll('[data-do="' + act + '"]')] : [])
+      const any = (open && sheet ? [...sheet.querySelectorAll('[data-do="' + act + '"]')] : [])
         .concat(scr ? [...scr.querySelectorAll('[data-do="' + act + '"]')] : []);
       return any.length ? { disabled: true } : { gone: true };
     }
@@ -475,17 +476,12 @@ for (const who of VISITORS) {
     /* WHAT THE PRESS PUT IN FRONT OF SOMEBODY. A sheet's actions are on no screen at all — the
        details form, the composer, the pay sheet, the practical guide — so the only way any of them
        is ever pressed is by being collected here, while the sheet that holds them is still open. */
-    const dp = document.getElementById('drop');
-    const dropUp = !!(dp && !dp.classList.contains('hidden'));
-    /* AND WHATEVER THE DROP-DOWN PUT THERE, for the same reason: the booking form's list of answers
-       is outside the screens, so its options and its Done are collected here or nowhere. Joined to
-       `inSheet` rather than given a field of its own — what the caller does with either is
-       identical, and a second name would be a second list to keep in step. */
-    const inSheet = (sheetOpen ? [...sh.querySelectorAll('[data-do]')].map(e => e.dataset.do) : [])
-      .concat(dropUp ? [...dp.querySelectorAll('[data-do]')].map(e => e.dataset.do) : []);
+    /* `#drop`'S ACTIONS WERE JOINED TO THESE while the booking form's list of answers was a panel
+       outside the screens. It is checkboxes in the card now (note 315), so they are `onScreen`. */
+    const inSheet = sheetOpen ? [...sh.querySelectorAll('[data-do]')].map(e => e.dataset.do) : [];
     const s2 = document.getElementById('s-' + sid);
     const onScreen = s2 ? [...new Set([...s2.querySelectorAll('[data-do]')].map(e => e.dataset.do))] : [];
-    return { where, changed, sheetOpen: sheetOpen || dropUp, inSheet: [...new Set(inSheet)], onScreen, alive: aliveIn(sid) };
+    return { where, changed, sheetOpen, inSheet: [...new Set(inSheet)], onScreen, alive: aliveIn(sid) };
   }, { sid, act });
 
   /* ---------- A CLEAN PAGE, WHICH IS THE ONLY HONEST WAY TO SAY "NOT THERE" ------------------------
@@ -497,6 +493,7 @@ for (const who of VISITORS) {
   const freshen = async (sid, state) => {
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1700);
+    await appIn_(page);
     await page.evaluate(s => { try { go(s, false, true); } catch (e) {} }, sid);
     await page.waitForTimeout(400);
     /* BACK INTO THE STATE, not into the screen's front door. The Find screen opens on the funnel's
@@ -703,6 +700,18 @@ for (const who of VISITORS) {
       r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(2200);
+    /* ---------- AND THE ROW IS READ ONCE THE PAYLOAD HAS LANDED, NOT AFTER A FIXED WAIT ----------
+       `TABS` IS IN TWO ORDERS DURING A BOOT. Until the payload and its settings files arrive it is
+       `TAB_ORDER` (Settings last); when they land, `applyColumns_` puts it in `columns.json`'s order
+       (Settings right of You). On a machine running other checks the 2.2s above ended before that, so
+       the neighbours below were taken from one order and the swipes landed in the other — measured on
+       9 October, adding Progress: six swipes "went somewhere else", every one of them a pair the
+       reorder had moved (`left from account landed on settings, wanted tools`), the app right each
+       time. `LOADED` is set after `applyColumns_`, success or failure, so it is the moment the row
+       stops moving. Thirty seconds and then a throw, which exits non-zero: a row read mid-boot is not
+       a row measured. */
+    await page.waitForFunction(() => { try { return LOADED === true; } catch (e) { return false; } }, null, { timeout: 30000 });
+    await page.waitForTimeout(300);
 
     const drag = async (x0, y0, dx, dy) => {
       await page.mouse.move(x0, y0);
@@ -712,13 +721,37 @@ for (const who of VISITORS) {
       await page.waitForTimeout(400);
     };
 
+    /* ---------- BARE CARD MEANS NOT A SELECT ----------------------------------------------------------
+       THESE SWIPES START ON BARE CARD, and a fixed point was bare card everywhere while every select was
+       `pointer-events: none` (note 226). Since the dropdowns are the platform's own again (note 315), a
+       MOUSE pressed on a select opens its list on the press — which is what a laptop's dropdown does,
+       and is the dropdown working — and the list takes the drag with it. Measured on the first run: the
+       left swipe from Settings began on the country code at (320, 420), the list opened, and the next
+       five swipes landed in the wrong column. So the point is walked off a select, a few rows at a
+       time; a touch swipe that starts on one still moves the column, and the real-touch block below
+       asks exactly that. */
+    const bare = (x, y) => page.evaluate(([x, y]) => {
+      for (const dy of [0, 24, -24, 48, -48, 72, -72, 96, -96]) {
+        const el = document.elementFromPoint(x, y + dy);
+        if (!el || !el.closest('select')) return y + dy;
+      }
+      return y;
+    }, [x, y]);
     const tabs = await page.evaluate(() => (typeof TABS !== 'undefined' ? TABS.map(t => t.id) : []));
+    /* ---------- THE NEIGHBOURS ARE ASKED AT THE SWIPE, NOT AT THE START -----------------------------
+       `TABS` WAS READ ONCE, 2.2s after load, and the column order is not settled by then on a busy
+       machine: `data/settings/columns.json` puts Settings beside You (`sort_order` 9) when it lands, and
+       when it landed after the read, every swipe round Settings was held to `TAB_ORDER`'s neighbours —
+       five "went somewhere else" on 9 October that were the app obeying its own columns sheet. */
     for (let i = 0; i < tabs.length; i++) {
-      for (const [dir, x, dx, want] of [['left', 320, -230, tabs[Math.min(i + 1, tabs.length - 1)]],
-                                        ['right', 70, 230, tabs[Math.max(i - 1, 0)]]]) {
+      const live = await page.evaluate(() => (typeof TABS !== 'undefined' ? TABS.map(t => t.id) : []));
+      const at = live.indexOf(tabs[i]);
+      if (at < 0) continue;
+      for (const [dir, x, dx, want] of [['left', 320, -230, live[Math.min(at + 1, live.length - 1)]],
+                                        ['right', 70, 230, live[Math.max(at - 1, 0)]]]) {
         await page.evaluate(id => go(id, false, true), tabs[i]);
         await page.waitForTimeout(240);
-        await drag(x, 420, dx, 0);
+        await drag(x, await bare(x, 420), dx, 0);
         const got = await page.evaluate(() => AT);
         swipes.push({ from: tabs[i], dir, got, want, ok: got === want });
       }
@@ -731,10 +764,10 @@ for (const who of VISITORS) {
       if (n < 2) continue;
       await page.evaluate(x => goPage(x, 0, true), id);
       await page.waitForTimeout(260);
-      await drag(195, 600, 0, -260);
+      await drag(195, await bare(195, 600), 0, -260);
       const up = await page.evaluate(x => PAGE[x], id);
       swipes.push({ from: id, dir: 'up', got: String(up), want: '1', ok: up === 1 });
-      await drag(195, 300, 0, 260);
+      await drag(195, await bare(195, 300), 0, 260);
       const down = await page.evaluate(x => PAGE[x], id);
       swipes.push({ from: id, dir: 'down', got: String(down), want: '0', ok: down === 0 });
     }
@@ -1720,39 +1753,64 @@ for (const who of VISITORS) {
     await page.close();
 
     /* ==================================================================================================
-       A DROPDOWN TAPPED WITH A FINGER OPENS THE APP'S OWN LIST, AND NOTHING ELSE
+       A DROPDOWN UNDER A FINGER IS THE PLATFORM'S OWN, AND A SWIPE THAT STARTS ON ONE MOVES THE COLUMN
 
-       EVERY ORDINARY `<select>` OPENS `#drop` NOW (`SEL_OK` in book.js), and the whole of that rests on
-       one rule and one hit test: the select has `pointer-events: none` so no tap can target it, and
-       `selAt_` works out which select a tap on the box behind it was for. NOTHING ELSE HERE CAN SEE
-       EITHER HALF. `check-flow.js` runs in jsdom, which has no stylesheet and no layout, so its taps
-       are aimed at the select itself and pass with the CSS rule deleted — measured. The states in
-       `check/states.js` call `.click()` on the select, which opens the panel whatever the stylesheet
-       says. So these are real touches, on a phone-shaped page, asking the questions a finger asks:
+       FOR A WEEK THIS ASKED THE OPPOSITE. Every ordinary `<select>` was `pointer-events: none` and a tap
+       near one opened the app's own panel (note 226), so this proved that no finger ever landed on a
+       select and that nothing ever focused one. On 9 October the owner asked for *"a more stable
+       standard simple conventional drop down list"* (note 315), and the questions a finger asks now are
+       the platform's:
 
-         · a tap on the box opens the list, never FOCUSES the select (a focused select is what an
-           iPhone draws its own wheel for) and never lands ON it;
-         · a tap a few pixels off still opens it — the select is 15px tall, and with nothing under
-           the finger the browser's own touch adjustment has nothing to snap to;
-         · a 12px drag that starts on a select's caption opens nothing and focuses nothing — the
-           drag guard swallows that click without cancelling it, so a label's activation used to run;
-         · with a sheet open over a select, one tap on the backdrop closes the sheet — a rectangle
-           test that did not ask what was in front used to open the hidden list behind it instead;
-         · and focus arriving by the keyboard's next arrow opens the list rather than the wheel. */
+         · a tap on the box lands ON the select and gives it the focus — which is what an iPhone draws
+           its wheel from and Android its sheet — and nothing of the app's own appears in the document;
+         · a swipe that STARTS on a select moves the column, as it did while the panel stood — `axisFree`
+           no longer names `select` — and the select it started on is neither focused nor clicked;
+         · a 12px drag on a select's box is a swipe to the app, and the browser may still call it a tap:
+           the `mousedown` that would open the list is cancelled (`FIELD_ACTS_` in shell.js), so the
+           select is not focused and its press is not let through;
+         · focus arriving by the keyboard's next arrow STAYS on the select — the panel blurred it;
+         · with a sheet open over a select, one tap on the backdrop closes the sheet and reaches
+           nothing behind it;
+         · a tap on a booking row's WORD reaches its select — `Kind` is a `<label for>` it — the focus
+           and the platform's list asked for (`showPicker`, recorded rather than drawn here). This is
+           what "a tap 3px under the box" asked while the panel stood; deleted with the panel, and
+           found missing by review: for a commit the word reached nothing;
+         · a 12px drag that starts on the settings column's several-of-a-list field opens nothing, and
+           a tap on it does — its `<summary>` acts on the click's default as a select's label does;
+         · and EVERY select on every page of every column, on the page in front, is what a finger at
+           its centre lands on, with `pointer-events` not `none`. The stylesheet and the scripts are
+           read for this by `js/check-dropdowns.js`; this is the cascade itself, wrappers, inheritance
+           and inline styles included, which nothing reading files can be sure of.
+
+       NOTHING ELSE HERE CAN SEE ANY OF IT. `check-flow.js` runs in jsdom, which has no layout and no
+       touch adjustment, and `js/check-dropdowns.js` reads the stylesheet rather than a finger. These are
+       real touches through CDP on a phone-shaped page. What no headless browser can show is the
+       platform's list itself — it is drawn outside the page — so "it opened" is asked as the two things
+       that open it: a press that reached the select uncancelled, and the focus. */
     {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
       const tp = await ctx.newPage();
       tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
       await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
       await tp.addInitScript(GUARDS);
-      /* EVERY CLICK'S TARGET, AND EVERY TIME A SELECT TAKES FOCUS — even for a moment. The app blurs a
-         select that takes focus on a phone, so the END state cannot say whether it was focused on the
-         way: a label activation that focuses it and a second click that shuts the list again read as
-         nothing having happened, while an iPhone has already put its wheel up. */
+      /* EVERY PRESS A SELECT RECEIVES, WHETHER IT WAS CANCELLED, AND EVERY TIME ONE TAKES FOCUS — even
+         for a moment, because the end state cannot say whether a select was focused on the way and
+         let go again. Read in the bubble phase on `window`, after every listener of the app's own. */
       await tp.addInitScript(() => {
         window.__selHit = [];
-        document.addEventListener('click', e => { window.__selHit.push(e.target && e.target.tagName); }, true);
+        const sel = t => t && t.closest && t.closest('select');
+        ['mousedown', 'click'].forEach(type => window.addEventListener(type, e => {
+          if (sel(e.target)) window.__selHit.push(type + (e.defaultPrevented ? ':cancelled' : ''));
+        }));
         document.addEventListener('focusin', e => { if (e.target && e.target.tagName === 'SELECT') window.__selHit.push('FOCUS'); }, true);
+        /* THE PLATFORM'S LIST ASKED FOR FROM SCRIPT, recorded and not drawn: a headless page cannot
+           photograph it, and the question is whether it was asked. */
+        if (window.HTMLSelectElement && HTMLSelectElement.prototype.showPicker) {
+          HTMLSelectElement.prototype.showPicker = function () { window.__selHit.push('PICKER'); };
+        }
+        document.addEventListener('toggle', e => {
+          if (e.target && e.target.matches && e.target.matches('details.many-d') && e.target.open) window.__selHit.push('OPENED');
+        }, true);
       });
       await tp.route('**://script.google.com/**', r =>
         r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
@@ -1764,29 +1822,31 @@ for (const who of VISITORS) {
         await tcdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
         await tp.waitForTimeout(350);
       };
-      const drag = async (x, y, dx, dy) => {
+      const drag = async (x, y, dx, dy, steps) => {
+        steps = steps || 4;
         await tcdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
-        for (let k = 1; k <= 4; k++) {
-          await tcdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + dx * k / 4, y: y + dy * k / 4 }] });
+        for (let k = 1; k <= steps; k++) {
+          await tcdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + dx * k / steps, y: y + dy * k / steps }] });
           await tp.waitForTimeout(16);
         }
         await tcdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        await tp.waitForTimeout(420);
+        await tp.waitForTimeout(700);
       };
       const now = () => tp.evaluate(() => {
-        const d = document.getElementById('drop'), a = document.activeElement;
-        return { open: !d.classList.contains('hidden') && d.dataset.owner === 'sel',
+        const a = document.activeElement;
+        return { own: !!(document.getElementById('drop') || document.getElementById('drop-back') || document.querySelector('[role="listbox"]')),
                  focused: !!a && a.tagName === 'SELECT',
                  sheet: !document.getElementById('sheet').classList.contains('hidden'),
+                 at: typeof AT === 'undefined' ? '?' : AT,
                  hit: window.__selHit.slice() };
       });
       const reset = () => tp.evaluate(() => {
         if (typeof closeSheet === 'function') closeSheet();
-        if (typeof selShut_ === 'function') selShut_();
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         window.__selHit.length = 0;
       });
-      /* THE FIELD'S CENTRE, on the page in front, after the column has settled. */
+      /* THE FIELD'S CENTRE, on the page in front, after the column has settled — and what is under the
+         finger there, which is the whole rule: a select under a finger is a select a finger opens. */
       const field = async (col, sel) => {
         await tp.evaluate(a => {
           go(a.col, false, true);
@@ -1796,31 +1856,142 @@ for (const who of VISITORS) {
         }, { col, sel });
         await tp.waitForTimeout(900);
         return tp.evaluate(a => {
-          const s = [...document.querySelectorAll('#s-' + a.col + ' ' + a.sel)].find(x => selVisible_(x));
+          const s = [...document.querySelectorAll('#s-' + a.col + ' ' + a.sel)]
+            .find(x => !x.disabled && (typeof dropOnFront_ === 'function' ? dropOnFront_(x) : !!x.offsetParent));
           if (!s) return null;
           const r = s.getBoundingClientRect();
           return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
-                   bottom: r.bottom, under: (document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) || {}).tagName };
+                   under: (document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) || {}).tagName };
         }, { col, sel });
       };
       const want = (from, ok, got, wanted) => drops.push({ from, ok, got, want: wanted });
-      const said = r => (r.open ? 'list open' : 'no list') + (r.focused ? ', select FOCUSED'
-          : r.hit.indexOf('FOCUS') !== -1 ? ', the select took focus on the way' : '')
-        + (r.hit.indexOf('SELECT') !== -1 ? ', a click landed ON the select' : '') + (r.sheet ? ', sheet still open' : '');
+      const said = r => [r.own ? 'a list of the app\'s own in the document' : 'nothing of the app\'s own',
+        r.focused ? 'the select focused' : r.hit.indexOf('FOCUS') !== -1 ? 'the select took focus on the way' : 'not focused',
+        r.hit.filter(h => h !== 'FOCUS').join(' ') || 'no press on the select', r.sheet ? 'sheet still open' : '',
+        'on ' + r.at].filter(Boolean).join(', ');
+      const reached = r => r.hit.indexOf('mousedown') !== -1 || r.hit.indexOf('click') !== -1;
+      const opened = r => reached(r) || r.hit.indexOf('FOCUS') !== -1;
 
       const kind = await field('booking', 'select.bk-sel[data-step="how"]');
       if (!kind) want('booking · Kind', false, 'no Kind select on the booking column', 'a select to tap');
       else {
         await reset(); await tap(kind.x, kind.y);
         let r = await now();
-        /* `under` IS THE RULE ITSELF: the element a finger at the select's centre lands on. With the
-           `pointer-events` rule deleted it is the select, and a select under a finger is a picker. */
         want('booking · Kind, a tap on the box (under the finger: ' + kind.under + ')',
-             kind.under !== 'SELECT' && r.open && r.hit.indexOf('FOCUS') === -1 && r.hit.indexOf('SELECT') === -1, said(r),
-             'nothing but the row under the finger, the list open, the select never focused or clicked');
-        await reset(); await tap(kind.x, Math.round(kind.bottom + 3));
+             kind.under === 'SELECT' && reached(r) && (r.focused || r.hit.indexOf('FOCUS') !== -1) && !r.own, said(r),
+             'the select under the finger, its press let through and the focus on it — the platform\'s list — and nothing of the app\'s own');
+        /* A SWIPE THAT STARTS ON THE SELECT MOVES THE COLUMN. Sideways, far enough to be a page turn
+           and not a wobble, and from the select's own centre. */
+        await reset();
+        await tp.evaluate(() => { go('booking', false, true); });
+        await tp.waitForTimeout(700);
+        const before = (await now()).at;
+        await drag(kind.x, kind.y, -150, 0, 8);
         r = await now();
-        want('booking · Kind, a tap 3px under the box', r.open && !r.focused, said(r), 'list open');
+        want('booking · a swipe left that starts on the Kind select', r.at !== before && !opened(r) && !r.own, said(r),
+             'the column moved off ' + before + ', and the select neither focused nor pressed');
+        await tp.evaluate(() => { go('booking', false, true); });
+        await tp.waitForTimeout(700);
+      }
+      /* THE ROW'S WORD. A tap a little in from the label's left edge — where a thumb aims at a word —
+         on three rows, and the select it names is what answers. */
+      for (const step of ['client', 'how', 'tutor']) {
+        const lab = await tp.evaluate(st => {
+          const l = [...document.querySelectorAll('#s-booking label.bk-k[for="bk-ctl-' + st + '"]')]
+            .find(x => typeof dropOnFront_ === 'function' ? dropOnFront_(x) : !!x.offsetParent);
+          if (!l) return null;
+          const r = l.getBoundingClientRect();
+          return { x: Math.round(r.left + Math.min(10, r.width / 2)), y: Math.round(r.top + r.height / 2),
+                   w: Math.round(r.width), h: Math.round(r.height) };
+        }, step);
+        if (!lab) { want('booking · the "' + step + '" row\'s word', false, 'no label for a select on that row', 'a `<label for>` the row\'s select'); continue; }
+        await reset(); await tap(lab.x, lab.y);
+        const r = await now();
+        want('booking · a tap on the "' + step + '" row\'s word (' + lab.w + 'x' + lab.h + ')',
+             (r.focused || r.hit.indexOf('FOCUS') !== -1) && r.hit.indexOf('PICKER') !== -1 && !r.own, said(r),
+             'the row\'s select focused and the platform\'s list asked for — the word is part of the target');
+      }
+
+      /* THE SETTINGS COLUMN'S SEVERAL-OF-A-LIST FIELD: a drag from it is not a tap, a tap opens it. */
+      const venues = await field('settings', '.field.many summary');
+      if (!venues) want('settings · the venues field', false, 'no several-of-a-list field on Settings', 'a field to drag from');
+      else {
+        const shut = () => tp.evaluate(() => document.querySelectorAll('#s-settings details.many-d[open]').forEach(d => { d.open = false; }));
+        for (const [dx, dy] of [[12, 0], [0, 12], [0, -14]]) {
+          await shut(); await reset(); await drag(venues.x, venues.y, dx, dy);
+          const r = await now();
+          want('settings · the venues field, a ' + Math.abs(dx || dy) + 'px drag ' + (dx ? 'sideways' : dy > 0 ? 'down' : 'up'),
+               r.hit.indexOf('OPENED') === -1, said(r) + (r.hit.indexOf('OPENED') !== -1 ? ', the list OPENED' : ''),
+               'the list left shut — a thumb starting a scroll there is not a tap');
+        }
+        await shut(); await reset(); await tap(venues.x, venues.y);
+        const r = await now();
+        want('settings · a tap on the venues field', r.hit.indexOf('OPENED') !== -1, said(r) + (r.hit.indexOf('OPENED') !== -1 ? ', the list opened' : ', the list stayed shut'),
+             'the list opened under it');
+        await shut();
+      }
+
+      /* ---------- EVERY SELECT, ON EVERY PAGE THAT DRAWS ONE, IS WHAT A FINGER LANDS ON -------------------
+         WALKED, NOT SAMPLED: each column the app has, each page of it that holds a select, put in front,
+         and every select on that page asked two things of the real cascade — `pointer-events` (inherited,
+         so a wrapper's rule or a column's inline style counts) and what `elementFromPoint` finds at its
+         centre. A select scrolled out of its pane or under the screen's edge is counted as not measured,
+         and a page with selects none of which could be measured is a failure to reach, not a pass. */
+      {
+        const cols = await tp.evaluate(() => (typeof TABS !== 'undefined' ? TABS : []).map(t => (t && t.id) || t).filter(x => typeof x === 'string'));
+        let measured = 0, skipped = 0;
+        const walls = [];
+        for (const col of cols) {
+          /* EVERY PAGE, NOT ONLY THE ONES HOLDING A SELECT WHEN THE COLUMN IS DRAWN: a widget draws its
+             controls when its page is started (the flyer maker, the cheat sheet), so a page with no select
+             yet is not a page with none. */
+          const pages = await tp.evaluate(c => {
+            go(c, false, true);
+            return [...document.querySelectorAll('#s-' + c + ' > .page')]
+              .map((p, i) => (typeof logIndex_ === 'function' ? logIndex_(c, i) : i));
+          }, col);
+          for (const pg of pages) {
+            await tp.evaluate(a => { go(a.c, false, true); goPage(a.c, a.p, true); }, { c: col, p: pg });
+            await tp.waitForTimeout(450);
+            const got = await tp.evaluate(c => {
+              const out = { ok: 0, off: 0, bad: [] };
+              for (const s of document.querySelectorAll('#s-' + c + ' select:not(:disabled)')) {
+                if (typeof dropOnFront_ === 'function' && !dropOnFront_(s)) continue;
+                const r = s.getBoundingClientRect();
+                if (!r.width || !r.height) continue;
+                const x = r.left + r.width / 2, y = r.top + r.height / 2;
+                /* WHAT IS ON THE GLASS: the window, cut by every box between the select and its screen
+                   that clips — the pane, and a scroller inside the card (the flyer maker's controls
+                   scroll in `.widget-squeeze`, and its last select sits under that box's foot until it
+                   is scrolled to). A centre outside that is scrolled out of reach, not walled off. */
+                let L = 0, T = 0, R = innerWidth, B = innerHeight;
+                for (let e = s.parentElement; e && !e.classList.contains('screen'); e = e.parentElement) {
+                  const cs = getComputedStyle(e);
+                  if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+                  const er = e.getBoundingClientRect();
+                  L = Math.max(L, er.left); T = Math.max(T, er.top); R = Math.min(R, er.right); B = Math.min(B, er.bottom);
+                }
+                if (x < L || x > R || y < T || y > B) { out.off++; continue; }
+                const pe = getComputedStyle(s).pointerEvents;
+                const at = document.elementFromPoint(x, y);
+                if (pe === 'none' || !(at === s || s.contains(at))) {
+                  out.bad.push((s.id || s.dataset.me || s.dataset.step || s.dataset.do || s.className || 'select') + ': pointer-events ' + pe
+                    + ', under the finger ' + (at ? at.tagName.toLowerCase() + (at.className ? '.' + String(at.className).split(' ')[0] : '') : 'nothing'));
+                } else out.ok++;
+              }
+              return out;
+            }, col);
+            measured += got.ok; skipped += got.off;
+            got.bad.forEach(b => walls.push(col + ' p' + pg + ' · ' + b));
+          }
+        }
+        await tp.evaluate(() => go('booking', false, true));
+        await tp.waitForTimeout(500);
+        want('every select on the page in front, ' + measured + ' measured on ' + cols.length + ' columns (' + skipped + ' scrolled out of reach and not measured)',
+             measured > 10 && !walls.length,
+             walls.length ? walls.slice(0, 4).join('; ') + (walls.length > 4 ? ' … and ' + (walls.length - 4) + ' more' : '')
+               : measured > 10 ? 'every one is what a finger at its centre lands on' : 'only ' + measured + ' selects were measured — the walk did NOT reach them',
+             'pointer-events not none, and the select itself under a finger at its centre');
       }
 
       const cc = await field('settings', 'select[data-me="phone_cc"]');
@@ -1830,20 +2001,20 @@ for (const who of VISITORS) {
           await reset(); await drag(cc.x, cc.y, dx, dy);
           const r = await now();
           want('settings · country code (under the finger: ' + cc.under + '), a ' + (dx || dy) + 'px drag ' + (dx ? 'sideways' : 'down'),
-               !r.open && r.hit.indexOf('FOCUS') === -1, said(r), 'no list, and the select never focused — a drag is not a tap');
+               !opened(r) && !r.own, said(r), 'no press let through to the select and no focus — a drag is not a tap');
         }
-        /* THE KEYBOARD'S NEXT ARROW: focus moving from the box before onto the select. */
+        /* THE KEYBOARD'S NEXT ARROW: focus moving from the box before onto the select, and staying. */
         await reset();
         await tp.evaluate(() => {
-          const s = [...document.querySelectorAll('#s-settings select[data-me="phone_cc"]')].find(x => selVisible_(x));
+          const s = [...document.querySelectorAll('#s-settings select[data-me="phone_cc"]')].find(x => dropOnFront_(x));
           const all = [...s.closest('.page').querySelectorAll('input, select, textarea')];
           const before = all[all.indexOf(s) - 1];
           if (before) before.focus();
         });
         await tp.keyboard.press('Tab'); await tp.waitForTimeout(350);
         const r = await now();
-        want('settings · country code, focus arriving by the keyboard', r.open && !r.focused, said(r),
-             'the list open and the select not focused — a focused select is the wheel');
+        want('settings · country code, focus arriving by the keyboard', r.focused && !r.own, said(r),
+             'the select focused and left focused — on a phone that is the platform\'s picker');
       }
 
       const fav = await field('settings', 'select[data-me="favourite_colour"]');
@@ -1852,17 +2023,14 @@ for (const who of VISITORS) {
         await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));
         await tp.waitForTimeout(700);
         /* ---------- THE BACKDROP HAS TO BE WHAT IS OVER THE SELECT ---------------------------------
-           THE CARD IN FRONT IS CENTRED NOW (`columnShift_` in shell.js), so the favourite colour sits
-           in the middle of the screen — and the middle of the screen is under the sheet's BODY, not
-           its backdrop. The tap landed on the sheet, which rightly stayed open, and this reported the
-           app broken: the question was asked of the wrong surface. So the select is the favourite
-           colour when the backdrop is over it, and otherwise the first select on the page in front
-           that the backdrop does cover — and none at all is a failure to reach, not a pass. */
+           THE CARD IN FRONT IS CENTRED (`columnShift_` in shell.js), so the favourite colour can sit
+           under the sheet's BODY rather than its backdrop. So the select is the favourite colour when
+           the backdrop is over it, and otherwise the first select on the page in front that the
+           backdrop does cover — and none at all is a failure to reach, not a pass. */
         const spot = await tp.evaluate(f => {
           const back = el => !!el && el.id === 'sheet-back';
           if (back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
           for (const s of document.querySelectorAll('#s-settings .page.on select')) {
-            if (!selVisible_(s)) continue;
             const r = s.getBoundingClientRect();
             const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
             if (back(document.elementFromPoint(x, y))) return { x, y, name: s.getAttribute('data-me') || s.name || 'a select' };
@@ -1875,8 +2043,8 @@ for (const who of VISITORS) {
         } else {
           await tap(spot.x, spot.y);
           const r = await now();
-          want('settings · ' + spot.name.replace(/_/g, ' ') + ', one tap on a sheet\'s backdrop over it', !r.open && !r.sheet, said(r),
-               'the sheet closed and no list behind it');
+          want('settings · ' + spot.name.replace(/_/g, ' ') + ', one tap on a sheet\'s backdrop over it', !opened(r) && !r.sheet && !r.own, said(r),
+               'the sheet closed and nothing behind it pressed or focused');
         }
       }
       await reset();
@@ -1931,7 +2099,9 @@ for (const who of VISITORS) {
   say('A SWIPE WENT SOMEWHERE ELSE', lost,
       r => `${r.dir} from ${r.from} landed on ${r.got}, wanted ${r.want}`);
   const dropBad = drops.filter(d => !d.ok);
-  if (drops.length && !dropBad.length) console.log('tapped dropdowns ' + drops.length + ' way(s): every one opened the app\'s own list and nothing else');
+  if (drops.length && !dropBad.length) console.log('touched dropdowns ' + drops.length + ' way(s): every tap reached the platform\'s own select, every swipe and drag moved on without it');
+  /* EACH ONE AND WHAT IT GOT, ON ASKING — the line above is a count, and a count cannot say which. */
+  if (VERBOSE) drops.forEach(d => console.log('   ' + (d.ok ? 'ok   ' : 'WRONG') + ' ' + d.from + ' — ' + d.got));
   say('A DROPDOWN TAP WENT WRONG', dropBad, r => `${r.from}: ${r.got}, wanted ${r.want}`);
   say('TOOK THE APP DOWN', dead, r => `${r.action} on ${r.screen}: ` + JSON.stringify(r.alive));
   say('NOTHING MEASURABLE CHANGED, AND NOTHING SAYS WHY', quiet,

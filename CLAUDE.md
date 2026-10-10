@@ -199,6 +199,7 @@ node js/check-practicals.js      # the 41 practicals, and whether their topics j
 node js/check-anims.js           # the textbooks' animations: rows, anchoring, and the splash's copy
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
+node js/check-loading.js         # every wait is `loading_()`: no phrase, class or keyframe of its own
 node check/deploy.js             # after a push, does a browser that has the site run the new code
 node check/anims.js              # every textbook animation in its card at 320 and 390, still when asked
 node check/ui.js                 # 9 screens x 5 widths x 2 visitors. Exits 1 on anything new.
@@ -253,6 +254,15 @@ Follow it. It is unusual and it is deliberate.
   `clamp(13.5px, 3.8vw, 16px)`, so a rem is 14.82px on a 390px phone. `2.75rem` for a 44px target
   comes out at 40.75px and still fails. A fingertip is the same size on every screen; it is the one
   measurement here that must not scale.
+- **A WAIT IS `loading_()`, AND NOTHING ELSE.** Three gold dots, from one function in shell.js and one
+  block in style.css — in place of what is coming, a whole page on its own, or over markup already
+  drawn (`aria-busy="true"`, taken off by `loaded_`). The owner, 9 Oct: *"Every widget has unique
+  loading look. They should all have a simplistic simple loading thing."* No waiting sentence, no
+  skeleton, no spinner of a card's own; an error or an empty result keeps its words, and a press
+  already sent keeps `send_`'s ring. **Whether the payload is still coming is `awaiting_()`, never
+  `!LOADED`** — `LOADED` is true once a failed first load has finished, while the quiet retry is
+  still asking. `check-loading.js` fails on a waiting phrase, and on any drawn text that trails off in
+  "…", unless it is listed with a reason. See docs/history/306.
 - Version constants — `BACKEND_VERSION`, `DOGET_VERSION`, `DOPOST_VERSION`, `BOOKING_VERSION` — are
   compared on the **whole stamp**, so bump all four together or the You screen reports the untouched
   ones as "Not deployed".

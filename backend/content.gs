@@ -1515,7 +1515,8 @@ function filmsUpsert_(t, d, ctx) {
    finished. Never a title, an id or a file name — this reply is what `?run=syncFilms` prints in a tab.
 
    IT RETIRES NO PAYLOAD. The films are laid on every admin's load fresh (`payloadWithFresh_`) and no
-   stored body carries them, so the flag the writes raise is put back — `markDone`'s move. */
+   stored body carries them, so the flag the writes raise is put back — `submitAnswer`'s move (and
+   `markDone`'s before it). */
 function filmsSync_(opts) {
   const t0 = filmsClock_();
   const budget = Math.max(1, Number(opts && opts.budgetMs) || FILMS_SYNC_BUDGET_MS);
@@ -1550,7 +1551,7 @@ function filmsSync_(opts) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return { error: 'Busy — press Sync from Drive again in a minute.', why: 'busy' };
   try {
-    /* FRESH ROWS UNDER THE LOCK, `markDone`'s rule: a copy read before it was the copy another run was
+    /* FRESH ROWS UNDER THE LOCK, `submitAnswer`'s rule: a copy read before it was the copy another run was
        about to change. */
     clearCache();
     const t = read(TAB.films);

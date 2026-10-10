@@ -43,6 +43,11 @@ const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet' },
+  /* ---------- ONE LOADER, AND NOTHING ELSE DRAWS A WAIT --------------------------------------------
+     The owner, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
+     simple loading thing."* Twenty-four looks for one fact were replaced by `loading_()`; this is
+     what stops the twenty-fifth — a phrase, a class, a keyframe — arriving one fix at a time. */
+  { file: 'check-loading.js', what: 'every wait is the one loader, and nothing else draws one' },
   /* THE REBUILT SPLASHES, AS KEYFRAMES. `npm run splash` asks whether the picture changes and a
      wipe, a snap and a cross-fade all change it — so it passed the three faults this reads for. */
   { file: 'check-splash-loops.js', what: 'the rebuilt splashes: one seamless loop each, centred' },
@@ -101,6 +106,11 @@ const SUITE = [
      written after making exactly that mistake on the Message control, where a stubbed refusal
      closed the sheet, discarded what had been typed, and said it had gone. */
   { file: 'check-replies.js', what: 'a refusal reported as a refusal' },
+  /* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD ------------------------------------------
+     *"the box should be autosaving his work like everywhere else should be doing this"* — the owner,
+     9 Oct, after an essay went with a refresh (docs/history/317). Every box the app draws is an answer,
+     a draft, kept by its own code, or exempt with a reason; a new one that is none of them fails here. */
+  { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
@@ -117,6 +127,13 @@ const SUITE = [
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
   { file: 'check-spine.js',     what: 'one row order, both documents' },
   { file: 'check-surfaces.js',  what: 'nothing opens over the app' },
+  /* ---------- AND NOTHING STANDS IN FRONT OF A DROPDOWN ------------------------------------------
+     For a week every `<select>` was `pointer-events: none` and answered by a floating panel of the
+     app's own (note 226); on 9 October the owner asked for *"a more stable standard simple
+     conventional drop down list"* and got the platform's own back (note 315). That panel was built
+     from three small pieces — a CSS rule, a listener, a box in index.html — and this fails on any of
+     them coming back. Static and quick, beside `check-surfaces`, which asks the same of sheets. */
+  { file: 'check-dropdowns.js', what: 'every dropdown the platform\'s own, nothing in front of one' },
   /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ ------------------------------------
      Every check above this line reads the CODE. `data/questions.json` is 4,264 rows of committed
      content — the library the whole Find screen is about — and no check had ever opened it. A wrong
@@ -207,9 +224,12 @@ const SUITE = [
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
-  /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
-     from the token, and nobody sent another learner's — through the same backend. */
-  { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* EVERY ANSWER SENT IS AN EVENT. *"if they submit a correct answer then change it and submit an
+     incorrect answer, that's 2 events. And it will leave the latest event up"* — the owner, 9 Oct. A
+     learner's record: a row per press, a retried press once, the person from the token, the answer as
+     text, and nobody sent another learner's — through the same backend. It replaced check-attempts.js,
+     the day a question was done, with the tab it asked about. */
+  { file: 'check-submissions.js', what: 'submissions: a row per press, the token’s person, the latest per question, whose' },
   /* THE FILMS ARE WHAT IS IN THE NOTFLIX FOLDER. *"Let admin be able to search up films which are in
      the notflix folder on gdrive"* — the card was wired and the tab it reads was empty. The sync that
      fills it, over an invented Drive: once each, a second pass writes nothing, typed cells survive,
@@ -223,6 +243,10 @@ const SUITE = [
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
+  /* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. *"Also let parents select their communication preferences
+     like notification. And kids and tutors too I guess"* — every sender names its kind and asks
+     `wants_`, through the real doPost: off is held and logged, on is sent, the essentials always go. */
+  { file: 'check-prefs.js', what: 'notification choices: every sender asks, off is held and logged, essentials always go, the token decides whose' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
      images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the

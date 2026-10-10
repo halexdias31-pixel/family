@@ -100,6 +100,16 @@ const ACCEPTED = {
   spotlightFile: 'the committed default under `spotlight`, written by settingsInto_ from '
                + '`data/settings/spotlight.json`. `doGet` sends `spotlight` and deliberately not '
                + 'this — see `spotNow_` in collections.js for which of the two wins.',
+
+  /* ---------- A KEY ONLY AN OLDER BACKEND SENDS, READ ONCE TO CARRY WHAT IT KNEW ACROSS ----------
+     `attempts` went with the tab on 9 Oct (note 308) and `doGet` never sends it again. But the live
+     backend is a week old and does, and on the day the phones take the new code a child's record of
+     what they did is that key and the `done:` dates on their device. `subMigrate_` (js/submit.js)
+     reads it, once per person per device, to turn each question done before the switch into one
+     submission — and finds nothing once the new backend is live, which is the end of it. */
+  attempts: 'sent only by a backend from before 9 Oct; read once by subMigrate_ (js/submit.js) so the '
+          + 'questions a child did before the switch to submissions become submissions, not blanks. '
+          + 'The new doGet never sends it, and the read then finds nothing.',
 };
 
 const WHERE = [path.join(__dirname, '..', 'backend'), path.join(__dirname, 'backend'),

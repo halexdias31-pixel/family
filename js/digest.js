@@ -93,16 +93,29 @@ function digestSheet_(d) {
     : 'It is off, so on Sunday nothing goes; switched on, ' + these + ' would.';
   /* A BACKEND FROM BEFORE THE WORDS answers without `words`: its Preview lists names, and it is the
      deployed VERSION that answers — the Sunday trigger runs the code as saved. So a pull with no new
-     version shows the old list over a run that sends the new one. Said first, so it is not misread. */
-  const old = d.words == null
-    ? `<p class="digest-old"><b>${esc('The live web app lists questions by name only, without their words — sync backend/ into Apps Script and make a new version (Deploy → Manage deployments → New version).')}</b></p>` : '';
+     version shows the old list over a run that sends the new one. Said first, so it is not misread.
+     AND ONE FROM BEFORE THE SUBMISSIONS (note 308) answers `words` but no `submissions` — it says
+     `attempts:` instead, and plans from the attempts tab, which nothing has written since the phones
+     took the new code a minute after the push. So in the gap before the owner's Apps Script steps an
+     admin pressing Preview was shown "Nobody has done a question yet this week", or a list with no
+     marks, and not why — the empty that looks like a quiet week, which `digestNoSubmissions_` exists to
+     prevent (review of 9 Oct). Either answer says which. AND WHERE TO RUN `ensureSchema`: the editor, never
+     `/exec?setup=1` before the new version — that address runs the deployed code, and the old code's
+     `ensureSchema` rewrote the options tab (review of 10 Oct, note 308's owner steps). */
+  const said = d.words == null
+    ? 'The live web app lists questions by name only, without their words — sync backend/ into Apps Script and make a new version (Deploy → Manage deployments → New version).'
+    : d.submissions == null
+      ? 'The live web app still reads the old attempts tab, which nothing writes any more — sync backend/ into Apps Script, run ensureSchema from the editor’s function list (not /exec?setup=1, which is the old code until the new version), and make a new version (Deploy → Manage deployments → New version).'
+      : '';
+  const old = said ? `<p class="digest-old"><b>${esc(said)}</b></p>` : '';
   return `${old}<p class="faint">This week so far (${esc((d.week && d.week.span) || '')}). ${esc(n ? sunday : '')}
       ${esc(when)}${esc(booked)}. This preview sent nothing.</p>
     ${n ? emails.map(m => `<h2>To ${esc(m.parent || '')} · ${esc(m.to || '')}</h2>
       <p><b>${esc(m.subject || '')}</b></p>
       ${digestBody_(m.text)}`).join('')
-      /* NO `attempts` TAB IS NOT "NOBODY DID ANYTHING" — the server says which, and the card says it. */
-      : d.attempts === false ? `<p><b>${esc(d.warning || 'The Ledger has no attempts tab.')}</b></p>`
+      /* NO `submissions` TAB IS NOT "NOBODY DID ANYTHING" — the server says which, and the card says it.
+         (It said so of `attempts`, the tab the email read until 9 Oct.) */
+      : d.submissions === false ? `<p><b>${esc(d.warning || 'The Ledger has no submissions tab.')}</b></p>`
       : '<p>Nobody has done a question yet this week.</p>'}
     ${none.length ? `<h2>Nobody to tell</h2>
       ${none.map(u => `<p>${esc(u.name || u.id || '')} — ${esc(u.why || '')}</p>`).join('')}` : ''}`;

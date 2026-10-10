@@ -143,6 +143,36 @@ function read(name) {
   return (_cache[name] = { sheet, headers, rows });
 }
 
+/* ---------- SOME COLUMNS OF A TAB, NOT ALL OF THEM ------------------------------------------------
+   FOR A TAB THAT GROWS BY A ROW A PRESS AND REPEATS A PARAGRAPH ON EVERY ROW. `submissions` keeps a
+   question's words (up to `ATTEMPT_WORDS_MAX`) on each press, and `submitAnswer` read the whole tab
+   under the site's only script lock to find one thing — whether this press's id was already written.
+   The review of 9 Oct: that read grows without bound, and once it nears the 5 s `tryLock` every other
+   write waits on, `saveAnswers`, the AI marking tally and bookings start answering "Busy". So this
+   reads the header row and then ONE COLUMN AT A TIME, only the columns asked for: two narrow strips
+   where the whole grid was.
+
+   THE SAME SHAPE AS `read` — `{ sheet, headers, rows }`, each row with its `_row` — so `addRow` appends
+   to it as it does to a whole tab. NEVER CACHED under the tab's name: a row holding five of nine
+   columns handed to a later `read` would be a row with its words missing. A column the tab does not
+   have is simply absent from the rows (the caller asks `headers`), and blank rows are dropped as
+   `read` drops them. */
+function readCols_(name, cols) {
+  const sheet = findSheet_(sheetFor_(name));
+  if (!sheet) return { sheet: null, headers: [], rows: [] };
+  const lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
+  if (!lastRow || !lastCol) return { sheet, headers: [], rows: [] };
+  const headers = (sheet.getRange(1, 1, 1, lastCol).getValues()[0] || []).map(h => String(h).trim());
+  const rows = [];
+  for (let i = 2; i <= lastRow; i++) rows.push({ _row: i });
+  const want = (cols || []).filter(c => headers.indexOf(c) !== -1);
+  if (rows.length) want.forEach(c => {
+    const vals = sheet.getRange(2, headers.indexOf(c) + 1, rows.length, 1).getValues();
+    vals.forEach((v, i) => { rows[i][c] = v[0]; });
+  });
+  return { sheet, headers, rows: rows.filter(o => want.some(c => String(o[c] ?? '').trim() !== '')) };
+}
+
 /** Write one cell and keep the in-memory object in step. Records a column that is not there. */
 function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
@@ -569,7 +599,8 @@ function clearPayloadCache() {
 /* ---------- `retirePayloadOf_` WAS HERE — RETIRING A FEW PEOPLE'S PAYLOADS, NOT EVERYBODY'S ----------
    ITS ONE CALLER WAS `markDone`, which threw away a child's whole stored payload (and every admin's) for
    one date, so the child's next load anywhere was a cold rebuild. The stored body no longer carries
-   `attempts` — `doGet` adds them fresh for the token's person (`payloadWithFresh_` in doget.gs) — so
+   `attempts`, nor `submissions` which replaced it — `doGet` adds them fresh for the token's person
+   (`payloadWithFresh_` in doget.gs) — so
    there is nothing left that a write to one person's rows makes stale, and nothing to retire by key. */
 /** The generation number, which prefixes every key — see `clearPayloadCache`. */
 function payloadGen_() {

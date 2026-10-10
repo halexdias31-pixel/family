@@ -91,8 +91,12 @@ const STATES = {
         ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
         paintStuff();
       },
-      expect: () => /still coming/.test(document.getElementById('s-stuff').textContent || ''),
-      wants: 'the Find screen to say the questions are still coming, not that there are none' },
+      /* THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN — the owner, 9 Oct: *"They should all have a
+         simplistic simple loading thing."* It said "The questions are still coming" until then. Still
+         never "nothing in the library", which is what this state was written to stop. */
+      expect: () => !!document.querySelector('#s-stuff .loading[role="status"]')
+                 && !/Nothing in the shop or the library/.test(document.getElementById('s-stuff').textContent || ''),
+      wants: 'the Find screen showing the one loader while the questions are on their way, not saying there are none' },
     { name: 'the results',
       enter: () => {
         STUFF.q = 'work out';
@@ -925,33 +929,107 @@ const STATES = {
       },
       wants: 'the first page of a long part: its reading, no box, "1 of N", saying it continues',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A QUESTION YOU HAVE DONE, DATED --------------------------------------------------------
-       ASKED FOR AS *"when a student does do a question, it should record the date they did it"*. Signed
-       in only -- signed out records nothing, by design (`doneKeyOf_`). The date is written where the
-       app writes it, under the visitor's own key, and taken off again on the way out so no other state
-       is pictured stamped. The expect asks for the stamp in the header's slot, on the marks' line. */
-    { name: 'a question you have done, dated',
+    /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR -------------------------------------------------
+       THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's right
+       or not."* So the slot that said `Done 4 Oct` says how the LATEST submission went (`subSlot_`, js/
+       submit.js): "Correct" with the tick, "Not yet" with the turning arrow, "Sent" in the dim ink. Three
+       states, one verdict each, so `ui.js` measures every one at every width — "Not yet" is the longest
+       beside the star, and the row is 44px tiles that must not wrap. Signed in only: signed out there is
+       no slot. The latest is written where this device keeps it (`subLast:<who>`), and taken off again on
+       the way out so no other state is pictured marked. No card says a day. */
+    { name: 'a question you last got right',
       only: () => typeof whoIs_ === 'function' && !!whoIs_(),
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
-        window.__doneKey = 'done:' + ansKey_(it).slice(4);
-        try { localStorage.setItem(window.__doneKey, '2026-10-04'); } catch (e) {}
+        window.__subWho = whoIs_();
+        window.__subKey = subKeyOf_(ansKey_(it));
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
+        all[window.__subKey] = { a: '7', v: 'right', at: Date.now(), id: '1760000000000-state1' };
+        try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
-      /* IN THE TILE ROW, BESIDE THE STAR -- the gold header it sat in became tags, and the date is yours
-         like the star is (`questionTiles_`). */
       expect: () => {
-        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-done');
-        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent)
-               && !document.querySelector('#s-stuff .page.on .qcard .qcard-done');
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
+        return !!s && s.textContent === 'Correct' && s.classList.contains('is-right')
+               && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
       },
-      wants: 'the question card\'s tile row saying "Done 4 Oct" beside the star',
-      leave: () => { try { localStorage.removeItem(window.__doneKey); } catch (e) {}
-                     STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the question card\'s tile row saying "Correct", with its tick, beside the star — and no day anywhere',
+      leave: () => {
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
+          delete all[window.__subKey];
+          localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+        } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a question you last got wrong, not yet',
+      only: () => typeof whoIs_ === 'function' && !!whoIs_(),
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        window.__subWho = whoIs_();
+        window.__subKey = subKeyOf_(ansKey_(it));
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
+        all[window.__subKey] = { a: '8', v: 'wrong', at: Date.now(), id: '1760000000000-state1' };
+        try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
+        return !!s && s.textContent === 'Not yet' && s.classList.contains('is-near')
+               && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
+      },
+      wants: 'the question card\'s tile row saying "Not yet", with the turning arrow, beside the star — and no day anywhere',
+      leave: () => {
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
+          delete all[window.__subKey];
+          localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+        } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a question you last sent, unmarked',
+      only: () => typeof whoIs_ === 'function' && !!whoIs_(),
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        window.__subWho = whoIs_();
+        window.__subKey = subKeyOf_(ansKey_(it));
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
+        all[window.__subKey] = { a: 'because it is', v: 'sent', at: Date.now(), id: '1760000000000-state1' };
+        try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
+        return !!s && s.textContent === 'Sent' && !s.classList.contains('is-right') && !s.classList.contains('is-near')
+               && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
+      },
+      wants: 'the question card\'s tile row saying "Sent", no tick and no arrow, beside the star — and no day anywhere',
+      leave: () => {
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
+          delete all[window.__subKey];
+          localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+        } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- A KS2 SATs QUESTION: `SATs` AND `KS2`, TWO TAGS, AND WHAT TO BRING AS ITS OWN ---------
        *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should be
        its own thing."* and *"why do the questions say non calculator but its not a tag?"* One row, named:
@@ -1310,7 +1388,14 @@ const STATES = {
         if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
         if (!orderIs_(it)) throw new Error('Q-1MA1-2406-1F-4 is not an ordering — its answer_type is ' + it.answerType);
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        ORDER_SENT.clear();
+        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
@@ -1341,7 +1426,14 @@ const STATES = {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
         if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        ORDER_SENT.clear();
+        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
@@ -1398,7 +1490,13 @@ const STATES = {
       wants: 'the reversed order sent and marked Not yet, then the right one marked Correct, with the question, the strip, the verdict\'s row, the card\'s height and the Send and Clear tiles (place and size) where they were each time, and every slot and the items where they were before the first tap',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_SENT.clear();
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(window.__ordKey)];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE ROW AS IT IS IN THE QUESTION ------------
@@ -1415,7 +1513,14 @@ const STATES = {
         if (!it) throw new Error('Q-CBM-5AD-F-0603-1 is not in the library');
         if (!orderIs_(it)) throw new Error('Q-CBM-5AD-F-0603-1 is not an ordering — its answer_type is ' + it.answerType);
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        ORDER_SENT.clear();
+        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
@@ -1447,7 +1552,13 @@ const STATES = {
       wants: '2² placed in slot 1, and every power in the strip and the row (2² and 1³, the ghost included) raised at least 2px above its digit, as the question prints it',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_SENT.clear();
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(window.__ordKey)];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     { name: 'a tapped answer, not yet, nothing moved',
@@ -2129,8 +2240,9 @@ const STATES = {
         goPage('stuff', stuffFirstResult_(), true);
       },
       expect: () => {
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v:not(.is-wait)');
-        return !!v && /Let there be light/.test(v.textContent)
+        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
                && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
       },
       wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
@@ -2149,7 +2261,7 @@ const STATES = {
       /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
       expect: () => {
         const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
-        return !!v && !v.classList.contains('is-wait') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
       },
       wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
       leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
@@ -3415,6 +3527,76 @@ const STATES = {
       },
       wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
 
+    /* ==============================================================================================
+       THREE WIDGETS WAITING ON A REAL REQUEST, HELD, AND THEN LET GO
+
+       THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
+       simple loading thing while it's info or whatever is loading."* `loading_()` (shell.js) is that
+       thing now, and these are the states that put it on the screen where `check/ui.js` can measure
+       it: the business records (`listRecords`, a POST), the Videos card (`data/videos.json`, a file)
+       and the camera (`getUserMedia`, the device). Each is HELD — the request is made by the app's
+       own code and its answer kept back — so what is measured is the wait the app really draws,
+       not a picture of one.
+
+       `release` LETS IT GO, and `landed` says the content has arrived. `check/ui.js` measures the
+       loader while it is held (one box, the same size on every card, centred), takes the card's
+       height, releases, waits for `landed`, and takes it again: a loader that holds its room leaves
+       the card the height it was. `leave` puts back what was there before and DROPS the held answer
+       rather than delivering it — `check/press.js` never releases, and an answer arriving after the
+       state has gone would land in the middle of the next one.
+
+       THESE ARE THE KIND THAT HOLDS THE CARD — the loader drawn OVER what is already there, which is
+       the only kind that can: a verse or a list whose length is not known until it lands is drawn
+       where it lands, and the card is the size of what came. */
+    { name: 'the business records still coming',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const held = window.__bizHeld = { list: BIZ.list, fetch: window.fetch, go: null };
+        const real = held.fetch;
+        window.fetch = (url, o) => {
+          let act = '';
+          try { act = JSON.parse((o && o.body) || '{}').action; } catch (e) {}
+          if (act !== 'listRecords') return real(url, o);
+          return new Promise(r => {
+            held.go = () => r(new Response(JSON.stringify({ success: true, records: [{
+              id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+              provider: 'Example Insure', reference: 'PL-000000', due_on: '2031-01-01' }] }),
+              { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          });
+        };
+        BIZ.list = null; BIZ.error = ''; BIZ.asking = false;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the settings column');
+        goPage('settings', at, true);
+        bizStart_();
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const body = pg && pg.querySelector('.biz-body[aria-busy="true"]');
+        return !!body && pg.querySelectorAll('.loading').length === 1 && !!body.querySelector(':scope > .loading')
+          && !!body.querySelector('input[data-biz="pub_liability"][data-k="reference"]');
+      },
+      wants: 'the Insurance card\'s boxes drawn and under the one loader while listRecords is held',
+      release: () => { const h = window.__bizHeld; if (h && h.go) { h.go(); h.go = null; } },
+      landed: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return !!pg && !pg.querySelector('.loading')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+      },
+      leave: () => {
+        const h = window.__bizHeld;
+        if (h) { window.fetch = h.fetch; BIZ.list = h.list; BIZ.asking = false; }
+        delete window.__bizHeld;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        /* NOTHING WAS THERE BEFORE EITHER: ask again, on the real wire, rather than leave five cards
+           drawn waiting with nothing on its way to end it. */
+        if (!BIZ.list) bizStart_();
+      } },
+
     /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
        The infrastructure for *"something which triggers every sunday"* and emails parents — built and
        switched off (backend/digest.gs, js/digest.js). The card is the last page of an admin's Settings.
@@ -3629,7 +3811,6 @@ const STATES = {
         slot.querySelector('.q-line').click();
       },
       leave: () => {
-        if (typeof selShut_ === 'function') selShut_();
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -3682,11 +3863,12 @@ const STATES = {
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
         pages[at].querySelector('.q-shelf [data-do="qual-add"]').click();
-        /* THE SUBJECT LIST IS HUNG FOR THE PERSON a tick later — shut it, so what is measured is the card. */
-        return new Promise(r => setTimeout(() => { if (typeof selShut_ === 'function') selShut_(); r(); }, 60));
+        /* THE SUBJECT BOX TAKES THE FOCUS a tick later (`qualNext_`) — it opened the app's own list here
+           until the dropdowns were the platform's again (note 315), and this shut that list so the card
+           was what got measured. A focused box is part of the card a person is looking at, so it stays. */
+        return new Promise(r => setTimeout(r, 60));
       },
       leave: () => {
-        if (typeof selShut_ === 'function') selShut_();
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -3809,55 +3991,87 @@ const STATES = {
                        .length === 2 ? 2 : 0),
       wants: 'two exam-date boxes, both drawn as a date picker' },
 
-    /* ---------- MORE QUALIFICATIONS, WITH ITS LIST OPEN ------------------------------------------
-       `extra_quals` IS A DROP-DOWN THAT STAYS OPEN — `#drop`, borrowed from the booking form, which
-       is a sibling of the screens rather than inside one. So the only way this lab ever sees the
-       panel, or the press pass ever reaches `me-many-pick`, is a state that opens it: the same hole
-       `booking · a list of answers open` was written to close. Opened through the app's own door,
-       the field's button, and shut again on the way out because states run in order down one page
-       and an open panel would be measured as part of every state after this one. */
+    /* ---------- A SEVERAL-OF-A-LIST FIELD, OPEN, WITH A BOX TICKED ---------------------------------
+       IT WAS A BUTTON THAT HUNG `#drop`, the booking form's floating panel, which is a sibling of the
+       screens — so the only way this lab ever saw the panel, or the press pass ever reached
+       `me-many-pick`, was a state that opened it. On 9 October the owner asked for *"a more stable
+       standard simple conventional drop down list"* (note 315), and the field is a `<details>` now:
+       its summary is the field, and open, its ticks are real checkboxes under it IN the card, pushing
+       the card longer — which is exactly what `check/ui.js` has to lay out and measure at every width.
+
+       OPENED THROUGH THE SUMMARY, the browser's own door, and ONE BOX TICKED the way a finger ticks it —
+       the box flips and `change` bubbles — so what is measured is the field with an answer in it, and
+       what is asserted is that the answer reached the hidden box `me-save` reads. Shut and put back on
+       the way out, because states run in order down one page. */
     { name: 'a several-of-a-list field open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-settings .page')];
-        /* ANY SEVERAL-OF-A-LIST FIELD. It was `extra_quals`, which is gone — a PGCE or a DBS is an
-           ordinary qualification entry now — so this opens whichever one the column carries (a
-           tutor's venues, on Contact & address). */
-        const q = '[data-do="me-many"]';
+        const pages = [...document.querySelectorAll('#s-settings > .page')];
+        /* ANY SEVERAL-OF-A-LIST FIELD — whichever one the column carries (a tutor's venues, on Contact
+           & address). Which fields take several answers is `FIELD_MULTI`'s to say. */
+        const q = '.field.many details';
         const at = pages.findIndex(pg => pg.querySelector(q));
         if (at < 0) throw new Error('no several-of-a-list field on the settings column');
         goPage('settings', at, true);
-        pages[at].querySelector(q).click();
+        const det = pages[at].querySelector(q);
+        det.querySelector(':scope > summary').click();
+        const box = det.querySelector('input[type="checkbox"]:not(:disabled)');
+        if (!box) throw new Error('the open field draws no box to tick');
+        window.STATE_MANY_WAS = { name: box.dataset.manyOf, value: (det.closest('.many').querySelector('input[type="hidden"]') || {}).value };
+        box.checked = !box.checked;
+        box.dispatchEvent(new Event('change', { bubbles: true }));
       },
-      leave: () => { if (typeof meDropShut_ === 'function') meDropShut_(); },
+      leave: () => {
+        document.querySelectorAll('#s-settings .field.many details[open]').forEach(d => { d.open = false; });
+        delete window.STATE_MANY_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden')
-          && el.querySelectorAll('[data-do="me-many-pick"]').length > 0;
+        const det = document.querySelector('#s-settings .page.on .field.many details[open]');
+        const was = window.STATE_MANY_WAS || {};
+        const hidden = det && det.closest('.many').querySelector('input[type="hidden"]');
+        return !!det && !document.getElementById('drop')
+          && det.querySelectorAll('label.check input[type="checkbox"]').length > 0
+          && !!det.closest('.me-form[data-dirty]')
+          && !!hidden && hidden.value !== was.value ? 1 : 0;
       },
-      wants: 'a several-of-a-list field open under its button, with something to tick' },
+      wants: 'a several-of-a-list field open under its summary, in the card, with a box ticked into its hidden answer' },
 
-    /* ---------- AN ORDINARY SELECT, OPEN ------------------------------------------------------------
-       EVERY SINGLE-CHOICE `<select>` HANGS `#drop` NOW — see `SEL_OK` in book.js — and the settings
-       column is where most of them are. Opened through the select's own door, a click AT it, which is
-       the path `selAt_` takes for assistive technology; shut on the way out for the reason above. */
-    { name: 'a dropdown open',
+    /* ---------- AN ORDINARY SELECT, ANSWERED ------------------------------------------------------------
+       THIS WAS "A DROPDOWN OPEN" — a click AT a settings select, which hung the app's own panel off it
+       for this lab to measure (note 226). The open list is the platform's again (note 315) and no page
+       can draw, measure or press it, so there is no open state to enter. What a select still does to a
+       card is be ANSWERED: the value moves, `change` bubbles, the card is marked as holding an unsaved
+       answer. Answered here the way the platform's list answers — the value, then `input` and `change`,
+       bubbling — and put back on the way out. */
+    { name: 'a dropdown answered',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const pages = [...document.querySelectorAll('#s-settings > .page')];
         const at = pages.findIndex(pg => pg.querySelector('label.field > select:not(:disabled)'));
         if (at < 0) throw new Error('no select in a label on the settings column');
         goPage('settings', at, true);
-        pages[at].querySelector('label.field > select:not(:disabled)').click();
+        const sel = pages[at].querySelector('label.field > select:not(:disabled)');
+        const to = [...sel.options].find(o => o.index !== sel.selectedIndex && !o.disabled);
+        if (!to) throw new Error('the select has no second answer to choose');
+        window.STATE_SEL_WAS = { name: sel.dataset.me, to: to.value };
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
       },
-      leave: () => { if (typeof selShut_ === 'function') selShut_(); },
+      leave: () => {
+        delete window.STATE_SEL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
-          && el.querySelectorAll('[data-do="sel-pick"]').length >= 2
-          && el.querySelectorAll('[data-do="sel-pick"][aria-selected="true"]').length === 1;
+        const was = window.STATE_SEL_WAS || {};
+        const sel = document.querySelector('#s-settings .page.on select[data-me="' + was.name + '"]');
+        return !!sel && sel.value === was.to && !!sel.closest('.me-form[data-dirty]')
+          && !document.getElementById('drop') && !document.querySelector('[role="listbox"]') ? 1 : 0;
       },
-      wants: 'a settings select\'s options hanging off it in the booking list\'s panel, one marked' },
+      wants: 'a settings select holding a new answer, its card marked unsaved, and no list of the app\'s own anywhere' },
 
     /* "ALSO TEACH, OPEN" WENT WITH THE PAGE. What a tutor teaches is two ticks on each
        qualification now — `the qualifications` above counts them — and `teaches_also` is derived
@@ -3932,7 +4146,11 @@ const STATES = {
         widgetsOf_('tool').slice(0, 2).forEach(w => {
           if (!isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
         });
-        paint('saved');
+        /* `repaint`, AS THE STAR ON SAVED DOES (`on('fav')` in find.js), NOT `paint`: `paint` draws the
+           markup and starts nothing, so this measured two widgets that had never started — which since 9
+           Oct is two widgets under the loader (`widgetOnColumn_`), and was always two widgets nobody
+           could have been looking at. `repaint` draws and starts them. */
+        repaint(true);
       },
       expect: () => document.querySelectorAll('#s-saved .widget-slot').length >= 2
                  && document.querySelector('#s-saved .tile.on'),
@@ -4000,6 +4218,35 @@ const STATES = {
          column would never be measured again on this run and Saved would be measured with a
          payload key nothing else expects. */
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
+  ],
+
+  /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
+     NOT LEFT TO THE DEFAULT. A column with no entry here is measured in the state it opens in with
+     nothing asked of it, and "nothing to press" printed by `check/press.js` is the same silence
+     whether the column drew its card or drew nothing. So the one state says what it must be looking
+     at — the card, "Not built yet.", and not a control on it — for both visitors, which is the
+     placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup.
+     The day the column is built this entry is where its states go.
+
+     BOTH HALVES OF THE RULE, the three questions `placeholderFaults_` asks in check-flow.js — written
+     out again here because `expect` is sent to the page as a string and can reach nothing of this
+     file. The first version asked only "is there a control", with a selector that did not name a
+     `<summary>`: a card given "Streak: 0 days · 0% of the course done", a bar at nought per cent and
+     a `<details>` was measured as this state, and `check/ui.js` went red on it only because the
+     summary was too small to tap (review, 9 October). So: nothing pressable anywhere in the column,
+     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. */
+  progress: [
+    { name: '',
+      expect: () => {
+        const h = document.getElementById('s-progress');
+        const pane = h && h.querySelector(':scope > .page > .pane');
+        if (!pane || !pane.querySelector('.card h3') || !/Not built yet/.test(pane.textContent)) return false;
+        if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
+          + '[tabindex], [onclick], [role], [contenteditable]')) return false;
+        if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
+        return !/\d/.test(pane.textContent);
+      },
+      wants: 'Progress card saying it is not built yet: drill\'s markup only, no number, nothing on it to press' },
   ],
 
   /* ---------- THE SHOP ------------------------------------------------------------------------
@@ -5066,6 +5313,61 @@ const STATES = {
                  && !document.querySelector('#s-games [data-do="vid-sync"]')
                  && !/film|drive|sync/i.test((document.querySelector('#s-games .vid-box') || {}).textContent || 'film'),
       wants: 'no Sync tile, nothing in the admin row, and no word on the card that says films exist' },
+
+    /* ---------- AND WHILE ITS LIST IS ON ITS WAY: THE ONE LOADER OVER THE CARD -----------------------
+       One of three widgets held on a real request — see `the business records still coming` for the
+       whole note. `data/videos.json` is asked for by the card's own `initVideos` and its answer kept
+       back; here the payload is in, so an admin's card already has its films and is not waiting, and
+       this is the stranger's.
+       IT RELEASES INTO THREE REAL ROWS. It used to hand back the repository's own file, whose one row is
+       a switched-off placeholder — so what landed was "No videos listed yet.", one line in place of the
+       one line the count held, and "the card did not move" could not fail (review, 10 Oct). A list's
+       length is not known until it lands, so the card GROWS by the rows (`grows`, read by `check/ui.js`):
+       what is asked is that the veiled part kept its room — the card never shrinks — and that the three
+       rows arrive. */
+    { name: 'the videos still coming',
+      only: () => !(typeof isAdmin === 'function' && isAdmin()),
+      grows: 'the list of videos — how many rows are coming is not known until they come (see `vidPaint_`)',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        const held = window.__vidHeld = { list: VIDEOS_LIST, fetch: window.fetch, go: null };
+        const real = held.fetch;
+        /* THREE ROWS THE WAY THE OWNER WRITES THEM: active, a title, an address. `example.org` so no row
+           reaches anywhere, and each is a row that opens a page (`vidHow_` 'out') — nothing to embed. */
+        const rows = [1, 2, 3].map(i => ({ title: 'A held video, number ' + i, url: 'https://example.org/held-video-' + i,
+                                           kind: 'clip', tags: '', age: '', notes: '', active: true }));
+        window.fetch = (url, o) => (/data\/videos\.json/.test(String(url))
+          ? new Promise(r => { held.go = () => r(new Response(JSON.stringify(rows),
+              { status: 200, headers: { 'Content-Type': 'application/json' } })); })
+          : real(url, o));
+        VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = ''; VID.at = '';
+        goPage('games', n, true);
+        initVideos();
+      },
+      expect: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        return !!box && box.getAttribute('aria-busy') === 'true' && !!box.querySelector(':scope > .loading')
+          && document.querySelectorAll('#s-games #wgt-videos .loading').length === 1 && !!box.querySelector('input.vid-q');
+      },
+      wants: 'the videos card drawn whole and under the one loader while data/videos.json is held',
+      release: () => { const h = window.__vidHeld; if (h) { window.fetch = h.fetch; if (h.go) { h.go(); h.go = null; } } },
+      landed: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        return !!box && !box.querySelector('.loading') && !box.getAttribute('aria-busy')
+          && box.querySelectorAll('.vid-list .vid-row').length === 3
+          && /^3 videos$/.test(((box.querySelector('.vid-said') || {}).textContent || '').trim());
+      },
+      /* THE LIST IT HELD IS PUT BACK WHETHER OR NOT IT WAS RELEASED: released, `VIDEOS_LIST` is the three
+         rows above, and the next state would be measuring a card with videos the repository never had. */
+      leave: () => {
+        const h = window.__vidHeld;
+        if (h) { window.fetch = h.fetch; VIDEOS_LIST = h.list; VIDEOS_ASKED = null; }
+        delete window.__vidHeld;
+        vidPaint_();
+        /* AND IF NOTHING WAS THERE BEFORE EITHER, asked again on the real wire, as the records' state does. */
+        if (VIDEOS_LIST === null) videosAsk_().then(() => vidPaint_());
+      } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------
@@ -5150,6 +5452,248 @@ const STATES = {
       },
       wants: 'the still on the card with Post it under it',
       leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
+    /* ---------- AND THE MOMENT BEFORE THE FIRST FRAME: THE ONE LOADER IN THE VIEWFINDER ----------------
+       One of three widgets held on a real request — see `the business records still coming` (settings)
+       for the whole note. The ask is the camera's own (`camStart_`) and the browser's answer is kept
+       back, which is what a permission prompt left open does; released, it is handed a stream drawn
+       from a canvas, which is a real `MediaStream` a container without a camera can make. The loader
+       sits over the viewfinder, whose size is the card's, so the first frame lands in its place. */
+    { name: 'the camera still starting',
+      only: () => typeof USER !== 'undefined' && !!USER && !!(navigator.mediaDevices),
+      enter: () => {
+        const held = window.__camHeld = { go: null };
+        navigator.mediaDevices.getUserMedia = () => new Promise(r => {
+          held.go = () => {
+            const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+            const g = c.getContext('2d'); g.fillStyle = '#336'; g.fillRect(0, 0, 8, 8);
+            r(c.captureStream(5));
+          };
+        });
+        /* AFTER ANY ASK STILL OUT. The state before this one put its picture back with `camAgain_`,
+           which asks the real camera — and a container has none, so that ask is refused, and on a
+           loaded machine the refusal can land after this has asked: it wrote "The camera did not
+           start." over the viewfinder this is measuring. So it waits for that one to finish first
+           (bounded), and then asks through the held door. */
+        const t0 = Date.now();
+        const ask = () => {
+          if (CAM_ASKING && Date.now() - t0 < 2000) { setTimeout(ask, 50); return; }
+          try { camStop_(); } catch (e) {}
+          CAM_FAILED = null; CAM_ASKING = false;
+          goPage('feed', feedCamAt_(), true);
+          camStart_();
+        };
+        ask();
+      },
+      expect: () => {
+        const off = document.getElementById('cam-off');
+        return !!off && !off.hidden && !!off.querySelector('.loading[role="status"]')
+          && document.querySelectorAll('#s-feed .cam-card .loading').length === 1;
+      },
+      wants: 'the viewfinder with the one loader in it while the camera is asked for',
+      release: () => { const h = window.__camHeld; if (h && h.go) { h.go(); h.go = null; } },
+      landed: () => {
+        const off = document.getElementById('cam-off'), v = document.getElementById('cam-view');
+        return !!off && off.hidden && !!v && !!v.srcObject;
+      },
+      leave: () => {
+        delete window.__camHeld;
+        try { delete navigator.mediaDevices.getUserMedia; } catch (e) {}
+        CAM_ASKING = false;
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null;
+      } },
+    /* ---------- AND A BROWSER WITH NO CAMERA AT ALL: A FACT, AND NO LOADER OVER IT ------------------
+       Found by review: with `navigator.mediaDevices` missing, `camStart_` wrote "This browser has no
+       camera support." under the card and left the viewfinder holding the loader `cameraCard` drew —
+       dots pulsing over a sentence saying nothing was coming, for as long as the page was up. The
+       container HAS `mediaDevices`, so it is taken away for the state (an own property over the
+       prototype's getter) and put back by deleting it. */
+    { name: 'the camera with no camera support',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null; CAM_ASKING = false;
+        Object.defineProperty(navigator, 'mediaDevices', { value: undefined, configurable: true });
+        goPage('feed', feedCamAt_(), true);
+        camStart_();
+      },
+      expect: () => {
+        const off = document.getElementById('cam-off');
+        return !!off && !off.hidden && !off.querySelector('.loading')
+          && /no camera support/.test(off.textContent || '')
+          && !document.querySelector('#s-feed .cam-card .loading');
+      },
+      wants: 'the viewfinder saying the browser has no camera support, and no loader anywhere on the card',
+      leave: () => {
+        try { delete navigator.mediaDevices; } catch (e) {}
+        CAM_ASKING = false;
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null;
+      } },
+    /* ---------- A POST'S FACES, IN EVERY STATE THEY ARE DRAWN IN ---------------------------------
+       THE OWNER, 9 Oct: *"Also refine how the post reactions look. Looks abit scuffed right bow"* —
+       and this lab had never drawn the row. The fixture's post sent `{"👍": 3}`, a shape `doGet` has
+       never sent, which `reacts()` draws as nothing; so tap size, contrast and sideways overflow had
+       been measured across every width on a post with no faces on it. The fixture sends the real
+       shape now (six house faces, counts, total, yours, by) and these are the states the row is in:
+       nobody, some, yours, a post's own set of more than six with three-digit and four-digit counts,
+       and the who-reacted sheet open. Signed out is the other visitor, and runs all but "yours".
+
+       SEEDED THROUGH `DATA.posts`, THE APP'S OWN DOOR — the post's `reactions` is exactly what the
+       payload's arrival puts there — then `repaint` and `goPage` to the post, which is what a finger
+       does. `PO1` because it is the fixture's post with a picture, so the row is where it is on most
+       posts: directly under the photograph. AND PUT BACK, because states run in order down one page
+       and the next would otherwise be measuring this one's counts. */
+    { name: 'reactions nobody',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                        total: 0, yours: '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        return !!el && el.querySelectorAll('.reacts .react').length === 6
+          && !el.querySelector('.react-n') && !el.querySelector('.react-who');
+      },
+      wants: 'the post on the screen with six empty pills and no total',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    { name: 'reactions some',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
+                        total: 4, yours: '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
+                             { name: 'Carl Everyclient', emoji: '👍' },
+                             { name: 'Evie Everystudent-Longername', emoji: '❤️' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        /* ONE LINE FOR THE STRANGER TOO: "yours" runs only signed in, and this runs for both. */
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
+        return !!el && el.querySelectorAll('.reacts .react-n').length === 2
+          && faces.length === 6 && tops.size === 1
+          && /4 reactions/.test((el.querySelector('.post-when .react-who') || {}).textContent || '');
+      },
+      wants: 'the post on the screen with six faces on one line, two counted, and "4 reactions" on its time line',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* EVERY FACE COUNTED IN TWO DIGITS AND ONE OF THEM YOURS — the widest the house row gets on a
+       busy post, and the gold one with its heavier count inside a 41px cell at 320.
+       AND ALL SIX ON ONE LINE, which is the redesign's whole claim: the scuff was a row that wrapped
+       🎉 onto a line of its own, and a count that grew reflowing the row. Nothing held it — a grid
+       changed to wrap the six as 5+1 at 320 passed this file clean, because this asked only for
+       `.mine` and six counts. The same idiom as the wrapping state: one distinct top, one line. */
+    { name: 'reactions yours',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [12, 9, 15, 3, 27, 11],
+                        total: 77, yours: '❤️',
+                        by: [{ name: USER.name, emoji: '❤️' }, { name: 'Ada Tutor', emoji: '👍' },
+                             { name: 'Priya Parent', emoji: '😂' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        const mine = el && el.querySelector('.react.mine');
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
+        return !!mine && mine.dataset.emoji === '❤️' && mine.getAttribute('aria-pressed') === 'true'
+          && el.querySelectorAll('.reacts .react-n').length === 6
+          && faces.length === 6 && tops.size === 1;
+      },
+      wants: 'the post on the screen with six counted faces on ONE line and ❤️ drawn as yours',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* A POST'S OWN CELL NAMING NINE FACES, with three- and four-digit counts: the one case the row
+       wraps (into the same columns, six and three), and the one case a count steps down a size
+       (`is-long`) or rounds (`1k`). Yours too when signed in, on a three-digit face. */
+    { name: 'reactions many and wrapping',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉', '🔥', '🙏', '💯'],
+                        counts: [999, 1500, 212, 7, 0, 45, 3, 0, 1], total: 2767,
+                        yours: signed ? '😂' : '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        if (!el) return false;
+        const faces = [...el.querySelectorAll('.reacts .react')];
+        const top = faces.map(f => Math.round(f.getBoundingClientRect().top));
+        const tops = new Set(top);
+        /* SIX ON THE FIRST LINE, NOT JUST TWO LINES: a grid that wrapped at five drew 5+4, which is
+           also two lines and passed. The house set's six columns are the claim; a ninth face starts
+           the second line in them. */
+        const first = top.filter(t => t === Math.min(...top)).length;
+        return faces.length === 9 && tops.size === 2 && first === 6 && !!el.querySelector('.react.is-long')
+          && [...el.querySelectorAll('.react-n')].some(n => n.textContent === '1k');
+      },
+      wants: 'the post on the screen with nine faces on two lines (six, then three), a three-digit count stepped down and 1500 drawn as 1k',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* WHO REACTED, OPEN — the sheet is outside `#s-feed`, and `check/ui.js` measures it when one is
+       open. Groups most-used first, a long name, and yours the gold pill when signed in. Opened
+       through the total's own handler, and shut on the way out (a sheet survives `go()`). */
+    { name: 'reactions who reacted',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [2, 1, 3, 0, 0, 0],
+                        total: 6, yours: signed ? '😂' : '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '😂' },
+                             { name: 'Evie Everystudent-Longername', emoji: '😂' },
+                             { name: 'Carl Everyclient', emoji: '❤️' }]
+                             .concat(signed ? [{ name: USER.name, emoji: '😂' }] : []) };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const t = document.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+        if (!t) throw new Error('no total on the post to open who reacted from');
+        ACTIONS['who-reacted'](t);
+      },
+      expect: () => {
+        const sh = document.getElementById('sheet');
+        const g = [...document.querySelectorAll('#sheet-body .rx-group .rx-pill .react-e')].map(x => x.textContent);
+        return !!sh && !sh.classList.contains('hidden') && g.join(' ') === '😂 👍 ❤️';
+      },
+      wants: 'the who-reacted sheet open with 😂, 👍 and ❤️ in that order',
+      leave: () => {
+        closeSheet();
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
   ],
 
   booking: [
@@ -5206,64 +5750,86 @@ const STATES = {
          empty it — the same call every send path ends with. */
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
-    /* ---------- THE LIST THAT HANGS OFF A FIELD ------------------------------------------------
-       `check/press.js` REPORTED IT BEFORE THIS EXISTED: *"named on a screen and then not found to
-       press (2): booking/book-many-pick, booking/book-many-done"*. Both controls are drawn only
-       once a field has been pressed, and the press pass builds its queue from what is on the screen
-       — so the two halves of the list were pressed by nothing. While it was a sheet they were
-       collected with everything else a press opens; anywhere else they are a state or they are
-       nowhere, which is exactly the hole this file's own header describes.
+    /* ---------- A SEVERAL-ANSWERS ROW, OPEN UNDER ITSELF, WITH A BOX TICKED -------------------------
+       `check/press.js` REPORTED THE HOLE BEFORE A STATE EXISTED: *"named on a screen and then not found
+       to press (2): booking/book-many-pick, booking/book-many-done"*. The ticks are drawn only once a
+       row has been pressed, and the press pass builds its queue from what is on the screen — so they
+       were pressed by nothing.
 
-       AND IT IS `#drop` NOW RATHER THAN THE PAGE. The list replaced the form for one commit and was
-       reported as *"i hate this"*; it hangs off its field, outside the screens, because `.pane` is
-       `overflow: hidden` and would clip it anywhere else. So the measured root is the panel, not
-       `#s-booking` — a selector scoped to the screen finds nothing and reads as the list being
-       absent, which is this file's own recurring fault about an instrument that cannot reach its
-       subject.
+       IT WAS `#drop`, a panel outside the screens, and this state's root was the panel. Since 9 October
+       (note 315) the list is checkboxes IN the card, under the row it answers, pushing the rows below
+       it down — so the measured root is `#s-booking` like every other booking state, and the card is
+       longer while it is open: twelve subjects at 44px a row is the arithmetic note 147 ruled the
+       in-flow shape out on, before `paneReach_` zoomed and scrolled a long card instead of clipping it.
+       `check/ui.js` lays that out at every width now, on every commit.
 
-       AND `check/ui.js` HAD NEVER LAID IT OUT EITHER. Twelve 44px options in whichever side of the
-       field has more room is the arithmetic the whole design turns on, and until this state it was
-       measured in a probe rather than on every commit.
-
-       SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does — the
-       app's own door rather than markup poked into the page. The step is found rather than named:
-       which questions take several answers is `BOOK_STEPS`'s to say, and a literal here would be a
-       second copy of that list. */
+       SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does, and ONE BOX
+       TICKED the way a finger ticks it — the box flips and `change` bubbles to `book-many-pick`. The step
+       is found rather than named: which questions take several answers is `BOOK_STEPS`'s to say. */
     { name: 'a list of answers open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const st = (typeof BOOK_STEPS !== 'undefined' ? BOOK_STEPS : []).filter(x => x.multi && !x.grid)
           .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 1; } catch (e) { return false; } })[0];
-        if (st) { BOOKING.picking = st.id; drawBooker(); }
+        if (!st) throw new Error('no several-answers question offers anything to tick');
+        window.STATE_MANY_STEP = st.id;
+        BOOKING.picking = st.id; drawBooker();
+        /* THE BOX IS TICKED ONCE IT IS DRAWN, asked again for up to two seconds. `check/ui.js` found it
+           missing once at 390 on a loaded machine and never in a replay of the same states, so the
+           repaint can land late; a box that never comes is still reported, by `expect`. */
+        return new Promise(ok => {
+          const t0 = Date.now();
+          const tick = () => {
+            if (BOOKING.picking !== st.id) { BOOKING.picking = st.id; drawBooker(); }
+            const box = document.querySelector('#bookr #bk-many-' + st.id + ' input[type="checkbox"]');
+            if (box) { box.checked = true; box.dispatchEvent(new Event('change', { bubbles: true })); return ok(); }
+            if (Date.now() - t0 > 2000) return ok();
+            setTimeout(tick, 50);
+          };
+          tick();
+        });
       },
-      expect: () => document.querySelectorAll('#drop .pick-opt').length >= 1
-        && !!document.querySelector('#drop [data-do="book-many-done"]')
-        /* AND OPEN, because `#drop` keeps its markup for as long as it is up and an assertion on the
-           options alone would pass on a panel that is hidden. */
-        && !document.getElementById('drop').classList.contains('hidden'),
-      wants: 'a list of options hanging off the field, with a Done under them',
-      /* PUT BACK, because states run in order down one page and the receipt state after this one
-         would otherwise be measuring a picker. */
-      leave: () => { BOOKING.picking = ''; drawBooker(); } },
+      expect: () => {
+        const id = window.STATE_MANY_STEP;
+        const list = id && document.querySelector('#s-booking #bookr #bk-many-' + id);
+        return !!list && !document.getElementById('drop')
+          && list.querySelectorAll('label.check input[type="checkbox"]').length >= 1
+          && list.querySelectorAll('input[type="checkbox"]:checked').length >= 1
+          && (BOOKING[id] || []).length >= 1 ? 1 : 0;
+      },
+      wants: 'a several-answers row open under itself in the card, with a box ticked into the booking',
+      /* PUT BACK, because states run in order down one page and the receipt state after this one would
+         otherwise be measuring a half-answered form with a list open on it. */
+      leave: () => { delete window.STATE_MANY_STEP;
+        if (typeof resetBooking_ === 'function') resetBooking_(); BOOKING.picking = ''; drawBooker(); } },
 
-    /* ---------- AND A SINGLE ANSWER, OPEN, IN THE SAME PANEL ---------------------------------------
-       *"should be consistent with the booking multiselect drop down list"* — so the one-of-a-list
-       rows on this card hang the same `#drop` the state above opens. Through the select's own door,
-       and shut again on the way out. */
-    { name: 'a single answer open',
+    /* ---------- AND A SINGLE ANSWER, CHOSEN --------------------------------------------------------------
+       THIS WAS "A SINGLE ANSWER OPEN" — a click AT a booking select, which hung the multi-select list's
+       panel off it (note 226). The open list is the platform's again (note 315); nothing on the page
+       draws it, so there is no open state for this lab to measure. What is left to measure is the card
+       ANSWERED through that list — the value, then `input` and `change`, which is all a platform's list
+       ever does — and that it reached `BOOKING` through the one `book-set` handler. */
+    { name: 'a single answer chosen',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const sel = document.querySelector('#bookr select.bk-sel:not(:disabled)');
         if (!sel) throw new Error('the booking form draws no enabled select');
-        sel.click();
+        const to = [...sel.options].find(o => o.value && o.index !== sel.selectedIndex && !o.disabled);
+        if (!to) throw new Error('the first booking select has no second answer to choose');
+        window.STATE_SEL_WAS = { step: sel.dataset.step, to: to.value };
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
       },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
-          && el.querySelectorAll('#drop .pick-opt[data-do="sel-pick"]').length >= 2;
+        const was = window.STATE_SEL_WAS || {};
+        const sel = document.querySelector('#bookr select.bk-sel[data-step="' + was.step + '"]');
+        return String(BOOKING[was.step] || '') === was.to && !!sel && sel.value === was.to
+          && !document.getElementById('drop') && !document.querySelector('[role="listbox"]') ? 1 : 0;
       },
-      wants: 'a single-answer row\'s options hanging off it, the multi-select list\'s rows',
-      leave: () => { if (typeof selShut_ === 'function') selShut_(); } },
+      wants: 'a booking row answered through its own select, the answer in BOOKING, and no list of the app\'s own',
+      leave: () => { delete window.STATE_SEL_WAS;
+        if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
@@ -5725,13 +6291,121 @@ const STATES = {
           && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
       },
       wants: 'two chips waiting, a paragraph in the box and Send beside it rather than under it',
+      /* EMPTIED AS A PERSON EMPTIES IT, with `input`: the paragraph is a DRAFT now (data.js; docs/history
+         317), kept as it was typed and drawn back by every redraw of Messages — set to '' without telling
+         anybody, it came back in the next state's composer. */
       leave: () => {
         delete MSG_QUEUE['P009'];
         const b = document.querySelector('#s-dm .msg-text');
-        if (b) { b.value = ''; b.style.height = ''; }
+        if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],
 };
+
+/* ---------- NOTIFICATIONS, AS EACH ROLE IS SENT THEM — `notifyCard_` in js/me.js ----------------------------
+   *"Also let parents select their communication preferences like notification. And kids and tutors too I
+   guess"* (the owner, 9 Oct). The card draws whatever list the server sends on the profile, so a state is a
+   ROLE and that role's LIST — and a list typed out here would be this file's belief about the server, the
+   fault CLAUDE.md records as "a fixture must send what doGet really sends". So the lists are not typed: they
+   are `notifyOf_` itself, asked of the real backend (js/check-gas-load.js) when this file is loaded, and
+   written into each state's `enter` as data. A label or a note changed in NOTIFY_KINDS is measured on the
+   next run without anybody touching this file.
+
+   WHY `new Function`: every state is carried into the page as its source (`String(state.enter)`) and run
+   there, so a closure over a value computed here would arrive empty. A function BUILT from source with the
+   list already in it is the same thing the other states are — a line of the app's own code — with the
+   server's answer as a literal.
+
+   THE WIDEST CASE EACH: a parent on an address with no space in it, a parent whose address is still waiting
+   for its link (the one extra paragraph), a kid with no email (one sentence, nothing to tick), a tutor, the
+   admin who is the signed-in visitor, and a backend older than the site (one sentence). The role is played
+   through `USER` as the sign-in reply sends it, and `DATA.features` says whether the backend has `setNotify`
+   — the fixture's own list predates it. `leave` puts the visitor back exactly. */
+(function notifyStates_() {
+  let real = null, why = '';
+  try { real = require('../js/check-gas-load.js').backend(); } catch (e) { why = String(e && e.message || e); }
+  const listFor = (role, email, extra) => {
+    if (!real) return null;
+    try { return JSON.parse(JSON.stringify(real.ev('notifyOf_(' + JSON.stringify(Object.assign(
+      { role: role, email: email, person_id: 'P-STATE', verified: 'TRUE' }, extra || {})) + ')'))); }
+    catch (e) { why = String(e && e.message || e); return null; }
+  };
+  const LONG = 'philippa.parentington-smythe.family@example.org';
+  const state = (name, as, notify, hasFeature, expect, wants) => ({
+    name: 'notifications, ' + name,
+    only: () => typeof USER !== 'undefined' && !!USER,
+    /* NO LIST WHERE ONE WAS WANTED IS A THROW, so the state reads "could not reach" — loud — rather than
+       measuring the "on their way" sentence and calling it the parent's card. */
+    enter: new Function((notify === null && hasFeature
+        ? 'throw new Error(' + JSON.stringify('notifyOf_ could not be asked of the real backend: ' + why) + ');\n' : '')
+      + 'var AS = ' + JSON.stringify(as) + ', NOTIFY = ' + JSON.stringify(notify) + ', HAS = ' + JSON.stringify(hasFeature) + ';\n'
+      + 'window.__NOTIFY_WAS = { role: USER.role, roles: USER.roles, profile: USER.profile, features: DATA.features };\n'
+      /* THE VISITOR AS STORED, kept where a reload cannot reach it — see `leave`. Only the first time: a state
+         entered again after a reload must not keep the role it played as the visitor's own. */
+      + 'try { if (sessionStorage.getItem("notifyStateUser") === null) sessionStorage.setItem("notifyStateUser", localStorage.getItem("familyUser") || ""); } catch (e) {}\n'
+      + 'Object.assign(USER, AS);\n'
+      + 'USER.profile = Object.assign({}, USER.profile || {});\n'
+      + 'if (NOTIFY) USER.profile.notify = NOTIFY; else delete USER.profile.notify;\n'
+      + 'DATA.features = (DATA.features || []).filter(function (x) { return x !== "setNotify"; }).concat(HAS ? ["setNotify"] : []);\n'
+      /* A CLEAN COLUMN FIRST — `settingsKeep_`, the agreement state's reason. */
+      + 'document.querySelectorAll("#s-settings .me-form").forEach(function (f) { f.removeAttribute("data-dirty"); f.classList.remove("is-sending"); });\n'
+      + 'paint("settings");\n'
+      + 'var at = [].slice.call(document.querySelectorAll("#s-settings .page")).findIndex(function (pg) { return pg.querySelector(".notify-card"); });\n'
+      + 'if (at < 0) throw new Error("no Notifications card on the settings column");\n'
+      + 'goPage("settings", at, true);'),
+    /* ---------- AND THE STORED VISITOR PUT BACK, NOT ONLY THE ONE IN MEMORY ----------------------------------
+       FOUND BY `check/press.js`: a tick pressed in "a parent" is a real save, and a real save writes `USER` to
+       `familyUser` — as the parent this state was playing. Every reload after it (`freshen`, the next screen's
+       visit) then signed the run in as that parent, and the Games column's swipes and the booking form's
+       dropdown were measured for somebody who is not the visitor: two swipes "landed on page 2", wanted 3. So
+       the stored visitor is kept in `sessionStorage` by `enter` and written back here, and `USER` is put back
+       from it rather than from a copy a reload may have taken of the parent. */
+    leave: () => {
+      const was = window.__NOTIFY_WAS || {}; delete window.__NOTIFY_WAS;
+      let raw = null;
+      try { raw = sessionStorage.getItem('notifyStateUser'); sessionStorage.removeItem('notifyStateUser'); } catch (e) {}
+      let stored = null;
+      try { stored = raw ? JSON.parse(raw) : null; } catch (e) { stored = null; }
+      const from = stored || was;
+      USER.role = from.role; USER.roles = from.roles; USER.profile = from.profile; DATA.features = was.features;
+      try { if (raw) localStorage.setItem('familyUser', raw); } catch (e) {}
+      document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+      paint('settings');
+    },
+    expect: expect,
+    wants: wants,
+  });
+  /* THE CARD IN FRONT, NOT RUNNING OFF THE SIDE, with this many ticks (all ticked — an untouched row is on)
+     and this many lines of what is always sent. */
+  const ticks = (n, must) => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+    + 'if (!c) return 0;\n'
+    + 'var t = c.querySelectorAll("[data-do=\\"notify-pick\\"]");\n'
+    + 'return t.length === ' + n + ' && [].every.call(t, function (b) { return b.checked; })\n'
+    + '  && c.querySelectorAll(".notify-always li").length === ' + must + '\n'
+    + '  && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
+  const said = re => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+    + 'return c && !c.querySelector("[data-do=\\"notify-pick\\"]") && ' + re + '.test(c.textContent)'
+    + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
+  const count = (n, essential) => ((n && n.kinds) || []).filter(k => !!k.essential === essential).length;
+  const parent = listFor('client', LONG), held = listFor('client', LONG, { verified: 'PENDING' });
+  const kid = listFor('student', ''), tutor = listFor('tutor', 'tutor@example.org'), admin = listFor('admin', 'admin@example.org');
+  STATES.settings.push(
+    state('a parent', { role: 'parent', roles: ['parent'] }, parent, true, ticks(count(parent, false), count(parent, true)),
+      'a parent\'s ticks — the weekly email "not being sent yet", messages, booking updates, posts — and the four always sent'),
+    state('a parent whose address waits for its link', { role: 'parent', roles: ['parent'] }, held, true,
+      new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+        + 'return c && c.querySelector(".notify-held") && c.querySelectorAll("[data-do=\\"notify-pick\\"]").length === ' + count(held, false)
+        + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;'),
+      'the parent\'s ticks under a line saying only the link goes to the address until it is opened'),
+    state('a kid with no email', { role: 'kid', roles: ['kid'] }, kid, true, said('/no email address/'),
+      'one sentence — nothing is emailed to a child with no address — and nothing to tick'),
+    state('a tutor', { role: 'tutor', roles: ['tutor'] }, tutor, true, ticks(count(tutor, false), count(tutor, true)),
+      'a tutor\'s ticks — messages, booking updates, posts — and the three always sent'),
+    state('the admin', { role: 'admin', roles: ['admin'] }, admin, true, ticks(count(admin, false), count(admin, true)),
+      'the admin\'s ticks — messages, festive sign-ups, posts waiting — and the three always sent'),
+    state('a backend older than the site', { role: 'parent', roles: ['parent'] }, null, false, said('/does not have notification choices yet/'),
+      'one sentence saying the backend has no notification choices yet, and nothing to tick'));
+})();
 
 const statesOf = id => STATES[id] || [{ name: '' }];
 

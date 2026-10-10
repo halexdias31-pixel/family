@@ -513,6 +513,19 @@ function drawCalendar() {
         kinds.map(k => `<i class="dot ${k}"></i>`).join('')}</span>` : ''}</span>`);
   }
   host.innerHTML = cells.join('');
+  /* ---------- AND UNTIL THE PAYLOAD IS IN, THE MONTH IS WAITING, NOT EMPTY ---------------------------
+     The terms, holidays, exams and sessions all come with the payload, so before it lands this drew a
+     month with no mark on it — measured on 9 Oct with the payload held — which reads as a month with
+     nothing in it. Nothing on the card said otherwise. So the days are drawn and veiled by the one
+     loader (`loading_`, shell.js): the grid keeps its size under the dots, and when the payload's
+     repaint draws it again with its marks it appears in exactly that box. The arrows still turn the
+     month meanwhile; each month is drawn waiting until the marks are there to put on it. */
+  if (typeof awaiting_ === 'function' && awaiting_()) {
+    host.setAttribute('aria-busy', 'true');
+    host.insertAdjacentHTML('beforeend', loading_());
+  } else {
+    host.removeAttribute('aria-busy');
+  }
   /* THE KEY IS ITS OWN ELEMENT AFTER THE GRID, not a cell of it: `.cal` is a seven-column grid and
      anything put inside it would be laid out as days. Found or made beside `#cal-body`. */
   let key = host.parentNode && host.parentNode.querySelector('.cal-key-box');
@@ -1790,9 +1803,9 @@ on('maze-again', () => { mzDeal_(); mazePaint(); });
    Games column's pages are built, it is drawn whenever Tools or Saved is beside you, and its
    markup stays in the document once drawn. Measured: two arrow presses on the Find column moved a
    maze nobody could see. So it asks `dropOnFront_` in book.js — "on the screen you are on, on the
-   page in front of you", which is exactly this question and was lifted out of the drop-down code so
-   there would be one copy of it — and asks it of every copy of the grid, because a starred maze is
-   on the Saved column too.
+   page in front of you", which is exactly this question; it was written for the dropdown panel and
+   outlived it (note 315), so there is still one copy of it — and asks it of every copy of the grid,
+   because a starred maze is on the Saved column too.
 
    AND ONE KEY IS ONE MOVE. The pager listens for the same four keys on `window`, which this
    `document` listener runs before — and measured on the maze page, ArrowDown walked the maze AND
@@ -4767,13 +4780,18 @@ function tmtSave_(t) {
     USER.timetable = JSON.stringify(t);
     try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
     clearTimeout(TMT_TIMER);
-    TMT_TIMER = setTimeout(() => {
+    /* AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`, data.js; docs/history/317). */
+    const send = keepalive => {
+      clearTimeout(TMT_TIMER);
+      keepDue_('timetable', null);
       if (!USER) return;
-      api({ action: 'saveTimetable', name: USER.name, personId: USER.personId || '',
-            timetable: USER.timetable })
+      return api({ action: 'saveTimetable', name: USER.name, personId: USER.personId || '',
+            timetable: USER.timetable }, keepalive ? { keepalive: true } : undefined)
         .then(d => { if (d && d.error) throw new Error(d.error); })
         .catch(err => toast('Timetable not saved — ' + String((err && err.message) || 'no connection.')));
-    }, 900);
+    };
+    TMT_TIMER = setTimeout(send, 900);
+    keepDue_('timetable', send);
     return;
   }
   try { localStorage.setItem(tmtKey_(), JSON.stringify(t)); }
@@ -5855,7 +5873,29 @@ function vidPaint_(only) {
   const playing = all.find(r => r.key === VID.at) || null;
   /* A COUNT RATHER THAN A SILENCE: "3 of 12 videos" says the box searched something, where an
      empty list under a search box looks exactly like a search that never ran. */
-  const said = VIDEOS_LIST === null && !all.length ? 'Looking for videos…'
+  /* ---------- STILL COMING IS THE ONE LOADER, OVER THE CARD IT WILL FILL ------------------------
+     It was "Looking for videos…" in the count's faint line, under a search box with nothing to
+     search, over an empty list — a wait of its own. The owner, 9 Oct: *"They should all have a
+     simplistic simple loading thing while it's info or whatever is loading."* So until the list is in
+     the box is drawn whole and veiled by `loading_()` (shell.js): the search box and the count line —
+     held at one line by a space, so it is the height it will be — out of sight under the dots, and
+     nothing can be typed into a search with nothing behind it.
+     THE LIST IS NOT HELD, AND THE CARD GROWS WHEN IT LANDS. This said the card was "already the size
+     it is about to be", measured by `check/ui.js` — and found by review, that measurement could not
+     fail: the state released into an empty list ("No videos listed yet.", the same one line), so it
+     passed on a card that, with three real rows, grows about 200px (171→369 at 390, signed out). How
+     many rows are coming is not known until they come — none for a stranger today, every film for an
+     admin — so any room held for them is a guess that jumps the other way when it is wrong, which is
+     the full-cell frame's fault (style.css, "A WHOLE PAGE WAITING"). So the list is drawn where it
+     lands and the card is the size of what came, the rule for a list in `check/states.js`; the state
+     now releases three real rows and `ui.js` holds it to that: the veiled part keeps its room, the
+     card never shrinks, and the rows arrive. "No videos listed yet" is a fact once both sources have
+     answered, and keeps its words.
+     BOTH SOURCES: the owner's list is `data/videos.json` and an admin's films come with the payload,
+     so an empty list with either still out is a list on its way — measured on 9 Oct with the payload
+     held, an admin's card said "No videos listed yet" over films that landed fifteen seconds later. */
+  const waiting = !all.length && (VIDEOS_LIST === null || (typeof awaiting_ === 'function' && awaiting_()));
+  const said = waiting ? '\u00a0'
     : !all.length ? 'No videos listed yet.'
     : found.length === all.length ? all.length + (all.length === 1 ? ' video' : ' videos')
     : found.length + ' of ' + all.length + ' videos';
@@ -5916,9 +5956,18 @@ function vidPaint_(only) {
       if (acts && acts.dataset.html !== actsHtml) { acts.innerHTML = actsHtml; acts.dataset.html = actsHtml; }
     }
     box.querySelector('.vid-said').textContent = said;
+    /* THE VEIL GOES ON ONCE AND COMES OFF ONCE: a repaint while still waiting finds it already there,
+       and the paint that has the list takes it off with `loaded_`. */
+    if (waiting && typeof loading_ === 'function') {
+      if (box.getAttribute('aria-busy') !== 'true') {
+        box.setAttribute('aria-busy', 'true');
+        box.insertAdjacentHTML('beforeend', loading_());
+      }
+    } else if (typeof loaded_ === 'function') loaded_(box);
     /* FORTY ROWS, AND THEN A SENTENCE SAYING THERE ARE MORE — the count above said "60 videos" over a
        list that stopped at forty with nothing to say the rest existed. */
-    box.querySelector('.vid-list').innerHTML = found.length
+    box.querySelector('.vid-list').innerHTML = waiting ? ''
+      : found.length
       ? found.slice(0, 40).map(vidRow_).join('')
         + (found.length > 40 ? `<li class="faint vid-none">${found.length - 40} more — type to narrow the list.</li>` : '')
       : (all.length ? '<li class="faint vid-none">Nothing matches that.</li>' : '');

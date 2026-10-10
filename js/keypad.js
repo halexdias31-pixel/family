@@ -961,8 +961,16 @@ function kpEdit_(inp, cmd) {
    BY THE BOX'S KEY (`data-k`), NOT THE ELEMENT: a redraw replaces the element under the child
    (`kpLive_`) and the history has to survive it. A RUN OF LETTERS IS ONE STEP, a word at a time, and a
    run of ⌫ is one, as in every editor -- a step per letter would undo a sentence a letter at a time.
-   A run is the same kind of key, at the caret the last one left, inside two seconds. */
+   A run is the same kind of key, at the caret the last one left, inside two seconds.
+   ---------- EACH STEP KEEPS WHOSE THE ANSWER WAS AT THAT VALUE (`mark`; answers.js, `ansPutBack_`) ----------
+   A SIGNED-OUT ANSWER CAN BE SOMEBODY'S: typed after the server ended their session, it is marked as theirs
+   and goes to nobody else (docs/history/317). Emptied, it is nobody's — and Ctrl+Z put Ada's words straight
+   back after a visitor's Ctrl+A and Backspace (or a held Backspace, or one letter typed over all of it),
+   judged as a new answer with no mark, so Ben, signing in next, was handed them and they went to HIS account.
+   So a step remembers the mark the box had at the value it undoes to, read before the edit changes it, and
+   Undo and Redo write that value back with that mark. */
 const KP_UNDO = new Map();
+const kpMark_ = k => (typeof ansMarkable_ === 'function' && ansMarkable_(k) && typeof ansGoneOf_ === 'function' ? ansGoneOf_(k) : null);
 function kpUndoNote_(inp, was, a, b, cmd) {
   const k = inp.getAttribute('data-k') || '';
   let h = KP_UNDO.get(k);
@@ -972,7 +980,7 @@ function kpUndoNote_(inp, was, a, b, cmd) {
   const now = Date.now();
   const word = kind === 'type' && !/\s/.test(cmd) && /\s/.test(was.charAt(a - 1));
   if (!(kind && kind === h.kind && a === h.at && now - h.t < 2000 && !word)) {
-    h.back.push({ v: was, a: a, b: b });
+    h.back.push({ v: was, a: a, b: b, mark: kpMark_(k) });
     if (h.back.length > 200) h.back.shift();
   }
   h.fwd = [];
@@ -981,15 +989,19 @@ function kpUndoNote_(inp, was, a, b, cmd) {
   h.t = now;
 }
 function kpUndo_(inp, redo) {
-  const h = KP_UNDO.get(inp.getAttribute('data-k') || '');
+  const k = inp.getAttribute('data-k') || '';
+  const h = KP_UNDO.get(k);
   const from = h && (redo ? h.fwd : h.back);
   if (!from || !from.length) return;
   const to = from.pop();
-  (redo ? h.back : h.fwd).push({ v: inp.value, a: inp.selectionStart, b: inp.selectionEnd });
+  (redo ? h.back : h.fwd).push({ v: inp.value, a: inp.selectionStart, b: inp.selectionEnd, mark: kpMark_(k) });
   h.kind = '';
   inp.value = to.v;
   try { inp.setSelectionRange(Math.min(to.a, to.v.length), Math.min(to.b, to.v.length)); } catch (e) {}
-  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  /* THE SAME EVENT AS ANY EDIT, so find.js's listener stores it — told that it is a value put back, and
+     whose it was then. */
+  const fire = () => inp.dispatchEvent(new Event('input', { bubbles: true }));
+  if (typeof ansPutBack_ === 'function') ansPutBack_(k, to.mark || null, fire); else fire();
   kpAfter_(inp, '');
 }
 
@@ -1042,10 +1054,29 @@ on('kp-key', (el) => {
    not a copy of it — and otherwise it is "I have finished", which puts the pad away. NOT "Mark with
    AI": that spends one of the day's twenty marks, and a ✓ pressed to put the pad away should not
    spend one. Pressing the tile beside the box is how a worded answer is sent. */
+/* ---------- ✓ — THE GOLD SEND KEY, AND ENTER ON A LAPTOP — RUNS THE BOX'S OWN SEND -----------------------
+   IT RAN `.qp-check` AND NOTHING ELSE, found anywhere on the card. Since 9 Oct an answer reaches the account
+   only when it is SENT (js/submit.js), and most boxes have no Check: about 399 maths answers with no scheme,
+   every worksheet box and every worded box while AI marking is off carry the plain Send (`qp-send`), and a
+   worded box with a scheme for Gemini carries Mark with AI. The review of 9 Oct drove it in Chromium at
+   390x844, signed in: Q-1MA1-1811-1H-15, 42 typed, the gold key tapped, then Enter — the pad went away,
+   nothing was recorded, no verdict appeared, and the line under the box said "On this device until you
+   send it". The worksheet the same. Those answers had reached the account as they were typed until that
+   day, so it was a regression in exactly what the owner asked to have recorded — under a key drawn as
+   "the same paper aeroplane as the Send tile ... because it is the same act".
+   SO IT IS THE SAME ACT: the box's own control, found from the box (`.qp-mark`, which a worksheet has one
+   of per box), in the order the box draws one — Check, else the plain Send, else Mark with AI while it
+   can be pressed — through the same handler a tap on the tile runs.
+   NOT ON AN ESSAY. Its key says "done", not the aeroplane, and never sends (note 312): Mark with AI spends
+   one of the day's marks, and an essay is sent from the row of tiles under it. A box with no control at
+   all (signed out, nothing to send it to) only puts the pad away, as it always did. */
 function kpDone_(inp) {
-  const card = inp.closest('.qcard');
-  const chk = card && card.querySelector('.qp-check[data-do="qp-check"]');
-  if (chk && ACTIONS['qp-check']) ACTIONS['qp-check'](chk);
+  const box = inp.hasAttribute('data-kp-essay') ? null : inp.closest('.qp-mark');
+  const go = box && (box.querySelector('.qp-check[data-do="qp-check"]')
+    || box.querySelector('.qp-send[data-do="qp-send"]')
+    || box.querySelector('.qp-ai-go[data-do="qp-ai"]:not([disabled])'));
+  const run = go && ACTIONS[go.getAttribute('data-do')];
+  if (run) run(go);
   inp.blur();
   kpClose_();
 }
@@ -1503,6 +1534,24 @@ function aiOffered_() {
   catch (e) { return false; }
 }
 
+/* ---------- NOT KNOWN YET IS NOT OFF (review of 10 Oct) --------------------------------------------------
+   `aiOffered_` reads the payload, and before the payload lands — fifteen seconds on the live site, on every
+   reload — `DATA.features` is not there, which it read as "off". Saved and Find's search draw a kept card
+   before then: an AQA essay with AI marking on was drawn with the plain Send and "AI marking isn't switched
+   on yet" under it, measured at 320 against the real backend; pressed, the forty-mark essay went to the
+   account as an unmarked "Sent" (and to the parent's email), and when the payload landed the same tile
+   became Mark with AI over a verdict line still saying Sent. The one loader's rule (note 306): something the
+   payload decides waits for the payload, and is not drawn as a wrong answer with a sentence under it. So
+   while it is out the tile is Mark with AI, where it will stand, and cannot be pressed (`off`: a tile drawn
+   without its plate); no sentence says why nothing marks it (`aiWhyNot_` is only asked where there is no
+   tile); and the repaint the payload makes draws the tile it decided on — Mark with AI, or the plain Send
+   and its sentence. */
+function aiUndecided_() {
+  if (AI_OFF) return false;
+  try { return typeof awaiting_ === 'function' && awaiting_() && !(DATA && Array.isArray(DATA.features)); }
+  catch (e) { return false; }
+}
+
 function aiWanted_(x) {
   if (!x || ansMaths_(x) || padWanted_(x)) return false;
   if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
@@ -1514,8 +1563,27 @@ function aiWanted_(x) {
    bar, its verdict line and the sentence under it are `ansBox_`'s, so one function lays out both. This
    was `aiBox_`, which drew its own row under the box. */
 function aiTile_(x) {
-  if (!aiWanted_(x) || !aiOffered_()) return '';
-  return tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: 'qp-ai-go', tone: 'send' });
+  if (!aiWanted_(x)) return '';
+  const wait = aiUndecided_();
+  if (!wait && !aiOffered_()) return '';
+  return tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: wait ? 'qp-ai-go qp-ai-wait' : 'qp-ai-go', tone: 'send', off: wait });
+}
+/* ---------- AND DECIDED WHERE IT STANDS, THE MOMENT THE PAYLOAD SAYS (`adoptMarks_`, shell.js) ----------
+   THE REPAINT IS NOT ALWAYS THERE TO DO IT. Find is held back from a repaint while a child is typing in it
+   (`findKeep_`, answers.js) and over a verdict on the screen — and a child who searched for the essay and
+   started writing inside the fifteen seconds is exactly that child: the payload lands under her fingers,
+   the column waits, and the tile she reaches for at the end is still the waiting one, a press that does
+   nothing (review of 10 Oct, after the waiting tile went in). So a waiting tile still drawn when the
+   payload lands is decided in place: AI marking on, it is the very tile a fresh drawing draws, plate and
+   all, and is simply let go. Off, the plain Send and its sentence are a different row (`.qp-ai-say`, the
+   note, the class), so it stays waiting until the column's own repaint draws that row — which the held
+   column has booked (`STALE`) and does as the box is left. */
+function aiDecided_() {
+  if (aiUndecided_() || !aiOffered_()) return;
+  document.querySelectorAll('.qp-ai-go.qp-ai-wait').forEach(b => {
+    b.classList.remove('qp-ai-wait');
+    b.disabled = false;
+  });
 }
 
 /* THE QUESTION AS WORDS. The library's markup carries fractions as `<sup>`/`&frasl;`/`<sub>` and
@@ -1570,14 +1638,29 @@ function aiWhyNot_(x) {
   return AI_OFF ? 'AI marking isn\u2019t switched on' : 'AI marking isn\u2019t switched on yet';
 }
 
+/* AND THE BOX KEEPS A WAY TO SEND. Greyed and left, the tile was a box with nothing to press: since 9 Oct
+   an answer reaches the account only when it is SENT (js/submit.js), so a worded answer written while
+   the AI went away would never leave the iPad. The tile becomes the plain Send (`qp-send`, verdict
+   `sent`) where it stands — the same gold disc in the same place — and the line still says why it is
+   not being marked. The next drawing of the card draws the plain Send itself (`aiTile_` answers '' once
+   `AI_OFF` is set). */
 function aiOff_(said) {
   AI_OFF = true;
   document.querySelectorAll('.qp-ai').forEach(box => {
     box.classList.add('is-off');
     const b = box.querySelector('.qp-ai-go');
-    if (b) b.disabled = true;
+    const send = typeof subSendTile_ === 'function' ? subSendTile_() : '';
+    if (b && send) {
+      const t = document.createElement('div');
+      t.innerHTML = send;
+      if (t.firstElementChild) b.replaceWith(t.firstElementChild);
+    } else if (b) b.disabled = true;
     const out = box.querySelector('.qp-verdict');
-    if (out) out.textContent = said || 'AI marking isn\u2019t switched on';
+    const say = said || 'AI marking isn\u2019t switched on';
+    if (out) out.textContent = say;
+    /* WHAT THIS LINE SAID, so `subVerdictPaint_` (js/submit.js) keeps it only while it still says it: a
+       verdict that has replaced it is taken off by the next key, as on every box. */
+    box.setAttribute('data-off-said', say);
   });
 }
 
@@ -1588,7 +1671,8 @@ function aiOff_(said) {
    this phone drew Mark with AI, posted a 6,000-character essay whole, and showed "N of 40 marks · AI" for
    its first 350 words with nothing to say a third was read -- the very fault the raised ceiling was for,
    carried by a deploy gap. So the backend that keeps the whole answer says so in `features`, the way
-   `attemptWords` says the attempts tab keeps a question's words, and a phone told nothing sends no answer
+   `attemptWords` said the attempts tab kept a question's words (and `submitAnswer` says the submissions
+   tab is there, note 308), and a phone told nothing sends no answer
    longer than the old cut: it says why in one sentence instead of spending one of the day's marks on a
    mark for part of an essay. A short answer, or an essay under 2,000 characters, is read whole by either
    backend and goes as it always went. */
@@ -1708,12 +1792,26 @@ on('qp-ai', (el) => {
       const said = d.awarded + ' of ' + d.available + ' mark' + (d.available === 1 ? '' : 's') + ' \u00b7 AI';
       if (essayBox) {
         aiKeep_(inp.getAttribute('data-k'), { a: sent, v: said, f: String(d.feedback || ''), c: full ? 'is-right' : 'is-near' });
-        aiKeptPaint_(box, inp);
-        return;
+      } else {
+        box.classList.add(full ? 'is-right' : 'is-near');
+        out.textContent = said;
+        if (why) why.textContent = d.feedback || '';
       }
-      box.classList.add(full ? 'is-right' : 'is-near');
-      out.textContent = said;
-      if (why) why.textContent = d.feedback || '';
+      /* MARKED IS A SUBMISSION — the answer and its marks, `ai:3/4`, one event on the account like a Check
+         (js/submit.js). The marks are whole numbers the server already held to the question's marks;
+         anything else is recorded as sent, never as a score nobody gave. The sentence is not kept: it is
+         about this answer, and the next device shows the marks. AN ESSAY'S TOO — the merge with note 312
+         found its kept mark returning before this line, so the forty-mark answers the sheet was built
+         for were the one kind never recorded. Recorded with the words that were MARKED (`sent`), so an
+         essay typed on while Gemini read it is a press about the earlier words, as its kept mark is. */
+      const a = Number(d.awarded), m = Number(d.available);
+      if (typeof subRecord_ === 'function') {
+        subRecord_(inp.getAttribute('data-k'), sent,
+          Number.isInteger(a) && Number.isInteger(m) && a >= 0 && m >= 1 && a <= m && m < 1000 ? 'ai:' + a + '/' + m : 'sent');
+      }
+      /* AND THEN THE ESSAY'S LINE, FROM WHAT IS KEPT — after the record, so the verdict line and the
+         submission it now reads agree (`subVerdictPaint_` asks both). */
+      if (essayBox) aiKeptPaint_(box, inp);
     })
     .catch(() => {
       done();
@@ -1721,19 +1819,18 @@ on('qp-ai', (el) => {
     });
 });
 
-/* TYPING TAKES THE AI'S VERDICT OFF, as it takes Check's off — find.js's listener does that for a box
-   with a scheme, and this is the same rule for the AI's row. Not while it is still marking: the
-   answer it was sent is compared when the reply lands. AN ESSAY'S KEPT MARK IS NOT TAKEN OFF BUT SAID
-   TO BE STALE (`aiKeptPaint_`, above): its points are what the pupil is revising from. */
+/* TYPING TAKES THE AI'S SENTENCE OFF, as find.js's listener takes the verdict off every box — that one
+   draws the verdict line from the latest submission now (`subVerdictPaint_`), Mark with AI's included,
+   so this is left the one thing the store does not keep: the AI's sentence about the answer it marked.
+   Not while it is still marking: the answer it was sent is compared when the reply lands. AN ESSAY'S
+   POINTS ARE NOT TAKEN OFF HERE AT ALL: they are kept with the words they marked (`aiKeptPaint_`, above,
+   note 312), and `subVerdictPaint_` draws them with its verdict line, fresh or "before your changes" —
+   or takes them off when a newer submission is about the words in the sheet. */
 document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
-  const card = el && el.closest('.qcard');
-  const box = card && card.querySelector('.qp-ai');
+  const box = el && el.closest('.qp-ai');
   if (!box || box.classList.contains('is-busy') || box.classList.contains('is-off')) return;
-  if (box.classList.contains('qp-essay') && aiKeptPaint_(box, el)) return;
-  box.classList.remove('is-right', 'is-near', 'is-stale');
-  const out = box.querySelector('.qp-verdict');
-  if (out) out.textContent = '';
+  if (box.classList.contains('qp-essay')) return;
   const why = box.nextElementSibling;
   if (why && why.classList.contains('qp-ai-why')) why.textContent = '';
 });

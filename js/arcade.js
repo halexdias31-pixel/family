@@ -213,12 +213,28 @@ const WIDGET_KEY = w => 'w:' + String(w.id);
    that one is the card a widget gets in the FUNNEL — a name and nothing else, because the widget
    itself opens in a sheet. This is the card it gets on a COLUMN, which carries the widget. Two
    things one word apart is the `childrenOf` trap with a shorter fuse, and `check.js` caught it. */
+/* ---------- AND UNTIL IT HAS STARTED, IT IS WAITING, AND IT LOOKS IT --------------------------------
+   THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple
+   loading thing while it's info or whatever is loading."* This is where most of them were: the
+   markup goes in when the column is drawn and `start` fills it a beat later — on arrival the page in
+   front and its neighbours at once, the rest one per task behind them (`widgetsWake_`). In between,
+   each showed its own unfinished self, measured on 9 Oct with the queue held: Connect 4 and Othello a
+   grey board, Flabby Pird a black canvas, Scrabble an empty cream board, the maze an empty grid, Word
+   Search and Sentence Scramble an empty dropdown, the calendar "‹ Calendar ›" with no month, Videos,
+   the cheat-sheet maker and four more a heading on its own. Nineteen looks for one fact.
+
+   SO A WIDGET THAT HAS A `start` IS DRAWN WAITING: its slot `aria-busy`, the one loader over it, the
+   markup underneath at its own size and out of sight, so the box the dots sit in is the box the
+   widget fills (shell.js, `loading_`). `widgetUp_` takes it off as it starts. One without a `start`
+   — the contest, Practice, the LEGO trade-in — never waits for anything and is drawn as it is. */
 function widgetOnColumn_(w) {
+  const waits = typeof w.start === 'function' && typeof loading_ === 'function';
   return `<div class="card is-widget">
       ${typeof favTile_ === 'function'
         ? `<div class="tile-row wgt-keep">${favTile_({ key: WIDGET_KEY(w), kind: 'widget' })}</div>`
         : ''}
-      <div class="widget-slot" id="wgt-${esc(String(w.id))}">${w.html}</div>
+      <div class="widget-slot" id="wgt-${esc(String(w.id))}"${waits ? ' aria-busy="true"' : ''}>${
+        w.html}${waits ? loading_() : ''}</div>
     </div>`;
 }
 
@@ -267,7 +283,16 @@ function savedCards_() {
      of Saved read as a different card system from the column the card was starred on. Widgets
      still get their body (`widgetOnColumn_`); a kept thing is the card and its tile row, as Find
      and the Spotlight column draw it. */
-  const cards = wgts.concat(rest);
+  /* ---------- AND WHAT IS STILL COMING IS NOT "NOTHING KEPT" ----------------------------------------
+     THE STARS ARRIVE WITH THE PAYLOAD (`adoptMarks_`) and a starred question needs the library to
+     be drawn, so before both have landed this column could not know what you kept — and said
+     "Nothing kept yet" anyway, to somebody with a column of things kept. Measured on 9 Oct with the
+     payload held. Until both are in, the one loader follows whatever is already drawn (a starred
+     widget is on this device and needs neither); the owner's word, 9 Oct, is that every wait looks
+     the same: *"They should all have a simplistic simple loading thing."* */
+  const coming = (typeof awaiting_ === 'function' && awaiting_())
+    || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED);
+  const cards = wgts.concat(rest, coming ? [loading_()] : []);
   if (cards.length) return cards;
   return [`<div class="card"><h3>Saved</h3><p class="note">Nothing kept yet.<br>
     <span class="faint">Press <b>Save</b> on a tool, a game or anything you find and it turns up
@@ -320,12 +345,30 @@ function toolsStart_(kind, arriving) {
 let TOOLS_WAIT = [];      // { w, col } still to start, on the column TOOLS_ON belongs to
 let TOOLS_WAKE = 0;       // the booked step
 
+/* ONE WAY A WIDGET STARTS, WHICHEVER OF THE THREE ASKS — this was written out three times, here, in
+   `widgetsLater_` and in `widgetsNear_`, and the loader has to come off in all three or a widget
+   started by the one that forgot would sit working under the dots. The loader comes off AFTER
+   `start`, so what it uncovers is the widget drawn rather than its markup; and in `finally`, because
+   a widget that threw has stopped waiting too — a loader over it for ever would be a wait drawn over
+   a failure, the one thing `loading_`'s note says it must never be.
+   THE SLOT ON THE COLUMN BEING STARTED, NOT `$()`'s. A starred widget is drawn on Tools and on Saved,
+   every screen is in the document at once, and `$('wgt-…')` hands back whichever comes first — the
+   note over `cartPaint_` records what that cost once. Started from Saved, it is Saved's that stops
+   waiting; the copy on Tools waits until Tools is arrived at and starts it. */
+function widgetUp_(w, col) {
+  TOOLS_ON.push(w);
+  try { w.start && w.start(); }
+  catch (e) { console.warn('[widget]', w.id, e); }
+  finally {
+    const host = col && $('s-' + col);
+    const slot = host ? [...host.querySelectorAll('.widget-slot')].find(el => el.id === 'wgt-' + w.id)
+                      : $('wgt-' + w.id);
+    if (typeof loaded_ === 'function') loaded_(slot);
+  }
+}
+
 function widgetsWake_(list, col, arriving) {
-  const start = w => {
-    TOOLS_ON.push(w);
-    try { w.start && w.start(); }
-    catch (e) { console.warn('[widget]', w.id, e); }
-  };
+  const start = w => widgetUp_(w, col);
   if (!arriving) { list.forEach(start); return; }
   const far = list.filter(w => widgetDistance_(w, col) > 1);
   list.filter(w => far.indexOf(w) === -1).forEach(start);
@@ -371,9 +414,7 @@ function widgetsLater_() {
     if (!busy) TOOLS_BUSY_SINCE = 0;
     TOOLS_WAIT.sort((a, b) => widgetDistance_(a.w, a.col) - widgetDistance_(b.w, b.col));
     const next = TOOLS_WAIT.shift();
-    TOOLS_ON.push(next.w);
-    try { next.w.start && next.w.start(); }
-    catch (e) { console.warn('[widget]', next.w.id, e); }
+    widgetUp_(next.w, next.col);
     /* A GAP, NOT NOUGHT: `setTimeout(…, 0)` would queue the next start ahead of a touch that is
        already waiting to be delivered on a busy phone. One frame's worth is enough for it to land. */
     if (TOOLS_WAIT.length) TOOLS_WAKE = setTimeout(step, 16);
@@ -389,11 +430,7 @@ function widgetsNear_(col) {
   const now = TOOLS_WAIT.filter(q => q.col === col && widgetDistance_(q.w, col) <= 1);
   if (!now.length) return;
   TOOLS_WAIT = TOOLS_WAIT.filter(q => now.indexOf(q) === -1);
-  now.forEach(q => {
-    TOOLS_ON.push(q.w);
-    try { q.w.start && q.w.start(); }
-    catch (e) { console.warn('[widget]', q.w.id, e); }
-  });
+  now.forEach(q => widgetUp_(q.w, q.col));
 }
 
 function toolsStop_() {
@@ -433,5 +470,42 @@ screen('saved', () => pages('saved', savedCards_()));
    nothing in it. It starts and stops nothing, because a spotlit thing is a card rather than a
    widget: nothing on this column runs. */
 screen('spotlight', () => pages('spotlight', spotlightCards_()));
+/* ---------- PROGRESS: A COLUMN WAITING TO BE BUILT, AND IT SAYS SO ------------------------------
+   ASKED FOR AS "i want to add a new column for students to track their progress and everythinh. you
+   can leave it at the end of the columns for now. just leave a place holder for now." (9 Oct) Why
+   it is a column rather than an answer to a question is in `TABS`'s note in shell.js.
+
+   A PLACEHOLDER THAT LOOKS FINISHED IS WORSE THAN AN EMPTY ONE — `drill`'s rule in map.js, and
+   `contest` and `legotrade` follow it. A streak, a bar at nought per cent or a greyed-out tile is a
+   thing to tap that does nothing, and the app reads as broken rather than as unbuilt. So it is
+   `drill`'s markup and nothing more: a heading, one line on what it will be, "Not built yet." No
+   tile, no `data-do`, nothing `check/press.js` could find that does nothing — and no number.
+   `placeholderFaults_` in check-flow.js asks both halves of that of every placeholder.
+
+   THE SAME CARD FOR EVERYBODY, signed out included. Who sees whose progress — a student their own,
+   a parent their children's, a tutor their students', an admin anybody's — is the first decision
+   of building it, and deciding it now would be deciding it for a card with nothing on it to show.
+
+   WHAT IT WILL DRAW FROM, written here because it is the first thing whoever builds it needs: what
+   the app already keeps about each person's work. EVERY ANSWER SENT is a row of the `submissions`
+   tab (`SCHEMA.submissions`; `js/submit.js` is the phone's half, note 308): the question, the answer
+   as it was sent, how it was marked (right, wrong, sent, the AI's marks) and when — one row per
+   press, never updated, so "what you got right" is each question's latest row and "what to work on
+   next" is the questions whose latest row is not right. Drawings and ringed words, which have no
+   Send, are on the account as they are drawn (the `answers` tab; `js/answers.js`). The `attempts`
+   tab this note first named (a first day, a last day, a count) was retired by the submissions on 9
+   Oct and is left in the sheet unread. Look in `TAB` in backend/constants.gs for what has joined or
+   replaced these since.
+
+   NOTHING STARTS OR STOPS, Spotlight's reason above: nothing on this column runs. */
+function progressCards_() {
+  return [`<div class="card">
+    <h3>Progress</h3>
+    <p class="sub">Coming soon: everything you have done in one place — the questions you have
+      answered, what you got right, and what to work on next.</p>
+    <p class="empty">Not built yet.</p>
+  </div>`];
+}
+screen('progress', () => pages('progress', progressCards_()));
 screen('tools', () => pages('tools', widgetColumn_('tool')));
 screen('games', () => pages('games', widgetColumn_('game')));

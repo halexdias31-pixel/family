@@ -340,11 +340,13 @@ function flyControls() {
         .map((r, i) => `<option value="${i}"${i === (FLY_AT || 0) ? ' selected' : ''}>${
           esc(r[0])}</option>`).join('')}</select></label>
       ${flyMenu()}
+      ${/* A ROW EACH FOR AN ANSWER IN WORDS, HALF A ROW FOR A NUMBER, A THIRD FOR A COLOUR — see
+            `.fm-bar` in style.css. The labels with no class are the whole row. */''}
       <label>Style<select id="fm-s">${FLY_STYLES
         .map(s => `<option>${s}</option>`).join('')}</select></label>
-      <label>Ink<input type="color" id="fm-k1"></label>
-      <label>Accent<input type="color" id="fm-k2"></label>
-      <label>Paper<input type="color" id="fm-k3"></label>
+      <label class="fm-ink">Ink<input type="color" id="fm-k1"></label>
+      <label class="fm-ink">Accent<input type="color" id="fm-k2"></label>
+      <label class="fm-ink">Paper<input type="color" id="fm-k3"></label>
     </div>
     <div class="fm-bar">
       <label>Advertising<select id="fm-ad">
@@ -354,10 +356,10 @@ function flyControls() {
         <option value="none">Neither</option></select></label>
       <label>Venue<select id="fm-v">${list
         .map(v => opt(v, norm(v[0]) === norm(B.venueMain))).join('')}</select></label>
-      <label>Hours<select id="fm-h">
+      <label class="fm-half">Hours<select id="fm-h">
         <option>1</option><option>1.5</option><option selected>2</option>
         <option>2.5</option><option>3</option></select></label>
-      <label>To a class<select id="fm-n">
+      <label class="fm-half">To a class<select id="fm-n">
         <option>2</option><option>3</option><option selected>4</option>
         <option>5</option><option>6</option></select></label>
       <label>Size<select id="fm-z">
@@ -539,6 +541,18 @@ function initFlyer() {
     + '<p class="fm-said" id="fm-said"></p>'
     + '<button class="btn" data-do="fm-print">Print</button>';
   flyBind(wrap, flyDraw);          /* binds, loads the campaign, and says what will print */
+  /* ---------- AND NOT BEFORE THE VENUES ARE IN --------------------------------------------------------
+     The rooms and the campaigns come with the payload, so before it lands the venue menu was empty and
+     a Print would have priced every seat off the fallback room rate of 15 — a flyer quoting a price
+     that is not the price, which is the fault `flyOne`'s own note was written against. Nothing on the
+     card said it was early. So until the payload is in, the controls are drawn and veiled by the one
+     loader (`loading_`, shell.js), the card keeps its size, and the payload's repaint starts this
+     again with the real rooms. The owner, 9 Oct: *"They should all have a simplistic simple loading
+     thing while it's info or whatever is loading."* */
+  if (typeof awaiting_ === 'function' && awaiting_()) {
+    wrap.setAttribute('aria-busy', 'true');
+    wrap.insertAdjacentHTML('beforeend', loading_());
+  } else if (typeof loaded_ === 'function') loaded_(wrap);
 }
 
 /* THE SHEET, FILLED WITH AS MANY AS FIT. `FLY_PER` knows how many of each size go on a page — two

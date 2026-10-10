@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-09-b-essay";
+const DOGET_VERSION = "2026-10-10-f-submissions";
 
 
 function doGet(e) {
@@ -299,7 +299,7 @@ function doGet(e) {
          find out. One key, appended to the stored JSON rather than parsed and re-serialised, so a
          hit stays the cheap path it exists to be. Open the API address in a tab: `"cached":true` is
          there or it is not. */
-      /* AND THIS VIEWER'S ATTEMPTS AND FILMS, FRESH — the stored body has neither (`payloadWithFresh_`). */
+      /* AND THIS VIEWER'S SUBMISSIONS AND FILMS, FRESH — the stored body has neither (`payloadWithFresh_`). */
       if (kept) { mark('cache'); return jsonRaw_(payloadWithFresh_(kept, freshFor_(cacheViewer), true)); }
     }
 
@@ -471,9 +471,12 @@ function doGet(e) {
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
                  'digestPreview',
-                 /* The phone sends a question's words with `markDone` (SCHEMA.attempts `words`) and
-                    backfills them only for a backend that says it keeps them. */
-                 'attemptWords',
+                 /* Which emails somebody wants — the Notifications card on Settings says "sync backend/"
+                    rather than drawing ticks an older backend would refuse. */
+                 'setNotify',
+                 /* `attemptWords` WAS HERE — the phone sent a question's words with `markDone` and
+                    backfilled them for a backend that listed it. Both went with the `attempts` tab, and a
+                    phone still running the old code finds neither here and sends nothing (9 Oct). */
                  /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
                  'checkUploads',
                  /* The videos card's Sync from Drive, for an admin — the films from the Notflix folder. */
@@ -512,9 +515,11 @@ function doGet(e) {
                  /* The site checks this before it offers the ＋ to somebody who is not an admin —
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost',
-                 /* The phone checks this before it sends a done question, so a phone ahead of the
-                    deployment keeps the date to itself rather than being refused on every Check. */
-                 'markDone',
+                 /* AN ANSWER SENT, AND ITS VERDICT (SCHEMA.submissions). The phone keeps every press
+                    on the device until a backend lists this, and then sends them — so a phone ahead of
+                    the deployment loses nothing and is refused nothing. `markDone` WAS HERE; it is not
+                    listed, so a phone running the old code sends no dates to a tab nobody reads. */
+                 'submitAnswer',
                  /* And what a child writes, kept on their account and read back on the next device
                     (SCHEMA.answers). A phone ahead of the deployment keeps answers on the device and
                     says so under the box rather than claiming they were saved. */
@@ -1535,15 +1540,17 @@ function doGet(e) {
       payload.favourites = favouritesOf_(meAsked);
     } catch (err) { payload.favourites = []; }
 
-    /* ---------- WHICH QUESTIONS THIS PERSON HAS DONE, AND — FOR AN ADMIN — HOW EVERYBODY IS DOING ----
-       THE TOKEN'S PERSON AND NOBODY ELSE'S. `mine` is the signed-in person's own rows; a visitor
-       with no token gets an empty one. `for` is the id it was built for, which the phone checks
-       before drawing any of it — the `familyFor` rule, because a payload left on a shared phone by
-       the last student must not date the next one's questions.
+    /* ---------- WHAT THIS PERSON LAST SENT FOR EACH QUESTION, AND — FOR AN ADMIN — HOW EVERYBODY IS DOING
+       *"it will leave the latest event up, so they would see incorrect answer there next time they
+       login"* — the owner, 9 Oct. `mine` is the signed-in person's LATEST submission per question,
+       its answer and its verdict; a visitor with no token gets an empty one. `for` is the id it was
+       built for, which the phone checks before drawing any of it — the `familyFor` rule, because a
+       payload left on a shared phone by the last student must not mark the next one's questions.
 
        AN ADMIN ALSO GETS `people`: per learner, how many questions and the last day. A SUMMARY, not
-       the rows — the people column draws two facts per card, and every row for every student would
-       be thousands of entries to the one phone that already has the sheet open in another tab.
+       the rows and not one answer — the people column draws two facts per card (`12 questions · last
+       4 Oct`, asked for in 269 *"so a tutor can see it"*), and every child's answers to one phone
+       would be the thing this payload never carries: somebody else's work.
 
        A TUTOR GETS NOTHING EXTRA, and that is a decision rather than an omission. Who a tutor
        teaches is not a column anywhere: it is folded from the events tab by DISPLAY NAME
@@ -1552,8 +1559,8 @@ function doGet(e) {
        name with somebody in their booking. And a tutor's people column does not draw students at
        all, so there would be nothing to show it on. Admin-only until a booking carries ids. */
     try {
-      payload.attempts = attemptsFor_(meAsked, viewerIsAdmin);
-    } catch (err) { payload.attempts = { for: '', mine: {} }; }
+      payload.submissions = submissionsFor_(meAsked, viewerIsAdmin);
+    } catch (err) { payload.submissions = { for: '', mine: {} }; }
 
     /* ---------- WHEN THE FILMS WERE LAST FILLED FROM DRIVE, FOR THE ADMIN AND NOBODY ELSE ----------
        The videos card asks for a sync when this says never, or more than a day ago, or part-way
@@ -2071,8 +2078,8 @@ function doGet(e) {
        THE FIRST REQUEST AFTER A DEPLOY OR A WRITE STILL PAYS THE FULL PRICE, and there is no way
        round that short of building it before anybody asks. What changes is that it is paid once
        rather than by everybody. */
-    /* ---------- WITHOUT `attempts` OR THE FILMS, WHICH GO ON FRESH EVERY TIME ----------------------------
-       The stored copy leaves out the one key a child changes every evening, so `markDone` has nothing
+    /* ---------- WITHOUT `submissions` OR THE FILMS, WHICH GO ON FRESH EVERY TIME --------------------------
+       The stored copy leaves out the one key a child changes every evening, so `submitAnswer` has nothing
        to retire — see `payloadWithFresh_`. AND THE FILMS, for the same reason from the other side: a
        sync from Drive writes the films tab, and with the films in the stored body every write it made
        would retire the admin's payload and cost them the fifteen-to-thirty-five-second rebuild for a
@@ -2081,7 +2088,7 @@ function doGet(e) {
        key sent, and a line that takes a key OUT would answer for one that was never put in. */
     if (cacheKey) {
       const fresh = {};
-      ['attempts', 'films', 'filmsSync'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
+      ['submissions', 'films', 'filmsSync'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
       cachePut_(cacheKey, body);
       return jsonRaw_(payloadWithFresh_(body, fresh, false));
@@ -2145,17 +2152,16 @@ function favouritesOf_(me) {
     .map(r => S(r.item_id));
 }
 
-/* ---------- THE STORED BODY, WITH THIS VIEWER'S ATTEMPTS (AND AN ADMIN'S FILMS) LAID ON ----------------------
-   `attempts` IS THE ONE KEY OF THE PAYLOAD THAT A CHILD CHANGES EVERY EVENING, and it changes only for
-   that child and an admin. It used to be inside the stored body, so every `markDone` had to throw that
-   child's whole body away (`retirePayloadOf_`) and their next load anywhere — a sign-in on the iPad,
-   the computer at home — was the fifteen-to-thirty-five-second rebuild. So the stored body leaves it
-   out and every answer, hit or miss, has it added fresh for the person the TOKEN resolved to: one read
-   of one tab, against a rebuild of thirty.
+/* ---------- THE STORED BODY, WITH THIS VIEWER'S SUBMISSIONS (AND AN ADMIN'S FILMS) LAID ON -------------------
+   `submissions` IS THE ONE KEY OF THE PAYLOAD THAT A CHILD CHANGES EVERY EVENING, and it changes only for
+   that child and an admin. Its forerunner `attempts` was inside the stored body once, so every `markDone`
+   threw that child's whole body away (`retirePayloadOf_`) and their next load anywhere — a sign-in on the
+   iPad, the computer at home — was the fifteen-to-thirty-five-second rebuild. So the stored body leaves
+   it out and every answer, hit or miss, has it added fresh for the person the TOKEN resolved to.
 
    `body` is the stored JSON text, which always ends in `}` and always has keys before it; the keys go
    on the end, and `cached` after them when the body came from the store. Built from the same
-   `attemptsFor_` and `filmsFor_` either way, so a hit and a miss cannot disagree.
+   `submissionsFor_` and `filmsFor_` either way, so a hit and a miss cannot disagree.
 
    ---------- AND THE FILMS, WHICH A SYNC FROM DRIVE CHANGES WHILE THE ADMIN WATCHES ----------------
    *"Let admin be able to search up films which are in the notflix folder"* — and the sync that fills
@@ -2163,13 +2169,13 @@ function favouritesOf_(me) {
    to retire the admin's payload (a cold rebuild) or leave it saying the old list for six hours. So the
    films are this function's second key: `[]` for everybody, read only for an admin, and for an admin
    `filmsSync` beside them — the stamp of the last whole pass, which no other payload carries at all. */
-function attemptsNow_(viewer) {
-  try { return attemptsFor_(viewer, !!viewer && hasRole(viewer, 'admin')); }
+function submissionsNow_(viewer) {
+  try { return submissionsFor_(viewer, !!viewer && hasRole(viewer, 'admin')); }
   catch (err) { return { for: '', mine: {} }; }
 }
 function freshFor_(viewer) {
   const admin = !!viewer && hasRole(viewer, 'admin');
-  const out = { attempts: attemptsNow_(viewer), films: [] };
+  const out = { submissions: submissionsNow_(viewer), films: [] };
   if (admin) {
     try { out.films = filmsFor_(true); } catch (err) { out.films = []; }
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
@@ -2179,7 +2185,7 @@ function freshFor_(viewer) {
 function payloadWithFresh_(body, fresh, cached) {
   const f = fresh || {};
   return String(body).slice(0, -1)
-    + ',"attempts":' + JSON.stringify(f.attempts || { for: '', mine: {} })
+    + ',"submissions":' + JSON.stringify(f.submissions || { for: '', mine: {} })
     + ',"films":' + JSON.stringify(Array.isArray(f.films) ? f.films : [])
     + (f.filmsSync ? ',"filmsSync":' + JSON.stringify(f.filmsSync) : '')
     + (cached ? ',"cached":true' : '') + '}';
@@ -2217,43 +2223,102 @@ function filmsSyncSays_() {
   return { at: S(st.at), more: !!S(st.pass), folder: S(st.folder), found: st.found || null };
 }
 
-/* ---------- `payload.attempts`, BUILT FOR ONE VIEWER ------------------------------------------------
-   `{ for, mine: { <question key>: { first, last, times } }, people? }` — see the block in `doGet`
-   that calls this for who gets what. `people` is `{ <person_id>: { n, last } }` and exists only for
-   an admin, so its absence is what every other phone sees. */
-function attemptsFor_(me, isAdmin) {
+/* ---------- `payload.submissions`, BUILT FOR ONE VIEWER ---------------------------------------------
+   `{ for, mine: { <key>: { answer, verdict, at, id } }, people? }` — see the block in `doGet` that calls
+   this for who gets what. `mine` is the LATEST submission per question: the row with the latest
+   `pressed_at` (the moment the child pressed, never later than the server's clock — SCHEMA.submissions
+   says why it is not the moment the press ARRIVED), `submitted_at` where a row has none, and of two in
+   the same instant the later row. `at` is that time in ms, `id` the press's own name, which the phone
+   compares with what it sent itself. `people` is `{ <person_id>: { n, last } }` — how many questions and
+   the London day of the last submission to arrive (a row carried over from before the switch, by the day
+   it was pressed) — and exists only for an admin, so its absence is what every other phone sees.
+
+   ---------- AND NOT A READ OF THE WHOLE TAB ON EVERY LOAD -------------------------------------------
+   THIS IS ON EVERY `doGet`, hit or miss, for everybody signed in, and the tab grows by a row a press —
+   each row holding a question's words, up to `ATTEMPT_WORDS_MAX`. `attempts` grew by a row a QUESTION
+   and was read whole each time; read the same way, a term of presses would be megabytes read for every
+   page anybody opens. So each person's `mine` (and the admin's `people`) is kept in CacheService
+   (`cacheGet_` / `cachePut_`, the payload's own chunked store) under the payload's generation, the
+   backend's version and a STAMP — the time that person last sent anything, a Script Property that
+   `submitAnswer` moves after its rows are flushed (`submissionsTouched_`). An edit typed into the sheet
+   (`onSheetChange` bumps the generation), a deploy or a press each make a new key, and the next load
+   reads the tab once and keeps it. So the tab is read once per person per press, not once per page.
+
+   A STAMP AND NOT A `remove`. Removing the entry when a press was written leaves a race: a load that
+   read the tab a moment BEFORE the write puts its copy back a moment AFTER the remove, and that copy —
+   without the press — is served for six hours. Under a new key the late copy lands where nobody looks. */
+function submissionsStamp_(who) {
+  try { return PropertiesService.getScriptProperties().getProperty('SUBS_AT:' + S(who)) || '0'; }
+  catch (err) { return '0'; }
+}
+function submissionsCacheKey_(who) {
+  return 'subs|' + payloadGen_() + '|' + BACKEND_VERSION + '|' + S(who) + '|' + submissionsStamp_(who);
+}
+/* AFTER A PRESS IS ON THE SHEET: that person's copy and the admin's summary are both stale. */
+function submissionsTouched_(pid) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const now = String(Date.now());
+    props.setProperty('SUBS_AT:' + S(pid), now);
+    props.setProperty('SUBS_AT:*people', now);
+  } catch (err) {}
+}
+/* ONE READ OF THE TAB, SHAPED BOTH WAYS — this person's latest per key, and everybody's summary. NOT OF
+   EVERY COLUMN (review of 9 Oct): `label` and `words` — the name and the paragraph a parent's email
+   prints, repeated on every press — are most of the tab's bytes and nothing here reads them, so only
+   the seven columns this needs are fetched (`readCols_`). */
+function submissionsBuild_(pid, people) {
+  const mine = {}, sum = {};
+  readCols_(TAB.submissions, ['person_id', 'key', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at']).rows.forEach(r => {
+    const who = S(r.person_id), k = S(r.key);
+    if (!who || !k) return;
+    const came = answerAtMs_(r.submitted_at);
+    if (people) {
+      const p = sum[who] || (sum[who] = { qs: {}, at: 0 });
+      p.qs[k.split('#')[0]] = 1;
+      /* A ROW CARRIED OVER FROM BEFORE THE SWITCH ARRIVED THE DAY THE BACKEND LANDED and was done weeks before:
+         dated by its arrival, every learner's "last" moved to that day. By when it was pressed
+         (`SUBMISSION_CARRIED`, review of 10 Oct). */
+      const when = SUBMISSION_CARRIED.test(S(r.event_id)) ? (answerAtMs_(r.pressed_at) || came) : came;
+      if (when >= p.at) p.at = when;
+    }
+    if (key(who) !== key(pid)) return;
+    const at = answerAtMs_(r.pressed_at) || came;
+    const was = mine[k];
+    if (was && was.at > at) return;
+    mine[k] = { answer: S(r.answer), verdict: S(r.verdict), at: at, id: S(r.event_id) };
+  });
+  const out = { mine: mine };
+  if (people) {
+    out.people = {};
+    Object.keys(sum).forEach(who => {
+      out.people[who] = { n: Object.keys(sum[who].qs).length,
+                          last: sum[who].at ? Utilities.formatDate(new Date(sum[who].at), DIGEST_TZ, 'yyyy-MM-dd') : '' };
+    });
+  }
+  return out;
+}
+function submissionsFor_(me, isAdmin) {
   const out = { for: '', mine: {} };
   if (!me || !S(me.person_id)) return out;
   const pid = S(me.person_id);
   out.for = pid;
-  const t = read(TAB.attempts);
-  const rows = t.rows;
-  /* WHETHER THE TAB CAN KEEP A QUESTION'S WORDS. `attemptWords` in `features` says the code can; this
-     says the live tab has the column (`ensureSchema` adds it). Until it does, `attemptsUpsert_` keeps
-     no words and no row ever comes back `worded`, so a phone told only by `features` resent every row's
-     words on every visit — fifty to a request, each one holding the script lock for nothing. */
-  if (t.headers && t.headers.indexOf('words') !== -1) out.keepsWords = 1;
-  rows.forEach(r => {
-    const q = S(r.question_key);
-    if (!q || key(r.person_id) !== key(pid)) return;
-    out.mine[q] = { first: isoDate_(r.first_done), last: isoDate_(r.last_done), times: N(r.times) || 1 };
-    /* WHETHER THE ROW HAS A NAME, so the phone can send the one it knows (`attemptsSync_`). A flag and
-       not the name: the phone already has the name, and the payload is every visit's. */
-    if (S(r.label)) out.mine[q].named = 1;
-    /* AND WHETHER IT HAS THE QUESTION'S WORDS (SCHEMA.attempts), so a row from before the phone sent
-       them is given its words the next time its learner loads the site. */
-    if (S(r.words)) out.mine[q].worded = 1;
-  });
-  if (isAdmin) {
-    out.people = {};
-    rows.forEach(r => {
-      const who = S(r.person_id);
-      if (!who || !S(r.question_key)) return;
-      const p = out.people[who] || (out.people[who] = { n: 0, last: '' });
-      p.n++;
-      const l = isoDate_(r.last_done);
-      if (l > p.last) p.last = l;
-    });
+  /* THE KEYS ONCE, BEFORE THE TAB IS READ — the stamp read after the read could be a press newer than
+     what was read, and the copy would be filed under it. Read before, a press that lands during the read
+     moves the stamp past this key, and the next load reads again. */
+  const keyMine = submissionsCacheKey_(pid), keyPeople = isAdmin ? submissionsCacheKey_('*people') : '';
+  const kept = k => { try { const t = cacheGet_(k); return t ? JSON.parse(t) : null; } catch (err) { return null; } };
+  let mine = kept(keyMine), people = isAdmin ? kept(keyPeople) : null;
+  if (!mine || (isAdmin && !people)) {
+    const built = submissionsBuild_(pid, isAdmin);
+    mine = built.mine;
+    try { cachePut_(keyMine, JSON.stringify(mine)); } catch (err) {}
+    if (isAdmin) {
+      people = built.people;
+      try { cachePut_(keyPeople, JSON.stringify(people)); } catch (err) {}
+    }
   }
+  out.mine = mine || {};
+  if (isAdmin) out.people = people || {};
   return out;
 }

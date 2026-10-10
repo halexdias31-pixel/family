@@ -164,7 +164,8 @@ board was the first to show:**
   reads the write back; a refused stroke is taken off the screen and the toast says the device is full.
   And `padRead_` reads through `ansValue_`, so a store that throws (private mode) is the visit's copy
   rather than an empty list every time. After, at the quota: 2 stored, 2 drawn, no preview left, Undo
-  leaves 1 and 1.
+  leaves 1 and 1. **Superseded by the merge with 317** — the refused stroke is held and drawn, and the
+  note says it is not saved; see the last section.
 
 **The board's own:**
 
@@ -252,3 +253,33 @@ and the uploads card do exactly the same on Saved; nothing reads `#wb-box`.
   `check/press.js --screen=tools`: every press and every swipe where it should be.
 - `check-scope.js` and `check-dead.js` exit 1 on the base commit as well, with nothing of this change in
   either list.
+
+### After the merge with 317
+
+**TWO RULES FOR A REFUSED STROKE MET, AND 317'S WON.** 317 (every box survives a reload) made every write
+the store refuses held for the visit (`keepPut_`, data.js) and every reader ask for the held copy first
+(`keepHeld_`). Merged, `padSave_`'s read-back could not fail any more — `ansValue_` answered with the held
+copy, which is exactly what had just been written — so the board kept the refused stroke, drew it, and said
+only 317's generic toast, and the second journey went red on "taken off the screen" and "the device is
+full". Decided for the board, and for the question pages' pen, which was already 317's: **317's rule**. A
+line that vanishes under the finger is worse than one said to be unsaved, and a held stroke lands when
+there is room — the next stroke, or the page going — where one taken off is gone. The read-back and its
+toast are removed. The board's note carries `data-kept-k` like a question's, so every write repaints it,
+and `padNoteSay_` gives a `board:` key *"Not saved — this browser is not keeping it."* while the store
+refuses it and *"Kept on this device only."* otherwise — still never an account's sentence. 317's fault
+from the first review cannot come back through the hold: the next stroke is added to the list on the
+screen, and Undo takes off the stroke you can see.
+
+**THE CEILING IS THE BOARD'S SIZE, NOT A REFUSED WRITE, AND IS UNCHANGED.** Its two red lines were the
+journey's own: it wrote the over-full board straight into `localStorage`, behind a copy the visit was
+still holding from the refused stroke a step before, so the app read the held three strokes and the seed
+never reached the board. The app writes a board's strokes only through `ansStore_`, so through
+`keepPut_`; the journey wrote round it. The ceiling is asked of
+`padRead_`, which is the held list while there is one, so it holds on a board the device has stopped
+storing as well — now a step of the journey, with the store holding a small board and the visit the full
+one. The journey asks: refused, the stroke held and drawn, the note and the toast saying it is not saved;
+room again, the next stroke keeps them all; past the ceiling, on a stored board and on a held one, the
+stroke taken back off and *"The board is full."* **Five mutations red, the real files green**: no ceiling
+(both ceiling steps); 310's take-off restored (the stroke vanishes and the held one is lost); the board's
+note never saying "Not saved"; the note without `data-kept-k`; `padRead_` reading the store past the held
+copy (the held board rebuilt from the store's small one, and no "full").

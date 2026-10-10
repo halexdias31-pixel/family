@@ -1765,7 +1765,7 @@ async function gesture(env, o) {
          in front is that card's press whatever this rule is about — and the corner asked again. */
       /* You a page down again too, so this half stands on its own when the first one failed: the
          jump to You is what turned You back to its first page. */
-      await page.evaluate(() => { if (typeof meDropShut_ === 'function') meDropShut_(); goPage('account', 1); go('settings', true); goPage('settings', 0, true); });
+      await page.evaluate(() => { goPage('account', 1); go('settings', true); goPage('settings', 0, true); });
       await sleep(900);
       const how = await page.evaluate(() => {
         const b = document.querySelector('[data-sw-kb]');

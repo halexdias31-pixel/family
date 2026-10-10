@@ -339,13 +339,16 @@ function boot(opts) {
       'JOB_STAGES: typeof JOB_STAGES !== "undefined" ? JOB_STAGES : [],' +
       'stageRows: typeof stageRows_ === "function" ? stageRows_ : null,' +
       'next: typeof nextBookStep === "function" ? nextBookStep : null,' +
-      /* THE CONTROL A ROW CARRIES, so the multi-sheet journey can ask whether the row reads back
+      /* THE CONTROL A ROW CARRIES, so the several-answers journey can ask whether the row reads back
          what has been ticked — the button is the only label on it, which is the half of that
-         feature a sheet full of ✓s cannot show. */
+         feature a list full of ticks cannot show. */
       'control: typeof stepControl_ === "function" ? stepControl_ : null,' +
-      /* THE FORM'S PAGE AS DRAWN, because a picker replaces it rather than covering it — so the
-         only way to ask "is the list on screen" is to ask what page 0 of the booking column holds. */
+      /* THE FORM'S PAGE AS DRAWN, because a picker once replaced it rather than covering it — so the
+         way to ask "is the form still there" is to ask what page 0 of the booking column holds. */
       'bookerCard: typeof bookerCard === "function" ? bookerCard : null,' +
+      /* THE DRAG GUARD, SET — a `let` in shell.js, which a second eval cannot reach. The select
+         journey plays a swipe that ends on a select with it, and asks that the list stays shut. */
+      'pressMoved: v => { PRESS_MOVED = !!v; },' +
       /* THE PEN ON A QUESTION'S DIAGRAM, both halves: the markup a card is built with, and the
          function the press mutates it with. A journey needs both because they are the two places
          the same four attributes are written, and the fault they guard is what happens when the two
@@ -1491,6 +1494,176 @@ check('a settings save still works against a server older than the site', async 
   return bad;
 });
 
+/* ---------- A SEVERAL-OF-A-LIST FIELD OPENS INTO TICKS IN ITS CARD, AND SAVE POSTS THE LIST ----------
+   IT WAS A BUTTON THAT HUNG `#drop` OVER THE COLUMN until the owner asked on 9 October for *"a more
+   stable standard simple conventional drop down list"* (note 315): a `<details>` now, whose summary is
+   the field and whose ticks are real checkboxes under it, in the card. What none of that may lose is
+   the save — `me-save` reads the one hidden `data-me="venues_ok"` box, and the ticks have to land in
+   it as a comma list in the list's own order. And what the panel never did, the ticks must: mark the
+   card dirty, because a card that is not dirty is a card the next payload repaints, ticks and all.
+
+   ON A CARD OF ITS OWN (`profileFields`), as the backend groups it, with the payload's two venues. */
+check('a several-of-a-list field opens into ticks under it, marks its card, and Save posts the list', async () => {
+  const { w, sent } = boot({ payload: Object.assign(payload(), { profileFields: { 'Contact & address': ['email', 'venues_ok'] } }),
+    reply: b => b.action === 'myProfile' ? { error: 'That action is not recognised.' } : { success: true, changed: 1 } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Ada Tutor', personId: 'P9', role: 'tutor', roles: ['tutor'], token: 'tk',
+           profile: { first_name: 'Ada', last_name: 'Tutor', email: 'ada@example.org', venues_ok: 'Mitcham library' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const box = () => d.querySelector('#s-settings input[type="hidden"][data-me="venues_ok"]');
+  if (!box()) return ['there is no venues_ok field on Settings — the several-of-a-list field was NOT checked'];
+  const field = box().closest('.many');
+  const det = field && field.querySelector('details');
+  const sum = det && det.querySelector(':scope > summary');
+  if (!det || !sum) return ['the venues field is not a <details> with a summary — drew ' + JSON.stringify(String(field && field.innerHTML).slice(0, 120))];
+  if (field.closest('#drop') || d.getElementById('drop')) bad.push('the field\'s list is in a panel outside the card');
+  if (det.open) bad.push('the list is open before anybody pressed it');
+  if (!/Mitcham library/.test(sum.textContent)) bad.push('the closed field does not say what is ticked: ' + JSON.stringify(sum.textContent));
+  const ticks = () => [...field.querySelectorAll('input[type="checkbox"][data-many-of="venues_ok"]')];
+  if (ticks().length !== 2) bad.push('the list draws ' + ticks().length + ' boxes for two venues');
+  if (ticks().some(c => c.hasAttribute('data-me'))) bad.push('a tick carries data-me, so me-save would post it as TRUE/FALSE over the list');
+  if (!ticks().every(c => c.closest('label.check'))) bad.push('a tick is not the app\'s own `.check` row');
+  det.open = true;
+  const form = field.closest('.me-form');
+  if (form) delete form.dataset.dirty;
+  const cw = ticks().find(c => c.value === 'Colliers Wood Library');
+  if (!cw) bad.push('no box for Colliers Wood Library');
+  else {
+    cw.checked = true;
+    cw.dispatchEvent(new w.Event('change', { bubbles: true }));
+  }
+  if (box().value !== 'Colliers Wood Library, Mitcham library') bad.push('a tick wrote ' + JSON.stringify(box().value) + ', not the two venues in the list\'s order');
+  if (!/Colliers Wood Library, Mitcham library/.test(sum.textContent)) bad.push('the summary did not follow the tick: ' + JSON.stringify(sum.textContent));
+  if (!form || !form.dataset.dirty) bad.push('a tick did not mark the card dirty, so a repaint before Save puts it back');
+  if (!det.open) bad.push('ticking a box shut the list');
+  /* AND A RELOAD BEFORE SAVE KEEPS THE TICK — 315 met 317. The ticks are in the card now, so they are a
+     draft like every other box on your own card: the hidden answer carries it and the ticks keep it. Built
+     again from the storage this one left, as the reload journeys of 317 are. */
+  {
+    const two = boot({ before: fromStore_(keptStore_(w)), payload: Object.assign(payload(), { profileFields: { 'Contact & address': ['email', 'venues_ok'] } }),
+      reply: b => b.action === 'myProfile' ? { error: 'That action is not recognised.' } : { success: true, changed: 1 } });
+    await wait(300);
+    two.w.__t.USER({ name: 'Ada Tutor', personId: 'P9', role: 'tutor', roles: ['tutor'], token: 'tk',
+                     profile: { first_name: 'Ada', last_name: 'Tutor', email: 'ada@example.org', venues_ok: 'Mitcham library' } });
+    try { two.w.__t.go('settings', false, true); two.w.paint('settings'); } catch (e) { bad.push('drawing settings again threw: ' + e.message); }
+    await wait(300);
+    const b2 = two.w.document.querySelector('#s-settings input[type="hidden"][data-me="venues_ok"]');
+    if (!b2) bad.push('after a reload there is no venues_ok field — the kept tick was NOT checked');
+    else {
+      if (b2.value !== 'Colliers Wood Library, Mitcham library') bad.push('a reload before Save put the ticks back: the field holds ' + JSON.stringify(b2.value));
+      const t2 = [...b2.closest('.many').querySelectorAll('input[type="checkbox"][data-many-of="venues_ok"]')].find(c => c.value === 'Colliers Wood Library');
+      if (!t2 || !t2.checked) bad.push('after a reload Colliers Wood Library is not ticked');
+    }
+  }
+  /* A SWIPE THAT STARTS ON THE FIELD OPENS NOTHING. The summary opens its `<details>` from the click's
+     default, as a label ticks its box, so the swipe guard has to cancel it too (`FIELD_ACTS_`) — found by
+     review with real touch: a 12px drag on the field opened it. A tap that stayed put is not cancelled. */
+  if (typeof t.pressMoved !== 'function') bad.push('pressMoved is not exported — the summary\'s swipe guard was NOT checked');
+  else {
+    const click = () => { const ev = new w.MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }); sum.dispatchEvent(ev); return ev; };
+    t.pressMoved(true);
+    const swiped = click();
+    t.pressMoved(false);
+    if (!swiped.defaultPrevented) bad.push('a swipe\'s click on the field\'s summary was not cancelled — the list opens under a lifting thumb');
+    const tapped = click();
+    if (tapped.defaultPrevented) bad.push('a tap on the field\'s summary was cancelled — it cannot open');
+    det.open = true;
+  }
+  sent.length = 0;
+  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  await wait(400);
+  const post = sent.find(b => b.action === 'updateProfile');
+  if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no updateProfile');
+  else if ((post.fields || {}).venues_ok !== 'Colliers Wood Library, Mitcham library') {
+    bad.push('Save posted venues_ok as ' + JSON.stringify((post.fields || {}).venues_ok));
+  }
+  return bad;
+});
+
+/* ---------- A REPLY THAT LANDS LEAVES AN OPEN LIST WHERE IT IS -------------------------------------------
+   FOUND BY REVIEW ON 9 OCTOBER, with real touch: tap the booking form's Kind, so the phone's own list
+   is up, and let the payload land — the column was rebuilt, the select the list belonged to went with
+   it, and the pick went nowhere. The settings column's favourite colour the same, through
+   `profileRefresh_`'s repaint, and the venues field's ticks shut under the person who had opened them.
+   The panel had found its select again after a repaint; the platform's list cannot, so a landing reply
+   now holds a column whose select is focused (`landRepaint_`, shell.js), and the venues field's open
+   state is kept as state (`MANY_OPEN_`, me.js). Driven through the two real landing paths: `load()`'s
+   own repaint and `profileRefresh_`'s. */
+check('a reply that lands leaves an open list where it is: a focused select keeps its node, an open venues field stays open', async () => {
+  const P = payload();
+  const { w } = boot({ payload: Object.assign(P, { profileFields: Object.assign({}, P.profileFields || {}, { 'Contact & address': ['favourite_colour', 'email', 'venues_ok'] }) }),
+    reply: b => b.action === 'myProfile'
+      ? { success: true, personId: 'P9', role: 'tutor', roles: ['tutor'], profile: { first_name: 'Ada', last_name: 'Tutor', phone_cc: '+44', email: 'ada@example.org', venues_ok: '' } }
+      : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.landRepaint_ !== 'function') return ['landRepaint_ is not a global — the landing repaint was NOT checked'];
+  t.USER({ name: 'Ada Tutor', personId: 'P9', role: 'tutor', roles: ['tutor'], token: 'tk',
+           profile: { first_name: 'Ada', last_name: 'Tutor', phone_cc: '+44', email: 'ada@example.org', venues_ok: '' } });
+
+  /* THE BOOKING FORM'S SELECT, its list open, and the payload's own repaint landing behind it. */
+  try { t.repaint(true); t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const kind = d.querySelector('#bookr select.bk-sel[data-step="how"]:not(:disabled)');
+  if (!kind) bad.push('no Kind select on the booking form — the booking half was NOT checked');
+  else {
+    kind.focus();
+    w.landRepaint_();
+    await wait(30);
+    if (!kind.isConnected) bad.push('a payload landing rebuilt the booking card under a focused select — its list now belongs to nothing');
+    else if (d.activeElement !== kind) bad.push('a payload landing took the focus off the booking select');
+    const to = [...kind.options].find(o => o.value && !o.disabled);
+    if (to) {
+      kind.value = to.value;
+      kind.dispatchEvent(new w.Event('change', { bubbles: true }));
+      await wait(30);
+      if (t.BOOKING.how !== to.value) bad.push('the pick made in the held select did not reach BOOKING.how: ' + JSON.stringify(t.BOOKING.how));
+    }
+    try { kind.blur(); } catch (e) {}
+  }
+
+  /* THE SETTINGS COLUMN: a select focused, then `profileRefresh_`'s repaint. */
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
+  await wait(200);
+  const cc = d.querySelector('#s-settings select[data-me]');
+  if (!cc) bad.push('no select on Settings (' + JSON.stringify([...d.querySelectorAll('#s-settings [data-me]')].map(x => x.tagName + ':' + x.dataset.me).slice(0, 12)) + ') — the settings half was NOT checked');
+  else if (typeof w.profileRefresh_ !== 'function') bad.push('profileRefresh_ is not a global — its repaint was NOT checked');
+  else {
+    cc.focus();
+    w.profileRefresh_();
+    await wait(300);
+    if (!cc.isConnected) bad.push('profileRefresh_ rebuilt Settings under a focused select');
+    try { cc.blur(); } catch (e) {}
+    await wait(500);
+  }
+
+  /* THE VENUES FIELD, OPENED AND UNTOUCHED — a clean card, which `settingsKeep_` lets a repaint redraw. */
+  w.paint('settings');
+  await wait(100);
+  const det = () => d.querySelector('#s-settings .field.many details');
+  if (!det()) bad.push('no venues field on Settings — the open-list half was NOT checked');
+  else {
+    det().open = true;
+    det().dispatchEvent(new w.Event('toggle'));
+    await wait(30);
+    const form = det().closest('.me-form');
+    if (form && form.dataset.dirty) bad.push('opening the list marked its card dirty — a card held until Save for being read');
+    w.landRepaint_();
+    w.paint('settings');
+    await wait(60);
+    if (!det() || !det().open) bad.push('the venues field shut when a payload landed, with nobody pressing it');
+    det().open = false;
+    det().dispatchEvent(new w.Event('toggle'));
+    await wait(30);
+    w.paint('settings');
+    await wait(60);
+    if (det() && det().open) bad.push('the venues field, shut by the person, came back open after a repaint');
+  }
+  return bad;
+});
+
 /* ---------- THE QUALIFICATIONS CARD: ONE LINE A QUALIFICATION, EDITED IN PLACE, SAVED AS YOU GO ----------
    ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take up
    less space"*. The card is a line per qualification in the profile chip's notation, a line opens its
@@ -1529,7 +1702,8 @@ async function qualCard_(profile) {
     box: (i, k) => (q.slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {},
     line: i => q.slot(i) && q.slot(i).querySelector(':scope > .q-line'),
     seg: (i, v) => q.slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]'),
-    /* A PICK FROM A LIST, the way `sel-pick` makes one: the value, then `input` and `change`. */
+    /* A PICK FROM A LIST, the way the platform's own list makes one: the value, then `input` and
+       `change`, both bubbling — which is also what `sel-pick` copied while the app had a panel. */
     pick: (el, v) => { el.value = v; el.dispatchEvent(new b.w.Event('input', { bubbles: true }));
                        el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
     posts: () => b.sent.filter(x => x.action === 'updateProfile'),
@@ -1721,8 +1895,12 @@ check('adding a qualification: the + asks for the subject, then the level, and s
   if (!fresh) return ['+ did not open a new line'];
   const n = fresh.dataset.slot;
   const subj = fresh.querySelector('select.q-name');
-  /* THE SUBJECT'S LIST IS ALREADY OPEN, YOURS FIRST. */
-  if (subj.getAttribute('aria-expanded') !== 'true') bad.push('+ did not open the subject list');
+  /* THE SUBJECT BOX HAS THE FOCUS, YOUR SUBJECTS FIRST IN ITS LIST. It was opened, in the app's own
+     panel, until the dropdowns went back to the platform's (note 315): a platform list cannot be opened
+     from script, so `qualNext_` focuses the box instead, and the focus is what is asserted. A tick
+     later, because it is given on the next turn. */
+  await wait(20);
+  if (q.d.activeElement !== subj) bad.push('+ did not give the subject box the focus');
   const first = subj.querySelector('optgroup');
   const yours = first ? [...first.querySelectorAll('option')].map(o => o.value) : [];
   if (!first || first.label !== 'Your subjects' || JSON.stringify(yours) !== JSON.stringify(['Maths', 'Physics', 'English Literature', 'Bible and Theology', 'DBS'])) {
@@ -1732,7 +1910,7 @@ check('adding a qualification: the + asks for the subject, then the level, and s
   q.pick(subj, 'Maths');
   await wait(100);
   if (q.posts().length) bad.push('a subject with no level was saved');
-  if ((q.box(n, '_level').getAttribute && q.box(n, '_level').getAttribute('aria-expanded')) !== 'true') bad.push('choosing the subject did not open the level list');
+  if (q.d.activeElement !== q.box(n, '_level')) bad.push('choosing the subject did not give the level box the focus');
   q.pick(q.box(n, '_level'), 'AS');
   await wait(300);
   const f = q.last();
@@ -2401,6 +2579,41 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
+/* ---------- WHAT A PLACEHOLDER MAY HOLD, ASKED ONE WAY OF EVERY PLACEHOLDER --------------------------
+   `drill`'S RULE IN map.js HAS TWO HALVES: *"Give it a streak counter and three greyed-out buttons and
+   somebody taps them."* The three journeys below — contest, LEGO trade-in, Progress — each asked only
+   the second, with one selector copied three times, `button, [data-do], input, select, textarea,
+   a[href]`. Found in review on 9 October, adding Progress: a card given *"Streak: 0 days · 0% of the
+   course done"*, a bar at nought per cent and a `<details>` with a `<summary>` passed all three
+   asks. The number and the bar are the first half of the rule and nothing looked for them; the
+   summary is a thing a finger opens and the selector did not name it. `check/ui.js` went red on that
+   card only because the summary was too small to tap — the right answer for the wrong reason, and
+   gone the day somebody pads it.
+
+   SO THE RULE IS ASKED HERE, ONCE, as three questions of what is inside the card:
+   - **Is anything on it pressable** — by tag (a `<summary>`, a `<label>`, a `<details>`) or by what
+     makes any element pressable (`data-do`, `tabindex`, `onclick`, a `role`, `contenteditable`).
+   - **Is there anything but `drill`'s markup** — a heading, a `.sub` line, the `.empty` "Not built
+     yet." with drill's `<br>` and `.faint` aside. A bar, a meter, a picture or a second card is
+     something that looks finished, and naming what IS allowed catches the one nobody thought of.
+   - **Is there a digit in it.** A count, a percentage or a date on a thing with nothing behind it
+     is a number that is wrong. No placeholder has needed one: contest's house name comes from
+     `brand()`, which this payload leaves to its `@family.` fallback.
+   It returns faults rather than a pass, so each journey says which visitor and which card. */
+const PLACEHOLDER_KEYS_ = 'button, [data-do], input, select, textarea, a[href], summary, details, label, '
+  + '[tabindex], [onclick], [role], [contenteditable]';
+const PLACEHOLDER_MARKUP_ = 'div.card, h3, p.sub, p.empty, br, span.faint';
+const placeholderFaults_ = box => {
+  const bad = [];
+  const live = [...box.querySelectorAll(PLACEHOLDER_KEYS_)];
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + live.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  const more = [...box.querySelectorAll('*')].filter(e => !e.matches(PLACEHOLDER_MARKUP_) && live.indexOf(e) < 0);
+  if (more.length) bad.push('a placeholder draws more than a heading, one line and "Not built yet.": ' + more.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  const nums = String(box.textContent || '').match(/\d[\d.,:%]*/g);
+  if (nums) bad.push('a placeholder shows a number with nothing behind it: ' + nums.join(', '));
+  return bad;
+};
+
 /* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS -----------------
    ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
    for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
@@ -2423,9 +2636,7 @@ check('the contest placeholder comes straight after One more thing on the Games 
   const h = slot.querySelector('h3');
   if (!h || h.textContent.trim() !== 'Contest') bad.push('the card is not headed Contest');
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
-  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  return bad;
+  return bad.concat(placeholderFaults_(slot));
 });
 
 /* ---------- LEGO TRADE-IN: APPENDED AFTER THE CALENDAR, AND NOTHING ON IT TO PRESS -------------------
@@ -2451,9 +2662,7 @@ check('the LEGO trade-in placeholder comes straight after the calendar on the To
   const h = slot.querySelector('h3');
   if (!h || h.textContent.trim() !== 'LEGO trade-in') bad.push('the card is not headed LEGO trade-in');
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
-  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
-  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
-  return bad;
+  return bad.concat(placeholderFaults_(slot));
 });
 
 /* ---------- THE WHITEBOARD: LOCK, DRAW, UNDO, KEPT THROUGH A REPAINT, CLEAR -- AND NEVER AN ANSWER ------
@@ -2586,8 +2795,11 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
      * A REPAINT DOES NOT CUT A STROKE: `repaint()` half way leaves the same board element under the
        finger (`padHold_`, and `wbPaint_` skipping the copy being drawn on), and the stroke is kept whole
      * CLEAR CAN BE UNDONE: Undo on the emptied board puts back exactly what Clear took
-     * A STROKE THE DEVICE REFUSED IS TAKEN OFF THE SCREEN and the toast says so; so is one past the
-       board's ceiling
+     * A STROKE THE DEVICE REFUSED STAYS DRAWN AND IS SAID TO BE UNSAVED -- 317's rule, which the board
+       took when the two were merged (note 310): held for the visit, the note under the board says
+       "Not saved", the toast says it, and with room again the next stroke keeps them all
+     * ONE PAST THE BOARD'S CEILING IS TAKEN BACK OFF and the toast says the board is full -- a board
+       the device stored, and one it is only holding for the visit
      * A SIGN-OUT, AWAY FROM TOOLS, takes the last person's board off the stale column: unarmed, keyed
        to nobody, blank -- and a sign-in draws the next person's there */
 check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, puts a Clear back, owns up to a refused stroke and leaves with whoever signs out', async () => {
@@ -2675,19 +2887,30 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   A['pad-undo'](pad().querySelector('.qpad-undo'));
   if (JSON.stringify(stored()) !== before || paths() !== stored().length) bad.push('Undo straight after Clear did not put the board back: ' + JSON.stringify(stored()) + ' against ' + before);
 
-  /* A STROKE THE DEVICE REFUSED: the store throws for the board's key, as a full one does. */
+  /* A STROKE THE DEVICE REFUSED: the store throws for the board's key, as a full one does. 317's rule,
+     the board's since the merge (note 310): HELD FOR THE VISIT AND DRAWN -- a line that vanishes under
+     the finger is worse than one said to be unsaved -- and said, under the board and once as a toast. */
   const S = w.Storage.prototype, realSet = S.setItem;
-  S.setItem = function (key, v) {
+  const refuse = () => { S.setItem = function (key, v) {
     if (key === k) { const e = new Error('the quota has been exceeded'); e.name = 'QuotaExceededError'; throw e; }
     return realSet.call(this, key, v);
-  };
+  }; };
+  const note = () => ((pad().querySelector('.qpad-note') || {}).textContent || '');
+  const held = () => { try { return JSON.parse(w.ansValue_(k) || '[]'); } catch (e) { return []; } };
   const n0 = stored().length;
   toasts.length = 0;
+  refuse();
   try {
     fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
   } finally { S.setItem = realSet; }
-  if (stored().length !== n0 || paths() !== n0) bad.push('a stroke the device refused is still drawn: ' + paths() + ' path(s) on the screen, ' + stored().length + ' kept');
-  if (!toasts.some(m => /device is full/i.test(m))) bad.push('nothing said the device refused the stroke (toasts: ' + JSON.stringify(toasts) + ')');
+  if (stored().length !== n0) bad.push('the refused write was NOT set up: the device holds ' + stored().length + ' stroke(s), wanted ' + n0);
+  if (paths() !== n0 + 1 || held().length !== n0 + 1) bad.push('a stroke the device refused is not held and drawn: ' + paths() + ' path(s) on the screen, ' + held().length + ' held for the visit, wanted ' + (n0 + 1) + ' of each — it vanished under the finger');
+  if (note() !== 'Not saved — this browser is not keeping it.') bad.push('under a stroke the device refused the board says ' + JSON.stringify(note()) + ' — nothing on the board says it is not kept');
+  if (!toasts.some(m => /not saving/i.test(m))) bad.push('nothing said the device refused the stroke (toasts: ' + JSON.stringify(toasts) + ')');
+  /* ROOM AGAIN: the next stroke is added to the list on the screen, and the device keeps them all. */
+  fire('pointerdown', 60, 440, 1); fire('pointermove', 200, 460, 1); fire('pointerup', 200, 460, 1);
+  if (stored().length !== n0 + 2 || paths() !== n0 + 2) bad.push('with room again the board stores ' + stored().length + ' and draws ' + paths() + ', wanted ' + (n0 + 2) + ' of each — the held stroke was lost');
+  if (!/Kept on this device only/.test(note())) bad.push('with every stroke stored again the board still says ' + JSON.stringify(note()));
 
   /* AND ONE PAST THE BOARD'S CEILING: a board already holding more than it may. */
   const big = []; for (let i = 0; i < 26000; i++) big.push(i % 340, (i * 7) % 340);
@@ -2697,7 +2920,24 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
   if (stored().length !== 1 || paths() !== 1) bad.push('a stroke past the board\'s ceiling was kept or left drawn: ' + stored().length + ' stored, ' + paths() + ' drawn');
   if (!toasts.some(m => /board is full/i.test(m))) bad.push('nothing said the board is full (toasts: ' + JSON.stringify(toasts) + ')');
-  w.localStorage.setItem(k, JSON.stringify([[34, 34, 306, 306]]));
+  /* AND WITH A HELD COPY IN THE WAY: the device stored a one-stroke board, then refused the board as it
+     grew past its ceiling, so the visit holds the full one (`keepHeld_`, read first by `padRead_`) over
+     a store that answers the old, small one. The ceiling is the board's size, not a refused write: it is
+     asked of the list on the screen -- not of the store's, which has room -- and still says so. */
+  w.ansStore_(k, JSON.stringify([[34, 34, 306, 306]]));
+  refuse();
+  try {
+    w.ansStore_(k, JSON.stringify([big]));
+    w.initWhiteboard(); fix();
+    toasts.length = 0;
+    fire('pointerdown', 60, 400, 1); fire('pointermove', 200, 420, 1); fire('pointerup', 200, 420, 1);
+  } finally { S.setItem = realSet; }
+  if (stored().length !== 1 || stored()[0].length !== 4) bad.push('the held board was NOT set up: the device holds ' + JSON.stringify(stored()).slice(0, 60));
+  const h = held();
+  if (h.length !== 1 || h[0].length !== big.length || paths() !== 1) bad.push('a stroke past the ceiling of a board the visit is holding was kept, or the board was rebuilt from the store: ' + h.length + ' stroke(s) held (the first ' + ((h[0] || []).length) + ' numbers long, wanted ' + big.length + '), ' + paths() + ' drawn');
+  if (!toasts.some(m => /board is full/i.test(m))) bad.push('nothing said the board is full while the device was refusing it (toasts: ' + JSON.stringify(toasts) + ')');
+  /* PUT BACK THROUGH THE APP'S OWN WRITER, which lets go of the held copy now that there is room. */
+  w.ansStore_(k, JSON.stringify([[34, 34, 306, 306]]));
   w.initWhiteboard();
 
   /* A SIGN-OUT FROM ANOTHER COLUMN: Tools is left STALE by its repaint, and its board must not be Sam's. */
@@ -2922,6 +3162,117 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
+  return bad;
+});
+
+/* ---------- A WIDGET WAITING SHOWS THE ONE LOADER, AND ONLY THAT, UNTIL WHAT IT WAITS FOR LANDS -------
+   THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple
+   loading thing while it's info or whatever is loading."* `check-loading.js` reads the source for a
+   wait drawn any other way; this RUNS it, because a loader that is drawn and never taken off, or taken
+   off before anything is there, reads perfectly in the source.
+
+   THREE WAITS, each held where it really waits and then let go: the Videos card while
+   `data/videos.json` is out, a column's widgets before they are started, and the business records'
+   boxes while `listRecords` is out — all three the loader OVER markup already drawn (`aria-busy`,
+   shell.js), which is the kind that holds the card's size. Each time: exactly one loader, the contract on it, none of
+   the old words beside it — and once released, the content where it stood and no loader anywhere in
+   that card. */
+check('a widget waiting on its fetch shows the one loader and nothing else, and its content replaces it', async () => {
+  const bad = [];
+  const one = (card, where) => {
+    const ls = card ? [...card.querySelectorAll('.loading')] : [];
+    if (ls.length !== 1) { bad.push(where + ' shows ' + ls.length + ' loaders, not one'); return null; }
+    const l = ls[0];
+    if (l.getAttribute('role') !== 'status' || l.getAttribute('aria-label') !== 'Loading') bad.push(where + '\'s loader has no role="status" / aria-label="Loading"');
+    if (l.querySelectorAll(':scope > span').length !== 3) bad.push(where + '\'s loader is not three dots');
+    /* NOTHING ELSE IN THE CARD SAYS IT IS WAITING — the words, the skeleton and the ellipsis that were
+       there before 9 Oct. */
+    const said = (card.textContent || '').replace(/\s+/g, ' ');
+    if (/Loading|Looking for|Looking in|Fetching|still coming|on its way|have not arrived/i.test(said)) bad.push(where + ' still says it is waiting in words: "' + said.trim().slice(0, 80) + '"');
+    if (card.querySelector('.sk-box, .is-wait, .skeleton, .spinner')) bad.push(where + ' still draws a wait of its own beside the loader');
+    return l;
+  };
+
+  /* ---------- 1. THE VIDEOS CARD, WHILE ITS FILE IS OUT ---------------------------------------------- */
+  const rows = [{ title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
+                  tags: 'science', age: '', notes: '', active: true }];
+  let release = null;
+  const late = new Promise(r => { release = r; });
+  const a = boot({ serve: url => (/data\/videos\.json/.test(url) ? late.then(() => rows) : undefined) });
+  await wait(300);
+  a.w.__t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  /* AND TURNED TO, as a finger turns to it. The card is thirteenth on Games and `woken_` gives the
+     queue eight seconds; on a machine with a load average of thirty the queue had not reached it, and
+     the journey read an unstarted card as a fault in the card. `goPage` starts the page it turns to
+     (`widgetsNear_`), which is the app's own answer to "I want this one now". */
+  const vn = a.w.__t.widgetsOf('game').findIndex(x => String(x.id) === 'videos');
+  a.w.__t.goPage('games', vn, true);
+  /* AND THE CARD ITSELF WAITED FOR, the videos journey's rule above: under four of these runs at once
+     beside `check/ui.js` (9 Oct) the card was still drawn and not started 150ms after the turn — read
+     as "veiled as unstarted" and "not over the card it will fill", which is the queue being late and
+     not the loader being wrong. Bounded: a card that never starts still fails on what it shows. */
+  for (let n = 0; n < 150 && !a.w.document.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
+  await wait(50);
+  const vid = a.w.document.querySelector('#s-games #wgt-videos');
+  if (!vid) return ['the videos card did not draw on the Games column'];
+  const l1 = one(vid, 'the videos card with its file held');
+  const vbox = vid.querySelector('.vid-box');
+  if (l1 && (!vbox || l1.parentElement !== vbox || vbox.getAttribute('aria-busy') !== 'true')) bad.push('the videos card\'s loader is not over the card it will fill (`.vid-box[aria-busy]`)');
+  if (vbox && !vbox.querySelector('input.vid-q')) bad.push('the search box is not drawn under the loader, so the card cannot hold its size');
+  if (vid.getAttribute('aria-busy')) bad.push('the videos card is still veiled as unstarted — it started, and only its list is waiting');
+  release();
+  /* POLLED, BOUNDED — the same 120ms that is always enough alone was not under four runs at once. A
+     loader left on for good still fails here, five seconds later. */
+  for (let n = 0; n < 50 && (vid.querySelector('.loading') || !vid.querySelector('.vid-list .vid-row')); n++) await wait(100);
+  if (vid.querySelector('.loading') || (vbox && vbox.getAttribute('aria-busy'))) bad.push('the videos file landed and the card still shows its loader');
+  const got = [...vid.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the list reads ' + JSON.stringify(got) + ', not its one row');
+
+  /* ---------- 2. OVER THE MARKUP: A COLUMN'S WIDGETS BEFORE THEY ARE STARTED ---------------------------
+     The Tools column is drawn beside Games and not started — exactly the widgets the owner was
+     looking at. Each one with a `start` is veiled; arriving starts them and takes every veil off. */
+  const tools = a.w.document.getElementById('s-tools');
+  const waiting = tools ? [...tools.querySelectorAll('.widget-slot[aria-busy="true"]')] : [];
+  if (!waiting.length) bad.push('the Tools column, drawn and not started, has no widget waiting under the loader');
+  waiting.forEach(sl => {
+    if (sl.querySelectorAll(':scope > .loading').length !== 1) bad.push('#' + sl.id + ', waiting to start, has ' + sl.querySelectorAll(':scope > .loading').length + ' loaders over it');
+    if (sl.lastElementChild && !sl.lastElementChild.classList.contains('loading')) bad.push('#' + sl.id + '\'s loader is not over its markup (the last child)');
+  });
+  a.w.__t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  /* EVERY WIDGET ON THE COLUMN, NOT JUST THE ONES IN VIEW — so the queue is waited for to the end, for
+     longer than `woken_`'s eight seconds: a slow machine is a late start, not a loader left on. */
+  for (let k = 0; k < 300 && !a.w.__t.quiet(); k++) await wait(100);
+  const still = [...a.w.document.querySelectorAll('#s-tools .widget-slot[aria-busy], #s-tools .widget-slot > .loading')]
+    .map(el => (el.closest('.widget-slot') || el).id);
+  /* A WIDGET WHOSE OWN CONTENT IS STILL OUT SHOWS ITS OWN LOADER INSIDE — that is a wait, not a widget
+     left unstarted; only the veil over the slot itself is asked about here. */
+  if (still.length) bad.push('arriving on Tools left ' + [...new Set(still)].join(', ') + ' under the loader');
+  if (!a.w.document.querySelector('#s-tools #wgt-calculator #mc-display')) bad.push('the calculator did not start when Tools was arrived at');
+
+  /* ---------- 3. OVER THE BOXES: THE BUSINESS RECORDS WHILE `listRecords` IS OUT ------------------------- */
+  let answer = null;
+  const held = new Promise(r => { answer = r; });
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
+  const b = boot({ before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} },
+                   reply: body => (body.action === 'listRecords' ? held : undefined) });
+  await wait(300);
+  b.w.__t.go('settings', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const card = b.w.document.querySelector('#s-settings .me-form[data-biz-page="Insurance"]');
+  if (!card) return bad.concat(['an admin\'s Settings has no Insurance card']);
+  const l3 = one(card, 'the Insurance card with listRecords held');
+  const body = card.querySelector('.biz-body');
+  if (l3 && (!body || l3.parentElement !== body || body.getAttribute('aria-busy') !== 'true')) bad.push('the records\' loader is not over the boxes (`.biz-body[aria-busy]`)');
+  if (body && !body.querySelector('input[data-biz][data-k="reference"]')) bad.push('the boxes are not drawn under the loader, so the card cannot hold its size');
+  answer({ success: true, records: [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+                                      provider: 'Example Insure', reference: 'PL-000000', due_on: '2030-01-01' }] });
+  for (let n = 0; n < 50 && card.querySelector('.loading'); n++) await wait(100);
+  await wait(50);
+  if (card.querySelector('.loading') || (body && body.getAttribute('aria-busy'))) bad.push('the records came back and the Insurance card is still under the loader');
+  const ref = card.querySelector('[data-biz="pub_liability"][data-k="reference"]');
+  if (!ref || ref.value !== 'PL-000000') bad.push('the records came back and the box under the loader reads ' + JSON.stringify(ref && ref.value) + ', not PL-000000');
   return bad;
 });
 
@@ -4599,45 +4950,37 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   return bad;
 });
 
-check('picking several answers is one open, hanging off the field, over nothing', async () => {
-  /* ---------- FOUR SHAPES OF ONE CONTROL, THREE OF THEM REPORTED ---------------------------------
+check('picking several answers is one open, a list of checkboxes under its row, in the card', async () => {
+  /* ---------- FIVE SHAPES OF ONE CONTROL, FOUR OF THEM REPORTED ----------------------------------
      A `<select>` closed when you chose — that is what choosing means to it — so a question taking
      three answers was three opens, three scrolls and three closes: *"thats long."* A sheet was next
-     and came back as *"i dont like this. this is shit. no pop up menus."* A page that REPLACED the
-     form was third: *"i hate this."*
+     (*"no pop up menus"*), then a page that REPLACED the form (*"i hate this"*), then a panel hanging
+     off the field over the column, `#drop` — and on 9 October *"i want a more stable standard simple
+     conventional drop down list"* (note 315). So it is checkboxes, under the row, in the card.
 
-     SO THERE ARE THREE THINGS TO ASSERT AND THEY PULL AGAINST EACH OTHER. The list must stay open
-     across ticks; nothing may open over the app; and the form must still be on its page while the
-     list is up. A check asking only the first passes on both rejected shapes, and a check asking the
-     first two passes on the page-replacement — which is how the last version of this journey went
-     green over the thing that was about to be reported.
+     SO THERE ARE FOUR THINGS TO ASSERT AND THEY PULL AGAINST EACH OTHER. The list must stay open
+     across ticks; nothing may open over the app — no sheet and no panel outside the card; the form
+     must still be on its page; and the list must be IN the card, under the row it answers. A check
+     asking only the first passed on every rejected shape, which is how one version of this journey
+     went green over the thing that was about to be reported.
 
-     `check/ui.js` CANNOT ASK ANY OF THEM. It measures whether a control can be read and hit, and a
-     select that closes after every pick measures perfectly. `check/press.js` presses each action
-     once and asks whether anything changed, which is true of all four shapes.
-
-     ON THE BOOKING COLUMN, because the panel is `#drop` outside the screens and `dropRow_` will not
-     open it unless the field is on the screen somebody is on and the page in front of them — which
-     is the guard that stops a fixed box hanging in front of a column that has slid away. Driving the
-     handlers on a screen nobody is on would prove nothing about any of it.
-
-     THROUGH THE APP'S OWN HANDLERS, so the toggle, the panel and the re-render are the ones that
-     ship — a harness rewriting `BOOKING.interval` itself would prove nothing about them. */
+     THROUGH THE APP'S OWN HANDLERS AND A REAL `change`, so the toggle, the re-render and the
+     dispatcher that hands a checkbox to `book-many-pick` are the ones that ship — a harness rewriting
+     `BOOKING.interval` itself would prove nothing about them. */
   const { w } = boot();
   await wait(300);
+  const d = w.document;
   const A = w.__t.ACTIONS || {};
-  if (!A['book-many'] || !A['book-many-pick'] || !A['book-many-done']) {
-    return ['book-many / book-many-pick / book-many-done are not registered — cannot check the list'];
+  if (!A['book-many'] || !A['book-many-pick']) {
+    return ['book-many / book-many-pick are not registered — cannot check the list'];
   }
   if (!w.__t.bookerCard) return ['bookerCard is not exported — cannot see what the page holds'];
-  const panel = w.document.getElementById('drop');
-  if (!panel) return ['#drop is not in index.html — the list has nowhere to hang'];
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   /* `repaint()` BEFORE `go`, because `paintNeighbours` skips a screen that already has markup and
      the booking column was drawn at boot while nobody was signed in — so without this the column
-     is still the "Sign in to book" card and the field the list hangs off is not in the document.
+     is still the "Sign in to book" card and the row the list opens under is not in the document.
      That is `STALE`'s whole job and the app does the same thing when somebody signs in. */
   try { w.__t.repaint(true); } catch (e) { return ['repaint() threw: ' + e.message]; }
   try { w.__t.go('booking', false, true); } catch (e) { return ['go("booking") threw: ' + e.message]; }
@@ -4648,192 +4991,228 @@ check('picking several answers is one open, hanging off the field, over nothing'
   const opts = step.options().filter(Boolean);
   const bad = [];
 
-  const open = () => !panel.classList.contains('hidden');
-  const list = () => String(panel.innerHTML || '');
-  const marked = () => (list().match(/class="btn quiet pick-opt on"/g) || []).length;
-  const sheetOpen = () => !w.document.getElementById('sheet').classList.contains('hidden');
-  /* THE FORM, ON ITS OWN PAGE, WHICHEVER STATE THE LIST IS IN — the page-replacement half. */
+  const list = () => d.getElementById('bk-many-' + step.id);
+  const boxes = () => [...((list() || d).querySelectorAll('input[type="checkbox"][data-do="book-many-pick"]'))];
+  const sheetOpen = () => !d.getElementById('sheet').classList.contains('hidden');
   const formUp = () => String(w.__t.bookerCard() || '').indexOf('id="bookr"') !== -1;
+  /* A TICK THE WAY A FINGER MAKES ONE: the box flips, then `change` bubbles to the dispatcher. */
+  const tick = v => {
+    const b = boxes().find(x => x.value === v);
+    if (!b) return false;
+    b.checked = !b.checked;
+    b.dispatchEvent(new w.Event('change', { bubbles: true }));
+    return true;
+  };
 
   A['book-many']({ dataset: { step: step.id } });
-  if (!open()) bad.push('pressing the "' + step.id + '" row does not open the list');
-  if (list().indexOf('pick-list') === -1) {
-    bad.push('the list opens holding ' + JSON.stringify(list().slice(0, 80)) + ' rather than options');
+  const l = list();
+  if (!l) bad.push('pressing the "' + step.id + '" row does not open its list');
+  else {
+    /* IN THE CARD, UNDER ITS ROW — not a sibling of the screens, not over anything. */
+    if (!l.closest('#bookr .bk')) bad.push('the list is not inside the booking card');
+    let prev = l.previousElementSibling;
+    while (prev && prev.classList.contains('bk-say')) prev = prev.previousElementSibling;
+    if (!prev || !prev.querySelector('[data-do="book-many"][data-step="' + step.id + '"]')) {
+      bad.push('the list is not directly under the row that opened it');
+    }
+    if (l.getAttribute('role') !== 'group' || !l.getAttribute('aria-label')) {
+      bad.push('the list is not a named group, so a screen reader hears loose checkboxes');
+    }
+    if (boxes().length !== opts.length) bad.push('the list draws ' + boxes().length + ' boxes for a question with ' + opts.length);
+    if (!boxes().every(b => b.closest('label.check'))) bad.push('a box is not the app\'s own `.check` row, the label the target');
   }
+  if (d.getElementById('drop') || d.getElementById('drop-back')) bad.push('#drop is back in the document — a panel outside the card');
   if (sheetOpen()) bad.push('the "' + step.id + '" row opens a sheet over the app');
   if (!formUp()) bad.push('opening the list takes the form off its page');
-  const drawn = (list().match(/data-do="book-many-pick"/g) || []).length;
-  if (drawn !== opts.length) {
-    bad.push('the list draws ' + drawn + ' options for a question with ' + opts.length);
-  }
 
   /* TWO TICKS WITHOUT REOPENING — which is the whole of what was asked for. */
-  A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
-  if (!open()) bad.push('ticking an answer closes the list, so the next one is another open');
-  A['book-many-pick']({ dataset: { step: step.id, val: opts[1] } });
-  if (!open()) bad.push('ticking a second answer closes the list');
+  if (!tick(opts[0])) bad.push('no box for ' + JSON.stringify(opts[0]));
+  if (!list()) bad.push('ticking an answer closes the list, so the next one is another open');
+  if (!tick(opts[1])) bad.push('no box for ' + JSON.stringify(opts[1]));
+  if (!list()) bad.push('ticking a second answer closes the list');
   if (!formUp()) bad.push('ticking an answer takes the form off its page');
   if ((B[step.id] || []).length !== 2) {
     bad.push('two ticks left ' + JSON.stringify(B[step.id]) + ' rather than two answers');
   }
-  if (marked() !== 2) {
-    bad.push('the list shows ' + marked() + ' options marked, not the two that are chosen');
-  }
+  const ticked = boxes().filter(b => b.checked).map(b => b.value);
+  if (ticked.length !== 2) bad.push('the redrawn list shows ' + ticked.length + ' boxes ticked, not the two that are chosen');
+  /* A SECOND `change` FOR ONE TICK — a redraw between the tap and the handler, a doubled event — is
+     the box saying the same thing twice, and must not take the answer off again. */
+  const again = boxes().find(x => x.value === opts[1]);
+  if (again) again.dispatchEvent(new w.Event('change', { bubbles: true }));
+  if ((B[step.id] || []).length !== 2) bad.push('a second change for one tick turned it into ' + JSON.stringify(B[step.id]));
 
-  /* AND TICKING AGAIN TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
-  A['book-many-pick']({ dataset: { step: step.id, val: opts[0] } });
+  /* AND UNTICKING TAKES ONE OFF, which is what the dropdown always did and must not be lost. */
+  tick(opts[0]);
   if ((B[step.id] || []).length !== 1) {
-    bad.push('ticking a chosen answer again does not take it off: ' + JSON.stringify(B[step.id]));
+    bad.push('unticking a chosen answer does not take it off: ' + JSON.stringify(B[step.id]));
   }
 
-  /* ---------- AND THERE IS A WAY OUT, WHICH A DROP-DOWN HAS THREE OF ------------------------------
-     DONE, THE ROW AGAIN, AND A TAP ANYWHERE ELSE. The third is `#drop-back` carrying the same
-     action, so it is the same handler and there is nothing separate to keep in step. */
-  A['book-many-done']({ dataset: {} });
-  if (B.picking) bad.push('Done leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
-  if (open()) bad.push('Done leaves the list open');
-  if (list().indexOf('pick-list') !== -1) bad.push('Done leaves the options in #drop');
-  if (!formUp()) bad.push('the form is not on its page once the list has closed');
-
-  A['book-many']({ dataset: { step: step.id } });
-  A['book-many']({ dataset: { step: step.id } });
-  if (open()) bad.push('pressing the open row again does not shut the list');
-
-  const back = w.document.getElementById('drop-back');
-  if (!back) bad.push('#drop-back is not in index.html — a tap outside cannot close the list');
-  else if (back.getAttribute('data-do') !== 'book-many-done') {
-    bad.push('#drop-back carries ' + JSON.stringify(back.getAttribute('data-do'))
-             + ' rather than the action that closes the list');
-  }
-
-  /* ---------- AND THE ROW IS WHAT OPENS IT, WHICH THE REST OF THIS CANNOT SAY -------------------
+  /* ---------- AND THE ROW ITSELF, WHICH THE REST OF THIS CANNOT SAY ---------------------------------
      THE FIRST VERSION CALLED THE HANDLERS AND NOTHING ELSE, so putting the row back to a `<select>`
-     left every assertion above green: the panel still opened, because the journey opened it. A
-     check that cannot fail on the fault it was written for is the shape this file has deleted one
-     of — measured by mutation, which is the only way to know.
-     THREE THINGS OF THE CONTROL: it carries the action, it reads back what has been ticked — the
-     button is the only label on the row — and it says whether the list is up, which is the one fact
-     a screen reader cannot get from anywhere else now that the panel is outside this markup. */
+     left every assertion green: the list still opened, because the journey opened it. THREE THINGS OF
+     THE CONTROL: it carries the action, it reads back what has been ticked — the button is the only
+     label on the row — and it says whether its list is open and which element that list is. */
   const row = String(w.__t.control ? w.__t.control(step) : '');
   if (!w.__t.control) bad.push('stepControl_ is not exported — the row itself cannot be checked');
   else {
     if (row.indexOf('data-do="book-many"') === -1) {
-      bad.push('the "' + step.id + '" row does not open the list — it draws '
-               + JSON.stringify(row.slice(0, 80)));
+      bad.push('the "' + step.id + '" row does not open the list — it draws ' + JSON.stringify(row.slice(0, 80)));
     }
-    if (row.indexOf(opts[1]) === -1) {
-      bad.push('the row does not say what is chosen: ' + JSON.stringify(row.slice(0, 120)));
-    }
-    if (row.indexOf('aria-expanded') === -1) {
-      bad.push('the row does not say whether the list is open');
-    }
+    if (row.indexOf(opts[1]) === -1) bad.push('the row does not say what is chosen: ' + JSON.stringify(row.slice(0, 120)));
+    if (row.indexOf('aria-expanded="true"') === -1) bad.push('the row does not say its list is open');
+    if (row.indexOf('aria-controls="bk-many-' + step.id + '"') === -1) bad.push('the row does not name the list it opens (aria-controls)');
   }
+
+  /* PRESSING THE ROW AGAIN SHUTS IT — the one way out, and the one a disclosure has. */
+  A['book-many']({ dataset: { step: step.id } });
+  if (list()) bad.push('pressing the open row again does not shut the list');
+  if (B.picking) bad.push('a shut list leaves BOOKING.picking set to ' + JSON.stringify(B.picking));
+  if ((B[step.id] || []).length !== 1) bad.push('shutting the list changed the answer: ' + JSON.stringify(B[step.id]));
+  /* AND THE FORM IS STILL ON ITS PAGE AFTERWARDS — asked while the panel stood, and lost with it. */
+  if (!formUp()) bad.push('shutting the list takes the form off its page');
   return bad;
 });
 
-/* ---------- A SINGLE-CHOICE SELECT OPENS THE SAME PANEL AND CLOSES ON THE PICK ---------------------
-   ASKED FOR AS *"should be consistent with the booking multiselect drop down list"*. Every ordinary
-   `<select>` now hangs `#drop` instead of opening the platform's picker — see `SEL_OK` in book.js.
-   What can break, and what nothing else here can see, is the contract with the callers that were
-   deliberately not touched: they listen for `change` on a real select, so the pick has to set the
-   select's value and fire `change` exactly once — twice would recompute a price twice and swap a
-   qualification box twice, none would be a pick that did nothing. And a disabled select must open
-   nothing, or a locked booking row and every field `send_` holds still become pressable again.
-
-   `check/ui.js` CANNOT ASK ANY OF IT: a panel that never opens measures perfectly, and so does a
-   select that opens its native wheel. So this drives the real booking column with a click AT the
-   select and a click on an option, through the app's own dispatcher — and asks the label route on
-   the settings column, because a tap on a `.field`'s caption is the one way a finger can still
-   reach a select whose own box takes no pointer. */
-check('a single-choice select opens the booking panel, and choosing closes it with one change', async () => {
+/* ---------- A SELECT IS THE PLATFORM'S OWN, AND NOTHING IN THE APP STANDS IN FRONT OF IT ----------
+   ASKED FOR ON 9 OCTOBER AS *"a more stable standard simple conventional drop down list"* (note 315).
+   For a week before that every ordinary `<select>` was `pointer-events: none` and a tap near one was
+   caught, CANCELLED, and answered with the app's own floating panel (note 226) — and this journey
+   asserted exactly that. It asserts the opposite now, through the same doors a finger and a keyboard
+   use, so that panel cannot come back one listener at a time:
+     · the press reaches the select and nothing cancels it — the `mousedown` a select opens its list
+       from, and the click a `<label>` focuses its select with;
+     · focus arriving on a select stays there on a phone — the old `focusin` listener blurred it;
+     · nothing appears in the document for the press: no listbox, no `#drop`, nothing new in `<body>`;
+     · the answer arrives as one `change` and reaches `BOOKING` — the contract every caller relies on;
+     · and the one thing the app does cancel: a press that the app took as a SWIPE (`PRESS_MOVED`),
+       whose `mousedown` and label click would otherwise open a list under a lifting thumb.
+   `js/check-dropdowns.js` reads the stylesheet for the other half — no select is `pointer-events:
+   none` — which jsdom cannot, having no cascade. */
+check('a select is the platform\'s own: its press is not cancelled, its focus is not taken, nothing opens over it', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
-  const panel = d.getElementById('drop');
-  if (!panel) return ['#drop is not in index.html — a select has nowhere to hang its list'];
-  if (typeof w.selOpen_ !== 'function') return ['selOpen_ is not declared, so NOTHING was checked — not a pass'];
+  /* A PHONE, because the focus listener that stood here acted only on a coarse pointer. */
+  w.matchMedia = q => ({ matches: /coarse/.test(String(q)), media: String(q), addEventListener() {}, removeEventListener() {} });
   w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
   const bad = [];
-  const open = () => !panel.classList.contains('hidden');
   const pick = () => d.querySelector('#bookr select.bk-sel:not(:disabled)');
   let sel = pick();
-  if (!sel) return ['the booking form draws no enabled select — cannot check the panel'];
+  if (!sel) return ['the booking form draws no enabled select — NOTHING was checked, not a pass'];
   const stepId = sel.dataset.step;
-  let changes = 0;
-  d.addEventListener('change', e => { if (e.target && e.target.dataset && e.target.dataset.step === stepId) changes++; });
+  const bodyKids = () => d.body.children.length;
+  const kids0 = bodyKids();
+  const floating = () => !!(d.getElementById('drop') || d.getElementById('drop-back')
+    || d.querySelector('[role="listbox"]'));
+  const press = (el, type) => {
+    const ev = new w.MouseEvent(type, { bubbles: true, cancelable: true, button: 0 });
+    el.dispatchEvent(ev);
+    return ev;
+  };
 
-  /* THE TAP. Its default has to be prevented, or a `<label>`'s activation focuses the select and a
-     focused select is exactly what iOS opens its own wheel for. */
-  const tap = el => { const ev = new w.MouseEvent('click', { bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev; };
-  const ev = tap(sel);
-  if (!open()) bad.push('a click on the "' + stepId + '" select does not open #drop');
-  if (!ev.defaultPrevented) bad.push('the click that opened the panel was not prevented, so the platform picker can open as well');
-  if (panel.dataset.owner !== 'sel') bad.push('the panel is owned by ' + JSON.stringify(panel.dataset.owner) + ', not by the select');
-  if (!panel.querySelector('[role="listbox"]')) bad.push('the open panel has no role="listbox"');
-  const btns = [...panel.querySelectorAll('[data-do="sel-pick"]')];
-  /* EVERY OPTION BUT A BLANK THAT ONLY REPEATS ANOTHER'S WORDS — see `selHtml_`. */
-  const said = o => String(o.label || o.text || '').trim();
-  const want = [...sel.options].filter(o => !o.hidden && !(o.value === '' && !o.selected && said(o)
-    && [...sel.options].some(x => x !== o && x.value !== '' && said(x) === said(o)))).length;
-  if (btns.length !== want) bad.push('the panel draws ' + btns.length + ' options for a select with ' + want);
-  if (!btns.every(b => /\bpick-opt\b/.test(b.className) && b.getAttribute('role') === 'option')) {
-    bad.push('the options are not `.pick-opt` with role="option" — not the booking list\'s rows');
-  }
-  const marked = btns.filter(b => b.getAttribute('aria-selected') === 'true');
-  if (marked.length !== 1 || Number(marked[0].dataset.i) !== sel.selectedIndex) {
-    bad.push('the panel marks ' + marked.length + ' options as chosen, not the one the select holds');
-  }
-  if (sel.getAttribute('aria-expanded') !== 'true') bad.push('the select does not say its list is open (aria-expanded)');
+  if (floating()) bad.push('a floating list is in the document before anything was pressed');
+  /* ---------- THE ROW'S WORD IS THE SELECT'S LABEL ----------------------------------------------------
+     FOUND BY REVIEW ON 9 OCTOBER: a tap on `Kind` reached nothing, while the stylesheet said the whole
+     row was the target — the panel's hit test had made it so, and went with the panel. The word is a
+     `<label for>` its control now (`receiptRow`), so the browser's own label activation reaches it. */
+  const rowsWithControl = [...d.querySelectorAll('#bookr .bk-row')]
+    .filter(r => r.querySelector('select.bk-sel, button.bk-many, input.bk-in'));
+  if (!rowsWithControl.length) bad.push('no booking row carries a control — the row labels were NOT checked');
+  rowsWithControl.forEach(r => {
+    const ctl = r.querySelector('select.bk-sel, button.bk-many, input.bk-in');
+    const k = r.querySelector('.bk-k');
+    if (!k || k.tagName !== 'LABEL') bad.push('the "' + (ctl.dataset.step || ctl.dataset.do) + '" row\'s word is a ' + (k ? k.tagName : 'nothing') + ', not a label — a tap on it reaches nothing');
+    else if (k.control !== ctl) bad.push('the "' + (ctl.dataset.step || ctl.dataset.do) + '" row\'s label is for ' + JSON.stringify(k.htmlFor) + ', not its own control');
+  });
+  if (press(sel, 'mousedown').defaultPrevented) bad.push('the mousedown on the "' + stepId + '" select was cancelled — the platform\'s list opens from it');
+  if (press(sel, 'click').defaultPrevented) bad.push('the click on the "' + stepId + '" select was cancelled');
+  await wait(30);
+  if (floating()) bad.push('pressing a select put a list of the app\'s own in the document');
+  if (bodyKids() !== kids0) bad.push('pressing a select added ' + (bodyKids() - kids0) + ' element(s) to <body>');
 
-  /* PICK A DIFFERENT ONE, THROUGH THE DISPATCHER. */
-  const other = btns.find(b => Number(b.dataset.i) !== sel.selectedIndex && !b.disabled);
-  if (!other) bad.push('no second option to choose — the pick was NOT checked');
+  /* FOCUS STAYS. On a phone the old listener blurred a select the moment it took focus. */
+  sel = pick();
+  sel.focus();
+  await wait(30);
+  if (d.activeElement !== pick()) bad.push('a select that took focus on a phone lost it again — something is standing in for its list');
+  if (floating()) bad.push('focus on a select opened a list of the app\'s own');
+  try { sel.blur(); } catch (e) {}
+
+  /* THE ANSWER, AS THE PLATFORM'S LIST GIVES IT: the value, then `input` and `change`. */
+  sel = pick();
+  const other = [...sel.options].find(o => o.index !== sel.selectedIndex && !o.disabled && o.value);
+  if (!other) bad.push('no second answer to choose — the change was NOT checked');
   else {
-    const val = other.dataset.v;
-    tap(other);
+    let changes = 0;
+    const count = e => { if (e.target && e.target.dataset && e.target.dataset.step === stepId) changes++; };
+    d.addEventListener('change', count);
+    sel.value = other.value;
+    sel.dispatchEvent(new w.Event('input', { bubbles: true }));
+    sel.dispatchEvent(new w.Event('change', { bubbles: true }));
     await wait(30);
-    if (open()) bad.push('choosing an option leaves the panel open');
-    if (changes !== 1) bad.push('choosing an option fired change ' + changes + ' times, not once');
-    sel = pick();
-    if (!sel || sel.value !== val) bad.push('choosing ' + JSON.stringify(val) + ' left the select holding ' + JSON.stringify(sel && sel.value));
-    if (String(w.__t.BOOKING[stepId] || '') !== val) {
+    d.removeEventListener('change', count);
+    if (changes !== 1) bad.push('one pick reached the document as ' + changes + ' change events');
+    if (String(w.__t.BOOKING[stepId] || '') !== other.value) {
       bad.push('the booking handler never heard the pick: BOOKING.' + stepId + ' is ' + JSON.stringify(w.__t.BOOKING[stepId]));
     }
+    if (!pick() || pick().value !== other.value) bad.push('the redrawn select does not hold ' + JSON.stringify(other.value));
   }
 
-  /* THE SAME ANSWER AGAIN IS NOT A CHANGE, as a native select does not fire one. */
-  sel = pick();
-  if (sel) {
-    tap(sel);
-    const same = panel.querySelector('[data-do="sel-pick"][aria-selected="true"]');
-    const before = changes;
-    if (same) tap(same);
-    if (changes !== before) bad.push('choosing the answer already chosen fired change');
-    if (open()) bad.push('choosing the answer already chosen leaves the panel open');
+  /* A SWIPE THAT ENDS ON A SELECT OPENS NOTHING — the one press the app does cancel. */
+  if (typeof w.__t.pressMoved !== 'function') bad.push('pressMoved is not exported — the swipe guard was NOT checked');
+  else {
+    sel = pick();
+    w.__t.pressMoved(true);
+    const md = press(sel, 'mousedown');
+    const ck = press(sel, 'click');
+    w.__t.pressMoved(false);
+    if (!md.defaultPrevented) bad.push('a swipe\'s mousedown on a select was not cancelled — the list opens under a lifting thumb');
+    if (!ck.defaultPrevented) bad.push('a swipe\'s click on a select was not cancelled');
   }
 
-  /* A TAP OUTSIDE SHUTS IT, through `#drop-back` and the action it already carries. */
-  sel = pick();
-  if (sel) {
-    tap(sel);
-    if (!open()) bad.push('the select does not open a second time');
-    tap(d.getElementById('drop-back'));
-    if (open()) bad.push('a tap outside does not shut the panel');
-    if (sel.getAttribute('aria-expanded') === 'true') bad.push('a shut panel leaves the select saying it is open');
+  /* ---------- NO TWO LINES OF THE PLATFORM'S LIST SAY THE SAME THING ----------------------------------
+     THE BLANK OPTION CARRIES THE FALLBACK'S WORDS, so an admin's "Who is this for?" read `Test Admin` on
+     its empty line and `Test Admin` again on the person — two lines nobody could tell apart. The panel
+     hid the repeat, and this journey's option count asserted it; when the platform's list came back the
+     rule moved into `stepSelect_` (the blank is `—` when the fallback is already an answer) and the count
+     went with the panel, so nothing held it (found by review, 9 October: the rule undone, every journey
+     green). Asked of the select itself now: for an admin whose own name is on the For list, the blank is
+     the dash, and no two options of ANY single-answer select on the card read the same. */
+  {
+    const S = w.__t.STEPS || [];
+    const client = S.find(x => x.id === 'client');
+    w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
+    const names = client ? (() => { try { return client.options().filter(Boolean); } catch (e) { return []; } })() : [];
+    const fb = client && client.fallback ? String(client.fallback() || '') : '';
+    if (!client || !w.__t.control) bad.push('the For step or stepControl_ is not there — the repeated blank was NOT checked');
+    else if (!fb || !names.some(n => n === fb)) {
+      bad.push('the admin\'s own name (' + JSON.stringify(fb) + ') is not on the For list — the repeated blank was NOT checked');
+    } else {
+      const box = d.createElement('div');
+      box.innerHTML = String(w.__t.control(client));
+      const s = box.querySelector('select');
+      const blank = s && [...s.options].find(o => o.value === '');
+      if (!blank) bad.push('the For select has no blank option');
+      else if (blank.textContent.trim() === fb) bad.push('the For select\'s blank reads ' + JSON.stringify(fb) + ', which is also a person on the list');
+    }
+    S.filter(x => !x.multi && !x.grid && !x.emails).forEach(x => {
+      const box = d.createElement('div');
+      try { box.innerHTML = String(w.__t.control(x)); } catch (e) { return; }
+      const s = box.querySelector('select');
+      if (!s) return;
+      const seen = new Set();
+      [...s.options].map(o => o.textContent.trim()).forEach(t => {
+        if (seen.has(t)) bad.push('the "' + x.id + '" select says ' + JSON.stringify(t) + ' on two lines of its list');
+        seen.add(t);
+      });
+    });
+    w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   }
 
-  /* A DISABLED SELECT OPENS NOTHING. */
-  sel = pick();
-  if (sel) {
-    sel.disabled = true;
-    tap(sel);
-    if (open()) bad.push('a disabled select opens the panel');
-    sel.disabled = false;
-  }
-
-  /* THE CAPTION OF A `.field` IS A WAY IN TOO — the settings column's fields are selects in labels. */
+  /* THE CAPTION OF A `.field` IS A WAY IN TOO, and its activation is the browser's to run. */
   try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
   await wait(60);
   const pages = [...d.querySelectorAll('#s-settings > .page')];
@@ -4842,11 +5221,8 @@ check('a single-choice select opens the booking panel, and choosing closes it wi
   else {
     w.__t.goPage('settings', at, true);
     const lab = pages[at].querySelector('label.field > select:not(:disabled)').parentNode;
-    const ev2 = tap(lab);
-    if (!open()) bad.push('a tap on a select\'s label does not open the panel');
-    if (!ev2.defaultPrevented) bad.push('a tap on a select\'s label was not prevented, so its activation can focus the select');
-    w.bookDropShut_();
-    if (open()) bad.push('Escape (bookDropShut_) does not shut a select\'s panel');
+    if (press(lab, 'click').defaultPrevented) bad.push('a tap on a select\'s label was cancelled, so it cannot focus its select');
+    if (floating()) bad.push('a tap on a select\'s label opened a list of the app\'s own');
   }
   return bad;
 });
@@ -7158,6 +7534,13 @@ check('the camera card starts itself and offers the gallery', async () => {
      · to another column and back — on a post it asks nothing; on the camera page that IS arriving
      · refused — a repaint on the camera page does not ask again behind your back; the button does
      · a prompt still up when a repaint lands — one ask, and the stream reaches the card on screen */
+/* ---------- WHAT `doGet` SENDS FOR A POST NOBODY HAS REACTED TO ----------------------------------------
+   THE SIX HOUSE FACES AND SIX ZEROES — `reactionSet` cannot return an empty list, so `doGet` cannot
+   send `{}`. These posts said `reactions: {}`, which `reacts()` draws as no row at all, so every post
+   seeded here was a post the app is never sent, and the row of faces was in none of them. A fixture
+   must send what `doGet` really sends (CLAUDE.md). */
+const NO_REACTIONS_ = () => ({ emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                               total: 0, yours: '', by: [] });
 const camBoot_ = o => {
   const gum = { asks: 0, open: 0, hold: null };
   const p = payload();
@@ -7168,7 +7551,7 @@ const camBoot_ = o => {
     p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
       image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
       at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
-      reactions: {}, comments: { total: 0, list: [] } }));
+      reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
   }
   const b = boot({ payload: p, before: w => {
     try { if (o.user) w.localStorage.setItem('familyUser', JSON.stringify(o.user)); } catch (e) {}
@@ -7338,7 +7721,7 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
   p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
     image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
     at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
-    reactions: {}, comments: { total: 0, list: [] } }));
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }));
   let refuse = true;
   const { w, sent } = boot({ payload: p,
     reply: b => (b.action === 'addComment' && refuse ? { error: 'That is too long to post.' } : { success: true }),
@@ -7386,6 +7769,192 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
   const after = d.querySelector('#s-feed .cmt-form .tile[data-do="cmt-add"]');
   if (!after || after.classList.contains('is-busy') || !after.querySelector('svg.tile-i-send'))
     bad.push('after a comment went through, the Post tile on the screen is missing, busy, or has lost its mark');
+  return bad;
+});
+
+/* ---------- A POST'S FACES, PRESSED, TAKEN BACK, AND ASKED WHO ---------------------------------------
+   THE ROW HAD NO JOURNEY AT ALL. Every seeded post here sent `reactions: {}`, which `reacts()` draws as
+   nothing, so the faces, the count, "yours" and the who-reacted sheet were exercised by no check — and
+   the fixture `check/ui.js` renders sent `{"👍": 3}`, a shape `doGet` has never sent, which draws
+   nothing either. So when the owner said *"Also refine how the post reactions look. Looks abit
+   scuffed"* (9 Oct), nothing in the repository had ever drawn the row it was about.
+
+   WHAT IS HELD, each a way the redraw can go half done (docs/history/307):
+     · ONE ROW OF SIX, and it is still six after a tap — the redraw replaces the row, it does not add one
+     · A TAP ADDS YOURS: the face is `.mine` (second class, which `ACCEPTED_TAP` keys on), pressed for
+       a screen reader, its count goes up, the TOTAL on the time line follows, `reactPost` carries the
+       `personId`, and the face lands (`is-pop`) for that one paint and not for the next
+     · THE SAME TAP TAKES IT BACK: no `.mine`, the count gone (a 0 is drawn as nothing), the total back
+     · THE TOTAL OPENS WHO REACTED, most-used first and ties in the house order, yours the gold pill
+       with your name first under it
+     · SIGNED OUT, a face sends nothing and goes to sign in; the total still opens the sheet
+     · THE FOCUS STAYS ON THE FACE PRESSED — through the add, the take-back and a failed save's undo —
+       and a face pressed while focus was elsewhere does not take it. `repaint` replaces every button,
+       and focus on a removed one falls to <body>: measured at 390, Enter on a focused face landed the
+       reaction and left `activeElement` BODY, so a screen reader never heard the new `aria-pressed`
+       and the next Tab went to a page parked off-screen (`reactRepaint_` in posts.js). */
+check('a post\'s faces: a tap adds yours, the same tap takes it back, the total opens who reacted', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const FACES = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
+  const seed = () => {
+    const p = payload();
+    p.festive = [];
+    p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: '', media: [],
+      caption: 'A Tuesday at the library', body: '', location: '', when: '01/09/2026',
+      at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
+      reactions: { emoji: FACES.slice(), counts: [2, 1, 0, 0, 0, 0], total: 3, yours: '',
+        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
+             { name: 'Carl Everyclient', emoji: '❤️' }] },
+      comments: { total: 0, list: [] } }];
+    return p;
+  };
+  const bad = [];
+  /* ONE SAVE CAN BE MADE TO FAIL, so the `.catch` undo's repaint is walked as well as the happy one. */
+  let failNext = false;
+  const { w, sent } = boot({ payload: seed(),
+    reply: b => { if (b.action === 'reactPost' && failNext) { failNext = false; return { error: 'Could not save that' }; } },
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document;
+  if (!w.__t) return ['the app did not load, so the reactions were NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  const rows = () => [...d.querySelectorAll('#s-feed [data-post="PO1"] .reacts')];
+  const face = e => d.querySelector(`#s-feed [data-post="PO1"] .react[data-emoji="${e}"]`);
+  const count = e => { const n = face(e) && face(e).querySelector('.react-n'); return n ? n.textContent.trim() : ''; };
+  const total = () => { const b = d.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+                        return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  const shape = when => {
+    const r = rows();
+    if (r.length !== 1) { bad.push(`${when}: ${r.length} rows of faces on the post, not one`); return false; }
+    const n = r[0].querySelectorAll('.react').length;
+    if (n !== 6) bad.push(`${when}: the row holds ${n} faces, not the six it was sent`);
+    return true;
+  };
+  if (!shape('drawn')) return bad.concat(['so nothing was pressed — not a pass']);
+  if (total() !== '3 reactions') bad.push(`drawn, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
+  if (count('😂')) bad.push(`drawn, 😂 with nobody behind it shows ${JSON.stringify(count('😂'))} — a 0 is drawn as nothing`);
+  if (d.querySelector('#s-feed .react.mine')) bad.push('drawn, a face is `.mine` before anybody signed in here pressed one');
+
+  /* ---------- A TAP ADDS YOURS ------------------------------------------------------------------- */
+  sent.length = 0;
+  /* FOCUSED FIRST, as a keyboard, a switch or a screen reader's cursor has it when it presses. */
+  face('😂').focus();
+  face('😂').click(); await wait(50);
+  shape('after a tap');
+  const f = face('😂');
+  if (!f) return bad.concat(['after a tap there is no 😂 on the post']);
+  const held = () => { const a = d.activeElement;
+                       return a && a.dataset && a.dataset.do === 'react' ? a.dataset.emoji : (a && a.tagName) || 'nothing'; };
+  if (d.activeElement !== f) bad.push(`after Enter on a focused 😂, the focus is on ${held()} — not the 😂 that replaced it`);
+  if (String(f.className).split(/\s+/)[1] !== 'mine') {
+    bad.push(`after a tap, 😂 is ${JSON.stringify(f.className)} — \`mine\` must be its second class (ACCEPTED_TAP keys on it)`);
+  }
+  if (f.getAttribute('aria-pressed') !== 'true') bad.push(`after a tap, 😂 is aria-pressed=${JSON.stringify(f.getAttribute('aria-pressed'))}`);
+  if (count('😂') !== '1') bad.push(`after a tap, 😂 counts ${JSON.stringify(count('😂'))}, not "1"`);
+  if (total() !== '4 reactions') bad.push(`after a tap, the time line says ${JSON.stringify(total())}, not "4 reactions"`);
+  if (!f.classList.contains('is-pop')) bad.push('after a tap, the face that landed is not marked to land (`is-pop`)');
+  const r1 = sent.find(b => b.action === 'reactPost');
+  if (!r1) bad.push(`a tap on a face posted ${JSON.stringify(sent.map(b => b.action))}, not reactPost`);
+  else if (r1.postId !== 'PO1' || r1.emoji !== '😂' || r1.personId !== 'P1')
+    bad.push('reactPost went out as ' + JSON.stringify({ postId: r1.postId, emoji: r1.emoji, personId: r1.personId }));
+  await wait(150);
+  /* ONE PAINT, NOT EVERY ONE: the next redraw of the feed must not bounce the face again. */
+  w.__t.repaint(); await wait(50);
+  if (face('😂') && face('😂').classList.contains('is-pop')) bad.push('a later repaint landed 😂 again — `REACT_POP_` was not cleared');
+  if (!face('😂') || !face('😂').classList.contains('mine')) bad.push('a later repaint lost yours');
+
+  /* ---------- THE SAME TAP TAKES IT BACK --------------------------------------------------------- */
+  sent.length = 0;
+  /* FOCUSED AGAIN: the plain `repaint` above stands for a payload landing, which is not a press and
+     hands nobody their focus back. */
+  face('😂').focus();
+  face('😂').click(); await wait(50);
+  shape('after taking it back');
+  if (d.querySelector('#s-feed .react.mine')) bad.push('after taking it back, a face is still `.mine`');
+  if (face('😂') && face('😂').getAttribute('aria-pressed') !== 'false') bad.push('after taking it back, 😂 is still pressed for a screen reader');
+  if (count('😂')) bad.push(`after taking it back, 😂 still counts ${JSON.stringify(count('😂'))}`);
+  if (face('😂') && face('😂').classList.contains('is-pop')) bad.push('taking it back landed the face — only a face added or moved to lands');
+  if (total() !== '3 reactions') bad.push(`after taking it back, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
+  if (!sent.some(b => b.action === 'reactPost' && b.emoji === '😂')) bad.push('taking it back sent no reactPost');
+  if (face('😂') && d.activeElement !== face('😂')) bad.push(`after taking 😂 back, the focus is on ${held()} — not on 😂`);
+  await wait(150);
+
+  /* ---------- A SAVE THAT FAILS IS PUT BACK, AND THE FOCUS STAYS THROUGH THE UNDO ------------------ */
+  failNext = true;
+  face('👏').focus();
+  face('👏').click(); await wait(150);
+  if (d.querySelector('#s-feed .react.mine')) bad.push('a failed save left a face `.mine` — the undo did not put it back');
+  if (total() !== '3 reactions') bad.push(`after a failed save, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
+  if (face('👏') && d.activeElement !== face('👏')) bad.push(`after a failed save's undo, the focus is on ${held()} — not on 👏`);
+
+  /* ---------- THE TOTAL OPENS WHO REACTED -------------------------------------------------------- */
+  /* AND A FACE PRESSED WHILE THE FOCUS WAS ELSEWHERE DOES NOT TAKE IT: a redraw must not pull focus
+     off whatever somebody is in (the rule `ansSet_` and `qualRedraw_` follow). */
+  if (d.activeElement && d.activeElement.blur) d.activeElement.blur();
+  face('❤️').click(); await wait(150);          // now yours is ❤️: 👍 2, ❤️ 2 — a tie
+  if (d.activeElement && d.activeElement.dataset && d.activeElement.dataset.do === 'react') {
+    bad.push(`a face pressed with nothing focused pulled the focus onto ${held()}`);
+  }
+  const who = d.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+  if (!who) return bad.concat(['there is no total on the time line to open who reacted']);
+  who.click(); await wait(100);
+  const title = (d.getElementById('sheet-title') || {}).textContent || '';
+  const sheet = d.getElementById('sheet');
+  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing the total opened no sheet']);
+  if (title !== '4 reactions') bad.push(`the sheet is titled ${JSON.stringify(title)}, not "4 reactions"`);
+  const groups = () => [...d.querySelectorAll('#sheet-body .rx-group')].map(g => ({
+    e: ((g.querySelector('.rx-pill .react-e') || {}).textContent || ''),
+    n: ((g.querySelector('.rx-pill .react-n') || {}).textContent || ''),
+    mine: !!g.querySelector('.rx-pill.mine'),
+    names: [...g.querySelectorAll('.row')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) }));
+  const g1 = groups();
+  if (g1.map(g => g.e + g.n).join(' ') !== '👍2 ❤️2') {
+    bad.push(`the sheet's groups are ${JSON.stringify(g1.map(g => g.e + g.n))}, not 👍 2 then ❤️ 2 (a tie keeps the house order)`);
+  }
+  const heart = g1.find(g => g.e === '❤️');
+  if (heart && !heart.mine) bad.push('in the sheet, ❤️ is yours and its pill is not the gold one');
+  if (heart && !/^Pat Parent\s*you$/.test(heart.names[0] || '')) {
+    bad.push(`under ❤️ the first name is ${JSON.stringify(heart.names[0])}, not you with "you" after it`);
+  }
+  if (g1.some(g => g.e === '👍' && g.mine)) bad.push('in the sheet, 👍 is drawn as yours');
+  /* MOST FIRST, AND NOT THE HOUSE ORDER WEARING THAT NAME: 🎉 is last of the six and leads here. */
+  const r = w.__t.DATA().posts[0].reactions;
+  r.counts = [1, 2, 0, 0, 0, 3]; r.total = 6;
+  w.__t.ACTIONS['who-reacted'](who); await wait(50);
+  const g2 = groups();
+  if (g2.map(g => g.e).join(' ') !== '🎉 ❤️ 👍') {
+    bad.push(`with 🎉 3, ❤️ 2, 👍 1 the sheet's groups run ${JSON.stringify(g2.map(g => g.e))} — most first`);
+  }
+  if (!/…and 3 more/.test((d.getElementById('sheet-body') || {}).textContent || '')) {
+    bad.push('three 🎉 with no names behind them lost "…and 3 more"');
+  }
+
+  /* ---------- SIGNED OUT ------------------------------------------------------------------------- */
+  {
+    const b = boot({ payload: seed() });
+    await wait(400);
+    b.w.__t.go('feed'); await wait(700); await woken_();
+    const bd = b.w.document;
+    const fx = bd.querySelector('#s-feed [data-post="PO1"] .react[data-emoji="👍"]');
+    if (!fx) bad.push('signed out, the post draws no faces');
+    else {
+      b.sent.length = 0;
+      fx.click(); await wait(100);
+      if (b.sent.some(x => x.action === 'reactPost')) bad.push('signed out, a face posted reactPost');
+      if (b.w.__t.AT() !== 'account') bad.push(`signed out, a face went to ${b.w.__t.AT()}, not to sign in`);
+      if (bd.querySelector('.react.mine')) bad.push('signed out, a face became yours');
+    }
+    const t = bd.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+    if (!t) bad.push('signed out, there is no total on the time line');
+    else {
+      b.w.__t.ACTIONS['who-reacted'](t); await wait(50);
+      const sh = bd.getElementById('sheet');
+      if (!sh || sh.classList.contains('hidden') || !bd.querySelector('#sheet-body .rx-group')) {
+        bad.push('signed out, the total did not open who reacted');
+      }
+    }
+  }
   return bad;
 });
 
@@ -7631,6 +8200,86 @@ check('each column opens on the page worth reading', async () => {
       bad.push('the Posts column opens on the ＋ New post card rather than on a post');
     }
   }
+  return bad;
+});
+
+/* ---------- PROGRESS: THE LAST COLUMN, ONE CARD SAYING SO, AND NOTHING ON IT TO PRESS ---------------
+   ASKED FOR AS "i want to add a new column for students to track their progress and everythinh. you
+   can leave it at the end of the columns for now. just leave a place holder for now." The contest
+   journey's two questions, asked of a column — arriving anywhere but LAST, and growing a control
+   before there is anything behind it — and a third a column has and a widget does not: can a person
+   get there.
+
+   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served.
+   Without it this stub answers that file with the payload, `settingsInto_` skips a thing with no
+   `length`, and the app runs on `TAB_ORDER` — where Settings is last and Spotlight's neighbour is
+   Settings. A journey asking about the code's order would be asking about an order no phone has.
+
+   A SWIPE AS A TRACKPAD SENDS IT. Two fingers sideways is a `wheel` event, and `overworld.js` answers
+   it with `ax.go(ax.at() + 1)` — the same call a finger's release makes — so this is the app's own
+   gesture rather than `go('progress')`, which would reach the column whether or not anything sat
+   next to it. And one more past the end stays put: the last column is an end, not a wrap.
+
+   THE SAME CARD FOR EVERYBODY until it is built — signed out, a student, a parent, a tutor, an
+   admin — so all five are asked, and a card that grew a role's control would fail here. */
+check('progress is the last column, one card that says it is not built yet with nothing to press, and a swipe off Spotlight lands on it', async () => {
+  const cols = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+  const { w } = boot({ serve: u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined) });
+  await wait(600);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const ids = () => t.TABS.map(x => x.id);
+  if (ids().indexOf('progress') < 0) return ['there is no `progress` column on the phone — the order reads ' + ids().join(', ')];
+  if (ids()[ids().length - 1] === 'settings') {
+    return ['columns.json was not applied (Settings is last, which is the code\'s own order) — the order a phone gets was NOT checked'];
+  }
+  if (ids()[ids().length - 1] !== 'progress') bad.push('Progress is not the last column — the order reads ' + ids().join(', '));
+  if (ids().indexOf('progress') !== ids().indexOf('spotlight') + 1) bad.push('Progress is not straight after Spotlight — the order reads ' + ids().join(', '));
+
+  /* THE SWIPE. */
+  const swipe = async from => {
+    const at = d.querySelector('#s-' + from + ' .page .pane') || d.getElementById('s-' + from);
+    at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
+    await wait(LEAVE_MS); await woken_();
+  };
+  t.go('spotlight', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'spotlight') return bad.concat(['go("spotlight") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await swipe('spotlight');
+  if (t.AT() !== 'progress') bad.push('a sideways swipe off Spotlight landed on ' + t.AT() + ', wanted Progress');
+  else {
+    await swipe('progress');
+    if (t.AT() !== 'progress') bad.push('a sideways swipe past the last column moved off Progress, to ' + t.AT());
+  }
+
+  /* THE CARD, FOR EVERY VISITOR. */
+  const who = [['signed out', null],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }],
+    ['an admin', { name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk' }]];
+  for (const [as, u] of who) {
+    t.USER(u);
+    w.paint('progress');
+    const host = d.getElementById('s-progress');
+    if (!host) return bad.concat(['there is no #s-progress to draw into']);
+    const n = host.querySelectorAll(':scope > .page').length;
+    if (n !== 1) bad.push(as + ': the column draws ' + n + ' pages, wanted the one card');
+    if (t.pageCount('progress') !== n) bad.push(as + ': the pager counts ' + t.pageCount('progress') + ' pages over ' + n + ' drawn');
+    const h = host.querySelector('h3');
+    if (!h || h.textContent.trim() !== 'Progress') bad.push(as + ': the card is not headed Progress');
+    if (!/Not built yet/.test(host.textContent)) bad.push(as + ': the card does not say it is not built yet');
+    /* THE PANE, NOT THE COLUMN: `#s-progress` holds the page and pane `pages()` wraps every card in,
+       which are not the card's markup. The pane's contents are, and asking of the pane rather than
+       of the card means a second thing drawn beside the card is caught as well. And a control
+       anywhere else in the column is still a control, so the whole column is asked that one. */
+    const pane = host.querySelector(':scope > .page > .pane');
+    if (!pane) bad.push(as + ': the column has no pane — the card was NOT checked');
+    else for (const f of placeholderFaults_(pane)) bad.push(as + ': ' + f);
+    const outside = [...host.querySelectorAll(PLACEHOLDER_KEYS_)].filter(e => !pane || !pane.contains(e));
+    if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  }
+  t.USER(null);
   return bad;
 });
 
@@ -8187,7 +8836,11 @@ check('while the app asks again, nobody is shown the failure\'s words or a Try a
     if (/Authorization is required|timeout/.test(text))
       bad.push(who + ' was shown the failure\'s own words: ' + (text.match(/.{0,40}(Authorization is required|timeout).{0,40}/) || [''])[0]);
     if (b.w.document.querySelector('[data-do="retry"]')) bad.push(who + ' was offered a Try again while the app is already trying');
-    if (!/Waiting for the server/.test(text)) bad.push(who + '\'s empty columns do not say they are waiting');
+    /* THE ONE LOADER, not "Waiting for the server" — a waiting sentence of its own until 9 Oct
+       (`nothingHere`; the owner: *"they should all have a simplistic simple loading thing"*). The quiet
+       line over the app is what says the app is asking again. The Spotlight column, because it is
+       empty for everybody until the payload lands — a visitor's Feed is the camera and "Sign in". */
+    if (!b.w.document.querySelector('#s-spotlight .loading[role="status"]')) bad.push(who + '\'s empty Spotlight column does not show the loader while the app asks again');
   });
   /* A DROPPED QUESTION FILE IS NOT MENDED BY ASKING THE BACKEND, so it keeps its sentence and its Try
      again — but its OWN reason: `why` was the backend's first, and printed Apps Script's page beside it. */
@@ -8197,6 +8850,92 @@ check('while the app asks again, nobody is shown the failure\'s words or a Try a
   if (/Authorization is required/.test(lt)) bad.push('with the question file dropped too, a student was shown the backend\'s reply: ' + (lt.match(/.{0,40}Authorization is required.{0,40}/) || [''])[0]);
   if (!/question file/.test(lt)) bad.push('with the question file dropped, no column says so');
   if (!l.w.document.querySelector('[data-do="retry"]')) bad.push('a dropped question file is not offered Try again — asking the backend again would never fetch it');
+  return bad;
+});
+
+/* ---------- AND EVERY CARD THAT WAITS ON THE PAYLOAD WAITS THE SAME WAY WHILE IT IS ASKED FOR AGAIN -----------
+   FOUND BY REVIEW (10 Oct), every script.google.com request aborted, an admin at 390: the columns drew the
+   loader through `nothingHere`, which knew about the retry — and in the same moment the Times Tables board
+   said "Scores have not arrived yet." and My teaching hours "The hours have not arrived from the server
+   yet", because each asked `!LOADED`, and `LOADED` is true once the first request has failed. Both fill
+   in by themselves when the retry lands, so both are waits: `awaiting_()` (shell.js) is the one question
+   now. Each card is turned to, as a finger turns to it, and waited for (bounded) before it is read; then
+   the retry is let through, and each must show what the payload brought instead of the dots. */
+check('while a failed first payload is asked for again, the score board and the hours show the loader, not a sentence', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  /* THE FIRST ASK FAILS FAST, and every ask after it waits on the gate — so the retry is out, and
+     the app is between "failed" and "arrived", for as long as this journey reads. */
+  const b = flaky_(n => (n === 0 ? 'fetch' : gate.then(() => ({ body: RC_PAYLOAD_() }))), RC_ADMIN_);
+  await wait(400);
+  const t = b.w.__t, d = b.w.document;
+  if (!t || typeof t.widgetsOf !== 'function') return ['the test harness did not come up'];
+  if (b.line() !== 'Reconnecting…') return ['the first payload failed and the quiet line says "' + b.line() + '" — the retry is not out, so nothing here was tested'];
+  if (typeof b.w.awaiting_ !== 'function' || !b.w.awaiting_()) return ['`awaiting_()` does not say the payload is on its way while the retry is out'];
+  const bad = [];
+  const words = /have not arrived|Scores have not|from the server yet/;
+  const turnTo = async (col, id, sel) => {
+    t.go(col, false, true);
+    await wait(LEAVE_MS); await woken_();
+    const n = t.widgetsOf(col === 'games' ? 'game' : 'tool').findIndex(x => String(x.id) === id);
+    if (n < 0) { bad.push(`no "${id}" widget on ${col} for an admin`); return null; }
+    b.w.goPage(col, n, true);
+    for (let k = 0; k < 150; k++) {
+      const el = d.querySelector(sel);
+      if (el && el.innerHTML.trim() && !el.closest('[aria-busy="true"]')) return el;
+      await wait(100);
+    }
+    bad.push(`the "${id}" widget on ${col} never started — ${sel} is empty or still veiled`);
+    return null;
+  };
+  const board = await turnTo('games', 'tables', '#s-games #tt-board');
+  if (board) {
+    if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
+    if (words.test(board.textContent)) bad.push('while the retry is out the Times Tables board says "' + board.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
+  }
+  const hours = await turnTo('tools', 'avail', '#s-tools #avail-box');
+  if (hours) {
+    if (!hours.querySelector('.loading[role="status"]')) bad.push('while the retry is out My teaching hours shows no loader: "' + hours.textContent.trim().slice(0, 80) + '"');
+    if (words.test(hours.textContent)) bad.push('while the retry is out My teaching hours says "' + hours.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
+  }
+  /* AND THE RETRY LANDS: the dots go, and what the payload brought is drawn where they were. */
+  open();
+  for (let k = 0; k < 50 && !b.arrived(); k++) await wait(100);
+  if (!b.arrived()) return bad.concat(['the retry was let through and the payload is not in DATA']);
+  for (let k = 0; k < 50 && d.querySelector('#s-tools #avail-box .loading, #s-games #tt-board .loading'); k++) await wait(100);
+  const hb = d.querySelector('#s-tools #avail-box'), bb = d.querySelector('#s-games #tt-board');
+  if (hb && hb.querySelector('.loading')) bad.push('the retry landed and My teaching hours still shows the loader');
+  if (bb && bb.querySelector('.loading')) bad.push('the retry landed and the Times Tables board still shows the loader');
+  if (b.w.awaiting_()) bad.push('the retry landed and `awaiting_()` still says the payload is on its way');
+  return bad;
+});
+
+/* ---------- AND A FIXED SENTENCE IS NOT A WAIT ---------------------------------------------------------
+   FOUND BY REVIEW: signed out, with the payload held, the Booking column drew the loader for the whole
+   wait — up to the minute's deadline — where its one sentence, "Sign in to book", needs nothing from
+   the payload. Account, Saved and Messages drew their sign-in cards at once. Signed in, the form does
+   need the payload, and waits for it. */
+check('with the payload held, Booking says "Sign in to book" to a visitor at once, and waits for it for somebody signed in', async () => {
+  let openV, openK;
+  const v = flaky_([new Promise(r => { openV = r; })]);
+  const k = flaky_([new Promise(r => { openK = r; })], RC_KID_);
+  await wait(400);
+  const bad = [];
+  [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
+    if (b.arrived()) { bad.push(`${who}'s payload arrived before it was let through, so nothing was tested`); return; }
+    b.w.__t.go('booking', false, true);
+  });
+  await wait(LEAVE_MS);
+  [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
+    const col = b.w.document.getElementById('s-booking');
+    const text = ((col && col.textContent) || '').replace(/\s+/g, ' ');
+    const dots = col ? col.querySelectorAll('.loading').length : 0;
+    if (!waits) {
+      if (dots) bad.push(`${who}'s Booking column shows the loader while the payload is held — its sentence needs nothing from it`);
+      if (!/Sign in to book/.test(text)) bad.push(`${who}'s Booking column does not say "Sign in to book" while the payload is held: "${text.trim().slice(0, 80)}"`);
+    } else if (!dots) bad.push(`${who}'s Booking column shows no loader while the payload is held — the form needs it: "${text.trim().slice(0, 80)}"`);
+  });
+  openV(); openK();
   return bad;
 });
 
@@ -9565,14 +10304,17 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   ta.value += ' Also more successful collisions.';
   ta.dispatchEvent(new w.Event('input', { bubbles: true }));
   if (row.querySelector('.qp-verdict').textContent || row.classList.contains('is-near') || (why && why.textContent)) bad.push('typing after an AI mark left the old verdict on a changed answer');
-  /* NO KEY ON THE SERVER: one press, then every AI button on the screen is greyed and says why. */
+  /* NO KEY ON THE SERVER: one press, then no AI button on the screen presses any more, and each says why.
+     SINCE 9 OCT THE TILE BECOMES THE PLAIN SEND where it stands, signed in: an answer reaches the account
+     when it is sent (js/submit.js), and a greyed tile left the box with nothing to send it with. */
   mode = 'off';
   const other = draw(Object.assign({}, x, { key: 'q-ai-2', row: Object.assign({}, x.row, { row_id: 'Q-AI-3' }) }));
   w.stuffItemsAll_ = () => [x];
   try { A['qp-ai'](go); await wait(50); } finally { w.stuffItemsAll_ = held; }
   [card, other].forEach((c, i) => {
     const b = c.querySelector('.qp-ai-go');
-    if (!b || !b.disabled || !c.querySelector('.qp-ai.is-off')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' AI button is not greyed');
+    if ((b && !b.disabled) || !c.querySelector('.qp-ai.is-off')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' AI button still presses');
+    if (!c.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' box has no Send in the AI tile’s place — its answer could never reach the account');
   });
   if (!/switched on/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('"ai-off" did not say AI marking isn’t switched on');
   if (draw(Object.assign({}, x, { key: 'q-ai-4' })).querySelector('.qp-ai')) bad.push('a card drawn after "ai-off" still offers AI marking');
@@ -9757,6 +10499,13 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   const why = card.querySelector('.qp-ai-why');
   if (!/27 of 40 marks/.test(verdict)) bad.push('27 of 40 was drawn as ' + JSON.stringify(verdict));
   if (!why || why.textContent !== FEEDBACK) bad.push('the AI\'s strands and points were not drawn as the lines they are: ' + JSON.stringify(why && why.textContent));
+  /* ---------- AND THE MARK IS A SUBMISSION, like every Mark with AI (note 308) ----------
+     The merge with the essay sheet found its kept mark returning before the press was recorded, so the
+     forty-mark answers the sheet exists for were the one kind never sent to the account. */
+  let latest = null;
+  try { latest = (JSON.parse(w.localStorage.getItem('subLast:u:P-S1') || '{}') || {})[x.key]; } catch (e) {}
+  if (!latest || latest.v !== 'ai:27/40' || latest.a !== big) bad.push('the essay’s Mark with AI was not recorded as a submission (ai:27/40, the whole essay): ' + JSON.stringify(latest && { v: latest.v, len: String(latest.a || '').length }));
+  else if (latest.far || !latest.q) bad.push('the essay’s submission (' + big.length + ' characters) is kept as too long to send — the account takes 20,000 since note 312 (`SUB_ANSWER_MAX`)');
   /* ---------- A KEY TYPED AFTER THE MARK KEEPS IT, SAID TO BE STALE ----------
      It took the mark and every point off, and a reload lost them (the review of 9 Oct): the points are
      what the pupil revises from. So: "before your changes" and no ring, the points still there; undone
@@ -10849,8 +11598,10 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
-   ("Ada's answer" / "Your answer"), and the star (`fav`) and the date's slot beside it (`.qcard-done`,
-   see `questionTiles_`), which need somebody signed in to keep them for. AND WHERE THE WORK IS KEPT —
+   ("Ada's answer" / "Your answer"), and the star (`fav`) and the verdict's slot beside it
+   (`.qcard-verdict`, see `questionTiles_`), which need somebody signed in to keep them for. AND THE PLAIN
+   SEND (`qp-send`) on a box nothing marks, with the verdict line it brings — there is an account to send
+   to only when somebody is signed in (js/submit.js). AND WHERE THE WORK IS KEPT —
    the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
    which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
@@ -10892,13 +11643,21 @@ check('Find draws the same question family, practical, project and textbook for 
   const norm = html => {
     const h = w.document.createElement('div');
     h.innerHTML = html;
-    h.querySelectorAll('[data-do="fav"], .tile-row .qcard-done').forEach(n => n.remove());
+    h.querySelectorAll('[data-do="fav"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
+    /* A WORKSHEET BOX WITH ITS SEND IS THE BOX, wrapped (`guideBox_`): the wrapper goes, the box stays. */
+    h.querySelectorAll('.qp-mark.gd-mark').forEach(m => { const l = m.querySelector('.gd-box'); if (l) m.replaceWith(l); else m.remove(); });
+    /* AND A BOX NOTHING MARKS IS A `.qp-mark` WITH A VERDICT LINE ONLY WHEN IT HAS THAT SEND: put back to the
+       plain compose box it is for somebody signed out. Whitespace between tags is not a difference. */
+    h.querySelectorAll('.qp-mark.qp-compose:not([data-accept]):not(.qp-ai)').forEach(m => {
+      m.className = 'qp-compose';
+      [...m.children].forEach(c => { if (c.classList.contains('qp-verdict')) c.remove(); });
+    });
     /* A ROW THAT HELD ONLY THE STAR (and the date beside it) is the person's, and goes with them. */
     h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
     h.querySelectorAll('.qp-saved').forEach(n => { n.textContent = ''; });
-    return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
+    return h.innerHTML.replace(/>\s+</g, '><').replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
       .replace(/>Your answer/g, '>WHO answer')
-      .replace(/Kept on this device only[^<]*|Saved to [^<]*account, like the answer box\./g, 'KEPT WHERE');
+      .replace(/Kept on this device only[^<]*|Saved to [^<]*account\./g, 'KEPT WHERE');
   };
   const draw = () => {
     const out = [];
@@ -11169,336 +11928,421 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   return bad;
 });
 
-/* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
-   ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
-   the real handlers on a real card AND THE TILE ROW UNDER IT, where the date is now -- beside the star,
-   because it is yours like the star is, and the header it sat in became tags (`questionTiles_`):
-     * signed out, nothing is recorded and there is no slot -- the signed-out key is everybody, and a
-       date on it is nobody's
-     * signed in, a Check (right or not yet), a tap that chooses enough, and typing into a box that has
-       no Check each write today under `done:<who>:<key>` and show `Done <d> <Mon>` in the tile row's slot
-     * the slot is filled where it stands: the slot is the same node, the tag row untouched
-     * it comes back when the card is drawn again, and is the signed-in person's only -- another
-       student on the same phone sees a clean card
-     * where `localStorage` throws (private mode), the date is held for the visit and still shown
-     * a date from another year says the year */
-check('a signed-in student\'s attempt is dated on the question card, for them alone, and nobody signed out is stamped', async () => {
+/* ==================================================================================================
+   EVERY ANSWER SENT IS AN EVENT, AND THE CARD SAYS HOW THE LATEST ONE WENT.
+
+   THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's right
+   or not. Also I just want system to record each submition. So like if they submit a correct answer
+   then change it and submit an incorrect answer, that's 2 events. And it will leave the latest event
+   up, so they would see incorrect answer there next time they login. Simple. Instead of each question
+   just saving number of attempts."*
+
+   js/submit.js is the phone's half and `check-submissions.js` the backend's. These journeys go through
+   the real handlers on real cards and the real `api()`. They replaced the ones that asked for a date on
+   the card (`Done 4 Oct`, 268/269) and the `markDone` backlog — the day a question was done is gone,
+   and so is everything that sent it. The children are invented — Ada and Ben — because this repository
+   is public. `FLOW_ONLY=submission` runs them alone.
+================================================================================================== */
+/* A BACKEND THAT KEEPS SUBMISSIONS, as `submissionsAppend_` does: a row per press, an id already there is
+   the row already there, and the reply names every press now on the sheet with the server's time. Falls
+   through (undefined) for every other action, so it sits in front of `ansBackend_`. */
+const subBackend_ = (rows, more) => b => {
+  const own = more ? more(b) : undefined;
+  if (own !== undefined) return own;
+  if (b.action !== 'submitAnswer') return undefined;
+  const saved = {};
+  (b.items || []).forEach(it => {
+    const had = rows.find(r => r.pid === b.personId && r.id === it.id);
+    if (had) { saved[it.id] = { key: had.key, verdict: had.verdict, at: had.at }; return; }
+    const r = { pid: b.personId, id: it.id, key: it.key, answer: it.answer, verdict: it.verdict, label: it.label, words: it.words,
+                at: Date.now() + rows.length };
+    rows.push(r);
+    saved[it.id] = { key: r.key, verdict: r.verdict, at: r.at };
+  });
+  return { success: true, saved: saved };
+};
+/* AND WHAT `doGet` WOULD LAY ON THE NEXT PAYLOAD FOR A PERSON: their latest per question. */
+const subMine_ = (rows, pid) => {
+  const m = {};
+  rows.filter(r => r.pid === pid).forEach(r => { if (!m[r.key] || m[r.key].at <= r.at) m[r.key] = { answer: r.answer, verdict: r.verdict, at: r.at, id: r.id }; });
+  return { for: pid, mine: m };
+};
+const SUB_FEATURES = ['saveAnswers', 'myAnswers', 'submitAnswer'];
+const SUB_SUM = { kind: 'question', key: 'q:Q-SUB-1', name: 'Q3', marks: 1, subject: 'Maths', sub: 'Paper 1 (Calculator) — June 2024',
+  row: { row_id: 'Q-SUB-1', paper_id: 'P-SUB', subject: 'Maths', name: 'Paper 1 (Calculator) — June 2024' },
+  html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' };
+/* THE CARD AND THE TILE ROW UNDER IT, as `stuffCard` puts them -- the verdict is in the row. */
+const subDraw_ = (w, x, host) => {
+  const h = host || w.document.createElement('div');
+  h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>';
+  if (!host) w.document.body.appendChild(h);
+  return h.querySelector('.qcard');
+};
+const subSlotOf_ = card => card.parentNode.querySelector('.tile-row .qcard-verdict');
+
+check('submission: the latest one is the verdict beside the star, never a date, for the person signed in alone', async () => {
   const { w } = boot();
   await wait(300);
-  const d = w.document;
-  const bad = [];
-  const A = w.__t.ACTIONS;
-  if (typeof w.doneText_ !== 'function' || typeof w.questionCard_ !== 'function' || !A['qp-check'] || !A['qp-choose']) {
-    return ['doneText_, questionCard_ or the marking handlers are not reachable — renamed? The date was NOT checked'];
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (typeof w.subSlot_ !== 'function' || typeof w.questionCard_ !== 'function' || typeof w.subRecord_ !== 'function'
+      || !A['qp-check'] || !A['qp-choose'] || !A['qp-send']) {
+    return ['subSlot_, subRecord_, questionCard_ or the marking handlers are not reachable — renamed? The verdict was NOT checked'];
   }
-  const now = new Date();
-  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  const label = 'Done ' + now.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][now.getMonth()];
-  if (w.doneText_(today) !== label) bad.push('today reads "' + w.doneText_(today) + '", wanted "' + label + '"');
-  if (w.doneText_('2001-10-04') !== 'Done 4 Oct 2001') bad.push('a date from another year reads "' + w.doneText_('2001-10-04') + '", wanted the year on it');
-  if (w.doneText_('') !== '') bad.push('no date reads "' + w.doneText_('') + '", wanted nothing');
-  const base = { kind: 'question', name: 'Q8', marks: 2,
-    row: { row_id: 'Q-DONE-8', paper_id: 'P-DONE', subject: 'Maths', name: 'Done' },
+  const base = { kind: 'question', name: 'Q8', marks: 2, row: { row_id: 'Q-V-8', paper_id: 'P-V', subject: 'Maths', name: 'Verdict' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
-  const typed = Object.assign({}, base, { key: 'q-done-typed' });
-  /* THE CARD AND ITS TILE ROW, as `stuffCard` puts them -- the date is in the row. */
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => card.parentNode.querySelector('.tile-row .qcard-done');
-  const stored = () => Object.keys(w.localStorage).filter(k => /^done:/.test(k));
-  const markIt = card => {
-    const inp = card.querySelector('.qp-ans-in');
-    /* NO input EVENT: typing stamps the card too, so this asks the Check alone. */
-    inp.value = '16';
-    A['qp-check'](card.querySelector('.qp-check'));
-  };
-  /* SIGNED OUT. */
+  const typed = Object.assign({}, base, { key: 'q-v-typed' });
+  const kept = () => Object.keys(w.localStorage).filter(k => /^sub(Last|Q):/.test(k));
+  /* TYPED AS A CHILD TYPES (the `input` the box answers to), THEN CHECKED. */
+  const markIt = (card, v) => { const i = card.querySelector('.qp-ans-in'); i.value = v; i.dispatchEvent(new w.Event('input', { bubbles: true })); A['qp-check'](card.querySelector('.qp-check')); };
+  const say = card => { const s = subSlotOf_(card); return s ? s.textContent + (s.classList.contains('is-right') ? ' [right]' : s.classList.contains('is-near') ? ' [near]' : '') : null; };
+  /* SIGNED OUT: Check marks, no slot, and nothing is kept on the device to be anybody's. */
   w.__t.USER(null);
-  const out = draw(typed);
-  if (slot(out)) bad.push('signed out, the tile row has a date slot -- there is nothing it could ever say');
-  if (out.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
-  markIt(out);
-  if (slot(out) && slot(out).textContent) bad.push('signed out, a Check stamped the card "' + slot(out).textContent + '"');
-  if (stored().length) bad.push('signed out, a date was stored: ' + stored().join(', '));
+  const out = subDraw_(w, typed);
+  if (subSlotOf_(out)) bad.push('signed out, the tile row has a verdict slot — the device everybody shares has nobody to mark');
+  markIt(out, '16');
+  if (!/Not yet/.test(out.querySelector('.qp-verdict').textContent)) bad.push('signed out, Check did not mark the answer');
+  if (kept().length) bad.push('signed out, a submission was kept on the device: ' + kept().join(', '));
   /* SIGNED IN. */
   w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'] });
-  const card = draw(typed);
-  if (!slot(card)) return bad.concat(['signed in, the tile row has no date slot, so a date would arrive as a new element']);
-  if (card.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
-  const top = card.querySelector('.qcard-tags');
-  const t0 = top && top.outerHTML;
-  const s0 = slot(card);
-  if (slot(card).textContent) bad.push('a question never done is already stamped "' + slot(card).textContent + '"');
-  markIt(card);
-  if (slot(card).textContent !== label) bad.push('a Check did not stamp the card: "' + slot(card).textContent + '", wanted "' + label + '"');
-  if (slot(card) !== s0) bad.push('stamping the date drew a new slot rather than writing into the one that was there');
-  if (!top || card.querySelector('.qcard-tags') !== top || top.outerHTML !== t0) bad.push('stamping the date redrew the tag row');
-  if (!/Not yet/.test(card.querySelector('.qp-verdict').textContent)) bad.push('the date took the verdict\'s place');
-  if (w.localStorage.getItem('done:u:P7:q-done-typed') !== today) bad.push('the date is not stored per person per question: ' + stored().join(', '));
-  if (slot(draw(typed)).textContent !== label) bad.push('drawn again, the card forgot the date');
-  /* A TAP THAT CHOOSES ENOUGH. */
-  const mc = Object.assign({}, base, { key: 'q-done-mc', accept: '', choices: ['14', '15'], choiceRight: [2] });
-  const tapped = draw(mc);
-  const heldA = w.stuffItemsAll_;
-  w.stuffItemsAll_ = () => [mc];
-  try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = heldA; }
-  if (slot(tapped).textContent !== label) bad.push('a tapped answer did not stamp the card: "' + slot(tapped).textContent + '"');
-  /* TYPING INTO A BOX WITH NO CHECK. */
-  const free = draw(Object.assign({}, base, { key: 'q-done-free', accept: '' }));
-  const fin = free.querySelector('.qp-ans-in');
-  fin.value = 'because it is'; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
-  if (slot(free).textContent !== label) bad.push('writing an answer where there is no Check did not stamp the card');
+  const card = subDraw_(w, typed);
+  if (!subSlotOf_(card)) return bad.concat(['signed in, the tile row has no verdict slot, so a verdict would arrive as a new element and move the card']);
+  if (card.querySelector('.qcard-verdict')) bad.push('the verdict slot is inside the card, not in the tile row beside the star');
+  if (subSlotOf_(card).textContent) bad.push('a question never sent already says "' + subSlotOf_(card).textContent + '"');
+  const s0 = subSlotOf_(card), tags = card.querySelector('.qcard-tags'), t0 = tags && tags.outerHTML;
+  markIt(card, '16');
+  if (say(card) !== 'Not yet [near]') bad.push('after a wrong Check the slot says ' + JSON.stringify(say(card)) + ' — wanted "Not yet", in the verdict line’s amber');
+  if (subSlotOf_(card) !== s0) bad.push('the verdict drew a new slot rather than writing into the one that was there');
+  if (!tags || card.querySelector('.qcard-tags') !== tags || tags.outerHTML !== t0) bad.push('marking redrew the tag row');
+  if (!/Not yet — have another go/.test(card.querySelector('.qp-verdict').textContent)) bad.push('the verdict line under the box lost its words');
+  const mine = () => { try { return JSON.parse(w.localStorage.getItem('subLast:u:P7') || '{}'); } catch (e) { return {}; } };
+  if (!mine()['q-v-typed'] || mine()['q-v-typed'].a !== '16' || mine()['q-v-typed'].v !== 'wrong') bad.push('the press is not kept per person per question: ' + JSON.stringify(mine()));
+  markIt(card, '15');
+  if (say(card) !== 'Correct [right]') bad.push('after a right Check the slot says ' + JSON.stringify(say(card)) + ' — the latest press is what it shows');
+  /* DRAWN AGAIN: the slot, and the box holding what was sent with its verdict. */
+  const again = subDraw_(w, typed);
+  if (say(again) !== 'Correct [right]') bad.push('drawn again, the card forgot the latest verdict: ' + JSON.stringify(say(again)));
+  if (again.querySelector('.qp-ans-in').value !== '15' || !/^Correct$/.test(again.querySelector('.qp-verdict').textContent) || !again.querySelector('.qp-mark.is-right')) bad.push('drawn again, the box does not hold the answer sent with its verdict: ' + JSON.stringify([again.querySelector('.qp-ans-in').value, again.querySelector('.qp-verdict').textContent]));
+  /* A TAP THAT CHOOSES ENOUGH, marked and not. */
+  const mc = Object.assign({}, base, { key: 'q-v-mc', accept: '', choices: ['14', '15'], choiceRight: [2] });
+  const open = Object.assign({}, base, { key: 'q-v-open', accept: '', choices: ['red', 'blue'], choiceRight: [] });
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [mc, open];
+  try {
+    const tc = subDraw_(w, mc);
+    A['qp-choose'](tc.querySelector('.qp-opt[data-n="1"]'));
+    if (say(tc) !== 'Not yet [near]') bad.push('a wrong pick says ' + JSON.stringify(say(tc)) + ' on the card');
+    const to = subDraw_(w, open);
+    A['qp-choose'](to.querySelector('.qp-opt[data-n="2"]'));
+    if (subSlotOf_(to).textContent !== 'Sent' || subSlotOf_(to).classList.contains('is-right') || subSlotOf_(to).classList.contains('is-near')) bad.push('a pick the scheme never settled says ' + JSON.stringify(say(to)) + ' — wanted "Sent", no tick and no arrow');
+  } finally { w.stuffItemsAll_ = held; }
+  /* A BOX NOTHING CAN MARK: a Send of its own, typing is not a submission, and Send is. */
+  const free = subDraw_(w, Object.assign({}, base, { key: 'q-v-free', accept: '', answerType: 'explain' }));
+  const send = free.querySelector('.qp-send[data-do="qp-send"]');
+  if (!send) bad.push('a box with no scheme and no AI marking has no Send — its answer could never reach the account');
+  else {
+    if (send.classList.contains('qp-check')) bad.push('the plain Send is `.qp-check` — the keypad’s ✓ and Enter would send it');
+    const fin = free.querySelector('.qp-ans-in');
+    fin.value = 'because it is'; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
+    if (subSlotOf_(free).textContent) bad.push('typing alone put "' + subSlotOf_(free).textContent + '" on the card — typing is not a submission');
+    A['qp-send'](send);
+    if (subSlotOf_(free).textContent !== 'Sent' || free.querySelector('.qp-verdict').textContent !== 'Sent') bad.push('Send on a box nothing marks left the card at ' + JSON.stringify(subSlotOf_(free).textContent) + ' and the line at ' + JSON.stringify(free.querySelector('.qp-verdict').textContent) + ' — wanted "Sent" both');
+    fin.value = ''; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
+    A['qp-send'](send);
+    if (!/Write something first/.test(free.querySelector('.qp-verdict').textContent)) bad.push('Send on an empty box did not ask for an answer');
+    if (subSlotOf_(free).textContent !== 'Sent') bad.push('an empty Send changed the latest verdict to ' + JSON.stringify(subSlotOf_(free).textContent));
+  }
+  /* NO CARD SAYS A DAY, anywhere: not the slot, not the old one. */
+  if (d.querySelector('.qcard-done')) bad.push('a `.qcard-done` date slot is still drawn');
+  [...d.querySelectorAll('.qcard-verdict')].forEach(s => { if (/\b\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|Done/.test(s.textContent)) bad.push('a card says a day: "' + s.textContent + '"'); });
   /* ANOTHER STUDENT, SAME PHONE. */
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'] });
-  if (slot(draw(typed)).textContent) bad.push('another student sees the first one\'s date: "' + slot(draw(typed)).textContent + '"');
-  /* PRIVATE MODE: storage throws, and the date is held for the visit. */
-  const fresh = Object.assign({}, base, { key: 'q-done-private' });
-  const priv = draw(fresh);
+  if (subSlotOf_(subDraw_(w, typed)).textContent) bad.push('another student sees the first one’s verdict: "' + subSlotOf_(subDraw_(w, typed)).textContent + '"');
+  /* PRIVATE MODE: storage throws, and the verdict is held for the visit. */
+  const fresh = Object.assign({}, base, { key: 'q-v-private' });
+  const priv = subDraw_(w, fresh);
   Object.defineProperty(w, 'localStorage', { configurable: true, get() { throw new Error('private mode'); } });
   try {
-    markIt(priv);
-    if (slot(priv).textContent !== label) bad.push('with storage throwing, the date was not shown: "' + slot(priv).textContent + '"');
-    if (slot(draw(fresh)).textContent !== label) bad.push('with storage throwing, the date was not held for the visit');
+    markIt(priv, '15');
+    if (subSlotOf_(priv).textContent !== 'Correct') bad.push('with storage throwing, the verdict was not shown: "' + subSlotOf_(priv).textContent + '"');
+    if (subSlotOf_(subDraw_(w, fresh)).textContent !== 'Correct') bad.push('with storage throwing, the verdict was not held for the visit');
   } catch (e) { bad.push('with storage throwing, marking threw: ' + e.message); }
   finally { delete w.localStorage; }
   w.__t.USER(null);
   return bad;
 });
 
-/* ---------- AND THE SHEET HAS IT: ONE ATTEMPT SENT, THE SHEET'S DATE SHOWN ---------------------------
-   ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. Through
-   the real handlers on a real card, against a payload carrying `attempts` as `doGet` builds it:
-     * a Check sends ONE `markDone` -- the question's key and today -- and a second Check and typing
-       that day send nothing more; signed out, or to a backend without `markDone`, nothing at all
-     * a question the sheet has and this phone does not shows the SHEET's date; the later of the two
-       wins either way; a payload built for somebody else is not read
-     * on load, what this phone has that the sheet lacks goes up in one request, and what the sheet
-       already has does not
-     * an admin's people column says `N questions · last <d> <Mon>` under a learner, and nobody else's does */
-check('a Check sends one attempt to the sheet, the card shows the sheet\'s date, and what the phone kept is sent up on load', async () => {
-  const now = new Date();
-  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const later = (now.getFullYear() + 1) + '-01-02';                 /* a day the sheet has that the phone cannot */
-  const p = Object.assign(payload(), {
-    features: ['markDone'],
-    attempts: { for: 'P7', mine: {
-      'q-sheet-only': { first: '2001-10-04', last: '2001-10-04', times: 1 },
-      'q-sheet-later': { first: '2001-10-04', last: later, times: 2 },
-      'q-sheet-older': { first: '2001-10-04', last: '2001-10-04', times: 1 },
-      'q-synced': { first: '2001-10-04', last: '2026-09-02', times: 1 },
-    } },
-  });
-  const reply = b => (b.action === 'markDone'
-    ? { success: true, attempts: (b.items || []).reduce((o, it) => { o[it.key] = { first: it.day, last: it.day, times: 1 }; return o; }, {}) }
-    : { success: true });
-  const { w, sent } = boot({ payload: p, reply,
-    /* WHAT THIS PHONE KEPT BEFORE THE SHEET EXISTED: two days the sheet lacks, one it already has. */
-    before: win => {
-      win.localStorage.setItem('done:u:P7:q-offline', '2026-09-01');
-      win.localStorage.setItem('done:u:P7:q-synced', '2026-09-02');
-      win.localStorage.setItem('done:u:P7:q-sheet-older', '2026-09-03');
-      win.localStorage.setItem('done:u:P7:q-sheet-later', '2026-09-04');
-    } });
+check('submission: right, edited, wrong — two events on the account, a draft stays on the device, and the next device opens on the wrong answer', async () => {
+  const rows = [], drafts = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_(drafts, subBackend_(rows)) });
   await wait(300);
-  const d = w.document;
+  const need = ['subRecord_', 'subAdopt_', 'questionCard_', 'questionTiles_', 'ansSavedSay_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was sent'];
   const bad = [];
-  const A = w.__t.ACTIONS;
-  if (typeof w.questionCard_ !== 'function' || !A['qp-check'] || typeof w.adoptMarks_ !== 'function'
-      || typeof w.attemptsLine_ !== 'function' || typeof w.findCard !== 'function') {
-    return ['questionCard_, qp-check, adoptMarks_, attemptsLine_ or findCard is not reachable — renamed? The sheet\'s date was NOT checked'];
-  }
-  const marks = () => sent.filter(b => b.action === 'markDone');
-  const base = { kind: 'question', name: 'Q8', marks: 2,
-    row: { row_id: 'Q-SHEET-8', paper_id: 'P-SHEET', subject: 'Maths', name: 'Sheet' },
-    html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
-  const q = k => Object.assign({}, base, { key: k });
-  /* THE CARD AND ITS TILE ROW -- the date is beside the star (`questionTiles_`). */
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => (card.parentNode.querySelector('.tile-row .qcard-done') || {}).textContent || '';
-  const check_ = card => { card.querySelector('.qp-ans-in').value = '16'; A['qp-check'](card.querySelector('.qp-check')); };
-
-  /* SIGNED OUT: nothing is sent. */
+  const subs = () => sent.filter(b => b.action === 'submitAnswer');
+  const said = card => (card.parentNode.querySelector('.qp-saved') || {}).textContent;
+  w.stuffItemsAll_ = () => [SUB_SUM];
+  /* SIGNED OUT: nothing goes anywhere. */
   w.__t.USER(null);
-  check_(draw(q('q-anon')));
+  const anon = subDraw_(w, SUB_SUM);
+  ansType_(w, anon.querySelector('.qp-ans-in'), '15');
+  anon.querySelector('.qp-check').click();
+  await wait(40);
+  if (subs().length) bad.push('signed out, a Check sent ' + subs().length + ' submission(s)');
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const card = subDraw_(w, SUB_SUM);
+  const inp = () => card.querySelector('.qp-ans-in');
+  const line = () => (card.querySelector('.qp-saved') || {}).textContent;
+  ansType_(w, inp(), '15');
+  if (line() !== 'On this device until you send it') bad.push('an answer typed and not sent says ' + JSON.stringify(line()));
+  card.querySelector('.qp-check').click();
+  await wait(60);
+  if (subs().length !== 1) bad.push('a right Check sent ' + subs().length + ' submitAnswer request(s), wanted 1, at once');
+  const one = ((subs()[0] || {}).items || [])[0] || {};
+  if (one.key !== 'q:Q-SUB-1' || one.answer !== '15' || one.verdict !== 'right' || !/^\d{10,16}-[a-z0-9]{6}$/.test(String(one.id))) bad.push('the press went up as ' + JSON.stringify(one) + ' — wanted the library key (no person in it), 15, right, and an id of its own');
+  if (one.label !== 'Maths · Paper 1 (Calculator) — June 2024 · Q3') bad.push('the press went up named ' + JSON.stringify(one.label) + ' — the weekly email reads the name a parent can');
+  if (one.words !== 'Work out 3 × 5.') bad.push('the press went up with the words ' + JSON.stringify(one.words) + ' — the weekly email prints the question’s own');
+  if ((subs()[0] || {}).token !== 'tok-P7' || (subs()[0] || {}).personId !== 'P7') bad.push('submitAnswer went without the token, or without personId beside it');
+  if (subSlotOf_(card).textContent !== 'Correct') bad.push('after the right Check the card says ' + JSON.stringify(subSlotOf_(card).textContent));
+  if (line() !== 'Sent to Ada’s account') bad.push('a press on the account says ' + JSON.stringify(line()) + ' under the box');
+  /* EDITED, NOT SENT: no verdict, a draft of this device's, and nothing to the account. */
+  ansType_(w, inp(), '16');
+  if (card.querySelector('.qp-verdict').textContent || card.querySelector('.qp-mark.is-right, .qp-mark.is-near')) bad.push('an edit left the old verdict on a different answer: ' + JSON.stringify(card.querySelector('.qp-verdict').textContent));
+  if (subSlotOf_(card).textContent !== 'Correct') bad.push('an edit changed the card to ' + JSON.stringify(subSlotOf_(card).textContent) + ' — the card is the latest SUBMISSION, and nothing new was sent');
+  if (line() !== 'On this device until you send it') bad.push('a draft after a press says ' + JSON.stringify(line()));
+  await wait(1700);
+  if (sent.some(b => b.action === 'saveAnswers' && (b.items || []).some(i => /^ans:/.test(i.key)))) bad.push('a typed draft went up as a saved answer — only what is SENT reaches the account now');
+  if (subs().length !== 1) bad.push('typing sent a submission');
+  /* TYPED BACK TO WHAT WAS SENT: that answer's verdict again, because it is about that answer. */
+  ansType_(w, inp(), '15');
+  if (card.querySelector('.qp-verdict').textContent !== 'Correct') bad.push('typed back to the answer sent, the line says ' + JSON.stringify(card.querySelector('.qp-verdict').textContent));
+  /* WRONG, SENT: the second event. */
+  ansType_(w, inp(), '16');
+  card.querySelector('.qp-check').click();
+  await wait(60);
+  if (subs().length !== 2) bad.push('right then wrong made ' + subs().length + ' submitAnswer request(s) — *"that\'s 2 events"*');
+  if (rows.length !== 2 || rows[0].verdict !== 'right' || rows[1].verdict !== 'wrong' || rows[1].answer !== '16') bad.push('the account holds ' + JSON.stringify(rows.map(r => [r.answer, r.verdict])) + ' — wanted [15, right] then [16, wrong]');
+  if (subSlotOf_(card).textContent !== 'Not yet' || !subSlotOf_(card).classList.contains('is-near')) bad.push('after the wrong press the card says ' + JSON.stringify(subSlotOf_(card).textContent) + ' — the LATEST event is what it shows');
+  /* A DRAFT AFTER THE WRONG ONE, AND THE NEXT PAYLOAD LANDING: the draft stays on this device. */
+  ansType_(w, inp(), '17');
   await wait(20);
-  if (marks().length) bad.push('signed out, a Check sent markDone: ' + JSON.stringify(marks()));
-
-  /* SIGNED IN, AND THE LOAD'S SYNC: the payload landed before USER was set, so it is asked again here
-     the way the next payload would ask it. */
-  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
-  /* TWICE BEFORE THE REPLY IS BACK, as a stored payload and the fresh one land a moment apart. */
-  w.adoptMarks_();
-  w.adoptMarks_();
-  await wait(30);
-  const sync = marks();
-  if (sync.length !== 1) bad.push('the load sent ' + sync.length + ' markDone request(s) for what the phone kept, wanted 1 — two payloads landing together must not send the backlog twice');
-  else {
-    const keys = (sync[0].items || []).map(i => i.key + '@' + i.day).sort().join(', ');
-    if (keys !== 'q-offline@2026-09-01, q-sheet-older@2026-09-03') bad.push('the load sent ' + keys + ' — wanted the two days the sheet lacks (q-offline, q-sheet-older) and not q-synced, which it has');
-    if (sync[0].token !== 'tok-P7') bad.push('markDone went without the sign-in token, so the server cannot know whose it is');
-  }
-  w.adoptMarks_();
-  await wait(30);
-  if (marks().length !== 1) bad.push('a second payload in the same visit sent the backlog again');
-
-  /* THE SHEET'S DATE ON THE CARD. */
-  const shows = k => slot(draw(q(k)));
-  if (shows('q-sheet-only') !== 'Done 4 Oct 2001') bad.push('a question on the sheet and not on this phone reads "' + shows('q-sheet-only') + '", wanted the sheet\'s "Done 4 Oct 2001"');
-  if (shows('q-sheet-later') !== w.doneText_(later)) bad.push('the sheet\'s later day lost to this phone\'s older one: "' + shows('q-sheet-later') + '", wanted "' + w.doneText_(later) + '"');
-  if (shows('q-sheet-older') !== w.doneText_('2026-09-03')) bad.push('this phone\'s later day lost to the sheet\'s older one: "' + shows('q-sheet-older') + '"');
-
-  /* ONE CHECK, ONE ATTEMPT -- and nothing more that day. */
-  const n0 = marks().length;
-  const card = draw(q('q-fresh'));
-  check_(card);
-  await wait(30);
-  const one = marks().slice(n0);
-  if (one.length !== 1) bad.push('a Check sent ' + one.length + ' markDone request(s), wanted 1');
-  else if (JSON.stringify(one[0].items) !== JSON.stringify([{ key: 'q-fresh', day: today }])) bad.push('a Check sent ' + JSON.stringify(one[0].items) + ' — wanted [{ key: "q-fresh", day: "' + today + '" }]');
-  if (slot(card) !== 'Done ' + now.getDate() + ' ' + mon[now.getMonth()]) bad.push('after the Check the card reads "' + slot(card) + '"');
-  check_(card);
-  const inp = card.querySelector('.qp-ans-in');
-  ['1', '15', '150'].forEach(v => { inp.value = v; inp.dispatchEvent(new w.Event('input', { bubbles: true })); });
-  await wait(30);
-  if (marks().length - n0 !== 1) bad.push('a second Check and three keystrokes the same day sent ' + (marks().length - n0 - 1) + ' more markDone — wanted none: once per question per day');
-  /* TYPING INTO A FRESH BOX: thirty keystrokes, one request. */
-  const fin = draw(Object.assign(q('q-typed'), { accept: '' })).querySelector('.qp-ans-in');
-  const n1 = marks().length;
-  const words = 'because the angles add to 180';
-  for (let i = 1; i <= words.length; i++) { fin.value = words.slice(0, i); fin.dispatchEvent(new w.Event('input', { bubbles: true })); }
-  await wait(30);
-  if (marks().length - n1 !== 1) bad.push('typing an answer sent ' + (marks().length - n1) + ' markDone requests, wanted 1');
-
-  /* AND ITS NAME, for the weekly parent email (backend/digest.gs): a card the library holds sends what
-     a parent can read — the subject, the paper, the number — and the subject is not said twice when
-     the paper's name already says it. The cards above are not in the library, and sent no label. */
-  const heldItems = w.stuffItemsAll_;
-  const named = (k, subject, sub, more) => Object.assign(q(k), { subject: subject, sub: sub }, more || {});
-  const qa = named('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024');
-  const qb = named('q-named-2', 'Biology', 'Biology Paper 2 — June 2023');
-  /* FOUNDATION AND HIGHER SIT ONE PAPER UNDER ONE NAME, and so do AQA's GCSE and A-level Physics: a
-     crossover session sent a parent "Q1, Q1" under one heading. The tier goes on the paper's name —
-     or the A-level its band names when the tier cell is empty — unless the name already says it. */
-  const qh = named('q-tier-h', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Higher' });
-  const qf = named('q-tier-f', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Foundation' });
-  const qal = named('q-tier-a', 'Physics', 'Paper 1 — June 2024', { tier: '', bandValue: 'A-Level', row: { level: 'Alevel' } });
-  const qsaid = named('q-tier-s', 'Maths', 'Higher Paper 3 — June 2023', { tier: 'Higher' });
-  const n3 = marks().length;
-  w.stuffItemsAll_ = () => [qa, qb, qh, qf, qal, qsaid];
-  try { [qa, qb, qh, qf, qal, qsaid].forEach(x => check_(draw(x))); } finally { w.stuffItemsAll_ = heldItems; }
-  await wait(30);
-  const labels = marks().slice(n3).map(b => ((b.items || [])[0] || {}).label);
-  const wantLabels = ['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8',
-    'Maths · Paper 1 (Non-calculator) — June 2024 (Higher) · Q8', 'Maths · Paper 1 (Non-calculator) — June 2024 (Foundation) · Q8',
-    'Physics · Paper 1 — June 2024 (A-level) · Q8', 'Maths · Higher Paper 3 — June 2023 · Q8'];
-  if (JSON.stringify(labels) !== JSON.stringify(wantLabels)) {
-    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted ' + JSON.stringify(wantLabels) + ', the names a parent reads in the emails: a paper’s tier said once, and only when its name does not');
-  }
-  /* A PRACTICAL'S WORKSHEET BOX is the card's key with a slot on the end (`guideBox_`), and it was
-     looked up whole, so it found no card and went up nameless — three raw keys in a parent's email
-     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. The
-     card's line is the one `stuffItemsAll_` really builds, and its "60 min" is the card's estimate: it
-     read to a parent as time spent, so it is not part of the name. */
-  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'Physics · Required practical · 60 min' };
-  const n4 = marks().length;
-  w.stuffItemsAll_ = () => [qa, pr];
-  try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldItems; }
-  await wait(30);
-  const prSent = (((marks().slice(n4)[0] || {}).items) || [])[0] || {};
-  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · Required practical · Specific heat capacity · Worksheet') {
-    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · Required practical · Specific heat capacity · Worksheet", no card duration in it');
-  }
-
-  /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
-  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
-  if (shows('q-sheet-only')) bad.push('Ben sees Ada\'s sheet date: "' + shows('q-sheet-only') + '"');
-
-  /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent. */
-  w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
-  w.__t.DATA().attempts = { for: 'P1', mine: {}, people: { P7: { n: 12, last: '2001-10-04' }, P9: { n: 1, last: '2001-10-04' } } };
-  const line = w.attemptsLine_('P7');
-  if (line !== '12 questions · last 4 Oct 2001') bad.push('an admin reads "' + line + '" under a learner, wanted "12 questions · last 4 Oct 2001"');
-  if (w.attemptsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.attemptsLine_('P9') + '"');
-  if (w.attemptsLine_('P5') !== '') bad.push('a person with no attempts reads "' + w.attemptsLine_('P5') + '", wanted nothing');
-  const box = d.createElement('div');
-  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: line } });
-  const act = box.querySelector('.prof-who .prof-act');
-  if (!act || act.textContent !== line) bad.push('the person card does not draw the line under the name: ' + (act ? act.textContent : 'no .prof-act'));
-  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
-  if (w.attemptsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone: "' + w.attemptsLine_('P7') + '"');
-
-  /* A BACKEND WITHOUT `markDone`: the date stays on the phone and nothing is sent. */
-  w.__t.DATA().features = [];
-  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
-  const n2 = marks().length;
-  check_(draw(q('q-old-backend')));
-  await wait(30);
-  if (marks().length !== n2) bad.push('a backend that does not list markDone was sent it anyway');
-  w.__t.USER(null);
-  return bad;
-});
-
-/* ==================================================================================================
-   THE BACKLOG CARRIES EACH QUESTION'S NAME, AND A ROW THE SHEET HOLDS WITHOUT ONE IS SENT ITS NAME.
-   The first learner a parent email was tried on had three rows on the sheet as bare keys — done
-   before the Ledger had an `attempts` tab, sent up by the load with no names — and the email prints
-   no raw key, so his parent would have been told a number and nothing else. `attemptsSync_`
-   now names what it sends (`doneLabel_`, the card this person has for the key), and sends the name
-   for a row the payload says has none (`named`), with that row's own last day — a day the backend
-   already has, where it writes the name alone (check-attempts.js asks that half).
-================================================================================================== */
-check('the load names what it sends, and names a row the sheet holds without a name', async () => {
-  const p = Object.assign(payload(), {
-    features: ['markDone'],
-    attempts: { for: 'P7', mine: {
-      'q:Q-NAME-1': { first: '2026-10-06', last: '2026-10-06', times: 1 },
-      'q:Q-NAME-3': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1 },
-      'q:Q-NOCARD': { first: '2026-10-06', last: '2026-10-06', times: 1 },
-    } },
-  });
-  const reply = b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true });
-  const { w, sent } = boot({ payload: p, reply,
-    before: win => { win.localStorage.setItem('done:u:P7:q:Q-NAME-2', '2026-10-06'); } });
-  await wait(300);
-  if (typeof w.adoptMarks_ !== 'function' || typeof w.doneLabel_ !== 'function') return ['adoptMarks_ or doneLabel_ is not reachable — renamed? Nothing was asked'];
-  /* THE CARDS THIS PHONE HAS, standing in for the library: the lookup is by the item's key, as Find's is. */
-  const card = (k, n) => ({ kind: 'question', key: k, name: n, subject: 'Maths', sub: 'Money', marks: 1, row: { row_id: k.slice(2) } });
-  const cards = [card('q:Q-NAME-1', 'Q1'), card('q:Q-NAME-2', 'Q2'), card('q:Q-NAME-3', 'Q3')];
-  w.stuffItemsAll_ = () => cards;
-  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
   w.adoptMarks_();
   await wait(40);
-  const bad = [];
-  const m = sent.filter(b => b.action === 'markDone');
-  if (m.length !== 1) return ['the load sent ' + m.length + ' markDone request(s), wanted 1'];
-  const by = {}; (m[0].items || []).forEach(i => { by[i.key] = i; });
-  if (!by['q:Q-NAME-2']) bad.push('the backlog day the sheet lacks (Q-NAME-2) was not sent');
-  else if (!by['q:Q-NAME-2'].label || !/Money/.test(by['q:Q-NAME-2'].label) || !/Q2/.test(by['q:Q-NAME-2'].label)) bad.push('the backlog went up without its name: ' + JSON.stringify(by['q:Q-NAME-2']) + ' — a parent would read a key');
-  if (!by['q:Q-NAME-1']) bad.push('a row the sheet holds without a name (Q-NAME-1) was not sent its name');
+  if (w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '17' || inp().value !== '17') bad.push('the next payload put the account’s answer over a draft typed after it: the box reads ' + JSON.stringify(inp().value));
+  if (subs().length !== 2) bad.push('a payload landing sent the draft');
+  /* A FRESH DEVICE — the computer at home, next sign-in — opens on the wrong answer with "Not yet". */
+  /* AND THE ACCOUNT STILL HOLDS A DRAFT OF THIS BOX FROM BEFORE 9 OCT, saved LATER than the press — read back,
+     it would open the box on something nobody sent. */
+  const b2 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows, 'P7') }),
+    reply: ansBackend_({ 'ans:q:Q-SUB-1': { v: '99', at: Date.now() + 60000 } }, subBackend_(rows)),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } });
+  await wait(500);
+  b2.w.stuffItemsAll_ = () => [SUB_SUM];
+  const c2 = subDraw_(b2.w, SUB_SUM);
+  const box2 = c2.querySelector('.qp-ans-in');
+  if (!box2 || box2.value !== '16') bad.push('a fresh device opens the box on ' + JSON.stringify(box2 && box2.value) + ' — wanted the latest answer sent, 16, and never an old draft off the answers tab');
+  if (b2.w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '16') bad.push('the account’s old draft of a typed answer was read back into this device: ' + JSON.stringify(b2.w.localStorage.getItem('ans:u:P7:q:Q-SUB-1')));
+  if (c2.querySelector('.qp-verdict').textContent !== 'Not yet — have another go' || !c2.querySelector('.qp-mark.is-near')) bad.push('a fresh device’s verdict line says ' + JSON.stringify(c2.querySelector('.qp-verdict').textContent) + ' — *"they would see incorrect answer there next time they login"*');
+  if (subSlotOf_(c2).textContent !== 'Not yet') bad.push('a fresh device’s card says ' + JSON.stringify(subSlotOf_(c2).textContent));
+  if ((c2.querySelector('.qp-saved') || {}).textContent !== 'Sent to Ada’s account') bad.push('a fresh device says ' + JSON.stringify((c2.querySelector('.qp-saved') || {}).textContent) + ' under the account’s own answer');
+  if (b2.sent.some(b => b.action === 'submitAnswer')) bad.push('the fresh device sent the account’s presses straight back');
+  /* AND A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
+  const b3 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows, 'P7') }),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_BEN)); } });
+  await wait(500);
+  b3.w.stuffItemsAll_ = () => [SUB_SUM];
+  const c3 = subDraw_(b3.w, SUB_SUM);
+  if (subSlotOf_(c3).textContent || c3.querySelector('.qp-ans-in').value) bad.push('BEN’S CARD SHOWS ADA’S SUBMISSION: ' + JSON.stringify([subSlotOf_(c3).textContent, c3.querySelector('.qp-ans-in').value]));
+  /* ANOTHER DEVICE PRESSED SEND BEFORE THIS DRAFT WAS TYPED: its press is the latest on the card, and the
+     draft — typed after it — still stays in the box. */
+  rows.push({ pid: 'P7', id: '1760000000101-ot0001', key: 'q:Q-SUB-1', answer: '20', verdict: 'wrong', at: rows[1].at + 1 });
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
+  w.adoptMarks_();
+  await wait(40);
+  if (inp().value !== '17') bad.push('a press made on another device BEFORE this draft was typed replaced the draft: the box reads ' + JSON.stringify(inp().value));
+  /* AND ONE PRESSED AFTER IT: the latest event, on the card and in the box — the draft is older than it. */
+  rows.push({ pid: 'P7', id: '1760000000102-ot0002', key: 'q:Q-SUB-1', answer: '21', verdict: 'right', at: Date.now() + 5000 });
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
+  w.adoptMarks_();
+  await wait(40);
+  if (inp().value !== '21' || subSlotOf_(card).textContent !== 'Correct' || card.querySelector('.qp-verdict').textContent !== 'Correct') bad.push('a press made on another device AFTER this draft did not take the box and the card: ' + JSON.stringify([inp().value, subSlotOf_(card).textContent, card.querySelector('.qp-verdict').textContent]));
+  /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent — counts and a day, never an answer. */
+  w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
+  w.__t.DATA().submissions = { for: 'P1', mine: {}, people: { P7: { n: 12, last: '2001-10-04' }, P9: { n: 1, last: '2001-10-04' } } };
+  if (typeof w.subsLine_ !== 'function') bad.push('subsLine_ is not reachable — the admin’s line was NOT checked');
   else {
-    if (by['q:Q-NAME-1'].day !== '2026-10-06') bad.push('the unnamed row was sent day ' + by['q:Q-NAME-1'].day + ' — wanted its own last day, so the backend counts nothing');
-    if (!/Q1/.test(String(by['q:Q-NAME-1'].label || ''))) bad.push('the unnamed row went up without a name: ' + JSON.stringify(by['q:Q-NAME-1']));
+    if (w.subsLine_('P7') !== '12 questions · last 4 Oct 2001') bad.push('an admin reads "' + w.subsLine_('P7') + '" under a learner, wanted "12 questions · last 4 Oct 2001"');
+    if (w.subsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.subsLine_('P9') + '"');
+    if (w.subsLine_('P5') !== '') bad.push('a person who sent nothing reads "' + w.subsLine_('P5') + '"');
+    const host = w.document.createElement('div');
+    host.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: w.subsLine_('P7') } });
+    const act = host.querySelector('.prof-who .prof-act');
+    if (!act || act.textContent !== '12 questions · last 4 Oct 2001') bad.push('the person card does not draw the line under the name');
+    w.__t.USER(Object.assign({}, ANS_BEN));
+    if (w.subsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone');
   }
-  if (by['q:Q-NAME-3']) bad.push('a row the sheet already names (Q-NAME-3) was sent again — every visit would send it');
-  if (by['q:Q-NOCARD']) bad.push('a row no card on this phone answers to was sent with nothing to add: ' + JSON.stringify(by['q:Q-NOCARD']));
+  w.__t.USER(null);
   return bad;
 });
 
-/* ==================================================================================================
-   AND ITS WORDS, FOR THE PARENT EMAIL. ASKED FOR AS *"emails all parents on work their child
-   has done with the exact questions for each"*. The backend cannot look a key up, so the phone sends
-   what it draws (`doneWords_`) with the mark, the way it sends the name, and the email prints it.
+check('submission: a pick, an ordering, Mark with AI and a worksheet box are each an event, and a drawing still goes up as it is drawn', async () => {
+  const rows = [], drafts = {};
+  const ORD = { kind: 'question', key: 'q:Q-SUB-ORD', name: 'Q4', marks: 1, subject: 'Maths', sub: 'Order', answerType: 'order',
+    row: { row_id: 'Q-SUB-ORD', paper_id: 'P-SUB', subject: 'Maths', name: 'Order' }, html: '<p>Smallest first.</p>',
+    choices: ['3', '1', '2'], choiceRight: [2, 3, 1], choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' };
+  const AIQ = { kind: 'question', key: 'q:Q-SUB-AI', name: 'Q9', marks: 3, subject: 'Science', sub: 'Explain', answerType: 'explain',
+    row: { row_id: 'Q-SUB-AI', paper_id: 'P-SUB', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
+  const PR = { kind: 'practical', name: 'Rates of reaction', key: 'pr:PR-SUB', subject: 'Chemistry', sub: 'Chemistry · Required practical · 60 min' };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
+    reply: ansBackend_(drafts, subBackend_(rows, b => (b.action === 'aiMark' ? { success: true, awarded: 2, available: 3, feedback: 'Say what the heat does.' } : undefined))) });
+  await wait(300);
+  const need = ansNeed_(w).concat(['subRecord_', 'orderBox_', 'guideBox_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was pressed'];
+  const bad = [], A = w.__t.ACTIONS;
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'S');
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => held().concat([ORD, AIQ, PR]);
+  const items = () => [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+  const of = key => items().filter(i => i.key === key);
+  /* A PICK: marked at once, one event. */
+  A['qp-choose'](c.box().querySelector('[data-n="1"]'));
+  await wait(40);
+  if (of(c.pick.key).length !== 1 || of(c.pick.key)[0].answer !== '1' || of(c.pick.key)[0].verdict !== 'wrong') bad.push('a wrong pick went up as ' + JSON.stringify(of(c.pick.key)) + ' — wanted one event, answer 1, wrong');
+  /* AN ORDERING: placing is not an event, Send is. */
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  host.innerHTML = w.questionCard_(ORD, 0);
+  const box = () => host.querySelector('.qp-order');
+  [2, 3].forEach(n => box().querySelector('.qp-item[data-n="' + n + '"]').click());
+  await wait(30);
+  if (of('q:Q-SUB-ORD').length) bad.push('placing items in an ordering sent a submission — Send is the press');
+  box().querySelector('.qp-order-send').click();
+  await wait(30);
+  if (of('q:Q-SUB-ORD').length) bad.push('Send on an ordering with a place still empty sent a submission — it is not an answer yet');
+  box().querySelector('.qp-item[data-n="1"]').click();
+  box().querySelector('.qp-order-send').click();
+  await wait(40);
+  const o = of('q:Q-SUB-ORD');
+  if (o.length !== 1 || o[0].answer !== '2,3,1' || o[0].verdict !== 'right') bad.push('Send on the full ordering went up as ' + JSON.stringify(o) + ' — wanted one event, 2,3,1, right');
+  if ((box().querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the ordering’s verdict is ' + JSON.stringify((box().querySelector('.qp-verdict') || {}).textContent));
+  /* DRAWN AGAIN AFTER A MOVE AND BACK: the verdict is the latest press's, drawn while the row is that row. */
+  box().querySelector('.qp-slot.is-full[data-n="1"]').click();
+  if ((box().querySelector('.qp-verdict') || {}).textContent) bad.push('moving an item left the verdict on a row that changed');
+  box().querySelector('.qp-item[data-n="1"]').click();
+  if ((box().querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('put back to the row that was sent, the verdict did not return: ' + JSON.stringify((box().querySelector('.qp-verdict') || {}).textContent));
+  /* MARK WITH AI: the marks are the verdict, ai:2/3. */
+  const ah = w.document.createElement('div');
+  w.document.body.appendChild(ah);
+  ah.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + w.questionTiles_(AIQ) + '</div>';
+  const ai = ah.querySelector('.qp-ai-go');
+  if (!ai) bad.push('the worded card drew no Mark with AI — the AI press was NOT checked');
+  else {
+    ansType_(w, ah.querySelector('.qp-ans-in'), 'because it is hot');
+    A['qp-ai'](ai);
+    await wait(60);
+    const m = of('q:Q-SUB-AI');
+    if (m.length !== 1 || m[0].verdict !== 'ai:2/3' || m[0].answer !== 'because it is hot') bad.push('Mark with AI went up as ' + JSON.stringify(m) + ' — wanted one event, ai:2/3');
+    const slot = ah.querySelector('.tile-row .qcard-verdict');
+    if (!slot || slot.textContent !== '2/3') bad.push('the card after Mark with AI says ' + JSON.stringify(slot && slot.textContent) + ' — wanted the AI’s 2/3');
+    /* AND WHEN AI MARKING GOES AWAY MID-VISIT, THE BOX KEEPS A SEND. */
+    w.aiOff_('AI marking is switched off');
+    if (!ah.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('with AI marking switched off the worded box has nothing to send with');
+  }
+  /* A PRACTICAL'S WORKSHEET BOX: its own Send, `sent`, the slot on the key. */
+  const sh = w.document.createElement('div');
+  w.document.body.appendChild(sh);
+  sh.innerHTML = w.guideBox_(PR, 'iv', 'Independent variable — the one thing you will change');
+  const gs = sh.querySelector('[data-do="qp-send"]');
+  if (!gs) bad.push('a practical’s worksheet box has no Send, signed in — its answer would never leave the iPad');
+  else {
+    ansType_(w, sh.querySelector('.qp-ans-in'), 'the temperature');
+    gs.click();
+    await wait(40);
+    const p = of('pr:PR-SUB#iv');
+    if (p.length !== 1 || p[0].verdict !== 'sent' || p[0].label !== 'Chemistry · Required practical · Rates of reaction · Worksheet' || 'words' in p[0]) bad.push('the worksheet box went up as ' + JSON.stringify(p) + ' — wanted one event, sent, named as the worksheet, no words');
+    if ((sh.querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('the worksheet box’s line says ' + JSON.stringify((sh.querySelector('.qp-verdict') || {}).textContent));
+  }
+  /* A DRAWING STILL GOES UP AS IT IS DRAWN — it has no Send — and no typed answer goes with it. */
+  ansType_(w, c.ta(), 'a draft');
+  ansStroke_(w, c, [[10, 10], [20, 20], [30, 30], [40, 40]]);
+  await wait(1700);
+  const saves = [].concat(...sent.filter(b => b.action === 'saveAnswers').map(b => b.items || []));
+  if (!saves.some(i => i.key === 'pad:' + c.pen.key)) bad.push('a drawing did not go up to the account: ' + JSON.stringify(saves.map(i => i.key)));
+  if (saves.some(i => /^ans:/.test(i.key))) bad.push('a typed or picked answer went up as a draft beside the drawing: ' + JSON.stringify(saves.filter(i => /^ans:/.test(i.key)).map(i => i.key)));
+  w.__t.USER(null);
+  return bad;
+});
+
+check('submission: kept on the device until the backend can take them, sent again after a refusal with the same id, and never twice', async () => {
+  const rows = [];
+  let refuse = 0;
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: [] }),
+    reply: ansBackend_({}, subBackend_(rows, b => (b.action === 'submitAnswer' && refuse-- > 0 ? { error: 'Busy — it will be sent again.', why: 'busy' } : undefined))) });
+  await wait(300);
+  if (typeof w.subPush_ !== 'function' || typeof w.adoptMarks_ !== 'function') return ['subPush_ or adoptMarks_ not reachable — nothing was checked'];
+  const bad = [];
+  w.stuffItemsAll_ = () => [SUB_SUM];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const card = subDraw_(w, SUB_SUM);
+  const queue = () => { try { return JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) { return []; } };
+  const subs = () => sent.filter(b => b.action === 'submitAnswer');
+  /* A BACKEND FROM BEFORE: kept, not sent, and the card shows it all the same. */
+  ansType_(w, card.querySelector('.qp-ans-in'), '15');
+  card.querySelector('.qp-check').click();
+  ansType_(w, card.querySelector('.qp-ans-in'), '16');
+  card.querySelector('.qp-check').click();
+  await wait(40);
+  if (subs().length) bad.push('a backend without submitAnswer was sent ' + subs().length + ' request(s)');
+  if (queue().length !== 2) bad.push('two presses to a backend that cannot take them left ' + queue().length + ' on the device — wanted both, in order');
+  if (subSlotOf_(card).textContent !== 'Not yet') bad.push('a press kept on the device does not show on the card: ' + JSON.stringify(subSlotOf_(card).textContent));
+  /* THE BACKEND IS UPDATED; THE FIRST TRY IS BUSY. */
+  refuse = 1;
+  w.__t.DATA().features = SUB_FEATURES;
+  w.adoptMarks_();
+  await wait(60);
+  if (subs().length !== 1 || queue().length !== 2) bad.push('a refused send changed the queue (' + queue().length + ' left after ' + subs().length + ' request(s)) — both presses must wait for the next try');
+  const ids0 = ((subs()[0] || {}).items || []).map(i => i.id).join();
+  await w.subPush_(true);
+  const ids1 = ((subs()[1] || {}).items || []).map(i => i.id).join();
+  if (!ids0 || ids1 !== ids0) bad.push('the retry sent ' + JSON.stringify(ids1) + ' after a refusal of ' + JSON.stringify(ids0) + ' — the same presses, under the same ids');
+  if (queue().length) bad.push('after the retry was saved, ' + queue().length + ' press(es) are still waiting');
+  if (rows.length !== 2 || rows[0].answer !== '15' || rows[1].answer !== '16') bad.push('the account holds ' + JSON.stringify(rows.map(r => r.answer)) + ' — wanted 15 then 16, each once');
+  /* A REPLY NEVER SEEN: the same press sent again is one row on the account. */
+  const lost = { id: '1760000000999-zz0001', key: 'q:Q-SUB-1', answer: '17', verdict: 'wrong' };
+  w.localStorage.setItem('subQ:u:P7', JSON.stringify([lost]));
+  await w.subPush_(true);
+  w.localStorage.setItem('subQ:u:P7', JSON.stringify([lost]));
+  await w.subPush_(true);
+  if (rows.filter(r => r.id === lost.id).length !== 1) bad.push('a press sent twice is ' + rows.filter(r => r.id === lost.id).length + ' rows');
+  /* AS THE APP GOES AWAY, WITH keepalive. */
+  const kept = [];
+  const was = w.fetch;
+  w.fetch = (u, o) => { if (o && o.keepalive) kept.push(JSON.parse(o.body)); return was(u, o); };
+  w.localStorage.setItem('subQ:u:P7', JSON.stringify([{ id: '1760000001000-zz0002', key: 'q:Q-SUB-1', answer: '18', verdict: 'wrong' }]));
+  w.dispatchEvent(new w.Event('pagehide'));
+  await wait(60);
+  w.fetch = was;
+  if (!kept.some(b => b.action === 'submitAnswer')) bad.push('pagehide sent nothing with keepalive — closing the iPad would keep the last press waiting');
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- THE QUESTION'S OWN WORDS, WITH EVERY PRESS ---------------------------------------------
+   ASKED FOR AS *"emails all parents on work their child has done with the exact questions for each"*.
+   The backend cannot look a key up, so the phone sends what it draws (`doneWords_`) with each press,
+   the way it sends the name, and the email prints it.
 
    ASKED OF THE LIBRARY'S OWN BUILDER — `questionItems`, over rows shaped as the payload carries them —
-   and the real `doneMark_`, because every way this goes wrong is quiet and is a parent told a
+   and the real `subRecord_`, because every way this goes wrong is quiet and is a parent told a
    different question: a part sent without the scene it hangs from is "work out the probability of
    red" with no bag in it; a fraction flattened is 3/4 read as 34; a power flattened is x² read as x2.
    The library's two stored fractions are both here — `<sup>3</sup>&frasl;<sub>4</sub>` and the stacked
    `.frac` span, which came out "13 × 58" for a third times five eighths until this asked — and so is an
    italic index, which came out "2x" for 2 to the x. A paper's cover is not the question; a drawing's
    labels are not its words; a picture the email cannot draw is said; a practical's worksheet box
-   sends nothing, because its name already says which sheet.
-================================================================================================== */
+   sends nothing, because its name already says which sheet. AND THE NAME, as a parent reads it: the
+   tier when the paper's name does not say it, the subject not twice. */
 const WD_SVG = '<svg viewBox="0 0 10 10"><text x="1" y="5">LABELWORD</text></svg>';
 const wdBank_ = () => [
   /* THE PAPER'S COVER — paper scope. Every question in the paper sits under it, and it is not one. */
@@ -11515,19 +12359,20 @@ const wdBank_ = () => [
   mpRow_('P-WD', 'Words', 11, '', { html: '<p>Is <i>x</i> &lt; 7 when ' + WD_SVG + '<i>x</i> = 3?</p>' }),
 ];
 const WD_ADA = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' };
-check('a Check sends the question’s own words: its stem above the part, a fraction as 3/4, a power as x², a picture said, a worksheet box none', async () => {
-  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: {}, keepsWords: 1 } });
-  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true }) });
+check('submission: a press carries the question’s own words — its stem above the part, a fraction as 3/4, a power as x², a picture said — and the name a parent reads', async () => {
+  const rows = [];
+  const p = Object.assign(payload(), { features: ['submitAnswer'] });
+  const { w, sent } = boot({ payload: p, reply: ansBackend_({}, subBackend_(rows)) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, ansKey = w.__t.ansKey;
-  const need = ['questionItems', 'doneMark_', 'questionCard_', 'questionTiles_'].filter(n => typeof w[n] !== 'function')
+  const need = ['questionItems', 'subRecord_', 'questionCard_', 'questionTiles_'].filter(n => typeof w[n] !== 'function')
     .concat(A['qp-check'] ? [] : ['qp-check']).concat(typeof ansKey === 'function' ? [] : ['ansKey_']);
-  if (need.length) return [need.join(', ') + ' not reachable — renamed? The words a Check sends were NOT checked'];
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The words a press sends were NOT checked'];
   const bad = [];
   const lib = mpLibrary_(w, wdBank_());
   const item = n => lib.items.find(x => x.row.paper === 'P-WD' && x.name === n);
-  const marks = () => sent.filter(b => b.action === 'markDone');
-  const sentFor = key => { let got = null; marks().forEach(b => (b.items || []).forEach(i => { if (i.key === key) got = i; })); return got; };
+  const items = () => [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+  const sentFor = key => items().filter(i => i.key === key).pop() || null;
   try {
     w.__t.USER(WD_ADA);
     /* THE FIRST THROUGH A REAL CARD AND A REAL CHECK, as a child marks it. */
@@ -11540,9 +12385,9 @@ check('a Check sends the question’s own words: its stem above the part, a frac
     const box = card && card.querySelector('.qp-ans-in'), btn = card && card.querySelector('.qp-check');
     if (!box || !btn) bad.push('Q5a was drawn with no answer box or no Check — the Check was NOT pressed');
     else { box.value = '3/8'; A['qp-check'](btn); }
-    /* THE REST AS EVERY OTHER MARK GOES — the first keystroke, Check or tap of the day calls this. */
-    ['Q5b', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11'].forEach(n => { const x = item(n); if (x) w.doneMark_(ansKey(x)); else bad.push(n + ' did not reach the library'); });
-    await wait(40);
+    /* THE REST AS EVERY PRESS GOES — `subRecord_` is what every handler calls. */
+    ['Q5b', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11'].forEach(n => { const x = item(n); if (x) w.subRecord_(ansKey(x), 'an answer', 'sent'); else bad.push(n + ' did not reach the library'); });
+    await wait(150);
     const want = {
       Q5a: 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.',
       Q5b: 'A bag holds 3 red and 5 blue counters.\n---\nTwo are taken. Work out the probability both are blue.',
@@ -11565,213 +12410,715 @@ check('a Check sends the question’s own words: its stem above the part, a frac
     };
     Object.keys(want).forEach(n => {
       const x = item(n), got = x && sentFor(x.key);
-      if (!got) bad.push(n + ' — ' + why[n] + ' — sent no markDone at all');
+      if (!got) bad.push(n + ' — ' + why[n] + ' — sent no submission at all');
       else if (got.words !== want[n]) bad.push(n + ' — ' + why[n] + ' — sent words ' + JSON.stringify(got.words) + ', wanted ' + JSON.stringify(want[n]));
     });
-    const all = JSON.stringify(marks());
+    const all = JSON.stringify(items());
     if (/COVERWORD/.test(all)) bad.push('the paper’s cover went up as part of a question’s words — it is the paper’s, not the question’s');
     if (/LABELWORD/.test(all)) bad.push('a drawing’s labels went up as a question’s words');
-    /* AND STILL ITS NAME, BESIDE THE WORDS — the heading the email lists it under. */
     const named = sentFor(q5a.key);
     if (named && !/Q5a/.test(String(named.label || ''))) bad.push('the words went up without the name: ' + JSON.stringify(named));
-    /* A PRACTICAL'S WORKSHEET BOX: the name says which sheet, and the card's method is not "the question". */
+    /* THE NAME A PARENT READS: the subject not twice, and the tier when the paper's name does not say it. */
+    const named_ = (k, subject, sub, more) => Object.assign({}, SUB_SUM, { key: k, subject: subject, sub: sub }, more || {});
+    const cards = [
+      named_('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024'),
+      named_('q-named-2', 'Biology', 'Biology Paper 2 — June 2023'),
+      named_('q-tier-h', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Higher' }),
+      named_('q-tier-f', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Foundation' }),
+      named_('q-tier-a', 'Physics', 'Paper 1 — June 2024', { tier: '', bandValue: 'A-Level', row: { level: 'Alevel' } }),
+      named_('q-tier-s', 'Maths', 'Higher Paper 3 — June 2023', { tier: 'Higher' }),
+    ];
     const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'Physics · Required practical · 60 min',
                  html: '<p>PRACTICALWORD: heat the block for ten minutes.</p>', lead: '<p>PRACTICALWORD</p>' };
-    const heldAll = w.stuffItemsAll_;
-    const n4 = marks().length;
-    w.stuffItemsAll_ = () => lib.items.concat([pr]);
-    try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldAll; }
-    await wait(30);
-    const box4 = ((marks().slice(n4)[0] || {}).items || [])[0];
-    if (!box4) bad.push('a practical’s worksheet box sent no markDone at all');
-    else if ('words' in box4) bad.push('a practical’s worksheet box sent words: ' + JSON.stringify(box4.words) + ' — its name already says which worksheet');
+    w.stuffItemsAll_ = () => lib.items.concat(cards, [pr]);
+    cards.forEach(x => w.subRecord_(ansKey(x), '15', 'right'));
+    w.subRecord_('ans:' + w.whoIs_() + ':pr:PR-T1#iv', 'the temperature', 'sent');
+    await wait(60);
+    const labels = cards.map(x => (sentFor(x.key) || {}).label);
+    const wantLabels = ['Maths · Paper 1 (Calculator) — June 2024 · Q3', 'Biology Paper 2 — June 2023 · Q3',
+      'Maths · Paper 1 (Non-calculator) — June 2024 (Higher) · Q3', 'Maths · Paper 1 (Non-calculator) — June 2024 (Foundation) · Q3',
+      'Physics · Paper 1 — June 2024 (A-level) · Q3', 'Maths · Higher Paper 3 — June 2023 · Q3'];
+    if (JSON.stringify(labels) !== JSON.stringify(wantLabels)) bad.push('presses on library cards went up named ' + JSON.stringify(labels) + ' — wanted ' + JSON.stringify(wantLabels) + ': a paper’s tier said once, and only when its name does not');
+    /* A PRACTICAL'S WORKSHEET BOX: the name says which sheet, no card duration, and no words. */
+    const box4 = sentFor('pr:PR-T1#iv');
+    if (!box4) bad.push('a practical’s worksheet box sent no submission at all');
+    else {
+      if (box4.label !== 'Physics · Required practical · Specific heat capacity · Worksheet') bad.push('a practical’s worksheet box went up named ' + JSON.stringify(box4.label) + ' — wanted the worksheet, and no "60 min", which a parent reads as time spent');
+      if ('words' in box4) bad.push('a practical’s worksheet box sent words: ' + JSON.stringify(box4.words) + ' — its name already says which worksheet');
+    }
   } finally { lib.put(); w.__t.USER(null); }
   return bad;
 });
 
-/* ---------- AND A ROW THE SHEET HOLDS WITHOUT ITS WORDS IS SENT THEM — ONLY TO A BACKEND THAT KEEPS THEM --
-   Rows marked before the phone sent words have none, and their parent's email would list numbers. So
-   the load sends a row its words the way it sends a name (`attemptsSync_`): for a row the payload says
-   has none (no `worded`), with the row's own last day, which the backend counts as covered. NOT to a
-   backend without `attemptWords` in its features — it has no column for them, and every visit would
-   send every row again for nothing — and NOT for a row that already has them, which is every visit
-   sending every row. The backlog the phone kept goes up with its words as well as its name. */
-check('the load sends a row its words only to a backend that keeps them, and only for a row the sheet holds without', async () => {
-  const mine = () => ({
-    /* NAMED, NOT WORDED: its words alone. */
-    'q:Q-P-WD-5a': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1 },
-    /* NAMED AND WORDED: nothing. */
-    'q:Q-P-WD-5b': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1, worded: 1 },
-    /* NEITHER: both. */
-    'q:Q-P-WD-6': { first: '2026-10-04', last: '2026-10-04', times: 1 },
-  });
-  /* `keeps` IS THE TAB'S OWN WORD (`keepsWords` from `attemptsFor_`): the code can keep words only once
-     the column is there, and a backend synced before `ensureSchema` says the first and not the second. */
-  const run = async (features, keeps) => {
-    const p = Object.assign(payload(), { features: features, attempts: Object.assign({ for: 'P7', mine: mine() }, keeps === false ? {} : { keepsWords: 1 }) });
-    const { w, sent } = boot({ payload: p, reply: b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true }),
-      /* AND THE BACKLOG: a day this phone kept that the sheet lacks. */
-      before: win => { win.localStorage.setItem('done:u:P7:q:Q-P-WD-7', '2026-10-06'); } });
-    await wait(300);
-    if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return null;
-    const lib = mpLibrary_(w, wdBank_());
-    try {
-      w.__t.USER(WD_ADA);
-      w.adoptMarks_();
-      await wait(40);
-    } finally { lib.put(); w.__t.USER(null); }
-    const m = sent.filter(b => b.action === 'markDone');
-    const by = {};
-    m.forEach(b => (b.items || []).forEach(i => { by[i.key] = i; }));
-    return { n: m.length, by: by };
-  };
-  const bad = [];
-  const STEM = 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.';
-  /* A BACKEND WITHOUT `attemptWords`: the names go, as before, and no words at all. */
-  const off = await run(['markDone']);
-  if (!off) return ['adoptMarks_ or questionItems is not reachable — renamed? The backfill was NOT checked'];
-  if (off.n !== 1) bad.push('without attemptWords the load sent ' + off.n + ' markDone request(s), wanted 1 (the unnamed row and the backlog)');
-  Object.keys(off.by).forEach(k => { if ('words' in off.by[k]) bad.push('a backend without attemptWords was sent words for ' + k + ': ' + JSON.stringify(off.by[k].words) + ' — it has no column, and every visit would send them again'); });
-  if (off.by['q:Q-P-WD-5a']) bad.push('without attemptWords a named row was sent anyway: ' + JSON.stringify(off.by['q:Q-P-WD-5a']) + ' — there is nothing it lacks that this backend keeps');
-  if (!off.by['q:Q-P-WD-6'] || !/Q6/.test(String(off.by['q:Q-P-WD-6'].label || ''))) bad.push('without attemptWords the unnamed row did not go up with its name: ' + JSON.stringify(off.by['q:Q-P-WD-6']));
-  if (!off.by['q:Q-P-WD-7']) bad.push('without attemptWords the backlog did not go up');
-  /* A BACKEND THAT KEEPS THEM. */
-  /* THE CODE SAYS YES AND THE TAB HAS NO COLUMN: no words — every visit would send every row for nothing. */
-  const noCol = await run(['markDone', 'attemptWords'], false);
-  if (!noCol) bad.push('the load could not be run without the words column, so that case was NOT checked');
-  else Object.keys(noCol.by).forEach(k => { if ('words' in noCol.by[k]) bad.push('a tab without the words column was sent words for ' + k + ' — attemptsFor_ said it has no column'); });
-  const on = await run(['markDone', 'attemptWords']);
-  if (on.n !== 1) bad.push('with attemptWords the load sent ' + on.n + ' markDone request(s), wanted 1');
-  const a = on.by['q:Q-P-WD-5a'];
-  if (!a) bad.push('a row the sheet names but holds without words (Q5a) was not sent its words');
-  else {
-    if (a.words !== STEM) bad.push('Q5a was sent words ' + JSON.stringify(a.words) + ' — wanted ' + JSON.stringify(STEM));
-    if (a.day !== '2026-10-05') bad.push('Q5a was sent day ' + a.day + ' — wanted its own last day, 2026-10-05, so the backend counts nothing');
-    if ('label' in a) bad.push('Q5a, already named on the sheet, was sent its name again: ' + JSON.stringify(a.label));
-  }
-  if (on.by['q:Q-P-WD-5b']) bad.push('a row the sheet already holds with its name and words (Q5b) was sent again — every visit would send it: ' + JSON.stringify(on.by['q:Q-P-WD-5b']));
-  const six = on.by['q:Q-P-WD-6'];
-  if (!six || six.words !== 'Work out 3/4 of 20.' || !/Q6/.test(String(six.label || '')) || six.day !== '2026-10-04') bad.push('a row with neither (Q6) went up as ' + JSON.stringify(six) + ' — wanted its name, its words and its own day');
-  const seven = on.by['q:Q-P-WD-7'];
-  if (!seven || seven.words !== 'Expand x²(x + y^5).' || seven.day !== '2026-10-06') bad.push('the backlog (Q7) went up as ' + JSON.stringify(seven) + ' — wanted its words and the day the phone kept');
-  return bad;
-});
-
-/* ---------- SIXTY ROWS TO NAME GO UP IN TWO REQUESTS, AND STOP ------------------------------------------
-   MEASURED BEFORE THE FIX: a learner with more than fifty rows to name had the first fifty sent; the
-   reply — from a backend that did not say `named` — was adopted, the next pass found the same fifty
-   still unnamed and sent them again, and again, for as long as the page was open. Every visit, a
-   request a second to the Apps Script quota until it refused. `ATTEMPTS_SENT` now sends a key once a
-   visit whatever the reply says, so sixty rows are fifty and then ten and then nothing.
-
-   THE REPLY IS THE OLD BACKEND'S: every row and its days, and no flag. After the sixth request every
-   reply is a refusal, which ends `attemptsSync_` — so if the loop comes back it is counted here and
-   ended, not left spinning through the rest of the suite. */
-check('sixty unnamed rows go up in two requests, fifty then ten, and stop — a reply with no flags does not send them again', async () => {
-  const rows = [], mine = {};
-  for (let i = 1; i <= 60; i++) {
-    rows.push(mpRow_('P-WL', 'Loop', i, '', { html: '<p>Loop question ' + i + '.</p>' }));
-    mine['q:Q-P-WL-' + i] = { first: '2026-10-05', last: '2026-10-05', times: 1 };
-  }
-  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: mine, keepsWords: 1 } });
-  let asked = 0;
-  const reply = b => {
-    if (b.action !== 'markDone') return { success: true };
-    if (++asked > 6) return { success: false, error: 'stopped by the test' };
-    return { success: true, attempts: (b.items || []).reduce((o, it) => { o[it.key] = { first: '2026-10-05', last: it.day, times: 1 }; return o; }, {}) };
-  };
-  const { w, sent } = boot({ payload: p, reply });
+/* ---------- THE KEYPAD'S GOLD SEND IS THE BOX'S OWN SEND (review of 9 Oct, the blocker) ----------------------
+   `kpDone_` ran `.qp-check` and nothing else, so on every box whose control is the plain Send — about 399
+   maths answers with no scheme, every worksheet box, every worded box while AI marking is off — the gold
+   key (drawn as Send's own aeroplane) and a laptop's Enter put the pad away and sent nothing. Pressed here
+   through the real pad: a maths box with no scheme, two worksheet boxes side by side (only the one typed
+   in is sent), a box with a scheme (Check), and an essay, whose key says "done" and sends nothing. */
+check('submission: the keypad’s gold Send and a laptop’s Enter send the box’s own Send — no scheme, a worksheet box, a Check — and an essay’s “done” sends nothing', async () => {
+  const rows = [];
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_({}, subBackend_(rows)) });
   await wait(300);
-  if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return ['adoptMarks_ or questionItems is not reachable — renamed? The loop was NOT checked'];
-  const lib = mpLibrary_(w, rows);
-  try {
-    w.__t.USER(WD_ADA);
-    w.adoptMarks_();
-    await wait(200);
-  } finally { lib.put(); }
-  const bad = [];
-  const m = sent.filter(b => b.action === 'markDone');
-  const sizes = m.map(b => (b.items || []).length);
-  if (JSON.stringify(sizes) !== '[50,10]') bad.push('sixty unnamed rows went up as ' + m.length + ' request(s) of ' + JSON.stringify(sizes.slice(0, 8)) + (sizes.length > 8 ? '…' : '') + ' — wanted two, [50,10], and then nothing');
-  const keys = new Set();
-  m.forEach(b => (b.items || []).forEach(i => keys.add(i.key)));
-  if (keys.size !== 60) bad.push(keys.size + ' different rows were sent — wanted all 60, each once');
-  const first = (m[0] && m[0].items && m[0].items[0]) || {};
-  if (!/Q1/.test(String(first.label || '')) || first.words !== 'Loop question 1.') bad.push('the first row went up as ' + JSON.stringify(first) + ' — wanted its name and its words');
-  /* AND A SECOND PAYLOAD IN THE SAME VISIT SENDS NOTHING MORE. */
-  const n = m.length;
-  w.adoptMarks_();
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key'] || !A['qp-send'] || !A['qp-check'] || typeof w.guideBox_ !== 'function') return ['the keypad, Send, Check or the worksheet box is not reachable — the gold key was NOT pressed'];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const base = { kind: 'question', marks: 2, subject: 'Maths', sub: 'Paper 1 (Non-calculator) — November 2018',
+    row: { row_id: 'Q-KP-1', paper_id: 'P-KP', subject: 'Maths', name: 'Paper 1 (Non-calculator) — November 2018' } };
+  const FREE = Object.assign({}, base, { key: 'q:Q-KP-FREE', name: 'Q15', answerType: 'calculation', accept: '', html: '<p>Work out the area.</p>', answer: '<b>42</b>' });
+  const CHK = Object.assign({}, base, { key: 'q:Q-KP-CHK', name: 'Q3', accept: '15', html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>' });
+  const ESS = { kind: 'question', key: 'q:Q-KP-ESS', name: 'Q5', marks: 40, subject: 'English Language', sub: 'Paper 1 — June 2017', answerType: 'written', accept: '',
+    row: { row_id: 'Q-KP-ESS', paper_id: 'P-KP-E', subject: 'English Language', name: 'Paper 1 — June 2017' }, html: '<p>Write a story.</p>', answer: '<b>Level 4</b> compelling' };
+  const PR = { kind: 'practical', name: 'Rates of reaction', key: 'pr:PR-KP', subject: 'Chemistry', sub: 'Chemistry · Required practical · 60 min' };
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => held().concat([FREE, CHK, ESS, PR]);
+  const items = key => [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || [])).filter(i => i.key === key);
+  const pad = () => d.getElementById('kp');
+  const press = v => { const b = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the pad'); };
+  const kd = (el, k, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, o || {})));
+  /* A MATHS BOX WITH NO SCHEME: the plain Send beside it, and the gold key is that Send. */
+  const fc = subDraw_(w, FREE);
+  const fi = fc.querySelector('.kp-in');
+  if (!fi || !fc.querySelector('.qp-send[data-do="qp-send"]')) return bad.concat(['the maths box with no scheme drew no pad box or no plain Send — nothing to press']);
+  fi.focus();
+  press('4'); press('2');
+  press('!done');
   await wait(60);
-  if (sent.filter(b => b.action === 'markDone').length !== n) bad.push('a second payload in the same visit sent the rows again');
+  const f1 = items('q:Q-KP-FREE');
+  if (f1.length !== 1 || f1[0].answer !== '42' || f1[0].verdict !== 'sent') bad.push('the gold key on a maths box with no scheme sent ' + JSON.stringify(f1) + ' — wanted one submission, 42, sent (the review: 0 rows, and the pad went away)');
+  if ((fc.querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('after the gold key the box’s line says ' + JSON.stringify((fc.querySelector('.qp-verdict') || {}).textContent) + ' — wanted its verdict, Sent');
+  if (subSlotOf_(fc).textContent !== 'Sent') bad.push('after the gold key the card says ' + JSON.stringify(subSlotOf_(fc).textContent));
+  if (pad() && !pad().hidden) bad.push('the gold key sent and left the pad up');
+  /* AND ENTER ON A LAPTOP, the same act. */
+  fi.focus();
+  kd(fi, '3');
+  kd(fi, 'Enter');
+  await wait(60);
+  const f2 = items('q:Q-KP-FREE');
+  if (f2.length !== 2 || f2[1].answer !== '423') bad.push('Enter on a laptop in the same box sent ' + JSON.stringify(f2.map(i => i.answer)) + ' — wanted a second submission, 423');
+  /* TWO WORKSHEET BOXES SIDE BY SIDE: the key sends the box it is typing in, and only that one. */
+  const sh = d.createElement('div');
+  d.body.appendChild(sh);
+  sh.innerHTML = w.guideBox_(PR, 'iv', 'Independent variable — the one thing you will change') + w.guideBox_(PR, 'dv', 'Dependent variable — what you will measure');
+  const dv = sh.querySelectorAll('.kp-in')[1];
+  if (!dv || sh.querySelectorAll('.qp-send').length !== 2) bad.push('two worksheet boxes did not draw two boxes with a Send each');
+  else {
+    dv.focus();
+    ['t', 'i', 'm', 'e'].forEach(press);
+    press('!done');
+    await wait(60);
+    const p = items('pr:PR-KP#dv');
+    if (p.length !== 1 || p[0].answer !== 'Time' || p[0].verdict !== 'sent') bad.push('the gold key on a worksheet box sent ' + JSON.stringify(p) + ' — wanted one submission of its own box, Time, sent');
+    if (items('pr:PR-KP#iv').length) bad.push('the gold key in one worksheet box sent the box beside it');
+    if ((dv.closest('.qp-mark').querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('the worksheet box’s own line does not say Sent');
+  }
+  /* A BOX WITH A SCHEME: Check, as before. */
+  const cc = subDraw_(w, CHK);
+  const ci = cc.querySelector('.kp-in');
+  ci.focus();
+  press('1'); press('5'); press('!done');
+  await wait(60);
+  const c1 = items('q:Q-KP-CHK');
+  if (c1.length !== 1 || c1[0].verdict !== 'right' || (cc.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the gold key on a box with a scheme did not Check it: ' + JSON.stringify(c1));
+  /* AN ESSAY: its key says "done", and neither it nor Ctrl+Enter sends anything — its Send is a tile. */
+  const eh = d.createElement('div');
+  d.body.appendChild(eh);
+  eh.innerHTML = w.questionCard_(ESS, 0);
+  const ei = eh.querySelector('.kp-in[data-kp-essay]');
+  if (!ei) bad.push('the forty-mark English question drew no essay sheet — its "done" was NOT pressed');
+  else {
+    if (!eh.querySelector('.qp-send[data-do="qp-send"]')) bad.push('with AI marking off the essay sheet has no Send of its own — it could never reach the account');
+    ei.focus();
+    ['O', 'n', 'c', 'e'].forEach(c => kd(ei, c));
+    press('!done');
+    kd(ei, 'Enter', { ctrlKey: true });
+    await wait(60);
+    if (items('q:Q-KP-ESS').length) bad.push('the essay’s "done" (or Ctrl+Enter) sent it — on an essay the key only puts the pad away (note 312)');
+  }
+  w.stuffItemsAll_ = held;
   w.__t.USER(null);
   return bad;
 });
 
-/* ---------- AND A REFUSED SEND IS SENT AGAIN BY THE NEXT PAYLOAD ------------------------------------------
-   `ATTEMPTS_SENT` REMEMBERS WHAT WENT UP, NOT WHAT WAS TRIED. `attemptsSync_` has always promised that a
-   failure — no connection, a "Busy", an old backend's refusal — clears the mark so the next load tries
-   again; a key marked sent before the reply came back, and left marked when it failed, is a backlog
-   that waits for the next visit instead of the next payload, which on a phone that opened offline is
-   the fresh payload a second later. */
-check('a markDone the backend refused is sent again by the next payload in the same visit', async () => {
-  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: {
-    'q:Q-P-WD-6': { first: '2026-10-04', last: '2026-10-04', times: 1 } }, keepsWords: 1 } });
-  let n = 0;
-  const reply = b => (b.action !== 'markDone' ? { success: true }
-    : ++n === 1 ? { success: false, error: 'Busy — try again in a moment' } : { success: true, attempts: {} });
-  const { w, sent } = boot({ payload: p, reply,
-    before: win => { win.localStorage.setItem('done:u:P7:q:Q-P-WD-7', '2026-10-06'); } });
-  await wait(300);
-  if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return ['adoptMarks_ or questionItems is not reachable — renamed? The retry was NOT checked'];
-  const lib = mpLibrary_(w, wdBank_());
+/* ---------- WHAT WAS DONE BEFORE THE SWITCH BECOMES A SUBMISSION, ONCE, FOR ITS OWN PERSON (decided 10 Oct) ------
+   The live Ledger has 55 `attempts` rows for 5 learners and no `answers` tab: a child's typed answers are
+   on their device and nowhere else. `subMigrate_` (js/submit.js) turns each question this person had DONE
+   (a `done:` date, or an old backend's `DATA.attempts` row) that holds their own non-empty answer and has
+   no account submission into ONE submission, marked by the site's own marker, with an id made from the
+   person and the key. Real rows of data/questions.json through the real loader: an ordering, a pick of
+   two, a maths answer with a scheme and one without. */
+check('submission: what a child had done before the switch becomes one submission each, marked as its press would be — once, on any device, and never another person’s', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const IDS = ['Q-1MA1-2406-1F-4', 'Q-1MA1-2406-2F-1', 'Q-STA-KS2-2024-P2-2', 'Q-STA-KS2-2024-P2-10', 'Q-9MA031-2206-1a', 'Q-9MA031-2206-1aii', 'Q0109', 'Q0110'];
+  const lib = LIB.filter(r => IDS.indexOf(r.row_id) !== -1);
+  if (lib.length !== IDS.length) return ['data/questions.json no longer has ' + IDS.filter(id => !lib.some(r => r.row_id === id)).join(', ') + ' — nothing was migrated'];
+  const serve = u => (/data\/questions\.json/.test(u) ? lib : /data\/videos\.json/.test(u) ? [] : undefined);
+  const K = id => 'q:' + id;
+  /* THE LAST EDIT ON ITS DONE DAY, BY THIS DEVICE'S CLOCK — as the old code left every answer it dated: it
+     wrote `done:` on the first keystroke of each day the box was touched. This said done 5 Oct and edited
+     6 Oct 15:00 UTC, which the old code could not leave; the carry-over now reads an answer edited after
+     its done day as a draft written since (review of 10 Oct), so the fixture says what a device holds. */
+  const AT = new Date(2026, 9, 6, 15, 0, 0).getTime();
+  /* THE DEVICE AS THE OLD CODE LEFT IT: Ada's done dates and answers, a draft she never did, a key the
+     library has not got, an empty answer, one the account already has — and her brother's, and a
+     signed-out answer, on the same iPad. */
+  const DEVICE = {
+    'familyUser': JSON.stringify(ANS_ADA),
+    ['done:u:P7:' + K('Q-1MA1-2406-1F-4')]: '2026-10-06', ['ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: '3,4,5,2,1', ['ansAt:ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: String(AT),
+    ['done:u:P7:' + K('Q-STA-KS2-2024-P2-2')]: '2026-10-06', ['ans:u:P7:' + K('Q-STA-KS2-2024-P2-2')]: '4,1',
+    ['done:u:P7:' + K('Q-9MA031-2206-1a')]: '2026-10-06', ['ans:u:P7:' + K('Q-9MA031-2206-1a')]: '5',
+    ['done:u:P7:' + K('Q0109')]: '2026-10-07', ['ans:u:P7:' + K('Q0109')]: '42',
+    ['done:u:P7:' + K('Q0110')]: '2026-10-07', ['ans:u:P7:' + K('Q0110')]: '  ',
+    ['done:u:P7:q:Q-GONE-FROM-LIBRARY']: '2026-10-07', ['ans:u:P7:q:Q-GONE-FROM-LIBRARY']: 'x',
+    ['done:u:P7:' + K('Q-STA-KS2-2024-P2-10')]: '2026-10-07', ['ans:u:P7:' + K('Q-STA-KS2-2024-P2-10')]: '2,3',
+    ['ans:u:P7:' + K('Q-9MA031-2206-1aii')]: '0.92',
+    ['done:u:P8:' + K('Q0109')]: '2026-10-07', ['ans:u:P8:' + K('Q0109')]: '99',
+    ['ans:' + K('Q0110')]: '77',
+  };
+  const seed = (extra, drop) => win => { Object.keys(DEVICE).concat(Object.keys(extra || {})).forEach(k => { if (!(drop || []).includes(k)) win.localStorage.setItem(k, k in (extra || {}) ? extra[k] : DEVICE[k]); }); };
+  const rows = [];
+  rows.push({ pid: 'P7', id: '1760000000201-ac0001', key: K('Q-STA-KS2-2024-P2-10'), answer: '2,3', verdict: 'right', at: Date.now() - 5000 });
+  const sub = (b, feat) => Object.assign(payload(), { features: feat || SUB_FEATURES, submissions: subMine_(rows, 'P7') });
+  const { w, sent } = boot({ payload: sub(), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: seed() });
+  await wait(700);
+  if (typeof w.subMigrate_ !== 'function' || typeof w.subMigrateId_ !== 'function') return ['subMigrate_ / subMigrateId_ not reachable — renamed? Nothing was migrated'];
   const bad = [];
-  const keys = b => (b.items || []).map(i => i.key).sort().join(', ');
-  try {
-    w.__t.USER(WD_ADA);
-    w.adoptMarks_();
-    await wait(40);
-    /* THE NEXT PAYLOAD, as the fresh one lands after the stored one. */
-    w.adoptMarks_();
-    await wait(40);
-  } finally { lib.put(); w.__t.USER(null); }
-  const m = sent.filter(b => b.action === 'markDone');
-  if (m.length !== 2) bad.push('after a refused send the next payload made ' + (m.length - 1) + ' more markDone request(s) — wanted 1, the same rows again');
-  else if (keys(m[1]) !== keys(m[0]) || keys(m[0]) !== 'q:Q-P-WD-6, q:Q-P-WD-7') bad.push('the retry sent ' + keys(m[1]) + ' after a refusal of ' + keys(m[0]) + ' — wanted the same two rows, q:Q-P-WD-6 and q:Q-P-WD-7');
+  const items = s => [].concat(...s.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+  const of = (s, id) => items(s).filter(i => i.key === K(id));
+  const want = [['Q-1MA1-2406-1F-4', '3,4,5,2,1', 'right'], ['Q-STA-KS2-2024-P2-2', '4,1', 'right'], ['Q-9MA031-2206-1a', '5', 'wrong'], ['Q0109', '42', 'sent']];
+  want.forEach(([id, a, v]) => {
+    const got = of(sent, id);
+    if (got.length !== 1 || got[0].answer !== a || got[0].verdict !== v) bad.push(id + ' done before the switch went up as ' + JSON.stringify(got) + ' — wanted one submission, ' + a + ', ' + v + ' by the site’s own marker');
+    else if (got[0].id !== w.subMigrateId_('P7', K(id)) || !/^\d{10,16}-[a-z0-9]{3,16}$/.test(got[0].id)) bad.push(id + ' went up with id ' + got[0].id + ' — wanted the one made from the person and the key, in the server’s shape');
+  });
+  const f4 = of(sent, 'Q-1MA1-2406-1F-4')[0];
+  if (f4 && f4.at !== AT) bad.push('the migrated press is dated ' + f4.at + ' — wanted its answer’s own last edit (' + AT + '), so a press made since is later');
+  if (f4 && !f4.label) bad.push('the migrated press carries no name — the weekly email prints the name a parent reads');
+  [['Q-9MA031-2206-1aii', 'a draft never done'], ['Q0110', 'an empty answer'], ['Q-STA-KS2-2024-P2-10', 'a question the account already has a submission for']].forEach(([id, what]) => {
+    if (of(sent, id).length) bad.push(what + ' (' + id + ') was sent: ' + JSON.stringify(of(sent, id)));
+  });
+  if (items(sent).some(i => i.key === 'q:Q-GONE-FROM-LIBRARY')) bad.push('a key the library has not got was sent — nothing can name or mark it');
+  if (items(sent).some(i => i.answer === '99' || i.answer === '77')) bad.push('ANOTHER PERSON’S ANSWER, OR A SIGNED-OUT ONE, WAS SENT AS ADA’S: ' + JSON.stringify(items(sent).filter(i => i.answer === '99' || i.answer === '77')));
+  if (w.localStorage.getItem('ans:u:P8:' + K('Q0109')) !== '99' || w.localStorage.getItem('done:u:P8:' + K('Q0109')) !== '2026-10-07' || w.localStorage.getItem('subLast:u:P8') || w.localStorage.getItem('subMigrated:u:P8')) bad.push('Ben’s keys on the same device were touched by Ada’s migration');
+  if (!w.localStorage.getItem('subMigrated:u:P7')) bad.push('the migration did not mark itself done for Ada on this device');
+  /* ON THE CARD: the migrated verdict, like any press. */
+  const ord = w.stuffItemsAll_().find(it => it.key === K('Q-1MA1-2406-1F-4'));
+  if (!ord) bad.push('the ordering did not come through the loader');
+  else if (subSlotOf_(subDraw_(w, ord)).textContent !== 'Correct') bad.push('the migrated ordering’s card says ' + JSON.stringify(subSlotOf_(subDraw_(w, ord)).textContent) + ' — wanted Correct');
+  const n1 = rows.length;
+  /* A SECOND LOAD ON THE SAME DEVICE, AND THE PASS RUN AGAIN IN THE SAME VISIT: nothing more. */
+  const sent1 = items(sent).length;
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
+  w.adoptMarks_();
+  w.localStorage.removeItem('subMigrated:u:P7');
+  w.subMigrate_();
+  await wait(60);
+  if (items(sent).length !== sent1) bad.push('the migration sent again on the same device — ' + (items(sent).length - sent1) + ' more');
+  const store = {};
+  for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); store[k] = w.localStorage.getItem(k); }
+  const again = boot({ payload: sub(), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: win => { Object.keys(store).forEach(k => win.localStorage.setItem(k, store[k])); } });
+  await wait(700);
+  if (items(again.sent).length) bad.push('a reload of the same device migrated again: ' + JSON.stringify(items(again.sent).map(i => i.key)));
+  /* THE COMPUTER — the same answers, no flag — after the iPad's presses reached the account: none sent. */
+  const pc = boot({ payload: sub(), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: seed() });
+  await wait(700);
+  if (items(pc.sent).length) bad.push('a second device migrated questions the account already had from the first: ' + JSON.stringify(items(pc.sent).map(i => i.key)));
+  /* AND ONE THAT LOADED BEFORE THE ACCOUNT HAD THEM — its payload the account as it was before the iPad's
+     presses arrived, the one real press on it: the same ids, so the account writes each once. */
+  const early = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows.slice(0, 1), 'P7') }), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: seed() });
+  await wait(700);
+  const ids1 = want.map(([id]) => (of(sent, id)[0] || {}).id).sort().join();
+  const ids2 = want.map(([id]) => (of(early.sent, id)[0] || {}).id).sort().join();
+  if (ids1 !== ids2) bad.push('two devices migrated the same questions under different ids — ' + ids1 + ' / ' + ids2 + ' — the account would hold each twice');
+  if (rows.length !== n1) bad.push('the same questions migrated from a second device made ' + (rows.length - n1) + ' more row(s) on the account');
+  /* AN OLD BACKEND STILL LIVE: its `attempts` row is a question done, the press is queued (not sent: it cannot
+     take it), and it goes up the first time the backend can. */
+  const oldRows = [];
+  const old = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES, attempts: { for: 'P7', mine: { [K('Q-1MA1-2406-2F-1')]: { first: '2026-10-01', last: '2026-10-02', times: 1 } } } }),
+    reply: ansBackend_({}, subBackend_(oldRows)), serve: serve,
+    before: seed({ ['ans:u:P7:' + K('Q-1MA1-2406-2F-1')]: '2,5,4,1,3' }) });
+  await wait(700);
+  if (items(old.sent).length) bad.push('a backend without submitAnswer was sent the migrated presses');
+  let q = [];
+  try { q = JSON.parse(old.w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) {}
+  const q2 = q.find(i => i.key === K('Q-1MA1-2406-2F-1'));
+  if (!q2 || q2.verdict !== 'right' || q2.answer !== '2,5,4,1,3') bad.push('a question in an old backend’s `attempts` was not queued as a submission: ' + JSON.stringify(q.map(i => [i.key, i.verdict])));
+  else if (q2.at !== new Date(2026, 9, 2, 12).getTime()) bad.push('the attempts row’s press is dated ' + q2.at + ' — wanted noon on its last day');
+  old.w.__t.DATA().features = SUB_FEATURES;
+  old.w.__t.DATA().submissions = { for: 'P7', mine: {} };
+  old.w.adoptMarks_();
+  await wait(80);
+  if (!of(old.sent, 'Q-1MA1-2406-2F-1').length) bad.push('the queued migration did not go up once the backend could take it');
   return bad;
 });
 
-/* ---------- A REPLY WITHOUT THE FLAGS KEEPS THE ONES THE LOAD SAID ------------------------------------------
-   `attemptsAdopt_` puts what a `markDone` reply says over what the load said. A backend that does not
-   send `named` and `worded` must not wipe them: a row the load said is named and worded would read as
-   neither the moment any reply mentioned it, and the next sync would send it again. A reply that DOES
-   carry them is taken, and the days are always the reply's. */
-check('a markDone reply without named or worded keeps the flags the load said, and takes the reply’s days', async () => {
-  const p = Object.assign(payload(), { features: ['markDone'], attempts: { for: 'P7', mine: {
-    'q-flag-both': { first: '2026-10-01', last: '2026-10-01', times: 1, named: 1, worded: 1 },
-    'q-flag-name': { first: '2026-10-01', last: '2026-10-01', times: 1, named: 1 },
-    'q-flag-none': { first: '2026-10-01', last: '2026-10-01', times: 1 },
-  } } });
-  const { w } = boot({ payload: p });
+/* ---------- A TYPED ANSWER IS ON THE ACCOUNT ONLY AS IT WAS SENT (found at the merge with 317) --------------------
+   `ansOnAccount_` asked "stamped and not due", and since submissions a typed answer is stamped on every key
+   and never due — so to a backend with `saveAnswers` and `submitAnswer` a draft the store refused counted as
+   on the account: no "Not saved" under it, and no "Leave site?" before a reload took it. */
+check('submission: a typed draft the store refuses is not on the account until it is sent — the line says so, and leaving asks first', async () => {
+  const rows = [];
+  const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_({}, subBackend_(rows)), before: signedInAs_(ANS_ADA) });
   await wait(300);
-  if (typeof w.attemptsAdopt_ !== 'function') return ['attemptsAdopt_ is not reachable — renamed? The flags were NOT checked'];
+  const need = ansNeed_(w).concat(['keepAtRisk_', 'ansOnAccount_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was refused'];
   const bad = [];
-  w.__t.USER(WD_ADA);
-  const day = { first: '2026-10-01', last: '2026-10-07', times: 2 };
-  w.attemptsAdopt_('P7', {
-    'q-flag-both': Object.assign({}, day),
-    'q-flag-name': Object.assign({}, day),
-    'q-flag-none': Object.assign({ worded: 1 }, day),
-    'q-flag-new': { first: '2026-10-07', last: '2026-10-07', times: 1 },
+  const c = ansCards_(w, 'R');
+  const k = 'ans:u:P7:' + c.words.key;
+  const real = w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem = function (key, v) {
+    if (/^(ans|pad|draft):/.test(String(key))) throw new w.DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    return real.call(this, key, v);
+  };
+  try {
+    ansType_(w, c.ta(), 'because the heat spreads out');
+    if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('a typed draft the store refused says ' + JSON.stringify(c.saidFor(c.words)) + ' — it is on no device and on no account');
+    if (w.keepAtRisk_().indexOf(k) === -1) bad.push('a typed draft the store refused is not counted as at risk: ' + JSON.stringify(w.keepAtRisk_()));
+    const ev = new w.Event('beforeunload', { cancelable: true });
+    w.dispatchEvent(ev);
+    if (!ev.defaultPrevented) bad.push('leaving with a refused, unsent draft did not ask first');
+    /* SENT: the account holds exactly this, so nothing is at risk and the line says where it went. */
+    const send = c.ta().closest('.qp-mark') && c.ta().closest('.qp-mark').querySelector('[data-do="qp-send"]');
+    if (!send) bad.push('the worded box has no Send — nothing to send it with');
+    else {
+      send.click();
+      await wait(60);
+      if (rows.length !== 1) bad.push('Send went up ' + rows.length + ' time(s)');
+      if (w.keepAtRisk_().indexOf(k) !== -1) bad.push('an answer the account holds, exactly as sent, is still counted as at risk');
+      if (c.saidFor(c.words) !== 'Sent to Ada’s account') bad.push('after Send the line says ' + JSON.stringify(c.saidFor(c.words)));
+      ansType_(w, c.ta(), 'because the heat spreads out evenly');
+      if (w.keepAtRisk_().indexOf(k) === -1) bad.push('typed on after Send, the refused draft is counted as on the account again');
+    }
+  } finally { w.Storage.prototype.setItem = real; }
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- AN EMPTY SUBMISSION NEVER EMPTIES A BOX (decided 10 Oct) ---------------------------------------- */
+check('submission: an empty answer on the account is nobody’s latest and never written over what a box holds', async () => {
+  const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_({}, subBackend_([])) });
+  await wait(300);
+  if (typeof w.subAdopt_ !== 'function') return ['subAdopt_ not reachable — nothing was adopted'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  w.stuffItemsAll_ = () => [SUB_SUM];
+  const card = subDraw_(w, SUB_SUM);
+  ansType_(w, card.querySelector('.qp-ans-in'), '15');
+  card.querySelector('.qp-check').click();
+  await wait(40);
+  w.__t.DATA().submissions = { for: 'P7', mine: { 'q:Q-SUB-1': { answer: '', verdict: 'wrong', at: Date.now() + 60000, id: '1760000000301-em0001' } } };
+  w.adoptMarks_();
+  await wait(40);
+  if (card.querySelector('.qp-ans-in').value !== '15' || w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '15') bad.push('an empty submission emptied the box: ' + JSON.stringify(card.querySelector('.qp-ans-in').value));
+  if (subSlotOf_(card).textContent !== 'Correct') bad.push('an empty submission became the latest: the card says ' + JSON.stringify(subSlotOf_(card).textContent));
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- THE CARRY-OVER READS WHAT THE OLD CODE LEFT, NOT A DRAFT WRITTEN INTO THE KEY SINCE (review of 10 Oct) ----------
+   Ada did Q1a on the family iPad on 5 Oct, signed in ("0.0197", right by its scheme; `done:` that day). After
+   the front end went live somebody typed "5" into that box signed out, and Ada signed in from nobody — her
+   first sign-in on this iPad since the switch. `answersClaim_` (318: the later edit wins) put "5" in her key a
+   moment before `subMigrate_` read the key and sent "5" as her submission: "Not yet" on her card, ✗ in the
+   parent's email, dated today so the latest, and "0.0197" never on the account. The same when the payload
+   (and the library in it) lands after the sign-in, and when a card drawn before the payload is typed in. */
+const SUB_PRE_ = (() => {
+  const K = 'q:Q-9MA031-2206-1a';
+  const OCT5 = new Date(2026, 9, 5, 15, 0, 0).getTime();
+  const row = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.row_id === 'Q-9MA031-2206-1a');
+  const seed = (outToo, me) => win => {
+    if (me) win.localStorage.setItem('familyUser', JSON.stringify(me));
+    win.localStorage.setItem('done:u:P7:' + K, '2026-10-05');
+    win.localStorage.setItem('ans:u:P7:' + K, '0.0197');
+    win.localStorage.setItem('ansAt:ans:u:P7:' + K, String(OCT5));
+    if (outToo) { win.localStorage.setItem('ans:' + K, '5'); win.localStorage.setItem('ansAt:ans:' + K, String(Date.now() - 60000)); }
+  };
+  /* EVERY PRESS FOR THE QUESTION, SENT OR STILL QUEUED (an old backend cannot take them yet). */
+  const presses = (w, sent) => {
+    let q = [];
+    try { q = JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) {}
+    const its = [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+    const seen = new Set();
+    return its.concat(q).filter(i => i.key === K && !seen.has(i.id + '|' + i.answer) && seen.add(i.id + '|' + i.answer));
+  };
+  return { K, OCT5, row, seed, presses };
+})();
+check('submission: the carry-over sends what the old code left, never a draft written into the key since — claimed at a sign-in from nobody, now or once the payload lands, or typed before the pass could run', async () => {
+  const { K, OCT5, row, seed, presses } = SUB_PRE_;
+  if (row().length !== 1) return ['data/questions.json no longer has Q-9MA031-2206-1a — nothing was carried'];
+  const bad = [];
+  const say = list => JSON.stringify(list.map(i => [i.answer, i.verdict, i.at === OCT5 ? '5 Oct' : new Date(i.at).toISOString()]));
+  /* 1 AND 2. THE CLAIM AND THE PASS IN ONE SIGN-IN FROM NOBODY — the live backend (no submitAnswer: queued),
+     and the new one (the sign-in reply carries her submissions: sent at once). */
+  for (const NEW of [false, true]) {
+    const tag = NEW ? 'the new backend' : 'the live backend';
+    const rows = [];
+    const { w, sent } = boot({ payload: Object.assign(payload(), { features: NEW ? SUB_FEATURES : [] }), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (/data\/questions\.json/.test(u) ? row() : /data\/videos\.json/.test(u) ? [] : undefined), before: seed(true) });
+    await wait(600);
+    if (w.__t.whoami()) { bad.push(tag + ': the setup booted signed in — nothing was claimed'); continue; }
+    w.signedIn_(Object.assign({ success: true }, ANS_ADA, NEW ? { submissions: { for: 'P7', mine: {} } } : {}), 'ada_kind7');
+    await wait(300);
+    const got = presses(w, sent);
+    if (got.some(i => i.answer === '5')) bad.push(tag + ': THE CLAIMED SIGNED-OUT DRAFT "5" WENT UP AS ADA’S SUBMISSION — nobody pressed it: ' + say(got));
+    const hers = got.filter(i => i.answer === '0.0197');
+    if (hers.length !== 1 || hers[0].verdict !== 'right' || hers[0].at !== OCT5) bad.push(tag + ': her 5 Oct "0.0197" was not carried as one right press dated 5 Oct: ' + say(got));
+    if (w.localStorage.getItem('ans:u:P7:' + K) !== '5') bad.push(tag + ': the box no longer holds the claimed draft "5" (318: the later edit is hers, as a draft) — it holds ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + K)));
+    if (w.localStorage.getItem('ans:' + K) !== null) bad.push(tag + ': the signed-out copy was left for the next child');
+    if (w.localStorage.getItem('subBefore:u:P7') !== null) bad.push(tag + ': what the claim wrote over was kept after the pass had run');
+    if (NEW && rows.filter(r => r.key === K).length !== 1) bad.push(tag + ': the account holds ' + rows.filter(r => r.key === K).length + ' row(s) for the question — wanted her one carried press');
+    w.__t.USER(null);
+  }
+  /* 3. THE PAYLOAD — AND THE LIBRARY IN IT — STILL OUT AT THE SIGN-IN, as on any reload signed in within the
+     fifteen seconds it takes: the claim runs at once and the pass waits for the library, then reads the key. */
+  {
+    let release = null;
+    const late = new Promise(r => { release = () => r(row()); });
+    const rows = [];
+    const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (/data\/questions\.json/.test(u) ? late : /data\/videos\.json/.test(u) ? [] : undefined), before: seed(true) });
+    await wait(300);
+    w.signedIn_(Object.assign({ success: true, submissions: { for: 'P7', mine: {} } }, ANS_ADA), 'ada_kind7');
+    await wait(200);
+    if (presses(w, sent).length) bad.push('the payload still out: something was carried before the library could mark it: ' + say(presses(w, sent)));
+    release();
+    await wait(1200);
+    const got = presses(w, sent);
+    if (got.some(i => i.answer === '5')) bad.push('the payload landing after the sign-in: THE CLAIMED DRAFT "5" WENT UP AS ADA’S SUBMISSION: ' + say(got));
+    if (got.filter(i => i.answer === '0.0197' && i.verdict === 'right' && i.at === OCT5).length !== 1) bad.push('the payload landing after the sign-in: her 5 Oct "0.0197" was not carried (what the claim wrote over was lost): ' + say(got));
+    if (!w.localStorage.getItem('subMigrated:u:P7')) bad.push('the payload landing after the sign-in: the pass never marked itself done');
+    w.__t.USER(null);
+  }
+  /* 4. TYPED BEFORE THE PASS COULD RUN — signed in at boot, the payload out, and the box written by its own
+     writer (`ansStore_`, what the `input` listener calls), as a card Saved draws from the device before the
+     payload is typed in. It is her edit, made after the switch, and nobody pressed it. */
+  {
+    let release = null;
+    const late = new Promise(r => { release = () => r(row()); });
+    const rows = [];
+    const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (/data\/questions\.json/.test(u) ? late : /data\/videos\.json/.test(u) ? [] : undefined), before: seed(false, ANS_ADA) });
+    await wait(300);
+    if (!w.__t.whoami()) bad.push('the setup did not boot signed in');
+    w.ansStore_('ans:u:P7:' + K, '5');
+    release();
+    await wait(1200);
+    const got = presses(w, sent);
+    if (got.some(i => i.answer === '5')) bad.push('typed before the payload landed: THE DRAFT "5" WENT UP AS A SUBMISSION NOBODY PRESSED: ' + say(got));
+    if (w.localStorage.getItem('ans:u:P7:' + K) !== '5') bad.push('typed before the payload landed: the draft is gone from the box');
+    w.__t.USER(null);
+  }
+  return bad;
+});
+
+/* ---------- A QUEUE THE STORE REFUSES IS STILL SENT, AND A PRESS LEFT MARKED TO GO IS QUEUED AGAIN (review of 10 Oct) ----------
+   `subQueueKeep_` swallowed a refused write and `subQueue_` read the store first — which, nearly full, answers
+   with the old list rather than throwing: Check pressed, nothing sent, "Sending…" for ever. The one-time
+   carry-over flagged itself done over a queue the store never kept. And the `q` left on the latest then made
+   `subAdopt_` keep that press as "the latest there is" over a later one from the computer, for good. */
+check('submission: a queue the store refuses is held for the visit and sent, the carry-over is not marked done over it, and a press left marked to go is queued again without hiding a later one', async () => {
+  const { K, OCT5, row } = SUB_PRE_;
+  if (row().length !== 1) return ['data/questions.json no longer has Q-9MA031-2206-1a — nothing was refused'];
+  const bad = [];
+  const serve = u => (/data\/questions\.json/.test(u) ? row() : /data\/videos\.json/.test(u) ? [] : undefined);
+  const refuse = (win, re) => {
+    const real = win.Storage.prototype.setItem;
+    win.Storage.prototype.setItem = function (key, v) {
+      if (re.test(String(key))) throw new win.DOMException('The quota has been exceeded.', 'QuotaExceededError');
+      return real.call(this, key, v);
+    };
+    return () => { win.Storage.prototype.setItem = real; };
+  };
+  const dump = w => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
+  /* 1. CHECK WITH THE QUEUE'S WRITE REFUSED: held for the visit, sent, and the line says where it went. */
+  {
+    const rows = [];
+    const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)), before: signedInAs_(ANS_ADA) });
+    await wait(400);
+    const undo = refuse(w, /^subQ:/);
+    try {
+      const card = subDraw_(w, SUB_SUM);
+      ansType_(w, card.querySelector('.qp-ans-in'), '15');
+      w.__t.ACTIONS['qp-check'](card.querySelector('.qp-check'));
+      await wait(200);
+      const line = (card.parentNode.querySelector('.qp-saved') || {}).textContent;
+      if (rows.length !== 1) bad.push('Check with the queue’s write refused put ' + rows.length + ' row(s) on the account — the press lived only in a copy nothing read');
+      if (line !== 'Sent to Ada’s account') bad.push('Check with the queue’s write refused: the line under the box says ' + JSON.stringify(line));
+    } finally { undo(); }
+    w.__t.USER(null);
+  }
+  /* 2. THE CARRY-OVER ON THE LIVE BACKEND WITH THE STORE REFUSING THE QUEUE — and then the queue and the
+     latest both — and the next load, with room again and the new backend. Each time her 5 Oct answer has
+     to reach the account, once. */
+  for (const re of [/^subQ:/, /^sub(Q|Last):/]) {
+    const tag = re.source.indexOf('Last') !== -1 ? 'the queue and the latest refused' : 'the queue refused';
+    const rows = [];
+    let undo = null;
+    const one = boot({ payload: Object.assign(payload(), { features: [] }), reply: ansBackend_({}, subBackend_(rows)), serve,
+      before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); win.localStorage.setItem('done:u:P7:' + K, '2026-10-05'); win.localStorage.setItem('ans:u:P7:' + K, '0.0197'); win.localStorage.setItem('ansAt:ans:u:P7:' + K, String(OCT5)); undo = refuse(win, re); } });
+    await wait(700);
+    const store = dump(one.w);
+    if (undo) undo();
+    const two = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)), serve,
+      before: win => { Object.keys(store).forEach(k => win.localStorage.setItem(k, store[k])); } });
+    await wait(900);
+    const hers = rows.filter(r => r.key === K && r.answer === '0.0197');
+    if (hers.length !== 1) bad.push(tag + ': the next load, with room again, put ' + hers.length + ' row(s) of her 5 Oct answer on the account — wanted one (the carry-over was ' + (store['subMigrated:u:P7'] ? 'flagged done' : 'not flagged') + ')');
+    two.w.__t.USER(null);
+  }
+  /* 3. A PRESS LEFT MARKED TO GO BY SUCH A VISIT, AND A LATER ONE FROM THE COMPUTER ON THE ACCOUNT. */
+  {
+    const rows = [];
+    const later = { answer: '0.5', verdict: 'wrong', at: Date.now() - 1000, id: (Date.now() - 1000) + '-pc0001' };
+    const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: { [K]: later } } }), reply: ansBackend_({}, subBackend_(rows)), serve,
+      before: win => {
+        win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA));
+        win.localStorage.setItem('ans:u:P7:' + K, '0.0197');
+        win.localStorage.setItem('subMigrated:u:P7', '1');
+        win.localStorage.setItem('subLast:u:P7', JSON.stringify({ [K]: { a: '0.0197', v: 'right', at: OCT5, id: '1791504000000-m03m2vvv0q4ubt5', q: 1 } }));
+      } });
+    await wait(900);
+    const it = w.stuffItemsAll_().find(x => x.key === K);
+    if (!it) bad.push('the question did not come through the loader');
+    else {
+      const card = subDraw_(w, it);
+      const slot = subSlotOf_(card).textContent, box = card.querySelector('.qp-ans-in').value;
+      if (slot !== 'Not yet' || box !== '0.5') bad.push('the computer’s later "0.5" (Not yet) is not the latest here: the card says ' + JSON.stringify(slot) + ' and the box holds ' + JSON.stringify(box) + ' — kept behind a press the queue never had');
+    }
+    if (rows.filter(r => r.id === '1791504000000-m03m2vvv0q4ubt5').length !== 1) bad.push('the press left marked to go never reached the account (' + rows.length + ' rows) — it is an event too');
+    w.__t.USER(null);
+  }
+  return bad;
+});
+
+/* ---------- SIGN OUT SENDS THE PRESSES BEFORE IT ENDS THE SESSION (review of 10 Oct) ----------------------------
+   The signout handler waited for the drafts and the notepad and not for the presses. A server that does not
+   order two requests (Apps Script) ended the token first and refused a Check pressed just before; a second
+   Check queued behind the first was thrown away by `subForget_`. Both waited on this device for the child's
+   next sign-in HERE — on a tutor's laptop, never. Played: `signOut` ends the token, and a `submitAnswer` is
+   answered only when the journey says, by whether its token was ended by then. */
+check('submission: Sign out sends what is still queued — the press in flight and the one behind it — on the token it is ending, and ends the session only after', async () => {
+  const rows = [], ended = new Set(), held = [];
+  const reply = b => {
+    if (b.action === 'signOut') { ended.add(b.token); return { success: true }; }
+    if (b.action === 'submitAnswer') return new Promise(res => held.push(() => res(ended.has(b.token) ? { error: 'Please sign in again.', why: 'signed-out' } : subBackend_(rows)(b))));
+    return ansBackend_({}, subBackend_(rows))(b);
+  };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply, before: signedInAs_(ANS_ADA) });
+  await wait(400);
+  const bad = [], A = w.__t.ACTIONS;
+  const two = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-2', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-2' }) });
+  const c1 = subDraw_(w, SUB_SUM), c2 = subDraw_(w, two);
+  ansType_(w, c1.querySelector('.qp-ans-in'), '15');
+  A['qp-check'](c1.querySelector('.qp-check'));
+  await wait(20);
+  ansType_(w, c2.querySelector('.qp-ans-in'), '14');
+  A['qp-check'](c2.querySelector('.qp-check'));
+  await wait(20);
+  A['signout'](w.document.createElement('button'));
+  await wait(60);
+  if (w.__t.whoami()) bad.push('Sign out left somebody signed in');
+  if (sent.some(b => b.action === 'signOut')) bad.push('the session was ended while a press was still on the wire — the server may refuse it on the ended token');
+  /* THE REPLIES, AS THE SERVER GETS TO THEM — each released, then whatever that let go. */
+  for (let n = 0; n < 40 && (held.length || !sent.some(b => b.action === 'signOut')); n++) { held.splice(0).forEach(f => f()); await wait(50); }
+  const acts = sent.filter(b => b.action === 'submitAnswer' || b.action === 'signOut');
+  const lastSub = acts.map(b => b.action).lastIndexOf('submitAnswer'), out = acts.findIndex(b => b.action === 'signOut');
+  if (out === -1) bad.push('the session was never ended on the server');
+  else if (lastSub > out) bad.push('a press was sent after the session was ended: ' + acts.map(b => b.action).join(' → '));
+  const got = rows.filter(r => r.pid === 'P7').map(r => r.key + '=' + r.answer).sort();
+  if (got.join() !== 'q:Q-SUB-1=15,q:Q-SUB-2=14') bad.push('Ada’s account holds ' + JSON.stringify(got) + ' — wanted both presses made before Sign out');
+  let q = [];
+  try { q = JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) {}
+  if (q.length) bad.push('still queued under Ada on this device after Sign out: ' + JSON.stringify(q.map(e => [e.key, e.answer])));
+  if (sent.filter(b => b.action === 'submitAnswer').some(b => b.token !== 'tok-P7')) bad.push('a press of Ada’s went up on a token not hers: ' + JSON.stringify(sent.filter(b => b.action === 'submitAnswer').map(b => b.token)));
+  /* AND THE NEXT CHILD: nothing of Ada's on Ben's token. */
+  w.signedIn_(Object.assign({ success: true, submissions: { for: 'P8', mine: {} } }, ANS_BEN), 'ben_bold8');
+  await wait(200);
+  held.splice(0).forEach(f => f());
+  await wait(100);
+  if (sent.some(b => b.action === 'submitAnswer' && b.token === 'tok-P8' && (b.items || []).some(i => /^1[45]$/.test(i.answer)))) bad.push('ADA’S PRESS WENT UP ON BEN’S TOKEN');
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- WHILE THE PAYLOAD IS OUT, A BOX THE ACCOUNT HOLDS SAYS SO, AND NOTHING IS SAID THAT IS NOT KNOWN (review of 10 Oct) ----------
+   `ansSavedSay_` asked `answersCan_('submitAnswer')` — `DATA.features` — before anything, and that is false
+   until the payload lands, fifteen seconds on the live site. Saved and Find's search draw a kept card before
+   then, so a box holding the answer the server had acknowledged said "On this device only", and "Sent to
+   Wren's account" when the payload landed. Measured in Chromium at 390 and 320 against the real backend. */
+check('submission: before the payload lands, a box holding a press the server took says Sent, and a draft or a press on its way says nothing until the payload says which backend it is', async () => {
+  const at = Date.now() - 60000;
+  const two = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-2', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-2' }) });
+  const three = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-3', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-3' }) });
+  let release = null;
+  const rows = [];
+  const mine = { 'q:Q-SUB-1': { answer: '16', verdict: 'wrong', at: at, id: at + '-ack001' } };
+  const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: mine } }), reply: ansBackend_({}, subBackend_(rows)),
+    serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: mine } })); })),
+    before: win => {
+      win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA));
+      win.localStorage.setItem('subMigrated:u:P7', '1');
+      /* SENT AND ACKNOWLEDGED (no `q`), A DRAFT NEVER SENT, AND A PRESS STILL QUEUED. */
+      win.localStorage.setItem('ans:u:P7:q:Q-SUB-1', '16');
+      win.localStorage.setItem('ans:u:P7:q:Q-SUB-2', '14');
+      win.localStorage.setItem('ans:u:P7:q:Q-SUB-3', '15');
+      win.localStorage.setItem('subLast:u:P7', JSON.stringify({ 'q:Q-SUB-1': { a: '16', v: 'wrong', at: at, id: at + '-ack001' },
+        'q:Q-SUB-3': { a: '15', v: 'right', at: at + 1000, id: (at + 1000) + '-que001', q: 1 } }));
+      win.localStorage.setItem('subQ:u:P7', JSON.stringify([{ id: (at + 1000) + '-que001', key: 'q:Q-SUB-3', answer: '15', verdict: 'right', at: at + 1000 }]));
+    } });
+  await wait(300);
+  if (!release) return ['the payload was never asked for — nothing was held, and the line was NOT checked'];
+  if (typeof w.awaiting_ !== 'function' || !w.awaiting_()) return ['the app is not waiting on the payload — the setup did not hold it, and the line was NOT checked'];
+  const bad = [];
+  const cards = [SUB_SUM, two, three].map(x => subDraw_(w, x));
+  const line = c => (c.parentNode.querySelector('.qp-saved') || {}).textContent;
+  const held = cards.map(line);
+  if (held[0] !== 'Sent to Ada’s account') bad.push('the payload out: a box holding the press the server took says ' + JSON.stringify(held[0]) + ' — the account has it');
+  [[1, 'a draft never sent'], [2, 'a press still on its way']].forEach(([i, what]) => {
+    if (held[i] !== '') bad.push('the payload out: ' + what + ' says ' + JSON.stringify(held[i]) + ' — whether the account keeps presses is not known yet');
   });
-  const a = (w.__t.DATA().attempts || {}).mine || {};
-  const flags = q => (a[q] && a[q].named ? 'named' : '-') + ' ' + (a[q] && a[q].worded ? 'worded' : '-');
-  [['q-flag-both', 'named worded', 'a named, worded row'], ['q-flag-name', 'named -', 'a named row'],
-   ['q-flag-none', '- worded', 'a row the reply says is now worded'], ['q-flag-new', '- -', 'a row new in the reply']].forEach(([q, want, what]) => {
-    if (flags(q) !== want) bad.push(what + ' (' + q + ') reads "' + flags(q) + '" after a reply — wanted "' + want + '"');
-  });
-  ['q-flag-both', 'q-flag-name', 'q-flag-none'].forEach(q => {
-    if (!a[q] || a[q].last !== '2026-10-07' || a[q].times !== 2) bad.push(q + ' kept ' + JSON.stringify(a[q]) + ' — the reply’s days must win');
-  });
+  release();
+  for (let n = 0; n < 50 && w.awaiting_(); n++) await wait(100);
+  await wait(200);
+  const landed = cards.map(line);
+  if (landed[0] !== 'Sent to Ada’s account') bad.push('the payload landed: the acknowledged box says ' + JSON.stringify(landed[0]));
+  if (landed[1] !== 'On this device until you send it') bad.push('the payload landed: the draft says ' + JSON.stringify(landed[1]));
+  if (!/^(Sending…|Sent to Ada’s account)$/.test(landed[2])) bad.push('the payload landed: the queued press says ' + JSON.stringify(landed[2]));
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- BEFORE THE PAYLOAD SAYS WHETHER AI MARKING IS ON, MARK WITH AI WAITS — NEVER A PLAIN SEND AND "SWITCHED OFF" (review of 10 Oct) ----------
+   `aiOffered_` read a payload that had not landed as "off": Saved drew a forty-mark essay with the plain Send
+   and "AI marking isn't switched on yet" under it, and pressed, the essay went to the account as an unmarked
+   "Sent" — then the payload landed and the same tile became Mark with AI. Measured at 320 and 390 against the
+   real backend with GEMINI_API_KEY set. Now: Mark with AI where it will stand, not pressable, and no sentence,
+   until the payload decides — and then the tile it decided on. */
+check('submission: before the payload lands, an essay and a worded box draw Mark with AI waiting — no plain Send, no "switched off", nothing sent — and the payload decides the tile', async () => {
+  const ESSAY = { kind: 'question', key: 'q:Q-AIW-E', name: 'Q5', marks: 40, subject: 'English Language', answerType: 'written',
+    row: { row_id: 'Q-AIW-E', paper_id: 'P-AIW', subject: 'English Language', name: 'Paper 1' }, html: '<p>Write a story about a journey.</p>', answer: '<b>A compelling description</b> with a clear structure' };
+  const WORDED = { kind: 'question', key: 'q:Q-AIW-W', name: 'Q9', marks: 3, subject: 'Science', answerType: 'explain',
+    row: { row_id: 'Q-AIW-W', paper_id: 'P-AIW', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
+  const bad = [];
+  for (const on of [true, false]) {
+    const tag = on ? 'AI marking on' : 'AI marking off';
+    const pay = () => Object.assign(payload(), { features: SUB_FEATURES.concat(on ? ['aiMark', 'aiMarkWhole'] : []), aiMarking: on, submissions: { for: 'P7', mine: {} } });
+    let release = null;
+    const rows = [];
+    const { w, sent } = boot({ payload: pay(), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(pay()); })),
+      before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); win.localStorage.setItem('subMigrated:u:P7', '1'); } });
+    await wait(300);
+    if (!release || typeof w.awaiting_ !== 'function' || !w.awaiting_()) { bad.push(tag + ': the payload was not held — nothing was checked'); continue; }
+    w.stuffItemsAll_ = () => [ESSAY, WORDED];
+    const early = [];
+    for (const X of [ESSAY, WORDED]) {
+      const what = (X === ESSAY ? 'the essay' : 'the worded box') + ', ' + tag + ', the payload out';
+      const card = subDraw_(w, X);
+      early.push([X, card]);
+      const mark = card.querySelector('.qp-compose');
+      const ai = mark && mark.querySelector('.qp-ai-go');
+      if (!ai) bad.push(what + ': no Mark with AI tile where it will stand');
+      else if (!ai.disabled) bad.push(what + ': Mark with AI can be pressed before anybody knows AI marking is on');
+      if (mark && mark.querySelector('[data-do="qp-send"]')) bad.push(what + ': drawn with the plain Send — pressed, it records an unmarked "Sent"');
+      if (/switched on/.test(card.parentNode.textContent)) bad.push(what + ': says AI marking is not switched on, which nobody knows yet');
+      ansType_(w, card.querySelector('.qp-ans-in'), 'He did not order them');
+      /* THE ROUND TILE PRESSED, WHICHEVER IT IS — as the child presses it. */
+      const go = ai || (mark && mark.querySelector('[data-do="qp-send"]'));
+      if (go) go.click();
+      if (typeof w.kpDone_ === 'function') { try { w.kpDone_(card.querySelector('.qp-ans-in')); } catch (e) {} }
+    }
+    await wait(80);
+    /* NOTHING RECORDED: no press queued for the account (it would go up the moment the payload lets it), and
+       nothing asked of the marker. */
+    const queued = (() => { try { return JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) { return []; } })();
+    if (rows.length || queued.length || sent.some(b => b.action === 'aiMark')) bad.push(tag + ', the payload out: a press was recorded — ' + JSON.stringify(queued.map(e => [e.key, e.verdict])) + ' queued, ' + rows.length + ' row(s), ' + sent.filter(b => b.action === 'aiMark').length + ' aiMark');
+    release();
+    for (let n = 0; n < 50 && w.awaiting_(); n++) await wait(100);
+    await wait(100);
+    /* THE CARDS DRAWN WHILE IT WAS OUT, NOT DRAWN AGAIN — as on a Find column held back from the repaint
+       because a child is typing in it (`findKeep_`): with AI marking on, the tile she reaches for is let go
+       where it stands (`aiDecided_`), never a waiting tile that a press does nothing to. */
+    if (on) early.forEach(([X, card]) => {
+      const ai = card.parentNode.querySelector('.qp-ai-go');
+      if (!ai || ai.disabled) bad.push((X === ESSAY ? 'the essay' : 'the worded box') + ', AI marking on, drawn before the payload and not drawn again: Mark with AI is ' + (ai ? 'still waiting (disabled) after the payload landed' : 'gone'));
+    });
+    for (const X of [ESSAY, WORDED]) {
+      const what = (X === ESSAY ? 'the essay' : 'the worded box') + ', ' + tag + ', the payload landed';
+      const card = subDraw_(w, X);
+      const mark = card.querySelector('.qp-compose');
+      const ai = mark && mark.querySelector('.qp-ai-go'), send = mark && mark.querySelector('[data-do="qp-send"]');
+      if (on && (!ai || ai.disabled || send)) bad.push(what + ': wanted Mark with AI, pressable, and no plain Send');
+      if (!on && (ai || !send)) bad.push(what + ': wanted the plain Send and no Mark with AI');
+      if (!on && X === ESSAY && !/switched on yet/.test(card.parentNode.textContent)) bad.push(what + ': the sheet does not say why nothing marks it');
+    }
+    w.__t.USER(null);
+  }
+  return bad;
+});
+
+/* ---------- EVERY SEND CARRIES THIS DEVICE'S CLOCK, SO THE SERVER CAN TAKE A SLOW ONE'S ERROR OUT (review of 10 Oct) ----------
+   `submitAnswer` held `pressed_at` only against a fast clock; an iPad set back two hours stored a press made
+   now as two hours old, and the account's latest was the answer before it. The server moves every press in
+   a request by now less the phone's `sent` (`submissionsAppend_`, checked in check-submissions.js); this is
+   the phone's half: the request carries it, on a send at once and on Sign out's last one. */
+check('submission: every send carries this device’s clock as it sends, so the server can take a slow clock’s error out', async () => {
+  const rows = [];
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)), before: signedInAs_(ANS_ADA) });
+  await wait(400);
+  const bad = [];
+  const card = subDraw_(w, SUB_SUM);
+  ansType_(w, card.querySelector('.qp-ans-in'), '15');
+  const t0 = Date.now();
+  w.__t.ACTIONS['qp-check'](card.querySelector('.qp-check'));
+  await wait(100);
+  const two = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-2', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-2' }) });
+  const c2 = subDraw_(w, two);
+  ansType_(w, c2.querySelector('.qp-ans-in'), '14');
+  w.__t.ACTIONS['qp-check'](c2.querySelector('.qp-check'));
+  w.__t.ACTIONS['signout'](w.document.createElement('button'));
+  await wait(200);
+  const t1 = Date.now();
+  const subs = sent.filter(b => b.action === 'submitAnswer');
+  if (!subs.length) bad.push('nothing was sent — the clock was NOT checked');
+  subs.forEach(b => { if (!(typeof b.sent === 'number' && b.sent >= t0 - 1000 && b.sent <= t1)) bad.push('a submitAnswer request carries sent=' + JSON.stringify(b.sent) + ' — wanted this device’s clock as it sent (' + t0 + '…' + t1 + ')'); });
+  return bad;
+});
+
+/* ---------- "SENT", THEN A LETTER, AFTER AI MARKING WENT AWAY MID-VISIT (review of 9 Oct) ----------------------- */
+check('submission: after AI marking switches off, the plain Send says Sent, and the next letter takes it off like any verdict', async () => {
+  const rows = [];
+  const AIQ = { kind: 'question', key: 'q:Q-OFF-AI', name: 'Q9', marks: 3, subject: 'Science', sub: 'Explain', answerType: 'explain',
+    row: { row_id: 'Q-OFF-AI', paper_id: 'P-OFF', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
+    reply: ansBackend_({}, subBackend_(rows, b => (b.action === 'aiMark' ? { success: false, why: 'ai-off', message: 'AI marking isn’t switched on' } : undefined))) });
+  await wait(300);
+  const bad = [], A = w.__t.ACTIONS;
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  w.stuffItemsAll_ = () => [AIQ];
+  const h = w.document.createElement('div');
+  w.document.body.appendChild(h);
+  h.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + w.questionTiles_(AIQ) + '</div>';
+  const inp = () => h.querySelector('.qp-ans-in');
+  const out = () => (h.querySelector('.qp-verdict') || {}).textContent;
+  const saved = () => (h.querySelector('.qp-saved') || {}).textContent;
+  ansType_(w, inp(), 'because it is hot');
+  A['qp-ai'](h.querySelector('.qp-ai-go'));
+  await wait(80);
+  const send = h.querySelector('.qp-ai [data-do="qp-send"]');
+  if (!send) return ['the server said ai-off and the box was left with no Send'];
+  if (!/switched on/.test(out())) bad.push('the line does not say AI marking is off: ' + JSON.stringify(out()));
+  /* TYPING WHILE THE LINE STILL SAYS IT KEEPS IT — it is the reason there is no mark. */
+  ansType_(w, inp(), 'because it is hot.');
+  if (!/switched on/.test(out())) bad.push('a letter typed under "AI marking isn’t switched on" took it off');
+  A['qp-send'](send);
+  await wait(60);
+  if (out() !== 'Sent' || rows.length !== 1) bad.push('the plain Send after ai-off gave ' + JSON.stringify(out()) + ' and ' + rows.length + ' row(s) — wanted Sent and one');
+  ansType_(w, inp(), 'because it is hot. And');
+  if (out() === 'Sent') bad.push('a letter typed after "Sent" left "Sent" over an answer nobody sent (the review’s finding)');
+  if (saved() !== 'On this device until you send it') bad.push('the line under the box says ' + JSON.stringify(saved()));
+  ansType_(w, inp(), 'because it is hot.');
+  if (out() !== 'Sent') bad.push('typed back to the answer sent, the line says ' + JSON.stringify(out()) + ' — wanted Sent, the verdict of that answer');
   w.__t.USER(null);
   return bad;
 });
@@ -11789,7 +13136,7 @@ check('a markDone reply without named or worded keeps the flags the load said, a
    answered by the deployed version, the Sunday trigger runs the code as saved), is told to make a new
    version rather than read as the new email. The fixture is the body `digestRender_` writes. */
 check('the weekly parent email card is an admin\'s, says the switch and the words, and Preview opens the emails without sending one', async () => {
-  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0, words: true,
+  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0, words: true, submissions: true,
     week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
     emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
                text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\n'
@@ -11864,11 +13211,20 @@ check('the weekly parent email card is an admin\'s, says the switch and the word
   const oldDoc = new w.DOMParser().parseFromString('<div>' + oldSheet + '</div>', 'text/html').body.firstChild;
   const first = oldDoc && oldDoc.firstElementChild;
   if (!first || !first.classList.contains('digest-old') || !first.querySelector('b') || !/new version/.test(first.textContent)) bad.push('a preview reply with no `words` (a web-app version from before the words) is not told first, in bold, to make a new version: ' + JSON.stringify(first && first.outerHTML));
-  /* AND THE WEEKLY SHEET, WITH NO attempts TAB: the reason, not "nobody has done a question". */
-  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, attempts: false, words: true,
-    warning: 'The Ledger has no attempts tab, so nothing says what anybody did.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
-  if (!/<b>The Ledger has no attempts tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no attempts tab does not say so in bold, or still says nobody has done a question');
-  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', attempts: true, words: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
+  /* AND THE WEEKLY SHEET, WITH NO submissions TAB: the reason, not "nobody has done a question". */
+  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, submissions: false, words: true,
+    warning: 'The Ledger has no submissions tab, so nothing says what anybody sent.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
+  if (!/<b>The Ledger has no submissions tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no submissions tab does not say so in bold, or still says nobody has done a question');
+  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', submissions: true, words: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
+  /* AND A DEPLOYED VERSION FROM BEFORE THE SUBMISSIONS (review of 9 Oct): it answers `words: true` and
+     `attempts:`, never `submissions:`, and plans from a tab nothing writes since the phones took the new
+     code. Its empty week is not a quiet week, and the sheet says which, first and in bold. */
+  const pre = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, words: true, attempts: true, warning: '',
+    week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
+  const preDoc = new w.DOMParser().parseFromString('<div>' + pre + '</div>', 'text/html').body.firstChild;
+  const preFirst = preDoc && preDoc.firstElementChild;
+  if (!preFirst || !preFirst.classList.contains('digest-old') || !preFirst.querySelector('b') || !/attempts/.test(preFirst.textContent) || !/new version/.test(preFirst.textContent)) bad.push('a preview reply from a backend before the submissions (words, attempts, no submissions) is not told first, in bold, that the live web app still reads the attempts tab: ' + JSON.stringify(preFirst && preFirst.outerHTML));
+  if (/digest-old/.test(w.digestSheet_(Object.assign({}, preview)))) bad.push('the new backend’s reply (words and submissions) is told it is old');
   t.USER(null);
   return bad;
 });
@@ -12084,6 +13440,232 @@ check('a refused roles save puts the ticks back to what you hold; a lost reply k
   await wait(400);
   if (!/did not answer|offline/.test(line())) bad.push('a lost reply did not say so on the card — "' + line() + '"');
   if (ticks() !== 'client,student') bad.push('a reply that never came took the ticks back to "' + ticks() + '" — a second Save would send what the person did not choose');
+  return bad;
+});
+
+/* ---------- NOTIFICATIONS: WHICH EMAILS YOU WANT, ON SETTINGS ---------------------------------------------
+   ASKED FOR AS *"Also let parents select their communication preferences like notification. And kids and
+   tutors too I guess"* (the owner, 9 Oct). The server's half — every sender asks, off is held, the token
+   decides whose row — is `check-prefs.js`. This is the phone's, and it is pressed against the REAL backend
+   (check-gas-load.js) rather than a reply typed here: the list a parent, a kid and a tutor are each shown
+   comes out of `notifyOf_` in people.gs exactly as the sign-in reply carries it, a tick posts `setNotify`
+   to the real `doPost`, and "survives a reload" is a fresh phone whose saved copy has had the list taken
+   off it, so only the server's `myProfile` can put the tick back where it was. A fixture that typed the
+   lists out would be checking the fixture. Invented people, example.org, PIN 0000. */
+const notifyWorld_ = () => {
+  const real = require('./check-gas-load.js').backend();
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London' };
+  const P = (id, first, last, role, email) => Object.assign({ person_id: id, first_name: first, last_name: last,
+    handle: (first + last).toLowerCase(), email: email, role: role }, base);
+  real.seed('people', [
+    P('P-C1', 'Pat', 'Parent', 'client', 'parent@example.org'),
+    P('P-S1', 'Sam', 'Student', 'student', 'student@example.org'),
+    P('P-S2', 'Nell', 'Nomail', 'student', ''),
+    P('P-T1', 'Ada', 'Tutor', 'tutor', 'tutor@example.org'),
+  ]);
+  const user = (who) => {
+    const d = real.post({ action: 'verifyLogin', email: who, name: who, pin: '0000' });
+    return d && d.success ? { name: d.name, personId: d.personId, role: d.role, roles: d.roles, token: d.token,
+      handle: d.handle, profile: d.profile } : null;
+  };
+  /* THE TWO ACTIONS THIS CARD IS ABOUT GO TO THE REAL `doPost`; the app's other polls are answered plainly. */
+  const reply = b => (b.action === 'setNotify' || b.action === 'myProfile') ? real.post(b) : { success: true, messages: [] };
+  return { real, user, reply };
+};
+const notifyCardOf_ = async (o) => {
+  const { w, sent } = boot({ payload: o.payload, reply: o.reply, before: o.before });
+  await wait(o.before ? 700 : 300);
+  const t = w.__t, d = w.document;
+  if (o.as) t.USER(o.as);
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return { err: 'drawing settings threw: ' + e.message }; }
+  await wait(300);
+  const card = () => d.querySelector('#s-settings .notify-card');
+  return { w, t, d, sent, card };
+};
+check('the Notifications card shows a parent, a kid and a tutor only the emails that reach them, from the real backend', async () => {
+  const { user, reply } = notifyWorld_();
+  const payload_ = Object.assign(payload(), { features: ['setNotify'] });
+  /* THE OWNER'S ASK, WRITTEN OUT: each role's switches, and what is always sent. No `referrals` for anybody
+     — it is `hidden` (constants.gs): nothing hands a code out any more, so it was a tick about a code
+     nobody had seen. */
+  const WANT = {
+    'parent@example.org':  { opt: ['weekly', 'messages', 'bookings', 'posts'], must: 4 },
+    'student@example.org': { opt: ['messages', 'posts'], must: 3 },
+    'tutor@example.org':   { opt: ['messages', 'bookings', 'posts'], must: 3 },
+  };
+  const ALL = ['weekly', 'messages', 'bookings', 'posts', 'referrals', 'approvals'];
+  const bad = [];
+  for (const who of Object.keys(WANT)) {
+    const u = user(who);
+    if (!u) { bad.push(who + ' could not sign in to the real backend'); continue; }
+    const v = await notifyCardOf_({ payload: payload_, reply, as: u });
+    if (v.err) { bad.push(who + ': ' + v.err); continue; }
+    const c = v.card();
+    if (!c) { bad.push(who + ': Settings has no Notifications card'); continue; }
+    const ticks = [...c.querySelectorAll('[data-do="notify-pick"]')];
+    const kinds = ticks.map(b => b.dataset.kind);
+    if (JSON.stringify(kinds) !== JSON.stringify(WANT[who].opt)) bad.push(who + ' is offered ' + JSON.stringify(kinds) + ', wanted ' + JSON.stringify(WANT[who].opt));
+    const others = ALL.filter(k => WANT[who].opt.indexOf(k) === -1 && kinds.indexOf(k) !== -1);
+    if (others.length) bad.push(who + ' is offered somebody else\'s emails: ' + others.join(', '));
+    if (!ticks.every(b => b.checked && b.type === 'checkbox' && b.closest('label.check'))) bad.push(who + ': not every switch is a ticked `.check` box — ' + ticks.map(b => b.dataset.kind + '=' + b.checked).join(' '));
+    const must = c.querySelectorAll('.notify-always li');
+    if (must.length !== WANT[who].must) bad.push(who + ' is told ' + must.length + ' kinds are always sent, wanted ' + WANT[who].must);
+    if (c.querySelector('.notify-always input')) bad.push(who + ': what is always sent is drawn with a box — it is words, not a greyed control');
+    if (!/Sign-in links and new PINs/.test(c.textContent)) bad.push(who + ': sign-in links and new PINs are not listed as always sent');
+    if (who === 'parent@example.org' && !/not being sent yet/i.test(c.textContent)) bad.push('the parent\'s weekly line does not say it is not being sent yet (weekly_digest is off)');
+    const pages = [...v.d.querySelectorAll('#s-settings .page')];
+    if (pages.length && !pages[pages.length - 1].querySelector('.notify-card')) bad.push(who + ': the Notifications card is not the last page — a card in front moves every page a returning visitor remembers');
+  }
+  /* A CHILD WITH NO EMAIL OF THEIR OWN: one sentence, nothing to tick. */
+  const nell = user('nellnomail');
+  if (!nell) bad.push('the child with no email could not sign in by handle');
+  else {
+    const v = await notifyCardOf_({ payload: payload_, reply, as: nell });
+    const c = v.card && v.card();
+    if (!c) bad.push('the child with no email has no Notifications card');
+    else {
+      if (c.querySelector('[data-do="notify-pick"]')) bad.push('a child with no email is offered switches for mail that never comes');
+      if (!/no email address/i.test(c.textContent) || !/grown-up/.test(c.textContent)) bad.push('a child with no email is not told so: ' + JSON.stringify(c.textContent.replace(/\s+/g, ' ').trim()));
+    }
+  }
+  return bad;
+});
+
+check('a Notifications tick saves to the real sheet, survives a reload, and a refusal puts it back', async () => {
+  const { real, user, reply } = notifyWorld_();
+  const payload_ = Object.assign(payload(), { features: ['setNotify'] });
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  const v = await notifyCardOf_({ payload: payload_, reply, as: pat });
+  if (v.err) return [v.err];
+  const bad = [];
+  const box = () => v.card() && v.card().querySelector('[data-kind="messages"]');
+  if (!box() || !box().checked) return ['the parent\'s Messages switch is missing or not ticked'];
+  v.sent.length = 0;
+  box().click();
+  await wait(400);
+  const post = v.sent.find(b => b.action === 'setNotify');
+  if (!post) bad.push('unticking Messages posted ' + JSON.stringify(v.sent.map(b => b.action)) + ' and no setNotify');
+  else if (post.kind !== 'messages' || post.on !== false || post.personId !== 'P-C1' || !post.token) bad.push('setNotify carried ' + JSON.stringify(post) + ' — wanted kind messages, on false, the parent\'s id and token');
+  if (String(real.row('P-C1').messages_email) !== 'no') bad.push('the sheet\'s messages_email is "' + real.row('P-C1').messages_email + '" after unticking, wanted no');
+  if (!box() || box().checked) bad.push('after the save the box is ticked again');
+  if (!/off/.test((v.card().querySelector('.notify-said') || {}).textContent || '')) bad.push('the line under the ticks does not say Messages is off');
+  if ((((v.t.whoami().profile || {}).notify || {}).kinds || []).find(k => k.kind === 'messages').on !== false) bad.push('USER.profile.notify was not given the server\'s list');
+  /* A RELOAD WHOSE SAVED COPY HAS NO LIST: only the server's myProfile can put the tick where it was. */
+  const kept = JSON.parse(JSON.stringify(v.t.whoami()));
+  delete kept.profile.notify;
+  const r = await notifyCardOf_({ payload: payload_, reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(kept)); } catch (e) {} } });
+  if (r.err) return bad.concat([r.err]);
+  await wait(400);
+  const again = r.card() && r.card().querySelector('[data-kind="messages"]');
+  if (!r.sent.some(b => b.action === 'myProfile')) bad.push('the reloaded phone never asked myProfile');
+  if (!again) bad.push('after a reload the parent\'s card has no Messages switch — ' + JSON.stringify(((r.card() || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160)));
+  else if (again.checked) bad.push('after a reload Messages is ticked again — the choice did not survive');
+  /* A REFUSAL — the sheet without the column — PUTS THE TICK BACK and says why. */
+  const no = await notifyCardOf_({ payload: payload_, as: pat,
+    reply: b => b.action === 'setNotify' ? { error: 'The sheet has no `posts_email` column. Run ensureSchema() — nothing was saved.' } : reply(b) });
+  const pb = no.card() && no.card().querySelector('[data-kind="posts"]');
+  if (!pb) return bad.concat(['the refusal journey has no Posts switch']);
+  pb.click();
+  await wait(400);
+  const pb2 = no.card().querySelector('[data-kind="posts"]');
+  if (!pb2.checked) bad.push('a refused save left Posts unticked — a box showing a choice the server never kept');
+  if (!/ensureSchema/.test((no.card().querySelector('.notify-said') || {}).textContent || '')) bad.push('a refused save did not say why under the ticks');
+  return bad;
+});
+
+/* ---------- TWO TICKS IN A ROW ARE TWO SAVES, WHICHEVER ANSWERS FIRST ---------------------------------------
+   The card used to be locked whole while a tick saved, and a locked `.check` looked exactly like a live
+   one: the second tick, 400ms after the first, during Apps Script's two seconds, did nothing at all —
+   no request, the box as it was, weekly_email blank, and "Saved" for the first (review, 9 Oct, walked in
+   Chromium). Now only the box being saved is locked. The replies here are HELD, as Apps Script holds
+   them, and let go in the OTHER order: the server wrote both, so the earlier reply's list still shows
+   the later tick as it was, and a phone that kept that list whole would repaint a tick the server has
+   already taken away. (Mutations: `lock: card` — no second request; the reply's whole list kept — the
+   repaint ticks Weekly again.) */
+check('two Notifications ticks in a row are two saves, and the replies cannot undo each other', async () => {
+  const { real, user, reply } = notifyWorld_();
+  real.seed('family', [{ link_id: 'L1', parent_id: 'P-C1', child_id: 'P-S1', state: 'accepted' }]);
+  const payload_ = Object.assign(payload(), { features: ['setNotify'] });
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  const held = [];
+  /* ANSWERED BY THE REAL SERVER THE MOMENT IT ARRIVES, DELIVERED WHEN THE JOURNEY SAYS. */
+  const v = await notifyCardOf_({ payload: payload_, as: pat,
+    reply: b => { if (b.action !== 'setNotify') return reply(b); const ans = real.post(b); return new Promise(ok => held.push(() => ok(ans))); } });
+  if (v.err) return [v.err];
+  const bad = [];
+  const box = k => v.card() && v.card().querySelector('[data-kind="' + k + '"]');
+  if (!box('bookings') || !box('weekly')) return ['the parent has no Booking updates or no Weekly switch'];
+  v.sent.length = 0;
+  box('bookings').click();
+  await wait(50);
+  if (!box('bookings').disabled) bad.push('the box being saved is not locked while it saves — it could be sent twice at once');
+  if (box('weekly').disabled) bad.push('a tick being saved locked the OTHER boxes on the card — a second tick lands on a dead box');
+  box('weekly').click();
+  await wait(50);
+  const posts = v.sent.filter(b => b.action === 'setNotify').map(b => b.kind + '=' + b.on);
+  if (JSON.stringify(posts) !== JSON.stringify(['bookings=false', 'weekly=false'])) bad.push('two ticks in a row posted ' + JSON.stringify(posts) + ' — wanted bookings off, then weekly off');
+  /* THE LATER REPLY FIRST, then the earlier one. */
+  if (held[1]) held[1]();
+  await wait(100);
+  if (held[0]) held[0]();
+  await wait(300);
+  if (String(real.row('P-C1').bookings_email) !== 'no' || String(real.row('P-C1').weekly_email) !== 'no')
+    bad.push('the sheet has bookings_email "' + real.row('P-C1').bookings_email + '" and weekly_email "' + real.row('P-C1').weekly_email + '" — wanted both no');
+  const kinds = (((v.t.whoami().profile || {}).notify || {}).kinds || []);
+  const onOf = k => (kinds.find(x => x.kind === k) || {}).on;
+  if (onOf('bookings') !== false || onOf('weekly') !== false) bad.push('after both replies the phone holds bookings ' + onOf('bookings') + ', weekly ' + onOf('weekly') + ' — an older reply\'s list painted over a newer tick');
+  try { v.w.paint('settings'); } catch (e) { bad.push('repainting settings threw: ' + e.message); }
+  await wait(100);
+  if (!box('bookings') || box('bookings').checked || !box('weekly') || box('weekly').checked)
+    bad.push('after a repaint the card shows bookings ' + (box('bookings') && box('bookings').checked) + ', weekly ' + (box('weekly') && box('weekly').checked) + ' — wanted both unticked, as the sheet has them');
+  if (box('bookings').disabled || box('weekly').disabled) bad.push('a box is still locked after its save answered');
+  return bad;
+});
+
+/* ---------- A LIST WITH NOTHING IN IT IS ONE SENTENCE --------------------------------------------------------
+   Every role is sent at least sign-in links and security warnings, so an empty list is a server that could
+   not tell what reaches somebody — the first `notifyOf_` did that for a role cell typed `parent`. It drew
+   "To x@… · saved as you tick." over nothing. */
+check('a Notifications list with no kinds says so instead of "saved as you tick" over nothing', async () => {
+  const { user, reply } = notifyWorld_();
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  pat.profile.notify = Object.assign({}, pat.profile.notify, { kinds: [] });
+  const v = await notifyCardOf_({ payload: Object.assign(payload(), { features: ['setNotify'] }), as: pat,
+    reply: b => b.action === 'myProfile' ? { success: true, personId: 'P-C1', profile: pat.profile } : reply(b) });
+  if (v.err) return [v.err];
+  const c = v.card();
+  if (!c) return ['Settings has no Notifications card'];
+  const bad = [];
+  const words = c.textContent.replace(/\s+/g, ' ').trim();
+  if (/saved as you tick/.test(words)) bad.push('an empty list still says "saved as you tick" over no ticks — ' + JSON.stringify(words));
+  if (!/sent as before/.test(words)) bad.push('an empty list does not say everything is still sent — ' + JSON.stringify(words));
+  return bad;
+});
+
+check('an old backend leaves the Notifications card saying so, with nothing to tick', async () => {
+  const { user, reply } = notifyWorld_();
+  const pat = user('parent@example.org');
+  if (!pat) return ['the parent could not sign in to the real backend'];
+  /* THE PAYLOAD OF A BACKEND FROM BEFORE `setNotify`: features that do not name it, and a profile with no list. */
+  delete pat.profile.notify;
+  const v = await notifyCardOf_({ payload: Object.assign(payload(), { features: ['openWaitlist', 'myProfile'] }),
+    reply: b => b.action === 'myProfile' ? { error: 'That action is not recognised.' } : reply(b), as: pat });
+  if (v.err) return [v.err];
+  const bad = [];
+  const c = v.card();
+  if (!c) return ['an old backend took the Notifications card away — Settings should still draw it and say why'];
+  if (c.querySelector('[data-do="notify-pick"]')) bad.push('an old backend is offered ticks it would refuse');
+  if (!/does not have notification choices yet/.test(c.textContent) || !/sent as before/.test(c.textContent)) bad.push('the card does not say the backend is older than the site, and that everything is still sent: ' + JSON.stringify(c.textContent.replace(/\s+/g, ' ').trim()));
+  /* THE INSTRUCTION IS THE ADMIN'S: a parent cannot sync anything. */
+  if (/sync backend/i.test(c.textContent)) bad.push('a parent is told to sync the backend — an instruction only the admin can follow');
+  v.t.USER(Object.assign({}, pat, { role: 'admin', roles: ['admin'] }));
+  try { v.w.paint('settings'); } catch (e) { bad.push('drawing settings for the admin threw: ' + e.message); }
+  const ca = v.card();
+  if (!ca || !/Sync backend\//.test(ca.textContent)) bad.push('the admin is not told to sync backend/: ' + JSON.stringify(ca && ca.textContent.replace(/\s+/g, ' ').trim()));
+  if (!v.d.querySelector('#s-settings .roles-card')) bad.push('an old backend broke the rest of Settings');
   return bad;
 });
 
@@ -13104,7 +14686,10 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (gen() !== 1) bad.push('drawing the first verses fetched Genesis ' + gen() + ' times — once, when its first card is drawn');
   const c11 = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:1"] .bb-v');
   if (!c11) bad.push('the first verse card was not drawn after KJV');
-  else if (c11.classList.contains('is-wait') || c11.textContent.trim() !== 'In the beginning God created the heaven and the earth.') {
+  /* `.loading` IN THE CARD, NOT `.bb-v.is-wait`: a verse waiting for its book is the one loader now
+     (`loading_`, shell.js — the owner, 9 Oct, *"they should all have a simplistic simple loading
+     thing"*), and the verse's `.bb-v` is only drawn once the book has landed. */
+  else if (c11.closest('.bb-verse').querySelector('.loading') || c11.textContent.trim() !== 'In the beginning God created the heaven and the earth.') {
     bad.push('Genesis 1:1 drawn before its book landed still reads "' + c11.textContent.trim() + '" after it did — the card was not drawn again');
   }
   /* ONE FETCH PER BOOK HOWEVER MANY ASK AT ONCE — the same promise to every caller while it is in flight. */
@@ -13207,7 +14792,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   tallies('Psalm 119');
   if (!(await pick('bibleVerse', '105'))) return bad;
   let lamp = null;
-  for (let i = 0; i < 40 && !(lamp && !lamp.classList.contains('is-wait')); i++) {
+  for (let i = 0; i < 40 && !(lamp && !lamp.closest('.bb-verse').querySelector('.loading')); i++) {
     await wait(25);
     lamp = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:19:119:105"] .bb-v');
   }
@@ -13358,7 +14943,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       await wait(150);
       const lev = JSON.parse(fs.readFileSync(path.join(bibleDir, '03-leviticus.json'), 'utf8'));
       const back = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:3:1:1"] .bb-v');
-      if (!back || back.classList.contains('is-wait') || back.textContent.trim() !== lev.chapters[0][0].replace(/^#\s*/, '').replace(/[\[\]]/g, '')) {
+      if (!back || back.closest('.bb-verse').querySelector('.loading') || back.textContent.trim() !== lev.chapters[0][0].replace(/^#\s*/, '').replace(/[\[\]]/g, '')) {
         bad.push('Try again did not draw Leviticus 1:1 — it reads "' + (back ? back.textContent.trim().slice(0, 60) : 'nothing') + '"');
       }
       if (ofBible(a.gets).filter(u => /03-leviticus\.json/.test(u)).length !== 2) bad.push('Leviticus was fetched ' + ofBible(a.gets).filter(u => /03-leviticus\.json/.test(u)).length + ' times — once refused, once again on Try again');
@@ -13381,7 +14966,10 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   st.STUFF().filters = DOORS.map(f => Object.assign({}, f));
   slow.w.paintStuff();
   const said = () => ((sd.getElementById('stuff-groups') || {}).textContent || '').replace(/\s+/g, ' ');
-  if (!/on its way/.test(said())) bad.push('the Books shelf with the index still coming says "' + said().trim().slice(0, 80) + '" — not that the list of books is on its way');
+  /* THE ONE LOADER WHERE THE QUESTION WILL BE, and no sentence of its own: it said "The list of the
+     Bible's books is on its way" until 9 Oct, and `check-loading.js` now fails on those words. */
+  const waitingAt = () => sd.querySelectorAll('#stuff-groups .loading[role="status"]').length;
+  if (waitingAt() !== 1) bad.push('the Books shelf with the index still coming shows ' + waitingAt() + ' loaders under the question, not one — it says "' + said().trim().slice(0, 80) + '"');
   st.STUFF().q = 'psalms';
   const early = slow.w.stuffFiltered().some(i => i.kind === 'bible');
   slow.w.paintStuff();
@@ -13390,6 +14978,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
   else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
   if (!sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
+  if (waitingAt()) bad.push('the index landed and the Books shelf still shows its loader');
   const kjvLate = sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
   if (kjvLate) {
     st.ACTIONS['facet-pick'](kjvLate);
@@ -13409,8 +14998,10 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   held.w.__t.STUFF().filters = []; held.w.__t.STUFF().q = '';
   held.w.paintStuff();
   if (held.w.stuffItemsAll_().some(i => i.kind === 'bible')) bad.push('an admin is offered the Bible before the library has landed');
-  if (!/still coming/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
-    bad.push('an admin\'s Find with the library still on its way does not say the questions are still coming');
+  /* THE ONE LOADER, not "The questions are still coming" — the words went on 9 Oct (`nothingHere`). */
+  if (!held.w.document.querySelector('#s-stuff .loading[role="status"]')
+      || /Nothing in the shop or the library/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
+    bad.push('an admin\'s Find with the library still on its way does not show the loader — or calls it empty');
   }
 
   /* ---------- 14. KEPT: A STARRED VERSE ON SAVED, THE OLD STAR ON THE COVER, AND BACK INTO ITS CHAPTER --- */
@@ -15320,7 +16911,7 @@ check('answers: an edit not yet sent beats the account’s copy, even a later on
 });
 
 check('answers: a backend without saveAnswers is sent nothing, and the box keeps its answer on the device as it always did', async () => {
-  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ['markDone'] }) });
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: [] }) });
   await wait(300);
   const need = ansNeed_(w);
   if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
@@ -15423,8 +17014,1532 @@ check('answers: a payload landing reads the account once a visit, and coming bac
   return bad;
 });
 
+/* ==================================================================================================
+   EVERY BOX SURVIVES A RELOAD (docs/history/317).
+
+   THE OWNER, 9 Oct, during a lesson: *"[the child] accidentally refreshed on his computer when doing the
+   english language question. this lost him all his progress on his answer. the box should be
+   autosaving his work like everywhere else should be doing this."* Three hunts in a real browser found
+   the two ways the essay was lost — a store that refused the write and a session the server ended — and
+   a stale second tab that wrote one letter over it. Each is a journey here, through the real handlers,
+   and so is the reload itself: a first boot types, the page goes away (`pagehide`), and a SECOND BOOT
+   starts from exactly the storage the first one left, the way the splash journey boots twice. The
+   children are invented, Ada and Ben, as above. Signed in on the live backend's shape — no
+   `saveAnswers`, so the device is the only copy, as it was on 9 Oct.
+================================================================================================== */
+const keptStore_ = w => {
+  const o = {};
+  for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); }
+  return o;
+};
+const fromStore_ = (kept, more) => win => {
+  Object.keys(kept).forEach(k => win.localStorage.setItem(k, kept[k]));
+  if (more) more(win);
+};
+/* ABOUT THE ESSAY'S LENGTH — 3,000 characters, over the account's 2,000 as well. */
+const RELOAD_ESSAY = 'The wind came off the sea like a held breath let go, and the town leaned into it. '.repeat(37);
+const RELOAD_ESSAY_X = { kind: 'question', name: 'Q5', marks: 40, key: 'q:Q-ANS-E-R', answerType: 'written', accept: '',
+  html: '<p>Write a description suggested by this picture.</p>',
+  row: { row_id: 'Q-ANS-E-R', paper_id: 'P-ANS', subject: 'English Language', name: 'Answers' } };
+const reloadEssayBox_ = w => {
+  const h = w.document.createElement('div');
+  w.document.body.appendChild(h);
+  h.innerHTML = w.questionCard_(RELOAD_ESSAY_X, 0);
+  /* BY `data-do="qp-ans"`, the one thing every box that saves as an answer carries — not by how the essay's
+     box is drawn, which is being rebuilt as a writing sheet. */
+  return h.querySelector('[data-do="qp-ans"][data-k$="' + RELOAD_ESSAY_X.key + '"]');
+};
+
+check('a reload keeps every answer — words, maths, a 3,000-character essay, a pick and a drawing — signed in on the live backend and signed out', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(one.w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was reloaded'];
+  const bad = [];
+  let c = ansCards_(one.w, 'R');
+  ansType_(one.w, c.ta(), 'because 180');
+  ansType_(one.w, c.kp(), '(3)/(4)');
+  const e1 = reloadEssayBox_(one.w);
+  if (!e1) return ['the essay card drew no answer box — nothing was reloaded'];
+  ansType_(one.w, e1, RELOAD_ESSAY);
+  one.w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  ansStroke_(one.w, c, [[10, 10], [60, 60], [90, 20]]);
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  const two = boot({ before: fromStore_(keptStore_(one.w)) });
+  await wait(300);
+  const w = two.w;
+  if (!w.__t.whoami() || w.__t.whoami().personId !== 'P7') bad.push('the reload did not come back signed in as Ada — every key below is somebody else\'s');
+  c = ansCards_(w, 'R');
+  if (c.ta().value !== 'because 180') bad.push('after the reload the words box holds ' + JSON.stringify(c.ta().value));
+  if (c.kp().value !== '(3)/(4)') bad.push('after the reload the maths box holds ' + JSON.stringify(c.kp().value));
+  const e2 = reloadEssayBox_(w);
+  if (!e2 || e2.value !== RELOAD_ESSAY) bad.push('after the reload the essay is ' + (e2 ? e2.value.length : 'no box,') + ' characters, wanted ' + RELOAD_ESSAY.length);
+  const on = c.box().querySelector('.qp-opt.is-picked');
+  if (!on || on.getAttribute('data-n') !== '2') bad.push('after the reload the picked option is ' + (on ? on.getAttribute('data-n') : 'none') + ', wanted 2');
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('after the reload the pad shows ' + c.pad().querySelectorAll('.qpad-g path').length + ' strokes, wanted 1');
+  /* SIGNED OUT: the device's key, and the same again. */
+  w.__t.USER(null);
+  try { w.localStorage.removeItem('familyUser'); } catch (e) {}
+  c.draw();
+  ansType_(w, c.ta(), 'mine, on this computer');
+  w.dispatchEvent(new w.Event('pagehide'));
+  const three = boot({ before: fromStore_(keptStore_(w)) });
+  await wait(300);
+  if (three.w.__t.whoami()) bad.push('the signed-out reload came back signed in');
+  const c3 = ansCards_(three.w, 'R');
+  if (c3.ta().value !== 'mine, on this computer') bad.push('signed out, after the reload the box holds ' + JSON.stringify(c3.ta().value));
+  return bad;
+});
+
+check('a reload keeps what was typed and not yet sent: the composer, a comment, the booking note, a settings box, the new-post sheet and the make-an-account names — and never a PIN', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const W = one.w;
+  const fns = ['msgForm_', 'commentsHtml_', 'fieldHtml', 'registerSheet_', 'draftRead_', 'draftKeep_'].filter(n => typeof W[n] !== 'function');
+  if (fns.length) return [fns.join(', ') + ' not reachable — nothing was reloaded'];
+  const bad = [];
+  const draw = (w, html) => { const h = w.document.createElement('div'); w.document.body.appendChild(h); h.innerHTML = html; return h; };
+  const type = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  const surfaces = w => {
+    const msg = draw(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+    const cmt = draw(w, w.commentsHtml_({ id: 'POST-R', comments: { list: [], total: 0 } })).querySelector('.cmt-text');
+    const set = draw(w, '<div class="me-form">' + w.fieldHtml('headline', 'Maths, mostly', {}) + '</div>').querySelector('[data-me="headline"]');
+    const note = draw(w, w.noteRow_().sel).querySelector('[data-do="book-note"]');
+    return { msg, cmt, set, note };
+  };
+  let s = surfaces(W);
+  if (!s.msg || !s.cmt || !s.set || !s.note) return ['a surface did not draw: ' + JSON.stringify(Object.keys(s).filter(k => !s[k]))];
+  type(W, s.msg, 'See you Tuesday — can we do');
+  type(W, s.cmt, 'Lovely photo of the');
+  type(W, s.set, 'Maths and Physics');
+  type(W, s.note, 'Two of them are twins and');
+  W.__t.ACTIONS['new-post']();
+  const pc = W.document.getElementById('post-cap'), pb = W.document.getElementById('post-body');
+  if (!pc || !pb) bad.push('the new-post sheet did not open, so it was NOT checked');
+  else { type(W, pc, 'Thursday at the library'); type(W, pb, 'Twelve of them, and'); }
+  /* A PIN IS NEVER WRITTEN DOWN — not a sheet's, and not one a box carrying a draft would have kept. */
+  W.closeSheet && W.closeSheet();
+  /* `0000`, the one PIN this public repository writes down — so a leak is looked for as a VALUE: the PIN
+     itself, or quoted inside a stored JSON (a draft's `"v":"0000"`), never as digits in a timestamp. */
+  const PIN = '0000';
+  const holds = v => String(v) === PIN || String(v).indexOf('"' + PIN + '"') !== -1;
+  const trap = draw(W, '<input type="text" data-draft="set:lib1_pin"><input type="password" data-draft="reg:pin">');
+  trap.querySelectorAll('input').forEach(el => type(W, el, PIN));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const kept = keptStore_(W);
+  const leak = Object.keys(kept).filter(k => holds(kept[k]));
+  if (leak.length) bad.push('a PIN was written to the device under ' + leak.join(', '));
+  const two = boot({ before: fromStore_(kept) });
+  await wait(300);
+  const w = two.w;
+  s = surfaces(w);
+  if (s.msg.value !== 'See you Tuesday — can we do') bad.push('after the reload the composer holds ' + JSON.stringify(s.msg.value));
+  if (s.cmt.value !== 'Lovely photo of the') bad.push('after the reload the comment box holds ' + JSON.stringify(s.cmt.value));
+  if (s.set.value !== 'Maths and Physics') bad.push('after the reload the settings box holds ' + JSON.stringify(s.set.value) + ' — wanted the unsaved edit over the saved "Maths, mostly"');
+  if (s.note.value !== 'Two of them are twins and' || w.__t.BOOKING.note !== 'Two of them are twins and') bad.push('after the reload the booking note is ' + JSON.stringify(s.note.value) + ' and BOOKING.note ' + JSON.stringify(w.__t.BOOKING.note));
+  w.__t.ACTIONS['new-post']();
+  const pc2 = w.document.getElementById('post-cap'), pb2 = w.document.getElementById('post-body');
+  if (!pc2 || pc2.value !== 'Thursday at the library' || !pb2 || pb2.value !== 'Twelve of them, and') bad.push('after the reload the new-post sheet opened holding ' + JSON.stringify([pc2 && pc2.value, pb2 && pb2.value]));
+  w.closeSheet && w.closeSheet();
+  /* TYPED BACK TO WHAT IS SAVED IS NO DRAFT. */
+  type(w, s.set, 'Maths, mostly');
+  if (w.draftRead_('set', 'headline') !== null) bad.push('a settings box typed back to its saved value still keeps a draft');
+  /* SENT, AND THE DRAFT GOES — the comment, through the real handler and a server that takes it. */
+  const tile = s.cmt.closest('.cmt-form').querySelector('[data-do="cmt-add"]');
+  if (!tile) bad.push('no Post tile beside the comment box');
+  else {
+    w.__t.ACTIONS['cmt-add'](tile);
+    await wait(100);
+    if (w.draftRead_('cmt', 'POST-R') !== null) bad.push('the comment was posted and its draft is still kept — the next reload would put it back in the box');
+  }
+  /* ANOTHER CHILD ON THE SAME iPAD IS NOT HANDED ADA'S DRAFT. */
+  w.__t.USER(Object.assign({}, ANS_BEN));
+  const ben = draw(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  if (ben.value) bad.push('Ben opened the same conversation and the composer held Ada\'s draft: ' + JSON.stringify(ben.value));
+  /* SIGNED OUT: the make-an-account sheet is the device's draft, and comes back across a reload. */
+  w.__t.USER(null);
+  try { w.localStorage.removeItem('familyUser'); } catch (e) {}
+  w.registerSheet_();
+  const rf = w.document.getElementById('reg-first'), rp = w.document.getElementById('reg-pin');
+  if (!rf || !rp) bad.push('the make-an-account sheet did not open, so it was NOT checked');
+  else {
+    type(w, rf, 'Ivy');
+    type(w, rp, PIN);
+    w.dispatchEvent(new w.Event('pagehide'));
+    const kept3 = keptStore_(w);
+    if (Object.keys(kept3).some(k => holds(kept3[k]))) bad.push('the PIN typed into the make-an-account sheet was written to the device');
+    const three = boot({ before: fromStore_(kept3) });
+    await wait(300);
+    three.w.registerSheet_();
+    const rf3 = three.w.document.getElementById('reg-first');
+    if (!rf3 || rf3.value !== 'Ivy') bad.push('after the reload the make-an-account sheet opened with the first name ' + JSON.stringify(rf3 && rf3.value));
+  }
+  return bad;
+});
+
+check('the booking form is the person\'s on a shared iPad: a sign-out takes it off the screen, signing in again brings it back, and the next child is not handed it', async () => {
+  const { w } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'draftRead_'].filter(n => typeof w[n] !== 'function');
+  if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const B = w.__t.BOOKING;
+  /* THROUGH THE REAL LISTENER, as a parent types the note. */
+  const note = v => {
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    h.innerHTML = w.noteRow_().sel;
+    const el = h.querySelector('[data-do="book-note"]');
+    el.value = v;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+  };
+  note('Ada on Tuesdays, please');
+  w.signedOut_();
+  if (B.note) bad.push('signed out, the booking form still holds Ada\'s note ' + JSON.stringify(B.note) + ' for whoever picks the iPad up');
+  if (w.draftRead_('book', 'form') !== null) bad.push('signed out, the device was handed Ada\'s booking as its own draft');
+  /* BEN SIGNS IN: nothing of Ada's. */
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  if (B.note) bad.push('Ben signed in and the booking form held ' + JSON.stringify(B.note));
+  /* ADA AGAIN: hers is back (from Ben, through the sign-out on the way). */
+  w.signedIn_(Object.assign({}, ANS_ADA));
+  if (B.note !== 'Ada on Tuesdays, please') bad.push('Ada signed in again and the booking note is ' + JSON.stringify(B.note) + ' — wanted the one she left');
+  /* FILLED IN SIGNED OUT AND SIGNED IN TO SEND: it is the person's now, and the device's copy goes. */
+  w.signedOut_();
+  note('Two children, Saturdays');
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  if (B.note !== 'Two children, Saturdays') bad.push('filled in signed out, then signed in to send, and the note is ' + JSON.stringify(B.note));
+  if (!/Two children/.test(String(w.draftRead_('book', 'form') || ''))) bad.push('the form filled in signed out is not Ben\'s draft after he signed in');
+  if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('the device\'s copy of a form Ben carried into his account is still on the device, for the next visitor');
+  return bad;
+});
+
+check('a store that refuses the write: the box keeps the visit\'s copy through a redraw, says it is not saved, and leaving asks first — a store with room says nothing', async () => {
+  const { w } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(w).concat(['ansValue_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was refused'];
+  const bad = [];
+  const c = ansCards_(w, 'F');
+  const k = 'ans:u:P7:' + c.words.key;
+  /* HUNT A3: 142 characters stored, then the store full of other things, and 252 typed. */
+  ansType_(w, c.ta(), 'a'.repeat(142));
+  const real = w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem = function (key, v) {
+    if (/^(ans|pad|draft):/.test(String(key))) throw new w.DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    return real.call(this, key, v);
+  };
+  try {
+    ansType_(w, c.ta(), 'a'.repeat(252));
+    if (w.localStorage.getItem(k) !== 'a'.repeat(142)) bad.push('the refused write was NOT set up — the store holds ' + String(w.localStorage.getItem(k)).length);
+    c.draw();
+    if (c.ta().value.length !== 252) bad.push('a redraw drew the box with ' + c.ta().value.length + ' characters — the store\'s older copy over the visit\'s 252');
+    if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('under a refused answer the line says ' + JSON.stringify(c.saidFor(c.words)));
+    /* AND THE PEN'S NOTE (review of 317): a stroke the store refused is not "kept on this device". */
+    ansStroke_(w, c, [[10, 10], [60, 60], [90, 20]]);
+    const note = c.pad() && c.pad().querySelector('[data-kept-k]');
+    if (!note || note.textContent !== 'Not saved — this browser is not keeping it.') bad.push('under a drawing the store refused, the pad says ' + JSON.stringify(note && note.textContent));
+    ansType_(w, c.ta(), c.ta().value + 'b');
+    if (String(w.ansValue_(k)).length !== 253) bad.push('the next key after the redraw left the visit\'s copy at ' + String(w.ansValue_(k)).length + ', wanted 253');
+    const ev = new w.Event('beforeunload', { cancelable: true });
+    w.dispatchEvent(ev);
+    if (!ev.defaultPrevented) bad.push('leaving with 253 characters held by nothing but the page did not ask first');
+  } finally { w.Storage.prototype.setItem = real; }
+  /* ROOM AGAIN: the next key lands, the line goes back, and leaving does not ask. */
+  ansType_(w, c.ta(), c.ta().value + 'c');
+  if (String(w.localStorage.getItem(k)).length !== 254) bad.push('with room again the store holds ' + String(w.localStorage.getItem(k)).length + ', wanted 254');
+  if (c.saidFor(c.words) !== 'On this device only') bad.push('with the answer stored again the line says ' + JSON.stringify(c.saidFor(c.words)));
+  const ev2 = new w.Event('beforeunload', { cancelable: true });
+  w.dispatchEvent(ev2);
+  if (ev2.defaultPrevented) bad.push('leaving asked first with every answer stored — a prompt on every refresh');
+  return bad;
+});
+
+check('a browser that keeps no site data at all: the answer lives through a redraw, the line says so, and leaving asks first', async () => {
+  const { w, errs } = boot({ before: win => {
+    Object.defineProperty(win, 'localStorage', { configurable: true, get() { throw new win.DOMException('The operation is insecure.', 'SecurityError'); } });
+  } });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  /* SIGNED IN FOR THE VISIT, as a sign-in leaves it when nothing can be stored — hunt A1. */
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  /* NOTHING TYPED YET: hiding the page on Find writes where Find was, which this browser refuses — and a
+     place is a convenience, so leaving must not ask (`keepPut_`'s `quiet`). */
+  w.__t.go('stuff');
+  w.dispatchEvent(new w.Event('pagehide'));
+  const ev0 = new w.Event('beforeunload', { cancelable: true });
+  w.dispatchEvent(ev0);
+  if (ev0.defaultPrevented) bad.push('with nothing typed, leaving Find asked "Leave site?" — where Find was is a convenience, and a refresh would ask every time');
+  const c = ansCards_(w, 'N');
+  ansType_(w, c.ta(), 'x'.repeat(111));
+  if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('with nothing stored the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — it said "On this device only" over an answer on no device');
+  c.draw();
+  if (c.ta().value.length !== 111) bad.push('a redraw drew ' + c.ta().value.length + ' characters, wanted the visit\'s 111 (hunt A2: it drew an empty box, and the next key saved one letter)');
+  const ev = new w.Event('beforeunload', { cancelable: true });
+  w.dispatchEvent(ev);
+  if (!ev.defaultPrevented) bad.push('leaving with 111 characters held by nothing but the page did not ask');
+  if (errs && errs.length) bad.push('the app threw with storage blocked: ' + errs.slice(0, 2).join(' | '));
+  return bad;
+});
+
+check('an answer written in another tab is the answer in this one — a stale box is given it before a key can write over it', async () => {
+  const { w } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const c = ansCards_(w, 'T');
+  const k = 'ans:u:P7:' + c.words.key;
+  if (c.ta().value) return ['the box was not empty to start with — NOT checked'];
+  /* THE OTHER TAB WRITES THE ESSAY; the browser tells this one with `storage`. */
+  w.localStorage.setItem(k, RELOAD_ESSAY);
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: null, newValue: RELOAD_ESSAY }));
+  if (c.ta().value !== RELOAD_ESSAY) bad.push('the box in this tab still holds ' + c.ta().value.length + ' characters after the other tab wrote ' + RELOAD_ESSAY.length);
+  ansType_(w, c.ta(), c.ta().value + '!');
+  if (w.localStorage.getItem(k) !== RELOAD_ESSAY + '!') bad.push('one key in this tab left the store holding ' + String(w.localStorage.getItem(k)).length + ' characters (hunt 3: "H" over 1,369)');
+  return bad;
+});
+
+check('a session the server ended on the reload: the box drawn signed out says the answer is still here, and signing in again brings it back', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(one.w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  let c = ansCards_(one.w, 'G');
+  ansType_(one.w, c.ta(), RELOAD_ESSAY);
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  /* THE iPAD SIGNED THE ACCOUNT OUT: every signed-in request of this computer's is refused. */
+  const two = boot({ before: fromStore_(keptStore_(one.w)),
+    reply: b => (b.token === 'tok-P7' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+  for (let i = 0; i < 40 && two.w.__t.whoami(); i++) await wait(50);
+  const w = two.w;
+  if (w.__t.whoami()) return ['the server refused the session and the app stayed signed in — NOT checked'];
+  c = ansCards_(w, 'G');
+  if (c.ta().value) bad.push('signed out by the server, the box shows ' + c.ta().value.length + ' characters — wanted the signed-out key\'s empty box');
+  if (c.saidFor(c.words) !== 'Signed out — sign in again and your answer is back') bad.push('under the empty box the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — an essay still on the device and nothing saying so');
+  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== RELOAD_ESSAY) bad.push('the essay under Ada\'s key is gone from the device');
+  w.signedIn_(Object.assign({}, ANS_ADA));
+  c.draw();
+  if (c.ta().value !== RELOAD_ESSAY) bad.push('signed in again, the box holds ' + c.ta().value.length + ' characters, wanted the essay');
+  if (/Signed out/.test(c.saidFor(c.words) || '')) bad.push('signed in again, the line still says ' + JSON.stringify(c.saidFor(c.words)));
+  return bad;
+});
+
+check('a reload puts Find back on the question: the column, the paper\'s chip and the essay\'s page, with the box holding what was typed', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const ID = 'Q-R0398-5';
+  const row = LIB.find(r => r.row_id === ID);
+  if (!row) return [ID + ' is not in data/questions.json — nothing was reloaded'];
+  const paper = LIB.filter(r => r.paper_id === row.paper_id);
+  const serve = url => (/data\/questions\.json/.test(url) ? paper : undefined);
+  const one = boot({ serve, before: signedInAs_(ANS_ADA) });
+  const W = one.w;
+  for (let i = 0; i < 100 && !(typeof W.stuffItemsAll_ === 'function' && W.stuffItemsAll_().some(x => x.row && x.row.row_id === ID)); i++) await wait(50);
+  const x = W.stuffItemsAll_().find(it => it.row && it.row.row_id === ID);
+  if (!x) return ['the essay did not come through the loader into Find — nothing was reloaded'];
+  const bad = [];
+  const S = W.__t.STUFF();
+  S.filters = [{ field: 'paperId', value: row.paper_id }];
+  W.paintStuff();
+  W.__t.go('stuff');
+  const at = W.stuffPages_().findIndex(pg => pg.x === x && !pg.part);
+  const i0 = at >= 0 ? at : W.stuffPages_().findIndex(pg => pg.x === x);
+  W.__t.goPage('stuff', W.stuffFirstResult_() + i0, true);
+  await wait(200);
+  const k = 'ans:u:P7:' + x.key;
+  const box1 = W.document.querySelector('#s-stuff [data-do="qp-ans"][data-k="' + k + '"]');
+  if (!box1) return ['the essay\'s box is not on Find\'s page in front — the setup did NOT reach it'];
+  ansType_(W, box1, RELOAD_ESSAY);
+  /* THE CHILD HAD BEEN WRITING FOR TWENTY MINUTES: the column was chosen long ago, and is left just now. */
+  W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const want = W.__t.PAGE.stuff;
+  const kept = keptStore_(W);
+  const two = boot({ serve, before: fromStore_(kept) });
+  const w = two.w;
+  for (let i = 0; i < 100 && !(w.__t.STUFF().filters || []).length; i++) await wait(50);
+  await wait(200);
+  if (w.__t.AT() !== 'stuff') bad.push('the reload opened on ' + w.__t.AT() + ', not Find');
+  const f = JSON.stringify(w.__t.STUFF().filters);
+  if (f !== JSON.stringify([{ field: 'paperId', value: row.paper_id }])) bad.push('the reload brought Find back with the chips ' + f);
+  if (w.__t.PAGE.stuff !== want) bad.push('the reload put Find on page ' + w.__t.PAGE.stuff + ', not the essay\'s ' + want);
+  const box2 = w.document.querySelector('#s-stuff [data-do="qp-ans"][data-k="' + k + '"]');
+  if (!box2) bad.push('after the reload the essay\'s box is not on the page in front');
+  else if (box2.value !== RELOAD_ESSAY) bad.push('after the reload the essay\'s box holds ' + box2.value.length + ' characters');
+  /* AND TOMORROW IS TOMORROW: the same storage, left seven minutes ago, opens where it always did. */
+  const stale = Object.assign({}, kept);
+  const ago = String(Date.now() - 7 * 60 * 1000);
+  stale.familyTabAt = ago;
+  Object.keys(stale).filter(n => /^draft:u:P7:find:place$/.test(n)).forEach(n => {
+    try { const d = JSON.parse(stale[n]); const p = JSON.parse(d.v); p.at = Number(ago); d.v = JSON.stringify(p); stale[n] = JSON.stringify(d); } catch (e) {}
+  });
+  const three = boot({ serve, before: fromStore_(stale) });
+  await wait(1200);
+  if (three.w.__t.AT() === 'stuff' && (three.w.__t.STUFF().filters || []).length) bad.push('a visit seven minutes after leaving was put back on the essay — "remembered for a reload, not for tomorrow"');
+  return bad;
+});
+
+/* ---------- AND WHAT THE REVIEW OF 317 FOUND (docs/history/317, "After the review") ------------------ */
+const draftBox_ = (w, html) => { const h = w.document.createElement('div'); w.document.body.appendChild(h); h.innerHTML = html; return h; };
+const draftType_ = (w, el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+
+check('sent while the server is still answering, then reloaded: the message, the comment and the booking are not drawn back — and a refusal gives the words back', async () => {
+  /* THE FIRST PAGE NEVER HEARS BACK: Apps Script is still answering when the page goes, and the browser
+     ABORTS what is still out as the page goes — which reaches each `.catch` as a failure (measured in
+     Chromium: that failure gave the draft back on the way out, and the reload drew the message again). */
+  let one = null;
+  const cut = () => new Promise((_, no) => one.w.addEventListener('pagehide', () => setTimeout(() => no(new TypeError('Failed to fetch')), 0)));
+  one = boot({ before: signedInAs_(ANS_ADA), reply: b => (/^(sendMessage|addComment|createJob)$/.test(b.action) ? cut() : undefined) });
+  await wait(300);
+  const W = one.w;
+  const fns = ['msgForm_', 'commentsHtml_', 'noteRow_', 'draftRead_', 'draftSent_'].filter(n => typeof W[n] !== 'function');
+  if (fns.length) return [fns.join(', ') + ' not reachable — nothing was sent'];
+  const bad = [];
+  const MSG = 'Can we move Tuesday to Wednesday please', CMT = 'Lovely photo of the library', NOTE = 'Tuesdays after school';
+  const form = draftBox_(W, W.msgForm_('Tom Tutor', 'P-TOM'));
+  draftType_(W, form.querySelector('.msg-text'), MSG);
+  W.__t.ACTIONS['msg-send'](form.querySelector('[data-do="msg-send"]'));
+  const post = { id: 'POST-S', comments: { list: [], total: 0 } };
+  const cf = draftBox_(W, W.commentsHtml_(post));
+  draftType_(W, cf.querySelector('.cmt-text'), CMT);
+  W.__t.ACTIONS['cmt-add'](cf.querySelector('[data-do="cmt-add"]'));
+  draftType_(W, draftBox_(W, W.noteRow_().sel).querySelector('[data-do="book-note"]'), NOTE);
+  W.__t.ACTIONS['book-send'](W.document.createElement('button'));
+  await wait(50);
+  const went = one.sent.map(b => b.action);
+  ['sendMessage', 'addComment', 'createJob'].forEach(a => { if (went.indexOf(a) < 0) bad.push(a + ' was never sent, so it was NOT checked: ' + JSON.stringify(went)); });
+  /* IN THE PAGE THAT IS SENDING: a redraw keeps the comment in its box under a slow reply, as it always did. */
+  if (draftBox_(W, W.commentsHtml_(post)).querySelector('.cmt-text').value !== CMT) bad.push('in the page sending it, a redraw emptied the comment box while the server was still answering');
+  W.dispatchEvent(new W.Event('pagehide'));
+  await wait(30);
+  /* THE RELOAD: the server has all three by now, and says so if asked again. */
+  const two = boot({ before: fromStore_(keptStore_(W)), reply: b => (b.action === 'sendMessage' ? { error: 'One message every five minutes.' } : undefined) });
+  await wait(300);
+  const w = two.w;
+  const msg2 = draftBox_(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  if (msg2.value) bad.push('after the reload the composer holds ' + JSON.stringify(msg2.value) + ' — sent already, and one press from going twice');
+  const cmt2 = draftBox_(w, w.commentsHtml_(post)).querySelector('.cmt-text');
+  if (cmt2.value) bad.push('after the reload the comment box holds ' + JSON.stringify(cmt2.value));
+  if (w.__t.BOOKING.note) bad.push('after the reload the booking form came back with the note ' + JSON.stringify(w.__t.BOOKING.note) + ' — one press from a second createJob');
+  /* A REFUSAL GIVES THE WORDS BACK, for this page and the next. */
+  const f2 = msg2.closest('.msg-form');
+  draftType_(w, msg2, 'Second try');
+  w.__t.ACTIONS['msg-send'](f2.querySelector('[data-do="msg-send"]'));
+  await wait(100);
+  if (w.draftRead_('msg', 'P-TOM') !== 'Second try') bad.push('a message the server refused is not a draft again: ' + JSON.stringify(w.draftRead_('msg', 'P-TOM')));
+  w.dispatchEvent(new w.Event('pagehide'));
+  const three = boot({ before: fromStore_(keptStore_(w)) });
+  await wait(300);
+  const msg3 = draftBox_(three.w, three.w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  if (msg3.value !== 'Second try') bad.push('after a refusal and a reload the composer holds ' + JSON.stringify(msg3.value) + ', wanted the words that did not go');
+  return bad;
+});
+
+check('an unsaved settings edit is not drawn over a newer saved value, the next Save of its card does not send it, and a card holding one says so', async () => {
+  let posted = null;
+  const PROFILE = { phone_cc: '+44', headline: 'NEWER, saved on the iPad', favourite_colour: 'blue', first_name: 'Ada' };
+  const { w } = boot({ before: signedInAs_(Object.assign({}, ANS_ADA, { profile: PROFILE })),
+    reply: b => { if (b.action === 'updateProfile') { posted = b; return { success: true, profile: Object.assign({}, PROFILE, b.fields) }; } } });
+  await wait(300);
+  if (typeof w.fieldHtml !== 'function' || typeof w.meSave_ !== 'function') return ['fieldHtml / meSave_ not reachable — nothing was checked'];
+  const bad = [];
+  const card = head => draftBox_(w, '<div class="me-form">' + w.fieldHtml('headline', head, {}) + w.fieldHtml('favourite_colour', 'blue', {})
+    + '<button data-do="me-save" class="sv">Save</button><p class="faint me-said"></p></div>');
+  /* ON THE LAPTOP: typed over "Maths, mostly" and never saved. */
+  draftType_(w, card('Maths, mostly').querySelector('[data-me="headline"]'), 'typed on the laptop, never saved');
+  /* THE SAME SAVED VALUE AGAIN: drawn holding the edit, and marked as holding one. */
+  const same = card('Maths, mostly').querySelector('[data-me="headline"]');
+  if (same.value !== 'typed on the laptop, never saved') bad.push('over the value it was typed over, the box was drawn holding ' + JSON.stringify(same.value) + ' — the draft is lost');
+  if (!same.hasAttribute('data-draft-held')) bad.push('a box drawn holding an unsaved edit is not marked as holding one');
+  if (!/Not saved yet/.test(w.setHeldSay_(w.fieldHtml('headline', 'Maths, mostly', {}) + '<p class="faint me-said"></p>'))) bad.push('a card holding an unsaved edit does not say so under it');
+  /* SAVED ON THE iPAD SINCE: the newer value is drawn, and Save on the card for another box sends that. */
+  const f = card(PROFILE.headline);
+  const hb = f.querySelector('[data-me="headline"]');
+  if (hb.value !== PROFILE.headline) bad.push('drawn over a value saved elsewhere since, the box holds ' + JSON.stringify(hb.value) + ' — the older edit over the newer save');
+  if (hb.hasAttribute('data-draft-held')) bad.push('a box drawn holding the saved value is marked as holding a draft');
+  draftType_(w, f.querySelector('[data-me="favourite_colour"]'), 'green');
+  await w.meSave_(f.querySelector('.sv'));
+  await wait(100);
+  const fields = (posted && posted.fields) || {};
+  if (!posted) bad.push('Save sent nothing, so what it sends was NOT checked');
+  else if (fields.headline !== PROFILE.headline) bad.push('Save for the colour sent the headline ' + JSON.stringify(fields.headline) + ' over the newer ' + JSON.stringify(PROFILE.headline));
+  if (w.draftRead_('set', 'headline') !== null) bad.push('the stale edit is still kept after its card was saved');
+  return bad;
+});
+
+check('the server ended a session: what is typed signed out afterwards is not handed to the next child who signs in, and the line is for the hour, not for ever', async () => {
+  const one = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = ansNeed_(one.w).concat(['ansMayMove_', 'answersClaim_', 'circOf_'].filter(n => typeof one.w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  let c = ansCards_(one.w, 'H');
+  ansType_(one.w, c.ta(), RELOAD_ESSAY);
+  /* AND A STROKE ON HER DRAWING, so the one she draws signed out has an answer of hers to go beside. */
+  ansStroke_(one.w, c, [[20, 300], [120, 300]]);
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  const two = boot({ before: fromStore_(keptStore_(one.w)),
+    reply: b => (b.token === 'tok-P7' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+  for (let i = 0; i < 40 && two.w.__t.whoami(); i++) await wait(50);
+  const w = two.w;
+  if (w.__t.whoami()) return ['the server refused the session and the app stayed signed in — NOT checked'];
+  c = ansCards_(w, 'H');
+  const LINE = 'Signed out — sign in again and your answer is back';
+  if (c.saidFor(c.words) !== LINE) bad.push('under the empty box the line says ' + JSON.stringify(c.saidFor(c.words)) + ' — NOT the setup this journey needs');
+  /* AN HOUR ON, THE LINE IS NOBODY'S BUSINESS: the next visitor is not told what Ada answered. */
+  const gone = JSON.parse(w.localStorage.getItem('familyGone') || '{}');
+  w.localStorage.setItem('familyGone', JSON.stringify(Object.assign({}, gone, { at: Date.now() - 2 * 60 * 60 * 1000 })));
+  c.draw();
+  if (c.saidFor(c.words) === LINE) bad.push('two hours after the session ended, every signed-out visitor is still told "your answer is back" under what Ada answered');
+  w.localStorage.setItem('familyGone', JSON.stringify(gone));
+  c.draw();
+  /* ADA, STILL AT THE COMPUTER, TYPES ON INTO THE EMPTY BOX — and into the maths box, which she had
+     left empty while she was signed in — DRAWS on the pad drawn empty, and RINGS A WORD. Every kind of
+     answer, so every door that moves one is asked: the claim, the box (`ansRead_`), the pad
+     (`padAdopt_`) and the passage (`circOf_`, which asks `padAdopt_` and then the visit's rings). */
+  ansType_(w, c.ta(), 'More words');
+  ansType_(w, c.kp(), '(5)/(6)');
+  ansStroke_(w, c, [[30, 30], [200, 200]]);
+  w.__t.ACTIONS['qw-tap'](c.host.querySelector('[data-circ] .qw'));
+  const bare = 'ans:' + c.words.key, bareM = 'ans:' + c.maths.key, bareP = 'pad:' + c.pen.key, bareR = bareP + ':words';
+  const ringX = { key: c.pen.key, surface: 'text' };
+  const was = {};
+  [bare, bareM, bareP, bareR].forEach(k => { was[k] = w.localStorage.getItem(k); });
+  if (was[bare] !== 'More words') bad.push('the words typed signed out are not under the signed-out key: ' + JSON.stringify(was[bare]));
+  if (!was[bareP] || !was[bareR]) bad.push('the stroke or the ring made signed out is not under the signed-out key (' + JSON.stringify([was[bareP], was[bareR]]) + ') — the pad and the passage were NOT checked');
+  /* BEN SIGNS IN NEXT — FROM NOBODY, so `answersClaim_` runs (318), the door the merge left open — and
+     opens the question: not his. */
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  c.draw();
+  const benRings = w.circOf_(ringX).on;
+  if (c.ta().value) bad.push('Ben signed in and his box holds ' + JSON.stringify(c.ta().value) + ' — Ada\'s words, filed under Ben');
+  if (c.kp().value) bad.push('Ben signed in and his maths box holds ' + JSON.stringify(c.kp().value) + ' — Ada\'s, filed under Ben');
+  if (c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ben signed in and his pad draws ' + c.pad().querySelectorAll('.qpad-g path').length + ' stroke(s) — Ada\'s, drawn signed out after her session ended (`padAdopt_`)');
+  if (benRings.length) bad.push('Ben signed in and the passage rings ' + JSON.stringify(benRings) + ' for him — Ada\'s (`circOf_`)');
+  [['ans:u:P8:' + c.words.key, 'words'], ['ans:u:P8:' + c.maths.key, 'maths answer'], ['pad:u:P8:' + c.pen.key, 'drawing'], ['pad:u:P8:' + c.pen.key + ':words', 'rings']].forEach(([k, what]) => {
+    if (w.localStorage.getItem(k) !== null) bad.push('Ada\'s ' + what + ' were moved into Ben\'s account: ' + k);
+  });
+  [bare, bareM, bareP, bareR].forEach(k => { if (w.localStorage.getItem(k) !== was[k]) bad.push('Ada\'s ' + k + ' is gone from under the signed-out key after Ben signed in and opened the question: ' + JSON.stringify(w.localStorage.getItem(k))); });
+  /* ADA AGAIN, AS SHE WOULD: Ben signs out, and she signs in from nobody with a new session. EVERYTHING
+     SHE TYPED SIGNED OUT IS HERS AND NONE OF IT IS LEFT (review of the merge, P1). "More words" was typed
+     into the hole the ended session left, beside the essay and not over it: "the later edit wins" must
+     not put ten characters in place of three thousand, and leaving them under the signed-out key left
+     them out of her answer for good and in the box for every signed-out visitor after her. So they go
+     after her essay. Her stroke goes beside the one she had; what she typed into empty boxes moves in. */
+  w.signedOut_();
+  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-again' }));
+  c.draw();
+  const JOINED = RELOAD_ESSAY.replace(/\s+$/, '') + '\n\nMore words';
+  if (c.ta().value !== JOINED) bad.push('Ada signed in again and her box holds ' + c.ta().value.length + ' characters ending ' + JSON.stringify(c.ta().value.slice(-24)) + ', wanted her essay with "More words" after it' + (c.ta().value === 'More words' ? ' — what she typed into the empty box REPLACED the essay' : c.ta().value === RELOAD_ESSAY ? ' — the words she typed beside it were left behind' : ''));
+  if (w.localStorage.getItem('ans:u:P7:' + c.words.key) !== JOINED) bad.push('Ada\'s answer under her own key is ' + String(w.localStorage.getItem('ans:u:P7:' + c.words.key)).length + ' characters after she signed in again, wanted ' + JOINED.length);
+  if (!(w.ansDirtySet_('u:P7').has('ans:u:P7:' + c.words.key))) bad.push('the essay with her words after it is not due to go up to Ada\'s account');
+  if (c.kp().value !== '(5)/(6)') bad.push('Ada signed in again and her empty maths box holds ' + JSON.stringify(c.kp().value) + ', not what she typed into it signed out');
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 2) bad.push('Ada signed in again and her pad draws ' + c.pad().querySelectorAll('.qpad-g path').length + ' stroke(s), wanted the one she had and the one she drew signed out');
+  if (w.circOf_(ringX).on.length !== 1) bad.push('Ada signed in again and the passage rings ' + JSON.stringify(w.circOf_(ringX).on) + ' for her, wanted the word she rang signed out');
+  [bare, bareM, bareP, bareR].forEach(k => { if (w.localStorage.getItem(k) !== null) bad.push('after Ada signed in again ' + k + ' is still under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(k)).slice(0, 60)); });
+  if (w.localStorage.getItem('familyGoneKeys') !== null) bad.push('marks are left for answers that have gone: ' + w.localStorage.getItem('familyGoneKeys'));
+  /* AND THE NEXT SIGNED-OUT VISITOR ON THAT COMPUTER IS SHOWN NOTHING OF HERS. */
+  w.signedOut_();
+  c.draw();
+  if (c.ta().value || c.kp().value) bad.push('Ada signed out and the signed-out boxes show ' + JSON.stringify([c.ta().value, c.kp().value]) + ' to whoever sits down next');
+  /* AND A SIGNED-OUT ANSWER WITH NO SESSION ENDED STILL FOLLOWS WHOEVER SIGNS IN, as it always did. */
+  w.localStorage.removeItem('familyGone');
+  const c2 = ansCards_(w, 'H2');
+  ansType_(w, c2.ta(), 'mine, signed out');
+  w.signedIn_(Object.assign({}, ANS_BEN));
+  c2.draw();
+  if (c2.ta().value !== 'mine, signed out') bad.push('with no session ended, a signed-out answer did not follow Ben into his account: ' + JSON.stringify(c2.ta().value));
+  return bad;
+});
+
+/* ---------- AND THE RECORD OF WHOSE IT IS IS KEPT AS CAREFULLY AS THE ANSWER (review of the merge) -------
+   `familyGone` and `familyGoneKeys` were bare `setItem`s: a browser keeping no site data lost both, a full
+   store lost them, and the tidy-up in `ansGoneMark_` took the mark off an answer the visit was holding.
+   Each time the next child to sign in was given the answer. */
+const ansEndedBoot_ = (before, server) => {
+  const ENDED = new Set();
+  const b = boot({ before: before, payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: q => (ENDED.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : ansBackend_(server)(q)) });
+  /* THE SERVER ENDS THE SESSION: the next request with her token is refused, and the app signs her out. */
+  b.end = async tok => {
+    ENDED.add(tok);
+    await b.w.answersPush_(true);
+    if (b.w.__t.whoami()) await b.w.api({ action: 'myProfile' });
+    for (let i = 0; i < 40 && b.w.__t.whoami(); i++) await wait(50);
+    return !b.w.__t.whoami();
+  };
+  return b;
+};
+const ansCarried_ = (sent, n0) => [].concat(...sent.slice(n0).filter(b => b.action === 'saveAnswers').map(b => b.items || []));
+
+check('a browser that keeps nothing: what is typed signed out after the server ended a session is still that person\'s, the record of it held in the visit, and the next child is given none of it', async () => {
+  const server = {};
+  const deny = win => { try { Object.defineProperty(win, 'localStorage', { configurable: true, get: () => { throw new win.DOMException('The operation is insecure.', 'SecurityError'); } }); } catch (e) {} };
+  const b = ansEndedBoot_(deny, server);
+  const { w, sent } = b;
+  await wait(300);
+  const need = ansNeed_(w).concat(['ansMayMove_', 'answersClaim_', 'circOf_', 'keepAtRisk_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  let threw = false;
+  try { w.localStorage.getItem('x'); } catch (e) { threw = true; }
+  if (!threw) return ['localStorage did not throw — NOT checked'];
+  const bad = [];
+  w.signedIn_(Object.assign({}, ANS_ADA, { answers: {} }));
+  const c = ansCards_(w, 'T');
+  ansType_(w, c.ta(), 'Ada, signed in');
+  if (!(await b.end('tok-P7'))) return ['the server refused the session and the app stayed signed in — NOT checked'];
+  c.draw();
+  ansType_(w, c.kp(), '(5)/(6)');
+  w.__t.ACTIONS['qw-tap'](c.host.querySelector('[data-circ] .qw'));
+  const bareM = 'ans:' + c.maths.key;
+  if (w.ansMayMove_(bareM, 'ans:u:P8:' + c.maths.key) !== '') bad.push('with storage throwing, nothing knows the maths answer is Ada\'s: `ansMayMove_` answers ' + JSON.stringify(w.ansMayMove_(bareM, 'ans:u:P8:' + c.maths.key)) + ' for Ben');
+  /* THE RECORD IS NOBODY'S WRITING: held, it is never why the browser asks "Leave site?". */
+  const risky = w.keepAtRisk_().filter(k => /^family/.test(k));
+  if (risky.length) bad.push('the record of the ended session counts as work only this page holds: ' + JSON.stringify(risky));
+  const n0 = sent.length;
+  w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+  await wait(1800);
+  c.draw();
+  const ringX = { key: c.pen.key, surface: 'text' };
+  if (c.kp().value) bad.push('Ben signed in and his maths box holds ' + JSON.stringify(c.kp().value) + ' — Ada\'s, typed signed out after the server ended her session');
+  if (w.circOf_(ringX).on.length) bad.push('Ben signed in and the passage rings ' + JSON.stringify(w.circOf_(ringX).on) + ' for him — Ada\'s, from the visit\'s rings (`circOf_`)');
+  const went = ansCarried_(sent, n0).filter(it => /\(5\)\/\(6\)|0\.0/.test(String(it.v)));
+  if (went.length) bad.push('saveAnswers after Ben signed in carried Ada\'s ' + JSON.stringify(went));
+  /* ADA BACK, FROM NOBODY: hers, from the visit. */
+  w.signedOut_();
+  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: {} }));
+  c.draw();
+  if (c.kp().value !== '(5)/(6)') bad.push('Ada signed in again and her maths box holds ' + JSON.stringify(c.kp().value) + ', not what she typed into it signed out');
+  if (w.circOf_(ringX).on.length !== 1) bad.push('Ada signed in again and the passage rings ' + JSON.stringify(w.circOf_(ringX).on) + ' for her, wanted the word she rang');
+  return bad;
+});
+
+check('a full store: the mark on an answer the visit is holding is not tidied away, and an answer whose mark the store refused is not written without it', async () => {
+  const bad = [];
+  /* ONE — THE STORE HAS ROOM FOR A MARK, NOT FOR THE WORDS (review of the merge, P6). The words are held for
+     the visit and marked; typing in the next box tidied the mark away, because the words were not in
+     `localStorage`; room came back as the page went, the words landed unmarked, and Ben was given them. */
+  {
+    const server = {};
+    const b = ansEndedBoot_(signedInAs_(ANS_ADA), server);
+    const { w, sent } = b;
+    await wait(300);
+    if (typeof w.ansMayMove_ !== 'function') return ['ansMayMove_ not reachable — nothing was checked'];
+    const c = ansCards_(w, 'F1');
+    ansType_(w, c.ta(), 'Ada signed in');
+    if (!(await b.end('tok-P7'))) return ['the server refused the session and the app stayed signed in — NOT checked'];
+    c.draw();
+    const bareW = 'ans:' + c.words.key, benW = 'ans:u:P8:' + c.words.key;
+    const S = w.Storage.prototype, realSet = S.setItem;
+    S.setItem = function (k, v) { if (k === bareW) { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return realSet.call(this, k, v); };
+    try {
+      ansType_(w, c.ta(), 'More words, held');
+      if (w.localStorage.getItem(bareW) !== null) bad.push('setup: the store took the words it was meant to refuse — NOT checked');
+      ansType_(w, c.kp(), '(5)/(6)');
+      if (w.ansMayMove_(bareW, benW) !== '') bad.push('typing in the next box took the mark off the words the visit is holding: `ansMayMove_` answers ' + JSON.stringify(w.ansMayMove_(bareW, benW)) + ' for Ben');
+    } finally { S.setItem = realSet; }
+    w.dispatchEvent(new w.Event('pagehide'));
+    if (w.localStorage.getItem(bareW) !== 'More words, held') bad.push('room came back as the page went and the held words did not land: ' + JSON.stringify(w.localStorage.getItem(bareW)));
+    if (w.ansMayMove_(bareW, benW) !== '') bad.push('the held words landed without their mark — anybody\'s now');
+    const n0 = sent.length;
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await wait(1800);
+    c.draw();
+    if (c.ta().value) bad.push('Ben signed in and his words box holds ' + JSON.stringify(c.ta().value));
+    const went = ansCarried_(sent, n0).filter(it => /More words, held/.test(String(it.v)));
+    if (went.length) bad.push('saveAnswers after Ben signed in carried Ada\'s words: ' + JSON.stringify(went));
+  }
+  /* TWO — THE STORE REFUSES THE MARKS THEMSELVES. The answer is the visit's until its mark is on the
+     device too: written alone it would be on the device with nothing to say whose, and anybody's after a
+     reload. Said under the box as any refused write is. */
+  {
+    const server = {};
+    const b = ansEndedBoot_(signedInAs_(ANS_ADA), server);
+    const { w, sent } = b;
+    await wait(300);
+    const c = ansCards_(w, 'F2');
+    ansType_(w, c.ta(), 'Ada signed in');
+    if (!(await b.end('tok-P7'))) return bad.concat(['the server refused the session and the app stayed signed in — NOT checked']);
+    c.draw();
+    const bareM = 'ans:' + c.maths.key;
+    const S = w.Storage.prototype, realSet = S.setItem;
+    S.setItem = function (k, v) { if (k === 'familyGoneKeys') { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } return realSet.call(this, k, v); };
+    try {
+      ansType_(w, c.kp(), '(5)/(6)');
+      if (w.localStorage.getItem(bareM) !== null) bad.push('the store refused the marks and the answer was written without its own: ' + JSON.stringify(w.localStorage.getItem(bareM)));
+      c.draw();
+      if (c.kp().value !== '(5)/(6)') bad.push('the answer waiting on its mark is not drawn from the visit: ' + JSON.stringify(c.kp().value));
+      if (!/^Not saved/.test(c.saidFor(c.maths) || '')) bad.push('under an answer waiting on its mark the line says ' + JSON.stringify(c.saidFor(c.maths)) + ' — it is on no device');
+      w.dispatchEvent(new w.Event('pagehide'));
+      if (w.localStorage.getItem(bareM) !== null) bad.push('as the page went, the answer was written while its mark was still refused');
+    } finally { S.setItem = realSet; }
+    w.dispatchEvent(new w.Event('pagehide'));
+    if (w.localStorage.getItem(bareM) !== '(5)/(6)') bad.push('room came back and the answer did not land: ' + JSON.stringify(w.localStorage.getItem(bareM)));
+    if (!/u:P7/.test(String(w.localStorage.getItem('familyGoneKeys')))) bad.push('room came back and the mark did not land with it: ' + JSON.stringify(w.localStorage.getItem('familyGoneKeys')));
+    const n0 = sent.length;
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await wait(1800);
+    c.draw();
+    if (c.kp().value) bad.push('Ben signed in and his maths box holds ' + JSON.stringify(c.kp().value));
+    if (ansCarried_(sent, n0).some(it => /\(5\)\/\(6\)/.test(String(it.v)))) bad.push('saveAnswers after Ben signed in carried Ada\'s maths answer');
+  }
+  return bad;
+});
+
+/* ==================================================================================================
+   SIX EDGES OF "WHOSE IS IT" (docs/history/317, "Six edges closed").
+
+   THE RULE: on a shared device, anything a child typed, drew, ringed or drafted signed out after the
+   SERVER ended their session is that child's — never moved into, shown in, claimed by or sent from
+   anybody else's account, and back with them when they sign in again. Anything else made signed out is
+   claimed by whoever signs in next from nobody (318: the same seat). `ansMayMove_` (answers.js) decides,
+   and every door that moves one asks it. A verifier found six doors that did not ask, or asked about the
+   wrong copy; each journey below was red on the code before the fix.
+
+   A BACKEND PER PERSON, because "sent to Ada's account" is a question about Ada's rows — one `server`
+   shared by everybody would hand Ben's rows back in Ada's sign-in reply. `FLOW_ONLY=edges:` runs them.
+================================================================================================== */
+const edgeBoot_ = before => {
+  const servers = {};
+  const ENDED = new Set();
+  const of = pid => servers[pid] || (servers[pid] = {});
+  const b = boot({ before: before, payload: Object.assign(payload(), { features: ANS_FEATURES }),
+    reply: q => (ENDED.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : ansBackend_(of(String(q.personId || '')))(q)) });
+  b.of = of;
+  /* THE SERVER ENDS THE SESSION: the next request on that token is refused, and the app signs out. */
+  b.end = async tok => {
+    ENDED.add(tok);
+    await b.w.answersPush_(true);
+    if (b.w.__t.whoami()) await b.w.api({ action: 'myProfile' });
+    for (let i = 0; i < 40 && b.w.__t.whoami(); i++) await wait(50);
+    return !b.w.__t.whoami();
+  };
+  return b;
+};
+const edgeNeed_ = w => ansNeed_(w).concat(['ansMayMove_', 'answersClaim_', 'circOf_', 'ansGoneOf_', 'ansValue_', 'ansRecPut_']
+  .filter(n => typeof w[n] !== 'function'));
+const edgeQuota_ = () => { const e = new Error('quota'); e.name = 'QuotaExceededError'; return e; };
+const EDGE_ENDED = 'the server refused the session and the app stayed signed in — NOT checked';
+
+check('edges: a pad the store refused is still that person\'s — opening it does not move a drawing made signed out over it (P4)', async () => {
+  const { w } = boot({ before: signedInAs_(ANS_ADA) });
+  await wait(300);
+  const need = edgeNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const c = ansCards_(w, 'E4');
+  const k = 'pad:u:P7:' + c.pen.key, ring = k + ':words';
+  const bare = 'pad:' + c.pen.key, bareR = bare + ':words';
+  const S = w.Storage.prototype, realSet = S.setItem;
+  /* THE STORE REFUSES ADA'S DRAWING AND HER RING, and nothing else: both are held for the visit (`keepPut_`). */
+  S.setItem = function (key, v) { if (key === k || key === ring) throw edgeQuota_(); return realSet.call(this, key, v); };
+  let mine = null;
+  try {
+    ansStroke_(w, c, [[10, 10], [80, 80]]);
+    w.__t.ACTIONS['qw-tap'](c.host.querySelector('[data-circ] .qw'));
+    mine = w.ansValue_(k);
+    const mineR = w.ansValue_(ring);
+    if (!mine || !mineR || w.localStorage.getItem(k) !== null || w.localStorage.getItem(ring) !== null) {
+      return ['setup: Ada\'s stroke and ring are not held by the visit alone (' + JSON.stringify([mine, mineR, w.localStorage.getItem(k)]) + ') — NOT checked'];
+    }
+    /* ANOTHER TAB OF THE SITE, SIGNED OUT THERE, DRAWS AND RINGS ON THE SAME QUESTION: the shared store
+       now holds a signed-out drawing with no ended session behind it — anybody's, by 318's rule. */
+    [[bare, '[[200,200,300,300]]'], [bareR, '["0.3"]']].forEach(([key, v]) => {
+      realSet.call(w.localStorage, key, v);
+      w.dispatchEvent(new w.StorageEvent('storage', { key: key, oldValue: null, newValue: v }));
+    });
+    /* AND ADA'S CARD IS DRAWN AGAIN. `padWrap_` and `circOf_` open the pad, which is where `padAdopt_`
+       moves a signed-out drawing into an EMPTY pad. Hers is not empty: the visit holds it. */
+    c.draw();
+    if (w.ansValue_(k) !== mine) bad.push('Ada\'s held stroke ' + mine + ' was replaced by the drawing made signed out in the other tab: ' + w.ansValue_(k) + ' — `padAdopt_` read the store, which had refused hers, and called her pad empty');
+    const paths = c.pad().querySelectorAll('.qpad-g path').length;
+    if (paths !== 1) bad.push('Ada\'s pad draws ' + paths + ' path(s), wanted her one held stroke');
+    const rings = w.circOf_({ key: c.pen.key, surface: 'text' }).on;
+    if (JSON.stringify(rings) !== mineR) bad.push('Ada\'s held ring ' + mineR + ' became ' + JSON.stringify(rings) + ' when the passage was opened (`circOf_` asks `padAdopt_`)');
+    if (w.localStorage.getItem(bare) !== '[[200,200,300,300]]' || w.localStorage.getItem(bareR) !== '["0.3"]') {
+      bad.push('the other tab\'s drawing or ring left the signed-out key: ' + JSON.stringify([w.localStorage.getItem(bare), w.localStorage.getItem(bareR)]));
+    }
+  } finally { S.setItem = realSet; }
+  /* ROOM AGAIN, AND THE PAGE GOES: hers lands, as she drew it. */
+  w.dispatchEvent(new w.Event('pagehide'));
+  if (w.localStorage.getItem(k) !== mine) bad.push('room came back and Ada\'s pad landed as ' + JSON.stringify(w.localStorage.getItem(k)) + ', wanted ' + mine);
+  return bad;
+});
+
+check('edges: the whiteboard drawn signed out after the server ended a session is that person\'s — not the next child\'s board, back on theirs, and never sent (P5)', async () => {
+  /* CAL HAS A BOARD ON THIS DEVICE ALREADY, for the last step. */
+  const b = edgeBoot_(win => { signedInAs_(ANS_ADA)(win); try { win.localStorage.setItem('board:u:P9:whiteboard', '[[5,5,9,9]]'); } catch (e) {} });
+  const { w, sent } = b;
+  await wait(300);
+  const need = edgeNeed_(w).concat(typeof w.initWhiteboard === 'function' ? [] : ['initWhiteboard']);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  /* THE REAL BOARD, as Tools draws it: `wbPaint_` fills every `.wb-box`, and draws it again for whoever
+     is signed in (`padWhoChanged_`, from `signedOut_` and `signedIn_`). */
+  const host = w.document.createElement('div');
+  host.className = 'wb-box';
+  w.document.body.appendChild(host);
+  w.initWhiteboard();
+  const board = { pad: () => host.querySelector('.qpad') };
+  const strokes = () => host.querySelectorAll('.qpad-g path').length;
+  const keyNow = () => (board.pad() ? board.pad().getAttribute('data-k') : '');
+  ansStroke_(w, board, [[20, 300], [120, 300]]);
+  if (keyNow() !== 'board:u:P7:whiteboard' || strokes() !== 1) return ['setup: Ada\'s board is ' + keyNow() + ' with ' + strokes() + ' stroke(s) — NOT checked'];
+  if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
+  if (keyNow() !== 'board:whiteboard' || strokes()) bad.push('signed out by the server, the board is ' + keyNow() + ' with ' + strokes() + ' stroke(s), wanted the signed-out board, empty');
+  /* ADA, STILL AT THE COMPUTER, DRAWS ON THE SIGNED-OUT BOARD — with the store refusing the record of whose
+     it is, at first: the board waits in the visit for its mark (`keepWaits_`), as an answer does, rather
+     than landing on the device with nothing to say it is hers. */
+  const S = w.Storage.prototype, realSet = S.setItem;
+  S.setItem = function (k, v) { if (k === 'familyGoneKeys') throw edgeQuota_(); return realSet.call(this, k, v); };
+  try {
+    ansStroke_(w, board, [[30, 30], [200, 200]]);
+    if (w.localStorage.getItem('board:whiteboard') !== null) bad.push('the store refused the mark and the board drawn signed out was written without it — anybody\'s after a reload');
+    if (strokes() !== 1) bad.push('the board waiting on its mark draws ' + strokes() + ' stroke(s), wanted the one held for the visit');
+  } finally { S.setItem = realSet; }
+  /* ROOM AGAIN AS THE PAGE GOES: the mark, then the board. */
+  w.dispatchEvent(new w.Event('pagehide'));
+  const drawn = w.localStorage.getItem('board:whiteboard');
+  if (!drawn) return bad.concat(['setup: the stroke drawn signed out did not land under board:whiteboard — NOT checked']);
+  const m = w.ansGoneOf_('board:whiteboard');
+  if (!m || m.who !== 'u:P7') bad.push('the board drawn signed out after Ada\'s session ended is not marked as hers: ' + JSON.stringify(m));
+  /* BEN SIGNS IN FROM NOBODY: the board is drawn under him, and drawing it is opening it (`padAdopt_`). */
+  w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+  await wait(300);
+  if (keyNow() !== 'board:u:P8:whiteboard') bad.push('Ben signed in and the board is ' + keyNow());
+  if (strokes()) bad.push('Ben signed in and his board draws ' + strokes() + ' stroke(s) — Ada\'s, drawn signed out after her session ended');
+  if (w.localStorage.getItem('board:u:P8:whiteboard') !== null) bad.push('Ada\'s board was moved under Ben\'s key');
+  if (w.localStorage.getItem('board:whiteboard') !== drawn) bad.push('Ada\'s board left the signed-out key when Ben signed in: ' + JSON.stringify(w.localStorage.getItem('board:whiteboard')));
+  /* ADA AGAIN, FROM NOBODY, ON A NEW SESSION: hers, after the stroke she had — and still the device's alone. */
+  w.signedOut_();
+  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: {} }));
+  await wait(300);
+  if (keyNow() !== 'board:u:P7:whiteboard' || strokes() !== 2) bad.push('Ada signed in again and her board (' + keyNow() + ') draws ' + strokes() + ' stroke(s), wanted the one she had and the one she drew signed out');
+  if (w.localStorage.getItem('board:whiteboard') !== null) bad.push('Ada signed in again and her signed-out board is still under the signed-out key, for every visitor after her');
+  if (w.ansGoneOf_('board:whiteboard')) bad.push('a mark is left for a board that has gone');
+  const went = ansCarried_(sent, 0).filter(it => /board|whiteboard/.test(String(it.key)));
+  if (went.length) bad.push('the board went to an account: ' + JSON.stringify(went).slice(0, 160));
+  if ([...w.ansDirtySet_('u:P7'), ...w.ansDirtySet_('u:P8')].some(x => /^board:/.test(x))) bad.push('the board is due to go up to an account');
+  /* AND A BOARD WITH NO ENDED SESSION BEHIND IT IS STILL THE DEVICE'S (note 310), moved only into an EMPTY
+     board, by opening it: Ada signs out, the next visitor draws on the signed-out board, and Cal signs in
+     from nobody with a board of his own. His stays his; the visitor's is not claimed over it. */
+  w.signedOut_();
+  ansStroke_(w, board, [[50, 50], [60, 90]]);
+  const visitor = w.localStorage.getItem('board:whiteboard');
+  if (!visitor) return bad.concat(['setup: the visitor\'s board is not under board:whiteboard — the last step was NOT checked']);
+  w.signedIn_(Object.assign({}, ANS_BEN, { name: 'Cal Pupil', personId: 'P9', token: 'tok-P9', handle: 'cal_calm9', answers: {} }));
+  if (w.localStorage.getItem('board:u:P9:whiteboard') !== '[[5,5,9,9]]') bad.push('Cal signed in from nobody and his board became ' + w.localStorage.getItem('board:u:P9:whiteboard') + ' — the signed-out visitor\'s, claimed over his');
+  if (w.localStorage.getItem('board:whiteboard') !== visitor) bad.push('the visitor\'s board left the device\'s key when Cal signed in, though his board was not empty');
+  return bad;
+});
+
+check('edges: a later visitor who writes over the whole of an answer marked as somebody else\'s takes the mark off; an edit that keeps their words keeps it (P7)', async () => {
+  const b = edgeBoot_(signedInAs_(ANS_ADA));
+  const { w } = b;
+  await wait(300);
+  const need = edgeNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const c = ansCards_(w, 'E7');
+  ansType_(w, c.ta(), 'Ada, signed in');
+  await w.answersPush_(true);
+  if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
+  c.draw();
+  /* ADA, SIGNED OUT BY THE SERVER, TYPES ON — and draws a short stroke, then a long one: all hers
+     (`familyGoneKeys`). */
+  ansType_(w, c.ta(), 'More words');
+  ansType_(w, c.kp(), '(5)/(6)');
+  ansStroke_(w, c, [[10, 10], [12, 12]]);
+  ansStroke_(w, c, [[20, 20], [200, 40], [30, 60], [210, 80], [40, 100], [220, 120], [50, 140], [230, 160]]);
+  const bareW = 'ans:' + c.words.key, bareM = 'ans:' + c.maths.key, bareP = 'pad:' + c.pen.key;
+  const benW = 'ans:u:P8:' + c.words.key, benM = 'ans:u:P8:' + c.maths.key, benP = 'pad:u:P8:' + c.pen.key;
+  if (w.ansMayMove_(bareW, benW) !== '' || w.ansMayMove_(bareM, benM) !== '' || w.ansMayMove_(bareP, benP) !== '') return ['setup: what Ada typed and drew signed out is not marked as hers — NOT checked'];
+  /* ANOTHER CHILD'S SESSION ENDS ON THIS COMPUTER INSIDE THE HOUR — Cal's — and Cal, signed out, adds a
+     line to Ada's words. Mostly hers is still hers: it is not handed to Cal by a mark of his. */
+  w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P9', at: Date.now() }));
+  ansType_(w, c.ta(), 'More words, and a line of Cal\'s');
+  const mw = w.ansGoneOf_(bareW);
+  if (!mw || mw.who !== 'u:P7') bad.push('Cal added a line to Ada\'s words and they are marked ' + JSON.stringify(mw) + ' — Ada\'s words handed to Cal');
+  /* THE HOUR PASSES. The next visitor has no session behind them and WRITES OVER THE WHOLE of the maths
+     answer — the box selected and typed over, as a paste does it. What is in the box is theirs now, not
+     Ada's, and it follows whoever signs in next from nobody, as anything made signed out does (318). */
+  w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
+  c.draw();
+  ansType_(w, c.kp(), '(1)/(9)');
+  if (w.ansMayMove_(bareM, benM) !== 'later') bad.push('a visitor with no session behind them wrote over the whole of Ada\'s maths answer and it is still marked: `ansMayMove_` answers ' + JSON.stringify(w.ansMayMove_(bareM, benM)) + ' for Ben');
+  /* AND ADDS TO HER WORDS: an edit that keeps her text keeps her mark. */
+  ansType_(w, c.ta(), 'More words, and a line of Cal\'s. And mine.');
+  if (w.ansMayMove_(bareW, benW) !== '') bad.push('a visitor added a sentence to Ada\'s words and they are no longer marked as hers: ' + JSON.stringify(w.ansGoneOf_(bareW)));
+  /* AND PRESSES UNDO ON HER DRAWING: her long stroke goes, and what is left is her short one and nothing
+     else — still hers. A drawing is kept while any stroke of the old one is in it; compared as text, the
+     one short stroke is a fifth of what was there, and would have read as a new drawing over hers. */
+  w.__t.ACTIONS['pad-undo'](c.pad().querySelector('.qpad-undo'));
+  const leftP = w.ansValue_(bareP);
+  if (!leftP || JSON.parse(leftP).length !== 1) return bad.concat(['setup: Undo left ' + JSON.stringify(leftP) + ' on the signed-out pad, wanted Ada\'s short stroke — the rest was NOT checked']);
+  if (w.ansMayMove_(bareP, benP) !== '') bad.push('a visitor pressed Undo on Ada\'s drawing, all that is left is her own first stroke, and it is no longer marked as hers: ' + JSON.stringify(w.ansGoneOf_(bareP)));
+  /* BEN SIGNS IN FROM NOBODY — the visitor's seat: the maths answer is his; Ada's words and stroke are not. */
+  w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+  c.draw();
+  await w.answersPush_(true);
+  if (c.kp().value !== '(1)/(9)') bad.push('Ben signed in from nobody and his maths box holds ' + JSON.stringify(c.kp().value) + ', not the answer written over Ada\'s in his seat');
+  if (c.ta().value) bad.push('Ben signed in and his words box holds ' + JSON.stringify(c.ta().value) + ' — Ada\'s');
+  if (c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ben signed in and his pad draws ' + c.pad().querySelectorAll('.qpad-g path').length + ' stroke(s) — Ada\'s');
+  if (/More words/.test(JSON.stringify(b.of('P8')))) bad.push('Ada\'s words reached Ben\'s account');
+  if (b.of('P8')['pad:' + c.pen.key]) bad.push('Ada\'s stroke reached Ben\'s account');
+  /* ADA, FROM NOBODY: her words with the lines after them, and nothing of the visitor's maths answer. */
+  w.signedOut_();
+  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: JSON.parse(JSON.stringify(b.of('P7'))) }));
+  c.draw();
+  await w.answersPush_(true);
+  const JOINED = 'Ada, signed in\n\nMore words, and a line of Cal\'s. And mine.';
+  if (c.ta().value !== JOINED) bad.push('Ada signed in again and her words box holds ' + JSON.stringify(c.ta().value) + ', wanted ' + JSON.stringify(JOINED));
+  if (c.kp().value) bad.push('Ada signed in again and her maths box holds ' + JSON.stringify(c.kp().value) + ' — the visitor\'s answer, written over hers after the hour, filed under Ada');
+  if (/\(1\)\/\(9\)/.test(JSON.stringify(b.of('P7')))) bad.push('the visitor\'s maths answer reached ADA\'s account: ' + JSON.stringify(b.of('P7')['ans:' + c.maths.key]));
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('Ada signed in again and her pad draws ' + c.pad().querySelectorAll('.qpad-g path').length + ' stroke(s), wanted her short one');
+  if (!b.of('P7')['pad:' + c.pen.key]) bad.push('Ada\'s stroke, drawn signed out after her session ended, never reached her account');
+  return bad;
+});
+
+check('edges: the booking form filled in signed out after the server ended a session is that person\'s — not carried into the next child\'s, and theirs when they sign in again, from nobody or over somebody (P8)', async () => {
+  const bad = [];
+  for (const over of [false, true]) {
+    const ended = new Set(['tok-P7']);
+    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+    await wait(300);
+    const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'draftRead_', 'ansMayMove_', 'ansGoneOf_'].filter(n => typeof w[n] !== 'function');
+    if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
+    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
+    if (w.__t.whoami()) { await w.api({ action: 'myProfile' }); for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50); }
+    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
+    const B = w.__t.BOOKING;
+    const how = over ? 'over Ben' : 'from nobody';
+    /* THROUGH THE REAL LISTENER, as she types the note — her address, on the family computer. */
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    h.innerHTML = w.noteRow_().sel;
+    const el = h.querySelector('[data-do="book-note"]');
+    const ADDR = 'Ada, signed out: our address is 1 Example Road';
+    el.value = ADDR;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    if (!/Example Road/.test(String(w.localStorage.getItem('draft:device:book:form') || ''))) return bad.concat(['setup: the note is not the device\'s booking draft — NOT checked']);
+    /* BEN SIGNS IN NEXT, FROM NOBODY. */
+    w.signedIn_(Object.assign({}, ANS_BEN));
+    if (/Example Road/.test(String(B.note || ''))) bad.push('Ben signed in and his booking form holds Ada\'s address, typed signed out after her session ended');
+    if (/Example Road/.test(String(w.draftRead_('book', 'form') || ''))) bad.push('Ben signed in and Ada\'s address is his booking draft');
+    if (!/Example Road/.test(String(w.localStorage.getItem('draft:device:book:form') || ''))) bad.push('Ben signed in and the device lost the form Ada filled in, which is hers to sign in to');
+    /* ADA COMES BACK: after Ben signs out, or straight over him. */
+    if (!over) w.signedOut_();
+    w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
+    if (B.note !== ADDR) bad.push('Ada signed in again ' + how + ' and her booking form holds ' + JSON.stringify(B.note) + ', not the address she typed signed out');
+    if (!/Example Road/.test(String(w.draftRead_('book', 'form') || ''))) bad.push('Ada signed in again ' + how + ' and the form she filled in signed out is not her draft');
+    if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('Ada signed in again ' + how + ' and her form is still the device\'s draft, for the next visitor');
+    if (w.ansGoneOf_('draft:device:book:form')) bad.push('Ada signed in again ' + how + ' and a mark is left for the device\'s form she took');
+  }
+  return bad;
+});
+
+check('edges: back on a device signed in as somebody else, what the owner typed, drew and rang after the server ended their session is all theirs again, joined to their answers (G1)', async () => {
+  const b = edgeBoot_(signedInAs_(ANS_ADA));
+  const { w } = b;
+  await wait(300);
+  const need = edgeNeed_(w);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const c = ansCards_(w, 'E1');
+  const ESSAY = 'Ada\'s essay, written signed in. '.repeat(12).trim();
+  ansType_(w, c.ta(), ESSAY);
+  ansStroke_(w, c, [[20, 300], [120, 300]]);
+  w.__t.ACTIONS['qp-choose'](c.box().querySelector('[data-n="2"]'));
+  await w.answersPush_(true);
+  if (!b.of('P7')['ans:' + c.words.key]) return ['setup: the essay is not on Ada\'s account — NOT checked'];
+  if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
+  c.draw();
+  /* SIGNED OUT BY THE SERVER: every kind of answer, typed, drawn and rung beside what she had. */
+  ansType_(w, c.ta(), 'More words');
+  ansType_(w, c.kp(), '(5)/(6)');
+  ansStroke_(w, c, [[30, 30], [200, 200]]);
+  w.__t.ACTIONS['qw-tap'](c.host.querySelector('[data-circ] .qw'));
+  const bare = ['ans:' + c.words.key, 'ans:' + c.maths.key, 'pad:' + c.pen.key, 'pad:' + c.pen.key + ':words'];
+  if (bare.some(k => w.localStorage.getItem(k) === null)) return ['setup: not everything made signed out is under the signed-out key — NOT checked'];
+  /* BEN SIGNS IN NEXT, FROM NOBODY — none of it is his — and is still signed in when Ada comes back. */
+  w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+  /* MEANWHILE ANOTHER TAB, SIGNED OUT THERE, PICKS ON THE SAME QUESTION — nobody's session behind it. */
+  const bareC = 'ans:' + c.pick.key;
+  w.localStorage.setItem(bareC, '3');
+  w.localStorage.setItem('ansAt:' + bareC, String(Date.now()));
+  w.dispatchEvent(new w.StorageEvent('storage', { key: bareC, oldValue: null, newValue: '3' }));
+  /* ADA SIGNS IN OVER BEN. A switch is not a seat (318): nothing anybody else made signed out is hers.
+     What SHE made is, all of it, as it is from nobody: joined to her answers, none left behind. */
+  w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: JSON.parse(JSON.stringify(b.of('P7'))) }));
+  c.draw();
+  await w.answersPush_(true);
+  const JOINED = ESSAY + '\n\nMore words';
+  if (c.ta().value !== JOINED) bad.push('Ada signed in over Ben and her words box holds ' + c.ta().value.length + ' characters ending ' + JSON.stringify(c.ta().value.slice(-20)) + ', wanted her essay with "More words" after it');
+  if (c.kp().value !== '(5)/(6)') bad.push('Ada signed in over Ben and her maths box holds ' + JSON.stringify(c.kp().value));
+  if (c.pad().querySelectorAll('.qpad-g path').length !== 2) bad.push('Ada signed in over Ben and her pad draws ' + c.pad().querySelectorAll('.qpad-g path').length + ' stroke(s), wanted the one she had and the one she drew signed out');
+  if (w.circOf_({ key: c.pen.key, surface: 'text' }).on.length !== 1) bad.push('Ada signed in over Ben and the passage rings ' + JSON.stringify(w.circOf_({ key: c.pen.key, surface: 'text' }).on));
+  bare.forEach(k => { if (w.ansValue_(k) !== null) bad.push('Ada signed in over Ben and ' + k + ' is still under the signed-out key: ' + JSON.stringify(w.ansValue_(k)).slice(0, 60)); });
+  if (w.localStorage.getItem('familyGoneKeys') !== null) bad.push('marks are left for answers that have gone: ' + w.localStorage.getItem('familyGoneKeys'));
+  const up = b.of('P7')['ans:' + c.words.key];
+  if (!up || up.v !== JOINED) bad.push('her essay with her words after it is not on her account: ' + JSON.stringify(up && String(up.v).slice(-24)));
+  if (Object.keys(b.of('P8')).length) bad.push('Ben\'s account holds ' + JSON.stringify(b.of('P8')).slice(0, 160));
+  /* AND NOTHING SOMEBODY ELSE MADE SIGNED OUT: a switch is not the same seat (318). */
+  if (w.localStorage.getItem('ans:u:P7:' + c.pick.key) !== '2') bad.push('Ada signed in over Ben and her pick is ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + c.pick.key)) + ' — the other tab\'s, claimed over hers on a switch');
+  if (w.localStorage.getItem(bareC) !== '3') bad.push('the other tab\'s signed-out pick was taken off the device when Ada signed in over Ben: ' + JSON.stringify(w.localStorage.getItem(bareC)));
+  /* AND THE NEXT SIGNED-OUT VISITOR SEES NOTHING OF HERS. */
+  w.signedOut_();
+  c.draw();
+  if (c.ta().value || c.kp().value) bad.push('Ada signed out and the signed-out boxes show ' + JSON.stringify([c.ta().value, c.kp().value]) + ' to whoever sits down next');
+  return bad;
+});
+
+check('edges: what the store refused while signed out is claimed at sign-in like anything stored — the visit\'s copy moves, and is not left for the next visitor (G2)', async () => {
+  const bad = [];
+  /* ONE — NO SESSION ENDED. The store refuses the signed-out words, so the visit holds them; Ben signs in
+     from nobody (318's seat) and they are his. */
+  {
+    const b = edgeBoot_();
+    const { w } = b;
+    await wait(300);
+    const need = edgeNeed_(w);
+    if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+    const c = ansCards_(w, 'E2A');
+    const bareW = 'ans:' + c.words.key, benW = 'ans:u:P8:' + c.words.key;
+    const S = w.Storage.prototype, realSet = S.setItem;
+    S.setItem = function (k, v) { if (k === bareW) throw edgeQuota_(); return realSet.call(this, k, v); };
+    try {
+      ansType_(w, c.ta(), 'Mine, typed signed out');
+      if (w.ansValue_(bareW) !== 'Mine, typed signed out' || w.localStorage.getItem(bareW) !== null) return ['setup: the signed-out words are not held by the visit alone — NOT checked'];
+      w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+      /* CLAIMED AT SIGN-IN, BEFORE ANY CARD IS DRAWN: that is the claim's job. Drawing the card would have
+         `ansRead_` move it into Ben's empty box anyway, and hide a claim that never saw the visit's copy. */
+      if (w.ansValue_(benW) !== 'Mine, typed signed out' || w.ansValue_(bareW) !== null) bad.push('Ben signed in from nobody and, before any card was drawn, his key holds ' + JSON.stringify(w.ansValue_(benW)) + ' and the signed-out key ' + JSON.stringify(w.ansValue_(bareW)) + ' — the claim never saw the words the visit was holding');
+      c.draw();
+      if (c.ta().value !== 'Mine, typed signed out') bad.push('Ben signed in from nobody and his box holds ' + JSON.stringify(c.ta().value) + ' — what was typed in his seat, held because the store refused it, was not claimed');
+      if (!w.ansDirtySet_('u:P8').has(benW)) bad.push('what was typed in Ben\'s seat is not due to go up to his account');
+      if (w.ansValue_(bareW) !== null) bad.push('the visit still holds ' + JSON.stringify(w.ansValue_(bareW)) + ' under the signed-out key after Ben claimed it');
+      w.signedOut_();
+      c.draw();
+      if (c.ta().value) bad.push('Ben signed out and the signed-out box shows ' + JSON.stringify(c.ta().value) + ' to whoever sits down next');
+    } finally { S.setItem = realSet; }
+    /* ROOM AGAIN AS THE PAGE GOES: what was claimed is not written back under the signed-out key. */
+    w.dispatchEvent(new w.Event('pagehide'));
+    if (w.localStorage.getItem(bareW) !== null) bad.push('room came back and the claimed words were written back under the signed-out key: ' + JSON.stringify(w.localStorage.getItem(bareW)));
+  }
+  /* TWO — THE SERVER ENDED ADA'S SESSION. The store refuses what she types signed out; she signs in again
+     and it is joined to her answer, from the visit. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'E2B');
+    ansType_(w, c.ta(), 'Ada, signed in');
+    await w.answersPush_(true);
+    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
+    c.draw();
+    const bareW = 'ans:' + c.words.key;
+    const S = w.Storage.prototype, realSet = S.setItem;
+    S.setItem = function (k, v) { if (k === bareW) throw edgeQuota_(); return realSet.call(this, k, v); };
+    try {
+      ansType_(w, c.ta(), 'More words, held');
+      if (w.ansValue_(bareW) !== 'More words, held' || w.localStorage.getItem(bareW) !== null) return bad.concat(['setup: Ada\'s signed-out words are not held by the visit alone — NOT checked']);
+      if (w.ansMayMove_(bareW, 'ans:u:P8:' + c.words.key) !== '') bad.push('setup: the held words are not marked as Ada\'s');
+      w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: JSON.parse(JSON.stringify(b.of('P7'))) }));
+      c.draw();
+      if (c.ta().value !== 'Ada, signed in\n\nMore words, held') bad.push('Ada signed in again and her box holds ' + JSON.stringify(c.ta().value) + ' — the words the visit held for her were not joined to her answer');
+      if (w.ansValue_(bareW) !== null) bad.push('Ada signed in again and the visit still holds ' + JSON.stringify(w.ansValue_(bareW)) + ' under the signed-out key');
+    } finally { S.setItem = realSet; }
+    w.dispatchEvent(new w.Event('pagehide'));
+    if (w.localStorage.getItem(bareW) !== null) bad.push('room came back and Ada\'s claimed words were written back under the signed-out key');
+  }
+  /* THREE — THE WHITEBOARD, NO SESSION ENDED. A board drawn signed out is the device's and goes to whoever
+     first opens the board (`padAdopt_`, note 310): the one the store refused, as well as one it kept. */
+  {
+    const b = edgeBoot_();
+    const { w } = b;
+    await wait(300);
+    if (typeof w.initWhiteboard !== 'function') return bad.concat(['initWhiteboard not reachable — the board was NOT checked']);
+    const host = w.document.createElement('div');
+    host.className = 'wb-box';
+    w.document.body.appendChild(host);
+    w.initWhiteboard();
+    const board = { pad: () => host.querySelector('.qpad') };
+    const strokes = () => host.querySelectorAll('.qpad-g path').length;
+    const S = w.Storage.prototype, realSet = S.setItem;
+    S.setItem = function (k, v) { if (k === 'board:whiteboard') throw edgeQuota_(); return realSet.call(this, k, v); };
+    try {
+      ansStroke_(w, board, [[30, 30], [200, 200]]);
+      if (!w.ansValue_('board:whiteboard') || w.localStorage.getItem('board:whiteboard') !== null) return bad.concat(['setup: the board drawn signed out is not held by the visit alone — NOT checked']);
+      w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+      if (strokes() !== 1 || w.ansValue_('board:u:P8:whiteboard') === null) bad.push('Ben signed in, the board opened under him, and it draws ' + strokes() + ' stroke(s) — the signed-out board the store refused did not move to him as a stored one does');
+      if (w.ansValue_('board:whiteboard') !== null) bad.push('Ben opened the board and the visit still holds the signed-out one: ' + w.ansValue_('board:whiteboard'));
+      w.signedOut_();
+      if (strokes()) bad.push('Ben signed out and the signed-out board draws ' + strokes() + ' stroke(s) — the visit\'s copy, left for whoever sits down next');
+    } finally { S.setItem = realSet; }
+    w.dispatchEvent(new w.Event('pagehide'));
+    if (w.localStorage.getItem('board:whiteboard') !== null) bad.push('room came back and the board Ben took was written back under the signed-out key');
+  }
+  return bad;
+});
+
+/* ---------- AND THREE MORE, FOUND BY THE VERIFIER OF THE SIX (317, "Undo, the booking form, a switch") ----------
+   UNDO: the two features built for slips — the pen's Undo after Clear, the keypad's Ctrl+Z — put an emptied
+   answer back as though it had just been written, so a child's own work came back with nobody's mark (or
+   with the mark of whoever's ended session was fresh), and went to the next child. THE BOOKING FORM: signing
+   back in, the form typed signed out was written over the person's own draft. A SWITCH: signed in over
+   somebody, opening a card or the board still handed the arriving child what another tab made signed out.
+   Each journey below was red on the code before. */
+const edgeKey_ = (w, el, key, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: key, bubbles: true, cancelable: true }, o || {})));
+
+check('edges: Undo puts back whose it was — Clear then Undo on a pad and on the whiteboard, Ctrl+Z after Backspace or after one letter over all of it — and the keypad\'s history goes with the person who made it', async () => {
+  const bad = [];
+  const mine = (w, k) => { const m = w.ansGoneOf_(k); return m ? m.who : null; };
+  /* ONE — A QUESTION'S PAD (U1). Ada draws signed out after the server ended her session: hers. Ben signs in
+     and out, which ends the hour's note (`familyGone`). The next visitor's finger slips onto the bin, 4px
+     from Undo, and Undo puts the stroke back. Then, while CAL'S ended session is fresh, the same again. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const need = edgeNeed_(w);
+    if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+    const A = w.__t.ACTIONS;
+    const c = ansCards_(w, 'U1');
+    if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
+    c.draw();
+    ansStroke_(w, c, [[10, 10], [80, 80], [150, 40]]);
+    const bareP = 'pad:' + c.pen.key, benP = 'pad:u:P8:' + c.pen.key;
+    const ada = w.ansValue_(bareP);
+    if (!ada || w.ansMayMove_(bareP, benP) !== '') return ['setup: Ada\'s stroke, drawn signed out after her session ended, is not marked as hers — NOT checked'];
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    w.signedOut_();
+    c.draw();
+    A['pad-clear'](c.pad().querySelector('.qpad-clear'));
+    if (w.ansValue_(bareP) !== null) return ['setup: Clear left ' + JSON.stringify(w.ansValue_(bareP)) + ' — NOT checked'];
+    A['pad-undo'](c.pad().querySelector('.qpad-undo'));
+    if (w.ansValue_(bareP) !== ada) return ['setup: Undo after Clear put back ' + JSON.stringify(w.ansValue_(bareP)) + ', not ' + ada + ' — NOT checked'];
+    if (mine(w, bareP) !== 'u:P7') bad.push('Clear then Undo put Ada\'s own stroke back marked ' + JSON.stringify(w.ansGoneOf_(bareP)) + ' — `ansMayMove_` for Ben answers ' + JSON.stringify(w.ansMayMove_(bareP, benP)));
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P9', at: Date.now() }));
+    A['pad-clear'](c.pad().querySelector('.qpad-clear'));
+    A['pad-undo'](c.pad().querySelector('.qpad-undo'));
+    if (mine(w, bareP) !== 'u:P7') bad.push('Clear then Undo while Cal\'s ended session was fresh put Ada\'s stroke back marked ' + JSON.stringify(w.ansGoneOf_(bareP)) + ' — handed to Cal');
+    w.ansRecPut_('familyGone', null);
+    /* BEN SIGNS IN FROM NOBODY: nothing of hers. */
+    w.signedIn_(Object.assign({}, ANS_BEN, { token: 'tok-P8-b', answers: {} }));
+    c.draw();
+    await w.answersPush_(true);
+    if (w.ansValue_(benP) !== null || c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ben signed in from nobody and Ada\'s stroke is on his pad: ' + JSON.stringify(w.ansValue_(benP)));
+    if (b.of('P8')['pad:' + c.pen.key]) bad.push('Ada\'s stroke reached BEN\'S ACCOUNT: ' + JSON.stringify(b.of('P8')['pad:' + c.pen.key]).slice(0, 80));
+    if (w.ansValue_(bareP) !== ada) bad.push('Ada\'s stroke left the signed-out key when Ben signed in: ' + JSON.stringify(w.ansValue_(bareP)));
+  }
+  /* TWO — WORDS, THROUGH A LAPTOP'S KEYS (U2). Ada types signed out after her session ended; Ben signs in and
+     out. A visitor selects the whole answer (⇧Ctrl+Home from the end, as Ctrl+A does), presses Backspace,
+     then Ctrl+Z. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'U2');
+    ansType_(w, c.ta(), 'Ada, signed in');
+    await w.answersPush_(true);
+    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
+    c.draw();
+    const WORDS = 'More words Ada typed signed out';
+    const bareW = 'ans:' + c.words.key, benW = 'ans:u:P8:' + c.words.key;
+    ansType_(w, c.ta(), WORDS);
+    if (w.ansMayMove_(bareW, benW) !== '') return bad.concat(['setup: Ada\'s signed-out words are not marked as hers — the words were NOT checked']);
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    w.signedOut_();
+    c.draw();
+    const inp = c.ta();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    edgeKey_(w, inp, 'Home', { shiftKey: true, ctrlKey: true });
+    edgeKey_(w, inp, 'Backspace');
+    if (String(w.ansValue_(bareW) || '') !== '') return bad.concat(['setup: the whole answer selected and Backspace left ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    if (w.ansValue_(bareW) !== WORDS) return bad.concat(['setup: Ctrl+Z put back ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (mine(w, bareW) !== 'u:P7') bad.push('Ctrl+Z after Backspace over all of it put Ada\'s own words back marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' — `ansMayMove_` for Ben answers ' + JSON.stringify(w.ansMayMove_(bareW, benW)));
+    w.signedIn_(Object.assign({}, ANS_BEN, { token: 'tok-P8-b', answers: {} }));
+    c.draw();
+    await w.answersPush_(true);
+    if (c.ta().value === WORDS) bad.push('Ben signed in from nobody and his words box holds Ada\'s words');
+    if (/More words Ada typed/.test(JSON.stringify(b.of('P8')))) bad.push('Ada\'s words reached BEN\'S ACCOUNT');
+  }
+  /* THREE — THE HOUR HAS PASSED (U2b, U3): a held Backspace to empty, then Ctrl+Z; then one letter over all of
+     it, which takes her mark off (P7), and Ctrl+Z, which puts it back with the words; and ⇧Ctrl+Z, which
+     puts the visitor's letter back as nobody's again. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'U3');
+    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
+    c.draw();
+    const WORDS = 'Ada typed this signed out';
+    const bareW = 'ans:' + c.words.key, benW = 'ans:u:P8:' + c.words.key;
+    ansType_(w, c.ta(), WORDS);
+    if (w.ansMayMove_(bareW, benW) !== '') return bad.concat(['setup: Ada\'s signed-out words are not marked as hers — the hour was NOT checked']);
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
+    c.draw();
+    const inp = c.ta();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    for (let i = 0; i < WORDS.length; i++) edgeKey_(w, inp, 'Backspace');
+    if (String(w.ansValue_(bareW) || '') !== '') return bad.concat(['setup: a held Backspace left ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    if (w.ansValue_(bareW) !== WORDS) return bad.concat(['setup: Ctrl+Z after the held Backspace put back ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (mine(w, bareW) !== 'u:P7') bad.push('after the hour, Ctrl+Z after a held Backspace put Ada\'s words back marked ' + JSON.stringify(w.ansGoneOf_(bareW)));
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    edgeKey_(w, inp, 'Home', { shiftKey: true, ctrlKey: true });
+    edgeKey_(w, inp, 'x');
+    if (w.ansValue_(bareW) !== 'x') return bad.concat(['setup: one letter over the whole answer left ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (w.ansMayMove_(bareW, benW) !== 'later') bad.push('after the hour, one letter typed over all of Ada\'s words is still marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' (P7)');
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    if (w.ansValue_(bareW) !== WORDS) return bad.concat(['setup: Ctrl+Z after the letter put back ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (mine(w, bareW) !== 'u:P7') bad.push('a visitor\'s letter over Ada\'s words, undone at once, left her words marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' — anybody\'s');
+    edgeKey_(w, inp, 'z', { ctrlKey: true, shiftKey: true });
+    if (w.ansValue_(bareW) !== 'x') return bad.concat(['setup: ⇧Ctrl+Z put back ' + JSON.stringify(w.ansValue_(bareW)) + ', not the letter — NOT checked']);
+    if (w.ansMayMove_(bareW, benW) !== 'later') bad.push('⇧Ctrl+Z put the visitor\'s letter back marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' — the visitor\'s answer filed as Ada\'s');
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await w.answersPush_(true);
+    if (/Ada typed this/.test(JSON.stringify(b.of('P8')))) bad.push('Ada\'s words reached BEN\'S ACCOUNT after the hour');
+  }
+  /* FOUR — THE WHITEBOARD, after the hour (U4): Clear, Undo, and Ben signs in from nobody. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    if (typeof w.initWhiteboard !== 'function') return bad.concat(['initWhiteboard not reachable — the board was NOT checked']);
+    const A = w.__t.ACTIONS;
+    const host = w.document.createElement('div');
+    host.className = 'wb-box';
+    w.document.body.appendChild(host);
+    w.initWhiteboard();
+    const board = { pad: () => host.querySelector('.qpad') };
+    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
+    ansStroke_(w, board, [[30, 30], [200, 200]]);
+    const ada = w.ansValue_('board:whiteboard');
+    if (!ada || mine(w, 'board:whiteboard') !== 'u:P7') return bad.concat(['setup: the board drawn signed out is not marked as Ada\'s — the board was NOT checked']);
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
+    A['pad-clear'](board.pad().querySelector('.qpad-clear'));
+    A['pad-undo'](board.pad().querySelector('.qpad-undo'));
+    if (w.ansValue_('board:whiteboard') !== ada) return bad.concat(['setup: Undo after Clear put the board back as ' + JSON.stringify(w.ansValue_('board:whiteboard')) + ' — NOT checked']);
+    if (mine(w, 'board:whiteboard') !== 'u:P7') bad.push('Clear then Undo put Ada\'s board back marked ' + JSON.stringify(w.ansGoneOf_('board:whiteboard')));
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    if (w.ansValue_('board:u:P8:whiteboard') !== null || host.querySelectorAll('.qpad-g path').length) bad.push('Ben signed in from nobody and Ada\'s board is on HIS board: ' + JSON.stringify(w.ansValue_('board:u:P8:whiteboard')));
+  }
+  /* FIVE — THE KEYPAD'S HISTORY OUTLIVED ITS PERSON. Sam types signed out and signs in from nobody: the words
+     are his (318). He signs out, and the next visitor presses Ctrl+Z on the empty signed-out box. */
+  {
+    const b = edgeBoot_();
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'U5');
+    const SAM = { name: 'Sam Pupil', personId: 'P10', role: 'kid', roles: ['kid'], token: 'tok-P10', handle: 'sam_sunny10' };
+    const bareW = 'ans:' + c.words.key;
+    const inp = c.ta();
+    inp.setSelectionRange(0, 0);
+    'Sam typed these words'.split('').forEach(ch => edgeKey_(w, inp, ch));
+    if (w.ansValue_(bareW) !== 'Sam typed these words') return bad.concat(['setup: the keys typed signed out stored ' + JSON.stringify(w.ansValue_(bareW)) + ' — the history was NOT checked']);
+    w.signedIn_(Object.assign({}, SAM, { answers: {} }));
+    if (w.ansValue_(bareW) !== null) return bad.concat(['setup: Sam signed in from nobody and his words were not claimed — the history was NOT checked']);
+    w.signedOut_();
+    c.draw();
+    edgeKey_(w, c.ta(), 'z', { ctrlKey: true });
+    if (c.ta().value || w.ansValue_(bareW)) bad.push('Sam signed in and out, and the next visitor\'s Ctrl+Z on the empty signed-out box brought back ' + JSON.stringify(w.ansValue_(bareW)) + ' — his words, nobody\'s now');
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await w.answersPush_(true);
+    if (/Sam typed/.test(JSON.stringify(b.of('P8')))) bad.push('Sam\'s words reached BEN\'S ACCOUNT through the keypad\'s history');
+  }
+  return bad;
+});
+
+check('edges: signing in again, the booking form typed signed out after the session ended is joined to the person\'s own draft, not written over it — and the addresses typed on it go with it, from nobody and over somebody', async () => {
+  const bad = [];
+  for (const over of [false, true]) {
+    const ended = new Set();
+    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+    await wait(300);
+    const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'stepInput_', 'draftRead_', 'ansMayMove_', 'ansGoneOf_'].filter(n => typeof w[n] !== 'function');
+    if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
+    const B = w.__t.BOOKING;
+    const split = (w.__t.STEPS || []).find(s => s.emails);
+    if (!split) return ['no booking step takes addresses — renamed? NOT checked'];
+    const how = over ? 'over Ben' : 'from nobody';
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    /* THROUGH THE REAL LISTENERS: the note's `input` writes the whole form (`bookKeep_`); the addresses box
+       is a draft of its own until it is left (`draftFrom_`). */
+    const typeNote = text => {
+      h.innerHTML = w.noteRow_().sel;
+      const el = h.querySelector('[data-do="book-note"]');
+      el.value = text;
+      el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    };
+    /* SIGNED IN: Ada part-way through a booking — who it is for, a subject, a level and a note. */
+    B.client = 'Ada';
+    B.subjects = ['Maths'];
+    B.level = 'GCSE';
+    typeNote('Tuesdays after school');
+    if (!/Tuesdays/.test(String(w.localStorage.getItem('draft:u:P7:book:form')))) return bad.concat(['setup: Ada\'s signed-in booking is not her draft — NOT checked']);
+    ended.add('tok-P7');
+    await w.api({ action: 'myProfile' });
+    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
+    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
+    if (B.note || B.client) bad.push('the server ended Ada\'s session and her booking is still on the screen: ' + JSON.stringify([B.note, B.client]));
+    /* SIGNED OUT, ON THE FORM THE ENDED SESSION EMPTIED: another subject, another level, her address, and
+       somebody to share with, typed into the addresses box and not yet left. */
+    B.subjects = ['English'];
+    B.level = 'A level';
+    typeNote('Ada signed out: 1 Example Road');
+    h.innerHTML = w.stepInput_(split);
+    const box = h.querySelector('[data-do="book-emails"]');
+    box.value = 'kit@example.com';
+    box.dispatchEvent(new w.Event('input', { bubbles: true }));
+    if (!/Example Road/.test(String(w.localStorage.getItem('draft:device:book:form'))) || !/kit@example/.test(String(w.localStorage.getItem('draft:device:book:emails:' + split.id)))) {
+      return bad.concat(['setup: the signed-out form and its addresses are not the device\'s drafts — NOT checked']);
+    }
+    if (over) w.signedIn_(Object.assign({}, ANS_BEN));
+    w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
+    const NOTE = 'Tuesdays after school\n\nAda signed out: 1 Example Road';
+    if (B.note !== NOTE) bad.push('Ada signed in again ' + how + ' and the note is ' + JSON.stringify(B.note) + ', wanted hers, then what she typed signed out');
+    if (B.client !== 'Ada') bad.push('Ada signed in again ' + how + ' and "who is this for", answered signed in, is ' + JSON.stringify(B.client) + ' — her draft was written over');
+    if (JSON.stringify(B.subjects) !== '["Maths","English"]') bad.push('Ada signed in again ' + how + ' and the subjects are ' + JSON.stringify(B.subjects) + ', wanted both forms\'');
+    if (B.level !== 'A level') bad.push('Ada signed in again ' + how + ' and the level is ' + JSON.stringify(B.level) + ', wanted the one chosen later, signed out');
+    const draft = String(w.draftRead_('book', 'form') || '');
+    if (!/Tuesdays/.test(draft) || !/Example Road/.test(draft) || !/"client":"Ada"/.test(draft)) bad.push('Ada signed in again ' + how + ' and her draft is not the two forms joined: ' + draft.slice(0, 160));
+    if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('Ada signed in again ' + how + ' and the device still holds her signed-out form');
+    if (w.draftRead_('book', 'emails:' + split.id) !== 'kit@example.com') bad.push('Ada signed in again ' + how + ' and the addresses she typed signed out are ' + JSON.stringify(w.draftRead_('book', 'emails:' + split.id)) + ' in her box — dropped, not carried');
+    if (w.localStorage.getItem('draft:device:book:emails:' + split.id) !== null) bad.push('Ada signed in again ' + how + ' and the device still holds the addresses she typed signed out');
+  }
+  /* AND THE ADDRESSES ARE ASKED ON THEIR OWN. A form nobody's (a visitor's, left on the device) is on the
+     screen when the server ends Ada's session; she types an address into its box and leaves it unsent. Ben
+     signs in next from nobody: the form is his seat's (318), the address is hers. */
+  {
+    const { w } = boot({
+      before: win => {
+        signedInAs_(ANS_ADA)(win);
+        try { win.localStorage.setItem('draft:device:book:form', JSON.stringify({ v: JSON.stringify({ note: 'A visitor\'s note' }), at: Date.now() })); } catch (e) {}
+      },
+      reply: q => (q.token === 'tok-P7' && q.action === 'myProfile' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined)
+    });
+    await wait(300);
+    const split = (w.__t.STEPS || []).find(s => s.emails);
+    if (w.__t.whoami()) await w.api({ action: 'myProfile', token: 'tok-P7' });
+    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
+    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
+    if (w.__t.BOOKING.note !== 'A visitor\'s note') return bad.concat(['setup: the visitor\'s form is not on the screen after the session ended (' + JSON.stringify(w.__t.BOOKING.note) + ') — the addresses were NOT checked']);
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    h.innerHTML = w.stepInput_(split);
+    const box = h.querySelector('[data-do="book-emails"]');
+    box.value = 'ada@example.com';
+    box.dispatchEvent(new w.Event('input', { bubbles: true }));
+    w.signedIn_(Object.assign({}, ANS_BEN));
+    if (w.__t.BOOKING.note !== 'A visitor\'s note') bad.push('Ben signed in from nobody and the visitor\'s form was not carried to his seat: ' + JSON.stringify(w.__t.BOOKING.note));
+    if (/ada@example/.test(String(w.draftRead_('book', 'emails:' + split.id) || ''))) bad.push('Ben signed in from nobody and the address Ada typed after her session ended is in HIS addresses box');
+    if (!/ada@example/.test(String(w.localStorage.getItem('draft:device:book:emails:' + split.id) || ''))) bad.push('the address Ada typed after her session ended left the device when Ben signed in — it is hers to sign in to');
+  }
+  return bad;
+});
+
+check('edges: signed in over somebody else, opening a card or the board hands the arriving child nothing another visitor made signed out — after a reload too; signed in from nobody, it is theirs (318)', async () => {
+  const b = edgeBoot_(signedInAs_(ANS_BEN));
+  const { w } = b;
+  await wait(300);
+  const need = edgeNeed_(w).concat(typeof w.initWhiteboard === 'function' ? [] : ['initWhiteboard']);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const c = ansCards_(w, 'S1');
+  const wb = win => {
+    const host = win.document.createElement('div');
+    host.className = 'wb-box';
+    win.document.body.appendChild(host);
+    win.initWhiteboard();
+    return () => host.querySelectorAll('.qpad-g path').length;
+  };
+  const boardStrokes = wb(w);
+  const bareM = 'ans:' + c.maths.key, bareP = 'pad:' + c.pen.key, bareR = bareP + ':words';
+  const OTHER = [[bareM, '(9)/(10)'], [bareP, '[[1,1,300,300]]'], [bareR, '["0.1"]'], ['board:whiteboard', '[[40,40,90,90]]']];
+  /* BEN IS SIGNED IN. ANOTHER TAB OF THE SITE, SIGNED OUT THERE AND NEVER RELOADED, ANSWERS, DRAWS, RINGS AND
+     SCRIBBLES ON THE BOARD: nobody's session ended, so all of it is 'later' — whoever signs in next from
+     nobody (318). */
+  OTHER.forEach(([k, v]) => {
+    w.localStorage.setItem(k, v);
+    w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: null, newValue: v }));
+  });
+  w.localStorage.setItem('ansAt:' + bareM, String(Date.now()));
+  const left = win => OTHER.filter(([k, v]) => win.localStorage.getItem(k) !== v).map(([k]) => k);
+  /* ADA SIGNS IN OVER BEN, AND HER CARD AND THE BOARD ARE DRAWN. */
+  w.signedIn_(Object.assign({}, ANS_ADA, { answers: {} }));
+  c.draw();
+  const rings = w.circOf_({ key: c.pen.key, surface: 'text' }).on;
+  await w.answersPush_(true);
+  if (c.kp().value) bad.push('Ada signed in over Ben, opened the card, and her empty maths box was given the other tab\'s signed-out answer ' + JSON.stringify(c.kp().value) + ' (`ansRead_`)');
+  if (c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ada signed in over Ben and her pad draws the other tab\'s stroke (`padAdopt_`)');
+  if (rings.length) bad.push('Ada signed in over Ben and the passage rings the other tab\'s word ' + JSON.stringify(rings) + ' (`circOf_`)');
+  if (boardStrokes() || w.localStorage.getItem('board:u:P7:whiteboard') !== null) bad.push('Ada signed in over Ben and her board holds the other tab\'s scribble (`padAdopt_`, from `wbPaint_`)');
+  if (left(w).length) bad.push('Ada signed in over Ben and the other tab\'s work left the signed-out keys: ' + left(w).join(', '));
+  if (Object.keys(b.of('P7')).length) bad.push('the other tab\'s work reached ADA\'S ACCOUNT: ' + JSON.stringify(b.of('P7')).slice(0, 160));
+  /* A RELOAD, STILL ADA: the same arrival. */
+  const store = {};
+  for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); store[k] = w.localStorage.getItem(k); }
+  const b2 = edgeBoot_(win => { Object.keys(store).forEach(k => { try { win.localStorage.setItem(k, store[k]); } catch (e) {} }); });
+  const w2 = b2.w;
+  await wait(300);
+  if (!w2.__t.whoami() || String(w2.__t.whoami().personId) !== 'P7') return bad.concat(['setup: the reload is not signed in as Ada — the reload was NOT checked']);
+  const c2 = ansCards_(w2, 'S1');
+  const boardStrokes2 = wb(w2);
+  w2.circOf_({ key: c2.pen.key, surface: 'text' });
+  await w2.answersPush_(true);
+  if (c2.kp().value || c2.pad().querySelectorAll('.qpad-g path').length || boardStrokes2()) bad.push('reloaded as Ada, signed in over Ben, and the card or the board took the other tab\'s work: ' + JSON.stringify([c2.kp().value, c2.pad().querySelectorAll('.qpad-g path').length, boardStrokes2()]));
+  if (left(w2).length) bad.push('reloaded as Ada and the other tab\'s work left the signed-out keys: ' + left(w2).join(', '));
+  if (Object.keys(b2.of('P7')).length) bad.push('reloaded, and the other tab\'s work reached ADA\'S ACCOUNT: ' + JSON.stringify(b2.of('P7')).slice(0, 160));
+  /* SHE SIGNS OUT AND IN AGAIN, FROM NOBODY: now she is the one who signs in next — 318's seat — and it is hers. */
+  w2.signedOut_();
+  w2.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: {} }));
+  c2.draw();
+  if (c2.kp().value !== '(9)/(10)') bad.push('Ada signed out and in again from nobody and her maths box holds ' + JSON.stringify(c2.kp().value) + ' — the seat\'s answer was not hers (the switch outlived the sign-out)');
+  if (boardStrokes2() !== 1) bad.push('Ada signed in again from nobody and her board draws ' + boardStrokes2() + ' stroke(s), wanted the signed-out board (note 310)');
+  return bad;
+});
+
+/* THE TWO "NOT DONE"s OF NOTE 317, CLOSED AT THE MERGE. One Backspace on a two-character answer kept one
+   of its two characters, which is half and not more than half — so the last digit of Ada's "80" was a new
+   answer by nobody and went to whoever signed in next. And a device draft marked as somebody's was swept
+   after six hours like a stranger's, while her answers marked the same way wait for her with no limit. */
+check('edges: a visitor trimming the owner\'s answer one key at a time leaves it hers to the last character, and her marked booking form waits for her as long as her answers do (317)', async () => {
+  const bad = [];
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'T1');
+    if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
+    c.draw();
+    const bareM = 'ans:' + c.maths.key, benM = 'ans:u:P8:' + c.maths.key;
+    ansType_(w, c.kp(), '80');
+    if (w.ansMayMove_(bareM, benM) !== '') return ['setup: "80" typed signed out was not marked Ada\'s'];
+    /* The hour passes: nobody's session is fresh, so only the mark keeps it hers. */
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
+    c.draw();
+    const inp = c.kp();
+    inp.setSelectionRange(2, 2);
+    w.kpEdit_(inp, '!back');
+    if (w.ansValue_(bareM) !== '8') return ['setup: one Backspace on "80" gave ' + JSON.stringify(w.ansValue_(bareM))];
+    const m = w.ansMayMove_(bareM, benM);
+    if (m !== '') bad.push('one Backspace on Ada\'s "80" left "8" — her own digit — and it is ' + JSON.stringify(m) + ' for Ben, not hers');
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await w.answersPush_(true);
+    if (b.of('P8')['ans:' + c.maths.key]) bad.push('the "8" left of Ada\'s "80" reached BEN\'S ACCOUNT');
+  }
+  {
+    const ended = new Set(['tok-P7']);
+    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+    await wait(300);
+    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
+    if (w.__t.whoami()) { await w.api({ action: 'myProfile' }); for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50); }
+    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    h.innerHTML = w.noteRow_().sel;
+    const el = h.querySelector('[data-do="book-note"]');
+    el.value = 'Ada signed out: 1 Example Road';
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    const k = 'draft:device:book:form';
+    const d = JSON.parse(w.localStorage.getItem(k) || 'null');
+    if (!d) return bad.concat(['setup: the note typed signed out made no device draft']);
+    if (!(JSON.parse(w.localStorage.getItem('familyGoneKeys') || '{}') || {})[k]) return bad.concat(['setup: the device form typed after Ada\'s session ended is not marked hers']);
+    /* Seven hours on, and a reload: the sweep at load is where a stranger's form goes. */
+    d.at = Date.now() - 7 * 60 * 60 * 1000;
+    w.localStorage.setItem(k, JSON.stringify(d));
+    const store = {};
+    for (let i = 0; i < w.localStorage.length; i++) { const x = w.localStorage.key(i); store[x] = w.localStorage.getItem(x); }
+    const b2 = boot({ before: w2 => { Object.keys(store).forEach(x => { try { w2.localStorage.setItem(x, store[x]); } catch (e) {} }); } });
+    await wait(300);
+    b2.w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
+    if (!/Example Road/.test(String(b2.w.__t.BOOKING.note || ''))) bad.push('Ada signed in after a reload seven hours later and the form marked hers is gone (device draft now ' + b2.w.localStorage.getItem(k) + ') — her answers marked the same way wait with no limit');
+    /* AND A STRANGER'S STILL GOES: the same form, unmarked, is swept as before. */
+    const store3 = Object.assign({}, store);
+    delete store3.familyGoneKeys;
+    const b3 = boot({ before: w3 => { Object.keys(store3).forEach(x => { try { w3.localStorage.setItem(x, store3[x]); } catch (e) {} }); } });
+    await wait(300);
+    if (b3.w.localStorage.getItem(k) !== null) bad.push('an unmarked device form seven hours old survived the sweep at load — a device draft is a reload, not tomorrow\'s visitor');
+  }
+  return bad;
+});
+
+check('signing out sends the notepad typed a moment before — what waits for its moment goes before the session it needs is ended', async () => {
+  const { w, sent } = boot({ before: signedInAs_(Object.assign({}, ANS_ADA, { notepad: 'saved earlier' })) });
+  await wait(300);
+  if (typeof w.keepFlush_ !== 'function') return ['keepFlush_ not reachable — nothing was checked'];
+  const bad = [];
+  const pad = draftBox_(w, '<textarea id="notepad"></textarea>').querySelector('#notepad');
+  draftType_(w, pad, 'Revise circles before Thursday');
+  w.__t.ACTIONS.signout(w.document.createElement('button'));
+  await wait(100);
+  const order = sent.map(b => b.action);
+  const save = sent.find(b => b.action === 'saveNotepad');
+  if (!save) bad.push('signing out 100 ms after typing in the notepad sent ' + JSON.stringify(order) + ' — the words never reach the account');
+  else if (save.notepad !== 'Revise circles before Thursday' || save.token !== 'tok-P7') bad.push('the notepad went up as ' + JSON.stringify({ notepad: save.notepad, token: save.token }));
+  if (save && order.indexOf('signOut') >= 0 && order.indexOf('signOut') < order.indexOf('saveNotepad')) bad.push('the session was ended before the notepad went: ' + JSON.stringify(order));
+  return bad;
+});
+
+check('drafts across tabs, the booking\'s addresses, and nothing kept for ever', async () => {
+  const OLD = Date.now() - 31 * 24 * 60 * 60 * 1000;
+  const seed = win => {
+    signedInAs_(ANS_ADA)(win);
+    const put = (k, d) => win.localStorage.setItem(k, JSON.stringify(d));
+    put('draft:u:P7:cmt:GONE', { v: 'on a post deleted last month', at: OLD });
+    put('draft:device:reg:first', { v: 'Ivy', at: Date.now() - 7 * 60 * 60 * 1000 });
+    put('draft:u:P7:msg:LONG', { v: 'sent, and never heard back', at: Date.now() - 20 * 60 * 1000, sent: Date.now() - 11 * 60 * 1000 });
+    put('draft:u:P7:msg:OUT', { v: 'on its way in another tab', at: Date.now() - 60 * 1000, sent: Date.now() - 60 * 1000 });
+    put('draft:u:P7:msg:KEEP', { v: 'half a sentence', at: Date.now() - 60 * 1000 });
+  };
+  const { w } = boot({ before: seed });
+  await wait(300);
+  const bad = [];
+  const has = k => w.localStorage.getItem(k) !== null;
+  if (has('draft:u:P7:cmt:GONE')) bad.push('a draft a month old was not swept');
+  if (has('draft:device:reg:first')) bad.push('a signed-out device\'s draft from seven hours ago was not swept');
+  if (has('draft:u:P7:msg:LONG')) bad.push('a draft sent eleven minutes ago and never answered was not swept');
+  if (!has('draft:u:P7:msg:OUT')) bad.push('a draft another tab sent a minute ago was swept from under it');
+  if (w.draftRead_('msg', 'OUT') !== null) bad.push('a draft on its way from another tab is drawn here as a draft');
+  if (w.draftRead_('msg', 'KEEP') !== 'half a sentence') bad.push('a fresh draft was swept');
+  /* ANOTHER TAB WRITES THE COMPOSER'S DRAFT, then sends it. */
+  const box = draftBox_(w, w.msgForm_('Tom Tutor', 'P-TOM')).querySelector('.msg-text');
+  const k = 'draft:u:P7:msg:P-TOM', v1 = JSON.stringify({ v: 'Dear Tom, I could not do question five because', at: Date.now(), from: '' });
+  w.localStorage.setItem(k, v1);
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: null, newValue: v1 }));
+  if (box.value !== 'Dear Tom, I could not do question five because') bad.push('the other tab\'s draft did not reach this tab\'s composer: ' + JSON.stringify(box.value));
+  draftType_(w, box, box.value + '?');
+  if (w.draftRead_('msg', 'P-TOM') !== 'Dear Tom, I could not do question five because?') bad.push('one key here wrote ' + JSON.stringify(w.draftRead_('msg', 'P-TOM')) + ' over the other tab\'s draft');
+  const v1b = w.localStorage.getItem(k), v2 = JSON.stringify({ v: box.value, at: Date.now(), from: '', sent: Date.now() });
+  w.localStorage.setItem(k, v2);
+  w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: v1b, newValue: v2 }));
+  if (box.value) bad.push('the other tab sent the message and this composer still holds it, for a second Send: ' + JSON.stringify(box.value));
+  /* THE ADDRESSES: a draft until `change` makes them answers, and then not. */
+  const st = w.__t.STEPS.find(s => s.emails);
+  if (!st || typeof w.stepInput_ !== 'function') bad.push('no addresses step to type into, so it was NOT checked');
+  else {
+    const h = draftBox_(w, w.stepInput_(st));
+    const el = h.querySelector('[data-do="book-emails"]');
+    el.value = 'a@example.org,b@example.org,';
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    el.dispatchEvent(new w.Event('change', { bubbles: true }));
+    if (JSON.stringify(w.__t.BOOKING[st.id]) !== '["a@example.org","b@example.org"]') bad.push('the addresses did not become answers: ' + JSON.stringify(w.__t.BOOKING[st.id]));
+    if (w.draftRead_('book', 'emails:' + st.id) !== null) bad.push('the addresses as typed are still a draft after `change` made them answers: ' + JSON.stringify(w.draftRead_('book', 'emails:' + st.id)));
+    h.innerHTML = w.stepInput_(st);
+    if (h.querySelector('[data-do="book-emails"]').value !== 'a@example.org, b@example.org') bad.push('the redrawn box holds ' + JSON.stringify(h.querySelector('[data-do="book-emails"]').value) + ', not the answers');
+  }
+  return bad;
+});
+
 /* ---------- SIGNING IN ON A SHARED iPAD ------------------------------------------------------------- */
-check('sign out, then the next child signs in: none of the last child’s messages, stars or done dates are on the screen', async () => {
+check('sign out, then the next child signs in: none of the last child’s messages, stars or submissions are on the screen', async () => {
   /* BEN'S INBOX DOES NOT ARRIVE — the server is slow, then refuses. That is the moment the last child's
      messages, if they were still held, are what the column falls back to drawing (`loadMessages` keeps
      what it had on a failure, so a blip does not read as an empty inbox). */
@@ -15441,12 +18556,21 @@ check('sign out, then the next child signs in: none of the last child’s messag
   t.dmSeed([{ id: 'M1', mine: false, read: false, body: 'Ada — a private note from your tutor', at: '2026-10-08 09:10',
               withId: 'P2', withName: 'Sasha Matola', fromName: 'Sasha Matola' }]);
   t.star('q:Q-ADA-STAR');
-  t.DATA().attempts = { for: 'P7', mine: { 'q:Q-ADA': { first: '2026-10-08', last: '2026-10-08', times: 1 } } };
+  /* ADA'S LATEST SUBMISSION, AS THE PAYLOAD BROUGHT IT, AND ONE SHE MADE HERE. */
+  t.DATA().submissions = { for: 'P7', mine: { 'q:Q-ADA': { answer: '15', verdict: 'right', at: Date.now() - 1000, id: '1760000000001-ad0001' } } };
+  if (typeof w.subAdopt_ === 'function') w.subAdopt_();
+  if (typeof w.subRecord_ === 'function') w.subRecord_('ans:u:P7:q:Q-ADA-2', '16', 'wrong');
+  const QADA = { kind: 'question', key: 'q:Q-ADA', name: 'Q1', marks: 1, row: { row_id: 'Q-ADA', paper_id: 'P-ADA', subject: 'Maths', name: 'Ada' }, html: '<p>Work out 3 × 5.</p>', accept: '15' };
+  const slotFor = x => { const h = d.createElement('div'); h.innerHTML = '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; const s = h.querySelector('.qcard-verdict'); return s ? s.textContent : ''; };
+  if (slotFor(QADA) !== 'Correct') bad.push('Ada’s latest submission was not on her card to begin with (' + JSON.stringify(slotFor(QADA)) + '), so its absence below proves nothing');
   try { w.localStorage.setItem('favs', JSON.stringify(['q:Q-ADA-STAR'])); } catch (e) {}
   t.go('dm', false, true); w.paint('dm');
   if (!/private note/.test(d.getElementById('s-dm').textContent)) bad.push('the seeded message was not drawn for Ada, so its absence below proves nothing');
   t.go('account', false, true);
   t.ACTIONS.signout(d.createElement('button'));
+  /* AT ONCE, before any payload lands: the payload's per-person keys are nobody's. */
+  if ((t.DATA().submissions || {}).for === 'P7' || Object.keys((t.DATA().submissions || {}).mine || {}).length) bad.push('signing out left Ada’s submissions on the device’s payload: ' + JSON.stringify(t.DATA().submissions).slice(0, 120));
+  if (slotFor(QADA)) bad.push('signed out, a card still says Ada’s verdict: ' + JSON.stringify(slotFor(QADA)));
   const so = sent.filter(b => b.action === 'signOut');
   await wait(50);
   if (!sent.some(b => b.action === 'signOut' && b.token === 'tok-P7')) bad.push('sign-out did not end Ada’s session on the server: ' + JSON.stringify(so));
@@ -15462,7 +18586,13 @@ check('sign out, then the next child signs in: none of the last child’s messag
   w.paint('dm');
   if (/private note/.test(d.getElementById('s-dm').textContent)) bad.push('ADA’S PRIVATE MESSAGE IS ON BEN’S MESSAGES COLUMN, drawn in place of his own inbox that did not arrive');
   if (/Saved/.test(w.favTile_({ key: 'q:Q-ADA-STAR', kind: 'question' }))) bad.push('Ada’s star is lit for Ben');
-  if (Object.keys(w.attemptsMine_()).length) bad.push('Ada’s done dates are held for Ben: ' + JSON.stringify(w.attemptsMine_()));
+  const S = t.DATA().submissions || {};
+  if (S.for === 'P7' || Object.keys(S.mine || {}).length) bad.push('Ada’s submissions are still in the payload Ben is drawn from: ' + JSON.stringify(S));
+  if (slotFor(QADA) || slotFor(Object.assign({}, QADA, { key: 'q:Q-ADA-2' }))) bad.push('ADA’S VERDICT IS ON BEN’S CARD: ' + JSON.stringify([slotFor(QADA), slotFor(Object.assign({}, QADA, { key: 'q:Q-ADA-2' }))]));
+  /* AND WHAT ADA SENT FROM HERE, NOT YET ON THE ACCOUNT, IS STILL WAITING UNDER HER OWN KEY — for the next time
+     she signs in here — and not under Ben's. */
+  if (!/Q-ADA-2/.test(String(w.localStorage.getItem('subQ:u:P7') || ''))) bad.push('Ada’s press still to go up was lost at sign-out — it must wait under her key');
+  if (/Q-ADA/.test(String(w.localStorage.getItem('subQ:u:P8') || '') + String(w.localStorage.getItem('subLast:u:P8') || ''))) bad.push('Ada’s press was moved into Ben’s drawer');
   if (/Q-ADA-STAR/.test(String(w.localStorage.getItem('favs') || ''))) bad.push('Ada’s stars are still in the device’s copy');
   if (!asked) bad.push('Ben’s inbox was never asked for, so the column was never drawn without it — NOT checked');
   return bad;
@@ -15531,7 +18661,7 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
   if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
   if (w.localStorage.getItem('familyHandles') !== '["ada_kind7"]') bad.push('the handle was not remembered: ' + w.localStorage.getItem('familyHandles'));
-  if (/"answers"|"attempts"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
+  if (/"answers"|"submissions"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
   /* SIGNED OUT, THE CHIP IS THERE; TAPPING IT FILLS THE BOX AND PUTS THE CARET IN THE PIN. */
   t.ACTIONS.signout(d.createElement('button'));
   t.go('account', false, true); w.paint('account');
@@ -15552,11 +18682,49 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   return bad;
 });
 
-check('signing in brings the done dates, stars, family and answers with the reply, before the payload', async () => {
+/* ---------- NO EXAMPLE IN THE SIGN-IN BOX; THE ADMIN'S OWN NAME WHERE THIS DEVICE KNOWS IT ----------------
+   The owner, 9 Oct: *"remove the example login ... let it be the admin login name."* A fresh device's box is
+   blank; once an admin has signed in here, its grey text is what they typed (an address or a handle), and a
+   child signing in after them does not replace it; ✕ on the admin's chip forgets it. Never a PIN. */
+check('the sign-in box has no example; on a device an admin signed in on, it shows what the admin signs in with', async () => {
+  const ADMIN = { name: 'Test Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1', handle: 'test_admin1' };
+  let who = ADMIN;
+  const reply = b => b.action === 'verifyLogin' ? Object.assign({ success: true }, who) : { success: true, messages: [] };
+  const { w } = boot({ reply });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  const box = () => { t.go('account', false, true); w.paint('account'); return d.getElementById('in-name'); };
+  t.USER(null);
+  if (!box()) return ['no sign-in box on the account column'];
+  if (box().hasAttribute('placeholder')) bad.push('a fresh device\'s sign-in box still shows an example: ' + JSON.stringify(box().getAttribute('placeholder')));
+  if (/ada@x\.com|ada_kind7/.test(d.getElementById('s-account').innerHTML)) bad.push('the old example is still on the card');
+  const signIn = async (name, pin) => {
+    box().value = name; d.getElementById('in-pin').value = pin;
+    t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
+    await wait(300);
+    t.ACTIONS.signout(d.createElement('button'));
+  };
+  await signIn('admin@example.com', '4826');
+  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('after an admin signed in by address the box says ' + JSON.stringify(box().getAttribute('placeholder')));
+  who = ANS_ADA;
+  await signIn('ada_kind7', '1239');
+  if (box().getAttribute('placeholder') !== 'admin@example.com') bad.push('a child signing in replaced the admin\'s name with ' + JSON.stringify(box().getAttribute('placeholder')));
+  const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
+  if (all.some(x => /4826|1239/.test(x))) bad.push('A PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826|1239/.test(x)).join(' | '));
+  const drop = d.querySelector('#s-account [data-do="handle-forget"][data-h="test_admin1"]');
+  if (!drop) bad.push('the admin has no chip to forget');
+  else {
+    t.ACTIONS['handle-forget'](drop);
+    if (box().hasAttribute('placeholder')) bad.push('✕ on the admin\'s chip left their name in the box: ' + JSON.stringify(box().getAttribute('placeholder')));
+  }
+  return bad;
+});
+
+check('signing in brings the submissions, stars, family and answers with the reply, before the payload', async () => {
   let hold = false;
   const reply = b => b.action === 'verifyLogin'
     ? Object.assign({ success: true }, ANS_ADA, {
-        attempts: { for: 'P7', mine: { 'q:Q-SIGN': { first: '2026-10-08', last: '2026-10-08', times: 1 } } },
+        submissions: { for: 'P7', mine: { 'q:Q-SIGN': { answer: '3/4', verdict: 'wrong', at: Date.now() - 1000, id: '1760000000002-sg0001' } } },
         favourites: ['q:Q-SIGN-STAR'],
         family: [{ personId: 'P9', title: 'Mo Parent', relation: 'parent', handle: 'mo_kind9', image: '' }], familyFor: 'P7',
         answers: { 'ans:q:Q-ANS-W-J': { v: 'from the account', at: Date.now() - 1000 } } })
@@ -15573,7 +18741,10 @@ check('signing in brings the done dates, stars, family and answers with the repl
   t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
   await wait(300);
   if (!/Signed in as Ada/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — on an iPad passed between children it has to say whose account');
-  if (!w.attemptsMine_()['q:Q-SIGN']) bad.push('the done dates did not come with the reply: ' + JSON.stringify(w.attemptsMine_()));
+  /* THE LATEST SUBMISSION, on the card and in the box, with "Signed in" — the payload never arrives here. */
+  const late = typeof w.subLatest_ === 'function' ? w.subLatest_('ans:u:P7:q:Q-SIGN') : null;
+  if (!late || late.a !== '3/4' || late.v !== 'wrong') bad.push('the submissions did not come with the reply: ' + JSON.stringify(late));
+  if (w.localStorage.getItem('ans:u:P7:q:Q-SIGN') !== '3/4') bad.push('the box was not filled with the latest answer sent: ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:q:Q-SIGN')));
   if (!/Saved/.test(w.favTile_({ key: 'q:Q-SIGN-STAR', kind: 'question' }))) bad.push('the stars did not come with the reply');
   const D = t.DATA();
   if (D.familyFor !== 'P7' || !(D.family || []).some(f => f.personId === 'P9')) bad.push('the family did not come with the reply: ' + JSON.stringify({ familyFor: D.familyFor, family: D.family }));
@@ -15581,7 +18752,7 @@ check('signing in brings the done dates, stars, family and answers with the repl
   /* AND THE ACCOUNT IS READ AT ONCE, not when the payload lands — `signedIn_` calls `answersPull_`. */
   if (!sent.some(b => b.action === 'myAnswers' && b.personId === 'P7')) bad.push('signing in did not read the account’s answers at once — they would wait for a payload that takes fifteen seconds');
   const u = t.whoami() || {};
-  if ('answers' in u || 'attempts' in u || 'favourites' in u || 'family' in u) bad.push('the per-person extras were put on USER: ' + Object.keys(u).join(', '));
+  if ('answers' in u || 'submissions' in u || 'favourites' in u || 'family' in u) bad.push('the per-person extras were put on USER: ' + Object.keys(u).join(', '));
   return bad;
 });
 
@@ -16084,7 +19255,7 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
     row_id: TIE, question: '4x', html: '<p>Write these in order of size. Start with the smallest.</p>',
     choices: '0.5 | <sup>1</sup>&frasl;<sub>2</sub> | 0.7', choice_right: '2,1,3 | 1,2,3', answer: '<b>0.5, &frac12;, 0.7</b>' })]);
   const server = {};
-  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES.concat(['markDone']) }),
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
     reply: ansBackend_(server), serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
   await wait(300);
   const need = ansNeed_(w).concat(['orderBox_', 'markOrder_', 'ansRefresh_', 'stuffItemsAll_'].filter(n => typeof w[n] !== 'function'));
@@ -16206,7 +19377,11 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   const up = sent.slice(asked).filter(b => b.action === 'saveAnswers')
     .map(b => (b.items || []).find(it => it.key === 'ans:q:' + ID)).filter(Boolean).pop();
   if (!up || up.v !== '3,4,5,2,1') bad.push('Send did not put the row on the account at once: ' + JSON.stringify(up || null));
-  if (!sent.some(b => b.action === 'markDone' && JSON.stringify(b.items || []).indexOf(ID) !== -1)) bad.push('placing and sending the order did not record the day it was done (markDone)');
+  /* THE SEND IS A SUBMISSION — the order and its verdict — kept on the device until a backend can take
+     it (this one lists no `submitAnswer`), and placing an item was not one. */
+  const q = JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]').filter(e => e.key === 'q:' + ID);
+  if (!q.length || q[q.length - 1].answer !== '3,4,5,2,1' || q[q.length - 1].verdict !== 'right') bad.push('sending the right order did not record it as a submission: ' + JSON.stringify(q.slice(-1)));
+  if (q.length !== 3) bad.push('three Sends of a full row (reversed, one swap, right) recorded ' + q.length + ' submission(s) — each Send is one, and a tap or a holed Send is none');
   /* DRAWN AGAIN FROM THE STORE: the row and, while it is the row that was sent, its verdict */
   host.innerHTML = w.questionCard_(x, 0);
   card = host.querySelector('.qcard');

@@ -252,7 +252,16 @@
    "approvedBy": "",
    "poll": null,
    "reactions": {
-    "👍": 3
+    "emoji": ["👍", "❤️", "😂", "😮", "👏", "🎉"],
+    "counts": [3, 1, 0, 0, 0, 0],
+    "total": 4,
+    "yours": "",
+    "by": [
+     {"name": "Ada Tutor", "emoji": "👍"},
+     {"name": "Priya Parent", "emoji": "👍"},
+     {"name": "Carl Everyclient", "emoji": "👍"},
+     {"name": "Evie Everystudent-Longername", "emoji": "❤️"}
+    ]
    },
    "comments": {
     "total": 3,
@@ -303,7 +312,13 @@
    "refused": false,
    "approvedBy": "",
    "poll": null,
-   "reactions": {},
+   "reactions": {
+    "emoji": ["👍", "❤️", "😂", "😮", "👏", "🎉"],
+    "counts": [0, 0, 0, 0, 0, 0],
+    "total": 0,
+    "yours": "",
+    "by": []
+   },
    "comments": {
     "total": 0,
     "list": []
@@ -332,7 +347,7 @@
  "cheatsheet": [],
  "landmarks": [],
  "favourites": [],
- "attempts": {
+ "submissions": {
   "for": "P001",
   "mine": {},
   "people": {

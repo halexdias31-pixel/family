@@ -3621,11 +3621,31 @@ function guideBox_(x, slot, ask, hint) {
      ruled out on 8 Oct (*"I just want self contained system really"*). Spelling help went with the
      phone's keyboard; that is the trade, said here where it was the reason. Named by its question,
      so a screen reader says what it is asking rather than "Your answer" three times. */
-  return `<label class="qp-ans gd-box">
+  const val = ansRead_(k);
+  const field = `<label class="qp-ans gd-box">
     <span class="gd-ask">${esc(ask)}</span>
     ${hint ? `<span class="gd-hint">${esc(hint)}</span>` : ''}
-    ${kpField_(k, ansRead_(k), 'words', false, ask)}
+    ${kpField_(k, val, 'words', false, ask)}
   </label>`;
+  /* ---------- AND A SEND UNDER EACH, SIGNED IN -------------------------------------------------------
+     A WORKSHEET'S BOXES REACHED THE ACCOUNT AS THEY WERE TYPED, and since 9 Oct a written answer reaches
+     it when it is SENT (*"I just want system to record each submition"*, js/submit.js) -- so a box with
+     no Send would be a box whose work never left the iPad. Nothing marks a variable, so it is the plain
+     Send (`qp-send`), verdict `sent`: the three boxes are three answers, each sent on its own.
+
+     BESIDE THE BOX, NOT ON A LINE UNDER IT. It was a row of its own first -- the verdict, then the gold
+     disc -- and three 48px rows took the worksheet at 320 from 75% of its size to the 70% floor and past
+     it into a scroll (`check/ui.js`), on the card the owner asked to fit (*"I don't like scrolling"*).
+     So the gold disc stands at the box's lower right as Send does at the chat bar's, and the verdict and
+     the line saying where it went take a line each under it. `.gd-mark` lays the label's own parts
+     out on its grid (`display: contents` on the label), so the question still spans the width. */
+  const send = subSendTile_();
+  if (!send) return field;
+  const said = subBoxSay_(k, val);
+  return `<div class="qp-mark gd-mark${said.cls ? ' ' + said.cls : ''}">${field}${send}
+    <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
+    <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
+  </div>`;
 }
 
 /* ---------- THE KIT, AS A LIST AGAIN ------------------------------------------------------------
@@ -4187,7 +4207,7 @@ function bibleIndex_() {
          reads `BIBLE.hays` and so changes its answer the moment they are here, on the item already
          built. The cached search and the pages are told to forget (`me.js`'s move for the friends
          list): a `psalms` typed while the index was on its way would otherwise go on answering from
-         the list that did not have it, and the Books shelf would go on saying "on its way" over a
+         the list that did not have it, and the Books shelf would go on showing its loader over a
          question it can now ask. */
       if (ok) {
         FIND_MEMO.key = null;
@@ -4428,7 +4448,11 @@ function bibleFind_(verses, words, credits) {
 
 /* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK ---------------------------
    `paperEnd_`'s job for the Bible: say what the strip below holds. Over the cover, the only reason
-   there is no question is the index — on its way, or not come. */
+   there is no question is the index — on its way, or not come.
+   ON ITS WAY IS THE ONE LOADER, where the question will be asked. It was "The list of the Bible's
+   books is on its way." — a wait in words of its own; the owner, 9 Oct, *"They should all have a
+   simplistic simple loading thing while it's info or whatever is loading."* Not come is a fact with a
+   way back, and keeps its words. */
 function bibleEnd_(items) {
   if (listKind_(items) !== 'bible') return '';
   const first = items[0], last = items[items.length - 1];
@@ -4436,7 +4460,7 @@ function bibleEnd_(items) {
     if (BIBLE.index) return '';
     return BIBLE.failed
       ? '<p class="find-end">The list of the Bible&rsquo;s books did not arrive. <b>Try again is under the cover.</b></p>'
-      : '<p class="find-end">The list of the Bible&rsquo;s books is on its way.</p>';
+      : loading_();
   }
   if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>Swipe up for it.</b></p>`;
   const to = first.bb === last.bb ? last.ch + ':' + last.v : last.name;
@@ -4478,8 +4502,11 @@ function bibleCard_(x) {
   if (x && x.bb) return bibleVerseCard_(x);
   const ix = BIBLE.index, t = ix && ix.totals;
   const num = v => Number(v || 0).toLocaleString('en-GB');
+  /* THE HOW-TO NEEDS THE INDEX — the translation's name and the counts come from it — so until it is
+     here the cover says what the book is and the one loader holds the room for the rest. It said
+     "Opening the list of books…" on the end of the lede, a wait in words of its own. */
   const how = ix ? ` Choose ${esc(ix.translation)}, then the testament, the group, the book, the chapter
-      and the verse: every verse is a card of its own.` : BIBLE.failed ? '' : ' Opening the list of books…';
+      and the verse: every verse is a card of its own.` : '';
   return `<div class="card fc prac bible" data-bb="card">
     <div class="fc-head">
       <h3>${esc(BIBLE_NAME)}</h3>
@@ -4487,7 +4514,7 @@ function bibleCard_(x) {
     </div>
     <p class="sub">The Authorized Version of 1611</p>
     <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.${how}</p>
-    ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : ''}
+    ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : !ix ? loading_() : ''}
     <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
       King James prints them.</p>
     ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
@@ -4516,7 +4543,9 @@ function bibleVerseCard_(x) {
   if (d) body = bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1]);
   else if (BIBLE.missed[n] && !BIBLE.loading[n]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
   else {
-    body = '<p class="bb-v is-wait" aria-busy="true">…</p>';
+    /* WAITING FOR ITS BOOK: the one loader, where the verse will be. It was a faint "…" with
+       `aria-busy` — the Bible's own wait, one of the twenty-four the owner was looking at on 9 Oct. */
+    body = loading_();
     if (!BIBLE.loading[n]) {
       bibleLoad_(n).then(got => {
         if (!got) toast(bb.book + ' did not arrive — Try again is under the verse.');
@@ -6680,6 +6709,11 @@ const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key |
    signed in (`ansKey_`); only the words saying so on the box are gone. */
 
 function ansRead_(k) {
+  /* THE VISIT'S COPY OF A WRITE THE STORE REFUSED (`keepHeld_`, data.js), never the older stored one or
+     the empty box a browser keeping nothing answers with: a redraw drew that, and the next key saved it
+     over the essay (docs/history/317). */
+  const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
+  if (held !== undefined) return held || '';
   try {
     const v = localStorage.getItem(k);
     if (v !== null) return v;
@@ -6696,240 +6730,57 @@ function ansRead_(k) {
        carried forward. Only into an empty box — a box this person has written in keeps theirs.
        SIGNING IN FROM SIGNED OUT DECIDES THEM ALL FIRST NOW (`answersClaim_`, js/answers.js): here, only
        into an empty box, a signed-out answer lost to an older one on the account and was left for the next
-       child. This is what is left for a device that was already signed in with one still on it. */
+       child. And signing in over somebody else claims the person's own (317, "Six edges closed"). This is
+       what is left for a device that was already signed in with one still on it. */
     const bare = k.replace(/^ans:u:[^:]*:/, 'ans:');
     if (bare === k) return '';
-    const was = localStorage.getItem(bare);
+    /* THE SIGNED-OUT ONE AS ITS WRITER'S OWN READER READS IT (`ansValue_`), the visit's copy of a write
+       the store refused first — `padAdopt_`'s reason below (317, "Six edges"). */
+    const was = typeof ansValue_ === 'function' ? ansValue_(bare) : localStorage.getItem(bare);
     if (was === null) return '';
+    /* NOT INTO SOMEBODY ELSE'S BOX: written signed out just after the server ended ANOTHER person's
+       session, so it is theirs — the review of 317 found a child's words moved into the next child's
+       account this way. `ansMayMove_` (js/answers.js) is the one question every move asks; here the
+       box is empty, so any answer but "no" moves it. */
+    if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return '';
     if (typeof ansStore_ === 'function') ansStore_(k, was); else localStorage.setItem(k, was);
-    localStorage.removeItem(bare);
+    /* AND THE SIGNED-OUT COPY GOES THROUGH THE WRITER — the stored one, the visit's held one (or the page
+       going would write it back, `keepRetry_`) and its mark (`ansGoneMark_`), all at once. */
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
     return was;
   } catch (e) { return ''; }
 }
 
-/* ---------- WHEN YOU LAST DID IT ---------------------------------------------------------------
-   ASKED FOR AS *"when a student does do a question, it should record the date they did it."* So a
-   question somebody has had a go at says `Done 4 Oct` in its header, beside the marks, for the
-   person who did it and nobody else.
+/* ---------- `Done 4 Oct` WAS HERE, AND THE `attempts` TAB UNDER IT ---------------------------------------
+   268 dated a question the first time it was touched each day (*"when a student does do a question, it
+   should record the date they did it"*), 269 put the date on the sheet, and `Done 4 Oct` sat beside the
+   star. THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's
+   right or not. Also I just want system to record each submition ... Instead of each question just
+   saving number of attempts."* So the date went, and with it `doneMark_` (the first keystroke of the
+   day), `attemptsSync_` (the backlog of dates sent on load), the phone's `done:<who>:<key>` dates,
+   `DONE_HELD`, and the `markDone` they all fed. Every press that asks for a verdict is an event now
+   (js/submit.js), and the card says how the LATEST one went.
 
-   KEPT EXACTLY WHERE THEIR ANSWER IS KEPT, because it is a fact about that answer: `ans:<who>:<key>`
-   holds what they wrote, `done:<who>:<key>` the day they last wrote it, Checked it or tapped an
-   option. THAT WAS `localStorage` ONLY, and is now the floor under the sheet's copy: the owner
-   asked for it on the spreadsheet, so a tutor can see it and it follows the student to another
-   phone. The ANSWER went with it only on 8 October -- it said here "the ANSWER still stays here", and
-   that is why another phone could say `Done 4 Oct` over an empty box, which the owner found on the
-   computer. Both follow the child now: the date on `attempts`, the answer on `answers` (js/answers.js).
-   See "AND NOW THE SHEET HAS IT TOO" below.
+   ---------- THE SLOT, BESIDE THE STAR ---------------------------------------------------------------
+   "Correct", "Not yet", "Sent" (nothing could mark it) or the AI's "3/4" — the latest press, on any
+   device (`subLatest_`). The verdict line's own words, and its own marks drawn by the stylesheet: a
+   tick, and for "not yet" the turning arrow that says "go round again" (`.qp-verdict`), in green and
+   amber (`--good`, `--warn`). Nothing at all for a question never sent.
 
-   SIGNED IN, OR NOTHING. "Per person" needs a person: the signed-out key is everybody who ever
-   picked the phone up, and "Done 4 Oct" on it would be a claim about nobody in particular.
-
-   THE LAST DAY, NOT THE FIRST. Somebody coming back to a question wants to know how long since they
-   last looked at it; the day they first met it is history the stamp would hide that behind.
-
-   `DONE_HELD` IS THE FALLBACK. Private mode THROWS on `localStorage`, and a date that vanished the
-   instant it was written would leave the header blank beside an answer just marked -- so it is held
-   for the visit as well, and read from there when storage will not answer. */
-const DONE_HELD = new Map();
-const doneKeyOf_ = k => ((typeof whoIs_ === 'function' && whoIs_() && /^ans:u:/.test(String(k || '')))
-  ? 'done:' + String(k).slice(4) : '');
-const dayIso_ = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
-  + String(d.getDate()).padStart(2, '0');
-function doneLocal_(dk) {
-  try { const v = localStorage.getItem(dk); if (v) return v; } catch (e) {}
-  return DONE_HELD.get(dk) || '';
-}
-/* ---------- AND NOW THE SHEET HAS IT TOO -------------------------------------------------------------
-   ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone, which is
-   the half 268 left undone: a date in `localStorage` is one a tutor cannot see and one that stays
-   behind when the student picks up another phone. `markDone` keeps one row per person per question
-   in the `attempts` tab, and `DATA.attempts.mine` is that person's rows, sent by `doGet`.
-
-   THE SHEET FIRST, THE PHONE AS THE FLOOR. The card shows the LATER of the two: the sheet's
-   `last_done` when it knows a later day (done on the laptop last night), this phone's copy when it
-   does (done a minute ago, the reply not back yet, or offline). Neither can make the date go
-   backwards, and with no backend at all the card is exactly what it was.
-
-   `for` IS CHECKED, the `familyFor` rule: a payload built for the last student on a shared phone
-   must not date the next one's questions. A person signed in by name alone (no `personId`) has no
-   row on the sheet to be, so they get the phone's copy and nothing is sent. */
-function attemptsMine_() {
-  try {
-    const a = DATA && DATA.attempts;
-    if (!a || !a.mine || typeof a.mine !== 'object' || !USER || !USER.personId
-        || String(a.for || '') !== String(USER.personId)) return {};
-    return a.mine;
-  } catch (e) { return {}; }
-}
-/* THE LIBRARY'S KEY BACK OUT OF THE ANSWER'S KEY — `ans:u:P7:q-12` is question `q-12` for `u:P7`. */
-function doneQKey_(k) {
-  const who = whoIs_();
-  const pre = 'ans:' + who + ':';
-  return who && String(k || '').indexOf(pre) === 0 ? String(k).slice(pre.length) : '';
-}
-const DAY_ISO = /^\d{4}-\d{2}-\d{2}$/;
-function doneRead_(k) {
-  const dk = doneKeyOf_(k);
-  if (!dk) return '';
-  const local = doneLocal_(dk);
-  const row = attemptsMine_()[doneQKey_(k)];
-  const sheet = row && DAY_ISO.test(String(row.last || '')) ? String(row.last) : '';
-  return sheet > local ? sheet : (local || sheet);
-}
-
-/* ---------- SENDING IT UP --------------------------------------------------------------------------
-   ONCE PER QUESTION PER DAY, and that is `doneMark_`'s own early return doing the work: the first
-   keystroke, Check or tap of the day stamps today, and every later one finds today already there and
-   stops before the network. So typing an answer is one request, not forty.
-
-   ONLY TO A BACKEND THAT HAS `markDone` — `DATA.features` says so — so a phone ahead of the deploy
-   keeps the date to itself rather than being refused on every Check. A refusal or no connection
-   costs nothing either: the phone's copy is still the floor, and `attemptsSync_` sends what the
-   sheet lacks on the next load. Quietly, like a star: a toast per question would be a toast per
-   question. */
-const ATTEMPTS_PER_POST = 50;
-function attemptsCan_() {
-  try {
-    return !!(USER && USER.personId && USER.token && DATA && Array.isArray(DATA.features)
-      && DATA.features.indexOf('markDone') !== -1);
-  } catch (e) { return false; }
-}
-/* WHETHER THE BACKEND KEEPS A QUESTION'S WORDS: the code says it can (`attemptWords` in
-   `DATA.features`) AND the live tab has the column (`keepsWords` on this person's attempts, which
-   `attemptsFor_` reads off the tab's headers). Either missing and nothing is sent — a backend synced
-   before `ensureSchema` ran would otherwise be sent every row's words on every visit, for nothing. */
-function attemptWordsOn_() {
-  try {
-    return !!(DATA && Array.isArray(DATA.features) && DATA.features.indexOf('attemptWords') !== -1
-      && DATA.attempts && DATA.attempts.keepsWords);
-  } catch (e) { return false; }
-}
-function attemptsAdopt_(pid, got) {
-  if (!DATA || !got || typeof got !== 'object') return;
-  let a = DATA.attempts;
-  if (!a || !a.mine || String(a.for || '') !== String(pid)) {
-    a = { for: String(pid), mine: {} };
-    try { DATA.attempts = a; } catch (e) { return; }
-  }
-  /* THE FLAGS SURVIVE THE REPLY. `named` and `worded` say a row has its name and its words; a reply
-     from a backend that does not send them must not wipe what the load said, or every row just named
-     looks unnamed again and `attemptsSync_` sends it again. */
-  Object.keys(got).forEach(q => {
-    if (!got[q] || !DAY_ISO.test(String(got[q].last || ''))) return;
-    const was = a.mine[q] || {};
-    a.mine[q] = Object.assign({}, was.named ? { named: 1 } : {}, was.worded ? { worded: 1 } : {}, got[q]);
-  });
-}
-function attemptSend_(items) {
-  if (!items || !items.length || !attemptsCan_() || typeof api !== 'function') return Promise.resolve(false);
-  const pid = String(USER.personId);
-  return api({ action: 'markDone', personId: pid, items: items.slice(0, ATTEMPTS_PER_POST) })
-    .then(d => {
-      if (!d || !d.success || !d.attempts) return false;
-      attemptsAdopt_(pid, d.attempts);
-      return true;
-    })
-    .catch(() => false);
-}
-
-/* ---------- WHAT THIS PHONE KNOWS AND THE SHEET DOES NOT, SENT ON THE NEXT LOAD ---------------------
-   EVERY DATE 268 EVER STORED IS ON SOMEBODY'S PHONE AND NOWHERE ELSE, and so is any date stamped
-   while offline or before the deploy. Called as each payload lands (`adoptMarks_`): every
-   `done:u:<me>:<key>` whose day the sheet does not have yet goes up in one request, fifty at a time.
-
-   ONLY AGAINST A PAYLOAD BUILT FOR THIS PERSON. A stored anonymous one says nothing about what the
-   sheet holds for them, and comparing against it would send everything every time. Once per person
-   per visit; a failure clears the mark so the next load tries again. */
-let ATTEMPTS_SYNCED = '';
-/* EVERY KEY THIS VISIT HAS ALREADY SENT, per person. MEASURED: with more than fifty rows to name, the
-   second pass found the same fifty still unnamed (the reply carried no flag) and sent them again, and
-   again, with no end — 25 requests before the test stopped it. A key goes up once a visit now, whatever
-   the reply says, so each pass takes the next fifty and the last pass finds nothing left. Once it has
-   GONE UP: a refused request takes its keys back out (below), because a refusal sent nothing. */
-const ATTEMPTS_SENT = {};
-function attemptsSync_() {
-  if (!attemptsCan_()) return;
-  const pid = String(USER.personId);
-  const a = DATA.attempts;
-  if (!a || !a.mine || String(a.for || '') !== pid || ATTEMPTS_SYNCED === pid) return;
-  const pre = 'done:u:' + pid + ':';
-  const have = {};
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.indexOf(pre) === 0) have[k] = localStorage.getItem(k);
-    }
-  } catch (e) {}
-  DONE_HELD.forEach((v, k) => { if (k.indexOf(pre) === 0 && !have[k]) have[k] = v; });
-  /* ---------- AND EACH ONE'S NAME, WHICH THE BACKLOG USED TO LEAVE BEHIND --------------------------
-     A ROW WITH NO `label` IS A QUESTION NO PARENT CAN READ. The first learner a parent email was
-     tried on did three questions before the Ledger had an `attempts` tab; this load sent them up as
-     bare keys, and the email prints no raw key (`digestQuestions_` in backend/digest.gs), so his
-     parent would have read "worked on 3 questions" and nothing else. So the backlog carries the name `doneMark_` would have
-     sent — found the same way (`doneLabel_`, by the answer key this person's card has) — and so does
-     a row the sheet already holds without one: sent with its own last day, which the backend counts
-     as a day already covered (it writes the name and nothing else, see `attemptsUpsert_`). A key no
-     card on this phone answers to goes up without, as before. */
-  const who = typeof whoIs_ === 'function' ? whoIs_() : '';
-  /* ONE LOOKUP TABLE FOR THE WHOLE PASS — `doneIndex_` — not a scan of the library per row. */
-  let index = null;
-  const look = () => index || (index = doneIndex_());
-  const named = q => who ? doneLabel_('ans:' + who + ':' + q, look()) : '';
-  /* ---------- AND EACH ONE'S WORDS, FOR THE WEEKLY EMAIL -------------------------------------------
-     *"with the exact questions for each"* — SCHEMA.attempts `words`, sent the same way as the name and
-     only to a backend that keeps them (`attemptWordsOn_`), so a phone ahead of the deploy does not
-     resend every row on every visit for a column that is not there. A row the sheet already has
-     words for is never given them again. */
-  const wordsOn = attemptWordsOn_();
-  const worded = q => who && wordsOn && !(a.mine[q] && a.mine[q].worded) ? doneWords_('ans:' + who + ':' + q, look()) : '';
-  /* SENT IS A KEY AND ITS DAY: a key that went up this visit with Monday is still due to go with
-     Tuesday, if the child did it again while a later pass was refused. */
-  const sent = ATTEMPTS_SENT[pid] || (ATTEMPTS_SENT[pid] = new Set());
-  const tag = x => x.key + '|' + x.day;
-  const items = Object.keys(have).map(k => ({ key: k.slice(pre.length), day: String(have[k] || '') }))
-    .filter(x => x.key && !sent.has(tag(x)) && DAY_ISO.test(x.day) && !(a.mine[x.key] && String(a.mine[x.key].last || '') >= x.day));
-  items.forEach(x => { const l = named(x.key); if (l) x.label = l; const w = worded(x.key); if (w) x.words = w; });
-  Object.keys(a.mine).forEach(q => {
-    const m = a.mine[q];
-    if (!m || !DAY_ISO.test(String(m.last || '')) || sent.has(tag({ key: q, day: String(m.last) })) || items.some(x => x.key === q)) return;
-    const l = m.named ? '' : named(q), w = m.worded ? '' : worded(q);
-    if (l || w) items.push(Object.assign({ key: q, day: String(m.last) }, l ? { label: l } : {}, w ? { words: w } : {}));
-  });
-  ATTEMPTS_SYNCED = pid;
-  if (!items.length) return;
-  const batch = items.slice(0, ATTEMPTS_PER_POST);
-  batch.forEach(x => sent.add(tag(x)));
-  attemptSend_(items).then(ok => {
-    /* MORE THAN ONE REQUEST'S WORTH: the reply has been adopted, so the next pass finds fewer.
-       A REFUSAL UN-MARKS ITS BATCH, so the next payload sends it again as it always has: kept marked,
-       a "Busy" or a phone that opened offline left those rows for the next visit, not the next load. */
-    if (!ok) { batch.forEach(x => sent.delete(tag(x))); ATTEMPTS_SYNCED = ''; return; }
-    if (items.length > ATTEMPTS_PER_POST) { ATTEMPTS_SYNCED = ''; attemptsSync_(); }
-  });
-}
-/* `4 Oct`, and the year only when it is not this one -- a stamp from last October that read like
-   this October's would be wrong by a year in the one place a date is the whole message. */
-function doneText_(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
-  if (!m) return '';
-  const names = typeof MONTH_NAMES !== 'undefined' ? MONTH_NAMES : [];
-  const mon = String(names[+m[2] - 1] || m[2]).slice(0, 3);
-  return 'Done ' + (+m[3]) + ' ' + mon + (+m[1] !== new Date().getFullYear() ? ' ' + m[1] : '');
-}
-/* THE SLOT IS ALWAYS DRAWN, EMPTY OR NOT, for somebody whose date can be kept -- and marking writes
-   into it rather than redrawing anything. 261 made marking move nothing, and a stamp that arrived as
-   a new element on the first Check would be the card jumping at exactly the moment it marks you. In
-   the question's tile row, beside the star: see `questionTiles_` for why there and not as a tag. */
-function doneSlot_(x) {
+   ALWAYS DRAWN, EMPTY OR NOT, for somebody signed in, and a press writes into it rather than redrawing
+   anything (`subPaint_`): 261 made marking move nothing, and a slot that arrived as a new element on the
+   first Send would be the card jumping at exactly the moment it marks you. In the question's tile row
+   (`questionTiles_`): a verdict is yours, like the star, not a fact about the question like a tag. */
+function subSlot_(x) {
   const k = ansKey_(x);
-  return `<i class="qcard-done" data-k="${esc(k)}">${esc(doneText_(doneRead_(k)))}</i>`;
+  const m = typeof subMark_ === 'function' && typeof subLatest_ === 'function' ? subMark_((subLatest_(k) || {}).v) : { text: '', cls: '' };
+  return `<i class="qcard-verdict${m.cls}" data-k="${esc(k)}">${esc(m.text)}</i>`;
 }
 /* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT ----------------------------------------------
    FOR THE WEEKLY PARENT EMAIL (backend/digest.gs): the sheet holds a key no parent can read
    and the backend cannot look up. `Maths · Paper 1 — June 2024 · Q3`, the subject left out when the
-   paper's name already says it. Only where the card is in hand — the load's backlog sends keys alone
-   (pending: it could send this too) — and '' when there is no card, so that request is what it always
-   was. Named, rather than inline in `doneMark_`, so the backlog can ask the same question one way.
+   paper's name already says it. Only where the card is in hand, and '' when there is no card. Sent with
+   every press (`subRecord_`, js/submit.js), as it was with every first mark of the day before that.
 
    A PRACTICAL'S WORKSHEET BOX IS THE CARD'S KEY WITH A SLOT ON THE END (`#iv`, `#dv`, `#cv` — see
    `guideBox_`), and `ansKey_` of no card ends in one, so those boxes found no card and went up
@@ -6973,7 +6824,7 @@ function doneLabel_(k, index) {
 
 /* ---------- THE QUESTION ITSELF, AS A PARENT WILL READ IT --------------------------------------------
    *"emails all parents on work their child has done with the exact questions for each"*. The backend
-   cannot look a key up (SCHEMA.attempts), so the words go with the mark, the way the name does: the
+   cannot look a key up (SCHEMA.submissions), so the words go with the press, the way the name does: the
    question's own stem (question and letter scope — a paper's whole source text is not "the question"),
    a line holding only `---`, then the part's lead and ask. The email prints the stem once above the
    parts that share it and cuts each to what reads on a phone.
@@ -7037,17 +6888,12 @@ function doneWordsPlain_(html) {
   catch (e) { t = s.replace(/<[^>]*>/g, ' '); }
   return t.split('\n').map(l => l.replace(/[ \t\u00a0]+/g, ' ').trim()).filter(Boolean).join('\n');
 }
-/* THE CARD FOR AN ANSWER KEY. `index` is a Map built once by a caller doing many — `attemptsSync_`
-   names and words every row on the first visit after a deploy, and a scan of the library per row was
-   measured at 7.5 ms each, seconds for a learner with hundreds. One caller, one Map. */
+/* THE CARD FOR AN ANSWER KEY. `index` is a Map a caller doing many may build once, rather than a scan of
+   the library per key (measured at 7.5 ms each) — the load's backlog of dates did, and went with them;
+   a press looks up one card. */
 function doneItem_(k, index) {
   if (index) return index.get(k) || null;
   return stuffItemsAll_().find(y => ansKey_(y) === k) || null;
-}
-function doneIndex_() {
-  const m = new Map();
-  try { stuffItemsAll_().forEach(y => { const a = ansKey_(y); if (a && !m.has(a)) m.set(a, y); }); } catch (e) {}
-  return m;
 }
 function doneWords_(k, index) {
   try {
@@ -7066,24 +6912,6 @@ function doneWords_(k, index) {
     if (pic) ask += (ask ? ' ' : '') + '(picture on the site)';
     return stem ? stem + '\n---\n' + ask : ask;
   } catch (e) { return ''; }
-}
-
-function doneMark_(k) {
-  const dk = doneKeyOf_(k);
-  if (!dk) return;
-  const today = dayIso_(new Date());
-  if (doneRead_(k) === today) return;
-  DONE_HELD.set(dk, today);
-  try { localStorage.setItem(dk, today); } catch (e) {}
-  const label = doneLabel_(k);
-  /* THE WORDS ONLY TO A BACKEND THAT KEEPS THEM — `attemptWords` in `DATA.features`, the gate the
-     backlog uses — so a phone ahead of the deploy does not post a paragraph with every Check. */
-  const words = attemptWordsOn_() ? doneWords_(k) : '';
-  attemptSend_([Object.assign({ key: doneQKey_(k), day: today }, label ? { label: label } : {}, words ? { words: words } : {})]);
-  /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
-  document.querySelectorAll('.qcard-done').forEach(el => {
-    if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);
-  });
 }
 
 /* ---------- MARKING IT -----------------------------------------------------------------------
@@ -7708,15 +7536,18 @@ function choiceRedraw_(box) {
    can: unlike three options, a hundred and twenty orders are not a thing anybody finds by elimination.
 
    STORED AS ITS POSITIONS under the card's `ansKey_` -- `3,4,5,2,1`, or `3,,5` with a hole -- through
-   `ansStore_`, so it goes to the account and comes back on another device like a pick does
-   (`ansRefresh_` redraws it), the line under it says where it went, and the first item placed is the
-   day you did it (`doneMark_`), as the first letter typed is.
+   `ansStore_`, on this device as it is tapped. SEND IS THE SUBMISSION: the order and its verdict, one
+   event on the account (`subRecord_`, js/submit.js) — *"if they submit a correct answer then change it
+   and submit an incorrect answer, that's 2 events"* — and the row another device opens on is the latest
+   one SENT. Placing an item is not one; it was the day you did it (`doneMark_`) until 9 Oct.
 
    DRAWN FROM THE STORE, every time, never patched by the handler -- the `REEL_HELD` rule `choiceBox_`
-   keeps. The verdict is the one thing not in the store: what was SENT is held for the visit
-   (`ORDER_SENT`), and the verdict is drawn only while the row is still the row that was sent. Move one
-   item and it goes, the way typing takes a verdict off the box. */
-const ORDER_SENT = new Map();
+   keeps. The verdict is the latest submission's (`subLatest_`), drawn only while the row is still the
+   row that was sent: move one item and it goes, the way typing takes a verdict off the box, and put it
+   back and it returns, because it is about that row. It was held for the visit (`ORDER_SENT`) and gone
+   on the next device. A row with a hole is not an answer, and Send's "Put all 5 in the row first" is
+   the one thing held for the visit (`ORDER_HOLE`), drawn while the strip is still that row. */
+const ORDER_HOLE = new Map();
 
 function orderIs_(x) {
   return !!x && String(x.answerType || '').trim().toLowerCase() === 'order'
@@ -7795,12 +7626,13 @@ function orderBox_(x) {
   /* THE QUESTION'S OWN WORDS FOR ITS ENDS, and a neutral pair where the row has none --
      `check-library.js` fails such a row, and the box still has to make sense while it does. */
   const ends = (x.orderEnds || []).length === 2 ? x.orderEnds : ['first', 'last'];
-  const sent = ORDER_SENT.get(k) === said;
-  const verdict = sent ? markOrder_(said, ways) : undefined;
+  const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
+  const sent = !!said && !!latest && latest.a === said && (latest.v === 'right' || latest.v === 'wrong');
+  const holed = !sent && ORDER_HOLE.has(k) && ORDER_HOLE.get(k) === said;
+  const verdict = sent ? latest.v === 'right' : holed ? null : undefined;
   const cls = verdict === true ? ' is-right' : verdict === false ? ' is-near' : '';
-  const say = !sent ? ''
-    : verdict === null ? 'Put all ' + n + ' in the row first'
-    : verdict ? 'Correct' : 'Not yet — have another go';
+  const say = holed ? 'Put all ' + n + ' in the row first'
+    : verdict === true ? 'Correct' : verdict === false ? 'Not yet — have another go' : '';
   const placed = new Set(seq.filter(Boolean));
   /* EVERY SLOT AS WIDE AS THE WIDEST ITEM, EMPTY OR FULL, so the strip is the same shape from the first
      tap to the last. Sized to what it held, an empty slot was 44px and a full one as wide as its
@@ -7828,7 +7660,7 @@ function orderBox_(x) {
   /* THE ITEMS STAY WHERE THE PAPER PRINTS THEM. A placed one is a ghost of itself, the same size in the
      same place, so the row under the finger never closes up -- and the ghost is `disabled`, because a
      ghost that took the item back made a quick second tap undo the first (see the note over
-     `ORDER_SENT`). An item is taken back from its slot. */
+     `ORDER_HOLE`). An item is taken back from its slot. */
   const items = x.choices.map((c, i) => {
     const on = placed.has(i + 1);
     return `<button type="button" class="qp-item${on ? ' is-placed' : ''}" data-do="qp-place" data-n="${i + 1}"
@@ -7904,9 +7736,8 @@ on('qp-place', (el) => {
     const next = left.find(i => i > m) || left[0];
     focus = next ? '.qp-item[data-n="' + next + '"]' : '.qp-order-send';
   }
-  /* THROUGH `ansStore_`, the one writer -- kept here, and on the account a moment later. */
+  /* THROUGH `ansStore_`, the one writer -- kept on this device. A tap is not a submission: Send is. */
   ansStore_(o.k, orderSay_(o.seq));
-  if (o.seq.some(Boolean)) doneMark_(o.k);
   orderRedraw_(o.box, o.had ? focus : '');
 });
 
@@ -7921,10 +7752,15 @@ on('qp-order-send', (el) => {
   const o = orderOf_(el);
   if (!o) return;
   const said = orderSay_(o.seq);
-  ORDER_SENT.set(o.k, said);
-  /* MARKED IS DONE, right or not yet -- and a row with a place still empty is neither. */
+  /* MARKED IS A SUBMISSION, right or not yet -- and a row with a place still empty is neither: it says
+     so, and nothing is recorded. */
   const x = stuffItemsAll_().find(it => ansKey_(it) === o.k);
-  if (x && markOrder_(said, orderWays_(x)) !== null) doneMark_(o.k);
+  const v = x ? markOrder_(said, orderWays_(x)) : null;
+  if (v === null) ORDER_HOLE.set(o.k, said);
+  else {
+    ORDER_HOLE.delete(o.k);
+    subRecord_(o.k, said, v ? 'right' : 'wrong');
+  }
   orderRedraw_(o.box, o.had ? '.qp-order-send' : '');
 });
 
@@ -7940,10 +7776,15 @@ on('qp-choose', (el) => {
   if (right && picked.length >= need) return;
   if (need === 1) picked = [n];
   else picked = picked.includes(n) ? picked.filter(v => v !== n) : picked.concat(n);
-  /* THROUGH `ansStore_`, the one writer — kept here, and on the account (js/answers.js). */
+  /* THROUGH `ansStore_`, the one writer — kept on this device. */
   ansStore_(k, picked.join(','));
-  /* ENOUGH CHOSEN IS AN ATTEMPT, marked or not -- see `doneMark_`. */
-  if (picked.length >= need) doneMark_(k);
+  /* ENOUGH CHOSEN IS A SUBMISSION, marked at once: right or wrong against `data-right`, and `sent` where
+     the scheme never settled one -- those picks stay open, so every pick that completes one again is
+     another event (js/submit.js). */
+  if (picked.length >= need) {
+    const said = picked.join(',');
+    subRecord_(k, said, !right ? 'sent' : picked.slice().sort((a, b) => a - b).join(',') === right ? 'right' : 'wrong');
+  }
   choiceRedraw_(box);
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. It did, from 263 on; the verdict on this card --
      "Correct" with your pick ticked, or "Not yet" with nothing ticked -- is the answer to "was I
@@ -8002,15 +7843,27 @@ function ansBox_(x) {
      (`TILE_ICONS.send`), and gold on the dark card (11:1) rather than inside the cream, where gold
      measured 1.56:1. It is Check -- `.qp-check`, the same handler, the name the keypad's ✓ and the checks
      find it by -- so only its face changed. MARK WITH AI IS THE SAME TILE for a worded answer with no
-     scheme to match (`aiTile_`), and a box with neither has no tile at all: a Send that sends nowhere is
-     the control that sometimes does nothing.
+     scheme to match (`aiTile_`).
+
+     AND A BOX WITH NEITHER HAS A PLAIN SEND, signed in (`qp-send`). It had no tile at all -- "a Send that
+     sends nowhere is the control that sometimes does nothing" -- and typing was saving. THE OWNER, 9 Oct:
+     *"I just want system to record each submition."* An answer reaches the account when it is SENT
+     (js/submit.js), so every box a child can write in has to be able to send it: about 399 maths
+     answers with no scheme, every worded one while AI marking is off, a practical's worksheet boxes.
+     Its verdict is `sent` -- nothing marks it -- and it says "Sent". NOT `.qp-check`, because Check
+     marks against a scheme and this has none -- its own name, `qp-send`, which the keypad's gold key and
+     a laptop's Enter run too (`kpDone_` runs the box's own control: Check, else Send, else Mark with
+     AI; the review of 9 Oct found it running Check alone, so on every box like this the key sent
+     nothing). Signed out there is no account to send it to, so no tile, as before.
 
      THE VERDICT IS A LINE OF ITS OWN UNDER THE BAR, its height reserved, so "Correct" lands in a space
      that was already there and marking moves nothing (261). `.qp-mark` wraps the bar and the line, so
      `qp-check` and `qp-ai` still find their verdict by `closest('.qp-mark')`, and the input listener
      still finds `.qp-mark[data-accept]` on the card. */
   const ai = can ? '' : aiTile_(x);
-  const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' }) : ai;
+  const send = can ? tile_({ icon: 'send', label: 'Send', note: 'mark it', act: 'qp-check', cls: 'qp-check', tone: 'send' })
+    : ai || subSendTile_();
+  const val = ansRead_(k);
   /* ---------- AN ESSAY IS WRITTEN ON A SHEET, NOT IN A CHAT BAR -----------------------------------------
      THE OWNER, 9 Oct, about a pupil on a forty-mark creative writing question: *"firstly it doesnt let him
      do paragraphs and also i want it to mark with ai."* The chat bar above is a pill that grows to five
@@ -8034,30 +7887,57 @@ function ansBox_(x) {
      end in. Hidden from a screen reader, which already hears the tile's own name. AND A KEPT MARK
      (`aiKeptView_`, keypad.js): an essay marked earlier is drawn with its verdict and its points, fresh
      or "before your changes", so a reload or a swipe away and back does not throw the feedback out. */
+  /* AND SINCE 9 OCT (note 308) THE SHEET IS SENT LIKE EVERY OTHER BOX: with AI marking off it has the
+     plain Send (`subSendTile_`, verdict `sent`), and the faint line still says why nothing marks it --
+     the Send is how the essay reaches the account now, not a mark. ITS VERDICT LINE is the latest
+     submission's while the sheet holds what was sent, as on the bar; a mark kept on this device
+     (`aiKeptView_`) is drawn instead when it is about these very words, or when no submission is --
+     "before your changes" and the points the pupil is revising from. A submission about these words
+     that is not the kept mark's (sent from another device, or a plain Send since) is the newer
+     reading, and the kept mark's points, about other words, are not shown under it. */
   if (ansEssay_(x)) {
-    const v = ansRead_(k);
-    const note = send ? '' : aiWhyNot_(x);
+    const v = val;
+    const note = ai || can ? '' : aiWhyNot_(x);
     const say = ai ? '<span class="qp-ai-say" aria-hidden="true">Mark with AI</span>' : '';
     const kept = ai && typeof aiKeptView_ === 'function' ? aiKeptView_(k, v) : null;
+    const said = subBoxSay_(k, v);
+    const own = kept && (kept.fresh || !said.text) ? kept : null;
+    const vcls = own ? own.cls : said.cls, vsay = own ? own.verdict : said.text;
     const foot = `<div class="tile-row qp-sheet-foot">${send}${say}${fig}${note ? `<span class="qp-ai-note">${esc(note)}</span>` : ''}
       <span class="qp-words">${esc(kpWordsSay_(kpWordCount_(v)))}</span></div>`;
     const sheet = `<label class="qp-ans qp-sheet" aria-label="Your answer">${kpField_(k, v, 'essay', signs)}</label>`;
-    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${kept ? ' ' + kept.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+    return `<div class="${send ? 'qp-mark ' : ''}qp-compose qp-essay${ai ? ' qp-ai' : ''}${send && vcls ? ' ' + vcls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
     ${sheet}${foot}
-    ${send ? `<span class="qp-verdict" role="status" aria-live="polite">${kept ? esc(kept.verdict) : ''}</span>` : ''}
+    ${send ? `<span class="qp-verdict" role="status" aria-live="polite">${esc(vsay)}</span>` : ''}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
-  </div>${ai ? `<p class="qp-ai-why">${kept ? esc(kept.why) : ''}</p>` : ''}`;
+  </div>${ai ? `<p class="qp-ai-why">${own ? esc(own.why) : ''}</p>` : ''}`;
   }
   const bar = `<div class="qp-ans-row qp-bar"><label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
-    ${kpField_(k, ansRead_(k), maths ? 'maths' : 'words', signs)}
+    ${kpField_(k, val, maths ? 'maths' : 'words', signs)}
   </label>${fig}${send}</div>`;
   if (!send) return `<div class="qp-compose">${bar}
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span></div>`;
-  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
+  /* THE VERDICT IS THE LATEST SUBMISSION'S, WHILE THE BOX HOLDS WHAT WAS SENT -- on this device or on
+     the account, next sign-in (*"they would see incorrect answer there next time they login"*). Typed
+     over since, it is a draft of this device's, and there is no verdict on it. */
+  const said = subBoxSay_(k, val);
+  return `<div class="qp-mark qp-compose${ai ? ' qp-ai' : ''}${said.cls ? ' ' + said.cls : ''}"${can ? ` data-accept="${esc(can)}"` : ''}>
     ${bar}
-    <span class="qp-verdict" role="status" aria-live="polite"></span>
+    <span class="qp-verdict" role="status" aria-live="polite">${esc(said.text)}</span>
     <span class="qp-saved" data-k="${esc(k)}">${esc(ansSavedSay_(k))}</span>
   </div>${ai ? '<p class="qp-ai-why"></p>' : ''}`;
+}
+/* THE PLAIN SEND, for somebody signed in -- see `ansBox_`. The gold disc every Send on a question's
+   pages is, under its own name, so nothing that runs Check runs it. */
+function subSendTile_() {
+  if (!(typeof whoIs_ === 'function' && whoIs_())) return '';
+  return tile_({ icon: 'send', label: 'Send', note: 'to your account', act: 'qp-send', cls: 'qp-send', tone: 'send' });
+}
+/* WHAT A BOX'S VERDICT LINE SAYS AS IT IS DRAWN: the latest submission's verdict, if the box holds it. */
+function subBoxSay_(k, val) {
+  const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
+  return latest && latest.a === String(val == null ? '' : val) && typeof subSay_ === 'function'
+    ? subSay_(latest.v) : { text: '', cls: '' };
 }
 
 /* ---------- THE VERDICT ------------------------------------------------------------------------
@@ -8082,12 +7962,29 @@ on('qp-check', (el) => {
   }
   box.classList.add(verdict ? 'is-right' : 'is-near');
   out.textContent = verdict ? 'Correct' : 'Not yet — have another go';
-  /* MARKED IS DONE, right or not yet -- a wrong answer is still the day they did it. */
-  doneMark_(inp.getAttribute('data-k'));
+  /* MARKED IS A SUBMISSION, right or not yet -- each one its own event on the account, and the latest is
+     what the card and every device show (js/submit.js). Signed out it is this visit's alone. */
+  subRecord_(inp.getAttribute('data-k'), inp.value, verdict ? 'right' : 'wrong');
   /* A RIGHT ANSWER DOES NOT OPEN THE ANSWER PAGE. It did -- "the answer opens itself once it has
      been earned" -- and that was a reveal nobody pressed, on the page after the one being read. The
      owner's rule is one tap, the same for everybody: *"you should have to click to reveal the
      answer."* "Correct" here is the verdict, and the working it used to open is not drawn at all. */
+});
+
+/* ---------- SEND, WHERE NOTHING CAN MARK IT -----------------------------------------------------------
+   *"I just want system to record each submition."* A box with no scheme and no AI marking -- a maths
+   answer with no `accept`, a worded one while AI marking is off, a practical's worksheet -- is sent as it
+   is, verdict `sent` (js/submit.js), and says "Sent": the answer is on the account, and the tutor or the
+   answer page is what marks it. Found by its own `.qp-mark`, not the card's first box: a practical's
+   worksheet has three in one sheet. Nothing typed is not an answer, and is not sent. */
+on('qp-send', (el) => {
+  const box = el.closest('.qp-mark');
+  const inp = box && box.querySelector('.qp-ans-in');
+  const out = box && box.querySelector('.qp-verdict');
+  if (!inp || !out || el.disabled) return;
+  box.classList.remove('is-right', 'is-near');
+  if (!String(inp.value || '').trim()) { out.textContent = 'Write something first'; return; }
+  out.textContent = subRecord_(inp.getAttribute('data-k'), inp.value, 'sent') ? 'Sent' : 'Sign in to send it';
 });
 
 /* ---------- WHO IS WORKING ---------------------------------------------------------------------
@@ -8120,12 +8017,11 @@ on('qp-check', (el) => {
 document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (!el) return;
-  /* THROUGH `ansStore_`, which keeps it here exactly as before and, signed in, sends it to the account a
-     second and a half after the last keystroke (js/answers.js). */
-  ansStore_(el.getAttribute('data-k') || '', el.value || '');
-  /* WRITING AN ANSWER IS DOING THE QUESTION, and 427 of them have no Check to press (no `accept`),
-     so the box is where most of the library is "done". Empty is not an attempt. */
-  if (String(el.value || '').trim()) doneMark_(el.getAttribute('data-k') || '');
+  /* THROUGH `ansStore_`, which keeps it on this device. It reaches the account when it is SENT
+     (js/submit.js) -- typing is not a submission, and since 9 Oct it is not a day "done" either. AND
+     WHETHER IT IS WORDS: an answer typed signed out after a session ended is joined to that person's own
+     as words are (`ansJoin_`, note 317). */
+  ansStore_(el.getAttribute('data-k') || '', el.value || '', el.getAttribute('data-kp') === 'words');
   /* A WORDED ANSWER GROWS AS IT IS TYPED, the way a message bar does: one line while it is one line
      (`rows="1"`, the chat bar in `ansBox_`), then downward a line at a time to the stylesheet's cap,
      then it scrolls inside. `field-sizing: content` does this where the browser has it; Safari -- the
@@ -8143,15 +8039,12 @@ document.addEventListener('input', e => {
      that is no longer there. "Correct" beside "16", left from when the box said "15", is the app
      vouching for something it never read. So typing takes the verdict off -- its words, its colour,
      the tick -- and leaves the SLOT, which is the row's own height whatever it holds, so nothing
-     under it moves. Check marks the new answer when it is pressed again. */
-  const card = el.closest('.qcard');
-  const mark = card && card.querySelector('.qp-mark[data-accept]');
-  if (mark && (mark.classList.contains('is-right') || mark.classList.contains('is-near')
-      || (mark.querySelector('.qp-verdict') || {}).textContent)) {
-    mark.classList.remove('is-right', 'is-near');
-    const out = mark.querySelector('.qp-verdict');
-    if (out) out.textContent = '';
-  }
+     under it moves. Sending marks the new answer when it is pressed again. AND TYPED BACK TO THE
+     ANSWER LAST SENT, the verdict is that answer's again: it is drawn from the latest submission
+     (`subVerdictPaint_`, js/submit.js), not left on the element. Every kind of box -- Check, Mark with
+     AI, the plain Send -- by its own `.qp-mark`, so a worksheet's three boxes are three. */
+  const mark = el.closest('.qp-mark');
+  if (mark && typeof subVerdictPaint_ === 'function') subVerdictPaint_(mark, el);
 });
 
 
@@ -8206,8 +8099,7 @@ document.addEventListener('input', e => {
    SO THE KEY CARRIES `whoIs_` EXACTLY AS `ansKey_` DOES -- `pad:u:P7:<question>` signed in, the old
    `pad:<question>` signed out -- and nothing else changes: `circKey_` is this plus `:words`, the
    handlers write to the pad's own `data-k`, and `PAD_ON` / `PAD_TOOL` key by it, so a new person is a
-   new key everywhere at once. The done dates were already per person (`doneKeyOf_`) and are not
-   touched.
+   new key everywhere at once.
 
    THE MARKS ALREADY ON THE PHONE MOVE ONCE, TO THE FIRST PERSON SIGNED IN WHO OPENS THEM
    (`padAdopt_`). Everything drawn before today is under the bare key and belonged to whoever held
@@ -8230,12 +8122,22 @@ const padKey_ = x => padPrefix_(x) + ':' + (whoIs_() ? whoIs_() + ':' : '') + pa
 function padAdopt_(k, bare) {
   if (!k || !bare || k === bare) return;
   try {
-    if (localStorage.getItem(k) !== null) return;
-    const v = localStorage.getItem(bare);
+    /* "EMPTY" IS ASKED OF THE WRITER'S OWN READER (`ansValue_`, answers.js), the visit's copy first. This
+       asked `localStorage`, and a pad the store had REFUSED — held by the visit and drawn, "Not saved" under
+       it (317) — was empty to it: a drawing made signed out (another tab, signed out there) was moved over
+       the person's strokes when their card was drawn again, and the page going wrote that over theirs
+       (317, "Six edges closed", P4). The signed-out one is read the same way, and goes the same way. */
+    const read = typeof ansValue_ === 'function' ? ansValue_ : (x => localStorage.getItem(x));
+    if (read(k) !== null) return;
+    const v = read(bare);
     if (v === null) return;
+    /* NOR A DRAWING SOMEBODY ELSE MADE SIGNED OUT — `ansRead_`'s rule, asked of the same `ansMayMove_`
+       (answers.js). Only into an empty pad, so any answer but "no" moves it. */
+    if (typeof ansMayMove_ === 'function' && !ansMayMove_(bare, k)) return;
     /* THROUGH `ansStore_`, so the marks that became this person's go up to their account with the rest. */
     if (typeof ansStore_ === 'function') ansStore_(k, v); else localStorage.setItem(k, v);
-    localStorage.removeItem(bare);
+    /* AND OFF THE SIGNED-OUT KEY THROUGH THE WRITER: the store's copy, the visit's, and the mark. */
+    if (typeof ansLocalPut_ === 'function') ansLocalPut_(bare, null); else localStorage.removeItem(bare);
   } catch (e) {}
 }
 
@@ -8328,8 +8230,9 @@ function padTools_(x) {
    write builds the next one on a stale list. Read straight from `localStorage`, a store that THROWS
    (private mode) answered an empty list every time, so each stroke replaced the last in `ANS_MEM`
    and Undo found nothing; `ansValue_` falls back to the visit's copy exactly then. A store that is
-   merely FULL still answers the old list -- that case is caught where the stroke is written
-   (`padSave_`, below), because only the write knows it was refused. */
+   merely FULL still answers the old list -- so `ansValue_` asks `keepHeld_` (data.js) before it asks
+   the store, and a stroke the store refused is read back from the visit, the list on the screen (317;
+   `padSave_`, below). */
 function padRead_(k) {
   try {
     const raw = typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k);
@@ -8446,9 +8349,14 @@ function padWrap_(x, svg, credit) {
       </svg>
     </div>
     ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
-    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padKeptSay_` says "Saved to Ada's
-          account" signed in, which is true of a question's and false of the whiteboard's (`padPrefix_`). */''}
-    <p class="qpad-note">${esc(padPrefix_(x) === 'pad' ? padKeptSay_() : PAD_HERE_ONLY)}</p>
+    ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padNoteSay_` says "Saved to Ada's
+          account" signed in, "Not saved" when the store refused it and who was signed out when a session ended
+          (317). The whiteboard's (`padPrefix_`) stays on this device, so of those only "Not saved" is ever
+          true of it: `padNoteSay_` gives a `board:` key that line or `PAD_HERE_ONLY`, never an account's
+          sentence. It carries `data-kept-k` like a question's, so `ansSavedPaint_` -- run by every write --
+          says "Not saved" the moment a stroke is refused and takes it back when one lands (310, after the
+          merge with 317). */''}
+    <p class="qpad-note" data-kept-k="${esc(k)}">${esc(padNoteSay_(k))}</p>
   </div>`;
 }
 
@@ -8513,8 +8421,12 @@ let PAD_GO = null;                // the drag behind it: which tool, on which in
    and a tool left on the element would be dropped with it, the `PAD_ON` argument one line up. */
 const PAD_TOOL = new Map();
 /* WHAT CLEAR LAST TOOK OFF EACH PAD, by key, for the visit -- so Undo straight after it puts the marks
-   back. See `on('pad-clear')`. */
+   back. See `on('pad-clear')`. AND WHOSE THEY WERE (`PAD_CLEARED_MARK`): a pad drawn signed out after the
+   server ended a session is that person's (answers.js, `ansGoneMark_`), Clear makes it nobody's, and Undo
+   put it back nobody's -- so the next child to sign in was handed it (317, "Undo, the booking form, a
+   switch"). Undo writes the strokes back with the mark they had (`ansPutBack_`). */
 const PAD_CLEARED = new Map();
+const PAD_CLEARED_MARK = new Map();
 
 function padAt_(ink, e) {
   const r = ink.getBoundingClientRect();
@@ -8715,17 +8627,25 @@ function padEnd_(e) {
   padSave_(pad, k, all);
 }
 
-/* ---------- A STROKE THE DEVICE REFUSED IS NOT LEFT ON THE SCREEN ---------------------------------
-   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT SWALLOWS A FULL
-   STORE: `ansLocalPut_` keeps the value in `ANS_MEM` and carries on, which is right for a typed answer
-   and was wrong here. Measured by the review of the whiteboard, store filled to the quota: two more
-   strokes, and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the
-   stale list `localStorage` still answered), and Undo then took off a stroke the child could still
-   see. Nothing on the screen said any of it. So the write is read back: a stroke the device did not
-   keep is taken off the screen -- which then shows exactly what a reload would -- and the toast says
-   why. A store that throws on every read is the visit's `ANS_MEM`, which `ansValue_` reads, so
-   private mode is not mistaken for a full one.
-   AND THE BOARD HAS A CEILING OF ITS OWN, `PAD_BOARD_MAX`, said in the same way before it is reached. */
+/* ---------- A STROKE THE DEVICE REFUSED STAYS ON THE SCREEN, AND THE NOTE SAYS IT IS NOT SAVED -------
+   `ansStore_` IS THE ONE WRITER (here, and on the account -- js/answers.js), AND IT USED TO SWALLOW A
+   FULL STORE: measured by the review of the whiteboard, store filled to the quota, two more strokes,
+   and the device held 2 of the 4 drawn, `ANS_MEM` held 3 (the second write was built on the stale list
+   `localStorage` still answered), and Undo then took off a stroke the child could still see. Nothing on
+   the screen said any of it. 310's answer was to read the write back and take a refused stroke off the
+   screen, with a toast that the device was full.
+   AFTER THE MERGE WITH 317 THAT READ-BACK COULD NEVER FAIL, and the rule is 317's, for the board as for
+   every answer: a write the store refuses is HELD FOR THE VISIT (`keepPut_`, data.js) and every reader
+   asks for the held copy first (`padRead_` through `ansValue_` → `keepHeld_`), so the list the next
+   stroke is added to is the list on the screen, and Undo takes off the stroke you can see. The stroke
+   stays drawn; the note under the pad says "Not saved — this browser is not keeping it." (`padNoteSay_`,
+   repainted by every `ansStore_`), once a visit a toast says it too, and leaving the page asks first.
+   Chosen over taking it off because a line that vanishes under the finger is worse than one that is
+   said to be unsaved — and a stroke taken off is lost, where a held one lands when the room comes back.
+   THE BOARD'S CEILING IS NOT A REFUSED WRITE and is unchanged: `PAD_BOARD_MAX` is the board's size, so
+   a stroke past it is never written, is taken back off, and the toast says the board is full. Asked of
+   `padRead_`, which is the held list while there is one -- so a board the device has stopped storing is
+   still held to its ceiling, and a board that is full says so whether or not the device kept it. */
 function padSave_(pad, k, all) {
   const v = JSON.stringify(all);
   if (padIsBoard_(k) && v.length > PAD_BOARD_MAX) {
@@ -8734,12 +8654,7 @@ function padSave_(pad, k, all) {
     return false;
   }
   ansStore_(k, v);
-  let kept = true;
-  try { kept = (typeof ansValue_ === 'function' ? ansValue_(k) : localStorage.getItem(k)) === v; } catch (e) {}
-  if (kept) return true;
-  padRepaint_(pad, padRead_(k));
-  toast('This device is full, so that line was not kept.');
-  return false;
+  return true;
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -8795,8 +8710,12 @@ on('pad-undo', (el) => {
   /* AN EMPTY PAD THAT CLEAR EMPTIED: the last thing done was the Clear, so it is what Undo undoes. */
   if (!all.length && PAD_CLEARED.has(k)) {
     const back = PAD_CLEARED.get(k);
+    const mark = PAD_CLEARED_MARK.get(k) || null;
     PAD_CLEARED.delete(k);
-    ansStore_(k, JSON.stringify(back));
+    PAD_CLEARED_MARK.delete(k);
+    /* WITH WHOSE THEY WERE, not judged as strokes drawn now over an empty pad. */
+    const put = () => ansStore_(k, JSON.stringify(back));
+    if (typeof ansPutBack_ === 'function') ansPutBack_(k, mark, put); else put();
     padRepaint_(pad, back);
     toast('Put back');
     return;
@@ -8823,6 +8742,8 @@ on('pad-clear', (el) => {
   const had = padRead_(k);
   if (!had.length) return;
   PAD_CLEARED.set(k, had);
+  /* READ BEFORE THE CLEAR BELOW TAKES THE MARK WITH THE STROKES. */
+  PAD_CLEARED_MARK.set(k, typeof ansMarkable_ === 'function' && ansMarkable_(k) && typeof ansGoneOf_ === 'function' ? ansGoneOf_(k) : null);
   /* CLEARED IS A VALUE TOO — sent as nothing, so the drawing goes from the other device as well. */
   ansStore_(k, null);
   padRepaint_(pad, []);
@@ -8886,12 +8807,16 @@ function padRepaint_(pad, all) {
    in none. answers.js matches `^(ans|pad):` throughout, so a `board:` key goes through the same
    `ansStore_` the pen always calls, is written to the device, has no person in it as far as the
    account is concerned, and is sent nowhere.
-   WHAT IT DOES NOT TOUCH, checked: the weekly parent email reads `attempts`, which only `doneMark_`
-   writes, and the pen has never called it (a stroke is not "done"); Saved keeps the widget's star as
+   WHAT IT DOES NOT TOUCH, checked: the weekly parent email reads `submissions`, which only a press
+   writes (`subRecord_`, js/submit.js -- it was `attempts` and `doneMark_` until 9 Oct), and the pen has
+   no press (a stroke is not a submission); Saved keeps the widget's star as
    `w:whiteboard` in `FAVS`, a widget like the calculator, not a question; and nothing else walks the
-   store but that sweep, `attemptsSync_` (`done:`) and the splash (`splashAnim:`) -- and, since the
-   signed-out answers began moving to whoever signs in, `answersClaim_`, which takes `^(ans|pad):` only,
-   so a board drawn signed out stays the device's and is never handed to the next child.
+   store but that sweep, the once-per-person migration of answers done before submissions
+   (`subMigrate_`, which reads `ans:u:` keys only) and the splash (`splashAnim:`) -- and, since the
+   signed-out answers began moving to whoever signs in, `answersClaim_`, which takes a board only when it
+   is marked as the person's own -- drawn after the server ended their session (docs/history/317, "Six
+   edges closed") -- and never makes it due. Any other board drawn signed out stays the device's, and is
+   moved only into an EMPTY board, by whoever opens the board first (`padAdopt_`).
    WHAT IT COSTS: the board stays on the device it was drawn on, per person signed in there. For a board
    that is the ordinary thing -- you wipe it -- and the note under it says so. And its size is bounded
    here rather than by the device's store running out: `PAD_BOARD_MAX`, below.
@@ -8901,8 +8826,10 @@ function padRepaint_(pad, all) {
    picture had never shown, each fixed in the pen for both rather than here for one: a second finger
    or a palm taking over the stroke (the note over `pointerdown`), a repaint cutting a stroke on any
    column but Find (`padHold_`), Clear with no way back (`on('pad-clear')`), and a full device keeping
-   strokes on the screen it had refused to store (`padSave_`). And two that are the board's own: a
-   sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`), and its size.
+   strokes on the screen it had refused to store with nothing said (`padSave_` -- since the merge with
+   317 the stroke is held for the visit and the note says it is not saved). And two that are the
+   board's own: a sign-out leaving the last person's board armed on a stale column (`padWhoChanged_`),
+   and its size.
 
    THE SURFACE IS PAPER, because it stands in for a physical board: `--paper` with the ink in
    `--paper-ink`, never gold. The pen is gold on a question because the question's own figure is
@@ -8973,6 +8900,7 @@ function padWhoChanged_() {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = ''; PAD_ST = null; PAD_GO = null;
   PAD_CLEARED.clear();
+  PAD_CLEARED_MARK.clear();
   wbPaint_();
 }
 
@@ -9238,7 +9166,9 @@ const circKey_ = x => padKey_(x) + ':words';
 const CIRC_HELD = new Map();
 function circRead_(k) {
   try {
-    const raw = localStorage.getItem(k);
+    /* THE VISIT'S COPY FIRST when the store refused it — `ansRead_`'s reason (317). */
+    const held = typeof keepHeld_ === 'function' ? keepHeld_(k) : undefined;
+    const raw = held !== undefined ? (held === null ? '[]' : held) : localStorage.getItem(k);
     if (raw !== null) {
       const v = JSON.parse(raw);
       return Array.isArray(v) ? v.map(String) : [];
@@ -9878,7 +9808,7 @@ function chunkHtml_(chunk, circ) {
       <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
         <div class="qsheet-pb">${pb}</div>
       </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
-        the ring off. ${esc(padKeptSay_())}</p>` : ''}`;
+        the ring off. <span data-kept-k="${esc(circ.k)}">${esc(padNoteSay_(circ.k))}</span></p>` : ''}`;
 }
 /* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
    so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
@@ -9886,7 +9816,10 @@ function circOf_(x) {
   if (padSurface_(x) !== 'text') return null;
   const k = circKey_(x), bare = 'pad:' + padItemKey_(x) + ':words';
   padAdopt_(k, bare);
-  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)) {
+  /* THE VISIT'S RINGS ARE A SIGNED-OUT ANSWER TOO, and move only where `padAdopt_` would move the stored
+     ones: the one question every move asks (`ansMayMove_`, answers.js). */
+  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)
+      && (typeof ansMayMove_ !== 'function' || ansMayMove_(bare, k))) {
     CIRC_HELD.set(k, CIRC_HELD.get(bare));
     CIRC_HELD.delete(bare);
   }
@@ -10202,25 +10135,25 @@ function ansHide_(x) { ansSet_(x, false); }
    and once `Questions` stopped drawing answer pages (`stuffPages_`) it would have counted pages that are
    not in the strip and landed on the next question. The answer is the page after its question -- after
    the drawing page where there is one -- reached by a swipe, and only where no kind is chosen. */
-/* ---------- AND THE DAY YOU LAST DID IT, BESIDE THE STAR --------------------------------------------
-   IT WAS ON THE GOLD HEADER'S MARKS LINE, and the header went: everything else it said is a tag now
-   (`qPage_`). The date is NOT a tag, and that is the argument for where it is. A tag is a fact about
-   the question -- the same words for a tutor, a student and somebody signed out -- and `Done 4 Oct` is
-   a fact about YOU and the question, like the star you put on it. This row is where your marks on a
-   question are, so it holds the one that says you did it.
+/* ---------- AND HOW YOUR LAST ANSWER WENT, BESIDE THE STAR --------------------------------------------
+   IT WAS THE DAY YOU LAST DID IT, `Done 4 Oct`, until the owner, 9 Oct: *"The kids don't need to see
+   the day they did something. Just whether it's right or not."* So the slot says how the LATEST
+   submission went -- "Correct", "Not yet", "Sent", the AI's "3/4" -- and nothing for a question never
+   sent (`subSlot_`). It is NOT a tag, and that is the argument for where it is. A tag is a fact about
+   the question -- the same words for a tutor, a student and somebody signed out -- and a verdict is a
+   fact about YOU and the question, like the star you put on it.
 
-   AND THIS ROW DOES NOT GROW. Marking writes into a slot that is already there (`doneMark_`), which is
-   what 261 made true -- marking moves nothing. As the last tag of a wrapping row the first stamp could
-   push the row onto a new line and the question down under the finger that pressed Check; here it
-   lands beside 44px tiles in a row 44px tall. DRAWN ONLY WHERE A DATE CAN BE KEPT (`doneKeyOf_`):
-   somebody signed in, the same visitor the star is drawn for. Signed out there is no slot, because
-   there is nothing it could ever say. */
+   AND THIS ROW DOES NOT GROW. A press writes into a slot that is already there (`subPaint_`), which is
+   what 261 made true -- marking moves nothing. As the last tag of a wrapping row the first verdict could
+   push the row onto a new line and the question down under the finger that pressed Send; here it
+   lands beside 44px tiles in a row 44px tall. DRAWN ONLY FOR SOMEBODY SIGNED IN, the same visitor the
+   star is drawn for. Signed out there is no slot: a verdict on the device everybody shares is nobody's. */
 function questionTiles_(x) {
   /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
      its own end (`ansBox_`), where the keypad cannot cover it. */
   const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) : '';
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
-  return fig + (doneKeyOf_(ansKey_(x)) ? doneSlot_(x) : '');
+  return fig + (whoIs_() ? subSlot_(x) : '');
 }
 
 /* ==================================================================================================
@@ -10530,6 +10463,58 @@ function stuffForget_() {
   ITEM_MEMO = { key: null, from: null, items: null };
   ALL_MEMO = { key: null, from: null, items: null };
   FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+}
+
+/* ---------- WHERE YOU WERE IN FIND, KEPT FOR A RELOAD --------------------------------------------------
+   THE ESSAY WAS STILL THERE AND THE PAGE WAS NOT (docs/history/317). The chips, the search and the page
+   in front lived in memory only, and the column itself came back after a reload only if it had been
+   CHOSEN in the last six minutes — so a child who had been writing for twenty minutes, refreshed, and
+   landed on the Feed (or on Find's first question) had to walk the funnel back to Q5 to find out
+   whether anything had survived, and an empty-looking screen is what "lost all his progress" looks
+   like. `familyTabAt` is now written as the page is LEFT as well (shell.js), and this keeps the place
+   beside it: the chips, the search, and the item and part on the page in front — by key, not by page
+   number, because a page number means a different question once the library changes.
+
+   THE SEARCH BOX COMES BACK WITH IT, AND ONLY WITH IT: it is half of where you were, and a search
+   restored on its own would be a list narrowed by words nobody can see being typed. The films' search
+   (`VID.q`) is not kept — retyped in a second, and it may be a title (me.js clears it on sign-out).
+
+   THE SAME CLOCK AS THE COLUMN: a reload within `AWAY_AGAIN` of leaving, on Find, for the same person
+   (a draft is the signed-in person's, so an admin's shelf is never somebody else's place), and only if
+   nothing has been asked of Find since the page opened. Tomorrow's visit opens where it always did. */
+function findPlaceKeep_() {
+  try {
+    if (typeof AT === 'undefined' || AT !== 'stuff' || typeof draftKeep_ !== 'function') return;
+    const at = (PAGE.stuff || 0) - stuffFirstResult_();
+    const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
+    const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
+    /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
+    draftKeep_('find', 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
+      key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
+  } catch (e) {}
+}
+window.addEventListener('pagehide', findPlaceKeep_);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
+let FIND_PLACE_TRIED = false;
+function findPlaceBack_() {
+  if (FIND_PLACE_TRIED || typeof draftRead_ !== 'function') return;
+  FIND_PLACE_TRIED = true;
+  try {
+    const raw = draftRead_('find', 'place');
+    if (raw === null) return;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
+    if (AT !== 'stuff' || (STUFF.filters || []).length || STUFF.q) return;
+    STUFF.filters = (Array.isArray(p.f) ? p.f : []).filter(f => f && typeof f === 'object' && typeof f.field === 'string');
+    STUFF.q = typeof p.q === 'string' ? p.q : '';
+    const box = $('stuff-q');
+    if (box) box.value = STUFF.q;
+    paintStuff();
+    if (!p.key) return;
+    const i = stuffPages_().findIndex(pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key
+      && (pg.part || null) === (p.part || null));
+    if (i >= 0) goPage('stuff', stuffFirstResult_() + i, true);
+  } catch (e) {}
 }
 
 function stuffItems() {
@@ -12141,6 +12126,19 @@ function bookingPages_(o) {
      column came back with zero pages — after the `stuff` states had left a `kindLabel` filter set. */
   const narrowed = (STUFF.filters || []).some(f => f.field === 'kindLabel');
   if (!(o && o.column) && narrowed) return [];
+  /* ---------- NOT BEFORE THE PAYLOAD -----------------------------------------------------------------
+     The tutors, the rooms, the prices and your own sessions all come with it, so before it lands the
+     form was every row reading "—", an empty week, a Cost of "–" and no tutor to choose — measured on
+     9 Oct with the payload held, and nothing on it said it was early. It is the one loader on a page of
+     its own until then, as every column waits (`loading_`, shell.js); the form is drawn whole the
+     moment the payload's repaint comes.
+     ONLY FOR SOMEBODY SIGNED IN. Signed out, `bookBlocks` is one fixed sentence — "Sign in to book" —
+     that needs nothing from the payload, and found by review this drew the loader in its place for the
+     whole wait (fifteen seconds to the splash, up to the minute's deadline) on the second column a
+     first-time visitor reaches: the loader shown for something that was not a wait. Account, Saved
+     and Messages draw their sign-in cards at once; so does this. `awaiting_`, not `!LOADED`, so the
+     quiet retry after a failed first payload is a wait here too (shell.js). */
+  if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
   /* ---------- THE BASKET IS NOT HERE ANY MORE, AND IT WAS HERE FOR ONE GOOD REASON --------------
      IT WAS A PAGE OF THIS COLUMN, appended in column mode only: a basket is the end of arranging a
@@ -12477,7 +12475,7 @@ function accountPages_() {
     /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. `doGet` printed `@Kit` where Kit had
        no handle, and `Kit` at the sign-in box was refused — so the one person who could put it right
        was shown that nothing was wrong. "New PIN" gives them a handle as well as a PIN. */
-    .map(p => Object.assign({}, p, { activity: attemptsLine_(p.personId),
+    .map(p => Object.assign({}, p, { activity: subsLine_(p.personId),
                                      role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
     /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent
        goes to, and the only remedy was four digits typed into the sheet, which left the lock on. A
@@ -12500,25 +12498,44 @@ function accountPages_() {
      `.card.is-widget` itself. Keeping this line would put a widget card inside a widget card —
      two borders, two backgrounds, two lots of padding — which is visibly worse than what was
      reported in the first place and is exactly what "just a normal widget" rules out. */
-  return [me].concat(claimPages, famPages, others, everyone);
+  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THE COLUMN SAYS MORE IS COMING -----------------
+     Your own card is drawn from the sign-in kept on this device; everybody else — your family, your
+     tutors, the people you teach — comes with the payload. Measured on 9 Oct with it held: the column
+     was your card and nothing after it, and grew under you fifteen seconds later with nothing having
+     said it would. So until it lands, the page after yours is the one loader, as every column waits
+     (`loading_`, shell.js). The owner, 9 Oct: *"They should all have a simplistic simple loading
+     thing while it's info or whatever is loading."* */
+  const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
+  return [me].concat(claimPages, famPages, others, everyone, coming);
 }
 
 /* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME ------------------------------
-   `12 questions · last 4 Oct`, off `DATA.attempts.people` — the per-learner summary `doGet` builds
-   for an admin's token and nobody else's. Under the handle, where it does not add a row to a card
-   that is otherwise a name and a picture. Somebody who has done nothing gets nothing, rather than
+   `12 questions · last 4 Oct`, off `DATA.submissions.people` — the per-learner summary `doGet` builds
+   for an admin's token and nobody else's: how many questions they have sent an answer to, and the day
+   of the last. Asked for in 269 *"so a tutor can see it"*, and kept when the date left the child's
+   card (9 Oct): the owner's words were about what the KIDS see. It read `DATA.attempts` until then.
+   Under the handle, where it does not add a row to a card that is otherwise a name and a picture. Somebody who has done nothing gets nothing, rather than
    "0 questions", which on a parent's card would read as a complaint about a person who is not a
    learner at all. `for` is checked as everywhere: a summary left by an admin's session on a shared
    phone is not drawn for whoever signs in next. */
-function attemptsLine_(pid) {
+function subsLine_(pid) {
   try {
-    const a = DATA && DATA.attempts;
+    const a = DATA && DATA.submissions;
     if (!pid || !a || !a.people || !USER || String(a.for || '') !== String(USER.personId || '')) return '';
     const p = a.people[String(pid)];
     if (!p || !(Number(p.n) > 0)) return '';
-    const last = doneText_(p.last).replace(/^Done /, '');
+    const last = subDayText_(p.last);
     return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
   } catch (e) { return ''; }
+}
+/* `4 Oct`, and the year only when it is not this one -- a day from last October that read like this
+   October's would be wrong by a year in the one place a date is the whole message. */
+function subDayText_(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+  if (!m) return '';
+  const names = typeof MONTH_NAMES !== 'undefined' ? MONTH_NAMES : [];
+  const mon = String(names[+m[2] - 1] || m[2]).slice(0, 3);
+  return (+m[3]) + ' ' + mon + (+m[1] !== new Date().getFullYear() ? ' ' + m[1] : '');
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
@@ -14165,10 +14182,21 @@ function paneReach_(panes) {
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     };
     const essay = list.map(p => !!p.querySelector('.qp-essay'));
+    /* ---------- AND A LIST OF TICKS THAT IS OPEN IS NEVER DRAWN SMALLER --------------------------------
+       THE BOOKING FORM'S SEVERAL-ANSWERS ROWS AND THE SETTINGS COLUMN'S VENUES open a list of checkboxes
+       in the card (note 315), and the review of 9 Oct measured what this did to them: twelve subjects
+       open at 390x844 took the card to 0.70 — tick rows 31px, the receipt's words 5.8px — and the
+       Child list at 320x568 to 32px rows. A tick row is 44px IN px because a fingertip is the same size
+       on every screen (CLAUDE.md), and the list is open precisely to be pressed. So a pane holding one
+       is drawn at full size and scrolls, which is the essay's answer above for the same reason, and it
+       goes back to fitting the moment the list is shut. `tickListShow_` (book.js) brings the opened
+       list into the pane, for the booking form and the settings column alike. */
+    const ticks = list.map(p => !!p.querySelector('.bk-many-list, details.many-d[open]'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
+      if (ticks[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
       const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
@@ -14234,8 +14262,11 @@ function paneReach_(panes) {
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
     /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || (essay[i] && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > PANE_REACH);
+    /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: drawn at full size
+       instead of fitted, the little it is over is the card's own foot — the Send tile — and 24px of that
+       clipped with no scroll is a tile half there. */
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i]) && want[i] === 1))
+      && p.scrollHeight - p.clientHeight > (ticks[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */
@@ -14912,11 +14943,19 @@ function stuffQuestion() {
      "3" alone is not a choice anybody can hear the meaning of. `counted` stays first in the class
      list: `check/ui.js`'s accepted tap targets read the first two classes. */
   const grid = !!facet.grid;
+  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING --------------------------
+     The library is a file of its own, and the splash lifts at fifteen seconds once it is in whether
+     the payload is or not — so on a slow line the first question is asked without the answers only
+     the payload brings (the bundles, the films). Measured on 9 Oct with the payload held: a question
+     that looked finished and was not, and grew when the payload came. So under the answers, until then, the one loader
+     (`loading_`, shell.js) — the answers already here stay pressable, and the room under them says
+     more are on their way. */
+  const more = typeof awaiting_ === 'function' && awaiting_() ? loading_() : '';
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip + '</div>';
+      </div>`).join('') + skip + '</div>' + more;
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,
@@ -15165,9 +15204,13 @@ function docketSave(list) {
   clearTimeout(dockTimer);
   const said = $('dock-said');
   if (said) said.textContent = 'Saving…';
-  dockTimer = setTimeout(() => {
-    api({ action: 'saveTodo',
-      name: USER.name, personId: USER.personId, todo: USER.todo })
+  /* AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`, data.js; 317). */
+  const sendTodo = keepalive => {
+    clearTimeout(dockTimer);
+    keepDue_('docket', null);
+    if (!USER) return;
+    return api({ action: 'saveTodo',
+      name: USER.name, personId: USER.personId, todo: USER.todo }, keepalive ? { keepalive: true } : undefined)
       .then(d => {
         if (d && d.error) throw new Error(d.error);
         const el = $('dock-said');
@@ -15179,7 +15222,9 @@ function docketSave(list) {
         const el = $('dock-said');
         if (el) el.textContent = String(err.message || 'Not saved — no connection.');
       });
-  }, 900);
+  };
+  dockTimer = setTimeout(sendTodo, 900);
+  keepDue_('docket', sendTodo);
 }
 
 function paintDocket() {
@@ -15328,18 +15373,24 @@ document.addEventListener('input', e => {
   const said = $('pad-said');
   if (said) said.textContent = 'Saving…';
   /* Longer than the docket's, because this is typed continuously rather than tapped. Nine hundred
-     milliseconds into a sentence is a write per word. */
-  padTimer = setTimeout(() => {
-    api({ action: 'saveNotepad',
-      name: USER.name, personId: USER.personId, notepad: USER.notepad })
-      .then(d => {
-        if (d && d.error) throw new Error(d.error);
-        const el = $('pad-said');
-        if (el) el.textContent = 'Saved';
-      })
-      .catch(err => {
-        const el = $('pad-said');
-        if (el) el.textContent = String(err.message || 'Not saved — no connection.');
-      });
-  }, 1400);
+     milliseconds into a sentence is a write per word. AND BOOKED TO GO AS THE PAGE GOES (`keepDue_`,
+     data.js; 317), so a reload inside the 1.4 s does not leave the account a sentence behind. */
+  padTimer = setTimeout(padSend_, 1400);
+  keepDue_('notepad', padSend_);
 });
+function padSend_(keepalive) {
+  clearTimeout(padTimer);
+  keepDue_('notepad', null);
+  if (!USER) return;
+  return api({ action: 'saveNotepad',
+    name: USER.name, personId: USER.personId, notepad: USER.notepad }, keepalive ? { keepalive: true } : undefined)
+    .then(d => {
+      if (d && d.error) throw new Error(d.error);
+      const el = $('pad-said');
+      if (el) el.textContent = 'Saved';
+    })
+    .catch(err => {
+      const el = $('pad-said');
+      if (el) el.textContent = String(err.message || 'Not saved — no connection.');
+    });
+}

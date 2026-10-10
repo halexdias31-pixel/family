@@ -146,6 +146,29 @@ const TABS = [
      APPENDED, because this table is append-only; `TAB_ORDER` and `data/settings/columns.json` are
      what put it second-but-one. */
   { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
+  /* ---------- AND PROGRESS, AT THE FAR END OF THE ROW, WAITING TO BE BUILT ------------------------
+     ASKED FOR AS "i want to add a new column for students to track their progress and everythinh.
+     you can leave it at the end of the columns for now. just leave a place holder for now." (9 Oct)
+
+     A PLACE, NOT A QUESTION, which is the test every column in this table is judged by. Nobody
+     narrows "how am I doing" down by answering the funnel's questions: it is the same page whatever
+     you were looking for, and a child opens the app to look at it with no errand at all. So it is a
+     column, and not a kind in `data/settings/kinds.json`.
+
+     A PLACEHOLDER, AND IT SAYS SO — `progressCards_` in arcade.js, on `drill`'s rule from map.js.
+
+     APPENDED, because this table is append-only: `AT` is remembered by id and the X axis clamps by
+     index. `TAB_ORDER` and the last row of `data/settings/columns.json` are what put it last, which
+     is the "for now" the request asked for — moving it is one row of that file with no deploy.
+
+     📈 RATHER THAN A PLAIN SYMBOL. The row is two kinds of glyph: emoji (🏠 📅 🛒 🔎 👤 🧰 🎮) and
+     plain shapes that already mean the thing (★ kept, ✦ featured, ⚙ settings, ✉ a letter). No plain
+     shape means a chart, and the near ones are taken here — ↗ was a post's share mark (`tiles.js`),
+     ▲ is the calculator's up key — so it is the emoji half: 📈 is Unicode 6.0, in Apple's emoji font
+     since iOS 5, and a line going up reads at any size. NOTHING DRAWS IT TODAY: the bar went (see
+     `<nav id="tabs">` in index.html), so like every icon here it is carried for `applyColumns_`
+     and for whatever names a column next. */
+  { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -163,7 +186,8 @@ const TABS = [
    they are widgets standing for what the column holds, not columns of their own. */
 const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
                    'spotlight',
-                   'settings'];
+                   'settings',
+                   'progress'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
 
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
@@ -283,6 +307,18 @@ try {
   const when = Number(localStorage.getItem('familyTabAt') || 0);
   if (was && TABS.some(t => t.id === was) && when && Date.now() - when < AWAY_AGAIN) AT = was;
 } catch {}
+/* ---------- AND THE MOMENT IS WHEN YOU LEFT, NOT WHEN YOU ARRIVED ---------------------------------------
+   THE STAMP WAS ONLY WRITTEN WHEN THE COLUMN CHANGED, so it measured how long ago you ARRIVED: a child
+   twenty minutes into an essay on Find refreshed and was put on the Feed, because twenty minutes is more
+   than six — and the answer that was still in the box looked lost (docs/history/317). Written again as
+   the page is hidden or left, for the column the person is on, it measures the time AWAY, which is the
+   question both readers of `AWAY_AGAIN` are asking. Only for the column already remembered: a column
+   reached with `remember === false` stays unremembered. */
+function tabStampLeft_() {
+  try { if (localStorage.getItem('familyTab') === AT) localStorage.setItem('familyTabAt', String(Date.now())); } catch {}
+}
+window.addEventListener('pagehide', tabStampLeft_);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') tabStampLeft_(); });
 
 /* ---------- THE COLUMN BEFORE THIS ONE ---------------------------------------------------------------
    So signing in can put you back where you came from (`signedIn_` in me.js) — a child who swiped across
@@ -710,11 +746,16 @@ function nothingHere(whenEmpty, needsLibrary) {
      is asking, the column says it is waiting and fills in by itself. A dropped LIBRARY is not this:
      asking the backend again does not fetch the questions, so that still gets a reason and Try again —
      ITS OWN reason, never the backend's words beside it. */
-  const asking = !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_();
-  if (asking && !LIBRARY_FAILED) {
-    return `<p class="empty">Waiting for the server.<br>
-        <span class="faint">The app is asking again by itself, and this fills in when it answers.</span></p>`;
-  }
+  /* AND THE COLUMN'S WAIT IS THE ONE LOADER. It arrived on 9 Oct as "Waiting for the server. The app is
+     asking again by itself, and this fills in when it answers." — right about the state, and a waiting
+     sentence of its own in every empty column, on the same day the owner asked for *"a simplistic
+     simple loading thing"* in place of every one of those (`loading_`, below). The words are not lost:
+     the quiet line over the app (`#reconnect`, "Reconnecting…") says what is happening once, for the
+     whole app, and the columns under it show that they are waiting the way every card does. */
+  /* `retrying_` (below, beside `awaiting_`), so this and every card that waits for the payload read
+     the retry through one definition. */
+  const asking = retrying_();
+  if (asking && !LIBRARY_FAILED) return loading_();
   const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
     return `<p class="empty">Couldn’t load.<br>
@@ -744,11 +785,105 @@ function nothingHere(whenEmpty, needsLibrary) {
      THE CALLER SAYS WHETHER THE LIBRARY IS ITS SUBJECT, because "the questions are still coming" is
      the wrong thing to print on a feed with no posts in it — the same screen, the same function,
      and a different thing missing. */
+  /* ---------- AND THE WAIT IS THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN ---------------------
+     It said "The questions are still coming. It is a big file and it only downloads once." — the
+     right fact, and the sixth way of drawing a wait on a screen that had five others. The owner, 9
+     Oct: *"Every widget has unique loading look. They should all have a simplistic simple loading
+     thing."* So it is `loading_()`, below. What this function exists for is untouched: a library on
+     its way is still never drawn as an empty one, and a failed one still says why and offers Try
+     again. Only the look of the waiting changed. */
   if (needsLibrary && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) {
-    return `<p class="empty">The questions are still coming.<br>
-        <span class="faint">It is a big file and it only downloads once.</span></p>`;
+    return loading_();
   }
   return `<p class="empty">${whenEmpty}</p>`;
+}
+
+/* ==================================================================================================
+   WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN
+
+   ASKED FOR BY THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a
+   simplistic simple loading thing while it's info or whatever is loading."*
+
+   MEASURED BEFORE THIS EXISTED (docs/history/306): a skeleton post on three columns, ten different
+   waiting sentences in thirteen places ("Starting the camera…", "Looking in the folder…", "Fetching
+   what is recorded…", a verse that was a faint "…"), two columns that said "Nothing in the shop yet"
+   while the shop was still on its way, seven waits with nothing on the screen at all — and nineteen
+   widgets each with its own look before it had started: a grey board, a black canvas, a cream board,
+   an empty dropdown, a heading on its own. Twenty-four ways to say one thing.
+
+   NOW THERE IS ONE: three gold dots that pulse in turn, centred in the space the content will take.
+   `loading_()` returns it and NOTHING ELSE IN THE APP DRAWS A WAIT — `js/check-loading.js` fails on
+   an old waiting phrase, on a skeleton, shimmer or spinner class, on a `@keyframes` for waiting
+   outside the one block in style.css, and on the loader's class written out by hand anywhere but
+   here. A second loader would be the twenty-fifth look, and that is the fault.
+
+   THREE WAYS IT SITS, AND THE MARKUP IS THE SAME IN ALL THREE — the CSS reads where it is:
+     · IN PLACE of a part of a card that is not there yet (a verse, a list, a board's scores): it
+       holds about two lines, the size of the sentence it replaced, so nothing shrinks under it.
+     · AS A WHOLE PAGE, the only thing on a pane (the feed before the payload, the shop, Saved): the
+       dots alone, with no card drawn round them, at the middle of the cell — where the card that
+       lands is centred. It held a full-cell empty card at first, and review measured that frame
+       collapsing 250–325px a side the moment anything arrived; a frame not drawn cannot jump.
+     · OVER markup that is already drawn and not ready — a widget waiting its turn to start, the
+       records' boxes before the sheet has answered: the box is marked `aria-busy="true"`, the loader
+       is its last child, and what is under it keeps its exact size, hidden, so when `loaded_` takes
+       the loader away the content appears in the box the loader was holding. Nothing moves.
+
+   A REAL ERROR OR AN EMPTY RESULT IS NOT LOADING. "Nothing found", "did not arrive — Try again" keep
+   their words; this is only ever drawn while something is actually on its way.
+
+   NOT THE SPLASH. `#splash` in index.html is the loading SCREEN, deliberately animated and a thing
+   of its own; this is what a card shows once the app is up.
+
+   `role="status"` with the word for a screen reader, because three dots say nothing out loud. In
+   shell.js, which loads before every file that draws a card — `check.js` names anything read before
+   it exists. */
+function loading_() {
+  return '<div class="loading" role="status" aria-label="Loading">'
+    + '<span></span><span></span><span></span></div>';
+}
+
+/* AND TAKEN OFF AGAIN — the one way a box drawn `aria-busy="true"` with a loader over it shows what
+   is under it. Silent on a box that was never waiting, so a caller need not know whether it was. */
+function loaded_(el) {
+  if (!el || !el.removeAttribute) return;
+  el.removeAttribute('aria-busy');
+  el.querySelectorAll(':scope > .loading').forEach(l => l.remove());
+}
+
+/* ---------- AND WHEN IS THE PAYLOAD STILL ON ITS WAY: ONE ANSWER, ASKED BY EVERY CARD -----------------
+   EVERY CARD THAT WAITS FOR THE PAYLOAD ASKED `!LOADED`, AND THAT IS ONLY HALF OF IT. `LOADED` is
+   set when the first request FINISHES, failed or not — and since the quiet retry (`RECONNECT`) a
+   failed first request is not the end: the app asks again by itself under "Reconnecting…" and the
+   cards fill in when it answers. FOUND BY REVIEW, every script.google.com request aborted, an admin
+   at 390: Shop, Spotlight and the feed showed the one loader (through `nothingHere`, which knew about
+   the retry), and in the same moment the score board said "Scores have not arrived yet.", the hours
+   "The hours have not arrived from the server yet", the calendar was a bare month, the flyer was live
+   with no rooms, Booking every row "—", and Saved "Nothing kept yet." — one wait, drawn the old way
+   on nine cards because each asked the half of the question that had already turned false.
+
+   SO THE QUESTION IS ASKED HERE, ONCE. `retrying_` is "the request failed and the app is asking
+   again by itself" — what `nothingHere` asks before it prints a failure and a Try again. `awaiting_`
+   is "no payload is here yet and one is still coming": before the first answer, or after a failed
+   one while the retry is out AND no payload has ever been drawn (`RECONNECT.shown`). That last half is
+   what keeps a failed REFRESH behind a good payload from veiling cards that are showing real things:
+   a save that reloads and fails leaves the board's scores, the week and the month as they were.
+
+   NOT ONE FUNCTION FOR BOTH, deliberately. `nothingHere` is only reached where its caller has
+   already decided the column has nothing to show, and for it a failed refresh is still the retry's
+   to answer: given `awaiting_`'s `shown` half it would print "Couldn't load. … Try again" under
+   "Reconnecting…", which is the contradiction the retry's own review took out (docs/history/313).
+   One base, `retrying_`, so the two cannot drift; each asks the question it has. In a `try`, because
+   `RECONNECT` is a const further down this file and a card drawn before it exists must still answer. */
+function retrying_() {
+  try { return !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_(); }
+  catch (e) { return false; }
+}
+function awaiting_() {
+  try {
+    if (!LOADED) return true;
+    return retrying_() && !RECONNECT.shown;
+  } catch (e) { return typeof LOADED !== 'undefined' && !LOADED; }
 }
 
 /** Redraw whatever is showing. What almost everything calls after a change. */
@@ -1969,8 +2104,8 @@ function placeGrid(instant, drag) {
      the keypad stayed up, typing into a box on a card that was no longer on the screen (8 of 8). The
      keypad closes on `focusout` (keypad.js) and nothing took the focus away when the page did. So
      whatever has the focus is blurred once its page is not the one in front, which closes the keypad
-     and a phone's own keyboard alike. A field outside every page — the sheet, the booking form's
-     drop-down — is not a card's and is left alone. */
+     and a phone's own keyboard alike. A field outside every page — the sheet — is not a card's and is
+     left alone. */
   try {
     const fe = document.activeElement;
     const pg = fe && fe !== document.body && fe.closest ? fe.closest('#screen .page') : null;
@@ -2040,14 +2175,12 @@ function placeCells(which, instant, dragPx, id) {
 function placeNow_(which, instant, dragPx, id) {
   placeGrid(instant, dragPx ? { which, px: dragPx } : null);
 
-  /* THE ONE THING IN THIS APP THAT IS MEASURED AGAINST THE VIEWPORT rather than placed by the grid:
-     the booking form's drop-down, which is a sibling of the screens because `.pane` would clip it
-     anywhere else. So it does not travel with a column that slides away underneath it, and this is
-     the one place that knows a column has moved — a swipe, a page turn or a resize all arrive here.
-     It follows the field it hangs off, or closes once that field is on a screen or a page nobody is
-     looking at. BEFORE the drag guard below, because a finger sliding the columns is exactly when it
-     has to keep up. */
-  if (typeof bookDropMove_ === 'function') bookDropMove_();
+  /* `bookDropMove_` WAS CALLED HERE, before the drag guard below, for the one thing this app ever
+     placed against the viewport rather than the grid: `#drop`, the dropdown panel outside the
+     screens, which did not travel with a column sliding under it and had to be moved by hand on every
+     placement. The panel went on 9 October — every dropdown is the platform's own again and every
+     several-of-a-list question is checkboxes in its card (note 315) — so nothing here is placed by
+     anything but the grid. */
 
   /* THE TWO SWEEPS BELOW DO NOT RUN WHILE A FINGER IS DOWN.
 
@@ -2229,6 +2362,10 @@ const PAGER = {
   /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
      is always page 0, and with nothing for sale the shop says so in a page of its own. */
   shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
+  /* PROGRESS, COUNTED FROM `progressCards_`, the list `screen('progress')` draws. One card today —
+     the placeholder — and counted anyway rather than written as 1: the day it is built it will be
+     a page per something, and a count kept here by hand is the fault every entry above records. */
+  progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -2476,7 +2613,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0, shop: 0 };
+               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.
@@ -2816,9 +2953,14 @@ function goPage(id, to, instant) {
 function adoptMarks_() {
   try { adoptFavourites_(); } catch (e) {}
   try { adoptSpotlight_(); } catch (e) {}
-  /* AND THE DONE DATES THIS PHONE HAS THAT THE SHEET DOES NOT — see `attemptsSync_` in find.js. Here
-     for the same reason as the two above: `DATA` is the payload that has just landed. */
-  try { attemptsSync_(); } catch (e) {}
+  /* AND THE LATEST ANSWER SENT FOR EACH QUESTION, from the account — onto the cards and into the boxes —
+     and whatever this device has waiting to send goes up. See `subAdopt_` in js/submit.js. Here for the
+     same reason as the two above: `DATA` is the payload that has just landed. It was `attemptsSync_`,
+     the done dates, until the owner's *"Just whether it's right or not"* (9 Oct). */
+  try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
+  /* AND A MARK WITH AI TILE DRAWN WAITING FOR THIS PAYLOAD (`aiDecided_`, keypad.js) — let go where it stands,
+     because the column holding it may be held back from the repaint that would draw it again. */
+  try { if (typeof aiDecided_ === 'function') aiDecided_(); } catch (e) {}
   /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
      waiting for the account goes up with it. See `answersPull_` in js/answers.js. */
   try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) {}
@@ -3180,8 +3322,19 @@ function api(body, opts) {
          refusal is usually the answer they just typed going up — so Find keeps its place for them to sign
          in again to (docs/history/318). Everything else of theirs goes, as for Sign out. */
       if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
+        /* WHOSE SESSION IT WAS, read before it is forgotten — see `ansGoneSay_` (answers.js): the box
+           that person wrote in is drawn empty under the signed-out key now, and says why (317). */
+        const gone = typeof whoIs_ === 'function' ? whoIs_() : '';
         if (typeof signedOut_ === 'function') { try { signedOut_({ ended: true }); } catch (e) {} }
         else { USER = null; try { localStorage.removeItem('familyUser'); } catch (e) {} try { repaint(); } catch (e) {} }
+        /* THROUGH `ansRecPut_`, held for the visit when the store refuses or throws: without it a
+           browser keeping no site data never knew whose the next answer was (review of the merge). */
+        try {
+          const rec = gone ? JSON.stringify({ who: gone, at: Date.now() }) : '';
+          if (rec && typeof ansRecPut_ === 'function') ansRecPut_('familyGone', rec);
+          else if (rec) localStorage.setItem('familyGone', rec);
+        } catch (e) {}
+        try { if (typeof ansSavedPaint_ === 'function') ansSavedPaint_(); } catch (e) {}
         toast('Signed out — please sign in again');
       }
       return d || {};
@@ -3392,8 +3545,7 @@ addEventListener('pointerdown', e => {
   if (!e.isPrimary) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
   /* THE LAST 60ms ARE LET THROUGH — by then the card has all but arrived. AND ONLY ON THE CARDS: the
-     sheet, its backdrop, the keypad and the booking drop-down are not in `#screen` and do not move
-     with it. The first version swallowed any tap during a slide, and `check/press.js` caught it
+     sheet, its backdrop and the keypad are not in `#screen` and do not move with it. The first version swallowed any tap during a slide, and `check/press.js` caught it
      closing nothing — a tap on a sheet's backdrop opened over a column still sliding in. */
   PRESS_SLIDING = performance.now() < SLIDE_UNTIL - 60
     && !!(e.target && e.target.closest && e.target.closest('#screen'));
@@ -3404,7 +3556,8 @@ addEventListener('pointerdown', e => {
 addEventListener('pointercancel', pressClear_, { passive: true });
 /* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see
    `HOLD_AT`. A box that grows as you type grows downward, and the line you are typing on stays put.
-   `change` because a select's answer arrives through the app's own list, which is not on the card. */
+   `change` as well as `focusin` because a select's answer arrives from the platform's own list, which
+   is not on the card, and a checkbox is answered by a tap that may never focus it. */
 document.addEventListener('focusin', e => holdHere_(e.target), true);
 document.addEventListener('change', e => holdHere_(e.target), true);
 
@@ -3513,12 +3666,40 @@ function wideOverClear_() {
   } catch (e) { /* before this file has finished loading there is nothing to clear */ }
 }
 
+/* ---------- A SWIPE THAT BEGAN ON A FIELD OPENS NOTHING AND TICKS NOTHING -------------------------
+   THE GUARD BELOW SWALLOWS A SWIPE'S CLICK — `stopPropagation`, so no handler of this app runs — and
+   that is all it ever had to do while every control here was a `data-do`. A FORM'S CONTROLS ARE THE
+   BROWSER'S, AND THE BROWSER ACTS ON THE DEFAULT, NOT ON A HANDLER: a select opens its list from the
+   `mousedown` a phone sends at the lift of a tap, a `<label>` focuses its select (which is what an
+   iPhone opens its wheel for) or ticks its checkbox from the click. A drag of ten to fifteen pixels is
+   a swipe to this app and can still be a tap to the browser, and note 226 measured exactly that: a
+   12–14px drag ending on a select's caption ran the label's activation.
+
+   SO ON A FIELD, THE DEFAULT IS CANCELLED TOO — the `mousedown` here, before the select can open, and
+   the click in the guard below, before a label can act. Only while the gesture is a swipe or began on
+   a card still sliding; a tap that stayed put reaches the select exactly as the platform intends.
+   This is what lets a swipe that starts on a dropdown move the column (`axisFree`, overworld.js)
+   without the dropdown opening under the finger as it lifts. Note 315 has the measurements.
+
+   AND A `<summary>`, which opens its `<details>` from the click's default exactly as a label ticks its
+   box — the settings column's several-of-a-list field is one. Found by review on 9 October with real
+   touch: a 12px drag starting on the venues field logged `click:SUMMARY, TOGGLE:open`, the guard having
+   swallowed the click and the browser opening the list anyway, so a thumb starting a scroll there
+   pushed the card down. The ticks under it were already guarded, as labels. */
+const FIELD_ACTS_ = 'select, label, summary, input[type="checkbox"], input[type="radio"]';
+addEventListener('mousedown', e => {
+  if (!PRESS_MOVED && !PRESS_SLIDING) return;
+  if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
+}, true);
+
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
     PRESS_MOVED = false;
     PRESS_SLIDING = false;
     pressClear_();
+    /* AND ON A FIELD, NOT EVEN THE BROWSER'S OWN DEFAULT — see `FIELD_ACTS_` above. */
+    if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
     if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
     return;
   }
@@ -3526,6 +3707,7 @@ document.addEventListener('click', e => {
   if (PRESS_SLIDING) {
     PRESS_SLIDING = false;
     pressClear_();
+    if (e.target && e.target.closest && e.target.closest(FIELD_ACTS_)) e.preventDefault();
     if (CLICK_LOG) console.log('[click] swallowed — it began on a card still sliding');
     return;
   }
@@ -3604,9 +3786,9 @@ const ARROWS = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1],
                  ArrowUp: ['y', -1], ArrowDown: ['y', 1] };
 
 addEventListener('keydown', e => {
-  /* THE DROP-DOWN FIRST, because it is the innermost thing open and nothing opens both. It answers
-     whether there was anything to close, so one Escape does not also shut a sheet behind it. */
-  if (e.key === 'Escape' && typeof bookDropShut_ === 'function' && bookDropShut_()) return;
+  /* ESCAPE SHUT `#drop` FIRST while there was one. A select's own list is the platform's, and the
+     platform closes it on Escape before this page ever hears the key; a list of checkboxes in a card
+     is not over anything, so there is nothing for Escape to close but the sheet. */
   if (e.key === 'Escape' && !$('sheet').classList.contains('hidden')) { closeSheet(); return; }
 
   const arrow = ARROWS[e.key];
@@ -3943,18 +4125,32 @@ function loadStale_(n, who) {
    length of the call, so a press that repaints (Send under a message) is never held. Find is not this
    rule's — `findKeep_` holds it on its own, stricter terms, and redraws it itself; Settings' unsaved
    cards are `settingsKeep_`'s and still are. */
+/* ---------- AND NOT THE SELECT WHOSE LIST IS OPEN EITHER ---------------------------------------------
+   FOUND BY REVIEW, 390x844 with real touch, on 9 October: tap the booking form's Kind, so the phone's
+   own list is up over it, and let a payload land behind it. The column was rebuilt, the select the
+   list belonged to was thrown away, and the pick went to a node nobody could see — `BOOKING.how`
+   stayed empty and the row said `—`. The settings column's favourite colour the same. While the panel
+   stood (note 226) it found its select again after a repaint; the platform's list cannot, because the
+   list IS that element's. So the landing repaint holds a FOCUSED select as it holds a box being typed
+   in: on a phone a focused select is its list open (iOS draws the wheel from focus, Android its sheet),
+   and on a laptop it is the list or the keyboard's arrows on it. A pick then lands on the select it was
+   made in, its own `change` redraws what it changes, and the column is drawn when the select is left.
+   Only for a LANDING payload: a select's own `change` still redraws its card at once (`drawBooker`). */
 const TYPING_ = 'textarea, input[type="text"], input[type="search"], input[type="email"], '
-  + 'input[type="tel"], input[type="number"], input:not([type]), [contenteditable="true"]';
+  + 'input[type="tel"], input[type="number"], input:not([type]), [contenteditable="true"], select';
 function typingBox_() {
   const a = document.activeElement;
   if (!a || !a.matches || !a.matches(TYPING_)) return null;
   const stuff = document.getElementById('s-stuff');
   return stuff && stuff.contains(a) ? null : a;
 }
-function landRepaint_() {
+/* `draw` IS ANY OTHER REPAINT THAT A LANDING REPLY MAKES — `profileRefresh_` (me.js) drawing your own
+   settings once per app open is the other one, and it rebuilt the column under an open list exactly as
+   the payload did. Without it, the whole `repaint`, as before. */
+function landRepaint_(draw) {
   const R = RECONNECT;
   R.hold = typingBox_();
-  try { repaint(); } finally { R.hold = null; }
+  try { (typeof draw === 'function' ? draw : repaint)(); } finally { R.hold = null; }
 }
 /* `paint` asks this beside `settingsKeep_` and `findKeep_`, and `startScreen_` before it restarts
    anything. In a `try`, because both are hoisted and this const is not. */
@@ -4462,7 +4658,7 @@ async function loadOnce_(again, n) {
      what went wrong and offer Try again. */
   if (again && !got && LOADED && reconnecting_()) return;
   /* Set whether it SUCCEEDED or failed — a failed load is still a finished one, and leaving the
-     skeleton up for ever would be the app pretending it is still trying. */
+     loader up for ever would be the app pretending it is still trying. */
   LOADED = true;
   /* THE SPLASH COMES OFF HERE, and here is the only place it can: this line runs whether the
      payload arrived or the request failed, and a splash that only lifts on SUCCESS turns a failed
@@ -4474,8 +4670,8 @@ async function loadOnce_(again, n) {
   /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW ---------------------------------------
-     Every screen but the one in front was drawn before this request came back, so each holds a
-     skeleton. Emptied here, and `repaint` below draws them again with the data that has just
+     Every screen but the one in front was drawn before this request came back, so each holds the
+     loader. Emptied here, and `repaint` below draws them again with the data that has just
      arrived.
 
      EMPTYING WITHOUT REDRAWING WAS THE BUG. It was left to `go` to rebuild each on arrival, which
@@ -4506,6 +4702,9 @@ async function loadOnce_(again, n) {
      is typing in, if they are: see `landRepaint_`. */
   landRepaint_();
   openSharedPost();     // if the app was opened on a shared link, go to that post
+  /* AND BACK TO THE QUESTION A RELOAD TOOK YOU AWAY FROM — once a visit, on the first payload that
+     arrived, when the column came back too. See `findPlaceBack_` in find.js and docs/history/317. */
+  if (!LOAD_FAILED && typeof findPlaceBack_ === 'function') findPlaceBack_();
 }
 
 /* ---------- THE SPLASH, OFF AND ON ---------------------------------------------------------------
@@ -4822,10 +5021,14 @@ function buildMayReload_(tag, booted) {
     if (!up && !(typeof performance !== 'undefined' && performance.now() < SPLASH_SAY_AFTER)) return false;
   } else if (!BUILD_HID || Date.now() - BUILD_HID < AWAY_AGAIN) return false;
   /* 3. NOTHING TYPED AND UNSAVED. `qp-ans` writes to localStorage on every keystroke and the
-        notepad does the same, so both survive a reload; everything else in a box would not. */
+        notepad does the same, so both survive a reload — and so does every box carrying a DRAFT
+        (`data-draft`, data.js), drawn again holding it; everything else in a box would not. */
   const typed = [].slice.call(document.querySelectorAll('textarea, input[type="text"], input:not([type])'))
     .filter(el => String(el.value || '').trim())
-    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad');
+    .filter(el => el.getAttribute('data-do') !== 'qp-ans' && el.id !== 'notepad' && !el.hasAttribute('data-draft'));
+  /* 4. NOTHING THE STORE REFUSED — that is in this page and nowhere else, and a reload is the loss
+        (`keepAtRisk_`, data.js; 317). */
+  if (typeof keepAtRisk_ === 'function' && keepAtRisk_().length) return false;
   return !typed.length;
 }
 
