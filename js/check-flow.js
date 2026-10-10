@@ -469,6 +469,10 @@ function boot(opts) {
          built in the same evaluation can read it. The camera journey asks it to know that the load
          it is watching is the one that opens on the feed. */
       'AT: () => AT,' +
+      /* THE MARKS AS THE APP DRAWS THEM, so a switch tile's picture is read against the entry its
+         class names rather than trusted by the name (`soundTileSays_`). The object itself — a
+         `const`, so handed over from inside this evaluation. */
+      'ICONS: TILE_ICONS,' +
       /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
          this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
       'STUFF: () => STUFF,' +
@@ -537,26 +541,85 @@ check('the app loads and draws without throwing', async () => {
    were), the MARK (the crossed speaker or the one with its waves), and `aria-pressed` for a screen
    reader. Any one drifting from the other two is a tile that says two things, which is worse than the
    button it replaced. Drawn by `tile_` and nothing else: `.tile`, `.is-over` (the wash it wears over
-   a picture) and `.reel-sound` (where it sits, and what a dead Short hides). Shared by both journeys. */
-const soundTileSays_ = (el, on, where) => {
-  if (!el) return ['there is no Sound control on ' + where];
+   a picture) and `.reel-sound` (where it sits, and what a dead Short hides). Shared by both journeys,
+   and by Imposter's Read aloud, the app's other sound switch and the same tile since 10 Oct (`o`).
+
+   THE MARK IS READ AS A DRAWING, NOT AS A CLASS NAME. Review, 10 Oct: this asked only for
+   `tile-i-mute` / `tile-i-sound`, and with `mute: TILE_CONE_ + TILE_WAVES_` in tiles.js — the muted
+   mark drawn as the playing one — both journeys said OK. With no word on the tile the picture is the
+   only thing the eye has, so a pair that is two names for one picture is a switch that looks the same
+   both ways. So the drawing on the tile must be, shape for shape, the `TILE_ICONS` entry its class
+   names (`__t.ICONS`, the app's own object), and the pair itself must differ BOTH ways and share the
+   cone (`soundPairSays_`): the slash the playing mark lacks, the waves the muted one lacks — the
+   padlock's argument in tiles.js, checked rather than trusted. */
+const SVG_NS_ = 'http://www.w3.org/2000/svg';
+/* EVERY SHAPE IN A MARK AS ONE LINE — its tag and its attributes, sorted — and the lines sorted, so
+   two drawings are the same picture exactly when the two lists are equal, whatever order a hand wrote
+   the attributes in. */
+const markShapes_ = node => [...node.querySelectorAll('*')].map(n => n.localName + ' ' + [...n.attributes]
+  .map(a => a.name + '="' + String(a.value).replace(/\s+/g, ' ').trim() + '"').sort().join(' ')).sort();
+const iconShapes_ = (doc, name) => {
+  const icons = ((doc.defaultView || {}).__t || {}).ICONS;
+  if (!icons || typeof icons[name] !== 'string') return null;
+  const s = doc.createElementNS(SVG_NS_, 'svg');
+  s.innerHTML = icons[name];
+  return markShapes_(s);
+};
+/* ONCE PER WINDOW: a pair drawn wrong is one fault, not one per press. */
+const PAIR_ASKED_ = new WeakSet();
+const soundPairSays_ = doc => {
+  if (PAIR_ASKED_.has(doc)) return [];
+  PAIR_ASKED_.add(doc);
+  const on = iconShapes_(doc, 'sound'), off = iconShapes_(doc, 'mute');
+  if (!on || !off) return ['TILE_ICONS has no ' + [!on && 'sound', !off && 'mute'].filter(Boolean).join(' and no ')
+                           + ' — a sound switch needs both marks (or `__t.ICONS` is not handed over)'];
+  const only = (a, b) => a.filter(x => b.indexOf(x) === -1);
   const bad = [];
-  const want = on ? 'Sound on' : 'Sound off';
-  const mark = on ? 'tile-i-sound' : 'tile-i-mute';
-  if (el.tagName !== 'BUTTON' || !['tile', 'is-over', 'reel-sound'].every(c => el.classList.contains(c)))
-    bad.push(`the Sound control on ${where} is not the over-picture tile — <${el.tagName.toLowerCase()} class="${el.className}">`);
-  if (el.dataset.do !== 'reel-sound') bad.push(`the Sound tile on ${where} carries data-do="${el.dataset.do}", not its own reel-sound`);
-  if (el.getAttribute('aria-label') !== want || el.getAttribute('title') !== want)
-    bad.push(`the Sound tile on ${where} is named "${el.getAttribute('aria-label')}" / "${el.getAttribute('title')}", wanted "${want}"`);
-  if (el.getAttribute('aria-pressed') !== String(on))
-    bad.push(`the Sound tile on ${where} says aria-pressed="${el.getAttribute('aria-pressed')}", wanted "${on}"`);
-  const marks = [...el.querySelectorAll('svg.tile-i')];
-  if (marks.length !== 1 || !marks[0].classList.contains(mark) || !marks[0].querySelector('path'))
-    bad.push(`the Sound tile on ${where} draws ${marks.map(m => m.getAttribute('class')).join(' + ') || 'no mark'}`
-             + `, wanted the one ${mark} (TILE_ICONS needs both sound and mute)`);
-  if (el.textContent.trim()) bad.push(`the Sound tile on ${where} has words drawn on it: "${el.textContent.trim()}"`);
+  if (!only(off, on).length) bad.push('TILE_ICONS.mute draws nothing TILE_ICONS.sound does not — '
+    + (only(on, off).length ? 'the waves taken away and no slash put in' : 'the muted mark is the same picture as the playing one')
+    + ', so a silent clip and one playing aloud look alike');
+  if (!only(on, off).length) bad.push('TILE_ICONS.sound draws nothing TILE_ICONS.mute does not — the playing mark has no waves of its own');
+  if (!on.some(x => off.indexOf(x) !== -1)) bad.push('TILE_ICONS.sound and .mute share no shape — not one cone with what leaves it changed, two unrelated pictures to learn');
   return bad;
 };
+const switchTileSays_ = (el, on, where, o) => {
+  if (!el) return ['there is no ' + o.what + ' control on ' + where];
+  const bad = [];
+  const want = on ? o.names[1] : o.names[0];
+  const name = on ? 'sound' : 'mute';
+  const mark = 'tile-i-' + name;
+  if (el.tagName !== 'BUTTON' || !o.cls.every(c => el.classList.contains(c)))
+    bad.push(`the ${o.what} control on ${where} is not ${o.kind} — <${el.tagName.toLowerCase()} class="${el.className}">`);
+  if (el.dataset.do !== o.act) bad.push(`the ${o.what} tile on ${where} carries data-do="${el.dataset.do}", not its own ${o.act}`);
+  if (el.getAttribute('aria-label') !== want || el.getAttribute('title') !== want)
+    bad.push(`the ${o.what} tile on ${where} is named "${el.getAttribute('aria-label')}" / "${el.getAttribute('title')}", wanted "${want}"`);
+  if (el.getAttribute('aria-pressed') !== String(on))
+    bad.push(`the ${o.what} tile on ${where} says aria-pressed="${el.getAttribute('aria-pressed')}", wanted "${on}"`);
+  if (o.lit && el.classList.contains('on') !== on)
+    bad.push(`the ${o.what} tile on ${where} is ${el.classList.contains('on') ? '' : 'not '}lit (\`.on\`) while ${on ? 'on' : 'off'}`);
+  const marks = [...el.querySelectorAll('svg.tile-i')];
+  if (marks.length !== 1 || !marks[0].classList.contains(mark) || !marks[0].querySelector('path'))
+    bad.push(`the ${o.what} tile on ${where} draws ${marks.map(m => m.getAttribute('class')).join(' + ') || 'no mark'}`
+             + `, wanted the one ${mark} (TILE_ICONS needs both sound and mute)`);
+  else {
+    const doc = el.ownerDocument;
+    soundPairSays_(doc).forEach(x => bad.push(x));
+    const want_ = iconShapes_(doc, name), drawn = markShapes_(marks[0]);
+    if (want_ && drawn.join('\n') !== want_.join('\n'))
+      bad.push(`the ${o.what} tile on ${where} is classed ${mark} but draws another picture: [${drawn.join('; ')}], `
+               + `where TILE_ICONS.${name} is [${want_.join('; ')}]`);
+  }
+  if (el.textContent.trim()) bad.push(`the ${o.what} tile on ${where} has words drawn on it: "${el.textContent.trim()}"`);
+  return bad;
+};
+const soundTileSays_ = (el, on, where) => switchTileSays_(el, on, where, {
+  what: 'Sound', kind: 'the over-picture tile', act: 'reel-sound', names: ['Sound off', 'Sound on'],
+  cls: ['tile', 'is-over', 'reel-sound'] });
+/* IMPOSTER'S READ ALOUD, THE SAME PAIR ON A CARD rather than a picture: the plate lit (`.on`) while it
+   reads aloud, the switch-tile's way, and `.imp-aloud`, the name `check/states.js` finds it by. */
+const readAloudSays_ = (el, on, where) => switchTileSays_(el, on, where, {
+  what: 'Read aloud', kind: 'a tile', act: 'imp-aloud', names: ['Read aloud off', 'Read aloud on'],
+  cls: ['tile', 'imp-aloud'], lit: true });
 
 /* ---------- A <VIDEO> REEL'S SOUND, PRESSED WHERE A FINGER PRESSES IT --------------------------------
    THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* What has to survive
@@ -617,8 +680,13 @@ check('the reels\' Sound is a tile: one per reel, drawn muted, a press on its ma
     if (target) target.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
   };
 
+  /* AND THE PICTURE ITSELF CHANGES WITH EACH PRESS — the markup inside the mark, not its class name;
+     review drew `mute` as `sound` and every class-name check passed (`soundTileSays_`). */
+  const drawn = () => ((snd() && snd().querySelector('svg.tile-i')) || {}).innerHTML;
+  const looked = [drawn()];
   plays = 0;
   press();
+  looked.push(drawn());
   if (v.muted) bad.push('a press on the Sound tile\'s mark left the <video> muted');
   if (!plays) bad.push('turned aloud, the <video> was not asked to play — a clip refused a start would stay silent and still');
   if (paused || reel.classList.contains('is-held'))
@@ -626,6 +694,10 @@ check('the reels\' Sound is a tile: one per reel, drawn muted, a press on its ma
   soundTileSays_(snd(), true, 'a <video> reel turned aloud').forEach(x => bad.push(x));
 
   press();
+  looked.push(drawn());
+  if (looked[1] === looked[0]) bad.push('turning the <video> aloud left the same picture on the Sound tile');
+  if (looked[2] === looked[1]) bad.push('turning the <video> back to silent left the same picture on the Sound tile');
+  if (looked[2] !== looked[0]) bad.push('silent again, the Sound tile does not draw the picture it was drawn with');
   if (!v.muted) bad.push('a second press on the Sound tile left the <video> playing aloud');
   if (paused || reel.classList.contains('is-held'))
     bad.push('turning the sound off paused the clip — the tap reached reel-tap, not the tile\'s own reel-sound');
@@ -2320,6 +2392,8 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   /* ---- OFF, WHICH IS HOW IT ARRIVES: a switch to turn it on, and not one word out of the phone. ---- */
   if (!sw()) return bad.concat(['with a voice on the device there is no Read aloud switch on the setup screen']);
   if (sw().getAttribute('aria-pressed') !== 'false') bad.push('Read aloud is not off until somebody turns it on');
+  /* A TILE, THE REELS' PAIR (note 323): the crossed speaker while it is off, drawn as TILE_ICONS draws it. */
+  readAloudSays_(sw(), false, 'the setup screen as it arrives').forEach(x => bad.push(x));
   press('imp-start');
   for (let i = 0; i < N; i++) {
     press('imp-show');
@@ -2338,9 +2412,11 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   try { kept = w.localStorage.getItem('imp-aloud'); } catch (e) {}
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('pressing Read aloud did not turn it on');
   if (kept !== '1') bad.push('Read aloud is not remembered on the device (imp-aloud is ' + JSON.stringify(kept) + ')');
+  readAloudSays_(sw(), true, 'the setup screen once pressed').forEach(x => bad.push(x));
   t.repaint(true);
   await wait(50);
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('a repaint turned Read aloud off');
+  readAloudSays_(sw(), true, 'the setup screen after a repaint').forEach(x => bad.push(x));
 
   /* ---- A ROUND WITH THE SWITCH ON, two of them, with known words on top of the pile ---- */
   const passes = [];
@@ -2440,6 +2516,22 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   const back = since();
   if (!back.length || !back[0].cancel) bad.push('Players did not stop the voice (next: ' + JSON.stringify(back[0]) + ')');
   if (says(back).length) bad.push('Players said: ' + JSON.stringify(says(back).map(x => x.say)));
+
+  /* ---- AND OFF AGAIN, BY A FINGER ON THE TILE'S MARK — the real dispatcher, as the reels' journey
+     presses its Sound tile — so the pair is seen both ways and the device forgets it. ---- */
+  if (!sw()) bad.push('Players did not bring back the setup screen and its Read aloud tile');
+  else {
+    const drawnOn = (sw().querySelector('svg.tile-i') || {}).innerHTML;
+    mark('imp-aloud (a finger on the tile)');
+    (sw().querySelector('svg') || sw()).dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+    let forgot = null;
+    try { forgot = w.localStorage.getItem('imp-aloud'); } catch (e) {}
+    if (forgot !== '0') bad.push('a press on the Read aloud tile did not turn it off on the device (imp-aloud is ' + JSON.stringify(forgot) + ')');
+    readAloudSays_(sw(), false, 'the setup screen turned off by a press on the tile').forEach(x => bad.push(x));
+    if (sw() && (sw().querySelector('svg.tile-i') || {}).innerHTML === drawnOn)
+      bad.push('turning Read aloud off left the same picture on its tile');
+    if (says(since()).length) bad.push('turning Read aloud off said: ' + JSON.stringify(says(since()).map(x => x.say)));
+  }
 
   /* THE PASS SCREEN SAYS THE SAME SENTENCE TO EVERYBODY, bar the number, in both rounds — which is
      the proof that nothing dealt is in it, the imposter's own hand-over included. */

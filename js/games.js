@@ -3380,6 +3380,23 @@ const impShow_ = () => `<button class="art-go imp-go" data-do="imp-show">${tileI
 const impHideBtn_ = () => `<button class="art-go imp-go" data-do="imp-hide">${tileIcon_('hide')}<span>Hide</span></button>`;
 const impReveal_ = () => `<button class="art-go imp-go" data-do="imp-reveal"><span>Reveal</span></button>`;
 
+/* ---------- READ ALOUD IS A TILE, THE REELS' SOUND TILE'S OWN PAIR ---------------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* This was the other
+   sound switch in the app: a hand-written pill with the speaker, the words "Read aloud" and a sliding
+   knob, kept a button on the argument that it sits in a form and the adult setting up reads it. The
+   reels' Sound became a tile that day and review asked why this one did not (note 323); "tiles win
+   any tie" and "everything else" are the two answers, and nothing a form needs is lost — it is one
+   press with two states, which is what a switch tile is (the pen's lock is the precedent).
+
+   THE SAME PAIR OF MARKS AS THE REELS, `sound` and `mute`, saying the state it is IN: the crossed
+   speaker while the phone stays silent, the waves while it reads aloud — so a sound switch in this app
+   is learnt once, wherever it is met. `on` brightens the plate for the eye, `aria-pressed` says it to a
+   screen reader, and the word survives in the name ("Read aloud off"), which `title` shows the adult
+   who hovers. `cls` keeps `.imp-aloud`, the name `check/states.js` and the read-aloud journey find it
+   by. A FUNCTION, for the reason Show and Hide above are: tiles.js loads after this file. */
+const impAloudTile_ = on => tile_({ icon: on ? 'sound' : 'mute', label: on ? 'Read aloud on' : 'Read aloud off',
+                                    act: 'imp-aloud', cls: 'imp-aloud', on: !!on, pressed: !!on });
+
 /* DRAWN FROM THE STATE, the `REEL_HELD` rule — the handlers change `IMP` and ask for a paint, and
    nothing is ever patched onto the element. EVERY CONTROL IS BUILT HERE rather than written into
    the widget's markup, which is the Scrabble lesson: a button that is on the page before it can do
@@ -3393,8 +3410,6 @@ function impPaint() {
   if (acts) acts.innerHTML = '';
   if (s.phase === 'idle') {
     const n = impCount_();
-    /* THE SWITCH IS A FORM'S CONTROL, so it is a button (CLAUDE.md: a FORM has buttons) — with the
-       word, because the adult setting the game up is the one person here who reads it. */
     const on = impAloud_();
     card.innerHTML = `<p class="art-cat-of">Players</p>
       <div class="imp-count">
@@ -3404,9 +3419,7 @@ function impPaint() {
         <button class="imp-step" data-do="imp-count" data-d="1" aria-label="One player more"
           ${n >= IMP_MAX ? 'disabled' : ''}>+</button>
       </div>
-      ${impCanSay_() ? `<button class="imp-aloud${on ? ' on' : ''}" data-do="imp-aloud"
-        aria-pressed="${on ? 'true' : 'false'}">${tileIcon_('speak')}<span>Read aloud</span><span
-        class="imp-sw" aria-hidden="true"></span></button>` : ''}
+      ${impCanSay_() ? impAloudTile_(on) : ''}
       <button class="art-go" data-do="imp-start">Deal</button>`;
     return;
   }

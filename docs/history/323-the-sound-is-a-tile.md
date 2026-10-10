@@ -1,4 +1,4 @@
-## The reels' Sound is a tile: a speaker that says the state it is in, on the picture's own wash
+## The reels' Sound is a tile, and so is Imposter's Read aloud: a speaker that says the state it is in
 
 **The owner, 10 Oct:** *"the sound on or off should be a tile like everything else."*
 
@@ -49,9 +49,9 @@ bottom left, and a control over what somebody is reading gets hit by accident.
 Searched `js/` for `mute`, `unMute`, `muted`, `Sound`, `audio` and `volume`. The reels are the only
 mute control. The "One more thing" widget has none on purpose (overworld.js: the card is one tap target).
 The Videos card has no sound control of the app's own, and the timer's beep has no switch. **Imposter's
-Read aloud switch** is a sound setting too, but it is a form's switch on the setup card. Its comment
-records the decision ("a FORM has buttons — with the word, because the adult setting the game up is the
-one person here who reads it"), so it was left as it is and is named here for the owner to decide.
+Read aloud switch** is the other one, and it is a tile now too: see "Review" below. (The first commit
+left it a button because its comment said "a FORM has buttons", and named it here for the owner. Review
+said the brief had already decided it: "any other sound or mute control … becomes the same tile too".)
 
 ### Checked
 
@@ -93,4 +93,90 @@ one person here who reads it"), so it was left as it is and is named here for th
   on the charcoal plate, 44x44. After a real click the tile read "Sound on", `aria-pressed="true"`, the
   `<video>` was unmuted and the reel was not held.
 
-`--css-version` is `2026-10-10-the-sound-is-a-tile`.
+### Review, and what it found
+
+Three findings. Each was reproduced first, then fixed, and each fix has a check that was red before it
+and green after, shown by a mutation.
+
+**1. check/ui.js never asked whether the tile was on top.** With `.reel-sound { z-index: -1 }` the tile
+was drawn under the clip. It could not be seen or pressed. ui.js still printed "reel Sound tiles measured
+… 30" and "nothing to report", over a `reel-390.png` with no tile in it. press.js passed it too. Every
+rule in the measurement asked about a box or a colour, and none asked what is painted at that spot. Now
+it calls `elementFromPoint` at the tile's centre, and the thing it finds must be the tile or something
+inside it. Two limits:
+
+- **Only the card in front.** `placeGrid` sets inline `pointer-events: none` on every page except the
+  focused one, on purpose (shell.js, "the card in front, not every column's current card"). So the
+  first version of the hit test reported the next reel down, peeking up under the fold, as covered by
+  `section.screen.paged`. That reel takes no press by design. The check reads the page's inline style,
+  not the tile's computed one, so a tile that turns away presses itself is still tested.
+- **Only where it can be painted at all.** The tile's centre has to be inside the viewport and inside
+  every ancestor that clips. A pane clips; press.js learned that from the star at the foot of a widget.
+
+If no tile was hit-tested on the column, that is reported as a finding too. Measured: 30 tiles, 10 of
+them in view and hit-tested (one per width per visitor), nothing to report. **Mutations, both red:**
+`z-index: -1` ("`<video class="feed-vid">` is [the top thing], … the tile is drawn under it", and
+`<span class="feed-yt-veil">` on the Short), and `pointer-events: none` on the tile.
+
+**2. check-flow read the mark by its class name only.** In tiles.js, `mute: TILE_CONE_ + TILE_WAVES_`
+draws the muted mark exactly like the playing one, and `FLOW_ONLY=reel` still said "all 2 journeys
+work". With no word on the tile, the picture is the only visible sign of its state. Now the journeys
+read the **drawing**:
+
+- `__t.ICONS` hands the app's own `TILE_ICONS` to the journeys.
+- `soundTileSays_` (now `switchTileSays_`, shared with Read aloud) requires the drawn `<svg>` to match
+  the entry its class names, shape by shape. A shape is its tag plus its sorted attributes.
+- `soundPairSays_` requires the pair to differ **both ways**: the slash appears only in `mute` and the
+  waves only in `sound`. It also requires the two to **share** the cone. That is the padlock's argument
+  in tiles.js, checked instead of trusted.
+- The `<video>` journey also records the mark's markup before and after each press. It must change on
+  each press and come back to where it started.
+
+**Mutations, all red:** the reviewer's `mute` drawn as `sound` (in both reel journeys and in Read
+aloud), `mute` as the bare cone, `sound` as the bare cone, a `mute` with a cone of its own, and
+`tileSet_` changing the class but keeping the old drawing.
+
+**3. Imposter's Read aloud is a tile.** It was a pill with the speaker, the words "Read aloud" and a
+sliding knob that turned gold when on. Now it is `impAloudTile_` in games.js:
+`tile_({ icon: on ? 'sound' : 'mute', label: on ? 'Read aloud on' : 'Read aloud off', act: 'imp-aloud',
+cls: 'imp-aloud', on, pressed: on })`.
+
+- It uses the same pair of marks as the reels, so a sound switch in this app only has to be learnt once.
+- Like the reel's label, it names the state it is in.
+- `.on` brightens the plate, and `aria-pressed` gives the state to a screen reader.
+- `.imp-aloud` stays as the name `check/states.js` finds it by. The pill's seven CSS rules (`.imp-aloud`,
+  `.imp-sw` and its knob) are gone: everything it needs comes from `.tile`.
+
+The read-aloud journey now checks the tile in four places: as it arrives (off, crossed speaker), once
+pressed, after a repaint, and turned off again by a **real click on its mark** through the dispatcher.
+The click must leave a different picture on the tile, store `imp-aloud` as `'0'` on the device, and
+say nothing. **Mutations, all red:** the old pill back, the tile always drawing the waves, the tile
+never lit, the label naming the state a press moves to, and (check-doors) the act misspelt.
+
+The words go into the name, as on every tile. The adult setting up a round still sees the word in
+`title` on hover. Nobody has asked the owner whether the word should stay visible on this one card. If
+the answer is yes, the change belongs in `tile_` as a labelled tile, not as a second hand-written pill.
+
+**Looked at:** the setup card at 320, 390 and 1280, before and after a real mouse click on the tile.
+The tile is 44x44 and is the top thing at its own centre. It reads "Read aloud off" with `tile-i-mute`
+on the dim plate, then "Read aloud on" with `tile-i-sound` on the lit plate. The crossed speaker and the
+speaker with waves can both be read at a glance, between the stepper and Deal. Also the reel shots at
+320 and 390 after the ui.js change.
+
+**Checks after the review**, all green:
+
+- check.js, check-doors, check-css, check-const, check-loading, check-strings, check-access,
+  check-widgets and check-surfaces.
+- check-flow, `FLOW_ONLY=reel` first, then all 273 journeys. Run as four contiguous quarters, because
+  the whole run is longer than one ten-minute call at load average 25 to 35.
+- `check/ui.js --screen=reel --shots` and `check/cascade.js`.
+
+**press.js `--screen=reel`:** every press works, and with `--no-swipe` it exits 0. Its swipe pass, which
+covers every column whatever `--screen` says, failed in three runs. Each run failed one games timing
+probe, and a different one each time: the 40ms chain flick, then Flabby Pird's touch down, then the 20ms
+chain flick. Those two probes were then run alone, twice, against this tree, and twice against a copy of
+the commit before this review. Both trees failed them the same way, at different gaps from run to run,
+with Flabby "flapped, vy 0.8" (the bird already falling by the time a slow evaluate came back). That is
+load, not this change.
+
+`--css-version` is `2026-10-10-sound-and-read-aloud-are-tiles`.

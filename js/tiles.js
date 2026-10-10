@@ -53,7 +53,8 @@
    `aria-hidden`, for the same reason. The word is already the accessible name, and a screen reader
    announcing "graphic, play" before it would be the second explanation all over again. */
 /* ---------- ONE SPEAKER, DRAWN ONCE, FOR THE THREE MARKS THAT HAVE ONE -----------------------------
-   Imposter's Listen (`speak`) and the reels' Sound tile (`sound` and `mute`) are the same cone, and a
+   Imposter's Listen (`speak`) and the two sound switches (`sound` and `mute`: the reels' Sound and
+   Imposter's Read aloud) are the same cone, and a
    cone written out three times is three chances for one of them to sit a pixel lower than the others
    -- the drift `.tile.is-lead` records for a colour, one layer down. The waves are shared for the
    same reason: the mark on a reel playing aloud and the mark on Listen are the same picture of the
@@ -222,6 +223,12 @@ const TILE_ICONS = {
      A PAIR, THE PADLOCK'S ARGUMENT ABOVE: the same cone in both, and only what leaves it changes --
      the two waves on a clip playing aloud, a slash and no waves on a muted one. Drawn any other way
      the two read as two unrelated pictures and the switch has to be learnt twice.
+
+     AND EVERY SOUND SWITCH WEARS THE PAIR. Imposter's Read aloud was the other one, a pill with a knob,
+     and is the same tile now (`impAloudTile_`, games.js): a sound switch is learnt once in this app.
+     THE PICTURE IS THE STATE, since a tile has no word on it, so check-flow reads the DRAWING and not
+     only the class name: a `mute` drawn as `sound` is two names for one picture and passed every
+     check until review tried it (note 323).
 
      EACH SAYS THE STATE IT IS IN, NOT THE ONE A PRESS MOVES TO, which is what the button's words did
      ("Sound off" on a muted clip) and what every phone's video player draws: a crossed speaker over a

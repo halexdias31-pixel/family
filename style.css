@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-the-sound-is-a-tile";
+  --css-version: "2026-10-10-sound-and-read-aloud-are-tiles";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -12749,23 +12749,12 @@ button.scr-sq { cursor: pointer; }
 /* THE SPEAKER'S ROOM ON THE PASS AND PLAY SCREENS — Listen's own 64px and its own 20px over it,
    empty, so the card is one height with Listen or without. See `impFrame_`. */
 .imp-foot { display: block; width: 64px; height: 64px; margin-top: 20px; }
-/* ---------- THE READ ALOUD SWITCH ------------------------------------------------------------------
-   A SWITCH, NOT A TICK BOX: on and off is the whole of it, and a knob that has moved is readable
-   from across the table by whoever set the game up. 44px tall in px. On is gold, the app's one
-   colour for "this is doing something", and the speaker in front says what. */
-.imp-aloud {
-  display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: 0 .9rem;
-  border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--dim);
-  font: 600 .85rem/1 var(--font); cursor: pointer;
-}
-.imp-aloud .tile-i { width: 18px; height: 18px; }
-.imp-sw { position: relative; width: 30px; height: 18px; border-radius: 999px; background: var(--line);
-  transition: background var(--quick) ease; }
-.imp-sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
-  border-radius: 50%; background: var(--dim); transition: transform var(--quick) ease; }
-.imp-aloud.on { color: var(--ink); border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
-.imp-aloud.on .imp-sw { background: var(--gold); }
-.imp-aloud.on .imp-sw::after { transform: translateX(12px); background: var(--bg); }
+/* ---------- THE READ ALOUD SWITCH IS A TILE, AND HAS NO RULE HERE -----------------------------------
+   IT WAS A PILL OF ITS OWN — the speaker, the words, a sliding knob gold when on — and on 10 Oct the
+   owner's *"the sound on or off should be a tile like everything else"* made it `tile_()` (games.js,
+   `impAloudTile_`, note 323): the reels' `sound` / `mute` pair, `.tile.on` for the eye and
+   `aria-pressed` for a screen reader. Its 44px, its plate and its press are `.tile`'s, so nothing is
+   left to say here; `.imp-aloud` is the name it is found by, never a look (see `tile_`'s `cls`). */
 
 /* ---------- JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS ----------------------------------------------
    THE ARTICULATE CARD AGAIN, for Imposter's reason: one thing read across a room, with a gold button
