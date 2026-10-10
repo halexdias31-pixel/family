@@ -1835,11 +1835,12 @@ function bookKeep_() {
     if (bookBlank_()) draftDrop_('book', 'form'); else draftKeep_('book', 'form', bookJson_());
   } catch (e) {}
 }
-function bookBack_() {
+/* `who` IS ONLY EVER `'device'`: the device's form, read in for the person it is marked as (`bookFollow_`). */
+function bookBack_(who) {
   if (typeof draftRead_ !== 'function') return;
-  BOOK_WHO = draftWho_();
+  BOOK_WHO = who || draftWho_();
   try {
-    const raw = draftRead_('book', 'form');
+    const raw = draftRead_('book', 'form', undefined, who);
     if (raw === null) return;
     const o = JSON.parse(raw);
     if (!o || typeof o !== 'object' || Array.isArray(o)) return;
@@ -1891,21 +1892,105 @@ function bookElsewhere_(v, old) {
      · FROM SOMEBODY TO ANYBODY ELSE: the form is cleared off the screen — not dropped, it is still the
        person's who left — and whoever is in front now is given their own. `signingIn` is the sign-out
        on the way from one child to the next (`signedIn_`): the device's draft is not read in between,
-       or the next step would hand it to the child signing in as though they had filled it in. */
+       or the next step would hand it to the child signing in as though they had filled it in.
+   ---------- UNLESS THE DEVICE'S FORM IS SOMEBODY'S (317, "Six edges closed", P8) ---------------------------
+   "Filled in signed out, it is whoever signs in next's" is 318's seat, and it was the whole rule here — so
+   Ada's address, typed into the form on the family computer after the server ended her session, became
+   BEN'S booking when he signed in next. The form is a draft of the device's, and such a draft is marked as
+   hers (`draftMark_`, data.js) as a signed-out answer is; so this asks `ansMayMove_` (answers.js), the one
+   question every other door asks:
+     ''      somebody else's — not carried: off the screen, still the device's, and the person signing in
+             is given their own;
+     'own'   theirs — carried, from nobody AND over somebody else (whose sign-out step cleared the screen
+             without reading the device's form in, so it is read in here for them);
+     'later' nobody's — carried from nobody, as before; never over somebody else (`ansMayMove_` answers ''
+             for whoever arrived over somebody, `familySwitched`).
+   ---------- CARRIED BESIDE THEIR OWN DRAFT, NOT OVER IT (317, "Undo, the booking form, a switch") ----------
+   CARRYING WAS `bookKeep_()`, which writes the whole form over the person's draft — and the person's own
+   form was usually beside it. Ada was part-way through a booking, signed in: the client answered, the note
+   "Tuesdays after school". The server ended her session, `signedOut_` cleared the form off the screen and
+   kept her draft, and the screen read the device's blank form in; she typed "1 Example Road" on it, and
+   signed in again — and "Tuesdays after school" and the client were gone, the signed-out form written
+   over them. The owner's 9 Oct essay by the booking door: typed beside her draft, on a form the ended
+   session had emptied, not over it. So the two are joined (`bookJoin_`): her draft, and then what the
+   device's form adds. And the addresses typed into the device's form and not yet left (`emails:`, a draft
+   of their own until `change`) go with it — they were dropped, so a carried form lost them. */
 function bookFollow_(signingIn) {
   if (typeof draftWho_ !== 'function') return;
   const now = draftWho_();
   if (now === BOOK_WHO) return;
-  if (BOOK_WHO === 'device' && !bookBlank_()) {
-    bookKeep_();
-    try {
-      draftDrop_('book', 'form', 'device');
-      BOOK_STEPS.forEach(st => { if (st.emails) draftDrop_('book', 'emails:' + st.id, 'device'); });
-    } catch (e) {}
-    return;
+  if (BOOK_WHO === 'device' && now !== 'device') {
+    const may = typeof ansMayMove_ === 'function'
+      ? ansMayMove_(draftKey_('book', 'form', 'device'), draftKey_('book', 'form', now)) : 'later';
+    if (may === 'own' && bookBlank_()) bookBack_('device');
+    if (may && !bookBlank_()) {
+      /* THEIR OWN DRAFT FIRST, then the device's form joined to it. */
+      try { bookJoin_(draftRead_('book', 'form', undefined, now)); } catch (e) {}
+      bookKeep_();
+      try {
+        draftDrop_('book', 'form', 'device');
+        BOOK_STEPS.forEach(st => { if (st.emails) bookEmailsCarry_(st, now); });
+      } catch (e) {}
+      return;
+    }
   }
   resetBooking_(true);
   if (signingIn) BOOK_WHO = now; else bookBack_();
+}
+/* ---------- TWO FORMS OF ONE PERSON'S, PUT TOGETHER — `ansJoin_`'s rule (answers.js), for a form ----------
+   `raw` is the person's own draft; `BOOKING` holds the device's form, typed later. Nothing of either is lost:
+     a list (subjects, children, hours, addresses, what is done)   every entry of both, in the order the
+                                                                   question offers them where it offers any
+     the note                                                      theirs, a blank line, then the device's —
+                                                                   unless theirs already says it
+     anything else (one answer: the level, how many, where)       the device's where it says anything, as
+                                                                   the later edit; theirs where it is blank */
+function bookJoin_(raw) {
+  if (raw === null || raw === undefined) return;
+  let o = null;
+  try { o = JSON.parse(raw); } catch (e) { return; }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return;
+  const plain = v => typeof v === 'string' || typeof v === 'number';
+  const blank = v => ![].concat(v == null ? [] : v).join('').trim();
+  Object.keys(o).forEach(k => {
+    if (k === 'picking') return;
+    const mine = o[k], here = BOOKING[k];
+    if (Array.isArray(mine) && mine.every(plain)) {
+      const list = mine.slice();
+      [].concat(blank(here) ? [] : here).forEach(x => { if (!list.some(y => norm(y) === norm(x))) list.push(x); });
+      const st = bookStep_(k);
+      if (st && st.multi && typeof st.options === 'function') {
+        try {
+          const offered = (st.options() || []).map(norm);
+          const at_ = x => { const i = offered.indexOf(norm(x)); return i === -1 ? offered.length : i; };
+          list.sort((a, b) => at_(a) - at_(b));
+        } catch (e) {}
+      }
+      BOOKING[k] = list;
+    } else if (plain(mine) && !blank(mine)) {
+      if (k === 'note') {
+        const add = String(here == null ? '' : here).trim();
+        BOOKING.note = !add || String(mine).indexOf(add) !== -1 ? String(mine) : String(mine).replace(/\s+$/, '') + '\n\n' + add;
+      } else if (blank(here)) BOOKING[k] = mine;
+    }
+  });
+}
+/* THE ADDRESSES TYPED ON THE DEVICE'S FORM AND NOT YET LEFT, into the person's: theirs and the device's in
+   one box (each address once), drawn over the list the joined form now holds. Asked like the form, so
+   another person's never move. */
+function bookEmailsCarry_(st, now) {
+  const id = 'emails:' + st.id;
+  const dev = draftRead_('book', id, undefined, 'device');
+  if (dev === null) return;
+  if (typeof ansMayMove_ === 'function' && !ansMayMove_(draftKey_('book', id, 'device'), draftKey_('book', id, now))) return;
+  const mine = draftRead_('book', id, undefined, now);
+  const all = [];
+  [mine, dev].forEach(v => String(v == null ? '' : v).split(',').map(x => x.trim()).filter(Boolean)
+    .forEach(x => { if (!all.some(y => norm(y) === norm(x))) all.push(x); }));
+  /* `from` IS THE LIST THE BOX WILL BE DRAWN OVER (`stepInput_`), so the box draws this draft. */
+  const saved = (BOOKING[st.id] || []).filter(x => String(x).trim()).join(', ');
+  if (all.length) draftKeep_('book', id, all.join(', '), false, saved);
+  draftDrop_('book', id, 'device');
 }
 
 /* `on('new-booking')` AND `on('book-close')` WERE HERE. One opened the form and one shut it, and

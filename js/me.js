@@ -736,6 +736,12 @@ function signedOut_(opts) {
   /* THE DONE DATES HELD FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. */
   try { if (typeof DONE_HELD !== 'undefined') DONE_HELD.clear(); } catch (e) {}
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) {}
+  /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). It is kept
+     by the box's key, and the signed-out key's history outlived the person who typed it: Sam's words, typed
+     signed out and claimed by him when he signed in, came back under the signed-out key at the next
+     visitor's Ctrl+Z after he had gone — nobody's, for whoever signed in next (317, "Undo, the booking form,
+     a switch"). The next person's Ctrl+Z starts from what they find. */
+  try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) {}
   try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) {}
   /* THE PAYLOAD'S PER-PERSON KEYS. Each is already hidden from the next person by its `for` check, so
      this is not what stops a leak — it is what stops the last person's data sitting on the device. */
@@ -804,16 +810,25 @@ function signedIn_(d, typed) {
      else is the next child on the iPad, and starts from the first question. ONE PLACE DECIDES, and it is
      these lines; `signedOut_` only does what it is told. */
   const fromNobody = !USER;
+  const over = !fromNobody && (String(USER.personId || '') !== pid || !pid);
   let whose = '';
   try { whose = typeof STUFF !== 'undefined' ? String(STUFF.whose || '') : ''; } catch (e) {}
   if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
-  else if (String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
+  else if (over) signedOut_({ quiet: true });
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
   try { if (typeof STUFF !== 'undefined') STUFF.whose = ''; } catch (e) {}
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  /* ---------- AND ARRIVED OVER SOMEBODY ELSE, WRITTEN DOWN BEFORE ANY DOOR IS ASKED ----------------------
+     A switch is not the same seat (318), so nothing another visitor made signed out is this person's — the
+     claim below was told (`ownOnly`), and the doors that open a card or the board were not: `ansRead_` and
+     `padAdopt_` moved another tab's signed-out answer into Ada's empty box after she signed in over Ben,
+     and up to her account (317, "Undo, the booking form, a switch"). `ansMayMove_` reads this now, for every
+     door — the board drawn by `padWhoChanged_` just below and the booking form included. The sign-out step
+     above forgot the last arrival's; the same person signing in again keeps theirs. */
+  try { if (over && typeof ansSwitchedIn_ === 'function') ansSwitchedIn_(pid); } catch (e) {}
   /* EVERY COPY OF THE WHITEBOARD UNDER THE PERSON WHO IS SIGNED IN NOW, stale columns included. */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
   /* THE BOOKING FORM FOLLOWS — filled in signed out and signed in to send, it is theirs (book.js). */
@@ -831,8 +846,12 @@ function signedIn_(d, typed) {
   try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) {}
   /* AND WHAT WAS WRITTEN SIGNED OUT IS THIS PERSON'S, from nobody only — the same seat as Find above. ALL
      OF IT, NOW, AFTER THE ACCOUNT'S COPY: the later edit wins, and none is left on the device for the
-     next child to sign in (`answersClaim_`, js/answers.js). */
-  try { if (fromNobody && pid && typeof answersClaim_ === 'function') answersClaim_(pid); } catch (e) {}
+     next child to sign in (`answersClaim_`, js/answers.js).
+     AND OVER SOMEBODY ELSE, ONLY WHAT IS THEIRS: a switch is not the same seat, so nothing another visitor
+     made signed out is the arriving child's — but what THEY made after the server ended their session is,
+     and it was left for `ansRead_` to move into an empty box only: Ada back while Ben was still signed in
+     found her essay without the words she had typed beside it (317, "Six edges closed", G1). */
+  try { if (pid && typeof answersClaim_ === 'function') answersClaim_(pid, !fromNobody); } catch (e) {}
   try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
   handleRemember_(me.handle);
   signInHintKeep_(typed, me);

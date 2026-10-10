@@ -280,8 +280,8 @@ The notepad and the docket reach the account. Tab B's composer shows tab A's dra
   visitor on that computer still sees them. **318's `answersClaim_`** (signing in claims every signed-out
   answer) must ask `ansGoneOthers_` too when the two are merged — it did not, and now asks `ansMayMove_`
   (see "After the merge"). **Done since, for a sign-in from nobody**: the words go after the essay and
-  nothing is left (see "After the review of the merge"). A device already signed in as somebody else
-  when that person comes back is still `ansRead_`'s rule — only into an empty box.
+  nothing is left (see "After the review of the merge"). **And for a sign-in over somebody else** (see
+  "Six edges closed", G1).
 - **A send the reload cut off before the server received it is not offered back.** It is marked sent and
   swept ten minutes later. Behaviour from before 317, and the rarer case: a request still out after the
   page has gone has almost always arrived.
@@ -361,3 +361,135 @@ record read from the store alone; the record written with a bare `setItem`; `fam
 bare `setItem` in `api()`; no `keepWaits_`; `keepRetry_` not asking it; the mark written after the answer;
 the record counted as work at risk; `padAdopt_` without the guard; `circOf_` without it; the claim without
 it; no join; the owner's own left behind as before.
+
+### Six edges closed
+
+A verifier drove the merged rule through the real handlers and found six doors that did not ask
+`ansMayMove_`, or asked it about the wrong copy. **The rule now:** on a shared device, anything a child
+typed, drew, ringed or drafted signed out after the server ended their session is that child's. It is
+never moved into, shown in, claimed by or sent from anybody else's account, and it is theirs again when
+they sign in. Anything else made signed out goes to whoever signs in next from nobody (318).
+`ansMayMove_` decides at every door.
+
+- **P4, A REFUSED PAD LOOKED EMPTY.** `padAdopt_` asked `localStorage`. A pad the store had refused was
+  held, drawn and marked "Not saved", but to `padAdopt_` it was empty, so a drawing made signed out in
+  another tab was moved over it. Rings went the same way, through `circOf_`. It now reads both keys with
+  `ansValue_` and takes the signed-out copy off through `ansLocalPut_`, held copy and mark included.
+  `ansRead_` reads its signed-out key the same way.
+- **P5, THE WHITEBOARD WAS NEVER MARKED.** A mark can now name `board:` keys and a device's drafts
+  (`ansMarkable_`; `ansKeyWho_` reads whose the other key is). `keepWaits_` holds such a board until its
+  mark is on the device. The claim takes a board marked as the person's own, puts its strokes after
+  theirs, and never makes it due. A board with no ended session behind it keeps note 310's rule: the
+  claim leaves it, and only opening the board moves it, into an empty one.
+- **P7, DECIDED: WHOSE AN ANSWER IS FOLLOWS WHAT IS IN IT** (`ansKeeps_`). An edit leaves it whose it
+  was, whoever makes the edit. A write over all of it is the writer's: theirs if their own ended session
+  is fresh, nobody's otherwise. Then 318 gives it to whoever signs in next from nobody. If that is Ada, it
+  is hers by the seat and not by the mark, because after the hour nothing on the device can tell who is
+  typing. The test follows how the keypad writes: each write changes one place. More than half of the old
+  text kept at its start and end is an edit. "(5)/(6)" typed over with "(1)/(9)" keeps a bracket at each
+  end, and that is chance. A drawing or its rings is kept while any old stroke or ring is still in it,
+  and that test is a list's, not text's: a visitor's Undo that takes Ada's long stroke off leaves her
+  short one, a fifth of the old text, and compared as text that read as a new drawing over hers.
+  This also closes a second case. A write made during ANOTHER child's fresh ended session used to re-mark
+  the owner's words as that child's. Left as it is: a visitor who trims Ada's text one edit at a time
+  keeps it hers until one character is left.
+- **P8, THE BOOKING FORM NEVER ASKED.** A device draft written while a session is freshly ended is now
+  marked like an answer (`draftMark_`, data.js). Find's place is not marked. The mark comes off when the
+  draft is dropped. `bookFollow_` asks `ansMayMove_`. Somebody else's form stays on the device, off the
+  screen. The person's own is carried from nobody, and over somebody else too (`bookBack_('device')`).
+  A form that is nobody's is carried from nobody only, as before.
+- **G1, BACK OVER SOMEBODY ELSE.** The claim ran from nobody only, so Ada signing in over Ben left her
+  "More words" and her stroke under the signed-out key. `signedIn_` now claims on a switch too, with
+  `ownOnly`. It takes her own, joined as from nobody, and nothing another visitor made, because a switch
+  is not the same seat.
+- **G2, THE CLAIM WALKED THE STORE, NOT THE VISIT.** A signed-out answer the store refused was never
+  claimed. The next signed-out visitor saw it, and the page going wrote it back. `ansBareKeys_` adds the
+  visit's keys (`KEEP_UNKEPT`, or `ANS_MEM` when the store throws). The same blindness in `padAdopt_`
+  kept a refused signed-out board from whoever opened the board.
+
+**Checked** by six `check-flow` journeys (`FLOW_ONLY=edges:`), with a backend per person, because "sent to
+Ada's account" is a question about Ada's rows. All six were red on the code before this and are green now.
+G2 asks before any card is drawn, because drawing one lets `ansRead_` move the words into an empty box
+and hide a claim that never saw them.
+**Twenty-three mutations, each red on its own, and the real files green after:** `padAdopt_` reading the
+person's key from the store; reading both keys from the store; removing the signed-out copy with
+`removeItem`; a board not markable; the claim skipping every board; making a board due; taking a board
+nobody's session was behind; joining without boards; `keepWaits_` for `ans:`/`pad:` only; `ansMayMove_`
+reading whose with `ansWhoOf_` (P5 and P8 both red); a mark never taken off by a write; `ansKeeps_`
+always true; always false; true on any shared first or last character; comparing a drawing as text;
+`bookFollow_` not asking; a device draft not marked; `draft:device:` not markable; a switch not reading
+the device's form in; a dropped draft keeping its mark; the claim from nobody only; a switch claiming
+everything; the claim walking the store alone. One more stays green, and is meant to: `ansRead_` reading
+its signed-out key from the store. It is a second line behind the claim, which moves a held answer at
+sign-in before any box is drawn.
+
+### Undo, the booking form, a switch
+
+A verifier drove the six through the real handlers again and found three more doors. Two of them were
+built for slips, and one was there before the six.
+
+- **UNDO PUT BACK NOBODY'S (U1–U4).** An emptied answer belongs to nobody, and the two Undos put it straight
+  back. The first is the pen's Undo after Clear (`PAD_CLEARED`). On a board the bin sits 4px from Undo. The
+  second is the keypad's Ctrl+Z (`kpUndo_`), after Ctrl+A and Backspace, a held Backspace, or one letter
+  typed over all of it. Each put-back write was judged as a new one, against an empty box or the visitor's
+  one letter, so `ansKeeps_` had nothing of Ada's to keep. Her own stroke and her own words came back with
+  no mark. Ben signed in next from nobody, was given them, and they went to his account. A put-back made
+  while Cal's ended session was fresh came back marked as Cal's. So Undo now puts back whose it was along
+  with what was there. Clear keeps the mark beside the strokes it takes (`PAD_CLEARED_MARK`). Each step of
+  the keypad's history keeps the mark the box had at that value (`kpMark_`), and so does the step Undo and
+  Redo push themselves. Both write through **`ansPutBack_`** (answers.js), which tells `ansGoneMark_` which
+  mark to write. It is decided inside the write, not after it, so the answer is never on the device without
+  its mark. Redo puts the visitor's letter back as nobody's, which is P7 again.
+- **AND THE KEYPAD'S HISTORY OUTLIVED ITS PERSON.** `KP_UNDO` is kept by the box's key, and nothing cleared
+  it. Sam typed signed out and signed in from nobody, so his words were claimed as his (318). Then he signed
+  out, and the next visitor's Ctrl+Z on the empty signed-out box brought his words back under the signed-out
+  key. They had no mark, because nobody's session had ended, so Ben was given them. `signedOut_` now forgets
+  it, as `padWhoChanged_` forgets the held Clears. Every change of person goes through `signedOut_`.
+- **THE BOOKING FORM WAS CARRIED OVER HER OWN DRAFT (B1).** Carrying the device's form was `bookKeep_()`,
+  and that writes the whole form over the person's draft. Ada was part-way through a booking signed in: the
+  client answered, and the note "Tuesdays after school". The server ended her session. The form left the
+  screen with her draft kept, and the device's blank form was read in. She typed her address on it and
+  signed in again, from nobody or over Ben, and her draft was gone. This is the essay of 9 Oct again, by the
+  booking door: she typed beside her draft, on a form the ended session had emptied, not over it. So the two
+  are joined (`bookJoin_`, `ansJoin_`'s rule for a form). Lists get every entry of both, in the order the
+  question offers them. The note gets hers, a blank line, then the device's. A field that takes one answer
+  gets the device's where it says anything, as the later edit, and hers where it is blank. A form that is
+  nobody's was written over the person's draft the same way from nobody, before the six; it is joined too. **Its
+  addresses** (`emails:`, a draft of their own until `change`) were dropped when the form was carried. Now
+  they are carried with it (`bookEmailsCarry_`). They are also asked on their own: an address Ada typed
+  after her session ended, into the box of a visitor's form, stays on the device when Ben's seat takes the
+  form.
+- **A SWITCH HANDED OVER ANOTHER TAB'S WORK AT THE FIRST CARD (S1).** G1 told the claim that a switch is not
+  the same seat (`ownOnly`). Nothing told `ansRead_`, `padAdopt_` and `circOf_`, which refused only `''`, or
+  the board's `padAdopt_`, which `wbPaint_` runs at every sign-in. The case: Ben is signed in. Another tab of
+  the site, signed out there and never reloaded, answers, draws, rings and scribbles on the board, with
+  nobody's session behind it. Ada signs in over Ben, and her first card moved all of it into her boxes and
+  up to her account. Now `signedIn_` writes down who arrived over somebody else (**`familySwitched`**,
+  through `ansRecPut_`, so it is kept as carefully as `familyGone`). It does this before the board is drawn
+  or the form follows. The next sign-out forgets it (`answersForget_`). For that person, **`ansMayMove_`
+  answers `''` where it would have answered `'later'`**, at every door, and after a reload too. Signed in
+  from nobody, or already signed in when the tab opened, 318's rule stands, and `ansRead_` is what is left
+  for that device.
+
+**Checked** by three `check-flow` journeys (`FLOW_ONLY=edges:`), all three red on the code before:
+Clear and Undo on a pad (once while Cal's ended session was fresh) and on the board; Ctrl+Z after
+⇧Ctrl+Home and Backspace, after a held Backspace, and after one letter over all of it, then ⇧Ctrl+Z, all
+through real `keydown`s; Sam's history after he has gone; the booking form joined from nobody and over Ben,
+with its addresses carried and a visitor's form leaving Ada's address behind; and a switch, before and after
+a reload, then the same person from nobody, which is the seat again. The verifier's own journeys (U1, U1b,
+U2, U2b, U3, U4, B1, S1) pass. **Eighteen mutations, each red on its own, and the real files green after:**
+`ansGoneMark_` ignoring the put-back; `kpUndo_` writing without it; the pen's Undo writing without it; a
+history step keeping no mark; Undo's own step keeping none (caught by Redo then Undo); Clear keeping none;
+`signedOut_` keeping `KP_UNDO`; no join; the addresses dropped; the join keeping her one-answer fields over
+the later form; the addresses not asked on their own; the note not joined; `ansMayMove_` ignoring the
+switch; `signedIn_` not writing it down; the switch outliving the sign-out; the switch written after the
+board and the form are decided; the switch held in a variable for the visit (red only after the reload);
+and the record never written. One mutation from "Six edges closed" stays green now, and is meant to: the
+claim taking everything on a switch. `ansMayMove_` refuses `'later'` there itself, so `ownOnly` is a second
+line behind it. It still decides a same-person sign-in, which is not a switch.
+
+**Not done, and found by the same verifier:** one Backspace on a two-character answer of Ada's ("80" to "8")
+takes her mark off what is left. That is the "Left as it is" above, at its shortest. A device draft marked
+as somebody's is still swept after `DRAFT_DEVICE_MS` (six hours) like any other device draft, while answers
+marked the same way are kept with no limit. A device that was already signed in, and was not a switch,
+still takes another tab's `'later'` answer into an empty box when the card is drawn, which is 318's door.

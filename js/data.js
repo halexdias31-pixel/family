@@ -366,26 +366,44 @@ function draftOld_(k, d, now) {
 }
 /* `was`, WHEN GIVEN, is the saved value the box is being drawn from: a draft typed over another one is
    not this box's any more (see `from` above). Callers with no saved value — the booking form, Find's
-   place, the composer's own check — pass nothing and are not asked. */
-function draftRead_(surface, id, was) {
-  const k = draftKey_(surface, id);
+   place, the composer's own check — pass nothing and are not asked. `who` as for `draftKey_`: only
+   `bookFollow_`, reading the device's form for the person signing in. */
+function draftRead_(surface, id, was, who) {
+  const k = draftKey_(surface, id, who);
   const d = draftRaw_(k);
   if (!d) return null;
-  if (draftOld_(k, d, Date.now())) { draftDrop_(surface, id); return null; }
+  if (draftOld_(k, d, Date.now())) { draftDrop_(surface, id, who); return null; }
   if (d.sent && !DRAFT_SENDING.has(k)) return null;
   if (was !== undefined && typeof d.from === 'string' && !draftSame_(d.from, was)) return null;
   return d.v;
+}
+/* ---------- A DEVICE'S DRAFT IS SOMEBODY'S TOO, WHEN THE SERVER HAS JUST ENDED THEIR SESSION ---------------
+   THE RULE ANSWERS KEEP (`ansGoneMark_`, answers.js; docs/history/317, "Six edges closed", P8). Ada's
+   session was ended from the iPad, she typed her address into the booking form on the family computer
+   signed out, and Ben signed in next: `bookFollow_` carries a filled-in device form into whoever signs in,
+   so her address became his booking draft. So a device's draft written while such a session is fresh is
+   marked as that person's, exactly as a signed-out answer is — by the same function, in the same record,
+   asked by the same `ansMayMove_` — and taken off when the draft is dropped. Not Find's place (`quiet`):
+   a convenience nothing carries into anybody. Compared by its words (`v`), not its stamp, so an edit of
+   the form keeps the mark and a form written over whole does not. */
+function draftMark_(k, v, quiet) {
+  if (quiet === true || !/^draft:device:/.test(k) || typeof ansGoneMark_ !== 'function') return;
+  const was = v === null ? null : draftRaw_(k);
+  ansGoneMark_(k, v, false, was ? was.v : null);
 }
 function draftKeep_(surface, id, v, quiet, from) {
   if (draftNever_(String(surface) + ':' + String(id == null ? '' : id))) return false;
   if (v === null || v === undefined) return draftDrop_(surface, id);
   const d = { v: String(v), at: Date.now() };
   if (from !== undefined && from !== null) d.from = String(from);
-  return keepPut_(draftKey_(surface, id), JSON.stringify(d), quiet);
+  const k = draftKey_(surface, id);
+  draftMark_(k, d.v, quiet);
+  return keepPut_(k, JSON.stringify(d), quiet);
 }
 function draftDrop_(surface, id, who) {
   const k = draftKey_(surface, id, who);
   DRAFT_SENDING.delete(k);
+  draftMark_(k, null);
   let had = KEEP_MEM.has(k);
   if (!had) { try { had = localStorage.getItem(k) !== null; } catch (e) {} }
   return had ? keepPut_(k, null) : true;
