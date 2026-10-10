@@ -758,6 +758,9 @@ function signedOut_(opts) {
      this is not what stops a leak — it is what stops the last person's data sitting on the device. */
   try {
     DATA.submissions = { for: '', mine: {} };
+    /* AND `attempts`, which only a backend from before 308 still sends — the carry-over reads it
+       (`subMigrate_`, behind the same `for` check) until the owner's Apps Script is updated. */
+    DATA.attempts = { for: '', mine: {} };
     DATA.family = []; DATA.familyFor = '';
     DATA.favourites = []; DATA.everyone = [];
   } catch (e) {}
