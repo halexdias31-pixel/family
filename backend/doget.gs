@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-10-g-schema-grid";
+const DOGET_VERSION = "2026-10-10-h-pictures";
 
 
 function doGet(e) {
@@ -718,6 +718,11 @@ function doGet(e) {
           title: name, handle: S(r.handle),
           subtitle: S(r.city) || 'London',
           image: S(r.photo), mediaUrl: S(r.video),
+          /* THE FIGURE, ONLY WHEN THE FACE IS THE FIGURE (`pfp:avatar`) — `faceFig_` in core.gs. Every
+             other row sends no `avatar` key at all, which `JSON.stringify` drops as `undefined`: a
+             tutor who chose a photograph or a fox shows exactly what they showed before, and the one
+             who chose their figure is drawn as it, wherever their picture appears. */
+          avatar: faceFig_(r).avatar,
           /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. An older phone
              ignores the key, and a row that has none sends `[]` rather than a missing key, so the
              card can tell "none" from "a backend that does not know about them". */
@@ -867,6 +872,9 @@ function doGet(e) {
              blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
           personId: S(r.person_id), title: name, handle: S(r.handle),
           role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
+          /* AND THE FIGURE WHEN IT IS THEIR PICTURE — an admin is already sent this person's face, so
+             the face drawn as the figure tells them nothing they could not already see. `faceFig_`. */
+          avatar: faceFig_(r).avatar,
         });
       }
 
@@ -1187,9 +1195,27 @@ function doGet(e) {
       read(TAB.people).rows.forEach(pp => {
         const nm = personDisplayName(pp);
         if (!nm) return;
+        /* ---------- THE FACE IS THE `photo` CELL, AND THE FIGURE ONLY WHEN IT IS THE FACE ----------
+           THIS WAS `S(pp.avatar) || S(pp.photo)` — the WEARABLE string first, which is
+           "hair:crop|legs:jeans" and not a picture, so anybody who had dressed their figure posted
+           under a broken image: the fault the sign-in reply's own note names ("a broken image in any
+           <img> that gets it"). The face is `photo` — a link, nothing, or one of the eleven tokens
+           (the owner, 10 Oct: *"…which allow you to use your avatar as a dp."*) — and the figure
+           rides as `figure` only when the face is `pfp:avatar` (`faceFig_`), which is no more than
+           this line already sent for everybody who had dressed one.
+           A CHILD'S PHOTOGRAPH IS NOT PUT ON THE FEED BY THIS FIX. The feed goes to every visitor,
+           and under the old line a child who had dressed their figure sent the wearable string in
+           place of their photograph — broken, but private. Sending the photograph now would be
+           something new about a child to people who could not see their picture before, which the
+           owner ruled out. So for a child (`kid`, the sign-in reply's own test) a LINK is sent only
+           where it was sent before — no figure dressed — and the eleven tokens always, because a fox
+           or the figure the old line already sent tells nobody anything about the child. */
+        const face = S(pp.photo);
+        const kidHid = !photoChoice_(face) && toAppRole(mainRole(pp)) === 'kid' && !!S(pp.avatar);
         faces[key(nm)] = {
           handle: S(pp.handle) || S(pp.first_name) || nm,
-          avatar: S(pp.avatar) || S(pp.photo),
+          avatar: kidHid ? '' : face,
+          figure: faceFig_(pp).avatar,
         };
         if (S(pp.person_id)) byId[S(pp.person_id)] = nm;
       });
@@ -1236,6 +1262,10 @@ function doGet(e) {
           author: S(r.author),
           handle: who.handle,
           avatar: who.avatar,
+          /* THE FIGURE, ONLY WHEN THE AUTHOR'S FACE IS THEIR FIGURE — set on `faces` above. Read off the
+             lookup rather than off `who`, which `check-columns.js` reads as a sheet row: `figure` is a
+             field of this payload, not a column of any tab. */
+          figure: (faces[key(S(r.author))] || {}).figure,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
           /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than
              stitching `image` onto the front itself — which would be a second place for the order
@@ -2109,6 +2139,10 @@ function familyOf_(me) {
   const famCard_ = (r, rel) => ({
     personId: S(r.person_id), title: personDisplayName(r), relation: rel,
     handle: S(r.handle), image: S(r.photo) || '',
+    /* THE FIGURE, ONLY WHEN IT IS THE FACE (`faceFig_`). Your family is already sent each other's
+       picture, so a child who chose their figure is drawn as it on their parent's column and
+       nothing about them reaches anybody who could not already see their face. */
+    avatar: faceFig_(r).avatar,
   });
   /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
      otherwise draw your own card a second time under "Your child". */

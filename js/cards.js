@@ -104,7 +104,10 @@ function passFor_(name) {
    the `kinds` tab ever puts a tutor back in it. */
 function meCard(given) {
   if (!USER) return '';
-  const face = pic(USER.photo || (USER.profile || {}).photo || '');
+  /* `USER.profile.photo` FIRST: it is what the picker writes the moment the server answers, where
+     `USER.photo` is the sign-in reply's copy — `pfpTake_` writes both now, but a remembered sign-in
+     from before it holds only the first. */
+  const face = String((USER.profile || {}).photo || USER.photo || '');
   /* ---------- CREDITS, E-MAIL AND WHERE MOVED TO THE SETTINGS COLUMN ----------------------------
      They were a second card under this one headed "Only you see this". Asked for as *"credits can
      stay in the column to the right along with email and where bit"* and *"remove the only you can
@@ -127,9 +130,11 @@ function meCard(given) {
 
   return `<div class="card is-widget">
     <div class="thing">
-      ${face
-        ? `<img class="thing-pic" src="${esc(face)}" alt="">`
-        : `<span class="thing-pic art">${avatarFor(USER.handle || USER.name, 52, USER.avatar)}</span>`}
+      ${/* THROUGH `personFace_` LIKE EVERY FACE. This drew the full wardrobe figure for no picture,
+            a face only you ever saw; with no picture it is the initial everybody else sees, and the
+            figure is a picture you choose (`photoPicker_`). */''}
+      ${personFace_({ pic: face, avatar: USER.avatar || '', handle: USER.handle, name: USER.name, personId: USER.personId },
+                    { cls: 'thing-pic', none: 'none', size: 52 })}
       <div class="thing-body">
         <h3>${esc(USER.name)}</h3>
         <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
@@ -641,9 +646,13 @@ function findCard(x) {
           : `<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts
              them back on the site.</p>`) : ''}
       <div class="prof-top">
-        ${t.image
-          ? `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy">`
-          : `<span class="prof-pic prof-none">${esc((t.title || '?').slice(0, 1).toUpperCase())}</span>`}
+        ${/* THE FACE IS `personFace_` (links.js), THE ONE FUNCTION EVERY FACE GOES THROUGH: a photograph
+              as it always was, one of the ten pictures, the figure when the row carries it — the
+              owner, 10 Oct: *"…which allow you to use your avatar as a dp."* — or the initial. This
+              card is yours, a tutor's, your family's and everybody on an admin's column, so this one
+              line is most of the places a person's picture is seen. */''}
+        ${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
+                      { cls: 'prof-pic', none: 'prof-none', size: 52 })}
         <div class="prof-who">
           <span class="prof-name">${esc(t.title)}</span>
           ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL ---------------------

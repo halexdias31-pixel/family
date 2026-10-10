@@ -1272,15 +1272,50 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    tiles and their line fit beside it at 320 without the row wrapping. In px because it sits beside
    two tap targets and should keep its size against them, not shrink with the root. */
 .pfp { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: .7rem; align-items: center;
-       margin: .1rem 0 .7rem; }
+       margin: .1rem 0 .7rem; container-type: inline-size; }
 .pfp-face { width: 88px; height: 88px; border-radius: 6px; overflow: hidden; display: grid; place-items: center;
             background: var(--sunk); border: 1px solid var(--line); }
 .pfp-face img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.pfp-face .avatar { width: 56px; height: auto; }
+/* ONE OF THE TEN, OR YOUR FIGURE, FILLS THE PREVIEW as a photograph does. It was `.pfp-face .avatar` at
+   56px — the whole wardrobe figure, drawn for NO picture and on your own screen only; with no picture
+   the preview is the initial everybody sees now, and the figure is a picture you choose below. */
+.pfp-face .face-pic { width: 100%; height: 100%; }
 .pfp-none { font-size: 2.2rem; font-weight: 700; color: var(--faint); }
 .pfp-side { min-width: 0; }
 .pfp-side .tile-row { margin: 0; }
-.pfp-said { margin: .35rem 0 0; font-size: .74rem; line-height: 1.3; }
+/* THE LINE IS UNDER THE GRID NOW, across both columns: it says what a tap in the grid did, and a line
+   beside the tiles would be a reply printed above the question. */
+.pfp-said { grid-column: 1 / -1; margin: 0; font-size: .74rem; line-height: 1.3; }
+/* ---------- THE ELEVEN, AS AN XBOX GAMERPIC PICKER LAYS THEM OUT ------------------------------------
+   The owner, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* Your figure first, then the ten, in a grid
+   under the preview and its tiles. 44px IN PIXELS, the tap target (CLAUDE.md: a fingertip is the same
+   size on every screen), and no bigger than 56: a 320 card has about 248px inside it, which is four
+   to a row at 56px (4, 4, 3); from 294px — six 44px cells and their gaps — it is six to a row (6, 5),
+   which is one row fewer on the card that holds the most. The container query asks the PICKER's own
+   width rather than the window's, because the same card is a phone column at 390 and a third of the
+   screen at 1280.
+   THE RING IS GOLD, the one colour this app saves for "this is the one", drawn in the button's own
+   3px of padding round the drawing, so it never covers the picture and the cell does not grow. A drawing that is not yet in use is a little dimmer, so the ring is
+   not the only thing saying which one is. */
+.pfp-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(44px, 56px));
+            gap: 6px; justify-content: start; }
+@container (min-width: 294px) { .pfp-grid { grid-template-columns: repeat(6, minmax(44px, 56px)); } }
+.pfp-opt { width: 100%; min-width: 44px; min-height: 44px; aspect-ratio: 1; padding: 3px; margin: 0;
+           border: 0; border-radius: 50%; background: none; display: grid; place-items: center;
+           cursor: pointer; opacity: .82; }
+.pfp-opt > svg { display: block; width: 100%; height: 100%; }
+.pfp-opt.on { opacity: 1; box-shadow: inset 0 0 0 3px var(--gold); }
+.pfp-opt:disabled { cursor: default; }
+
+/* ---------- A FACE DRAWN RATHER THAN PHOTOGRAPHED — `personFace_` in links.js -----------------------
+   One of the ten pictures or a figure's head and shoulders, in whatever frame the surface already had
+   for a photograph (`.prof-pic`, `.post-face`, `.dm-av`, `.thing-pic`, the preview). Each drawing is
+   round by itself — the pictures on their ground, the figure clipped to its own — so the frame keeps
+   its size and its border and the drawing fills it. */
+.face-pic { display: block; overflow: hidden; padding: 0; }
+.face-pic > svg { display: block; width: 100%; height: 100%; }
+.dm-av .face-pic { width: 100%; height: 100%; }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the

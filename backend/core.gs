@@ -1155,6 +1155,42 @@ function photosList_(r) {
     .slice(0, PHOTO_MAX);
 }
 
+/* ---------- THE FACE CELL: A LINK, NOTHING, OR ONE OF ELEVEN TOKENS — AND THIS IS THE ONE PLACE IT IS ASKED
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* `photo` keeps every link it ever held —
+   an uploaded photograph is a Drive address and an admin can still paste one — and gains the tokens
+   in `PFP_CHOICES` (constants.gs). Anything else is refused BY NAME, the `photosRefusal_` argument
+   above: every reader draws this cell, and a note typed into it is a broken face on a public card.
+
+   `photoChoice_` ANSWERS THE TOKEN OR NOTHING, trimmed and lower-cased, so `PFP:Fox ` from a hand in
+   the sheet reads the same as the phone's `pfp:fox` and nothing near-miss is ever kept as one.
+   `photoRefusal_` is what `updateProfile` asks of a `photo` it is sent; `savePhoto` asks `photoChoice_`
+   directly because its door takes a token and never a link (the picker sends none). One list, two
+   doors, one reader — a second regex for "is this a picture token" is the drift this file keeps
+   recording. */
+function photoChoice_(v) {
+  const s = S(v).trim().toLowerCase();
+  return PFP_CHOICES.indexOf(s) === -1 ? '' : s;
+}
+function photoRefusal_(v) {
+  const s = S(v).trim();
+  if (!s || /^https?:\/\/\S+$/i.test(s) || photoChoice_(s)) return '';
+  return 'Your picture must be a photo, one of the pictures, or your figure — "' + s.slice(0, 40)
+    + '" is none of them, so nothing was saved.';
+}
+/* ---------- AND WHEN THE FACE IS YOUR FIGURE, THE FIGURE GOES WITH IT, AND NOT OTHERWISE ----------------
+   `pfp:avatar` means "draw my wardrobe figure", which the phone cannot do for somebody else without
+   that person's `avatar` string. So a row that carries the face (a tutor, a family card, an admin's
+   people column, a post's author) carries the figure too — BUT ONLY WHEN IT IS THE FACE. Everybody
+   who chose a photograph or a fox sends exactly what they sent before; the only new thing on any
+   card is what its owner asked to show, to the people who could already see that person's picture.
+   A CHILD'S ROW ON `students` IS NOT ONE OF THESE: it carries no face at all, and nothing here adds one.
+   Returned as an object so a caller writes `Object.assign({...}, faceFig_(r))` and an empty answer
+   adds no key at all — absent and empty are different facts to the phone (`personFace_`). */
+function faceFig_(r) {
+  return photoChoice_(r && r.photo) === PFP_AVATAR ? { avatar: S(r.avatar) } : {};
+}
+
 /* ---------- THE VENUES A TUTOR IS HAPPY TO TEACH AT, WHICH THE VENUES TAB ALREADY RECORDED ---------
    ASKED FOR AS *"in account setting tutors should be able to select the venues they are comfortable
    tutoring at."* The fact had a home long before the ask: `venues.tutors_happy_here`, a comma list of
