@@ -126,9 +126,12 @@ picture, so the new phone shows the brand's mark there instead of a broken squar
   carried before. A stranger is sent nothing of the child.
 - **A dressed child's photograph still does not reach the feed.** Under the old line, a dressed child's
   post sent the wardrobe string in place of the photograph: broken, but private. Fixing the line
-  naively would have put that photograph on a public page. So for a child (`kid`), a link goes on a
-  post only where it went before, meaning no figure dressed. A token goes always, because a fox, or a
-  figure the old line already sent, says nothing about the child.
+  naively would have put that photograph on a public page. So for a child, a link goes on a post only
+  where it went before, meaning no figure dressed. A token goes always, because a fox, or a figure the
+  old line already sent, says nothing about the child.
+- **A child is anybody who holds `student`**, asked with `hasRole(pp, 'student')`, the same test the
+  privacy-gated `students` list uses. The first version asked `toAppRole(mainRole(pp)) === 'kid'`, and
+  that let a child with a second role through. See "After review" below.
 
 ### Until the backend is pulled, a tap fails out loud
 
@@ -242,6 +245,69 @@ nothing. A fifth journey plays a server from before this deploy.
 - **The account column and the feed with the fixture.** Ada's card and post show her figure, glasses
   and all. Evie's card shows the fox. Carl's shows his figure in a cap. The signed-in admin, with
   `pfp:avatar` on his profile, sees his own figure on his own card.
+
+### After review: two findings, each reproduced, fixed at the cause, and held by a check
+
+**1. A child with a second role was not a child on the feed (must-fix).**
+
+- **What it did.** The feed's guard asked `toAppRole(mainRole(pp)) === 'kid'`. `mainRole` ranks tutor
+  and client above student. A child can tick Tutor in their own Settings: `setMyRoles` is self-serve,
+  holds the role PENDING, and never lists them. Their role cell then reads "tutor, student", and they
+  stopped being a child to this line. Their photograph went out as their post face to every visitor,
+  where the old line had sent their wearable string. That is something new about a child sent to
+  people who could not see their picture before, which the owner ruled out.
+- **Reproduced.** A dressed child with a photograph link, who has posted once. After they post
+  `setMyRoles` with `['student', 'tutor']`, the anonymous feed's face for their post went from `""` to
+  the link. A row already held as "student, client" did the same. On the commit before this change,
+  both sent the wearable string.
+- **Fixed.** The guard is `hasRole(pp, 'student')`. That is the test the privacy-gated `students` list
+  already uses, so the payload has one idea of who is a child. It errs the private way: an adult who
+  also takes lessons and has dressed a figure keeps the old line's answer, which is no worse than it
+  was. A child with no figure dressed still sends exactly what the old line sent, their link.
+- **The check.** `check-profile.js` §12b has three more rules, on a fresh sheet:
+  - the dressed child ticks Tutor through the real `doPost`, and the feed must not carry their
+    photograph;
+  - a row held as "student, client" must not either;
+  - a "student, tutor" with no figure must still get their link, so the rule is no stricter than before.
+- **Mutations.** Putting `mainRole` back made the first two red ("was put on the public feed by their
+  photograph"). Dropping the `!!S(pp.avatar)` half made the third red ("lost the face the old line sent
+  them"). Both were green again with the fix back. 36 picture rules hold.
+
+**2. The pictures lost a sliver of their circle at 320 (should-fix).**
+
+- **What it did.** Each drawing is a circle that touches the edge of its own `<svg>`: the ground is
+  r=24 in a 48 viewBox, and the bust's clip is r=20 in a 40 one. An `<svg>` inside a page clips to its
+  own box by default. That clip is snapped to the pixel grid, but the circle is not.
+- **Where it showed.** On a 320 Settings card, `paneReach_` draws the picker at 0.858. There the snap
+  landed a pixel inside the circle. The fox, robot and guitar came out flat on the right, and the
+  football, guitar and palette flat at the bottom. At 390, the cells sit at fractional positions, and
+  the figure, the cat and the rocket lost 3 to 5 device pixels.
+- **Reproduced.** In Chromium at 320x568, the screen was photographed as built and again with only the
+  drawings' own clip lifted. Five of the eleven differed at their edges: 5 to 20 pixels each at DPR 1,
+  and 28 to 69 at DPR 2. The post face and the card face did not differ, because their frames are
+  round and clip to their own border.
+- **Fixed.** `overflow: visible` on `.pfp-opt > svg` and `.face-pic > svg`. This lifts the clip and
+  shows nothing new: measured in the browser, every one of the ten draws inside its own 0–48 square,
+  and the bust clips itself to its own circle. `--css-version` is `2026-10-10-h-pictures-round`.
+- **The check.** `check/ui.js` has a new heading, **A DRAWN PICTURE CUT BY ITS OWN BOX**:
+  - it photographs every `svg.pfp-art` and `svg.avatar.is-bust` fully on the glass, in the column in
+    front, on every screen and state;
+  - it takes three shots: as it is, with the drawings' own clip lifted, then as it is again;
+  - a pixel counts only where the two as-it-is shots agree, so a loader or a slide moving between
+    shots is never read as a cut;
+  - the picker's own states fail if they draw no picture to measure;
+  - the count is printed: "drawn pictures photographed for a cut edge".
+- **Proof.** Before the fix it was red at 320 on the picker's two chosen states: the fox, robot,
+  football, guitar and palette, 5 to 18 pixels each. With only the grid's rule removed, it was red on
+  the same lines. With the fix it was green: 280 pictures on Settings and 60 on the account column, at
+  every width.
+- **Not asked: the frame round a face.** `.prof-pic`, `.post-face` and `.dm-av` are round by design,
+  and what they trim is a circle. Lifting their clip as well differs only in the anti-aliasing of an
+  edge that is round either way.
+
+**Seen at 320 and 390 at DPR 3, after the fix:** every circle in the grid is round on all four sides,
+including the right-hand column and the bottom row at 0.858. The preview's disc fills its square. The
+ring sits round the chosen picture without covering it.
 
 ### Deploy
 

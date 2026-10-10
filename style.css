@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-h-pictures";
+  --css-version: "2026-10-10-h-pictures-round";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1304,7 +1304,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .pfp-opt { width: 100%; min-width: 44px; min-height: 44px; aspect-ratio: 1; padding: 3px; margin: 0;
            border: 0; border-radius: 50%; background: none; display: grid; place-items: center;
            cursor: pointer; opacity: .82; }
-.pfp-opt > svg { display: block; width: 100%; height: 100%; }
+.pfp-opt > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .pfp-opt.on { opacity: 1; box-shadow: inset 0 0 0 3px var(--gold); }
 .pfp-opt:disabled { cursor: default; }
 
@@ -1313,8 +1313,18 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    for a photograph (`.prof-pic`, `.post-face`, `.dm-av`, `.thing-pic`, the preview). Each drawing is
    round by itself — the pictures on their ground, the figure clipped to its own — so the frame keeps
    its size and its border and the drawing fills it. */
+/* `overflow: visible` ON THE DRAWING, AND IT IS WHAT KEEPS IT ROUND. Each one is a circle that touches the
+   edge of its own `<svg>` (the ground r=24 in a 48 viewBox, the bust's clip r=20 in a 40 one), and an
+   `<svg>` in a page clips to its own box by default — a clip SNAPPED TO THE PIXEL GRID while the circle
+   is not. Under `paneReach_`'s zoom (0.858 on a 320 Settings card) or at a fractional column position the
+   snap lands a pixel inside the circle: found by review on 10 Oct, the fox, robot and guitar flat on the
+   right and the football, guitar and palette flat at the bottom. Nothing in the ten is drawn outside its
+   48 square and the bust clips itself to its own circle, so lifting the box's clip shows nothing new.
+   The frame round a face keeps its own clip: on a card, a post and a message head that frame is round
+   by design (`.prof-pic`, `.post-face`, `.dm-av`), so what it trims is a circle, never a flat side.
+   `check/ui.js` photographs every drawing on the glass for this (A DRAWN PICTURE CUT BY ITS OWN BOX). */
 .face-pic { display: block; overflow: hidden; padding: 0; }
-.face-pic > svg { display: block; width: 100%; height: 100%; }
+.face-pic > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .dm-av .face-pic { width: 100%; height: 100%; }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,

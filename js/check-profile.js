@@ -750,6 +750,43 @@ let pictures = 0;
     else pictures++;
   }
 }
+/* 12b, AND A CHILD WITH A SECOND ROLE IS STILL A CHILD. Found by review on 10 Oct: the feed's guard asked
+   `toAppRole(mainRole(pp)) === 'kid'`, and `mainRole` ranks tutor and client above student — so a dressed
+   child who ticked Tutor in their own Settings (`setMyRoles`, self-serve, held PENDING and never listed)
+   became "tutor, student", and their photograph went out as their post face to every visitor, where the
+   old line had sent their wearable string. The cell above held `student` alone, so it stayed green. Asked
+   twice: the child's own tick through the real `doPost`, and a row the sheet already holds as
+   "student, client". Neither may put the photograph on the feed; the same child with no figure dressed
+   keeps exactly what the old line sent (their link), so the rule is no stricter than it was. */
+{
+  const f = backend();
+  const kit = Object.assign({}, base, { person_id: 'P-K9', role: 'student', first_name: 'Kit', last_name: 'Nine',
+    handle: 'kit_nine09', email: 'kit9@example.org', avatar: 'skin:3|hair:curls', photo: 'https://example.org/kit9-face.jpg' });
+  const kai = Object.assign({}, base, { person_id: 'P-K10', role: 'student, client', first_name: 'Kai', last_name: 'Ten',
+    handle: 'kai_ten10', email: 'kai10@example.org', avatar: 'skin:2', photo: 'https://example.org/kai10-face.jpg' });
+  const kim = Object.assign({}, base, { person_id: 'P-K11', role: 'student, tutor', first_name: 'Kim', last_name: 'Eleven',
+    handle: 'kim_elev11', email: 'kim11@example.org', avatar: '', photo: 'https://example.org/kim11-face.jpg' });
+  f.seed('people', [admin, kit, kai, kim]);
+  f.seed('posts', [['PO-K9', 'Kit Nine'], ['PO-K10', 'Kai Ten'], ['PO-K11', 'Kim Eleven']].map(([id, a]) => ({ post_id: id, author: a,
+    posted_by: a, image: 'https://example.org/p.jpg', approved: 'APPROVED', active: 'TRUE' })));
+  const face = id => { f.ev('clearCache()'); f.ev('clearPayloadCache()'); return ((f.get({}).posts || []).find(p => p.id === id) || {}); };
+  const lg = f.post({ action: 'verifyLogin', email: kit.email, pin: '0000' });
+  const tick = lg && lg.success
+    ? f.post({ action: 'setMyRoles', token: lg.token, name: lg.name, personId: 'P-K9', roles: ['student', 'tutor'] }) : null;
+  if (!tick || !tick.success || !/tutor/.test(String(f.row('P-K9').role))) {
+    bad.push('pictures: the dressed child could not tick Tutor, so the second-role case was NOT asked — ' + JSON.stringify(tick));
+  } else {
+    const k9 = face('PO-K9');
+    if (JSON.stringify(k9).indexOf('kit9-face.jpg') !== -1) bad.push('pictures: a dressed child who ticked Tutor ("' + f.row('P-K9').role + '") was put on the public feed by their photograph — ' + JSON.stringify({ avatar: k9.avatar }));
+    else pictures++;
+  }
+  const k10 = face('PO-K10');
+  if (JSON.stringify(k10).indexOf('kai10-face.jpg') !== -1) bad.push('pictures: a dressed child held as "student, client" was put on the public feed by their photograph — ' + JSON.stringify({ avatar: k10.avatar }));
+  else pictures++;
+  const k11 = face('PO-K11');
+  if (k11.avatar !== kim.photo) bad.push('pictures: a child with no figure dressed lost the face the old line sent them — ' + JSON.stringify({ avatar: k11.avatar }) + ', wanted their link');
+  else pictures++;
+}
 
 /* 13. YOUR ROLES, THROUGH THE REAL `doPost` AND `doGet`.
    ASKED FOR AS *"each account should have a widget in account settings which say what the roles are.

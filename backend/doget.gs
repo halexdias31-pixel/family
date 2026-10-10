@@ -1207,11 +1207,20 @@ function doGet(e) {
            and under the old line a child who had dressed their figure sent the wearable string in
            place of their photograph — broken, but private. Sending the photograph now would be
            something new about a child to people who could not see their picture before, which the
-           owner ruled out. So for a child (`kid`, the sign-in reply's own test) a LINK is sent only
-           where it was sent before — no figure dressed — and the eleven tokens always, because a fox
-           or the figure the old line already sent tells nobody anything about the child. */
+           owner ruled out. So for a child a LINK is sent only where it was sent before — no figure
+           dressed — and the eleven tokens always, because a fox or the figure the old line already
+           sent tells nobody anything about the child.
+           A CHILD IS ANYBODY WHO HOLDS `student`, ASKED WITH `hasRole` — the test the privacy-gated
+           `students` list above already uses. IT WAS `toAppRole(mainRole(pp)) === 'kid'`, and
+           `mainRole` ranks tutor and client above student, so a child with a second role was not a
+           child here. Found by review on 10 Oct: a child ticks Tutor in their own Settings
+           (`setMyRoles` is self-serve and holds the role PENDING, so they are never listed), the cell
+           becomes "tutor, student", and their photograph went out as their post face to every
+           visitor — where the old line had sent their wearable string. Asking "does this person hold
+           student" errs the private way: an adult who also takes lessons and has dressed a figure
+           keeps the old line's answer too, which is no worse than before this change. */
         const face = S(pp.photo);
-        const kidHid = !photoChoice_(face) && toAppRole(mainRole(pp)) === 'kid' && !!S(pp.avatar);
+        const kidHid = !photoChoice_(face) && hasRole(pp, 'student') && !!S(pp.avatar);
         faces[key(nm)] = {
           handle: S(pp.handle) || S(pp.first_name) || nm,
           avatar: kidHid ? '' : face,
