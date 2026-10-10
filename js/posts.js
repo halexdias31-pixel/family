@@ -2495,9 +2495,11 @@ function reelCards_(count) {
   for (let i = 0; i < count; i++) {
     const it = reelItem_(REEL_SHOWN);
     if (!it) break;
-    /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. The sound button
+    /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. The Sound tile
        sits inside it and carries its own `data-do`, and the dispatcher takes the NEAREST one —
-       so reaching for the sound never stops the clip by accident.
+       so reaching for the sound never stops the clip by accident. Drawn muted, always: a slide
+       built or rebuilt here holds a new `<video>` (or a Short with no player yet), and both start
+       silent — see `reelSoundTile_`.
 
        `is-held` IS DRAWN FROM THE STATE RATHER THAN LEFT ON THE ELEMENT, and the measurement is
        why: a repaint rebuilds this markup, so the class the tap added went with it while `REEL_HELD`
@@ -2508,7 +2510,7 @@ function reelCards_(count) {
     out.push(`<div class="card is-widget"><div class="widget-slot">
       <div class="reel${REEL_SHOWN === REEL_HELD ? ' is-held' : ''}"
            data-reel="${REEL_SHOWN}" data-do="reel-tap">${feedSlide(it)}` +
-      `<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button></div>
+      `${reelSoundTile_(false)}</div>
     </div></div>`);
     REEL_SHOWN++;
   }
@@ -2671,7 +2673,7 @@ function reelPlay_(v) {
     v.src = src;
   }
   /* A BLOCKED AUTOPLAY IS A REJECTED PROMISE AND NOT AN ERROR. Every browser refuses to start an
-     unmuted video nobody has tapped, and one that has been unmuted by the button below and then
+     unmuted video nobody has tapped, and one that has been unmuted by the Sound tile below and then
      scrolled back to is exactly that case. Caught and dropped: the slide is on screen with its
      first frame showing, which is what a paused reel looks like. */
   const p = v.play();
@@ -2690,7 +2692,7 @@ function reelPlay_(v) {
      arriving        the poster is already there (`feedSlide`); THIS builds the player, muted, and it
                      starts itself — the one kind of start every browser allows
      tap             `pauseVideo` / `playVideo`, and `is-held` draws the ▶, exactly as for a video
-     Sound           `unMute` / `mute`, the same button and the same words
+     Sound           `unMute` / `mute`, the same tile and the same words
      leaving         `pauseVideo`; a page further and the player is taken down (`reelYtDrop_`)
      cannot load     the poster stays, and one link says "Watch on YouTube" (`reelYtDead_`)
 
@@ -2790,7 +2792,7 @@ function reelYtBuild_(box) {
   f.className = 'feed-yt-frame';
   f.dataset.n = String(++YT_SEQ);
   f.title = 'YouTube video';
-  /* `autoplay` IN `allow` IS WHAT LETS THE SOUND BUTTON WORK: a tap on this page is the gesture, and
+  /* `autoplay` IN `allow` IS WHAT LETS THE SOUND TILE WORK: a tap on this page is the gesture, and
      this is the page delegating it to the frame. `referrerpolicy` is the Videos card's, for its
      reason — YouTube refuses (error 153) a page that sends no referrer at all. `tabindex=-1`: the
      slide is the control and YouTube's buttons are not, so a keyboard does not stop inside them. */
@@ -2855,8 +2857,8 @@ function reelYtPause_(box) {
    Short one clip in three, never more than one or two — decided by the page you are on, the number
    the app already knows, rather than by a clock that would need a timer per slide and still guess.
 
-   A PLAYER BUILT AGAIN STARTS MUTED, as every autoplaying thing must, and the button is put back to
-   say so — a label reading "Sound on" over a player that has just started silent is the invisible
+   A PLAYER BUILT AGAIN STARTS MUTED, as every autoplaying thing must, and the tile is put back to
+   say so — a speaker with its waves over a player that has just started silent is the invisible
    mode `is-held` exists to prevent. */
 function reelYtDrop_(box) {
   if (!box) return;
@@ -2867,8 +2869,7 @@ function reelYtDrop_(box) {
   if (f) f.remove();
   if (box.dataset.sound) {
     delete box.dataset.sound;
-    const b = box.closest('.reel') && box.closest('.reel').querySelector('.reel-sound');
-    if (b) b.textContent = 'Sound off';
+    reelSoundSay_(box.closest('.reel') && box.closest('.reel').querySelector('.reel-sound'), false);
   }
 }
 
@@ -2987,7 +2988,7 @@ addEventListener('message', e => {
 
 /* SOUND IS OFF UNTIL IT IS ASKED FOR, because a column that starts talking the moment it opens is a
    column nobody opens twice — and because a muted video is the only kind a browser will start by
-   itself. The button says the state it is IN, not the state it would move to: "Sound off" on a
+   itself. The tile says the state it is IN, not the state it would move to: "Sound off" on a
    muted clip is what everything else in this app does with a switch. */
 /* ---------- A REEL YOU CANNOT STOP ----------------------------------------------------------------
    THERE WAS NO PAUSE. The column autoplays whatever page you are on, which is right, and the only
@@ -3034,9 +3035,37 @@ on('reel-tap', (el, e) => {
   }
 });
 
+/* ---------- THE SOUND IS A TILE, LIKE EVERYTHING ELSE ---------------------------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* It was a `.btn
+   tiny` with "Sound off" written in it — the last control on a reel drawn by hand rather than by
+   `tile_`, the one renderer, so its tap target, its press and its mark were its own (note 323).
+
+   ONE FUNCTION DRAWS IT AND ONE SAYS ITS STATE, because three places change it — the first paint,
+   the press, and a Short's player taken down a page away — and each rewrote `textContent` on its
+   own. Three writers of one fact is three chances to disagree; now the label, the mark and
+   `aria-pressed` move together or not at all (`tileSet_` is the star's own way of doing that).
+
+   THE LABEL SAYS THE STATE IT IS IN, exactly as the button's words did: "Sound off" on a muted clip,
+   "Sound on" on one playing aloud — and the mark says the same thing in a picture, the crossed
+   speaker every phone draws over a silent clip. `aria-pressed` is the third copy, for a screen
+   reader, which cannot see which mark is drawn.
+
+   ITS OWN TONE, `over`, because it is not on a card: it sits on a moving picture, where the plate
+   every other tile wears (3% white) is invisible on a white wall. `--over-wash` is the wash the ▶ and
+   the Short's door already use over the same picture — see `.tile.is-over` in style.css. `cls` keeps
+   `.reel-sound`, the name the stylesheet places it by and a dead Short hides it by. */
+function reelSoundTile_(on) {
+  return tile_({ icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off',
+                 tone: 'over', cls: 'reel-sound', act: 'reel-sound', pressed: !!on });
+}
+function reelSoundSay_(el, on) {
+  if (!el) return;
+  tileSet_(el, { icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off', pressed: !!on });
+}
+
 on('reel-sound', (el) => {
   const slide = el.closest('.reel');
-  /* THE SAME BUTTON AND THE SAME WORDS FOR A SHORT, said to the player instead of set on an element.
+  /* THE SAME TILE AND THE SAME WORDS FOR A SHORT, said to the player instead of set on an element.
      A held Short is not started by it: sound on a stopped reel is a choice for when it next plays. */
   const yt = slide && slide.querySelector('.feed-yt');
   if (yt) {
@@ -3045,13 +3074,13 @@ on('reel-sound', (el) => {
     if (on_) yt.dataset.sound = 'on'; else delete yt.dataset.sound;
     reelYtSay_(yt, on_ ? 'unMute' : 'mute');
     if (on_ && yt.dataset.want === 'play') reelYtSay_(yt, 'playVideo');
-    el.textContent = on_ ? 'Sound on' : 'Sound off';
+    reelSoundSay_(el, on_);
     return;
   }
   const v = slide && slide.querySelector('video.feed-vid');
   if (!v) return;
   v.muted = !v.muted;
-  el.textContent = v.muted ? 'Sound off' : 'Sound on';
+  reelSoundSay_(el, !v.muted);
   if (!v.muted) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
 });
 

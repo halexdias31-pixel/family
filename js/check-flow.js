@@ -530,6 +530,114 @@ check('the app loads and draws without throwing', async () => {
   return bad;
 });
 
+/* ---------- THE REELS' SOUND IS A TILE, READ THE THREE WAYS IT SAYS ITS STATE ------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* A tile has no word
+   on it, so the state is said three times and each is read here: the NAME (`aria-label` and `title`,
+   "Sound off" on a muted clip, "Sound on" playing aloud — the state it is IN, as the button's words
+   were), the MARK (the crossed speaker or the one with its waves), and `aria-pressed` for a screen
+   reader. Any one drifting from the other two is a tile that says two things, which is worse than the
+   button it replaced. Drawn by `tile_` and nothing else: `.tile`, `.is-over` (the wash it wears over
+   a picture) and `.reel-sound` (where it sits, and what a dead Short hides). Shared by both journeys. */
+const soundTileSays_ = (el, on, where) => {
+  if (!el) return ['there is no Sound control on ' + where];
+  const bad = [];
+  const want = on ? 'Sound on' : 'Sound off';
+  const mark = on ? 'tile-i-sound' : 'tile-i-mute';
+  if (el.tagName !== 'BUTTON' || !['tile', 'is-over', 'reel-sound'].every(c => el.classList.contains(c)))
+    bad.push(`the Sound control on ${where} is not the over-picture tile — <${el.tagName.toLowerCase()} class="${el.className}">`);
+  if (el.dataset.do !== 'reel-sound') bad.push(`the Sound tile on ${where} carries data-do="${el.dataset.do}", not its own reel-sound`);
+  if (el.getAttribute('aria-label') !== want || el.getAttribute('title') !== want)
+    bad.push(`the Sound tile on ${where} is named "${el.getAttribute('aria-label')}" / "${el.getAttribute('title')}", wanted "${want}"`);
+  if (el.getAttribute('aria-pressed') !== String(on))
+    bad.push(`the Sound tile on ${where} says aria-pressed="${el.getAttribute('aria-pressed')}", wanted "${on}"`);
+  const marks = [...el.querySelectorAll('svg.tile-i')];
+  if (marks.length !== 1 || !marks[0].classList.contains(mark) || !marks[0].querySelector('path'))
+    bad.push(`the Sound tile on ${where} draws ${marks.map(m => m.getAttribute('class')).join(' + ') || 'no mark'}`
+             + `, wanted the one ${mark} (TILE_ICONS needs both sound and mute)`);
+  if (el.textContent.trim()) bad.push(`the Sound tile on ${where} has words drawn on it: "${el.textContent.trim()}"`);
+  return bad;
+};
+
+/* ---------- A <VIDEO> REEL'S SOUND, PRESSED WHERE A FINGER PRESSES IT --------------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* What has to survive
+   the button becoming a tile, each a perfectly good-looking slide when it is wrong:
+     - every reel drawn carries ONE Sound tile and no `.btn`, drawn muted, because every clip starts so;
+     - a press on the tile's MARK — where a fingertip lands, an `<svg>` inside the button — reaches
+       `reel-sound` through the real dispatcher and never `reel-tap`: the nearest `data-do` wins, so
+       reaching for the sound must not stop the clip (a held reel would draw the ▶);
+     - turned on, the `<video>` is unmuted AND asked to play, since a clip a browser refused to start
+       aloud would otherwise stay silent and still under a tile saying "Sound on";
+     - and the name, the mark and `aria-pressed` follow it both ways (`soundTileSays_`).
+   JSDOM PLAYS NOTHING, so the one `<video>` is given a `play`, a `pause` and a `paused` that keep
+   count — the same stand-in move the Short's journey makes for YouTube's player. */
+check('the reels\' Sound is a tile: one per reel, drawn muted, a press on its mark turns a <video> aloud and back through the dispatcher, the name, mark and aria-pressed follow, and it never pauses the clip', async () => {
+  const { w } = boot();
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t;
+  if (!t) return ['the app did not finish loading'];
+  const d = w.document;
+  const bad = [];
+  const at = () => ((typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {}).reel || 0;
+  const turn = async n => { t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_(); };
+  t.go('reel', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const host = d.querySelector('#s-reel');
+  if (!host) return ['the Reels column did not draw'];
+  const reels = [...host.querySelectorAll('.reel')];
+  if (!reels.length) return ['the Reels column drew no reel to press'];
+  reels.forEach(r => {
+    const s = r.querySelectorAll('[data-do="reel-sound"]');
+    if (s.length !== 1) bad.push('reel ' + r.dataset.reel + ' carries ' + s.length + ' Sound controls, not one');
+    else soundTileSays_(s[0], false, 'reel ' + r.dataset.reel + ' as drawn').forEach(x => bad.push(x));
+  });
+  const btns = host.querySelectorAll('.reel .btn');
+  if (btns.length) bad.push(btns.length + ' `.btn` still drawn on the reels: ' + btns[0].outerHTML.slice(0, 100));
+
+  /* THE <VIDEO> REEL IN FRONT — turned to if the page in front is the Short. */
+  let reel = reels.find(r => r.querySelector('video.feed-vid') && Number(r.dataset.reel) === at());
+  if (!reel) {
+    const next = reels.find(r => r.querySelector('video.feed-vid'));
+    if (!next) return bad.concat(['no reel in the column is a <video> — this journey pressed nothing']);
+    await turn(Number(next.dataset.reel));
+    reel = host.querySelector('.reel[data-reel="' + next.dataset.reel + '"]');
+  }
+  const v = reel && reel.querySelector('video.feed-vid');
+  if (!v) return bad.concat(['the <video> reel was not on its page after turning to it']);
+  let paused = false, plays = 0;
+  v.play = () => { plays++; paused = false; return Promise.resolve(); };
+  v.pause = () => { paused = true; };
+  Object.defineProperty(v, 'paused', { configurable: true, get: () => paused });
+  v.muted = true;
+  const snd = () => reel.querySelector('[data-do="reel-sound"]');
+  /* A TAP ON THE MARK, which bubbles to the button and then to the slide's own `reel-tap` — the real
+     dispatcher decides which of the two it is. */
+  const press = () => {
+    const el = snd();
+    const target = (el && el.querySelector('svg')) || el;
+    if (target) target.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+  };
+
+  plays = 0;
+  press();
+  if (v.muted) bad.push('a press on the Sound tile\'s mark left the <video> muted');
+  if (!plays) bad.push('turned aloud, the <video> was not asked to play — a clip refused a start would stay silent and still');
+  if (paused || reel.classList.contains('is-held'))
+    bad.push('a press on the Sound tile paused the clip — the tap reached reel-tap, not the tile\'s own reel-sound');
+  soundTileSays_(snd(), true, 'a <video> reel turned aloud').forEach(x => bad.push(x));
+
+  press();
+  if (!v.muted) bad.push('a second press on the Sound tile left the <video> playing aloud');
+  if (paused || reel.classList.contains('is-held'))
+    bad.push('turning the sound off paused the clip — the tap reached reel-tap, not the tile\'s own reel-sound');
+  soundTileSays_(snd(), false, 'a <video> reel turned back to silent').forEach(x => bad.push(x));
+
+  /* AND THE SLIDE ITSELF IS STILL THE PAUSE — a tap beside the tile holds the clip, which is what makes
+     the two presses above a test of which handler was nearest rather than of a slide that does nothing. */
+  reel.querySelector('.feed-art').dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+  if (!paused || !reel.classList.contains('is-held')) bad.push('a tap on the picture beside the Sound tile did not hold the clip');
+  return bad;
+});
+
 /* ---------- A YOUTUBE SHORT IS A REEL, AND THE COLUMN DRIVES IT ------------------------------------
    THE OWNER, 9 OCT: *"i want to add this to reels, maybe embedd? or work fine without? i just want it
    to look like other reels... also is there a grey effect on reels? i dont like that if there is
@@ -622,12 +730,23 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   if (funcs().join() !== 'playVideo') bad.push('a second tap said ' + (funcs().join(', ') || 'nothing') + ', not playVideo');
   if (reel.classList.contains('is-held')) bad.push('the ▶ stayed after the Short was started again');
 
-  /* THE APP'S OWN SOUND BUTTON, THE SAME WORDS. */
+  /* THE APP'S OWN SOUND TILE, THE SAME WORDS — BOTH WAYS, AND THEN ON AGAIN so the player taken down
+     below has a sound to forget (note 323). Pressed through its handler, which is the one a tap on
+     the tile reaches; the `<video>` journey below presses the real dispatcher. */
+  const snd = reel.querySelector('[data-do="reel-sound"]');
+  soundTileSays_(snd, false, 'a Short not yet pressed').forEach(x => bad.push(x));
+  if (!snd) return bad;
   said.length = 0;
-  const snd = reel.querySelector('.reel-sound');
   t.ACTIONS['reel-sound'](snd);
   if (funcs().indexOf('unMute') === -1) bad.push('Sound on a Short said ' + (funcs().join(', ') || 'nothing') + ', not unMute');
-  if (snd.textContent !== 'Sound on') bad.push('the Sound button reads "' + snd.textContent + '" after turning the sound on');
+  soundTileSays_(snd, true, 'a Short turned aloud').forEach(x => bad.push(x));
+  said.length = 0;
+  t.ACTIONS['reel-sound'](snd);
+  if (funcs().indexOf('mute') === -1 || funcs().indexOf('unMute') !== -1)
+    bad.push('Sound off on a Short said ' + (funcs().join(', ') || 'nothing') + ', not mute');
+  soundTileSays_(snd, false, 'a Short turned back to silent').forEach(x => bad.push(x));
+  t.ACTIONS['reel-sound'](snd);
+  soundTileSays_(snd, true, 'a Short turned aloud a second time').forEach(x => bad.push(x));
 
   /* LEAVING PAUSES IT; A PAGE FURTHER TAKES IT DOWN, AND THE BUTTON IS PUT BACK. */
   said.length = 0;
@@ -636,7 +755,8 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   if (frames().length !== 1) bad.push('the page next door lost its player — a flick back would reload it');
   await turn(n + 2);
   if (frames().length) bad.push('a player two pages away is still in the column');
-  if (snd.textContent !== 'Sound off') bad.push('a player taken down left its button reading "' + snd.textContent + '"');
+  soundTileSays_(snd, false, 'a Short whose player was taken down (it starts silent when built again)')
+    .forEach(x => bad.push(x));
 
   /* LEAVING THE COLUMN TAKES IT DOWN TOO. */
   await turn(n);
@@ -661,6 +781,16 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
       bad.push('a Short that cannot play has no "Watch on YouTube" door to it: ' + (out ? out.outerHTML.slice(0, 120) : 'none'));
     t.ACTIONS['reel-tap'](reel);
     if (reel.classList.contains('is-held')) bad.push('a tap on a Short that cannot play drew a ▶ over it');
+    /* AND ITS SOUND TILE IS A CONTROL FOR NOTHING: hidden by the stylesheet (jsdom cannot compute
+       `:has`, so the rule is read), and a press that arrives anyway says nothing to a player that is
+       gone and leaves the tile as it was. */
+    if (!/\.reel:has\(\.feed-art\.is-dead\)\s+\.reel-sound\s*\{[^}]*display:\s*none/.test(css))
+      bad.push('nothing in style.css hides the Sound tile on a Short that cannot play');
+    if (!snd.classList.contains('reel-sound')) bad.push('the Sound tile lost `.reel-sound`, the name a dead Short hides it by');
+    const before = snd.outerHTML;
+    said.length = 0;
+    t.ACTIONS['reel-sound'](snd);
+    if (snd.outerHTML !== before) bad.push('a press on a dead Short\'s Sound tile changed it, over a player that is gone');
   }
 
   /* THE GREY: NO WASH WHERE THERE ARE NO WORDS. A clip slide draws no words, and the stylesheet's

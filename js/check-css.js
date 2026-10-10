@@ -438,6 +438,29 @@ const handTone = [];
     if (m && !/^(000000|ffffff)$/i.test(m[1])) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
   });
   if (!Object.keys(tok).length) handTone.push(':root holds no hex colour tokens this check can read — the tiles were NOT checked');
+  /* ---------- AND A WASH WITH A NAME IS A TOKEN TOO --------------------------------------------------
+     THE RULE ABOVE READ HEX TOKENS ONLY, and lets every black and white wash through on the argument
+     that `rgb(255 255 255 / .08)` is a press, not a colour. True of an anonymous wash; not of one
+     `:root` NAMES. `--over-wash` and `--over-edge` are the charcoal and the hairline a control wears
+     over a moving picture — one colour in three components, named because the third hand-written copy
+     is what review caught (note 319) — and the reels' Sound tile became the fourth wearer on 10 Oct
+     (`.tile.is-over`, note 323). Written out in a `.tile` rule it paints the same today and drifts the
+     day the wash is retuned, which is the `.tile.is-lead` fault in a different spelling.
+     SO A `.tile` DECLARATION MAY NOT SPELL OUT AN rgb()-VALUED `:root` TOKEN — the SAME channels and
+     the SAME alpha, which is what makes it that token rather than a wash of its own. An opaque pure
+     black or white is still not a token, by the argument above. Read off `:root`, so a wash named
+     tomorrow is covered tomorrow. */
+  const rgbKey = s => {
+    const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[\/,]\s*([\d.]+)(%?))?\s*\)$/.exec(String(s).trim());
+    if (!m) return null;
+    const a = m[4] == null ? 1 : parseFloat(m[4]) / (m[5] ? 100 : 1);
+    return [+m[1], +m[2], +m[3], +a.toFixed(3)].join(' ');
+  };
+  const wash = {};
+  (root ? root.decls : []).forEach(d => {
+    const k = /^--[\w-]+$/.test(d.prop) && rgbKey(d.val);
+    if (k && !/^(0 0 0|255 255 255) 1$/.test(k)) (wash[k] = wash[k] || []).push(d.prop);
+  });
   const hex = (a, b, c) => [a, b, c].map(n => (+n).toString(16).padStart(2, '0')).join('');
   rules.filter(r => /\.tile(?![\w-])/.test(r.sel)).forEach(r => r.decls.forEach(d => {
     if (/^--/.test(d.prop)) return;
@@ -448,6 +471,11 @@ const handTone = [];
       if (tok[h]) handTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + lit + '…` is '
         + tok[h].join(' / ') + ' written out — say `color-mix(in srgb, var(' + tok[h][0] + ') N%, transparent)`');
     });
+    for (const m of d.val.matchAll(/rgba?\([^)]*\)/g)) {
+      const k = rgbKey(m[0]);
+      if (k && wash[k]) handTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + m[0] + '` is '
+        + wash[k].join(' / ') + ' written out — say `var(' + wash[k][0] + ')`');
+    }
   }));
 }
 

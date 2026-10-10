@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-submissions-loader-notifications";
+  --css-version: "2026-10-10-the-sound-is-a-tile";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -214,7 +214,7 @@
   --quick: .13s;         /* how long anything takes to respond to a touch */
 
   /* ---------- A CONTROL LAID OVER A MOVING PICTURE ----------------------------------------------
-     The reels' Sound button, the ▶ on a held reel and a dead Short's "Watch on YouTube": a charcoal
+     The reels' Sound tile, the ▶ on a held reel and a dead Short's "Watch on YouTube": a charcoal
      wash with a hairline edge and white words, which reads on a bright frame and a dark one alike.
      ONE COLOUR IN THREE COMPONENTS, so it is named here; it was written out by hand in each, and the
      third copy is what review caught (note 319). Beside `--letterbox` in spirit — a picture's own
@@ -11046,7 +11046,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* ---------- AND WHEN IT CANNOT PLAY: THE POSTER, AND ONE WAY OUT ------------------------------------
    Drawn from the first paint and shown only on `is-dead`, so nothing moves when it appears. In the
    middle, where the ▶ would be — a dead Short cannot be held, so that place is free — and in the
-   same charcoal wash as the Sound button, which is what a control over a picture looks like
+   same charcoal wash as the Sound tile, which is what a control over a picture looks like
    everywhere this feature draws one. In px, the house rule for anything a finger aims at. */
 .feed-yt-out { display: none; }
 .feed-art.is-dead .feed-yt-out {
@@ -11056,7 +11056,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   background: var(--over-wash); border: 1px solid var(--over-edge);
   color: var(--over-ink); font-size: .82rem; white-space: nowrap; text-decoration: none;
 }
-/* A SOUND BUTTON ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
+/* A SOUND TILE ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
 .reel:has(.feed-art.is-dead) .reel-sound { display: none; }
 
 /* ---------- A STOPPED REEL SAYS SO ----------------------------------------------------------------
@@ -11084,34 +11084,44 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   pointer-events: none;
 }
 
-/* IN PX, AND THAT IS THE RULE RATHER THAN A PREFERENCE. A fingertip is the same size on every
-   screen; `2.75rem` is 40.75px on a phone and CLAUDE.md has four convictions behind that sentence.
-   Top-right because the words are bottom-left and a control over what somebody is reading is a
-   control they hit by accident. */
-.reel-sound {
-  position: absolute; z-index: 3; top: .6rem; right: .6rem;
-  /* ---------- VIDEO CHROME, NOT THE APP'S PRIMARY ACTION -----------------------------------------
-     `.btn` IS GOLD, which is right for the one thing a form wants you to press and wrong laid over
-     a moving picture: a screenshot of a whole slide showed a gold slab reading "Sound off" as the
-     loudest thing on a card whose whole content is the clip. The same wash the paused mark uses,
-     which is also the wash `.feed-art.has-photo:has(> .feed-text)::before` lays under the words — so
-     a control over a picture looks the same wherever this feature draws one, on a bright frame and a
-     dark one alike. `--over-wash` and its two partners at `:root` are that one colour, named.
+/* ---------- THE SOUND IS A TILE, AND THIS RULE ONLY SAYS WHERE IT SITS -----------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* It was a
+   `.btn tiny` with "Sound off" in it; it is `tile_()` now (`reelSoundTile_`, posts.js), so its size,
+   its 44px target, its press and its mark come from `.tile` like every other action in the app, and
+   what is left here is the place. The plate it wears over the picture is `.tile.is-over`, below.
 
-     THE WORDS STAY. A glyph would have said the same thing in less room and the note below is the
-     reason it does not: the button says the state it is IN, which is what every other switch in
-     this app does, and "Sound off" cannot be read as "press to turn the sound off" by mistake the
-     way a crossed-out speaker can. */
-  background: var(--over-wash);
-  border-color: var(--over-edge);
-  color: var(--over-ink);
-  /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
-     Absolutely positioned it made a gold bar across the top of the slide, which is what the
-     screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the
-     same reason. */
-  width: auto; left: auto;
-  min-height: 44px; min-width: 44px;
-}
+   TOP-RIGHT, WHERE THE BUTTON SAT, because the words are bottom-left and a control over what somebody
+   is reading is a control they hit by accident — and the ▶ of a held reel and a dead Short's door
+   are both in the middle, so the corner is the one place on the slide nothing else is drawn. The
+   44px is `.tile`'s, in px, the house rule for anything a finger aims at: `2.75rem` is 40.75px on a
+   phone, and CLAUDE.md has four convictions behind that sentence.
+
+   WHAT THE BUTTON TAUGHT AND THE TILE KEEPS: `.btn` was gold and full-width, so absolutely placed it
+   was a gold slab across the top of the clip, the loudest thing on a card whose whole content is
+   the picture — "the `.reel-sound` correction", which four notes in this file and two in posts.js
+   (the shelf's Add another, `.btn-row .btn`, `.mz-key`, the Messages column) still cite by this name.
+   A tile is neither gold nor full-width, so the two overrides that answered it (`width: auto`, the
+   wash on `.btn`) went with the button.
+
+   THE WORD GOES INTO THE NAME, as on every tile. The old note here kept the word on the button
+   because "a crossed-out speaker can be read as press to turn the sound off". The tile answers that
+   by drawing the STATE as the word did — waves while it plays aloud, the slash while it is silent,
+   which is what every phone's video player puts over a muted clip — and the word is still there in
+   `aria-label` and `title`, with `aria-pressed` beside it. */
+.reel-sound { position: absolute; z-index: 3; top: .6rem; right: .6rem; }
+/* ---------- A TILE ON A PICTURE WEARS THE PICTURE'S WASH ---------------------------------------------
+   EVERY OTHER TILE'S PLATE IS 3% WHITE ON THE APP'S BLACK, and that is right on a card: the mark is
+   the button and the plate only says where it ends. Laid over a clip it is nothing — on a white wall
+   the mark is `--dim` grey on white and the edge is invisible. So `tone: 'over'` (`tile_` writes
+   `is-over`) gives it the wash the ▶ and the Short's door already wear over the same picture:
+   `--over-wash` under white ink with the hairline edge, which reads on a bright frame and a dark one
+   alike. Tokens only, the three named at `:root` for exactly this — no fourth copy of the charcoal.
+
+   PRESSED, THE EDGE GOES WHITE rather than the plate going lighter, because the plate lighter is
+   the wash thinning over a bright picture — the one moment the mark must not fade is the moment
+   somebody's thumb is on it. `.tile`'s own scale does the rest. */
+.tile.is-over { background: var(--over-wash); border-color: var(--over-edge); color: var(--over-ink); }
+.tile.is-over:active, .tile.is-over.is-pressed { background: var(--over-wash); border-color: var(--over-ink); }
 
 /* AN UNREAD MESSAGE IS IN THE FOREGROUND COLOUR, not behind a badge. A count you have to notice is
    a count you can miss. */

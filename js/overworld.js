@@ -110,7 +110,7 @@ function drawFeed() {
      that did was the reel column's observer. A fact reaches both surfaces and a clip reached one:
      the same half-move `factsNow_` was written to end, one layer down.
 
-     NO SOUND BUTTON, AND THAT IS A DIFFERENCE WORTH KEEPING. This card is one tap target — the tap
+     NO SOUND TILE, AND THAT IS A DIFFERENCE WORTH KEEPING. This card is one tap target — the tap
      deals the next fact — so a second control inside it would take the tap the widget is for. A
      clip here is muted and looping, which is what it is on the column until somebody asks. */
   const vid = host.querySelector('video.feed-vid');

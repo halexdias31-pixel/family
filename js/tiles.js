@@ -52,6 +52,14 @@
 
    `aria-hidden`, for the same reason. The word is already the accessible name, and a screen reader
    announcing "graphic, play" before it would be the second explanation all over again. */
+/* ---------- ONE SPEAKER, DRAWN ONCE, FOR THE THREE MARKS THAT HAVE ONE -----------------------------
+   Imposter's Listen (`speak`) and the reels' Sound tile (`sound` and `mute`) are the same cone, and a
+   cone written out three times is three chances for one of them to sit a pixel lower than the others
+   -- the drift `.tile.is-lead` records for a colour, one layer down. The waves are shared for the
+   same reason: the mark on a reel playing aloud and the mark on Listen are the same picture of the
+   same thing, sound coming out. */
+const TILE_CONE_  = '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/>';
+const TILE_WAVES_ = '<path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/><path d="M14 4a6 6 0 0 1 0 9"/>';
 const TILE_ICONS = {
   play:  '<path d="M5 3.5v11l9-5.5z"/>',
   doc:   '<path d="M4.5 2.5h6l3 3v10h-9z"/><path d="M10.5 2.5v3.5h3"/>',
@@ -206,8 +214,23 @@ const TILE_ICONS = {
      can’t read can play. Like it will read it out for them." (8 Oct.) The mark every phone puts on its
      volume, because the children pressing it cannot read the word beside it: the cone and two arcs at
      the set's 1.4, open like the rest, so it reads as one more outline beside the eyes on Show and Hide. */
-  speak: '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/><path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/>'
-       + '<path d="M14 4a6 6 0 0 1 0 9"/>',
+  speak: TILE_CONE_ + TILE_WAVES_,
+  /* ---------- THE REELS' SOUND, AND THE TWO DIFFER BY WHAT COMES OUT OF THE CONE -------------------
+     THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* It was the one
+     control on a reel that was still a `.btn` with a word in it (note 323).
+
+     A PAIR, THE PADLOCK'S ARGUMENT ABOVE: the same cone in both, and only what leaves it changes --
+     the two waves on a clip playing aloud, a slash and no waves on a muted one. Drawn any other way
+     the two read as two unrelated pictures and the switch has to be learnt twice.
+
+     EACH SAYS THE STATE IT IS IN, NOT THE ONE A PRESS MOVES TO, which is what the button's words did
+     ("Sound off" on a muted clip) and what every phone's video player draws: a crossed speaker over a
+     clip that is silent. `sound` is the same drawing as `speak` under its own name, so the stylesheet
+     and the checks can tell the reel's switch from Imposter's Listen -- two acts that share a picture.
+     THE SLASH RUNS CORNER TO CORNER across the cone and the space the waves left, so the muted mark is
+     as wide as the playing one and the tile does not look half empty in one of its two states. */
+  sound: TILE_CONE_ + TILE_WAVES_,
+  mute:  TILE_CONE_ + '<path d="M2.5 2.5 15.5 14.5"/>',
 };
 
 function tileIcon_(name) {

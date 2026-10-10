@@ -806,7 +806,7 @@ function feedColours(seed) {
    `playVideo`, `pauseVideo`, `mute`, `unMute` — says what it is doing (`onStateChange`) and what went
    wrong (`onError`), and every browser lets it start by itself muted. So a Short gets everything an
    mp4 reel has, done by the app: it plays when it is the reel on screen and stops when it is not, a
-   tap holds it and draws the ▶, the app's own Sound button speaks, and its own first frame is on the
+   tap holds it and draws the ▶, the app's own Sound tile speaks, and its own first frame is on the
    slide from the moment you arrive. `reelYtPlay_` and the functions round it in posts.js are that half.
    YouTube's buttons are never pressed: a clear layer over the player takes every touch.
 
