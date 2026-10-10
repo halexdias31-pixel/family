@@ -410,6 +410,87 @@ const MIN_CONTRAST_BIG  = 3.0;
 const BOARDS = '.chess, .c4, .oth, .mz, .ws, .scr';
 const BOARD_TOL = 0.5;
 
+/* ---------- A WAIT IS THE ONE LOADER, THE SAME EVERYWHERE, AND IT HOLDS ITS ROOM ------------------
+   THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple
+   loading thing while it's info or whatever is loading."* `js/check-loading.js` reads the source for a
+   wait drawn any other way; this measures the one that is drawn, wherever a state puts it on the
+   screen — and `check/states.js` holds three widgets on a real request so that there is one to measure
+   (`the business records still coming`, `the videos still coming`, `the camera still starting`).
+
+   ASKED OF EVERY LOADER ON THE PAGE IN FRONT, IN EVERY STATE:
+     · it is the one loader — `role="status"`, three dots;
+     · its dots are the size and the gap of `loading_()` as the app draws it with nothing round it — a
+       reference loader is put on the page, measured and taken off again, so the size is the app's own
+       and not a number written here — and the same as every other loader measured at that width
+       (`loaderSizes`, compared once the run is over). The size is `rem`, so it is a fact per width;
+     · the dots are centred in the loader's box, and the box is centred across its card — "the same
+       place in every card".
+   AND OF A STATE THAT CAN `release` WHAT IT HELD: the card's height is taken with the loader on it,
+   the request let go, `landed` waited for, and the height taken again. The loader is drawn OVER what
+   is already there precisely so that these are the same number; a difference is the card jumping at
+   the moment its content arrives.
+
+   MEASURED BY LAYOUT, NOT BY PAINT. The dots breathe — a scale of .75 to 1 — so a dot's painted
+   width depends on the frame; `offsetWidth` is the box before the transform, and a box's centre is
+   where it is whatever the scale, because a transform scales about the middle. */
+const LOADER_TOL = 1.5;     // px — sub-pixel layout and nothing else, as `ragged`'s 2px
+function loadersOn(sid) {
+  const host = document.getElementById('s-' + sid);
+  const out = [];
+  if (!host) return out;
+  let at = 0;
+  try { at = domIndex_(sid, PAGE[sid] || 0); } catch (e) { at = 0; }
+  const pages = host.querySelectorAll(':scope > .page');
+  const front = pages.length ? pages[Math.max(0, Math.min(pages.length - 1, at))] : host;
+  const sheet = document.querySelector('#sheet:not(.hidden) #sheet-body');
+  const roots = [front].concat(sheet ? [sheet] : []);
+  /* THE ONE LOADER AS `loading_()` DRAWS IT, on the page and outside every card, for the size to hold
+     the rest to. */
+  let ref = null;
+  try {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:0;top:0;width:200px;visibility:hidden;pointer-events:none';
+    box.innerHTML = loading_();
+    document.body.appendChild(box);
+    const d = box.querySelectorAll('.loading > span');
+    const c0 = d[0].getBoundingClientRect(), c1 = d[1].getBoundingClientRect();
+    ref = { dot: d[0].offsetWidth + 'x' + d[0].offsetHeight,
+            gap: +((c1.left + c1.width / 2) - (c0.left + c0.width / 2)).toFixed(2) };
+    box.remove();
+  } catch (e) { ref = null; }
+  roots.forEach(root => root.querySelectorAll('.loading').forEach(l => {
+    const r = l.getBoundingClientRect();
+    if (!r.width || !r.height || getComputedStyle(l).visibility === 'hidden') return;
+    const dots = [...l.children];
+    const card = l.closest('.pane') || l.closest('#sheet-body') || l.parentElement;
+    const c = card.getBoundingClientRect();
+    const rs = dots.map(d => d.getBoundingClientRect());
+    const mid = a => a.length ? (Math.min(...a.map(x => x.left)) + Math.max(...a.map(x => x.right))) / 2 : 0;
+    const vmid = a => a.length ? (Math.min(...a.map(x => x.top)) + Math.max(...a.map(x => x.bottom))) / 2 : 0;
+    const where = (l.parentElement && (l.parentElement.id ? '#' + l.parentElement.id
+      : '.' + String(l.parentElement.className || l.parentElement.tagName.toLowerCase()).split(/\s+/)[0])) || '?';
+    out.push({
+      where,
+      role: l.getAttribute('role'), label: l.getAttribute('aria-label'), n: dots.length,
+      dot: dots.map(d => d.offsetWidth + 'x' + d.offsetHeight),
+      /* CENTRE TO CENTRE, which is the dot and the gap together: a transform scales about the middle, so
+         the centres are where layout put them on every frame, to the sub-pixel — where `offsetLeft` is
+         rounded to a whole pixel and called two equal loaders a pixel apart. */
+      /* AND UNZOOMED: `paneReach_` draws a card too tall for its pane smaller with CSS `zoom`, which
+         `offsetWidth` does not see and a rectangle does — so the pitch is divided back by the zoom the
+         loader sits under, and a loader on a shrunk card is the same loader. */
+      gap: rs.length > 1 ? +(((rs[1].left + rs[1].width / 2) - (rs[0].left + rs[0].width / 2))
+                             / (l.currentCSSZoom || 1)).toFixed(2) : 0,
+      inX: +(mid(rs) - (r.left + r.width / 2)).toFixed(1),
+      inY: +(vmid(rs) - (r.top + r.height / 2)).toFixed(1),
+      onCard: +((r.left + r.width / 2) - (c.left + c.width / 2)).toFixed(1),
+      cardH: +c.height.toFixed(1),
+      ref,
+    });
+  }));
+  return out;
+}
+
 /* ---------- A CUSTOM PROPERTY NOTHING ANYWHERE SETS ---------------------------------------------
    THE ONE CHECK HERE THAT IS NOT A MEASUREMENT, because it is the one question the running page
    cannot answer about itself. It took three wrong answers to work out why.
@@ -1338,6 +1419,11 @@ function inspect(opts) {
      rather than a silence, because "no board was a mess" and "no board was found" both print no
      finding. */
   let boardsMeasured = 0;
+  /* LOADERS, COUNTED LIKE BOARDS — a run that measured none and a run where every one passed print the
+     same nothing. `loaderSizes[width]` collects each one's dot and gap, compared once the run is over:
+     "the same size in every card" is a question across states, not inside one. */
+  let loadersMeasured = 0, heldReleased = 0;
+  const loaderSizes = {};
   /* AND HOW MANY CONTROLS THE EDGE RULE (4, in `inspect`) MEASURED, per subject, for the same reason: a
      keypad that never came up and a keypad whose every key passed print the same nothing. */
   const edgesMeasured = {};
@@ -1380,6 +1466,113 @@ function inspect(opts) {
 
   if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
 
+  /* ---------- A WHOLE PAGE WAITING ON THE PAYLOAD, AND WHAT IT BECOMES ---------------------------------
+     THE RELEASE-AND-REMEASURE BELOW ONLY EVER MET LOADERS DRAWN OVER A CARD (the records, Videos, the
+     camera), because every other state is measured with the payload in. The commonest wait in the app
+     is the other kind — a column that is nothing but the loader until `load()` answers — and review
+     found it drawn as a full-cell EMPTY CARD whose edges collapsed 250–325px a side the moment the
+     content landed (feed 807→311px at 390, Saved 807→158, Spotlight 807→177), with nothing here able
+     to see it. So: a page of its own, signed in, with the payload HELD at the route; the columns that
+     wait on it measured; the payload let go; the same columns measured again.
+     WHAT IS ASKED (style.css, "A WHOLE PAGE WAITING"): while it waits the pane draws NO FRAME — no
+     fill, no visible edge, no shadow — so there is nothing to jump from; and the card that lands is
+     centred where the dots were. Its HEIGHT is not compared, because it is meant to differ: what is
+     on its way is not known until it comes, which is the whole reason no frame is drawn for it.
+     AT THE TWO PHONE WIDTHS, in the first part of a split run (or a run measuring one of these
+     columns) — a boot per width is the cost, and a phone is where this is the first second of the app. */
+  const HELD_COLUMNS = ['feed', 'saved', 'spotlight', 'booking'];
+  let wholePagesHeld = 0;
+  const heldWho = VISITORS.find(v => v.user);
+  if (heldWho && (ONLY ? HELD_COLUMNS.indexOf(ONLY) !== -1 : (!PART.length || PART[0] === 1))) {
+    for (const [width, height] of SIZES.filter(s => s[0] <= 390)) {
+      const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+      const errs = [];
+      page.on('pageerror', e => errs.push(String(e.message).slice(0, 120)));
+      await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, heldWho.user);
+      const held = [];
+      const body = (heldWho.user.roles || []).indexOf('admin') !== -1 ? FIXTURE : FIXTURE_ANON;
+      await page.route('**://script.google.com/**', r => { held.push(r); });
+      const cols = ONLY ? [ONLY] : HELD_COLUMNS;
+      const label = c => `${c} · the payload held`;
+      try {
+        await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null
+          && typeof go === 'function', null, { timeout: 30000 }).catch(() => {});
+        /* ONE FUNCTION FOR BOTH MEASUREMENTS, so "the pane" is found by one rule before and after. */
+        const measure = sid => page.evaluate(async sid => {
+          try { go(sid, false, true); } catch (e) { return { err: String(e.message || e) }; }
+          const t0 = performance.now();
+          for (;;) {
+            const moving = [...document.querySelectorAll('.screen')].some(c =>
+              typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
+            const booked = typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME;
+            if ((!moving && !booked) || performance.now() - t0 > 4000) break;
+            await new Promise(r => setTimeout(r, 50));
+          }
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          const host = document.getElementById('s-' + sid);
+          let at = 0;
+          try { at = domIndex_(sid, PAGE[sid] || 0); } catch (e) { at = 0; }
+          const pages = host ? host.querySelectorAll(':scope > .page') : [];
+          const front = pages.length ? pages[Math.max(0, Math.min(pages.length - 1, at))] : null;
+          const pane = front && front.querySelector(':scope > .pane');
+          if (!pane) return { none: true };
+          const r = pane.getBoundingClientRect(), s = getComputedStyle(pane);
+          const alpha = c => { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return c && c !== 'none' ? 1 : 0;
+                               const p = m[1].split(/[\s,/]+/).filter(Boolean); return p.length > 3 ? parseFloat(p[3]) : 1; };
+          const l = [...pane.querySelectorAll('.loading')].filter(x => x.getClientRects().length);
+          const dots = l[0] ? [...l[0].children].map(d => d.getBoundingClientRect()) : [];
+          return {
+            only: l.length === 1 && pane.children.length === 1 && pane.firstElementChild === l[0],
+            loaders: l.length,
+            mid: +(r.top + r.height / 2).toFixed(1), h: +r.height.toFixed(1),
+            dotMid: dots.length ? +((Math.min(...dots.map(d => d.top)) + Math.max(...dots.map(d => d.bottom))) / 2).toFixed(1) : null,
+            fill: alpha(s.backgroundColor) > 0 || (s.backgroundImage && s.backgroundImage !== 'none'),
+            edge: (parseFloat(s.borderTopWidth) || 0) > 0 && alpha(s.borderTopColor) > 0,
+            shadow: !!s.boxShadow && s.boxShadow !== 'none',
+          };
+        }, sid);
+        const before = {};
+        for (const c of cols) {
+          before[c] = await measure(c);
+          if (SHOTS) await page.screenshot({ path: path.join(__dirname, 'shots', `${c}-payload-held-${width}-in.png`) });
+        }
+        held.splice(0).forEach(r => r.fulfill({ status: 200, contentType: 'application/json', body }).catch(() => {}));
+        await page.unroute('**://script.google.com/**');
+        await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body }));
+        await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 30000 }).catch(() => {});
+        for (const c of cols) {
+          const b = before[c], a = await measure(c);
+          const f = [];
+          if (b.err || b.none) f.push(`with the payload held the column drew no pane to measure${b.err ? ' — ' + b.err : ''}`);
+          else if (!b.only) f.push(`with the payload held the pane holds ${b.loaders} loader(s) and is not the loader alone — `
+                                 + 'the column is not waiting the way every column waits');
+          else {
+            const frame = ['fill', 'edge', 'shadow'].filter(k => b[k]);
+            if (frame.length) f.push(`the pane waiting on the payload draws a frame (${frame.join(', ')}) — an empty card `
+                                   + `${b.h}px tall whose edges jump when the content lands`);
+          }
+          if (a.none || a.err) f.push('once the payload landed the column drew no pane to measure');
+          else if (a.loaders) f.push(`the payload landed and ${a.loaders} loader(s) are still on the column`);
+          else if (b.dotMid !== null && Math.abs(a.mid - b.dotMid) > 4) {
+            f.push(`the dots waited at ${b.dotMid}px down and the card that landed is centred at ${a.mid}px — `
+                 + `it arrived ${(a.mid - b.dotMid).toFixed(1)}px from where the wait was drawn`);
+          }
+          wholePagesHeld++;
+          if (f.length) rows.push({ width, id: label(c), as: 'in', loaders: f });
+          if (SHOTS) {
+            await page.evaluate(s => { try { go(s, false, true); } catch (e) {} }, c);
+            await page.waitForTimeout(500);
+            await page.screenshot({ path: path.join(__dirname, 'shots', `${c}-payload-landed-${width}-in.png`) });
+          }
+        }
+        if (errs.length) rows.push({ width, id: 'the payload held', as: 'in', jsErrors: errs });
+      } catch (e) {
+        rows.push({ width, id: 'the payload held', as: 'in', loaders: [`the held-payload pass could not run: ${String(e.message || e).slice(0, 120)}`] });
+      } finally { await page.close(); }
+    }
+  }
+
   for (const [width, height] of SIZES) {
   for (const who of VISITORS) {
     const page = await browser.newPage({ viewport: { width, height },
@@ -1402,6 +1595,14 @@ function inspect(opts) {
 
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1800);                      // the boot fetch and first paint
+    /* ---------- AND THE PAYLOAD AND THE LIBRARY ACTUALLY IN, NOT A GUESS AT WHEN THEY WILL BE ----------
+       EVERY COLUMN DRAWS THE ONE LOADER UNTIL THEY ARE (`loading_`, shell.js — the owner, 9 Oct), so a
+       screen measured before `load()` has finished is a screen of loaders measured as if it were the
+       column. 1800ms was always enough on a quiet machine; on 9 Oct, at a load average of sixty, the
+       splash was still up at 1920 and the shop's first shelf "had no shelf of things". Asked for, up to
+       thirty seconds — the repository's rule that a fixed sleep is a guess at when a job ran. */
+    await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED
+      && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null, null, { timeout: 30000 }).catch(() => {});
 
     /* SIGNING IN MUST ACTUALLY HAVE HAPPENED. A seeded key the app ignores would leave this pass
        measuring the signed-out screens a second time and reporting it as coverage — "I did not
@@ -1598,10 +1799,80 @@ function inspect(opts) {
         Object.keys(edgeN || {}).forEach(k => { edgesMeasured[k] = (edgesMeasured[k] || 0) + edgeN[k]; });
         if (boards.out.length) rows.push({ width, id: label, as: who.as, boards: boards.out });
 
+        /* EVERY LOADER ON THE PAGE IN FRONT — see `loadersOn`. A state that holds a request and
+           shows NO loader is a selector or a state that stopped reaching its subject, and says so. */
+        const loaders = await page.evaluate(loadersOn, id);
+        const lFound = [];
+        loaders.forEach(l => {
+          if (l.role !== 'status' || l.label !== 'Loading' || l.n !== 3) {
+            lFound.push(`the loader on ${l.where} is not the one loader — role ${l.role}, label ${l.label}, ${l.n} dots`);
+          }
+          if (new Set(l.dot).size > 1) lFound.push(`the loader on ${l.where} has dots of ${[...new Set(l.dot)].join(' and ')}`);
+          if (!l.ref) lFound.push('`loading_()` could not be drawn on the page to measure the loader against');
+          else if (l.dot[0] !== l.ref.dot || Math.abs(l.gap - l.ref.gap) > 0.5) {
+            lFound.push(`the loader on ${l.where} has dots of ${l.dot[0]} ${l.gap}px centre to centre, where \`loading_()\` `
+                      + `draws ${l.ref.dot} ${l.ref.gap}px — a loader dressed for one card`);
+          }
+          if (Math.abs(l.inX) > LOADER_TOL || Math.abs(l.inY) > LOADER_TOL) {
+            lFound.push(`the dots on ${l.where} are ${l.inX}px across and ${l.inY}px down from the middle of their box`);
+          }
+          if (Math.abs(l.onCard) > LOADER_TOL) lFound.push(`the loader on ${l.where} is ${l.onCard}px off the middle of its card`);
+          (loaderSizes[width] = loaderSizes[width] || []).push({ at: label, dot: l.dot[0], gap: l.gap });
+        });
+        if (state.release && !loaders.length) lFound.push('the state holds its request and no loader is on the page in front');
+        loadersMeasured += loaders.length;
+        if (lFound.length) rows.push({ width, id: label, as: who.as, loaders: lFound });
+
         if (SHOTS) await page.screenshot({
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
             + `-${width}${who.as === 'in' ? '-in' : ''}.png`) });
+
+        /* ---------- AND WHEN WHAT IT WAITED FOR LANDS, THE CARD DOES NOT MOVE --------------------------
+           AFTER the picture, so the shot is of the wait. The height is the card the loader sat on, from
+           `loadersOn` above; the same card is found again by the same rule once the content is in. */
+        if (state.release && loaders.length) {
+          const before = loaders[0].cardH;
+          await page.evaluate(src => { try { (0, eval)('(' + src + ')')(); } catch (e) {} }, String(state.release));
+          const after = await page.evaluate(async ({ sid, landed }) => {
+            const t0 = performance.now();
+            let ok = false;
+            for (;;) {
+              try { ok = !!(0, eval)('(' + landed + ')')(); } catch (e) { ok = false; }
+              if (ok || performance.now() - t0 > 3000) break;
+              await new Promise(r => setTimeout(r, 100));
+            }
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            const host = document.getElementById('s-' + sid);
+            let at = 0;
+            try { at = domIndex_(sid, PAGE[sid] || 0); } catch (e) { at = 0; }
+            const pages = host ? host.querySelectorAll(':scope > .page') : [];
+            const front = pages.length ? pages[Math.max(0, Math.min(pages.length - 1, at))] : host;
+            const card = front && (front.querySelector(':scope > .pane') || front);
+            /* A LOADER STILL DRAWN, not one still in the markup: the camera's panel is `hidden` with its
+               loader inside it once the picture is up, which is a loader nobody can see. */
+            return { ok, h: card ? +card.getBoundingClientRect().height.toFixed(1) : 0,
+                     left: front ? [...front.querySelectorAll('.loading')].filter(l => l.getClientRects().length
+                                     && getComputedStyle(l).visibility !== 'hidden').length : 0 };
+          }, { sid: id, landed: String(state.landed || (() => true)) });
+          const lAfter = [];
+          if (!after.ok) lAfter.push('what the state held was let go and never landed — `landed` did not come true in 3s');
+          if (after.left) lAfter.push(`the content landed and ${after.left} loader(s) are still on the card`);
+          /* A STATE THAT SAYS IT `grows` IS A LIST WHOSE LENGTH IS NOT KNOWN UNTIL IT LANDS (the Videos
+             card): the card is meant to be the size of what came, so it is held to the half that is
+             still true — what was veiled kept its room, and the card did not SHRINK when the loader came
+             off. Every other held state holds its card exactly. Found by review: the Videos state passed
+             "did not move" only because it released into an empty list. */
+          if (after.ok && state.grows && after.h < before - 2) {
+            lAfter.push(`the card was ${before}px with the loader on it and ${after.h}px once its list landed — `
+                      + `it shrank ${(before - after.h).toFixed(1)}px, so the loader was holding room nothing filled`);
+          } else if (after.ok && !state.grows && Math.abs(after.h - before) > 2) {
+            lAfter.push(`the card was ${before}px with the loader on it and ${after.h}px once its content landed — `
+                      + `it moved ${(after.h - before).toFixed(1)}px when nothing should have`);
+          }
+          heldReleased++;
+          if (lAfter.length) rows.push({ width, id: label, as: who.as, loaders: lAfter });
+        }
 
         /* ---------- PUT IT BACK, BECAUSE THE NEXT STATE IS THE SAME PAGE -----------------------
            STATES RUN IN ORDER DOWN ONE PAGE and screens after them on that same page, so anything
@@ -1775,6 +2046,7 @@ function inspect(opts) {
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.tinted || []).forEach(f => add('PICTURE NOT AS TAKEN', f, at));
     (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
+    (r.loaders || []).forEach(f => add('A WAIT THAT IS NOT THE ONE LOADER, OR MOVES ITS CARD', f, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
@@ -1837,6 +2109,20 @@ function inspect(opts) {
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
+  /* ONE DOT SIZE AND ONE GAP PER WIDTH, across every loader the run met. */
+  Object.keys(loaderSizes).forEach(wd => {
+    const kinds = [...new Set(loaderSizes[wd].map(x => x.dot + ' gap ' + x.gap))];
+    if (kinds.length > 1) {
+      add('A WAIT THAT IS NOT THE ONE LOADER, OR MOVES ITS CARD',
+        `${loaderSizes[wd].length} loaders at ${wd}px come in ${kinds.length} sizes: `
+        + kinds.map(k => k + ' (' + loaderSizes[wd].filter(x => x.dot + ' gap ' + x.gap === k).map(x => x.at)[0] + ')').join(', '),
+        `${wd}px`);
+    }
+  });
+  console.log(`loaders measured: ${loadersMeasured}, ${heldReleased} of them held on a request, let go, and the card `
+            + `measured again · whole pages waiting on a held payload, measured and let go: ${wholePagesHeld} · `
+            + `sizes per width: ${Object.keys(loaderSizes).map(wd => wd + ' '
+              + [...new Set(loaderSizes[wd].map(x => x.dot + '/' + x.gap))].join(',')).join(' · ') || 'none'}\n`);
   console.log(`edges measured against what is behind them (WCAG 1.4.11, 3:1): `
             + Object.keys(edgesMeasured).map(k => `${k} ${edgesMeasured[k]}`).join(', ') + '\n');
   /* A SUBJECT THE RULE NEVER REACHED IS NOT A PASS. The Find screen's states put the answer bar, Send

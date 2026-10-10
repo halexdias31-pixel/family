@@ -91,8 +91,12 @@ const STATES = {
         ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
         paintStuff();
       },
-      expect: () => /still coming/.test(document.getElementById('s-stuff').textContent || ''),
-      wants: 'the Find screen to say the questions are still coming, not that there are none' },
+      /* THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN — the owner, 9 Oct: *"They should all have a
+         simplistic simple loading thing."* It said "The questions are still coming" until then. Still
+         never "nothing in the library", which is what this state was written to stop. */
+      expect: () => !!document.querySelector('#s-stuff .loading[role="status"]')
+                 && !/Nothing in the shop or the library/.test(document.getElementById('s-stuff').textContent || ''),
+      wants: 'the Find screen showing the one loader while the questions are on their way, not saying there are none' },
     { name: 'the results',
       enter: () => {
         STUFF.q = 'work out';
@@ -2129,8 +2133,9 @@ const STATES = {
         goPage('stuff', stuffFirstResult_(), true);
       },
       expect: () => {
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v:not(.is-wait)');
-        return !!v && /Let there be light/.test(v.textContent)
+        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
                && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
       },
       wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
@@ -2149,7 +2154,7 @@ const STATES = {
       /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
       expect: () => {
         const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
-        return !!v && !v.classList.contains('is-wait') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
       },
       wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
       leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
@@ -3415,6 +3420,76 @@ const STATES = {
       },
       wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
 
+    /* ==============================================================================================
+       THREE WIDGETS WAITING ON A REAL REQUEST, HELD, AND THEN LET GO
+
+       THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
+       simple loading thing while it's info or whatever is loading."* `loading_()` (shell.js) is that
+       thing now, and these are the states that put it on the screen where `check/ui.js` can measure
+       it: the business records (`listRecords`, a POST), the Videos card (`data/videos.json`, a file)
+       and the camera (`getUserMedia`, the device). Each is HELD — the request is made by the app's
+       own code and its answer kept back — so what is measured is the wait the app really draws,
+       not a picture of one.
+
+       `release` LETS IT GO, and `landed` says the content has arrived. `check/ui.js` measures the
+       loader while it is held (one box, the same size on every card, centred), takes the card's
+       height, releases, waits for `landed`, and takes it again: a loader that holds its room leaves
+       the card the height it was. `leave` puts back what was there before and DROPS the held answer
+       rather than delivering it — `check/press.js` never releases, and an answer arriving after the
+       state has gone would land in the middle of the next one.
+
+       THESE ARE THE KIND THAT HOLDS THE CARD — the loader drawn OVER what is already there, which is
+       the only kind that can: a verse or a list whose length is not known until it lands is drawn
+       where it lands, and the card is the size of what came. */
+    { name: 'the business records still coming',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const held = window.__bizHeld = { list: BIZ.list, fetch: window.fetch, go: null };
+        const real = held.fetch;
+        window.fetch = (url, o) => {
+          let act = '';
+          try { act = JSON.parse((o && o.body) || '{}').action; } catch (e) {}
+          if (act !== 'listRecords') return real(url, o);
+          return new Promise(r => {
+            held.go = () => r(new Response(JSON.stringify({ success: true, records: [{
+              id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+              provider: 'Example Insure', reference: 'PL-000000', due_on: '2031-01-01' }] }),
+              { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          });
+        };
+        BIZ.list = null; BIZ.error = ''; BIZ.asking = false;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the settings column');
+        goPage('settings', at, true);
+        bizStart_();
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const body = pg && pg.querySelector('.biz-body[aria-busy="true"]');
+        return !!body && pg.querySelectorAll('.loading').length === 1 && !!body.querySelector(':scope > .loading')
+          && !!body.querySelector('input[data-biz="pub_liability"][data-k="reference"]');
+      },
+      wants: 'the Insurance card\'s boxes drawn and under the one loader while listRecords is held',
+      release: () => { const h = window.__bizHeld; if (h && h.go) { h.go(); h.go = null; } },
+      landed: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return !!pg && !pg.querySelector('.loading')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+      },
+      leave: () => {
+        const h = window.__bizHeld;
+        if (h) { window.fetch = h.fetch; BIZ.list = h.list; BIZ.asking = false; }
+        delete window.__bizHeld;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        /* NOTHING WAS THERE BEFORE EITHER: ask again, on the real wire, rather than leave five cards
+           drawn waiting with nothing on its way to end it. */
+        if (!BIZ.list) bizStart_();
+      } },
+
     /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
        The infrastructure for *"something which triggers every sunday"* and emails parents — built and
        switched off (backend/digest.gs, js/digest.js). The card is the last page of an admin's Settings.
@@ -3964,7 +4039,11 @@ const STATES = {
         widgetsOf_('tool').slice(0, 2).forEach(w => {
           if (!isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
         });
-        paint('saved');
+        /* `repaint`, AS THE STAR ON SAVED DOES (`on('fav')` in find.js), NOT `paint`: `paint` draws the
+           markup and starts nothing, so this measured two widgets that had never started — which since 9
+           Oct is two widgets under the loader (`widgetOnColumn_`), and was always two widgets nobody
+           could have been looking at. `repaint` draws and starts them. */
+        repaint(true);
       },
       expect: () => document.querySelectorAll('#s-saved .widget-slot').length >= 2
                  && document.querySelector('#s-saved .tile.on'),
@@ -5127,6 +5206,61 @@ const STATES = {
                  && !document.querySelector('#s-games [data-do="vid-sync"]')
                  && !/film|drive|sync/i.test((document.querySelector('#s-games .vid-box') || {}).textContent || 'film'),
       wants: 'no Sync tile, nothing in the admin row, and no word on the card that says films exist' },
+
+    /* ---------- AND WHILE ITS LIST IS ON ITS WAY: THE ONE LOADER OVER THE CARD -----------------------
+       One of three widgets held on a real request — see `the business records still coming` for the
+       whole note. `data/videos.json` is asked for by the card's own `initVideos` and its answer kept
+       back; here the payload is in, so an admin's card already has its films and is not waiting, and
+       this is the stranger's.
+       IT RELEASES INTO THREE REAL ROWS. It used to hand back the repository's own file, whose one row is
+       a switched-off placeholder — so what landed was "No videos listed yet.", one line in place of the
+       one line the count held, and "the card did not move" could not fail (review, 10 Oct). A list's
+       length is not known until it lands, so the card GROWS by the rows (`grows`, read by `check/ui.js`):
+       what is asked is that the veiled part kept its room — the card never shrinks — and that the three
+       rows arrive. */
+    { name: 'the videos still coming',
+      only: () => !(typeof isAdmin === 'function' && isAdmin()),
+      grows: 'the list of videos — how many rows are coming is not known until they come (see `vidPaint_`)',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        const held = window.__vidHeld = { list: VIDEOS_LIST, fetch: window.fetch, go: null };
+        const real = held.fetch;
+        /* THREE ROWS THE WAY THE OWNER WRITES THEM: active, a title, an address. `example.org` so no row
+           reaches anywhere, and each is a row that opens a page (`vidHow_` 'out') — nothing to embed. */
+        const rows = [1, 2, 3].map(i => ({ title: 'A held video, number ' + i, url: 'https://example.org/held-video-' + i,
+                                           kind: 'clip', tags: '', age: '', notes: '', active: true }));
+        window.fetch = (url, o) => (/data\/videos\.json/.test(String(url))
+          ? new Promise(r => { held.go = () => r(new Response(JSON.stringify(rows),
+              { status: 200, headers: { 'Content-Type': 'application/json' } })); })
+          : real(url, o));
+        VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = ''; VID.at = '';
+        goPage('games', n, true);
+        initVideos();
+      },
+      expect: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        return !!box && box.getAttribute('aria-busy') === 'true' && !!box.querySelector(':scope > .loading')
+          && document.querySelectorAll('#s-games #wgt-videos .loading').length === 1 && !!box.querySelector('input.vid-q');
+      },
+      wants: 'the videos card drawn whole and under the one loader while data/videos.json is held',
+      release: () => { const h = window.__vidHeld; if (h) { window.fetch = h.fetch; if (h.go) { h.go(); h.go = null; } } },
+      landed: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        return !!box && !box.querySelector('.loading') && !box.getAttribute('aria-busy')
+          && box.querySelectorAll('.vid-list .vid-row').length === 3
+          && /^3 videos$/.test(((box.querySelector('.vid-said') || {}).textContent || '').trim());
+      },
+      /* THE LIST IT HELD IS PUT BACK WHETHER OR NOT IT WAS RELEASED: released, `VIDEOS_LIST` is the three
+         rows above, and the next state would be measuring a card with videos the repository never had. */
+      leave: () => {
+        const h = window.__vidHeld;
+        if (h) { window.fetch = h.fetch; VIDEOS_LIST = h.list; VIDEOS_ASKED = null; }
+        delete window.__vidHeld;
+        vidPaint_();
+        /* AND IF NOTHING WAS THERE BEFORE EITHER, asked again on the real wire, as the records' state does. */
+        if (VIDEOS_LIST === null) videosAsk_().then(() => vidPaint_());
+      } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------
@@ -5211,6 +5345,84 @@ const STATES = {
       },
       wants: 'the still on the card with Post it under it',
       leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
+    /* ---------- AND THE MOMENT BEFORE THE FIRST FRAME: THE ONE LOADER IN THE VIEWFINDER ----------------
+       One of three widgets held on a real request — see `the business records still coming` (settings)
+       for the whole note. The ask is the camera's own (`camStart_`) and the browser's answer is kept
+       back, which is what a permission prompt left open does; released, it is handed a stream drawn
+       from a canvas, which is a real `MediaStream` a container without a camera can make. The loader
+       sits over the viewfinder, whose size is the card's, so the first frame lands in its place. */
+    { name: 'the camera still starting',
+      only: () => typeof USER !== 'undefined' && !!USER && !!(navigator.mediaDevices),
+      enter: () => {
+        const held = window.__camHeld = { go: null };
+        navigator.mediaDevices.getUserMedia = () => new Promise(r => {
+          held.go = () => {
+            const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+            const g = c.getContext('2d'); g.fillStyle = '#336'; g.fillRect(0, 0, 8, 8);
+            r(c.captureStream(5));
+          };
+        });
+        /* AFTER ANY ASK STILL OUT. The state before this one put its picture back with `camAgain_`,
+           which asks the real camera — and a container has none, so that ask is refused, and on a
+           loaded machine the refusal can land after this has asked: it wrote "The camera did not
+           start." over the viewfinder this is measuring. So it waits for that one to finish first
+           (bounded), and then asks through the held door. */
+        const t0 = Date.now();
+        const ask = () => {
+          if (CAM_ASKING && Date.now() - t0 < 2000) { setTimeout(ask, 50); return; }
+          try { camStop_(); } catch (e) {}
+          CAM_FAILED = null; CAM_ASKING = false;
+          goPage('feed', feedCamAt_(), true);
+          camStart_();
+        };
+        ask();
+      },
+      expect: () => {
+        const off = document.getElementById('cam-off');
+        return !!off && !off.hidden && !!off.querySelector('.loading[role="status"]')
+          && document.querySelectorAll('#s-feed .cam-card .loading').length === 1;
+      },
+      wants: 'the viewfinder with the one loader in it while the camera is asked for',
+      release: () => { const h = window.__camHeld; if (h && h.go) { h.go(); h.go = null; } },
+      landed: () => {
+        const off = document.getElementById('cam-off'), v = document.getElementById('cam-view');
+        return !!off && off.hidden && !!v && !!v.srcObject;
+      },
+      leave: () => {
+        delete window.__camHeld;
+        try { delete navigator.mediaDevices.getUserMedia; } catch (e) {}
+        CAM_ASKING = false;
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null;
+      } },
+    /* ---------- AND A BROWSER WITH NO CAMERA AT ALL: A FACT, AND NO LOADER OVER IT ------------------
+       Found by review: with `navigator.mediaDevices` missing, `camStart_` wrote "This browser has no
+       camera support." under the card and left the viewfinder holding the loader `cameraCard` drew —
+       dots pulsing over a sentence saying nothing was coming, for as long as the page was up. The
+       container HAS `mediaDevices`, so it is taken away for the state (an own property over the
+       prototype's getter) and put back by deleting it. */
+    { name: 'the camera with no camera support',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null; CAM_ASKING = false;
+        Object.defineProperty(navigator, 'mediaDevices', { value: undefined, configurable: true });
+        goPage('feed', feedCamAt_(), true);
+        camStart_();
+      },
+      expect: () => {
+        const off = document.getElementById('cam-off');
+        return !!off && !off.hidden && !off.querySelector('.loading')
+          && /no camera support/.test(off.textContent || '')
+          && !document.querySelector('#s-feed .cam-card .loading');
+      },
+      wants: 'the viewfinder saying the browser has no camera support, and no loader anywhere on the card',
+      leave: () => {
+        try { delete navigator.mediaDevices; } catch (e) {}
+        CAM_ASKING = false;
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null;
+      } },
     /* ---------- A POST'S FACES, IN EVERY STATE THEY ARE DRAWN IN ---------------------------------
        THE OWNER, 9 Oct: *"Also refine how the post reactions look. Looks abit scuffed right bow"* —
        and this lab had never drawn the row. The fixture's post sent `{"👍": 3}`, a shape `doGet` has

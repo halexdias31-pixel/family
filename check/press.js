@@ -77,6 +77,14 @@ const path = require('path');
 const http = require('http');
 const { chromium } = require('playwright');
 const { statesOf } = require('./states.js');
+/* ---------- THE PAYLOAD AND THE LIBRARY IN, NOT A GUESS AT WHEN THEY WILL BE ---------------------
+   Until `load()` has finished, every column is the one loader (`loading_`, shell.js — the owner, 9 Oct)
+   and there is nothing on it to press. The fixed sleeps after `goto` were always enough on a quiet
+   machine; at a load average of sixty on 9 Oct they were not, and a column of loaders pressed as if it
+   were the column reports controls missing that are only late. Asked for, bounded, and then on — a
+   page that never loads is still measured as it stands and fails on what it lacks. */
+const appIn_ = page => page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED
+  && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null, null, { timeout: 30000 }).catch(() => {});
 
 const ROOT = path.join(__dirname, '..');
 const PORT = Number(process.env.PRESS_PORT || 8123);   /* overridable: parallel runs in worktrees share one machine */
@@ -357,6 +365,7 @@ for (const who of VISITORS) {
   await page.addInitScript({ content: PAGE_HELPERS });
   await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2200);
+  await appIn_(page);
 
   /* THE SEED MUST ACTUALLY HAVE WORKED, and so must its absence. A seeded key the app ignores
      would press the stranger's controls twice and report it as coverage — "I did not press it"
@@ -484,6 +493,7 @@ for (const who of VISITORS) {
   const freshen = async (sid, state) => {
     await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1700);
+    await appIn_(page);
     await page.evaluate(s => { try { go(s, false, true); } catch (e) {} }, sid);
     await page.waitForTimeout(400);
     /* BACK INTO THE STATE, not into the screen's front door. The Find screen opens on the funnel's

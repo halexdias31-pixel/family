@@ -3165,6 +3165,117 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   return bad;
 });
 
+/* ---------- A WIDGET WAITING SHOWS THE ONE LOADER, AND ONLY THAT, UNTIL WHAT IT WAITS FOR LANDS -------
+   THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple
+   loading thing while it's info or whatever is loading."* `check-loading.js` reads the source for a
+   wait drawn any other way; this RUNS it, because a loader that is drawn and never taken off, or taken
+   off before anything is there, reads perfectly in the source.
+
+   THREE WAITS, each held where it really waits and then let go: the Videos card while
+   `data/videos.json` is out, a column's widgets before they are started, and the business records'
+   boxes while `listRecords` is out — all three the loader OVER markup already drawn (`aria-busy`,
+   shell.js), which is the kind that holds the card's size. Each time: exactly one loader, the contract on it, none of
+   the old words beside it — and once released, the content where it stood and no loader anywhere in
+   that card. */
+check('a widget waiting on its fetch shows the one loader and nothing else, and its content replaces it', async () => {
+  const bad = [];
+  const one = (card, where) => {
+    const ls = card ? [...card.querySelectorAll('.loading')] : [];
+    if (ls.length !== 1) { bad.push(where + ' shows ' + ls.length + ' loaders, not one'); return null; }
+    const l = ls[0];
+    if (l.getAttribute('role') !== 'status' || l.getAttribute('aria-label') !== 'Loading') bad.push(where + '\'s loader has no role="status" / aria-label="Loading"');
+    if (l.querySelectorAll(':scope > span').length !== 3) bad.push(where + '\'s loader is not three dots');
+    /* NOTHING ELSE IN THE CARD SAYS IT IS WAITING — the words, the skeleton and the ellipsis that were
+       there before 9 Oct. */
+    const said = (card.textContent || '').replace(/\s+/g, ' ');
+    if (/Loading|Looking for|Looking in|Fetching|still coming|on its way|have not arrived/i.test(said)) bad.push(where + ' still says it is waiting in words: "' + said.trim().slice(0, 80) + '"');
+    if (card.querySelector('.sk-box, .is-wait, .skeleton, .spinner')) bad.push(where + ' still draws a wait of its own beside the loader');
+    return l;
+  };
+
+  /* ---------- 1. THE VIDEOS CARD, WHILE ITS FILE IS OUT ---------------------------------------------- */
+  const rows = [{ title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
+                  tags: 'science', age: '', notes: '', active: true }];
+  let release = null;
+  const late = new Promise(r => { release = r; });
+  const a = boot({ serve: url => (/data\/videos\.json/.test(url) ? late.then(() => rows) : undefined) });
+  await wait(300);
+  a.w.__t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  /* AND TURNED TO, as a finger turns to it. The card is thirteenth on Games and `woken_` gives the
+     queue eight seconds; on a machine with a load average of thirty the queue had not reached it, and
+     the journey read an unstarted card as a fault in the card. `goPage` starts the page it turns to
+     (`widgetsNear_`), which is the app's own answer to "I want this one now". */
+  const vn = a.w.__t.widgetsOf('game').findIndex(x => String(x.id) === 'videos');
+  a.w.__t.goPage('games', vn, true);
+  /* AND THE CARD ITSELF WAITED FOR, the videos journey's rule above: under four of these runs at once
+     beside `check/ui.js` (9 Oct) the card was still drawn and not started 150ms after the turn — read
+     as "veiled as unstarted" and "not over the card it will fill", which is the queue being late and
+     not the loader being wrong. Bounded: a card that never starts still fails on what it shows. */
+  for (let n = 0; n < 150 && !a.w.document.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
+  await wait(50);
+  const vid = a.w.document.querySelector('#s-games #wgt-videos');
+  if (!vid) return ['the videos card did not draw on the Games column'];
+  const l1 = one(vid, 'the videos card with its file held');
+  const vbox = vid.querySelector('.vid-box');
+  if (l1 && (!vbox || l1.parentElement !== vbox || vbox.getAttribute('aria-busy') !== 'true')) bad.push('the videos card\'s loader is not over the card it will fill (`.vid-box[aria-busy]`)');
+  if (vbox && !vbox.querySelector('input.vid-q')) bad.push('the search box is not drawn under the loader, so the card cannot hold its size');
+  if (vid.getAttribute('aria-busy')) bad.push('the videos card is still veiled as unstarted — it started, and only its list is waiting');
+  release();
+  /* POLLED, BOUNDED — the same 120ms that is always enough alone was not under four runs at once. A
+     loader left on for good still fails here, five seconds later. */
+  for (let n = 0; n < 50 && (vid.querySelector('.loading') || !vid.querySelector('.vid-list .vid-row')); n++) await wait(100);
+  if (vid.querySelector('.loading') || (vbox && vbox.getAttribute('aria-busy'))) bad.push('the videos file landed and the card still shows its loader');
+  const got = [...vid.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the list reads ' + JSON.stringify(got) + ', not its one row');
+
+  /* ---------- 2. OVER THE MARKUP: A COLUMN'S WIDGETS BEFORE THEY ARE STARTED ---------------------------
+     The Tools column is drawn beside Games and not started — exactly the widgets the owner was
+     looking at. Each one with a `start` is veiled; arriving starts them and takes every veil off. */
+  const tools = a.w.document.getElementById('s-tools');
+  const waiting = tools ? [...tools.querySelectorAll('.widget-slot[aria-busy="true"]')] : [];
+  if (!waiting.length) bad.push('the Tools column, drawn and not started, has no widget waiting under the loader');
+  waiting.forEach(sl => {
+    if (sl.querySelectorAll(':scope > .loading').length !== 1) bad.push('#' + sl.id + ', waiting to start, has ' + sl.querySelectorAll(':scope > .loading').length + ' loaders over it');
+    if (sl.lastElementChild && !sl.lastElementChild.classList.contains('loading')) bad.push('#' + sl.id + '\'s loader is not over its markup (the last child)');
+  });
+  a.w.__t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  /* EVERY WIDGET ON THE COLUMN, NOT JUST THE ONES IN VIEW — so the queue is waited for to the end, for
+     longer than `woken_`'s eight seconds: a slow machine is a late start, not a loader left on. */
+  for (let k = 0; k < 300 && !a.w.__t.quiet(); k++) await wait(100);
+  const still = [...a.w.document.querySelectorAll('#s-tools .widget-slot[aria-busy], #s-tools .widget-slot > .loading')]
+    .map(el => (el.closest('.widget-slot') || el).id);
+  /* A WIDGET WHOSE OWN CONTENT IS STILL OUT SHOWS ITS OWN LOADER INSIDE — that is a wait, not a widget
+     left unstarted; only the veil over the slot itself is asked about here. */
+  if (still.length) bad.push('arriving on Tools left ' + [...new Set(still)].join(', ') + ' under the loader');
+  if (!a.w.document.querySelector('#s-tools #wgt-calculator #mc-display')) bad.push('the calculator did not start when Tools was arrived at');
+
+  /* ---------- 3. OVER THE BOXES: THE BUSINESS RECORDS WHILE `listRecords` IS OUT ------------------------- */
+  let answer = null;
+  const held = new Promise(r => { answer = r; });
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
+  const b = boot({ before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} },
+                   reply: body => (body.action === 'listRecords' ? held : undefined) });
+  await wait(300);
+  b.w.__t.go('settings', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const card = b.w.document.querySelector('#s-settings .me-form[data-biz-page="Insurance"]');
+  if (!card) return bad.concat(['an admin\'s Settings has no Insurance card']);
+  const l3 = one(card, 'the Insurance card with listRecords held');
+  const body = card.querySelector('.biz-body');
+  if (l3 && (!body || l3.parentElement !== body || body.getAttribute('aria-busy') !== 'true')) bad.push('the records\' loader is not over the boxes (`.biz-body[aria-busy]`)');
+  if (body && !body.querySelector('input[data-biz][data-k="reference"]')) bad.push('the boxes are not drawn under the loader, so the card cannot hold its size');
+  answer({ success: true, records: [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+                                      provider: 'Example Insure', reference: 'PL-000000', due_on: '2030-01-01' }] });
+  for (let n = 0; n < 50 && card.querySelector('.loading'); n++) await wait(100);
+  await wait(50);
+  if (card.querySelector('.loading') || (body && body.getAttribute('aria-busy'))) bad.push('the records came back and the Insurance card is still under the loader');
+  const ref = card.querySelector('[data-biz="pub_liability"][data-k="reference"]');
+  if (!ref || ref.value !== 'PL-000000') bad.push('the records came back and the box under the loader reads ' + JSON.stringify(ref && ref.value) + ', not PL-000000');
+  return bad;
+});
+
 /* ---------- THE FILMS IN THE VIDEOS CARD: AN ADMIN FINDS THEM, A STUDENT NEVER SEES THEY EXIST ------------
    *"Ensure the video searcher is hooked up. Let admin be able to search up films which are in the
    notflix folder on gdrive."* The journey above never set `DATA.films`, so nothing here had ever asked
@@ -8725,7 +8836,11 @@ check('while the app asks again, nobody is shown the failure\'s words or a Try a
     if (/Authorization is required|timeout/.test(text))
       bad.push(who + ' was shown the failure\'s own words: ' + (text.match(/.{0,40}(Authorization is required|timeout).{0,40}/) || [''])[0]);
     if (b.w.document.querySelector('[data-do="retry"]')) bad.push(who + ' was offered a Try again while the app is already trying');
-    if (!/Waiting for the server/.test(text)) bad.push(who + '\'s empty columns do not say they are waiting');
+    /* THE ONE LOADER, not "Waiting for the server" — a waiting sentence of its own until 9 Oct
+       (`nothingHere`; the owner: *"they should all have a simplistic simple loading thing"*). The quiet
+       line over the app is what says the app is asking again. The Spotlight column, because it is
+       empty for everybody until the payload lands — a visitor's Feed is the camera and "Sign in". */
+    if (!b.w.document.querySelector('#s-spotlight .loading[role="status"]')) bad.push(who + '\'s empty Spotlight column does not show the loader while the app asks again');
   });
   /* A DROPPED QUESTION FILE IS NOT MENDED BY ASKING THE BACKEND, so it keeps its sentence and its Try
      again — but its OWN reason: `why` was the backend's first, and printed Apps Script's page beside it. */
@@ -8735,6 +8850,92 @@ check('while the app asks again, nobody is shown the failure\'s words or a Try a
   if (/Authorization is required/.test(lt)) bad.push('with the question file dropped too, a student was shown the backend\'s reply: ' + (lt.match(/.{0,40}Authorization is required.{0,40}/) || [''])[0]);
   if (!/question file/.test(lt)) bad.push('with the question file dropped, no column says so');
   if (!l.w.document.querySelector('[data-do="retry"]')) bad.push('a dropped question file is not offered Try again — asking the backend again would never fetch it');
+  return bad;
+});
+
+/* ---------- AND EVERY CARD THAT WAITS ON THE PAYLOAD WAITS THE SAME WAY WHILE IT IS ASKED FOR AGAIN -----------
+   FOUND BY REVIEW (10 Oct), every script.google.com request aborted, an admin at 390: the columns drew the
+   loader through `nothingHere`, which knew about the retry — and in the same moment the Times Tables board
+   said "Scores have not arrived yet." and My teaching hours "The hours have not arrived from the server
+   yet", because each asked `!LOADED`, and `LOADED` is true once the first request has failed. Both fill
+   in by themselves when the retry lands, so both are waits: `awaiting_()` (shell.js) is the one question
+   now. Each card is turned to, as a finger turns to it, and waited for (bounded) before it is read; then
+   the retry is let through, and each must show what the payload brought instead of the dots. */
+check('while a failed first payload is asked for again, the score board and the hours show the loader, not a sentence', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  /* THE FIRST ASK FAILS FAST, and every ask after it waits on the gate — so the retry is out, and
+     the app is between "failed" and "arrived", for as long as this journey reads. */
+  const b = flaky_(n => (n === 0 ? 'fetch' : gate.then(() => ({ body: RC_PAYLOAD_() }))), RC_ADMIN_);
+  await wait(400);
+  const t = b.w.__t, d = b.w.document;
+  if (!t || typeof t.widgetsOf !== 'function') return ['the test harness did not come up'];
+  if (b.line() !== 'Reconnecting…') return ['the first payload failed and the quiet line says "' + b.line() + '" — the retry is not out, so nothing here was tested'];
+  if (typeof b.w.awaiting_ !== 'function' || !b.w.awaiting_()) return ['`awaiting_()` does not say the payload is on its way while the retry is out'];
+  const bad = [];
+  const words = /have not arrived|Scores have not|from the server yet/;
+  const turnTo = async (col, id, sel) => {
+    t.go(col, false, true);
+    await wait(LEAVE_MS); await woken_();
+    const n = t.widgetsOf(col === 'games' ? 'game' : 'tool').findIndex(x => String(x.id) === id);
+    if (n < 0) { bad.push(`no "${id}" widget on ${col} for an admin`); return null; }
+    b.w.goPage(col, n, true);
+    for (let k = 0; k < 150; k++) {
+      const el = d.querySelector(sel);
+      if (el && el.innerHTML.trim() && !el.closest('[aria-busy="true"]')) return el;
+      await wait(100);
+    }
+    bad.push(`the "${id}" widget on ${col} never started — ${sel} is empty or still veiled`);
+    return null;
+  };
+  const board = await turnTo('games', 'tables', '#s-games #tt-board');
+  if (board) {
+    if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
+    if (words.test(board.textContent)) bad.push('while the retry is out the Times Tables board says "' + board.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
+  }
+  const hours = await turnTo('tools', 'avail', '#s-tools #avail-box');
+  if (hours) {
+    if (!hours.querySelector('.loading[role="status"]')) bad.push('while the retry is out My teaching hours shows no loader: "' + hours.textContent.trim().slice(0, 80) + '"');
+    if (words.test(hours.textContent)) bad.push('while the retry is out My teaching hours says "' + hours.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
+  }
+  /* AND THE RETRY LANDS: the dots go, and what the payload brought is drawn where they were. */
+  open();
+  for (let k = 0; k < 50 && !b.arrived(); k++) await wait(100);
+  if (!b.arrived()) return bad.concat(['the retry was let through and the payload is not in DATA']);
+  for (let k = 0; k < 50 && d.querySelector('#s-tools #avail-box .loading, #s-games #tt-board .loading'); k++) await wait(100);
+  const hb = d.querySelector('#s-tools #avail-box'), bb = d.querySelector('#s-games #tt-board');
+  if (hb && hb.querySelector('.loading')) bad.push('the retry landed and My teaching hours still shows the loader');
+  if (bb && bb.querySelector('.loading')) bad.push('the retry landed and the Times Tables board still shows the loader');
+  if (b.w.awaiting_()) bad.push('the retry landed and `awaiting_()` still says the payload is on its way');
+  return bad;
+});
+
+/* ---------- AND A FIXED SENTENCE IS NOT A WAIT ---------------------------------------------------------
+   FOUND BY REVIEW: signed out, with the payload held, the Booking column drew the loader for the whole
+   wait — up to the minute's deadline — where its one sentence, "Sign in to book", needs nothing from
+   the payload. Account, Saved and Messages drew their sign-in cards at once. Signed in, the form does
+   need the payload, and waits for it. */
+check('with the payload held, Booking says "Sign in to book" to a visitor at once, and waits for it for somebody signed in', async () => {
+  let openV, openK;
+  const v = flaky_([new Promise(r => { openV = r; })]);
+  const k = flaky_([new Promise(r => { openK = r; })], RC_KID_);
+  await wait(400);
+  const bad = [];
+  [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
+    if (b.arrived()) { bad.push(`${who}'s payload arrived before it was let through, so nothing was tested`); return; }
+    b.w.__t.go('booking', false, true);
+  });
+  await wait(LEAVE_MS);
+  [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
+    const col = b.w.document.getElementById('s-booking');
+    const text = ((col && col.textContent) || '').replace(/\s+/g, ' ');
+    const dots = col ? col.querySelectorAll('.loading').length : 0;
+    if (!waits) {
+      if (dots) bad.push(`${who}'s Booking column shows the loader while the payload is held — its sentence needs nothing from it`);
+      if (!/Sign in to book/.test(text)) bad.push(`${who}'s Booking column does not say "Sign in to book" while the payload is held: "${text.trim().slice(0, 80)}"`);
+    } else if (!dots) bad.push(`${who}'s Booking column shows no loader while the payload is held — the form needs it: "${text.trim().slice(0, 80)}"`);
+  });
+  openV(); openK();
   return bad;
 });
 
@@ -13868,7 +14069,10 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (gen() !== 1) bad.push('drawing the first verses fetched Genesis ' + gen() + ' times — once, when its first card is drawn');
   const c11 = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:1"] .bb-v');
   if (!c11) bad.push('the first verse card was not drawn after KJV');
-  else if (c11.classList.contains('is-wait') || c11.textContent.trim() !== 'In the beginning God created the heaven and the earth.') {
+  /* `.loading` IN THE CARD, NOT `.bb-v.is-wait`: a verse waiting for its book is the one loader now
+     (`loading_`, shell.js — the owner, 9 Oct, *"they should all have a simplistic simple loading
+     thing"*), and the verse's `.bb-v` is only drawn once the book has landed. */
+  else if (c11.closest('.bb-verse').querySelector('.loading') || c11.textContent.trim() !== 'In the beginning God created the heaven and the earth.') {
     bad.push('Genesis 1:1 drawn before its book landed still reads "' + c11.textContent.trim() + '" after it did — the card was not drawn again');
   }
   /* ONE FETCH PER BOOK HOWEVER MANY ASK AT ONCE — the same promise to every caller while it is in flight. */
@@ -13971,7 +14175,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   tallies('Psalm 119');
   if (!(await pick('bibleVerse', '105'))) return bad;
   let lamp = null;
-  for (let i = 0; i < 40 && !(lamp && !lamp.classList.contains('is-wait')); i++) {
+  for (let i = 0; i < 40 && !(lamp && !lamp.closest('.bb-verse').querySelector('.loading')); i++) {
     await wait(25);
     lamp = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:19:119:105"] .bb-v');
   }
@@ -14122,7 +14326,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       await wait(150);
       const lev = JSON.parse(fs.readFileSync(path.join(bibleDir, '03-leviticus.json'), 'utf8'));
       const back = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:3:1:1"] .bb-v');
-      if (!back || back.classList.contains('is-wait') || back.textContent.trim() !== lev.chapters[0][0].replace(/^#\s*/, '').replace(/[\[\]]/g, '')) {
+      if (!back || back.closest('.bb-verse').querySelector('.loading') || back.textContent.trim() !== lev.chapters[0][0].replace(/^#\s*/, '').replace(/[\[\]]/g, '')) {
         bad.push('Try again did not draw Leviticus 1:1 — it reads "' + (back ? back.textContent.trim().slice(0, 60) : 'nothing') + '"');
       }
       if (ofBible(a.gets).filter(u => /03-leviticus\.json/.test(u)).length !== 2) bad.push('Leviticus was fetched ' + ofBible(a.gets).filter(u => /03-leviticus\.json/.test(u)).length + ' times — once refused, once again on Try again');
@@ -14145,7 +14349,10 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   st.STUFF().filters = DOORS.map(f => Object.assign({}, f));
   slow.w.paintStuff();
   const said = () => ((sd.getElementById('stuff-groups') || {}).textContent || '').replace(/\s+/g, ' ');
-  if (!/on its way/.test(said())) bad.push('the Books shelf with the index still coming says "' + said().trim().slice(0, 80) + '" — not that the list of books is on its way');
+  /* THE ONE LOADER WHERE THE QUESTION WILL BE, and no sentence of its own: it said "The list of the
+     Bible's books is on its way" until 9 Oct, and `check-loading.js` now fails on those words. */
+  const waitingAt = () => sd.querySelectorAll('#stuff-groups .loading[role="status"]').length;
+  if (waitingAt() !== 1) bad.push('the Books shelf with the index still coming shows ' + waitingAt() + ' loaders under the question, not one — it says "' + said().trim().slice(0, 80) + '"');
   st.STUFF().q = 'psalms';
   const early = slow.w.stuffFiltered().some(i => i.kind === 'bible');
   slow.w.paintStuff();
@@ -14154,6 +14361,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
   else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
   if (!sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
+  if (waitingAt()) bad.push('the index landed and the Books shelf still shows its loader');
   const kjvLate = sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
   if (kjvLate) {
     st.ACTIONS['facet-pick'](kjvLate);
@@ -14173,8 +14381,10 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   held.w.__t.STUFF().filters = []; held.w.__t.STUFF().q = '';
   held.w.paintStuff();
   if (held.w.stuffItemsAll_().some(i => i.kind === 'bible')) bad.push('an admin is offered the Bible before the library has landed');
-  if (!/still coming/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
-    bad.push('an admin\'s Find with the library still on its way does not say the questions are still coming');
+  /* THE ONE LOADER, not "The questions are still coming" — the words went on 9 Oct (`nothingHere`). */
+  if (!held.w.document.querySelector('#s-stuff .loading[role="status"]')
+      || /Nothing in the shop or the library/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
+    bad.push('an admin\'s Find with the library still on its way does not show the loader — or calls it empty');
   }
 
   /* ---------- 14. KEPT: A STARRED VERSE ON SAVED, THE OLD STAR ON THE COVER, AND BACK INTO ITS CHAPTER --- */

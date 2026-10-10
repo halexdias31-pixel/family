@@ -541,6 +541,18 @@ function initFlyer() {
     + '<p class="fm-said" id="fm-said"></p>'
     + '<button class="btn" data-do="fm-print">Print</button>';
   flyBind(wrap, flyDraw);          /* binds, loads the campaign, and says what will print */
+  /* ---------- AND NOT BEFORE THE VENUES ARE IN --------------------------------------------------------
+     The rooms and the campaigns come with the payload, so before it lands the venue menu was empty and
+     a Print would have priced every seat off the fallback room rate of 15 — a flyer quoting a price
+     that is not the price, which is the fault `flyOne`'s own note was written against. Nothing on the
+     card said it was early. So until the payload is in, the controls are drawn and veiled by the one
+     loader (`loading_`, shell.js), the card keeps its size, and the payload's repaint starts this
+     again with the real rooms. The owner, 9 Oct: *"They should all have a simplistic simple loading
+     thing while it's info or whatever is loading."* */
+  if (typeof awaiting_ === 'function' && awaiting_()) {
+    wrap.setAttribute('aria-busy', 'true');
+    wrap.insertAdjacentHTML('beforeend', loading_());
+  } else if (typeof loaded_ === 'function') loaded_(wrap);
 }
 
 /* THE SHEET, FILLED WITH AS MANY AS FIT. `FLY_PER` knows how many of each size go on a page — two

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-notifications";
+  --css-version: "2026-10-10-loader-and-notifications";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2008,7 +2008,7 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    .85rem and the edge-to-edge rules above went on cancelling 1rem — so every post with a picture ran
    13 to 15px past its own card, which `check/live.js` recorded against real photographs and nothing
    here could see, because the fixture's posts had none. `--pane-pad` is written once, on `.pane`. */
-.pane .post-pic, .pane .post-grid, .pane .sk-pic {
+.pane .post-pic, .pane .post-grid {
   width: calc(100% + 2 * var(--pane-pad)); margin-left: calc(-1 * var(--pane-pad)); }
 /* AND THE POST ITSELF TAKES THE PANE'S PADDING AS ITS OWN, so the bleed lands inside the post's
    padding box rather than past its edge. Without this the picture still reaches the glass but the
@@ -2282,28 +2282,91 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .picker.on { border-color: var(--gold); }
 .picker.on span { color: var(--gold); }
 
-/* ---------- WAITING -------------------------------------------------------------------------------
-   The shape of what is coming, not a spinner. A spinner says "wait"; this says "a face, a
-   photograph and two lines are about to be here" — so nothing jumps when they arrive.
+/* ---------- WAITING: ONE LOADER, AND THIS IS THE ONLY BLOCK THAT DRAWS ONE ------------------------
+   THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple
+   loading thing while it's info or whatever is loading."* Measured that day: a skeleton post on three
+   columns, ten waiting sentences in thirteen places, two columns calling a wait "nothing here", seven
+   waits with nothing on the screen, and nineteen widgets each with its own look before it started —
+   docs/history/306. This block replaces every one of them. `loading_()` in shell.js is the only thing
+   that writes its markup, and `js/check-loading.js` fails on a wait drawn any other way: an old
+   waiting phrase, a skeleton, shimmer or spinner class, or a `@keyframes` for waiting outside here.
 
-   It sits in the pager and fills it, exactly as the post that replaces it will. A skeleton in the
-   wrong shape is worse than none: the page still jumps, and it jumps at the moment somebody has
-   started reading.
---------------------------------------------------------------------------------------------- */
-.sk-box { display: block; background: var(--raised); border-radius: 2px;
-          animation: sk 1.35s ease-in-out infinite; }
-.sk-pic { width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad)); aspect-ratio: 4/5; }
-/* The skeleton cannot know how tall the photograph will be, so it holds a portrait ratio — the
-   commonest shape a phone produces, and the one that costs least if it guesses wrong: a real
-   picture slightly shorter than the placeholder settles upwards by a little, where a placeholder
-   that filled the screen would drop the caption half a page. */
-.page .sk-pic { flex: 0 0 auto; aspect-ratio: 4/5; }
-.sk .post-by { gap: .5rem; }
-/* Barely there. A skeleton that pulses hard is more distracting than the wait it is covering. */
-@keyframes sk { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
-/* Somebody who asked for less movement is not helped by a rectangle breathing at them for four
-   seconds. It still holds the shape, which is the part doing the work. */
-@media (prefers-reduced-motion: reduce) { .sk-box { animation: none; opacity: .7; } }
+   THREE GOLD DOTS THAT PULSE IN TURN. Gold because it is the one colour on the black that says "this
+   app, doing something" — the colour of the one action; dots rather than a ring because the ring is
+   taken: `.btn.is-busy` and `.tile.is-busy` above say "pressed, and working on it" (docs/history/094),
+   which is a different sentence from "on its way", and two meanings need two shapes. In turn rather
+   than together, so it reads as something moving along rather than as a light left on.
+
+   ONE SIZE EVERYWHERE, in `rem` — nothing here is pressed, and a fingertip is the only thing on this
+   screen that must not scale. The dots and the gap between them are the same in every card; what
+   changes is the room they are centred in, which is the room the content will take:
+     · IN PLACE (a verse, a list, a score board): about two lines, the size of the sentence each of
+       these replaced, so nothing shrinks round it when it arrives.
+     · A WHOLE PAGE — the loader the only thing on a pane: NO FRAME AT ALL, the dots alone at the
+       middle of the cell, which is where the card that lands is centred (`columnShift_`). There is no
+       card edge to jump from because none was drawn.
+     · OVER markup already drawn and not ready (`aria-busy="true"` with the loader its last child — a
+       widget waiting its turn to start, the records before the sheet answers): what is underneath
+       keeps its exact size and is not seen, the dots sit over the middle of it, and `loaded_` takes
+       them off. Nothing under them can move, because nothing under them was ever moved. */
+.loading {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  width: 100%; min-height: 3rem; margin: 0; padding: 0;
+}
+.loading > span {
+  flex: none; width: .55rem; height: .55rem; border-radius: 50%;
+  background: var(--gold); opacity: .3;
+  animation: loading 1.2s ease-in-out infinite;
+}
+.loading > span:nth-child(2) { animation-delay: .2s; }
+.loading > span:nth-child(3) { animation-delay: .4s; }
+/* Opacity and a little scale only — the two a browser can run without laying anything out, so a
+   column of these costs nothing while the app is busiest, which is exactly when they are on.
+   EACH DOT IS LIT FOR FOUR FIFTHS OF THE TURN, a sixth of a turn behind the one before, so one of the
+   three is always brightening. The first cut lit each for a third and left all three at their
+   faintest for a third of every second — shot at 390 on 9 Oct, that frame read as three specks of dust
+   on an empty card rather than as something on its way. */
+@keyframes loading {
+  0%, 80%, 100% { opacity: .3; transform: scale(.75); }
+  35%           { opacity: 1;  transform: scale(1); }
+}
+/* STILL, NOT GONE, for somebody who asked for less movement: three dots at one strength are still a
+   thing on its way, and taking them away would take the state with them — the busy ring's argument. */
+@media (prefers-reduced-motion: reduce) {
+  .loading > span { animation: none; opacity: .7; transform: none; }
+}
+/* ONLY THE CARD IN FRONT MOVES. A column drawn beside the one you are on holds a loader on every
+   widget it has not started yet — nine on Tools — and an infinite animation runs whether or not
+   anybody can see it: measured on 9 Oct, the Imposter card's own walk through its screens took 1.3–1.5s
+   against 1.08s with nine loaders breathing on the next column, which `check/ui.js`'s 2.5s at 1920
+   then missed. A loader on a card that is not in front is three still dots; the page that comes in
+   front (`.page.on`, set by `placeGrid`) starts it. Loaders outside a page — a sheet — always move. */
+.page:not(.on) .loading > span { animation: none; }
+/* A WHOLE PAGE WAITING: THE DOTS, AND NO CARD ROUND THEM.
+   IT WAS A FULL-CELL CARD — the pane held at the cell's height with the dots in its middle, on the
+   argument that the card arriving would land "inside the space the dots were keeping". True of the
+   middle and of nothing else: measured by review with the payload held and then let go, the frame's
+   edges snapped inward the moment anything landed — the feed 807→311px at 390, Saved 807→158,
+   Spotlight 807→177, Booking 807→606, and the same at 320 — a 250–325px jump on each side, which is
+   the jump this was meant to prevent, on every column of the first second anybody sees.
+   SO THE FRAME IS TAKEN AWAY RATHER THAN GUESSED AT. While a pane holds nothing but the loader it has
+   no fill, no edge and no shadow — the dots on the screen's own black — and only a modest height so
+   they have room. Pages are centred in the cell (`columnShift_`), so the card that arrives appears
+   round the point where the dots were (measured: the landed cards' middles within a pixel of the
+   dots'), and there is no outline for it to collapse from. `check/ui.js` holds the payload, measures
+   this, lets it go and measures again. */
+.pane:has(> .loading:only-child) {
+  min-height: 6rem;
+  background: none; border-color: transparent; box-shadow: none;
+}
+.pane > .loading:only-child { flex: 1 1 auto; }
+/* OVER WHAT IS ALREADY DRAWN: held at its own size, unseen and untouchable, the dots over its middle.
+   `visibility` and not `display` — `display: none` would take the box's height with it, which is the
+   jump this exists to prevent; and a hidden control cannot be focused or pressed, so nothing can be
+   typed into a box that is about to be filled. */
+[aria-busy="true"]:has(> .loading) { position: relative; min-height: 3rem; }
+[aria-busy="true"]:has(> .loading) > :not(.loading) { visibility: hidden; }
+[aria-busy="true"] > .loading { position: absolute; inset: 0; min-height: 0; }
 
 /* ---------- A POLL --------------------------------------------------------------------------------
    Rows you can press, and once you have, a bar behind each one. The bar is drawn INSIDE the row
@@ -9624,8 +9687,8 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    that fills a small phone's pane; `paneReach_` draws that one card a step smaller, as it does any
    card, and every other verse is drawn at this size. */
 .bb-v { margin: var(--fc-line) 0 0; font-size: 1.2rem; line-height: 1.5; color: var(--ink); }
-/* WAITING FOR ITS BOOK: an ellipsis in the faint ink, where the verse will be. */
-.bb-v.is-wait { color: var(--faint); }
+/* `.bb-v.is-wait` WAS HERE — a faint ellipsis where the verse would be while its book was on its way.
+   The verse waits under the one loader now, as every card does (`loading_`, shell.js). */
 /* THE 1611 PILCROW, where a paragraph starts — printed in front of the verse, quietly, as the
    printers set it, because one verse to a card leaves no paragraph to space. */
 .bb-para { color: var(--faint); }
@@ -11480,8 +11543,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    let alone inside a card — and Othello, at eight columns, is further off again.
 
    I TRIED TO BUY THE WIDTH BACK AND IT WAS NOT THERE. Bleeding the board out through the card's
-   padding, the way `.sk-pic` does, took the columns from 25px to 29px and bought two sideways
-   scrolls doing it. Four pads instead of two got 33px and three scrolls. The rule is not failing
+   padding, the way the old skeleton's picture did, took the columns from 25px to 29px and bought two
+   sideways scrolls doing it. Four pads instead of two got 33px and three scrolls. The rule is not failing
    because of a padding I can reclaim; it is failing because 332 is bigger than 320.
 
    SO THE BOARD STAYS IN THE CARD and `check/ui.js` is told why a board cell is exempt — see the note

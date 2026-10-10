@@ -746,11 +746,16 @@ function nothingHere(whenEmpty, needsLibrary) {
      is asking, the column says it is waiting and fills in by itself. A dropped LIBRARY is not this:
      asking the backend again does not fetch the questions, so that still gets a reason and Try again —
      ITS OWN reason, never the backend's words beside it. */
-  const asking = !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_();
-  if (asking && !LIBRARY_FAILED) {
-    return `<p class="empty">Waiting for the server.<br>
-        <span class="faint">The app is asking again by itself, and this fills in when it answers.</span></p>`;
-  }
+  /* AND THE COLUMN'S WAIT IS THE ONE LOADER. It arrived on 9 Oct as "Waiting for the server. The app is
+     asking again by itself, and this fills in when it answers." — right about the state, and a waiting
+     sentence of its own in every empty column, on the same day the owner asked for *"a simplistic
+     simple loading thing"* in place of every one of those (`loading_`, below). The words are not lost:
+     the quiet line over the app (`#reconnect`, "Reconnecting…") says what is happening once, for the
+     whole app, and the columns under it show that they are waiting the way every card does. */
+  /* `retrying_` (below, beside `awaiting_`), so this and every card that waits for the payload read
+     the retry through one definition. */
+  const asking = retrying_();
+  if (asking && !LIBRARY_FAILED) return loading_();
   const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
     return `<p class="empty">Couldn’t load.<br>
@@ -780,11 +785,105 @@ function nothingHere(whenEmpty, needsLibrary) {
      THE CALLER SAYS WHETHER THE LIBRARY IS ITS SUBJECT, because "the questions are still coming" is
      the wrong thing to print on a feed with no posts in it — the same screen, the same function,
      and a different thing missing. */
+  /* ---------- AND THE WAIT IS THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN ---------------------
+     It said "The questions are still coming. It is a big file and it only downloads once." — the
+     right fact, and the sixth way of drawing a wait on a screen that had five others. The owner, 9
+     Oct: *"Every widget has unique loading look. They should all have a simplistic simple loading
+     thing."* So it is `loading_()`, below. What this function exists for is untouched: a library on
+     its way is still never drawn as an empty one, and a failed one still says why and offers Try
+     again. Only the look of the waiting changed. */
   if (needsLibrary && typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) {
-    return `<p class="empty">The questions are still coming.<br>
-        <span class="faint">It is a big file and it only downloads once.</span></p>`;
+    return loading_();
   }
   return `<p class="empty">${whenEmpty}</p>`;
+}
+
+/* ==================================================================================================
+   WAITING — ONE LOADER FOR EVERY CARD, AND THIS IS THE ONLY PLACE IT IS WRITTEN
+
+   ASKED FOR BY THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a
+   simplistic simple loading thing while it's info or whatever is loading."*
+
+   MEASURED BEFORE THIS EXISTED (docs/history/306): a skeleton post on three columns, ten different
+   waiting sentences in thirteen places ("Starting the camera…", "Looking in the folder…", "Fetching
+   what is recorded…", a verse that was a faint "…"), two columns that said "Nothing in the shop yet"
+   while the shop was still on its way, seven waits with nothing on the screen at all — and nineteen
+   widgets each with its own look before it had started: a grey board, a black canvas, a cream board,
+   an empty dropdown, a heading on its own. Twenty-four ways to say one thing.
+
+   NOW THERE IS ONE: three gold dots that pulse in turn, centred in the space the content will take.
+   `loading_()` returns it and NOTHING ELSE IN THE APP DRAWS A WAIT — `js/check-loading.js` fails on
+   an old waiting phrase, on a skeleton, shimmer or spinner class, on a `@keyframes` for waiting
+   outside the one block in style.css, and on the loader's class written out by hand anywhere but
+   here. A second loader would be the twenty-fifth look, and that is the fault.
+
+   THREE WAYS IT SITS, AND THE MARKUP IS THE SAME IN ALL THREE — the CSS reads where it is:
+     · IN PLACE of a part of a card that is not there yet (a verse, a list, a board's scores): it
+       holds about two lines, the size of the sentence it replaced, so nothing shrinks under it.
+     · AS A WHOLE PAGE, the only thing on a pane (the feed before the payload, the shop, Saved): the
+       dots alone, with no card drawn round them, at the middle of the cell — where the card that
+       lands is centred. It held a full-cell empty card at first, and review measured that frame
+       collapsing 250–325px a side the moment anything arrived; a frame not drawn cannot jump.
+     · OVER markup that is already drawn and not ready — a widget waiting its turn to start, the
+       records' boxes before the sheet has answered: the box is marked `aria-busy="true"`, the loader
+       is its last child, and what is under it keeps its exact size, hidden, so when `loaded_` takes
+       the loader away the content appears in the box the loader was holding. Nothing moves.
+
+   A REAL ERROR OR AN EMPTY RESULT IS NOT LOADING. "Nothing found", "did not arrive — Try again" keep
+   their words; this is only ever drawn while something is actually on its way.
+
+   NOT THE SPLASH. `#splash` in index.html is the loading SCREEN, deliberately animated and a thing
+   of its own; this is what a card shows once the app is up.
+
+   `role="status"` with the word for a screen reader, because three dots say nothing out loud. In
+   shell.js, which loads before every file that draws a card — `check.js` names anything read before
+   it exists. */
+function loading_() {
+  return '<div class="loading" role="status" aria-label="Loading">'
+    + '<span></span><span></span><span></span></div>';
+}
+
+/* AND TAKEN OFF AGAIN — the one way a box drawn `aria-busy="true"` with a loader over it shows what
+   is under it. Silent on a box that was never waiting, so a caller need not know whether it was. */
+function loaded_(el) {
+  if (!el || !el.removeAttribute) return;
+  el.removeAttribute('aria-busy');
+  el.querySelectorAll(':scope > .loading').forEach(l => l.remove());
+}
+
+/* ---------- AND WHEN IS THE PAYLOAD STILL ON ITS WAY: ONE ANSWER, ASKED BY EVERY CARD -----------------
+   EVERY CARD THAT WAITS FOR THE PAYLOAD ASKED `!LOADED`, AND THAT IS ONLY HALF OF IT. `LOADED` is
+   set when the first request FINISHES, failed or not — and since the quiet retry (`RECONNECT`) a
+   failed first request is not the end: the app asks again by itself under "Reconnecting…" and the
+   cards fill in when it answers. FOUND BY REVIEW, every script.google.com request aborted, an admin
+   at 390: Shop, Spotlight and the feed showed the one loader (through `nothingHere`, which knew about
+   the retry), and in the same moment the score board said "Scores have not arrived yet.", the hours
+   "The hours have not arrived from the server yet", the calendar was a bare month, the flyer was live
+   with no rooms, Booking every row "—", and Saved "Nothing kept yet." — one wait, drawn the old way
+   on nine cards because each asked the half of the question that had already turned false.
+
+   SO THE QUESTION IS ASKED HERE, ONCE. `retrying_` is "the request failed and the app is asking
+   again by itself" — what `nothingHere` asks before it prints a failure and a Try again. `awaiting_`
+   is "no payload is here yet and one is still coming": before the first answer, or after a failed
+   one while the retry is out AND no payload has ever been drawn (`RECONNECT.shown`). That last half is
+   what keeps a failed REFRESH behind a good payload from veiling cards that are showing real things:
+   a save that reloads and fails leaves the board's scores, the week and the month as they were.
+
+   NOT ONE FUNCTION FOR BOTH, deliberately. `nothingHere` is only reached where its caller has
+   already decided the column has nothing to show, and for it a failed refresh is still the retry's
+   to answer: given `awaiting_`'s `shown` half it would print "Couldn't load. … Try again" under
+   "Reconnecting…", which is the contradiction the retry's own review took out (docs/history/313).
+   One base, `retrying_`, so the two cannot drift; each asks the question it has. In a `try`, because
+   `RECONNECT` is a const further down this file and a card drawn before it exists must still answer. */
+function retrying_() {
+  try { return !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_(); }
+  catch (e) { return false; }
+}
+function awaiting_() {
+  try {
+    if (!LOADED) return true;
+    return retrying_() && !RECONNECT.shown;
+  } catch (e) { return typeof LOADED !== 'undefined' && !LOADED; }
 }
 
 /** Redraw whatever is showing. What almost everything calls after a change. */
@@ -4554,7 +4653,7 @@ async function loadOnce_(again, n) {
      what went wrong and offer Try again. */
   if (again && !got && LOADED && reconnecting_()) return;
   /* Set whether it SUCCEEDED or failed — a failed load is still a finished one, and leaving the
-     skeleton up for ever would be the app pretending it is still trying. */
+     loader up for ever would be the app pretending it is still trying. */
   LOADED = true;
   /* THE SPLASH COMES OFF HERE, and here is the only place it can: this line runs whether the
      payload arrived or the request failed, and a splash that only lifts on SUCCESS turns a failed
@@ -4566,8 +4665,8 @@ async function loadOnce_(again, n) {
   /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW ---------------------------------------
-     Every screen but the one in front was drawn before this request came back, so each holds a
-     skeleton. Emptied here, and `repaint` below draws them again with the data that has just
+     Every screen but the one in front was drawn before this request came back, so each holds the
+     loader. Emptied here, and `repaint` below draws them again with the data that has just
      arrived.
 
      EMPTYING WITHOUT REDRAWING WAS THE BUG. It was left to `go` to rebuild each on arrival, which

@@ -4888,6 +4888,19 @@ function initAvail() {
      NOTHING — and drawing an empty week for the first would be this repository’s oldest fault:
      *I did not manage to look*, printed as *I looked and there was nothing there*. A deployment
      older than `profileFields` says so and offers the sheet, which is where it used to live. */
+  /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, THAT IS A WAIT, NOT THE OLD SERVER -------------
+     The hours are named by the payload's `profileFields`, so before it lands there are none to draw,
+     and this said "The hours have not arrived from the server yet" — the right words for a server
+     older than `profileFields`, where they never will, and a wait in words of its own for every
+     other tutor for the fifteen seconds the payload takes. The owner, 9 Oct: *"They should all have a
+     simplistic simple loading thing."* So the wait is `loading_()` (shell.js); this widget's `start`
+     runs again on the payload's repaint, which draws the week in its place. The sentence is kept, in
+     its own words, for the payload that came without them — an older server, or one that failed —
+     where it is a fact rather than a wait. */
+  if (!codes.length && typeof awaiting_ === 'function' && awaiting_()) {
+    into.innerHTML = loading_();
+    return;
+  }
   if (!codes.length) {
     into.innerHTML = `<p class="note">The hours have not arrived from the server yet.<br>
       <span class="faint">Settings → the week grid is there when they do.</span></p>`;
@@ -5248,7 +5261,7 @@ on('pin-save', el => {
 /* `LOADED` and `LOAD_FAILED` were declared here and are now in data.js, with the rest of the state.
 
    THEY WERE IN THE WRONG FILE. Both are read by posts.js and written by shell.js, and neither has
-   anything to do with the You screen — they lived here because the skeleton below happened to be
+   anything to do with the You screen — they lived here because the skeleton that was below happened to be
    the first thing that wanted them. That worked only because me.js is loaded before posts.js, which
    is a fact about a list in index.html rather than anything either file states.
 
@@ -5259,38 +5272,12 @@ on('pin-save', el => {
    Shared state goes in data.js. That file loads fourth, before everything that reads it, and it is
    the one place somebody looks for "where does this value live". */
 
-/**
- * A SHAPE OF THE THING THAT IS COMING, not a spinner.
- *
- * A spinner says "wait". This says "a face, a photograph and two lines are about to be here" — so
- * nothing jumps when they arrive, and the wait reads as loading rather than as nothing happening.
- *
- * IT HAS TO MATCH. It used to draw two stacked articles because the feed was a column; the feed is
- * one post per screen now, so it draws ONE, inside the same pager, with the picture taking the
- * same room the real one will. A skeleton in the wrong shape is worse than no skeleton at all —
- * the page still jumps, and it jumps at the exact moment somebody has started reading it.
- *
- * The bars are staggered a little. In lockstep they pulse as one block, which reads as a single
- * animated rectangle; slightly apart they read as separate things arriving.
- */
-function skeleton() {
-  const bar = (w, h, delay, extra) =>
-    `<span class="sk-box" style="width:${w};height:${h};animation-delay:${delay}s${
-      extra ? ';' + extra : ''}"></span>`;
-  return [`
-    <article class="post sk">
-      <header class="post-by">
-        ${bar('1.9rem', '1.9rem', 0, 'border-radius:50%;flex:none')}
-        ${bar('6rem', '.7rem', .08)}
-      </header>
-      <span class="sk-box sk-pic" style="animation-delay:.16s"></span>
-      ${/* THE ROW OF FACES' SHAPE: one 32px pill-round bar where the pills will be, inside the same
-            `.post-acts` slot, 6px in top and bottom as each pill is inside its 44px cell — so the
-            caption bars under it are where the caption lands and nothing jumps when it swaps in.
-            As wide as the six pills are at most (`.reacts` caps a column at 3.75rem), so on a wide
-            card the shape stops where the faces will. */''}
-      <div class="post-acts">${bar('min(100%, 22.5rem)', '32px', .24, 'border-radius:16px;margin-block:6px')}</div>
-      ${bar('80%', '.7rem', .32, 'margin-top:.5rem')}
-      ${bar('45%', '.7rem', .4, 'margin-top:.35rem')}
-    </article>`];
-}
+/* `skeleton()` WAS HERE — a grey post (a face, a 4:5 picture, two lines) pulsing on the feed, the
+   reel and Messages while the payload was on its way. Its argument was a good one: "a shape of the
+   thing that is coming, not a spinner", so nothing jumps when it lands. What it lost to is the owner,
+   9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple loading
+   thing"* — it was one of twenty-four looks for one fact. The three columns draw `loading_()` now
+   (shell.js), which on a page of its own is the dots alone at the middle of the cell, with no frame
+   drawn round them for the post that replaces it to jump from. The same day the skeleton had been given a
+   pill-round bar where the reactions' row of faces would be (docs/history/307) — the right shape for
+   a look that no longer exists; the merge kept the removal, and the reactions keep their own row. */

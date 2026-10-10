@@ -137,7 +137,7 @@ function missingKeys() {
 }
 let USER = null;
 
-/* HAS THE FIRST LOAD COME BACK? Separate from "are there any posts" — a skeleton and an empty state
+/* HAS THE FIRST LOAD COME BACK? Separate from "are there any posts" — the loader and an empty state
    answer different questions, and showing the wrong one makes the app look broken in the first
    second anybody sees it.
    HERE, WITH THE REST OF THE STATE, and not in me.js where it used to be: posts.js reads it and
