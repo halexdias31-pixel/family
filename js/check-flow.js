@@ -518,9 +518,13 @@ function boot(opts) {
    written as questions somebody would actually ask of the app, not as assertions about internals. */
 const checks = [];
 /* `FLOW_ONLY=words node js/check-flow.js` runs the journeys whose names contain those words — for
-   working on one; the suite always runs the lot, and says how many it ran. */
+   working on one; the suite always runs the lot, and says how many it ran.
+   `FLOW_RE='one|two'` is the same as a regular expression, for several journeys that share no words —
+   the review of the second finder ran six that way, and without it `FLOW_RE` was silently ignored and
+   all of them ran, which looks exactly like a slow selection. */
+const FLOW_RE_ = process.env.FLOW_RE ? new RegExp(process.env.FLOW_RE) : null;
 const check = (name, fn) => {
-  if (!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) checks.push({ name, fn });
+  if ((!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) && (!FLOW_RE_ || FLOW_RE_.test(name))) checks.push({ name, fn });
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -14509,14 +14513,17 @@ check('the second finder keeps its own place across a reload — the column, its
   const stale = Object.assign({}, kept2);
   Object.keys(stale).filter(k => /^draft:u:P7:find:place$/.test(k)).forEach(k => {
     const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
-    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' }];
+    /* AND THE BIBLE'S CHIPS (the review, finding 3): nothing on any list answers a Bible book, so the
+       rule that drops a chip only the other finder answers read it as early and kept it. */
+    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' },
+           { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }];
     dd.v = JSON.stringify(p); stale[k] = JSON.stringify(dd);
   });
   const four = await resBoot_({ before: fromStore_(stale) });
   if (four) {
     const t4 = four.w.__t;
     for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
-    if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('a place kept before the move, holding Shelf · Boxing, came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' — wanted the resource chip dropped and the rest kept');
+    if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('a place kept before the move, holding Shelf · Boxing and a Bible book, came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' — wanted the resource chip dropped and the rest kept');
   }
   return bad;
 });
@@ -14641,6 +14648,199 @@ check('a link into a resource from elsewhere opens it in Resources: pressed on F
   /* A QUESTION KEPT ON SAVED IS FIND'S, and is not given a way into Resources. */
   const q = w.stuffItemsAll_().find(x => x.kind === 'project');
   if (q && w.finderOpenTile_(q)) bad.push('a project kept on Saved was given an Open tile into Resources');
+  return bad;
+});
+
+/* ==================================================================================================
+   THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). Each journey below was a probe of
+   the reviewer's first — reproduced on this branch before anything was changed, red — and is held here
+   so the rule it found stays found.
+================================================================================================== */
+
+/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS ----------------------------------------------
+   FINDING 1. Find's search stopped carrying the resources, which is the owner's split — and its empty
+   answer still said "Try fewer words." for a boxer that is one swipe away. Before the move, typing a
+   boxer's name, a verse's book or a textbook's word into Find was the way to reach it by name; the
+   owner's list of links into a resource names "a search hit". So an empty search counts what the same
+   words find in the other finder and, if anything, says how many and where, with one Open tile that
+   carries the words there — and the other way round, Resources pointing to Find. A word nobody has
+   still says "Try fewer words." with no tile, and a chip on the other finder that would hide every hit
+   is taken off by the tile rather than landing on "Nothing matches" over there. */
+check('a search one finder cannot answer and the other can says where: Find\'s "Olivares" offers Resources and lands on his card there; a project\'s word on Resources offers Find', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const olivares = w.stuffItemsAll_().find(x => x.kind === 'boxer' && /Olivares/.test(x.name));
+  if (!olivares) return ['no Ruben Olivares among the boxers — NOT checked'];
+  /* RESOURCES HOLDS A CHIP UNDER WHICH HE IS NOT ON THE LIST: the tile must not land there blind. */
+  t.RES().filters = [{ field: 'shelf', value: '@family. textbooks' }];
+  t.go('stuff', false, true); await wait(80); await woken_();
+  if (!resType_(w, 'stuff', 'Olivares')) return ['Find has no search box — NOT checked'];
+  await wait(260); await woken_();
+  if (t.STUFF().q !== 'Olivares') return ['typing into #stuff-q did not reach Find\'s words — NOT checked'];
+  if (w.stuffFiltered().length) return ['the setup: Find itself finds ' + w.stuffFiltered().length + ' thing(s) for "Olivares", so the empty answer was NOT checked'];
+  const groups = d.getElementById('stuff-groups');
+  const said = (groups.textContent || '').replace(/\s+/g, ' ').trim();
+  if (/Try fewer words/.test(said)) bad.push('Find says "Try fewer words." for a boxer one swipe away in Resources: "' + said + '"');
+  if (!/\b1 in Resources\b/.test(said)) bad.push('Find\'s empty search does not say "1 in Resources": "' + said + '"');
+  const tile = groups.querySelector('.tile-row [data-do="finder-words"]');
+  if (!tile) return bad.concat(['no Open tile under Find\'s empty search, so nothing carries the words to Resources']);
+  if (tile.getAttribute('data-to') !== 'res') bad.push('the tile goes to ' + JSON.stringify(tile.getAttribute('data-to')) + ', not res');
+  if (!/Resources/.test(tile.getAttribute('aria-label') || '')) bad.push('the tile does not say where it goes: ' + JSON.stringify(tile.getAttribute('aria-label')));
+  const f0 = JSON.stringify([t.STUFF().filters, t.STUFF().q]), p0 = pg_(t).stuff;
+  A['finder-words'](tile);
+  await wait(150); await woken_();
+  if (t.AT() !== 'res') bad.push('the Open tile landed on ' + t.AT() + ', not Resources');
+  if (t.RES().q !== 'Olivares') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q) + ', not "Olivares"');
+  if ((d.getElementById('res-q') || {}).value !== 'Olivares') bad.push('Resources\' box reads ' + JSON.stringify((d.getElementById('res-q') || {}).value) + ' — the words are not shown where they now narrow');
+  if (t.RES().filters.length) bad.push('the tile left Resources\' chip that hides him: ' + JSON.stringify(t.RES().filters));
+  const pg = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_()]);
+  if (!pg || pg.x !== olivares || pg.part) bad.push('Resources is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not Ruben Olivares\'s card');
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('the page in front of Resources is not drawn after the tile');
+  if (JSON.stringify([t.STUFF().filters, t.STUFF().q]) !== f0 || pg_(t).stuff !== p0) bad.push('the tile changed Find\'s own words, chips or page');
+  /* ---- THE OTHER WAY: a project's word, typed on Resources ---- */
+  const proj = w.stuffItems().filter(x => x.kind === 'project');
+  let word = '';
+  for (const x of proj) {
+    for (const v of String(x.name || '').split(/[^A-Za-z]+/).filter(s => s.length >= 5)) {
+      const inRes = inRes_(w, () => { const was = w.__t.STUFF().q; w.__t.STUFF().q = v; try { return w.stuffFiltered().length; } finally { w.__t.STUFF().q = was; } });
+      if (!inRes) { word = v; break; }
+    }
+    if (word) break;
+  }
+  if (!word) return bad.concat(['no project word that Resources does not answer — the reverse was NOT checked']);
+  t.RES().filters = []; 
+  resType_(w, 'res', word);
+  await wait(260); await woken_();
+  const rsaid = (d.getElementById('res-groups').textContent || '').replace(/\s+/g, ' ').trim();
+  if (!/\b\d+ in Find\b/.test(rsaid)) bad.push('Resources\' empty search for "' + word + '" does not say how many are in Find: "' + rsaid + '"');
+  const back = d.querySelector('#res-groups .tile-row [data-do="finder-words"]');
+  if (!back) bad.push('no Open tile under Resources\' empty search for "' + word + '"');
+  else {
+    if (back.getAttribute('data-to') !== 'stuff') bad.push('Resources\' tile goes to ' + back.getAttribute('data-to'));
+    A['finder-words'](back);
+    await wait(150); await woken_();
+    if (t.AT() !== 'stuff') bad.push('Resources\' Open landed on ' + t.AT() + ', not Find');
+    if (t.STUFF().q !== word) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q) + ', not ' + JSON.stringify(word));
+    if (!w.stuffFiltered().length) bad.push('Find finds nothing for "' + word + '" after the tile');
+  }
+  /* ---- A WORD NOBODY HAS: the old sentence, and no tile ---- */
+  t.go('stuff', false, true);
+  resType_(w, 'stuff', 'zqxjv');
+  await wait(260); await woken_();
+  const none = (d.getElementById('stuff-groups').textContent || '').replace(/\s+/g, ' ');
+  if (!/Try fewer words/.test(none)) bad.push('a word nobody has no longer says "Try fewer words.": "' + none.trim() + '"');
+  if (d.querySelector('#stuff-groups [data-do="finder-words"]')) bad.push('a word nobody has drew an Open tile to the other finder');
+  return bad;
+});
+
+/* ---------- A FIND PLACE KEPT BEFORE THE MOVE, INSIDE THE BIBLE, AN ADMIN'S ------------------------------
+   FINDING 3. `finderForeign_` drops a chip that only the other finder answers — and nothing on any list
+   answers a Bible book, a chapter or a verse (the verses are a list of their own, `bibleVerses_`), so
+   `Genesis` read as EARLY rather than foreign, stayed on Find, and Find came back inside the Bible
+   saying "Nothing matches". Only an admin could have had the Bible on Find, so this is an admin's. */
+check('a Find place kept before the move inside the Bible (an admin\'s) comes back to Find without any Bible chip', async () => {
+  const ADMIN = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' };
+  /* THE REAL BIBLE FILES, SERVED, so the Bible is on the admin's list as it is on the site — without its
+     index there is no Bible item, and the chips would be measured against a list that has no Bible. */
+  const bibleDir = path.join(dir, '..', 'data', 'bible');
+  const serve = url => {
+    const m = /(?:^|\/)data\/bible\/([a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(bibleDir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const one = await resBoot_({ serve, before: signedInAs_(ADMIN) });
+  if (!one) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const W = one.w, T = W.__t, bad = [];
+  for (let i = 0; i < 80 && !(T.BIBLE() && T.BIBLE().index); i++) await wait(25);
+  if (!(T.BIBLE() && T.BIBLE().index)) return ['the Bible\'s index never loaded for the admin — NOT checked'];
+  T.go('stuff'); await wait(80);
+  T.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' },
+    { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' }];
+  W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const kept = keptStore_(W);
+  if (!Object.keys(kept).some(x => /^draft:u:P001:find:place$/.test(x))) return ['nothing was kept under draft:u:P001:find:place — NOT checked'];
+  const two = await resBoot_({ serve, before: fromStore_(kept) });
+  if (!two) return ['the reload did not load — NOT checked'];
+  const w = two.w, t = w.__t;
+  for (let i = 0; i < 100 && !(t.STUFF().filters || []).length; i++) await wait(50);
+  for (let i = 0; i < 80 && !(t.BIBLE() && t.BIBLE().index); i++) await wait(25);
+  await wait(200);
+  if (t.AT() !== 'stuff') bad.push('the reload opened on ' + t.AT() + ', not Find — the place was NOT brought back');
+  const fl = t.STUFF().filters || [];
+  if (JSON.stringify(fl) !== JSON.stringify([{ field: 'forLabel', value: 'Learning' }])) bad.push('Find came back with ' + JSON.stringify(fl) + ' — wanted Learning and every resource and Bible chip dropped');
+  if (w.bibleInside_()) bad.push('Find is inside the Bible after the reload');
+  if (/Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || '')) bad.push('Find says "Nothing matches" after the reload');
+  /* AND THE SAME CHIPS ARE RESOURCES' OWN: a place kept there keeps them. */
+  if (w.inFinder_(w.finderOf_('res'), () => w.finderForeign_({ field: 'bibleBook', value: 'Genesis' }))) bad.push('Resources would drop its own Bible book chip from a kept place');
+  return bad;
+});
+
+/* ---------- WORK THAT RUNS LATER, BOUND TO ITS FINDER ----------------------------------------------------
+   FINDING 4. The build listed the delayed work it re-binds — the search box's debounce, the draw's
+   microtask, `goPage` — and none of the six journeys above failed when any one of them was undone,
+   while the Resources column visibly broke: it never updated as you typed, a landing repaint left the
+   page in front blank, and a swipe turned to blank pages until the after-slide fill. One journey each,
+   asked of what is on the screen. */
+check('Resources\' search box repaints Resources after its debounce, even with an answer pressed on Find inside the 180ms', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  t.go('res', false, true); await wait(120); await woken_();
+  const resQ0 = d.getElementById('res-groups').innerHTML;
+  resType_(w, 'res', 'frequency density');
+  t.go('stuff', false, true);
+  const pick = d.querySelector('#s-stuff #stuff-groups [data-do="facet-pick"]');
+  if (pick) A['facet-pick'](pick); else bad.push('Find drew no answer to press inside the debounce');
+  const findGroups = d.getElementById('stuff-groups').innerHTML;
+  const findF = JSON.stringify(t.STUFF().filters);
+  await wait(400); await woken_();
+  if (t.RES().q !== 'frequency density') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q));
+  if (t.STUFF().q) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q));
+  /* NORMALISED THROUGH AN ELEMENT, as the screen's own markup is once the browser has parsed it. */
+  const tmp = d.createElement('div'); tmp.innerHTML = inRes_(w, () => w.stuffQuestion());
+  const want = tmp.innerHTML;
+  if (want === resQ0) return bad.concat(['the setup: "frequency density" does not change Resources\' question, so its repaint was NOT checked']);
+  if (d.getElementById('res-groups').innerHTML !== want) bad.push('Resources\' question on screen is not what its own state draws after the debounce (unchanged since before typing: ' + (d.getElementById('res-groups').innerHTML === resQ0) + ')');
+  if (d.getElementById('stuff-groups').innerHTML !== findGroups) bad.push('Find\'s question was repainted by Resources\' debounce');
+  if (JSON.stringify(t.STUFF().filters) !== findF) bad.push('Find\'s chips changed under Resources\' debounce');
+  return bad;
+});
+
+check('a landing repaint on a Resources result leaves the page in front drawn (the draw\'s microtask fills in Resources\' binding)', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  t.go('res', false, true); await wait(80);
+  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('res');
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  t.goPage('res', first + 7, true); await wait(200); await woken_();
+  if (!inRes_(w, () => w.stuffHeld_())) return ['the setup: the page in front of Resources was not filled before the repaint — NOT checked'];
+  w.landRepaint_();
+  await wait(300); await woken_();
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('after a landing repaint the page in front of Resources is empty (PAGE.res ' + pg_(t).res + ')');
+  if (!w.document.querySelectorAll('#s-res > .page.is-res[data-filled="1"]').length) bad.push('no result page of Resources is filled after a landing repaint');
+  return bad;
+});
+
+check('a page turn on Resources from outside any binding (a swipe) has the page in front drawn at once, near and far', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  t.go('res', false, true); await wait(80);
+  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('res');
+  await wait(200); await woken_();
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  if (inRes_(w, () => w.stuffPages_().length) < 45) return ['the setup: Shelf · Boxing has too few pages to jump 40 — NOT checked'];
+  /* EACH READ SYNCHRONOUSLY, BEFORE ANY TIMER — the after-slide fill would hide a page drawn late. */
+  t.goPage('res', first + 40, true);
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('jumped to result 40: the page in front is not drawn synchronously');
+  t.goPage('res', first + 41);
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('turned one page: the page in front is not drawn synchronously');
   return bad;
 });
 
@@ -19992,6 +20192,17 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
 });
 
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
+/* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes
+   longer than one shell may wait (four cores shared with other builders: the full run passed 600s on
+   10 Oct). Each part says which slice it ran, so four parts are seen to cover the lot. The suite never
+   sets it. */
+const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');
+if (FLOW_PART_) {
+  const k = Number(FLOW_PART_[1]), n = Number(FLOW_PART_[2]), all = checks.length;
+  const a = Math.floor((k - 1) * all / n), b = Math.floor(k * all / n);
+  checks.splice(0, all, ...checks.slice(a, b));
+  console.log('part ' + k + '/' + n + ': journeys ' + (a + 1) + '–' + b + ' of ' + all);
+}
 (async () => {
   let failed = 0;
   console.log('');

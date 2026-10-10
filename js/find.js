@@ -4866,6 +4866,90 @@ on('find-open', el => {
   if (x) finderOpen_(x);
 });
 
+/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS --------------------------------------------
+   THE REVIEW OF 329, FINDING 1. Find's search stopped carrying the resources, which is the owner's
+   split — and its empty answer went on saying "Try fewer words." for a boxer one swipe away. Measured
+   at 390 as an admin: "Olivares" on Find drew "Nothing matches. / Try fewer words."; on the commit
+   before the move the same words found Ruben Olivares's card. Typing a name into Find WAS the way to a
+   boxer, a book of the Bible or a textbook's chapter, and the owner's list of links into a resource
+   names "a search hit". Fewer words would never have found him: the advice was wrong, not just weak.
+   SO AN EMPTY SEARCH ASKS THE OTHER FINDER the same words, in that finder's own binding and through
+   its own `stuffFiltered` — so its kinds, its role rules and the Bible's `holds` all answer as they
+   would there — and when anything answers, says how many and where (the column's name from `TABS`),
+   with one Open tile that carries the words across. Both ways: Resources points to Find. A word
+   nobody has keeps "Try fewer words.", and no tile.
+   UNDER THE OTHER FINDER'S OWN CHIPS FIRST, because those are what it will show; if they hide every
+   hit, under none, and the tile takes them off (`clear`) — landing on "Nothing matches" over there,
+   under a shelf somebody chose an hour ago, would be the same dead end one column further on.
+   THE OTHER FINDER IS LEFT AS IT WAS: its words, chips and memo are put back in a `finally`, so asking
+   costs it nothing it had, and a throw cannot leave it holding these words. */
+function finderWordsCount_(q) {
+  const was = { q: STUFF.q, filters: STUFF.filters, memo: FIND_MEMO };
+  try {
+    STUFF.q = q;
+    let n = stuffFiltered().length;
+    if (n || !(was.filters || []).length) return { n: n, clear: false };
+    STUFF.filters = [];
+    FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+    n = stuffFiltered().length;
+    return { n: n, clear: n > 0 };
+  } catch (e) {
+    return { n: 0, clear: false };
+  } finally {
+    STUFF.q = was.q; STUFF.filters = was.filters; FIND_MEMO = was.memo;
+  }
+}
+function finderElsewhere_() {
+  const q = String(STUFF.q || '');
+  if (!q.trim()) return null;
+  const here = FINDER;
+  for (const id of Object.keys(FINDERS)) {
+    const G = FINDERS[id];
+    if (G === here) continue;
+    const got = inFinder_(G, () => finderWordsCount_(q));
+    if (got.n) return { id: G.id, n: got.n, clear: got.clear };
+  }
+  return null;
+}
+/* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
+   same three sentences, and the tile would otherwise have been one more thing for them to disagree on. */
+function stuffNoneHtml_() {
+  if (!FIND_MEMO.total) return nothingHere(FINDER.empty, true);
+  const there = STUFF.q ? finderElsewhere_() : null;
+  if (there) {
+    const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === there.id);
+    const name = t ? t.label : there.id;
+    return `<p class="empty">Nothing matches.<br><span class="faint">${esc(there.n.toLocaleString('en-GB') + ' in ' + name)}.</span></p>`
+      + `<div class="tile-row is-elsewhere">${tile_({ icon: 'open', label: 'Open', note: 'in ' + name, act: 'finder-words',
+                                         data: { to: there.id, q: STUFF.q } })}</div>`;
+  }
+  const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
+            : STUFF.q                          ? 'Try fewer words.'
+            : STUFF.filters.length             ? 'Nothing matches all of those together.'
+            : '';
+  return `<p class="empty">Nothing matches.${why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
+}
+/* THE WORDS, CARRIED ACROSS — into the other finder's own words and its own box, so they are seen
+   narrowing where they now narrow — and on to the card when the words found one thing, as Find's own
+   "Swipe up for the one" would have; on the question when they found several, for the funnel to ask.
+   The finder the tile was pressed in keeps its words: going back finds it as it was left. */
+on('finder-words', el => {
+  const G = finderOf_(el && el.getAttribute('data-to'));
+  const q = String((el && el.getAttribute('data-q')) || '');
+  if (!G || !q.trim()) return;
+  inFinder_(G, () => {
+    const c = finderWordsCount_(q);
+    STUFF.q = q;
+    if (c.clear) STUFF.filters = [];
+    const box = $(G.id + '-q');
+    if (box) box.value = q;
+    paintStuff();
+    if (AT !== G.id) go(G.id);
+    const one = stuffFiltered().length === 1 && stuffPages_().length;
+    goPage(G.id, one ? stuffFirstResult_() : stuffQuestionPage_());
+  });
+});
+
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
    The card, then a page per section that has something in it. A REFUSED experiment is its card
    alone: it carries no kit and no method by rule (`check-practicals.js` refuses one that does), and
@@ -10697,8 +10781,16 @@ function findPlaceBack_(F) {
    So a chip is dropped when something outside the bound finder answers it and nothing inside does.
    Both halves, because before the library lands nothing answers a paper's chip anywhere, and a chip
    that matches nothing yet is not foreign — it is early, and dropping it would lose the place it
-   exists to keep. Written for the move and for whatever kind changes column next. */
+   exists to keep. Written for the move and for whatever kind changes column next.
+   EXCEPT THE BIBLE'S OWN CHIPS, which no list answers (the review of 329, finding 3). A Book, a
+   Chapter, a Verse — and the Testament and Group above them — are answered only by the verses, and
+   the verses are a list of their own (`bibleVerses_`), not items. So `Genesis` was never "answered
+   outside": it read as early, stayed on Find, and Find came back from a reload INSIDE the Bible, an
+   admin's, saying "Nothing matches" under a Book chip on a column that has no Bible. A Bible chip
+   belongs to whichever finder holds the Bible (`finderOfItem_`, the kinds table's answer) and is
+   foreign everywhere else, whether or not anything on the list answers it yet. */
 function finderForeign_(f) {
+  if (f && BIBLE_FIELDS[f.field]) return finderOfItem_({ kind: 'bible' }) !== FINDER;
   const facet = facetBy(f.field);
   if (!facet) return false;
   const hit = f.any
@@ -13352,16 +13444,8 @@ function stuffPageHtml(n) {
   const items = stuffFiltered();
   const credits = USER ? (USER.credits || 0) : 0;
 
-  if (!items.length) {
-    const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
-              : STUFF.q                          ? 'Try fewer words.'
-              : STUFF.filters.length             ? 'Nothing matches all of those together.'
-              : '';
-    return (!FIND_MEMO.total)
-      ? nothingHere(FINDER.empty, true)
-      : `<p class="empty">Nothing matches.${
-          why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
-  }
+  /* `stuffNoneHtml_`: the same empty answer as the question's, and the way to the other finder. */
+  if (!items.length) return stuffNoneHtml_();
 
   /* Cards, in order, and nothing between them. The continuation-heading logic went with the
      headings — repeating a group name at the top of a page that carries on from the last one was
@@ -15000,14 +15084,8 @@ function stuffQuestion() {
      nothing LEFT is a filter that has excluded everything, and the way out of the second is to take
      a chip off — which is on this page, one row up. `stuffPageHtml` already draws exactly that
      distinction for the results; this is the same two sentences at the point they are first true. */
-  if (!items.length) {
-    return FIND_MEMO.total
-      ? `<p class="empty">Nothing matches.<br><span class="faint">${
-           STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
-         : STUFF.q                          ? 'Try fewer words.'
-         :                                    'Nothing matches all of those together.'}</span></p>`
-      : nothingHere(FINDER.empty, true);
-  }
+  /* AND WHEN THE WORDS ARE IN THE OTHER FINDER, SAYS SO — `stuffNoneHtml_`, one copy for both. */
+  if (!items.length) return stuffNoneHtml_();
 
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT -------------------------
      `const over = … > FACET_MAX_ANSWERS` WAS HERE and it was the flag the row list trimmed itself

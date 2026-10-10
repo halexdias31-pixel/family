@@ -376,7 +376,11 @@ for (const who of VISITORS) {
     await browser.close(); server.close(); process.exit(1);
   }
 
-  const screens = ONLY ? [ONLY]
+  /* `--screen=stuff,res` PRESSES SEVERAL IN ONE PAGE, IN THAT ORDER — which is what a press that
+     leaks from one column into the next needs to be seen: the second finder's review found Find's
+     Open tile carrying words into Resources and every `res` state after it failing, and neither
+     screen pressed alone could show it. */
+  const screens = ONLY ? ONLY.split(',').filter(Boolean)
     : await page.evaluate(() => (typeof TABS !== 'undefined' ? TABS.map(t => t.id) : []));
   if (!screens.length) {
     console.error('! no screens to press — TABS came back empty, so this checked nothing.');

@@ -123,10 +123,58 @@ to keep. Sign-in and sign-out (me.js) keep, mark or clear **both** finders' stat
 
 ### For whoever touches this next
 
-- **`fix-films-out`** will conflict at `KINDS.film`, `KIND_BUCKET`, the films state and the film journeys.
-  Films are labelled `Films`, so they stay on Find until it lands.
+- **`fix-films-out` is merged** (see the review below): films are in no finder.
 - **Task #81's business column** also appends to `TABS` and `columns.json`.
 - **`findKeep_` (answers.js) is Find's alone** — it holds the column over a focused answer box, and only
   Find has answer boxes. Resources' search box is held over a landing payload by the general rule
   (`typingBox_`), which is why `typingBox_` still exempts only `#s-stuff`.
 - **A new deferred call in the funnel** must capture `FINDER` and bind again. That is the whole price.
+
+### The review, and what it found
+
+Four findings, each reproduced on this branch before anything changed, each a journey that was red
+before the fix and is green after.
+
+- **Build step zero had not been done.** `fix-films-out`'s ceb0afb (21:53) predates this branch's first
+  commit (22:09) and was not merged. Merged now: three text conflicts — `check/states.js` (this branch's
+  moved block against films' rewritten state), the history README (both lines), `--css-version` (one stamp
+  naming both) — and one real break. The films journey asked Find's What kind for `Projects` AND
+  `Resources`, and was red once merged; it is fed the practicals beside the projects now (Find's own
+  pair) and also asks that Resources holds no film. The films state wanted two What kind answers under
+  Learning on Find, which over the fixture is one kind since the textbooks moved, so the funnel skips the
+  question and the page drew Year; it asks the facet over Find's whole list, and a film's title in Find's
+  search, instead.
+- **A search one column short said "Try fewer words."** Find's search stopped carrying the resources,
+  which is the split — but "Olivares" on Find said *Nothing matches. / Try fewer words.* with his card one
+  swipe away, where the commit before the move found him. Fewer words would never have found him: the
+  advice was wrong, not just weak. `stuffNoneHtml_` (one copy now, for the question page and a results
+  page, which had two) asks the other finder the same words in that finder's own binding
+  (`finderElsewhere_` → `finderWordsCount_`) and says *N in Resources* with one Open tile
+  (`finder-words`), which copies the words into that finder's words and box and lands on the card when
+  they found one thing, on the question when several. Both ways: a project's word on Resources offers
+  Find. Under the other finder's own chips first; if they hide every hit, under none, and the tile takes
+  them off. The other finder's words, chips and memo are put back in a `finally`. A state measures it in a
+  browser (`stuff · a search only Resources answers`); the shot showed the lone tile in the card's bottom
+  corner, a long way from its sentence, so `.tile-row.is-elsewhere` centres it under the words.
+  **And the state leaked, which only `check/press.js` could see:** it presses the Open tile, which carried
+  "Olivares" into Resources, and every `res` state after it (they set chips, not words) entered a column
+  searching for a boxer — the textbook chapter and the three animations "did not arrive". Neither screen
+  pressed alone showed it, so `press.js --screen=` takes a list (`stuff,res`, pressed in that order in one
+  page); the state's `leave` puts Resources back and Find in front, red without it, green with it.
+- **`finderForeign_` kept a Bible book on Find.** Its comment named the case and the code missed it:
+  nothing on any list answers a Book, Chapter or Verse — only the verses, a list of their own — so the chip
+  read as early, not foreign. An admin's Find place kept inside the Bible came back from a reload with
+  `bibleBook · Genesis` on Find, `bibleInside_()` true and *Nothing matches*. A chip on any of
+  `BIBLE_FIELDS` now belongs to whichever finder holds the Bible and is foreign everywhere else. The
+  reload journey's stale place carries Bible chips, and an admin's journey serves the real Bible files.
+- **Three re-bindings had no journey.** Undoing the search box's debounce binding, the draw's microtask
+  binding or `goPage`'s left the six second-finder journeys green while Resources visibly broke. One
+  journey each now, asked of the screen: Resources' question after the debounce equals its own
+  `stuffQuestion()` (with an answer pressed on Find inside the 180ms); a landing repaint on a Resources
+  result leaves the page in front drawn; `goPage('res', …)` from outside any binding draws the page in
+  front synchronously, far and near. Each mutation applied to the real files turned exactly its journey
+  red, and the files were put back and run green.
+- **`FLOW_RE`** — check-flow takes a regular expression beside `FLOW_ONLY`. The review ran its six
+  journeys that way, and without support the variable was ignored and the whole suite ran, which looks
+  exactly like a slow selection.
+

@@ -53,6 +53,12 @@ screen, the row only affects **order** (`within`, read by `orderOf` on What kind
 unchanged apart from Films dropping out from between the last two:
 Questions · Answers · Practicals · Projects · Bundles · Resources.
 
+**Since the second finder ([329](329-the-second-finder-carries-the-resources.md)), `Resources` is not a
+What kind answer on Find at all** — the resources are their own column, right of Find. The row still
+places it, so the table places every label the library gives. At the merge this note's journey was
+fed the practicals instead of the textbooks (Learning on Find had one kind left, so What kind was
+skipped), and its state asks What kind over Find's whole list rather than under Learning.
+
 #### Checks
 
 - `js/check-flow.js`, new journey: *films are not in Find for an admin with films in the payload —

@@ -2077,6 +2077,33 @@ const STATES = {
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
       leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
+    /* AND A SEARCH THAT MATCHES NOTHING HERE BUT SOMETHING ONE COLUMN OVER — the review of the second
+       finder, finding 1 (docs/history/329): a boxer's name typed into Find said "Try fewer words." with
+       him one swipe away in Resources. It says how many and where now, with an Open tile under it, and a
+       tile is a tap target and a line of faint words is a contrast ratio, which only a browser measures. */
+    { name: 'a search only Resources answers',
+      enter: () => { STUFF.filters = []; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+      expect: () => {
+        const g = document.querySelector('#stuff-groups');
+        const t = g && g.querySelector('.tile-row [data-do="finder-words"][data-to="res"]');
+        return !!t && /\bin Resources\b/.test(g.textContent) && !/Try fewer words/.test(g.textContent);
+      },
+      wants: 'Find\'s empty search saying how many are in Resources, with an Open tile under it',
+      /* AND RESOURCES PUT BACK TOO. `check/press.js` presses the Open tile, which is the point of it:
+         it carries "Olivares" into Resources' words and box and turns that column to his card. Left
+         there, every `res` state after it — which set chips and not words — entered a column searching
+         for a boxer, and the textbook chapter and the three animations "did not arrive". */
+      leave: () => {
+        STUFF.q = ''; paintStuff(); goPage('stuff', 0);
+        inFinder_(finderOf_('res'), () => {
+          STUFF.q = ''; STUFF.filters = [];
+          const box = document.getElementById('res-q');
+          if (box) box.value = '';
+          paintStuff(); goPage('res', 0);
+        });
+        /* AND FIND IN FRONT AGAIN — the tile went to Resources, and the states after this one are Find's. */
+        if (AT !== 'stuff') go('stuff', false, true);
+      } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
