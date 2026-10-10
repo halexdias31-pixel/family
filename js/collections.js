@@ -263,7 +263,7 @@ function spotlightCards_() {
      the payload held — over a window that was full and on its way. The note above calls that this
      repository's oldest fault, and it was one line short of avoiding it. While it is on its way the
      column is the one loader, as every column is (`loading_`, shell.js). */
-  if (typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') return [loading_()];
+  if (typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const cards = spotPages();
   if (cards.length) return cards;
   /* AN ADMIN IS TOLD HOW TO FILL IT, because they are the only person who can — and a column that
@@ -744,7 +744,7 @@ function shopCards_() {
   /* NOT ARRIVED IS NOT EMPTY — the Spotlight column's fault, the same line short: for the length of
      the payload this said "Nothing in the shop yet" over a shop on its way. The basket stays above
      the loader for the reason it stays above a failure. */
-  if (typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') {
+  if (typeof awaiting_ === 'function' && awaiting_()) {
     return wgts.concat([loading_()]);
   }
   const credits = collCredits_();

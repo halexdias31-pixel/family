@@ -752,7 +752,9 @@ function nothingHere(whenEmpty, needsLibrary) {
      simple loading thing"* in place of every one of those (`loading_`, below). The words are not lost:
      the quiet line over the app (`#reconnect`, "Reconnecting…") says what is happening once, for the
      whole app, and the columns under it show that they are waiting the way every card does. */
-  const asking = !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_();
+  /* `retrying_` (below, beside `awaiting_`), so this and every card that waits for the payload read
+     the retry through one definition. */
+  const asking = retrying_();
   if (asking && !LIBRARY_FAILED) return loading_();
   const why = (asking ? '' : LOAD_FAILED) || LIBRARY_FAILED;
   if (why) {
@@ -818,9 +820,10 @@ function nothingHere(whenEmpty, needsLibrary) {
    THREE WAYS IT SITS, AND THE MARKUP IS THE SAME IN ALL THREE — the CSS reads where it is:
      · IN PLACE of a part of a card that is not there yet (a verse, a list, a board's scores): it
        holds about two lines, the size of the sentence it replaced, so nothing shrinks under it.
-     · AS A WHOLE PAGE, the only thing on a pane (the feed before the payload, the shop, Saved): it
-       holds the whole cell, because the card coming is a card, and a three-dot strip that grows into
-       a post is the page jumping at the moment somebody starts reading it.
+     · AS A WHOLE PAGE, the only thing on a pane (the feed before the payload, the shop, Saved): the
+       dots alone, with no card drawn round them, at the middle of the cell — where the card that
+       lands is centred. It held a full-cell empty card at first, and review measured that frame
+       collapsing 250–325px a side the moment anything arrived; a frame not drawn cannot jump.
      · OVER markup that is already drawn and not ready — a widget waiting its turn to start, the
        records' boxes before the sheet has answered: the box is marked `aria-busy="true"`, the loader
        is its last child, and what is under it keeps its exact size, hidden, so when `loaded_` takes
@@ -846,6 +849,41 @@ function loaded_(el) {
   if (!el || !el.removeAttribute) return;
   el.removeAttribute('aria-busy');
   el.querySelectorAll(':scope > .loading').forEach(l => l.remove());
+}
+
+/* ---------- AND WHEN IS THE PAYLOAD STILL ON ITS WAY: ONE ANSWER, ASKED BY EVERY CARD -----------------
+   EVERY CARD THAT WAITS FOR THE PAYLOAD ASKED `!LOADED`, AND THAT IS ONLY HALF OF IT. `LOADED` is
+   set when the first request FINISHES, failed or not — and since the quiet retry (`RECONNECT`) a
+   failed first request is not the end: the app asks again by itself under "Reconnecting…" and the
+   cards fill in when it answers. FOUND BY REVIEW, every script.google.com request aborted, an admin
+   at 390: Shop, Spotlight and the feed showed the one loader (through `nothingHere`, which knew about
+   the retry), and in the same moment the score board said "Scores have not arrived yet.", the hours
+   "The hours have not arrived from the server yet", the calendar was a bare month, the flyer was live
+   with no rooms, Booking every row "—", and Saved "Nothing kept yet." — one wait, drawn the old way
+   on nine cards because each asked the half of the question that had already turned false.
+
+   SO THE QUESTION IS ASKED HERE, ONCE. `retrying_` is "the request failed and the app is asking
+   again by itself" — what `nothingHere` asks before it prints a failure and a Try again. `awaiting_`
+   is "no payload is here yet and one is still coming": before the first answer, or after a failed
+   one while the retry is out AND no payload has ever been drawn (`RECONNECT.shown`). That last half is
+   what keeps a failed REFRESH behind a good payload from veiling cards that are showing real things:
+   a save that reloads and fails leaves the board's scores, the week and the month as they were.
+
+   NOT ONE FUNCTION FOR BOTH, deliberately. `nothingHere` is only reached where its caller has
+   already decided the column has nothing to show, and for it a failed refresh is still the retry's
+   to answer: given `awaiting_`'s `shown` half it would print "Couldn't load. … Try again" under
+   "Reconnecting…", which is the contradiction the retry's own review took out (docs/history/313).
+   One base, `retrying_`, so the two cannot drift; each asks the question it has. In a `try`, because
+   `RECONNECT` is a const further down this file and a card drawn before it exists must still answer. */
+function retrying_() {
+  try { return !!LOAD_FAILED && typeof reconnecting_ === 'function' && reconnecting_(); }
+  catch (e) { return false; }
+}
+function awaiting_() {
+  try {
+    if (!LOADED) return true;
+    return retrying_() && !RECONNECT.shown;
+  } catch (e) { return typeof LOADED !== 'undefined' && !LOADED; }
 }
 
 /** Redraw whatever is showing. What almost everything calls after a change. */

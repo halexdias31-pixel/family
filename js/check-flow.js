@@ -8650,6 +8650,92 @@ check('while the app asks again, nobody is shown the failure\'s words or a Try a
   return bad;
 });
 
+/* ---------- AND EVERY CARD THAT WAITS ON THE PAYLOAD WAITS THE SAME WAY WHILE IT IS ASKED FOR AGAIN -----------
+   FOUND BY REVIEW (10 Oct), every script.google.com request aborted, an admin at 390: the columns drew the
+   loader through `nothingHere`, which knew about the retry — and in the same moment the Times Tables board
+   said "Scores have not arrived yet." and My teaching hours "The hours have not arrived from the server
+   yet", because each asked `!LOADED`, and `LOADED` is true once the first request has failed. Both fill
+   in by themselves when the retry lands, so both are waits: `awaiting_()` (shell.js) is the one question
+   now. Each card is turned to, as a finger turns to it, and waited for (bounded) before it is read; then
+   the retry is let through, and each must show what the payload brought instead of the dots. */
+check('while a failed first payload is asked for again, the score board and the hours show the loader, not a sentence', async () => {
+  let open;
+  const gate = new Promise(r => { open = r; });
+  /* THE FIRST ASK FAILS FAST, and every ask after it waits on the gate — so the retry is out, and
+     the app is between "failed" and "arrived", for as long as this journey reads. */
+  const b = flaky_(n => (n === 0 ? 'fetch' : gate.then(() => ({ body: RC_PAYLOAD_() }))), RC_ADMIN_);
+  await wait(400);
+  const t = b.w.__t, d = b.w.document;
+  if (!t || typeof t.widgetsOf !== 'function') return ['the test harness did not come up'];
+  if (b.line() !== 'Reconnecting…') return ['the first payload failed and the quiet line says "' + b.line() + '" — the retry is not out, so nothing here was tested'];
+  if (typeof b.w.awaiting_ !== 'function' || !b.w.awaiting_()) return ['`awaiting_()` does not say the payload is on its way while the retry is out'];
+  const bad = [];
+  const words = /have not arrived|Scores have not|from the server yet/;
+  const turnTo = async (col, id, sel) => {
+    t.go(col, false, true);
+    await wait(LEAVE_MS); await woken_();
+    const n = t.widgetsOf(col === 'games' ? 'game' : 'tool').findIndex(x => String(x.id) === id);
+    if (n < 0) { bad.push(`no "${id}" widget on ${col} for an admin`); return null; }
+    b.w.goPage(col, n, true);
+    for (let k = 0; k < 150; k++) {
+      const el = d.querySelector(sel);
+      if (el && el.innerHTML.trim() && !el.closest('[aria-busy="true"]')) return el;
+      await wait(100);
+    }
+    bad.push(`the "${id}" widget on ${col} never started — ${sel} is empty or still veiled`);
+    return null;
+  };
+  const board = await turnTo('games', 'tables', '#s-games #tt-board');
+  if (board) {
+    if (!board.querySelector('.loading[role="status"]')) bad.push('while the retry is out the Times Tables board shows no loader: "' + board.textContent.trim().slice(0, 80) + '"');
+    if (words.test(board.textContent)) bad.push('while the retry is out the Times Tables board says "' + board.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
+  }
+  const hours = await turnTo('tools', 'avail', '#s-tools #avail-box');
+  if (hours) {
+    if (!hours.querySelector('.loading[role="status"]')) bad.push('while the retry is out My teaching hours shows no loader: "' + hours.textContent.trim().slice(0, 80) + '"');
+    if (words.test(hours.textContent)) bad.push('while the retry is out My teaching hours says "' + hours.textContent.trim().slice(0, 80) + '" — a wait in words of its own');
+  }
+  /* AND THE RETRY LANDS: the dots go, and what the payload brought is drawn where they were. */
+  open();
+  for (let k = 0; k < 50 && !b.arrived(); k++) await wait(100);
+  if (!b.arrived()) return bad.concat(['the retry was let through and the payload is not in DATA']);
+  for (let k = 0; k < 50 && d.querySelector('#s-tools #avail-box .loading, #s-games #tt-board .loading'); k++) await wait(100);
+  const hb = d.querySelector('#s-tools #avail-box'), bb = d.querySelector('#s-games #tt-board');
+  if (hb && hb.querySelector('.loading')) bad.push('the retry landed and My teaching hours still shows the loader');
+  if (bb && bb.querySelector('.loading')) bad.push('the retry landed and the Times Tables board still shows the loader');
+  if (b.w.awaiting_()) bad.push('the retry landed and `awaiting_()` still says the payload is on its way');
+  return bad;
+});
+
+/* ---------- AND A FIXED SENTENCE IS NOT A WAIT ---------------------------------------------------------
+   FOUND BY REVIEW: signed out, with the payload held, the Booking column drew the loader for the whole
+   wait — up to the minute's deadline — where its one sentence, "Sign in to book", needs nothing from
+   the payload. Account, Saved and Messages drew their sign-in cards at once. Signed in, the form does
+   need the payload, and waits for it. */
+check('with the payload held, Booking says "Sign in to book" to a visitor at once, and waits for it for somebody signed in', async () => {
+  let openV, openK;
+  const v = flaky_([new Promise(r => { openV = r; })]);
+  const k = flaky_([new Promise(r => { openK = r; })], RC_KID_);
+  await wait(400);
+  const bad = [];
+  [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
+    if (b.arrived()) { bad.push(`${who}'s payload arrived before it was let through, so nothing was tested`); return; }
+    b.w.__t.go('booking', false, true);
+  });
+  await wait(LEAVE_MS);
+  [['a visitor', v, false], ['a student', k, true]].forEach(([who, b, waits]) => {
+    const col = b.w.document.getElementById('s-booking');
+    const text = ((col && col.textContent) || '').replace(/\s+/g, ' ');
+    const dots = col ? col.querySelectorAll('.loading').length : 0;
+    if (!waits) {
+      if (dots) bad.push(`${who}'s Booking column shows the loader while the payload is held — its sentence needs nothing from it`);
+      if (!/Sign in to book/.test(text)) bad.push(`${who}'s Booking column does not say "Sign in to book" while the payload is held: "${text.trim().slice(0, 80)}"`);
+    } else if (!dots) bad.push(`${who}'s Booking column shows no loader while the payload is held — the form needs it: "${text.trim().slice(0, 80)}"`);
+  });
+  openV(); openK();
+  return bad;
+});
+
 /* ---------- A PAYLOAD THAT LANDS DOES NOT REBUILD THE BOX SOMEBODY IS TYPING IN ------------------------
    Found by review at 390x844 with touch: writing in the Tools notepad, a retry succeeded, the column was
    rebuilt, and the focus — and the next key — went with it. See `landRepaint_`. */

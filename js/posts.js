@@ -455,9 +455,10 @@ function postsBlocks() {
   /* NOTHING LOADED YET is not the same as NOTHING TO SHOW, and the difference matters: one is a
      wait and the other is a fact. Telling somebody "nothing posted yet" while the request is still
      in flight is a lie the app corrects a second later, which is worse than saying nothing.
-     THE WAIT IS `loading_()`, the one every card draws (shell.js) — a page of its own, so it holds
-     the whole cell and the post lands in the room it was keeping. It was a skeleton post of its own
-     until the owner, 9 Oct: *"They should all have a simplistic simple loading thing."* */
+     THE WAIT IS `loading_()`, the one every card draws (shell.js) — a page of its own, the dots with
+     no card round them at the middle of the cell, where the post that lands is centred. It was a
+     skeleton post of its own until the owner, 9 Oct: *"They should all have a simplistic simple
+     loading thing."* */
   if (!LOADED) return [loading_()];
 
   const posts = feedPosts();
@@ -842,8 +843,17 @@ async function camStart_() {
 
   let said = $('cam-said'), retry = $('cam-on');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    if (said) said.textContent = 'This browser has no camera support.';
+    /* A FACT, SO THE VIEWFINDER SAYS IT — and the loader comes out of it. This wrote the sentence into
+       the line under the card and left `#cam-off` as `cameraCard` and `camStop_` draw it: the one
+       loader, pulsing over "This browser has no camera support." for as long as the page was up, and
+       back again on every return. Found by review with `mediaDevices` taken away. A wait drawn over a
+       failure is the one thing `loading_` must never be; `camFailed_` already does this for a refused
+       camera. The reason is said once, in the panel, and the line under the card is cleared. */
+    const off = $('cam-off');
+    if (off) { off.hidden = false; off.innerHTML = '<p class="sub">This browser has no camera support.</p>'; }
+    if (said) said.textContent = '';
     if (retry) retry.hidden = true;          // nothing a retry could change
+    camSettle_();
     return;
   }
   if (retry) retry.disabled = true;

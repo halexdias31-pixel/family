@@ -12239,8 +12239,14 @@ function bookingPages_(o) {
      form was every row reading "—", an empty week, a Cost of "–" and no tutor to choose — measured on
      9 Oct with the payload held, and nothing on it said it was early. It is the one loader on a page of
      its own until then, as every column waits (`loading_`, shell.js); the form is drawn whole the
-     moment the payload's repaint comes. */
-  if (typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') return [loading_()];
+     moment the payload's repaint comes.
+     ONLY FOR SOMEBODY SIGNED IN. Signed out, `bookBlocks` is one fixed sentence — "Sign in to book" —
+     that needs nothing from the payload, and found by review this drew the loader in its place for the
+     whole wait (fifteen seconds to the splash, up to the minute's deadline) on the second column a
+     first-time visitor reaches: the loader shown for something that was not a wait. Account, Saved
+     and Messages draw their sign-in cards at once; so does this. `awaiting_`, not `!LOADED`, so the
+     quiet retry after a failed first payload is a wait here too (shell.js). */
+  if (typeof USER !== 'undefined' && USER && typeof awaiting_ === 'function' && awaiting_()) return [loading_()];
   const form = (typeof bookBlocks === 'function' ? bookBlocks() : []).filter(Boolean);
   /* ---------- THE BASKET IS NOT HERE ANY MORE, AND IT WAS HERE FOR ONE GOOD REASON --------------
      IT WAS A PAGE OF THIS COLUMN, appended in column mode only: a basket is the end of arranging a
@@ -12607,8 +12613,7 @@ function accountPages_() {
      said it would. So until it lands, the page after yours is the one loader, as every column waits
      (`loading_`, shell.js). The owner, 9 Oct: *"They should all have a simplistic simple loading
      thing while it's info or whatever is loading."* */
-  const coming = typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function'
-    ? [loading_()] : [];
+  const coming = typeof awaiting_ === 'function' && awaiting_() ? [loading_()] : [];
   return [me].concat(claimPages, famPages, others, everyone, coming);
 }
 
@@ -15028,7 +15033,7 @@ function stuffQuestion() {
      that looked finished and was not, and grew when the payload came. So under the answers, until then, the one loader
      (`loading_`, shell.js) — the answers already here stay pressable, and the room under them says
      more are on their way. */
-  const more = typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function' ? loading_() : '';
+  const more = typeof awaiting_ === 'function' && awaiting_() ? loading_() : '';
   return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
         grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>

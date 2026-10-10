@@ -998,8 +998,10 @@ function scoreBoard_(field) {
      way. The owner, 9 Oct: *"They should all have a simplistic simple loading thing."* While the
      payload is on its way the board is `loading_()` (shell.js); `paintBoard_` runs from the game's own
      `start`, which the payload's repaint calls again, so the scores replace it where it stands. The
-     sentence stays for the case it is a FACT: a payload that came, or failed, with nobody in it. */
-  if (!r.people && typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') return loading_();
+     sentence stays for the case it is a FACT: a payload that came, or failed for good, with nobody in
+     it. ON ITS WAY IS `awaiting_`, not `!LOADED`: a failed first payload the app is asking again for
+     is still on its way, and this said "not arrived" under "Reconnecting…" until review found it. */
+  if (!r.people && typeof awaiting_ === 'function' && awaiting_()) return loading_();
   if (!r.people) return '<p class="note">Scores have not arrived yet.</p>';
   if (!r.all.length) return '<p class="note">No scores yet. Be the first.</p>';
   const top = r.all.slice(0, SCORE_TOP);

@@ -4671,7 +4671,7 @@ function initAvail() {
      runs again on the payload's repaint, which draws the week in its place. The sentence is kept, in
      its own words, for the payload that came without them — an older server, or one that failed —
      where it is a fact rather than a wait. */
-  if (!codes.length && typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') {
+  if (!codes.length && typeof awaiting_ === 'function' && awaiting_()) {
     into.innerHTML = loading_();
     return;
   }
@@ -5047,7 +5047,7 @@ on('pin-save', el => {
    thing that is coming, not a spinner", so nothing jumps when it lands. What it lost to is the owner,
    9 Oct: *"Every widget has unique loading look. They should all have a simplistic simple loading
    thing"* — it was one of twenty-four looks for one fact. The three columns draw `loading_()` now
-   (shell.js), which on a page of its own holds the whole cell, so its one job is still done: the post
-   that replaces it lands in the room it was keeping. The same day the skeleton had been given a
+   (shell.js), which on a page of its own is the dots alone at the middle of the cell, with no frame
+   drawn round them for the post that replaces it to jump from. The same day the skeleton had been given a
    pill-round bar where the reactions' row of faces would be (docs/history/307) — the right shape for
    a look that no longer exists; the merge kept the removal, and the reactions keep their own row. */

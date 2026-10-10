@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-one-loader";
+  --css-version: "2026-10-10-one-loader-reviewed";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2205,9 +2205,9 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    changes is the room they are centred in, which is the room the content will take:
      · IN PLACE (a verse, a list, a score board): about two lines, the size of the sentence each of
        these replaced, so nothing shrinks round it when it arrives.
-     · A WHOLE PAGE — the loader the only thing on a pane: the pane is the whole cell, the most a card
-       can be, so the card that lands is drawn inside the space the dots were keeping rather than
-       pushing the column about. It was a skeleton post on the feed for exactly this reason.
+     · A WHOLE PAGE — the loader the only thing on a pane: NO FRAME AT ALL, the dots alone at the
+       middle of the cell, which is where the card that lands is centred (`columnShift_`). There is no
+       card edge to jump from because none was drawn.
      · OVER markup already drawn and not ready (`aria-busy="true"` with the loader its last child — a
        widget waiting its turn to start, the records before the sheet answers): what is underneath
        keeps its exact size and is not seen, the dots sit over the middle of it, and `loaded_` takes
@@ -2245,8 +2245,23 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    then missed. A loader on a card that is not in front is three still dots; the page that comes in
    front (`.page.on`, set by `placeGrid`) starts it. Loaders outside a page — a sheet — always move. */
 .page:not(.on) .loading > span { animation: none; }
-/* A WHOLE PAGE WAITING: the pane is the cell's full height (`.pane`'s own cap) and the dots its middle. */
-.pane:has(> .loading:only-child) { height: calc(100dvh - var(--bar) - var(--safe-bottom) - 2.5rem); }
+/* A WHOLE PAGE WAITING: THE DOTS, AND NO CARD ROUND THEM.
+   IT WAS A FULL-CELL CARD — the pane held at the cell's height with the dots in its middle, on the
+   argument that the card arriving would land "inside the space the dots were keeping". True of the
+   middle and of nothing else: measured by review with the payload held and then let go, the frame's
+   edges snapped inward the moment anything landed — the feed 807→311px at 390, Saved 807→158,
+   Spotlight 807→177, Booking 807→606, and the same at 320 — a 250–325px jump on each side, which is
+   the jump this was meant to prevent, on every column of the first second anybody sees.
+   SO THE FRAME IS TAKEN AWAY RATHER THAN GUESSED AT. While a pane holds nothing but the loader it has
+   no fill, no edge and no shadow — the dots on the screen's own black — and only a modest height so
+   they have room. Pages are centred in the cell (`columnShift_`), so the card that arrives appears
+   round the point where the dots were (measured: the landed cards' middles within a pixel of the
+   dots'), and there is no outline for it to collapse from. `check/ui.js` holds the payload, measures
+   this, lets it go and measures again. */
+.pane:has(> .loading:only-child) {
+  min-height: 6rem;
+  background: none; border-color: transparent; box-shadow: none;
+}
 .pane > .loading:only-child { flex: 1 1 auto; }
 /* OVER WHAT IS ALREADY DRAWN: held at its own size, unseen and untouchable, the dots over its middle.
    `visibility` and not `display` — `display: none` would take the box's height with it, which is the

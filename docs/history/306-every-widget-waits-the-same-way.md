@@ -41,11 +41,13 @@ and two meanings get two shapes so neither can be mistaken for the other.
 - **In place** of the part of a card that is not there yet — a verse, a score board, the hours, the
   Bible's question, the folder's pictures, the camera's viewfinder. It holds `3rem`, about two lines, the
   size of the sentence each one replaced, so nothing shrinks round it.
-- **A whole page** — the loader the only thing on a pane: `.pane:has(> .loading:only-child)` is the
-  whole cell, the most a card can be, with the dots in its middle. The feed, the reel, Messages, the
-  booking form, the Shop and Spotlight before the payload, the page after your own card on the account
-  column, and the page after whatever Saved can already draw. The skeleton existed so a post would land
-  in the room it was keeping; this keeps the most room a card can have.
+- **A whole page** — the loader the only thing on a pane: `.pane:has(> .loading:only-child)` draws no
+  frame at all (no fill, edge or shadow), just the dots at the middle of the cell, which is where the
+  card that lands is centred. The feed, the reel, Messages, the booking form (signed in), the Shop and
+  Spotlight before the payload, the page after your own card on the account column, and the page after
+  whatever Saved can already draw. *It was first built as a full-cell empty card "keeping the most room
+  a card can have" — review measured that frame collapsing 250–325px a side when anything landed; see
+  "After the review" below.*
 - **Over markup already drawn and not ready** — the box gets `aria-busy="true"` and the loader as its
   last child. What is under it keeps its exact size and is `visibility: hidden` (not `display: none`,
   which would take the height with it), so it cannot be seen, focused or typed into, and the dots sit
@@ -59,8 +61,9 @@ and two meanings get two shapes so neither can be mistaken for the other.
   - the business records — the boxes and Save, until `listRecords` answers; `bizFill_` fills them and
     takes the loader off in one go, so they appear filled rather than empty and then filled. The
     "still fetching" toast became "The records are still on their way";
-  - the Videos card, until `data/videos.json` is in (and, for an admin, the payload's films): search box,
-    count line (held at one line by a space) and list, drawn and veiled;
+  - the Videos card, until `data/videos.json` is in (and, for an admin, the payload's films): search box
+    and count line (held at one line by a space), drawn and veiled. The list is NOT held — its length
+    is not known until it lands — so the card grows by the rows that come (see "After the review");
   - the calendar's month until the payload's marks are in; the flyer maker's controls until the venues
     are (it would otherwise price a seat off the fallback room rate of 15).
 
@@ -201,7 +204,7 @@ column (320). Read for waits of their own:
   `.is-wait`, "on its way" and "still coming" to the loader.
 - **`check/states.js` + `check/ui.js`.** Three widgets held on a real request: **settings · the business
   records still coming** (the `listRecords` POST), **games · the videos still coming** (`data/videos.json`,
-  a stranger's — an admin's card has films and never waits), **feed · the camera still starting**
+  a stranger's — with the payload in, an admin's card already has its films), **feed · the camera still starting**
   (`getUserMedia` held as an open prompt holds it, after any refusal still in flight from the state
   before has landed; released with a canvas's `captureStream`). Each has `release` and `landed`; `leave`
   drops what it held rather than delivering it, because `check/press.js` never releases.
@@ -253,3 +256,57 @@ other worktrees:
   a person cannot meet it: an unstarted notepad is out of sight and cannot be typed into.
 - **`check/press.js`**: one swipe chain on Games landed a page short in the full run; Games alone was
   clean on this branch and showed the same kind of miss on the base commit, run side by side.
+
+### After the review (10 Oct)
+
+Six findings against the loader work, each checked before it was fixed.
+
+- **The quiet retry was a wait on three columns and the old look on nine.** Every card that waits for the
+  payload asked `!LOADED` — and `LOADED` is true the moment the first request has *finished*, failed or
+  not. With every script.google.com request aborted, an admin at 390 saw the loader on Shop, Spotlight
+  and the feed (through `nothingHere`, which knew about the retry) and, in the same moment, "Scores have
+  not arrived yet.", "The hours have not arrived from the server yet", a bare month, a live flyer with
+  no rooms, a booking form of dashes, "Nothing kept yet." and no "more" loader on Find or the account
+  column. **`awaiting_()` in shell.js** is the one question now: no payload yet, or a failed one the
+  retry is still asking for *and no payload ever drawn* (`RECONNECT.shown`) — that last half keeps a
+  failed refresh behind a good payload from veiling cards showing real things. `nothingHere` shares its
+  base, `retrying_()`, and deliberately not the `shown` half: given it, a failed refresh would print
+  "Couldn't load … Try again" under "Reconnecting…", which is the contradiction 313's review took out.
+  Re-probed in Chromium with every request aborted: all nine show the loader. A check-flow journey
+  fails the first payload, holds the retry, and asks the Times Tables board and My teaching hours for
+  the loader and not their sentences, then lets the retry through; with the two gates put back to
+  `!LOADED` it is red on both. `check-loading`'s exemptions for the score board and the hours (which
+  keep their sentences for a payload that came without them) now require the `awaiting_()` gate.
+- **The camera's loader stayed over "This browser has no camera support."** The no-`mediaDevices`
+  branch wrote its sentence under the card and never touched the viewfinder, which held the loader for
+  good. It writes the panel whole now, as `camFailed_` does; a state in `check/states.js` takes
+  `mediaDevices` away and expects no loader on the card.
+- **Signed out, Booking drew the loader for a sentence that needs nothing.** The gate asks for a
+  signed-in visitor; a check-flow journey holds the payload and expects "Sign in to book" at once for a
+  visitor and the loader for a student (red when the `USER` half is taken out).
+- **The whole-page loader was a full-cell empty card, and it collapsed.** Measured with the payload held
+  and let go: the feed 807→311px at 390, Saved 807→158, Spotlight 807→177, Booking 807→606, the same at
+  320. The frame is gone rather than guessed at — the waiting pane has no fill, edge or shadow and a
+  6rem floor — and the landed cards' middles sat within 1.3px of the dots'. `check/ui.js` gained a
+  held-payload pass at 320 and 390, signed in, over the feed, Saved, Spotlight and Booking: no frame
+  while waiting, the card centred where the dots were once it lands. The full-cell rule put back is red.
+- **The Videos card's "does not move" could not fail.** Its state released into the repository's own
+  file, whose one row is switched off, so the list that landed was "No videos listed yet." — one line
+  for the one line the count held. With three real rows the card grows ~200px (171→369 at 390). A
+  list's length is not known until it lands, so the claim is gone from `vidPaint_` and here, the state
+  releases three real rows, and `ui.js` holds a state marked `grows` to what is still true: the card
+  never shrinks and the rows arrive. With `grows` taken off, the same state is red at 197px.
+- **`check-loading` stopped only the words it already knew.** "Loading videos…", "Loading the
+  questions…", "Opening the camera…", "Getting your sessions…", "Searching…" and "still loading." each
+  passed. It reads `Loading / Searching / Finding / Opening …` with any words to the ellipsis, "still
+  loading" in any case, the hours' "have not arrived from the server", and **the shape**: a drawn
+  element whose text trails off in "…". Four strings are let through by name, each with its reason —
+  the score board's and the hours' sentences (only after their `awaiting_()` gates), a message's
+  "sending…" (a press in flight), and the Save refusal "still loading from the sheet, so nothing was
+  sent". Seven mutations, each red on a copy (the six above and the score board's gate taken out); the
+  real files green.
+
+Run after these fixes, on four shared cores: `check.js`, `check-const`, `check-css`, `check-strings`,
+`check-doors`, `check-loading` green; **`check-flow` 246 of 246** (the two new journeys among them);
+**`check/ui.js`** 1400 combinations, nothing new, 25 loaders measured and 15 held and let go, and 8
+whole pages measured on a held payload; **`check/press.js`** green.

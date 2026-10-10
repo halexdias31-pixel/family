@@ -259,7 +259,10 @@ Follow it. It is unusual and it is deliberate.
   drawn (`aria-busy="true"`, taken off by `loaded_`). The owner, 9 Oct: *"Every widget has unique
   loading look. They should all have a simplistic simple loading thing."* No waiting sentence, no
   skeleton, no spinner of a card's own; an error or an empty result keeps its words, and a press
-  already sent keeps `send_`'s ring. `check-loading.js` fails on the rest. See docs/history/306.
+  already sent keeps `send_`'s ring. **Whether the payload is still coming is `awaiting_()`, never
+  `!LOADED`** — `LOADED` is true once a failed first load has finished, while the quiet retry is
+  still asking. `check-loading.js` fails on a waiting phrase, and on any drawn text that trails off in
+  "…", unless it is listed with a reason. See docs/history/306.
 - Version constants — `BACKEND_VERSION`, `DOGET_VERSION`, `DOPOST_VERSION`, `BOOKING_VERSION` — are
   compared on the **whole stamp**, so bump all four together or the You screen reports the untouched
   ones as "Not deployed".

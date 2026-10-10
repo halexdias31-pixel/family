@@ -290,7 +290,7 @@ function savedCards_() {
      payload held. Until both are in, the one loader follows whatever is already drawn (a starred
      widget is on this device and needs neither); the owner's word, 9 Oct, is that every wait looks
      the same: *"They should all have a simplistic simple loading thing."* */
-  const coming = (typeof LOADED !== 'undefined' && !LOADED)
+  const coming = (typeof awaiting_ === 'function' && awaiting_())
     || (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null && !LIBRARY_FAILED);
   const cards = wgts.concat(rest, coming ? [loading_()] : []);
   if (cards.length) return cards;

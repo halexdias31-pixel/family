@@ -547,7 +547,7 @@ function initFlyer() {
      loader (`loading_`, shell.js), the card keeps its size, and the payload's repaint starts this
      again with the real rooms. The owner, 9 Oct: *"They should all have a simplistic simple loading
      thing while it's info or whatever is loading."* */
-  if (typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') {
+  if (typeof awaiting_ === 'function' && awaiting_()) {
     wrap.setAttribute('aria-busy', 'true');
     wrap.insertAdjacentHTML('beforeend', loading_());
   } else if (typeof loaded_ === 'function') loaded_(wrap);

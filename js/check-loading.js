@@ -14,11 +14,14 @@
 
    So this reads the source, the way `check-css` does, and fails on any of these:
 
-     1. AN OLD WAITING PHRASE in a string the app can draw — "Loading…", "Looking for", "Fetching",
-        "Please wait", and the ones the inventory found ("Starting the camera", "still coming", the
-        Bible's "on its way" and "Opening the list", and the quiet retry's "Waiting for the server",
-        which arrived in every empty column the same day). Comments are not read: the prose in this
-        repository quotes the old words on purpose, so the next person knows what was there.
+     1. A WAITING PHRASE in a string the app can draw — "Loading…" and any "Loading / Searching /
+        Finding / Opening … …", "Looking for", "Fetching", "Please wait", and the ones the inventory
+        found ("Starting the camera", "still coming", the Bible's "on its way" and "Opening the list",
+        and the quiet retry's "Waiting for the server", which arrived in every empty column the same
+        day) — AND THE SHAPE, whatever the words: a drawn element whose text trails off in "…". The
+        few that are right where they are are listed by name with a reason (`PHRASE_OK`). Comments
+        are not read: the prose in this repository quotes the old words on purpose, so the next
+        person knows what was there.
      2. A WAITING CLASS written into markup — a skeleton, a shimmer, a spinner, `is-wait`,
         `is-loading`, a `loader` — or the one loader's own class (`loading`) written out by hand
         anywhere but `loading_()` and `loaded_()` in shell.js. A hand-written copy is a copy that
@@ -65,8 +68,14 @@ function appFiles_() {
    it is a return of. Narrow on purpose: "on its way" alone is also "a new PIN is on its way", which
    is a sentence about an email and not a wait, so the Bible's line is matched by its own words. */
 const PHRASES = [
-  [/\bLoading(…|\.\.\.)/, 'a "Loading…" of its own'],
-  [/\bStill loading\b/, '"Still loading" — that is the splash\'s line, in index.html, and nowhere in a card'],
+  /* ANY WAIT THAT TRAILS OFF, NOT ONLY THE BARE WORD. This was `/\bLoading(…|\.\.\.)/`, and found by
+     review it let the commonest new waiting sentence straight through: "Loading videos…", "Loading the
+     questions…", "Opening the camera…" and "Searching…", each put back in a copy, left this green while
+     CLAUDE.md said this check "fails on the rest". The verbs a wait is written with, followed by
+     anything up to the ellipsis that makes it a wait. */
+  [/\b(Loading|Searching|Finding|Opening)\b[^<"]*(…|\.\.\.)/, 'a "Loading…" of its own — or "Searching…", "Finding…", "Opening…"'],
+  /* `i`, because "still loading." is the same sentence with a small s. */
+  [/\bStill loading\b/i, '"Still loading" — that is the splash\'s line, in index.html, and nowhere in a card'],
   /* WITH ITS ELLIPSIS, because "looking for the TV remote" is a Charades card and not a wait. */
   [/\bLooking for\b[^<"]*(…|\.\.\.)/i, '"Looking for…" — the Videos card said "Looking for videos…"'],
   [/\bLooking in\b[^<"]*(…|\.\.\.)/i, '"Looking in…" — the new-post sheet said "Looking in the folder…"'],
@@ -80,14 +89,29 @@ const PHRASES = [
      asked again — the column's wait is the loader; the line over the app says why, once. */
   [/\bWaiting for the server\b/i, 'the retry\'s "Waiting for the server" in a column — the quiet line `#reconnect` says it, once, for the whole app'],
   [/\bhave not arrived yet\b/i,'the score board\'s "Scores have not arrived yet" while they were on their way — the sentence is kept only where `scoreBoard_` knows the payload came'],
+  [/\bhave not arrived from the server\b/i, 'the hours\' "The hours have not arrived from the server yet" while the payload was on its way — kept only where `initAvail` knows it came without them'],
+  /* ---------- AND THE SHAPE, WHATEVER THE WORDS ------------------------------------------------------
+     A LIST OF WORDS STOPS ONLY THE WAITS SOMEBODY ALREADY THOUGHT OF. "Getting your sessions…" on the
+     booking page, put back in a copy, passed every line above. What every one of them shares is the
+     shape: a drawn element whose text trails off in an ellipsis. On the day this was written it met
+     exactly one line in the app, listed below with its reason. */
+  [/>[^<>]*\w(…|\.\.\.)\s*<\/(p|div|span|li|h\d|b|i|small)>/, 'an element whose text trails off in "…" — the shape of a wait drawn in words of its own'],
 ];
-/* THAT LAST ONE IS STILL IN THE APP, ONCE, AND IS RIGHT: `scoreBoard_` says it when the payload came
-   (or failed) with nobody in it, which is a fact. It is let through only there, only after the line
-   that draws the loader while the payload is on its way — so the sentence cannot slide back to being
-   the wait. */
+/* THREE OF THOSE ARE STILL IN THE APP, AND EACH IS RIGHT WHERE IT IS.
+   The score board and the hours say theirs when the payload came (or failed for good) without them,
+   which is a fact. Each is let through only in its own file, only after the line that draws the loader
+   while the payload is still on its way (`awaiting_`, shell.js) — so the sentence cannot slide back
+   to being the wait. The rest are let through by name, with what makes them not a wait. */
+const AFTER_THE_WAIT = /awaiting_\(\)[\s\S]{0,60}?loading_\(\)/;
 const PHRASE_OK = [
-  { file: 'map.js', re: /\bhave not arrived yet\b/i, after: /!LOADED[^\n]*return loading_\(\)/,
+  { file: 'map.js', re: /\bhave not arrived yet\b/i, after: AFTER_THE_WAIT,
     why: 'scoreBoard_ draws the loader while the payload is on its way; this sentence is for a payload that came with nobody in it' },
+  { file: 'me.js', re: /\bhave not arrived from the server\b/i, after: AFTER_THE_WAIT,
+    why: 'initAvail draws the loader while the payload is on its way; this sentence is for a payload that came without `profileFields` — an older server' },
+  { file: 'me.js', re: />sending…<\/p>/,
+    why: 'a message already sent and in flight under its bubble — a press answered (send_\'s "Sending…", docs/history/094), not content on its way' },
+  { file: 'me.js', re: /\bstill loading from the sheet, so nothing was sent\b/,
+    why: 'the answer to a press of Save before the saved details came: a refusal said once, after the press, and not a wait drawn on a card' },
 ];
 
 /* ---------- 2. THE CLASSES A WAIT WAS DRAWN WITH ------------------------------------------------------ */
@@ -164,7 +188,8 @@ for (const f of appFiles_()) {
     /* 1. THE OLD WORDS */
     PHRASES.forEach(([re, what]) => {
       if (!re.test(v)) return;
-      const ok = PHRASE_OK.find(o => o.file === f && o.re.test(v) && o.after.test(src.slice(Math.max(0, t.start - 400), t.start)));
+      const ok = PHRASE_OK.find(o => o.file === f && o.re.test(v)
+        && (!o.after || o.after.test(src.slice(Math.max(0, t.start - 400), t.start))));
       if (ok) { note.push(`${at}: ${JSON.stringify(v.trim().slice(0, 50))} — ${ok.why}`); return; }
       bad.push(`${at}: ${what} — ${JSON.stringify(v.trim().slice(0, 70))}. A wait is \`loading_()\`.`);
     });

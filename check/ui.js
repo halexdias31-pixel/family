@@ -1430,6 +1430,113 @@ function inspect(opts) {
 
   if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
 
+  /* ---------- A WHOLE PAGE WAITING ON THE PAYLOAD, AND WHAT IT BECOMES ---------------------------------
+     THE RELEASE-AND-REMEASURE BELOW ONLY EVER MET LOADERS DRAWN OVER A CARD (the records, Videos, the
+     camera), because every other state is measured with the payload in. The commonest wait in the app
+     is the other kind — a column that is nothing but the loader until `load()` answers — and review
+     found it drawn as a full-cell EMPTY CARD whose edges collapsed 250–325px a side the moment the
+     content landed (feed 807→311px at 390, Saved 807→158, Spotlight 807→177), with nothing here able
+     to see it. So: a page of its own, signed in, with the payload HELD at the route; the columns that
+     wait on it measured; the payload let go; the same columns measured again.
+     WHAT IS ASKED (style.css, "A WHOLE PAGE WAITING"): while it waits the pane draws NO FRAME — no
+     fill, no visible edge, no shadow — so there is nothing to jump from; and the card that lands is
+     centred where the dots were. Its HEIGHT is not compared, because it is meant to differ: what is
+     on its way is not known until it comes, which is the whole reason no frame is drawn for it.
+     AT THE TWO PHONE WIDTHS, in the first part of a split run (or a run measuring one of these
+     columns) — a boot per width is the cost, and a phone is where this is the first second of the app. */
+  const HELD_COLUMNS = ['feed', 'saved', 'spotlight', 'booking'];
+  let wholePagesHeld = 0;
+  const heldWho = VISITORS.find(v => v.user);
+  if (heldWho && (ONLY ? HELD_COLUMNS.indexOf(ONLY) !== -1 : (!PART.length || PART[0] === 1))) {
+    for (const [width, height] of SIZES.filter(s => s[0] <= 390)) {
+      const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+      const errs = [];
+      page.on('pageerror', e => errs.push(String(e.message).slice(0, 120)));
+      await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, heldWho.user);
+      const held = [];
+      const body = (heldWho.user.roles || []).indexOf('admin') !== -1 ? FIXTURE : FIXTURE_ANON;
+      await page.route('**://script.google.com/**', r => { held.push(r); });
+      const cols = ONLY ? [ONLY] : HELD_COLUMNS;
+      const label = c => `${c} · the payload held`;
+      try {
+        await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS !== null
+          && typeof go === 'function', null, { timeout: 30000 }).catch(() => {});
+        /* ONE FUNCTION FOR BOTH MEASUREMENTS, so "the pane" is found by one rule before and after. */
+        const measure = sid => page.evaluate(async sid => {
+          try { go(sid, false, true); } catch (e) { return { err: String(e.message || e) }; }
+          const t0 = performance.now();
+          for (;;) {
+            const moving = [...document.querySelectorAll('.screen')].some(c =>
+              typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
+            const booked = typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME;
+            if ((!moving && !booked) || performance.now() - t0 > 4000) break;
+            await new Promise(r => setTimeout(r, 50));
+          }
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          const host = document.getElementById('s-' + sid);
+          let at = 0;
+          try { at = domIndex_(sid, PAGE[sid] || 0); } catch (e) { at = 0; }
+          const pages = host ? host.querySelectorAll(':scope > .page') : [];
+          const front = pages.length ? pages[Math.max(0, Math.min(pages.length - 1, at))] : null;
+          const pane = front && front.querySelector(':scope > .pane');
+          if (!pane) return { none: true };
+          const r = pane.getBoundingClientRect(), s = getComputedStyle(pane);
+          const alpha = c => { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return c && c !== 'none' ? 1 : 0;
+                               const p = m[1].split(/[\s,/]+/).filter(Boolean); return p.length > 3 ? parseFloat(p[3]) : 1; };
+          const l = [...pane.querySelectorAll('.loading')].filter(x => x.getClientRects().length);
+          const dots = l[0] ? [...l[0].children].map(d => d.getBoundingClientRect()) : [];
+          return {
+            only: l.length === 1 && pane.children.length === 1 && pane.firstElementChild === l[0],
+            loaders: l.length,
+            mid: +(r.top + r.height / 2).toFixed(1), h: +r.height.toFixed(1),
+            dotMid: dots.length ? +((Math.min(...dots.map(d => d.top)) + Math.max(...dots.map(d => d.bottom))) / 2).toFixed(1) : null,
+            fill: alpha(s.backgroundColor) > 0 || (s.backgroundImage && s.backgroundImage !== 'none'),
+            edge: (parseFloat(s.borderTopWidth) || 0) > 0 && alpha(s.borderTopColor) > 0,
+            shadow: !!s.boxShadow && s.boxShadow !== 'none',
+          };
+        }, sid);
+        const before = {};
+        for (const c of cols) {
+          before[c] = await measure(c);
+          if (SHOTS) await page.screenshot({ path: path.join(__dirname, 'shots', `${c}-payload-held-${width}-in.png`) });
+        }
+        held.splice(0).forEach(r => r.fulfill({ status: 200, contentType: 'application/json', body }).catch(() => {}));
+        await page.unroute('**://script.google.com/**');
+        await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body }));
+        await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED, null, { timeout: 30000 }).catch(() => {});
+        for (const c of cols) {
+          const b = before[c], a = await measure(c);
+          const f = [];
+          if (b.err || b.none) f.push(`with the payload held the column drew no pane to measure${b.err ? ' — ' + b.err : ''}`);
+          else if (!b.only) f.push(`with the payload held the pane holds ${b.loaders} loader(s) and is not the loader alone — `
+                                 + 'the column is not waiting the way every column waits');
+          else {
+            const frame = ['fill', 'edge', 'shadow'].filter(k => b[k]);
+            if (frame.length) f.push(`the pane waiting on the payload draws a frame (${frame.join(', ')}) — an empty card `
+                                   + `${b.h}px tall whose edges jump when the content lands`);
+          }
+          if (a.none || a.err) f.push('once the payload landed the column drew no pane to measure');
+          else if (a.loaders) f.push(`the payload landed and ${a.loaders} loader(s) are still on the column`);
+          else if (b.dotMid !== null && Math.abs(a.mid - b.dotMid) > 4) {
+            f.push(`the dots waited at ${b.dotMid}px down and the card that landed is centred at ${a.mid}px — `
+                 + `it arrived ${(a.mid - b.dotMid).toFixed(1)}px from where the wait was drawn`);
+          }
+          wholePagesHeld++;
+          if (f.length) rows.push({ width, id: label(c), as: 'in', loaders: f });
+          if (SHOTS) {
+            await page.evaluate(s => { try { go(s, false, true); } catch (e) {} }, c);
+            await page.waitForTimeout(500);
+            await page.screenshot({ path: path.join(__dirname, 'shots', `${c}-payload-landed-${width}-in.png`) });
+          }
+        }
+        if (errs.length) rows.push({ width, id: 'the payload held', as: 'in', jsErrors: errs });
+      } catch (e) {
+        rows.push({ width, id: 'the payload held', as: 'in', loaders: [`the held-payload pass could not run: ${String(e.message || e).slice(0, 120)}`] });
+      } finally { await page.close(); }
+    }
+  }
+
   for (const [width, height] of SIZES) {
   for (const who of VISITORS) {
     const page = await browser.newPage({ viewport: { width, height },
@@ -1715,7 +1822,15 @@ function inspect(opts) {
           const lAfter = [];
           if (!after.ok) lAfter.push('what the state held was let go and never landed — `landed` did not come true in 3s');
           if (after.left) lAfter.push(`the content landed and ${after.left} loader(s) are still on the card`);
-          if (after.ok && Math.abs(after.h - before) > 2) {
+          /* A STATE THAT SAYS IT `grows` IS A LIST WHOSE LENGTH IS NOT KNOWN UNTIL IT LANDS (the Videos
+             card): the card is meant to be the size of what came, so it is held to the half that is
+             still true — what was veiled kept its room, and the card did not SHRINK when the loader came
+             off. Every other held state holds its card exactly. Found by review: the Videos state passed
+             "did not move" only because it released into an empty list. */
+          if (after.ok && state.grows && after.h < before - 2) {
+            lAfter.push(`the card was ${before}px with the loader on it and ${after.h}px once its list landed — `
+                      + `it shrank ${(before - after.h).toFixed(1)}px, so the loader was holding room nothing filled`);
+          } else if (after.ok && !state.grows && Math.abs(after.h - before) > 2) {
             lAfter.push(`the card was ${before}px with the loader on it and ${after.h}px once its content landed — `
                       + `it moved ${(after.h - before).toFixed(1)}px when nothing should have`);
           }
@@ -1969,7 +2084,8 @@ function inspect(opts) {
     }
   });
   console.log(`loaders measured: ${loadersMeasured}, ${heldReleased} of them held on a request, let go, and the card `
-            + `measured again · sizes per width: ${Object.keys(loaderSizes).map(wd => wd + ' '
+            + `measured again · whole pages waiting on a held payload, measured and let go: ${wholePagesHeld} · `
+            + `sizes per width: ${Object.keys(loaderSizes).map(wd => wd + ' '
               + [...new Set(loaderSizes[wd].map(x => x.dot + '/' + x.gap))].join(',')).join(' · ') || 'none'}\n`);
   console.log(`edges measured against what is behind them (WCAG 1.4.11, 3:1): `
             + Object.keys(edgesMeasured).map(k => `${k} ${edgesMeasured[k]}`).join(', ') + '\n');

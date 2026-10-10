@@ -520,7 +520,7 @@ function drawCalendar() {
      loader (`loading_`, shell.js): the grid keeps its size under the dots, and when the payload's
      repaint draws it again with its marks it appears in exactly that box. The arrows still turn the
      month meanwhile; each month is drawn waiting until the marks are there to put on it. */
-  if (typeof LOADED !== 'undefined' && !LOADED && typeof loading_ === 'function') {
+  if (typeof awaiting_ === 'function' && awaiting_()) {
     host.setAttribute('aria-busy', 'true');
     host.insertAdjacentHTML('beforeend', loading_());
   } else {
@@ -5877,15 +5877,24 @@ function vidPaint_(only) {
      It was "Looking for videos…" in the count's faint line, under a search box with nothing to
      search, over an empty list — a wait of its own. The owner, 9 Oct: *"They should all have a
      simplistic simple loading thing while it's info or whatever is loading."* So until the list is in
-     the box is drawn whole and veiled by `loading_()` (shell.js): the search box, the count line —
-     held at one line by a space, so it is the height it will be — and the list, out of sight under
-     the dots. Nothing can be typed into a search with nothing behind it, and when the list lands the
-     card is already the size it is about to be: measured by `check/ui.js` in `the videos still
-     coming`. "No videos listed yet" is a fact once both sources have answered, and keeps its words.
+     the box is drawn whole and veiled by `loading_()` (shell.js): the search box and the count line —
+     held at one line by a space, so it is the height it will be — out of sight under the dots, and
+     nothing can be typed into a search with nothing behind it.
+     THE LIST IS NOT HELD, AND THE CARD GROWS WHEN IT LANDS. This said the card was "already the size
+     it is about to be", measured by `check/ui.js` — and found by review, that measurement could not
+     fail: the state released into an empty list ("No videos listed yet.", the same one line), so it
+     passed on a card that, with three real rows, grows about 200px (171→369 at 390, signed out). How
+     many rows are coming is not known until they come — none for a stranger today, every film for an
+     admin — so any room held for them is a guess that jumps the other way when it is wrong, which is
+     the full-cell frame's fault (style.css, "A WHOLE PAGE WAITING"). So the list is drawn where it
+     lands and the card is the size of what came, the rule for a list in `check/states.js`; the state
+     now releases three real rows and `ui.js` holds it to that: the veiled part keeps its room, the
+     card never shrinks, and the rows arrive. "No videos listed yet" is a fact once both sources have
+     answered, and keeps its words.
      BOTH SOURCES: the owner's list is `data/videos.json` and an admin's films come with the payload,
      so an empty list with either still out is a list on its way — measured on 9 Oct with the payload
      held, an admin's card said "No videos listed yet" over films that landed fifteen seconds later. */
-  const waiting = !all.length && (VIDEOS_LIST === null || (typeof LOADED !== 'undefined' && !LOADED));
+  const waiting = !all.length && (VIDEOS_LIST === null || (typeof awaiting_ === 'function' && awaiting_()));
   const said = waiting ? '\u00a0'
     : !all.length ? 'No videos listed yet.'
     : found.length === all.length ? all.length + (all.length === 1 ? ' video' : ' videos')

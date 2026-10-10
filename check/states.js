@@ -5178,17 +5178,29 @@ const STATES = {
     /* ---------- AND WHILE ITS LIST IS ON ITS WAY: THE ONE LOADER OVER THE CARD -----------------------
        One of three widgets held on a real request — see `the business records still coming` for the
        whole note. `data/videos.json` is asked for by the card's own `initVideos` and its answer kept
-       back; an admin's card is never waiting (the films come with the payload and are listed at once),
-       so this is the stranger's. */
+       back; here the payload is in, so an admin's card already has its films and is not waiting, and
+       this is the stranger's.
+       IT RELEASES INTO THREE REAL ROWS. It used to hand back the repository's own file, whose one row is
+       a switched-off placeholder — so what landed was "No videos listed yet.", one line in place of the
+       one line the count held, and "the card did not move" could not fail (review, 10 Oct). A list's
+       length is not known until it lands, so the card GROWS by the rows (`grows`, read by `check/ui.js`):
+       what is asked is that the veiled part kept its room — the card never shrinks — and that the three
+       rows arrive. */
     { name: 'the videos still coming',
       only: () => !(typeof isAdmin === 'function' && isAdmin()),
+      grows: 'the list of videos — how many rows are coming is not known until they come (see `vidPaint_`)',
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
         const held = window.__vidHeld = { list: VIDEOS_LIST, fetch: window.fetch, go: null };
         const real = held.fetch;
+        /* THREE ROWS THE WAY THE OWNER WRITES THEM: active, a title, an address. `example.org` so no row
+           reaches anywhere, and each is a row that opens a page (`vidHow_` 'out') — nothing to embed. */
+        const rows = [1, 2, 3].map(i => ({ title: 'A held video, number ' + i, url: 'https://example.org/held-video-' + i,
+                                           kind: 'clip', tags: '', age: '', notes: '', active: true }));
         window.fetch = (url, o) => (/data\/videos\.json/.test(String(url))
-          ? new Promise(r => { held.go = () => r(real(url, o)); })
+          ? new Promise(r => { held.go = () => r(new Response(JSON.stringify(rows),
+              { status: 200, headers: { 'Content-Type': 'application/json' } })); })
           : real(url, o));
         VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = ''; VID.at = '';
         goPage('games', n, true);
@@ -5204,13 +5216,18 @@ const STATES = {
       landed: () => {
         const box = document.querySelector('#s-games #wgt-videos .vid-box');
         return !!box && !box.querySelector('.loading') && !box.getAttribute('aria-busy')
-          && /\S/.test((box.querySelector('.vid-said') || {}).textContent || '');
+          && box.querySelectorAll('.vid-list .vid-row').length === 3
+          && /^3 videos$/.test(((box.querySelector('.vid-said') || {}).textContent || '').trim());
       },
+      /* THE LIST IT HELD IS PUT BACK WHETHER OR NOT IT WAS RELEASED: released, `VIDEOS_LIST` is the three
+         rows above, and the next state would be measuring a card with videos the repository never had. */
       leave: () => {
         const h = window.__vidHeld;
-        if (h) { window.fetch = h.fetch; if (VIDEOS_LIST === null) { VIDEOS_LIST = h.list; VIDEOS_ASKED = null; } }
+        if (h) { window.fetch = h.fetch; VIDEOS_LIST = h.list; VIDEOS_ASKED = null; }
         delete window.__vidHeld;
         vidPaint_();
+        /* AND IF NOTHING WAS THERE BEFORE EITHER, asked again on the real wire, as the records' state does. */
+        if (VIDEOS_LIST === null) videosAsk_().then(() => vidPaint_());
       } },
   ],
 
@@ -5342,6 +5359,34 @@ const STATES = {
       leave: () => {
         delete window.__camHeld;
         try { delete navigator.mediaDevices.getUserMedia; } catch (e) {}
+        CAM_ASKING = false;
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null;
+      } },
+    /* ---------- AND A BROWSER WITH NO CAMERA AT ALL: A FACT, AND NO LOADER OVER IT ------------------
+       Found by review: with `navigator.mediaDevices` missing, `camStart_` wrote "This browser has no
+       camera support." under the card and left the viewfinder holding the loader `cameraCard` drew —
+       dots pulsing over a sentence saying nothing was coming, for as long as the page was up. The
+       container HAS `mediaDevices`, so it is taken away for the state (an own property over the
+       prototype's getter) and put back by deleting it. */
+    { name: 'the camera with no camera support',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        try { camStop_(); } catch (e) {}
+        CAM_FAILED = null; CAM_ASKING = false;
+        Object.defineProperty(navigator, 'mediaDevices', { value: undefined, configurable: true });
+        goPage('feed', feedCamAt_(), true);
+        camStart_();
+      },
+      expect: () => {
+        const off = document.getElementById('cam-off');
+        return !!off && !off.hidden && !off.querySelector('.loading')
+          && /no camera support/.test(off.textContent || '')
+          && !document.querySelector('#s-feed .cam-card .loading');
+      },
+      wants: 'the viewfinder saying the browser has no camera support, and no loader anywhere on the card',
+      leave: () => {
+        try { delete navigator.mediaDevices; } catch (e) {}
         CAM_ASKING = false;
         try { camStop_(); } catch (e) {}
         CAM_FAILED = null;
