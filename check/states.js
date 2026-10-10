@@ -3145,6 +3145,107 @@ const STATES = {
       },
       wants: 'the line under your own card naming the address, whole and not running off it, and one "Send the link again"',
       leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); } },
+    /* ---------- YOUR OWN CARD, BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) ----------------------
+       The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that
+       respective tutor."* The visitor is the fixture's admin, who has no tutor row, so one is put in the
+       payload under their id — a copy of the fixture tutor's — and their `USER.profile` is filled the way
+       `myProfile` fills it, the WIDEST case rather than the tidiest: the longest headline and words a card
+       holds, three qualifications, three photographs, three venues and a week with hours on four days. The
+       form is every section of the card at once, so it is the tallest thing on the column and is measured at
+       every width — the boxes, the shelf, the picker and the week each in a card narrower than Settings'. */
+    { name: 'your own card, being edited',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const ada = (DATA.tutors || []).find(t => t && t.personId) || {};
+        window.__CE_HELD = { tutors: DATA.tutors, profile: USER.profile };
+        DATA.tutors = [Object.assign({}, ada, { personId: USER.personId, title: 'Test Admin', handle: USER.handle || 'testadmin' })]
+          .concat(DATA.tutors || []);
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          phone_cc: '+44', first_name: 'Test', last_name: 'Administrator-Longsurname',
+          headline: 'Ten years of GCSE and A-Level maths, physics and further maths — patient, clear, and on time.',
+          rate_per_hour: '32.50', extra_seat_rate: '0.5', min_students: '1', max_students: '4',
+          video: 'https://example.org/videos/an-introduction-to-how-i-teach-maths-and-physics.mp4',
+          photos_1: 'data/reels/archetest.jpg', photos_2: 'icon.png', photos_3: 'favicon.png',
+          adjective_1: 'Conscientious', adjective_2: 'Encouraging', adjective_3: 'Methodical',
+          years_experience: '12', favourite_colour: 'Purple', age_min: '8', age_max: 'Adults',
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_received: '2016', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_received: '2018', qual_2_teach: 'TRUE', qual_2_spec: 'FALSE',
+          qual_3: 'DBS', qual_3_level: 'Enhanced', qual_3_received: '2025',
+          venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '15',
+          m16: 'TRUE', m17: 'TRUE', tu10: 'TRUE', tu11: 'TRUE', w16: 'TRUE', sa10: 'TRUE', sa11: 'TRUE', sa12: 'TRUE' });
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
+        if (at < 0) throw new Error('no card on the account column is open for editing');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        DATA.tutors = window.__CE_HELD.tutors; USER.profile = window.__CE_HELD.profile; delete window.__CE_HELD;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const form = pg && pg.querySelector('.card-ed .me-form');
+        if (!form) return 0;
+        const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
+        return secs === 'picture,name,rate,headline,photos,words,glance,quals,where,week'
+          && !!form.querySelector('.pfp [data-do="pfp-pick"]')
+          && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
+          && form.querySelectorAll('.me-week .hr input[data-me]').length === 70
+          && form.querySelectorAll('[data-me^="qual_"]').length === 70
+          && form.querySelectorAll('.q-list .q-line').length === 3
+          && form.querySelectorAll('.ph-shelf .ph-thumb img').length === 3
+          && !!form.querySelector('.ce-heat .prof-heat')
+          && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2
+          && !pg.querySelector('[data-do="card-edit"]')
+          /* AT FULL SIZE, AND THE PANE SCROLLS TO ITS SAVE — `paneReach_` draws a card being edited at
+             zoom 1 (it is taller than any pane even at the 0.70 floor), so its boxes keep their size. */
+          && !(form.closest('.card-ed').style.zoom && form.closest('.card-ed').style.zoom !== '1')
+          && (pane => !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto'))(form.closest('.pane')) ? 1 : 0;
+      },
+      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order, the picture chooser, three photographs, three qualifications, the map, all seven days of the week, and Save and Cancel as tiles' },
+    /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN ---------------------------------------------------
+       Decision 3 of the brief: `updateProfile` already lets an admin write another person's row, so an admin's
+       Edit on the fixture tutor opens the same form — filled from `getProfile`, which the lab's backend cannot
+       answer, so the copy it would have returned is put where the answer goes. The picture is shown and not
+       offered (`savePhoto` writes the admin's own row), with one line saying why. */
+    { name: 'another tutor\'s card, being edited by an admin',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const ada = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) !== String(USER.personId));
+        if (!ada) throw new Error('the fixture has no tutor other than the visitor');
+        CARD_EDIT = cardEditFresh_(ada.personId);
+        CARD_EDIT.base = { phone_cc: '+44', first_name: 'Ada', last_name: 'Tutor',
+          headline: 'Ten years of GCSE and A-Level maths.', rate_per_hour: '30', extra_seat_rate: '0.5',
+          min_students: '1', max_students: '3', adjective_1: 'Patient', adjective_2: 'Clear', adjective_3: 'Encouraging',
+          years_experience: '10', favourite_colour: 'Blue', age_min: '11', age_max: '18',
+          qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'A*', qual_1_received: '2014', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '8', m16: 'TRUE', m17: 'TRUE', m18: 'TRUE' };
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
+        if (at < 0) throw new Error('the fixture tutor\'s card did not open for editing');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const form = pg && pg.querySelector('.card-ed .me-form');
+        if (!form) return 0;
+        return !!form.querySelector('.ce-pic') && !form.querySelector('.pfp')
+          && /Only Ada can change this picture/.test(form.textContent)
+          && (form.querySelector('[data-me="headline"]') || {}).value === 'Ten years of GCSE and A-Level maths.'
+          && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
+          && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2 ? 1 : 0;
+      },
+      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the whole week, Save and Cancel' },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------

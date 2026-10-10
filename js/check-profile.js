@@ -900,15 +900,125 @@ let examDates = 0;
   } else bad.push('exam dates: somebody could not sign in');
 }
 
+/* 18. THE CARD: WHERE A TUTOR'S FIELDS ARE EDITED NOW, AND WHETHER EVERY ONE IS STILL SAVED (docs/history/330).
+   The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that respective
+   tutor."* The phone stopped drawing five Settings pages for anybody with a card and edits those fields on
+   the card instead; the server's groups did not change, because they are the write allow-list as well as the
+   layout. So this asks the PHONE'S OWN CODE — `CARD_SECTIONS`, `cardSettingsGroups_` and `cardChanged_`,
+   cut out of js/me.js by name and run over the real `PROFILE_GROUPS` — and then the real `doPost`:
+     · every field the card offers is one `updateProfile` lets a tutor write (a box nobody may write is a
+       Save that silently drops it), and the session length it does not offer is still one nobody may write;
+     · every field of the tutor groups is on the card or on a page Settings still draws — none is left with
+       no box, which is what "every field still saved for every role that may write it" comes to;
+     · the pages that go are exactly About you, Photos, the rate, Qualifications and the week;
+     · a card's Save, built by `cardChanged_` (what moved, the three packed cells whole), round-trips for the
+       tutor and for an admin on another tutor's card, and is refused to a tutor on somebody else's;
+     · `getProfile`, which fills an admin's form, is an admin's and nobody else's. */
+let cardRules = 0;
+{
+  const fs = require('fs'), path = require('path'), vm = require('vm');
+  let acorn = null;
+  try { acorn = require(path.join(__dirname, '..', 'node_modules', 'acorn')); } catch (e) {}
+  const meSrc = fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8');
+  const want = ['RETIRED_FIELDS_', 'CARD_SECTIONS', 'cardSent_', 'cardSections_', 'cardFields_', 'cardSettingsGroups_',
+                'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_'];
+  const got = {};
+  if (acorn) {
+    acorn.parse(meSrc, { ecmaVersion: 'latest' }).body.forEach(n => {
+      if (n.type === 'FunctionDeclaration' && want.indexOf(n.id.name) !== -1) got[n.id.name] = meSrc.slice(n.start, n.end);
+      if (n.type === 'VariableDeclaration') n.declarations.forEach(d => {
+        if (d.id && want.indexOf(d.id.name) !== -1) got[d.id.name] = 'const ' + meSrc.slice(d.start, d.end) + ';';
+      });
+    });
+  }
+  const lost = want.filter(k => !got[k]);
+  if (lost.length) bad.push('the card: ' + lost.join(', ') + ' could not be read out of js/me.js — the card was NOT checked');
+  else {
+    const groups = JSON.parse(JSON.stringify(b.ev('PROFILE_GROUPS')));
+    const editable = JSON.parse(JSON.stringify(b.ev('PROFILE_EDITABLE')));
+    const phone = vm.createContext({ DATA: { profileFields: groups } });
+    vm.runInContext(want.map(k => got[k]).join('\n') + '\nthis.__card = { CARD_SECTIONS, cardFields_, cardSettingsGroups_, cardChanged_ };', phone);
+    const card = phone.__card;
+    const rule = (ok, said) => { if (ok) cardRules++; else bad.push('the card: ' + said); };
+    const onCard = card.cardFields_();
+    const all = Object.keys(groups).reduce((a, g) => a.concat(groups[g]), []).filter(f => f !== 'library_note');
+    const named = [].concat(...card.CARD_SECTIONS.map(s => s.fields || []));
+    rule(named.every(f => editable.indexOf(f) !== -1), 'it names ' + named.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
+    rule(onCard.every(f => editable.indexOf(f) !== -1), 'it draws ' + onCard.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
+    rule(editable.indexOf('min_hours') === -1 && editable.indexOf('max_hours') === -1 && onCard.indexOf('min_hours') === -1,
+      'session length is writable now, or on the card — `cardHoursNote_` says nobody may change it there; one of the two is out of date');
+    const left = card.cardSettingsGroups_(groups);
+    const kept = Object.keys(left).reduce((a, g) => a.concat(left[g]), []);
+    const nowhere = all.filter(f => onCard.indexOf(f) === -1 && kept.indexOf(f) === -1);
+    rule(!nowhere.length, nowhere.join(', ') + ' is on neither the card nor a Settings page — a field a tutor may write with no box anywhere');
+    const twice = onCard.filter(f => kept.indexOf(f) !== -1);
+    rule(!twice.length, twice.join(', ') + ' is on the card and on Settings — two places to edit one field');
+    const gone = Object.keys(groups).filter(g => !left[g]).sort();
+    rule(JSON.stringify(gone) === JSON.stringify(['About you', 'Availability', 'Photos', 'Qualifications', 'Your rate and group size']),
+      'the pages Settings stops drawing are ' + JSON.stringify(gone));
+    rule(JSON.stringify(Object.keys(left)) === JSON.stringify(['Contact & address', 'Library cards'])
+         && left['Contact & address'].indexOf('venues_ok') === -1 && left['Contact & address'].indexOf('email') !== -1,
+      'the pages Settings still draws are ' + JSON.stringify(left));
+
+    /* THE TUTOR'S OWN CARD, THROUGH THE REAL `doPost`. Not the rate: the tutor moved it on a Settings page
+       above, so the month's clock is running — which is the point of `cardChanged_` sending only what moved. */
+    const t1 = b.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
+    const a1 = b.post({ action: 'verifyLogin', email: 'admin@example.org', pin: '0000' });
+    const profOf = pid => b.ev(`profileOf_(read(TAB.people).rows.find(r => r.person_id === ${JSON.stringify(pid)}))`);
+    const form = (base, change) => {
+      const now = {};
+      onCard.filter(f => f !== 'photo').forEach(f => { now[f] = String(base[f] == null ? '' : base[f]); });
+      Object.keys(now).forEach(f => { if (/^(m|tu|w|th|f|sa|su)\d\d$|_teach$|_spec$/.test(f)) now[f] = /^true$/i.test(now[f]) ? 'TRUE' : 'FALSE'; });
+      return Object.assign(now, change);
+    };
+    if (!t1.success || !a1.success) bad.push('the card: the tutor or the admin could not sign in');
+    else {
+      const base = profOf('P-T1');
+      const fields = card.cardChanged_(base, form(base, { headline: 'Edited on the card', favourite_colour: 'Teal',
+        sa14: 'TRUE', photos_2: 'https://example.org/third.jpg', qual_1_grade: 'A*' }));
+      const keys = Object.keys(fields);
+      rule(keys.filter(k => !/^(m|tu|w|th|f|sa|su)\d\d$|^photos_\d+$|^qual_\d+/.test(k)).sort().join(',') === 'favourite_colour,headline'
+           && keys.filter(k => /^(m|tu|w|th|f|sa|su)\d\d$/.test(k)).length === 70 && keys.filter(k => /^photos_\d+$/.test(k)).length === 8
+           && keys.filter(k => /^qual_\d+/.test(k)).length === 70,
+        'cardChanged_ built ' + keys.length + ' fields — wanted the two plain ones that moved and the three packed cells whole');
+      const d = b.post({ action: 'updateProfile', token: t1.token, name: t1.name, personId: 'P-T1', target: t1.name, targetId: 'P-T1', fields });
+      rule(d.success, 'the tutor\'s card Save was refused — ' + d.error);
+      const back = (b.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' }).profile) || {};
+      rule(back.headline === 'Edited on the card' && back.favourite_colour === 'Teal' && /^true$/i.test(String(back.sa14))
+           && /^true$/i.test(String(back.m09)) && back.photos_2 === 'https://example.org/third.jpg' && back.qual_1_grade === 'A*'
+           && back.qual_2 === base.qual_2 && back.photos_1 === base.photos_1,
+        'the tutor\'s card did not come back as saved: ' + JSON.stringify({ headline: back.headline, sa14: back.sa14, m09: back.m09, photos_2: back.photos_2, qual_1_grade: back.qual_1_grade, qual_2: back.qual_2 }));
+      /* AN ADMIN ON THE TUTOR'S CARD: their row, not the admin's, and no profile handed back. */
+      const before = JSON.stringify(profOf('P-A1'));
+      const e = b.post({ action: 'updateProfile', token: a1.token, name: a1.name, personId: 'P-A1', target: 'Ada Tutor', targetId: 'P-T1',
+        fields: card.cardChanged_(profOf('P-T1'), form(profOf('P-T1'), { headline: 'Edited by the admin', rate_per_hour: '31' })) });
+      rule(e.success && e.profile === null, 'an admin\'s save of a tutor\'s card was refused or handed back a profile — ' + (e.error || JSON.stringify(e.profile && 'a profile')));
+      const row = b.row('P-T1');
+      rule(String(row.headline) === 'Edited by the admin' && String(row.rate_per_hour) === '31', 'the admin\'s save did not reach the tutor\'s row: ' + row.headline + ', ' + row.rate_per_hour);
+      rule(JSON.stringify(profOf('P-A1')) === before, 'an admin saving a tutor\'s card changed the admin\'s own row');
+      /* A TUTOR ON SOMEBODY ELSE'S CARD: refused, and nothing written. */
+      const t2 = b.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
+      const no = b.post({ action: 'updateProfile', token: t2.token, name: t2.name, personId: 'P-T1', target: 'Hal Admin', targetId: 'P-A1', fields: { headline: 'Not mine' } });
+      rule(!no.success && !no.writes, 'a tutor saved the admin\'s card');
+      /* `getProfile` FILLS AN ADMIN'S FORM, AND IS NOBODY ELSE'S. */
+      const g = b.post({ action: 'getProfile', token: a1.token, name: a1.name, personId: 'P-A1', target: 'P-T1' });
+      rule(g.success && g.profile && Object.prototype.hasOwnProperty.call(g.profile, 'phone_cc') && g.profile.headline === 'Edited by the admin',
+        'getProfile did not hand the admin the tutor\'s whole form — ' + (g.error || 'no phone_cc'));
+      const gt = b.post({ action: 'getProfile', token: t2.token, name: t2.name, personId: 'P-T1', target: 'P-A1' });
+      rule(!gt.success && !gt.profile, 'a tutor was handed somebody else\'s form by getProfile');
+    }
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
   + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules
   + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables
-  + '   exam-date rules held: ' + examDates);
+  + '   exam-date rules held: ' + examDates + '   card rules held: ' + cardRules);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);
 }
-console.log('OK — every settings page saves for every role, writes nothing when nothing changed, and reads back what was saved.');
+console.log('OK — every settings page saves for every role, writes nothing when nothing changed, and reads back what was saved; every field a tutor edits on their card is one they may write and has exactly one place.');

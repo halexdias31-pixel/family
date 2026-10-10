@@ -12324,12 +12324,20 @@ function accountPages_() {
      own card carried a Message tile addressed to yourself. One kind, two repairs.
 
      OTHERS ARE UNCHANGED: `withTiles_` asks for no kind and gets `tutor`, which is what they are. */
+  /* `account: true` IS WHERE A CARD CAN BE EDITED — this column, and nowhere else the same tutor is drawn
+     (a star puts them on Saved too). `cardEditTile_` (me.js) draws Edit only for an item carrying it. */
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
-    cost: priced_(t.rate), off: t.listed === false, row: t,
+    cost: priced_(t.rate), off: t.listed === false, row: t, account: true,
   });
 
-  const withTiles_ = t => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
+  /* ---------- A CARD OPEN FOR EDITING IS ITS OWN FORM, IN ITS OWN PLACE ------------------------------
+     The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that
+     respective tutor."* `cardEditHtml_` (me.js) is drawn where the card and its tiles were — the form
+     and its Save and Cancel — for the one card being edited; every other card is drawn as before. */
+  const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t);
+  const withTiles_ = t => editing_(t) ? cardEditHtml_(t)
+    : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
     + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : '');
 
   /* ---------- AND THE PRIVATE HALF WENT DARK WHEN BOOKING LEFT THE FUNNEL -----------------------
@@ -12352,10 +12360,12 @@ function accountPages_() {
      note at the top of `meCard`. What this column shows of you is your public card, and the row of
      tiles under it lost its four doors to that same column (see where `meTiles_` was in tiles.js). */
   const me = [
-    typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
+    /* YOUR OWN CARD, OR YOUR OWN CARD BEING EDITED — the form, then its Save and Cancel, in place. */
+    editing_(myRow) ? cardEditHtml_(myRow)
+      : (typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow))
     /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js. */
-    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
-      : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`,
+      + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
+        : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is
        unproved, because `notify` sends it nothing until then and a booking with no email after it is
        otherwise silence nobody can explain (the PR #130 review). On this page, not a page of its own,
@@ -14192,11 +14202,18 @@ function paneReach_(panes) {
        goes back to fitting the moment the list is shut. `tickListShow_` (book.js) brings the opened
        list into the pane, for the booking form and the settings column alike. */
     const ticks = list.map(p => !!p.querySelector('.bk-many-list, details.many-d[open]'));
+    /* ---------- AND NEITHER IS A CARD BEING EDITED (`cardEditHtml_`, me.js; docs/history/330) ---------------
+       It is every section of a tutor's card as one form, and measured with the widest profile the lab
+       holds it is 2051px tall at 320x568 and 2143px at 390x844, in panes of 532 and 805. At the 0.70
+       floor it is still 1502 and 1570 — it scrolls either way — so drawing it smaller buys no fit and
+       costs every box, tick and tile on it 30% of its size, under a thumb that is there to press them.
+       The tick list's answer above, for the tick list's reason: full size, and the pane scrolls. */
+    const forms = list.map(p => !!p.querySelector('.card-ed .me-form'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
-      if (ticks[i]) return 1;
+      if (ticks[i] || forms[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
       const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
@@ -14265,8 +14282,9 @@ function paneReach_(panes) {
     /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: drawn at full size
        instead of fitted, the little it is over is the card's own foot — the Send tile — and 24px of that
        clipped with no scroll is a tile half there. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i]) && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > (ticks[i] ? 2 : PANE_REACH));
+    /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them. */
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i]) && want[i] === 1))
+      && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */

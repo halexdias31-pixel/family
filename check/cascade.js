@@ -58,6 +58,9 @@
 
      node check/cascade.js
      node check/cascade.js --all   every collision, including the ordinary overrides
+     node check/cascade.js --screen=account   one screen and its states, as `check/ui.js` and
+                                   `check/press.js` take it — for a machine too busy to walk all of them
+                                   inside one window. The pairs are the whole stylesheet's either way.
 ================================================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -69,6 +72,7 @@ const ROOT = path.join(__dirname, '..');
 const PORT = Number(process.env.CASCADE_PORT || 8133);
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const ALL = process.argv.includes('--all');
+const ONLY = (process.argv.find(a => a.startsWith('--screen=')) || '').split('=')[1] || '';
 
 const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001',
                role: 'admin', roles: ['admin'], handle: 'testadmin' };
@@ -316,7 +320,7 @@ function analyse(opts) {
      are on no screen `go()` lands on. Same list `check/ui.js` and `check/press.js` read. */
   const found = {}, SAYS = {};
   let rules = 0, pairs = 0, states = 0;
-  for (const id of tabs) {
+  for (const id of tabs.filter(t => !ONLY || t === ONLY)) {
     for (const st of statesOf(id)) {
       await page.evaluate(sid => { try { closeSheet(); } catch (e) {} go(sid, false, true); }, id);
       await page.waitForTimeout(220);
@@ -339,6 +343,11 @@ function analyse(opts) {
 
   await browser.close();
   server.close();
+  /* A SCREEN NAMED THAT IS NOT THERE MEASURED NOTHING, which is not a pass. */
+  if (!states) {
+    console.error('! no state was measured' + (ONLY ? ' — there is no screen called "' + ONLY + '"' : '') + ', so nothing was checked.');
+    process.exit(1);
+  }
 
   const keys = Object.keys(found).sort();
   const isKnown = k => k.replace(/-(width|style|color|top|right|bottom|left)$/, '') in ACCEPTED

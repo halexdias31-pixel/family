@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-tutor-photos-still";
+  --css-version: "2026-10-10-card-edit";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7016,6 +7016,24 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   text-transform: uppercase; color: var(--faint);
 }
 .prof-cap + .prof-tags { margin-top: 0; }
+/* ---------- A CARD BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) -------------------------
+   THE CARD'S OWN CLOTHES WITH ITS FORM INSIDE. The owner, 10 Oct: *"all of this stuff should be editable
+   directly on the tutors card for that respective tutor."* The boxes are Settings' own (`.field`,
+   `.f-row`, the shelf, the picker, the week), so nothing here restyles them. What is new is the seam
+   between one section and the next — a hairline in the card's soft line, so the form reads in the
+   card's own sections and in its order — and the word beside the role saying the card is being edited,
+   in gold, because a form that looked exactly like the public card would be read as the public card. */
+.card-ed .ce-what { color: var(--gold); }
+.ce-sec + .ce-sec { margin-top: .75rem; padding-top: .6rem; border-top: 1px solid var(--line-soft); }
+.ce-sec > .prof-cap:first-child { margin-top: 0; }
+.ce-note { margin: .35rem 0 0; line-height: 1.35; }
+/* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
+.ce-pic { display: flex; gap: .7rem; align-items: center; }
+.ce-pic .ce-note { margin: 0; }
+/* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
+.ce-heat:empty { display: none; }
+/* WHERE THE FIVE PAGES WENT, once, at the top of Settings for somebody with a card. */
+.ce-moved { margin: 0 0 .6rem; line-height: 1.35; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
