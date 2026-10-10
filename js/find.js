@@ -416,18 +416,20 @@ const KINDS = {
      FOUND THE SAME WAY, which is the half that is like a practical: the topic, the subject, the
      level. Mapper, card, pages; nothing in the engine. */
   project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
-  /* ---------- THE FILMS, AND THEY ARE ABSENT RATHER THAN HIDDEN --------------------------------
-     THERE IS NO `admin` TEST ANYWHERE ON THIS KIND, DELIBERATELY. `doGet` builds `payload.films`
-     inside `if (viewerIsAdmin)` and sends `[]` to everybody else — see the note there — so a
-     parent's phone has no rows to map and this kind produces no items, no funnel answer and no
-     card, by construction. A `.filter(isAdmin())` here would be the same behaviour resting on the
-     renderer instead of on the server, and a filter is something a person can read past with the
-     network tab open.
+  /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND ----------------------------------
+     THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"*. It was a
+     kind of its own, `Films`, one item per row of `DATA.films` — an admin's only, because `doGet`
+     sends nobody else a row — with a card of its own (`filmCard_`) and a Watch tile (`filmTiles_` in
+     tiles.js). A FILM IS FOUND IN GAMES → VIDEOS, which searches the same rows by title, year, kids,
+     series and documentary and opens Drive from the row; Find was a second, worse door to the same
+     list, and the one the owner did not want.
 
-     `Films` RATHER THAN `Resources`. That word is taken — it is what `boxer` and `fight` wear, 260
-     rows of boxing — and putting a third meaning on it is the two-cupboards fault this file argues
-     itself out of two entries above. */
-  film: { group: 'Learning', label: 'Films', card: x => filmCard_(x) },
+     ALL OF IT WENT TOGETHER: this entry, the mapper in `stuffItemsRaw_`, `Films` in `KIND_BUCKET`,
+     the card, the tile and `.fc-note p` (the card was its only producer). `DATA.films` AND THE SYNC
+     STAY EXACTLY AS THEY WERE — the videos card reads them, and `filmsAdopt_` still calls
+     `stuffForget_`, which is now a harmless rebuild. `check-flow` proves the absence for an admin with
+     films in the payload: no film by title, no `Films` under What kind, and the videos card still
+     finds it. See docs/history/326. */
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
@@ -446,8 +448,8 @@ const KINDS = {
      So it wears `Resources` like the textbook beside it, on a shelf of its own (`Books`), and its
      item exists only for an admin — `bibleItems_` and the long note above `bibleFor_` say why that
      gate is on the phone and why it is the one exception to Find being built the same for every
-     role. NOT THE ONLY ADMIN-ONLY KIND: `film` above is an admin's too, but by the payload — `doGet`
-     sends nobody else a row — so this is the only kind with a role test on the phone.
+     role. THE ONLY ADMIN-ONLY KIND NOW: `film` was an admin's too, by the payload, until the films
+     left Find (see where it was, above) — and it was never a role test on the phone.
      ONE KIND, TWO CARDS: the cover on Find's own list, and each of the 31,102 verses once the Bible is
      open (*"each verse is a widget"*) — `bibleCard_` tells them apart. */
   bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
@@ -984,7 +986,7 @@ function bucketTable_(pairs) {
   return of;
 }
 
-/* WHAT YOU ARE HERE TO DO WITH IT. The eight kinds are three errands, and which errand somebody is
+/* WHAT YOU ARE HERE TO DO WITH IT. The six kinds are three errands, and which errand somebody is
    on is the thing they know before they know anything else. */
 /* `People & places` (Tutors, Venues) WAS A THIRD ROW, and nothing could answer it: a tutor is
    `Booking` alone and a venue is again, so `FUNNEL_NOT_FOR` keeps both out of every list this
@@ -1000,10 +1002,29 @@ function bucketTable_(pairs) {
    screen. */
 /* `Bundles` IS AN ERRAND OF ITS OWN — printed papers, ordered — so it is placed beside the other two
    rather than filed under working through something; see `bundlesView_`. */
+/* ---------- `Films` LEFT `Read or watch it`, AND THE ROW STAYS, HOLDING `Resources` ALONE -------------
+   THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"* — see where
+   `film` was in `KINDS`. Three ways to handle the row it leaves, decided by the rules above:
+
+     DELETE IT    and `Resources` is unplaced. A written-out table must place every answer the library
+                  gives (`check-funnel.js`), and one unplaced value is the stand-down this table's own
+                  note warns about. Not an option.
+     FOLD IT      into `Work through it`, and a boxer and a bout are filed as something you work
+                  through, which they are not — the two-cupboards fault the other way round.
+     KEEP IT      with one kind in it. `Order it` already holds one (`Bundles`), and the one-answer rule
+                  that argued against a bucket of one (`Make something`, above) bites only when the
+                  bucket is DRAWN in place of its answers. Since 6 Oct nothing is (`bucketValues_`), so
+                  What kind draws `Resources` itself, the owner's own word for that tag.
+
+   KEPT, AND UNDER THE SAME NAME, because the name is still true: a bout carries a Watch tile and a
+   boxer his Highlights (`fightTiles_`, `boxerTiles_` in tiles.js), the textbook and the Bible are read.
+   The row's one effect on screen is ORDER (`within`, for `orderOf` on What kind), and that is
+   unchanged: Questions · Answers · Practicals · Projects · Bundles · Resources, with Films no longer
+   between the last two. */
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
   ['Order it',         ['Bundles']],
-  ['Read or watch it', ['Films', 'Resources']],
+  ['Read or watch it', ['Resources']],
 ]);
 
 /* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
@@ -4237,6 +4258,8 @@ function textbookText_(b) {
    names nobody can read, and a run of numbers is read by its position, not word by word.
 
    ---------- GATED ON THE PHONE, NOT ON THE SERVER, AND THAT IS NOT THE FILMS' MISTAKE REPEATED -----
+   (The films are in Games → Videos and not in Find since 10 Oct; the argument about where a gate
+   belongs is unchanged, and it is still why `doGet` alone decides who is sent them.)
    THE ONE EXCEPTION THE PHONE MAKES TO "Find shows the same thing to everyone" (*"No distinction
    between tutor and student on the finder. All the same."*), made in ONE place (`bibleFor_`). The
    films are a list the owner wants nobody to see, so `doGet` never sends them to anybody else — a
@@ -5017,47 +5040,10 @@ function stuffPart_(x, part) {
    already holds the row it is drawing. */
 
 
-/* ==================================================================================================
-   `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
-
-   IT OPENS DRIVE AND DOES NOT EMBED. A `<video>` pointed at Drive was a ladder of three addresses
-   and an iframe fallback that the Reels column spent forty lines on and then removed as embedded
-   reels nobody wanted. A three-gigabyte
-   `.mkv` is not: no browser plays Matroska, the file is somebody's whole evening of bandwidth, and
-   Drive's own player already does the job. So the tile is a door rather than a screen.
-
-   A SERIES LINKS TO ITS FOLDER, which is why `file_kind` is a column: Drive's folder view is the
-   season picker, and rebuilding one here would be sixty-two rows in a funnel nobody searches that
-   way.
-================================================================================================== */
-function filmCard_(x) {
-  const f = x.row;
-  const strip = [f.year, f.audience === 'kids' ? 'kids' : '',
-                 f.kind === 'series' ? (f.seasons ? f.seasons + ' seasons' : 'series') : '',
-                 f.sizeGb ? f.sizeGb + ' GB' : ''].filter(Boolean).join(' \u00b7 ');
-  return `<div class="card fc film${f.placeholder ? ' is-off' : ''}">
-    <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag${f.placeholder ? ' is-no' : ' is-type'}">${
-        f.placeholder ? 'Not uploaded' : f.kind === 'documentary' ? 'Documentary'
-        : f.kind === 'series' ? 'Series' : 'Film'}</span></span>
-    </div>
-    ${(f.director || f.lead) ? `<p class="sub">${
-      esc([f.director ? 'dir. ' + f.director : '', f.lead].filter(Boolean).join(' \u00b7 '))}</p>` : ''}
-    ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
-    ${/* A ROW ASKED FOR BY NAME WHOSE FILE IS NOT THERE SAYS SO, and says it where the link would
-          be. The library's `placeholder` column, one table along: a card that states the gap beats
-          a link that opens nothing, and it is the reason a film asked for by name is a row at all. */''}
-    ${f.placeholder
-      ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>` : ''}
-    ${/* ---------- THE WATCH TILE IS IN THE CARD'S ONE ROW NOW, see `filmTiles_` --------------------
-          IT WAS A `.tile-row` OF ITS OWN INSIDE THE CARD, so a film had two rows of tiles — Watch
-          above the notes, the star below the card — where a fight, the same kind of thing with the
-          same one action, has one. The tile and the reason it has no `act` moved with it. */''}
-    ${(f.notes && !f.placeholder)
-      ? `<div class="fc-note"><p>${esc(f.notes)}</p></div>` : ''}
-  </div>`;
-}
+/* `filmCard_` WAS HERE — a film's card in Find, a title, its flags and a link out to Drive. It went
+   with the films (the owner, 10 Oct: *"films should not appear in the finder it cannot be found
+   there"* — see where `film` was in `KINDS`). What it argued is the videos card's to carry now, and
+   it does: a film opens Drive and is never played in the app, and a series opens its folder. */
 
 /* ==================================================================================================
    THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT.
@@ -10589,11 +10575,11 @@ let ITEM_MEMO = { key: null, from: null, items: null };
 let ALL_MEMO = { key: null, from: null, items: null };
 
 /* WHO IS SIGNED IN, AND NOT WHETHER THEY ARE AN ADMIN. `isAdmin()` was half of this key, and nothing
-   the items are built from asks it: what an admin is sent that others are not (the films, an unlisted
-   tutor) arrives in the payload, and a new payload is a new `DATA`, which both memos already test by
-   identity. A key naming the role read as though Find drew a different library for one -- *"No
-   distinction between tutor and student on the finder. All the same."* -- and it does not. The person
-   stays: a starred thing and the `me` card are theirs.
+   the items are built from asks it: what an admin is sent that others are not (an unlisted tutor; the
+   films too, though Find no longer reads them) arrives in the payload, and a new payload is a new
+   `DATA`, which both memos already test by identity. A key naming the role read as though Find drew
+   a different library for one -- *"No distinction between tutor and student on the finder. All the
+   same."* -- and it does not. The person stays: a starred thing and the `me` card are theirs.
    ---------- AND THE BIBLE PUTS ONE ROLE BACK, AND ONLY IT ---------------------------------------
    `bibleItems_` IS THE ONE BUILDER THAT ASKS `isAdmin()`, by the owner's request — see `bibleFor_`.
    A role normally changes with a new payload or a new person, both of which this key or `DATA`
@@ -10626,10 +10612,12 @@ function stuffItemsAll_() {
 }
 
 /* ---------- FORGET EVERY LIST BUILT FROM `DATA`, FOR A WRITE THAT CHANGED `DATA` IN PLACE ----------------
-   The three memos test `DATA` by identity, which a new payload changes and an edit in place does not —
-   and the films sync from the videos card (`filmsAdopt_` in games.js) is an edit in place: a reply that
-   carries the films, written over `DATA.films` so the admin has them without a reload. Without this,
-   Find would go on drawing the films from before the sync until the next payload. */
+   The three memos test `DATA` by identity, which a new payload changes and an edit in place does not.
+   WRITTEN FOR THE FILMS SYNC (`filmsAdopt_` in games.js), which writes a reply's films over `DATA.films`
+   in place — and Find drew the films, so without this it went on drawing the list from before the sync.
+   FIND HAS NO FILMS NOW (10 Oct, see where `film` was in `KINDS`), so that call rebuilds lists that
+   could not have changed: harmless, and left in games.js rather than edited from here. Sign-out
+   (`signedOut_` in me.js) still needs it — it empties the stars and the per-person keys in place. */
 function stuffForget_() {
   ALL_MEMO = { key: null, from: null, items: null };
   /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left the second
@@ -10651,8 +10639,8 @@ function stuffForget_() {
    number, because a page number means a different question once the library changes.
 
    THE SEARCH BOX COMES BACK WITH IT, AND ONLY WITH IT: it is half of where you were, and a search
-   restored on its own would be a list narrowed by words nobody can see being typed. The films' search
-   (`VID.q`) is not kept — retyped in a second, and it may be a title (me.js clears it on sign-out).
+   restored on its own would be a list narrowed by words nobody can see being typed. The videos card's
+   search (`VID.q`) is not kept — retyped in a second, and it may be a title (me.js clears it on sign-out).
 
    THE SAME CLOCK AS THE COLUMN: a reload within `AWAY_AGAIN` of leaving, on Find, for the same person
    (a draft is the signed-in person's, so an admin's shelf is never somebody else's place), and only if
@@ -11111,37 +11099,20 @@ function stuffItemsRaw_() {
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE ---------------------------------------
        ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where code on the phone
-       asks who you are — asked for by name, see the note above `bibleFor_`. (The films below differ
-       by role too, but because the payload does, not because anything here asks.) THE COVER ONLY:
+       asks who you are — asked for by name, see the note above `bibleFor_`. (The films differed by role
+       too, because the payload does, until they left Find — see below.) THE COVER ONLY:
        its 31,102 verses are a list of their own (`bibleVerses_`), read instead of this one while a
        Bible chip is on, and fetched a book at a time; nothing about it is in the payload. */
     ...bibleItems_(),
 
-    /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
-       EMPTY FOR EVERYBODY BUT AN ADMIN, because the payload is — see the `film` entry in `KINDS`.
-       `|| []` is the ordinary fallback and here it is also the whole gate.
-
-       `audience` IS WHICH FOLDER IT CAME OUT OF and it is mapped onto its own field rather than
-       into `subject`: a Subject question offering `adults` beside `Maths` is the `boxKind` mistake
-       this file already records, where a weight division was written into `subject` and the funnel
-       then offered Heavyweight as a subject. */
-    ...(DATA.films || []).filter(f => f.title).map(f => ({
-      kind: 'film', name: f.title, key: 'fm:' + (f.id || f.title),
-      sub: [f.year, f.kind === 'series' ? 'Series' : f.kind === 'documentary' ? 'Documentary' : '',
-            f.director || f.lead].filter(Boolean).join(' \u00b7 '),
-      image: '',
-      year: f.year,
-      /* THE TWO FACETS IT BRINGS, both read straight off the row by `facetFromSheet_` if the sheet
-         ever invents a question over them. Nothing in code declares a facet for either: the funnel
-         narrows by `What kind` to Films and then by the search box, which is enough for 22 rows
-         and is one fewer thing to keep in step if the tab grows. */
-      audience: f.audience, filmKind: f.kind,
-      /* EVERY WORD SOMEBODY MIGHT TYPE. The lesson one commit old: a thing whose own words are not
-         in the haystack is findable by its title and by nothing else, so a director's surname,
-         a lead's and `documentary` have to be in here or they find nothing. */
-      text: [f.director, f.lead, f.kind, f.audience, f.notes, f.seasons].filter(Boolean).join(' '),
-      row: f,
-    })),
+    /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE --------
+       THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"*. So
+       nothing on this list reads `DATA.films`: no item, so no card, no `Films` under What kind and no
+       title, director or lead in Find's search. The rows still arrive in an admin's payload, and
+       Games → Videos is where they are found. One lesson of the mapper is worth keeping for whatever
+       comes next: it put `audience` on a field of its own rather than in `subject`, because a Subject
+       question offering `adults` beside `Maths` is the `boxKind` mistake this file records. See where
+       `film` was in `KINDS`. */
 
     ...questionItems(),
   ];
@@ -15170,7 +15141,7 @@ function stuffQuestion() {
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING --------------------------
      The library is a file of its own, and the splash lifts at fifteen seconds once it is in whether
      the payload is or not — so on a slow line the first question is asked without the answers only
-     the payload brings (the bundles, the films). Measured on 9 Oct with the payload held: a question
+     the payload brings (the bundles). Measured on 9 Oct with the payload held: a question
      that looked finished and was not, and grew when the payload came. So under the answers, until then, the one loader
      (`loading_`, shell.js) — the answers already here stay pressable, and the room under them says
      more are on their way. */

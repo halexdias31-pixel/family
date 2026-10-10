@@ -660,7 +660,7 @@ function fightTiles_(x) {
 
    A LINK AND NOT A BUTTON, through `tile_`'s `href`, which draws the anchor with its `target` and
    `rel` — the same reason the fight's tile has no `act`. Nothing inside the app plays it, so it
-   should not pretend to; see `filmTiles_` for the same argument about Drive. */
+   should not pretend to — the argument the films' Drive tile made, before the films left Find. */
 function boxerTiles_(x) {
   const b = x.row || {};
   const name = String(b.name || x.name || '').trim();
@@ -669,21 +669,9 @@ function boxerTiles_(x) {
                  href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' boxing highlights') });
 }
 
-/* ---------- A FILM'S ONE DOOR, IN THE SAME ROW AS ITS STAR ------------------------------------------
-   IT WAS DRAWN INSIDE `filmCard_` AS A TILE ROW OF ITS OWN, which gave a film two rows of tiles and a
-   fight — the same shape, a thing with one Watch — one. Here it is the fight's tile one kind along.
-   A placeholder has no file, so it has no door; the card says why where the tile would have been.
-
-   NO `act`. `tile_` answers an absolute http(s) address with an `<a target="_blank">` and everything
-   else with a button — and that test is where it is so `check-surfaces` can see the address was
-   checked rather than assumed. A Drive link is the one exception the house style leaves open:
-   somebody's Drive is not this app and should not pretend to be. */
-function filmTiles_(x) {
-  const f = x.row || {};
-  if (f.placeholder || !f.url) return '';
-  return tile_({ icon: 'play', label: 'Watch',
-                 note: f.fileKind === 'folder' ? 'opens the folder' : 'opens in Drive', href: f.url });
-}
+/* `filmTiles_` WAS HERE — a film's Watch tile, a link out to Drive in the row under its Find card. It
+   went with the films (the owner, 10 Oct: *"films should not appear in the finder it cannot be found
+   there"*); a film is found in Games → Videos, whose row is its own door to Drive. */
 
 
 /* THE ONE ENTRY POINT the card builders call. A kind with nothing of its own still gets its admin
@@ -723,7 +711,6 @@ function cardActions_(x) {
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
   if (x.kind === 'boxer') return boxerTiles_(x);
-  if (x.kind === 'film') return filmTiles_(x);
   /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —
      `bibleTiles_` in find.js, which says nothing at all to anybody but an admin. */
   if (x.kind === 'bible') return typeof bibleTiles_ === 'function' ? bibleTiles_(x) : '';

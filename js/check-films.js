@@ -375,7 +375,8 @@ const find = (rows, title) => rows.find(r => String(r.title) === title);
   if (typed.director !== 'A Typed Director' || typed.drive_id || String(typed.active) !== '') fail('a row with no id', 'was changed: ' + JSON.stringify(typed));
   const wanted0 = find(rows(), 'Wanted By Name') || {};
   if (!isOn(wanted0.placeholder) || wanted0.drive_id) fail('a placeholder stays a placeholder', 'a typed placeholder with no file was changed: ' + JSON.stringify(wanted0));
-  /* AND IT IS SENT AS A PLACEHOLDER, which is what the card and Find draw as "Not in the drive yet". */
+  /* AND IT IS SENT AS A PLACEHOLDER, which is what the videos card draws as not in the Drive yet (Find
+     drew it too, until the films left Find on 10 Oct — docs/history/326). */
   const a0 = w.get({ token: w.tok['a1@example.org'] });
   const sent = (a0.films || []).find(f => f.title === 'Wanted By Name');
   if (!sent || sent.placeholder !== true || sent.url) fail('a placeholder stays a placeholder', 'the admin is sent ' + JSON.stringify(sent));
