@@ -1178,24 +1178,27 @@ for (const who of VISITORS) {
        here has nothing to test, and that is "not measured", never a pass. Proved by mutation: without
        the reset in `paintStuff`, Psalm 119's grid opened 496px down with the chips out of sight. */
     {
-      const where = 'stuff · Psalms\'s chapter grid, 119 tapped after scrolling to it (320 x 568)';
+      /* ON THE RESOURCES COLUMN, where the Bible is (docs/history/329): its state set in that finder's
+         binding (`inFinder_`), its question under the column's own ids. */
+      const where = 'res · Psalms\'s chapter grid, 119 tapped after scrolling to it (320 x 568)';
       const grid = await page.evaluate(async () => {
         if (typeof bibleFor_ !== 'function' || !bibleFor_()) return { why: 'the visitor is not an admin' };
         for (let i = 0; i < 40 && !BIBLE.index; i++) await new Promise(r => setTimeout(r, 50));
         if (!BIBLE.index) return { why: 'the Bible\'s index never arrived' };
-        go('stuff', false, true);
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
+        go('res', false, true);
+        inFinder_(finderOf_('res'), () => {
+          STUFF.q = '';
+          STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                           { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                           { field: 'bibleBook', value: 'Psalms' }];
+          paintStuff();
+          goPage('res', stuffQuestionPage_(), true);
+        });
         /* `paneReach_` IS BOOKED AFTER THE PAINT, so the pane is measured, zoomed and given its scroll
            a moment later, as on a phone. */
         await new Promise(r => setTimeout(r, 700));
-        const pane = $('stuff-controls').closest('.pane');
-        const cell = document.querySelector('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"][data-value="119"]');
+        const pane = $('res-controls').closest('.pane');
+        const cell = document.querySelector('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"][data-value="119"]');
         if (!pane || !cell) return { why: 'no Psalms chapter grid with a 119 in it' };
         const pr = pane.getBoundingClientRect();
         pane.scrollTop += cell.getBoundingClientRect().top - pr.top - pr.height / 2;
@@ -1215,13 +1218,14 @@ for (const who of VISITORS) {
       } else {
         await touch(grid.x, grid.y, 0, 0);
         const after = await page.evaluate(() => {
-          const pane = $('stuff-controls').closest('.pane');
-          const f = STUFF.filters[STUFF.filters.length - 1] || {};
-          const pr = pane.getBoundingClientRect(), chips = $('stuff-chips').getBoundingClientRect();
+          const pane = $('res-controls').closest('.pane');
+          const st = finderOf_('res').st;
+          const f = st.filters[st.filters.length - 1] || {};
+          const pr = pane.getBoundingClientRect(), chips = $('res-chips').getBoundingClientRect();
           return { chose: f.field + ' ' + f.value, top: Math.round(pane.scrollTop),
                    chips: chips.bottom > pr.top && chips.bottom <= pr.bottom + 1,
                    /* `facet-pick`S, because "Doesn't matter" carries the field too (note 292). */
-                   verses: document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length };
+                   verses: document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length };
         });
         swipes.push({ from: where, dir: 'tap',
                       ok: after.chose === 'bibleChapter 119' && after.verses === 176 && after.top === 0 && after.chips,
@@ -1229,7 +1233,7 @@ for (const who of VISITORS) {
                            + (after.chips ? '' : ', the chips out of sight'),
                       want: 'bibleChapter 119, 176 verse cells, the pane at its top with the chips in sight' });
       }
-      await page.evaluate(() => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0, true); });
+      await page.evaluate(() => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0, true); }));
       await page.waitForTimeout(300);
     }
     await page.setViewportSize({ width: 390, height: 844 });

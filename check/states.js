@@ -79,8 +79,10 @@ const STATES = {
         /* EVERY MEMO, AND `DATA` IS WHAT THEY ARE KEYED ON. `stuffItems` and `stuffFiltered` both
            hold `from: DATA` by object identity, so emptying its arrays leaves all three handing
            back the 5,587 items they built when the payload was whole -- which is a state the app
-           is never in and would have measured the wrong screen. */
-        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+           is never in and would have measured the wrong screen.
+           `stuffForget_` RATHER THAN THE THREE BY NAME: there are two finders now (docs/history/329), and
+           the names are the bound one's; the app's own forgetting empties every finder's. */
+        stuffForget_();
         STUFF.filters = []; STUFF.q = '';
         paintStuff();
       },
@@ -88,7 +90,7 @@ const STATES = {
         const held = window.__LIB_HELD || { rows: null, data: {} };
         Object.keys(held.data).forEach(k => { DATA[k] = held.data[k]; });
         LIBRARY_ROWS = held.rows;
-        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+        stuffForget_();
         paintStuff();
       },
       /* THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN — the owner, 9 Oct: *"They should all have a
@@ -469,118 +471,6 @@ const STATES = {
                && !!steps.querySelector('.prac-steps ol > li');
       },
       wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
-       "the @family textbook should be bare bones for now and the textbooks will be in the resources
-       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
-       shelf — and then the Measures of spread chapter, because it is the one with everything a
-       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
-       stacked fractions under a root are the widest thing on any page of the book. The chapters
-       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
-       ratio and a sideways scroll. */
-    { name: 'a textbook chapter',
-      enter: () => {
-        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
-           and the first one on it, or a chapter numbered like this one in another book, is not the
-           page this state was written about. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = typeof stuffPages_ === 'function'
-          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
-      },
-      expect: () => {
-        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
-           either side of this one, and the card is nine pages back. The card has a journey of its
-           own in check-flow; this state is about the widest page. */
-        const ch = [...document.querySelectorAll('#s-stuff .card.tb.prac-part')]
-          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
-        return !!ch && !!ch.querySelector('.tb-words li b')
-               && !!ch.querySelector('.tb-math .frac .frac-d')
-               && !!ch.querySelector('.tb-points li')
-               && !!ch.querySelector('li .tb-h')
-               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
-               && !document.querySelector('#s-stuff .card:not(.tb) .boxer-rec');
-      },
-      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
-       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
-       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
-       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
-       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
-       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
-       by its page; the pages either side are in the DOM beside it and are measured too. */
-    { name: 'a textbook animation: Pythagoras',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
-        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an17-pyth');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
-        return !!stage && !!stage.querySelector('.an-pyth')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="pyth"]');
-      },
-      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'a textbook animation: Bayes',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
-        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an15-bayes');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
-        return !!stage && !!stage.querySelector('.an-bayes')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="bayes"]');
-      },
-      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'a textbook animation: standard form',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
-        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an2-sf');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
-        return !!stage && !!stage.querySelector('.an-sf')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="sf"]');
-      },
-      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
        THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
@@ -2167,268 +2057,6 @@ const STATES = {
                && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
       },
       wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
-    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
-       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
-       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
-       asking a stranger to reach it would report a fault about the check (check-flow proves the
-       absence; this measures the presence).
-
-       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
-       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
-       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
-       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
-       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
-       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
-       either side of it.
-       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
-       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
-       so the cards after it are drawn from memory as a second visit would draw them. */
-    { name: 'the Bible, the KJV question',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-        bibleLoad_(1);
-        bibleLoad_(17);
-        bibleLoad_(19);
-      },
-      expect: () => {
-        const a = [...document.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
-        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
-               && !!document.querySelector('#s-stuff .card.bible[data-bb="card"]');
-      },
-      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
-    { name: 'the Bible, Psalms\'s chapters',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-      },
-      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
-      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
-    { name: 'the Bible, Psalm 119\'s verses',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-      },
-      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
-      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
-    { name: 'the Bible, Genesis 1:3',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
-                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
-                         { field: 'bibleVerse', value: '3' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
-        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
-               && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
-      },
-      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
-    { name: 'the Bible, Esther 8:9',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
-                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
-                         { field: 'bibleVerse', value: '9' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
-      expect: () => {
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
-        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
-      },
-      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ==============================================================================================
-       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
-
-       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
-       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
-       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
-       paragraph of names, and nothing measured either, because no state reached Resources ›
-       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
-       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
-       now has), and the numbers on the gold meta line.
-
-       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
-       browser as source one at a time and cannot see each other — the note at the top of the file.
-    ============================================================================================== */
-    { name: 'the boxers, on the shared head',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
-         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
-         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
-         beside the name — so this asks what only a browser can answer about that: the picture box is
-         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
-         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
-         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
-         stay: one title size, the flag above the title. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)')
-               || document.querySelector('#s-stuff .card.fc.boxer:not(.is-fights)');
-        if (!c || c.querySelector('.thing')) return false;
-        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
-        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
-        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
-        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
-                                 : /No fight record on file/.test(rec.textContent);
-        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
-        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= t.top + .5
-               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
-               && f.right <= t.left + .5
-               && c.scrollWidth <= c.clientWidth + 1;
-      },
-      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
-       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
-       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
-       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
-       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
-       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
-       the picture and across the card rather than in the photo's column, and its words at least
-       `.62rem` — the size the review measured the old `.56` against and found unreadable.
-
-       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
-       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
-       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
-       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
-       the card draws when the photo loads. */
-    { name: 'a boxer photo\'s credit, a link a finger can hit',
-      enter: () => {
-        STUFF.q = 'Muhammad Ali';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
-        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
-        const box = c && c.querySelector('.boxer-pic');
-        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
-        let line = c.querySelector('.boxer-credit');
-        if (!line) {
-          BOXER_PIC_DEAD.delete(pic(b.image));
-          line = document.createElement('p');
-          line.className = 'boxer-credit';
-          line.innerHTML = boxerCredit_(b, b.imageCredit);
-          box.after(line);
-          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
-             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
-             the rest of this file reported 42px below the fold that no real phone ever has. */
-          try { paneReach_([c.closest('.pane')]); } catch (e) {}
-        }
-        const a = line.querySelector('a.boxer-src');
-        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
-        let z = 1;
-        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
-        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        return r.height / z >= 43.5 && r.width / z >= 43.5
-               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
-               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
-      },
-      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'the fights, on the shared head',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Fights' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
-         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
-         every other meta line rather than in capitals. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.fight')
-               || document.querySelector('#s-stuff .card.fc.fight');
-        if (!c || c.querySelector('p.note')) return false;
-        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
-        const how = c.querySelector('.fc-meta');
-        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
-           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
-        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
-        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
-               && getComputedStyle(how).textTransform === 'none'
-               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
-                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
-      },
-      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
-       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
-       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
-       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
-       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
-       indent against the width of its widest number, set in the list's own font. */
-    { name: "the textbook's contents, every number inside the card",
-      enter: () => {
-        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
-           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .card.tb:not(.prac-part)');
-        const ol = c && c.querySelector('.tb-toc ol.fc-list');
-        const li = ol && ol.children;
-        if (!li || li.length < 10) return false;
-        const probe = document.createElement('span');
-        probe.textContent = li.length + '. ';
-        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
-        li[li.length - 1].appendChild(probe);
-        const need = probe.getBoundingClientRect().width;
-        probe.remove();
-        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
-      },
-      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION ------------------------------------
        NEITHER WAS A STATE. `Nothing matches` is what a search for nothing says, and "Nothing left to
        narrow" is the last line under the chips when every question is answered — an inline
@@ -2555,6 +2183,386 @@ const STATES = {
       },
       wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+  ],
+  /* ================================================================================================
+     THE SECOND FINDER: RESOURCES, RIGHT OF FIND (docs/history/329)
+
+     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+     column to the right of the current finder. this new column is "finder 2". it carries resources."*
+     The textbooks, the Bible, the boxers and the fights left Find for this column, and every state that
+     measured them moved with them, word for word, but for three things: each runs in the second
+     finder's binding (`inFinder_`, find.js — inside it `STUFF` IS this column's state, so the code reads
+     as it did), each turns `goPage('res', …)` and looks in `#s-res`, and none sets a `What for` or
+     `What kind` chip, because over the resources both have one answer and the funnel skips them — a
+     chip nobody could have pressed is not a state anybody is in.
+  ================================================================================================ */
+  res: [
+    { name: 'the question' },
+    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
+       "the @family textbook should be bare bones for now and the textbooks will be in the resources
+       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
+       shelf — and then the Measures of spread chapter, because it is the one with everything a
+       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
+       stacked fractions under a root are the widest thing on any page of the book. The chapters
+       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
+       ratio and a sideways scroll. */
+    { name: 'a textbook chapter',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
+           and the first one on it, or a chapter numbered like this one in another book, is not the
+           page this state was written about. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
+        goPage('res', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      }),
+      expect: () => {
+        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
+           either side of this one, and the card is nine pages back. The card has a journey of its
+           own in check-flow; this state is about the widest page. */
+        const ch = [...document.querySelectorAll('#s-res .card.tb.prac-part')]
+          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
+        return !!ch && !!ch.querySelector('.tb-words li b')
+               && !!ch.querySelector('.tb-math .frac .frac-d')
+               && !!ch.querySelector('.tb-points li')
+               && !!ch.querySelector('li .tb-h')
+               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
+               && !document.querySelector('#s-res .card:not(.tb) .boxer-rec');
+      },
+      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
+       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
+       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
+       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
+       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
+       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
+       by its page; the pages either side are in the DOM beside it and are measured too. */
+    { name: 'a textbook animation: Pythagoras',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
+        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an17-pyth');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
+        return !!stage && !!stage.querySelector('.an-pyth')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="pyth"]');
+      },
+      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a textbook animation: Bayes',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
+        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an15-bayes');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
+        return !!stage && !!stage.querySelector('.an-bayes')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="bayes"]');
+      },
+      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a textbook animation: standard form',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
+        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an2-sf');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
+        return !!stage && !!stage.querySelector('.an-sf')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="sf"]');
+      },
+      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
+       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
+       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
+       asking a stranger to reach it would report a fault about the check (check-flow proves the
+       absence; this measures the presence).
+
+       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
+       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
+       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
+       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
+       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
+       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
+       either side of it.
+       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
+       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
+       so the cards after it are drawn from memory as a second visit would draw them. */
+    { name: 'the Bible, the KJV question',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+        bibleLoad_(1);
+        bibleLoad_(17);
+        bibleLoad_(19);
+      }),
+      expect: () => {
+        const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
+        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
+               && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
+      },
+      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+    { name: 'the Bible, Psalms\'s chapters',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+      }),
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
+      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
+    { name: 'the Bible, Psalm 119\'s verses',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+      }),
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
+      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
+    { name: 'the Bible, Genesis 1:3',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
+                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
+                         { field: 'bibleVerse', value: '3' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
+        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
+               && !!document.querySelector('#s-res [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+      },
+      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
+    { name: 'the Bible, Esther 8:9',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
+                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
+                         { field: 'bibleVerse', value: '9' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
+      expect: () => {
+        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
+      },
+      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ==============================================================================================
+       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
+
+       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
+       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
+       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
+       paragraph of names, and nothing measured either, because no state reached Resources ›
+       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
+       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
+       now has), and the numbers on the gold meta line.
+
+       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
+       browser as source one at a time and cannot see each other — the note at the top of the file.
+    ============================================================================================== */
+    { name: 'the boxers, on the shared head',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
+         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
+         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
+         beside the name — so this asks what only a browser can answer about that: the picture box is
+         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
+         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
+         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
+         stay: one title size, the flag above the title. */
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)')
+               || document.querySelector('#s-res .card.fc.boxer:not(.is-fights)');
+        if (!c || c.querySelector('.thing')) return false;
+        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
+        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
+        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
+        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
+                                 : /No fight record on file/.test(rec.textContent);
+        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= t.top + .5
+               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && f.right <= t.left + .5
+               && c.scrollWidth <= c.clientWidth + 1;
+      },
+      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
+       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
+       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
+       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
+       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
+       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
+       the picture and across the card rather than in the photo's column, and its words at least
+       `.62rem` — the size the review measured the old `.56` against and found unreadable.
+
+       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
+       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
+       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
+       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
+       the card draws when the photo loads. */
+    { name: 'a boxer photo\'s credit, a link a finger can hit',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = 'Muhammad Ali';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
+        const box = c && c.querySelector('.boxer-pic');
+        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
+        let line = c.querySelector('.boxer-credit');
+        if (!line) {
+          BOXER_PIC_DEAD.delete(pic(b.image));
+          line = document.createElement('p');
+          line.className = 'boxer-credit';
+          line.innerHTML = boxerCredit_(b, b.imageCredit);
+          box.after(line);
+          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
+             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
+             the rest of this file reported 42px below the fold that no real phone ever has. */
+          try { paneReach_([c.closest('.pane')]); } catch (e) {}
+        }
+        const a = line.querySelector('a.boxer-src');
+        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
+        let z = 1;
+        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
+        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return r.height / z >= 43.5 && r.width / z >= 43.5
+               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
+               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
+      },
+      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'the fights, on the shared head',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
+         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
+         every other meta line rather than in capitals. */
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.fight')
+               || document.querySelector('#s-res .card.fc.fight');
+        if (!c || c.querySelector('p.note')) return false;
+        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
+        const how = c.querySelector('.fc-meta');
+        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
+           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
+        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && getComputedStyle(how).textTransform === 'none'
+               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
+                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
+      },
+      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
+       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
+       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
+       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
+       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
+       indent against the width of its widest number, set in the list's own font. */
+    { name: "the textbook's contents, every number inside the card",
+      enter: () => inFinder_(finderOf_('res'), () => {
+        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
+           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .card.tb:not(.prac-part)');
+        const ol = c && c.querySelector('.tb-toc ol.fc-list');
+        const li = ol && ol.children;
+        if (!li || li.length < 10) return false;
+        const probe = document.createElement('span');
+        probe.textContent = li.length + '. ';
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+        li[li.length - 1].appendChild(probe);
+        const need = probe.getBoundingClientRect().width;
+        probe.remove();
+        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
+      },
+      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------

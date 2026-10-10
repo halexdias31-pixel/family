@@ -127,7 +127,10 @@ function boot(cb) {
       ' facetsLive: () => (DATA && DATA.facets) || [], FACETS,' +
       /* THE FENCE AND THE TALLIES IT SPARES — so the rule below can ask what was TALLIED, not only
          what was asked. */
-      ' listKind_, FACET_TALLY };');
+      ' listKind_, FACET_TALLY,' +
+      /* THE SECOND FINDER (docs/history/329): its binding, its record and its state, so the pass at the
+         end asks the Resources column's questions the way the app asks them. */
+      ' inFinder_, finderOf_, kindOf_, stuffItemsAll_, RES_ST: typeof RES_ST !== "undefined" ? RES_ST : null };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -191,6 +194,16 @@ boot(f => {
   });
   console.log('\nWHAT FIND HOLDS: ' + Object.keys(kindsHeld).map(k => k + ' ' + kindsHeld[k]).join(' · ')
               + '\n  first question: ' + doors.join(' | '));
+  /* AND NO RESOURCE. *"i want to move everything which is in "resources" tag"* — the owner, 10 Oct: the
+     textbooks, the boxers, the fights and the Bible are the second finder's (docs/history/329), and one
+     left on Find is one answer of `What kind` nobody can press to anything new. */
+  if (f.kindOf_) {
+    const resLeft = items.filter(x => (x.kindLabel || f.kindOf_(x).label) === 'Resources');
+    if (resLeft.length) {
+      bad.push(resLeft.length + ' Resources are still on Find\'s list (' + [...new Set(resLeft.map(x => x.kind))].join(', ')
+               + ') — they are the second finder\'s, and Find carries none');
+    }
+  } else bad.push('`kindOf_` is not exported, so Find holding no Resources was NOT checked');
 
   facets.forEach(facet => {
     const vals = f.facetValues(items, facet);
@@ -1467,6 +1480,38 @@ boot(f => {
       look(said.join(' → '), list);
       lookAsk(said.join(' → '), list);
     }
+    /* AND OVER THE SECOND FINDER'S OWN LISTS (docs/history/329). `Division` and `Decade` — two of the
+       questions the mutation above names — are boxing questions, and the boxing is on the Resources
+       column now: measured there, in its binding, from its top, from each shelf, and down its greedy
+       path, or this rule would go on passing over a list that no longer holds what it was written for. */
+    if (f.inFinder_ && f.finderOf_ && f.finderOf_('res')) {
+      f.inFinder_(f.finderOf_('res'), () => {
+        const rall = f.stuffItems();
+        if (!rall.length) { bad.push('the Resources column holds nothing, so its questions were NOT measured for ranges'); return; }
+        look('Resources', rall);
+        lookAsk('Resources', rall);
+        const shelfF = f.facetList().find(x => x.field === 'shelf');
+        if (shelfF) f.facetValues(rall, shelfF).forEach(v => {
+          const l = keep(rall, shelfF, v);
+          look('Resources · ' + (v.show || v.value), l);
+          lookAsk('Resources · ' + (v.show || v.value), l);
+        });
+        let rl = rall;
+        const rsaid = ['Resources'];
+        for (let step = 0; step < 10 && rl.length > 4; step++) {
+          const facet = f.nextFacet(rl, {});
+          if (!facet) break;
+          const vals = f.facetValues(rl, facet);
+          if (!vals.length) break;
+          let best = vals[0];
+          vals.forEach(v => { if (keep(rl, facet, v).length > keep(rl, facet, best).length) best = v; });
+          rsaid.push(facet.label + ' · ' + (best.show || best.value));
+          rl = keep(rl, facet, best);
+          look(rsaid.join(' → '), rl);
+          lookAsk(rsaid.join(' → '), rl);
+        }
+      });
+    } else bad.push('the second finder is not exported, so its questions were NOT measured for ranges — not a pass');
     if (over.length) {
       bad.push('a question is drawn as letter or number ranges rather than as its answers -- the owner, '
                + '6 Oct: "I no longer want to have that a-g method or h-n. Just display": '
@@ -1795,6 +1840,102 @@ boot(f => {
         + askedIn.join(', ') + ')');
     }
   }
+
+  /* ================================================================================================
+     THE SECOND FINDER, OVER ITS OWN ITEMS (docs/history/329).
+
+     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+     column to the right of the current finder. this new column is "finder 2". it carries resources."*
+     Two finders, one engine: every rule above is about Find's list, and still is. This asks the rules
+     that hold of ANY funnel of the second finder's — in the app's own binding (`inFinder_`), so the
+     questions measured are the ones the Resources column really asks:
+
+       a. it holds only Resources, every resource kind the whole list holds, and nothing is lost: what
+          is on neither finder is only what the funnel was never for (`FUNNEL_NOT_FOR`);
+       b. its first question is the one the funnel's own rules choose — not `What for` or `What kind`,
+          which have one answer each over the resources — and it has at least two answers;
+       c. at its top, on every shelf and down its greedy path, every offered question narrows (rule 1)
+          and spells each answer once (rule 2);
+       d. the fence holds here too: no closed-kind question (`only`) is tallied over a list with none
+          of that kind in it — the Bible is not on a signed-out list, so nothing of it may be counted.
+  ================================================================================================ */
+  if (f.inFinder_ && f.finderOf_ && f.finderOf_('res') && f.RES_ST && f.kindOf_) {
+    const RF = f.finderOf_('res');
+    const S = f.RES_ST;
+    const isRes = x => (x.kindLabel || f.kindOf_(x).label) === 'Resources';
+    f.inFinder_(RF, () => {
+      S.filters = []; S.q = '';
+      const ritems = f.stuffItems();
+      const held = {};
+      ritems.forEach(x => { held[x.kind] = (held[x.kind] || 0) + 1; });
+      /* a. */
+      if (!ritems.length) { bad.push('the Resources column holds nothing — not a pass'); return; }
+      const notRes = ritems.filter(x => !isRes(x));
+      if (notRes.length) bad.push(notRes.length + ' item(s) on the Resources column are not Resources: ' + [...new Set(notRes.map(x => x.kind))].join(', '));
+      const everyRes = [...new Set(f.stuffItemsAll_().filter(isRes).map(x => x.kind))];
+      everyRes.forEach(k => { if (!held[k]) bad.push('the whole list holds Resources of kind `' + k + '` and the Resources column holds none'); });
+      /* b. */
+      const first = f.nextFacet(ritems.slice());
+      const firstVals = first ? f.facetValues(ritems, first) : [];
+      if (!first) bad.push('the Resources column asks no first question over ' + ritems.length + ' items');
+      else if (first.field === 'forLabel' || first.field === 'kindLabel') bad.push('the Resources column\'s first question is `' + first.label + '`, which has one answer over the resources');
+      else if (firstVals.length < 2) bad.push('the Resources column\'s first question, `' + first.label + '`, has ' + firstVals.length + ' answer(s)');
+      console.log('\nWHAT RESOURCES HOLDS: ' + Object.keys(held).map(k => k + ' ' + held[k]).join(' · ')
+                  + '\n  first question: ' + (first ? first.label + ' (' + firstVals.map(v => (v.show || v.value) + ' ' + v.n).join(' | ') + ')' : 'none'));
+      /* c. */
+      /* THE TOP, EVERY ANSWER OF THE QUESTION IT ASKS, AND EVERY ANSWER OF THE QUESTION ASKED NEXT —
+         two rungs down every branch: Boxing → Boxers or fights → each, the textbooks → Subject → each. */
+      const states = [['Resources', ritems, []]];
+      const below = (say, list, chips) => {
+        S.filters = chips.map(c => Object.assign({}, c));
+        const q = f.nextFacet(list.slice());
+        if (!q) return [];
+        return f.facetValues(list, q).map(v => {
+          const chip = { field: q.field, value: v.value };
+          if (v.bucket) chip.bucket = true;
+          return [say + ' → ' + q.label + ' · ' + (v.show || v.value), list.filter(x => f.filterHit(x, chip)), chips.concat([chip])];
+        });
+      };
+      below('Resources', ritems, []).forEach(st => { states.push(st); below.apply(null, st).forEach(s2 => states.push(s2)); });
+      let measured = 0;
+      states.forEach(([say, list, chips]) => {
+        /* A LIST OF ONE IS NOT A QUESTION'S SUBJECT: every answer of a many-valued facet leaves the one
+           thing standing, `nextFacet` refuses to ask any of them, and rule 1 is about lists. */
+        if (list.length < 2) return;
+        S.filters = chips.map(c => Object.assign({}, c));
+        f.facetList().forEach(facet => {
+          const vals = f.facetValues(list, facet);
+          const cov = f.facetCoverage(list, facet);
+          const offered = !facet.collect && vals.length >= 2 && vals.length <= f.FACET_MAX_ANSWERS && cov >= facet.min;
+          if (offered) measured++;
+          if (offered && !facet.always && f.facetSplit_(list, facet) < f.FACET_MIN_MINORITY) {
+            bad.push('on the Resources column at ' + say + ', `' + facet.field + '` is offered but cannot narrow');
+          }
+          const seen = {};
+          vals.forEach(v => {
+            const k = norm_(v.value);
+            if (k && seen[k] && seen[k] !== String(v.value)) bad.push('on the Resources column at ' + say + ', `' + facet.field + '` offers both "' + seen[k] + '" and "' + v.value + '"');
+            if (k) seen[k] = String(v.value);
+          });
+        });
+      });
+      if (measured < 4) bad.push('only ' + measured + ' questions were offered across the Resources column\'s states — its funnel was NOT measured');
+      /* d. */
+      const fenced = f.facetList().filter(x => x.only).map(x => x.field);
+      const leaked = [];
+      states.forEach(([say, list, chips]) => {
+        if (!list.length || list.some(x => x.kind === 'bible')) return;
+        S.filters = chips.map(c => Object.assign({}, c));
+        const copy = list.slice();
+        if (!f.nextFacet(copy)) f.overFacet_(copy);
+        const keys = Object.keys(f.FACET_TALLY.get(copy) || {}).filter(k => fenced.indexOf(k.split('|')[0]) >= 0);
+        if (keys.length) leaked.push(say + ' tallied ' + keys.map(k => k.split('|')[0]).join(', '));
+      });
+      if (leaked.length) bad.push('a closed-kind question was tallied on the Resources column over a list without its kind: ' + leaked.join('; '));
+      S.filters = []; S.q = '';
+      console.log('  measured: ' + states.length + ' states, ' + measured + ' offered questions, the fence over ' + states.length + ' lists');
+    });
+  } else bad.push('the second finder (`inFinder_`, `finderOf_`, `RES_ST`) is not exported, so the Resources column was NOT checked — not a pass');
 
   done();
 });

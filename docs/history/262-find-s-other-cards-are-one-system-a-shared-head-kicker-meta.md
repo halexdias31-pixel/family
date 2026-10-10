@@ -1,5 +1,7 @@
 ## Find's other cards are one system: a shared head, kicker, meta line, section and list
 
+**Since 10 Oct the boxers, the fights and the textbooks are drawn on the Resources column** ([329](329-the-second-finder-carries-the-resources.md)), with these same parts; the cards did not change, only the column they are found in.
+
 **Asked for as "didn't I ask you to sleekerise the whole widget system in the finder for questions
 and so on?" — "nice more sleek, fresh stable".** The question family (question, answer, figure,
 paper and bundle cards) was polished in parallel and is not touched here; this is everything else

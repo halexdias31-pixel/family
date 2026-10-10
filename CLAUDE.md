@@ -34,12 +34,21 @@ any name used but never declared. Run it after every change.
 | `js/shell.js` | **The runtime.** `screen(id, draw)` registers a screen, `go(id)` switches to one, `placeCells()` positions the panes, `toast()` speaks. 25 KB of code under 97 KB of comments. |
 | `js/data.js` | `API` (the Apps Script URL), `DATA`, `load()`'s state, the small helpers, `missingKeys()`. |
 | `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
-| `js/find.js` | The funnel — the app's main surface. Biggest file at 185 KB. |
+| `js/find.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`). Biggest file at 1 MB. |
 | `js/book.js` | Sessions, seats, payment. |
 
-Twelve screens are registered, in `TAB_ORDER` (js/shell.js): `feed`, `booking`, `shop` (things for
-sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (the funnel — learning
-only now — and the root), `account`, `tools`, `games`, `saved`, `spotlight`, `settings`.
+Fourteen screens are registered, in `TAB_ORDER` (js/shell.js): `feed`, `booking`, `shop` (things for
+sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (Find, the funnel —
+questions, answers, practicals, projects, bundles — and the root), `res` (Resources, the second finder,
+immediately right of Find: the textbooks, the boxers and their fights, the Bible), `account`, `tools`,
+`games`, `saved`, `spotlight`, `settings`, `progress`.
+
+**Two finders, one engine** (docs/history/329). `stuff` and `res` are one funnel bound to two states:
+`inFinder_(F, fn)` in find.js parks one finder's `STUFF` and memos and puts the other's in their place,
+so the engine reads `STUFF` as it always did. **Outside a binding `STUFF` is Find's** — every other file
+and every check that writes it means Find. A timer, microtask, promise or `afterSlide_` job runs outside
+the binding and must capture its finder and bind again. Which kinds a finder carries is the kinds
+table's label (`Resources` → the second finder), so a kind relabelled in the sheet moves column.
 
 ### Layout, and why the checks are shaped the way they are
 
@@ -62,7 +71,7 @@ almost never writes to it directly.
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
 - **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes, the
   solar system and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
-  `html`, `css`). The chapter plays it on a page of its own; the loading screen draws a copy the
+  `html`, `css`). The chapter plays it on a page of its own, in the Resources column; the loading screen draws a copy the
   device kept from the last load (`splashSync_` in shell.js, read by the picker in index.html — one
   load behind). *"The source for the animations should be in text books"* — the owner, 8 Oct.
   **Each one has ONE source, and which it is depends on the drawing.** Thirteen are written by a

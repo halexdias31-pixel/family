@@ -727,13 +727,20 @@ function signedOut_(opts) {
      a switch and starts again (`signedIn_`). AN ADMIN'S IS STILL CLEARED: theirs is the one question that
      can name a shelf only an admin is shown, which is the reason above.
      ONE DECIDER PER DOOR: `signedIn_` passes `keepFind`, `api()` passes `ended`; Sign out and a switch from
-     one person to another pass neither and clear Find. */
+     one person to another pass neither and clear Find.
+     ---------- AND THE SECOND FINDER, ON THE SAME RULE ------------------------------------------------------
+     THE RESOURCES ARE A COLUMN OF THEIR OWN NOW (docs/history/329) and the Books shelf went with them, so
+     the shelf the admin rule above was written about is in the second finder, not Find. Every finder's
+     state is kept, marked or cleared together, through `finderStates_` (find.js) — `typeof`, for the
+     reason `STUFF` is. */
   try {
-    if (typeof STUFF !== 'undefined') {
+    const states = typeof finderStates_ === 'function' ? finderStates_()
+                 : (typeof STUFF !== 'undefined' ? [STUFF] : []);
+    states.forEach(st => {
       if (opts.keepFind) { /* nobody → somebody: `signedIn_` keeps it, and says whose it is now */ }
-      else if (opts.ended && was && !wasAdmin) STUFF.whose = String(was.personId || was.name || '');
-      else { STUFF.q = ''; STUFF.filters = []; STUFF.whose = ''; }
-    }
+      else if (opts.ended && was && !wasAdmin) st.whose = String(was.personId || was.name || '');
+      else { st.q = ''; st.filters = []; st.whose = ''; }
+    });
   } catch (err) {}
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
@@ -822,12 +829,15 @@ function signedIn_(d, typed) {
      these lines; `signedOut_` only does what it is told. */
   const fromNobody = !USER;
   const over = !fromNobody && (String(USER.personId || '') !== pid || !pid);
+  /* EVERY FINDER'S `whose` — `signedOut_` marks them together, so any one says it. */
+  const finders_ = () => (typeof finderStates_ === 'function' ? finderStates_()
+                         : (typeof STUFF !== 'undefined' ? [STUFF] : []));
   let whose = '';
-  try { whose = typeof STUFF !== 'undefined' ? String(STUFF.whose || '') : ''; } catch (e) {}
+  try { whose = String((finders_().find(st => st && st.whose) || {}).whose || ''); } catch (e) {}
   if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
   else if (over) signedOut_({ quiet: true });
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
-  try { if (typeof STUFF !== 'undefined') STUFF.whose = ''; } catch (e) {}
+  try { finders_().forEach(st => { st.whose = ''; }); } catch (e) {}
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';

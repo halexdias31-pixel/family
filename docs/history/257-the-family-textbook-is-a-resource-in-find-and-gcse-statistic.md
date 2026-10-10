@@ -1,5 +1,7 @@
 ## The @family. textbook is a resource in Find, and GCSE Statistics is the first
 
+**Since 10 Oct the textbooks are on the Resources column**, the second finder right of Find ([329](329-the-second-finder-carries-the-resources.md)). The route is that column's now: `What for` and `What kind` have one answer there and are skipped, so the shelf is its first question.
+
 **Asked for as "the @family textbook should be bare bones for now and the textbooks will be in the
 resources tag in the finder. first one can be gcse statistics."** Earlier on the same list: "custom
 books, make me a custom book" and "Knowledge organisers" — which is what a bare-bones chapter is.

@@ -169,6 +169,19 @@ const TABS = [
      `<nav id="tabs">` in index.html), so like every icon here it is carried for `applyColumns_`
      and for whatever names a column next. */
   { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
+  /* ---------- THE SECOND FINDER: RESOURCES, RIGHT OF FIND --------------------------------------------
+     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+     column to the right of the current finder. this new column is "finder 2". it carries resources.
+     like text books, boxing stuff books. ect."* The textbooks, the boxers, the fights and the Bible
+     were answers to Find's `What kind` question; they are a column of their own now, with the same
+     funnel, cards and swipe, in `screen('res')` (find.js, `FINDERS`). Called Resources wherever a
+     column is named — the word the funnel already used for them — and "the second finder" in code.
+
+     APPENDED, because this table is append-only (see `progress` above); `TAB_ORDER` and the row in
+     `data/settings/columns.json` are what put it immediately right of Find. 📚 rather than a plain
+     shape, as 📈 was: no plain shape means a shelf of books, and 📚 is Unicode 6.0, in every emoji
+     font this app is opened in. */
+  { id: 'res',     icon: '📚', label: 'Resources', title: 'Resources' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -184,7 +197,7 @@ const TABS = [
      camera · post · booking · reel · DM · search · profile · tools · games
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
-const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
+const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'res', 'account', 'tools', 'games', 'saved',
                    'spotlight',
                    'settings',
                    'progress'];
@@ -458,9 +471,15 @@ function go(id, remember, instant) {
      that it should not exist: nothing that was running was stopped, so nothing needs starting. */
   if (was !== AT || painted) afterSlide_(() => startScreen_(AT, true), 'start');
 
-  if (AT === 'stuff') {
-    const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
-    if (instant || !drawn) fillStuffPages(); else afterSlide_(fillStuffPages);
+  /* EITHER FINDER (find.js, `FINDERS`): each fills in its own binding, and a fill booked for later is
+     booked under the finder's name — `afterSlide_` keys by function otherwise, and both finders'
+     fills would be one job that filled whichever was unbound. */
+  const finder = typeof finderOf_ === 'function' ? finderOf_(AT) : null;
+  if (finder) {
+    const host = $('s-' + finder.id);
+    const drawn = host && host.querySelector('.page[data-filled]');
+    if (instant || !drawn) inFinder_(finder, fillStuffPages);
+    else afterSlide_(() => inFinder_(finder, fillStuffPages), 'fill:' + finder.id);
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved.
      INSTANT, because this is arriving rather than travelling: the tab remembers which widget you
@@ -2473,7 +2492,10 @@ const PAGER = {
      reached, and both invisible because the two groups are empty on the fixture.
      `frontPages_` is asked rather than its halves added up, for the reason every other entry here
      gives: a pager that counts for itself is a pager that can disagree with its own screen. */
-  stuff:  () => 1 + frontPages_().length + stuffPageCount(),
+  stuff:  () => finderPageCount_('stuff'),
+  /* THE SECOND FINDER, counted by the same engine in its own binding (`finderPageCount_` in find.js)
+     — the question, then its results; it has no pages in front of the question. */
+  res:    () => finderPageCount_('res'),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -2613,7 +2635,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0 };
+               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0, res: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.
@@ -2836,6 +2858,11 @@ function paintPager(id, instant) {
 
 function goPage(id, to, instant) {
   if (!PAGER[id]) return;
+  /* A FINDER IS TURNED IN ITS OWN BINDING — Find, or the second finder (find.js, `inFinder_`) — so
+     its window, its fills and its kept place below are its own and never the other's. Bound once,
+     here; inside, `F` is the bound finder and the call goes straight through. */
+  const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
+  if (F && F !== FINDER) return inFinder_(F, () => goPage(id, to, instant));
   const n = Math.max(0, Math.min(pageCount(id) - 1, to));
   const was = PAGE[id] || 0;
   if (n === was && !instant) return;
@@ -2856,10 +2883,10 @@ function goPage(id, to, instant) {
      `columnShift_` and `stepY_` read the page you are going TO, and on the Find screen that page is
      an element only once the window covers it. So the window is moved before anything looks. Every
      other screen has no window and this is one guarded call that returns immediately. */
-  if (id === 'stuff' && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) {} }
-  const bare = id === 'stuff' && n > 0 && (() => {
-    const host = $('s-stuff');
-    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', n)];
+  if (F && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) {} }
+  const bare = !!F && n > 0 && (() => {
+    const host = $('s-' + id);
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_(id, n)];
     return !el || el.dataset.filled !== '1';
   })();
   /* ---------- AND THE FAR EDGE OF THE GLASS, ONE CARD PER TURN ---------------------------------------
@@ -2882,7 +2909,7 @@ function goPage(id, to, instant) {
      "turning a page still draws exactly one card"); everything past the edge is still the late
      pass's. ONLY FOR A TURN: a jump of more than the glass is the `bare` path's, which `STUFF_SOON`
      keeps cheap on purpose. */
-  const edge = id === 'stuff' && n !== was && Math.abs(n - was) <= glassRows_() && typeof stuffFillOne_ === 'function';
+  const edge = !!F && n !== was && Math.abs(n - was) <= glassRows_() && typeof stuffFillOne_ === 'function';
   /* ---------- AND A CARD DRAWN ABOVE THE ONE IN FRONT DOES NOT MOVE IT ------------------------------
      GOING DOWN THE PAPER the edge is below the card in front and nothing it draws can move that card.
      GOING BACK UP it is above, and so is the page before a `bare` landing: a card arriving there is
@@ -2892,21 +2919,21 @@ function goPage(id, to, instant) {
      So the page being turned to is measured either side of those fills and the column moved by the
      difference, from where it is drawn (`stuffKeepPlace_`, the window's own correction in find.js).
      Asked only when something CAN land above, so a turn down the paper forces no layout here. */
-  const above = id === 'stuff' && (bare || (edge && n < was));
-  const ref = above && $('s-stuff') ? $('s-stuff').querySelectorAll(':scope > .page')[domIndex_('stuff', n)] : null;
+  const above = !!F && (bare || (edge && n < was));
+  const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
   const top0 = ref ? ref.offsetTop : 0;
   if (bare) fillStuffPages();
   if (edge) {
     const dir = n > was ? 1 : -1;
     for (let k = 1; k <= glassRows_(); k++) { try { stuffFillOne_(n + dir * k); } catch (e) {} }
   }
-  if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-stuff'), top0 - ref.offsetTop);
+  if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - ref.offsetTop);
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_`
      in arcade.js. Before the placement, for the reason the fill above is: a card that grows after
      the column was placed is a card the placement never saw. */
   if (typeof widgetsNear_ === 'function') widgetsNear_(id);
   if (id === AT) placeCells('y', instant);
-  if (id === 'stuff' && !bare) afterSlide_(fillStuffPages);
+  if (F && !bare) afterSlide_(() => inFinder_(F, fillStuffPages), 'fill:' + id);
   /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN -------------------------------------
      THIS IS THE ONE PLACE `PAGE[id]` CHANGES, so it is the one place that can say a different reel
      is on the screen. The column used to answer that question with an IntersectionObserver over a
@@ -2918,7 +2945,7 @@ function goPage(id, to, instant) {
      every call and would undo exactly that. */
   if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
   /* AND THE TEXTBOOK'S ANIMATION ON THE PAGE TURNED TO, by name for the reason `reelsWatch_` is. */
-  if (id === 'stuff' && typeof tbAnimWatch_ === 'function') afterSlide_(tbAnimWatch_);
+  if (F && typeof tbAnimWatch_ === 'function') afterSlide_(tbAnimWatch_);
   /* AND THE CAMERA, WHICH IS A PAGE OF THE FEED — started when its page arrives and let go when the
      page turns away, booked under its own name for the reason `reelsWatch_` is: a run of quick
      flicks is one decision at the end rather than a camera started and stopped per swipe. */

@@ -53,7 +53,105 @@
 /* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: the person whose session died under them with this
    question on Find (`ended` in `signedOut_`), so that only they, signing in again, are handed it back.
    Empty otherwise — signed in, the question is `USER`'s; signed out, it is the holder's. */
-const STUFF = { q: '', filters: [], whose: '' };
+/* A `let` SINCE THE SECOND FINDER (below): `STUFF` is the state of whichever finder is being drawn,
+   and Find's whenever none is being drawn. The object itself is never replaced — Find's is this one
+   for the life of the page — only which finder's object the name stands for. */
+let STUFF = { q: '', filters: [], whose: '' };
+
+/* ---------- TWO FINDERS, ONE ENGINE ---------------------------------------------------------------
+   THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+   column to the right of the current finder. this new column is "finder 2". it carries resources.
+   like text books, boxing stuff books. ect."* So there are two finders: Find (`stuff`) and the second
+   finder (`res`, called Resources wherever a column is named), immediately right of it. The second
+   one is a finder like the first in every way a finger can tell — the search box, the questions as
+   chips, the cards and their pages, the swipe, the loader, the star — and it carries only the kinds
+   whose label is Resources: the textbooks, the boxers and their fights, the Bible.
+
+   ONE ENGINE, NOT A COPY. The funnel is this file, and it reads `STUFF` and its memos by name at
+   about a hundred places. A copy is two engines that drift; a scope threaded through every function
+   is forty signatures, several of which the checks call. So the engine is untouched and what moves is
+   WHOSE its globals are: `inFinder_(F, fn)` parks the bound finder's state on its record (`STUFF`,
+   `ITEM_MEMO`, `FIND_MEMO`, `STUFF_PAGES`, `CHIP_SHOW`, its two timers and its kept-place flag), puts
+   F's in their place, runs fn, and puts everything back in a `finally` — so a throw cannot leave one
+   finder holding the other's chips. The bound finder's state lives in the globals; every other
+   finder's lives on its record. That is the whole invariant.
+
+   OUTSIDE A BINDING IT IS FIND. Every other file that writes `STUFF.filters` — the booking doors in
+   receipt.js and cards.js, sign-out in me.js — means Find and gets Find, and so does every check that
+   pokes `STUFF` from outside. Only find.js binds, at the places a finder is drawn, pressed, filled or
+   typed into: the screen draw, the funnel's handlers, the fill and the search box. So the two finders'
+   chips, words, page and place cannot reach each other.
+
+   WORK THAT RUNS LATER RUNS OUTSIDE THE BINDING, which is the one rule this adds. A timer, a
+   microtask, an `afterSlide_` job or a promise captures its F and binds again — the late fill
+   (`STUFF_LATE`), the draw's microtask, the search box's debounce, the `fill:` keys in shell.js and the
+   Bible's index landing are all written that way. `afterSlide_` dedupes by key, and by function when
+   there is none, so a finder's fill is booked under `'fill:' + id` or two finders' fills become one.
+
+   WHICH KIND IS A RESOURCE is the kinds table's answer, the live sheet first (`kindOf_` merges
+   `DATA.kinds`), so a kind relabelled in the sheet changes column with no deploy. See docs/history/329. */
+const RES_ST = { q: '', filters: [], whose: '' };
+function resKind_(x) { return !!x && (x.kindLabel || kindOf_(x).label) === 'Resources'; }
+/* A FINDER'S RECORD: who it is, what it carries, and — while it is not the bound one — its parked
+   state. `place` is the surface its kept place is filed under (`draftKeep_`); `widgets` is whether the
+   Tools tail of the fill runs (Find's alone — the second finder holds no widget to start or stop);
+   `front` the pages between the question and the results (the booking form, the posts, the bundles:
+   all Find's); `empty` what an empty database says. */
+const finder_ = o => Object.assign({
+  items: { key: null, from: null, items: null },
+  found: { key: null, from: null, items: null, total: 0 },
+  pages: { from: null, pages: [] },
+  chips: { key: null, from: null, out: {} },
+  late: 0, typing: null, tried: false,
+}, o);
+const FINDERS = {
+  stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
+                   has: x => !resKind_(x),
+                   front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
+                   empty: 'Nothing in the shop or the library yet.' }),
+  res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
+                   has: resKind_,
+                   front: () => [],
+                   empty: 'No resources yet.' }),
+};
+let FINDER = FINDERS.stuff;
+function finderPark_(F) {
+  F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES; F.chips = CHIP_SHOW;
+  F.late = STUFF_LATE; F.typing = stuffTimer; F.tried = FIND_PLACE_TRIED;
+}
+function finderUnpark_(F) {
+  STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages; CHIP_SHOW = F.chips;
+  STUFF_LATE = F.late; stuffTimer = F.typing; FIND_PLACE_TRIED = F.tried;
+}
+function inFinder_(F, fn) {
+  if (!F || F === FINDER) return fn();
+  const was = FINDER;
+  finderPark_(was); finderUnpark_(F); FINDER = F;
+  try { return fn(); }
+  finally { finderPark_(F); finderUnpark_(was); FINDER = was; }
+}
+/* By screen id; by the screen an element is drawn in, falling back to the column in front and then
+   Find — a handler pressed from a detached button (the checks do that) still acts on a finder; and by
+   the item, for a link into a resource from anywhere else. */
+function finderOf_(id) { return Object.prototype.hasOwnProperty.call(FINDERS, id) ? FINDERS[id] : null; }
+function finderAt_(el) {
+  const s = el && el.closest ? el.closest('.screen') : null;
+  return (s && finderOf_(String(s.id).replace(/^s-/, ''))) || finderOf_(typeof AT === 'string' ? AT : '') || FINDERS.stuff;
+}
+function finderOfItem_(x) {
+  const id = Object.keys(FINDERS).find(k => FINDERS[k].has(x));
+  return id ? FINDERS[id] : FINDERS.stuff;
+}
+function finderEach_(fn) { Object.keys(FINDERS).forEach(id => inFinder_(FINDERS[id], () => fn(FINDERS[id]))); }
+/* A finder's state from outside, for the files that load before this one (me.js) and the checks. */
+function finderStates_() { return Object.keys(FINDERS).map(id => FINDERS[id].st); }
+function paintFinder_(id, keep) { const F = finderOf_(id); if (F) inFinder_(F, () => paintStuff(keep)); }
+/* `PAGER.stuff` and `PAGER.res` in shell.js: the question, the pages in front, then the results — each
+   counted in its own binding, so asking for Find's count from inside the second finder's draw cannot
+   count the wrong list. */
+function finderPageCount_(id) {
+  return inFinder_(finderOf_(id) || FINDERS.stuff, () => 1 + frontPages_().length + stuffPageCount());
+}
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -4042,13 +4140,21 @@ function animIds_(html, n) {
    (`innerHTML = innerHTML`), which starts every animation in it again; every other stage stands paused
    by `.tb-an-stage:not(.is-on)` in style.css. Off the Find screen, nothing plays.
    BOOKED BY NAME through `afterSlide_` from `goPage`, so a run of quick flicks is one decision at the
-   end, and called when a screen arrives and at the end of a fill. */
+   end, and called when a screen arrives and at the end of a fill.
+   EVERY FINDER'S COLUMN, not a parameter: the chapters moved to the second finder with the textbooks
+   (docs/history/329), and asking each column costs two `querySelectorAll`s — far less than remembering
+   to pass the right one from four callers, one of which (`startScreen_`) knows no finder at all. */
 function tbAnimWatch_() {
-  const host = $('s-stuff');
-  if (!host) return;
-  const stages = host.querySelectorAll('.tb-an-stage');
-  if (!stages.length) return;
-  const here = AT === 'stuff' ? host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)] : null;
+  Object.keys(FINDERS).forEach(id => {
+    const host = $('s-' + id);
+    if (!host) return;
+    const stages = host.querySelectorAll('.tb-an-stage');
+    if (!stages.length) return;
+    const here = AT === id ? host.querySelectorAll(':scope > .page')[domIndex_(id, PAGE[id] || 0)] : null;
+    tbAnimSet_(stages, here);
+  });
+}
+function tbAnimSet_(stages, here) {
   stages.forEach(st => {
     const on = !!here && here.contains(st);
     if (on && !st.classList.contains('is-on')) {
@@ -4208,13 +4314,18 @@ function bibleIndex_() {
          built. The cached search and the pages are told to forget (`me.js`'s move for the friends
          list): a `psalms` typed while the index was on its way would otherwise go on answering from
          the list that did not have it, and the Books shelf would go on showing its loader over a
-         question it can now ask. */
-      if (ok) {
-        FIND_MEMO.key = null;
-        STUFF_PAGES = { from: null, pages: [] };
-      }
-      bibleRedraw_();
-      if ($('stuff-controls')) paintStuff(true);
+         question it can now ask.
+         IN THE FINDER THAT HOLDS THE BIBLE, which is the second one (docs/history/329) — and bound
+         again by hand, because a promise lands outside whatever binding asked for it. */
+      const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
+      inFinder_(F, () => {
+        if (ok) {
+          FIND_MEMO.key = null;
+          STUFF_PAGES = { from: null, pages: [] };
+        }
+        bibleRedraw_();
+        if ($(F.id + '-controls')) paintStuff(true);
+      });
       /* A STARRED VERSE IS NAMED FROM THE INDEX, so Saved could not draw one until now. */
       if (AT === 'saved') repaint(true); else STALE.saved = 1;
       return BIBLE.index;
@@ -4641,25 +4752,30 @@ function bibleRedraw_(n) {
    chapter is the strip, so the verses either side are a swipe away), or on the question for the cover.
    From Saved this is how a kept verse is read in its chapter; from Find it is how a verse found by a
    search or a Verse answer is. The search box is cleared, because words would narrow the chapter. */
+/* INTO THE SECOND FINDER NOW, wherever the tap was — Find, Saved, the Spotlight — because the Bible is
+   a resource and the resources moved (docs/history/329). `What for` and `What kind` are no longer
+   chips it sets: over the second finder's list each has one answer, so the funnel skips both and a
+   chip for them would be a chip nobody could have pressed. */
 on('bible-go', el => {
   if (!bibleFor_() || !BIBLE.index || !BIBLE.item) return;
   const k = el && el.getAttribute('data-key');
   const x = k ? bibleByKey_(k) : null;
   if (k && !x) return;
-  const kind = kindOf_(BIBLE.item);
-  STUFF.q = '';
-  const box = $('stuff-q');
-  if (box) box.value = '';
-  const f = [{ field: 'forLabel', value: asList_(kind.group)[0] }, { field: 'kindLabel', value: kind.label },
-             { field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
+  const F = finderOfItem_(BIBLE.item);
+  const f = [{ field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
   if (x) {
     f.push({ field: 'bibleTestament', value: x.bb.testament }, { field: 'bibleGroup', value: x.bb.group },
            { field: 'bibleBook', value: x.bb.book }, { field: 'bibleChapter', value: x.ch });
   }
-  STUFF.filters = f;
-  paintStuff();
-  if (AT !== 'stuff') go('stuff');
-  goPage('stuff', x ? stuffFirstResult_() + stuffPageOf_(x) : stuffQuestionPage_());
+  inFinder_(F, () => {
+    STUFF.q = '';
+    const box = $(F.id + '-q');
+    if (box) box.value = '';
+    STUFF.filters = f;
+    paintStuff();
+    if (AT !== F.id) go(F.id);
+    goPage(F.id, x ? stuffFirstResult_() + stuffPageOf_(x) : stuffQuestionPage_());
+  });
 });
 /* AGAIN, AFTER A FAILURE: a book (`data-n`), which redrawing its cards fetches; or the list of books. */
 on('bible-retry', el => {
@@ -4669,7 +4785,62 @@ on('bible-retry', el => {
   BIBLE.failed = false;
   bibleIndex_();
   bibleRedraw_();
-  if ($('stuff-controls')) paintStuff(true);
+  const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
+  inFinder_(F, () => { if ($(F.id + '-controls')) paintStuff(true); });
+});
+
+/* ---------- A RESOURCE MET ANYWHERE ELSE OPENS IN THE SECOND FINDER ---------------------------------
+   THE RESOURCES LIVE IN THEIR OWN COLUMN NOW (docs/history/329), so a textbook, a boxer or a fight met
+   anywhere else — kept on Saved, put in the Spotlight — is opened THERE, on its own card, with the rest
+   of it a swipe up. Saved draws the card alone (`cardPages_` keeps only a question's parts), so before
+   this a kept book listed its fourteen chapters and nothing on the column could open one.
+   THE CHIPS A FINGER WOULD HAVE PRESSED, found by walking the funnel for it: the engine's own next
+   question each time (`nextFacet`), answered with this item's own answer, or "Doesn't matter" where
+   it has none — until the list is down to it or there is nothing left to ask. Never a chip that would
+   lose it: that answer is taken back and the walk stops where the thing is still on the list. `bible-go`
+   does the same for a verse by hand, because a verse is not an item on any list. */
+function finderWalk_(x) {
+  const out = [];
+  for (let guard = 0; guard < 16; guard++) {
+    STUFF.filters = out.slice();
+    const items = stuffFiltered();
+    if (items.length <= 1) break;
+    const facet = nextFacet(items);
+    if (!facet) break;
+    const own = (() => { try { return facetOwn_(facet, x); } catch (e) { return []; } })();
+    out.push(own.length ? { field: facet.field, value: String(own[0]) } : { field: facet.field, any: true });
+    STUFF.filters = out.slice();
+    if (stuffFiltered().indexOf(x) < 0) { out.pop(); break; }
+  }
+  return out;
+}
+function finderOpen_(x, part) {
+  const F = finderOfItem_(x);
+  inFinder_(F, () => {
+    STUFF.q = '';
+    const box = $(F.id + '-q');
+    if (box) box.value = '';
+    STUFF.filters = finderWalk_(x);
+    paintStuff();
+    if (AT !== F.id) go(F.id);
+    const i = stuffPages_().findIndex(pg => pg.x === x && (pg.part || null) === (part || null));
+    goPage(F.id, i >= 0 ? stuffFirstResult_() + i : stuffQuestionPage_());
+  });
+}
+/* THE TILE, under a resource's card wherever it is drawn outside its own finder — which is exactly
+   when the bound finder (Find, outside every binding: Saved, the Spotlight) does not carry it. Inside
+   the second finder the card is already open, and no tile is drawn. The Bible has its own way in
+   (`bibleTiles_`'s Open). `Open` and the column's name, from `TABS` so a renamed column says so. */
+function finderOpenTile_(x) {
+  if (!x || !x.key || x.kind === 'bible' || FINDER.has(x)) return '';
+  const F = finderOfItem_(x);
+  const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === F.id);
+  return tile_({ icon: 'open', label: 'Open', note: 'in ' + (t ? t.label : F.id), act: 'find-open', data: { key: x.key } });
+}
+on('find-open', el => {
+  const k = el && el.getAttribute('data-key');
+  const x = k ? stuffItemsAll_().find(i => i && i.key === k) : null;
+  if (x) finderOpen_(x);
 });
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
@@ -10460,9 +10631,13 @@ function stuffItemsAll_() {
    carries the films, written over `DATA.films` so the admin has them without a reload. Without this,
    Find would go on drawing the films from before the sync until the next payload. */
 function stuffForget_() {
-  ITEM_MEMO = { key: null, from: null, items: null };
   ALL_MEMO = { key: null, from: null, items: null };
-  FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left the second
+     finder's would hand the next child the last one's Books shelf. */
+  finderEach_(() => {
+    ITEM_MEMO = { key: null, from: null, items: null };
+    FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+  });
 }
 
 /* ---------- WHERE YOU WERE IN FIND, KEPT FOR A RELOAD --------------------------------------------------
@@ -10482,39 +10657,71 @@ function stuffForget_() {
    THE SAME CLOCK AS THE COLUMN: a reload within `AWAY_AGAIN` of leaving, on Find, for the same person
    (a draft is the signed-in person's, so an admin's shelf is never somebody else's place), and only if
    nothing has been asked of Find since the page opened. Tomorrow's visit opens where it always did. */
-function findPlaceKeep_() {
+function findPlaceKeep_(F) {
+  if (!F || !F.id) { Object.keys(FINDERS).forEach(id => findPlaceKeep_(FINDERS[id])); return; }
   try {
-    if (typeof AT === 'undefined' || AT !== 'stuff' || typeof draftKeep_ !== 'function') return;
-    const at = (PAGE.stuff || 0) - stuffFirstResult_();
-    const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
-    const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
-    /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
-    draftKeep_('find', 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
-      key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
+    if (typeof AT === 'undefined' || AT !== F.id || typeof draftKeep_ !== 'function') return;
+    inFinder_(F, () => {
+      const at = (PAGE[F.id] || 0) - stuffFirstResult_();
+      const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
+      const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
+      /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
+      draftKeep_(F.place, 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
+        key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
+    });
   } catch (e) {}
 }
-window.addEventListener('pagehide', findPlaceKeep_);
+/* EACH FINDER UNDER ITS OWN NAME — Find's `find:place` as it always was, the second finder's
+   `res:place` — and only the one in front, which is the only one a reload comes back to (`familyTab`).
+   Wrapped, because a listener hands its event to the function and an event is not a finder. */
+window.addEventListener('pagehide', () => findPlaceKeep_());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
 let FIND_PLACE_TRIED = false;
-function findPlaceBack_() {
-  if (FIND_PLACE_TRIED || typeof draftRead_ !== 'function') return;
-  FIND_PLACE_TRIED = true;
-  try {
-    const raw = draftRead_('find', 'place');
-    if (raw === null) return;
-    const p = JSON.parse(raw);
-    if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
-    if (AT !== 'stuff' || (STUFF.filters || []).length || STUFF.q) return;
-    STUFF.filters = (Array.isArray(p.f) ? p.f : []).filter(f => f && typeof f === 'object' && typeof f.field === 'string');
-    STUFF.q = typeof p.q === 'string' ? p.q : '';
-    const box = $('stuff-q');
-    if (box) box.value = STUFF.q;
-    paintStuff();
-    if (!p.key) return;
-    const i = stuffPages_().findIndex(pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key
-      && (pg.part || null) === (p.part || null));
-    if (i >= 0) goPage('stuff', stuffFirstResult_() + i, true);
-  } catch (e) {}
+function findPlaceBack_(F) {
+  if (!F || !F.id) { Object.keys(FINDERS).forEach(id => findPlaceBack_(FINDERS[id])); return; }
+  if (typeof draftRead_ !== 'function') return;
+  inFinder_(F, () => {
+    if (FIND_PLACE_TRIED) return;
+    FIND_PLACE_TRIED = true;
+    try {
+      const raw = draftRead_(F.place, 'place');
+      if (raw === null) return;
+      const p = JSON.parse(raw);
+      if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
+      if (AT !== F.id || (STUFF.filters || []).length || STUFF.q) return;
+      STUFF.filters = (Array.isArray(p.f) ? p.f : [])
+        .filter(f => f && typeof f === 'object' && typeof f.field === 'string')
+        .filter(f => !finderForeign_(f));
+      STUFF.q = typeof p.q === 'string' ? p.q : '';
+      const box = $(F.id + '-q');
+      if (box) box.value = STUFF.q;
+      paintStuff();
+      if (!p.key) return;
+      const i = stuffPages_().findIndex(pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key
+        && (pg.part || null) === (p.part || null));
+      if (i >= 0) goPage(F.id, stuffFirstResult_() + i, true);
+    } catch (e) {}
+  });
+}
+/* ---------- A CHIP THAT BELONGS TO THE OTHER FINDER ---------------------------------------------------
+   A PLACE KEPT BEFORE THE RESOURCES MOVED can hold their chips — `Resources`, `Shelf · Boxing`, a
+   Bible book — and restoring those on Find would put it on "Nothing matches" under chips nobody set.
+   So a chip is dropped when something outside the bound finder answers it and nothing inside does.
+   Both halves, because before the library lands nothing answers a paper's chip anywhere, and a chip
+   that matches nothing yet is not foreign — it is early, and dropping it would lose the place it
+   exists to keep. Written for the move and for whatever kind changes column next. */
+function finderForeign_(f) {
+  const facet = facetBy(f.field);
+  if (!facet) return false;
+  const hit = f.any
+    ? x => { try { return facetOwn_(facet, x).length > 0; } catch (e) { return false; } }
+    : x => { try { return filterHit(x, f); } catch (e) { return false; } };
+  let inside = false, outside = false;
+  stuffItemsAll_().forEach(x => {
+    if (inside || !hit(x)) return;
+    if (FINDER.has(x)) inside = true; else outside = true;
+  });
+  return outside && !inside;
 }
 
 function stuffItems() {
@@ -10583,7 +10790,12 @@ function stuffItemsBuild_() {
        array form has been supported since a tutor was two things, and a filter that ignored it
        would silently drop a kind from a group it belongs in. */
     const g = asList_(x.groups || kindOf_(x).group);
-    return !(g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0));
+    if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
+    /* AND ONLY WHAT THIS FINDER CARRIES — Find everything but the resources, the second finder the
+       resources (`FINDERS`). Filtered here and not in the mappers: `stuffItemsAll_` still holds every
+       kind for Saved, the Spotlight and the answer lookups, and check-bible.js requires the Bible's
+       spread to stay in `stuffItemsRaw_`. Each finder's list is memoised on its own record. */
+    return FINDER.has(x);
   });
 }
 
@@ -11867,8 +12079,8 @@ const stuffPageId_ = pg => (pg && pg.x ? String(pg.x.key || pg.x.name || '') + '
 const stuffAsk_ = () => JSON.stringify([S_(STUFF.q), STUFF.filters || []]);
 function stuffHeld_() {
   try {
-    const host = $('s-stuff');
-    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)];
+    const host = $('s-' + FINDER.id);
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_(FINDER.id, PAGE[FINDER.id] || 0)];
     const at = el && el.dataset.filled === '1' && el.FIND_AT;
     return at && at.ask === stuffAsk_() ? at.id : '';
   } catch (e) { return ''; }
@@ -11878,9 +12090,9 @@ function stuffBackTo_(id, keep) {
   const pages = stuffPages_();
   /* STILL WHERE IT WAS — the commonest case by far (a star, the same list again), and one comparison
      rather than a walk over a list that can be thousands of pages long. */
-  if (stuffPageId_(pages[(PAGE.stuff || 0) - keep]) === id) return;
+  if (stuffPageId_(pages[(PAGE[FINDER.id] || 0) - keep]) === id) return;
   const i = pages.findIndex(pg => stuffPageId_(pg) === id);
-  if (i >= 0) PAGE.stuff = keep + i;
+  if (i >= 0) PAGE[FINDER.id] = keep + i;
 }
 
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST ---------------------------
@@ -12551,8 +12763,10 @@ screen('account', () => pages('account',
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. It is asked here and nowhere else, so
    `PAGER.stuff`, `stuffFirstResult_`, `paintStuff` and `screen('stuff')` all count it by asking the
    one function that draws it, which is the rule every one of those already follows. */
+/* THE BOUND FINDER'S, since there are two (`FINDERS`): Find's are the three above, and the second
+   finder has none — no booking form, no posts and no paper to bundle is a resource. */
 function frontPages_() {
-  return [].concat(bookingPages_(), feedPages_(), bundlePages_());
+  return FINDER.front();
 }
 
 /* ==================================================================================================
@@ -13113,7 +13327,7 @@ function bundlesBySitting_() {
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
    star, so this is asked rather than assumed — off the id on the page itself. */
 function stuffQuestionPage_() {
-  const el = $('stuff-controls');
+  const el = $(FINDER.id + '-controls');
   const page = el && el.closest('.page');
   if (!page || !page.parentNode) return 0;
   return [].indexOf.call(page.parentNode.children, page);
@@ -13173,7 +13387,7 @@ function stuffPageHtml(n) {
               : STUFF.filters.length             ? 'Nothing matches all of those together.'
               : '';
     return (!FIND_MEMO.total)
-      ? nothingHere('Nothing in the shop or the library yet.', true)
+      ? nothingHere(FINDER.empty, true)
       : `<p class="empty">Nothing matches.${
           why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
   }
@@ -13351,7 +13565,9 @@ on('fav', el => {
      timer would put it back to 25:00. */
   TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
   if (AT === 'saved') { repaint(true); return; }
-  if (AT === 'stuff' && $('s-stuff')) paintStuff(true);
+  /* EITHER FINDER, whichever is in front — a star on a boxer is pressed in the second one. */
+  const F = finderOf_(AT);
+  if (F && $('s-' + F.id)) paintFinder_(F.id, true);
 });
 
 function stuffCard(x, credits) {
@@ -13403,7 +13619,7 @@ function stuffCard(x, credits) {
    and the shortest form of one paper on its own is `Paper 1` whatever the year, which would hide the
    year again when nothing above says it. Memoised on the chip list, the search and the payload,
    because the chips are redrawn on every tap. */
-const CHIP_SHOW = { key: null, from: null, out: {} };
+let CHIP_SHOW = { key: null, from: null, out: {} };   /* a `let`: one per finder, see `inFinder_` */
 function chipShow_(f, i) {
   const facet = facetBy(f.field);
   if (!facet || !facet.showOf) return f.value;
@@ -13568,23 +13784,25 @@ function filterClear_() {
    it. Both set exactly the filter `facet-pick` sets, which is the whole argument for deleting
    them: the funnel now ASKS which paper once there are few enough to list, so opening one is
    answering a question, through the one handler that has always done that. */
-on('facet-pick', el => {
+/* EACH ON THE FINDER IT WAS PRESSED IN (`finderAt_`): an answer in the second finder is a chip there,
+   and never one on Find. */
+on('facet-pick', el => inFinder_(finderAt_(el), () => {
   /* A BUCKET IS HALF AN ANSWER — see `bucketValues_`. The flag rides on the chip so `filterHit`
      knows to test membership and `nextFacet` knows the question is not finished with. */
   const f = { field: el.dataset.field, value: el.dataset.value };
   if (el.dataset.bucket) f.bucket = true;
   STUFF.filters.push(f);
   paintStuff();
-});
+}));
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
    Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
    does not do. */
-on('facet-skip', el => {
+on('facet-skip', el => inFinder_(finderAt_(el), () => {
   STUFF.filters.push({ field: el.dataset.field, any: true });
   paintStuff();
-});
-on('filter-drop', el => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuff(); });
-on('filter-clear', () => { STUFF.filters = []; paintStuff(); });
+}));
+on('filter-drop', el => inFinder_(finderAt_(el), () => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuff(); }));
+on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));
 
 /**
  * REDRAW THE RESULTS AND NOTHING ELSE.
@@ -13660,7 +13878,7 @@ function stuffLo_(want, keep, had) {
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
   /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
-  const r = Math.max(0, (PAGE.stuff || 0) - keep);
+  const r = Math.max(0, (PAGE[FINDER.id] || 0) - keep);
   let lo = Math.max(0, Math.min(maxLo, had || 0));
   if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
     lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
@@ -13669,17 +13887,17 @@ function stuffLo_(want, keep, had) {
 }
 
 function stuffWindow_() {
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return;
   /* ASKED OF THE DOM, because a star adds a page in front of the question and the number of pages
      before the results is exactly what this has to be right about. */
   const keep = stuffFirstResult_();
   const want = stuffPageCount();
-  PAGE_KEEP.stuff = keep;
+  PAGE_KEEP[FINDER.id] = keep;
 
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
-  const had = Math.max(0, Math.min(maxLo, PAGE_LO.stuff || 0));
+  const had = Math.max(0, Math.min(maxLo, PAGE_LO[FINDER.id] || 0));
   const lo = stuffLo_(want, keep, had);
 
   /* ---------- THE COUNT FIRST, AT THE TAIL --------------------------------------------------------
@@ -13694,7 +13912,7 @@ function stuffWindow_() {
       '<section class="page is-res"><div class="pane"></div></section>'.repeat(size - res.length));
   }
 
-  PAGE_LO.stuff = lo;
+  PAGE_LO[FINDER.id] = lo;
   const k = lo - had;
   if (!k) return;
   res = [].slice.call(host.querySelectorAll(':scope > .page.is-res'));
@@ -13740,12 +13958,12 @@ function stuffKeepPlace_(host, d) {
 }
 
 function paintStuff(keepPage) {
-  const chips = $('stuff-chips');
+  const chips = $(FINDER.id + '-chips');
   if (chips) chips.innerHTML = filterChips();
   /* THE BIN BESIDE THE BOX, in its own slot so the box itself is never rewritten — see `filterClear_`. */
-  const clear = $('stuff-clear');
+  const clear = $(FINDER.id + '-clear');
   if (clear) clear.innerHTML = filterClear_();
-  const groups = $('stuff-groups');
+  const groups = $(FINDER.id + '-groups');
   if (groups) groups.innerHTML = stuffQuestion();
   /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE ------------------------------------------
      FOUND BY THE REVIEW, ON THE BIBLE'S GRIDS. Psalms's 150 chapters are taller than the question's pane
@@ -13769,16 +13987,16 @@ function paintStuff(keepPage) {
     if (qp && qp.scrollTop) qp.scrollTop = 0;
   }
 
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return;
   /* THE QUESTION PAGE, BY ITS ID. `:scope > .page` was "the first one", which is a saved thing now
      — so this kept a favourite and deleted the search box. */
-  const ctrl = $('stuff-controls');
+  const ctrl = $(FINDER.id + '-controls');
   const first = ctrl && ctrl.closest('.page');
   if (!first) return;
   /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
      what says how much the pages in front moved by. */
-  const was = PAGE.stuff || 0;
+  const was = PAGE[FINDER.id] || 0;
   /* AND WHICH CARD THAT IS, off the page itself before it is replaced — see `stuffHeld_`. */
   const held = keepPage ? stuffHeld_() : '';
   /* ---------- WHAT MOVED IS THE FIRST RESULT, NOT THE QUESTION ---------------------------------
@@ -13898,7 +14116,7 @@ function paintStuff(keepPage) {
      be left describing a strip that no longer exists. A new filter is a new list of results, so
      every page in the window is standing for something different anyway. */
   [].slice.call(host.querySelectorAll(':scope > .page.is-res')).forEach(el => el.remove());
-  PAGE_LO.stuff = 0;
+  PAGE_LO[FINDER.id] = 0;
 
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
@@ -13917,9 +14135,9 @@ function paintStuff(keepPage) {
      before the strip was windowed and is about sixteen now — so a star, a repaint of a card or a
      booking dropdown on result forty put you on page fifteen: a different card, under your thumb.
      Measured, not reasoned: the same probe that found the repaint fault above. */
-  PAGE.stuff = keepPage
+  PAGE[FINDER.id] = keepPage
     ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
-                           pageCount('stuff') - 1))
+                           pageCount(FINDER.id) - 1))
     : stuffQuestionPage_();
   /* THE SHIFT ABOVE IS WHAT MOVED IN FRONT OF THE RESULTS; THIS IS WHAT MOVED AMONG THEM — the card
      looked up by name in the list as it is now (`stuffBackTo_`), when the list has changed under it. */
@@ -13930,7 +14148,7 @@ function paintStuff(keepPage) {
   stuffWindow_();
 
   fillStuffPages();
-  paintPager('stuff', true);
+  paintPager(FINDER.id, true);
 }
 
 /**
@@ -14401,14 +14619,14 @@ function paneWatch_(host) {
    `ctx` is the loop's own `pages`, `first` and `items`, handed in so a walk over eleven does not ask
    for them eleven times; a single caller leaves it out. */
 function stuffFillOne_(i, ctx) {
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return false;
   const c = ctx || {};
   const first = c.first != null ? c.first : stuffFirstResult_();
   /* THE PAGE COUNT, not the result count — a practical is four pages. See `stuffPages_`. */
   if (i < first || i > first + stuffPages_().length - 1) return false;
   const pages = c.pages || host.querySelectorAll(':scope > .page');
-  const el = pages[domIndex_('stuff', i)];
+  const el = pages[domIndex_(FINDER.id, i)];
   if (!el || el.dataset.filled === '1') return false;
   /* INTO THE PANE, not over it — see the note in `fillStuffPages`. `paneOf_` makes one if the page
      has not got one. */
@@ -14457,11 +14675,11 @@ function stuffPin_(el, pane) {
    pane stayed `overflow: hidden` for ever, because the measuring runs at the end of the pass that
    has nothing left to build and no pass ever did. */
 function fillStuffPages(all) {
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return;
   let changed = false;
   const pages = host.querySelectorAll(':scope > .page');
-  const at = PAGE.stuff || 0;
+  const at = PAGE[FINDER.id] || 0;
   const items = stuffFiltered();
   const first = stuffFirstResult_();
   /* ---------- THE ELEVEN YOU ARE NEAR, NOT THE FIVE THOUSAND YOU ARE NOT -------------------------
@@ -14483,7 +14701,7 @@ function fillStuffPages(all) {
   const todo = [];
   for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
   [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
-    const i = logIndex_('stuff', [].indexOf.call(pages, el));
+    const i = logIndex_(FINDER.id, [].indexOf.call(pages, el));
     if (i >= first && !seen[i]) todo.push(i);
   });
   /* THE ONES UNDER THE THUMB FIRST, and the emptying with them: a page being cleared is a page
@@ -14498,10 +14716,10 @@ function fillStuffPages(all) {
        paint. A page that only needs EMPTYING is not a reason to stop, so the test is on the work
        rather than on the distance. */
     if (!all && Math.abs(i - at) > STUFF_SOON) {
-      const ahead = pages[domIndex_('stuff', i)];
+      const ahead = pages[domIndex_(FINDER.id, i)];
       if (ahead && ahead.dataset.filled !== '1') { late = n; break; }
     }
-    const el = pages[domIndex_('stuff', i)];
+    const el = pages[domIndex_(FINDER.id, i)];
     if (!el) continue;
     /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
        content — which is exactly what happened, for as long as these pages were built without a
@@ -14564,8 +14782,11 @@ function fillStuffPages(all) {
      what a later tap calls anyway, so finishing IS calling it again and there is nothing to
      remember about where it stopped; `paneReach_` runs at the end of whichever pass has no more
      building to do, so a run of quick taps measures once rather than per tap. */
+  /* THE FINDER IS CAPTURED, because the timer fires outside every binding (`inFinder_`): a late fill
+     that ran unbound would finish Find's strip with the second finder's half-built one in front. */
+  const F = FINDER;
   if (late >= 0) {
-    STUFF_LATE = setTimeout(() => fillStuffPages(true), 0);
+    STUFF_LATE = setTimeout(() => inFinder_(F, () => fillStuffPages(true)), 0);
   } else {
     STUFF_LATE = setTimeout(() => paneReach_(
       host.querySelectorAll(':scope > .page[data-filled="1"] > .pane')), 0);
@@ -14583,7 +14804,10 @@ function fillStuffPages(all) {
      build ahead.
      Started again on every fill rather than once. They are idempotent — a board redraws from the
      position it already holds, a clock from the time it already has — and remembering which have
-     been started is a second thing to keep true. */
+     been started is a second thing to keep true.
+     FIND'S ALONE (`widgets`): the second finder holds no widget, so its fill leaves `WIDGET_ON` to
+     Find, whose own fills start and stop it as they always did. */
+  if (!FINDER.widgets) { settle_(changed); return; }
   if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
   const wgt = items[at - first] && items[at - first].row;
   if (!wgt) { stopWidget_(); settle_(changed); return; }
@@ -14620,9 +14844,9 @@ function fillStuffPages(all) {
    still to come — it says so, and the placement is asked for as before. */
 function settle_(changed) {
   if (!changed) return;
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (host && typeof paneWatch_ === 'function') paneWatch_(host);
-  if (!holdColumn_('stuff')) placeCells('y', true, 0, 'stuff');
+  if (!holdColumn_(FINDER.id)) placeCells('y', true, 0, FINDER.id);
 }
 
 /**
@@ -14811,7 +15035,7 @@ function stuffQuestion() {
            STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
          : STUFF.q                          ? 'Try fewer words.'
          :                                    'Nothing matches all of those together.'}</span></p>`
-      : nothingHere('Nothing in the shop or the library yet.', true);
+      : nothingHere(FINDER.empty, true);
   }
 
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT -------------------------
@@ -14991,7 +15215,13 @@ function stuffQuestion() {
    the thing `check-dead.js` would name next time anyway. */
 
 
-screen('stuff', () => {
+/* ---------- ONE DRAW FOR BOTH FINDERS -----------------------------------------------------------------
+   `screen('stuff')` WAS THIS FUNCTION, and it is now the draw of whichever finder is bound — Find's
+   and the second finder's are registered under it, below, each in its own binding. The ids are the
+   finder's (`stuff-q`, `res-q` …) so a press finds its own column; everything else on this page is
+   the same page in both, which is the point (docs/history/329). */
+function finderScreen_() {
+  const F = FINDER;
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. Without this the box snapped back to its first option
      every time the screen was redrawn, so the list and the dropdown above it disagreed — and the
@@ -15014,8 +15244,8 @@ screen('stuff', () => {
      screen, which is where a balance goes. */
   /* THE BOX AND THE BIN ARE ONE ROW — see `filterClear_`. `#stuff-clear` is the slot `paintStuff`
      rewrites; the input is never rewritten, which is what keeps its focus across a press. */
-  const controls = `<div id="stuff-controls">`
-    + `<div class="find-search"><input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}"><span id="stuff-clear">${filterClear_()}</span></div>
+  const controls = `<div id="${F.id}-controls">`
+    + `<div class="find-search"><input class="search" id="${F.id}-q" placeholder="Search…" value="${esc(STUFF.q)}"><span id="${F.id}-clear">${filterClear_()}</span></div>
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first.
 
           Gone with the grouping dropdown that went before it, and for the same reason: this screen
@@ -15026,11 +15256,11 @@ screen('stuff', () => {
           The one real use was price, on a library where four hundred of four hundred are free. If
           things are ever priced enough for the order to matter, sorting belongs beside the prices
           rather than above the search. */''}
-    <div id="stuff-chips">${filterChips()}</div>
+    <div id="${F.id}-chips">${filterChips()}</div>
     ${/* THE COUNT LINE WAS HERE — "565 of 565 · 27 pages". It said nothing anybody needed: before
           you narrow anything it is the size of the library, which is not a fact about your search,
           and after you narrow it the results are right there to be looked at. */''}
-    <div id="stuff-groups">${stuffQuestion()}</div>
+    <div id="${F.id}-groups">${stuffQuestion()}</div>
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
   </div>`;
 
@@ -15106,18 +15336,24 @@ screen('stuff', () => {
   const keep = 1 + front.length;
   const want = stuffPageCount();
   stuffBackTo_(held, keep);
-  PAGE_KEEP.stuff = keep;
-  PAGE_LO.stuff = stuffLo_(want, keep, PAGE_LO.stuff);
+  PAGE_KEEP[F.id] = keep;
+  PAGE_LO[F.id] = stuffLo_(want, keep, PAGE_LO[F.id]);
   /* AND THE WINDOW IS FILLED A MOMENT LATER, because a page cannot be filled until it is in the
      document and `paint` writes the markup after this returns. A microtask rather than a timer:
      it runs before the browser draws, so the page you are on is never seen empty — and
      `fillStuffPages` settles the column itself once the cards have their heights. */
+  /* `F` CAPTURED: the microtask runs after this binding has ended (`inFinder_`). */
   if (typeof queueMicrotask === 'function') {
-    queueMicrotask(() => { try { if ($('stuff-controls')) fillStuffPages(); } catch (e) {} });
+    queueMicrotask(() => { try { inFinder_(F, () => { if ($(F.id + '-controls')) fillStuffPages(); }); } catch (e) {} });
   }
-  return pages('stuff', [controls].concat(front))
+  /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than the second finder's `res` id, and
+     nothing to do with it: `#s-res .page.is-res` is a result page of the Resources column. */
+  return pages(F.id, [controls].concat(front))
     + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
-}, () => '');
+}
+screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
+/* THE SECOND FINDER — the owner's *"finder 2"*, the column right of Find, carrying the resources. */
+screen('res', () => inFinder_(FINDERS.res, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere
    already visible. */
@@ -15125,12 +15361,18 @@ screen('stuff', () => {
 /* Typed into rather than pressed, so it cannot go through the click handler. Debounced, because
    redrawing four hundred cards on every keystroke is how a search box feels broken. Nothing needs
    putting back afterwards now — the box itself is no longer part of what gets redrawn. */
+/* EACH FINDER'S BOX TYPES INTO ITS OWN WORDS, with its own debounce (`stuffTimer` is parked per
+   finder), and the repaint the timer books is bound again — it fires after this binding has ended. */
 let stuffTimer = null;
 document.addEventListener('input', e => {
-  if (e.target.id !== 'stuff-q') return;
-  STUFF.q = e.target.value;
-  clearTimeout(stuffTimer);
-  stuffTimer = setTimeout(paintStuff, 180);
+  const m = /^([a-z]+)-q$/.exec(String((e.target && e.target.id) || ''));
+  const F = m && finderOf_(m[1]);
+  if (!F) return;
+  inFinder_(F, () => {
+    STUFF.q = e.target.value;
+    clearTimeout(stuffTimer);
+    stuffTimer = setTimeout(() => inFinder_(F, paintStuff), 180);
+  });
 });
 
 /* `on('stuff-set')` WAS HERE, and the dropdown that sent it went when the funnel replaced the
