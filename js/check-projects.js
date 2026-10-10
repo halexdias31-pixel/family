@@ -29,6 +29,15 @@
      is deliberately not built (see `projectCard_`). A step or a share note that says upload,
      publish or post online is the one sentence on these cards that could hurt somebody, so it
      fails rather than counts. `safety` may SAY "not put online"; it is not scanned.
+
+   AND, SINCE 9 OCT, A PROJECT OR A COURSEWORK. "i would like to add course works. make it bare
+   bones. its within projects in finder." — the owner. So `project_type` is a closed word, blank
+   reading as `project`; a live coursework MUST name an `exam_board` from a closed list and MAY
+   name a `spec_ref`, and a project may name neither (note 253: a how-to video has no exam board);
+   there is a project AND a coursework, because a question with one answer is never asked; and the
+   question is wired the way `practicalType` is — a row in `data/settings/facets.json`, live, asked
+   before Subject, asked ONLY of a list that is all projects, its colour in `TAG_OF`. See
+   docs/history/314.
 ================================================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -107,6 +116,81 @@ if (!libM || libM[1].indexOf("'projects'") < 0) {
   fail.push("js/library.js LIB_EXTRA does not name 'projects', so data/projects.json is never fetched");
 }
 
+/* ---------- PROJECT OR COURSEWORK, WIRED END TO END ------------------------------------------------
+   FOUR PLACES, AND A MISSING ONE IS SILENT IN EVERY CASE. `practicalType`'s arrangement, which has no
+   facet in code: the mapper has to read the column, the item has to carry the field, the facets file
+   has to name it (a field nobody names is a question nobody asks), and `TAG_OF` has to colour it.
+   Read out of the files, for the reason the bucket tables are. */
+const TYPES = new Set(['project', 'coursework']);
+/* THE BOARDS, IN THE SPELLINGS THE REST OF THE SHELF ALREADY USES — `check-library.js` holds `AQA`
+   and `Edexcel` for the papers, and the textbooks print `AQA`, `Edexcel`, `OCR` and `Eduqas`. One
+   spelling per board is what makes Exam board put a coursework and a past paper under one answer;
+   `Pearson Edexcel` or `AQQ` would be an answer of their own. A closed list, `PROJ_TYPE`'s rule:
+   a new board is added here on purpose. */
+const BOARDS = new Set(['AQA', 'Edexcel', 'OCR', 'WJEC', 'Eduqas', 'CCEA']);
+if (!/projectType:\s*libS\(r\.project_type\)/.test(libSrc)) {
+  fail.push('js/library.js does not map `project_type` onto `projectType` — every coursework would read as a project');
+}
+if (!/\n\s*projectType:\s*projType_\(p\)/.test(findSrc)) {
+  fail.push('the project mapper in js/find.js does not put `projectType` on the item, so the funnel has nothing to read');
+}
+/* IN `TAG_OF` ITSELF, not anywhere in the file. Tested against the whole of find.js this passed with
+   the entry deleted and the words quoted in a comment elsewhere; `check-bible.js` cuts the same
+   block out first, and so does this. */
+const tagSrc = (() => {
+  const i = findSrc.indexOf('const TAG_OF = {');
+  const j = i < 0 ? -1 : findSrc.indexOf('\n};', i);
+  return i < 0 || j < 0 ? '' : findSrc.slice(i, j).replace(/\/\*[\s\S]*?\*\//g, '');
+})();
+if (!tagSrc) fail.push('js/find.js has no `const TAG_OF = {` block — the type colour was NOT checked');
+else if (!/\bprojectType:\s*'type'/.test(tagSrc)) {
+  fail.push('TAG_OF in js/find.js has no `projectType: \'type\'` — the answer and its chip would be the plain outline, not the type colour experiment-or-build wears');
+}
+let facetRows = [];
+try { facetRows = JSON.parse(fs.readFileSync(path.join(root, 'data', 'settings', 'facets.json'), 'utf8')); }
+catch (e) { fail.push('data/settings/facets.json does not parse — the Project or coursework question was NOT checked'); }
+/* THE FACETS FILE'S CELLS, READ THE WAY THE PHONE READS THEM. `settingsInto_` turns a blank
+   `sort_order` into null and `facetList` then places the question at 1000 and up — after Subject —
+   while `Number('')` is 0 and looked like "first". `active` goes through `libOn`, so "FALSE" is off
+   though it is not `=== false`. And `min_coverage` through `facetMin_`: blank is the default half, a
+   number over 1 is a percentage. Three readers copied in miniature, because a check that reads a cell
+   more kindly than the phone does is a check that passes what the phone breaks. */
+const cellNum = v => (v === null || v === undefined || String(v).trim() === '' || !isFinite(Number(v)) ? null : Number(v));
+const cellOn = v => /^(true|yes|1|y|on|)$/i.test(String(v === undefined || v === null ? '' : v).trim());
+const cellMin = v => { const n = cellNum(v); const m = n === null ? 0.5 : n; return m > 1 ? Math.min(m / 100, 1) : Math.max(m, 0); };
+const typeRow = facetRows.find(f => f && f.field === 'projectType');
+const subjRow = facetRows.find(f => f && f.field === 'subject');
+if (facetRows.length && !typeRow) {
+  fail.push('data/settings/facets.json has no `projectType` row — with no facet in code that is the only thing that makes it a question');
+} else if (typeRow) {
+  const at = cellNum(typeRow.sort_order), subjAt = subjRow ? cellNum(subjRow.sort_order) : null;
+  if (!cellOn(typeRow.active)) fail.push('data/settings/facets.json switches `projectType` off (active ' + JSON.stringify(typeRow.active) + ') — Projects would never ask Project or coursework');
+  /* BEFORE SUBJECT, AND THIS IS THE RULE THAT WOULD OTHERWISE FAIL WITHOUT A SOUND. A coursework's
+     subject (Design and Technology) is not one any project has, so Subject asked first files it
+     alone under Technology; once it is alone the question has one answer, and a question with one
+     answer is never asked. Measured with the row at 38.5, beside `practicalType`: the funnel asked
+     Subject straight after Projects (check-flow's coursework journey), and every Subject answer
+     leaves one type, so Project or coursework could never come. A blank is NOT before anything:
+     the phone puts it at 1000. */
+  else if (at === null) {
+    fail.push('`projectType` has sort_order ' + JSON.stringify(typeRow.sort_order) + ' — the phone reads that as no order and asks it after every coded question, Subject included');
+  } else if (subjAt !== null && !(at < subjAt)) {
+    fail.push('`projectType` is at sort_order ' + at + ', not before Subject (' + subjAt
+      + ') — Subject would split the courseworks from the projects first and the question would never have two answers');
+  }
+  /* ONLY OF A LIST THAT IS ALL PROJECTS. Asked before Subject, at the default half it was asked of
+     ANY list that was half projects: typing `blade` and skipping What kind left two projects, the
+     D&T textbook and a practical, the funnel asked Project or coursework, and Coursework dropped the
+     textbook and the practical without a word. A sweep of 1,550 searches found `send`, `folder` and
+     `studio` doing the same. At 1 every item in hand has to be a project, which is what the row's
+     note always said the coverage rule did. */
+  const min = cellMin(typeRow.min_coverage);
+  if (min < 1) {
+    fail.push('`projectType` has min_coverage ' + JSON.stringify(typeRow.min_coverage) + ', read as ' + min
+      + ' — it must be 1, or a search holding projects AND textbooks or practicals asks Project or coursework, and either answer drops the rest without a word');
+  }
+}
+
 const NUMBERED = /^(materials|step|topic)_\d+$/;
 /* THE SENTENCES THAT PUT A CHILD'S WORK ON THE INTERNET. A closed list, which is the
    `LOCAL` / `RETIRED_FACETS` pattern: it cannot catch a phrasing nobody has written, and it makes
@@ -115,9 +199,11 @@ const ONLINE = /\b(upload|publish|post (it|them|this) online|go live|youtube cha
 const LOCAL = ['Wandle', 'Colliers Wood', 'Britannia Point', 'Wandsworth', 'Croydon', 'Merton'];
 const QTY_MAX = 12;
 const STEPS_MIN = 4;
+const STEPS_PAGE_FITS = 1200;
 
 const seen = new Set();
 let live = 0, topicLinks = 0, joined = 0, kitItems = 0, kitQty = 0, sessions = 0;
+const byType = { project: 0, coursework: 0 };
 const unknownTopics = new Map();
 const bySubject = {}, byLevel = {};
 
@@ -140,6 +226,52 @@ rows.forEach(r => {
   ['name', 'summary', 'makes', 'materials', 'steps', 'topics', 'share', 'safety'].forEach(col => {
     if (!String(r[col] || '').trim()) fail.push(id + ' has no ' + col);
   });
+
+  /* A CLOSED WORD, WRITTEN AS THE MAPPER READS IT. Blank is `project` — the eight rows from before
+     the column. Exact and lower-case, `check-practicals.js`'s rule for `practical_type`: the mapper
+     forgives `Coursework`, and a file that relies on being forgiven is a file the next reader trips
+     on. */
+  const pt = r.project_type == null ? '' : r.project_type;
+  if (typeof pt !== 'string') fail.push(id + ' has project_type ' + JSON.stringify(pt) + ' — text: blank, project or coursework');
+  else if (pt !== '' && !TYPES.has(pt)) {
+    fail.push(id + ' has project_type "' + pt + '" — blank, project or coursework. A third word is drawn raw on the card '
+      + 'and answers the question as itself; add it to PROJ_TYPE in js/find.js deliberately, then here.');
+  }
+  const type = TYPES.has(pt) ? pt : 'project';
+  /* LIVE ROWS ONLY: a switched-off coursework is one Find never offers, so it answers nothing. */
+  if (on) byType[type] = (byType[type] || 0) + 1;
+  /* THE BOARD AND THE SPEC ARE TEXT, and a coursework's alone. `8552` typed as a number is a spec
+     that loses a leading zero the day a board has one and sorts as arithmetic; and a board on a
+     project means a row that is coursework and was never marked so — note 253, "a how-to video has
+     no ... exam board". */
+  ['exam_board', 'spec_ref'].forEach(col => {
+    if (r[col] == null || r[col] === '') return;
+    if (typeof r[col] !== 'string') fail.push(id + '.' + col + ' is ' + JSON.stringify(r[col]) + ' — text, in quotes');
+    else if (!r[col].trim()) fail.push(id + '.' + col + ' is only spaces');
+    else if (type !== 'coursework') fail.push(id + ' names ' + col + ' "' + r[col] + '" and is not a coursework — a project has no board; mark it `project_type: coursework` or take the board off');
+  });
+  /* THE PRACTICALS' SPELLING, AND ONLY IT. `board` and `spec` are the textbooks' columns for the same
+     two facts; on a project row the mapper reads neither, so a coursework written with them would
+     lose its board without a sound. Named so the fix is obvious. */
+  [['board', 'exam_board'], ['spec', 'spec_ref']].forEach(([wrong, right]) => {
+    if (r[wrong] != null) fail.push(id + ' has a `' + wrong + '` column — the projects spell it `' + right + '`, as the practicals do; the mapper never reads `' + wrong + '`');
+  });
+  /* A COURSEWORK HAS A BOARD — "the one thing it has that a project does not". Required on a LIVE
+     one, from the closed list above: a coursework with no board is a project wearing the word, and a
+     misspelt board is an Exam board answer of its own. */
+  if (on && type === 'coursework') {
+    const b = typeof r.exam_board === 'string' ? r.exam_board.trim() : '';
+    if (!b) fail.push(id + ' is a coursework with no exam_board — a coursework counts towards one board\'s qualification; name it (' + [...BOARDS].join(', ') + ')');
+    else if (!BOARDS.has(b)) fail.push(id + ' has exam_board "' + b + '", not one of ' + [...BOARDS].join(', ') + ' — a new board is added to BOARDS on purpose, in the spelling the textbooks use');
+  }
+  /* HOW LONG THE ORDERED PAGE IS, PRINTED AND NOT FAILED. The steps and the safety paragraph share
+     one card, and the card is drawn smaller to fit down to a floor and then scrolls inside itself.
+     Measured at 320×568 on 9 Oct: PJ-01's 1,182 characters fit at 74%, PJ-02's 1,253 scroll by
+     29px, and the first coursework's 1,617 scrolled by 141 with its knife-safety paragraph under the
+     edge. A proxy for a measurement, so a note — `check/ui.js` skips a pane that scrolls, and a
+     screenshot is the last word. */
+  const pageChars = String(r.steps || '').replace(/\|/g, '').length + String(r.safety || '').length;
+  if (pageChars > STEPS_PAGE_FITS) note.push(id + '\'s steps and safety are ' + pageChars + ' characters; at 320px about ' + STEPS_PAGE_FITS + ' fit on the page whole, so this one probably scrolls inside its card');
 
   /* THE TWO TABLES. Blank is allowed by the funnel and refused here: a project nobody has put in a
      subject is a project the Subject question cannot reach. */
@@ -216,6 +348,11 @@ unknownTopics.forEach((ids, t) => {
 /* A COUNT, NOT A PASS — the argument `check-practicals.js` prints its own under. If the live
    number reads 0 something has switched every row off, which no rule above would notice. */
 if (!live && rows.length) fail.push('every project is switched off — Find would offer nothing under Projects');
+/* BOTH ANSWERS, OR THE QUESTION IS NEVER ASKED — the funnel's own rule for a question with one
+   answer. So a file of courseworks alone, or of projects alone, leaves the facet wired and silent,
+   and only a count can say so. Counted over LIVE rows, because that is the list the funnel asks. */
+if (live && !byType.coursework) fail.push('no live row is a coursework — Project or coursework has one answer and is never asked');
+if (live && !byType.project) fail.push('every live row is a coursework — Project or coursework has one answer and is never asked');
 console.log('\nTHE PROJECTS  —  ' + rows.length + ' projects, ' + live + ' live, '
   + sessions + ' sessions of work between them');
 console.log('topic links: ' + topicLinks + ' (' + (rows.length ? (topicLinks / rows.length).toFixed(1) : 0)
@@ -223,6 +360,9 @@ console.log('topic links: ' + topicLinks + ' (' + (rows.length ? (topicLinks / r
 console.log('by subject: ' + Object.keys(bySubject).map(k => k + ' ' + bySubject[k]).join(' · ')
   + '   by level: ' + Object.keys(byLevel).map(k => k + ' ' + byLevel[k]).join(' · '));
 console.log('materials: ' + kitQty + ' of ' + kitItems + ' items carry a quantity');
+console.log('live by type: ' + byType.project + ' project(s) · ' + byType.coursework + ' coursework'
+  + (typeRow ? '   asked as "' + typeRow.label + '" at ' + typeRow.sort_order
+    + ', of lists that are ' + Math.round(cellMin(typeRow.min_coverage) * 100) + '% projects' : ''));
 note.forEach(n => console.log('note: ' + n));
 
 if (fail.length) {
@@ -233,4 +373,6 @@ if (fail.length) {
 }
 console.log('\nOK — every project has an id, a subject and level the funnel can group, ages and\n'
   + '     sessions as numbers, materials, steps, a share note, nothing sent online, and topics\n'
-  + '     that name real branches of the tree; and Find offers them as "Projects".');
+  + '     that name real branches of the tree; and Find offers them as "Projects", asking\n'
+  + '     "Project or coursework" first and only of a list of projects, with a board from the\n'
+  + '     closed list on every coursework and on nothing else.');

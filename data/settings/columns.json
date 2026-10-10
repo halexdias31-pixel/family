@@ -10,5 +10,6 @@
 {"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 10, "notes": "the widgets."},
 {"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 11, "notes": "the arcade."},
 {"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 12, "notes": "what you starred \u2014 widgets first, then anything else."},
-{"screen": "spotlight", "label": "Spotlight", "icon": "\u2726", "active": "TRUE", "sort_order": 13, "notes": "what the business has put in the window \u2014 one list, the same on every phone, and only an admin can change it. AFTER SAVED, which is where it was asked for: the two read alike and the difference is whose list it is."}
+{"screen": "spotlight", "label": "Spotlight", "icon": "\u2726", "active": "TRUE", "sort_order": 13, "notes": "what the business has put in the window \u2014 one list, the same on every phone, and only an admin can change it. AFTER SAVED, which is where it was asked for: the two read alike and the difference is whose list it is."},
+{"screen": "progress", "label": "Progress", "icon": "📈", "active": "TRUE", "sort_order": 14, "notes": "a student's own record \u2014 what they have answered, what they got right, what to work on next. NOT BUILT YET: one card saying so, the same for everybody, and nothing on it to press. LAST, which is where it was asked for \"for now\" \u2014 moving it is this row's sort_order."}
 ]

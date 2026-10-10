@@ -122,6 +122,15 @@ function rcStyle_(cs) {
     if (/^(animation|transition)/.test(p)) continue;
     s += p + ':' + cs.getPropertyValue(p) + ';';
   }
+  /* `background-position` IS COPIED BY ITS TWO HALVES, because the whole one does not come back.
+     Chrome lists the shorthand among the computed properties and writes `right 13.8px` as
+     `right 13.8px 50%` — three values with an offset on a keyword and a percentage after it, which
+     no parser accepts — so the copy dropped it, fell back to `0% 0%`, and every select's arrow
+     (two five-pixel gradients, `select` in the stylesheet, since docs/history/315) came out folded
+     into its top-left corner. `check/share.js` counted it as 34 blots on the booking form. The
+     longhands serialise as `calc(100% - 13.8px)` and `50%`, which parse; written last, they win. */
+  s += 'background-position-x:' + cs.getPropertyValue('background-position-x')
+    + ';background-position-y:' + cs.getPropertyValue('background-position-y') + ';';
   return s + 'animation:none;transition:none;';
 }
 
@@ -379,24 +388,26 @@ on('book-share', el => {
 /* The one entry point. Everything that changes an answer calls this, and it is the only thing that
    calls `drawBooker_` — so nothing can redraw the card without keeping its place. It sat orphaned
    at the head of this file for as long as the shared picture was written between it and here. */
-/* AND THE PANEL, because the list that hangs off a field is `#drop` outside the screens entirely —
-   see `bookDrop_`. It is here rather than beside it in book.js so that a redraw cannot rebuild the
-   card without rebuilding the list on it: every tick goes through this one function, which is what
-   keeps the ✓, the row's own summary and the running price in step. */
+/* THE LIST OF CHECKBOXES UNDER A SEVERAL-OF-A-LIST ROW IS PART OF THE CARD — see `stepManyList_` —
+   so this one redraw is what keeps the tick, the row's own summary and the running price in step.
+   It also called `bookDrop_` while that list was `#drop`, a panel outside the screens with a redraw
+   of its own; the panel went on 9 October (note 315) and the second call with it. */
 function drawBooker() {
   redrawBooker_(paintBook_);
-  if (typeof bookDrop_ === 'function') bookDrop_();
+  /* EVERY ANSWER COMES THROUGH HERE, so here is where the form is kept for a reload (`bookKeep_`, book.js). */
+  if (typeof bookKeep_ === 'function') bookKeep_();
 }
 
 /** WHERE IT IS UP TO, or null when nobody is booking. Empty is the blank paper, not a form. */
 function bookerCard() {
-  /* ---------- THE LIST IS NOT DRAWN HERE ANY MORE -------------------------------------------------
+  /* ---------- THE LIST IS NOT DRAWN INSTEAD OF THE CARD ---------------------------------------------
      FOR ONE COMMIT THIS RETURNED THE PICKER INSTEAD OF THE CARD, and it was reported as *"i hate
-     this."* The list hangs off its field now — `#drop`, a sibling of the screens, built by
-     `bookDrop_` off the same `BOOKING.picking` this used to read. The card is always the card.
+     this."* A several-of-a-list question's checkboxes are drawn IN the card now, under their row,
+     off the same `BOOKING.picking` this used to read (`stepManyList_`). The card is always the card.
 
      `#bookr` STILL HAS TO BE HERE, and that is not tidiness: `paintBook_` finds the screen to
-     repaint by walking up from it, and `dropRow_` finds the field to hang off inside it. */
+     repaint by walking up from it, and `book-many-pick` finds the box to give the focus back to
+     inside it. */
   const out = drawBooker_();
   if (!out) return '';
   return `<div id="bookr">
@@ -579,12 +590,14 @@ on('book-send', el => {
      — so nothing else is sent. */
   const joined = typeof joinedJob_ === 'function' ? joinedJob_() : null;
   if (joined && !isWaiting_()) {
+    /* SENT: the form's draft is not drawn by another page while this asks (`bookSending_`, book.js). */
+    bookSending_(true);
     api({ action: 'move', jobId: String(joined.id || joined.jobId || ''),
           role: 'client', name: USER.name, personId: (USER && USER.personId) || '', move: 'Request',
           text: 'asked to join', requestId: 'join-' + (joined.id || '') + '-' + Date.now() })
       .then(d => {
         el.disabled = false;
-        if (d && d.error) { if (said) said.textContent = d.error; return; }
+        if (d && d.error) { bookSending_(false); if (said) said.textContent = d.error; return; }
         /* THE CLASS YOU ASKED TO JOIN, kept so it comes back under the blank form — see `ASKED_JOB`
            in book.js. The id is the one we already had: this path asks to join a session that
            exists, so there is no new job to be told about. */
@@ -613,6 +626,7 @@ on('book-send', el => {
          Found by `node js/check.js` — "used but never declared", which is precisely what it was. */
       .catch(err => {
         el.disabled = false;
+        bookSending_(false);
         if (said) said.textContent = why_(err);
       });
     return;
@@ -627,6 +641,7 @@ on('book-send', el => {
        So the answer to "who is this for" chooses the verb: nobody means `openWaitlist`, anybody
        means `joinWaitlist`. One question, two doors, and the form does not need a second button. */
     const forNobody = BOOKING.client === NOBODY;
+    bookSending_(true);
     send_({ action: forNobody ? 'openWaitlist' : 'joinWaitlist',
       name: USER.name, personId: (USER && USER.personId) || '',
       venue: BOOKING.loc,
@@ -655,7 +670,7 @@ on('book-send', el => {
       })
       /* `send_` has already said what went wrong and marked the error handled — this stops it
          reaching the console as an unhandled rejection, and adds nothing a person would read. */
-      .catch(() => { el.disabled = false; });
+      .catch(() => { el.disabled = false; bookSending_(false); });
     return;
   }
 
@@ -671,6 +686,7 @@ on('book-send', el => {
 
   /* THE ONE THAT MATTERS MOST. Asking for a session had no failure path: with no connection the
      button did nothing and the request was never sent, and nobody was told either fact. */
+  bookSending_(true);
   send_({ action: 'createJob',
     name: USER.name, clientName: USER.name,
     /* WHO THIS BOOKING BELONGS TO, permanently.
@@ -751,6 +767,7 @@ on('book-send', el => {
     })
     .catch(err => {
       el.disabled = false;
+      bookSending_(false);
       if (said) said.textContent = String(err.message || 'Could not ask for that');
     });
 });

@@ -433,5 +433,42 @@ screen('saved', () => pages('saved', savedCards_()));
    nothing in it. It starts and stops nothing, because a spotlit thing is a card rather than a
    widget: nothing on this column runs. */
 screen('spotlight', () => pages('spotlight', spotlightCards_()));
+/* ---------- PROGRESS: A COLUMN WAITING TO BE BUILT, AND IT SAYS SO ------------------------------
+   ASKED FOR AS "i want to add a new column for students to track their progress and everythinh. you
+   can leave it at the end of the columns for now. just leave a place holder for now." (9 Oct) Why
+   it is a column rather than an answer to a question is in `TABS`'s note in shell.js.
+
+   A PLACEHOLDER THAT LOOKS FINISHED IS WORSE THAN AN EMPTY ONE — `drill`'s rule in map.js, and
+   `contest` and `legotrade` follow it. A streak, a bar at nought per cent or a greyed-out tile is a
+   thing to tap that does nothing, and the app reads as broken rather than as unbuilt. So it is
+   `drill`'s markup and nothing more: a heading, one line on what it will be, "Not built yet." No
+   tile, no `data-do`, nothing `check/press.js` could find that does nothing — and no number.
+   `placeholderFaults_` in check-flow.js asks both halves of that of every placeholder.
+
+   THE SAME CARD FOR EVERYBODY, signed out included. Who sees whose progress — a student their own,
+   a parent their children's, a tutor their students', an admin anybody's — is the first decision
+   of building it, and deciding it now would be deciding it for a card with nothing on it to show.
+
+   WHAT IT WILL DRAW FROM, written here because it is the first thing whoever builds it needs: what
+   the app already keeps about each person's work. EVERY ANSWER SENT is a row of the `submissions`
+   tab (`SCHEMA.submissions`; `js/submit.js` is the phone's half, note 308): the question, the answer
+   as it was sent, how it was marked (right, wrong, sent, the AI's marks) and when — one row per
+   press, never updated, so "what you got right" is each question's latest row and "what to work on
+   next" is the questions whose latest row is not right. Drawings and ringed words, which have no
+   Send, are on the account as they are drawn (the `answers` tab; `js/answers.js`). The `attempts`
+   tab this note first named (a first day, a last day, a count) was retired by the submissions on 9
+   Oct and is left in the sheet unread. Look in `TAB` in backend/constants.gs for what has joined or
+   replaced these since.
+
+   NOTHING STARTS OR STOPS, Spotlight's reason above: nothing on this column runs. */
+function progressCards_() {
+  return [`<div class="card">
+    <h3>Progress</h3>
+    <p class="sub">Coming soon: everything you have done in one place — the questions you have
+      answered, what you got right, and what to work on next.</p>
+    <p class="empty">Not built yet.</p>
+  </div>`];
+}
+screen('progress', () => pages('progress', progressCards_()));
 screen('tools', () => pages('tools', widgetColumn_('tool')));
 screen('games', () => pages('games', widgetColumn_('game')));

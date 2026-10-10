@@ -93,9 +93,19 @@ function digestSheet_(d) {
     : 'It is off, so on Sunday nothing goes; switched on, ' + these + ' would.';
   /* A BACKEND FROM BEFORE THE WORDS answers without `words`: its Preview lists names, and it is the
      deployed VERSION that answers — the Sunday trigger runs the code as saved. So a pull with no new
-     version shows the old list over a run that sends the new one. Said first, so it is not misread. */
-  const old = d.words == null
-    ? `<p class="digest-old"><b>${esc('The live web app lists questions by name only, without their words — sync backend/ into Apps Script and make a new version (Deploy → Manage deployments → New version).')}</b></p>` : '';
+     version shows the old list over a run that sends the new one. Said first, so it is not misread.
+     AND ONE FROM BEFORE THE SUBMISSIONS (note 308) answers `words` but no `submissions` — it says
+     `attempts:` instead, and plans from the attempts tab, which nothing has written since the phones
+     took the new code a minute after the push. So in the gap before the owner's Apps Script steps an
+     admin pressing Preview was shown "Nobody has done a question yet this week", or a list with no
+     marks, and not why — the empty that looks like a quiet week, which `digestNoSubmissions_` exists to
+     prevent (review of 9 Oct). Either answer says which. */
+  const said = d.words == null
+    ? 'The live web app lists questions by name only, without their words — sync backend/ into Apps Script and make a new version (Deploy → Manage deployments → New version).'
+    : d.submissions == null
+      ? 'The live web app still reads the old attempts tab, which nothing writes any more — sync backend/ into Apps Script, run ensureSchema, and make a new version (Deploy → Manage deployments → New version).'
+      : '';
+  const old = said ? `<p class="digest-old"><b>${esc(said)}</b></p>` : '';
   return `${old}<p class="faint">This week so far (${esc((d.week && d.week.span) || '')}). ${esc(n ? sunday : '')}
       ${esc(when)}${esc(booked)}. This preview sent nothing.</p>
     ${n ? emails.map(m => `<h2>To ${esc(m.parent || '')} · ${esc(m.to || '')}</h2>

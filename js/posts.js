@@ -169,6 +169,32 @@ function postCard_(p, i) {
     const face = pic(p.avatar || brand('logo_square') || brand('logo_circle'));
     const who = p.handle || p.author || brand('name', '@family.');
 
+    /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES ---------------
+       Under the picture when there is one, after the words when there is not — see the two places
+       it is dropped in below. Built here so the two cannot drift into two versions of one row.
+
+       WHAT AN EMPTY ROW MEANS, WHICH IS NOT WHAT IT USED TO MEAN. IT SAID "fill in
+       `brand!reactions`" AND THAT RUNG NO LONGER EXISTS. The brand tab became
+       `data/settings/brand.json`, which the phone reads and Apps Script cannot — so `reactionSet`
+       is down to the post's own cell and `HOUSE_REACTIONS`, and that second one is six faces in
+       `constants.gs` that are never empty. Measured: `reactionSet` cannot return an empty list, so
+       `doGet` cannot send `reactions: null`.
+
+       WHICH MAKES THIS BRANCH UNREACHABLE ON ANY CURRENT BACKEND, and that is exactly what it
+       should now say. An empty row means the payload came from a deployment older than the house
+       set — nothing to type into a cell, and the remedy is a sync. Sending somebody to edit a tab
+       that is not there any more is the fault this repository records under `.favwrap.is-fav` and
+       under the dead `kind === 'paper'` guard: a sentence that outlived the thing it described.
+
+       AND EVERYBODY ELSE GETS NO SLOT AT ALL. It used to be an empty `<span></span>`, which existed
+       only to balance a flex row against the Share button beside it; Share is a tile in the row
+       below now and there is nothing left here to balance. */
+    const acts = reacts(p) || (isAdmin()
+      ? '<span class="faint">No reactions — this payload predates them. '
+        + 'Check the build stamp on You.</span>'
+      : '');
+    const actsHtml = acts ? `<div class="post-acts">${acts}</div>` : '';
+
     /* The order is Instagram's, and it is right: WHO first, then the picture, then what you can do
        about it, then what it says.
        Who first because a photograph with no attribution is an advert; the caption last because it
@@ -206,36 +232,23 @@ function postCard_(p, i) {
              none, which is what the overlap was. */''}
       ${postMediaHtml_(media, i)}
 
-      ${/* THE ACTIONS ROW, which is now reactions and sharing and nothing else.
+      ${/* THE FACES, DIRECTLY UNDER THE PICTURE — the place the heart held, where the eye already
+            goes and where the thing you can do about a photograph belongs.
             The heart has gone. A like is a reaction with exactly one option, so having both was
             two counts of the same gesture — and a heart sitting beside a 👍 asking for the same
             press, with no way to tell somebody which one you meant.
-            The reactions move UP here, into the place the heart held: directly under the picture,
-            where the eye already goes and where the thing you can do about a photograph belongs. */''}
-      <div class="post-acts">
-        ${/* ---------- WHAT AN EMPTY ROW MEANS, WHICH IS NOT WHAT IT USED TO MEAN ----------------
-              IT SAID "fill in `brand!reactions`" AND THAT RUNG NO LONGER EXISTS. The brand tab
-              became `data/settings/brand.json`, which the phone reads and Apps Script cannot — so
-              `reactionSet` is down to the post's own cell and `HOUSE_REACTIONS`, and that second
-              one is six faces in `constants.gs` that are never empty. Measured: `reactionSet`
-              cannot return an empty list, so `doGet` cannot send `reactions: null`.
 
-              WHICH MAKES THIS BRANCH UNREACHABLE ON ANY CURRENT BACKEND, and that is exactly what
-              it should now say. An empty row means the payload came from a deployment older than
-              the house set — nothing to type into a cell, and the remedy is a sync. Sending
-              somebody to edit a tab that is not there any more is the fault this repository
-              records under `.favwrap.is-fav` and under the dead `kind === 'paper'` guard: a
-              sentence that outlived the thing it described. */''}
-        ${reacts(p) || (isAdmin()
-          ? '<span class="faint">No reactions — this payload predates them. '
-            + 'Check the build stamp on You.</span>'
-          : '<span></span>')}
-        ${/* SHARING MOVED DOWN INTO THE TILE ROW. It was the one action living in this row, drawn
-              as a `.post-act` — its own class, its own 44px rule, its own hover — for a control
-              that is the same act as sharing a booking and now uses the same renderer. What is left
-              here is the reactions, which are a counted response rather than an action on the post,
-              and which is why the row is aligned to flex-start: they wrap. */''}
-      </div>
+            `.post-acts` IS THE SLOT FOR THE FACES AND NOTHING ELSE NOW: one line of equal pills,
+            wrapping only when a post's own cell names more than six. Share went down into the tile
+            row (see `postTiles_`), and the total went onto the time line (see `postWhen_`), so
+            this is no longer a flex row with things to align — the owner, 9 Oct: *"refine how the
+            post reactions look. Looks abit scuffed"*, and the scuff was most of all a row of
+            different-width boxes wrapping a face and a bare number onto a line of their own.
+
+            ON A POST WITH NO PICTURE THE FACES COME AFTER THE WORDS. Directly under the header
+            they would be a row of faces reacting to nothing yet read; there, the words are the
+            thing you are reacting to, so they go first. */''}
+      ${media.length ? actsHtml : ''}
 
       ${/* The name leads the caption, as it does everywhere — but ONLY when there is a caption.
             Without a caption it was printing the name on its own under the picture, which is the
@@ -243,7 +256,8 @@ function postCard_(p, i) {
       ${p.caption ? `<p class="post-cap"><b>${esc(who)}</b> ${mark(p.caption)}</p>` : ''}
       ${p.poll ? poll(p) : ''}
       ${p.body ? `<p class="note">${mark(p.body)}</p>` : ''}
-      ${p.when || p.at ? `<p class="faint post-when">${esc(ago(p.at || p.when))}</p>` : ''}
+      ${media.length ? '' : actsHtml}
+      ${postWhen_(p)}
       ${/* WHAT YOU CAN DO ABOUT IT, IN ONE ROW. Sharing, editing, and the decision to put it up were
             three controls in three places drawn three ways — a `<span>` in the header, a
             `.post-act` beside the reactions, and a `.btn-row` down here. A post is a THING, and a
@@ -328,8 +342,11 @@ function commentsHtml_(p) {
           row, not a sheet — and the line is for the merge to bring into step. */''}
     ${USER
       ? `<div class="cmt-form">
+           ${/* A DRAFT (data.js), per post and per person: a payload landing redraws the feed, which
+                 emptied this box under somebody mid-sentence, and a reload lost it. Dropped when the
+                 comment is on the sheet (`cmt-add`). docs/history/317. */''}
            <textarea class="cmt-text" rows="1" maxlength="2000"
-             placeholder="Say something…"></textarea>
+             placeholder="Say something…"${draftAttr_('cmt', p.id)}>${esc(draftVal_('cmt', p.id))}</textarea>
            ${tile_({ icon: 'send', label: 'Post', note: 'your comment', act: 'cmt-add', cls: 'cmt-go',
                      data: { id: p.id } })}
            <p class="faint cmt-said"></p>
@@ -368,14 +385,20 @@ on('cmt-add', el => {
   el.classList.add('is-busy');
   const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
 
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered put the comment back in
+     the box after it was on the post (`draftSent_`, data.js; the review of 317). Dropped by the reply,
+     given back by a refusal. */
+  try { draftSent_('cmt', el.dataset.id, text); } catch (e) {}
   send({ action: 'addComment', name: USER.name, personId: USER.personId,
          postId: el.dataset.id, body: text })
     .then(() => { done(); if (box) { box.value = ''; box.style.height = ''; }
+                  try { draftSentDone_('cmt', el.dataset.id, text); } catch (e) {}
                   if (said) said.textContent = ''; load(); })
     /* THE SERVER'S OWN SENTENCE. Every refusal it can give is written for a person to read — the
        length, the post being gone, not being signed in — and "Not posted" would throw away the
        only part that says what to do about it. */
-    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not posted.'); });
+    .catch(err => { done(); try { draftSentBack_('cmt', el.dataset.id, text); } catch (e) {}
+                    if (said) said.textContent = String(err.message || 'Not posted.'); });
 });
 
 /* TAKING ONE DOWN. `canRemove` came from the server per comment, so this button only exists where
@@ -1437,13 +1460,67 @@ function camStop_(keepShown) {
 }
 
 /* ---------- REACTIONS ---------------------------------------------------------------------------
-   A row of faces with a count under each. Unlike the poll, the counts are NOT hidden — a poll asks
-   a question and wants an unanchored answer; a reaction is a room agreeing with itself, and seeing
-   that eleven people laughed is most of why anybody adds a twelfth.
+   A row of faces, each with its count beside it INSIDE its own pill. Unlike the poll, the counts are
+   NOT hidden — a poll asks a question and wants an unanchored answer; a reaction is a room agreeing
+   with itself, and seeing that eleven people laughed is most of why anybody adds a twelfth.
 
    A face with nobody behind it shows no number rather than a 0 — a row of zeroes reads as
-   indifference, and an empty space reads as nothing having happened yet.
+   indifference, and an empty pill reads as nothing having happened yet.
+
+   ONE LINE OF SIX EQUAL CELLS, AND NO TOTAL IN IT. The owner, 9 Oct: *"Also refine how the post
+   reactions look. Looks abit scuffed right bow"*. Measured on the row that was there: each face's box
+   was as wide as its count (36.8px with none, 59.2 with three digits), so a tap that added a digit
+   reflowed the row — 👏 going 9 → 10 threw 🎉 onto a second line 43px down — and the total sat at the
+   end as a bare "77" that read as one more face's count. The six house faces never wrap now: the
+   cells are a grid of one width, the count is capped at three characters (`reactN_`), and the total
+   is a sentence on the time line (`postWhen_`). A post's own cell naming more than six wraps into the
+   same columns. See docs/history/307.
 --------------------------------------------------------------------------------------------- */
+/* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". The press itself is `:active` and `.is-pressed`
+   (style.css, the chips' pair) and lasts while the finger is down; the repaint after the tap
+   replaces the button, so nothing on the OLD button can say the reaction landed. This marks the NEW
+   one. Set by on('react') round its repaint and cleared straight after, so the `.catch` repaint and
+   every later one draw no animation — a face that lands once, not one that bounces whenever anything
+   else redraws the feed. `var`, because it is reassigned (`check-const.js`). */
+var REACT_POP_ = '';
+
+/* ---------- THE FOCUS STAYS ON THE FACE THAT WAS PRESSED ------------------------------------------
+   `repaint` REPLACES EVERY BUTTON ON THE SCREEN, and focus on a removed element falls to `<body>`.
+   Measured at 390x844: a face focused and Enter pressed — the same click a screen reader's
+   double-tap or a switch sends — and the reaction landed, but `document.activeElement` was BODY
+   afterwards, and the next Tab went to "Write a post" on a page parked off-screen. So the
+   `aria-pressed` that exists to say which face is yours was never heard at the moment it changed,
+   and a VoiceOver or TalkBack user lost their place in the feed with every reaction.
+
+   ONLY WHEN A FACE HELD THE FOCUS, and it is handed to that same face's replacement — the house rule
+   from `ansSet_` (find.js) and `qualRedraw_` (me.js): a redraw must not pull focus off whatever else
+   somebody is in. Matched on `data-id` + `data-emoji` by comparing `dataset`, not by building a
+   selector, so an emoji or a post id never has to be escaped into one. Searched in the SCREEN the face
+   was on (the `<section>` survives `paint`, only its markup is replaced), and NOT filtered by
+   `.page.on`, which `placeCells` applies at a deferred placement after this returns.
+   `preventScroll`, because the pages are parked side by side with transforms (CLAUDE.md) and a
+   focus that scrolled would slide the strip. A tap gives focus too in most browsers, and a focus
+   set by script after a pointer press draws no `:focus-visible` ring, so a finger sees nothing new. */
+function reactRepaint_() {
+  const a = document.activeElement;
+  const held = a && a.dataset && a.dataset.do === 'react'
+    ? { id: a.dataset.id, emoji: a.dataset.emoji, host: a.closest('section.screen') } : null;
+  repaint();
+  if (!held || !held.host) return;
+  const again = [...held.host.querySelectorAll('[data-do="react"]')]
+    .find(b => b.dataset.id === held.id && b.dataset.emoji === held.emoji);
+  if (again) { try { again.focus({ preventScroll: true }); } catch (e) {} }
+}
+
+/* A COUNT IS AT MOST THREE CHARACTERS, so a pill never grows for its number: 999, then 1k…999k.
+   NOT "1.5k", which is four mono characters and was measured past the edge of a 41px cell at 320.
+   Four digits of reactions on a tutoring feed is not a real case; if it comes, it is rounded down
+   rather than a wider pill, and the sheet behind the total still has the exact number. */
+function reactN_(n) {
+  n = Number(n) || 0;
+  return n < 1000 ? String(n) : Math.floor(n / 1000) + 'k';
+}
+
 function reacts(p) {
   const r = p.reactions;
   /* NO FACES, NO ROW — and the caller is told, rather than being handed an empty div.
@@ -1457,48 +1534,83 @@ function reacts(p) {
      means the payload predates the house set rather than that a cell is blank. */
   if (!r || !Array.isArray(r.emoji) || !r.emoji.length) return '';
   const counts = Array.isArray(r.counts) ? r.counts : [];
-  return `<div class="reacts">
-    ${r.emoji.map((e, i) => {
-      const n = counts[i] || 0;
-      const mine = r.yours === e;
-      return `<button class="react${mine ? ' mine' : ''}${n ? ' any' : ''}"
-                 data-do="react" data-id="${esc(p.id)}" data-emoji="${esc(e)}">
-        <span class="react-e">${esc(e)}</span>${n ? `<span class="react-n">${n}</span>` : ''}
-      </button>`;
-    }).join('')}
-    ${/* THE TOTAL, and it is its own button. Pressing a face adds YOUR reaction; pressing the
-          number asks who — two different questions, and one control answering both means somebody
-          who wants to see the list has to react to the post to find out.
-          Only there when somebody has: a 0 that opens an empty panel is a promise broken. */''}
-    ${r.total ? `<button class="react-who" data-do="who-reacted" data-id="${esc(p.id)}"
-        >${r.total}</button>` : ''}
-  </div>`;
+  /* `mine` RIGHT AFTER `react` IN THE CLASS LIST, because `check/ui.js` names a control by its first
+     two classes and its `ACCEPTED_TAP` entry for these cells is written against that name.
+     `aria-pressed`, because "yours" was a gold 11px number and nothing else — a screen reader had no
+     way to hear which face was the one you had pressed. `.any` is gone: nothing styles it now that
+     every face has the same plate and the number inside is what says somebody pressed it. */
+  return `<div class="reacts" role="group" aria-label="Reactions">${r.emoji.map((e, i) => {
+    const n = Number(counts[i]) || 0;
+    const t = n ? reactN_(n) : '';            // no zero counts: an empty pill, not a 0
+    const mine = r.yours === e;
+    const cls = 'react' + (mine ? ' mine' : '') + (t.length > 2 ? ' is-long' : '')
+              + (REACT_POP_ && REACT_POP_ === p.id + ' ' + e ? ' is-pop' : '');
+    return `<button class="${cls}" data-do="react" data-id="${esc(p.id)}" data-emoji="${esc(e)}"
+               aria-pressed="${mine}"><span class="react-e">${esc(e)}</span>${
+      t ? `<span class="react-n">${t}</span>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+
+/* THE TOTAL, and it is its own button. Pressing a face adds YOUR reaction; pressing the total asks
+   who — two different questions, and one control answering both means somebody who wants to see
+   the list has to react to the post to find out.
+   Only there when somebody has: a 0 that opens an empty panel is a promise broken.
+
+   AND IT SAYS WHAT IT IS NOW: "3 reactions", on the time line, not "3" at the end of the row of
+   faces. A bare number at the end of a row of numbers read as one more face's count, was announced
+   as just "77", and measured 18.6x38 at 390 — a faint digit nobody could find or hit. A text action
+   like every other in the app (`button.text-action` gives it the 44px box and the dotted line that
+   says "this acts"), so it is still its own button and still not a seventh pill. */
+function reactWho_(p) {
+  const r = p && p.reactions;
+  const n = r ? Number(r.total) || 0 : 0;
+  if (!n) return '';                          // a 0 that opens an empty sheet is a promise broken
+  return `<button class="text-action react-who" data-do="who-reacted" data-id="${esc(p.id)}"
+             aria-haspopup="dialog">${n} reaction${n === 1 ? '' : 's'}</button>`;
+}
+/* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the
+   first reaction on a post moves nothing below it — the tile row stays where your thumb left it.
+   INLINE AFTER THE TIME, NOT PUSHED TO THE RIGHT EDGE: at 820 the faces stop at about 349px of a
+   410px card, and a total out at the far edge was a number belonging to nothing beside it. */
+function postWhen_(p) {
+  const at = p.at || p.when;
+  const when = at ? `<span>${esc(ago(at))}</span>` : '';
+  const who = reactWho_(p);
+  if (!when && !who) return '';
+  return `<p class="faint post-when">${when}${when && who ? '<span aria-hidden="true">·</span>' : ''}${who}</p>`;
 }
 
 /* WHO REACTED, AND WITH WHAT. Grouped by face rather than listed flat: "four people laughed" is
    the shape of the answer, and a list of twenty rows each carrying its own emoji makes you count
-   them yourself. */
+   them yourself.
+   THE FACE IS THE GROUP'S HEADING, drawn as the same pill as the row and bigger. It was an `<h2>` in
+   the sheet's small-caps label style, which made the face about 10px — the smallest thing in the
+   sheet — with its count glued to it. Yours is the gold pill, and your name comes first under it. */
 on('who-reacted', el => {
   const p = (DATA.posts || []).find(x => x.id === el.dataset.id);
   const r = p && p.reactions;
   if (!r || !r.total) return;
-
+  const me = USER ? norm(USER.name) : '';
+  const isMe = n => !!me && norm(n) === me;
   const by = r.by || [];
   const groups = (r.emoji || []).map((e, i) => ({
-    emoji: e, n: (r.counts || [])[i] || 0,
-    names: by.filter(x => x.emoji === e).map(x => x.name),
-  })).filter(g => g.n);
+    emoji: e, at: i, mine: r.yours === e, n: Number((r.counts || [])[i]) || 0,
+    /* YOU FIRST in your own group — the one name in the sheet you are looking for. */
+    names: by.filter(x => x && x.emoji === e).map(x => x.name).sort((a, b) => isMe(b) - isMe(a)),
+  })).filter(g => g.n)
+    /* MOST FIRST, ties in the house order: "four people laughed" is the shape of the answer. */
+    .sort((a, b) => b.n - a.n || a.at - b.at);
 
   openSheet(r.total + ' reaction' + (r.total === 1 ? '' : 's'),
-    groups.map(g => `
-      <h2><span>${esc(g.emoji)}</span><span class="faint">${g.n}</span></h2>
-      ${g.names.length
-        ? g.names.map(n => rowValue(mark(n))).join('')
-        : ''}
+    groups.map(g => `<section class="rx-group">
+      <h3 class="rx-head"><span class="rx-pill${g.mine ? ' mine' : ''}"><span class="react-e">${
+        esc(g.emoji)}</span><span class="react-n">${g.n}</span></span></h3>
+      ${g.names.map(n => rowValue(mark(n) + (isMe(n) ? '<span class="rx-you">you</span>' : ''))).join('')}
       ${g.n > g.names.length
         /* Reacted by people whose names the site cannot resolve — somebody removed from the sheet,
            or a reaction from before they were added. The count is still true. */
-        ? `<p class="faint">…and ${g.n - g.names.length} more</p>` : ''}`).join(''));
+        ? `<p class="faint">…and ${g.n - g.names.length} more</p>` : ''}
+    </section>`).join(''));
 });
 
 on('react', el => {
@@ -1563,7 +1675,12 @@ on('react', el => {
     r.yours = emoji; r.counts[at(emoji)]++; r.total++;
     r.by.push({ name: USER.name, emoji: emoji });
   }
-  repaint();
+  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `repaint` is
+     synchronous (shell.js), so clearing it on the next line is safe and nothing later replays it.
+     `reactRepaint_`, not `repaint`, so a keyboard or screen reader stays on the face it pressed. */
+  REACT_POP_ = r.yours === emoji ? id + ' ' + emoji : '';   // added or moved: it lands; taken back: quiet
+  reactRepaint_();
+  REACT_POP_ = '';
 
   /* `personId` AS WELL AS `name`. The handler resolves the person with
      `findPerson(S(body.name), S(body.personId))`, which prefers the id and falls back to matching
@@ -1575,7 +1692,7 @@ on('react', el => {
     .catch(err => {
       r.yours = before.yours; r.counts = before.counts; r.total = before.total;
       r.by = before.by;             // the fourth field, or the sheet disagrees after a failed save
-      repaint();
+      reactRepaint_();              // whichever face holds the focus NOW keeps it through the undo
       toast(String(err.message || 'Could not save that'));
     });
 });
@@ -1699,6 +1816,11 @@ function openSharedPost() {
    Deleted rather than left unused. Dead code reads as a thing the app does, and the next person to
    wonder why posting is slow would have found a resizer and believed it. */
 
+/* ---------- THE SHEET'S BOXES ARE DRAFTS (data.js; docs/history/317) -------------------------------------
+   A post written into this sheet lived in the sheet: closed by a tap outside, or the page reloaded, and
+   the links, caption and words were gone. Each box keeps a draft as it is typed and is drawn holding it
+   the next time the sheet opens, until the post is up. `posting as` is a choice of two and is not kept. */
+const POST_DRAFT_FIELDS = ['link', 'cap', 'loc', 'body', 'poll'];
 on('new-post', () => {
   openSheet('New post', `
   ${/* CHOOSE ONE THAT IS ALREADY THERE, before being offered the upload.
@@ -1717,19 +1839,19 @@ on('new-post', () => {
        any space, comma or pipe as well, so a list pasted in one line works too. */''}
   <label class="field"><span>links to the pictures or clips — one per line</span>
     <textarea id="post-link" rows="2" placeholder="https://…" inputmode="url"
-              autocomplete="off"></textarea></label>
+              autocomplete="off"${draftAttr_('post', 'link')}>${esc(draftVal_('post', 'link'))}</textarea></label>
   <div id="post-preview"></div>
   <label class="field"><span>caption</span>
-    <input id="post-cap" placeholder="One line about it"></label>
+    <input id="post-cap" placeholder="One line about it"${draftAttr_('post', 'cap')} value="${esc(draftVal_('post', 'cap'))}"></label>
   <label class="field"><span>where</span>
-    <input id="post-loc" placeholder="Colliers Wood Library" list="known-places">
+    <input id="post-loc" placeholder="Colliers Wood Library" list="known-places"${draftAttr_('post', 'loc')} value="${esc(draftVal_('post', 'loc'))}">
     <datalist id="known-places">
       ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
     </datalist></label>
   <label class="field"><span>more, if you want it</span>
-    <textarea id="post-body" placeholder="Optional"></textarea></label>
+    <textarea id="post-body" placeholder="Optional"${draftAttr_('post', 'body')}>${esc(draftVal_('post', 'body'))}</textarea></label>
   <label class="field"><span>poll, if you want one</span>
-    <input id="post-poll" placeholder="Yes, No, Maybe"></label>
+    <input id="post-poll" placeholder="Yes, No, Maybe"${draftAttr_('post', 'poll')} value="${esc(draftVal_('post', 'poll'))}"></label>
   <label class="field"><span>posting as</span>
     <span class="btn-row" id="post-as" data-as="brand">
       <button class="btn quiet on" data-do="as" data-as="brand">
@@ -1739,6 +1861,8 @@ on('new-post', () => {
   <button class="btn" data-do="post-send">Post it</button>
   <p class="faint" id="post-said" style="margin:.6rem 0 0"></p>`);
 
+  /* A LINK KEPT FROM BEFORE A RELOAD (a draft, data.js) is previewed as a typed one is. */
+  if (($('post-link') || {}).value) showPostPreview();
   /* Fetched after the sheet is up, so the form is usable while the folder is being read. */
   send_({ action: 'folderFiles', name: USER.name, adminName: USER.name })
     .then(d => {
@@ -1807,11 +1931,13 @@ on('post-pick', el => {
     const next = had.indexOf(url) < 0 ? had.concat(url) : had.filter(x => x !== url);
     box.value = next.join('\n');
     el.classList.toggle('on', next.indexOf(url) >= 0);
+    /* A VALUE SET HERE FIRES NO `input`, so the draft is told by hand (data.js). */
+    try { draftFrom_(box); } catch (e) {}
   }
   /* The caption comes from the file's name, and only while the box is empty — somebody who has
      already typed one meant it. */
   const cap = $('post-cap');
-  if (cap && !cap.value) cap.value = el.dataset.caption || '';
+  if (cap && !cap.value) { cap.value = el.dataset.caption || ''; try { draftFrom_(cap); } catch (e) {} }
   showPostPreview();
 });
 
@@ -1854,6 +1980,9 @@ on('post-send', el => {
   if (!link) { if (said) said.textContent = 'A link to the picture, first.'; return; }
   el.disabled = true;
   if (said) said.textContent = 'Posting…';
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server answered opened the sheet holding
+     the post that had just gone up, for a second one (`draftSent_`, data.js). */
+  POST_DRAFT_FIELDS.forEach(f => { try { draftSent_('post', f); } catch (e) {} });
 
   api({ action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
@@ -1871,10 +2000,13 @@ on('post-send', el => {
     body: ($('post-body') || {}).value || '' })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
+      /* ON THE SHEET, SO THE SHEET'S DRAFTS GO — see the note over `new-post`'s boxes. */
+      POST_DRAFT_FIELDS.forEach(f => { try { draftDrop_('post', f); } catch (e) {} });
       closeSheet(); toast('Posted'); load();
     })
     .catch(err => {
       el.disabled = false;
+      POST_DRAFT_FIELDS.forEach(f => { try { draftSentBack_('post', f); } catch (e) {} });
       if (said) said.textContent = String(err.message || 'Could not post that');
     });
 });
@@ -1898,12 +2030,14 @@ on('post-edit', el => {
   openSheet('Edit post', `
     ${p.image ? `<img src="${esc(pic(p.image))}" alt=""
          style="width:100%;margin-bottom:.7rem">` : ''}
+    ${/* EACH BOX A DRAFT OF THE EDIT (data.js; 317), drawn from the saved post when there is none and
+          dropped on Save — so a reload mid-edit reopens the sheet holding the edit, not the post. */''}
     <label class="field"><span>caption</span>
-      <input id="pe-cap" value="${esc(p.caption || '')}"></label>
+      <input id="pe-cap" value="${esc(draftVal_('post-edit', p.id + ':cap', p.caption || ''))}"${draftAttr_('post-edit', p.id + ':cap', p.caption || '')}></label>
     <label class="field"><span>more</span>
-      <textarea id="pe-body">${esc(p.body || '')}</textarea></label>
+      <textarea id="pe-body"${draftAttr_('post-edit', p.id + ':body', p.body || '')}>${esc(draftVal_('post-edit', p.id + ':body', p.body || ''))}</textarea></label>
     <label class="field"><span>where</span>
-      <input id="pe-loc" value="${esc(p.location || '')}" list="known-places">
+      <input id="pe-loc" value="${esc(draftVal_('post-edit', p.id + ':loc', p.location || ''))}" list="known-places"${draftAttr_('post-edit', p.id + ':loc', p.location || '')}>
       <datalist id="known-places">
         ${(DATA.venues || []).map(v => `<option value="${esc(v.title)}">`).join('')}
       </datalist></label>
@@ -1911,13 +2045,13 @@ on('post-edit', el => {
           with the wrong timestamp sits in the wrong place for ever otherwise, and the only way to
           fix it was to open the spreadsheet. */''}
     <label class="field"><span>posted on</span>
-      <input id="pe-when" value="${esc(p.when || '')}" placeholder="DD/MM/YYYY HH:MM:SS"></label>
+      <input id="pe-when" value="${esc(draftVal_('post-edit', p.id + ':when', p.when || ''))}" placeholder="DD/MM/YYYY HH:MM:SS"${draftAttr_('post-edit', p.id + ':when', p.when || '')}></label>
     ${/* A VOTE IS STORED AGAINST THE WORDS. Rename an option and every vote cast for it points at
           something that no longer exists — the count survives, its option does not, and the
           percentages quietly stop adding up. Nothing throws, which is the worst version of it. So
           the options are editable only while nobody has voted. */''}
     <label class="field"><span>poll</span>
-      <input id="pe-poll" value="${esc(opts)}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : ''}>
+      <input id="pe-poll" value="${esc(voted ? opts : draftVal_('post-edit', p.id + ':poll', opts))}" placeholder="Yes, No, Maybe" ${voted ? 'disabled' : draftAttr_('post-edit', p.id + ':poll', opts)}>
       ${voted ? `<span class="faint">${p.poll.total} vote${p.poll.total === 1 ? '' : 's'} cast —
         the options are fixed now. A vote is stored against the words, so changing them would
         strand it.</span>` : ''}</label>
@@ -1988,6 +2122,7 @@ on('post-save', el => {
     name: USER.name, adminName: USER.name, id: el.dataset.id, fields })
     .then(d => {
       if (d && d.error) throw new Error(d.error);
+      ['cap', 'body', 'loc', 'when', 'poll'].forEach(f => { try { draftDrop_('post-edit', el.dataset.id + ':' + f); } catch (e) {} });
       closeSheet(); toast('Saved'); load();
     })
     .catch(err => {
@@ -2402,13 +2537,34 @@ function reelTurn_(n) {
      sound coming from something nobody can see, which is the one thing a muted-by-default column
      is arranged to avoid. */
   host.querySelectorAll('.reel').forEach(el => {
-    const here = Number(el.dataset.reel) === n && REEL_HELD !== n;
+    const at = Number(el.dataset.reel);
+    const here = at === n && REEL_HELD !== n;
     const v = el.querySelector('video.feed-vid');
     if (v) {
       if (here) reelPlay_(v);
       else { try { v.pause(); } catch {} }
     }
+    /* A SHORT OBEYS THE SAME RULE, and one more: a player more than a page away is TAKEN DOWN, not
+       paused. See `reelYtDrop_` for the arithmetic — a YouTube player is a whole web page in its own
+       process, and the column deals the same Short again every lap. The neighbours keep theirs
+       paused, so a flick back resumes rather than reloads. */
+    const yt = el.querySelector('.feed-yt');
+    if (yt) {
+      if (here) reelYtPlay_(yt);
+      else if (Math.abs(at - n) > 1) reelYtDrop_(yt);
+      else reelYtPause_(yt);
+    }
   });
+
+  /* AND THE NEIGHBOURS' FOCUS IS READ AGAIN, NOW THAT THEY ARE STILL. `soft-dim` (a dim in place of
+     the blur, for a pane that repaints itself) is decided by `placeGrid` at the turn — and at the
+     turn the reel just left is still playing, because this runs after the slide. So the page you had
+     just left stayed dimmed and sharp-edged among blurred ones until something placed the grid again:
+     an mp4 that way, and a Short for as long as it kept its player (review, 9 Oct, measured both).
+     Not during a drag: the finger owns the focus then (`softDrag_`). */
+  if (typeof softDim_ === 'function' && !SOFT_DRAG) {
+    host.querySelectorAll('.page.soft').forEach(p => p.classList.toggle('soft-dim', softDim_(p)));
+  }
 }
 
 /* ---------- AND IT STOPS WHEN YOU LEAVE THE COLUMN ------------------------------------------------
@@ -2437,7 +2593,9 @@ function reelsStop_() { clipsStop_($('s-reel')); }
 function clipsStop_(root) {
   if (!root) return;
   root.querySelectorAll('video.feed-vid').forEach(v => { try { v.pause(); } catch {} });
-
+  /* A SHORT IS TAKEN DOWN RATHER THAN PAUSED when its column is left — `reelYtDrop_` says why. It is
+     built again, from its poster, the moment `reelsWatch_` finds it on screen on the way back. */
+  root.querySelectorAll('.feed-yt').forEach(reelYtDrop_);
 }
 
 /* ONE MORE LAP, AS PAGES. `pages()` is the same wrapper the screen's first draw used, so an
@@ -2483,6 +2641,314 @@ function reelPlay_(v) {
   const p = v.play();
   if (p && p.catch) p.catch(() => {});
 }
+/* ==================================================================================================
+   A YOUTUBE SHORT, DRIVEN THE WAY THE `<video>` ABOVE IS
+
+   THE OWNER, 9 OCT: *"i want to add this to reels, maybe embedd? or work fine without? i just want it
+   to look like other reels"*. A YouTube video has no file a `<video>` can read, so it is an embed or
+   nothing — and the embeds were taken out on "remove the embedded reels. they suck." The note over
+   `clipPlayable_` in games.js says why this one is let back in: Drive's and Instagram's players could
+   not be told anything, and YouTube's IFrame Player takes orders by `postMessage`. So everything the
+   column does to a `<video>` is done here to the player, by message, and nothing else is:
+
+     arriving        the poster is already there (`feedSlide`); THIS builds the player, muted, and it
+                     starts itself — the one kind of start every browser allows
+     tap             `pauseVideo` / `playVideo`, and `is-held` draws the ▶, exactly as for a video
+     Sound           `unMute` / `mute`, the same button and the same words
+     leaving         `pauseVideo`; a page further and the player is taken down (`reelYtDrop_`)
+     cannot load     the poster stays, and one link says "Watch on YouTube" (`reelYtDead_`)
+
+   NO SCRIPT FROM YOUTUBE ON THIS PAGE. `iframe_api` would be a second company's JavaScript loaded into
+   the app on every visit, for a handful of messages whose shape is fixed: `{event: 'command', func,
+   args}` one way, `onReady` / `infoDelivery` / `onStateChange` / `onError` the other. They are written
+   out below instead — the part of that file this column needs, and nothing it does not.
+
+   THE PLAYER IS INVISIBLE UNTIL IT IS PLAYING. Before its first frame an embed shows a black box, a
+   spinner and the video's title; paused, the title again and suggestions of its own; broken, its
+   error screen. None of those is a reel. So the iframe sits at `opacity: 0` over the poster and `is-live`
+   — set when the player says it is PLAYING, and taken off the moment it is told to stop — is the one
+   thing that shows it. A held Short shows its poster under the ▶, not YouTube's pause screen.
+
+   NOT SEEN FROM HERE, AND SAID SO. The machine these were written and checked on cannot reach
+   YouTube, so every test speaks to a stand-in that answers in the player's own messages. What the
+   real player may still draw in its first seconds of playing — its title, which no parameter has
+   turned off since `showinfo` was retired — is settled by the first open on a phone (note 319).
+
+   A CLEAR LAYER OVER IT TAKES EVERY TOUCH. A touch on an iframe belongs to the page inside it: the
+   column could not be swiped past a Short, and a tap would have pressed YouTube's own player. The
+   veil (`.feed-yt-veil`) is above the iframe and the iframe is `pointer-events: none` under it, so a
+   tap is the slide's `reel-tap` and a drag is the column's — the same two things they are on a video.
+================================================================================================== */
+const YT_HOST = 'https://www.youtube-nocookie.com';
+/* HOW LONG A PLAYER HAS TO PLAY ITS FIRST FRAME before the slide stops waiting and offers the door.
+   Long, on purpose: the poster is on the screen for all of it, so waiting costs nothing anybody can
+   see, and YouTube's player is a megabyte of somebody else's script on a phone that may be on 3G. A
+   player that answers and is then told to stop is not timed — only one that was asked to play, or
+   one that has said nothing at all (`reelYtClock_`). */
+const YT_GIVE_UP = 20000;
+/* HOW LONG THE PLAYER STAYS SHOWING ACROSS A LAP — see `reelYtHeard_`. A restart that has not said
+   PLAYING again by then is not a lap any more, and whatever YouTube is drawing goes back under the
+   poster. */
+const YT_LAP = 2500;
+let YT_SEQ = 0;
+/* PER SLIDE, ITS TWO CLOCKS AND THE LAST STATE ITS PLAYER REPORTED. A WeakMap, so a slide a repaint
+   threw away takes its entry with it, and nothing about a clock is written into the markup. */
+const YT_BOX = new WeakMap();
+/* BOTH CLOCKS STOPPED — when the player is taken down, or given up on. A clock left running over a
+   player that is gone would fire into the NEXT one built on the same slide and decide about it. */
+function ytClocksOff_(box) {
+  const o = ytBox_(box);
+  clearTimeout(o.clock); clearTimeout(o.lap);
+  o.clock = o.lap = 0;
+  o.st = null;
+}
+function ytBox_(box) {
+  let o = YT_BOX.get(box);
+  if (!o) YT_BOX.set(box, o = { clock: 0, lap: 0, st: null });
+  return o;
+}
+
+/* THE ADDRESS, and every word in it is doing something. `enablejsapi` is what makes it take orders;
+   `mute` + `autoplay` is the start a browser allows; `loop` needs `playlist` set to the same id or a
+   single video ignores it; `controls=0`, `rel=0`, `iv_load_policy=3` take YouTube's buttons, its
+   suggestions and its annotations off the picture; `playsinline` stops an iPhone taking it full screen;
+   `origin` is the page the player may talk to, and it is left off where there is no web origin to
+   name (opened from a file). The NOCOOKIE host is the Videos card's, for the Videos card's reason: no
+   tracking cookie until somebody actually plays it. */
+function reelYtSrc_(id) {
+  const o = /^https?:$/.test(location.protocol) ? '&origin=' + encodeURIComponent(location.origin) : '';
+  const v = encodeURIComponent(id);
+  return YT_HOST + '/embed/' + v + '?enablejsapi=1&mute=1&autoplay=1&loop=1&playlist=' + v
+    + '&controls=0&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3' + o;
+}
+
+/* ONE ORDER TO ONE PLAYER. Sent to the nocookie origin and nowhere else, so a page that somehow ended
+   up in the frame instead is told nothing. An order before the player is ready is dropped by YouTube
+   — which is why `want` and `sound` are written on the box first and `reelYtHeard_` says them again
+   when it answers. */
+function reelYtSay_(box, func, args) {
+  const f = box && box.querySelector('iframe.feed-yt-frame');
+  if (!f || !f.contentWindow) return;
+  try {
+    f.contentWindow.postMessage(JSON.stringify({ event: 'command', func: func, args: args || [],
+                                                 id: f.dataset.n, channel: 'widget' }), YT_HOST);
+  } catch (e) {}
+}
+
+/* PLAY: build the player the first time this slide is the one on screen, and ask it to play after.
+   NEVER BEFORE IT IS REACHED — the rule `feedSlide` writes about the videos' `src`, and sharper here:
+   a YouTube player is a page, and a column that built one per Short dealt would build one a lap. */
+function reelYtPlay_(box) {
+  if (!box || box.dataset.dead) return;
+  box.dataset.want = 'play';
+  if (box.querySelector('iframe.feed-yt-frame')) reelYtSay_(box, 'playVideo');
+  else if (!reelYtBuild_(box)) return;
+  reelYtClock_(box);
+}
+
+/* THE PLAYER ITSELF, put in the slide under the veil. False when the slide names no video. */
+function reelYtBuild_(box) {
+  const id = box.dataset.yt;
+  if (!id) return false;
+  const f = document.createElement('iframe');
+  f.className = 'feed-yt-frame';
+  f.dataset.n = String(++YT_SEQ);
+  f.title = 'YouTube video';
+  /* `autoplay` IN `allow` IS WHAT LETS THE SOUND BUTTON WORK: a tap on this page is the gesture, and
+     this is the page delegating it to the frame. `referrerpolicy` is the Videos card's, for its
+     reason — YouTube refuses (error 153) a page that sends no referrer at all. `tabindex=-1`: the
+     slide is the control and YouTube's buttons are not, so a keyboard does not stop inside them. */
+  f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+  f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  f.setAttribute('tabindex', '-1');
+  f.addEventListener('load', () => reelYtHello_(f));
+  f.src = reelYtSrc_(id);
+  box.insertBefore(f, box.firstChild);
+  return true;
+}
+
+/* ---------- THE GIVE-UP CLOCK, WOUND BY EVERY ASK TO PLAY -------------------------------------------
+   IT WAS WOUND ONCE, WHEN THE PLAYER WAS BUILT, AND ONE MOMENT DECIDED IT. Twenty seconds on, if the
+   Short was not being asked to play right then, nothing happened and nothing ever looked again. So a
+   player that never answered (YouTube blocked, the phone offline) was stuck for good the moment
+   somebody did the natural thing with a picture that will not move — tapped it once (which holds it)
+   or flicked one page away and back — inside those twenty seconds: a poster that never played, a live
+   Sound button, and no door. Measured in review on 9 Oct with a stand-in that never answers: still no
+   door at sixty seconds, both ways.
+
+   NOW TWO RULES, ONE CLOCK AT A TIME PER SLIDE:
+     - A PLAYER THAT HAS SAID NOTHING AT ALL in twenty seconds is given up on whatever was wanted of
+       it. It is not being held; it is not there. `reelYtHello_` stops asking at the same moment.
+     - ONE THAT ANSWERED but has not played its first frame is given up on only if it was being asked
+       to play when the clock ran out. If it was held or a page away, the next ask winds a fresh clock
+       — so a player that only ever answered is still never left without a door.
+   `played` AND NOT `is-live`: a Short that played, was flicked away and is being started again when
+   the clock runs out is a player that works, not one that failed. */
+function reelYtClock_(box) {
+  const f = box.querySelector('iframe.feed-yt-frame');
+  const o = ytBox_(box);
+  if (!f || f.dataset.played || o.clock) return;
+  o.clock = setTimeout(() => {
+    o.clock = 0;
+    if (!f.isConnected || f.dataset.played) return;
+    if (!f.dataset.heard || box.dataset.want === 'play') reelYtDead_(box);
+  }, YT_GIVE_UP);
+}
+
+/* PAUSE, and the poster goes back over it at once rather than when YouTube confirms — the frame
+   between is YouTube's pause screen. */
+function reelYtPause_(box) {
+  if (!box) return;
+  box.dataset.want = 'pause';
+  box.classList.remove('is-live');
+  reelYtSay_(box, 'pauseVideo');
+}
+
+/* ---------- TAKEN DOWN, NOT PAUSED, ONCE IT IS OUT OF REACH ---------------------------------------
+   A PAUSED `<video>` IS A DECODED FRAME; A PAUSED YOUTUBE PLAYER IS A WEB PAGE — YouTube's whole
+   player, in its own process on any browser that isolates sites, holding its script, its buffer and
+   its connections for as long as it exists. And the column deals in LAPS: with three clips the same
+   Short is every third page, so a column that kept every player it had built would hold one more per
+   lap, up to `REEL_MAX`'s sixty pages, behind a screen nobody is looking at — the "phone gets hot"
+   this file's own ceiling was written against.
+
+   SO BY DISTANCE, NOT BY A TIMER. The one on screen plays; the pages either side keep theirs paused,
+   because those are the ones a flick back reaches and a player built again is a second or two of
+   poster; anything further is removed, and so is everything when the column is left (`clipsStop_`).
+   So there are never more than three players (the page in front and one either side) and, with the
+   Short one clip in three, never more than one or two — decided by the page you are on, the number
+   the app already knows, rather than by a clock that would need a timer per slide and still guess.
+
+   A PLAYER BUILT AGAIN STARTS MUTED, as every autoplaying thing must, and the button is put back to
+   say so — a label reading "Sound on" over a player that has just started silent is the invisible
+   mode `is-held` exists to prevent. */
+function reelYtDrop_(box) {
+  if (!box) return;
+  box.dataset.want = 'pause';
+  box.classList.remove('is-live');
+  ytClocksOff_(box);
+  const f = box.querySelector('iframe.feed-yt-frame');
+  if (f) f.remove();
+  if (box.dataset.sound) {
+    delete box.dataset.sound;
+    const b = box.closest('.reel') && box.closest('.reel').querySelector('.reel-sound');
+    if (b) b.textContent = 'Sound off';
+  }
+}
+
+/* ---------- WHEN IT CANNOT PLAY, IT STAYS A PICTURE WITH A WAY OUT ---------------------------------
+   OFFLINE, A VIDEO TAKEN DOWN, EMBEDDING SWITCHED OFF BY ITS OWNER (`onError` 100, 101, 150), or
+   nothing heard from the player at all. Every one of those draws YouTube's error screen or a black
+   box inside the frame, and neither is ever shown: the frame is removed, the poster stays, and the
+   one thing added is a link to watch it where it lives — a door, as the Videos card's rows are, and
+   the only YouTube words that appear on the slide.
+
+   A HELD SHORT THAT DIES IS LET GO. `onError` can arrive a second or two after the player loads, so
+   a Short somebody had already tapped to hold kept its ▶ — drawn above the door, in the same middle
+   of the slide — and no tap could clear it, because `reel-tap` does nothing on a dead Short (review,
+   9 Oct). There is nothing left to hold: the mark comes off and `REEL_HELD` forgets the page, so a
+   repaint does not draw it back. */
+function reelYtDead_(box) {
+  if (!box || box.dataset.dead) return;
+  box.dataset.dead = '1';
+  box.classList.remove('is-live');
+  ytClocksOff_(box);
+  const f = box.querySelector('iframe.feed-yt-frame');
+  if (f) f.remove();
+  const art = box.closest('.feed-art');
+  if (art) art.classList.add('is-dead');
+  const reel = box.closest('.reel');
+  if (reel) {
+    reel.classList.remove('is-held');
+    if (REEL_HELD === Number(reel.dataset.reel)) REEL_HELD = -1;
+  }
+}
+
+/* HELLO, UNTIL IT ANSWERS. `listening` is how a page tells the player it wants to be spoken to; the
+   player only starts sending once it has heard it, and it may not be listening yet when the frame's
+   `load` fires — so it is said again every 400ms until the first answer, which is what YouTube's own
+   script does. The three events are asked for by name because `onError` and `onStateChange` are only
+   sent to a page that asked. */
+function reelYtHello_(f) {
+  let n = 0;
+  const say = () => {
+    if (!f.isConnected || f.dataset.heard || ++n > YT_GIVE_UP / 400) return;
+    try {
+      const w = f.contentWindow;
+      const id = f.dataset.n;
+      w.postMessage(JSON.stringify({ event: 'listening', id: id, channel: 'widget' }), YT_HOST);
+      ['onReady', 'onStateChange', 'onError'].forEach(ev =>
+        w.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: [ev],
+                                       id: id, channel: 'widget' }), YT_HOST));
+    } catch (e) {}
+    setTimeout(say, 400);
+  };
+  say();
+}
+
+/* WHAT THE PLAYER SAYS. The first thing it says, whatever it is, means it is listening — so the box's
+   wishes are said again then (an order sent before that was dropped). PLAYING (1) shows it; paused
+   (2) and cued (5) hide it again behind the poster; buffering (3) leaves it as it is, so a stall
+   mid-clip is a frozen frame rather than a flash of poster.
+
+   ENDED (0) AND UNSTARTED (−1) ARE A LAP, WHILE IT IS MEANT TO BE PLAYING. They hid it too, and a
+   looping Short says both at every lap boundary — `loop=1&playlist=<id>` restarts as 0, −1, 3, 1 — so
+   the poster cross-faded in over the picture once a lap: fully hidden for half a second, partly for a
+   second, where an mp4 reel loops without a seam (review, 9 Oct, with a stand-in that restarts that
+   way; the real player's sequence cannot be watched from this machine). So a Short that was showing
+   and is wanted stays showing through them, for `YT_LAP`. A restart that has not said PLAYING (or
+   buffering) by then is not a lap — a loop that did not happen leaves YouTube's end screen, its grid
+   of other videos — and that goes back under the poster. */
+function reelYtHeard_(f, d) {
+  const box = f.closest('.feed-yt');
+  if (!box) return;
+  const first = !f.dataset.heard;
+  f.dataset.heard = '1';
+  if (d.event === 'onError') { reelYtDead_(box); return; }
+  if (first || d.event === 'onReady') {
+    reelYtSay_(box, box.dataset.sound === 'on' ? 'unMute' : 'mute');
+    reelYtSay_(box, box.dataset.want === 'play' ? 'playVideo' : 'pauseVideo');
+  }
+  const st = d.event === 'onStateChange' ? Number(d.info)
+    : d.event === 'infoDelivery' && d.info && typeof d.info.playerState === 'number' ? d.info.playerState
+    : null;
+  if (st === null) return;
+  const o = ytBox_(box);
+  o.st = st;
+  if (st === 1) {
+    clearTimeout(o.lap); o.lap = 0;
+    /* PLAYING WHILE IT WAS ASKED NOT TO — `autoplay` beat a flick away, or a pause sent before it was
+       listening — is told again rather than shown. */
+    f.dataset.played = '1';
+    if (box.dataset.want !== 'play') { reelYtSay_(box, 'pauseVideo'); return; }
+    box.classList.add('is-live');
+    const art = box.closest('.feed-art');
+    if (art) art.classList.add('has-photo');
+  } else if (st === 3) {
+    /* buffering: as it is */
+  } else if ((st === 0 || st === -1) && box.dataset.want === 'play' && box.classList.contains('is-live')) {
+    if (!o.lap) o.lap = setTimeout(() => {
+      o.lap = 0;
+      if (o.st !== 1 && o.st !== 3) box.classList.remove('is-live');
+    }, YT_LAP);
+  } else {
+    clearTimeout(o.lap); o.lap = 0;
+    box.classList.remove('is-live');
+  }
+}
+
+/* ONE LISTENER FOR EVERY PLAYER, matched to its frame by the window that sent the message — the
+   `data-do` shape, one listener for the document. Anything not from YouTube's two hosts, or not JSON,
+   or from a frame that is not a reel's, is not this function's business. */
+addEventListener('message', e => {
+  if (!/^https:\/\/www\.youtube(?:-nocookie)?\.com$/.test(String(e.origin || ''))) return;
+  let d = e.data;
+  if (typeof d === 'string') { try { d = JSON.parse(d); } catch (x) { return; } }
+  if (!d || typeof d !== 'object' || !d.event) return;
+  const f = [...document.querySelectorAll('iframe.feed-yt-frame')].find(x => x.contentWindow === e.source);
+  if (f) reelYtHeard_(f, d);
+});
+
 /* SOUND IS OFF UNTIL IT IS ASKED FOR, because a column that starts talking the moment it opens is a
    column nobody opens twice — and because a muted video is the only kind a browser will start by
    itself. The button says the state it is IN, not the state it would move to: "Sound off" on a
@@ -2497,10 +2963,30 @@ function reelPlay_(v) {
    exactly like a playing one that happens to be still, so `is-held` draws the ▶ over it — the same
    argument this repository writes about the pen: "a mode you cannot see is a mode that surprises
    you". */
-on('reel-tap', (el) => {
+on('reel-tap', (el, e) => {
+  /* THE DOOR OUT IS NOT A PAUSE. "Watch on YouTube" sits inside the slide, so its click reaches this
+     handler too; the link does its own job and this one does nothing. */
+  if (e && e.target && e.target.closest && e.target.closest('a[href]')) return;
+  const n = Number(el.dataset.reel);
+  /* A SHORT IS HELD BY `REEL_HELD`, NOT BY ASKING IT. A `<video>` can be asked whether it is paused,
+     synchronously; a player in a frame can only be told, and its answer arrives later — so the state
+     this column already keeps is the answer, which is also what draws the ▶. */
+  const yt = el.querySelector('.feed-yt');
+  if (yt) {
+    if (yt.dataset.dead) return;
+    if (REEL_HELD === n) {
+      REEL_HELD = -1;
+      el.classList.remove('is-held');
+      reelYtPlay_(yt);
+    } else {
+      REEL_HELD = n;
+      el.classList.add('is-held');
+      reelYtPause_(yt);
+    }
+    return;
+  }
   const v = el.querySelector('video.feed-vid');
   if (!v) return;
-  const n = Number(el.dataset.reel);
   if (v.paused) {
     REEL_HELD = -1;
     el.classList.remove('is-held');
@@ -2514,6 +3000,18 @@ on('reel-tap', (el) => {
 
 on('reel-sound', (el) => {
   const slide = el.closest('.reel');
+  /* THE SAME BUTTON AND THE SAME WORDS FOR A SHORT, said to the player instead of set on an element.
+     A held Short is not started by it: sound on a stopped reel is a choice for when it next plays. */
+  const yt = slide && slide.querySelector('.feed-yt');
+  if (yt) {
+    if (yt.dataset.dead) return;
+    const on_ = yt.dataset.sound !== 'on';
+    if (on_) yt.dataset.sound = 'on'; else delete yt.dataset.sound;
+    reelYtSay_(yt, on_ ? 'unMute' : 'mute');
+    if (on_ && yt.dataset.want === 'play') reelYtSay_(yt, 'playVideo');
+    el.textContent = on_ ? 'Sound on' : 'Sound off';
+    return;
+  }
   const v = slide && slide.querySelector('video.feed-vid');
   if (!v) return;
   v.muted = !v.muted;

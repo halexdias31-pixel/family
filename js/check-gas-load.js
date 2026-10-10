@@ -67,8 +67,9 @@ function backend(extra) {
             return self;
           },
           setNumberFormat: () => self, setBackground: () => self, setFontWeight: () => self,
-          /* `ensureSchema` REWRITES THE OPTIONS TAB through this, so a check that runs it (check-signin:
-             blank handles filled) needs it to empty the cells it covers — not to be a no-op. */
+          /* `ensureSchema` REWROTE THE OPTIONS TAB through this until 10 Oct (`seedOptions` only adds
+             now). Kept emptying the cells it covers rather than a no-op, so anything that still clears
+             a range is seen doing it. */
           clearContent() {
             for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) {
               const row = grid[r - 1 + i]; if (row && c - 1 + j < row.length) row[c - 1 + j] = '';

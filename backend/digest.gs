@@ -151,19 +151,24 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
      here, where the email reads every label. */
   const tidy = v => attemptLabel_(v).split(' · ').filter(x => !/^\d+ min$/.test(x)).join(' · ');
   /* ---------- EVERY PRESS, FOLDED INTO ONE LINE PER QUESTION ------------------------------------------
-     IN THE WEEK by its London day. BEFORE THE WEEK makes it "gone back to" — the child had sent an answer
-     to it before Monday. AFTER THE WEEK is next week's, and changes nothing here, so a run days late sees
-     the week as it was. THE VERDICT is the week's latest (the latest `submitted_at`, and of two in the same
-     instant the later row): *"it will leave the latest event up"*. THE NAME AND THE WORDS are the latest
-     ones any of its rows carries up to the end of the week — a row whose phone sent none does not blank
-     the name an earlier row gave it. */
+     IN THE WEEK by its London day — the day it ARRIVED (`submitted_at`, the server's clock: a phone's
+     clock is wrong on enough iPads to put a Sunday's work in the wrong week). BEFORE THE WEEK makes it
+     "gone back to" — the child had sent an answer to it before Monday. AFTER THE WEEK is next week's,
+     and changes nothing here, so a run days late sees the week as it was. THE VERDICT is the week's
+     latest PRESS — the latest `pressed_at` (`submitted_at` on a row without one), and of two in the same
+     instant the later row: *"it will leave the latest event up"*. The card and the box order presses the
+     same way (`submissionsBuild_` in doget.gs), so a parent's mark and the child's card cannot disagree —
+     and a phone's whole queue flushed in one request, every row with one `submitted_at`, is still in
+     the order it was pressed. THE NAME AND THE WORDS are the latest ones any of its rows carries up to
+     the end of the week — a row whose phone sent none does not blank the name an earlier row gave it. */
   const joined = {};
   (subRows || []).forEach(r => {
     const pid = S(r && r.person_id), q = S(r && r.key).split('#')[0];
     if (!pid || !q) return;
-    const ms = answerAtMs_(r.submitted_at);
-    if (!ms) return;
-    const day = digestDay_(new Date(ms));
+    const came = answerAtMs_(r.submitted_at);
+    if (!came) return;
+    const ms = answerAtMs_(r.pressed_at) || came;
+    const day = digestDay_(new Date(came));
     if (day > week.end) return;
     const id = pid + '\u0001' + q;
     const J = joined[id] || (joined[id] = { pid: pid, key: q, before: false, inWeek: false, at: -1, last: '',
@@ -237,7 +242,11 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
            account from before verification existed, and is not pending. `addressPending_` (people.gs)
            is this rule for every mail now, so the digest and `notify` cannot disagree about it. */
         if (addressPending_(p)) { L.skipped.push(Object.assign(who, { why: 'email not confirmed' })); return; }
-        if (!ON_(p.weekly_email)) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
+        /* THEIR OWN CHOICE, through the one reader every sender asks (`wants_` in people.gs) — still the
+           `weekly_email` cell, blank is yes, and now also the Weekly progress email tick on the parent's
+           Notifications card (`setNotify`). It read `ON_(p.weekly_email)` itself until 9 Oct; one rule
+           read in two places is the drift `addressPending_` was written to end. */
+        if (!wants_(p, 'weekly')) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
         /* ONE MAILBOX ONCE PER CHILD, if two parent rows share an address. */
         const m = norm(who.email);
         if (seenMail[m]) { L.skipped.push(Object.assign(who, { why: 'same address as another parent' })); return; }
@@ -323,7 +332,9 @@ function digestRender_(L, P, week, look) {
   const sees = kid + (Q.printed ? ' can see them on ' : ' can see which ones on ');
   const link = sees + 'the site: ' + site;
   const foot = 'You get this because you are ' + (S(L.first) ? kid + '’s parent' : 'a parent') + ' on ' + brand + (/[.!?]$/.test(brand) ? '' : '.')
-    + ' To stop these emails, reply to this one and say so.';
+    /* THE SWITCH IS ON THE SITE NOW (9 Oct), so the footer names it first — a reply still works, and is
+       what somebody who never signs in will do. */
+    + ' To stop these emails, untick Weekly progress email in Settings → Notifications on the site, or reply to this one and say so.';
   const subject = kid + '’s week: ' + qs(n);
 
   const text = [hello, '', lead, ''].concat(Q.lines, [link, '', foot]).join('\n');
@@ -577,7 +588,7 @@ function digestRun_(now) {
         const row = digestLogFind_(log, week.start, L.id, p.id);
         if (norm(row && row.status) === 'sent') return;
         digestLogPut_(log, row, week.start, L.id, p.id, { to: '', subject: '', questions: L.count,
-          status: 'opted out', at: new Date(), note: 'weekly_email on their row says no' });
+          status: 'opted out', at: new Date(), note: 'weekly_email on their row says no (Settings → Notifications)' });
         out.skipped++;
       });
     });

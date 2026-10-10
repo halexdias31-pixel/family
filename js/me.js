@@ -88,12 +88,17 @@ function signInCard_() {
              the placeholder stopped saying "if you have no email" — that clause told a student with
              an address that their handle would not work, which is no longer true. `type="text"`
              stays, because `type="email"` would refuse a handle before it was sent.
-             THE PLACEHOLDER IS ONE OF EACH, SHORT, because the label above already says "email or
-             handle" and the sentence it used to be was cut off at `— or you` on a 320 phone. */''}
+             ---------- NO EXAMPLE, AND WHERE THERE IS ONE IT IS THE ADMIN'S OWN NAME ----------
+             IT SAID `ada@x.com or ada_kind7`, and the owner, 9 Oct: *"remove the example login. i dont
+             want it to have an example, or matter of fact let it be the admin login name."* So a box on
+             a device nobody has run the business from says nothing — the label already says "email or
+             handle" — and on a device an admin has signed in on, the grey text is what that admin signs
+             in with (`signInHint_`). FROM THIS DEVICE ONLY, never the repository or the payload: the
+             repository is public and a stranger's phone has no business being told the admin's name. */''}
         ${handleChips_()}
         <label class="field"><span>email or handle</span>
           <input id="in-name" type="text" inputmode="email" autocomplete="username" autocapitalize="off"
-                 spellcheck="false" placeholder="ada@x.com or ada_kind7"></label>
+                 spellcheck="false"${signInHint_() ? ` placeholder="${esc(signInHint_())}"` : ''}></label>
         ${/* ---------- THE PIN, ON A SHARED iPAD ---------------------------------------------------------
              *"i feel very insecure when signing into the kids accounts"*. It was `type="password"` with
              `autocomplete="current-password"`, beside a `username` box: exactly the pair Safari offers to
@@ -653,7 +658,12 @@ on('signout', () => {
   const tok = USER && USER.token;
   let last = Promise.resolve();
   try { if (typeof answersPush_ === 'function') last = answersPush_(true); } catch (err) {}
-  Promise.resolve(last).catch(() => {}).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
+  /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up
+     (`keepDue_`, data.js) — each is sent only while somebody is signed in, so after `signedOut_` below
+     the words typed in the last second and a half reached nobody (review of 317). */
+  let due = Promise.resolve();
+  try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) {}
+  Promise.all([Promise.resolve(last).catch(() => {}), due]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
   signedOut_();
   toast('Signed out');
 });
@@ -675,6 +685,10 @@ on('signout', () => {
    next child starts from nothing of the last one's, whichever door either of them used. */
 function signedOut_(opts) {
   opts = opts || {};
+  /* WHO IS LEAVING, AND WHETHER THEY WERE AN ADMIN — read before they are forgotten, for `ended` below. */
+  const was = USER;
+  let wasAdmin = false;
+  try { wasAdmin = (typeof isAdmin === 'function' && isAdmin()) || (typeof hasRole === 'function' && hasRole('admin')); } catch (e) {}
   USER = null;
   try { localStorage.removeItem('familyUser'); } catch (e) {}
   /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM --------------------------------------
@@ -685,9 +699,32 @@ function signedOut_(opts) {
      shown, on the screen of somebody who is not one. Nothing was fetched or drawn, but a shelf
      nobody else may see was named to them. So Find starts again from its first question, as it
      does on a fresh visit. `typeof`, because me.js loads before find.js declares `STUFF`. The box is
-     not cleared here: `repaint` below draws Find's controls again from `STUFF.q`. */
+     not cleared here: `repaint` below draws Find's controls again from `STUFF.q`.
+     ---------- `keepFind`: NOBODY WAS SIGNED IN, SO THERE IS NOBODY ELSE'S QUESTION TO TAKE AWAY ----------
+     THE OWNER, 9 Oct: *"when the child writes something in an answer box then goes to sign in, it wipes
+     their finder so they have to click all the way to get back there."* `signedIn_` calls this for
+     nobody-signed-in as well as for somebody else, and this line could not tell the two apart — so a
+     child who walked the funnel to Q13 signed out, typed an answer and signed in was put back on the
+     first question. Signed out is the least anybody can be shown — `load()` drops a payload asked for by
+     somebody who has gone since, so an admin's cannot land on a signed-out phone (docs/history/318) — and
+     what was asked for then is nobody's but the person holding the phone, so it stays: the search, the
+     chips, and — since nothing here touches `PAGE` — the card and the page they were on.
+     ---------- `ended`: THE SESSION DIED UNDER THE PERSON STILL HOLDING THE PHONE --------------------------
+     `api()` CALLS THIS WHEN THE SERVER SAYS THE TOKEN IS NO GOOD — thirty days up, or the PIN changed on
+     another phone — and it is the owner's complaint by another door: a child on Q13 types "80", the answer
+     goes up a second and a half later, the refusal comes back, and Find was emptied under the card they
+     were reading. Nobody left; the same child is holding the iPad. So Find stays, and `STUFF.whose` says
+     whose question it is: the same person signing in again keeps it, and anybody else signing in next is
+     a switch and starts again (`signedIn_`). AN ADMIN'S IS STILL CLEARED: theirs is the one question that
+     can name a shelf only an admin is shown, which is the reason above.
+     ONE DECIDER PER DOOR: `signedIn_` passes `keepFind`, `api()` passes `ended`; Sign out and a switch from
+     one person to another pass neither and clear Find. */
   try {
-    if (typeof STUFF !== 'undefined') { STUFF.q = ''; STUFF.filters = []; }
+    if (typeof STUFF !== 'undefined') {
+      if (opts.keepFind) { /* nobody → somebody: `signedIn_` keeps it, and says whose it is now */ }
+      else if (opts.ended && was && !wasAdmin) STUFF.whose = String(was.personId || was.name || '');
+      else { STUFF.q = ''; STUFF.filters = []; STUFF.whose = ''; }
+    }
   } catch (err) {}
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
@@ -701,6 +738,12 @@ function signedOut_(opts) {
      (js/submit.js). It was the done dates held for the visit (`DONE_HELD`) until 9 Oct. */
   try { if (typeof subForget_ === 'function') subForget_(); } catch (e) {}
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) {}
+  /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). It is kept
+     by the box's key, and the signed-out key's history outlived the person who typed it: Sam's words, typed
+     signed out and claimed by him when he signed in, came back under the signed-out key at the next
+     visitor's Ctrl+Z after he had gone — nobody's, for whoever signed in next (317, "Undo, the booking form,
+     a switch"). The next person's Ctrl+Z starts from what they find. */
+  try { if (typeof KP_UNDO !== 'undefined') KP_UNDO.clear(); } catch (e) {}
   try { if (typeof closeSheet === 'function') closeSheet(); } catch (e) {}
   /* THE PAYLOAD'S PER-PERSON KEYS. Each is already hidden from the next person by its `for` check, so
      this is not what stops a leak — it is what stops the last person's data sitting on the device. */
@@ -731,9 +774,18 @@ function signedOut_(opts) {
   try {
     if (typeof FILMSYNC !== 'undefined') { FILMSYNC.asking = null; FILMSYNC.autoFor = ''; FILMSYNC.err = ''; }
     if (typeof VID !== 'undefined') VID.q = '';
+    /* AND THE PICTURES THAT FAILED, which are remembered by address — and a Drive film's address is its
+       file id (`VID_BROKEN` in games.js). */
+    if (typeof VID_BROKEN !== 'undefined') VID_BROKEN.clear();
   } catch (e) {}
   /* AND THE ANSWERS' READ — the next person signing in is read for, whoever they are (js/answers.js). */
   try { if (typeof answersForget_ === 'function') answersForget_(); } catch (e) {}
+  /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
+     board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
+     docs/history/317). `typeof`, because book.js loads after this file. */
+  try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) {}
   if (!opts.quiet) repaint();
 }
 
@@ -749,12 +801,40 @@ function signedIn_(d, typed) {
   const me = Object.assign({}, d);
   EXTRA.forEach(k => { if (k in me) { got[k] = me[k]; delete me[k]; } });
   const pid = String(me.personId || '');
-  /* A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD — or nobody held — starts clean. */
-  if (!USER || String(USER.personId || '') !== pid || !pid) signedOut_({ quiet: true });
+  /* ---------- A DIFFERENT PERSON FROM THE ONE WHOSE THINGS ARE HELD STARTS CLEAN; NOBODY HELD KEEPS FIND ----
+     THIS WAS ONE CONDITION, `!USER || … !== pid || !pid` — "a different person, or nobody held, starts
+     clean" — and so signing in from signed out threw away the funnel exactly as a switch between two
+     children does (*"it wipes their finder"*, 9 Oct). Somebody else signed in still goes through
+     `signedOut_` whole. From nobody, the stars, the inbox, the per-person keys and the films still go —
+     they are the device's last person's, or nobody's — but Find is the same seat: the same child, now with
+     a name. UNLESS FIND SAYS IT IS SOMEBODY ELSE'S: `STUFF.whose` is set only when a session died under
+     its person (`ended` in `signedOut_`), and then only that person signing in again keeps it — anybody
+     else is the next child on the iPad, and starts from the first question. ONE PLACE DECIDES, and it is
+     these lines; `signedOut_` only does what it is told. */
+  const fromNobody = !USER;
+  const over = !fromNobody && (String(USER.personId || '') !== pid || !pid);
+  let whose = '';
+  try { whose = typeof STUFF !== 'undefined' ? String(STUFF.whose || '') : ''; } catch (e) {}
+  if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
+  else if (over) signedOut_({ quiet: true });
+  /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
+  try { if (typeof STUFF !== 'undefined') STUFF.whose = ''; } catch (e) {}
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  /* ---------- AND ARRIVED OVER SOMEBODY ELSE, WRITTEN DOWN BEFORE ANY DOOR IS ASKED ----------------------
+     A switch is not the same seat (318), so nothing another visitor made signed out is this person's — the
+     claim below was told (`ownOnly`), and the doors that open a card or the board were not: `ansRead_` and
+     `padAdopt_` moved another tab's signed-out answer into Ada's empty box after she signed in over Ben,
+     and up to her account (317, "Undo, the booking form, a switch"). `ansMayMove_` reads this now, for every
+     door — the board drawn by `padWhoChanged_` just below and the booking form included. The sign-out step
+     above forgot the last arrival's; the same person signing in again keeps theirs. */
+  try { if (over && typeof ansSwitchedIn_ === 'function') ansSwitchedIn_(pid); } catch (e) {}
+  /* EVERY COPY OF THE WHITEBOARD UNDER THE PERSON WHO IS SIGNED IN NOW, stale columns included. */
+  try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  /* THE BOOKING FORM FOLLOWS — filled in signed out and signed in to send, it is theirs (book.js). */
+  try { if (typeof bookFollow_ === 'function') bookFollow_(); } catch (e) {}
   try {
     if (got.submissions && typeof got.submissions === 'object' && String(got.submissions.for || '') === pid) DATA.submissions = got.submissions;
     if (Array.isArray(got.favourites)) {
@@ -766,11 +846,20 @@ function signedIn_(d, typed) {
   /* THE ANSWERS, INTO THE BOXES — the reply's copy now, and a fresh read at once beside it, which also
      sends whatever this device has had waiting for this person (js/answers.js). */
   try { if (got.answers && typeof got.answers === 'object' && typeof answersAdopt_ === 'function') answersAdopt_(pid, got.answers); } catch (e) {}
+  /* AND WHAT WAS WRITTEN SIGNED OUT IS THIS PERSON'S, from nobody only — the same seat as Find above. ALL
+     OF IT, NOW, AFTER THE ACCOUNT'S COPY: the later edit wins, and none is left on the device for the
+     next child to sign in (`answersClaim_`, js/answers.js).
+     AND OVER SOMEBODY ELSE, ONLY WHAT IS THEIRS: a switch is not the same seat, so nothing another visitor
+     made signed out is the arriving child's — but what THEY made after the server ended their session is,
+     and it was left for `ansRead_` to move into an empty box only: Ada back while Ben was still signed in
+     found her essay without the words she had typed beside it (317, "Six edges closed", G1). */
+  try { if (pid && typeof answersClaim_ === 'function') answersClaim_(pid, !fromNobody); } catch (e) {}
   try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION — onto the cards, into the boxes, with "Signed in" — and
      whatever this device has waiting for this person goes up (js/submit.js). */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
   handleRemember_(me.handle);
+  signInHintKeep_(typed, me);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
      between children, "Signed in" does not say into whose account. */
   const first = String(USER.name || USER.handle || '').trim().split(/\s+/)[0];
@@ -815,6 +904,35 @@ function handleRemember_(h) {
   const list = [h].concat(handlesKnown_().filter(x => x.toLowerCase() !== h.toLowerCase())).slice(0, HANDLES_MAX);
   try { localStorage.setItem(HANDLES_KEY, JSON.stringify(list)); } catch (e) {}
 }
+/* ---------- THE ADMIN'S SIGN-IN NAME, AS THIS DEVICE LAST SAW IT -----------------------------------------
+   THE GREY TEXT IN THE SIGN-IN BOX (`signInCard_`). What the admin TYPED, email or handle, because that is
+   their "login name" in the owner's sentence — not the handle the reply carries, which an admin who signs
+   in by address may never have typed. Only an admin's: a child's handle is already a chip, one tap away,
+   and a placeholder naming whichever child signed in last would be the wrong child for the next one.
+   Kept when they sign out — it is a hint, like the chips, and no secret; ✕ on the admin's own chip
+   forgets it with the chip. */
+const ADMIN_HINT_KEY = 'familyAdminHint';
+/* `{ s, h }`: `s` what was typed, shown; `h` the account's handle, so that chip's ✕ can find it. */
+const HINT_OK = /^[\w.@+-]{1,80}$/;
+function signInHintRead_() {
+  try {
+    const v = JSON.parse(localStorage.getItem(ADMIN_HINT_KEY) || 'null');
+    return v && typeof v === 'object' && HINT_OK.test(String(v.s || '')) ? v : null;
+  } catch (e) { return null; }
+}
+function signInHint_() {
+  const v = signInHintRead_();
+  return v ? String(v.s) : '';
+}
+function signInHintKeep_(typed, me) {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const h = String((me && me.handle) || '').trim();
+  const t = String(typed || '').trim();
+  const s = HINT_OK.test(t) ? t : h;
+  if (!HINT_OK.test(s)) return;
+  try { localStorage.setItem(ADMIN_HINT_KEY, JSON.stringify({ s: s, h: h })); } catch (e) {}
+}
+
 function handleChips_() {
   const list = handlesKnown_();
   if (!list.length) return '';
@@ -843,6 +961,10 @@ on('handle-pick', el => {
 on('handle-forget', el => {
   const h = String(el.getAttribute('data-h') || '').toLowerCase();
   try { localStorage.setItem(HANDLES_KEY, JSON.stringify(handlesKnown_().filter(x => x.toLowerCase() !== h))); } catch (e) {}
+  /* THE ADMIN'S CHIP TAKES THE BOX'S GREY TEXT WITH IT — see `signInHint_`. Nothing to repaint: the next
+     time the card is drawn the box is blank. */
+  const hint = signInHintRead_();
+  if (hint && String(hint.h || '').toLowerCase() === h) { try { localStorage.removeItem(ADMIN_HINT_KEY); } catch (e) {} }
   const chip = el.closest('.hchip');
   const row = chip && chip.parentNode;
   if (chip) chip.remove();
@@ -1096,15 +1218,21 @@ function registerSheet_() {
             above them, four boxes stacked put Make my account under the fold of a 320x568 phone for a
             student, and the parent's note half under it. A row is 74px back, and a name fits in half
             of a 320 sheet. */''}
+      ${/* THE NAMES AND THE ADDRESS ARE DRAFTS (data.js; docs/history/317) — the sheet closed by a tap
+            outside, or the page reloaded, and they were gone. The DEVICE'S drafts (nobody is signed in
+            to make an account), so they last `DRAFT_DEVICE_MS` and no longer: on a shared iPad the next
+            family is not handed this one's address tomorrow. Dropped when the account is made. NOT THE
+            QUESTION ABOVE, which is asked again on purpose (the note over `REG_NOTE`), nor the tick it
+            resets, and NEVER THE PIN. */''}
       <div class="f-row" style="--n:2">
         <label class="field"><span>first name</span>
-          <input id="reg-first" autocomplete="given-name"></label>
+          <input id="reg-first" autocomplete="given-name"${draftAttr_('reg', 'first')} value="${esc(draftVal_('reg', 'first'))}"></label>
         <label class="field"><span>last name</span>
-          <input id="reg-last" autocomplete="family-name"></label>
+          <input id="reg-last" autocomplete="family-name"${draftAttr_('reg', 'last')} value="${esc(draftVal_('reg', 'last'))}"></label>
       </div>
       <label class="field"><span>email</span>
         <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
-               spellcheck="false" placeholder="you@example.com"></label>
+               spellcheck="false" placeholder="you@example.com"${draftAttr_('reg', 'email')} value="${esc(draftVal_('reg', 'email'))}"></label>
       <label class="check reg-kid" hidden><input type="checkbox" id="reg-noemail"><span class="box"></span>
         <span>It's a grown-up's email</span></label>
       <label class="field"><span>PIN — 4 to 8 digits</span>
@@ -1165,6 +1293,7 @@ on('reg-send', el => {
   if (kid) body.parent_email = email; else body.email = email;
   send_(body, { button: el, busy: 'Making it…' })
     .then(d => {
+      ['first', 'last', 'email'].forEach(f => { try { draftDrop_('reg', f); } catch (e) {} });
       closeSheet();
       /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the
          email — is sign in with it, and they have just typed it once. FOR A CHILD WITH NO ADDRESS IT
@@ -1642,6 +1771,9 @@ document.addEventListener('keydown', e => {
 
 function msgPost_(p) {
   p.state = 'sending'; p.err = ''; p.why = '';
+  /* SENT, SO NOT A DRAFT ON ANY OTHER PAGE — a reload while the server is still answering drew these
+     words back in the composer, after the server had them, for a second Send (`draftSent_`, data.js). */
+  try { if (typeof draftSent_ === 'function') draftSent_('msg', p.withId, p.body); } catch (e) {}
   const files = p.queue.length ? Promise.all(p.queue.map(msgRead_)) : Promise.resolve([]);
   return files.then(read => {
     /* ---------- A FILE THAT COULD NOT BE READ IS NEVER LEFT OUT IN SILENCE ------------------------
@@ -1665,6 +1797,8 @@ function msgPost_(p) {
                   to: p.withName, toId: p.withId, body: p.body, files: list });
   }).then(d => {
     p.state = 'sent'; p.id = (d && d.id) || '';
+    /* THE SERVER HAS IT, SO THE DRAFT GOES — unless the box has been written in again since Send. */
+    try { if (typeof draftSentDone_ === 'function') draftSentDone_('msg', p.withId, p.body); } catch (e) {}
     toast(p.inSheet ? 'Sent to ' + p.withName : 'Sent');
     return loadMessages().then(() => {
       if (!MSG_FAILED) {
@@ -1674,6 +1808,8 @@ function msgPost_(p) {
     });
   }).catch(err => {
     p.state = 'failed';
+    /* NOT SENT, SO A DRAFT AGAIN — kept for a reload, as the bubble keeps it for this page. */
+    try { if (typeof draftSentBack_ === 'function') draftSentBack_('msg', p.withId, p.body); } catch (e) {}
     /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
        what is shown, rather than a "Not sent" that throws that away. */
     p.err = String((err && err.message) || 'Not sent.');
@@ -2034,6 +2170,17 @@ const messagesHtml_ = ms => {
    THE NOTE IS PART OF THE FORM. The five-minute gap and the e-mail are things somebody needs to
    know BEFORE pressing send, and they are also where a refusal is printed — so the sentence and the
    place the server answers are one element rather than two to keep in step. */
+/* ---------- WHAT IS HALF WRITTEN SURVIVES A RELOAD (docs/history/317) -----------------------------------
+   THE BOX IS A DRAFT (`draftAttr_`, data.js), per conversation and per person: kept as it is typed,
+   drawn back into the composer by every redraw and every reload, and dropped only when the server
+   has the message (`msgPost_`). NOT WHILE THE SAME WORDS ARE A BUBBLE ON THEIR WAY — Send empties the
+   box and the redraw that follows must not put them back; after a reload there is no bubble, and a
+   message that never went is in the box again rather than nowhere. */
+function msgDraft_(k) {
+  if (typeof draftVal_ !== 'function') return '';
+  const d = draftVal_('msg', k, '');
+  return d && MSG_PENDING.some(p => p.withId === k && p.body === d.trim()) ? '' : d;
+}
 function msgForm_(to, toId, note, rows) {
   const k = msgKey_(to, toId);
   return `<div class="msg-form" data-k="${esc(k)}">
@@ -2042,7 +2189,7 @@ function msgForm_(to, toId, note, rows) {
       aria-label="Attach a photo, video or file">＋</button>
     <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
-      placeholder="Message…" aria-label="Message ${esc(to)}"></textarea>
+      placeholder="Message…" aria-label="Message ${esc(to)}"${draftAttr_('msg', k)}>${esc(msgDraft_(k))}</textarea>
     <button class="btn msg-go" data-do="msg-send"
       data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
     <p class="faint msg-said">${esc(note || '')}</p>
@@ -2190,9 +2337,11 @@ function childCard_() {
     <h3>Add your child</h3>
     <p class="sub">Their name as it is on their account. They will be asked to say yes before
       anything is linked.</p>
+    ${/* DRAFTS UNTIL ASKED (data.js; docs/history/317) — a card on the Settings column is redrawn by a
+          payload, and a reload lost what was typed. */''}
     <div class="f-row" style="--n:2">
-      <label class="field"><input data-kid="first" placeholder="First name" autocomplete="off"></label>
-      <label class="field"><input data-kid="last" placeholder="Last name" autocomplete="off"></label>
+      <label class="field"><input data-kid="first" placeholder="First name" autocomplete="off"${draftAttr_('kid-ask', 'first')} value="${esc(draftVal_('kid-ask', 'first'))}"></label>
+      <label class="field"><input data-kid="last" placeholder="Last name" autocomplete="off"${draftAttr_('kid-ask', 'last')} value="${esc(draftVal_('kid-ask', 'last'))}"></label>
     </div>
     <button class="btn quiet" data-do="add-child-go">Ask them</button>
     <p class="faint">Nothing changes until they accept. If they say no, nothing happens and we do
@@ -2222,6 +2371,7 @@ on('add-child-go', el => {
   }, { button: el, busy: 'Asking…' }).then(() => {
     if (box('first')) box('first').value = '';
     if (box('last')) box('last').value = '';
+    ['first', 'last'].forEach(f => { try { draftDrop_('kid-ask', f); } catch (e) {} });
     toast('Asked. They will see it when they next sign in.');
     load();
   /* `heldBy_`: a refusal because the asker's own address is waiting redraws this as the held card. */
@@ -2256,14 +2406,17 @@ function pinSlip_(first, handle, pin) {
 
 function childMakeCard_() {
   const mine = KID_MADE.pid && USER && KID_MADE.pid === String(USER.personId || '');
+  const kidSurname = (USER && USER.profile && USER.profile.last_name) || '';
   return `<div class="card kid-card kid-make">
     <h3>Make your child's account</h3>
     <p class="sub">No email needed. They sign in with a handle we make for them and a PIN you
       choose.</p>
+    ${/* THE NAMES ARE DRAFTS UNTIL THE ACCOUNT IS MADE (data.js; 317), the surname starting from the
+          parent's own as it always did. NEVER THE PIN BELOW. */''}
     <div class="f-row" style="--n:2">
-      <label class="field"><input data-kid-new="first" placeholder="First name" autocomplete="off"></label>
+      <label class="field"><input data-kid-new="first" placeholder="First name" autocomplete="off"${draftAttr_('kid-new', 'first')} value="${esc(draftVal_('kid-new', 'first'))}"></label>
       <label class="field"><input data-kid-new="last" placeholder="Last name" autocomplete="off"
-             value="${esc((USER && USER.profile && USER.profile.last_name) || '')}"></label>
+             value="${esc(draftVal_('kid-new', 'last', kidSurname))}"${draftAttr_('kid-new', 'last', kidSurname)}></label>
     </div>
     <label class="field"><span>a PIN for them — 4 to 8 digits</span>
       <input data-kid-new="pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
@@ -2377,6 +2530,7 @@ on('kid-make', el => {
         { button: el, busy: 'Making it…' })
     .then(d => {
       KID_MADE = { pid: String(USER.personId || ''), name: first, handle: String(d.handle || ''), pin };
+      ['first', 'last'].forEach(f => { try { draftDrop_('kid-new', f); } catch (e) {} });
       toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
       /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
       if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else STALE.settings = 1;
@@ -2529,7 +2683,7 @@ function settingsPages_() {
      grid and everything else is a column of boxes, and a second walk here would be a second answer
      to that question. Its own note says so: "one walk now, so a group of hour codes becomes a
      timetable everywhere rather than only where somebody remembered." */
-  const pages = Object.keys(groups).map(g => `<div class="card">
+  const pages = Object.keys(groups).map(g => setHeldSay_(`<div class="card">
     <div class="me-form">${fieldsHtml({ [g]: groups[g] }, {
       /* A CARD'S TITLE IS AN `h3` — see the note over `fieldsHtml`. Each group is a card here, so
          the group's name IS that card's title rather than a divider inside it. */
@@ -2552,7 +2706,7 @@ function settingsPages_() {
             (groups[g] || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
       ${(groups[g] || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
       <p class="faint me-said"></p></div>
-  </div>`);
+  </div>`));
 
   /* ---------- YOUR HANDLE, BEFORE THE PIN AND FOR THE SAME REASON -------------------------------
      THE TWO THINGS ABOUT AN ACCOUNT THAT DO NOT GO THROUGH `Save`. Everything above is
@@ -2665,6 +2819,10 @@ function settingsPages_() {
   /* AND THE WEEKLY PARENT EMAIL, AFTER THEM AND FOR AN ADMIN — see js/digest.js. Appended for the
      wardrobe's reason above. */
   if (typeof digestPages_ === 'function') pages.push(...digestPages_());
+  /* AND WHICH EMAILS YOU WANT, LAST OF ALL AND FOR EVERYBODY SIGNED IN — see `notifyCard_`. Appended for
+     the wardrobe's reason above: a card put in front would move every page behind it, and `PAGE.settings`
+     would open a returning visitor on the wrong one. */
+  pages.push(notifyCard_());
 
   return pages;
 }
@@ -2675,8 +2833,8 @@ function settingsPages_() {
    like multiselect."*
 
    THREE `.check` TICKS, the app's own several-of-a-few control — the box the tutor agreement and
-   every yes/no field on this column already draw — and not the `meDrop_` drop-down, which is for a
-   list too long to show. Three answers fit on the card and should be SEEN, because the card's whole
+   every yes/no field on this column already draw — and not the several-of-a-list field that opens
+   under its summary, which is for a list too long to show shut. Three answers fit on the card and should be SEEN, because the card's whole
    job is to say what you are. Each says in a few words what it means here, since "client" is this
    business's word for the parent who pays, and nobody outside it would guess that.
 
@@ -2735,6 +2893,9 @@ on('roles-save', el => {
       USER.role = d.role || USER.role;
       USER.roles = Array.isArray(d.roles) ? d.roles : USER.roles;
       USER.tutorPending = !!d.tutorPending;
+      /* AND WHICH EMAILS REACH YOU NOW — they follow the roles (`notifyOf_`), so the Notifications card
+         is redrawn from the server's list with them. An older backend sends none and the card keeps its own. */
+      if (d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       toast(d.changed ? 'Roles saved' : 'Nothing changed');
       /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
@@ -2759,6 +2920,156 @@ on('roles-save', el => {
       [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => {
         b.checked = held.indexOf(b.dataset.rolePick) !== -1;
       });
+    });
+});
+
+/* ---------- NOTIFICATIONS: WHAT @family. EMAILS YOU, AND WHAT YOU CAN TURN OFF ---------------------------
+   ASKED FOR AS *"Also let parents select their communication preferences like notification. And kids and
+   tutors too I guess"* (the owner, 9 Oct). The site sends email and nothing else, so this is one card of
+   the kinds of email that reach YOU — a parent, a learner, a tutor, an admin, or several — each a tick,
+   and under them what is always sent and cannot be turned off.
+
+   THE PHONE KEEPS NO LIST. Which kinds reach whom, what each is called and what each is set to come from
+   the server on the profile (`notifyOf_` in people.gs, out of `NOTIFY_KINDS` in constants.gs) — the same
+   table every sender asks before it sends — so the card cannot offer a tick for an email the server never
+   sends you, or miss one it does.
+
+   `.check` TICKS, the app's only checkbox, with the two-line label the roles card uses (`role-pick-say`):
+   a tick is a control inside a form, and a card of yes/no answers is the roles card's shape. SAVED ON
+   EACH TICK, like the agreement's box and unlike the roles card: nothing here asks anybody else for
+   anything, so there is no request a passing thumb could send by accident — and a Save tile under six
+   ticks would be the one press everybody forgets. ONLY THE BOX BEING SAVED is locked while it saves
+   (`send_` with `lock` on its own row): each tick is one cell, so a parent unticking three emails in a row
+   is three saves, not one save and two taps that did nothing (review, 9 Oct — the whole card was locked,
+   and a locked `.check` looked exactly like a live one).
+
+   WHAT IS ALWAYS SENT IS WORDS, NOT GREYED BOXES. The Signing-in card's argument: an input that cannot be
+   typed into reads as broken. A greyed tick reads as "switched off by somebody", which is the opposite.
+
+   AND THE STATES BETWEEN, each one sentence rather than ticks that would be refused: a backend older than
+   this site (`setNotify` not in `DATA.features` — everything is still sent), the choices not yet in (the profile is from a phone
+   signed in before the server sent them; `myProfile` brings them on this open), an account with no email
+   of its own — most children, whose mail goes to their grown-ups — and an address nobody has proved yet,
+   which is sent nothing but its link (`addressPending_`). NOT added to `profileShapeOk_`: an old backend
+   never sends `notify`, and that test would ask it for the profile on every save, for ever. */
+/* WHAT A BACKEND OLDER THAN THIS SITE MEANS FOR THE PERSON READING IT: nothing is held, everything still
+   goes. The instruction is the admin's alone — a parent cannot sync anything — and it does not say "Apps
+   Script": `\bapps?\b` is one of the words `check-flow`'s install journey reads as an offer to install, and a
+   parent's screen must never seem to make one. */
+const NOTIFY_OLD_SAY_ = 'The live backend does not have notification choices yet, so every email is sent as before.';
+const NOTIFY_OLD_ADMIN_ = ' Sync backend/ and deploy a new version to switch them on.';
+/* WHAT THE LINE UNDER THE TICKS SAYS AFTER ONE IS SAVED, kept as state for `HANDLE_SAID`'s reason: the
+   payload landing repaints this column, and a sentence written only on the element would be gone before
+   it was read. Keyed by the person, so the next person on this phone is not told about somebody else's. */
+let NOTIFY_SAID = { pid: '', text: '' };
+const notifyList_ = () => {
+  const n = USER && USER.profile && USER.profile.notify;
+  return n && Array.isArray(n.kinds) ? n : null;
+};
+function notifyCard_() {
+  const f = (DATA && Array.isArray(DATA.features)) ? DATA.features : [];
+  const n = notifyList_();
+  const said = t => `<p class="faint notify-said" aria-live="polite">${esc(t)}</p>`;
+  let inner;
+  /* AN EMPTY LIST BEFORE THE PAYLOAD HAS LANDED IS "NOT KNOWN YET", NOT "OLD" — `LOADED` says which. */
+  if (f.indexOf('setNotify') === -1 && (f.length || LOADED)) {
+    inner = `<p class="sub notify-old">${esc(NOTIFY_OLD_SAY_ + (isAdmin() ? NOTIFY_OLD_ADMIN_ : ''))}</p>`;
+  }
+  else if (!n) inner = said('Your choices are on their way from the sheet.');
+  else if (!n.to) {
+    /* NO ADDRESS OF THEIR OWN — `notify` writes to the row's own address and nowhere else, so nothing at
+       all is sent to them; a child's forgotten PIN goes to their grown-ups (`authGrownUps_`). */
+    const kid = heldRoles().map(roleOf).indexOf('student') !== -1;
+    inner = `<p class="sub notify-none">${esc(kid
+      ? 'There is no email address on your account, so @family. emails you nothing — there is nothing to turn off. If you forget your PIN, a new one goes to your grown-up.'
+      : 'There is no email address on your account, so nothing is emailed to you. Add one on your Contact card and your choices appear here.')}</p>`;
+  }
+  /* A LIST WITH NOTHING IN IT. The server sends every role at least `access` and `security`, so this is a
+     backend that sent `kinds: []` — the one that read a `parent` cell raw (`notifyHow_` in people.gs) did.
+     One sentence rather than "To x@… · saved as you tick." over no ticks at all. */
+  else if (!n.kinds.length) {
+    inner = `<p class="sub notify-none">${esc('We could not tell which emails reach your account, so nothing here can be switched yet — everything is sent as before.')}</p>`;
+  } else {
+    const opt = n.kinds.filter(k => !k.essential), must = n.kinds.filter(k => k.essential);
+    const mine = NOTIFY_SAID.pid && NOTIFY_SAID.pid === String(USER.personId || '') ? NOTIFY_SAID.text : '';
+    /* ---------- SHORT, BECAUSE IT HAS TO FIT A 320 PHONE WITHOUT SCROLLING ---------------------------
+       The owner: *"I don't like scrolling. If you need to leave things more compact or smaller font."* The
+       first drawing — a sentence of instructions, each always-sent kind as a two-line item, a standing line
+       at the foot — was 800px at 390 and scrolled at 320 even shrunk to the floor (`paneReach_`). So the
+       address and "saved as you tick" are one line; what is always sent is ONE RUN of its labels, each label
+       saying the whole of it (`NOTIFY_KINDS` in constants.gs), its note a hover for a pointer; and the line at
+       the foot is empty until a tick has something to say. The ticks keep their 44px rows. */
+    inner = `<p class="sub">To <b style="overflow-wrap:anywhere">${esc(n.to)}</b> · saved as you tick.</p>
+      ${n.held ? `<p class="faint notify-held">Until you open the link we sent there, that link is the only
+        thing we send to it.</p>` : ''}
+      ${opt.map(k => `<label class="check role-pick notify-pick">
+        <input type="checkbox" data-do="notify-pick" data-kind="${esc(k.kind)}"${k.on ? ' checked' : ''}>
+        <span class="box"></span><span class="role-pick-say"><b>${esc(k.label)}</b>
+          <span class="faint">${esc(k.note)}${k.idle ? ' — ' + esc(String(k.idle).toLowerCase()) : ''}</span></span></label>`).join('')}
+      ${must.length ? `<p class="notify-cap">Always sent</p>
+      <ul class="notify-always">${must.map(k => `<li title="${esc(k.note)}">${esc(k.label)}</li>`).join('')}</ul>` : ''}
+      ${said(mine)}`;
+  }
+  return `<div class="card notify-card">
+    <h3>Notifications</h3>
+    ${inner}
+  </div>`;
+}
+
+/* WHAT THE SERVER LAST SAID THIS KIND IS SET TO — the profile's list, not the box. */
+const notifyOnNow_ = kind => {
+  const n = notifyList_();
+  const k = n && n.kinds.find(x => x.kind === kind);
+  return !!(k && k.on);
+};
+
+on('notify-pick', el => {
+  if (!USER || !el || el.disabled) return;
+  const card = el.closest('.card');
+  const said = card && card.querySelector('.notify-said');
+  const kind = String(el.dataset.kind || '');
+  const want = !!el.checked;
+  const n = notifyList_();
+  const label = ((n && n.kinds.find(x => x.kind === kind)) || {}).label || 'That email';
+  /* ---------- THIS BOX'S ROW IS LOCKED, NOT THE CARD ---------------------------------------------------
+     It locked the card, and a second tick while the first was saving (about two seconds of Apps Script)
+     landed on a disabled box that looked live: no request, the box stayed as it was, and "Saved" for the
+     first (review, 9 Oct, walked in Chromium). One tick is one cell, so the saves cannot step on each
+     other's writes — the row is locked so the same box is not sent twice at once. */
+  send_({ action: 'setNotify', name: USER.name, personId: USER.personId || '', kind: kind, on: want },
+        { where: said || undefined, saying: 'Saving…', lock: el.closest('label') || el })
+    .then(d => {
+      /* THIS KIND'S ANSWER, MERGED INTO THE LIST WE HOLD — not the reply's whole list. Two saves in flight
+         can answer in either order, and the earlier one's list still has the later tick as it was: kept
+         whole, the next repaint would put back a tick the server has already taken away. The reply's list
+         is taken whole only when there is none to merge into. An older reply with no list keeps ours. */
+      const on = d && typeof d.on === 'boolean' ? d.on : want;
+      const held = notifyList_();
+      if (held && held.kinds.some(x => x.kind === kind)) {
+        USER.profile = Object.assign({}, USER.profile, { notify: Object.assign({}, held, {
+          kinds: held.kinds.map(x => x.kind === kind && !x.essential ? Object.assign({}, x, { on: on }) : x) }) });
+      } else if (d && d.notify) USER.profile = Object.assign({}, USER.profile || {}, { notify: d.notify });
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      NOTIFY_SAID = { pid: String(USER.personId || ''),
+        text: on ? label + ' is on.' : label + ' is off — we will not email you that.' };
+      /* THE CARD ON THE PAGE NOW, for the roles card's reason: a payload landing mid-request repaints the
+         column, and the card held from the press would be a detached copy. */
+      const live = document.querySelector('#s-settings .notify-card') || card;
+      const box = live && live.querySelector('[data-kind="' + kind + '"]');
+      if (box) box.checked = on;
+      const line = live && live.querySelector('.notify-said');
+      if (line) line.textContent = NOTIFY_SAID.text;
+      toast('Saved');
+    })
+    /* ---------- A FAILURE PUTS THE TICK BACK TO WHAT THE SERVER HAS — REFUSED OR LOST ------------------
+       Unlike the roles card, which leaves the ticks on a lost reply because its Save tile is how somebody
+       sends them again. Here the tick IS the request and there is no tile: a box left showing a choice the
+       server never heard reads as saved, and every sender goes on reading the other answer. So the box
+       goes back to the last thing the server said, and `send_` has already written why on the line under
+       it — tick it again to try again. */
+    .catch(() => {
+      const live = document.querySelector('#s-settings .notify-card [data-kind="' + kind + '"]') || el;
+      live.checked = notifyOnNow_(kind);
     });
 });
 
@@ -2948,9 +3259,13 @@ screen('settings', () => pages('settings', settingsPages_()));
    AVAIL_HOURS`, so every day carries the same hours — the same guarantee `slotGrid()` gives the
    booker, and the reason one header can name the columns for all seven rows. A day the backend
    sends nothing for is dropped rather than drawn empty. */
-function availGrid_(codes, p, readonly) {
-  const on = f => TRUEish_(p[f]);
+function availGrid_(codes, p, readonly, mine) {
   const ro = f => readonly.indexOf(f) !== -1;
+  /* AN HOUR TICKED AND NOT YET SAVED IS A DRAFT of your own row (`fieldHtml`'s note; 317) — "Save my
+     hours" took every unsaved tick with it on a reload. Only on your own week (`mine`). */
+  const was = f => (TRUEish_(p[f]) ? '1' : '0');
+  const keep = f => !!mine && !ro(f) && typeof draftVal_ === 'function';
+  const on = f => (keep(f) ? draftVal_('set', f, was(f)) : was(f)) === '1';
 
   /* Grouped back into days, from the flat list the backend sends. The prefix IS the day and the
      digits ARE the hour, so nothing else has to be looked up. */
@@ -2978,7 +3293,7 @@ function availGrid_(codes, p, readonly) {
     ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
       <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
-             ${ro(h.code) ? 'disabled' : ''}>
+             ${ro(h.code) ? 'disabled' : ''}${keep(h.code) ? draftAttr_('set', h.code, was(h.code)) : ''}>
     </label>`, { chars: 3 })}</div>`;
 }
 
@@ -3044,7 +3359,7 @@ function send_(body, o) {
      the boxes are still locked, so what is on the wire is still what is on the screen. */
   const box = o.lock
     ? (typeof o.lock === 'string' ? $(o.lock) : o.lock)
-    : btn && btn.closest('.me-form, .msg-form, .rc, #drop, #sheet-body, .card');
+    : btn && btn.closest('.me-form, .msg-form, .rc, #sheet-body, .card');
   const had = document.activeElement;
   const locked = [];
   if (box) {
@@ -3249,6 +3564,20 @@ function fieldOptions_(f) {
  * @param o.readonly whether it may be changed
  * @param o.label   an override for the label
  */
+/* WHICH OF YOUR OWN FIELDS KEEP A DRAFT — see the note in `fieldHtml`. A SEVERAL-OF-A-LIST DOES NOW
+   (`FIELD_MULTI` was refused here while its ticks lived in `#drop`; 315 put them in the card). */
+const setDraftOk_ = name => typeof draftAttr_ === 'function'
+  && !/pin/i.test(String(name)) && !/^(lib\d+_|qual_)/.test(String(name));
+/* ---------- AND A CARD DRAWN HOLDING ONE SAYS SO ----------------------------------------------------------
+   SAVE SENDS EVERY BOX OF ITS CARD (`meSave_`), so a box holding an edit made before a reload and never
+   saved went up with a Save pressed for the box beside it — and nothing on the card said the city in
+   front of you was not the one on the sheet (review of 317). `draftAttr_` marks a box drawn holding a
+   draft (`data-draft-held`); its card's line says so until the next Save writes over it. */
+const SET_HELD_SAY = 'Not saved yet — what you typed here before is still in its box. Save keeps it.';
+function setHeldSay_(html) {
+  return /\sdata-draft-held\b/.test(html)
+    ? html.replace('<p class="faint me-said"></p>', '<p class="faint me-said">' + esc(SET_HELD_SAY) + '</p>') : html;
+}
 function fieldHtml(name, value, o) {
   o = o || {};
   /* THE EXTRA-SEAT FIGURE IS A SHARE OF THE RATE, NOT POUNDS, and nothing on the box said so: a tutor
@@ -3262,30 +3591,74 @@ function fieldHtml(name, value, o) {
   const attr = o.attr || 'data-me';
   const label = o.label || fieldLabel(name);
   const ro = !!o.readonly;
-  const v = value ?? '';
+  const v0 = value ?? '';
+  /* ---------- AN UNSAVED EDIT IS A DRAFT (data.js; docs/history/317) ------------------------------
+     A CARD'S BOXES WAITED FOR ITS SAVE, and a reload before it took every edit on the card with it.
+     So each box of YOUR OWN row (`data-me` — another editor's row is somebody else's draft) keeps what
+     is typed as a draft and is drawn holding it, with the saved value as the one that takes the draft
+     away again; `meSave_` drops each field it sent. NOT A LIBRARY CARD (its PIN is on it, and a
+     card is drafted whole or not at all), NOT THE QUALIFICATION SHELF (saved the moment each answer
+     changes, `qualCommit_`), and never anything named a PIN — `draftKeep_` refuses those whatever asks.
+     A SEVERAL-OF-A-LIST IS DRAFTED TOO NOW: it was left out while its ticks lived in `#drop`, a panel
+     the draft could not reach; since 315 they are checkboxes in this card, so a reload between a tick
+     and Save put every tick back -- the essay of 317 in a smaller box. The hidden answer carries the
+     draft (`da`) and the ticks' `change` keeps it (below `fieldHtml`); `v` above is already the draft's,
+     so the boxes are drawn ticked from it. */
+  const keep = attr === 'data-me' && !ro && setDraftOk_(name);
+  const saved = FIELD_IS_BOOL.test(name) ? (TRUEish_(v0) ? '1' : '0') : String(v0);
+  const da = keep ? draftAttr_('set', name, saved) : '';
+  const dv = keep ? draftVal_('set', name, saved) : saved;
+  const v = keep && !FIELD_IS_BOOL.test(name) ? dv : v0;
 
   if (FIELD_IS_BOOL.test(name)) {
     return `<label class="check">
-      <input type="checkbox" ${attr}="${esc(name)}" ${TRUEish_(v) ? 'checked' : ''}
-             ${ro ? 'disabled' : ''}>
+      <input type="checkbox" ${attr}="${esc(name)}" ${(keep ? dv === '1' : TRUEish_(v)) ? 'checked' : ''}
+             ${ro ? 'disabled' : ''}${da}>
       <span class="box"></span><span>${esc(label)}</span></label>`;
   }
 
-  /* ---------- SEVERAL OF A LIST IS A DROP-DOWN THAT STAYS OPEN ----------------------------------
-     NOT `<select multiple>`, which a phone draws as a list box with its own scrollbar, and not a
-     `<select>` that shuts after every pick — *"doesnt disapear after each option click"* is the
-     booking form's accepted answer and this is the same control: a field that opens `#drop`
-     anchored under it, several ticks, Done or a tap outside to close. See `meDrop_` below.
+  /* ---------- SEVERAL OF A LIST IS A LIST OF CHECKBOXES, OPENED UNDER ITS FIELD ------------------
+     IT WAS A BUTTON THAT HUNG `#drop`, the booking form's floating panel, off the field (note 226),
+     until the owner asked on 9 October for *"a more stable standard simple conventional drop down
+     list"* (note 315). A floating panel is the opposite of every one of those words, so this is the
+     conventional control: a `<details>` whose summary IS the field — the box's own clothes, saying
+     what is ticked — and which, opened, puts one `.check` row per option directly under it, in the
+     card, pushing what is below it down. The browser opens it and shuts it, a keyboard's Enter does
+     too, and a screen reader says expanded or collapsed; nothing here positions anything.
 
-     THE ANSWER IS A HIDDEN INPUT CARRYING THE ATTRIBUTE, so `me-save` gathers it exactly like every
-     other box on the card and nothing about saving had to change. The button shows what is ticked. */
+     NOT `<select multiple>`, which a laptop draws as a list box you Ctrl-click, and not a `<select>`
+     that shuts after every pick — *"doesnt disapear after each option click"* is the booking form's
+     accepted answer, and this is the same answer in the settings column's clothes.
+
+     THE ANSWER IS STILL THE HIDDEN INPUT CARRYING THE ATTRIBUTE, so `me-save` gathers it exactly like
+     every other box on the card and nothing about saving changed. A tick rewrites it (the `change`
+     listener below `fieldHtml`), and the tick's own `change`, bubbling, is what marks the card dirty —
+     which the panel's buttons never did, so a repaint before Save could put every tick back.
+
+     THE BOXES CARRY `data-many-of`, NOT THE ATTRIBUTE. `me-save` reads every checkbox carrying it as
+     TRUE or FALSE, and fifteen boxes under one name would each have overwritten the list.
+
+     ANYTHING ALREADY IN THE CELL IS OFFERED, list or not. The column was free text once, so a row may
+     hold a name the list does not — leaving it off would make it impossible to untick and easy to
+     lose on the next save.
+
+     OPEN IS DRAWN OPEN — see `MANY_OPEN_` below: a repaint keeps the list open under the person who
+     opened it, as `BOOKING.picking` keeps the booking form's. */
   if (FIELD_MULTI[name] && (o.options || []).length) {
     const got = profList_(v);
-    return `<label class="field"><span>${esc(label)}</span>
-      <input type="hidden" ${attr}="${esc(name)}" value="${esc(got.join(', '))}">
-      <button type="button" class="me-many${got.length ? '' : ' is-unset'}" data-do="me-many"
-        data-field="${esc(name)}" aria-expanded="false" ${ro ? 'disabled' : ''}
-        aria-label="${esc(label)}">${esc(got.join(', ') || 'Tap to choose')}</button></label>`;
+    const on = x => got.some(g => norm(g) === norm(x));
+    const opts = (o.options || []).slice();
+    got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
+    const said = got.join(', ');
+    const key = attr + ':' + name;
+    return `<div class="field many"><span class="many-cap">${esc(label)}</span>
+      <input type="hidden" ${attr}="${esc(name)}" value="${esc(said)}"${da}>
+      <details class="many-d" data-many="${esc(key)}"${MANY_OPEN_ === key ? ' open' : ''}><summary class="many-sum${said ? '' : ' is-unset'}"
+        aria-label="${esc(label + ': ' + (said || 'nothing chosen'))}">${esc(said || 'Tap to choose')}</summary>
+        <div class="many-list" role="group" aria-label="${esc(label)}">${opts.map(x => `<label class="check many-opt">
+          <input type="checkbox" data-many-of="${esc(name)}" value="${esc(x)}"${on(x) ? ' checked' : ''}${
+          ro ? ' disabled' : ''}><span class="box"></span><span>${esc(x)}</span></label>`).join('')}</div>
+      </details></div>`;
   }
 
   /* A FIXED LIST IS A SELECT. Somebody choosing an exam board should not be able to invent one —
@@ -3293,7 +3666,7 @@ function fieldHtml(name, value, o) {
      AND A SAVED VALUE THE LIST DOES NOT HOLD IS KEPT AS ITS FIRST OPTION. Without it the empty
      option was the one selected, so pressing Save with nothing touched wrote '' over a borough, a
      town, a favourite colour, or a qualification's Merit or Grade 8 — whatever the options tab
-     happened not to list. `qualYears_` and `meDropHtml_` already keep theirs this way. */
+     happened not to list. `qualYears_` and the several-of-a-list field above keep theirs this way. */
   const opts = o.options || [];
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a
@@ -3302,7 +3675,7 @@ function fieldHtml(name, value, o) {
        question it answers. */
     const ph = o.placeholder || '';
     return `<label class="field">${ph ? '' : `<span>${esc(label)}</span>`}
-      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}>
+      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}${da}>
         <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
         ${(v !== '' && v != null && !opts.some(x => String(x) === String(v)) ? [String(v)] : [])
           .concat(opts).map(x => `<option value="${esc(x)}"${
@@ -3327,7 +3700,7 @@ function fieldHtml(name, value, o) {
   if (FIELD_IS_DATE.test(name)) {
     return `<label class="field"><span>${esc(label)}</span>
       <input type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
-             ${ro ? 'disabled' : ''} ${o.extra || ''}></label>`;
+             ${ro ? 'disabled' : ''} ${o.extra || ''}${da}></label>`;
   }
 
   /* WHAT OTHERS SAY IS A SUGGESTION, not a rule — a datalist offers them and still lets somebody
@@ -3354,110 +3727,77 @@ function fieldHtml(name, value, o) {
   return `<label class="field">${hint ? '' : `<span>${esc(label)}</span>`}
     <input ${attr}="${esc(name)}" value="${esc(String(v))}" ${ro ? 'disabled' : ''}
            ${hint ? `placeholder="${esc(hint)}"` : ''} ${o.extra || ''}
-           ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}>
+           ${listId ? `list="${listId}"` : ''} ${pad ? `inputmode="${pad}"` : ''}${da}>
     ${listId ? `<datalist id="${listId}">${
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
 }
 
-/* ---------- THE PANEL FOR A SEVERAL-OF-A-LIST FIELD, ON THE SETTINGS COLUMN ----------------------
-   `#drop` IS THE BOOKING FORM'S PANEL AND THIS BORROWS IT RATHER THAN BUILDING A SECOND. The reason
-   it is a sibling of the screens is the same here: `.pane` clips, a transformed column is the
-   containing block for anything fixed inside it, and only a panel outside every column can hang
-   off a field without being cut in half. Its placing (`dropPlace_`) and its closing (`dropShut_`)
-   are book.js's; what is new is which surface owns it, written on the panel as `data-owner`, so
-   the booking form's own redraws leave this one alone and its move and Escape hooks hand over.
+/* ---------- WHICH SEVERAL-OF-A-LIST FIELD IS OPEN, KEPT AS STATE RATHER THAN IN THE DOM ---------------
+   FOUND BY REVIEW ON 9 OCTOBER: open the venues field, tick nothing, and let a payload land — the
+   list shut under the person. Opening a `<details>` fires no `input` and no `change`, so the card was
+   clean, `settingsKeep_` let `paint` redraw it, and the open state had lived only in the element that
+   was replaced. The panel it replaced survived the same repaint, and so does the booking form's list,
+   because `BOOKING.picking` is state; this is that, for the settings column. Not by marking the card
+   dirty, which is the qualification shelf's answer for an open LINE (*"AN OPEN LINE COUNTS"*): a card
+   held dirty is a column that is never redrawn until Save, and opening a list to read it is not an
+   edit. Written by the browser's own `toggle` (it does not bubble, hence the capture), so a keyboard's
+   Enter, a tap and a redraw drawing it `open` all say the same thing. One is remembered, the last
+   opened, which is the booking form's rule too; there is one such field today (`venues_ok`). The shut
+   of an element being thrown away by a repaint is not a person shutting it, hence `isConnected`. */
+let MANY_OPEN_ = '';
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if (!d || !d.matches || !d.matches('details.many-d')) return;
+  const k = d.dataset.many || '';
+  /* A PERSON OPENING IT, as against a repaint drawing it open: the list is brought onto the screen, as
+     the booking form's is (`tickListShow_` in book.js) — at 320 the card grows when it stops being
+     drawn smaller, and the field went below the glass as it opened. */
+  if (d.open && MANY_OPEN_ !== k && typeof tickListShow_ === 'function') {
+    tickListShow_(() => ({ list: d.querySelector('.many-list'), head: d.querySelector('summary') }),
+                  () => d.isConnected && d.open);
+  }
+  if (d.open) MANY_OPEN_ = k;
+  else if (MANY_OPEN_ === k && d.isConnected) MANY_OPEN_ = '';
+}, true);
 
-   THE STATE IS THE HIDDEN INPUT, NOT A VARIABLE. What is ticked lives in the box `me-save` reads,
-   so the panel, the button's summary and what is posted are one value and cannot disagree —
-   `ME_PICK` only says WHICH field is open. */
-let ME_PICK = '';
-function mePickRow_() {
-  if (!ME_PICK || AT !== 'settings') return null;
-  const pages = document.querySelectorAll('#s-settings > .page');
-  const pg = pages[PAGE.settings || 0];
-  return (pg && pg.querySelector('[data-do="me-many"][data-field="' + ME_PICK + '"]')) || null;
-}
-function meDropHtml_(field, box) {
-  const got = profList_(box.value);
-  const on = x => got.some(g => norm(g) === norm(x));
-  /* ANYTHING ALREADY IN THE CELL IS OFFERED, list or not. The column was free text until today, so
-     a row may hold "Grade 8 piano" — leaving it off the panel would make it impossible to untick and
-     easy to lose on the next save. */
-  const opts = (fieldOptions_(field) || []).slice();
-  got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
-  const btn = (x, text) => `<button type="button"
-        class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
-        aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(text)}</button>`;
-  const body = `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
-  return `<p class="drop-say${got.length ? '' : ' is-none'}">${got.length ? esc(got.join(', '))
-      : 'Nothing chosen yet — tap as many as apply.'}</p>
-    ${body}
-    <button type="button" class="btn quiet drop-done" data-do="me-many-done">Done</button>`;
-}
-function meDrop_() {
-  const el = $('drop'), back = $('drop-back');
-  const row = mePickRow_();
-  const box = row && row.parentNode.querySelector('input[type="hidden"]');
-  if (!el || !back || !row || !box) { meDropShut_(); return; }
-  const scroll = el.dataset.owner === 'me' ? el.scrollTop : 0;
-  el.innerHTML = meDropHtml_(ME_PICK, box);
-  el.dataset.owner = 'me';
-  el.setAttribute('aria-label', row.getAttribute('aria-label') || 'Choose');
-  back.classList.remove('hidden');
-  el.classList.remove('hidden');
-  row.setAttribute('aria-expanded', 'true');
-  dropPlace_(el, row);
-  /* A TICK REBUILDS THE LIST, AND A REBUILT LIST STARTS AT THE TOP. Forty-odd options is a list you
-     scroll, and losing your place on every tick is the panel shutting by another name. */
-  el.scrollTop = scroll;
-}
-/* Called by `bookDropMove_` on every placement the grid makes, while this surface owns the panel. */
-function meDropMove_() {
-  const el = $('drop');
-  const row = mePickRow_();
-  if (!el || !row) { meDropShut_(); return; }
-  dropPlace_(el, row);
-}
-function meDropShut_() {
-  document.querySelectorAll('[data-do="me-many"][aria-expanded="true"]')
-    .forEach(b => b.setAttribute('aria-expanded', 'false'));
-  ME_PICK = '';
-  const el = $('drop');
-  if (el && el.dataset.owner === 'me' && typeof dropShut_ === 'function') dropShut_();
-}
-on('me-many', el => {
-  /* PRESSING THE OPEN ONE SHUTS IT, which is what every drop-down does. */
-  const open = ME_PICK === el.dataset.field && !$('drop').classList.contains('hidden');
-  if (open) { meDropShut_(); return; }
-  ME_PICK = el.dataset.field;
-  /* ON THE PAGE THE FIELD IS ON. `mePickRow_` looks on the page in front, so a press that reached a
-     field on another page — a keyboard, or `check/press.js` — found no row and silently shut. Turn to
-     it first, then open. */
-  const pg = el.closest('.page');
-  const at = pg ? [...document.querySelectorAll('#s-settings > .page')].indexOf(pg) : -1;
-  if (AT === 'settings' && at >= 0 && at !== (PAGE.settings || 0)) goPage('settings', at, true);
-  meDrop_();
-});
-on('me-many-pick', el => {
-  const row = mePickRow_();
-  const box = row && row.parentNode.querySelector('input[type="hidden"]');
-  if (!box) { meDropShut_(); return; }
-  const val = el.dataset.val;
-  let got = profList_(box.value);
-  got = got.some(g => norm(g) === norm(val)) ? got.filter(g => norm(g) !== norm(val)) : got.concat(val);
-  /* IN THE LIST'S OWN ORDER, which is `bookToggle_`'s rule: a summary in the order things were
-     tapped reads as a different answer every time. Anything not on the list keeps its place at the
-     end. */
-  const order = fieldOptions_(ME_PICK) || [];
-  const rank = x => { const i = order.findIndex(o => norm(o) === norm(x)); return i < 0 ? 1e6 : i; };
-  got.sort((a, b) => rank(a) - rank(b));
+/* ---------- A TICK UNDER A SEVERAL-OF-A-LIST FIELD -------------------------------------------------
+   WRITES THE HIDDEN INPUT AND THE SUMMARY, AND NOTHING ELSE. The list is read off the boxes in the
+   order they are drawn — the list's own order, then anything the cell held that the list does not —
+   which is `bookToggle_`'s rule: a summary in the order things were tapped reads as a different
+   answer every time.
+
+   THIS WAS `meDrop_` AND SIX FUNCTIONS BESIDE IT — the settings column's half of `#drop`, the
+   floating panel: which field owned it, where it hung, following the field on every placement of the
+   grid, shutting when the page turned, and handing its moves and its Escape over to book.js. The
+   panel went on 9 October (note 315); a box in the card needs none of that. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('input[type="checkbox"][data-many-of]')) return;
+  const field = t.closest('.many');
+  const box = field && field.querySelector(':scope > input[type="hidden"]');
+  if (!box) return;
+  const got = [...field.querySelectorAll('input[type="checkbox"][data-many-of]')]
+    .filter(c => c.checked).map(c => c.value);
   box.value = got.join(', ');
-  row.textContent = got.join(', ') || 'Tap to choose';
-  row.classList.toggle('is-unset', !got.length);
-  /* THE LIST STAYS OPEN, which is the whole feature. */
-  meDrop_();
+  /* AND KEPT AS A DRAFT, as every other box on your own card is -- `draftFrom_` (data.js) skips a hidden
+     input on purpose, so the ticks hand theirs over here. The saved list is the value that takes it away. */
+  const spec = box.getAttribute('data-draft');
+  if (spec && typeof draftKeep_ === 'function') {
+    try {
+      const at = spec.indexOf(':'), surface = spec.slice(0, at), id = spec.slice(at + 1);
+      const was = box.getAttribute('data-draft-was') || '';
+      if (typeof draftSame_ === 'function' && draftSame_(box.value, was)) draftDrop_(surface, id);
+      else draftKeep_(surface, id, box.value, false, was);
+    } catch (err) {}
+  }
+  const sum = field.querySelector('summary');
+  const cap = field.querySelector('.many-cap');
+  if (sum) {
+    sum.textContent = box.value || 'Tap to choose';
+    sum.classList.toggle('is-unset', !got.length);
+    sum.setAttribute('aria-label', ((cap && cap.textContent) || '') + ': ' + (box.value || 'nothing chosen'));
+  }
 });
-on('me-many-done', () => meDropShut_());
 
 /* ---------- A TICKED HOUR SAYS SO WITH `.on` AS WELL AS WITH `:checked` ------------------------------
    THE JOINED BAR IS DRAWN OFF `.on` — `.hr.on + .hr.on` — and the availability grid set that class
@@ -3843,8 +4183,8 @@ function qualSay_(q) {
    the chosen option, for the reason `fieldHtml` gives. The last option turns the select into a text
    box in place (the listener below), because a subject or a level may be one nobody listed.
 
-   `mine` PUTS YOUR OWN SUBJECTS FIRST, under their own heading in the list (`selHtml_` draws an
-   optgroup as one). Fifty-odd subjects is a scroll to reach Maths; a tutor adding a level to a subject
+   `mine` PUTS YOUR OWN SUBJECTS FIRST, under their own heading in the list — an `<optgroup>`, which
+   the platform's own list draws as a caption over its options on every phone and laptop. Fifty-odd subjects is a scroll to reach Maths; a tutor adding a level to a subject
    they already hold is the commonest add there is. Only the first option matching the value is
    marked chosen, so the subject is ticked once, in your list. */
 const QUAL_OTHER = '__other';
@@ -3911,10 +4251,24 @@ function qualFaceNow_(slot) {
   const slot = t && t.closest && t.closest('.q-shelf .q-slot');
   if (slot) qualFaceNow_(slot);
 }));
+/* ---------- THE NEXT BOX THE PERSON NEEDS, GIVEN THE FOCUS — NOT OPENED ---------------------------------
+   THIS OPENED THE LIST, through `selOpen_` and the app's own panel (note 284: "a pick from a list is two
+   taps: the field, then the answer"). A platform's list cannot be opened from script: `showPicker()`
+   needs a tap of its own to ride on, which a timer after a `change` is not, and an iPhone does not offer
+   it on a select at all. So the box is FOCUSED instead: its gold edge says where the next answer goes, a
+   keyboard carries on from it, and a phone that draws its picker from focus shows it. One tap on the box
+   opens it everywhere else. Without scrolling, because the line was scrolled into the pane when it was
+   made. On the next turn, so the `change` or the press that asked has finished first (note 315). */
+function qualNext_(sel) {
+  setTimeout(() => {
+    if (sel && sel.isConnected && !sel.disabled) { try { sel.focus({ preventScroll: true }); } catch (e) {} }
+  }, 0);
+}
 /* ---------- AN ANSWER CHOSEN IS AN ANSWER SAVED --------------------------------------------------------
    Only in an OPEN line, and only on `change` — a pick from a list, a box left after typing — never on
    each keystroke. A line being added asks for its level the moment it has a subject, which is the
-   "subject, then level, in one step" the `+` tile promises; it is saved once it has both. */
+   "subject, then level, in one step" the `+` tile promises — the level box takes the focus (`qualNext_`)
+   — and it is saved once it has both. */
 document.addEventListener('change', e => {
   const t = e.target;
   if (!t || !t.matches || !t.matches('[data-me]') || t.value === QUAL_OTHER) return;
@@ -3922,8 +4276,7 @@ document.addEventListener('change', e => {
   if (!slot) return;
   const q = qualRead_(slot);
   if (slot.dataset.new && q.subject && !q.level && t.matches('.q-name')) {
-    const lv = slot.querySelector('select[data-me$="_level"]');
-    setTimeout(() => { if (lv && lv.isConnected && typeof selOpen_ === 'function') selOpen_(lv); }, 0);
+    qualNext_(slot.querySelector('select[data-me$="_level"]'));
     return;
   }
   qualCommit_(slot);
@@ -4139,10 +4492,10 @@ function qualTake_(shelf) {
   if (!slot) toast('That is the most this card holds — ten qualifications in all.');
   return slot || null;
 }
-/* ---------- `+`: A NEW LINE AT THE FOOT, AND ITS SUBJECT LIST ALREADY OPEN ------------------------------
-   The list is opened for the person rather than waiting for a second tap on a box they have just been
-   handed, and `selOpen_` (book.js) is the same panel every select in the app hangs. Scrolled into the
-   pane first, because a list is only hung from a field that can be seen. */
+/* ---------- `+`: A NEW LINE AT THE FOOT, ITS SUBJECT BOX READY ------------------------------------------
+   The subject box takes the focus rather than waiting to be found on a card that has just grown a line —
+   see `qualNext_` for why it is focused and no longer opened. Scrolled into the pane first, because the
+   next answer goes in a box that can be seen. */
 on('qual-add', el => {
   if (qualWhenSaved_(el)) return;
   const shelf = el.closest('.q-shelf');
@@ -4163,8 +4516,7 @@ function qualStart_(next, slot) {
   qualFaceNow_(slot);
   qualOpen_(slot);
   try { slot.scrollIntoView({ block: 'nearest' }); } catch (e) {}
-  const s = slot.querySelector('select.q-name');
-  setTimeout(() => { if (s && s.isConnected && typeof selOpen_ === 'function') selOpen_(s); }, 0);
+  qualNext_(slot.querySelector('select.q-name'));
 }
 /* ---------- REMOVING SAVES AT ONCE ------------------------------------------------------------------
    The line's seven boxes are emptied and the card is saved — an emptied slot is dropped by `qualsIn`
@@ -4207,6 +4559,8 @@ on('qual-drop', el => {
    deployment that has not sent one, and a code the list lacks is offered rather than lost. */
 function phoneRow_(value) {
   const cc = String(value('phone_cc') || '') || '+44';
+  /* THE NUMBER IS A DRAFT UNTIL SAVED, as every box of your own row is (`fieldHtml`; 317). */
+  const phoneNo = String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || '');
   const codes = (Array.isArray(DATA && DATA.phoneCodes) && DATA.phoneCodes.length) ? DATA.phoneCodes.slice() : ['+44'];
   if (codes.indexOf(cc) === -1) codes.unshift(cc);
   return `<div class="f-rowwrap"><span class="dob-cap">phone</span>
@@ -4215,7 +4569,7 @@ function phoneRow_(value) {
         ${codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join('')}
       </select></label>
       <label class="field"><input type="tel" data-me="phone_no" inputmode="tel" autocomplete="tel-national"
-        placeholder="Number" value="${esc(String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || ''))}"></label>
+        placeholder="Number" value="${esc(draftVal_('set', 'phone_no', phoneNo))}"${draftAttr_('set', 'phone_no', phoneNo)}></label>
     </div></div>`;
 }
 function qualYears_(current) {
@@ -4494,7 +4848,7 @@ function fieldsHtml(groups, o) {
                               && !(photos && isPhotoField_(f)) && !(picture && f === 'photo')
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
-      ? availGrid_(list, o.raw || {}, o.readonly || [])
+      ? availGrid_(list, o.raw || {}, o.readonly || [], o.attr === 'data-me')
       : (picture ? photoPicker_(value) : '')
       + (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value) : '')
@@ -4545,7 +4899,7 @@ function initAvail() {
     return;
   }
 
-  into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [])
+  into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [], true)
     + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save my hours', act: 'me-save' })}</div>
        <p class="faint me-said"></p>`;
 }
@@ -4648,6 +5002,8 @@ function meSave_(el) {
          ticks, a birthday normalised — so the next Save starts from the sheet. An older backend sends
          no profile, and the typed fields are merged as they always were. */
       USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
+      /* ON THE SHEET NOW, SO EACH FIELD SENT IS NO LONGER A DRAFT (`fieldHtml`; 317). */
+      Object.keys(fields).forEach(f => { try { draftDrop_('set', f); } catch (e) {} });
       if (d && d.name) USER.name = d.name;
       /* A CORRECTED PENDING ADDRESS IS STILL PENDING, at the new address — the held cards say which. */
       if (d && d.pendingEmail !== undefined) { accountChanged_(); USER.pendingEmail = String(d.pendingEmail || ''); }
@@ -4710,8 +5066,8 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM -----------------------------------
    A CARD IS DIRTY FROM ITS FIRST KEYSTROKE UNTIL IT IS SAVED, and while any card on the column is,
    `paint` leaves the column alone — see the note there. Marked from the events rather than by
-   comparing each box with its `defaultValue`, because the qualification shelf and the anchored
-   multi-selects keep their answer in a HIDDEN input, whose `value` and `defaultValue` are the same
+   comparing each box with its `defaultValue`, because the qualification shelf and the
+   several-of-a-list field keep their answer in a HIDDEN input, whose `value` and `defaultValue` are the same
    attribute: a comparison would call a picked subject clean. */
 document.addEventListener('input', e => {
   const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
@@ -4793,10 +5149,14 @@ function profileRefresh_(loud, onOld) {
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
       const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      if (roleMoved) { try { repaint(); } catch (e) {} return; }
+      /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: a
+         select somebody has open, or a box they are in, is not rebuilt under them. Found by review on
+         9 October — the favourite colour tapped, its list up, and this repaint took the select away. */
+      const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
+      if (roleMoved) { try { land(); } catch (e) {} return; }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
-        try { paint('settings'); placeCells('y', true, 0, 'settings'); } catch (e) {}
+        try { land(() => { paint('settings'); placeCells('y', true, 0, 'settings'); }); } catch (e) {}
       }
     })
     .catch(() => { PROFILE_ASKING = false; });
@@ -4929,7 +5289,12 @@ function skeleton() {
         ${bar('6rem', '.7rem', .08)}
       </header>
       <span class="sk-box sk-pic" style="animation-delay:.16s"></span>
-      <div class="post-acts">${bar('9rem', '2.3rem', .24)}</div>
+      ${/* THE ROW OF FACES' SHAPE: one 32px pill-round bar where the pills will be, inside the same
+            `.post-acts` slot, 6px in top and bottom as each pill is inside its 44px cell — so the
+            caption bars under it are where the caption lands and nothing jumps when it swaps in.
+            As wide as the six pills are at most (`.reacts` caps a column at 3.75rem), so on a wide
+            card the shape stops where the faces will. */''}
+      <div class="post-acts">${bar('min(100%, 22.5rem)', '32px', .24, 'border-radius:16px;margin-block:6px')}</div>
       ${bar('80%', '.7rem', .32, 'margin-top:.5rem')}
       ${bar('45%', '.7rem', .4, 'margin-top:.35rem')}
     </article>`];

@@ -25,7 +25,17 @@
        cache HIT has the press just made. The per-person copy of `mine` is read again after a press and
        after an edit typed into the sheet, and not on every load.
      · NOTHING READS OR WRITES `attempts` ANY MORE — not the backend, not the phone — and `markDone` is
-       refused at the gate.
+       refused at the gate. (One read, named: `subMigrate_` reads an OLD backend's `DATA.attempts` once,
+       to carry what a child did before the switch across. See section 6.)
+     · THE LATEST IS THE LATEST PRESSED, NOT THE LAST TO ARRIVE (`pressed_at`, review of 9 Oct): the
+       iPad's older "wrong" sent after the computer's newer "right" does not become the latest; a
+       phone's clock ahead of the server's is held to the server's; a row from before the column falls
+       back to `submitted_at`.
+     · A PRESS DOES NOT READ THE WHOLE TAB UNDER THE LOCK (review of 9 Oct): `submitAnswer` reads the
+       person and id columns alone, and a load never reads `label` or `words`.
+     · THE OWNER UPDATES IN PLACE (10 Oct): `ensureSchema` over a live Ledger adds `pressed_at` to a
+       `submissions` tab that lacks it, and touches no row of the options tab an owner has edited —
+       it adds the code's missing values and nothing else, and a second run adds nothing.
 
    THROUGH THE REAL `doPost` AND `doGet`, gate and all, over `check-gas-load.js`. The people are
    invented and their PINs are 0000.
@@ -75,7 +85,7 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
 {
   const { b } = world();
   asked++;
-  const want = ['person_id', 'key', 'label', 'words', 'answer', 'verdict', 'submitted_at', 'event_id'];
+  const want = ['person_id', 'key', 'label', 'words', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at'];
   const head = (b.tabs.submissions || [[]])[0];
   if (!b.tabs.submissions) bad.push('there is no `submissions` tab in TAB/SCHEMA, so nothing below can be asked');
   else if (JSON.stringify(head) !== JSON.stringify(want)) bad.push('SCHEMA.submissions is ' + JSON.stringify(head) + ' — wanted ' + JSON.stringify(want));
@@ -300,7 +310,9 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
      not at all, a press makes the next load read it, and an edit typed into the sheet (the generation
      bumped by the edit watch) does too. */
   asked++;
-  b.ev('(function(){ const r = read; globalThis.__reads = 0; read = function (t) { if (t === TAB.submissions) globalThis.__reads++; return r.apply(this, arguments); }; })()');
+  b.ev('(function(){ const r = read, c = readCols_; globalThis.__reads = 0;'
+     + ' read = function (t) { if (t === TAB.submissions) globalThis.__reads++; return r.apply(this, arguments); };'
+     + ' readCols_ = function (t) { if (t === TAB.submissions) globalThis.__reads++; return c.apply(this, arguments); }; })()');
   const count = () => b.ev('globalThis.__reads');
   b.get({ token: tok[ADA] });
   const c0 = count();
@@ -339,10 +351,177 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
     [/['"]attemptWords['"]/, 'names the attemptWords feature'],
     [/\bdoneMark_\b|\battemptsSync_\b|\battemptsFor_\b|\battemptsUpsert_\b/, 'still calls the done-date machinery'],
   ];
+  /* ONE READ IS MEANT, AND IS NAMED: `subMigrate_` in js/submit.js reads `DATA.attempts` — sent only by a
+     backend from before 9 Oct — once per person per device, to turn each question done before the switch
+     into a submission (decided 10 Oct: no child loses their progress). It is cut out before the rules
+     run, and asked of on its own: it reads, it never writes `DATA.attempts`, and it posts nothing. */
+  const MIGRATE = /function subMigrate_\s*\([^)]*\)\s*\{[\s\S]*?\n\}\n/;
   files.forEach(([f, src]) => {
-    const code = strip(src);
+    let code = strip(src);
+    if (f === 'js/submit.js') {
+      const m = MIGRATE.exec(code);
+      asked++;
+      if (!m) bad.push('js/submit.js has no `subMigrate_` — the questions a child did before the switch would go blank on every card');
+      else {
+        if (/DATA\.attempts\s*=(?!=)|\bapi\s*\(|action\s*:/.test(m[0])) bad.push('`subMigrate_` writes `DATA.attempts` or posts an action itself — it may only read what an old backend sent');
+        code = code.replace(m[0], '');
+      }
+    }
     RULES.forEach(([re, what]) => { if (re.test(code)) bad.push(f + ' ' + what + ' — it went with the attempts tab (9 Oct)'); });
   });
+}
+
+/* ---------- 7. THE LATEST IS THE LATEST PRESSED, NOT THE LAST TO ARRIVE ------------------------------------
+   THE REVIEW OF 9 OCT: between the front end going live and the owner's Apps Script steps every press is
+   queued on its device. "Wrong" on the iPad at T1, "right" on the computer at T2; the computer loads first
+   after the deploy and sends its press; the iPad's arrives after it. Ordered by arrival, the iPad's older
+   "wrong" became the latest, and the computer's next load wrote it over the box that had sent "right". */
+{
+  const { b, tok, send, rows } = world();
+  const now = Date.now(), T1 = now - 3600e3, T2 = now - 1800e3;
+  asked++;
+  const c = send(ADA, [ev('q:Q-P-1', '16', 'right', { at: T2 })]);
+  const i = send(ADA, [ev('q:Q-P-1', '15', 'wrong', { at: T1 })]);
+  b.cache.clear();
+  let mine = (b.get({ token: tok[ADA] }).submissions || {}).mine || {};
+  const m = mine['q:Q-P-1'];
+  if (!m || m.answer !== '16' || m.verdict !== 'right') bad.push('the computer’s newer “right”, sent first, lost to the iPad’s older “wrong” sent after it: the load says ' + JSON.stringify(m) + ' — the latest is the latest PRESSED');
+  else if (m.at !== T2) bad.push('the latest carries at ' + m.at + ', not the moment it was pressed (' + T2 + ')');
+  const ids = Object.keys(c.saved || {}).concat(Object.keys(i.saved || {}));
+  if (ids.length !== 2 || c.saved[ids[0]].at !== T2 || i.saved[ids[1]].at !== T1) bad.push('the reply does not carry each press back at its own moment: ' + JSON.stringify([c.saved, i.saved]));
+  const r = rows();
+  if (r.length !== 2 || r[0].pressed_at !== new Date(T2).toISOString() || r[1].pressed_at !== new Date(T1).toISOString()) bad.push('pressed_at is not kept as the press’s own time, as text: ' + JSON.stringify(r.map(x => x.pressed_at)));
+  if (!r.every(x => x.submitted_at instanceof Date && x.submitted_at.getTime() >= now - 5000)) bad.push('submitted_at is no longer the time the row arrived: ' + JSON.stringify(r.map(x => x.submitted_at)));
+  /* A PHONE'S CLOCK A DAY FAST IS HELD TO THE SERVER'S; NO `at`, OR NONSENSE, IS NOW. */
+  asked++;
+  const t0 = Date.now();
+  const f = send(ADA, [ev('q:Q-P-2', '1', 'right', { at: t0 + 86400e3 }), ev('q:Q-P-3', '1', 'right', { at: 'soon' }), ev('q:Q-P-4', '1', 'right')]);
+  const t1 = Date.now();
+  Object.values(f.saved || {}).forEach(x => { if (!(x.at >= t0 && x.at <= t1)) bad.push('a press with a clock ahead, or no clock, was kept at ' + x.at + ' — wanted the server’s now (' + t0 + '…' + t1 + ')'); });
+  if (Object.keys(f.saved || {}).length !== 3) bad.push('presses with a fast clock or no clock were refused: ' + JSON.stringify(f.saved));
+  /* A TIE — ONE PHONE'S QUEUE, TWO PRESSES IN ONE INSTANT — IS THE LATER ROW. */
+  asked++;
+  send(ADA, [ev('q:Q-P-5', 'a', 'wrong', { at: T1 }), ev('q:Q-P-5', 'b', 'right', { at: T1 })]);
+  b.cache.clear();
+  mine = (b.get({ token: tok[ADA] }).submissions || {}).mine || {};
+  if (!mine['q:Q-P-5'] || mine['q:Q-P-5'].answer !== 'b') bad.push('two presses in one instant load as ' + JSON.stringify(mine['q:Q-P-5']) + ' — the later row is the latest');
+  /* A ROW FROM BEFORE THE COLUMN: blank `pressed_at`, so its arrival stands in — here half an hour ago,
+     which is later than a press made an hour ago that sits ABOVE it in the sheet. Read as no time at
+     all, the older press would win. */
+  asked++;
+  send(ADA, [ev('q:Q-P-6', 'an hour ago', 'right', { at: now - 3600e3 })]);
+  const g = b.tabs.submissions, h = g[0];
+  const pre = {}; h.forEach(c2 => { pre[c2] = ''; });
+  Object.assign(pre, { person_id: 'P-S1', key: 'q:Q-P-6', answer: 'half an hour ago', verdict: 'wrong', submitted_at: new Date(now - 1800e3), event_id: '1760000000999-zz0001' });
+  g.push(h.map(c2 => pre[c2]));
+  b.cache.clear();
+  mine = (b.get({ token: tok[ADA] }).submissions || {}).mine || {};
+  if (!mine['q:Q-P-6'] || mine['q:Q-P-6'].answer !== 'half an hour ago') bad.push('a row with no pressed_at was not ordered by its arrival: the load says ' + JSON.stringify(mine['q:Q-P-6']) + ' — wanted the row that arrived half an hour ago over the press made an hour ago');
+}
+
+/* ---------- 8. A PRESS DOES NOT READ THE WHOLE TAB UNDER THE LOCK -----------------------------------------
+   THE REVIEW OF 9 OCT: every press held the site's only script lock while `read(TAB.submissions)` fetched
+   every column of every row ever sent — a question's words on each — to find whether one id was there.
+   Each `getValues` on the submissions tab is recorded here, by its shape. */
+{
+  const { b, tok, send } = world();
+  const READS = [];
+  b.ev('SpreadsheetApp').openById = (orig => id => {
+    const bk = orig(id);
+    return Object.assign({}, bk, { getSheetByName: n => {
+      const sh = bk.getSheetByName(n);
+      if (!sh || n !== 'submissions') return sh;
+      return Object.assign({}, sh, { getRange: (r, c, nr, nc) => {
+        const rg = sh.getRange(r, c, nr, nc);
+        return Object.assign({}, rg, { getValues: () => { READS.push({ r: r, c: c, nr: nr || 1, nc: nc || 1 }); return rg.getValues(); } });
+      } });
+    } });
+  })(b.ev('SpreadsheetApp').openById);
+  const h = b.tabs.submissions[0], col = n => h.indexOf(n) + 1;
+  /* A TAB WITH SOMETHING IN IT, words and all. */
+  send(ADA, Array.from({ length: 12 }, (_, i) => ev('q:Q-N-' + i, 'n' + i, 'sent', { label: 'Maths · Q' + i, words: 'w'.repeat(1000) })));
+  const e1 = ev('q:Q-N-RE', '1', 'right');
+  send(ADA, [e1]);
+  READS.length = 0;
+  asked++;
+  send(ADA, [ev('q:Q-N-X', '2', 'right')]);
+  const wide = READS.filter(x => x.nr > 1 && x.nc > 1);
+  const words = READS.filter(x => x.nr > 1 && x.c <= col('words') && col('words') < x.c + x.nc);
+  if (wide.length || words.length) bad.push('a press read the submissions tab as a grid (' + JSON.stringify(READS) + ') — under the lock it may read the person and id columns alone');
+  const cols = new Set(READS.filter(x => x.nr > 1).map(x => x.c));
+  if (cols.size !== 2 || !cols.has(col('person_id')) || !cols.has(col('event_id'))) bad.push('a press read the columns ' + JSON.stringify([...cols].map(c => h[c - 1])) + ' — wanted person_id and event_id');
+  /* A RETRY READS ONE ROW WHOLE, AND ONLY THAT ROW, and still answers with its verdict and time. */
+  asked++;
+  READS.length = 0;
+  const re = send(ADA, [e1]);
+  const rowReads = READS.filter(x => x.nr === 1 && x.r > 1);
+  if (rowReads.length !== 1 || rowReads[0].nc < h.length) bad.push('a retried press read ' + JSON.stringify(READS) + ' — wanted the two columns and its one row');
+  if (!re.saved || !re.saved[e1.id] || re.saved[e1.id].verdict !== 'right' || re.saved[e1.id].key !== 'q:Q-N-RE') bad.push('a retried press is not answered with its row’s key and verdict: ' + JSON.stringify(re.saved));
+  /* AND A LOAD NEVER FETCHES `label` OR `words`. */
+  asked++;
+  READS.length = 0;
+  b.cache.clear();
+  b.get({ token: tok[ADA] });
+  const loadCols = new Set(READS.filter(x => x.nr > 1).flatMap(x => Array.from({ length: x.nc }, (_, j) => h[x.c - 1 + j])));
+  if (loadCols.has('label') || loadCols.has('words')) bad.push('a load read ' + JSON.stringify([...loadCols]) + ' — the name and the words are the email’s, and most of the tab’s bytes');
+  if (!loadCols.has('pressed_at') || !loadCols.has('answer')) bad.push('a load did not read what it orders and shows by: ' + JSON.stringify([...loadCols]));
+}
+
+/* ---------- 9. THE OWNER UPDATES IN PLACE: ensureSchema ADDS, AND TOUCHES NO ROW OF THEIRS ----------------
+   DECIDED 10 OCT, from a count-only read of the live Ledger: no replacement spreadsheet. The owner pulls
+   backend/, runs `ensureSchema`, and makes a new version. So `ensureSchema` must add what is missing and
+   leave every row as it is — and `seedOptions`, which it calls, REWROTE the options tab (145 rows the
+   owner has edited today): the code's four lists rebuilt, every other row closed up, and the `focus`
+   column left where it was while the rows moved under it. */
+{
+  const { b } = world();
+  const opt = b.tabs.options;
+  const OH = opt[0];
+  asked++;
+  /* AN OWNER'S TAB: their subjects with a kind each, a blank row in the middle, one of the code's lists
+     reworded and reordered, a value they added to it, and a number as a value. */
+  const mk = o => OH.map(c => (o[c] === undefined ? '' : o[c]));
+  [
+    { list_name: 'subject', value: 'Maths', sort_order: 1, focus: 'academic' },
+    { list_name: 'participant_status', value: 'Booked', sort_order: 1 },
+    { list_name: 'participant_status', value: 'waiting ', sort_order: 2 },
+    { list_name: 'participant_status', value: 'On hold', sort_order: 3 },
+    {},
+    { list_name: 'subject', value: 'PE', sort_order: 2, focus: 'sporty' },
+    { list_name: 'level', value: 11, sort_order: 1 },
+    { list_name: 'subject', value: 'Art', sort_order: 3, focus: 'creative' },
+  ].forEach(o => opt.push(mk(o)));
+  /* AND A SUBMISSIONS TAB MADE BY THE FIRST VERSION OF THIS CHANGE, with a press on it and no pressed_at. */
+  const SH = ['person_id', 'key', 'label', 'words', 'answer', 'verdict', 'submitted_at', 'event_id'];
+  b.tabs.submissions = [SH.slice(), ['P-S1', 'q:Q-K-1', 'Maths · Q1', 'Work it out.', '3/4', 'right', new Date(Date.now() - 86400e3), '1760000000001-ab0001']];
+  const before = JSON.stringify(opt.map(r => r.slice()));
+  const subBefore = JSON.stringify(b.tabs.submissions[1]);
+  b.ev('ensureSchema()');
+  const after = opt.map(r => r.slice());
+  const was = JSON.parse(before);
+  was.forEach((row, i) => {
+    const now = after[i] || [];
+    if (JSON.stringify(row) !== JSON.stringify(now.slice(0, row.length).concat(Array(Math.max(0, row.length - now.length)).fill('')).slice(0, row.length)))
+      bad.push('ensureSchema changed row ' + (i + 1) + ' of the options tab: ' + JSON.stringify(row) + ' → ' + JSON.stringify(now) + ' — an owner’s row is never rewritten, moved or removed');
+  });
+  const added = after.slice(was.length).map(r => r[OH.indexOf('list_name')] + ':' + r[OH.indexOf('value')]);
+  const want = [];
+  const defs = b.ev('OPTION_DEFAULTS');
+  const have = new Set(was.slice(1).map(r => String(r[0]).trim() + ':' + String(r[1]).trim().toLowerCase()));
+  Object.keys(defs).forEach(l => defs[l].forEach(v => { if (!have.has(l + ':' + v.toLowerCase())) want.push(l + ':' + v); }));
+  if (JSON.stringify(added) !== JSON.stringify(want)) bad.push('ensureSchema added ' + JSON.stringify(added) + ' to the options tab — wanted exactly the code’s missing values ' + JSON.stringify(want));
+  const ps = after.slice(was.length).filter(r => r[0] === 'participant_status').map(r => r[OH.indexOf('sort_order')]);
+  if (ps.some(n => !(n > 3))) bad.push('a value added to an owner’s list was numbered ' + JSON.stringify(ps) + ' — wanted after their own (3)');
+  /* A SECOND RUN ADDS NOTHING. */
+  asked++;
+  const n1 = opt.length;
+  b.ev('ensureSchema()');
+  if (opt.length !== n1) bad.push('a second ensureSchema added ' + (opt.length - n1) + ' option row(s) — it must add a missing value once');
+  /* AND THE SUBMISSIONS TAB GAINED ITS COLUMN AT THE END, THE PRESS ON IT UNTOUCHED. */
+  asked++;
+  const sh = b.tabs.submissions;
+  if (JSON.stringify(sh[0]) !== JSON.stringify(SH.concat(['pressed_at']))) bad.push('ensureSchema left the submissions header as ' + JSON.stringify(sh[0]) + ' — wanted pressed_at added at the end');
+  if (JSON.stringify(sh[1].slice(0, SH.length)) !== subBefore) bad.push('ensureSchema moved the press already on the submissions tab: ' + subBefore + ' → ' + JSON.stringify(sh[1]));
 }
 
 console.log('');

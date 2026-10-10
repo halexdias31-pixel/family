@@ -47,8 +47,11 @@
 
 /* THE SERVER'S CEILINGS, said again, because the phone must not send what will be refused for ever —
    `SUBMISSIONS_PER_POST` and `ANSWER_TEXT_MAX` in backend/constants.gs. An answer longer than the account
-   keeps is still a press: its verdict is shown here, and it stays on this device and says so. */
-const SUB_PER_POST = 25, SUB_ANSWER_MAX = 2000;
+   keeps is still a press: its verdict is shown here, and it stays on this device and says so. 20,000
+   SINCE THE ESSAY SHEET (note 312) raised both sides from 2,000 — the merge found this one still at
+   2,000, so every essay over about 350 words Marked with AI would have been "too long to send" while
+   the account would have taken it. */
+const SUB_PER_POST = 25, SUB_ANSWER_MAX = 20000;
 /* WHAT A `keepalive` REQUEST MAY CARRY — a browser refuses one over 64 KB (answers.js says the same). */
 const SUB_KEEPALIVE_MAX = 60000;
 
@@ -152,7 +155,9 @@ function subRecord_(k, answer, verdict) {
     if (answer.length > SUB_ANSWER_MAX) e.far = 1;
     else {
       e.q = 1;
-      const ev = { id: e.id, key: key, answer: answer, verdict: e.v };
+      /* `at` IS THE PRESS'S OWN MOMENT, and the server orders "latest" by it (`pressed_at`, clamped to its
+         own clock) — not by when the request arrived, which the rollout's queue would scramble. */
+      const ev = { id: e.id, key: key, answer: answer, verdict: e.v, at: e.at };
       try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) {}
       try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) {}
       const q = subQueue_(who);
@@ -255,6 +260,12 @@ function subAdopt_() {
         const g = s.mine[key];
         if (!g || typeof g !== 'object' || g.answer === undefined || g.answer === null) return;
         const at = Number(g.at) || 0, id = String(g.id || ''), answer = String(g.answer), verdict = String(g.verdict || '');
+        /* AN EMPTY SUBMISSION IS NOBODY'S LATEST, AND NEVER EMPTIES A BOX. The server refuses one, and the
+           phone never makes one — but a row typed into the sheet by hand, or one written by a backend
+           from before that rule, would otherwise be "the latest answer sent" and be laid over whatever
+           the box holds: an essay emptied by a blank cell, on every device, with a verdict beside the
+           nothing. It is passed over as though it were not there. */
+        if (!answer.trim()) return;
         const cur = all[key];
         if (cur && cur.q) return;
         if (cur && id && cur.id === id) return;
@@ -284,7 +295,150 @@ function subAdopt_() {
     }
     subPaintAll_();
   } catch (e) {}
+  try { subMigrate_(); } catch (e) {}
   subPush_(true);
+}
+
+/* ---------- WHAT WAS DONE BEFORE THE SWITCH, SENT ONCE, SO NO CHILD LOSES IT --------------------------------
+   THE LIVE LEDGER, COUNTED ON 10 OCT: 55 `attempts` rows for 5 learners and no `answers` tab — the live
+   backend is a week old, older than the answers sync — so a typed answer is on the child's device and
+   nowhere else, under `ans:u:<id>:<key>`. When the new backend lands, the card's mark is the latest
+   SUBMISSION, and nobody has submitted anything: every question those children did would go blank on
+   every card, and their answers would never reach the account, because a box opens on the latest answer
+   sent and nothing was ever sent. The owner updates in place (pull, `ensureSchema`, New version), so
+   there is no spreadsheet to carry it across in; the devices are where it is.
+
+   SO, ONCE PER PERSON PER DEVICE (`subMigrated:u:<id>`, written when the pass has run), on a load signed
+   in: every question this person had DONE before the change —
+     · a `done:u:<id>:<key>` date on this device (written by the first keystroke, Check or pick of a day,
+       `doneMark_`, until 9 Oct), or
+     · a row of their own in `DATA.attempts`, while an old backend still sends it —
+   that holds a non-empty answer of THIS PERSON on this device (`ans:u:<id>:<key>` only, read through the
+   visit's copy first, `ansValue_`), and that the account has no submission for, becomes ONE submission,
+   marked by the site's own marker exactly as its press would have been: an ordering by `orderSeq_` and
+   `markOrder_`, a pick against `choiceRight`, a typed or maths answer with a scheme by `markAnswer_`, and
+   `sent` for anything nothing can mark. Then it is on the card and in the account like any press.
+
+   WHAT IS NOT SENT: a key the library does not have (nothing can name or mark it, and the pass waits until
+   the library has loaded rather than calling every key unknown); an empty answer; a holed ordering or a
+   pick still short of its number, which were never answers; and a draft that was never DONE — typed and
+   left is a draft, and stays one. Nobody else's: the keys are read under this person's id and no other,
+   so on the family iPad a brother's answers are his, for his own sign-in. A signed-out answer reaches
+   this person's key only through `answersClaim_` or `ansRead_`, which ask `ansMayMove_` (note 317) —
+   this never reads a signed-out key.
+
+   ONE ROW, HOWEVER MANY DEVICES OR RUNS. The press's id is made from the person and the key
+   (`subMigrateId_`), so the same question migrated from the iPad and the computer, or twice because a
+   flag was lost, is one row: the server writes an id once per person. Its time is the answer's own last
+   edit (`ansAt_`), else the day it was done, so a press made since — on any device — is the later one.
+
+   WAITS, AND DOES NOT MARK ITSELF DONE, while it cannot judge: no library yet, or a backend that keeps
+   submissions whose copy for this person has not arrived. A backend from before submissions has none to
+   compare with, so the presses are queued and go up the first time it can take them. */
+const SUB_BEFORE = Date.UTC(2026, 9, 9);
+function subMigrateId_(pid, key) {
+  /* TWO 32-BIT FNV-1a PASSES IN BASE 36 — `SUBMISSION_ID`'s shape, `<digits>-<letters and digits>`, with an
+     `m` that says on the sheet which rows this wrote. The digits are the day of the switch, not a clock. */
+  const h = seed => {
+    let x = seed >>> 0;
+    const t = String(pid) + '\u0001' + String(key);
+    for (let i = 0; i < t.length; i++) { x ^= t.charCodeAt(i); x = Math.imul(x, 16777619) >>> 0; }
+    return (x >>> 0).toString(36).padStart(7, '0');
+  };
+  return SUB_BEFORE + '-m' + h(2166136261) + h(3735928559);
+}
+function subMigrateMark_(x, v, slot) {
+  if (slot) return { a: v, v: 'sent' };
+  if (orderIs_(x)) {
+    const said = orderSay_(orderSeq_(v, x.choices.length));
+    if (!said) return null;
+    const ways = orderWays_(x);
+    if (!ways.length) return { a: said, v: 'sent' };
+    const r = markOrder_(said, ways);
+    return r === null ? null : { a: said, v: r ? 'right' : 'wrong' };
+  }
+  if (Array.isArray(x.choices) && x.choices.length >= 2) {
+    const right = (x.choiceRight || []).slice().sort((p, q) => p - q);
+    const picked = String(v).split(',').map(t => parseInt(t, 10)).filter(n => n > 0);
+    if (!picked.length || picked.length < Math.max(1, right.length)) return null;
+    const said = picked.join(',');
+    if (!right.length) return { a: said, v: 'sent' };
+    return { a: said, v: picked.slice().sort((p, q) => p - q).join(',') === right.join(',') ? 'right' : 'wrong' };
+  }
+  const accept = String(x.accept || '').trim();
+  if (!accept) return { a: v, v: 'sent' };
+  const m = markAnswer_(v, accept);
+  return m === null ? null : { a: v, v: m ? 'right' : 'wrong' };
+}
+function subMigrate_() {
+  if (typeof USER !== 'object' || !USER || !USER.personId) return;
+  const pid = String(USER.personId), who = 'u:' + pid;
+  if (!(typeof whoIs_ === 'function' && whoIs_() === who)) return;
+  const flag = 'subMigrated:' + who;
+  /* A BROWSER THAT KEEPS NOTHING KEPT NO `done:` DATE AND NO ANSWER PAST THE VISIT, and could hold no flag:
+     nothing to carry, and nothing to stop the pass running on every load. */
+  try { if (localStorage.getItem(flag)) return; } catch (e) { return; }
+  /* THE ACCOUNT'S OWN, so a question it already has a submission for is left alone — and a backend that
+     keeps submissions but has not sent this person's copy yet is waited for. */
+  let mine = {};
+  if (answersCan_('submitAnswer')) {
+    const s = DATA && DATA.submissions;
+    if (!s || String(s.for || '') !== pid || !s.mine || typeof s.mine !== 'object') return;
+    mine = s.mine;
+  }
+  const items = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : [];
+  if (!items.some(it => it && it.kind === 'question')) return;
+  /* WHAT WAS DONE, AND WHEN — the device's dates, and the old backend's rows of this person. */
+  const done = {};
+  const pre = 'done:' + who + ':';
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf(pre) === 0) done[k.slice(pre.length)] = String(localStorage.getItem(k) || '');
+    }
+  } catch (e) {}
+  try {
+    const a = DATA && DATA.attempts;
+    if (a && a.mine && typeof a.mine === 'object' && String(a.for || '') === pid) {
+      Object.keys(a.mine).forEach(q => { if (!(q in done)) done[q] = String((a.mine[q] && a.mine[q].last) || ''); });
+    }
+  } catch (e) {}
+  const index = new Map();
+  items.forEach(it => { if (it) index.set(ansKey_(it), it); });
+  const all = subAll_(who), queue = subQueue_(who), made = [];
+  const dayMs = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12).getTime() : 0; };
+  Object.keys(done).forEach(key => {
+    if (!key || mine[key] || all[key]) return;
+    const k = 'ans:' + who + ':' + key;
+    const v = ansValue_(k);
+    if (v === null || !String(v).trim()) return;
+    const slot = /#[^#]*$/.test(key);
+    const x = index.get(slot ? k.replace(/#[^#]*$/, '') : k);
+    if (!x) return;
+    const m = subMigrateMark_(x, String(v), slot);
+    if (!m || !String(m.a).trim()) return;
+    const now = Date.now();
+    let at = Number(ansAt_(k)) || 0;
+    if (!(at > 0 && at <= now)) at = dayMs(done[key]) || SUB_BEFORE;
+    const e = { a: m.a, v: m.v, at: Math.min(at, now), id: subMigrateId_(pid, key) };
+    if (m.a.length > SUB_ANSWER_MAX) e.far = 1;
+    else {
+      e.q = 1;
+      const ev = { id: e.id, key: key, answer: m.a, verdict: m.v, at: e.at };
+      try { const l = doneLabel_(k, index); if (l) ev.label = l; } catch (err) {}
+      try { const w = doneWords_(k, index); if (w) ev.words = w; } catch (err) {}
+      queue.push(ev);
+    }
+    all[key] = e;
+    made.push(k);
+  });
+  if (made.length) {
+    subQueueKeep_(who, queue);
+    subAllKeep_(who, all);
+    made.forEach(subBoxPaint_);
+    subPaintAll_();
+  }
+  try { localStorage.setItem(flag, String(Date.now())); } catch (e) {}
 }
 
 /* ---------- THE WORDS FOR A VERDICT -----------------------------------------------------------------------
@@ -340,10 +494,27 @@ function subVerdictPaint_(mark, inp) {
   if (!mark || !inp || mark.classList.contains('is-busy')) return;
   const out = mark.querySelector('.qp-verdict');
   if (!out) return;
-  const latest = subLatest_(inp.getAttribute('data-k'));
+  const k = inp.getAttribute('data-k');
+  const latest = subLatest_(k);
   const say = latest && latest.a === inp.value ? subSay_(latest.v) : { text: '', cls: '' };
-  /* AI MARKING SWITCHED OFF says so on this line, and keeps saying it until there is a verdict to say. */
-  if (!say.text && mark.classList.contains('is-off')) return;
+  /* AN ESSAY'S MARK KEPT ON THIS DEVICE (`aiKeptView_`, keypad.js, note 312) is drawn instead — with its
+     points, fresh or "before your changes" — when it is about these very words, or when no submission
+     is. A submission about these words that is not the kept mark's (from another device, or a plain Send
+     since) is the newer reading: its verdict, and the kept points, which are about other words, off the
+     screen (they stay kept, for an Undo back to them). */
+  if (mark.classList.contains('qp-essay') && mark.classList.contains('qp-ai') && typeof aiKeptView_ === 'function') {
+    const view = aiKeptView_(k, inp.value);
+    if (view && (view.fresh || !say.text) && typeof aiKeptPaint_ === 'function') { aiKeptPaint_(mark, inp); return; }
+    const why = mark.nextElementSibling;
+    if (why && why.classList.contains('qp-ai-why') && why.textContent) why.textContent = '';
+    mark.classList.remove('is-stale');
+  }
+  /* AI MARKING SWITCHED OFF says so on this line (`aiOff_`), and keeps saying it until there is something
+     else to say — but ONLY WHILE THE LINE STILL SAYS IT. It returned on `is-off` alone, and `aiOff_` leaves
+     that on the box after swapping its tile for the plain Send: so once "Sent" had replaced the message,
+     a letter typed after it left "Sent" over an answer nobody sent, above "On this device until you send
+     it" — the box contradicting itself, and typing no longer taking a verdict off (review of 9 Oct). */
+  if (!say.text && mark.classList.contains('is-off') && out.textContent && out.textContent === mark.getAttribute('data-off-said')) return;
   mark.classList.remove('is-right', 'is-near');
   if (say.cls) mark.classList.add(say.cls);
   if (out.textContent !== say.text) out.textContent = say.text;

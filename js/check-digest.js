@@ -121,10 +121,10 @@ function seeded(opts) {
 /* A PRESS AS THE SHEET HOLDS IT: noon in London (13:00 BST is 12:00Z) on `day` unless `hh` says the hour,
    an answer, a verdict (right by default), a name and words, and an id in the phone's shape. */
 let SEQ = 0;
-function S(pid, key, day, label, verdict, words, hh) {
-  return { person_id: pid, key: key, label: label || '', words: words || '', answer: 'an answer',
+function S(pid, key, day, label, verdict, words, hh, more) {
+  return Object.assign({ person_id: pid, key: key, label: label || '', words: words || '', answer: 'an answer',
            verdict: verdict || 'right', submitted_at: new Date(day + 'T' + String(hh == null ? 12 : hh).padStart(2, '0') + ':00:00Z'),
-           event_id: (1759000000000 + (++SEQ)) + '-dg' + String(SEQ).padStart(4, '0') };
+           event_id: (1759000000000 + (++SEQ)) + '-dg' + String(SEQ).padStart(4, '0') }, more || {});
 }
 
 /* ---------- 1. WHAT A WEEK IS ------------------------------------------------------------------------- */
@@ -243,6 +243,57 @@ function S(pid, key, day, label, verdict, words, hh) {
   const eve = plan.learners.find(x => x.id === 'P-S5');
   const got = eve ? [].concat(eve.fresh || [], eve.again || []).map(q => q.key).sort().join(', ') : '';
   if (got !== 'q:EVE-EARLY') bad.push('Eve’s week is [' + got + '] — wanted q:EVE-EARLY alone: 00:00 on Monday 28 Sep in London is this week, and 00:00 on Monday 5 Oct is next week, whatever UTC says');
+}
+
+/* ---------- 2a2. THE WEEK'S LATEST IS BY TIME, NOT BY ROW, AND A TIE IS THE LATER ROW --------------------------
+   THE REVIEW OF 9 OCT: every seed above was in time order with no two presses at one moment, so nothing
+   pinned "latest" — `ms > J.at` for `>=` (the first of a tie wins) and the verdict taken from sheet order
+   both stayed green. A tie is certain in use: one request's items share one `submitted_at`, and that is
+   every offline flush and the whole queue a phone held until the backend could take it — wrong then
+   right in one batch. The email must say what the child's card says (`submissionsBuild_` in doget.gs):
+   the later row of a tie, and otherwise the latest PRESS (`pressed_at`), whatever row it is on. Eve,
+   whose only other row is last week's, so these are her whole week:
+     q:EVE-TIE    wrong then right, one `submitted_at`, no `pressed_at` (a row from before the column) → ✓
+     q:EVE-REV    the later instant on the EARLIER row (right at 14:00, then wrong at 10:00)            → ✓
+     q:EVE-PRESS  one flush (one `submitted_at`), pressed in the reverse of row order: wrong on Wednesday
+                  on the first row, right on Tuesday on the second                                      → ✗
+     q:EVE-PTIE   one flush, pressed in one instant, wrong then right                                   → ✓ */
+{
+  const { b } = seeded();
+  const P = iso => ({ pressed_at: iso });
+  b.seed('submissions', [
+    S('P-S5', 'q:EVE-TIE', '2026-10-01', 'Maths · Ties · Q1', 'wrong'),
+    S('P-S5', 'q:EVE-TIE', '2026-10-01', 'Maths · Ties · Q1', 'right'),
+    S('P-S5', 'q:EVE-REV', '2026-10-01', 'Maths · Ties · Q2', 'right', '', 14),
+    S('P-S5', 'q:EVE-REV', '2026-10-01', 'Maths · Ties · Q2', 'wrong', '', 10),
+    S('P-S5', 'q:EVE-PRESS', '2026-10-02', 'Maths · Ties · Q3', 'wrong', '', 12, P("'2026-09-30T09:00:00.000Z")),
+    S('P-S5', 'q:EVE-PRESS', '2026-10-02', 'Maths · Ties · Q3', 'right', '', 12, P("'2026-09-29T09:00:00.000Z")),
+    S('P-S5', 'q:EVE-PTIE', '2026-10-02', 'Maths · Ties · Q4', 'wrong', '', 12, P("'2026-09-29T09:00:00.000Z")),
+    S('P-S5', 'q:EVE-PTIE', '2026-10-02', 'Maths · Ties · Q4', 'right', '', 12, P("'2026-09-29T09:00:00.000Z")),
+  ]);
+  asked++;
+  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const eve = plan.learners.find(x => x.id === 'P-S5');
+  const items = eve ? [].concat(eve.fresh || [], eve.again || []) : [];
+  const v = k => { const q = items.find(x => x.key === k); return q ? q.verdict : '(not in the plan)'; };
+  const want = { 'q:EVE-TIE': 'right', 'q:EVE-REV': 'right', 'q:EVE-PRESS': 'wrong', 'q:EVE-PTIE': 'right' };
+  const why = {
+    'q:EVE-TIE': 'two presses in one instant — the later row is the latest, as the card has it',
+    'q:EVE-REV': 'the later instant is on the earlier row — time decides, not where the row sits',
+    'q:EVE-PRESS': 'one flush, so one arrival; Wednesday’s press is later than Tuesday’s on the row below it',
+    'q:EVE-PTIE': 'one flush, pressed in one instant — the later row',
+  };
+  Object.keys(want).forEach(k => { if (v(k) !== want[k]) bad.push(k + '’s mark in the plan is ' + JSON.stringify(v(k)) + ', wanted ' + want[k] + ' — ' + why[k]); });
+  /* AND THE CARD SAYS THE SAME: the latest per key `submissionsBuild_` gives Eve, for the same rows. */
+  asked++;
+  const built = JSON.parse(JSON.stringify(b.ev('clearCache(); submissionsBuild_("P-S5", false)'))).mine || {};
+  Object.keys(want).forEach(k => { const m = built[k]; if (!m || m.verdict !== want[k]) bad.push('the card’s latest for ' + k + ' is ' + JSON.stringify(m && m.verdict) + ' and the email’s is ' + JSON.stringify(v(k)) + ' — the parent and the child would read two different answers'); });
+  /* AND THE EMAIL PRINTS EACH ONE'S MARK, beside its number. */
+  asked++;
+  const mail = plan.emails.find(m => m.to === 'yes@example.org');
+  const text = mail ? String(mail.text) : '';
+  if (!mail) bad.push('Eve’s parent is planned no email for a week with four questions in it');
+  else ['Q1 ✓', 'Q2 ✓', 'Q3 ✗', 'Q4 ✓'].forEach(m => { if (text.indexOf(m) === -1) bad.push('Eve’s email does not print “' + m + '”: ' + JSON.stringify(text.split('Maths · Ties')[1] || text).slice(0, 160)); });
 }
 
 /* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND PRINTED ---------------------

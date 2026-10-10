@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-09-every-submission-an-event";
+  --css-version: "2026-10-10-e-submissions";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -35,6 +35,9 @@
   --sunk:      #050505;
   --line:      #232323;
   --line-soft: #171717;
+  /* EVERY VIDEO'S LETTERBOX, a player's and a clip's in a message alike: black, not `--bg`, because the
+     bars round a picture are black on every screen there is, whatever colour the page around them. */
+  --letterbox: #000;
 
   --ink:       #e6e6e6;
   --dim:       #9a9a9a;
@@ -209,6 +212,16 @@
   --app: 26.5rem;
 
   --quick: .13s;         /* how long anything takes to respond to a touch */
+
+  /* ---------- A CONTROL LAID OVER A MOVING PICTURE ----------------------------------------------
+     The reels' Sound button, the ▶ on a held reel and a dead Short's "Watch on YouTube": a charcoal
+     wash with a hairline edge and white words, which reads on a bright frame and a dark one alike.
+     ONE COLOUR IN THREE COMPONENTS, so it is named here; it was written out by hand in each, and the
+     third copy is what review caught (note 319). Beside `--letterbox` in spirit — a picture's own
+     colours, the same whatever the page round it is. */
+  --over-wash: rgb(0 0 0 / .55);
+  --over-edge: rgb(255 255 255 / .28);
+  --over-ink:  #fff;
 }
 
 /* ---------- THE TYPEFACE, SELF-HOSTED ------------------------------------------------------------
@@ -763,10 +776,12 @@ html.wide body { max-width: none; box-shadow: none; }
 .btn-row { display: flex; gap: .5rem; }
 .btn-row .btn { width: auto; flex: 1; }
 
-input, select, textarea {
+/* `.many-sum` IS IN THIS GROUP — the closed face of a several-of-a-list field (`fieldHtml` in me.js) is
+   a field, so it is drawn by the field's own rule rather than by a copy of it that could drift. */
+input, select, textarea, .many-sum {
   width: 100%;
   min-height: max(44px, 2.9rem); padding: .7rem .75rem;
-  background: var(--sunk);
+  background-color: var(--sunk);
   border: 1px solid var(--line); border-radius: var(--r-sm);
   color: var(--ink);
   /* 16px EXACTLY, not a rem — below 16px iOS zooms the page when a field is focused and never
@@ -776,6 +791,71 @@ input, select, textarea {
   -webkit-appearance: none; appearance: none;
   transition: border-color var(--quick) ease;
 }
+/* ---------- A DROPDOWN LOOKS LIKE A DROPDOWN, AND THE OPEN LIST IS THE PLATFORM'S -----------------
+   THE CLOSED BOX IS THIS APP'S AND THE OPEN LIST IS NOT. Asked for on 9 October as *"a more stable
+   standard simple conventional drop down list"*: a tap opens the phone's own picker — the wheel on an
+   iPhone, the sheet on Android, the system list on a laptop — and nothing in this stylesheet or in any
+   script positions it. The banner over `dropOnFront_` in book.js has the whole reversal; note 315.
+   Restyling the OPEN list is not possible (see the `option` rule below) and asking for it is asking
+   for the floating panel back.
+
+   ONE ARROW, DRAWN ON THE SELECT ITSELF. `appearance: none` above takes the platform's arrow off with
+   its grey well — a light box in a dark form — so every select in the app looked like a text box but
+   the cheat sheet's, which drew a `▾` on a wrapper of its own. A select cannot hold a pseudo-element and
+   a wrapper is a second element every caller has to remember, so the arrow is two gradients in the
+   select's own background: the same ten-by-five `▾`, in a token, on every select, on the booking row's
+   button and on the settings column's several-of-a-list field, because those two are dropdowns to the
+   person pressing them. The three custom properties are the only things a caller may change — the
+   booking row does, and says why beside `.bk-sel`.
+
+   `background-color`, NEVER THE `background` SHORTHAND, on anything this reaches: the shorthand resets
+   the image, and the arrow would vanish from whichever select a later rule happened to paint.
+
+   AN OPEN LIST POINTS UP — the arrow on a several-of-a-list field turns over while its list is open
+   under it, which is the one thing a disclosure says that a select never needs to.
+
+   THE ARROW SITS CLOSE TO THE EDGE, AND THE WORDS CLOSE TO THE ARROW. It was first drawn with its
+   middle 1.05rem in and .7rem of air before the words, 31px of a 390 phone's select given to a 10px
+   arrow, and the review of 9 October measured what that cost: `youngest` in the Ages box at 320 was
+   75px of words in 70px of room — `younge…` where it had fitted with room to spare before the arrow —
+   and the flyer maker cut twice as many answers as it used to. The tip now stands .55rem in, inside
+   the box's own left inset, and the words stop .3rem before it: 22px rather than 31. */
+select, .bk-many, .many-sum {
+  --sel-arrow: var(--dim);
+  --sel-tri: 5px;      /* half the arrow's width, and all of its height */
+  --sel-at: calc(.55rem + var(--sel-tri));   /* the arrow's middle, from the box's right edge */
+  padding-right: calc(var(--sel-at) + var(--sel-tri) + .3rem);
+  background-image: linear-gradient(45deg, transparent 50%, var(--sel-arrow) 50%),
+                    linear-gradient(135deg, var(--sel-arrow) 50%, transparent 50%);
+  background-position: right var(--sel-at) center, right calc(var(--sel-at) - var(--sel-tri)) center;
+  background-size: var(--sel-tri) var(--sel-tri);
+  background-repeat: no-repeat;
+  text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+  cursor: pointer;
+}
+.bk-many[aria-expanded="true"], details[open] > .many-sum {
+  background-image: linear-gradient(135deg, transparent 50%, var(--sel-arrow) 50%),
+                    linear-gradient(45deg, var(--sel-arrow) 50%, transparent 50%);
+}
+/* A LIST BOX HAS NO ARROW. `multiple` or `size` draws a select open, as a box of rows; none exists
+   today, and one that ever does should not carry a dropdown's arrow over its scrollbar. */
+select[multiple], select[size] { background-image: none; padding-right: .75rem; }
+/* ---------- THE OPEN LIST TAKES TWO COLOURS FROM US AND NOTHING ELSE ------------------------------
+   REPORTED AS *"the drop down list for the booking widget is hard to see. its like white on white
+   or something, unless i hover over it."* Measured then: every `<option>` computed to
+   `background-color: rgba(0,0,0,0)` and `color: rgb(128,128,128)`. The list a laptop opens is a
+   surface the page does not paint, so a transparent option is drawn on the SYSTEM's sheet, which is
+   white nearly everywhere — and an option inherits its select's ink, so a select that recedes while
+   unanswered (`--faint`, on the qualification shelf, the library shelf and the ranges) handed that
+   grey to every option in its list.
+
+   SO EVERY OPTION IS TOLD BOTH. This was `.bk-sel option` alone, which left the three faint selects
+   above with grey on white in a laptop's list. A phone's wheel and sheet ignore both colours and draw
+   their own, legibly — which is exactly why nothing else about the open list can be styled at all. */
+select option, select optgroup { background-color: var(--bg); color: var(--ink); }
+/* THE BLANK IS THE QUIET ONE — inside the list, where there is something to be quiet against — but
+   readable, because on several selects (`Not sure`, `No preference`) the blank is a real answer. */
+select option[value=""] { color: var(--dim); }
 
 /* ---------- A FIELD THAT IS WAITING HAS TO LOOK LIKE IT IS ----------------------------------------
    REPORTED AS *"i can still backspace login details while its loading logging in. this is not
@@ -794,13 +874,14 @@ input, select, textarea {
 input:disabled, select:disabled, textarea:disabled {
   opacity: .62;
   cursor: not-allowed;
-  background: var(--sunk);
+  background-color: var(--sunk);
 }
 /* AND THE CAPTION WITH IT, or the label stands at full strength over a box that has receded and
    the pair reads as a rendering fault rather than as a state. */
 .is-sending .field > span { opacity: .62; }
 textarea { min-height: 5.8rem; resize: vertical; }
-input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--gold); }
+input:focus, select:focus, textarea:focus, .many-sum:focus-visible, details[open] > .many-sum {
+  outline: 0; border-color: var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
 /* ---------- A WRONG PIN SAYS WHICH BOX -----------------------------------------------------------------
    The toast still says it (the owner's choice, docs/history/134); the box it was about is emptied,
@@ -836,7 +917,7 @@ input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var
    version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
    claiming it matched this. One selector, one caption style, and the row reads as one more field
    down the same column because it IS one. */
-label.field > span, .dob-cap, .handle-cap, .reg-cap {
+label.field > span, .dob-cap, .handle-cap, .reg-cap, .many-cap, .notify-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
@@ -1010,10 +1091,14 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   font-size: max(9px, .58rem); line-height: 1; color: var(--dim); pointer-events: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.q-ed .q-f > select, .q-ed .q-f > input { min-width: 0; padding: 16px .6rem 4px; }
+/* THE RIGHT PADDING IS LEFT TO THE SELECT RULE on a select, because the dropdown arrow lives in it —
+   a shorthand here would put the answer's last letters under the arrow. */
+.q-ed .q-f > select, .q-ed .q-f > input { min-width: 0; padding-top: 16px; padding-bottom: 4px;
+  padding-left: .6rem; }
+.q-ed .q-f > input { padding-right: .6rem; }
 /* A NAME TOO LONG FOR HALF A 320 CARD ENDS IN AN ELLIPSIS — *walked:* "English Lan", cut with nothing to
-   say it was cut. The full name is the option's own label, one tap away. */
-.q-ed .q-f > select { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+   say it was cut. The full name is the option's own label, one tap away. The ellipsis itself is the
+   select rule's now, for every select, beside the arrow it has to stop short of. */
 /* TEACH / CAN TEACH / NOT TEACHING, ONE CONTROL. Words that say the answer, so the question that sat
    over it and the sentence that sat under it are not needed; what each does on the profile is its
    `title`. */
@@ -1054,20 +1139,23 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .me-said { margin: .6rem 0 0; }
 .me-said:empty { margin: 0; }
 
-/* ---------- A SEVERAL-OF-A-LIST FIELD LOOKS LIKE THE BOX IT REPLACES --------------------------------
-   `extra_quals` was a text box and is a button that opens `#drop` — see `meDrop_` in me.js. It is
-   drawn in the box's own clothes, so a card of boxes and one drop-down still reads as one form: the
-   same height, edge, fill and type as `input, select`, left-aligned because what it shows is a list
-   read from its start, and ellipsised because the panel under it is where the whole list is read.
-   44px in px, because it is a tap target. */
-.me-many {
-  display: block; width: 100%; min-height: 44px; padding: .7rem .75rem;
-  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
-  color: var(--ink); font: 16px/1.3 var(--font); text-align: left; cursor: pointer;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.me-many.is-unset { color: var(--faint); }
-.me-many[aria-expanded="true"] { border-color: var(--gold); }
+/* ---------- A SEVERAL-OF-A-LIST FIELD IS A FIELD THAT OPENS INTO TICKS -------------------------------
+   `fieldHtml` in me.js: a `<details>` whose summary is drawn by the field's own rule (it is in the
+   `input, select, textarea` group) and carries the dropdown's arrow, and under it, open, one `.check`
+   row per option — the app's own checkbox, 44px a row, the row the whole target. In the card, pushing
+   what is below it down: it was a button that hung `#drop` over the column until 9 October (note 315).
+
+   THE CAPTION IS `label.field > span`'s — it is in that rule's group — because a `<details>` full of
+   `<label>`s cannot itself be a `<label>`; the field is a `<div>` and keeps the label's margin here.
+   The summary's own disclosure triangle goes: the arrow on the right is the one this app draws. */
+.field.many { display: block; margin-bottom: .75rem; }
+.many-sum { display: block; list-style: none; text-align: left; }
+.many-sum::-webkit-details-marker { display: none; }
+.many-sum.is-unset { color: var(--faint); }
+/* THE TICKS SIT UNDER THE BOX, inset by the box's own padding so the words line up with the summary's,
+   and a hair apart: twelve rows that touch read as one block, twelve with air read as twelve. */
+.many-list { display: grid; padding: .2rem .1rem 0 .75rem; }
+.check.many-opt { gap: .6rem; padding: .45rem 0; }
 /* THE BUILD STAMPS UNDER AN ADMIN'S SIGNING-IN CARD. Small and faint: a line for the one person who
    asks which build is running, printed where nobody else ever sees it. */
 .me-build { margin-top: .9rem; padding-top: .6rem; border-top: 1px dashed var(--line);
@@ -1230,11 +1318,33 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    "Client" alone is this business's word and not the reader's. `min-width: 0` so a long note wraps
    inside the card at 320 rather than pushing the row wider than it. The box sits at the top of a
    two-line label, level with the role's own word, rather than floating in the middle of the pair. */
-.roles-card .role-pick { align-items: flex-start; }
-.roles-card .role-pick .box { margin-top: .1rem; }
+.roles-card .role-pick, .notify-card .role-pick { align-items: flex-start; }
+.roles-card .role-pick .box, .notify-card .role-pick .box { margin-top: .1rem; }
 .role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
 .role-pick-say .faint { font-size: .85rem; line-height: 1.35; }
 .roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
+
+/* ---------- NOTIFICATIONS: THE ROLES CARD'S TICKS, AND WHAT IS ALWAYS SENT AS WORDS -------------------
+   `notifyCard_` in me.js. The ticks ARE the roles card's — the same `.check` row with its 44px floor and
+   the same two-line label, by the two selectors above widened rather than copied. What is always sent is
+   ONE RUN OF WORDS, its labels joined by a dot, under the card's caption voice (`.handle-cap` and its
+   group): a list of facts, not a column of controls somebody has greyed out — and one paragraph rather
+   than four two-line items, because the first drawing was 800px at 390 and scrolled at 320 even shrunk to
+   the floor. *"I don't like scrolling. If you need to leave things more compact or smaller font."* The
+   line at the foot takes no room until a tick has something to say. */
+.notify-always { list-style: none; margin: 0; padding: 0; font-size: .85rem; line-height: 1.45; color: var(--dim); }
+.notify-always li { display: inline; }
+.notify-always li + li::before { content: ' · '; color: var(--faint); }
+.notify-card .notify-cap { margin: .7rem 0 .2rem; }
+.notify-card .notify-said, .notify-card .notify-held { margin: .6rem 0 0; }
+.notify-card .notify-said:empty { margin: 0; }
+/* THE BOX BEING SAVED LOOKS IT. `send_` disables the row's own box for the round trip, and a disabled
+   `.check` was drawn exactly like a live one — opacity 1, a pointer — so a second tap on it was a tap that
+   did nothing, with nothing to say so but a faint "Saving…" at the foot of the card (review, 9 Oct). Only
+   that row: every other box on the card stays live (`notify-pick` in me.js). Opacity, not a colour, so
+   it is the same box, ticked or not, only further away. */
+.notify-card .check input:disabled + .box { opacity: .45; }
+.notify-card .check:has(input:disabled) { cursor: progress; }
 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--dim); font-size: .82rem; }
@@ -1415,6 +1525,25 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   animation: toast-in .2s ease-out;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, .5rem); } }
+
+/* ---------- THE LINE WHILE THE APP ASKS AGAIN ---------------------------------------------------
+   `#reconnect` — see `RECONNECT` in shell.js. NOT THE BANNER, which is what the owner did not want:
+   no amber, no address, no advice, because the person reading it has nothing to do. The faint ink of
+   an aside at the size of one, in the strip the banner would use, on the raised black every card here
+   sits on. Under the banner and under a sheet; over the column, so a line that swallowed the tap
+   beneath it would be a fault of its own — it takes no presses at all.
+
+   EMPTY, IT IS NOTHING, and it is emptied rather than hidden — the note in index.html says why. */
+#reconnect {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 28;
+  top: calc(var(--top) + var(--safe-top) + .5rem);
+  margin: 0; max-width: calc(100% - 2rem);
+  padding: .3rem .8rem; border: 1px solid var(--line); border-radius: 2px;
+  background: var(--raised); color: var(--dim);
+  font-size: .78rem; line-height: 1.35; text-align: center;
+  pointer-events: none;
+}
+#reconnect:empty { padding: 0; border: 0; }
 
 /* Somebody who has asked their phone to stop animating things means it. */
 @media (prefers-reduced-motion: reduce) {
@@ -2028,15 +2157,33 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
              font-size: 1.1rem; line-height: 1; cursor: pointer; flex: none; }
 .post-edit:active { color: var(--gold); }
 
-/* The reactions and the share button, on one line under the picture — the place the heart held,
-   which is where the eye already goes and where the thing you can do about a photograph belongs.
-   `align-items: flex-start` because the reactions WRAP: with two rows of faces, a centred share
-   button would float in the middle of them. */
-.post-acts { display: flex; align-items: flex-start; gap: .3rem; padding: .35rem 0 .1rem; }
-.post-acts .reacts { flex: 1 1 auto; margin: 0; min-width: 0; }
+/* ---------- THE SLOT FOR THE FACES, UNDER THE PICTURE ---------------------------------------------
+   The place the heart held, which is where the eye already goes and where the thing you can do about
+   a photograph belongs. ONE CHILD NOW, SO A BLOCK AND NOT A FLEX ROW: it was a flex row because the
+   Share button sat beside the faces, `align-items: flex-start` because the faces wrapped. Share is a
+   tile in the row below (`postTiles_`) and the six faces never wrap (see REACTIONS below), so there
+   is nothing left to align. The 6px each pill keeps above and below it inside its own 44px cell is
+   most of the gap to the photograph and the caption; the padding only tops it up to about 9px each
+   side, where it was 5.2px above and 3.7 below and the row looked jammed between the two.
+   STILL `flex: none` IN `.page` (above), with `.post-when`: the skeleton in me.js draws one too. */
+.post-acts { padding: .2rem 0 .1rem; }
 .post-cap { margin: .15rem 0 0; font-size: .88rem; line-height: 1.5; }
 .post-cap b { font-weight: 600; margin-right: .3rem; }
-.post-when { margin: .35rem 0 0; }
+/* ---------- WHEN, AND HOW MANY ------------------------------------------------------------------
+   "3 weeks ago · 77 reactions". The total moved here off the end of the row of faces, where a bare
+   "77" read as one more face's count. The line is 44px tall whether or not there is a total, so the
+   first reaction on a post moves nothing below it: the tile row stays where the thumb left it. */
+.post-when { display: flex; align-items: center; flex-wrap: wrap; gap: 0 .45rem;
+             min-height: 44px; margin: 0; }
+.post-when + .tile-row { margin-top: 0; }   /* the 44px line already holds the space */
+/* (0,2,0), SO IT BEATS `button.text-action` (0,1,1), which gives every inline action `color: inherit`
+   and `.4rem` of side padding. Inherited here, the total would be the time's own `--faint`; it is
+   `--dim`, one step up, because it is the one thing on the line you can press — and a step, not ink,
+   because it must not be louder than the caption above it. No side padding, so it sits one dot after
+   the time rather than a gap and a dot after it. The 44px box and the dotted line stay the class's. */
+.post-when .react-who { padding-inline: 0; color: var(--dim); font-variant-numeric: tabular-nums; }
+/* AND `.is-pressed`: Safari withholds `:active` on touch — see `.react.is-pressed` below. */
+.post-when .react-who:active, .post-when .react-who.is-pressed { color: var(--ink); }
 
 /* ==================================================================================================
    WHAT PEOPLE SAID UNDER A POST.
@@ -2190,40 +2337,121 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 .btn-row .btn.on { background: var(--gold); color: #000; border-color: var(--gold); }
 
 /* ---------- REACTIONS -----------------------------------------------------------------------------
-   A row of faces. Wraps rather than scrolls — a sideways scroller inside a vertical feed is a
-   gesture fighting a gesture, and with five or six emoji there is nothing to scroll to anyway.
+   THE OWNER, 9 Oct: *"Also refine how the post reactions look. Looks abit scuffed right bow"*. What was
+   scuffed, measured on the row that was here: 2px-radius boxes whose edges were `--line-soft` (1.0:1
+   against the card) or `--line` (1.15:1), so some faces looked boxed and some loose; a box as wide as
+   its count (36.8, 46.7 or 59.2px), so 🎉 and the total dropped to a second line and a tap that added
+   a digit threw a face 43px down; a bare "77" at the end that read as another face's count; and
+   squares beside the real Share tile that looked like tiles left unfinished. docs/history/307.
+
+   PILLS, BECAUSE THE APP ALREADY HAS A PILL. The funnel's chips are a 32px, 16px-radius outline in
+   `--chip-line`, filled when chosen — a shape everybody using this app has pressed. A face is the same
+   kind of thing (pick one, see it chosen, take it back), so it joins that family rather than being a
+   third shape beside the chips and the tiles.
 
    With no emoji at all there is no row, and the markup says so in words for an admin rather than
-   leaving a gap that reads as a styling fault. That used to mean an empty `brand!reactions` cell;
-   the brand tab is a file in git now and `HOUSE_REACTIONS` is the floor, so the only way to see
-   that sentence is a payload older than the house set. See the note over `reacts()`.
+   leaving a gap that reads as a styling fault. See the note over `reacts()`.
 --------------------------------------------------------------------------------------------- */
-.reacts { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0 .2rem; }
+/* "YOURS" IS A GOLD TINT, AND IT IS THIS COMPONENT'S OWN. Declared on the two places it is drawn rather
+   than at `:root`, which is the house rule for a colour that belongs to one component — the chess
+   board's cream and charcoal are the precedent. Derived from `--gold`, so no new colour. */
+.reacts, .rx-head {
+  --react-mine: color-mix(in srgb, var(--gold) 16%, transparent);
+  --react-mine-down: color-mix(in srgb, var(--gold) 26%, transparent);
+}
+/* ---------- SIX EQUAL COLUMNS, WHATEVER THE COUNTS ARE ---------------------------------------------
+   A grid and not a wrapping flex row, because a flex row sized each face by its count, and one tap
+   that added a digit reflowed the row and threw a face onto the next line. Six columns of one width
+   cannot move. FACES WRAP ONLY WHEN THERE ARE MORE THAN SIX: the house set never does, at any width
+   from 320 up; a post's own cell naming more starts a second line IN THE SAME COLUMNS; a set of four
+   uses four of the six at the house set's width, so every post's row looks like every other's. The
+   3.75rem cap stops a wide card stretching them into lozenges, and they sit left, on the text edge.
+   `margin-inline: -2px` puts the first pill's edge back on the text column: each cell is its pill
+   plus 2px either side, so there is no dead pixel between two faces and none outside the first. */
+.reacts { display: grid; grid-template-columns: repeat(6, minmax(0, 3.75rem)); gap: 0; margin: 0 -2px; }
+/* UNDER 320, SIX CELLS WOULD BE NARROWER THAN THE FACES, so the row goes back to fingertip columns
+   that wrap — four and two at 280. Nothing in the app's measured widths is that narrow; this is the
+   floor, so the faces are never squeezed past a face. */
+@media (max-width: 319px) { .reacts { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); } }
+/* ---------- THE CELL IS THE BUTTON, THE PILL IS DRAWN INSIDE IT -----------------------------------
+   THE OLD NOTE SAID "Below the 44px rule on purpose: these sit in a row of five or six and a
+   full-height control would be a wall." The wall was right and is kept out — in spirit. In letter it
+   is reversed: the button is the whole 44px cell, in px as a finger needs, and the pill is its 32px
+   `::before`, 6px in from top and bottom — `.chip.sm`'s reach turned inside out, so what `check/ui.js`
+   measures IS what a thumb can hit, and the drawn chrome is smaller than the old 38px box was. At 320
+   six cells are 41.3px wide, which is the one thing under the floor: `ACCEPTED_TAP` in check/ui.js. */
 .react {
-  display: flex; align-items: center; gap: .25rem;
-  min-height: max(38px, 2.3rem); padding: 0 .55rem;
-  background: none; border: 1px solid var(--line-soft); border-radius: 2px;
-  color: var(--dim); font: inherit; font-size: .9rem; cursor: pointer;
-  transition: transform var(--quick) ease, border-color var(--quick) ease;
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: .2rem;
+  min-width: 0; height: 44px; margin: 0; padding: 0 4px;
+  background: none; border: 0; color: var(--dim);
+  font: inherit; line-height: 1; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--quick) ease;
 }
-/* Below the 44px rule on purpose: these sit in a row of five or six and a full-height control
-   would be a wall. They are an aside, not the thing you came to press. */
-.react:active { transform: scale(.9); }
-.react.any { border-color: var(--line); }
-.react.mine { border-color: var(--gold); }
-.react-e { font-size: 1rem; line-height: 1; }
-.react-n { font-size: .72rem; font-variant-numeric: tabular-nums; }
-.react.mine .react-n { color: var(--gold); }
+/* THE PLATE IS VISIBLE ON A CARD. `--line-soft` was 1.0:1 against the post's grey and `--line` 1.15;
+   the chip family's outline is the step a reader can see, over the 4% white wash the tick boxes and
+   the booking ticks already sit on (`.check .box`, `.bk-tick`). EVERY
+   FACE GETS IT, counted or not: a row of six identical pills is the tidy version, and the number
+   inside is what says somebody pressed it. Radius half the height — a pill, not a rounded square.
+   `::before` AND NOT `::after`: the house rule `.react::after { content: none }` (with the chips, the
+   buttons and the tiles, under "THE ONES THAT ARE ALREADY OBVIOUS") stays exactly as it is. */
+.react::before {
+  content: ''; position: absolute; inset: 6px 2px;
+  border: 1px solid var(--chip-line); border-radius: 16px;
+  background: rgb(255 255 255 / .04);
+  transition: background var(--quick) ease, border-color var(--quick) ease;
+}
+.react > span { position: relative; }
+.react-e { font-size: 1.05rem; line-height: 1; }
+/* THE COUNT IS READ, NOT A FOOTNOTE: .8rem in ink beside a 1.05rem face, where it was .72rem dim. */
+.react-n { font-size: .8rem; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+/* THREE CHARACTERS (100-999, or 1k-999k) STEP DOWN ONE SIZE rather than widen the column: at 320 a
+   cell is 41px and "212" beside a face at .8rem measured 1.4px past the pill's edge. On the BUTTON,
+   set by `reacts()`, rather than `:has()` on the count — one class, read by one rule, in every browser. */
+.react.is-long { gap: .1rem; }
+.react.is-long .react-n { font-size: .7rem; letter-spacing: -.05em; }
+/* YOURS IS GOLD, OUTLINED, FILLED AND HEAVIER — four ways at once, so it is not colour alone that says
+   it. Gold is "the one action" in this app, and this is the one you took. */
+.react.mine::before { border-color: var(--gold); background: var(--react-mine); }
+.react.mine .react-n { color: var(--gold); font-weight: 650; }
+/* PRESSED IS `.is-pressed` AS WELL AS `:active`, as on the chips these pills joined — see the note over
+   `.row.tap.counted:active`. Safari withholds `:active` on touch because every listener here is on the
+   window, and `-webkit-tap-highlight-color: transparent` above takes away the grey flash that was the
+   only other sign; `pressMark_` (shell.js) puts the class on at `pointerdown`. Without it, on an
+   iPhone, taking a reaction back or pressing a face signed out showed nothing at all. */
+.react:active, .react.is-pressed { transform: scale(.94); }
+.react:active::before, .react.is-pressed::before { background: rgb(255 255 255 / .1); }
+.react.mine:active::before, .react.mine.is-pressed::before { background: var(--react-mine-down); }
+/* THE RING GOES ON THE PILL, not on the 44px cell around it, which would draw a box round a pill. */
+.react:focus-visible { outline: 0; }
+.react:focus-visible::before { outline: 2px solid var(--gold); outline-offset: 1px; }
+/* THE FACE YOU JUST PRESSED LANDS, ONCE. The press above lasts while the finger is down; the repaint
+   that follows the tap replaces the button, so the press cannot also say it LANDED — the new button
+   has never been pressed. `is-pop` is set on the new one for exactly one paint (`REACT_POP_` in
+   posts.js) — on a face added or moved to, never on one taken back, and never for somebody who has
+   asked for less movement. */
+.react.is-pop { animation: react-land .24s cubic-bezier(.2, .9, .3, 1.35); }
+@keyframes react-land { from { transform: scale(.82); } }
+@media (prefers-reduced-motion: reduce) {
+  .react.is-pop { animation: none; }
+  .react:active, .react.is-pressed { transform: none; }
+}
 
-/* THE TOTAL, at the end of the row of faces. Deliberately not a face: it is a number you press to
-   ask a question, not a reaction you can add, and giving it a border like the others would put a
-   seventh button in a row of six. */
-.react-who {
-  min-height: max(38px, 2.3rem); padding: 0 .4rem;
-  background: none; border: 0; color: var(--faint);
-  font: inherit; font-size: .78rem; font-variant-numeric: tabular-nums; cursor: pointer;
-}
-.react-who:active { color: var(--ink); }
+/* ---------- WHO REACTED: THE FACE IS THE HEADING ---------------------------------------------------
+   The sheet's section-label style (`#sheet-body h2`: .7rem, small caps, dim) made the face the
+   smallest thing in the sheet, about 10px, and glued its count to it. Each group is a `<section>`
+   headed by the same pill as the row, bigger, and yours is the gold one; your own name comes first
+   with a gold "you" after it. Groups run most-used first (`on('who-reacted')`). */
+.rx-group + .rx-group { margin-top: 1.1rem; }
+#sheet-body .rx-head { display: flex; align-items: center; margin: 0 0 .25rem; padding: 0; }
+.rx-pill { display: inline-flex; align-items: center; gap: .3rem; height: 32px; padding: 0 .75rem;
+  border: 1px solid var(--chip-line); border-radius: 16px; background: rgb(255 255 255 / .04); }
+.rx-pill .react-e { font-size: 1.25rem; }
+.rx-pill .react-n { font-size: .9rem; }
+.rx-pill.mine { border-color: var(--gold); background: var(--react-mine); }
+.rx-pill.mine .react-n { color: var(--gold); font-weight: 650; }
+.rx-you { color: var(--gold); font-size: .72rem; margin-left: .3rem; }
 
 /* Dropping something from the basket. A small ✕ beside the price rather than a swipe — a swipe
    here would fight the one that changes tabs. */
@@ -2384,39 +2612,156 @@ button.text-drop { color: var(--bad); }
    it is sized in rem with the type and is about 18px a key at 320, which is a picture of a
    keyboard and not a breach of the 44px floor. The rungs and the line are the targets, and those
    are px. */
-/* ---------- VIDEOS: A BOX, A PLAYER, A TILE, A LIST ----------------------------------------------
-   THE PLAYER IS 16:9 AND STATES IT, so the card does not jump when a video is chosen and an iframe
-   (which has no size of its own worth having — 300x150) fills the width it is given. Black, not
-   `--sunk`, because it is a picture's letterbox and every player's letterbox is black.
-   THE ROWS ARE 44px TALL AT LEAST, in px: a fingertip does not scale with the root font. */
-.vid-box .vid-q { width: 100%; margin: 0 0 .5rem; }
-.vid-stage { display: none; position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;
-             border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
-.vid-stage.on { display: block; }
+/* ---------- VIDEOS: A PILL, A WATCH PAGE, AND A LIST OF PICTURES — YOUTUBE'S SHAPES IN OUR COLOURS --------
+   *"Can you also make the video serger widget look more like YouTube."* (9 Oct, note 311.) The shapes
+   are YouTube's — a fully rounded search box with a magnifier in it, a result that is a 16:9 picture
+   with a badge in its corner and a bold two-line title beside it, and a watch page that is the
+   player, then its title, then one dim line — and the colours are this app's. NOTHING IS RED, which
+   is the one colour every YouTube page leads with: here red only ever means something is wrong (the
+   note over `--bg`), and a red play mark on a list of cartoons would be a warning nobody meant.
+
+   THE CARD'S OWN COLOURS ARE DECLARED ON THE CARD, the chess board's rule: each is a mix of tokens
+   that already exist, named here so the card is the only place they are offered. (The player's black
+   is not one of them: a letterbox is every video's, so it is `--letterbox` at `:root`.)
+     --vid-scrim      the badge's plate: YouTube's black-at-80% behind its duration, so a word sits
+                      on any picture, light or dark.
+     --vid-veil       the lighter wash over the picture of the row that is playing.
+     --vid-frame      the poster: a flat neutral frame, YouTube's missing picture — about a tenth of the
+                      ink over the card, where YouTube's is a tenth of white over its page.
+     --vid-mark       the kind's mark in that frame, as quiet as the card's faint words.
+   THE RADIUS IS YOUTUBE'S 8px, not the app's 3: a thumbnail's rounded corner is half of what makes a
+   list read as YouTube's at a glance. px, like every radius here — a corner that grew with the root
+   font would round differently on every phone.
+
+   NO GRID FOR A WIDE CARD. There was one, from a 30rem container query, and no card ever reached it:
+   measured on 9 October the card is 217px wide at 320, 271 at 390, 376 at 768, 341 at 1280 and 303 at
+   1920, because a column is a phone-width card on every screen, and the Saved column draws it at 271.
+   Untested CSS shipped to every phone for a width that does not exist, so it went (review of 9 Oct).
+   Every width gets the compact row, which is what YouTube itself draws in a column that size — its
+   watch page's "up next" list. */
+.vid-box { --vid-r: 8px;
+           --vid-scrim: color-mix(in srgb, var(--bg) 80%, transparent);
+           --vid-veil: color-mix(in srgb, var(--bg) 72%, transparent);
+           --vid-frame: color-mix(in srgb, var(--ink) 11%, var(--raised));
+           --vid-mark: var(--faint); }
+
+/* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`,
+   and the `<label>` round both hands a tap on it to the box. The box keeps the stylesheet's 16px type
+   (iOS zooms on anything smaller) and its 44px floor; only its corners and its left room change. The
+   magnifier's own 18px is px because every `.tile-i` is; the room round it is rem, like every length
+   that is not a target. */
+.vid-search { position: relative; display: block; margin: 0 0 .5rem; }
+.vid-search .tile-i { position: absolute; left: 1rem; top: 0; bottom: 0; margin: auto 0;
+                      color: var(--dim); pointer-events: none; }
+.vid-search:focus-within .tile-i { color: var(--gold); }
+.vid-box .vid-q { width: 100%; margin: 0; padding-left: calc(1rem + 18px + .55rem); padding-right: 1rem;
+                  border-radius: 999px; }
+/* THE ✕ A BROWSER DRAWS IN A SEARCH BOX, IN THE CARD'S OWN GREY. `type="search"` is what puts it there,
+   and it is half of what makes the pill read as YouTube's — but Chromium draws it in its own default
+   blue, the one colour on the card from outside the palette, inside a pill whose ring has just turned
+   gold. Drawn here as the same 1.4-stroke cross the tiles use, as a mask, so it is painted in
+   `--dim` and goes gold with the magnifier. WebKit and Blink only; Firefox draws no ✕ at all. */
+.vid-box .vid-q::-webkit-search-cancel-button {
+  -webkit-appearance: none; appearance: none; width: 14px; height: 14px; margin: 0; cursor: pointer;
+  background: var(--dim);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat; }
+.vid-search:focus-within .vid-q::-webkit-search-cancel-button { background: var(--gold); }
+
+/* THE WATCH PAGE, ONLY WHILE SOMETHING PLAYS. The player is 16:9 and states it, so the card does not
+   jump when a video is chosen and an iframe (whose own size, 300x150, is worth nothing) fills the
+   width it is given. Then the title — YouTube's is the boldest line on the page — and the dim line,
+   with the Full screen tile BESIDE them rather than under them: see `vidNow_` for the 40px it cost. */
+.vid-watch { display: none; margin: 0 0 .6rem; }
+.vid-watch.on { display: block; }
+.vid-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--letterbox);
+             border-radius: var(--vid-r); overflow: hidden; }
 .vid-stage .vid-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
-                         background: #000; object-fit: contain; }
-.vid-acts { margin: .45rem 0 0; }
-.vid-stage:not(.on) + .vid-acts { display: none; }
+                         background: var(--letterbox); object-fit: contain; }
+.vid-under { display: flex; align-items: flex-start; gap: .5rem; }
+.vid-now { flex: 1 1 0; min-width: 0; padding: .5rem .1rem 0; }
+.vid-now-t { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.3; color: var(--ink);
+             overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical;
+             -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.vid-now-k { margin: .2rem 0 0; font-size: .74rem; line-height: 1.35; color: var(--dim); }
+/* `.vid-under` AND NOT `.vid-acts` ALONE: `.tile-row` sets its own margin far below this, and a single
+   class here would lose to it. */
+.vid-under .vid-acts { flex: none; margin: .4rem 0 0; }
+
 .vid-said { margin: .45rem 0 .3rem; font-size: .78rem; }
-.vid-list { list-style: none; margin: 0; padding: 0; }
-.vid-list li { margin: 0; padding: 0; }
-.vid-row { display: flex; flex-direction: column; align-items: flex-start; gap: .12rem; width: 100%;
-           min-height: 44px; padding: .45rem .1rem; text-align: left; text-decoration: none;
-           background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0;
-           color: var(--ink); font: inherit; cursor: pointer; }
-.vid-row .vid-t { font-size: .92rem; line-height: 1.25; overflow-wrap: anywhere; }
-.vid-row .vid-k { font-size: .72rem; color: var(--dim); }
+
+/* ---------- THE ROW: A PICTURE, A TITLE, A LINE ---------------------------------------------------
+   COMPACT: the picture on the left at 42% of the row — YouTube's "up next" proportion — and the words
+   on the right; no wider than 7rem, which a card at 1280 would otherwise pass, with every row a
+   picture 81px tall. No rule between rows; YouTube separates results with air, not lines.
+   THE AIR IS INSIDE THE ROW, as padding, not between rows as a gap: the same pitch, but the space
+   between two pictures is part of a row's target rather than a strip that belongs to neither. A card
+   with a long list is drawn at the 0.7 floor (`paneReach_`), and there a 51px picture alone is a 36px
+   target. The row is still 44px tall at least, in px: a fingertip does not scale with the root font.
+   THE WORDS COME FIRST IN THE MARKUP (`vidRow_` says why) and `order` draws the picture first. */
+.vid-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.vid-list li { margin: 0; padding: 0; min-width: 0; }
+.vid-row { display: flex; align-items: flex-start; gap: .6rem; width: 100%; min-height: 44px; margin: 0;
+           padding: .25rem 0; text-align: left; text-decoration: none; background: none; border: 0;
+           border-radius: var(--vid-r); color: var(--ink); font: inherit; cursor: pointer; }
+.vid-th { order: -1; position: relative; flex: 0 0 min(42%, 7rem); aspect-ratio: 16 / 9;
+          border-radius: var(--vid-r); overflow: hidden; background: var(--vid-frame); }
+/* THE POSTER IS UNDER EVERY PICTURE, NOT INSTEAD OF ONE: it is what shows while a picture loads and
+   what is left when one fails, so no row is ever a hole and the list keeps one rhythm. A flat frame
+   and the kind's mark — no letter, no gold: `vidPoster_` says why. The mark sits a little above the
+   middle (the padding), clear of a "Documentary" badge in the corner at 320. */
+.vid-poster { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+              padding-bottom: 12%; background: var(--vid-frame); color: var(--vid-mark); }
+.vid-poster .tile-i { width: 20px; height: 20px; }
+/* THE ROW THAT IS PLAYING SAYS "PLAYING" IN THE MIDDLE OF ITS PICTURE, and the poster's mark is in the
+   middle too: under the veil it showed through and ran into the word. A picture covers the mark
+   anyway; a poster that is playing has nothing else to say. */
+.vid-row.on .vid-poster .tile-i { visibility: hidden; }
+.vid-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+/* A PICTURE THAT FAILED, taken away by the listener in games.js, so the poster under it is what shows.
+   Not left to the browser: Safari draws its broken-picture mark even with `alt=""`. */
+.vid-img.is-gone { display: none; }
+/* THE BADGE, IN YOUTUBE'S DURATION SPOT: a kind that tells the row apart, and the out-arrow on a row
+   that leaves. YouTube's is about 12px; this was .62rem, 8px at 320 and 6px on an admin's card at the
+   zoom floor, which is a smudge — .68rem is as large as "Documentary" and its arrow can be and still
+   fit a 91px picture at 320. */
+.vid-badge { position: absolute; right: .3rem; bottom: .3rem; display: inline-flex; align-items: center;
+             gap: .2rem; padding: .08rem .3rem; border-radius: 4px; background: var(--vid-scrim);
+             color: var(--ink); font-size: .68rem; font-weight: 600; line-height: 1.35; }
+.vid-out { display: inline-flex; }
+.vid-badge .tile-i { width: 11px; height: 11px; }
+.vid-playing { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+               gap: .3rem; background: var(--vid-veil); color: var(--gold); font-size: .66rem;
+               font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.vid-playing .tile-i { width: 12px; height: 12px; fill: currentColor; }
+.vid-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .22rem; }
+/* TWO LINES OF TITLE AT MOST, then an ellipsis — YouTube's clamp, and the reason a long title no longer
+   makes one row three times the height of the rest. `overflow-wrap: anywhere` still holds a title with
+   no space in it inside the row at 320. */
+.vid-row .vid-t { font-size: .86rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
+                  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+                  line-clamp: 2; overflow: hidden; }
+/* AND ONE LINE OF META, clipped with an ellipsis, as YouTube's is. Two lines of title and one of this
+   are shorter than the picture at every width measured, so every row is the picture's height and the
+   list keeps one pitch. */
+.vid-row .vid-k { font-size: .7rem; line-height: 1.35; color: var(--dim);
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vid-row.on .vid-t { color: var(--gold); }
-.vid-row.is-out .vid-k { color: var(--faint); }
+/* A PRESS DIMS THE PICTURE for as long as the finger is on it — no movement, so nothing for
+   `prefers-reduced-motion` to take away. */
+.vid-row:active .vid-th { opacity: .82; }
+.vid-row:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .vid-none { padding: .45rem 0; font-size: .85rem; }
 /* A FILM NOT IN THE DRIVE YET IS A ROW THAT OPENS NOTHING, and looks it: dimmed, no pointer. The row is
    still 44px — it is read, not pressed, but it sits in a list of things that are pressed. */
 .vid-row.is-off { cursor: default; }
+.vid-row.is-off .vid-th { opacity: .5; }
 .vid-row.is-off .vid-t { color: var(--dim); }
+
 /* THE ADMIN'S SYNC ROW: the silver tile and, beside it, when it last ran — the tile's note made visible,
    since a 44px plate has no room for it. Drawn for an admin only; for anybody else `.vid-admin` is an
    empty element and takes no room. */
-.vid-admin .tile-row { margin: .45rem 0 0; }
+.vid-admin .tile-row { margin: 0 0 .5rem; }
 .vid-synced { flex: 1 1 0; min-width: 0; font-size: .72rem; line-height: 1.3; color: var(--dim);
               overflow-wrap: anywhere; }
 
@@ -2687,7 +3032,20 @@ button.text-drop { color: var(--bad); }
    picture is a snowfield, and then it is gone — so a scrim is laid over the bottom two-thirds
    once there is something behind it. Only then: over the gradient it would be a shadow over a
    shadow. */
-.feed-art.has-photo::before {
+/* ---------- AND ONLY WHERE THERE ARE WORDS: IT WAS THE GREY ON EVERY REEL ---------------------------
+   ASKED ON 9 OCT: *"is there a grey effect on reels? i dont like that if there is remove it."* There
+   was, and it was this. A reel is a clip with no words on it — `feedSlide` draws no `.feed-text` for
+   one — and the scrim was laid on `has-photo` alone, so every reel had black at 92% across its
+   bottom eighth, 55% at the middle and a fade up to three-quarters of the way: on a bright frame (both
+   clips here are white buildings on a pale model), the lower two-thirds of the picture read as a
+   grey wash with no text above it to explain it. Screenshot at 390x844 before and after, note 319.
+
+   THE FLOOR WAS FOR THE WORDS, SO IT GOES WHERE THE WORDS ARE. `:has()` rather than a class, the
+   receipts' argument: whether a slide carries words is a fact about its contents, and a class would
+   be that fact written a second time in the one place nothing checks it. A fact with a photograph
+   keeps its scrim exactly as it was; a clip with a caption gets one; a clip with none gets the
+   picture and nothing over it. */
+.feed-art.has-photo:has(> .feed-text)::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(to top, rgba(0,0,0,.92) 12%, rgba(0,0,0,.55) 45%, transparent 78%);
 }
@@ -3373,7 +3731,7 @@ button.text-drop { color: var(--bad); }
 .msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: .8rem; }
 .msg-pic img { display: block; width: 100%; border-radius: .8rem; }
 .msg-pic img { height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
-.msg-vid { max-height: 20rem; background: #000; }
+.msg-vid { max-height: 20rem; background: var(--letterbox); }
 /* A CLIP THAT WOULD NOT PLAY becomes a link (`postVidFail_` in posts.js) and kept `.msg-vid` — so it
    was a 16rem black slab with an underlined gold line at its top edge and nothing under it. Drawn as
    the file chip it now is: a plate, ink, no rule. */
@@ -3861,20 +4219,49 @@ button.text-drop { color: var(--bad); }
 
    `line-height` AND `height: auto` TOGETHER. Setting one and not the other leaves the other doing
    the padding; both, and the row is as tall as the word in it. */
+/* ---------- THE ONE SELECT THAT IS NOT THE FIELD, AND WHY ------------------------------------------
+   EVERY OTHER SELECT IN THE APP IS THE FIELD'S BOX — 44px, 16px, the arrow — and the owner's request of
+   9 October was for one ordinary dropdown everywhere. THIS ROW KEEPS ITS RECEIPT CLOTHES, and that is
+   measured rather than preferred: the answer column is **56 / 75 / 81px** at 320 / 390 / 768, and a
+   16px answer in a 44px box with a 2rem arrow in 75px is three letters and an ellipsis; and a 44px row
+   detaches the dashed rule it sits on by 24px, which was built twice and reverted twice (note 031 —
+   `ACCEPTED_TAP` in check/ui.js carries it). So the row's WORD is part of the target as well: `Kind`
+   is a `<label for>` its select (`receiptRow`, `bkCtl_` in book.js), a tap on it focuses the select and
+   asks for the platform's list, and a tap on the answer opens it directly. The row's figures are not:
+   they are the price, not the question. Until review found it on 9 October this said "the whole ROW is
+   the target", which had been the panel's hit test and stopped being true when the panel went.
+
+   WHAT IT SHARES IS THE ARROW, smaller — the same `▾`, from the same rule, so a dropdown on the receipt
+   reads as a dropdown, which for a week it did not (a dashed word with nothing to say it opens).
+
+   AND THE TEXT IS UNDER 16px, which on an iPhone zooms the page into a focused field — the reason the
+   field's rule is 16px exactly. The viewport's `maximum-scale=1` (index.html) is what stops that zoom
+   on this row, and it was already what stopped it on every row while the panel stood. */
 .bk-sel {
   appearance: none; -webkit-appearance: none;
   width: 100%; height: auto; min-height: 0;
-  padding: 0; margin: 0;
+  --sel-tri: 4px; --sel-at: 4px;   /* whole pixels: the two halves of the arrow must meet on one */
+  padding: 0 calc(var(--sel-tri) * 2 + .3em) 0 0; margin: 0;
   font: inherit; line-height: 1.35;
   text-align: right; text-align-last: right;
-  color: inherit; background: none; border: 0; border-radius: 0;
+  color: inherit; background-color: transparent; border: 0; border-radius: 0;
   cursor: pointer;
   /* A SELECT CANNOT WRAP. "Halex Dias" in a 55px column was cut mid-word with no sign it had been —
      `Halex Dia` reads as somebody's name, not as a truncation. An ellipsis says the rest is there,
      and the full text is in the picker the moment it is opened. */
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* A DISABLED ROW HAS NO ARROW, because it opens nothing: `send_` (me.js) disables every control on the
+   card while a booking is on the wire, and an arrow on a box that will not open is a promise broken. */
+.bk-sel:disabled { background-image: none; padding-right: 0; }
+/* THE WORD THAT OPENS ITS ROW SAYS SO TO A MOUSE, as the answer beside it does. */
+label.bk-k { cursor: pointer; }
 .bk-sel:focus { outline: 0; }
+/* A KEYBOARD ON THIS ROW HAD NOTHING TO SEE. The box has no edge to turn gold, so the arrow does, and
+   the answer comes up to full ink: the same "this one" the field's gold edge says, on the one select
+   that has no edge (note 315). `:focus-visible`, so a tap — which opens the platform's list over it
+   anyway — leaves the row as it was. */
+.bk-sel:focus-visible { --sel-arrow: var(--gold); color: var(--ink); }
 /* ---------- LOCKED, NOT MISSING --------------------------------------------------------------------
    A ROW WHOSE ANSWER IS NOT YOURS TO GIVE keeps its place, its label and its value — the venue of the
    class you are joining is worth reading even though you cannot change it. What it loses is the
@@ -3949,137 +4336,29 @@ button.text-drop { color: var(--bad); }
    as twelve equal lines you have to check one by one. */
 .bk-sel:has(option[value=""]:checked) { color: var(--faint); }
 /* ---------- AND THE SAME, SAID BY A CLASS, FOR THE CONTROL THAT IS NOT A SELECT ------------------
-   A QUESTION TAKING SEVERAL ANSWERS IS A BUTTON THAT OPENS A SHEET — see `stepMulti_` — wearing
-   `.bk-sel` because it is the same object on the card: right-aligned, no chrome, the answer as its
-   own text. What it cannot inherit is the rule above, which recedes an unanswered row by asking a
-   `<select>` whether its blank option is chosen. A button has no options, so it says so itself.
-   A `<button>`'s own font and alignment are not inherited either, which `font: inherit` and the
-   `text-align` on `.bk-sel` already set — the one thing left is the browser's centring of button
-   text, which that rule's `text-align: right` overrides. */
+   A QUESTION TAKING SEVERAL ANSWERS IS A BUTTON THAT OPENS A LIST OF CHECKBOXES UNDER ITS ROW — see
+   `stepMulti_` — wearing `.bk-sel` because it is the same object on the card: right-aligned, no
+   chrome, the answer as its own text, the arrow. What it cannot inherit is the rule above, which
+   recedes an unanswered row by asking a `<select>` whether its blank option is chosen. A button has no
+   options, so it says so itself. A `<button>`'s own font and alignment are not inherited either, which
+   `font: inherit` and the `text-align` on `.bk-sel` already set. */
 .bk-sel.is-unset { color: var(--faint); }
-/* ---------- THE LIST INSIDE THAT SHEET -----------------------------------------------------------
-   ONE FULL-WIDTH BUTTON PER OPTION, which is the shape every other list in a sheet has, and the
-   reason this is a sheet at all: `#sheet-body` scrolls where `.pane` does not, so a subject list
-   forty long costs nothing and every option is a real fingertip. `.btn` is already `width: 100%`
-   and already carries the 44px floor, so this is the gap between them and the tick in front.
-   THE TICK IS A GLYPH RATHER THAN A FILL. `.btn-row .btn.on` is the gold-filled chosen button, and
-   a column of eight gold slabs is the loudest thing in the app on a list where several are normally
-   chosen. Full ink and a ✓ says the same thing at reading volume — and `aria-pressed` says it to a
-   screen reader, which no colour can. */
-/* ---------- THE LIST HANGS OFF THE FIELD ----------------------------------------------------------
-   THREE SHAPES OF THIS CONTROL HAVE BEEN REPORTED AND THIS IS THE FOURTH. A `<select>` shut on
-   every choice; a sheet covered the app; a page that REPLACED the form was worse than either. What
-   was asked for each time is one thing — *"i prefer drop down list, one that allows multiselect, but
-   doesnt disapear after each option click"* — and it is what this is.
-
-   `#drop` IS A SIBLING OF THE SCREENS, not a box in the card, and the reason is `overflow: hidden`
-   on `.pane`. A panel inside the card is clipped by it at any position, and `position: fixed` does
-   not get out either: `placeCells` transforms every column, and a transformed ancestor becomes the
-   containing block for a fixed descendant and goes on clipping it. Three numbers come from
-   JavaScript — `left`, `top` and `max-height` — and everything else is here.
-
-   THE WIDTH IS NOT THE FIELD'S WIDTH, and it cannot be. The answer column on that card is
-   **56.3 / 75.3 / 80.9px** at 320 / 390 / 768, which is a drop-down four characters wide. `20rem`
-   capped at the viewport's own gutter is the widest a phone can hold, and the right edges are lined
-   up in JavaScript because the value it hangs off is right-aligned.
-
-   IT SCROLLS ONLY IF IT HAS TO. `max-height` is set from whichever side of the field has more room,
-   so a long list gets a scroller and a short one never does — and `touch-action` is set from the
-   measured overflow rather than declared here, which is `padReach_`'s rule on the notepad: a box
-   that keeps a gesture it cannot use is a box you cannot swipe off. One writer, so there is no
-   cascade to lose.
-
-   43 AND 44, WHICH PUTS IT OVER THE APP AND UNDER THE SHEET (45/46) AND THE TOAST (50). A drop-down
-   that covered a sheet would be a popover over a modal, and nothing here opens both. */
-#drop-back { position: fixed; inset: 0; z-index: 43; }
-#drop {
-  position: fixed; z-index: 44;
-  width: min(20rem, calc(100vw - 2rem));
-  padding: .55rem .6rem .6rem;
-  border: 1px solid var(--line); border-radius: var(--r);
-  background: var(--raised);
-  /* THE SHADOW IS WHAT SAYS "OVER", and it is doing the job a scrim would otherwise do. Without it
-     a panel the same colour as a raised card reads as part of the card behind it. */
-  box-shadow: 0 .6rem 1.6rem rgba(0,0,0,.55);
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-}
-/* WHAT IS TICKED, ABOVE THE LIST. The field itself stays visible — the panel hangs below it rather
-   than over it — but its text is right-aligned in an 80px column and ellipsises at the second
-   subject, so this is the only place several answers can be read at once. The QUESTION is not
-   repeated: it is on the row this is hanging off, and one fact drawn twice is the fault this
-   stylesheet already records where a widget printed its own name over its own heading. */
-.drop-say { margin: 0 .1rem .1rem; font-size: .72rem; color: var(--dim); }
-.drop-say.is-none { color: var(--faint); }
-/* THE WAY OUT IS NOT THE ACTION. The options are what this panel is for; Done dismisses it, and so
-   does the row above and a tap anywhere else. `.btn quiet` rather than the gold one, and no top
-   margin of its own — `.pick-list` already carries the gap below it. */
-.drop-done { margin: 0; }
-/* ---------- AND EVERY OTHER `<select>` HANGS THE SAME PANEL -----------------------------------------
-   *"should be consistent with the booking multiselect drop down list"*. `selOpen_` in book.js draws a
-   single-choice select's options into `#drop` with the same `.pick-list` and `.pick-opt` as the
-   booking list, and this is the one rule that stops the platform's own picker opening instead: a
-   finger, a pen or a mouse never TARGETS the select, so no browser has a tap on it to open a wheel
-   from. The tap lands on the label or row behind it and is caught there. The whole argument —
-   including why this beats cancelling `touchstart` on an iPhone — is over `SEL_OK`.
-
-   NOT A DISABLED ONE, which keeps its `not-allowed` cursor and opens nothing either way; not
-   `multiple`; and not one carrying `data-native`, which is the way out for a select that genuinely
-   needs the platform's picker and says why beside it. Focus is untouched, so the keyboard reaches
-   every select as before. */
-select:not([multiple]):not([data-native]):not(:disabled) { pointer-events: none; }
-/* THE POINTER CURSOR GOES ON WHATEVER HOLDS ONE, since the select itself is no longer under the
-   mouse. `:where` so it outranks nothing: a parent that states its own cursor keeps it. */
-:where(:has(> select:not([multiple]):not([data-native]):not(:disabled))) { cursor: pointer; }
-/* OPEN SAYS SO ON THE FIELD, as the booking list's button already does with `.me-many`. */
-select[aria-expanded="true"] { border-color: var(--gold); }
-/* ONE LIST, NO DONE AND NO SUMMARY LINE, so the panel's own padding is the only space round it —
-   `.pick-list`'s margin is there to part it from the line above and the button below, neither of
-   which a single choice draws. */
-.sel-list > :first-child { margin-top: 0; }
-.sel-list > :last-child { margin-bottom: 0; }
-.sel-group .pick-list { margin: 0; }
-.sel-list > * + .sel-group, .sel-group + .pick-list { margin-top: .45rem; }
-/* OVER A SHEET WHEN IT HANGS FROM ONE. `#drop` is 43/44, under the sheet's 45/46, so that a booking
-   list can never cover a modal; a select INSIDE a sheet would open its list behind the sheet it is
-   in. Still under the toast (50). */
-#drop-back.over-sheet { z-index: 47; }
-#drop.over-sheet { z-index: 48; }
-/* THE `.pick-list` GRID IS UNCHANGED FROM THE PAGE VERSION and the arithmetic that chose it still
-   holds: twelve 44px buttons stacked is 528px, which no phone has room for above or below a field.
-   Two columns is six rows and 276px. `minmax(7.5rem, 1fr)` rather than `repeat(2, 1fr)`, so a wider
-   screen gets more columns and the number is never one somebody has to keep in step with a width. */
-.pick-list { display: grid; gap: .4rem; margin: .6rem 0;
-             grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); }
-/* ---------- `text-align: left` DID NOTHING, WHICH A SCREENSHOT IS WHAT SAID ---------------------
-   `.btn` IS `display: flex; justify-content: center`, so the label is an anonymous flex item sized
-   to its own content and centred by the CONTAINER — there is no line box for `text-align` to move.
-   It read as a decision and behaved as nothing, which is the `.price.faint` shape, and no check
-   here can see it: nothing overrides the declaration, so `check/cascade.js` and `check-css.js` are
-   both correctly silent.
-   LEFT, BECAUSE A LIST IS SCANNED DOWN ITS LEFT EDGE. Centred labels of different lengths put every
-   word in a different place, and the ✓ that marks a chosen one moves with them. */
-.pick-opt { justify-content: flex-start; text-align: left; min-height: 44px; }
-.pick-opt.on { color: var(--ink); border-color: var(--gold); }
-/* ---------- THE PICKER IS NOT THE CONTROL, AND IT WAS INHERITING BOTH THE WRONG COLOURS -----------
-   REPORTED AS *"the drop down list for the booking widget is hard to see. its like white on white
-   or something, unless i hover over it."* Measured: every `<option>` computed to
-   `background-color: rgba(0,0,0,0)` and `color: rgb(128,128,128)`.
-
-   BOTH HALVES COME FROM RULES THAT ARE RIGHT ABOUT THE CONTROL. `background: none` on `.bk-sel` is
-   what makes a dropdown look like a dashed value on a receipt rather than a form field — and the
-   list the browser opens is a separate surface the page does not paint, so a transparent option is
-   drawn on whatever the SYSTEM sheet is, which is white nearly everywhere. And the `--faint` above
-   is how an unanswered row recedes on the card; inherited into the popup it is grey on white,
-   which is exactly "hard to see unless I hover over it" — the hover is the only thing supplying
-   contrast, because it is the one colour the OS paints itself.
-
-   SO THE POPUP IS TOLD BOTH, and it is the one place in this stylesheet where a control's own
-   colours have to be restated rather than inherited: the option is not inside the card and cannot
-   read anything from it. `--bg` and `--ink` rather than the card's grey, because a native list
-   sits over the page and the page's own ground is what it should look like it came from. */
-.bk-sel option { background-color: var(--bg); color: var(--ink); }
-/* THE DASH IS STILL THE QUIET ONE — inside the list, where there is something to be quiet against. */
-.bk-sel option[value=""] { color: var(--faint); }
+/* ---------- THE TICKS UNDER THAT ROW ---------------------------------------------------------------
+   `stepManyList_` in book.js: the full width of the card, a row of it like `.bk-say`, and one
+   `.check` per option — the app's own checkbox, 44px a row in px. LARGER TYPE THAN THE RECEIPT'S,
+   because these are things to read and press rather than lines to check, and the receipt's
+   `min(.74rem, 2.85vw)` is eleven pixels on a phone. A dashed rule above and below, the receipt's own
+   line, so the list reads as opened out of the row above it rather than as a second card. */
+.bk > .bk-many-list { grid-column: 1 / -1; }
+.bk-many-list { margin: .1rem 0 .35rem; padding: 0 .1rem;
+  border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
+  font-size: .86rem; text-align: left; }
+/* `#drop`, THE PANEL THAT HUNG OFF A FIELD, WAS HERE — its place, its z-order over a sheet, its
+   two-column `.pick-list` of `.pick-opt` buttons, and `select { pointer-events: none }`, the one rule
+   that kept every platform's own list shut so the panel could open instead (notes 153, 226). All of
+   it went on 9 October, when the owner asked for *"a more stable standard simple conventional drop
+   down list"* (note 315). The option colours that sat at the foot of it are the select rule's now,
+   beside `input, select, textarea`, for every select rather than this card's alone. */
 .bk-m, .bk-r, .bk-t { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* The multiplier is the operation, so it carries the weight; the £/h is what it cost, so it is
    quieter; the running total is the answer, so it is the only one in full ink. */
@@ -5350,7 +5629,10 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    drag for its own reasons. Written in both places on purpose — the stylesheet decides whether the
    browser hands the movement over, the script decides what to do with it once it has, and neither
    can do the other's half. */
-select, [data-noswipe],
+/* `select` WAS FIRST IN THIS LIST, beside `[data-noswipe]`, and goes with it in `axisFree` — a swipe
+   that begins on a dropdown moves the column like a swipe anywhere else on the card, which is what it
+   did for the week the app's own panel made every select `pointer-events: none` (note 315). */
+[data-noswipe],
 /* THE FEW BOXES THAT STILL SCROLL, and every one of them is a thing you are IN rather than a card
    you are swiping past: a notepad you type in, a docket you tick off, a thread you read. Losing a
    swipe to one of those is not a fault — it is what you reached for.
@@ -7413,13 +7695,39 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    each on its own line, and the flyer somewhere below the fold. The point of drawing it underneath
    is that you see the change as you make it, and that is lost if you have to scroll to find it.
    A grid of even columns instead: three across on a phone, more on anything wider. */
-.fm-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+/* ---------- A ROW FOR AN ANSWER IN WORDS, HALF A ROW FOR A WORD, A SIXTH FOR A COLOUR ---------------
+   EVEN COLUMNS CUT THE ANSWERS. With the flyer's eight dropdowns in the select rule's own field (note
+   315), two even columns at 390 left 96px of room beside the arrow, and the review of 9 October found
+   half the defaults cut there — `Back to …`, `Waiting …`, `Colliers…`, `A5 · hal…` — where the old
+   small boxes had cut two. The answers are the campaign's name, the venue's, a size in words: data, in
+   a monospace face, twenty-one characters for `Colliers Wood Library`. The card is under 380px wide at
+   every size measured (218 / 272 / 376 / 342 at 320 / 390 / 768 / 1280), so no two of those can ever
+   sit side by side in it whole.
+
+   SO SIX TRACKS, AND EACH CONTROL TAKES WHAT ITS ANSWER NEEDS: a select whose answer is words is the
+   whole row (the labels with no class), one whose answer is a number is half (`fm-half`: Hours, To a
+   class), and a colour well a third (`fm-ink`), the three wells one row. Style is a word and has a row:
+   beside the three wells it left each a sixth, 31px at 320, and a well is a fingertip's target like
+   any other (`check/ui.js` said so the first time this was tried). Two rows taller than the even grid,
+   and the controls already scroll inside `.widget-squeeze`. */
+.fm-bar { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
           gap: .4rem .5rem; margin-bottom: .45rem; }
 .fm-bar label { display: flex; flex-direction: column; gap: .1rem; min-width: 0;
+                grid-column: 1 / -1;
                 font-size: .54rem; letter-spacing: .09em; text-transform: uppercase;
                 color: var(--faint); }
-.fm-bar select { font: inherit; font-size: .78rem; background: var(--sunk); color: var(--ink);
-                 border: 1px solid var(--line); border-radius: var(--r); padding: .3rem .4rem; }
+.fm-bar label.fm-half { grid-column: span 3; }
+.fm-bar label.fm-ink { grid-column: span 2; }
+/* `.fm-bar select` WAS HERE AT .78rem IN A 1.7rem BOX — a flyer's eight dropdowns drawn smaller than
+   every other select in the app, under the 16px an iPhone zooms on and under a fingertip. They are the
+   select rule's own field now (note 315: one dropdown everywhere), 44px and 16px.
+
+   EXCEPT UNDER 348px WIDE, WHERE THE WORDS GIVE WAY BEFORE THE ANSWER IS CUT. A whole row at 320 is
+   184px of room and `Colliers Wood Library` is 197px at 16px, so the answer comes down with the screen:
+   `4.6vw` is 14.7px at 320, where both twenty-character defaults fit, and 16px from 348 up. In `vw`
+   because the root's rem stops shrinking at 13.5px, under this width. The box stays 44px, which is the
+   fingertip; iOS does not zoom into it, for the reason the booking row gives (`maximum-scale=1`). */
+.fm-bar select { font-size: min(16px, 4.6vw); }
 /* A NATIVE COLOUR INPUT is a real picker on every platform, and a hex field is six characters of
    typing to find out you wanted a different green. */
 .fm-bar input[type=color] { width: 2.4rem; height: 1.7rem; padding: 0; cursor: pointer;
@@ -7696,14 +8004,11 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    on a laptop as on a phone. The first version said "they sit together on a tablet" over a
    `flex-basis` that could never be met; a grid of one column says what actually happens.
 
-   THE ARROW IS DRAWN, because the global rule takes the platform's off (`appearance: none`) and a
-   select with nothing on it reads as a text box. On the wrapper rather than the control, since a
-   `select` cannot hold a pseudo-element; `pointer-events: none` so a tap on it opens the list. */
+   THE ARROW WAS DRAWN HERE, on the wrapper, as the one select in the app that looked like a dropdown
+   — a `▾` in `::after`, because the global rule takes the platform's off. Every select carries that
+   arrow now, from the select rule itself (note 315), so the wrapper's went rather than draw a second. */
 .mat-pick { display: grid; gap: .3rem; margin-bottom: .35rem; }
-.mat-sel { position: relative; min-width: 0; display: block; }
-.mat-sel select { font-size: 16px; padding-right: 1.8rem; text-overflow: ellipsis; }
-.mat-sel::after { content: '▾'; position: absolute; right: .7rem; top: 50%;
-                  transform: translateY(-50%); color: var(--dim); pointer-events: none; }
+.mat-sel { min-width: 0; display: block; }
 /* THE BOX IS THE APP'S OWN CHECKBOX — `.check`, a 44px row with the tick drawn — and tighter than
    its usual padding, because it sits between two rows of controls rather than in a form of them. */
 /* NO PADDING NOW, because the row is already 44px and there are three selects above it rather than
@@ -10450,8 +10755,11 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    cream and charcoal set. `--line` is a hairline between rows, and as the only edge of a chip on
    black it measured as nearly nothing; this is the step a reader can see without it competing with
    the words. The card's TAGS are the third member: a tag with no kind keeps this outline, so it is
-   offered to `.qtags` too rather than written out there as `#3d3d3d` a second time. */
-.answers, .chips, .qtags { --chip-line: #3d3d3d; }
+   offered to `.qtags` too rather than written out there as `#3d3d3d` a second time.
+   A POST'S REACTIONS ARE THE FOURTH, and the sheet's heading pill for each face with them: the faces
+   are pills in this family's shape since the owner's *"Looks abit scuffed"* (9 Oct), and the outline
+   that made a chip visible on black is the one their old `--line-soft` boxes were missing. */
+.answers, .chips, .qtags, .reacts, .rx-head { --chip-line: #3d3d3d; }
 .answers { display: flex; flex-wrap: wrap; gap: .4rem .35rem; align-items: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
@@ -10638,6 +10946,56 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
 
+/* ---------- A YOUTUBE SHORT ---------------------------------------------------------------------
+   FOUR LAYERS IN THE PLACE ONE `<video>` HOLDS, numbered for the reason the three above are:
+
+     .feed-poster    the Short's own thumbnail, filling the frame as the mp4 reels' posters do
+     .feed-yt        the player's place — empty until `reelYtPlay_` (posts.js) builds one
+       iframe        YouTube's player, INVISIBLE until it says it is playing (`is-live`), so its black
+                     box, spinner, title, pause screen and error screen are never on the slide
+       .feed-yt-veil a clear layer over it that takes every touch for the column (see posts.js)
+
+   COVER, BY ARITHMETIC. An `<iframe>` has no `object-fit`, and YouTube's player inside it letterboxes
+   — so the frame is made the size that a 9:16 picture needs to COVER the slide and the slide crops it,
+   which is what `object-fit: cover` does for the videos. The slide is not 9:16: at 390x844 it is
+   272x593, narrower, so the Short is cropped about 31px each side. Sized in the box's own `cq`
+   units, which is why `.feed-yt` is a size container; a browser without them gets the frame the size
+   of the slide, letterboxed, which is the worst case and still a picture. */
+.feed-poster {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+.feed-yt { position: absolute; inset: 0; z-index: 0; overflow: hidden; container-type: size; }
+.feed-yt-frame {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 100%; height: 100%;
+  border: 0; opacity: 0; transition: opacity .3s ease;
+  /* THE VEIL TAKES THE TOUCH; this makes sure the frame cannot, even where a browser hit-tests an
+     iframe ahead of an empty span over it. */
+  pointer-events: none;
+}
+@supports (width: 1cqh) {
+  .feed-yt-frame { width: max(100cqw, 100cqh * 9 / 16); height: max(100cqh, 100cqw * 16 / 9); }
+}
+.feed-yt.is-live .feed-yt-frame { opacity: 1; }
+.feed-yt-veil { position: absolute; inset: 0; z-index: 1; }
+
+/* ---------- AND WHEN IT CANNOT PLAY: THE POSTER, AND ONE WAY OUT ------------------------------------
+   Drawn from the first paint and shown only on `is-dead`, so nothing moves when it appears. In the
+   middle, where the ▶ would be — a dead Short cannot be held, so that place is free — and in the
+   same charcoal wash as the Sound button, which is what a control over a picture looks like
+   everywhere this feature draws one. In px, the house rule for anything a finger aims at. */
+.feed-yt-out { display: none; }
+.feed-art.is-dead .feed-yt-out {
+  position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 16px; border-radius: 22px;
+  background: var(--over-wash); border: 1px solid var(--over-edge);
+  color: var(--over-ink); font-size: .82rem; white-space: nowrap; text-decoration: none;
+}
+/* A SOUND BUTTON ON A SHORT THAT CANNOT PLAY would be a control for nothing. */
+.reel:has(.feed-art.is-dead) .reel-sound { display: none; }
+
 /* ---------- A STOPPED REEL SAYS SO ----------------------------------------------------------------
    A VIDEO THAT IS PAUSED ON ITS FIRST FRAME LOOKS EXACTLY LIKE ONE THAT IS PLAYING A STILL SHOT,
    and the tap that stopped it left nothing on the screen to say it had worked. That is the sentence
@@ -10655,8 +11013,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   width: 4rem; height: 4rem;
   display: flex; align-items: center; justify-content: center;
   border-radius: 50%;
-  background: rgb(0 0 0 / .55);
-  color: #fff; font-size: 1.5rem; line-height: 1;
+  background: var(--over-wash);
+  color: var(--over-ink); font-size: 1.5rem; line-height: 1;
   /* The glyph's own bearing sits it left of centre in its box; a video's play mark is centred on
      the disc by eye, which is what every player does and what a screenshot showed this needed. */
   padding-left: .18em;
@@ -10673,16 +11031,17 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
      `.btn` IS GOLD, which is right for the one thing a form wants you to press and wrong laid over
      a moving picture: a screenshot of a whole slide showed a gold slab reading "Sound off" as the
      loudest thing on a card whose whole content is the clip. The same wash the paused mark uses,
-     which is also the wash `.feed-art.has-photo::before` lays under the words — so a control over a
-     picture looks the same wherever this feature draws one, on a bright frame and a dark one alike.
+     which is also the wash `.feed-art.has-photo:has(> .feed-text)::before` lays under the words — so
+     a control over a picture looks the same wherever this feature draws one, on a bright frame and a
+     dark one alike. `--over-wash` and its two partners at `:root` are that one colour, named.
 
      THE WORDS STAY. A glyph would have said the same thing in less room and the note below is the
      reason it does not: the button says the state it is IN, which is what every other switch in
      this app does, and "Sound off" cannot be read as "press to turn the sound off" by mistake the
      way a crossed-out speaker can. */
-  background: rgb(0 0 0 / .55);
-  border-color: rgb(255 255 255 / .28);
-  color: #fff;
+  background: var(--over-wash);
+  border-color: var(--over-edge);
+  color: var(--over-ink);
   /* `.btn` IS `width: 100%` AND THAT IS RIGHT EVERYWHERE ELSE — a button in a form fills its row.
      Absolutely positioned it made a gold bar across the top of the slide, which is what the
      screenshot showed before this line existed. `.btn-row .btn` already says the same thing for the
@@ -11529,14 +11888,8 @@ button.scr-sq { cursor: pointer; }
 
 /* ---------- WHAT THE BLANK STANDS FOR ----------------------------------------------------------
    ONE CONTROL, NOT TWENTY-SIX. See `scrRackHtml_` in games.js for what an alphabet of 44px keys did
-   to this card's height. Its own class rather than `.bk-sel`: that select belongs to the booking
-   form and carries its dashed underline and its grid-cell border, which are facts about a form
-   rather than about a select. */
-.scr-sel {
-  display: block; width: 100%; min-height: 44px; padding: 0 .6rem;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font: 600 .9rem/1 var(--font); cursor: pointer;
-}
+   to this card's height. `.scr-sel` drew its own box here — .9rem, 600, a padding of its own — and is
+   the select rule's field now, like every other select (note 315), so no rule names the class. */
 
 /* ---------- THE FOUR ACTIONS ------------------------------------------------------------------- */
 /* NOT `.btn`, WHICH IS `width: 100%` — right for the one action on a card and wrong for a row of
@@ -11626,6 +11979,87 @@ button.scr-sq { cursor: pointer; }
 .qp-compose > .qp-verdict { display: block; min-height: 1.3em; margin: 6px 14px 0; }
 /* The saved line under the verdict, indented with it to the field's own text (`.qp-saved` below). */
 .qp-compose > .qp-saved { margin: 2px 14px 0; }
+
+/* ---------- AN ESSAY'S SHEET -----------------------------------------------------------------------------
+   THE OWNER, 9 Oct, about a pupil on a forty-mark creative writing question: *"firstly it doesnt let him
+   do paragraphs and also i want it to mark with ai."* The pill above is five lines and then a letterbox;
+   an essay is four or five paragraphs. So a box that asks for extended writing (`ansEssay_`, keypad.js)
+   is a SHEET: the card's full width, the paper palette in tokens only (CLAUDE.md, two palettes), ruled in
+   the paper's own hairline (`--paper-rule`) one rule per line of writing, so the page reads as "write
+   here, at length" before a word is on it -- and a blank line between paragraphs is a ruled line with
+   nothing on it, which is what a paragraph break looks like on paper.
+
+   SIZED IN LINES OF WRITING, IN px. The ink is 16px (iOS zooms into anything smaller, keypad.js) on a
+   24px line, so a line is a pixel number on every screen and the rules land under the words. EIGHT LINES
+   TO START ON A PHONE, TWELVE ON A TABLET (`--sheet-lines`), growing with the essay to THE ROOM ABOVE THE
+   PAD and then scrolling inside, the line being typed kept in view (`kpCaretSeen_`). The room is the
+   screen less the pad's own height -- measured by keypad.js when it comes up (`--kp-h`) and the pad's
+   five rows of 48px until then -- less the paper's edges, the row under it and the 12px the pad is kept
+   clear by: 112px. The SAME CAP WITH THE PAD DOWN, so the sheet is the same height whether or not the
+   pad is up and putting it away moves nothing; and a capped sheet is what keeps a long essay from making
+   its card taller than its pane, which `paneReach_` answers by drawing the whole card smaller. Never less
+   than five lines, however short the screen. */
+.qp-essay {
+  --sheet-line: 24px;
+  --sheet-lines: 8;
+  --sheet-room: max(calc(var(--sheet-line) * 5), calc(100dvh - var(--kp-h, 273px) - 112px));
+}
+@media (min-width: 700px) { .qp-essay { --sheet-lines: 12; } }
+.qp-sheet {
+  display: block; margin: 0; padding: 12px 16px; box-sizing: border-box; cursor: text;
+  background: var(--paper); color: var(--paper-ink); border-radius: var(--r);
+}
+/* THE RING, AS ON THE BAR: gold while it is written in, green or amber once marked -- outside the paper,
+   on the card, where each reads at about 11:1. */
+.qp-sheet:focus-within { box-shadow: 0 0 0 3px var(--gold); }
+.qp-mark.is-right > .qp-sheet { box-shadow: 0 0 0 3px var(--good); }
+.qp-mark.is-near > .qp-sheet { box-shadow: 0 0 0 3px var(--warn); }
+/* THE DRAWING IS THE SHEET'S WRITING AREA: no padding of its own (the paper's is the margin), so line n
+   is 24n to 24n+24 from its top and its rule at 24n+23. `local`, so the rules scroll with the words. Four
+   classes, over the chat bar's `.kp-field.kp-words > .kp-show`. */
+.qp-sheet > .kp-field.kp-essay > .kp-show {
+  padding: 0; font: 400 16px/var(--sheet-line) var(--font);
+  min-height: min(calc(var(--sheet-line) * var(--sheet-lines)), var(--sheet-room));
+  max-height: var(--sheet-room);
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--sheet-line) - 1px),
+    var(--paper-rule) calc(var(--sheet-line) - 1px), var(--paper-rule) var(--sheet-line));
+  background-attachment: local;
+  overscroll-behavior: contain;
+}
+.qp-sheet > .kp-field.kp-essay .kp-caret { height: 1.2em; }
+/* HOW TO MAKE A PARAGRAPH, SAID WHERE THE PARAGRAPHS GO -- the question the owner asked, answered on the
+   empty sheet. GONE WITH THE FIRST LETTER, AND NOT BEFORE: this was `:empty`, and the caret is a span in
+   the drawing, so the hint went the moment the sheet was tapped -- the review of 9 Oct, on an iPad, saw
+   it on the sheet and then a blank ruled page with the pad up and "0 words", at the one moment it is
+   for. So it hangs on `is-blank`, which the field carries while nothing is written (`kpCount_`), and it
+   is laid BEHIND the caret, absolutely, so the caret blinks at the start of the first line over it as a
+   phone's placeholder does. */
+.qp-sheet > .kp-field.kp-essay.is-blank > .kp-show::before {
+  content: "Write your answer here. Press return to start a new paragraph.";
+  position: absolute; top: 0; left: 0; right: 0; color: var(--paper-dim); pointer-events: none;
+}
+/* THE ROW UNDER IT: the tiles at the start, the word count at the far end, where a glance finds it. */
+.qp-sheet-foot { margin: 8px 0 0; }
+.qp-words {
+  margin-left: auto; padding: 0 4px; white-space: nowrap;
+  font: 600 .78rem/1.3 var(--font); color: var(--dim); font-variant-numeric: tabular-nums;
+}
+.qp-ai-note { flex: 1 1 10rem; min-width: 0; padding: 0 4px; font: 400 .78rem/1.3 var(--font); color: var(--dim); }
+/* THE TILE'S NAME BESIDE IT (`ansBox_`): a mark alone was a sparkle nobody had been told the meaning of,
+   under the one action the sheet ends in. In the verdict's own voice, so it reads as the tile's caption
+   and not as a second control. */
+.qp-ai-say { padding: 0 2px; white-space: nowrap; font: 600 .78rem/1.3 var(--font); color: var(--ink); }
+/* AN ESSAY'S MARK, KEPT WHILE IT IS REVISED (`aiKeptPaint_`, keypad.js): said to be stale by its words
+   ("· before your changes") and by losing its colour -- the verdict in the plain dim of a line with no
+   verdict, and no green or amber ring on a sheet that is no longer the text that was marked. */
+.qp-essay.is-stale > .qp-verdict { color: var(--dim); }
+/* THE VERDICT AND THE SAVED LINE SIT UNDER THE ROW, in line with the paper's edge rather than the pill's
+   text, which is 14px in from a rounded end the sheet does not have.
+   `.qp-compose.qp-essay`, NOT `.qp-essay`: the chat bar's own margins are `.qp-compose > …` at the same
+   weight, and a rule that wins only by coming later is the one `check/cascade.js` exists to refuse --
+   move either block and the essay's lines would silently take the pill's 14px back. */
+.qp-compose.qp-essay > .qp-verdict { margin: 6px 4px 0; }
+.qp-compose.qp-essay > .qp-saved { margin: 2px 4px 0; }
 
 /* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
    TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
@@ -11839,6 +12273,16 @@ button.scr-sq { cursor: pointer; }
 /* ⇧ LIT WHILE IT IS ON, AND A BAR UNDER IT WHILE IT IS LOCKED -- the phone's own two signs for it. */
 .kp-key.kp-shift.is-on { background: var(--kp-face); color: var(--kp-ink); }
 .kp-key.kp-shift.is-lock { box-shadow: inset 0 -4px 0 var(--kp-ink); }
+/* AN ESSAY'S RETURN (`KP_RETURN`, keypad.js): two letters wide at the end of the space bar's row, where a
+   phone keeps it, and SAYING "return" under its arrow -- the `↵` alone, a glyph the size of ← and →, was
+   the new line nobody found (*"it doesnt let him do paragraphs"*, 9 Oct). The arrow over the word, so
+   both fit the 54px face it has at 320. */
+.kp-key.kp-ret { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.kp-ret-i { font: 600 1.15rem/1 var(--font); }
+.kp-ret-k { font: 600 .78rem/1 var(--font); letter-spacing: .02em; }
+/* AND AN ESSAY'S ✓ SAYS "done" (`KP_DONE_ESSAY`, keypad.js): on an essay it only puts the pad away, and
+   the paper aeroplane it wears elsewhere is Send's mark. */
+.kp-key.kp-done-k { font: 700 .95rem/1 var(--font); letter-spacing: .02em; }
 /* ---------- THE LETTER UNDER THE FINGER, SHOWN ABOVE IT ------------------------------------------------
    A FINGER COVERS A 29px KEY WHOLE, so the key says which it was where it can be seen, as the phone's
    does -- while it is pressed (`.is-pressed`, put on at `pointerdown` by shell.js) and no longer. The
@@ -11866,7 +12310,10 @@ button.scr-sq { cursor: pointer; }
    `.qp-ai-go`'s 120px width and its grey disabled fill WERE HERE, for the gold button it was; a tile
    draws its own disabled state (`.tile.is-send[disabled]`), so there is nothing left to say. */
 .qp-ai.is-busy .qp-verdict { color: var(--dim); }
-.qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+/* `pre-line`, because an essay's marking comes back as lines -- the strands' marks, then two or three
+   things to do next (`aiMarkAsk_` in dopost.gs) -- and run together they are one paragraph of advice. */
+.qp-ai-why { margin: .15rem 14px .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); white-space: pre-line; }
+.qp-essay + .qp-ai-why { margin-inline: 4px; }
 .qp-ai-why:empty { display: none; }
 
 /* ---------- `.resume` WAS HERE --------------------------------------------------------------------
@@ -12005,6 +12452,105 @@ button.scr-sq { cursor: pointer; }
 .qseen > .fig-by { margin: .5rem 0 0; text-align: left; opacity: 1;
                    font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 .qseen-note { margin: .5rem 0 0; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+
+/* ---------- THE WHITEBOARD: THE PEN ABOVE, ON A BLANK SHEET OF PAPER ----------------------------------
+   `WB_ITEM` in find.js is the argument for it being this pen rather than a second one, so everything
+   above applies unchanged -- the frame, the `touch-action` that only an armed pad carries, the bar.
+   What is the board's own is its paper and its shape.
+
+   PAPER, FROM THE TOKENS. It stands in for a physical board, which is the second palette's job (the
+   receipt, the calendar, the splash); and the ink is `--paper-ink`, not the pen's gold. Gold is right
+   on a question because the figure is printed in `currentColor` and your line must be told from its
+   axis. Here nothing is on the board but you, and gold on cream is a line you can hardly see.
+
+   ONE SHAPE, ALWAYS 3:4, AND THAT IS A PROMISE TO THE MARKS ALREADY STORED. The ink is stretched to its
+   box (`preserveAspectRatio="none"`, see `padWrap_`): 340 units across and 340 down, whatever the box.
+   A board that was the card's width and the screen's height would be a different shape on every
+   phone and on the same iPad turned round, and every stroke on it would be stretched with it --
+   yesterday's circle back as an ellipse. So the shape is fixed and only the SIZE follows the screen.
+   3:4 is the iPad's own, and on a 320x568 phone it is the shape that is still the card's full width.
+   Changing it later redraws every board anybody has, squashed; it wants a stored shape first.
+
+   THE WIDTH IS THE CARD'S, UNTIL THE SCREEN IS TOO SHORT FOR THAT. `.pane` is capped at the screen
+   (`100dvh` less 2.5rem), and a board taller than what is left under the heading would push the bar
+   out of the bottom of a pane that clips -- a padlock you cannot reach, on a board you cannot draw on.
+   So the board is at most as tall as the screen less `--wb-chrome`, everything else the card holds
+   at that height: the pane's cap and padding, the card's padding, the star's row, the heading, the
+   bar and the note. Two 44px rows of tiles in px (a fingertip, CLAUDE.md), the rest in rem, MEASURED
+   signed in at 320x568, 390x844, 768x1024, 1280x800 and 1920x1080 as the screen's height less the
+   most the board could have been without the pane clipping: 88px and 13.13 to 13.16rem every time,
+   so 13.6 leaves about six pixels to spare. Signed out there is no star, and the board simply has
+   44px more than it needs. At every one of those five sizes the WIDTH decides (the board is the
+   card's width, 3:4); the cap is for the screen that is wide and short -- a laptop at 720, measured:
+   a 316x421 board in a pane 674px inside its 681 -- and a phone on its side, where the board is small
+   but the bar is still there. Without it the bar is the first thing cut off. `check/ui.js
+   --screen=tools` measures the pane at all five, and the whiteboard's state in check/states.js puts a
+   drawing on it there. */
+/* AND `--bar` AND `--safe-bottom` BESIDE IT, because the pane's own cap subtracts both (`.pane`): the
+   number above was measured where both are nought, and on an iPhone with a home bar the second is not. */
+.wb { --wb-chrome: calc(88px + 13.6rem); }
+.wb .qpad { margin: .25rem 0 0; }
+.wb .qpad-art {
+  display: block; margin: 0 auto;
+  width: min(100%, calc((100dvh - var(--bar) - var(--safe-bottom) - var(--wb-chrome)) * 3 / 4));
+  aspect-ratio: 3 / 4;
+  background: var(--paper);
+  border: 1px solid var(--paper-rule); border-radius: var(--r-sm);
+  /* A LINE THAT RUNS OFF THE PAPER STOPS AT ITS EDGE, as a pen does at the edge of a sheet. The pen
+     captures the finger so a stroke survives leaving the picture (`pointerdown`), and `.qpad-ink` is
+     `overflow: visible` so a question's line of best fit can run to the axis's end -- so on the board
+     a drag off the side drew on across the gold frame and over the card, dark on dark (found by the
+     review, 10-edges). The points past the edge are still stored, and clipped the same way wherever
+     the board is drawn again, which is what paper does with a pen that went off it and came back. */
+  overflow: hidden;
+}
+.wb .qpad-art > svg:first-child { width: 100%; height: 100%; }
+.wb .qpad-g path { stroke: var(--paper-ink); }
+.wb .qpad-note { text-align: center; }
+/* CLEAR OF THE FRAME. Locked, the gold outline stands 6px outside the paper (`outline-offset: 4px`,
+   2px wide), and the tile row's own .5rem left it a pixel from the padlock -- a frame round the whole
+   page reads as touching the controls under it. The extra .35rem is in `--wb-chrome`. */
+.wb .qpad-bar { justify-content: center; margin-top: .85rem; }
+
+/* ---------- ON ITS SIDE, THE BOARD TAKES THE HEIGHT AND EVERYTHING ELSE GOES BESIDE IT ------------------
+   FOUND BY BOTH REVIEWS OF THE BOARD: a phone on its side drew it as a postage stamp -- 16x21px at 568x320
+   (an iPhone SE turned round), 55x74 at 667x375, 68x91 at 844x390 -- because the cap above takes the
+   star's row, the heading, the bar and the note off a screen that is only 320 to 430px tall, and what
+   was left was ten pixels of board. Nothing was cut off, which is what the cap was for, and nothing
+   could be drawn either. The note above said "small but the bar is still there"; it was smaller than
+   a fingertip.
+   THE SHAPE CANNOT GIVE WAY (the 3:4 note above), SO THE LAYOUT DOES. A wide, short card has room across
+   and none down, so the board takes the card's whole height on the left and the star, the heading, the
+   bar and the note stand in a column beside it. `display: contents` on the four boxes between the card
+   and them (the slot, `.wb-box`, `.wb`, `.qpad`) makes them all items of ONE grid without a line of
+   markup changing -- the same markup the portrait card and the Saved column draw. The height is the
+   pane's cap less what lies between it and the card's content: the pane's border and padding (2px and
+   1.85rem), the card's (2px and 1.8rem), and three pixels to spare -- `--wb-side`.
+   MEASURED after, signed in and out, in a phone-shaped context (`hasTouch`, `isMobile`): the board
+   163x218 at 568x320, 205x273 at 667x375, 216x288 at 844x390 and 246x328 at 932x430; every tile 44x44,
+   nothing past its pane, no zoom from `paneReach_`. A portrait 320x568 phone's is 218x290 -- the same
+   order of thing rather than a stamp. The heading's own margins are cut to .45rem here, because at
+   568x320 the column beside the board (the bar in two rows) is otherwise the taller of the two and
+   `paneReach_` drew the whole card at 0.94, the tiles at 41px.
+   500px TALL AND UNDER, ON ITS SIDE: every phone turned round, and no tablet or laptop -- a laptop at
+   720 keeps the portrait card with its cap, which there leaves a 316x421 board. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .wb { --wb-side: calc(7px + 3.65rem); }
+  .card.is-widget:has(.wb) {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto auto 1fr;
+    column-gap: 1.1rem; align-items: start;
+  }
+  .card.is-widget:has(.wb) .widget-slot, .card.is-widget:has(.wb) .wb-box,
+  .card.is-widget:has(.wb) .wb, .card.is-widget:has(.wb) .wb .qpad { display: contents; }
+  .card.is-widget:has(.wb) > .wgt-keep { grid-area: 1 / 2; margin-top: 0; }
+  .card.is-widget:has(.wb) .widget-slot > h3 { grid-area: 2 / 2; margin: .45rem 0 0; }
+  .card.is-widget:has(.wb) .wb .qpad-art {
+    grid-area: 1 / 1 / -1 / 2; margin: 0;
+    width: calc((100dvh - var(--bar) - var(--safe-bottom) - 2.5rem - var(--wb-side)) * 3 / 4);
+  }
+  .card.is-widget:has(.wb) .wb .qpad-bar { grid-area: 3 / 2; justify-content: flex-start; margin-top: .5rem; }
+  .card.is-widget:has(.wb) .wb .qpad-note { grid-area: 4 / 2; text-align: left; }
+}
 
 /* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT ----------------------
    "Circle the three adjectives in the passage below." `circWords_` makes every word of the part a

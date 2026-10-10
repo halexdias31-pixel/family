@@ -439,6 +439,33 @@ const STATES = {
       },
       wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A COURSEWORK, ON ITS STAGES PAGE ------------------------------------------------
+       "i would like to add course works. make it bare bones. its within projects in finder." — the
+       owner, 9 Oct. The project's state with the type chosen, as the funnel's own two answers:
+       Projects, then Coursework, then the coursework's STAGES page — so the card with the board on
+       its strip, the Stages list and the share tile beside them are the ones measured, and the
+       longest strip and longest list any project card carries is the one at 320px. */
+    { name: 'a coursework',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'project' && it.row && it.row.projectType === 'coursework');
+        if (!x) throw new Error('no coursework in the list — data/projects.json has no `project_type: coursework` row');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'projectType', value: x.projectType }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'steps')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        const main = document.querySelector('#s-stuff .card.proj:not(.prac-part)');
+        const steps = document.querySelector('#s-stuff .card.proj.is-steps');
+        const flags = [...document.querySelectorAll('#s-stuff .card.proj:not(.prac-part) .fc-flag')].map(f => f.textContent.trim());
+        return !!main && !!steps
+               && flags.length > 0 && flags.every(f => f === 'Coursework')
+               && ((steps.querySelector('h3') || {}).textContent || '') === 'Stages'
+               && !!steps.querySelector('.prac-steps ol > li');
+      },
+      wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
        "the @family textbook should be bare bones for now and the textbooks will be in the resources
        tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
@@ -1948,6 +1975,82 @@ const STATES = {
       wants: 'Q33\u2019s worded box focused, the pad up on its letters (39 keys on sixty columns, the maths pad\u2019s bottom row), "Hi" typed by the pad, the box locked and wholly above the pad',
       leave: () => {
         try { localStorage.removeItem(window.__abcKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AN ESSAY, WRITTEN ON ITS SHEET IN PARAGRAPHS, THE PAD UP ---------------------------------
+       THE OWNER, 9 Oct, about a pupil on AQA English Language Paper 1, June 2017, Section B: *"firstly it
+       doesnt let him do paragraphs and also i want it to mark with ai."* The real Q-R0398-5 -- forty marks
+       of writing -- drawn as a SHEET (`ansEssay_`, keypad.js; `.qp-sheet` in style.css), focused, and three
+       paragraphs written into it through the pad: words on the letters' keys, each paragraph break on
+       the essay's own RETURN key (two presses, a blank line), the rest of each paragraph handed to the
+       pad's edit as a laptop's keys are. Pictured so `check/ui.js` measures the sheet and the essay's
+       letters at every width -- the return key's size and face, the paper against the card (EDGE), the
+       word count's contrast. Expect: the pad up on the essay's letters (40 keys, one return, labelled),
+       the value holding two paragraph breaks, the drawing the same, the count right, the row under the
+       sheet (and so the sheet) wholly above the pad, and the line being written -- the caret -- inside
+       the sheet's window and above the pad, the thing "growing, then scrolling inside" is for. */
+    { name: 'an essay, three paragraphs on its sheet, the pad up',
+      enter: () => {
+        const id = 'Q-R0398-5';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__essayKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const PARAS = ['the bus shuddered away from the kerb and the town slid past the window like a film somebody had forgotten to stop. Rain had been falling since breakfast.',
+          'beside me an old man held a paper bag of oranges on his knee as if it were something precious, and each time the driver braked he steadied it with both hands.',
+          'by the time we reached the coast road the clouds had torn open, and the old man stepped down into the brightness, leaving the smell of oranges behind him.'];
+        let tries = 0;
+        const up = () => {
+          const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!ta || moving || !ta.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          ta.focus();
+          if (KP_AT !== ta) kpOpen_(ta);
+          const key = v => document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+          PARAS.forEach((p, i) => {
+            if (i) { key('!nl').click(); key('!nl').click(); }
+            /* THE FIRST WORD ON THE KEYS, the capital put in by itself; the rest as a laptop types it. */
+            const first = p.split(' ')[0];
+            first.split('').forEach(c => { const k = key(c); if (k) k.click(); });
+            kpType_(ta, p.slice(first.length), true);
+          });
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const ta = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__essayKey);
+        if (!pad || pad.hidden || !ta || !ta.hasAttribute('data-kp-essay')) return false;
+        const keys = [...pad.querySelectorAll('.kp-key')];
+        const ret = pad.querySelector('.kp-key.kp-ret[data-v="!nl"]');
+        const essay = ta.closest('.qp-essay');
+        const foot = essay && essay.querySelector('.qp-sheet-foot');
+        const show = ta.parentNode.querySelector('.kp-show');
+        const caret = show && show.querySelector('.kp-caret');
+        const v = ta.value;
+        if (!ret || !foot || !caret || (v.match(/\n\n/g) || []).length !== 2 || !/^The bus/.test(v) || !/\n\nBeside/.test(v) || !/\n\nBy the time/.test(v)) return false;
+        const padTop = pad.getBoundingClientRect().top;
+        const c = caret.getBoundingClientRect(), sr = show.getBoundingClientRect();
+        const tall = innerHeight <= 600 ? 44 : innerWidth >= 700 ? 56 : 48;
+        return pad.getAttribute('data-layer') === 'abc' && keys.length === 40
+               && keys.filter(b => b.getAttribute('data-v') === '!nl').length === 1 && /return/.test(ret.textContent)
+               && ret.getBoundingClientRect().height >= tall - 0.5 && ret.getBoundingClientRect().width >= 44
+               && ta.readOnly && ta.getAttribute('inputmode') === 'none'
+               && show.textContent === v
+               && essay.querySelector('.qp-words').textContent === kpWordsSay_(kpWordCount_(v))
+               && foot.getBoundingClientRect().bottom <= padTop + 0.5
+               && c.top >= sr.top - 1 && c.bottom <= sr.bottom + 1 && c.bottom <= padTop && c.top >= 0;
+      },
+      wants: 'Q-R0398-5 drawn as a sheet, the pad up on the essay\u2019s letters (40 keys, one labelled return at least 44px), three paragraphs typed with two blank lines between them, the count right, the row under the sheet above the pad and the caret in the sheet\u2019s window',
+      leave: () => {
+        try { localStorage.removeItem(window.__essayKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
@@ -3633,7 +3736,6 @@ const STATES = {
         slot.querySelector('.q-line').click();
       },
       leave: () => {
-        if (typeof selShut_ === 'function') selShut_();
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -3686,11 +3788,12 @@ const STATES = {
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
         pages[at].querySelector('.q-shelf [data-do="qual-add"]').click();
-        /* THE SUBJECT LIST IS HUNG FOR THE PERSON a tick later — shut it, so what is measured is the card. */
-        return new Promise(r => setTimeout(() => { if (typeof selShut_ === 'function') selShut_(); r(); }, 60));
+        /* THE SUBJECT BOX TAKES THE FOCUS a tick later (`qualNext_`) — it opened the app's own list here
+           until the dropdowns were the platform's again (note 315), and this shut that list so the card
+           was what got measured. A focused box is part of the card a person is looking at, so it stays. */
+        return new Promise(r => setTimeout(r, 60));
       },
       leave: () => {
-        if (typeof selShut_ === 'function') selShut_();
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -3813,55 +3916,87 @@ const STATES = {
                        .length === 2 ? 2 : 0),
       wants: 'two exam-date boxes, both drawn as a date picker' },
 
-    /* ---------- MORE QUALIFICATIONS, WITH ITS LIST OPEN ------------------------------------------
-       `extra_quals` IS A DROP-DOWN THAT STAYS OPEN — `#drop`, borrowed from the booking form, which
-       is a sibling of the screens rather than inside one. So the only way this lab ever sees the
-       panel, or the press pass ever reaches `me-many-pick`, is a state that opens it: the same hole
-       `booking · a list of answers open` was written to close. Opened through the app's own door,
-       the field's button, and shut again on the way out because states run in order down one page
-       and an open panel would be measured as part of every state after this one. */
+    /* ---------- A SEVERAL-OF-A-LIST FIELD, OPEN, WITH A BOX TICKED ---------------------------------
+       IT WAS A BUTTON THAT HUNG `#drop`, the booking form's floating panel, which is a sibling of the
+       screens — so the only way this lab ever saw the panel, or the press pass ever reached
+       `me-many-pick`, was a state that opened it. On 9 October the owner asked for *"a more stable
+       standard simple conventional drop down list"* (note 315), and the field is a `<details>` now:
+       its summary is the field, and open, its ticks are real checkboxes under it IN the card, pushing
+       the card longer — which is exactly what `check/ui.js` has to lay out and measure at every width.
+
+       OPENED THROUGH THE SUMMARY, the browser's own door, and ONE BOX TICKED the way a finger ticks it —
+       the box flips and `change` bubbles — so what is measured is the field with an answer in it, and
+       what is asserted is that the answer reached the hidden box `me-save` reads. Shut and put back on
+       the way out, because states run in order down one page. */
     { name: 'a several-of-a-list field open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const pages = [...document.querySelectorAll('#s-settings .page')];
-        /* ANY SEVERAL-OF-A-LIST FIELD. It was `extra_quals`, which is gone — a PGCE or a DBS is an
-           ordinary qualification entry now — so this opens whichever one the column carries (a
-           tutor's venues, on Contact & address). */
-        const q = '[data-do="me-many"]';
+        const pages = [...document.querySelectorAll('#s-settings > .page')];
+        /* ANY SEVERAL-OF-A-LIST FIELD — whichever one the column carries (a tutor's venues, on Contact
+           & address). Which fields take several answers is `FIELD_MULTI`'s to say. */
+        const q = '.field.many details';
         const at = pages.findIndex(pg => pg.querySelector(q));
         if (at < 0) throw new Error('no several-of-a-list field on the settings column');
         goPage('settings', at, true);
-        pages[at].querySelector(q).click();
+        const det = pages[at].querySelector(q);
+        det.querySelector(':scope > summary').click();
+        const box = det.querySelector('input[type="checkbox"]:not(:disabled)');
+        if (!box) throw new Error('the open field draws no box to tick');
+        window.STATE_MANY_WAS = { name: box.dataset.manyOf, value: (det.closest('.many').querySelector('input[type="hidden"]') || {}).value };
+        box.checked = !box.checked;
+        box.dispatchEvent(new Event('change', { bubbles: true }));
       },
-      leave: () => { if (typeof meDropShut_ === 'function') meDropShut_(); },
+      leave: () => {
+        document.querySelectorAll('#s-settings .field.many details[open]').forEach(d => { d.open = false; });
+        delete window.STATE_MANY_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden')
-          && el.querySelectorAll('[data-do="me-many-pick"]').length > 0;
+        const det = document.querySelector('#s-settings .page.on .field.many details[open]');
+        const was = window.STATE_MANY_WAS || {};
+        const hidden = det && det.closest('.many').querySelector('input[type="hidden"]');
+        return !!det && !document.getElementById('drop')
+          && det.querySelectorAll('label.check input[type="checkbox"]').length > 0
+          && !!det.closest('.me-form[data-dirty]')
+          && !!hidden && hidden.value !== was.value ? 1 : 0;
       },
-      wants: 'a several-of-a-list field open under its button, with something to tick' },
+      wants: 'a several-of-a-list field open under its summary, in the card, with a box ticked into its hidden answer' },
 
-    /* ---------- AN ORDINARY SELECT, OPEN ------------------------------------------------------------
-       EVERY SINGLE-CHOICE `<select>` HANGS `#drop` NOW — see `SEL_OK` in book.js — and the settings
-       column is where most of them are. Opened through the select's own door, a click AT it, which is
-       the path `selAt_` takes for assistive technology; shut on the way out for the reason above. */
-    { name: 'a dropdown open',
+    /* ---------- AN ORDINARY SELECT, ANSWERED ------------------------------------------------------------
+       THIS WAS "A DROPDOWN OPEN" — a click AT a settings select, which hung the app's own panel off it
+       for this lab to measure (note 226). The open list is the platform's again (note 315) and no page
+       can draw, measure or press it, so there is no open state to enter. What a select still does to a
+       card is be ANSWERED: the value moves, `change` bubbles, the card is marked as holding an unsaved
+       answer. Answered here the way the platform's list answers — the value, then `input` and `change`,
+       bubbling — and put back on the way out. */
+    { name: 'a dropdown answered',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const pages = [...document.querySelectorAll('#s-settings > .page')];
         const at = pages.findIndex(pg => pg.querySelector('label.field > select:not(:disabled)'));
         if (at < 0) throw new Error('no select in a label on the settings column');
         goPage('settings', at, true);
-        pages[at].querySelector('label.field > select:not(:disabled)').click();
+        const sel = pages[at].querySelector('label.field > select:not(:disabled)');
+        const to = [...sel.options].find(o => o.index !== sel.selectedIndex && !o.disabled);
+        if (!to) throw new Error('the select has no second answer to choose');
+        window.STATE_SEL_WAS = { name: sel.dataset.me, to: to.value };
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
       },
-      leave: () => { if (typeof selShut_ === 'function') selShut_(); },
+      leave: () => {
+        delete window.STATE_SEL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
-          && el.querySelectorAll('[data-do="sel-pick"]').length >= 2
-          && el.querySelectorAll('[data-do="sel-pick"][aria-selected="true"]').length === 1;
+        const was = window.STATE_SEL_WAS || {};
+        const sel = document.querySelector('#s-settings .page.on select[data-me="' + was.name + '"]');
+        return !!sel && sel.value === was.to && !!sel.closest('.me-form[data-dirty]')
+          && !document.getElementById('drop') && !document.querySelector('[role="listbox"]') ? 1 : 0;
       },
-      wants: 'a settings select\'s options hanging off it in the booking list\'s panel, one marked' },
+      wants: 'a settings select holding a new answer, its card marked unsaved, and no list of the app\'s own anywhere' },
 
     /* "ALSO TEACH, OPEN" WENT WITH THE PAGE. What a tutor teaches is two ticks on each
        qualification now — `the qualifications` above counts them — and `teaches_also` is derived
@@ -4004,6 +4139,35 @@ const STATES = {
          column would never be measured again on this run and Saved would be measured with a
          payload key nothing else expects. */
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
+  ],
+
+  /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
+     NOT LEFT TO THE DEFAULT. A column with no entry here is measured in the state it opens in with
+     nothing asked of it, and "nothing to press" printed by `check/press.js` is the same silence
+     whether the column drew its card or drew nothing. So the one state says what it must be looking
+     at — the card, "Not built yet.", and not a control on it — for both visitors, which is the
+     placeholder rule (`drill` in map.js) measured in a real browser rather than read off markup.
+     The day the column is built this entry is where its states go.
+
+     BOTH HALVES OF THE RULE, the three questions `placeholderFaults_` asks in check-flow.js — written
+     out again here because `expect` is sent to the page as a string and can reach nothing of this
+     file. The first version asked only "is there a control", with a selector that did not name a
+     `<summary>`: a card given "Streak: 0 days · 0% of the course done", a bar at nought per cent and
+     a `<details>` was measured as this state, and `check/ui.js` went red on it only because the
+     summary was too small to tap (review, 9 October). So: nothing pressable anywhere in the column,
+     by tag or by attribute; nothing in the pane but `drill`'s markup; and no digit. */
+  progress: [
+    { name: '',
+      expect: () => {
+        const h = document.getElementById('s-progress');
+        const pane = h && h.querySelector(':scope > .page > .pane');
+        if (!pane || !pane.querySelector('.card h3') || !/Not built yet/.test(pane.textContent)) return false;
+        if (h.querySelector('button, [data-do], input, select, textarea, a[href], summary, details, label, '
+          + '[tabindex], [onclick], [role], [contenteditable]')) return false;
+        if ([...pane.querySelectorAll('*')].some(e => !e.matches('div.card, h3, p.sub, p.empty, br, span.faint'))) return false;
+        return !/\d/.test(pane.textContent);
+      },
+      wants: 'Progress card saying it is not built yet: drill\'s markup only, no number, nothing on it to press' },
   ],
 
   /* ---------- THE SHOP ------------------------------------------------------------------------
@@ -4464,6 +4628,38 @@ const STATES = {
         KT = null;
         document.activeElement && document.activeElement.blur && document.activeElement.blur();
         initTyping();
+      } },
+
+    /* ---------- THE WHITEBOARD, LOCKED, WITH SOMETHING ON IT --------------------------------------
+       KEPT ON THE DEVICE, so it opens blank and unlocked on every run -- a cream rectangle measures
+       perfectly. The state somebody is actually in is the other one: the padlock lit, the gold frame
+       round the board, marks on it, and the bar and the note still inside a pane that clips. That is
+       the case the board's height is capped for (`.wb` in style.css), at 320x568 above all.
+       Seeded through the app's own key (`padKey_(WB_ITEM)`) and the app's own writer (`ansStore_`),
+       and locked the way a repaint finds it (`PAD_ON`), so nothing here spells the key out. A ruled
+       line across the top, a triangle and a ring: a stroke that touches the board's edges is the one
+       that would show a board drawn the wrong shape. */
+    { name: 'a whiteboard with a drawing on it',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'whiteboard');
+        if (n < 0) throw new Error('no whiteboard widget in the roster');
+        goPage('tools', n, true);
+        const k = padKey_(WB_ITEM);
+        const ring = [];
+        for (let i = 0; i <= 48; i++) ring.push(Math.round(170 + 60 * Math.cos(i / 24 * Math.PI)), Math.round(255 + 45 * Math.sin(i / 24 * Math.PI)));
+        ansStore_(k, JSON.stringify([[0, 20, 340, 20], [70, 190, 170, 50, 270, 190, 70, 190], ring]));
+        PAD_ON = k;
+        initWhiteboard();
+      },
+      expect: () => document.querySelectorAll('#s-tools #wgt-whiteboard .qpad.is-drawing .qpad-g path').length === 3
+                    && document.querySelector('#s-tools #wgt-whiteboard .qpad-ink[data-noswipe]')
+                    && document.querySelectorAll('#s-tools #wgt-whiteboard .qpad-bar .tile').length === 3,
+      wants: 'the board locked, three marks on it, and the padlock, Undo and Clear under it',
+      leave: () => {
+        const k = padKey_(WB_ITEM);
+        PAD_ON = '';
+        ansStore_(k, null);
+        initWhiteboard();
       } },
   ],
 
@@ -5122,6 +5318,170 @@ const STATES = {
       },
       wants: 'the still on the card with Post it under it',
       leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
+    /* ---------- A POST'S FACES, IN EVERY STATE THEY ARE DRAWN IN ---------------------------------
+       THE OWNER, 9 Oct: *"Also refine how the post reactions look. Looks abit scuffed right bow"* —
+       and this lab had never drawn the row. The fixture's post sent `{"👍": 3}`, a shape `doGet` has
+       never sent, which `reacts()` draws as nothing; so tap size, contrast and sideways overflow had
+       been measured across every width on a post with no faces on it. The fixture sends the real
+       shape now (six house faces, counts, total, yours, by) and these are the states the row is in:
+       nobody, some, yours, a post's own set of more than six with three-digit and four-digit counts,
+       and the who-reacted sheet open. Signed out is the other visitor, and runs all but "yours".
+
+       SEEDED THROUGH `DATA.posts`, THE APP'S OWN DOOR — the post's `reactions` is exactly what the
+       payload's arrival puts there — then `repaint` and `goPage` to the post, which is what a finger
+       does. `PO1` because it is the fixture's post with a picture, so the row is where it is on most
+       posts: directly under the photograph. AND PUT BACK, because states run in order down one page
+       and the next would otherwise be measuring this one's counts. */
+    { name: 'reactions nobody',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                        total: 0, yours: '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        return !!el && el.querySelectorAll('.reacts .react').length === 6
+          && !el.querySelector('.react-n') && !el.querySelector('.react-who');
+      },
+      wants: 'the post on the screen with six empty pills and no total',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    { name: 'reactions some',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
+                        total: 4, yours: '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
+                             { name: 'Carl Everyclient', emoji: '👍' },
+                             { name: 'Evie Everystudent-Longername', emoji: '❤️' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        /* ONE LINE FOR THE STRANGER TOO: "yours" runs only signed in, and this runs for both. */
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
+        return !!el && el.querySelectorAll('.reacts .react-n').length === 2
+          && faces.length === 6 && tops.size === 1
+          && /4 reactions/.test((el.querySelector('.post-when .react-who') || {}).textContent || '');
+      },
+      wants: 'the post on the screen with six faces on one line, two counted, and "4 reactions" on its time line',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* EVERY FACE COUNTED IN TWO DIGITS AND ONE OF THEM YOURS — the widest the house row gets on a
+       busy post, and the gold one with its heavier count inside a 41px cell at 320.
+       AND ALL SIX ON ONE LINE, which is the redesign's whole claim: the scuff was a row that wrapped
+       🎉 onto a line of its own, and a count that grew reflowing the row. Nothing held it — a grid
+       changed to wrap the six as 5+1 at 320 passed this file clean, because this asked only for
+       `.mine` and six counts. The same idiom as the wrapping state: one distinct top, one line. */
+    { name: 'reactions yours',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [12, 9, 15, 3, 27, 11],
+                        total: 77, yours: '❤️',
+                        by: [{ name: USER.name, emoji: '❤️' }, { name: 'Ada Tutor', emoji: '👍' },
+                             { name: 'Priya Parent', emoji: '😂' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        const mine = el && el.querySelector('.react.mine');
+        const faces = el ? [...el.querySelectorAll('.reacts .react')] : [];
+        const tops = new Set(faces.map(f => Math.round(f.getBoundingClientRect().top)));
+        return !!mine && mine.dataset.emoji === '❤️' && mine.getAttribute('aria-pressed') === 'true'
+          && el.querySelectorAll('.reacts .react-n').length === 6
+          && faces.length === 6 && tops.size === 1;
+      },
+      wants: 'the post on the screen with six counted faces on ONE line and ❤️ drawn as yours',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* A POST'S OWN CELL NAMING NINE FACES, with three- and four-digit counts: the one case the row
+       wraps (into the same columns, six and three), and the one case a count steps down a size
+       (`is-long`) or rounds (`1k`). Yours too when signed in, on a three-digit face. */
+    { name: 'reactions many and wrapping',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉', '🔥', '🙏', '💯'],
+                        counts: [999, 1500, 212, 7, 0, 45, 3, 0, 1], total: 2767,
+                        yours: signed ? '😂' : '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+      },
+      expect: () => {
+        const el = document.querySelector('#s-feed > .page.on [data-post="PO1"]');
+        if (!el) return false;
+        const faces = [...el.querySelectorAll('.reacts .react')];
+        const top = faces.map(f => Math.round(f.getBoundingClientRect().top));
+        const tops = new Set(top);
+        /* SIX ON THE FIRST LINE, NOT JUST TWO LINES: a grid that wrapped at five drew 5+4, which is
+           also two lines and passed. The house set's six columns are the claim; a ninth face starts
+           the second line in them. */
+        const first = top.filter(t => t === Math.min(...top)).length;
+        return faces.length === 9 && tops.size === 2 && first === 6 && !!el.querySelector('.react.is-long')
+          && [...el.querySelectorAll('.react-n')].some(n => n.textContent === '1k');
+      },
+      wants: 'the post on the screen with nine faces on two lines (six, then three), a three-digit count stepped down and 1500 drawn as 1k',
+      leave: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* WHO REACTED, OPEN — the sheet is outside `#s-feed`, and `check/ui.js` measures it when one is
+       open. Groups most-used first, a long name, and yours the gold pill when signed in. Opened
+       through the total's own handler, and shut on the way out (a sheet survives `go()`). */
+    { name: 'reactions who reacted',
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to draw faces on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        const signed = typeof USER !== 'undefined' && !!USER;
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [2, 1, 3, 0, 0, 0],
+                        total: 6, yours: signed ? '😂' : '',
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '😂' },
+                             { name: 'Evie Everystudent-Longername', emoji: '😂' },
+                             { name: 'Carl Everyclient', emoji: '❤️' }]
+                             .concat(signed ? [{ name: USER.name, emoji: '😂' }] : []) };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const t = document.querySelector('#s-feed [data-post="PO1"] .post-when .react-who');
+        if (!t) throw new Error('no total on the post to open who reacted from');
+        ACTIONS['who-reacted'](t);
+      },
+      expect: () => {
+        const sh = document.getElementById('sheet');
+        const g = [...document.querySelectorAll('#sheet-body .rx-group .rx-pill .react-e')].map(x => x.textContent);
+        return !!sh && !sh.classList.contains('hidden') && g.join(' ') === '😂 👍 ❤️';
+      },
+      wants: 'the who-reacted sheet open with 😂, 👍 and ❤️ in that order',
+      leave: () => {
+        closeSheet();
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
   ],
 
   booking: [
@@ -5178,64 +5538,86 @@ const STATES = {
          empty it — the same call every send path ends with. */
       leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
-    /* ---------- THE LIST THAT HANGS OFF A FIELD ------------------------------------------------
-       `check/press.js` REPORTED IT BEFORE THIS EXISTED: *"named on a screen and then not found to
-       press (2): booking/book-many-pick, booking/book-many-done"*. Both controls are drawn only
-       once a field has been pressed, and the press pass builds its queue from what is on the screen
-       — so the two halves of the list were pressed by nothing. While it was a sheet they were
-       collected with everything else a press opens; anywhere else they are a state or they are
-       nowhere, which is exactly the hole this file's own header describes.
+    /* ---------- A SEVERAL-ANSWERS ROW, OPEN UNDER ITSELF, WITH A BOX TICKED -------------------------
+       `check/press.js` REPORTED THE HOLE BEFORE A STATE EXISTED: *"named on a screen and then not found
+       to press (2): booking/book-many-pick, booking/book-many-done"*. The ticks are drawn only once a
+       row has been pressed, and the press pass builds its queue from what is on the screen — so they
+       were pressed by nothing.
 
-       AND IT IS `#drop` NOW RATHER THAN THE PAGE. The list replaced the form for one commit and was
-       reported as *"i hate this"*; it hangs off its field, outside the screens, because `.pane` is
-       `overflow: hidden` and would clip it anywhere else. So the measured root is the panel, not
-       `#s-booking` — a selector scoped to the screen finds nothing and reads as the list being
-       absent, which is this file's own recurring fault about an instrument that cannot reach its
-       subject.
+       IT WAS `#drop`, a panel outside the screens, and this state's root was the panel. Since 9 October
+       (note 315) the list is checkboxes IN the card, under the row it answers, pushing the rows below
+       it down — so the measured root is `#s-booking` like every other booking state, and the card is
+       longer while it is open: twelve subjects at 44px a row is the arithmetic note 147 ruled the
+       in-flow shape out on, before `paneReach_` zoomed and scrolled a long card instead of clipping it.
+       `check/ui.js` lays that out at every width now, on every commit.
 
-       AND `check/ui.js` HAD NEVER LAID IT OUT EITHER. Twelve 44px options in whichever side of the
-       field has more room is the arithmetic the whole design turns on, and until this state it was
-       measured in a probe rather than on every commit.
-
-       SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does — the
-       app's own door rather than markup poked into the page. The step is found rather than named:
-       which questions take several answers is `BOOK_STEPS`'s to say, and a literal here would be a
-       second copy of that list. */
+       SEEDED THROUGH `BOOKING.picking` AND `drawBooker()`, which is what `book-many` does, and ONE BOX
+       TICKED the way a finger ticks it — the box flips and `change` bubbles to `book-many-pick`. The step
+       is found rather than named: which questions take several answers is `BOOK_STEPS`'s to say. */
     { name: 'a list of answers open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const st = (typeof BOOK_STEPS !== 'undefined' ? BOOK_STEPS : []).filter(x => x.multi && !x.grid)
           .filter(x => { try { return (x.options() || []).filter(Boolean).length >= 1; } catch (e) { return false; } })[0];
-        if (st) { BOOKING.picking = st.id; drawBooker(); }
+        if (!st) throw new Error('no several-answers question offers anything to tick');
+        window.STATE_MANY_STEP = st.id;
+        BOOKING.picking = st.id; drawBooker();
+        /* THE BOX IS TICKED ONCE IT IS DRAWN, asked again for up to two seconds. `check/ui.js` found it
+           missing once at 390 on a loaded machine and never in a replay of the same states, so the
+           repaint can land late; a box that never comes is still reported, by `expect`. */
+        return new Promise(ok => {
+          const t0 = Date.now();
+          const tick = () => {
+            if (BOOKING.picking !== st.id) { BOOKING.picking = st.id; drawBooker(); }
+            const box = document.querySelector('#bookr #bk-many-' + st.id + ' input[type="checkbox"]');
+            if (box) { box.checked = true; box.dispatchEvent(new Event('change', { bubbles: true })); return ok(); }
+            if (Date.now() - t0 > 2000) return ok();
+            setTimeout(tick, 50);
+          };
+          tick();
+        });
       },
-      expect: () => document.querySelectorAll('#drop .pick-opt').length >= 1
-        && !!document.querySelector('#drop [data-do="book-many-done"]')
-        /* AND OPEN, because `#drop` keeps its markup for as long as it is up and an assertion on the
-           options alone would pass on a panel that is hidden. */
-        && !document.getElementById('drop').classList.contains('hidden'),
-      wants: 'a list of options hanging off the field, with a Done under them',
-      /* PUT BACK, because states run in order down one page and the receipt state after this one
-         would otherwise be measuring a picker. */
-      leave: () => { BOOKING.picking = ''; drawBooker(); } },
+      expect: () => {
+        const id = window.STATE_MANY_STEP;
+        const list = id && document.querySelector('#s-booking #bookr #bk-many-' + id);
+        return !!list && !document.getElementById('drop')
+          && list.querySelectorAll('label.check input[type="checkbox"]').length >= 1
+          && list.querySelectorAll('input[type="checkbox"]:checked').length >= 1
+          && (BOOKING[id] || []).length >= 1 ? 1 : 0;
+      },
+      wants: 'a several-answers row open under itself in the card, with a box ticked into the booking',
+      /* PUT BACK, because states run in order down one page and the receipt state after this one would
+         otherwise be measuring a half-answered form with a list open on it. */
+      leave: () => { delete window.STATE_MANY_STEP;
+        if (typeof resetBooking_ === 'function') resetBooking_(); BOOKING.picking = ''; drawBooker(); } },
 
-    /* ---------- AND A SINGLE ANSWER, OPEN, IN THE SAME PANEL ---------------------------------------
-       *"should be consistent with the booking multiselect drop down list"* — so the one-of-a-list
-       rows on this card hang the same `#drop` the state above opens. Through the select's own door,
-       and shut again on the way out. */
-    { name: 'a single answer open',
+    /* ---------- AND A SINGLE ANSWER, CHOSEN --------------------------------------------------------------
+       THIS WAS "A SINGLE ANSWER OPEN" — a click AT a booking select, which hung the multi-select list's
+       panel off it (note 226). The open list is the platform's again (note 315); nothing on the page
+       draws it, so there is no open state for this lab to measure. What is left to measure is the card
+       ANSWERED through that list — the value, then `input` and `change`, which is all a platform's list
+       ever does — and that it reached `BOOKING` through the one `book-set` handler. */
+    { name: 'a single answer chosen',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const sel = document.querySelector('#bookr select.bk-sel:not(:disabled)');
         if (!sel) throw new Error('the booking form draws no enabled select');
-        sel.click();
+        const to = [...sel.options].find(o => o.value && o.index !== sel.selectedIndex && !o.disabled);
+        if (!to) throw new Error('the first booking select has no second answer to choose');
+        window.STATE_SEL_WAS = { step: sel.dataset.step, to: to.value };
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
       },
       expect: () => {
-        const el = document.getElementById('drop');
-        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
-          && el.querySelectorAll('#drop .pick-opt[data-do="sel-pick"]').length >= 2;
+        const was = window.STATE_SEL_WAS || {};
+        const sel = document.querySelector('#bookr select.bk-sel[data-step="' + was.step + '"]');
+        return String(BOOKING[was.step] || '') === was.to && !!sel && sel.value === was.to
+          && !document.getElementById('drop') && !document.querySelector('[role="listbox"]') ? 1 : 0;
       },
-      wants: 'a single-answer row\'s options hanging off it, the multi-select list\'s rows',
-      leave: () => { if (typeof selShut_ === 'function') selShut_(); } },
+      wants: 'a booking row answered through its own select, the answer in BOOKING, and no list of the app\'s own',
+      leave: () => { delete window.STATE_SEL_WAS;
+        if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
@@ -5697,13 +6079,121 @@ const STATES = {
           && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
       },
       wants: 'two chips waiting, a paragraph in the box and Send beside it rather than under it',
+      /* EMPTIED AS A PERSON EMPTIES IT, with `input`: the paragraph is a DRAFT now (data.js; docs/history
+         317), kept as it was typed and drawn back by every redraw of Messages — set to '' without telling
+         anybody, it came back in the next state's composer. */
       leave: () => {
         delete MSG_QUEUE['P009'];
         const b = document.querySelector('#s-dm .msg-text');
-        if (b) { b.value = ''; b.style.height = ''; }
+        if (b) { b.value = ''; b.style.height = ''; b.dispatchEvent(new Event('input', { bubbles: true })); }
       } },
   ],
 };
+
+/* ---------- NOTIFICATIONS, AS EACH ROLE IS SENT THEM — `notifyCard_` in js/me.js ----------------------------
+   *"Also let parents select their communication preferences like notification. And kids and tutors too I
+   guess"* (the owner, 9 Oct). The card draws whatever list the server sends on the profile, so a state is a
+   ROLE and that role's LIST — and a list typed out here would be this file's belief about the server, the
+   fault CLAUDE.md records as "a fixture must send what doGet really sends". So the lists are not typed: they
+   are `notifyOf_` itself, asked of the real backend (js/check-gas-load.js) when this file is loaded, and
+   written into each state's `enter` as data. A label or a note changed in NOTIFY_KINDS is measured on the
+   next run without anybody touching this file.
+
+   WHY `new Function`: every state is carried into the page as its source (`String(state.enter)`) and run
+   there, so a closure over a value computed here would arrive empty. A function BUILT from source with the
+   list already in it is the same thing the other states are — a line of the app's own code — with the
+   server's answer as a literal.
+
+   THE WIDEST CASE EACH: a parent on an address with no space in it, a parent whose address is still waiting
+   for its link (the one extra paragraph), a kid with no email (one sentence, nothing to tick), a tutor, the
+   admin who is the signed-in visitor, and a backend older than the site (one sentence). The role is played
+   through `USER` as the sign-in reply sends it, and `DATA.features` says whether the backend has `setNotify`
+   — the fixture's own list predates it. `leave` puts the visitor back exactly. */
+(function notifyStates_() {
+  let real = null, why = '';
+  try { real = require('../js/check-gas-load.js').backend(); } catch (e) { why = String(e && e.message || e); }
+  const listFor = (role, email, extra) => {
+    if (!real) return null;
+    try { return JSON.parse(JSON.stringify(real.ev('notifyOf_(' + JSON.stringify(Object.assign(
+      { role: role, email: email, person_id: 'P-STATE', verified: 'TRUE' }, extra || {})) + ')'))); }
+    catch (e) { why = String(e && e.message || e); return null; }
+  };
+  const LONG = 'philippa.parentington-smythe.family@example.org';
+  const state = (name, as, notify, hasFeature, expect, wants) => ({
+    name: 'notifications, ' + name,
+    only: () => typeof USER !== 'undefined' && !!USER,
+    /* NO LIST WHERE ONE WAS WANTED IS A THROW, so the state reads "could not reach" — loud — rather than
+       measuring the "on their way" sentence and calling it the parent's card. */
+    enter: new Function((notify === null && hasFeature
+        ? 'throw new Error(' + JSON.stringify('notifyOf_ could not be asked of the real backend: ' + why) + ');\n' : '')
+      + 'var AS = ' + JSON.stringify(as) + ', NOTIFY = ' + JSON.stringify(notify) + ', HAS = ' + JSON.stringify(hasFeature) + ';\n'
+      + 'window.__NOTIFY_WAS = { role: USER.role, roles: USER.roles, profile: USER.profile, features: DATA.features };\n'
+      /* THE VISITOR AS STORED, kept where a reload cannot reach it — see `leave`. Only the first time: a state
+         entered again after a reload must not keep the role it played as the visitor's own. */
+      + 'try { if (sessionStorage.getItem("notifyStateUser") === null) sessionStorage.setItem("notifyStateUser", localStorage.getItem("familyUser") || ""); } catch (e) {}\n'
+      + 'Object.assign(USER, AS);\n'
+      + 'USER.profile = Object.assign({}, USER.profile || {});\n'
+      + 'if (NOTIFY) USER.profile.notify = NOTIFY; else delete USER.profile.notify;\n'
+      + 'DATA.features = (DATA.features || []).filter(function (x) { return x !== "setNotify"; }).concat(HAS ? ["setNotify"] : []);\n'
+      /* A CLEAN COLUMN FIRST — `settingsKeep_`, the agreement state's reason. */
+      + 'document.querySelectorAll("#s-settings .me-form").forEach(function (f) { f.removeAttribute("data-dirty"); f.classList.remove("is-sending"); });\n'
+      + 'paint("settings");\n'
+      + 'var at = [].slice.call(document.querySelectorAll("#s-settings .page")).findIndex(function (pg) { return pg.querySelector(".notify-card"); });\n'
+      + 'if (at < 0) throw new Error("no Notifications card on the settings column");\n'
+      + 'goPage("settings", at, true);'),
+    /* ---------- AND THE STORED VISITOR PUT BACK, NOT ONLY THE ONE IN MEMORY ----------------------------------
+       FOUND BY `check/press.js`: a tick pressed in "a parent" is a real save, and a real save writes `USER` to
+       `familyUser` — as the parent this state was playing. Every reload after it (`freshen`, the next screen's
+       visit) then signed the run in as that parent, and the Games column's swipes and the booking form's
+       dropdown were measured for somebody who is not the visitor: two swipes "landed on page 2", wanted 3. So
+       the stored visitor is kept in `sessionStorage` by `enter` and written back here, and `USER` is put back
+       from it rather than from a copy a reload may have taken of the parent. */
+    leave: () => {
+      const was = window.__NOTIFY_WAS || {}; delete window.__NOTIFY_WAS;
+      let raw = null;
+      try { raw = sessionStorage.getItem('notifyStateUser'); sessionStorage.removeItem('notifyStateUser'); } catch (e) {}
+      let stored = null;
+      try { stored = raw ? JSON.parse(raw) : null; } catch (e) { stored = null; }
+      const from = stored || was;
+      USER.role = from.role; USER.roles = from.roles; USER.profile = from.profile; DATA.features = was.features;
+      try { if (raw) localStorage.setItem('familyUser', raw); } catch (e) {}
+      document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+      paint('settings');
+    },
+    expect: expect,
+    wants: wants,
+  });
+  /* THE CARD IN FRONT, NOT RUNNING OFF THE SIDE, with this many ticks (all ticked — an untouched row is on)
+     and this many lines of what is always sent. */
+  const ticks = (n, must) => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+    + 'if (!c) return 0;\n'
+    + 'var t = c.querySelectorAll("[data-do=\\"notify-pick\\"]");\n'
+    + 'return t.length === ' + n + ' && [].every.call(t, function (b) { return b.checked; })\n'
+    + '  && c.querySelectorAll(".notify-always li").length === ' + must + '\n'
+    + '  && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
+  const said = re => new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+    + 'return c && !c.querySelector("[data-do=\\"notify-pick\\"]") && ' + re + '.test(c.textContent)'
+    + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;');
+  const count = (n, essential) => ((n && n.kinds) || []).filter(k => !!k.essential === essential).length;
+  const parent = listFor('client', LONG), held = listFor('client', LONG, { verified: 'PENDING' });
+  const kid = listFor('student', ''), tutor = listFor('tutor', 'tutor@example.org'), admin = listFor('admin', 'admin@example.org');
+  STATES.settings.push(
+    state('a parent', { role: 'parent', roles: ['parent'] }, parent, true, ticks(count(parent, false), count(parent, true)),
+      'a parent\'s ticks — the weekly email "not being sent yet", messages, booking updates, posts — and the four always sent'),
+    state('a parent whose address waits for its link', { role: 'parent', roles: ['parent'] }, held, true,
+      new Function('var c = document.querySelector("#s-settings .page.on .notify-card");\n'
+        + 'return c && c.querySelector(".notify-held") && c.querySelectorAll("[data-do=\\"notify-pick\\"]").length === ' + count(held, false)
+        + ' && c.scrollWidth <= c.clientWidth + 1 ? 1 : 0;'),
+      'the parent\'s ticks under a line saying only the link goes to the address until it is opened'),
+    state('a kid with no email', { role: 'kid', roles: ['kid'] }, kid, true, said('/no email address/'),
+      'one sentence — nothing is emailed to a child with no address — and nothing to tick'),
+    state('a tutor', { role: 'tutor', roles: ['tutor'] }, tutor, true, ticks(count(tutor, false), count(tutor, true)),
+      'a tutor\'s ticks — messages, booking updates, posts — and the three always sent'),
+    state('the admin', { role: 'admin', roles: ['admin'] }, admin, true, ticks(count(admin, false), count(admin, true)),
+      'the admin\'s ticks — messages, festive sign-ups, posts waiting — and the three always sent'),
+    state('a backend older than the site', { role: 'parent', roles: ['parent'] }, null, false, said('/does not have notification choices yet/'),
+      'one sentence saying the backend has no notification choices yet, and nothing to tick'));
+})();
 
 const statesOf = id => STATES[id] || [{ name: '' }];
 

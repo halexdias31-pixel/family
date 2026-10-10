@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-09-b-submissions";
+const DOGET_VERSION = "2026-10-09-e-submissions";
 
 
 function doGet(e) {
@@ -471,6 +471,9 @@ function doGet(e) {
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
                  'digestPreview',
+                 /* Which emails somebody wants — the Notifications card on Settings says "sync backend/"
+                    rather than drawing ticks an older backend would refuse. */
+                 'setNotify',
                  /* `attemptWords` WAS HERE — the phone sent a question's words with `markDone` and
                     backfilled them for a backend that listed it. Both went with the `attempts` tab, and a
                     phone still running the old code finds neither here and sends nothing (9 Oct). */
@@ -503,6 +506,12 @@ function doGet(e) {
                  /* The site checks this before it draws "Mark with AI", so a phone ahead of the
                     deployment shows no button rather than one answering "not recognised". */
                  'aiMark',
+                 /* And this one says `aiMark` reads the WHOLE answer, up to `AI_ANSWER_MAX` (20,000
+                    characters), and marks an essay on its levels. Before it, `aiMark` cut the answer at
+                    2,000 -- so a phone ahead of the deployment would have sent a whole essay and shown
+                    a mark for its first third as the essay's. A phone that does not see this sends no
+                    answer longer than 2,000 and says why (`aiWhole_` in js/keypad.js). */
+                 'aiMarkWhole',
                  /* The site checks this before it offers the ＋ to somebody who is not an admin —
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost',
@@ -2217,10 +2226,12 @@ function filmsSyncSays_() {
 /* ---------- `payload.submissions`, BUILT FOR ONE VIEWER ---------------------------------------------
    `{ for, mine: { <key>: { answer, verdict, at, id } }, people? }` — see the block in `doGet` that calls
    this for who gets what. `mine` is the LATEST submission per question: the row with the latest
-   `submitted_at`, and of two in the same instant the later row. `at` is that time in ms (the server's
-   clock), `id` the press's own name, which the phone compares with what it sent itself. `people` is
-   `{ <person_id>: { n, last } }` — how many questions and the London day of the last submission — and
-   exists only for an admin, so its absence is what every other phone sees.
+   `pressed_at` (the moment the child pressed, never later than the server's clock — SCHEMA.submissions
+   says why it is not the moment the press ARRIVED), `submitted_at` where a row has none, and of two in
+   the same instant the later row. `at` is that time in ms, `id` the press's own name, which the phone
+   compares with what it sent itself. `people` is `{ <person_id>: { n, last } }` — how many questions and
+   the London day of the last submission to arrive — and exists only for an admin, so its absence is
+   what every other phone sees.
 
    ---------- AND NOT A READ OF THE WHOLE TAB ON EVERY LOAD -------------------------------------------
    THIS IS ON EVERY `doGet`, hit or miss, for everybody signed in, and the tab grows by a row a press —
@@ -2252,19 +2263,23 @@ function submissionsTouched_(pid) {
     props.setProperty('SUBS_AT:*people', now);
   } catch (err) {}
 }
-/* ONE READ OF THE TAB, SHAPED BOTH WAYS — this person's latest per key, and everybody's summary. */
+/* ONE READ OF THE TAB, SHAPED BOTH WAYS — this person's latest per key, and everybody's summary. NOT OF
+   EVERY COLUMN (review of 9 Oct): `label` and `words` — the name and the paragraph a parent's email
+   prints, repeated on every press — are most of the tab's bytes and nothing here reads them, so only
+   the seven columns this needs are fetched (`readCols_`). */
 function submissionsBuild_(pid, people) {
-  const mine = {}, sum = {}, lastAt = {};
-  read(TAB.submissions).rows.forEach(r => {
+  const mine = {}, sum = {};
+  readCols_(TAB.submissions, ['person_id', 'key', 'answer', 'verdict', 'submitted_at', 'event_id', 'pressed_at']).rows.forEach(r => {
     const who = S(r.person_id), k = S(r.key);
     if (!who || !k) return;
-    const at = answerAtMs_(r.submitted_at);
+    const came = answerAtMs_(r.submitted_at);
     if (people) {
       const p = sum[who] || (sum[who] = { qs: {}, at: 0 });
       p.qs[k.split('#')[0]] = 1;
-      if (at >= p.at) p.at = at;
+      if (came >= p.at) p.at = came;
     }
     if (key(who) !== key(pid)) return;
+    const at = answerAtMs_(r.pressed_at) || came;
     const was = mine[k];
     if (was && was.at > at) return;
     mine[k] = { answer: S(r.answer), verdict: S(r.verdict), at: at, id: S(r.event_id) };

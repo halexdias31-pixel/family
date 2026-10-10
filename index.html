@@ -1070,6 +1070,12 @@
 <!-- A banner for the things that must interrupt: a failed save, a sheet that needs fixing, a
      backend older than the site. -->
 <div id="banner" class="hidden"></div>
+<!-- THE ONE QUIET LINE WHILE THE APP ASKS THE BACKEND AGAIN — "Reconnecting…", and after two minutes
+     "Can't reach the server — still trying." Written by `reconnectSay_` (see `RECONNECT` in shell.js);
+     empty, it is nothing. ALWAYS IN THE DOCUMENT, never hidden: a live region that appears and speaks
+     in the same moment is announced by some screen readers and not others, and one that is there all
+     along and changes its words is announced by all of them. -->
+<p id="reconnect" role="status" aria-live="polite"></p>
 
 <main id="screen">
   <!-- Every screen lives here. Only one is ever un-hidden, so the page is never taller than the
@@ -1102,6 +1108,7 @@
   <section class="screen hidden" id="s-saved"></section>
   <section class="screen hidden" id="s-spotlight"></section>
   <section class="screen hidden" id="s-settings"></section>
+  <section class="screen hidden" id="s-progress"></section>
 </main>
 
 <!-- The sheet. One element, reused: anything that needs the whole screen — a booking, a profile,
@@ -1116,26 +1123,13 @@
   <div id="sheet-body"></div>
 </div>
 
-<!-- THE LIST THAT HANGS OFF A FIELD. Three shapes of this control have now been reported: a
-     `<select>` closed on every choice ("i have to click on field then click on subject then click
-     on field then click on another subject. thats long"), a sheet covered the app ("no pop up
-     menus"), and a page that replaced the form was worse again ("i hate this"). What was asked for
-     is the ordinary thing: a drop-down anchored to the field that takes several ticks and stays
-     open.
-
-     IT HAS TO BE HERE RATHER THAN IN THE CARD, and that is geometry rather than tidiness. `.pane`
-     is `overflow: hidden`, so a panel drawn inside the booking card is CLIPPED by it however it is
-     positioned — and `position: fixed` does not escape either, because `placeCells` puts a
-     `transform` on every column and a transformed ancestor becomes the containing block for a fixed
-     descendant AND goes on clipping it. A sibling of the screens is the only place a fixed box is
-     measured against the viewport.
-
-     THE BACKDROP IS INVISIBLE AND IS NOT A SCRIM. Its whole job is that a tap anywhere else closes
-     the list, which is what a drop-down does; darkening the app is what a sheet does, and a sheet
-     is the shape that was refused. The swipe still works through it, because `overworld.js` listens
-     on the window rather than on what happens to be on top. -->
-<div id="drop-back" class="hidden" data-do="book-many-done"></div>
-<div id="drop" class="hidden"></div>
+<!-- `#drop` AND `#drop-back` WERE HERE: the app's own dropdown panel and the invisible backdrop that
+     shut it, a sibling of the screens because `.pane` clips and a transformed column traps anything
+     `fixed` inside it. Every `<select>` and the booking form's several-of-a-list questions hung it off
+     their field (notes 147, 153, 226). The owner asked on 9 October for *"a more stable standard
+     simple conventional drop down list"*: every dropdown is the platform's own again, and a list
+     taking several answers is checkboxes in its card, under its row, so nothing is left to float
+     over the app. Note 315. -->
 
 <!-- `<nav id="tabs">` WAS HERE AND WAS ALREADY EMPTY. Nothing in any JavaScript file has written
      to it since the bar was removed — the stylesheet's own note says its rules "LIVED HERE" — so it

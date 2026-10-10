@@ -82,9 +82,12 @@ const bizSaid_ = () => BIZ.error ? BIZ.error : BIZ.list ? '' : 'Fetching what is
 function bizItem_(item) {
   const r = bizRow_(item.id);
   const st = bizState_(item, r.due_on);
+  /* EACH BOX A DRAFT UNTIL ITS CARD IS SAVED (data.js; docs/history/317): a provider, a reference and a
+     date typed and not yet saved went with a reload. Drawn holding the draft, with the recorded value as
+     the one that takes it away (`bizFill_` keeps that value current once the records arrive). */
   const box = (k, ph, v, extra) => `<label class="field"><input type="${k === 'due_on' ? 'date' : 'text'}"
-      data-biz="${esc(item.id)}" data-k="${k}" value="${esc(v || '')}" placeholder="${esc(ph)}"
-      aria-label="${esc(item.title + ' — ' + ph)}" autocomplete="off" ${extra || ''}></label>`;
+      data-biz="${esc(item.id)}" data-k="${k}" value="${esc(draftVal_('rec', item.id + ':' + k, v || ''))}" placeholder="${esc(ph)}"
+      aria-label="${esc(item.title + ' — ' + ph)}" autocomplete="off" ${extra || ''}${draftAttr_('rec', item.id + ':' + k, v || '')}></label>`;
   const date = box('due_on', item.due.toLowerCase(), r.due_on);
   const ref = box('reference', item.ref, r.reference);
   /* THE DATE'S MEANING IS IN THE CAPTION — `renews`, `due`, `review by` — because a date input draws
@@ -130,7 +133,11 @@ function bizFill_(form) {
     it.classList.toggle('is-overdue', st === 'overdue');
     const cap = it.querySelector('.biz-cap');
     if (cap) cap.innerHTML = bizCap_(item, st);
-    it.querySelectorAll('[data-biz]').forEach(b => { b.value = r[b.dataset.k] || ''; });
+    it.querySelectorAll('[data-biz]').forEach(b => {
+      const was = r[b.dataset.k] || '';
+      b.setAttribute('data-draft-was', was);
+      b.value = draftVal_('rec', item.id + ':' + b.dataset.k, was);
+    });
   });
   const said = form.querySelector('.biz-said');
   if (said) said.textContent = bizSaid_();
@@ -174,6 +181,8 @@ on('biz-save', el => {
       const ids = new Set(got.map(r => r.id));
       BIZ.list = (BIZ.list || []).filter(r => !ids.has(r.id)).concat(got);
       delete form.dataset.dirty;
+      /* SAVED, SO THIS CARD'S DRAFTS GO. */
+      records.forEach(r => ['provider', 'reference', 'due_on'].forEach(k => { try { draftDrop_('rec', r.id + ':' + k); } catch (e) {} }));
       /* THIS CARD ONLY — the flags follow the dates just saved, and another card with something
          typed into it is not touched. */
       bizFill_(form);

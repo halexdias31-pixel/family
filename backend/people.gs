@@ -917,8 +917,115 @@ function confirmFirst_(r, then) {
            why: 'unconfirmed', pendingEmail: at };
 }
 
+/* ---------- DOES THIS PERSON STILL WANT THIS KIND OF EMAIL — `NOTIFY_KINDS` in constants.gs -----------
+   The owner, 9 Oct: *"Also let parents select their communication preferences like notification. And
+   kids and tutors too I guess"*. ONE READER, for the reason `addressPending_` gives above: the weekly
+   email read `weekly_email` itself, and a second sender with its own reading of its own column is the
+   rule kept in two places. Every sender asks this — `notify`, `sendInvite`, the Sunday digest — at the
+   moment of sending, so a choice made a second ago holds, and a row typed into the sheet by hand holds
+   too, whatever the phone drew.
+
+   YES FOR AN ESSENTIAL KIND, AND YES FOR A KIND NOBODY DECLARED. The first is the point of essential;
+   the second is the safe way round for a sender somebody adds tomorrow — mail sent that was not wanted
+   is a nuisance, a PIN reset swallowed is a locked-out family — and `check-prefs.js` refuses an
+   undeclared kind before it ships anyway. BLANK IS YES (`ON_`), so every row from before the column
+   existed — and a live sheet before `ensureSchema` has added it — goes on getting what it got. */
+function wants_(r, kind) {
+  const K = NOTIFY_KINDS[S(kind)];
+  if (!K || K.essential || !K.col) return true;
+  return ON_(r && r[K.col]);
+}
+
+/* ---------- AND WHEN IT SAYS NO, IT IS WRITTEN DOWN, NOT DROPPED --------------------------------------
+   `notify` LOGGED NOTHING, so "I was never told" could not be told apart from "they had it switched off".
+   The Apps Script execution log (Executions in the editor), as `aiMark` logs a refusal from Gemini: no
+   tab to grow, nothing for a phone to read, and the owner can find it by the person's id. NEVER IN THE
+   REPLY: the sender would learn another person's choices — that somebody has switched their messages
+   off is theirs to say. The weekly email and an invitation log where they already log, as well
+   (`digest_log`, `invites.notes`). */
+function notifyHeld_(r, kind, subject) {
+  try {
+    console.log('notify held: ' + S(kind) + ' email not sent to ' + (S(r && r.person_id) || 'a row with no id')
+      + ' — their ' + S((NOTIFY_KINDS[S(kind)] || {}).col) + ' says no. Subject: ' + S(subject));
+  } catch (err) { /* a log that cannot be written must not stop the action that was being told about */ }
+}
+
+/* ---------- WHICH ROLES AN EMAIL REACHES SOMEBODY BY — ONE ANSWER FOR THE CARD AND FOR `setNotify` --------
+   THE CARD AND THE SERVER DISAGREED TWICE, and both times the sender was right and the card was not
+   (review, 9 Oct):
+
+   ALIASES. `rolesOf` gives the cell's words as typed, and people type `parent`, `guardian`, `kid` and
+   `teacher` there — that is why `SELF_ROLE_ALIASES` exists. Asked raw, a `parent` row reached no kind at
+   all: the card read "To x@… · saved as you tick." over nothing, while the Roles card just above showed
+   Client ticked, and `setNotify` refused every kind. So the words go through the alias map first, as
+   `selfRolesOf_` does. A cell that names none of the four after that — only a title, say — is `client`,
+   which is `mainRole`'s answer for the same row.
+
+   PARENTS BY THE FAMILY TAB. A kind marked `parents` (the weekly email, family links) also reaches
+   anybody with an ACCEPTED child, whatever their cell says, because that is who its sender writes to —
+   `acceptedParents`, not a role. They meet it as a parent, so it is `client`'s note they are shown.
+
+   Returns the roles it reaches them BY (empty: it does not reach them), because `notifyOf_` picks each
+   role's note from that list. `parent` is passed in by `notifyOf_`, which asks once for eleven kinds. */
+function notifyRoles_(r) {
+  const held = rolesOf(r).map(x => SELF_ROLE_ALIASES[x] || x).filter(x => NOTIFY_ALL_ROLES.indexOf(x) !== -1);
+  return held.length ? held.filter((x, i) => held.indexOf(x) === i) : ['client'];
+}
+function notifyParent_(r) {
+  /* A FAMILY TAB THAT CANNOT BE READ IS NOBODY'S CHILD — the roles still decide, which is what the card
+     drew before this was asked. AND A ROW WITH NO ID IS NOBODY'S PARENT, or a half-typed link with a blank
+     `parent_id` would make it one. */
+  const id = S(r && r.person_id);
+  if (!id) return false;
+  try { return acceptedLinks().some(l => S(l.parent_id) === id); } catch (err) { return false; }
+}
+function notifyHow_(r, K, parent) {
+  if (!K) return [];
+  const mine = notifyRoles_(r).filter(x => K.roles.indexOf(x) !== -1);
+  if (!mine.length && K.parents && (parent === undefined ? notifyParent_(r) : parent)) mine.push('client');
+  return mine;
+}
+
+/* ---------- WHAT THE NOTIFICATIONS CARD DRAWS FOR THIS PERSON ------------------------------------------
+   Sent on the profile (`profileOf_` → `myProfile`, the sign-in reply, `updateProfile`), so the phone is
+   told, by the same table the senders read, exactly which kinds reach this person and what each is set
+   to — the phone keeps no list of its own to drift from this one. The kinds of EVERY role they hold
+   (`notifyHow_` — aliases read, and a parent by the family tab as well as by the cell), in the table's
+   order, optional ones with `on`, essential ones flagged, `hidden` ones left out.
+
+   `to` IS THE ROW'S OWN ADDRESS, because that is the only one `notify` writes to: a child with none is
+   sent nothing at all (their sign-in help goes to their grown-ups, `authGrownUps_`), and the card says
+   that instead of drawing switches for mail that never comes. `held` is `addressPending_` — nothing but
+   the link goes to an address nobody has proved. `idle` on the weekly email while the owner has it off on
+   the config tab (`digestMode_`): a switch for an email nobody is being sent must say so. */
+function notifyOf_(r) {
+  const parent = notifyParent_(r);
+  let mode = 'off';
+  try { mode = digestMode_(config()); } catch (err) { mode = 'off'; }
+  const kinds = [];
+  Object.keys(NOTIFY_KINDS).forEach(k => {
+    const K = NOTIFY_KINDS[k];
+    /* `hidden` — still a kind, still honoured by `wants_` and `setNotify`, just not drawn (see `referrals`). */
+    if (K.hidden) return;
+    const mine = notifyHow_(r, K, parent);
+    if (!mine.length) return;
+    const notes = [];
+    mine.forEach(x => { const n = (K.noteFor && K.noteFor[x]) || K.note; if (notes.indexOf(n) === -1) notes.push(n); });
+    const out = { kind: k, label: K.label, note: notes.join(' · ') };
+    if (K.essential) out.essential = true;
+    else out.on = wants_(r, k);
+    if (k === 'weekly' && mode !== 'send') out.idle = 'Not being sent yet';
+    kinds.push(out);
+  });
+  return { to: S(r && r.email), held: addressPending_(r), kinds: kinds };
+}
+
 /** Send an email. Skips silently when there's no address — a missing email must not break a move. */
-function notify(name, subject, body) {
+/* ---------- `kind` IS WHICH OF `NOTIFY_KINDS` THIS IS, AND EVERY CALLER NAMES ONE -----------------------
+   Asked LAST, after the address and its proof: a person with no address was never going to be sent it,
+   and is not "held". Left out, it is treated as essential — the checks' own three-argument calls still
+   send — but `check-prefs.js` fails on any call in backend/ that leaves it out. */
+function notify(name, subject, body, kind) {
   try {
     const p = findPerson(name);
     const to = p ? S(p.email) : '';
@@ -926,6 +1033,9 @@ function notify(name, subject, body) {
     /* NOT TO AN ADDRESS NOBODY CONFIRMED — see `addressPending_`. False, as for no address: the caller
        carries on either way, and a booking notice in a stranger's inbox is the worse of the two. */
     if (addressPending_(p)) return false;
+    /* NOT A KIND THEY HAVE TURNED OFF — see `wants_`. False, like the two above: the action that wanted
+       to tell them has happened, and whether they hear of it by email was theirs to decide. */
+    if (!wants_(p, kind)) { notifyHeld_(p, kind, subject); return false; }
     MailApp.sendEmail({ to, subject, body, name: '@family.' });
     return true;
   } catch (err) {

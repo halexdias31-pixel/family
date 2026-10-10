@@ -101,6 +101,11 @@ const SUITE = [
      written after making exactly that mistake on the Message control, where a stubbed refusal
      closed the sheet, discarded what had been typed, and said it had gone. */
   { file: 'check-replies.js', what: 'a refusal reported as a refusal' },
+  /* ---------- AND WHETHER WHAT WAS TYPED SURVIVES A RELOAD ------------------------------------------
+     *"the box should be autosaving his work like everywhere else should be doing this"* — the owner,
+     9 Oct, after an essay went with a refresh (docs/history/317). Every box the app draws is an answer,
+     a draft, kept by its own code, or exempt with a reason; a new one that is none of them fails here. */
+  { file: 'check-drafts.js', what: 'every box a person types into survives a reload, or says why not' },
   { file: 'check-post.js', what: 'an action that names a person by a cell they can edit' },
   { file: 'check-doors.js',   what: 'buttons and handlers', soft: true },
   { file: 'check-dead.js',    what: 'code nothing calls', soft: true },
@@ -117,6 +122,13 @@ const SUITE = [
   { file: 'check-lifecycle.js', what: 'every booking path ends where it should' },
   { file: 'check-spine.js',     what: 'one row order, both documents' },
   { file: 'check-surfaces.js',  what: 'nothing opens over the app' },
+  /* ---------- AND NOTHING STANDS IN FRONT OF A DROPDOWN ------------------------------------------
+     For a week every `<select>` was `pointer-events: none` and answered by a floating panel of the
+     app's own (note 226); on 9 October the owner asked for *"a more stable standard simple
+     conventional drop down list"* and got the platform's own back (note 315). That panel was built
+     from three small pieces — a CSS rule, a listener, a box in index.html — and this fails on any of
+     them coming back. Static and quick, beside `check-surfaces`, which asks the same of sheets. */
+  { file: 'check-dropdowns.js', what: 'every dropdown the platform\'s own, nothing in front of one' },
   /* ---------- AND THE DATA ITSELF, WHICH NOTHING HAD EVER READ ------------------------------------
      Every check above this line reads the CODE. `data/questions.json` is 4,264 rows of committed
      content — the library the whole Find screen is about — and no check had ever opened it. A wrong
@@ -226,6 +238,10 @@ const SUITE = [
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
+  /* WHAT EVERYBODY HAS CHOSEN TO BE EMAILED. *"Also let parents select their communication preferences
+     like notification. And kids and tutors too I guess"* — every sender names its kind and asks
+     `wants_`, through the real doPost: off is held and logged, on is sent, the essentials always go. */
+  { file: 'check-prefs.js', what: 'notification choices: every sender asks, off is held and logged, essentials always go, the token decides whose' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
      images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the

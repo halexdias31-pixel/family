@@ -13,7 +13,7 @@
 | Before | Now |
 |---|---|
 | The card said `Done 4 Oct` beside the star (268, 269): the day a question was last touched — the first keystroke counted. | **The card says how the LATEST submission went**, in the same slot: "Correct" (tick), "Not yet" (the turning arrow), "Sent" (nothing marked it) or the AI's "3/4". Nothing for a question never sent. **No card says a day.** |
-| `attempts`: one row per person per question — `first_done`, `last_done`, `times` — upserted by `markDone`, sent on the first keystroke of the day and backfilled from the phone on every load. | **`submissions`**: one row per PRESS — `person_id, key, label, words, answer, verdict, submitted_at, event_id` — appended by `submitAnswer` and never updated or deleted. Right, then wrong, is two rows, and the later one is the latest. |
+| `attempts`: one row per person per question — `first_done`, `last_done`, `times` — upserted by `markDone`, sent on the first keystroke of the day and backfilled from the phone on every load. | **`submissions`**: one row per PRESS — `person_id, key, label, words, answer, verdict, submitted_at, event_id, pressed_at` — appended by `submitAnswer` and never updated or deleted. Right, then wrong, is two rows, and the later PRESS is the latest (`pressed_at`, added after the review — below). |
 | A typed, picked or ordered answer went to the account as it was typed (`saveAnswers`, 296), and came back as a draft on the next device. | **An answer reaches the account when it is SENT.** The next device opens the box on the latest answer sent, with its verdict on the verdict line. An answer typed after the last Send stays on THAT device, with no verdict, until it is sent — the line under the box says *"On this device until you send it"*. Drawings (the pen, ringed words) have no Send and go up as they are drawn, exactly as before. |
 | A box with no scheme and no AI had no button — typing was saving. | **Every box has a way to send**, signed in: Check where there is a scheme, Mark with AI where it is on, and otherwise a **plain Send** (`qp-send`, verdict `sent`) — about 399 maths answers with no scheme, every worded one while AI marking is off, and each of a practical's three worksheet boxes. When AI marking goes off mid-visit its tile becomes the plain Send where it stands. |
 | The weekly parent email listed the questions a child "worked on", new and gone back to, by first and last day. | **It reads the week's submissions**: one line per question however often it was sent, grouped by paper with its words exactly as before, and each with **the week's latest verdict as a mark** beside its number — `Q4a ✓`, `Q5a ✗`, `Q5b sent`, `Q7 3/4`. "(again)" now means it was also sent before the week began. Everything else (who gets it, the switch, the Sunday hour, the caps, the privacy rules) is unchanged. |
@@ -33,8 +33,9 @@ marks (`ai:2/3`), and the plain Send. Typing is not one, an item placed in an or
   `right|wrong|sent|ai:N/M`, an id not in the phone's shape, an empty answer or one over
   `ANSWER_TEXT_MAX` is refused whole and left out of the reply; the answer is written with a leading
   apostrophe so `3/4`, `0.50`, `2,4` and `=1+1` come back exactly; the name and words go through the
-  email's own `attemptLabel_` / `attemptWords_`; `submitted_at` is the server's clock; 25 a request
-  (`SUBMISSIONS_PER_POST`). It retires no payload.
+  email's own `attemptLabel_` / `attemptWords_`; `submitted_at` is the server's clock, and `pressed_at`
+  the phone's moment of the press, never later than the server's; 25 a request (`SUBMISSIONS_PER_POST`).
+  It retires no payload, and it reads two columns of the tab, not the tab (after the review, below).
 - **`DATA.submissions`** = `{ for, mine: { <key>: { answer, verdict, at, id } } }`, the token's
   person's latest per question, laid on every payload fresh (`payloadWithFresh_`, never in the stored
   body) and on the sign-in reply. An admin also gets `people` — per learner, how many questions and the
@@ -87,12 +88,16 @@ by a grown-up at a glance down a list of numbers, uses ✓ and ✗.
 - **Right and wrong are the phone's word.** The library and its schemes are on the phone, not the server;
   `submitAnswer` checks the verdict's vocabulary, not its truth. Mark with AI's marks are recorded by the
   phone too (the server already clamps them in `aiMark`). Nothing is paid or ranked on them.
-- **What was done before the deploy has no submission**, so those cards show nothing until the question
-  is sent again, and the first Sunday email after the deploy covers presses since. Old typed drafts stay
-  on the `answers` tab and on each device; they are not read back. (A separate piece of work migrates
-  them.)
-- **A press queued offline and sent late takes the server's time** of arrival, so for the email it is in
-  the week it reached the sheet. Sunday presses after the 18:00 run are in nobody's email, as before.
+- **What was done before the deploy** is carried across once per person per device (`subMigrate_`,
+  below) — but only what is still on a device: a question done on a phone that is never signed in again
+  after the switch stays a blank card until it is sent again. Old typed drafts on the `answers` tab (if
+  a backend ever had one) are not read back.
+- **A press queued offline and sent late is in the week it ARRIVED** for the email (`submitted_at`),
+  though it is ordered by when it was pressed. Sunday presses after the 18:00 run are in nobody's email,
+  as before.
+- **Two devices migrating the same question with different answers** write it once — the first to arrive
+  (one id per person and key). The other device keeps showing its own answer and verdict, the account
+  the first; the next press of that question on either device settles it.
 
 ### Checks
 
@@ -144,13 +149,130 @@ the card, the queue sent to a backend without the action).
 **The worksheet's Send stands beside each box**, as Send does at the chat bar, not on a row of its own:
 three 48px rows took the worksheet at 320 to the 70% floor and into a scroll in the first shots.
 
-### For the owner to do — one Apps Script sitting
+## After the review, and the merge with the essay sheet, autosave and keep-Find (10 Oct)
+
+The branch was merged with the integration branch before the review's findings were applied, so the
+rules notes 312, 317 and 318 set hold with submissions in. **The four stamps are
+`2026-10-09-e-submissions`; `--css-version` is `2026-10-10-e-submissions`.**
+
+### Where the merge needed more than both sides
+
+- **AN ESSAY'S MARK WAS NEVER RECORDED.** 312 keeps an essay's AI mark with its words (`aiKeep_`) and
+  returned before this note's `subRecord_` — so the forty-mark answers the sheet exists for were the one
+  kind never sent to the account. Now every Mark with AI records its press, the essay's included, with
+  the words that were marked.
+- **THE ESSAY'S VERDICT LINE HAS TWO SOURCES**, the kept mark (this device, with its points) and the
+  latest submission (any device). `subVerdictPaint_` draws the kept mark when it is about these very
+  words, or when no submission is; a submission about the words in the sheet that is not the kept mark's
+  is the newer reading, and the old points come off the screen (they stay kept, for an Undo back). An
+  essay with AI marking off has the plain Send, and the faint line still says why nothing marks it.
+- **`SUB_ANSWER_MAX` WAS STILL 2,000** after 312 raised `ANSWER_TEXT_MAX` to 20,000 on both sides, so
+  every essay over about 350 words would have been "too long to send". It is 20,000.
+- **`ansOnAccount_` (317) ASKED "STAMPED AND NOT DUE"**, and since this note a typed answer is stamped on
+  every key and never due: a draft the store refused counted as on the account — no "Not saved" under
+  it, no "Leave site?" before a reload. A typed answer is on the account only as it was sent: the latest
+  press holds exactly it, and the server has it.
+- **318's claim made a claimed typed answer due** as a draft. It is this person's draft on this device
+  now, never sent as a draft and never as a submission nobody pressed (`ansSyncs_`). **No signed-out
+  answer becomes a submission except through `ansMayMove_` to its person**: the claim and `ansRead_` are
+  the only doors to `ans:u:<id>:`, and both ask it; the migration below reads that key alone. A press made
+  signed out is the visit's, and is not carried into anybody's account at sign-in.
+
+### The review's six
+
+1. **"Latest" was arrival order — FIXED.** The rollout itself would have inverted it: presses queue on
+   every device until the owner's Apps Script steps, so the iPad's Monday "wrong" arriving after the
+   computer's Tuesday "right" became the latest everywhere, and was written over the computer's box. The
+   phone sends the press's own `at`; the server keeps it as **`pressed_at`** (ISO text, clamped to its
+   own clock — `answersUpsert_`'s rule), answers with it, and `submissionsBuild_`, `digestPlan_` and the
+   phone order by it, the later row breaking a tie. `submitted_at` stays the arrival, and still decides
+   which WEEK a press is in for the email (a phone's clock is wrong on enough iPads). A row with no
+   `pressed_at` falls back to `submitted_at`.
+2. **Every press read the whole tab under the lock — FIXED.** `readCols_` (core.gs) reads the header and
+   one column at a time; `submitAnswer` reads `person_id` and `event_id` alone, and the whole of a row only
+   for a retried id; a load reads seven columns and never `label` or `words`.
+3. **The keypad's gold Send (and Enter) sent nothing on a plain-Send box — FIXED, the blocker.**
+   `kpDone_` runs the box's own control, from `inp.closest('.qp-mark')`: Check, else the plain Send, else
+   Mark with AI while it can be pressed. An essay's key still says "done" and sends nothing (312: Mark
+   with AI spends a mark; the essay is sent from its tile row).
+4. **"Sent" survived a letter after AI went off mid-visit — FIXED.** `subVerdictPaint_` keeps the
+   "AI marking isn't switched on" line only while the line still says it (`aiOff_` writes what it said
+   on the box); a verdict that replaced it comes off with the next key, as on every box.
+5. **The Preview card could not tell a backend from before submissions — FIXED.** A reply with `words`
+   and no `submissions` (the old backend says `attempts:`) is told first, in bold, that the live web app
+   still reads the attempts tab: sync, `ensureSchema`, New version.
+6. **Nothing pinned the email's "latest" — FIXED.** check-digest seeds a tie (wrong then right, one
+   instant → ✓), the later instant on the earlier row (→ ✓), one flush pressed in the reverse of row order
+   (→ the later press), and asks that the card's `submissionsBuild_` says the same for every one.
+
+### Decided after the review, from a count-only read of the live Ledger
+
+The server had 55 `attempts` rows for 5 learners and no `answers` tab; the live backend is a week old; a
+child's typed answers exist only on their devices, under `ans:u:<id>:<key>`.
+
+- **No replacement spreadsheet.** The owner updates in place. **`seedOptions` rewrote the options tab on
+  every `ensureSchema`** — the code's four lists rebuilt, every other row closed up under a `focus`
+  column that did not move with them, every value through `S()` — over 145 rows the owner has edited.
+  It only adds now: a code-owned value a list is missing is appended at the end of that list's numbering,
+  and no row is rewritten, moved or removed; a second run adds nothing. `ensureSchema` reports
+  `added: …` where it said `rewrote: …`.
+- **A one-time migration per device per person** (`subMigrate_`, js/submit.js): on a signed-in load,
+  once (`subMigrated:u:<id>`), every question this person had DONE before the change — a `done:u:<id>:`
+  date on the device, or a row of their own in an old backend's `DATA.attempts` — that holds their own
+  non-empty answer and has no account submission becomes ONE submission, marked by the site's own marker
+  (`orderSeq_`/`markOrder_`, `choiceRight`, `markAnswer_`, else `sent`), dated by the answer's last edit
+  (else noon on the day it was done). A key not in the library, an empty answer, a holed ordering or a
+  short pick, and a draft never done are not sent; it waits, unflagged, for the library and for the
+  account's copy. The id is made from the person and the key (`subMigrateId_`, `1791504000000-m…`), so
+  two devices or two runs write it once. Under an old backend the presses queue and go up the first time
+  the backend lists `submitAnswer`.
+- **The empty guard**: a submission whose answer is empty is nobody's latest and never written over what
+  a box holds (`subAdopt_`).
+- **The attempts tab stays in the sheet as an unread archive.** No sent rows are invented for it, and
+  nothing writes it.
+
+### Checked
+
+- **check-submissions** (64 rules): `pressed_at` — the rollout's inversion, a fast clock clamped, no
+  clock is now, a tie, a row from before the column ordered by its arrival; the two-column read under
+  the lock, a retry's one row, a load never fetching `label`/`words` (every `getValues` on the tab
+  recorded by its shape); and `ensureSchema` over an owner's options tab (subjects with a kind each, a
+  blank row, a reworded and reordered code list, a value of theirs, a number) — every row as it was, the
+  code's missing values appended once, a second run adding nothing, and `pressed_at` added to a
+  `submissions` tab made by the first version, its press untouched.
+- **check-digest** (82 rules): the tie, the reverse, the flush pressed out of row order, the tie in one
+  instant — in the plan, in the email's marks, and against `submissionsBuild_`.
+- **check-flow**: the keypad's gold Send and Enter on a maths box with no scheme, on the second of two
+  worksheet boxes (only it sent), and on a Check, and an essay's "done" and Ctrl+Enter sending nothing;
+  the migration over real library rows (an ordering, a pick of two, a maths answer with a scheme and one
+  without) — the four sent with their verdicts and deterministic ids, the draft never done, the empty
+  answer, the key the library has not got and the question the account has all left, the brother's keys
+  and a signed-out answer untouched, nothing more on a second load, a reload, a second device after the
+  first, and the same ids from a device that loaded before the account had them; an old backend's
+  `attempts` queued and sent once the backend can; the empty guard; "Sent" then a letter after AI went
+  off; a refused typed draft "Not saved" and at risk until sent; the essay's AI mark recorded whole; and
+  the Preview card told a backend before submissions is old.
+- **Mutations, each red on its own and the real files green after**: ordering by arrival, no clamp, no
+  fallback to `submitted_at`, the whole tab read by a press, the whole tab read by a load, the old
+  `seedOptions`, `seedOptions` without its guard (check-submissions); `>` for `>=`, the verdict by row
+  order, `pressed_at` ignored (check-digest); `kpDone_` with Check alone, the essay's key sending, a random
+  migration id, no empty guard, the old `is-off` return, the Preview not asking for `submissions`, the
+  essay's mark returning before the record, `SUB_ANSWER_MAX` back at 2,000, `ansOnAccount_` without the
+  submissions rule (check-flow). One stays green, and is meant to: the migration skipping a key the
+  account has (`mine[key]`) is a second line behind `subAdopt_`, which lays the account's latest into
+  the device's copy first.
+
+## For the owner to do — one Apps Script sitting, on the live Ledger
 
 1. **GitHub Assistant ↓** (or clasp) to pull `main` into the Apps Script project. No file is added or
    removed, so `backend/files.json` is unchanged.
 2. Run **`ensureSchema`** from the function list (or open `/exec?setup=1`). It creates the
-   **`submissions`** tab. The `attempts` tab stays where it is, read by nothing; it can be deleted by
-   hand, or kept as a record.
+   **`submissions`** tab (with `pressed_at` as its last column), adds any column another tab is missing,
+   and touches no row of yours: on the options tab it only appends a code-owned value a list is missing
+   (the report says `added: …`). The `attempts` tab stays where it is, read and written by nothing — keep
+   it as the record of what was done before, or delete it by hand.
 3. **Deploy → Manage deployments → pencil → New version → Deploy**, so the web app (and the Preview on
-   the weekly email's card) is the new code. Until then the site keeps every press on the device and
-   sends them the first time the backend lists `submitAnswer`.
+   the weekly email's card) is the new code. The You screen shows `2026-10-09-e-submissions` on all four
+   stamps when it has landed. Until then the site keeps every press on the device and sends them the
+   first time the backend lists `submitAnswer` — and each child's questions done before the switch go up
+   from their own device, once, the next time they are signed in there.
