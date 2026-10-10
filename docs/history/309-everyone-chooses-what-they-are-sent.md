@@ -239,3 +239,14 @@ carries both, and a stamp of either side's alone would have the You screen calli
 box a reload would lose. It is not: a tick is a `setNotify` the moment it is ticked and a failure puts it back
 to the server's answer, so there is nothing half-made on the device to keep — the agreement box's reason, and
 it is on `EXEMPT` beside it with that reason.
+
+**On the merged tree, everything was run again.** The review's own probes (a tutor-only and an admin-only row,
+each with an accepted child) now see the weekly switch, turn it off, and get nothing from `digestRun_`. Nine of
+the mutations above were made again on a copy of the merge — seven in check-prefs (the paid mail to
+`reported`, `joinFestive` to `booked`, `setNotify` out of features, the `parents` clause out, the alias map
+out, `parents` off `weekly`, `hidden` off `referrals`) and two in check-flow (the lock on the card, the whole
+list kept) — and each went red, then green on the real files. `npm run check`: 58 of 62 on
+the first pass; `check/press.js`, `check/cascade.js` and `check/ui.js --part=1/3` died on EADDRINUSE (another
+worktree's run held the default port) and `--part=2/3` timed out its reach at a load average of 18. All four
+passed run again by themselves on their own ports (`PRESS_PORT`, `CASCADE_PORT`, `UI_PORT`), as did
+`check/ui.js --screen=settings`: nothing new.
