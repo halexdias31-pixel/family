@@ -228,3 +228,28 @@ column (320). Read for waits of their own:
   it were the column. Both waited a fixed 1.7–2.2s after `goto`; on 9 Oct, at a load average of sixty,
   that was the splash at 1920 and a shop with "no shelf of things". Both now wait for `LOADED` and the
   library (bounded at 30s, then on), which on a quiet machine is the same 1.8s it always was.
+
+### The last run, on the merged branch (10 Oct, a little after midnight)
+
+Everything again on what is committed, at a load average of six to twenty-six on four cores shared with
+other worktrees:
+
+- `check.js`, `check-const`, `check-css`, `check-strings`, `check-doors`, `check-loading` green;
+  `check-loading`'s mutations re-run on copies — thirteen, each red with its own line, a control copy
+  green. `check-flow`'s eight loader mutations re-run in a scratch worktree, each red, control green.
+- **`check/ui.js --shots`, every screen:** 1395 screen/width/visitor combinations, nothing new; 25
+  loaders measured, 15 of them held, let go and the card measured again, **one size per width**
+  (320: 7x7 dots 14.17px apart · 390: 8x8, 15.55 · 768 and up: 9x9, 16.27 — `rem`, so it is a fact per
+  width). Two of its mutations re-run at 390: the veil hiding with `display: none` ("the card was
+  129.4px with the loader on it and 483.1px once its content landed") and the Videos card's dots at
+  `.9rem` ("13x13 20.73px … where `loading_()` draws 8x8 15.55px"), both red. Looked at, at 320 and
+  390: the Insurance card, the Videos card, the camera's viewfinder and Find's search box, each with the
+  three dots in the middle of the room the content takes.
+- **`check-flow` 244 of 244** on the second run. The first, at a load average of fourteen, failed once
+  on the quiet retry's notepad journey (313) — the notepad's `start` (`initPad`, which writes the
+  account's notes into the box) landing after the journey had written into it — and it passed nine
+  times after that: eight alone or five at a time, once in the full run. The base commit (499ff0c) was
+  not seen to fail it in six. It is recorded as what was seen, not as fixed. The veil is also the reason
+  a person cannot meet it: an unstarted notepad is out of sight and cannot be typed into.
+- **`check/press.js`**: one swipe chain on Games landed a page short in the full run; Games alone was
+  clean on this branch and showed the same kind of miss on the base commit, run side by side.
