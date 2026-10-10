@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-submissions-loader-notifications";
+  --css-version: "2026-10-10-tutor-week-days-they-work";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -4708,7 +4708,10 @@ label.bk-k { cursor: pointer; }
 
 .slot-grid { display: flex; flex-direction: column; gap: 1px; margin: .12rem 0 .05rem; }
 .slot-row { display: flex; align-items: center; gap: .3rem; }
-.slot-row.is-shut .hr { min-height: 11px; font-size: .55rem; }
+/* `.slot-row.is-shut .hr` WAS HERE, the thin row `weekGrid_` drew for a day with nothing open. The
+   tutor's card was the only week that had one, and since 10 Oct it leaves that day out instead —
+   *"no need to display monday if they dont have any hours on monday"* (docs/history/325). The form's
+   thin day is `.bk-row.bk-wk.is-shut`, above, and is untouched. */
 .slot-day { flex: 0 0 1.5rem; font-size: .62rem; color: var(--faint);
             text-transform: uppercase; letter-spacing: .04em; }
 /* WRAPS rather than scrolls sideways. A row that scrolls can hide an hour, and an hour you cannot
@@ -12884,9 +12887,10 @@ button.scr-sq { cursor: pointer; }
    The receipt's week, read rather than answered: the cells are disabled buttons, so they do not
    take the pointer, shrink when touched or look like something to tick. SLIMMER THAN THE SETTINGS
    WEEK, which is square because it is a page of its own; this is the last thing on a card that is
-   already near its pane's height, and a day nobody works is a thin rule (`is-shut`) rather than a
-   row. A busy hour is `shut` like an hour they do not work — both are hours that cannot be booked —
-   and says which in its title. */
+   already near its pane's height. A day nobody works is not drawn at all — the owner, 10 Oct: *"no
+   need to display monday if they dont have any hours on monday"* — so the two `is-shut` rules that
+   made it a thin rule have gone. A busy hour is `shut` like an hour they do not work — both are
+   hours that cannot be booked — and says which in its title. */
 .prof-week .slot-grid { gap: 2px; margin: .1rem 0 .3rem; }
 .prof-week .slot-day { flex-basis: 1.9rem; font-size: .62rem; text-transform: none; letter-spacing: 0; color: var(--dim); }
 .prof-week .hr { min-height: 12px; border-radius: 2px; }
@@ -12895,6 +12899,4 @@ button.scr-sq { cursor: pointer; }
    win — `check/cascade.js` names exactly that. Nothing here is pressable, shut or open, so both say
    default at a weight `.hr.shut` cannot reach. */
 .prof-week .hr:not(.shut), .prof-week .hr.shut { cursor: default; }
-.prof-week .slot-row.is-shut .hr { min-height: 5px; }
-.prof-week .slot-row.is-shut .slot-day { font-size: .52rem; line-height: 1; color: var(--faint); }
 .prof-week .hr:active { transform: none; }

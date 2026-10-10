@@ -458,7 +458,7 @@ function profHeat_(names) {
    neither, so a parent choosing between two tutors had to start a booking with each to find out
    whether either worked Tuesdays.
 
-   `weekGrid_`, AND THE RECEIPT'S CELL. The same seven rows the booking form, the receipt and the
+   `weekGrid_`, AND THE RECEIPT'S CELL. The same day rows the booking form, the receipt and the
    tutor's own Settings week are drawn with, so a week on a card is not a fourth thing to learn; the
    cell is the receipt's look — lit or `shut` — on a `<span>`, because a card is read, not answered
    (see the note over the markup for what a disabled button cost).
@@ -467,10 +467,23 @@ function profHeat_(names) {
    so offering it as open is the promise the booking grid would then break; `slotGrid` greys it for
    the same reason. Its `title` says why, which is what the booking grid's cells do too.
 
-   A DAY WITH NOTHING TICKED COLLAPSES (`shut`, which `weekGrid_` draws as a thin row) and A TUTOR WITH
-   NOTHING TICKED GETS NOTHING — no caption, no empty week. Seventy-seven grey cells read as "never
-   available", which is not what an unfilled grid means: `slotGrid` treats it as "nobody has said",
-   and the card must not say something stronger than the booking will. */
+   A DAY WITH NOTHING TICKED IS NOT DRAWN, and A TUTOR WITH NOTHING TICKED GETS NO WEEK — the sentence
+   under the caption instead (see below). Seventy-seven grey cells read as "never available", which
+   is not what an unfilled grid means.
+
+   ---------- ONLY THE DAYS THEY WORK ----------------------------------------------------------------
+   THE OWNER, 10 Oct: *"availability of tutors should just show the days they have an availibility up.
+   no need to display monday if they dont have any hours on monday."* A day with nothing ticked was a
+   thin `shut` row, on the argument the booking grid makes — "a missing Wednesday and a Wednesday
+   nobody works are different facts". On a CARD that argument has nothing to stand on: the card is
+   read, nothing on it is pressed, and nobody reading "Available" down a tutor's card mistakes a
+   missing Wednesday for anything but a day they do not teach. Four thin rules of nothing under a
+   tutor who works three days was three-sevenths of the week spent saying no.
+
+   SO A DAY IS DRAWN WHEN IT HAS AN HOUR THEY TICKED INSIDE THE BOOKABLE SPAN, LIT OR ALREADY TAUGHT.
+   A taught hour keeps its day: it is still a day they work, and the grey says the hour is gone, which
+   is the thing a parent comparing two tutors wants to know. Days keep the week's order (`SLOT_DAYS`),
+   and the hour ruler rides on whichever day is first. See docs/history/325. */
 function profAvail_(t) {
   if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
   /* ---------- NO `avail` KEY AT ALL IS NOT A TUTOR -----------------------------------------------
@@ -513,8 +526,22 @@ function profAvail_(t) {
       const code = p + String(h).padStart(2, '0');
       return { h, code, lit: !!on[code] && !busy[code], busy: !!on[code] && !!busy[code] };
     });
-    return { label, hours: cells, shut: !cells.some(c => c.lit || c.busy) };
-  });
+    return { label, hours: cells };
+  }).filter(d => d.hours.some(c => c.lit || c.busy));
+  /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED ---------------------------------------
+     WITH THE EMPTY DAYS GONE, THIS TUTOR WOULD GET A CAPTION OVER NOTHING — or a header row of hour
+     numbers with no day under it. It happens: a seven o'clock tick made while the Settings grid ran
+     to seven is still in the sheet (`AVAIL_HOURS` stops at six now), and it is the only tick some
+     tutors have. They HAVE said when they work, so "hasn't set their hours" would be untrue; what is
+     true is the sentence the week's own `aria-label` already says when nothing in it is free. Drawn
+     in the warning ink like the one above, because a family is about to find the name bookable and
+     every hour of it grey. */
+  if (!days.length) {
+    return `<div class="prof-cap">Available</div>
+      <p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
+          ? ' Every hour they have ticked is outside ' + hours[0] + ':00–' + hours[hours.length - 1]
+            + ':00, the hours a session can be booked at.' : ''}</p>`;
+  }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS ---------------------------------------------
      THE FIRST VERSION USED `jobWeekRows_`'s `<button disabled>`, and `check/ui.js` listed every one
      of the 77 as a 17x12 tap target — 210 "known" rows at 320 alone, a report nobody would read past,
