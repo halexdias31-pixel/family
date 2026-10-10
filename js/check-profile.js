@@ -624,6 +624,133 @@ let photos = 0;
   if (!/getPostFolder\(\)/.test(String(f.ev('getPhotoFolder_')))) bad.push('photo: getPhotoFolder_ no longer falls back to the posts folder');
 }
 
+/* 12b. ONE OF THE ELEVEN, THROUGH THE REAL `doPost` AND `doGet`.
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox dp
+   selector, which allow you to use your avatar as a dp."* The grid posts `savePhoto` with `choice`; the
+   `photo` cell takes the token. Asked of the sheet and of what `doGet` then sends:
+     · every one of the eleven is KEPT, exactly, on the asker's own row — and the backend's list is the
+       phone's list (`PFP_CHOICES` against `PFP_ART` in js/links.js), in order;
+     · anything that is neither one of the eleven nor (on `updateProfile`) a link is REFUSED with the
+       cell as it was — a link at the grid's door, an unknown picture, a bare name, markup;
+     · the face reaches others: a tutor's token on `tutors`, with the figure beside it ONLY when the
+       face is the figure;
+     · A CHILD'S PRIVACY IS UNCHANGED: a child's choice reaches their family and the admin, who already
+       see their face; the `students` list every student is sent carries exactly the keys it did, and
+       a stranger is sent nothing of them; a dressed child's photograph does not reach the feed. */
+let pictures = 0;
+{
+  const f = backend();
+  const kid = Object.assign({}, base, { person_id: 'P-K7', role: 'student', first_name: 'Kit', last_name: 'Kid',
+    handle: 'kit_kind07', email: 'kit7@example.org', avatar: 'skin:3|hair:curls|shirt:4',
+    photo: 'https://example.org/kit-face.jpg' });
+  const pal = Object.assign({}, base, { person_id: 'P-K8', role: 'student', first_name: 'Lou', last_name: 'Pal',
+    handle: 'lou_glad08', email: 'lou8@example.org', avatar: '' });
+  const mum = Object.assign({}, base, { person_id: 'P-C7', role: 'client', first_name: 'Mo', last_name: 'Kid',
+    handle: 'mo_warm07', email: 'mo7@example.org' });
+  const ada = Object.assign({}, tutor, { avatar: 'skin:1|hair:long|faceware:glasses' });
+  f.seed('people', [admin, ada, parent, kid, pal, mum]);
+  f.seed('family', [{ link_id: 'L-K7', parent_id: 'P-C7', child_id: 'P-K7', state: 'accepted' }]);
+  f.seed('posts', [{ post_id: 'PO-K7', author: 'Kit Kid', posted_by: 'Kit Kid', image: 'https://example.org/p.jpg',
+                     approved: 'APPROVED', active: 'TRUE' }]);
+  const tk = {};
+  [['P-T1', tutor.email], ['P-K7', kid.email], ['P-K8', pal.email], ['P-C7', mum.email], ['P-A1', admin.email]].forEach(([pid, em]) => {
+    const d = f.post({ action: 'verifyLogin', email: em, pin: '0000' });
+    if (d && d.success) tk[pid] = d; else bad.push('pictures: ' + pid + ' could not sign in — ' + JSON.stringify(d));
+  });
+  const choose = (pid, choice) => f.post({ action: 'savePhoto', token: tk[pid].token, name: tk[pid].name, personId: pid, choice });
+  const fresh = params => { f.ev('clearCache()'); f.ev('clearPayloadCache()'); return f.get(params); };
+  const CHOICES = f.ev('PFP_CHOICES');
+  /* THE TWO LISTS ARE ONE LIST. The phone's drawings are read out of js/links.js itself, by name. */
+  {
+    const src = require('fs').readFileSync(require('path').join(__dirname, 'links.js'), 'utf8');
+    const block = (src.match(/const PFP_ART = \{([\s\S]*?)\n\};/) || [])[1] || '';
+    const drawn = [...block.matchAll(/^  ([a-z]+): \{ name:/gm)].map(m => m[1]);
+    const phone = ['pfp:avatar'].concat(drawn.map(n => 'pfp:' + n));
+    if (!Array.isArray(CHOICES) || CHOICES.length !== 11) bad.push('pictures: the backend keeps ' + JSON.stringify(CHOICES) + ', wanted eleven tokens');
+    else if (JSON.stringify(phone) !== JSON.stringify(CHOICES)) bad.push('pictures: the phone draws ' + JSON.stringify(phone) + ' and the backend keeps ' + JSON.stringify(CHOICES) + ' — one list, in one order');
+  }
+  if (tk['P-T1'] && tk['P-K7'] && tk['P-C7'] && tk['P-K8'] && tk['P-A1'] && Array.isArray(CHOICES)) {
+    /* EVERY ONE IS KEPT, EXACTLY, AND THE FIGURE RIDES ONLY WITH THE FIGURE. */
+    CHOICES.forEach(c => {
+      const d = choose('P-T1', c);
+      if (!d || !d.success) { bad.push('pictures: the tutor\'s ' + c + ' was refused — ' + JSON.stringify(d)); return; }
+      if (d.photo !== c || f.row('P-T1').photo !== c) { bad.push('pictures: ' + c + ' came back "' + d.photo + '" and the cell holds "' + f.row('P-T1').photo + '"'); return; }
+      if (c === 'pfp:avatar' ? d.avatar !== ada.avatar : ('avatar' in d)) { bad.push('pictures: the reply to ' + c + ' carried avatar ' + JSON.stringify(d.avatar)); return; }
+      pictures++;
+    });
+    const loud = choose('P-T1', ' PFP:Owl ');
+    if (!loud.success || f.row('P-T1').photo !== 'pfp:owl') bad.push('pictures: " PFP:Owl " was not kept as pfp:owl — ' + JSON.stringify(loud) + ' / ' + f.row('P-T1').photo);
+    else pictures++;
+    /* ANYTHING ELSE, REFUSED WITH THE CELL AS IT WAS. A link at the GRID's door too — it takes a token. */
+    [['https://example.org/me.jpg', 'a link at the grid\'s door'], ['pfp:unicorn', 'a picture nobody drew'], ['pfp:', 'an empty token'],
+     ['fox', 'a bare name'], ['pfp:fox|pfp:owl', 'two tokens'], ['<svg onload=alert(1)>', 'markup']].forEach(([c, what]) => {
+      const was = f.row('P-T1').photo;
+      const d = choose('P-T1', c);
+      if (d && d.success) bad.push('pictures: ' + what + ' (' + c + ') was kept as a picture');
+      else if (f.row('P-T1').photo !== was || d.writes) bad.push('pictures: refusing ' + what + ' still wrote');
+      else pictures++;
+    });
+    const anon = f.post({ action: 'savePhoto', name: 'Ada Tutor', personId: 'P-T1', choice: 'pfp:fox' });
+    if (anon && anon.success) bad.push('pictures: a choice with no token was kept');
+    /* `updateProfile` — AN ADMIN'S EDITOR, THE OTHER DOOR TO THE CELL: a link, nothing or a token. */
+    const ed = photo => f.post({ action: 'updateProfile', token: tk['P-A1'].token, name: tk['P-A1'].name, personId: 'P-A1',
+      target: 'Ada Tutor', targetId: 'P-T1', fields: { photo } });
+    [['pfp:rocket', true], ['https://example.org/ada-new.jpg', true], ['', true], ['a photo of me smiling', false],
+     ['pfp:unicorn', false], ['javascript:alert(1)', false]].forEach(([v, ok]) => {
+      const was = f.row('P-T1').photo;
+      const d = ed(v);
+      if (ok && (!d.success || f.row('P-T1').photo !== v)) bad.push('pictures: the admin\'s editor could not keep "' + v + '" — ' + JSON.stringify(d));
+      else if (!ok && (d.success || f.row('P-T1').photo !== was)) bad.push('pictures: the admin\'s editor kept "' + v + '" as somebody\'s face');
+      else pictures++;
+    });
+
+    /* THE FACE REACHES OTHERS, AND THE FIGURE ONLY WITH THE FIGURE. */
+    choose('P-T1', 'pfp:avatar');
+    let row = (fresh({}).tutors || []).find(t => t.personId === 'P-T1');
+    if (!row || row.image !== 'pfp:avatar' || row.avatar !== ada.avatar) bad.push('pictures: a visitor was sent the tutor as ' + JSON.stringify(row && { image: row.image, avatar: row.avatar }) + ', wanted pfp:avatar and her figure');
+    else pictures++;
+    choose('P-T1', 'pfp:guitar');
+    row = (fresh({}).tutors || []).find(t => t.personId === 'P-T1');
+    if (!row || row.image !== 'pfp:guitar' || ('avatar' in row)) bad.push('pictures: after the guitar a visitor was sent ' + JSON.stringify(row && { image: row.image, avatar: row.avatar }) + ' — the figure must not ride with any other face');
+    else pictures++;
+
+    /* A CHILD. Before: what every student and a stranger are sent of them. */
+    const pupil = () => fresh({ token: tk['P-K8'].token });
+    const keysOf = d => JSON.stringify((d.students || []).map(r => Object.keys(r).sort().join(',')));
+    const beforeKeys = keysOf(pupil());
+    const feedFace = () => ((fresh({}).posts || []).find(p => p.id === 'PO-K7') || {});
+    /* A DRESSED CHILD'S PHOTOGRAPH NEVER REACHED THE FEED (the old line sent the wearable string in its
+       place) and does not now. */
+    const fp = feedFace();
+    if (fp.avatar === kid.photo || JSON.stringify(fp).indexOf('kit-face.jpg') !== -1) bad.push('pictures: a dressed child\'s photograph was put on the public feed — ' + JSON.stringify(fp));
+    else pictures++;
+    const k1 = choose('P-K7', 'pfp:avatar');
+    if (!k1.success || k1.avatar !== kid.avatar) bad.push('pictures: the child\'s figure was not kept — ' + JSON.stringify(k1));
+    const fam = (fresh({ token: tk['P-C7'].token }).family || []).find(x => x.personId === 'P-K7');
+    if (!fam || fam.image !== 'pfp:avatar' || fam.avatar !== kid.avatar) bad.push('pictures: the parent\'s card of the child is ' + JSON.stringify(fam) + ', wanted pfp:avatar with the figure');
+    else pictures++;
+    const all = (fresh({ token: tk['P-A1'].token }).everyone || []).find(x => x.personId === 'P-K7');
+    if (!all || all.image !== 'pfp:avatar' || all.avatar !== kid.avatar) bad.push('pictures: the admin\'s card of the child is ' + JSON.stringify(all) + ', wanted pfp:avatar with the figure');
+    else pictures++;
+    const afterKeys = keysOf(pupil());
+    const pupilBody = JSON.stringify(pupil());
+    if (afterKeys !== beforeKeys) bad.push('pictures: the students list every student is sent changed shape when a child chose a picture — ' + beforeKeys + ' became ' + afterKeys);
+    else if (/pfp:/.test(JSON.stringify(pupil().students || [])) || pupilBody.indexOf('kit-face.jpg') !== -1) bad.push('pictures: another student was sent the child\'s picture');
+    else pictures++;
+    const stranger = JSON.stringify(Object.assign({}, fresh({}), { posts: [] }));
+    if (stranger.indexOf('kit_kind07') !== -1 || stranger.indexOf('P-K7') !== -1) bad.push('pictures: a stranger was sent something of the child outside the feed');
+    else pictures++;
+    /* THE FEED: a token always (a fox, or the figure the old line already sent), never the photo. */
+    const ff = feedFace();
+    if (ff.avatar !== 'pfp:avatar' || ff.figure !== kid.avatar) bad.push('pictures: the child\'s post face is ' + JSON.stringify({ avatar: ff.avatar, figure: ff.figure }) + ', wanted pfp:avatar with the figure');
+    else pictures++;
+    choose('P-K7', 'pfp:fox');
+    const ff2 = feedFace();
+    if (ff2.avatar !== 'pfp:fox' || ('figure' in ff2)) bad.push('pictures: after the fox the child\'s post face is ' + JSON.stringify({ avatar: ff2.avatar, figure: ff2.figure }));
+    else pictures++;
+  }
+}
+
 /* 13. YOUR ROLES, THROUGH THE REAL `doPost` AND `doGet`.
    ASKED FOR AS *"each account should have a widget in account settings which say what the roles are.
    they can be either a tutor or client or student. they can be tutor and client and student like
@@ -904,7 +1031,7 @@ console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
-  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules
+  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   picture-choice rules held: ' + pictures + '   role rules held: ' + roleRules
   + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables
   + '   exam-date rules held: ' + examDates);
 if (bad.length) {

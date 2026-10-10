@@ -4652,10 +4652,9 @@ document.addEventListener('input', e => {
 
 /* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED ---------------------------------------------
    A SQUARE PREVIEW, `Choose photo` AND `Remove`. The preview is what the picture will be — the
-   photograph cropped square, or with none the face you have without one: your wardrobe figure if you
-   have dressed it, the initial if not, which is the same letter the card draws. Square because a
-   photograph on this site is square (the camera's still, a post's grid, the photo shelf's
-   thumbnails); the card rounds it into its circle itself.
+   photograph cropped square, one of the pictures, your figure, or with none the initial, which is the
+   same letter the card draws. Square because a photograph on this site is square (the camera's still,
+   a post's grid, the photo shelf's thumbnails); the card rounds it into its circle itself.
 
    TILES, BECAUSE THIS IS A THING — your picture — and the two actions are actions ON it, not the
    buttons of a form: each saves itself, there is nothing to fill in first, and the card's own Save
@@ -4663,9 +4662,33 @@ document.addEventListener('input', e => {
    `Photos` side opens its own; `accept="image/*"` with no `capture`, so a phone offers the gallery
    AND the camera rather than forcing one.
 
-   ONE LINE UNDER THE ROW says what happened, the `.me-said` of every other card. */
-function photoPicker_(value) {
+   ---------- AND UNDER THEM, ELEVEN TO CHOOSE FROM, AS AN XBOX GAMERPIC PICKER HAS -------------------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* FIRST your own figure — drawn live by
+   `avatarFor`, so it is wearing whatever the wardrobe card has on it right now — THEN the ten
+   pictures (`PFP_ART`, links.js). For everybody: a student, a parent, a tutor and an admin all draw
+   this card, because every role's group list names `photo`.
+   A TAP SAVES AT ONCE, like Choose photo, and the card's Save does not touch it. A GOLD RING marks the
+   one in use. They are BUTTONS rather than tiles because they are the answer being chosen, not actions
+   on it — the keypad's keys and a multiple-choice question's options are the house's other two, and
+   the wardrobe's own squares a third.
+   44px EACH, IN PIXELS (CLAUDE.md: a fingertip is the same size on every screen): four to a row in a
+   320 card, six where there is room — see `.pfp-grid`.
+
+   ONE LINE UNDER THE GRID says what happened, the `.me-said` of every other card. `said` is what to
+   put there when the picker is redrawn after a save; left out, it says what the picture is now. */
+function photoPicker_(value, said) {
   const v = String(value('photo') || '').trim();
+  const kind = picKind_(v);
+  const chosen = (kind === 'basic' || kind === 'avatar') ? pfpChoice_(v) : '';
+  const me = USER || {};
+  const opt = n => {
+    const label = n === 'avatar' ? 'Your figure' : PFP_ART[n].name;
+    return `<button type="button" class="pfp-opt${chosen === n ? ' on' : ''}" data-do="pfp-choose" data-pic="${esc(n)}"
+      aria-pressed="${chosen === n ? 'true' : 'false'}" aria-label="${esc(label)}" title="${esc(label)}">${n === 'avatar'
+        ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true })
+        : pfpArt_(n, 40)}</button>`;
+  };
   return `<div class="pfp">
     <span class="pfp-face">${pfpFace_(v)}</span>
     <div class="pfp-side">
@@ -4673,21 +4696,53 @@ function photoPicker_(value) {
         ${tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' })}
         ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
       </div>
-      <p class="faint pfp-said">${v ? 'Your picture on your card.' : 'No picture yet — your card shows this instead.'}</p>
     </div>
+    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${['avatar'].concat(Object.keys(PFP_ART)).map(opt).join('')}</div>
+    <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
     <input type="file" class="pfp-in" accept="image/*" hidden>
   </div>`;
 }
+/* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
+function pfpSaid_(v) {
+  const kind = picKind_(v);
+  if (kind === 'photo') return 'Your photo is your picture.';
+  if (kind === 'avatar') return 'Your figure is your picture, wearing whatever you dress it in.';
+  if (kind === 'basic') return 'The ' + PFP_ART[pfpChoice_(v)].name.toLowerCase() + ' is your picture.';
+  return 'No picture yet, so your card shows your initial. Choose one, or a photo.';
+}
+/* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's
+   card draws — which is why the wardrobe figure is no longer the preview of NO picture: that was a
+   face only you saw (the card has always drawn the initial), and your figure is now a picture you
+   can actually choose, in the grid, for everybody. */
 function pfpFace_(v) {
-  if (v) return `<img src="${esc(pic(v))}" alt="Your profile picture">`;
-  /* THE WARDROBE FIGURE ONLY IF IT HAS BEEN DRESSED. Every handle has a figure — `avatarConfig`
-     seeds one from the hash — but an undressed one is a stranger's face as far as its owner knows,
-     and the initial is what everybody else sees on the card. */
-  if (USER && USER.avatar && typeof avatarFor === 'function') {
-    return avatarFor(USER.handle || USER.name, 56, USER.avatar);
-  }
-  const who = (USER && ((USER.profile && USER.profile.first_name) || USER.name)) || '?';
-  return `<span class="pfp-none">${esc(String(who).trim().slice(0, 1).toUpperCase() || '?')}</span>`;
+  const me = USER || {};
+  return personFace_({ pic: v, personId: me.personId, avatar: me.avatar || '', handle: me.handle,
+                       name: (me.profile && me.profile.first_name) || me.name || '?' },
+                     { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });
+}
+/* THE RING FOLLOWS A TAP AT ONCE, and goes back where it was if the server says no. */
+function pfpRing_(box, name) {
+  if (!box) return;
+  box.querySelectorAll('.pfp-opt').forEach(b => {
+    const on = !!name && b.dataset.pic === name;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+/* ---------- A REFUSAL KEEPS THE OLD PICTURE AND SAYS SO ---------------------------------------------
+   `send_` has already written the server's own sentence on the line; this adds that nothing changed.
+   AND WHY, WHILE THE SERVER IS OLDER THAN THE PICTURES. A backend from before them answers a tapped
+   fox "That is not a picture. Choose a photo from your phone." — true of its own door, and baffling
+   under a fox. So when the payload's stamp is a date older than this build's, the line says the
+   pictures are waiting on the server rather than leaving somebody to tap all eleven. A stamp that is
+   not a date (the lab's `fixture`) is never called old. ONLY FOR A TAP IN THE GRID (`chose`): a refused
+   photograph or Remove is the old server's own door, and its own sentence already says why. */
+const PFP_SINCE = '2026-10-10-h-pictures';
+function pfpKept_(chose) {
+  const v = String((typeof DATA !== 'undefined' && DATA && DATA.version) || '');
+  const old = !!chose && /^\d{4}-\d\d-\d\d/.test(v) && v < PFP_SINCE;
+  return 'Your picture is unchanged.' + (old
+    ? ' The server has not been updated for the pictures yet; until it is, a photo still works.' : '');
 }
 
 /* ---------- SQUARE, AND SMALL ENOUGH TO POST ------------------------------------------------------
@@ -4724,20 +4779,28 @@ function pfpPrepare_(file) {
 }
 
 /* WHAT THE SERVER SAID THE PICTURE NOW IS, written everywhere this phone keeps it: your profile (what
-   the Settings page reads), the remembered sign-in (what the next visit reads before the network),
-   and any row of the payload that is you, so your own card on the You column changes too rather than
-   waiting for the next load. Then the picker is redrawn from it. */
-function pfpTake_(box, url) {
+   the Settings page reads), `USER.photo` (what your own card on the You column is built from when you
+   have no tutor row — it was never written here, so a parent's new picture stayed off their own card
+   until they signed in again), the remembered sign-in (what the next visit reads before the network),
+   and any row of the payload that is you, so your own card changes too rather than waiting for the
+   next load. A row whose face is now your figure carries your figure, as the server's `faceFig_` does,
+   and one that stopped being it loses it. Then the picker is redrawn from it, with `said` on its line,
+   and the You column is drawn again so your card is the new face when you swipe to it. */
+function pfpTake_(box, url, said) {
   if (!USER) return;
   USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
+  USER.photo = url;
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
-  ['tutors', 'people', 'students', 'clients'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
+  const fig = picKind_(url) === 'avatar';
+  ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
     if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
       if ('image' in r) r.image = url;
       if ('photo' in r) r.photo = url;
+      if (k !== 'students') { if (fig) r.avatar = USER.avatar || ''; else delete r.avatar; }
     }
   }));
-  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''));
+  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said);
+  try { if (typeof paint === 'function') paint('account'); } catch (e) {}
 }
 
 on('pfp-pick', el => {
@@ -4749,8 +4812,39 @@ on('pfp-remove', el => {
   if (!USER || !box) return;
   send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
         { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
-    .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture removed'); })
-    .catch(() => {});
+    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
+    .catch(() => { const said = box.querySelector('.pfp-said'); if (said) said.textContent += ' ' + pfpKept_(); });
+});
+/* ---------- ONE OF THE ELEVEN, TAPPED ----------------------------------------------------------------
+   `savePhoto` WITH `choice` — the same action as a photograph, because it is the same cell and the same
+   rule (your own row, by the token; `self` in `ACTION_ACCESS`). The preview and the ring move before
+   the reply, as a chosen photograph's preview does, so the choice is seen while it travels; a refusal
+   puts both back and the line says what the server said and that nothing changed. A tap on the one
+   already in use sends nothing. WHAT IS KEPT IS WHAT THE SERVER ANSWERS, not what was tapped — a reply
+   naming another picture is drawn as that picture and said, rather than the tap being believed. */
+on('pfp-choose', el => {
+  const box = el.closest('.pfp');
+  const name = String(el.dataset.pic || '');
+  if (!USER || !box || !pfpChoice_(PFP_PREFIX + name)) return;
+  const choice = PFP_PREFIX + name;
+  const said = box.querySelector('.pfp-said');
+  const was = String((USER.profile && USER.profile.photo) || '').trim();
+  if (pfpChoice_(was) === name) { if (said) said.textContent = 'Already chosen. ' + pfpSaid_(was); return; }
+  const face = box.querySelector('.pfp-face');
+  if (face) face.innerHTML = pfpFace_(choice);
+  pfpRing_(box, name);
+  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, choice },
+        { button: el, where: said, saying: 'Saving…', lock: box })
+    .then(d => {
+      const got = String((d && d.photo) || '');
+      pfpTake_(box, got, (pfpChoice_(got) === name ? 'Saved. ' : 'The server kept something else. ') + pfpSaid_(got));
+      toast('Picture saved');
+    })
+    .catch(() => {
+      if (face) face.innerHTML = pfpFace_(was);
+      pfpRing_(box, pfpChoice_(was));
+      if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
+    });
 });
 /* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
    `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
@@ -4767,15 +4861,19 @@ document.addEventListener('change', e => {
   pfpPrepare_(file).then(data => {
     if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
     /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server
-       refuses, the line says why and the old picture comes back with the redraw below. */
+       refuses, the line says why and the old picture comes back. The ring comes off the grid for the
+       same moment — a photograph is none of the eleven. */
     const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img src="${esc(data)}" alt="Your profile picture">`;
+    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture">`;
+    pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
-      .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture saved'); })
+      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast('Picture saved'); })
       .catch(() => {
         const was = (USER.profile && USER.profile.photo) || '';
         if (face) face.innerHTML = pfpFace_(was);
+        pfpRing_(box, pfpChoice_(was));
+        if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_();
       });
   });
 });

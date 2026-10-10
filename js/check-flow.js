@@ -309,6 +309,8 @@ function boot(opts) {
       'impStack: (c, wd) => { IMP_PILE.push([c, wd]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
+      /* THE TEN PICTURES' NAMES, IN THE GRID'S ORDER — a `const`, so only a getter reaches it. */
+      'pfpNames: () => (typeof PFP_ART !== "undefined" ? Object.keys(PFP_ART) : []),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
       + 'STUFF_WIN: typeof STUFF_WIN === "number" ? STUFF_WIN : 0,'
       /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
@@ -13333,6 +13335,229 @@ check('a picture chosen in Settings posts savePhoto and the preview shows it', a
     if (!sent.some(b => b.action === 'savePhoto' && b.remove === true)) bad.push('Remove posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto remove');
     if (!box() || box().querySelector('.pfp-face img') || (t.whoami().profile || {}).photo !== '') bad.push('after Remove the picture is still drawn or still on USER.profile');
   }
+  return bad;
+});
+
+/* ---------- YOUR PICTURE, ONE OF ELEVEN — FOR EVERY ROLE, SEEN BY YOU AND BY SOMEBODY ELSE -----------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox dp
+   selector, which allow you to use your avatar as a dp."* One journey per role — student, parent, tutor,
+   admin — through the page's own grid and tiles: the eleven drawn in order (your figure first, then the
+   ten), no ring until one is yours, and then FOUR SAVES IN A ROW: your figure, a picture, a photograph,
+   Remove. After each, the request that left (`savePhoto` with `choice`, `data` or `remove`, your id),
+   the ring and the line under the grid, `USER.profile`, YOUR OWN CARD on the You column as the app
+   repainted it — and ONE OTHER SURFACE WHERE SOMEBODY ELSE SEES YOU, drawn as that other person from the
+   row `doGet` sends them (`faceFig_`: the figure beside the face only when the face is the figure;
+   `check-profile.js` proves the server half): your parent's column for a student, your child's message
+   head for a parent, a visitor's people column for a tutor, the feed for an admin.
+   YOUR FIGURE IS LIVE: dressed differently after it was chosen, your own card wears the new shirt. */
+const PFP_ROLES = {
+  student: { name: 'Sam Pupil', personId: 'P-S9', role: 'kid', roles: ['student'], handle: 'sam_glad09',
+             avatar: 'skin:3|shirt:5|hair:curls', basic: 'fox', other: 'family' },
+  parent:  { name: 'Pat Mum', personId: 'P-C9', role: 'parent', roles: ['parent'], handle: 'pat_kind09',
+             avatar: 'skin:1|shirt:6|hair:long', basic: 'cat', other: 'dm' },
+  tutor:   { name: 'Tia Tutor', personId: 'P-T9', role: 'tutor', roles: ['tutor'], handle: 'tia_calm09',
+             avatar: 'skin:4|shirt:3|hair:crop', basic: 'robot', other: 'people' },
+  admin:   { name: 'Ari Admin', personId: 'P-A9', role: 'admin', roles: ['admin'], handle: 'ari_wise09',
+             avatar: 'skin:0|shirt:7|hair:fringe', basic: 'rocket', other: 'feed' },
+};
+const AV_SKIN_T = ['#f3c9a0', '#e0a878', '#c58a5b', '#8d5a3b', '#5f3a25', '#ffd9b3'];
+const AV_SHIRT_T = ['#f4f4f2', '#2f6b3f', '#1f5f8a', '#8a3a3a', '#6b4d8a', '#c07a1f', '#3d4b57', '#2f6b6b'];
+async function pfpRoleJourney(key) {
+  const P = PFP_ROLES[key];
+  const URL_ = 'https://drive.google.com/file/d/FILEpfp' + key + 'abcdefghijklmnopq/view';
+  const staff = key === 'tutor' || key === 'admin';
+  const mineRow = () => ({ title: P.name, handle: P.handle, personId: P.personId, role: key === 'admin' ? 'Admin' : 'Tutor',
+                           rate: 20, teaches: [], dbs: true, listed: true, avail: {}, image: '' });
+  const data = payload();
+  if (staff) data.tutors = data.tutors.concat([mineRow()]);
+  const { w, sent } = boot({ payload: data, reply: b => b.action === 'savePhoto'
+    ? (b.remove ? { success: true, photo: '' }
+      : b.choice ? Object.assign({ success: true, photo: b.choice }, b.choice === 'pfp:avatar' ? { avatar: P.avatar } : {})
+      : { success: true, photo: URL_ })
+    : { success: true } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  await wait(200);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const first = P.name.split(' ')[0];
+  t.USER({ name: P.name, personId: P.personId, role: P.role, roles: P.roles, token: 'tk', handle: P.handle,
+           avatar: P.avatar, photo: '', profile: { first_name: first, last_name: P.name.split(' ')[1], photo: '' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  const box = () => d.querySelector('#s-settings .pfp');
+  if (!box()) return ['a ' + key + '\'s Settings has no picture picker'];
+  const opts = () => [...box().querySelectorAll('.pfp-grid button.pfp-opt[data-do="pfp-choose"]')];
+  const names = opts().map(b => b.dataset.pic);
+  const ten = t.pfpNames();
+  if (JSON.stringify(names) !== JSON.stringify(['avatar'].concat(ten)) || ten.length !== 10) {
+    bad.push('the grid offers ' + JSON.stringify(names) + ' — wanted your figure, then the ten pictures');
+  }
+  if (opts().some(b => b.classList.contains('on'))) bad.push('a ring is on a picture before any is yours');
+  const fig0 = opts()[0] && opts()[0].querySelector('svg.avatar.is-bust');
+  if (!fig0 || fig0.outerHTML.indexOf(AV_SHIRT_T[Number(/shirt:(\d)/.exec(P.avatar)[1])]) === -1) bad.push('the first choice is not your own figure in your own shirt');
+  if (!box().querySelector('[data-do="pfp-pick"]') || !box().querySelector('[data-do="pfp-remove"]')) bad.push('Choose photo or Remove has gone from the card');
+  const ground = n => (/<circle cx="24" cy="24" r="24" fill="(#[0-9a-f]{6})"/.exec(w.pfpArt_(n, 40)) || [])[1];
+  /* WHAT A FACE IS, ASKED OF THE ELEMENT THE SURFACE DREW. */
+  const faceIs = (el, want) => {
+    if (!el) return 'no face at all';
+    const html = el.outerHTML;
+    if (want.kind === 'avatar') {
+      const svg = el.querySelector('svg.avatar.is-bust');
+      if (!svg) return 'not a figure: ' + html.slice(0, 90);
+      const skin = AV_SKIN_T[Number(/skin:(\d)/.exec(want.fig)[1])], shirt = AV_SHIRT_T[Number(/shirt:(\d)/.exec(want.fig)[1])];
+      return html.indexOf(skin) !== -1 && html.indexOf(shirt) !== -1 ? '' : 'a figure, but not this person\'s (' + skin + ', ' + shirt + ')';
+    }
+    if (want.kind === 'basic') return el.querySelector('svg.pfp-art') && html.indexOf('fill="' + ground(want.name) + '"') !== -1 ? '' : 'not the ' + want.name + ': ' + html.slice(0, 90);
+    if (want.kind === 'photo') return el.tagName === 'IMG' && /lh3\.googleusercontent\.com\/d\/FILEpfp/.test(el.getAttribute('src') || '') ? '' : 'not the photograph: ' + html.slice(0, 90);
+    return !el.querySelector('svg, img') && el.tagName !== 'IMG' && el.textContent.trim() === want.letter ? '' : 'not the initial ' + want.letter + ': ' + html.slice(0, 90);
+  };
+  /* YOUR OWN CARD, AS THE APP REPAINTED THE YOU COLUMN AFTER THE SAVE. */
+  const myCard = () => [...d.querySelectorAll('#s-account .card.is-prof')]
+    .find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+  /* AND AS SOMEBODY ELSE, FROM WHAT `doGet` SENDS THEM. Drawn, then put back. */
+  const asOther = (stored, figure) => {
+    const me = t.whoami(), D = t.DATA();
+    const keep = { tutors: D.tutors, family: D.family, familyFor: D.familyFor, posts: D.posts };
+    const face = Object.assign({ image: stored }, picFig(stored, figure));
+    let el = null;
+    try {
+      if (P.other === 'family') {            // the student's parent, on their own column
+        t.USER({ name: 'Mo Parent', personId: 'P-M9', role: 'parent', roles: ['parent'], token: 'tk2', profile: {} });
+        D.family = [Object.assign({ personId: P.personId, title: P.name, relation: 'child', handle: P.handle }, face)];
+        D.familyFor = 'P-M9';
+        w.paint('account');
+        el = [...d.querySelectorAll('#s-account .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+        el = el && el.querySelector('.prof-pic');
+      } else if (P.other === 'dm') {         // the parent's child, at the head of their conversation
+        t.USER({ name: 'Kit Child', personId: 'P-K9', role: 'kid', roles: ['student'], token: 'tk2', profile: {} });
+        D.family = [Object.assign({ personId: P.personId, title: P.name, relation: 'parent', handle: P.handle }, face)];
+        D.familyFor = 'P-K9';
+        const host = d.createElement('div');
+        host.innerHTML = w.dmFace_({ name: P.name, id: P.personId });
+        el = host.querySelector('.dm-av');
+        el = el && (el.querySelector('img, .face-pic') || el);
+      } else if (P.other === 'people') {     // a visitor's people column
+        t.USER({ name: 'Vi Visitor', personId: 'P-V9', role: 'parent', roles: ['parent'], token: 'tk2', profile: {} });
+        D.tutors = keep.tutors.filter(r => r.personId !== P.personId).concat([Object.assign(mineRow(), face)]);
+        w.paint('account');
+        el = [...d.querySelectorAll('#s-account .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+        el = el && el.querySelector('.prof-pic');
+      } else {                               // the feed, which every visitor is sent
+        t.USER(null);
+        D.posts = [{ id: 'PO-PFP', author: P.name, handle: P.handle, avatar: stored, figure: picFig(stored, figure).avatar,
+                     image: 'data/reels/archetest.jpg', media: ['data/reels/archetest.jpg'], caption: 'A trip', body: '',
+                     location: '', when: '', at: 0, pinned: false, active: true, waiting: false, refused: false,
+                     approvedBy: '', poll: null, reactions: { emoji: ['👍'], counts: [0], total: 0, yours: '', by: [] },
+                     comments: { total: 0, list: [] }, rowIndex: 2 }];
+        w.paint('feed');
+        el = d.querySelector('#s-feed article[data-post="PO-PFP"] .post-face');
+      }
+    } catch (e) { el = null; bad.push('drawing ' + key + ' as somebody else sees them threw: ' + e.message); }
+    const out = el ? el.cloneNode(true) : null;
+    t.USER(me); Object.assign(D, keep);
+    return out;
+  };
+  /* THE ROW `doGet` SENDS: the figure only when the face is the figure (`faceFig_`, core.gs). */
+  const picFig = (stored, figure) => stored === 'pfp:avatar' ? { avatar: figure } : {};
+  const step = async (label, press, wantSent, want) => {
+    sent.length = 0;
+    await press();
+    await wait(300);
+    const post = sent.find(b => b.action === 'savePhoto');
+    if (!post) { bad.push(label + ': posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto'); return; }
+    if (post.personId !== P.personId) bad.push(label + ': savePhoto did not name ' + P.personId);
+    const miss = Object.keys(wantSent).filter(k => post[k] !== wantSent[k]);
+    if (miss.length) bad.push(label + ': savePhoto carried ' + JSON.stringify(miss.map(k => [k, post[k]])) + ', wanted ' + JSON.stringify(wantSent));
+    const stored = String((t.whoami().profile || {}).photo);
+    if (stored !== want.stored) bad.push(label + ': USER.profile.photo is "' + stored + '", wanted "' + want.stored + '"');
+    const ring = opts().filter(b => b.classList.contains('on')).map(b => b.dataset.pic);
+    const ringWant = want.kind === 'avatar' ? ['avatar'] : want.kind === 'basic' ? [want.name] : [];
+    if (JSON.stringify(ring) !== JSON.stringify(ringWant)) bad.push(label + ': the gold ring is on ' + JSON.stringify(ring) + ', wanted ' + JSON.stringify(ringWant));
+    if (opts().some(b => (b.getAttribute('aria-pressed') === 'true') !== b.classList.contains('on'))) bad.push(label + ': aria-pressed does not follow the ring');
+    const said = (box().querySelector('.pfp-said') || {}).textContent || '';
+    if (!want.said.test(said)) bad.push(label + ': the line under the grid says "' + said + '"');
+    const prev = faceIs(box().querySelector('.pfp-face > *'), Object.assign({ letter: first[0] }, want));
+    if (prev) bad.push(label + ': the preview is ' + prev);
+    const mine = myCard();
+    if (!mine) bad.push(label + ': your own card is not on the You column');
+    else { const why = faceIs(mine.querySelector('.prof-pic'), Object.assign({ letter: P.name[0] }, want)); if (why) bad.push(label + ': your own card shows ' + why); }
+    const other = faceIs(asOther(want.stored, P.avatar), Object.assign({ letter: P.name[0] }, want));
+    if (other) bad.push(label + ': as somebody else sees you (' + P.other + '), your face is ' + other);
+  };
+  const choose = n => () => { const b = opts().find(x => x.dataset.pic === n); if (!b) throw new Error('no ' + n + ' in the grid'); t.ACTIONS['pfp-choose'](b); };
+  try {
+    await step('your figure', choose('avatar'), { choice: 'pfp:avatar' },
+      { kind: 'avatar', fig: P.avatar, stored: 'pfp:avatar', said: /Saved\. Your figure is your picture/ });
+    /* LIVE: dressed in another shirt after it was chosen, your own card follows without a save of the picture. */
+    const was = t.whoami().avatar;
+    t.whoami().avatar = was.replace(/shirt:\d/, 'shirt:2');
+    w.paint('account');
+    const live = faceIs(myCard() && myCard().querySelector('.prof-pic'), { kind: 'avatar', fig: t.whoami().avatar });
+    if (live) bad.push('your figure is not live on your own card after a change of shirt: ' + live);
+    t.whoami().avatar = was;
+    w.paint('account');
+    /* A TAP ON THE ONE ALREADY IN USE SENDS NOTHING. */
+    sent.length = 0;
+    choose('avatar')();
+    await wait(100);
+    if (sent.some(b => b.action === 'savePhoto')) bad.push('a tap on the figure already in use posted savePhoto again');
+    await step('the ' + P.basic, choose(P.basic), { choice: 'pfp:' + P.basic },
+      { kind: 'basic', name: P.basic, stored: 'pfp:' + P.basic, said: new RegExp('Saved\\. The ' + P.basic + ' is your picture') });
+    await step('a photograph', async () => {
+      w.pfpPrepare_ = () => Promise.resolve('data:image/jpeg;base64,' + Buffer.from('square').toString('base64'));
+      const inp = box().querySelector('input.pfp-in[type="file"]');
+      Object.defineProperty(inp, 'files', { value: [new w.File(['x'], 'me.png', { type: 'image/png' })], configurable: true });
+      inp.dispatchEvent(new w.Event('change', { bubbles: true }));
+    }, {}, { kind: 'photo', stored: URL_, said: /Saved\. Your photo is your picture/ });
+    if (!(sent.find(b => b.action === 'savePhoto') || {}).data) bad.push('the photograph was not posted as data');
+    await step('Remove', () => { t.ACTIONS['pfp-remove'](box().querySelector('[data-do="pfp-remove"]')); }, { remove: true },
+      { kind: 'none', stored: '', said: /Removed\. No picture yet/ });
+  } catch (e) { bad.push('the journey threw: ' + e.message); }
+  return bad;
+}
+check('a student chooses their figure, the fox, a photo and Remove — each saved, on their card and on their parent\'s', () => pfpRoleJourney('student'));
+check('a parent chooses their figure, the cat, a photo and Remove — each saved, on their card and in their child\'s messages', () => pfpRoleJourney('parent'));
+check('a tutor chooses their figure, the robot, a photo and Remove — each saved, on their card and on a visitor\'s people column', () => pfpRoleJourney('tutor'));
+check('an admin chooses their figure, the rocket, a photo and Remove — each saved, on their card and on the feed', () => pfpRoleJourney('admin'));
+
+/* ---------- AND UNTIL THE BACKEND IS PULLED, A TAP FAILS OUT LOUD -------------------------------------
+   A server from before the pictures answers `choice` with its own door's refusal — "That is not a
+   picture. Choose a photo from your phone." — and writes nothing. The line under the grid says that,
+   says the picture is unchanged and why (the server is older than the pictures, by its stamp), the old
+   photograph is back in the preview, no ring is left on the fox, and `USER.profile` still holds the
+   photograph. Never silently, and never as though it had been kept. */
+check('before the backend is pulled, tapping a picture says the server\'s refusal and keeps the old picture', async () => {
+  const URL_ = 'https://drive.google.com/file/d/FILEoldabcdefghijklmnopqrs/view';
+  const data = Object.assign(payload(), { version: '2026-10-10-g-schema-grid' });
+  const { w, sent } = boot({ payload: data, reply: b => b.action === 'savePhoto'
+    ? (b.data || b.remove ? { success: true, photo: '' } : { error: 'That is not a picture. Choose a photo from your phone.' })
+    : { success: true } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  await wait(200);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Pat Mum', personId: 'P-C9', role: 'parent', roles: ['parent'], token: 'tk', handle: 'pat_kind09',
+           avatar: '', photo: URL_, profile: { first_name: 'Pat', last_name: 'Mum', photo: URL_ } });
+  t.go('settings', false, true); w.paint('settings');
+  await wait(300);
+  const bad = [];
+  const box = () => d.querySelector('#s-settings .pfp');
+  if (!box()) return ['no picture picker'];
+  const fox = box().querySelector('.pfp-opt[data-pic="fox"]');
+  sent.length = 0;
+  t.ACTIONS['pfp-choose'](fox);
+  await wait(300);
+  const post = sent.find(b => b.action === 'savePhoto');
+  if (!post || post.choice !== 'pfp:fox') bad.push('the tap posted ' + JSON.stringify(post) + ', wanted savePhoto choice pfp:fox');
+  const said = (box().querySelector('.pfp-said') || {}).textContent || '';
+  if (!/That is not a picture/.test(said)) bad.push('the line does not say the server\'s refusal: "' + said + '"');
+  if (!/Your picture is unchanged/.test(said)) bad.push('the line does not say the picture is unchanged: "' + said + '"');
+  if (!/server has not been updated for the pictures/.test(said)) bad.push('the line does not say the server is older than the pictures: "' + said + '"');
+  if ((t.whoami().profile || {}).photo !== URL_) bad.push('USER.profile.photo became "' + (t.whoami().profile || {}).photo + '" after a refusal');
+  const img = box().querySelector('.pfp-face img');
+  if (!img || !/FILEold/.test(img.getAttribute('src') || '')) bad.push('the old photograph is not back in the preview');
+  if (box().querySelector('.pfp-opt.on')) bad.push('a ring was left on ' + box().querySelector('.pfp-opt.on').dataset.pic + ' after the refusal');
+  if (box().querySelector('.pfp-opt:disabled')) bad.push('the grid is still locked after the refusal');
   return bad;
 });
 
