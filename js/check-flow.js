@@ -6529,6 +6529,94 @@ check('a session at the client\'s own home cannot be booked for one', async () =
   return bad;
 });
 
+check('a venue with rooms offers each room: the large one seats ten, a small one four, a blank rate is the venue\'s, and the card draws a line a room', async () => {
+  /* ---------- *"colliers would library has 3 rooms within it. 2 are same size and one is large. And 2
+     have capacity for 4 kids and large one has capacity for 10 kids."* — the owner, 10 Oct ------------
+     THE VENUE IS `check/fixture.json`'s, NOT ONE WRITTEN HERE. Its rooms are what the real doGet sends
+     for their cells — `check-rooms.js` rebuilds them and fails on any difference — so this asks the
+     phone about rows the backend really produces: two small rooms with no rate typed, which arrive at
+     the venue's 12 (`roomTerms_`), and a large one at its own 20. A blank rate used to arrive as 0, and
+     every surface below read that as FREE.
+
+     THE HOUSE CAP IS TAKEN OFF FIRST, so the room is what decides the seats. `max_students_per_job`
+     is 4 in this payload — and 4 on the live config tab, which is why the large room's ten is asked
+     again with the cap on at the end: the business's own limit still wins, and says so. */
+  const fx = JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'fixture.json'), 'utf8'));
+  const fv = (fx.venues || []).find(v => (v.rooms || []).length >= 3);
+  if (!fv) return ['check/fixture.json has no venue with three rooms, so nothing here can ask about rooms'];
+  const big = fv.rooms.find(r => Number(r.max) === 10), smalls = fv.rooms.filter(r => Number(r.max) === 4);
+  const blank = smalls.find(r => r.fields && r.fields.rate_per_hour === '');
+  if (!big || smalls.length !== 2 || !blank) {
+    return ['the fixture venue\'s rooms are not two of 4 (one with no rate typed) and one of 10: '
+      + JSON.stringify(fv.rooms.map(r => [r.name, r.max, r.fields && r.fields.rate_per_hour]))];
+  }
+  const p = payload();
+  p.venues = p.venues.filter(v => v.title !== fv.title).concat([fv]);
+  p.waitlistSeat = fx.waitlistSeat || {};
+  p.constants = { vars: Object.assign({}, p.constants.vars, { max_students_per_job: 0 }) };
+  const { w } = boot({ payload: p });
+  await wait(300);
+  if (!w.__t.STEPS || !w.__t.spaceFor || !w.__t.seatLimits) return ['the booking steps, spaceFor or seatLimits are not exported'];
+  const bad = [];
+  const B = w.__t.BOOKING;
+  const step = id => w.__t.STEPS.filter(x => x.id === id)[0];
+  const lab = r => fv.title + ' — ' + r.name;
+
+  /* THE THREE SPACES, AND NOT THE BUILDING. A venue with rooms is hired by the room. */
+  const offered = step('loc').options();
+  fv.rooms.forEach(r => { if (offered.indexOf(lab(r)) === -1) bad.push('"Where?" does not offer ' + JSON.stringify(lab(r)) + ': ' + JSON.stringify(offered)); });
+  if (offered.indexOf(fv.title) !== -1) bad.push('"Where?" still offers the bare building ' + JSON.stringify(fv.title) + ' beside its rooms');
+
+  /* EACH ROOM'S OWN CAPACITY, from the one function that bounds a seat count. */
+  const lim = r => w.__t.seatLimits(w.__t.spaceFor(lab(r)), null, lab(r));
+  if (lim(big).max !== 10) bad.push(lab(big) + ' allows ' + lim(big).max + ' seats, not 10');
+  smalls.forEach(r => { if (lim(r).max !== 4) bad.push(lab(r) + ' allows ' + lim(r).max + ' seats, not 4'); });
+  const n = step('n');
+  B.loc = lab(big);
+  if (n.why('10')) bad.push('ten seats in ' + lab(big) + ' are refused: ' + n.why('10'));
+  if (!n.why('11')) bad.push('eleven seats in ' + lab(big) + ', which holds ten, are not refused');
+  B.loc = lab(blank);
+  if (n.why('4')) bad.push('four seats in ' + lab(blank) + ' are refused: ' + n.why('4'));
+  if (!n.why('5')) bad.push('five seats in ' + lab(blank) + ', which holds four, are not refused');
+  /* AND THE ROOM SAYS SO WHEN THE SEATS WERE CHOSEN FIRST — "Where?" is asked after them. */
+  B.n = '6';
+  if (!/holds 4/.test(String(step('loc').why(lab(blank)) || ''))) bad.push('six seats then ' + lab(blank) + ' says ' + JSON.stringify(step('loc').why(lab(blank))) + ', not that it holds 4');
+  if (step('loc').why(lab(big))) bad.push('six seats then ' + lab(big) + ' is refused: ' + step('loc').why(lab(big)));
+
+  /* THE PRICE. A room with no rate typed costs what its venue costs — never nothing, never a house. */
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = 'A session of your own'; B.level = 'GCSE'; B.subjects = ['Maths']; B.n = '1';
+  B.hosting = 'No — we book the room'; B.slots = ['m16']; B.interval = ['Autumn 1'];
+  const rateAt = r => { B.loc = lab(r); const L = w.__t.price(); return L ? L.venueRate : null; };
+  if (rateAt(blank) !== fv.bestRate) bad.push(lab(blank) + ' has no rate typed and is priced at ' + rateAt(blank) + ' an hour, not the venue\'s ' + fv.bestRate);
+  if (rateAt(big) !== big.rate || big.rate === fv.bestRate) bad.push(lab(big) + ' is priced at ' + rateAt(big) + ' an hour, not its own ' + big.rate);
+  if (w.isHome(lab(blank))) bad.push(lab(blank) + ' is read as somebody\'s home — a room with no rate typed was taken for a free one');
+  B.loc = lab(blank);
+  if (JSON.stringify(step('hosting').options()) !== JSON.stringify(['No', 'Yes'])) {
+    bad.push('"Are you providing the space?" at ' + lab(blank) + ' offers ' + JSON.stringify(step('hosting').options()) + ' — locked to Yes is a free room');
+  }
+  /* A WAITING LIST IN A ROOM IS PRICED: the seat price doGet sends under each room's label. */
+  fv.rooms.forEach(r => { B.loc = lab(r); if (!w.waitPrice_()) bad.push('a waiting list in ' + lab(r) + ' has no seat price on the phone'); });
+
+  /* THE CARD: ONE LINE A ROOM, how many fit and what an hour costs. */
+  const box = w.document.createElement('div');
+  box.innerHTML = String(w.findCard({ kind: 'venue', row: fv }) || '');
+  const lines = [...box.querySelectorAll('.row')].map(x => [((x.querySelector('.k') || {}).textContent || '').trim(), ((x.querySelector('.v') || {}).textContent || '').trim()]);
+  fv.rooms.forEach(r => {
+    const line = lines.find(l => l[0] === r.name);
+    const want = 'up to ' + r.max + ' · £' + Number(r.rate).toFixed(2) + '/h';
+    if (!line) bad.push('the venue card has no line for ' + r.name + ': ' + JSON.stringify(lines));
+    else if (line[1] !== want) bad.push('the venue card says ' + JSON.stringify(line[1]) + ' for ' + r.name + ', not ' + JSON.stringify(want));
+  });
+  if (/free/i.test(box.textContent)) bad.push('the venue card says "free" for a room priced at its venue\'s rate');
+
+  /* AND WITH THE LIVE HOUSE CAP OF FOUR, THE BUSINESS'S LIMIT STILL WINS, AND SAYS WHOSE IT IS. */
+  w.__t.DATA().constants.vars.max_students_per_job = 4;
+  const capped = lim(big);
+  if (capped.max !== 4 || capped.why.max !== 'your limit') bad.push('with max_students_per_job at 4, ' + lab(big) + ' allows ' + capped.max + ' (' + capped.why.max + ')');
+  return bad;
+});
+
 check('a receipt lights every day its booking runs on', async () => {
   /* ---------- THE WEEK WAS COMPARED TO ONE DAY NAME --------------------------------------------
      `jobGrid_` DID `norm(label) === norm(j.weekday)`, and `weekday` holds what `bookSpec` sent:

@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-10-g-schema-grid";
+const BACKEND_VERSION = "2026-10-10-j-rooms";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -891,7 +891,12 @@ const SCHEMA = {
      two disagree the first time somebody didn't.
 
      Optional. A venue with no rooms behaves exactly as before, using its own cost_per_hour — so
-     you can describe Richmond properly without touching the other ten. */
+     you can describe Richmond properly without touching the other ten.
+
+     A BLANK CELL ON A ROOM IS ITS VENUE'S — rate, minimum, capacity and hours — and an explicit 0
+     rate is free on purpose. `roomTerms_` in booking.gs decides it once for everything that prices
+     or caps a room; a blank rate used to be sent as 0, which the site draws as "free". The names are
+     `ROOM_SLOTS` below. See docs/history/336. */
   rooms: [
     "room_id", "venue", "name", "rate_per_hour",
     "concession_rate", "min_capacity", "max_capacity", "availability",

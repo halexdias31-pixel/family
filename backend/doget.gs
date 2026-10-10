@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-10-g-schema-grid";
+const DOGET_VERSION = "2026-10-10-j-rooms";
 
 
 function doGet(e) {
@@ -945,19 +945,30 @@ function doGet(e) {
         comfort: S(r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
         // The rooms in this building, each with its own price and capacity. Empty for a venue
         // that's just one space, which is most of them.
+        /* EACH BLANK CELL IS THE VENUE'S, decided in `roomTerms_` (booking.gs) — the same call
+           `capacityFor`, `priceLooksWrong` and `waitlistPrice` make, so the room the phone prices
+           and the room the server checks are one answer. A blank rate used to arrive here as 0,
+           which this site reads as FREE; see the note over `roomTerms_`. */
         rooms: read(TAB.rooms).rows
           .filter(x => key(x.venue) === key(r.name) && ON_(x.active))
-          .map(x => ({
-            rowIndex: x._row, name: S(x.name),
-            rate: N(x.rate_per_hour), concession: N(x.concession_rate),
-            min: N(x.min_capacity) || 1, max: N(x.max_capacity), notes: S(x.notes),
-            /* A room's own opening hours. The building may be open all day while the large room
-               is booked out every morning — availability describes the SPACE you hire, not the
-               address. Blank falls back to the venue's, so a room nobody has set hours for is as
-               available as the building. */
-            avail: S(x.availability) ? availGridOut(x.availability) : null,
-            fields: ROOM_EDITABLE.reduce((a, f) => { a[f] = S(x[f]); return a; }, {})
-          })),
+          .map(x => {
+            const t = roomTerms_(x, r);
+            return {
+              rowIndex: x._row, name: S(x.name),
+              rate: t.rate, concession: t.concession,
+              min: t.min, max: t.max, notes: S(x.notes),
+              /* A room's own opening hours. The building may be open all day while the large room
+                 is booked out every morning — availability describes the SPACE you hire, not the
+                 address. Blank falls back to the venue's, so a room nobody has set hours for is as
+                 available as the building.
+                 THE FALLING BACK IS DONE HERE NOW, NOT ON THE PHONE. This sent `null` and left the
+                 venue's hours to `slotGrid`, which looks the venue up by the booking's location —
+                 and for a room that is "Venue — Room", which is no venue's title. So a room with no
+                 hours of its own was offered every hour of the week, closed building or not. */
+              avail: availGridOut(t.availability),
+              fields: ROOM_EDITABLE.reduce((a, f) => { a[f] = S(x[f]); return a; }, {})
+            };
+          }),
         fields: flat(VENUE_GROUPS).reduce((a, f) => { a[f] = S(r[f]); return a; }, {}),
         avail: availGridOut(r.availability)
       });
@@ -1521,14 +1532,26 @@ function doGet(e) {
        SO THE ANSWER TRAVELS, NOT THE INGREDIENTS. One figure per venue, from `waitlistPrice` —
        the same function `joinWaitlist` charges against, so the card and the receipt cannot
        disagree. Null where a venue has no rate set, which the card reads as "not priceable yet". */
+    /* AND ONE PER ROOM, UNDER THE LABEL THE PHONE LOOKS IT UP BY. `waitPrice_` reads
+       `waitlistSeat[BOOKING.loc]`, and once a venue has rooms the form offers only its rooms —
+       "Colliers Wood Library — Small room 1", built by `bookableSpaces` as title, space, em dash,
+       space, room. Keyed by the building alone, a list in any room had no price on the phone and was
+       refused on the server, so entering a venue's rooms switched off its waiting lists. */
     try {
       payload.waitlistSeat = {};
       read(TAB.venues).rows.forEach(v => {
-        const w = waitlistPrice(S(v.name));
-        if (w) payload.waitlistSeat[S(v.name)] = {
-          perHour: w.perSeatHour, perSession: w.perSeatSession,
-          seats: w.seats, hours: w.hours,
-        };
+        const at = S(v.name);
+        if (!at) return;
+        const labels = [at].concat(read(TAB.rooms).rows
+          .filter(x => key(x.venue) === key(at) && ON_(x.active) && S(x.name))
+          .map(x => at + ' \u2014 ' + S(x.name)));
+        labels.forEach(label => {
+          const w = waitlistPrice(label);
+          if (w) payload.waitlistSeat[label] = {
+            perHour: w.perSeatHour, perSession: w.perSeatSession,
+            seats: w.seats, hours: w.hours,
+          };
+        });
       });
     } catch (err) { payload.waitlistSeat = {}; }
 

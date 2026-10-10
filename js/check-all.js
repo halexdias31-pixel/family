@@ -252,6 +252,11 @@ const SUITE = [
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the
      scope Google asks for, and its token holds what the manifest lists. */
   { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },
+  /* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. *"colliers would library has 3 rooms within it
+     ... 2 have capacity for 4 kids and large one has capacity for 10 kids"* — the owner, 10 Oct, and not
+     a word about price. A blank rate was sent as 0, which this site draws as "free" and prices at
+     nothing; `roomTerms_` makes it the venue's, and this asks every reader that prices or caps a room. */
+  { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.
