@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-09-e-submissions";
+const BACKEND_VERSION = "2026-10-10-f-submissions";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2254,6 +2254,17 @@ const SUBMISSION_VERDICT = /^(right|wrong|sent|ai:\d{1,3}\/[1-9]\d{0,2})$/;
 /* AND THE PHONE'S NAME FOR A PRESS — its clock in ms, a dash, a random tail (`subId_` in js/submit.js).
    Checked for its shape so a retried send is recognised and nothing else rides in the column. */
 const SUBMISSION_ID = /^\d{10,16}-[a-z0-9]{3,16}$/;
+/* ---------- AND THE NAME OF A PRESS NOBODY MADE THIS WEEK: WORK CARRIED OVER FROM BEFORE THE SWITCH -----------
+   `subMigrate_` (js/submit.js) sends each question a child had done before 9 Oct as one press, once, the
+   first time they are signed in on the device after the backend can take it — with an id made from the
+   person and the key (`subMigrateId_`: the day of the switch, `-m`, two seven-letter hashes) so two devices
+   write it once. Such a row ARRIVES the week the backend lands and was pressed weeks before. Read by its
+   arrival, the first weekly email after the update listed a term's work as that week's ("Ada worked on 4
+   questions", three from September), and the admin's people column dated every learner's "last" to the day
+   it landed (review of 10 Oct). So a row with this id is history: `digestPlan_` counts it as before the
+   week, and the summary dates it by when it was pressed. No phone's own press has this shape (`subId_`
+   ends in six letters). */
+const SUBMISSION_CARRIED = /^\d{10,16}-m[a-z0-9]{14}$/;
 /* AND HOW LONG A QUESTION'S NAME MAY BE. A paper's name and a question number are fifty-odd
    characters; this is room for the longest the library has with a margin, and a ceiling on what one
    request can put in a cell a parent's email prints. See SCHEMA.submissions. The name says ATTEMPT
@@ -3051,7 +3062,7 @@ const MIGRATIONS = [
      one does not appear when you pick the other.
      Here rather than as a URL somebody has to assemble, because a rename that has to be
      remembered is a rename that happens once and then never again for the next pair. Named, so it
-     runs on the first request after this deploy and never a second time. */
+     runs on the next `?setup=1` or `?run=` after this deploy and never a second time. */
   { id: 'english-lang-to-english-language',
     what: 'every "English Lang." becomes "English Language"',
     run: () => renameValue('English Lang.>English Language') },
@@ -3082,7 +3093,7 @@ const MIGRATIONS = [
 
   /* PUT THE VENUES ON THE MAP, without anybody being asked to do anything.
      Fills in the postcodes that are known, then turns every postcode into coordinates. Runs on the
-     first request after this deploy and never again — which is right: afterwards the coordinates
+     next `?setup=1` or `?run=` after this deploy and never again — which is right: afterwards the coordinates
      are in the sheet, and re-deriving them every load would be a network call per visitor for an
      answer that cannot have changed.
      A venue added later has no coordinates and sits at the edge of the map saying so. Running

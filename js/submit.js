@@ -90,18 +90,21 @@ function subAll_(who) {
   SUB_MEM.set(who, { raw: raw, map: map });
   return map;
 }
+/* TRUE WHEN THE STORE TOOK IT — `subMigrate_` marks itself done only then. */
 function subAllKeep_(who, map) {
   const raw = JSON.stringify(map || {});
   SUB_MEM.set(who, { raw: raw, map: map || {} });
-  if (!who) return;
-  try { localStorage.setItem('subLast:' + who, raw); }
+  if (!who) return true;
+  try { localStorage.setItem('subLast:' + who, raw); return true; }
   catch (e) {
     /* A FULL STORE KEEPS THE OLD TEXT, and the next read would find it differing from this copy and parse
        the old one over the press just made. So the copy is filed under the text the store still holds:
-       the visit keeps the press, and the queue (`subQ:`) still has it to send. */
+       the visit keeps the press, and the queue (`subQ:`) still has it to send — held for the visit itself
+       when the store refuses it too (`subQueueKeep_`), which until 10 Oct it was not. */
     let held = null;
     try { held = localStorage.getItem('subLast:' + who); } catch (e2) { held = null; }
     SUB_MEM.set(who, { raw: held, map: map || {} });
+    return false;
   }
 }
 /* THE LATEST PRESS FOR AN ANSWER KEY — only ever the person signed in now. A key that names somebody
@@ -119,19 +122,60 @@ function subLatest_(k) {
    PER PERSON, IN `localStorage`, so it survives a reload, a crash and a sign-out — and goes up the next
    time that person is signed in here, the way an unsent drawing does (`ansDirty`). Every press, not the
    latest per question: right and then wrong is two rows on the sheet, *"that's 2 events"*. */
+/* ---------- AND A QUEUE THE STORE REFUSED IS THE VISIT'S, READ FIRST (review of 10 Oct) --------------------
+   THE WRITE WENT INTO `SUBQ_MEM` AND THE REFUSAL WAS SWALLOWED, and the read only fell back to that copy
+   when `getItem` THREW. A nearly full store does not throw on a read: it answers with the list it still
+   holds — the old one, without the press just made. Measured: Check pressed with the queue's write
+   refused, nothing sent, nothing on the account, and "Sending…" under the box for ever; and the one-time
+   carry-over (`subMigrate_`) marked itself done over a queue that was never kept, so a child's work from
+   before the switch was flagged as carried and never went. So the queue goes through `keepPut_`
+   (data.js), the one writer for what a person made: a refusal gives up the splash's copy first and tries
+   again; a write still refused is held for the visit (`keepHeld_`), read before the store by this, written
+   again as the page goes (`keepRetry_`), and counted as work only this page holds — the browser asks
+   "Leave site?" until it has gone up. Returns whether the store took it. */
 const SUBQ_MEM = new Map();
+const subQKey_ = who => 'subQ:' + who;
 function subQueue_(who) {
-  try {
-    const list = JSON.parse(localStorage.getItem('subQ:' + who) || '[]');
-    return Array.isArray(list) ? list.filter(e => e && typeof e === 'object' && e.id && e.key) : [];
-  } catch (e) { return (SUBQ_MEM.get(who) || []).slice(); }
+  const parse = raw => {
+    try {
+      const list = JSON.parse(raw || '[]');
+      return Array.isArray(list) ? list.filter(e => e && typeof e === 'object' && e.id && e.key) : [];
+    } catch (e) { return []; }
+  };
+  const held = typeof keepHeld_ === 'function' ? keepHeld_(subQKey_(who)) : undefined;
+  if (held !== undefined) return parse(held);
+  let raw = null;
+  try { raw = localStorage.getItem(subQKey_(who)); } catch (e) { return (SUBQ_MEM.get(who) || []).slice(); }
+  return parse(raw);
 }
 function subQueueKeep_(who, list) {
   SUBQ_MEM.set(who, list.slice());
-  try {
-    if (list.length) localStorage.setItem('subQ:' + who, JSON.stringify(list));
-    else localStorage.removeItem('subQ:' + who);
-  } catch (e) {}
+  const raw = list.length ? JSON.stringify(list) : null;
+  if (typeof keepPut_ === 'function') return keepPut_(subQKey_(who), raw);
+  try { if (raw === null) localStorage.removeItem(subQKey_(who)); else localStorage.setItem(subQKey_(who), raw); return true; }
+  catch (e) { return false; }
+}
+/* ---------- A PRESS MARKED "STILL TO GO" THAT THE QUEUE HAS NOT GOT WILL NEVER GO — SO IT IS QUEUED AGAIN ----------
+   `q` on the latest says a press is in the queue. A queue write the store refused and the page left before
+   it could go up (an old backend cannot take it) leaves the `q` and loses the press: "Sending…" for ever,
+   and `subAdopt_` kept it as "the latest there is" over every later press from another device — measured,
+   a computer's "Not yet" never shown on the iPad. Asked on every adopt: each such press is put back in the
+   queue under its own id (the server writes an id once, so a press that did go up after all is not a
+   second row), with its name and words found again the way `subRecord_` finds them. Returns the keys. */
+function subRequeue_(who) {
+  const all = subAll_(who), queue = subQueue_(who);
+  const ids = new Set(queue.map(e => e.id)), lost = [];
+  Object.keys(all).forEach(key => {
+    const e = all[key];
+    if (!e || typeof e !== 'object' || !e.q || !e.id || ids.has(e.id) || typeof e.a !== 'string' || !e.a.trim()) return;
+    const k = 'ans:' + who + ':' + key;
+    const ev = { id: String(e.id), key: key, answer: e.a, verdict: String(e.v || ''), at: Number(e.at) || Date.now() };
+    try { const l = typeof doneLabel_ === 'function' ? doneLabel_(k) : ''; if (l) ev.label = l; } catch (err) {}
+    try { const w = typeof doneWords_ === 'function' ? doneWords_(k) : ''; if (w) ev.words = w; } catch (err) {}
+    lost.push(ev);
+  });
+  if (lost.length) subQueueKeep_(who, queue.concat(lost));
+  return new Set(lost.map(ev => ev.key));
 }
 
 /* ---------- RECORDING A PRESS -----------------------------------------------------------------------------
@@ -181,6 +225,39 @@ function subRecord_(k, answer, verdict) {
    No reply, or an error ("Busy"), keeps the whole queue and tries again — sooner at first, then less
    often, so a phone with no signal is not a request a second. */
 let SUB_BUSY = null, SUB_AGAIN = false, SUB_RETRY = 0, SUB_BACKOFF = 0;
+/* THE REQUEST. `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and
+   `check-post.js` asks that every handler reading one is sent one.
+   ---------- AND THIS DEVICE'S CLOCK AT THE MOMENT IT SENDS (`sent`, review of 10 Oct) ----------------------
+   `pressed_at` is the press's own moment by this device's clock, and the server held it only against a
+   FAST clock (never later than its own). A SLOW one went through: an iPad two hours behind, the answer
+   changed and Checked now, was stored two hours ago — older than the computer's press an hour ago — so the
+   account's latest was the earlier answer, and the next load wrote it back over the iPad's own box. A
+   child setting the clock back for a game is enough. The server cannot know a press's true time, but it
+   can know this device's error: its own clock when the request lands, less this, is the skew, and every
+   press in the request moves by it (`submissionsAppend_` in dopost.gs). A phone that sends no `sent` is
+   held as before. */
+function subBody_(pid, items) {
+  return { action: 'submitAnswer', personId: pid, items: items, sent: Date.now() };
+}
+/* WHAT THE SERVER SAID, LAID ON THIS DEVICE — the same for a send now and for Sign out's last one
+   (`subDrain_`). Answered `{ success, saved: { <id>: { key, verdict, at } } }`; anything else throws, and
+   the whole request stays queued. */
+function subApply_(who, items, d) {
+  if (!d || !d.success || !d.saved || typeof d.saved !== 'object') throw new Error((d && d.error) || 'not sent');
+  const went = new Set(items.map(ev => ev.id));
+  /* THE QUEUE READ AGAIN: a press made while this was on the wire is still to go. */
+  subQueueKeep_(who, subQueue_(who).filter(ev => !went.has(ev.id)));
+  const all = subAll_(who);
+  items.forEach(ev => {
+    const cur = all[ev.key];
+    /* A LATER PRESS OF THE SAME QUESTION IS THE LATEST NOW, and is left as it is. */
+    if (!cur || cur.id !== ev.id) return;
+    const got = d.saved[ev.id];
+    all[ev.key] = got ? { a: cur.a, v: cur.v, at: Number(got.at) || cur.at, id: ev.id }
+                      : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 };
+  });
+  subAllKeep_(who, all);
+}
 function subPush_(now, keepalive) {
   if (!(typeof answersCan_ === 'function' && answersCan_('submitAnswer')) || typeof api !== 'function') return Promise.resolve(false);
   if (SUB_BUSY) { SUB_AGAIN = true; return SUB_BUSY; }
@@ -196,25 +273,10 @@ function subPush_(now, keepalive) {
     size += len;
     items.push(ev);
   }
-  /* `personId` AS WELL AS THE TOKEN — the gate overwrites it with the token's person, and `check-post.js`
-     asks that every handler reading one is sent one. */
-  const req = api({ action: 'submitAnswer', personId: pid, items: items }, keepalive ? { keepalive: true } : undefined);
+  const req = api(subBody_(pid, items), keepalive ? { keepalive: true } : undefined);
   SUB_BUSY = Promise.resolve(req)
     .then(d => {
-      if (!d || !d.success || !d.saved || typeof d.saved !== 'object') throw new Error((d && d.error) || 'not sent');
-      const went = new Set(items.map(ev => ev.id));
-      /* THE QUEUE READ AGAIN: a press made while this was on the wire is still to go. */
-      subQueueKeep_(who, subQueue_(who).filter(ev => !went.has(ev.id)));
-      const all = subAll_(who);
-      items.forEach(ev => {
-        const cur = all[ev.key];
-        /* A LATER PRESS OF THE SAME QUESTION IS THE LATEST NOW, and is left as it is. */
-        if (!cur || cur.id !== ev.id) return;
-        const got = d.saved[ev.id];
-        all[ev.key] = got ? { a: cur.a, v: cur.v, at: Number(got.at) || cur.at, id: ev.id }
-                          : { a: cur.a, v: cur.v, at: cur.at, id: ev.id, far: 1 };
-      });
-      subAllKeep_(who, all);
+      subApply_(who, items, d);
       clearTimeout(SUB_RETRY);
       SUB_BACKOFF = 0;
       return true;
@@ -238,6 +300,35 @@ function subPush_(now, keepalive) {
   return SUB_BUSY;
 }
 
+/* ---------- AT SIGN-OUT, WHAT IS STILL QUEUED GOES UP ON THE TOKEN THAT IS ENDING (review of 10 Oct) --------
+   SIGN OUT WAITED FOR THE DRAFTS AND THE NOTEPAD (`answersPush_`, `keepFlush_`) before it ended the session,
+   and not for the presses, which since 9 Oct are how a typed answer reaches the account at all. Measured:
+   Check, then Sign out 20 ms later — the server, which does not order two requests, ended the token first
+   and refused the press; two Checks inside one request's flight, then Sign out — the second waited behind
+   the first (`SUB_AGAIN`), and `subForget_` threw that away with nobody signed in to send it for. Both
+   stayed queued under the child on this device: on a tutor's laptop or a friend's iPad they never sign
+   into again, never sent. So `on('signout')` (me.js) asks this BEFORE it forgets the person — `pid`, the
+   token and whether the backend takes presses are read then — and ends the session only once it has
+   answered: the request in flight first, then whatever is still queued for them, on THEIR token (`api()`
+   keeps a token it is given), a request at a time, the replies laid on the device as `subPush_` lays
+   them. Nobody else's: the queue is read under their id. Whatever cannot go waits under it, as before.
+   A few requests at most — Sign out must not wait on a queue of hundreds for ever. */
+const SUB_DRAIN_ROUNDS = 4;
+function subDrain_(pid, tok, can) {
+  pid = String(pid || '');
+  if (!pid || !tok || !can || typeof api !== 'function') return Promise.resolve(false);
+  const who = 'u:' + pid, busy = SUB_BUSY;
+  const round = n => {
+    const queue = subQueue_(who);
+    if (!queue.length) return Promise.resolve(true);
+    if (n >= SUB_DRAIN_ROUNDS) return Promise.resolve(false);
+    const items = queue.slice(0, SUB_PER_POST);
+    return Promise.resolve(api(Object.assign(subBody_(pid, items), { token: tok })))
+      .then(d => { subApply_(who, items, d); return round(n + 1); });
+  };
+  return Promise.resolve(busy).catch(() => {}).then(() => round(0)).catch(() => false);
+}
+
 /* ---------- WHAT THE ACCOUNT SAYS, LAID OVER THIS DEVICE ------------------------------------------------
    FROM `adoptMarks_` (every payload) AND `signedIn_` (the sign-in reply). `DATA.submissions` is
    `{ for, mine: { <key>: { answer, verdict, at, id } } }` for the token's person, and a copy built for
@@ -252,6 +343,7 @@ function subAdopt_() {
   try {
     if (typeof USER !== 'object' || !USER || !USER.personId) return;
     const pid = String(USER.personId), who = 'u:' + pid;
+    const lost = subRequeue_(who);
     const s = typeof DATA === 'object' && DATA ? DATA.submissions : null;
     if (s && s.mine && typeof s.mine === 'object' && String(s.for || '') === pid) {
       const all = subAll_(who);
@@ -267,7 +359,10 @@ function subAdopt_() {
            nothing. It is passed over as though it were not there. */
         if (!answer.trim()) return;
         const cur = all[key];
-        if (cur && cur.q) return;
+        /* A PRESS STILL TO GO FROM HERE IS THE LATEST THERE IS — except one that was lost from the queue and
+           has only just been put back (`subRequeue_`): it may be days old, and a later press from another
+           device is the latest on this device too, as it is on the account. It still goes up, as history. */
+        if (cur && cur.q && !(lost.has(key) && at > Number(cur.at))) return;
         if (cur && id && cur.id === id) return;
         if (cur && Number(cur.at) >= at) return;
         all[key] = { a: answer, v: verdict, at: at, id: id };
@@ -334,8 +429,53 @@ function subAdopt_() {
 
    WAITS, AND DOES NOT MARK ITSELF DONE, while it cannot judge: no library yet, or a backend that keeps
    submissions whose copy for this person has not arrived. A backend from before submissions has none to
-   compare with, so the presses are queued and go up the first time it can take them. */
+   compare with, so the presses are queued and go up the first time it can take them.
+
+   ---------- WHAT THE OLD CODE LEFT, NOT WHAT HAS BEEN WRITTEN INTO THE KEY SINCE (review of 10 Oct) ----------
+   IT READ THE BOX AS IT IS WHEN THE PASS RUNS, and the pass runs late — after the sign-in reply, after the
+   library, after the payload — while three doors write into `ans:u:<id>:` before it: the claim at a
+   sign-in from nobody (`answersClaim_`, 318: the later edit wins), a card drawn before the payload
+   (Saved draws a starred one from the device), and `ansRead_` moving a signed-out answer into an empty
+   box. Measured: Ada had done Q1a on 5 Oct ("0.0197", right); somebody typed "5" into it signed out; she
+   signed in from nobody, and the claim put "5" in her key a moment before this pass sent it as her
+   submission — "Not yet" on her card, ✗ in her parent's email, dated today so the latest, and her right
+   answer never reached the account. A press nobody pressed, which the claim's own comment says never
+   happens. So two rules, one per kind of door:
+     · AN ANSWER LAST EDITED AFTER ITS DONE DAY WAS WRITTEN BY THIS CODE, not the old one, and is a draft.
+       The old code wrote `done:` on the first keystroke, Check or pick of every day the box was touched
+       (`doneMark_`, until 9 Oct), by the same clock as `ansAt:` — so an answer it left is never stamped
+       after the end of its done day. One stamped later was typed, claimed or moved since, and nobody
+       pressed it: it stays in the box, a draft, and is not carried.
+     · WHAT THE CLAIM WROTE OVER IS READ INSTEAD OF THE BOX (`subBefore:u:<id>`, `subClaimOver_` below):
+       Ada's "0.0197" with its 5 Oct time, so the claim keeps 318's rule (the later edit is her draft) and
+       the carry-over keeps hers. Read first, whenever the pass runs — at the sign-in or once the library
+       and the account's copy land — so the order of the two calls in `signedIn_` cannot matter. */
 const SUB_BEFORE = Date.UTC(2026, 9, 9);
+/* ---------- WHAT A SIGN-IN'S CLAIM WROTE OVER, KEPT FOR THE CARRY-OVER THAT HAS NOT RUN ---------------------
+   `answersClaim_` (answers.js) calls this before it writes over a typed answer this person already had —
+   only while their carry-over is still to run on this device. The FIRST answer written over is the one
+   the old code left, and a second claim never replaces it. Through `keepPut_` as a record (data.js): held
+   for the visit if the store refuses it, given the splash's room, and written again as the page goes —
+   lost, the claimed draft would be the only answer the pass could find. Gone when the pass has run. */
+const subBeforeKey_ = who => 'subBefore:' + who;
+function subBefore_(who) {
+  let raw = typeof keepHeld_ === 'function' ? keepHeld_(subBeforeKey_(who)) : undefined;
+  if (raw === undefined) { try { raw = localStorage.getItem(subBeforeKey_(who)); } catch (e) { raw = null; } }
+  try { const m = JSON.parse(raw || '{}'); return m && typeof m === 'object' && !Array.isArray(m) ? m : {}; }
+  catch (e) { return {}; }
+}
+function subClaimOver_(k, was, at) {
+  k = String(k || '');
+  const who = ansWhoOf_(k);
+  if (!who || !/^ans:/.test(k) || was === null || was === undefined || !String(was).trim()) return;
+  try { if (localStorage.getItem('subMigrated:' + who)) return; } catch (e) { return; }
+  const held = subBefore_(who), key = subKeyOf_(k);
+  if (held[key]) return;
+  held[key] = { a: String(was), at: Number(at) || 0 };
+  const raw = JSON.stringify(held);
+  if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), raw, 'record');
+  else { try { localStorage.setItem(subBeforeKey_(who), raw); } catch (e) {} }
+}
 function subMigrateId_(pid, key) {
   /* TWO 32-BIT FNV-1a PASSES IN BASE 36 — `SUBMISSION_ID`'s shape, `<digits>-<letters and digits>`, with an
      `m` that says on the sheet which rows this wrote. The digits are the day of the switch, not a clock. */
@@ -406,20 +546,27 @@ function subMigrate_() {
   const index = new Map();
   items.forEach(it => { if (it) index.set(ansKey_(it), it); });
   const all = subAll_(who), queue = subQueue_(who), made = [];
-  const dayMs = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12).getTime() : 0; };
+  const before = subBefore_(who);
+  const dayMs = (d, h) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d); return m ? new Date(+m[1], +m[2] - 1, +m[3], h).getTime() : 0; };
   Object.keys(done).forEach(key => {
     if (!key || mine[key] || all[key]) return;
     const k = 'ans:' + who + ':' + key;
-    const v = ansValue_(k);
+    /* WHAT THE CLAIM WROTE OVER, IF IT DID, rather than the claimed draft now in the box (see above). */
+    const kept = before[key] && typeof before[key] === 'object' && typeof before[key].a === 'string' ? before[key] : null;
+    const v = kept ? kept.a : ansValue_(k);
     if (v === null || !String(v).trim()) return;
+    const now = Date.now();
+    let at = kept ? Number(kept.at) || 0 : Number(ansAt_(k)) || 0;
+    /* EDITED AFTER THE END OF ITS DONE DAY: written since the switch, a draft nobody pressed (see above).
+       Midnight after the day, by this device's clock, as `doneMark_` dated it. */
+    const end = dayMs(done[key], 24);
+    if (end && at >= end && at <= now) return;
     const slot = /#[^#]*$/.test(key);
     const x = index.get(slot ? k.replace(/#[^#]*$/, '') : k);
     if (!x) return;
     const m = subMigrateMark_(x, String(v), slot);
     if (!m || !String(m.a).trim()) return;
-    const now = Date.now();
-    let at = Number(ansAt_(k)) || 0;
-    if (!(at > 0 && at <= now)) at = dayMs(done[key]) || SUB_BEFORE;
+    if (!(at > 0 && at <= now)) at = dayMs(done[key], 12) || SUB_BEFORE;
     const e = { a: m.a, v: m.v, at: Math.min(at, now), id: subMigrateId_(pid, key) };
     if (m.a.length > SUB_ANSWER_MAX) e.far = 1;
     else {
@@ -432,13 +579,22 @@ function subMigrate_() {
     all[key] = e;
     made.push(k);
   });
+  /* DONE ONLY WHEN WHAT IT MADE IS KEPT. The flag was written whatever the store said, so a queue it
+     refused was a carry-over marked done and never sent (review of 10 Oct, above `subQueue_`). Refused, the
+     visit still holds both and sends what it can; the next load runs the pass again, and a press it left
+     marked to go is queued again by `subRequeue_` — under the same id, so it is one row. */
+  let stored = true;
   if (made.length) {
-    subQueueKeep_(who, queue);
-    subAllKeep_(who, all);
+    const q = subQueueKeep_(who, queue), l = subAllKeep_(who, all);
+    stored = q && l;
     made.forEach(subBoxPaint_);
     subPaintAll_();
   }
+  if (!stored) return;
   try { localStorage.setItem(flag, String(Date.now())); } catch (e) {}
+  /* AND WHAT THE CLAIM WROTE OVER IS NOBODY'S BUSINESS ANY MORE. */
+  if (typeof keepPut_ === 'function') keepPut_(subBeforeKey_(who), null, 'record');
+  else { try { localStorage.removeItem(subBeforeKey_(who)); } catch (e) {} }
 }
 
 /* ---------- THE WORDS FOR A VERDICT -----------------------------------------------------------------------

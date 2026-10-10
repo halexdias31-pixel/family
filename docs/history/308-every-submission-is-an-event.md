@@ -262,17 +262,134 @@ child's typed answers exist only on their devices, under `ans:u:<id>:<key>`.
   account has (`mine[key]`) is a second line behind `subAdopt_`, which lays the account's latest into
   the device's copy first.
 
+## After the loader landed: the second review (10 Oct)
+
+The branch was built against the integration branch before the one loader (306) landed, so the two met for
+the first time in this merge. Eight findings, each reproduced first (the verifier's journeys and probes),
+fixed at the rule, held by a check that is red on the commit before and green after, and broken on purpose.
+**The four stamps are `2026-10-10-f-submissions`** (the backend changed); `--css-version` is unchanged —
+no rule in style.css moved.
+
+1. **A signed-out draft became the child's submission at sign-in — FIXED.** `signedIn_` claims every
+   signed-out answer (318: the later edit wins) and then `subAdopt_` runs the one-time carry-over, which read
+   the box: Ada's 5 Oct "0.0197" (right) was replaced by a "5" somebody typed signed out, and "5" went up as
+   her press — "Not yet" on her card, ✗ in the email, dated today, and her right answer never on the account.
+   The same with the payload still out at the sign-in (the pass waits for the library, the claim does not),
+   and for a box typed in before the pass could run (Saved draws a kept card before the payload). Two rules
+   in `subMigrate_`: **an answer last edited after the end of its `done:` day is a draft** (the old code
+   wrote `done:` on every day a box was touched, by the same clock as `ansAt:`, so nothing it left is
+   stamped later), and **what the claim wrote over is read instead of the box** (`subClaimOver_` keeps it
+   under `subBefore:u:<id>` through `keepPut_` as a record, until the pass has run). The verifier's reorder
+   of the two calls in `signedIn_` was not taken: with the claim's copy read first the order cannot matter,
+   and one path is one thing to keep right. The migration journey's fixture said "done 5 Oct, edited 6 Oct
+   15:00", which the old code could not leave; it says done 6 Oct now.
+2. **Sign out did not send the presses — FIXED.** It waited for the drafts and the notepad, not for
+   `submitAnswer`: a Check just before Sign out was refused on the ended token, and a second Check queued
+   behind the first was forgotten by `subForget_`. `subDrain_` (js/submit.js), started before `signedOut_`
+   with the person, the token and whether the backend takes presses: the request in flight, then what is
+   still queued, on that token, replies laid on as `subPush_` lays them (`subApply_`, now shared), a few
+   requests at most; `signOut` waits for it.
+3. **A queue the store refused was lost — FIXED.** The write fell into a memory copy nobody read (a nearly
+   full store answers reads with the old list instead of throwing), the carry-over flagged itself done
+   over it, and the `q` left on the latest kept that press as "the latest there is" over a later one from
+   the computer, for good. The queue goes through `keepPut_` and is read through `keepHeld_` first (held
+   for the visit, the splash gives way, written again as the page goes, "Leave site?" while only the page
+   has it); `subMigrate_` flags itself done only when the queue and the latest were both kept; and
+   `subRequeue_`, on every adopt, puts a press marked to go that the queue has not got back in the queue
+   under its own id — and lets a later press from another device be the latest here, as it is on the
+   account.
+4. **Before the payload, a box the account holds said "On this device only" — FIXED.** `ansSavedSay_` and
+   `ansOnAccount_` asked `DATA.features` first. A press the server acknowledged (`q` off) holding exactly
+   the box is "Sent to …" whatever the payload has said (`ansSentHere_`); the lines that depend on which
+   backend it is ("Sending…", "until you send it", the drafts' lines) say nothing while `awaiting_()`.
+5. **Before the payload, an essay with AI marking on offered a plain Send — FIXED.** `aiOffered_` read a
+   missing `features` as off, so the sheet drew Send and "AI marking isn't switched on yet", and a press
+   recorded the forty-mark essay as an unmarked `sent`. `aiUndecided_` (keypad.js): while the payload is
+   out the tile is Mark with AI where it will stand, `disabled`, with no sentence; the payload's repaint
+   draws the tile it decided on. **And where there is no repaint, it is decided in place** (`aiDecided_`,
+   called from `adoptMarks_`): Find is held back from a repaint while a child types in it (`findKeep_`),
+   which is exactly the child who searched for the essay and started writing inside the fifteen seconds —
+   her tile would still have been the waiting one when she reached for it. With AI marking on, the waiting
+   tile is the very tile a fresh drawing draws, so it is let go where it stands; off, the plain Send and
+   its sentence are a different row, drawn by the repaint the held column has booked.
+6. **The owner's step 2 offered `/exec?setup=1` before New version — FIXED, in the words.** Until step 3,
+   /exec is the 7 Oct code, whose `ensureSchema` rewrote an owner-shaped options tab and made no
+   submissions tab (the verifier's probe on `8cd8323`). Step 2 now says the editor, and why not /exec;
+   309's step 3 said nothing needed running because "the first request runs ensureSchema by itself", which
+   doGet has not done since the schema work came off the page load — corrected, and so are the setup.gs
+   header, the `?health=1` advice and two MIGRATIONS comments that said the same. The weekly email card's
+   "old backend" sentence names the editor too.
+7. **A slow clock made an older answer the latest — FIXED.** `pressed_at` was clamped against a fast clock
+   only. The phone sends its clock as it sends (`sent`, `subBody_`); `submissionsAppend_` moves every press
+   in the request by the server's now less that, before the clamp. A phone without `sent` is held as
+   before. The reply carries the corrected time, so the phone keeps the server's order.
+8. **Carried-over work was "this week" in the first email — FIXED.** A row with the carry-over's id
+   (`SUBMISSION_CARRIED`, constants.gs) is history in `digestPlan_` — never this week's, and what makes a
+   press of the same question this week "(again)" — and the admin's people line dates it by `pressed_at`.
+
+**Not changed, and worth knowing.** The draft rule in `subAdopt_` still compares this device's edit time
+with the account's (server-corrected) press time, so a device whose clock is far behind can still have a
+draft typed after another device's press taken for older; the press itself is now ordered right. A press
+queued normally (not lost) still wins over the account's on its own device until it goes up — it is about
+to. And when the claim writes over a done answer, the claimed words stay in the box as a draft: the card
+says how the carried press went, and the line under the box says the draft has not been sent. The
+done-day rule is a day wide: a draft typed into a box on the SAME day the old code last touched it — the
+front end updating mid-afternoon on a day the child had already worked — is still carried as a press.
+It needs the update, the old work and the new draft inside one day on one device; the claim's case, the
+one measured, does not depend on the rule at all (`subBefore:` is read first).
+
+### Checked
+
+- **check-flow, six new journeys and one fixture corrected** (`FLOW_ONLY=submission`, 18 journeys): the
+  carry-over over a claim from nobody (the live backend and the new one), with the payload landing after
+  the sign-in, and over a box typed before the pass; a queue the store refuses (Check sent; the carry-over
+  not flagged over it — the queue refused, and the queue and the latest; a press left marked to go queued
+  again beside a later "Not yet" from the computer); Sign out sending the press in flight and the one
+  behind it on its own token before `signOut`, and nothing of Ada's on Ben's; the line under three boxes
+  before and after the payload; the essay and a worded box before and after a payload with AI on and with
+  AI off, and the cards drawn before it let go in place; and `sent` on every request.
+- **check-submissions** (80 rules): a slow clock's press is the latest and comes back corrected, a queued
+  press keeps its hour, a fast clock's press keeps its minute, no `sent` (or nonsense) is as before; the
+  admin's line dates carried work by when it was done; and every owner section in docs/history — no step
+  before a New version opens `?setup=1`, none says the first request runs `ensureSchema` by itself — with
+  the code they describe (an ordinary request runs it 0 times, `?setup=1` once).
+- **check-digest** (84 rules): carried work is not this week's, makes this week's press "(again)" with
+  this week's mark, and the email counts two.
+- **Red on the commit before (949604e with only the new checks and the old notes)**: 6 of the 18
+  submission journeys, 7 check-submissions rules (the four clock rules, the admin's line, 308's step 2,
+  309's step 3) and 4 check-digest lines — each for its own finding.
+- **Fifteen mutations, each red alone, the real files byte-for-byte green after** (a harness that swaps
+  one exact string, runs the one narrow check, and puts the file back): the done-day rule removed (the box
+  typed before the pass went up as "5"); the claim's copy never kept (0.0197 not carried, three ways);
+  Sign out not waiting for the drain (`submitAnswer → signOut → submitAnswer`, both left queued); the drain
+  without its explicit token (a press on no token); the queue read without `keepHeld_` (nothing sent,
+  "Sending…"); the flag written over a refused write (the queue and the latest refused); `subRequeue_`
+  doing nothing (the next load, and the press left marked to go); the acknowledged-press line removed;
+  the `awaiting_()` gate removed (the draft and the queued press "On this device only"); `aiUndecided_`
+  false (the plain Send, "switched on yet", an unmarked essay queued); `aiDecided_` not called (the cards
+  drawn before the payload still waiting); `sent` not sent; the skew not applied; the digest's carried
+  rule removed; the summary by arrival.
+- `check.js`, `check-const`, `check-backend`, `check-tabs`, `check-columns`, `check-rows`, `check-access`,
+  `check-post`, `check-payload`, `check-saved-answers`, `check-drafts`, `check-loading`, `check-prefs`,
+  `check-marking`, `check-doors`, `check-css` green; the whole of `check-flow` (272 journeys) green;
+  `check/ui.js --screen=stuff` (615 combinations, nothing new) and `check/press.js --screen=stuff` (49
+  presses, 95 swipes) green.
+
 ## For the owner to do — one Apps Script sitting, on the live Ledger
 
 1. **GitHub Assistant ↓** (or clasp) to pull `main` into the Apps Script project. No file is added or
    removed, so `backend/files.json` is unchanged.
-2. Run **`ensureSchema`** from the function list (or open `/exec?setup=1`). It creates the
+2. Run **`ensureSchema`** from the editor's function list. **Not `/exec?setup=1`**: until step 3 the web
+   app is still the version deployed on 7 Oct, and that is the code a request to /exec runs — measured on it
+   (`8cd8323`) over an options tab shaped like an owner's, its `ensureSchema` rebuilt the four code lists,
+   left Art's and PE's `focus` beside two status rows, removed an owner's own "On hold", and made no
+   `submissions` tab. From the editor it is the code just pulled. It creates the
    **`submissions`** tab (with `pressed_at` as its last column), adds any column another tab is missing,
    and touches no row of yours: on the options tab it only appends a code-owned value a list is missing
    (the report says `added: …`). The `attempts` tab stays where it is, read and written by nothing — keep
    it as the record of what was done before, or delete it by hand.
 3. **Deploy → Manage deployments → pencil → New version → Deploy**, so the web app (and the Preview on
-   the weekly email's card) is the new code. The You screen shows `2026-10-09-e-submissions` on all four
+   the weekly email's card) is the new code. The You screen shows `2026-10-10-f-submissions` on all four
    stamps when it has landed. Until then the site keeps every press on the device and sends them the
    first time the backend lists `submitAnswer` — and each child's questions done before the switch go up
    from their own device, once, the next time they are signed in there.

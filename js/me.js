@@ -658,12 +658,21 @@ on('signout', () => {
   const tok = USER && USER.token;
   let last = Promise.resolve();
   try { if (typeof answersPush_ === 'function') last = answersPush_(true); } catch (err) {}
+  /* AND THE PRESSES, WHICH SINCE 9 OCT ARE HOW A TYPED ANSWER REACHES THE ACCOUNT AT ALL — the one in flight
+     and every one queued behind it, on this token, before it is ended (`subDrain_`, js/submit.js). They
+     were left out of this wait: a Check pressed just before Sign out was refused on the ended token, or
+     forgotten behind the one in flight, and waited on this device for a sign-in that may never come
+     (review of 10 Oct). Who and whether, read now, before `signedOut_` forgets them. */
+  let subs = Promise.resolve();
+  try {
+    if (typeof subDrain_ === 'function') subs = subDrain_(USER && USER.personId, tok, typeof answersCan_ === 'function' && answersCan_('submitAnswer'));
+  } catch (err) {}
   /* AND THE NOTEPAD, THE DOCKET AND THE TIMETABLE, still inside their moment before they go up
      (`keepDue_`, data.js) — each is sent only while somebody is signed in, so after `signedOut_` below
      the words typed in the last second and a half reached nobody (review of 317). */
   let due = Promise.resolve();
   try { if (typeof keepFlush_ === 'function') due = keepFlush_(); } catch (err) {}
-  Promise.all([Promise.resolve(last).catch(() => {}), due]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
+  Promise.all([Promise.resolve(last).catch(() => {}), due, Promise.resolve(subs).catch(() => {})]).then(() => { try { if (tok) api({ action: 'signOut', token: tok }); } catch (err) {} });
   signedOut_();
   toast('Signed out');
 });

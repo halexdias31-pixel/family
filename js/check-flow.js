@@ -12554,13 +12554,17 @@ check('submission: what a child had done before the switch becomes one submissio
   if (lib.length !== IDS.length) return ['data/questions.json no longer has ' + IDS.filter(id => !lib.some(r => r.row_id === id)).join(', ') + ' — nothing was migrated'];
   const serve = u => (/data\/questions\.json/.test(u) ? lib : /data\/videos\.json/.test(u) ? [] : undefined);
   const K = id => 'q:' + id;
-  const AT = Date.UTC(2026, 9, 6, 15, 0, 0);
+  /* THE LAST EDIT ON ITS DONE DAY, BY THIS DEVICE'S CLOCK — as the old code left every answer it dated: it
+     wrote `done:` on the first keystroke of each day the box was touched. This said done 5 Oct and edited
+     6 Oct 15:00 UTC, which the old code could not leave; the carry-over now reads an answer edited after
+     its done day as a draft written since (review of 10 Oct), so the fixture says what a device holds. */
+  const AT = new Date(2026, 9, 6, 15, 0, 0).getTime();
   /* THE DEVICE AS THE OLD CODE LEFT IT: Ada's done dates and answers, a draft she never did, a key the
      library has not got, an empty answer, one the account already has — and her brother's, and a
      signed-out answer, on the same iPad. */
   const DEVICE = {
     'familyUser': JSON.stringify(ANS_ADA),
-    ['done:u:P7:' + K('Q-1MA1-2406-1F-4')]: '2026-10-05', ['ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: '3,4,5,2,1', ['ansAt:ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: String(AT),
+    ['done:u:P7:' + K('Q-1MA1-2406-1F-4')]: '2026-10-06', ['ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: '3,4,5,2,1', ['ansAt:ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: String(AT),
     ['done:u:P7:' + K('Q-STA-KS2-2024-P2-2')]: '2026-10-06', ['ans:u:P7:' + K('Q-STA-KS2-2024-P2-2')]: '4,1',
     ['done:u:P7:' + K('Q-9MA031-2206-1a')]: '2026-10-06', ['ans:u:P7:' + K('Q-9MA031-2206-1a')]: '5',
     ['done:u:P7:' + K('Q0109')]: '2026-10-07', ['ans:u:P7:' + K('Q0109')]: '42',
@@ -12708,6 +12712,376 @@ check('submission: an empty answer on the account is nobody’s latest and never
   if (card.querySelector('.qp-ans-in').value !== '15' || w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '15') bad.push('an empty submission emptied the box: ' + JSON.stringify(card.querySelector('.qp-ans-in').value));
   if (subSlotOf_(card).textContent !== 'Correct') bad.push('an empty submission became the latest: the card says ' + JSON.stringify(subSlotOf_(card).textContent));
   w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- THE CARRY-OVER READS WHAT THE OLD CODE LEFT, NOT A DRAFT WRITTEN INTO THE KEY SINCE (review of 10 Oct) ----------
+   Ada did Q1a on the family iPad on 5 Oct, signed in ("0.0197", right by its scheme; `done:` that day). After
+   the front end went live somebody typed "5" into that box signed out, and Ada signed in from nobody — her
+   first sign-in on this iPad since the switch. `answersClaim_` (318: the later edit wins) put "5" in her key a
+   moment before `subMigrate_` read the key and sent "5" as her submission: "Not yet" on her card, ✗ in the
+   parent's email, dated today so the latest, and "0.0197" never on the account. The same when the payload
+   (and the library in it) lands after the sign-in, and when a card drawn before the payload is typed in. */
+const SUB_PRE_ = (() => {
+  const K = 'q:Q-9MA031-2206-1a';
+  const OCT5 = new Date(2026, 9, 5, 15, 0, 0).getTime();
+  const row = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8')).filter(r => r.row_id === 'Q-9MA031-2206-1a');
+  const seed = (outToo, me) => win => {
+    if (me) win.localStorage.setItem('familyUser', JSON.stringify(me));
+    win.localStorage.setItem('done:u:P7:' + K, '2026-10-05');
+    win.localStorage.setItem('ans:u:P7:' + K, '0.0197');
+    win.localStorage.setItem('ansAt:ans:u:P7:' + K, String(OCT5));
+    if (outToo) { win.localStorage.setItem('ans:' + K, '5'); win.localStorage.setItem('ansAt:ans:' + K, String(Date.now() - 60000)); }
+  };
+  /* EVERY PRESS FOR THE QUESTION, SENT OR STILL QUEUED (an old backend cannot take them yet). */
+  const presses = (w, sent) => {
+    let q = [];
+    try { q = JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) {}
+    const its = [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+    const seen = new Set();
+    return its.concat(q).filter(i => i.key === K && !seen.has(i.id + '|' + i.answer) && seen.add(i.id + '|' + i.answer));
+  };
+  return { K, OCT5, row, seed, presses };
+})();
+check('submission: the carry-over sends what the old code left, never a draft written into the key since — claimed at a sign-in from nobody, now or once the payload lands, or typed before the pass could run', async () => {
+  const { K, OCT5, row, seed, presses } = SUB_PRE_;
+  if (row().length !== 1) return ['data/questions.json no longer has Q-9MA031-2206-1a — nothing was carried'];
+  const bad = [];
+  const say = list => JSON.stringify(list.map(i => [i.answer, i.verdict, i.at === OCT5 ? '5 Oct' : new Date(i.at).toISOString()]));
+  /* 1 AND 2. THE CLAIM AND THE PASS IN ONE SIGN-IN FROM NOBODY — the live backend (no submitAnswer: queued),
+     and the new one (the sign-in reply carries her submissions: sent at once). */
+  for (const NEW of [false, true]) {
+    const tag = NEW ? 'the new backend' : 'the live backend';
+    const rows = [];
+    const { w, sent } = boot({ payload: Object.assign(payload(), { features: NEW ? SUB_FEATURES : [] }), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (/data\/questions\.json/.test(u) ? row() : /data\/videos\.json/.test(u) ? [] : undefined), before: seed(true) });
+    await wait(600);
+    if (w.__t.whoami()) { bad.push(tag + ': the setup booted signed in — nothing was claimed'); continue; }
+    w.signedIn_(Object.assign({ success: true }, ANS_ADA, NEW ? { submissions: { for: 'P7', mine: {} } } : {}), 'ada_kind7');
+    await wait(300);
+    const got = presses(w, sent);
+    if (got.some(i => i.answer === '5')) bad.push(tag + ': THE CLAIMED SIGNED-OUT DRAFT "5" WENT UP AS ADA’S SUBMISSION — nobody pressed it: ' + say(got));
+    const hers = got.filter(i => i.answer === '0.0197');
+    if (hers.length !== 1 || hers[0].verdict !== 'right' || hers[0].at !== OCT5) bad.push(tag + ': her 5 Oct "0.0197" was not carried as one right press dated 5 Oct: ' + say(got));
+    if (w.localStorage.getItem('ans:u:P7:' + K) !== '5') bad.push(tag + ': the box no longer holds the claimed draft "5" (318: the later edit is hers, as a draft) — it holds ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:' + K)));
+    if (w.localStorage.getItem('ans:' + K) !== null) bad.push(tag + ': the signed-out copy was left for the next child');
+    if (w.localStorage.getItem('subBefore:u:P7') !== null) bad.push(tag + ': what the claim wrote over was kept after the pass had run');
+    if (NEW && rows.filter(r => r.key === K).length !== 1) bad.push(tag + ': the account holds ' + rows.filter(r => r.key === K).length + ' row(s) for the question — wanted her one carried press');
+    w.__t.USER(null);
+  }
+  /* 3. THE PAYLOAD — AND THE LIBRARY IN IT — STILL OUT AT THE SIGN-IN, as on any reload signed in within the
+     fifteen seconds it takes: the claim runs at once and the pass waits for the library, then reads the key. */
+  {
+    let release = null;
+    const late = new Promise(r => { release = () => r(row()); });
+    const rows = [];
+    const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (/data\/questions\.json/.test(u) ? late : /data\/videos\.json/.test(u) ? [] : undefined), before: seed(true) });
+    await wait(300);
+    w.signedIn_(Object.assign({ success: true, submissions: { for: 'P7', mine: {} } }, ANS_ADA), 'ada_kind7');
+    await wait(200);
+    if (presses(w, sent).length) bad.push('the payload still out: something was carried before the library could mark it: ' + say(presses(w, sent)));
+    release();
+    await wait(1200);
+    const got = presses(w, sent);
+    if (got.some(i => i.answer === '5')) bad.push('the payload landing after the sign-in: THE CLAIMED DRAFT "5" WENT UP AS ADA’S SUBMISSION: ' + say(got));
+    if (got.filter(i => i.answer === '0.0197' && i.verdict === 'right' && i.at === OCT5).length !== 1) bad.push('the payload landing after the sign-in: her 5 Oct "0.0197" was not carried (what the claim wrote over was lost): ' + say(got));
+    if (!w.localStorage.getItem('subMigrated:u:P7')) bad.push('the payload landing after the sign-in: the pass never marked itself done');
+    w.__t.USER(null);
+  }
+  /* 4. TYPED BEFORE THE PASS COULD RUN — signed in at boot, the payload out, and the box written by its own
+     writer (`ansStore_`, what the `input` listener calls), as a card Saved draws from the device before the
+     payload is typed in. It is her edit, made after the switch, and nobody pressed it. */
+  {
+    let release = null;
+    const late = new Promise(r => { release = () => r(row()); });
+    const rows = [];
+    const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (/data\/questions\.json/.test(u) ? late : /data\/videos\.json/.test(u) ? [] : undefined), before: seed(false, ANS_ADA) });
+    await wait(300);
+    if (!w.__t.whoami()) bad.push('the setup did not boot signed in');
+    w.ansStore_('ans:u:P7:' + K, '5');
+    release();
+    await wait(1200);
+    const got = presses(w, sent);
+    if (got.some(i => i.answer === '5')) bad.push('typed before the payload landed: THE DRAFT "5" WENT UP AS A SUBMISSION NOBODY PRESSED: ' + say(got));
+    if (w.localStorage.getItem('ans:u:P7:' + K) !== '5') bad.push('typed before the payload landed: the draft is gone from the box');
+    w.__t.USER(null);
+  }
+  return bad;
+});
+
+/* ---------- A QUEUE THE STORE REFUSES IS STILL SENT, AND A PRESS LEFT MARKED TO GO IS QUEUED AGAIN (review of 10 Oct) ----------
+   `subQueueKeep_` swallowed a refused write and `subQueue_` read the store first — which, nearly full, answers
+   with the old list rather than throwing: Check pressed, nothing sent, "Sending…" for ever. The one-time
+   carry-over flagged itself done over a queue the store never kept. And the `q` left on the latest then made
+   `subAdopt_` keep that press as "the latest there is" over a later one from the computer, for good. */
+check('submission: a queue the store refuses is held for the visit and sent, the carry-over is not marked done over it, and a press left marked to go is queued again without hiding a later one', async () => {
+  const { K, OCT5, row } = SUB_PRE_;
+  if (row().length !== 1) return ['data/questions.json no longer has Q-9MA031-2206-1a — nothing was refused'];
+  const bad = [];
+  const serve = u => (/data\/questions\.json/.test(u) ? row() : /data\/videos\.json/.test(u) ? [] : undefined);
+  const refuse = (win, re) => {
+    const real = win.Storage.prototype.setItem;
+    win.Storage.prototype.setItem = function (key, v) {
+      if (re.test(String(key))) throw new win.DOMException('The quota has been exceeded.', 'QuotaExceededError');
+      return real.call(this, key, v);
+    };
+    return () => { win.Storage.prototype.setItem = real; };
+  };
+  const dump = w => { const o = {}; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); o[k] = w.localStorage.getItem(k); } return o; };
+  /* 1. CHECK WITH THE QUEUE'S WRITE REFUSED: held for the visit, sent, and the line says where it went. */
+  {
+    const rows = [];
+    const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)), before: signedInAs_(ANS_ADA) });
+    await wait(400);
+    const undo = refuse(w, /^subQ:/);
+    try {
+      const card = subDraw_(w, SUB_SUM);
+      ansType_(w, card.querySelector('.qp-ans-in'), '15');
+      w.__t.ACTIONS['qp-check'](card.querySelector('.qp-check'));
+      await wait(200);
+      const line = (card.parentNode.querySelector('.qp-saved') || {}).textContent;
+      if (rows.length !== 1) bad.push('Check with the queue’s write refused put ' + rows.length + ' row(s) on the account — the press lived only in a copy nothing read');
+      if (line !== 'Sent to Ada’s account') bad.push('Check with the queue’s write refused: the line under the box says ' + JSON.stringify(line));
+    } finally { undo(); }
+    w.__t.USER(null);
+  }
+  /* 2. THE CARRY-OVER ON THE LIVE BACKEND WITH THE STORE REFUSING THE QUEUE — and then the queue and the
+     latest both — and the next load, with room again and the new backend. Each time her 5 Oct answer has
+     to reach the account, once. */
+  for (const re of [/^subQ:/, /^sub(Q|Last):/]) {
+    const tag = re.source.indexOf('Last') !== -1 ? 'the queue and the latest refused' : 'the queue refused';
+    const rows = [];
+    let undo = null;
+    const one = boot({ payload: Object.assign(payload(), { features: [] }), reply: ansBackend_({}, subBackend_(rows)), serve,
+      before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); win.localStorage.setItem('done:u:P7:' + K, '2026-10-05'); win.localStorage.setItem('ans:u:P7:' + K, '0.0197'); win.localStorage.setItem('ansAt:ans:u:P7:' + K, String(OCT5)); undo = refuse(win, re); } });
+    await wait(700);
+    const store = dump(one.w);
+    if (undo) undo();
+    const two = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)), serve,
+      before: win => { Object.keys(store).forEach(k => win.localStorage.setItem(k, store[k])); } });
+    await wait(900);
+    const hers = rows.filter(r => r.key === K && r.answer === '0.0197');
+    if (hers.length !== 1) bad.push(tag + ': the next load, with room again, put ' + hers.length + ' row(s) of her 5 Oct answer on the account — wanted one (the carry-over was ' + (store['subMigrated:u:P7'] ? 'flagged done' : 'not flagged') + ')');
+    two.w.__t.USER(null);
+  }
+  /* 3. A PRESS LEFT MARKED TO GO BY SUCH A VISIT, AND A LATER ONE FROM THE COMPUTER ON THE ACCOUNT. */
+  {
+    const rows = [];
+    const later = { answer: '0.5', verdict: 'wrong', at: Date.now() - 1000, id: (Date.now() - 1000) + '-pc0001' };
+    const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: { [K]: later } } }), reply: ansBackend_({}, subBackend_(rows)), serve,
+      before: win => {
+        win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA));
+        win.localStorage.setItem('ans:u:P7:' + K, '0.0197');
+        win.localStorage.setItem('subMigrated:u:P7', '1');
+        win.localStorage.setItem('subLast:u:P7', JSON.stringify({ [K]: { a: '0.0197', v: 'right', at: OCT5, id: '1791504000000-m03m2vvv0q4ubt5', q: 1 } }));
+      } });
+    await wait(900);
+    const it = w.stuffItemsAll_().find(x => x.key === K);
+    if (!it) bad.push('the question did not come through the loader');
+    else {
+      const card = subDraw_(w, it);
+      const slot = subSlotOf_(card).textContent, box = card.querySelector('.qp-ans-in').value;
+      if (slot !== 'Not yet' || box !== '0.5') bad.push('the computer’s later "0.5" (Not yet) is not the latest here: the card says ' + JSON.stringify(slot) + ' and the box holds ' + JSON.stringify(box) + ' — kept behind a press the queue never had');
+    }
+    if (rows.filter(r => r.id === '1791504000000-m03m2vvv0q4ubt5').length !== 1) bad.push('the press left marked to go never reached the account (' + rows.length + ' rows) — it is an event too');
+    w.__t.USER(null);
+  }
+  return bad;
+});
+
+/* ---------- SIGN OUT SENDS THE PRESSES BEFORE IT ENDS THE SESSION (review of 10 Oct) ----------------------------
+   The signout handler waited for the drafts and the notepad and not for the presses. A server that does not
+   order two requests (Apps Script) ended the token first and refused a Check pressed just before; a second
+   Check queued behind the first was thrown away by `subForget_`. Both waited on this device for the child's
+   next sign-in HERE — on a tutor's laptop, never. Played: `signOut` ends the token, and a `submitAnswer` is
+   answered only when the journey says, by whether its token was ended by then. */
+check('submission: Sign out sends what is still queued — the press in flight and the one behind it — on the token it is ending, and ends the session only after', async () => {
+  const rows = [], ended = new Set(), held = [];
+  const reply = b => {
+    if (b.action === 'signOut') { ended.add(b.token); return { success: true }; }
+    if (b.action === 'submitAnswer') return new Promise(res => held.push(() => res(ended.has(b.token) ? { error: 'Please sign in again.', why: 'signed-out' } : subBackend_(rows)(b))));
+    return ansBackend_({}, subBackend_(rows))(b);
+  };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply, before: signedInAs_(ANS_ADA) });
+  await wait(400);
+  const bad = [], A = w.__t.ACTIONS;
+  const two = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-2', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-2' }) });
+  const c1 = subDraw_(w, SUB_SUM), c2 = subDraw_(w, two);
+  ansType_(w, c1.querySelector('.qp-ans-in'), '15');
+  A['qp-check'](c1.querySelector('.qp-check'));
+  await wait(20);
+  ansType_(w, c2.querySelector('.qp-ans-in'), '14');
+  A['qp-check'](c2.querySelector('.qp-check'));
+  await wait(20);
+  A['signout'](w.document.createElement('button'));
+  await wait(60);
+  if (w.__t.whoami()) bad.push('Sign out left somebody signed in');
+  if (sent.some(b => b.action === 'signOut')) bad.push('the session was ended while a press was still on the wire — the server may refuse it on the ended token');
+  /* THE REPLIES, AS THE SERVER GETS TO THEM — each released, then whatever that let go. */
+  for (let n = 0; n < 40 && (held.length || !sent.some(b => b.action === 'signOut')); n++) { held.splice(0).forEach(f => f()); await wait(50); }
+  const acts = sent.filter(b => b.action === 'submitAnswer' || b.action === 'signOut');
+  const lastSub = acts.map(b => b.action).lastIndexOf('submitAnswer'), out = acts.findIndex(b => b.action === 'signOut');
+  if (out === -1) bad.push('the session was never ended on the server');
+  else if (lastSub > out) bad.push('a press was sent after the session was ended: ' + acts.map(b => b.action).join(' → '));
+  const got = rows.filter(r => r.pid === 'P7').map(r => r.key + '=' + r.answer).sort();
+  if (got.join() !== 'q:Q-SUB-1=15,q:Q-SUB-2=14') bad.push('Ada’s account holds ' + JSON.stringify(got) + ' — wanted both presses made before Sign out');
+  let q = [];
+  try { q = JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) {}
+  if (q.length) bad.push('still queued under Ada on this device after Sign out: ' + JSON.stringify(q.map(e => [e.key, e.answer])));
+  if (sent.filter(b => b.action === 'submitAnswer').some(b => b.token !== 'tok-P7')) bad.push('a press of Ada’s went up on a token not hers: ' + JSON.stringify(sent.filter(b => b.action === 'submitAnswer').map(b => b.token)));
+  /* AND THE NEXT CHILD: nothing of Ada's on Ben's token. */
+  w.signedIn_(Object.assign({ success: true, submissions: { for: 'P8', mine: {} } }, ANS_BEN), 'ben_bold8');
+  await wait(200);
+  held.splice(0).forEach(f => f());
+  await wait(100);
+  if (sent.some(b => b.action === 'submitAnswer' && b.token === 'tok-P8' && (b.items || []).some(i => /^1[45]$/.test(i.answer)))) bad.push('ADA’S PRESS WENT UP ON BEN’S TOKEN');
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- WHILE THE PAYLOAD IS OUT, A BOX THE ACCOUNT HOLDS SAYS SO, AND NOTHING IS SAID THAT IS NOT KNOWN (review of 10 Oct) ----------
+   `ansSavedSay_` asked `answersCan_('submitAnswer')` — `DATA.features` — before anything, and that is false
+   until the payload lands, fifteen seconds on the live site. Saved and Find's search draw a kept card before
+   then, so a box holding the answer the server had acknowledged said "On this device only", and "Sent to
+   Wren's account" when the payload landed. Measured in Chromium at 390 and 320 against the real backend. */
+check('submission: before the payload lands, a box holding a press the server took says Sent, and a draft or a press on its way says nothing until the payload says which backend it is', async () => {
+  const at = Date.now() - 60000;
+  const two = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-2', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-2' }) });
+  const three = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-3', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-3' }) });
+  let release = null;
+  const rows = [];
+  const mine = { 'q:Q-SUB-1': { answer: '16', verdict: 'wrong', at: at, id: at + '-ack001' } };
+  const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: mine } }), reply: ansBackend_({}, subBackend_(rows)),
+    serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: mine } })); })),
+    before: win => {
+      win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA));
+      win.localStorage.setItem('subMigrated:u:P7', '1');
+      /* SENT AND ACKNOWLEDGED (no `q`), A DRAFT NEVER SENT, AND A PRESS STILL QUEUED. */
+      win.localStorage.setItem('ans:u:P7:q:Q-SUB-1', '16');
+      win.localStorage.setItem('ans:u:P7:q:Q-SUB-2', '14');
+      win.localStorage.setItem('ans:u:P7:q:Q-SUB-3', '15');
+      win.localStorage.setItem('subLast:u:P7', JSON.stringify({ 'q:Q-SUB-1': { a: '16', v: 'wrong', at: at, id: at + '-ack001' },
+        'q:Q-SUB-3': { a: '15', v: 'right', at: at + 1000, id: (at + 1000) + '-que001', q: 1 } }));
+      win.localStorage.setItem('subQ:u:P7', JSON.stringify([{ id: (at + 1000) + '-que001', key: 'q:Q-SUB-3', answer: '15', verdict: 'right', at: at + 1000 }]));
+    } });
+  await wait(300);
+  if (!release) return ['the payload was never asked for — nothing was held, and the line was NOT checked'];
+  if (typeof w.awaiting_ !== 'function' || !w.awaiting_()) return ['the app is not waiting on the payload — the setup did not hold it, and the line was NOT checked'];
+  const bad = [];
+  const cards = [SUB_SUM, two, three].map(x => subDraw_(w, x));
+  const line = c => (c.parentNode.querySelector('.qp-saved') || {}).textContent;
+  const held = cards.map(line);
+  if (held[0] !== 'Sent to Ada’s account') bad.push('the payload out: a box holding the press the server took says ' + JSON.stringify(held[0]) + ' — the account has it');
+  [[1, 'a draft never sent'], [2, 'a press still on its way']].forEach(([i, what]) => {
+    if (held[i] !== '') bad.push('the payload out: ' + what + ' says ' + JSON.stringify(held[i]) + ' — whether the account keeps presses is not known yet');
+  });
+  release();
+  for (let n = 0; n < 50 && w.awaiting_(); n++) await wait(100);
+  await wait(200);
+  const landed = cards.map(line);
+  if (landed[0] !== 'Sent to Ada’s account') bad.push('the payload landed: the acknowledged box says ' + JSON.stringify(landed[0]));
+  if (landed[1] !== 'On this device until you send it') bad.push('the payload landed: the draft says ' + JSON.stringify(landed[1]));
+  if (!/^(Sending…|Sent to Ada’s account)$/.test(landed[2])) bad.push('the payload landed: the queued press says ' + JSON.stringify(landed[2]));
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- BEFORE THE PAYLOAD SAYS WHETHER AI MARKING IS ON, MARK WITH AI WAITS — NEVER A PLAIN SEND AND "SWITCHED OFF" (review of 10 Oct) ----------
+   `aiOffered_` read a payload that had not landed as "off": Saved drew a forty-mark essay with the plain Send
+   and "AI marking isn't switched on yet" under it, and pressed, the essay went to the account as an unmarked
+   "Sent" — then the payload landed and the same tile became Mark with AI. Measured at 320 and 390 against the
+   real backend with GEMINI_API_KEY set. Now: Mark with AI where it will stand, not pressable, and no sentence,
+   until the payload decides — and then the tile it decided on. */
+check('submission: before the payload lands, an essay and a worded box draw Mark with AI waiting — no plain Send, no "switched off", nothing sent — and the payload decides the tile', async () => {
+  const ESSAY = { kind: 'question', key: 'q:Q-AIW-E', name: 'Q5', marks: 40, subject: 'English Language', answerType: 'written',
+    row: { row_id: 'Q-AIW-E', paper_id: 'P-AIW', subject: 'English Language', name: 'Paper 1' }, html: '<p>Write a story about a journey.</p>', answer: '<b>A compelling description</b> with a clear structure' };
+  const WORDED = { kind: 'question', key: 'q:Q-AIW-W', name: 'Q9', marks: 3, subject: 'Science', answerType: 'explain',
+    row: { row_id: 'Q-AIW-W', paper_id: 'P-AIW', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
+  const bad = [];
+  for (const on of [true, false]) {
+    const tag = on ? 'AI marking on' : 'AI marking off';
+    const pay = () => Object.assign(payload(), { features: SUB_FEATURES.concat(on ? ['aiMark', 'aiMarkWhole'] : []), aiMarking: on, submissions: { for: 'P7', mine: {} } });
+    let release = null;
+    const rows = [];
+    const { w, sent } = boot({ payload: pay(), reply: ansBackend_({}, subBackend_(rows)),
+      serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(pay()); })),
+      before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); win.localStorage.setItem('subMigrated:u:P7', '1'); } });
+    await wait(300);
+    if (!release || typeof w.awaiting_ !== 'function' || !w.awaiting_()) { bad.push(tag + ': the payload was not held — nothing was checked'); continue; }
+    w.stuffItemsAll_ = () => [ESSAY, WORDED];
+    const early = [];
+    for (const X of [ESSAY, WORDED]) {
+      const what = (X === ESSAY ? 'the essay' : 'the worded box') + ', ' + tag + ', the payload out';
+      const card = subDraw_(w, X);
+      early.push([X, card]);
+      const mark = card.querySelector('.qp-compose');
+      const ai = mark && mark.querySelector('.qp-ai-go');
+      if (!ai) bad.push(what + ': no Mark with AI tile where it will stand');
+      else if (!ai.disabled) bad.push(what + ': Mark with AI can be pressed before anybody knows AI marking is on');
+      if (mark && mark.querySelector('[data-do="qp-send"]')) bad.push(what + ': drawn with the plain Send — pressed, it records an unmarked "Sent"');
+      if (/switched on/.test(card.parentNode.textContent)) bad.push(what + ': says AI marking is not switched on, which nobody knows yet');
+      ansType_(w, card.querySelector('.qp-ans-in'), 'He did not order them');
+      /* THE ROUND TILE PRESSED, WHICHEVER IT IS — as the child presses it. */
+      const go = ai || (mark && mark.querySelector('[data-do="qp-send"]'));
+      if (go) go.click();
+      if (typeof w.kpDone_ === 'function') { try { w.kpDone_(card.querySelector('.qp-ans-in')); } catch (e) {} }
+    }
+    await wait(80);
+    /* NOTHING RECORDED: no press queued for the account (it would go up the moment the payload lets it), and
+       nothing asked of the marker. */
+    const queued = (() => { try { return JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) { return []; } })();
+    if (rows.length || queued.length || sent.some(b => b.action === 'aiMark')) bad.push(tag + ', the payload out: a press was recorded — ' + JSON.stringify(queued.map(e => [e.key, e.verdict])) + ' queued, ' + rows.length + ' row(s), ' + sent.filter(b => b.action === 'aiMark').length + ' aiMark');
+    release();
+    for (let n = 0; n < 50 && w.awaiting_(); n++) await wait(100);
+    await wait(100);
+    /* THE CARDS DRAWN WHILE IT WAS OUT, NOT DRAWN AGAIN — as on a Find column held back from the repaint
+       because a child is typing in it (`findKeep_`): with AI marking on, the tile she reaches for is let go
+       where it stands (`aiDecided_`), never a waiting tile that a press does nothing to. */
+    if (on) early.forEach(([X, card]) => {
+      const ai = card.parentNode.querySelector('.qp-ai-go');
+      if (!ai || ai.disabled) bad.push((X === ESSAY ? 'the essay' : 'the worded box') + ', AI marking on, drawn before the payload and not drawn again: Mark with AI is ' + (ai ? 'still waiting (disabled) after the payload landed' : 'gone'));
+    });
+    for (const X of [ESSAY, WORDED]) {
+      const what = (X === ESSAY ? 'the essay' : 'the worded box') + ', ' + tag + ', the payload landed';
+      const card = subDraw_(w, X);
+      const mark = card.querySelector('.qp-compose');
+      const ai = mark && mark.querySelector('.qp-ai-go'), send = mark && mark.querySelector('[data-do="qp-send"]');
+      if (on && (!ai || ai.disabled || send)) bad.push(what + ': wanted Mark with AI, pressable, and no plain Send');
+      if (!on && (ai || !send)) bad.push(what + ': wanted the plain Send and no Mark with AI');
+      if (!on && X === ESSAY && !/switched on yet/.test(card.parentNode.textContent)) bad.push(what + ': the sheet does not say why nothing marks it');
+    }
+    w.__t.USER(null);
+  }
+  return bad;
+});
+
+/* ---------- EVERY SEND CARRIES THIS DEVICE'S CLOCK, SO THE SERVER CAN TAKE A SLOW ONE'S ERROR OUT (review of 10 Oct) ----------
+   `submitAnswer` held `pressed_at` only against a fast clock; an iPad set back two hours stored a press made
+   now as two hours old, and the account's latest was the answer before it. The server moves every press in
+   a request by now less the phone's `sent` (`submissionsAppend_`, checked in check-submissions.js); this is
+   the phone's half: the request carries it, on a send at once and on Sign out's last one. */
+check('submission: every send carries this device’s clock as it sends, so the server can take a slow clock’s error out', async () => {
+  const rows = [];
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: { for: 'P7', mine: {} } }), reply: ansBackend_({}, subBackend_(rows)), before: signedInAs_(ANS_ADA) });
+  await wait(400);
+  const bad = [];
+  const card = subDraw_(w, SUB_SUM);
+  ansType_(w, card.querySelector('.qp-ans-in'), '15');
+  const t0 = Date.now();
+  w.__t.ACTIONS['qp-check'](card.querySelector('.qp-check'));
+  await wait(100);
+  const two = Object.assign({}, SUB_SUM, { key: 'q:Q-SUB-2', row: Object.assign({}, SUB_SUM.row, { row_id: 'Q-SUB-2' }) });
+  const c2 = subDraw_(w, two);
+  ansType_(w, c2.querySelector('.qp-ans-in'), '14');
+  w.__t.ACTIONS['qp-check'](c2.querySelector('.qp-check'));
+  w.__t.ACTIONS['signout'](w.document.createElement('button'));
+  await wait(200);
+  const t1 = Date.now();
+  const subs = sent.filter(b => b.action === 'submitAnswer');
+  if (!subs.length) bad.push('nothing was sent — the clock was NOT checked');
+  subs.forEach(b => { if (!(typeof b.sent === 'number' && b.sent >= t0 - 1000 && b.sent <= t1)) bad.push('a submitAnswer request carries sent=' + JSON.stringify(b.sent) + ' — wanted this device’s clock as it sent (' + t0 + '…' + t1 + ')'); });
   return bad;
 });
 

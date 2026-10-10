@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-09-e-submissions";
+const DOPOST_VERSION = "2026-10-10-f-submissions";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4189,7 +4189,7 @@ function doPost(e) {
         /* FRESH ROWS UNDER THE LOCK. A copy read before the lock was taken is the copy the other
            request was about to change — and the ids already written are what this asks of it. */
         clearCache();
-        out = submissionsAppend_(S(me.person_id), items);
+        out = submissionsAppend_(S(me.person_id), items, body.sent);
         /* WRITTEN, THEN FLUSHED, THEN SAID — the stamp `submissionsFor_` keys this child's copy by moves
            only once the rows are on the sheet for another request to read, so a load that sees the new
            stamp reads the new rows (doget.gs). */
@@ -5127,15 +5127,29 @@ function loginReplyFor_(r, token, extra) {
    runs a day fast would otherwise be the latest at everything for a day. A missing or nonsense `at` is
    now, which is what a phone from before the column sends.
 
+   ---------- AND THE DEVICE'S CLOCK ERROR TAKEN OUT FIRST (`sent`, review of 10 Oct) ---------------------------
+   THE CLAMP HELD ONE SIDE. A FAST clock was held to now; a SLOW one went through as it was. Measured through
+   the real `submitAnswer` and the phone's own `subAdopt_`: the computer sent "15" (right) an hour ago; an iPad
+   two hours slow showed 15, the child changed it to 16 and pressed Check — stored two hours ago, so older
+   than the computer's, the account's latest was "15", and the iPad's next load wrote 15 back over its own
+   box. The reverse of the owner's example, and a child setting the clock back for a game is all it takes.
+   The phone sends its own clock as it sends (`sent`, `subBody_` in js/submit.js); this server's clock now,
+   less that, is the device's error — plus the request's time on the wire, a few seconds at most, which
+   only ever moves a press later and never past now — and every press in the request is moved by it before
+   the clamp. A phone that sends no `sent` is held as before. The reply carries the corrected time, so the
+   phone keeps the order the server keeps.
+
    THE NAME AND THE WORDS GO IN BY THE RULES THE PARENT EMAIL HAS ALWAYS READ THEM BY — `attemptLabel_`
    and `attemptWords_`, tags out and capped — and only where the live tab has the column, so a tab made
    by hand without them still takes the answer and its verdict (`addRow` would otherwise answer "Nothing
    was saved for: submissions.words" over a row it had in fact written). */
-function submissionsAppend_(pid, items) {
+function submissionsAppend_(pid, items, sent) {
   const t = readCols_(TAB.submissions, ['person_id', 'event_id']);
   if (!t.sheet) return { error: 'The sheet has no submissions tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
   const has = c => t.headers.indexOf(c) !== -1;
   const now = new Date(), nowMs = now.getTime();
+  const sentMs = Math.floor(Number(sent));
+  const skew = isFinite(sentMs) && sentMs > 0 ? nowMs - sentMs : 0;
   /* THIS PERSON'S PRESSES ALREADY ON THE SHEET, BY ID — once, not a scan of the whole tab per item. */
   const seen = {};
   t.rows.forEach(r => {
@@ -5163,6 +5177,7 @@ function submissionsAppend_(pid, items) {
     const answer = it && it.answer !== undefined && it.answer !== null ? String(it.answer) : '';
     if (!answer.trim() || answer.length > ANSWER_TEXT_MAX) return;
     let at = Math.floor(Number(it && it.at));
+    if (isFinite(at) && at > 0) at += skew;
     if (!isFinite(at) || at <= 0 || at > nowMs) at = nowMs;
     const iso = new Date(at).toISOString();
     /* TEXT, ALWAYS — the apostrophe is the sheet's own "this is text": `3/4` is otherwise a date, and an

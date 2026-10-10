@@ -160,7 +160,9 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
      same way (`submissionsBuild_` in doget.gs), so a parent's mark and the child's card cannot disagree —
      and a phone's whole queue flushed in one request, every row with one `submitted_at`, is still in
      the order it was pressed. THE NAME AND THE WORDS are the latest ones any of its rows carries up to
-     the end of the week — a row whose phone sent none does not blank the name an earlier row gave it. */
+     the end of the week — a row whose phone sent none does not blank the name an earlier row gave it.
+     A ROW CARRIED OVER FROM BEFORE THE SWITCH arrives the week the backend lands and is not that week's
+     work: it is "before" whatever its arrival (`SUBMISSION_CARRIED`, review of 10 Oct). */
   const joined = {};
   (subRows || []).forEach(r => {
     const pid = S(r && r.person_id), q = S(r && r.key).split('#')[0];
@@ -176,6 +178,10 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
     const l = tidy(r.label), w = attemptWords_(r.words);
     if (l && ms >= J.labelAt) { J.label = l; J.labelAt = ms; }
     if (w && ms >= J.wordsAt) { J.words = w; J.wordsAt = ms; }
+    /* WORK CARRIED OVER FROM BEFORE THE SWITCH IS HISTORY, WHENEVER IT ARRIVED (`SUBMISSION_CARRIED`): never
+       this week's work, and what makes a press of the same question this week "(again)". Its name and words
+       still count, above — they are the question's. */
+    if (SUBMISSION_CARRIED.test(S(r.event_id))) { J.before = true; return; }
     if (day < week.start) { J.before = true; return; }
     J.inWeek = true;
     if (ms >= J.at) { J.at = ms; J.last = day; J.verdict = S(r.verdict); }

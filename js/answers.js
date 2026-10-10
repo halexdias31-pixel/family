@@ -540,12 +540,19 @@ function answersClaim_(pid, ownOnly) {
     try { localStorage.removeItem('ansAt:' + bare); } catch (e) {}
     if (v === null || !String(v).trim() || v === '[]') return;
     const joined = mark && has ? ansJoin_(bare, mine, v, mark.words) : null;
+    /* WHAT IS WRITTEN OVER IS THE ANSWER THE OLD CODE LEFT, until this person's one-time carry-over has run
+       on this device — and that pass reads the box, so it was the claimed draft it sent, as their
+       submission, nobody having pressed anything (review of 10 Oct). Kept for it (`subClaimOver_`,
+       js/submit.js), read before the box, gone once the pass has run. */
+    const over = () => { if (has && typeof subClaimOver_ === 'function') subClaimOver_(k, mine, ansAt_(k)); };
     if (joined !== null) {
       if (joined === mine) return;
+      over();
       ansLocalPut_(k, joined);
       ansAtSet_(k, Date.now());
     } else {
       if (has && !(at && at > ansAt_(k))) return;
+      over();
       ansLocalPut_(k, v);
       ansAtSet_(k, at || Date.now());
     }
@@ -652,11 +659,28 @@ function ansOnAccount_(k) {
        key and never due — so a draft the store refused counted as on the account, "Not saved" was never
        said under it, and the browser was never told to ask "Leave site?" before a reload took it. On the
        account means the latest press holds exactly this, and the server has it. */
-    if (/^ans:/.test(k) && answersCan_('submitAnswer')) {
-      const l = typeof subLatest_ === 'function' ? subLatest_(k) : null;
-      return !!l && !l.q && !l.far && l.a === ansValue_(k);
+    if (/^ans:/.test(k)) {
+      /* AND SAID FROM THE DEVICE'S OWN RECORD OF THE PRESS, before the payload has said which backend it is
+         (`ansSentHere_`, below) — a typed answer to a backend from before submissions is still a draft. */
+      if (ansSentHere_(k)) return true;
+      if (answersCan_('submitAnswer')) return false;
     }
     return answersCan_('saveAnswers') && ansAt_(k) > 0 && !ansDirtySet_(who).has(k);
+  } catch (e) { return false; }
+}
+/* ---------- A PRESS THE SERVER HAS ANSWERED FOR IS ON THE ACCOUNT, WHATEVER THE PAYLOAD HAS SAID YET ----------
+   THE LATEST PRESS HOLDS EXACTLY WHAT IS IN THE BOX, AND THE SERVER SAID IT HAS IT: `q` comes off only when a
+   `submitAnswer` reply names the press (`subApply_`, js/submit.js), and an entry laid from the account
+   (`subAdopt_`) never had one. Neither needs `DATA.features` to be true. Both of these asked
+   `answersCan_('submitAnswer')` first, which is false until the payload lands — fifteen seconds on the live
+   site, on every reload — so Saved and Find's search, which draw a kept card before then, said "On this
+   device only" under an answer the account holds, and "Sent to Ada's account" when the payload landed
+   (review of 10 Oct; the line must never say where an answer is when that is not true, 317). An old
+   backend never takes `q` off, so this can never say Sent for a press it did not keep. */
+function ansSentHere_(k) {
+  try {
+    const l = typeof subLatest_ === 'function' ? subLatest_(k) : null;
+    return !!l && !l.q && !l.far && l.a === ansValue_(k);
   } catch (e) { return false; }
 }
 const ANS_NOT_KEPT = 'Not saved — this browser is not keeping it';
@@ -942,7 +966,20 @@ function ansSavedSay_(k) {
      device", because it is on no device. `keepPut_` in data.js. */
   if (typeof KEEP_UNKEPT !== 'undefined' && KEEP_UNKEPT.has(k) && !ansOnAccount_(k)) return ANS_NOT_KEPT;
   if (!who) return 'On this device only — sign in to keep it';
-  if (/^ans:/.test(k) && answersCan_('submitAnswer') && who === 'u:' + String(USER.personId)) {
+  /* A CARD STILL ON THE SCREEN FROM BEFORE A SIGN-OUT names somebody, with nobody signed in: never theirs. */
+  const own = !!(typeof USER === 'object' && USER && who === 'u:' + String(USER.personId));
+  /* SENT, AND THE SERVER SAID SO — true before the payload lands as after (`ansSentHere_`, above). */
+  if (/^ans:/.test(k) && own && ansSentHere_(k)) {
+    const nm = ansFirstName_();
+    return nm ? 'Sent to ' + nm + '’s account' : 'Sent to your account';
+  }
+  /* ---------- AND WHAT DEPENDS ON THE BACKEND WAITS FOR THE PAYLOAD THAT SAYS WHICH ONE IT IS ----------
+     "Sending…", "until you send it", and the drafts' own lines below all turn on `DATA.features`, which is
+     not there until the payload lands. Said before then, a box the account will keep read "On this device
+     only". Nothing is said until it is known — the line keeps its height (`.qp-saved`), so nothing moves
+     when it fills in. The person's own boxes only: a signed-out box and a refused write are known already. */
+  if (own && typeof awaiting_ === 'function' && awaiting_()) return '';
+  if (/^ans:/.test(k) && answersCan_('submitAnswer') && own) {
     const latest = typeof subLatest_ === 'function' ? subLatest_(k) : null;
     if (!latest || latest.a !== v) return 'On this device until you send it';
     if (latest.far) return 'On this device only \u2014 too long to send';
@@ -950,7 +987,7 @@ function ansSavedSay_(k) {
     const nm = ansFirstName_();
     return nm ? 'Sent to ' + nm + '’s account' : 'Sent to your account';
   }
-  if (!answersCan_('saveAnswers') || who !== 'u:' + String(USER.personId)) return 'On this device only';
+  if (!answersCan_('saveAnswers') || !own) return 'On this device only';
   if (ansAt_(k) === ANS_HERE_ONLY) return 'On this device only \u2014 too long for the account';
   if (ansDirtySet_(who).has(k) || !ansAt_(k)) return 'Saving…';
   const name = ansFirstName_();

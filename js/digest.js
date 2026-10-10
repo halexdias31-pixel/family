@@ -99,11 +99,13 @@ function digestSheet_(d) {
      took the new code a minute after the push. So in the gap before the owner's Apps Script steps an
      admin pressing Preview was shown "Nobody has done a question yet this week", or a list with no
      marks, and not why — the empty that looks like a quiet week, which `digestNoSubmissions_` exists to
-     prevent (review of 9 Oct). Either answer says which. */
+     prevent (review of 9 Oct). Either answer says which. AND WHERE TO RUN `ensureSchema`: the editor, never
+     `/exec?setup=1` before the new version — that address runs the deployed code, and the old code's
+     `ensureSchema` rewrote the options tab (review of 10 Oct, note 308's owner steps). */
   const said = d.words == null
     ? 'The live web app lists questions by name only, without their words — sync backend/ into Apps Script and make a new version (Deploy → Manage deployments → New version).'
     : d.submissions == null
-      ? 'The live web app still reads the old attempts tab, which nothing writes any more — sync backend/ into Apps Script, run ensureSchema, and make a new version (Deploy → Manage deployments → New version).'
+      ? 'The live web app still reads the old attempts tab, which nothing writes any more — sync backend/ into Apps Script, run ensureSchema from the editor’s function list (not /exec?setup=1, which is the old code until the new version), and make a new version (Deploy → Manage deployments → New version).'
       : '';
   const old = said ? `<p class="digest-old"><b>${esc(said)}</b></p>` : '';
   return `${old}<p class="faint">This week so far (${esc((d.week && d.week.span) || '')}). ${esc(n ? sunday : '')}

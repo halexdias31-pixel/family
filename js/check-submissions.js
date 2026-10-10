@@ -524,6 +524,107 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
   if (JSON.stringify(sh[1].slice(0, SH.length)) !== subBefore) bad.push('ensureSchema moved the press already on the submissions tab: ' + subBefore + ' → ' + JSON.stringify(sh[1]));
 }
 
+/* ---------- 10. A DEVICE'S CLOCK ERROR IS TAKEN OUT, NOT ONLY A FAST ONE HELD (review of 10 Oct) --------------------
+   `pressed_at` was clamped to the server's now, and a SLOW clock went through as it was: the computer's "15"
+   an hour ago, then an iPad two hours behind changing it to "16" and pressing now — stored two hours ago,
+   so the account's latest was the earlier answer and the iPad's next load wrote it back over its own box.
+   The phone sends its own clock as it sends (`sent`); now less that is the device's error, and every press
+   in the request moves by it. A phone that sends none is held as before. */
+{
+  const { b, tok, send } = world();
+  const H = 3600e3, now = Date.now();
+  asked++;
+  send(ADA, [ev('q:Q-K-1', '15', 'right', { at: now - H })], { sent: now });
+  const slow = Date.now() - 2 * H, t0 = Date.now();
+  const r = send(ADA, [ev('q:Q-K-1', '16', 'wrong', { at: slow })], { sent: slow });
+  const t1 = Date.now();
+  b.cache.clear();
+  const m = ((b.get({ token: tok[ADA] }).submissions || {}).mine || {})['q:Q-K-1'];
+  if (!m || m.answer !== '16') bad.push('a press made NOW on an iPad two hours slow lost to the computer’s press an hour ago: the account’s latest is ' + JSON.stringify(m) + ' — the device’s clock error is not taken out');
+  const got = Object.values(r.saved || {})[0];
+  if (!got || !(got.at >= t0 - 2000 && got.at <= t1)) bad.push('the reply carries the slow press back at ' + (got && got.at) + ' — wanted the corrected time, about now (' + t0 + '…' + t1 + '), so the phone keeps the server’s order');
+  /* A PRESS QUEUED AN HOUR BEFORE IT WAS SENT, BY THE SAME SLOW CLOCK, KEEPS ITS HOUR. */
+  asked++;
+  const slow2 = Date.now() - 2 * H, t2 = Date.now();
+  const q = send(ADA, [ev('q:Q-K-2', 'a', 'right', { at: slow2 - H })], { sent: slow2 });
+  const g = Object.values(q.saved || {})[0];
+  if (!g || Math.abs(g.at - (t2 - H)) > 5000) bad.push('a press queued an hour before a slow device sent it was kept at ' + (g && new Date(g.at).toISOString()) + ' — wanted an hour ago by the server’s clock');
+  /* A FAST CLOCK: pressed a minute ago by a clock an hour ahead is a minute ago — not "now", which is all the clamp could say. */
+  asked++;
+  const fast = Date.now() + H, t3 = Date.now();
+  const f = send(ADA, [ev('q:Q-K-3', 'b', 'right', { at: fast - 60e3 })], { sent: fast });
+  const fz = Object.values(f.saved || {})[0];
+  if (!fz || Math.abs(fz.at - (t3 - 60e3)) > 5000) bad.push('a press made a minute ago on a clock an hour fast was kept at ' + (fz && new Date(fz.at).toISOString()) + ' — wanted a minute ago');
+  /* NO `sent`, OR NONSENSE: as before — the press's own `at`, held to now. */
+  asked++;
+  const two = Date.now() - 2 * H;
+  const o = send(ADA, [ev('q:Q-K-4', 'c', 'right', { at: two }), ev('q:Q-K-5', 'd', 'right', { at: two })]);
+  const n = send(ADA, [ev('q:Q-K-6', 'e', 'right', { at: two })], { sent: 'soon' });
+  [o, n].forEach(x => Object.values(x.saved || {}).forEach(y => { if (y.at !== two) bad.push('a press from a phone that sends no clock (or nonsense) was moved to ' + new Date(y.at).toISOString() + ' — wanted its own ' + new Date(two).toISOString()); }));
+}
+
+/* ---------- 11. THE ADMIN'S PEOPLE LINE DATES CARRIED-OVER WORK BY WHEN IT WAS DONE (review of 10 Oct) ------------------
+   A row `subMigrate_` sent (`1791504000000-m…`) arrives the day the backend lands; by arrival, every
+   learner's "last" moved to that day. */
+{
+  const { b, tok, send } = world();
+  asked++;
+  const sep = Date.UTC(2026, 8, 22, 15);
+  send(BEN, [{ id: '1791504000000-mabcdefghijklmn', key: 'q:Q-C-1', answer: '42', verdict: 'right', at: sep }]);
+  b.cache.clear();
+  let ppl = (b.get({ token: tok[HAL] }).submissions || {}).people || {};
+  if (!ppl['P-S2'] || ppl['P-S2'].last !== '2026-09-22') bad.push('Ben’s only work, carried over from 22 Sep, dates his "last" ' + JSON.stringify(ppl['P-S2'] && ppl['P-S2'].last) + ' — wanted 2026-09-22, the day it was done, not the day it arrived');
+  /* AND A PRESS OF HIS OWN TODAY MOVES IT TO TODAY. */
+  asked++;
+  send(BEN, [ev('q:Q-C-2', 'x', 'right')]);
+  b.cache.clear();
+  ppl = (b.get({ token: tok[HAL] }).submissions || {}).people || {};
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
+  if (!ppl['P-S2'] || ppl['P-S2'].last !== today || ppl['P-S2'].n !== 2) bad.push('after a press of his own today Ben’s line is ' + JSON.stringify(ppl['P-S2']) + ' — wanted 2 questions, last ' + today);
+}
+
+/* ---------- 12. THE OWNER'S STEPS RUN ensureSchema WHERE IT IS THE NEW CODE, AND SAY IT HAS TO BE RUN (review of 10 Oct) ----------
+   308's step 2 offered `/exec?setup=1` before step 3 (New version). Until then /exec is the deployed web app —
+   the live code, a week old — and its `ensureSchema` rewrote an owner-shaped options tab (Art's and PE's
+   `focus` left beside status rows, "On hold" removed) and made no `submissions` tab: the very rewrite the
+   10 Oct `seedOptions` change exists to keep off the owner's 145 rows. 309's step 3 said there was nothing
+   to run because "the first request after the new version runs ensureSchema by itself", which doGet has not
+   done since the schema work came off the page load. Asked of every owner section in docs/history, and of
+   the code the corrected sentences describe. */
+{
+  asked++;
+  const dirH = path.join(REPO, 'docs', 'history');
+  let sections = 0;
+  fs.readdirSync(dirH).filter(f => /\.md$/.test(f)).forEach(f => {
+    const s = fs.readFileSync(path.join(dirH, f), 'utf8');
+    const head = /^#+ .*for the owner.*$/gim;
+    let m;
+    while ((m = head.exec(s))) {
+      sections++;
+      let sec = s.slice(m.index + m[0].length);
+      const nx = sec.search(/^#+ /m);
+      if (nx !== -1) sec = sec.slice(0, nx);
+      const steps = sec.split(/\n(?=\d+\. )/);
+      const nv = steps.findIndex(st => /New version/.test(st));
+      steps.forEach((st, i) => {
+        if (nv !== -1 && i < nv && /\bopen\b[^.\n]*\?setup=1/i.test(st)) bad.push(f + ': an owner step before the New version says to open ?setup=1 — until then /exec runs the deployed (old) code: ' + JSON.stringify(st.trim().slice(0, 120)));
+        if (/first request[^.]*\bruns?\b[^.]*ensureSchema[^.]*by itself/i.test(st)) bad.push(f + ': an owner step says the first request runs ensureSchema by itself — doGet runs it only on ?setup= or ?run=: ' + JSON.stringify(st.trim().slice(0, 120)));
+      });
+    }
+  });
+  if (!sections) bad.push('no "For the owner" section was found in docs/history — the owner’s steps were NOT read');
+  /* AND THE CODE THOSE SENTENCES DESCRIBE: an ordinary request never runs ensureSchema; ?setup=1 does. */
+  asked++;
+  const { b } = world();
+  b.ev('var __es = 0, __es0 = ensureSchema; ensureSchema = function () { __es++; return __es0.apply(this, arguments); };');
+  b.get({});
+  const plain = b.ev('__es');
+  b.get({ setup: '1' });
+  const setup = b.ev('__es') - plain;
+  if (plain !== 0) bad.push('an ordinary request ran ensureSchema ' + plain + ' time(s) — the owner’s steps say only ?setup= or ?run= does');
+  if (setup < 1) bad.push('?setup=1 did not run ensureSchema — the owner’s steps send them there once the new version is deployed');
+}
+
 console.log('');
 console.log('EVERY ANSWER SENT IS AN EVENT, THROUGH THE REAL doPost AND doGet  (' + bad.length + ')');
 bad.forEach(x => console.log('  ' + x));

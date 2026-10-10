@@ -2958,6 +2958,9 @@ function adoptMarks_() {
      same reason as the two above: `DATA` is the payload that has just landed. It was `attemptsSync_`,
      the done dates, until the owner's *"Just whether it's right or not"* (9 Oct). */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
+  /* AND A MARK WITH AI TILE DRAWN WAITING FOR THIS PAYLOAD (`aiDecided_`, keypad.js) — let go where it stands,
+     because the column holding it may be held back from the repaint that would draw it again. */
+  try { if (typeof aiDecided_ === 'function') aiDecided_(); } catch (e) {}
   /* AND WHAT THIS PERSON HAS WRITTEN ON THEIR OTHER DEVICES — once a visit, and whatever this device has
      waiting for the account goes up with it. See `answersPull_` in js/answers.js. */
   try { if (typeof answersPull_ === 'function') answersPull_(); } catch (e) {}

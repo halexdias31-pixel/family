@@ -125,11 +125,13 @@ list of its own. `setMyRoles` sends it too: tick Tutor and two more lines appear
    `constants.gs`, `people.gs`, `dopost.gs`, `doget.gs`, `booking.gs`, `digest.gs`.
 2. **Deploy → Manage deployments → edit → Version: New version.** The web app runs the version it was
    deployed at; until then the card says the live backend does not have notification choices yet.
-3. **Nothing to run for the columns.** The first request after the new version runs `ensureSchema` by itself
-   (`autoMigrate`: the stamp changed), which appends `messages_email`, `bookings_email`, `posts_email`,
-   `referrals_email` and `approvals_email` at the end of the people tab. To do it at once, run `ensureSchema`
-   from the function dropdown, or open `/exec?setup=1`. Until they exist a tick is refused with "Run
-   ensureSchema()", and everybody is emailed exactly as before.
+3. **Run `ensureSchema` for the columns** — from the function dropdown, or open `/exec?setup=1` now that step 2
+   has deployed the new version. It appends `messages_email`, `bookings_email`, `posts_email`,
+   `referrals_email` and `approvals_email` at the end of the people tab. Until they exist a tick is refused
+   with "Run ensureSchema()", and everybody is emailed exactly as before. *(Corrected 10 Oct: this step said
+   there was nothing to run. An ordinary request never runs it — `autoMigrate` is called only on `?setup=`
+   and `?run=` (doget.gs), since the schema work came off the page load; the header of setup.gs said
+   otherwise and was wrong.)*
 4. **Check the You screen**: all four stamps read `2026-10-09-d-prefs`.
 5. *Optional:* sign in as a parent, Settings → last card, untick Messages — the parent's `messages_email`
    cell says `no`. Tick it again and the cell is blank.

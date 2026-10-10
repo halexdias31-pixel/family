@@ -296,6 +296,43 @@ function S(pid, key, day, label, verdict, words, hh, more) {
   else ['Q1 ✓', 'Q2 ✓', 'Q3 ✗', 'Q4 ✓'].forEach(m => { if (text.indexOf(m) === -1) bad.push('Eve’s email does not print “' + m + '”: ' + JSON.stringify(text.split('Maths · Ties')[1] || text).slice(0, 160)); });
 }
 
+/* ---------- 2a. WORK CARRIED OVER FROM BEFORE THE SWITCH IS HISTORY, NOT THE WEEK IT ARRIVED (review of 10 Oct) ----------
+   `subMigrate_` (js/submit.js) sends what a child had done before 9 Oct as one press per question, once, the
+   first time the backend can take it — so those rows ARRIVE the week the backend lands, pressed weeks
+   before, under an id made from the person and the key (`1791504000000-m` and fourteen letters). Read by
+   arrival, the first email after the update said "Ada worked on 4 questions" with three from September.
+   Eve's week here, every row arriving on the Thursday:
+     q:EVE-CARRIED   carried over (pressed 22 Sep), nothing since   → not in the email at all
+     q:EVE-BOTH      carried over (pressed 23 Sep), pressed again this week → "(again)", this week's mark
+     q:EVE-NEW       pressed this week only                          → new */
+{
+  const { b } = seeded();
+  const C = (key, label, pressed, verdict) => S('P-S5', key, '2026-10-01', label, verdict || 'right', '', 12,
+    { event_id: '1791504000000-m' + (key.replace(/[^a-z]/gi, '').toLowerCase() + 'abcdefghijklmn').slice(0, 14), pressed_at: "'" + pressed });
+  b.seed('submissions', [
+    C('q:EVE-CARRIED', 'Maths · Carried · Q1', '2026-09-22T16:00:00.000Z'),
+    C('q:EVE-BOTH', 'Maths · Carried · Q2', '2026-09-23T16:00:00.000Z', 'right'),
+    S('P-S5', 'q:EVE-BOTH', '2026-10-01', 'Maths · Carried · Q2', 'wrong', '', 13),
+    S('P-S5', 'q:EVE-NEW', '2026-10-01', 'Maths · Carried · Q3', 'right', '', 14),
+  ]);
+  asked++;
+  const plan = JSON.parse(JSON.stringify(b.ev('clearCache(); digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const eve = plan.learners.find(x => x.id === 'P-S5');
+  const keys = list => (list || []).map(q => q.key).sort().join(', ');
+  if (!eve) bad.push('Eve pressed two questions this week and is not in the plan');
+  else {
+    if (keys(eve.fresh) !== 'q:EVE-NEW') bad.push('Eve’s new questions this week are ' + JSON.stringify(keys(eve.fresh)) + ' — wanted q:EVE-NEW alone: work carried over from before the switch is not this week’s');
+    if (keys(eve.again) !== 'q:EVE-BOTH') bad.push('Eve’s questions gone back to are ' + JSON.stringify(keys(eve.again)) + ' — wanted q:EVE-BOTH, carried over and pressed again this week');
+    const both = (eve.again || []).find(q => q.key === 'q:EVE-BOTH');
+    if (both && both.verdict !== 'wrong') bad.push('q:EVE-BOTH’s mark is ' + JSON.stringify(both.verdict) + ' — wanted this week’s press (✗), not the carried one');
+    if (eve.count !== 2) bad.push('Eve’s week counts ' + eve.count + ' questions — wanted 2');
+  }
+  asked++;
+  const mail = plan.emails.find(m => m.to === 'yes@example.org');
+  if (!mail) bad.push('Eve’s parent is planned no email for a week with two questions in it');
+  else if (/Carried · Q1|Q1 ✓/.test(String(mail.text)) || !/2 questions/.test(String(mail.subject) + String(mail.text))) bad.push('Eve’s email lists the carried-over question as this week’s, or does not count two: ' + JSON.stringify(String(mail.subject)) + ' / ' + JSON.stringify(String(mail.text).slice(0, 240)));
+}
+
 /* ---------- 2b. THE QUESTION'S WORDS: CARRIED, REFUSED WHEN THEY ARE A MESSAGE, AND PRINTED ---------------------
    *"emails all parents on work their child has done with the exact questions for each"*, and then *"should
    be at the end of the week that it send to parents all they done that week"* — so Sunday's email prints

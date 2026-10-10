@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-09-e-submissions";
+const DOGET_VERSION = "2026-10-10-f-submissions";
 
 
 function doGet(e) {
@@ -2230,8 +2230,8 @@ function filmsSyncSays_() {
    says why it is not the moment the press ARRIVED), `submitted_at` where a row has none, and of two in
    the same instant the later row. `at` is that time in ms, `id` the press's own name, which the phone
    compares with what it sent itself. `people` is `{ <person_id>: { n, last } }` — how many questions and
-   the London day of the last submission to arrive — and exists only for an admin, so its absence is
-   what every other phone sees.
+   the London day of the last submission to arrive (a row carried over from before the switch, by the day
+   it was pressed) — and exists only for an admin, so its absence is what every other phone sees.
 
    ---------- AND NOT A READ OF THE WHOLE TAB ON EVERY LOAD -------------------------------------------
    THIS IS ON EVERY `doGet`, hit or miss, for everybody signed in, and the tab grows by a row a press —
@@ -2276,7 +2276,11 @@ function submissionsBuild_(pid, people) {
     if (people) {
       const p = sum[who] || (sum[who] = { qs: {}, at: 0 });
       p.qs[k.split('#')[0]] = 1;
-      if (came >= p.at) p.at = came;
+      /* A ROW CARRIED OVER FROM BEFORE THE SWITCH ARRIVED THE DAY THE BACKEND LANDED and was done weeks before:
+         dated by its arrival, every learner's "last" moved to that day. By when it was pressed
+         (`SUBMISSION_CARRIED`, review of 10 Oct). */
+      const when = SUBMISSION_CARRIED.test(S(r.event_id)) ? (answerAtMs_(r.pressed_at) || came) : came;
+      if (when >= p.at) p.at = when;
     }
     if (key(who) !== key(pid)) return;
     const at = answerAtMs_(r.pressed_at) || came;

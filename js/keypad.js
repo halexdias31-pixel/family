@@ -1534,6 +1534,24 @@ function aiOffered_() {
   catch (e) { return false; }
 }
 
+/* ---------- NOT KNOWN YET IS NOT OFF (review of 10 Oct) --------------------------------------------------
+   `aiOffered_` reads the payload, and before the payload lands — fifteen seconds on the live site, on every
+   reload — `DATA.features` is not there, which it read as "off". Saved and Find's search draw a kept card
+   before then: an AQA essay with AI marking on was drawn with the plain Send and "AI marking isn't switched
+   on yet" under it, measured at 320 against the real backend; pressed, the forty-mark essay went to the
+   account as an unmarked "Sent" (and to the parent's email), and when the payload landed the same tile
+   became Mark with AI over a verdict line still saying Sent. The one loader's rule (note 306): something the
+   payload decides waits for the payload, and is not drawn as a wrong answer with a sentence under it. So
+   while it is out the tile is Mark with AI, where it will stand, and cannot be pressed (`off`: a tile drawn
+   without its plate); no sentence says why nothing marks it (`aiWhyNot_` is only asked where there is no
+   tile); and the repaint the payload makes draws the tile it decided on — Mark with AI, or the plain Send
+   and its sentence. */
+function aiUndecided_() {
+  if (AI_OFF) return false;
+  try { return typeof awaiting_ === 'function' && awaiting_() && !(DATA && Array.isArray(DATA.features)); }
+  catch (e) { return false; }
+}
+
 function aiWanted_(x) {
   if (!x || ansMaths_(x) || padWanted_(x)) return false;
   if (Array.isArray(x.choices) && x.choices.length >= 2) return false;
@@ -1545,8 +1563,27 @@ function aiWanted_(x) {
    bar, its verdict line and the sentence under it are `ansBox_`'s, so one function lays out both. This
    was `aiBox_`, which drew its own row under the box. */
 function aiTile_(x) {
-  if (!aiWanted_(x) || !aiOffered_()) return '';
-  return tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: 'qp-ai-go', tone: 'send' });
+  if (!aiWanted_(x)) return '';
+  const wait = aiUndecided_();
+  if (!wait && !aiOffered_()) return '';
+  return tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: wait ? 'qp-ai-go qp-ai-wait' : 'qp-ai-go', tone: 'send', off: wait });
+}
+/* ---------- AND DECIDED WHERE IT STANDS, THE MOMENT THE PAYLOAD SAYS (`adoptMarks_`, shell.js) ----------
+   THE REPAINT IS NOT ALWAYS THERE TO DO IT. Find is held back from a repaint while a child is typing in it
+   (`findKeep_`, answers.js) and over a verdict on the screen — and a child who searched for the essay and
+   started writing inside the fifteen seconds is exactly that child: the payload lands under her fingers,
+   the column waits, and the tile she reaches for at the end is still the waiting one, a press that does
+   nothing (review of 10 Oct, after the waiting tile went in). So a waiting tile still drawn when the
+   payload lands is decided in place: AI marking on, it is the very tile a fresh drawing draws, plate and
+   all, and is simply let go. Off, the plain Send and its sentence are a different row (`.qp-ai-say`, the
+   note, the class), so it stays waiting until the column's own repaint draws that row — which the held
+   column has booked (`STALE`) and does as the box is left. */
+function aiDecided_() {
+  if (aiUndecided_() || !aiOffered_()) return;
+  document.querySelectorAll('.qp-ai-go.qp-ai-wait').forEach(b => {
+    b.classList.remove('qp-ai-wait');
+    b.disabled = false;
+  });
 }
 
 /* THE QUESTION AS WORDS. The library's markup carries fractions as `<sup>`/`&frasl;`/`<sub>` and

@@ -3,7 +3,11 @@
 
    BRINGING THE SHEET UP TO DATE, AND SAYING WHAT IS WRONG WITH IT.
 
-   `ensureSchema` and `autoMigrate` run themselves on the first request after a deploy.
+   `ensureSchema` and `autoMigrate` run when somebody asks — `?setup=1`, `?run=…`, or the editor's function
+   list — and never on an ordinary request (doGet says why: it landed on whoever opened the app next).
+   THIS LINE SAID THEY RAN THEMSELVES ON THE FIRST REQUEST AFTER A DEPLOY, and the owner's steps were
+   written from it twice (309 said there was nothing to run; 308 offered `/exec?setup=1` before the New
+   version, when /exec is still the OLD code — review of 10 Oct).
    `dataProblems` and `checkEverything` are the two that answer "why is this not appearing" without
    anybody having to guess.
 
@@ -1043,14 +1047,14 @@ function dataProblems(deep) {
       })() : '';
       add('the sheet is behind the code',
           which || ('The schema has not been brought up to date for ' + BACKEND_VERSION),
-          'It runs itself on the first request after a deploy and retries a couple of minutes '
-          + 'after a failure. To force it now: ?run=ensureSchema&name=…&pin=…');
+          'Run ensureSchema from the editor\u2019s function list, or open ?setup=1 once the new version is '
+          + 'deployed (before that, /exec is the old code). Nothing runs it on an ordinary request.');
     }
     MIGRATIONS.forEach(m => {
       if (seen['MIGRATED_' + m.id]) return;
       add('a one-off job has not run', m.id + ' — ' + m.what,
-          'It runs itself on the next request. If it keeps saying this, that attempt failed — '
-          + 'run it from the editor and read the error.');
+          'It runs on the next ?setup=1 or ?run= request, or from the editor. If it keeps saying this, that '
+          + 'attempt failed — run it from the editor and read the error.');
     });
   }
 
@@ -1711,9 +1715,10 @@ function authoriseDrive() {
 /**
  * EVERYTHING THE SHEET NEEDS, WITHOUT ANYBODY REMEMBERING ANYTHING.
  *
- * Deploying is the whole procedure now. The first request afterwards brings the columns up to date
- * if the version moved, and runs any named job that has never run. Every request after that is one
- * properties read and nothing else.
+ * Run by `?setup=1` and `?run=…` (doGet) — somebody asking on purpose — and never by an ordinary page
+ * load, which once paid for it. It brings the columns up to date if the version moved and runs any named
+ * job that has never run. (This said deploying was the whole procedure and the first request did it; it
+ * has not been true since the schema work came off the page load — review of 10 Oct.)
  *
  * ONE READ for both questions. `getProperties()` returns the lot, so asking whether the schema is
  * current and whether four migrations have run costs the same as asking either on its own.
