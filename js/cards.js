@@ -636,7 +636,8 @@ function findCard(x) {
                 `register` started generating one, and what `?run=fillHandles` is for. */''}
           ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
           ${/* HOW MANY QUESTIONS AND HOW RECENTLY — set only on a learner in an admin's people column,
-                by `attemptsLine_` in find.js, off the sheet's `attempts` tab. Absent everywhere else. */''}
+                by `subsLine_` in find.js, off the summary of the sheet's `submissions` tab. Absent
+                everywhere else. */''}
           ${t.activity ? `<span class="prof-act">${esc(t.activity)}</span>` : ''}
           ${/* ---------- THE RATE, UP HERE AND BIGGER ------------------------------------------------
                 ASKED FOR AS *"rate should appear near profile at the top and bigger."* It was the

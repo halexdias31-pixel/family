@@ -10304,14 +10304,17 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   ta.value += ' Also more successful collisions.';
   ta.dispatchEvent(new w.Event('input', { bubbles: true }));
   if (row.querySelector('.qp-verdict').textContent || row.classList.contains('is-near') || (why && why.textContent)) bad.push('typing after an AI mark left the old verdict on a changed answer');
-  /* NO KEY ON THE SERVER: one press, then every AI button on the screen is greyed and says why. */
+  /* NO KEY ON THE SERVER: one press, then no AI button on the screen presses any more, and each says why.
+     SINCE 9 OCT THE TILE BECOMES THE PLAIN SEND where it stands, signed in: an answer reaches the account
+     when it is sent (js/submit.js), and a greyed tile left the box with nothing to send it with. */
   mode = 'off';
   const other = draw(Object.assign({}, x, { key: 'q-ai-2', row: Object.assign({}, x.row, { row_id: 'Q-AI-3' }) }));
   w.stuffItemsAll_ = () => [x];
   try { A['qp-ai'](go); await wait(50); } finally { w.stuffItemsAll_ = held; }
   [card, other].forEach((c, i) => {
     const b = c.querySelector('.qp-ai-go');
-    if (!b || !b.disabled || !c.querySelector('.qp-ai.is-off')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' AI button is not greyed');
+    if ((b && !b.disabled) || !c.querySelector('.qp-ai.is-off')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' AI button still presses');
+    if (!c.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' box has no Send in the AI tile’s place — its answer could never reach the account');
   });
   if (!/switched on/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('"ai-off" did not say AI marking isn’t switched on');
   if (draw(Object.assign({}, x, { key: 'q-ai-4' })).querySelector('.qp-ai')) bad.push('a card drawn after "ai-off" still offers AI marking');
@@ -10496,6 +10499,13 @@ check('an essay is a sheet: the pad\'s return and a laptop\'s Enter make paragra
   const why = card.querySelector('.qp-ai-why');
   if (!/27 of 40 marks/.test(verdict)) bad.push('27 of 40 was drawn as ' + JSON.stringify(verdict));
   if (!why || why.textContent !== FEEDBACK) bad.push('the AI\'s strands and points were not drawn as the lines they are: ' + JSON.stringify(why && why.textContent));
+  /* ---------- AND THE MARK IS A SUBMISSION, like every Mark with AI (note 308) ----------
+     The merge with the essay sheet found its kept mark returning before the press was recorded, so the
+     forty-mark answers the sheet exists for were the one kind never sent to the account. */
+  let latest = null;
+  try { latest = (JSON.parse(w.localStorage.getItem('subLast:u:P-S1') || '{}') || {})[x.key]; } catch (e) {}
+  if (!latest || latest.v !== 'ai:27/40' || latest.a !== big) bad.push('the essay’s Mark with AI was not recorded as a submission (ai:27/40, the whole essay): ' + JSON.stringify(latest && { v: latest.v, len: String(latest.a || '').length }));
+  else if (latest.far || !latest.q) bad.push('the essay’s submission (' + big.length + ' characters) is kept as too long to send — the account takes 20,000 since note 312 (`SUB_ANSWER_MAX`)');
   /* ---------- A KEY TYPED AFTER THE MARK KEEPS IT, SAID TO BE STALE ----------
      It took the mark and every point off, and a reload lost them (the review of 9 Oct): the points are
      what the pupil revises from. So: "before your changes" and no ring, the points still there; undone
@@ -11588,8 +11598,10 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
-   ("Ada's answer" / "Your answer"), and the star (`fav`) and the date's slot beside it (`.qcard-done`,
-   see `questionTiles_`), which need somebody signed in to keep them for. AND WHERE THE WORK IS KEPT —
+   ("Ada's answer" / "Your answer"), and the star (`fav`) and the verdict's slot beside it
+   (`.qcard-verdict`, see `questionTiles_`), which need somebody signed in to keep them for. AND THE PLAIN
+   SEND (`qp-send`) on a box nothing marks, with the verdict line it brings — there is an account to send
+   to only when somebody is signed in (js/submit.js). AND WHERE THE WORK IS KEPT —
    the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
    which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
@@ -11631,13 +11643,21 @@ check('Find draws the same question family, practical, project and textbook for 
   const norm = html => {
     const h = w.document.createElement('div');
     h.innerHTML = html;
-    h.querySelectorAll('[data-do="fav"], .tile-row .qcard-done').forEach(n => n.remove());
+    h.querySelectorAll('[data-do="fav"], .tile-row .qcard-verdict, [data-do="qp-send"]').forEach(n => n.remove());
+    /* A WORKSHEET BOX WITH ITS SEND IS THE BOX, wrapped (`guideBox_`): the wrapper goes, the box stays. */
+    h.querySelectorAll('.qp-mark.gd-mark').forEach(m => { const l = m.querySelector('.gd-box'); if (l) m.replaceWith(l); else m.remove(); });
+    /* AND A BOX NOTHING MARKS IS A `.qp-mark` WITH A VERDICT LINE ONLY WHEN IT HAS THAT SEND: put back to the
+       plain compose box it is for somebody signed out. Whitespace between tags is not a difference. */
+    h.querySelectorAll('.qp-mark.qp-compose:not([data-accept]):not(.qp-ai)').forEach(m => {
+      m.className = 'qp-compose';
+      [...m.children].forEach(c => { if (c.classList.contains('qp-verdict')) c.remove(); });
+    });
     /* A ROW THAT HELD ONLY THE STAR (and the date beside it) is the person's, and goes with them. */
     h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
     h.querySelectorAll('.qp-saved').forEach(n => { n.textContent = ''; });
-    return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
+    return h.innerHTML.replace(/>\s+</g, '><').replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
       .replace(/>Your answer/g, '>WHO answer')
-      .replace(/Kept on this device only[^<]*|Saved to [^<]*account, like the answer box\./g, 'KEPT WHERE');
+      .replace(/Kept on this device only[^<]*|Saved to [^<]*account\./g, 'KEPT WHERE');
   };
   const draw = () => {
     const out = [];
@@ -11908,336 +11928,421 @@ check('every fact about a page of a question is a tag in one row at the top: wha
   return bad;
 });
 
-/* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
-   ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
-   the real handlers on a real card AND THE TILE ROW UNDER IT, where the date is now -- beside the star,
-   because it is yours like the star is, and the header it sat in became tags (`questionTiles_`):
-     * signed out, nothing is recorded and there is no slot -- the signed-out key is everybody, and a
-       date on it is nobody's
-     * signed in, a Check (right or not yet), a tap that chooses enough, and typing into a box that has
-       no Check each write today under `done:<who>:<key>` and show `Done <d> <Mon>` in the tile row's slot
-     * the slot is filled where it stands: the slot is the same node, the tag row untouched
-     * it comes back when the card is drawn again, and is the signed-in person's only -- another
-       student on the same phone sees a clean card
-     * where `localStorage` throws (private mode), the date is held for the visit and still shown
-     * a date from another year says the year */
-check('a signed-in student\'s attempt is dated on the question card, for them alone, and nobody signed out is stamped', async () => {
+/* ==================================================================================================
+   EVERY ANSWER SENT IS AN EVENT, AND THE CARD SAYS HOW THE LATEST ONE WENT.
+
+   THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's right
+   or not. Also I just want system to record each submition. So like if they submit a correct answer
+   then change it and submit an incorrect answer, that's 2 events. And it will leave the latest event
+   up, so they would see incorrect answer there next time they login. Simple. Instead of each question
+   just saving number of attempts."*
+
+   js/submit.js is the phone's half and `check-submissions.js` the backend's. These journeys go through
+   the real handlers on real cards and the real `api()`. They replaced the ones that asked for a date on
+   the card (`Done 4 Oct`, 268/269) and the `markDone` backlog — the day a question was done is gone,
+   and so is everything that sent it. The children are invented — Ada and Ben — because this repository
+   is public. `FLOW_ONLY=submission` runs them alone.
+================================================================================================== */
+/* A BACKEND THAT KEEPS SUBMISSIONS, as `submissionsAppend_` does: a row per press, an id already there is
+   the row already there, and the reply names every press now on the sheet with the server's time. Falls
+   through (undefined) for every other action, so it sits in front of `ansBackend_`. */
+const subBackend_ = (rows, more) => b => {
+  const own = more ? more(b) : undefined;
+  if (own !== undefined) return own;
+  if (b.action !== 'submitAnswer') return undefined;
+  const saved = {};
+  (b.items || []).forEach(it => {
+    const had = rows.find(r => r.pid === b.personId && r.id === it.id);
+    if (had) { saved[it.id] = { key: had.key, verdict: had.verdict, at: had.at }; return; }
+    const r = { pid: b.personId, id: it.id, key: it.key, answer: it.answer, verdict: it.verdict, label: it.label, words: it.words,
+                at: Date.now() + rows.length };
+    rows.push(r);
+    saved[it.id] = { key: r.key, verdict: r.verdict, at: r.at };
+  });
+  return { success: true, saved: saved };
+};
+/* AND WHAT `doGet` WOULD LAY ON THE NEXT PAYLOAD FOR A PERSON: their latest per question. */
+const subMine_ = (rows, pid) => {
+  const m = {};
+  rows.filter(r => r.pid === pid).forEach(r => { if (!m[r.key] || m[r.key].at <= r.at) m[r.key] = { answer: r.answer, verdict: r.verdict, at: r.at, id: r.id }; });
+  return { for: pid, mine: m };
+};
+const SUB_FEATURES = ['saveAnswers', 'myAnswers', 'submitAnswer'];
+const SUB_SUM = { kind: 'question', key: 'q:Q-SUB-1', name: 'Q3', marks: 1, subject: 'Maths', sub: 'Paper 1 (Calculator) — June 2024',
+  row: { row_id: 'Q-SUB-1', paper_id: 'P-SUB', subject: 'Maths', name: 'Paper 1 (Calculator) — June 2024' },
+  html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>', accept: '15' };
+/* THE CARD AND THE TILE ROW UNDER IT, as `stuffCard` puts them -- the verdict is in the row. */
+const subDraw_ = (w, x, host) => {
+  const h = host || w.document.createElement('div');
+  h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>';
+  if (!host) w.document.body.appendChild(h);
+  return h.querySelector('.qcard');
+};
+const subSlotOf_ = card => card.parentNode.querySelector('.tile-row .qcard-verdict');
+
+check('submission: the latest one is the verdict beside the star, never a date, for the person signed in alone', async () => {
   const { w } = boot();
   await wait(300);
-  const d = w.document;
-  const bad = [];
-  const A = w.__t.ACTIONS;
-  if (typeof w.doneText_ !== 'function' || typeof w.questionCard_ !== 'function' || !A['qp-check'] || !A['qp-choose']) {
-    return ['doneText_, questionCard_ or the marking handlers are not reachable — renamed? The date was NOT checked'];
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (typeof w.subSlot_ !== 'function' || typeof w.questionCard_ !== 'function' || typeof w.subRecord_ !== 'function'
+      || !A['qp-check'] || !A['qp-choose'] || !A['qp-send']) {
+    return ['subSlot_, subRecord_, questionCard_ or the marking handlers are not reachable — renamed? The verdict was NOT checked'];
   }
-  const now = new Date();
-  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  const label = 'Done ' + now.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][now.getMonth()];
-  if (w.doneText_(today) !== label) bad.push('today reads "' + w.doneText_(today) + '", wanted "' + label + '"');
-  if (w.doneText_('2001-10-04') !== 'Done 4 Oct 2001') bad.push('a date from another year reads "' + w.doneText_('2001-10-04') + '", wanted the year on it');
-  if (w.doneText_('') !== '') bad.push('no date reads "' + w.doneText_('') + '", wanted nothing');
-  const base = { kind: 'question', name: 'Q8', marks: 2,
-    row: { row_id: 'Q-DONE-8', paper_id: 'P-DONE', subject: 'Maths', name: 'Done' },
+  const base = { kind: 'question', name: 'Q8', marks: 2, row: { row_id: 'Q-V-8', paper_id: 'P-V', subject: 'Maths', name: 'Verdict' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
-  const typed = Object.assign({}, base, { key: 'q-done-typed' });
-  /* THE CARD AND ITS TILE ROW, as `stuffCard` puts them -- the date is in the row. */
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => card.parentNode.querySelector('.tile-row .qcard-done');
-  const stored = () => Object.keys(w.localStorage).filter(k => /^done:/.test(k));
-  const markIt = card => {
-    const inp = card.querySelector('.qp-ans-in');
-    /* NO input EVENT: typing stamps the card too, so this asks the Check alone. */
-    inp.value = '16';
-    A['qp-check'](card.querySelector('.qp-check'));
-  };
-  /* SIGNED OUT. */
+  const typed = Object.assign({}, base, { key: 'q-v-typed' });
+  const kept = () => Object.keys(w.localStorage).filter(k => /^sub(Last|Q):/.test(k));
+  /* TYPED AS A CHILD TYPES (the `input` the box answers to), THEN CHECKED. */
+  const markIt = (card, v) => { const i = card.querySelector('.qp-ans-in'); i.value = v; i.dispatchEvent(new w.Event('input', { bubbles: true })); A['qp-check'](card.querySelector('.qp-check')); };
+  const say = card => { const s = subSlotOf_(card); return s ? s.textContent + (s.classList.contains('is-right') ? ' [right]' : s.classList.contains('is-near') ? ' [near]' : '') : null; };
+  /* SIGNED OUT: Check marks, no slot, and nothing is kept on the device to be anybody's. */
   w.__t.USER(null);
-  const out = draw(typed);
-  if (slot(out)) bad.push('signed out, the tile row has a date slot -- there is nothing it could ever say');
-  if (out.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
-  markIt(out);
-  if (slot(out) && slot(out).textContent) bad.push('signed out, a Check stamped the card "' + slot(out).textContent + '"');
-  if (stored().length) bad.push('signed out, a date was stored: ' + stored().join(', '));
+  const out = subDraw_(w, typed);
+  if (subSlotOf_(out)) bad.push('signed out, the tile row has a verdict slot — the device everybody shares has nobody to mark');
+  markIt(out, '16');
+  if (!/Not yet/.test(out.querySelector('.qp-verdict').textContent)) bad.push('signed out, Check did not mark the answer');
+  if (kept().length) bad.push('signed out, a submission was kept on the device: ' + kept().join(', '));
   /* SIGNED IN. */
   w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'] });
-  const card = draw(typed);
-  if (!slot(card)) return bad.concat(['signed in, the tile row has no date slot, so a date would arrive as a new element']);
-  if (card.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
-  const top = card.querySelector('.qcard-tags');
-  const t0 = top && top.outerHTML;
-  const s0 = slot(card);
-  if (slot(card).textContent) bad.push('a question never done is already stamped "' + slot(card).textContent + '"');
-  markIt(card);
-  if (slot(card).textContent !== label) bad.push('a Check did not stamp the card: "' + slot(card).textContent + '", wanted "' + label + '"');
-  if (slot(card) !== s0) bad.push('stamping the date drew a new slot rather than writing into the one that was there');
-  if (!top || card.querySelector('.qcard-tags') !== top || top.outerHTML !== t0) bad.push('stamping the date redrew the tag row');
-  if (!/Not yet/.test(card.querySelector('.qp-verdict').textContent)) bad.push('the date took the verdict\'s place');
-  if (w.localStorage.getItem('done:u:P7:q-done-typed') !== today) bad.push('the date is not stored per person per question: ' + stored().join(', '));
-  if (slot(draw(typed)).textContent !== label) bad.push('drawn again, the card forgot the date');
-  /* A TAP THAT CHOOSES ENOUGH. */
-  const mc = Object.assign({}, base, { key: 'q-done-mc', accept: '', choices: ['14', '15'], choiceRight: [2] });
-  const tapped = draw(mc);
-  const heldA = w.stuffItemsAll_;
-  w.stuffItemsAll_ = () => [mc];
-  try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = heldA; }
-  if (slot(tapped).textContent !== label) bad.push('a tapped answer did not stamp the card: "' + slot(tapped).textContent + '"');
-  /* TYPING INTO A BOX WITH NO CHECK. */
-  const free = draw(Object.assign({}, base, { key: 'q-done-free', accept: '' }));
-  const fin = free.querySelector('.qp-ans-in');
-  fin.value = 'because it is'; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
-  if (slot(free).textContent !== label) bad.push('writing an answer where there is no Check did not stamp the card');
+  const card = subDraw_(w, typed);
+  if (!subSlotOf_(card)) return bad.concat(['signed in, the tile row has no verdict slot, so a verdict would arrive as a new element and move the card']);
+  if (card.querySelector('.qcard-verdict')) bad.push('the verdict slot is inside the card, not in the tile row beside the star');
+  if (subSlotOf_(card).textContent) bad.push('a question never sent already says "' + subSlotOf_(card).textContent + '"');
+  const s0 = subSlotOf_(card), tags = card.querySelector('.qcard-tags'), t0 = tags && tags.outerHTML;
+  markIt(card, '16');
+  if (say(card) !== 'Not yet [near]') bad.push('after a wrong Check the slot says ' + JSON.stringify(say(card)) + ' — wanted "Not yet", in the verdict line’s amber');
+  if (subSlotOf_(card) !== s0) bad.push('the verdict drew a new slot rather than writing into the one that was there');
+  if (!tags || card.querySelector('.qcard-tags') !== tags || tags.outerHTML !== t0) bad.push('marking redrew the tag row');
+  if (!/Not yet — have another go/.test(card.querySelector('.qp-verdict').textContent)) bad.push('the verdict line under the box lost its words');
+  const mine = () => { try { return JSON.parse(w.localStorage.getItem('subLast:u:P7') || '{}'); } catch (e) { return {}; } };
+  if (!mine()['q-v-typed'] || mine()['q-v-typed'].a !== '16' || mine()['q-v-typed'].v !== 'wrong') bad.push('the press is not kept per person per question: ' + JSON.stringify(mine()));
+  markIt(card, '15');
+  if (say(card) !== 'Correct [right]') bad.push('after a right Check the slot says ' + JSON.stringify(say(card)) + ' — the latest press is what it shows');
+  /* DRAWN AGAIN: the slot, and the box holding what was sent with its verdict. */
+  const again = subDraw_(w, typed);
+  if (say(again) !== 'Correct [right]') bad.push('drawn again, the card forgot the latest verdict: ' + JSON.stringify(say(again)));
+  if (again.querySelector('.qp-ans-in').value !== '15' || !/^Correct$/.test(again.querySelector('.qp-verdict').textContent) || !again.querySelector('.qp-mark.is-right')) bad.push('drawn again, the box does not hold the answer sent with its verdict: ' + JSON.stringify([again.querySelector('.qp-ans-in').value, again.querySelector('.qp-verdict').textContent]));
+  /* A TAP THAT CHOOSES ENOUGH, marked and not. */
+  const mc = Object.assign({}, base, { key: 'q-v-mc', accept: '', choices: ['14', '15'], choiceRight: [2] });
+  const open = Object.assign({}, base, { key: 'q-v-open', accept: '', choices: ['red', 'blue'], choiceRight: [] });
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [mc, open];
+  try {
+    const tc = subDraw_(w, mc);
+    A['qp-choose'](tc.querySelector('.qp-opt[data-n="1"]'));
+    if (say(tc) !== 'Not yet [near]') bad.push('a wrong pick says ' + JSON.stringify(say(tc)) + ' on the card');
+    const to = subDraw_(w, open);
+    A['qp-choose'](to.querySelector('.qp-opt[data-n="2"]'));
+    if (subSlotOf_(to).textContent !== 'Sent' || subSlotOf_(to).classList.contains('is-right') || subSlotOf_(to).classList.contains('is-near')) bad.push('a pick the scheme never settled says ' + JSON.stringify(say(to)) + ' — wanted "Sent", no tick and no arrow');
+  } finally { w.stuffItemsAll_ = held; }
+  /* A BOX NOTHING CAN MARK: a Send of its own, typing is not a submission, and Send is. */
+  const free = subDraw_(w, Object.assign({}, base, { key: 'q-v-free', accept: '', answerType: 'explain' }));
+  const send = free.querySelector('.qp-send[data-do="qp-send"]');
+  if (!send) bad.push('a box with no scheme and no AI marking has no Send — its answer could never reach the account');
+  else {
+    if (send.classList.contains('qp-check')) bad.push('the plain Send is `.qp-check` — the keypad’s ✓ and Enter would send it');
+    const fin = free.querySelector('.qp-ans-in');
+    fin.value = 'because it is'; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
+    if (subSlotOf_(free).textContent) bad.push('typing alone put "' + subSlotOf_(free).textContent + '" on the card — typing is not a submission');
+    A['qp-send'](send);
+    if (subSlotOf_(free).textContent !== 'Sent' || free.querySelector('.qp-verdict').textContent !== 'Sent') bad.push('Send on a box nothing marks left the card at ' + JSON.stringify(subSlotOf_(free).textContent) + ' and the line at ' + JSON.stringify(free.querySelector('.qp-verdict').textContent) + ' — wanted "Sent" both');
+    fin.value = ''; fin.dispatchEvent(new w.Event('input', { bubbles: true }));
+    A['qp-send'](send);
+    if (!/Write something first/.test(free.querySelector('.qp-verdict').textContent)) bad.push('Send on an empty box did not ask for an answer');
+    if (subSlotOf_(free).textContent !== 'Sent') bad.push('an empty Send changed the latest verdict to ' + JSON.stringify(subSlotOf_(free).textContent));
+  }
+  /* NO CARD SAYS A DAY, anywhere: not the slot, not the old one. */
+  if (d.querySelector('.qcard-done')) bad.push('a `.qcard-done` date slot is still drawn');
+  [...d.querySelectorAll('.qcard-verdict')].forEach(s => { if (/\b\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|Done/.test(s.textContent)) bad.push('a card says a day: "' + s.textContent + '"'); });
   /* ANOTHER STUDENT, SAME PHONE. */
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'] });
-  if (slot(draw(typed)).textContent) bad.push('another student sees the first one\'s date: "' + slot(draw(typed)).textContent + '"');
-  /* PRIVATE MODE: storage throws, and the date is held for the visit. */
-  const fresh = Object.assign({}, base, { key: 'q-done-private' });
-  const priv = draw(fresh);
+  if (subSlotOf_(subDraw_(w, typed)).textContent) bad.push('another student sees the first one’s verdict: "' + subSlotOf_(subDraw_(w, typed)).textContent + '"');
+  /* PRIVATE MODE: storage throws, and the verdict is held for the visit. */
+  const fresh = Object.assign({}, base, { key: 'q-v-private' });
+  const priv = subDraw_(w, fresh);
   Object.defineProperty(w, 'localStorage', { configurable: true, get() { throw new Error('private mode'); } });
   try {
-    markIt(priv);
-    if (slot(priv).textContent !== label) bad.push('with storage throwing, the date was not shown: "' + slot(priv).textContent + '"');
-    if (slot(draw(fresh)).textContent !== label) bad.push('with storage throwing, the date was not held for the visit');
+    markIt(priv, '15');
+    if (subSlotOf_(priv).textContent !== 'Correct') bad.push('with storage throwing, the verdict was not shown: "' + subSlotOf_(priv).textContent + '"');
+    if (subSlotOf_(subDraw_(w, fresh)).textContent !== 'Correct') bad.push('with storage throwing, the verdict was not held for the visit');
   } catch (e) { bad.push('with storage throwing, marking threw: ' + e.message); }
   finally { delete w.localStorage; }
   w.__t.USER(null);
   return bad;
 });
 
-/* ---------- AND THE SHEET HAS IT: ONE ATTEMPT SENT, THE SHEET'S DATE SHOWN ---------------------------
-   ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. Through
-   the real handlers on a real card, against a payload carrying `attempts` as `doGet` builds it:
-     * a Check sends ONE `markDone` -- the question's key and today -- and a second Check and typing
-       that day send nothing more; signed out, or to a backend without `markDone`, nothing at all
-     * a question the sheet has and this phone does not shows the SHEET's date; the later of the two
-       wins either way; a payload built for somebody else is not read
-     * on load, what this phone has that the sheet lacks goes up in one request, and what the sheet
-       already has does not
-     * an admin's people column says `N questions · last <d> <Mon>` under a learner, and nobody else's does */
-check('a Check sends one attempt to the sheet, the card shows the sheet\'s date, and what the phone kept is sent up on load', async () => {
-  const now = new Date();
-  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const later = (now.getFullYear() + 1) + '-01-02';                 /* a day the sheet has that the phone cannot */
-  const p = Object.assign(payload(), {
-    features: ['markDone'],
-    attempts: { for: 'P7', mine: {
-      'q-sheet-only': { first: '2001-10-04', last: '2001-10-04', times: 1 },
-      'q-sheet-later': { first: '2001-10-04', last: later, times: 2 },
-      'q-sheet-older': { first: '2001-10-04', last: '2001-10-04', times: 1 },
-      'q-synced': { first: '2001-10-04', last: '2026-09-02', times: 1 },
-    } },
-  });
-  const reply = b => (b.action === 'markDone'
-    ? { success: true, attempts: (b.items || []).reduce((o, it) => { o[it.key] = { first: it.day, last: it.day, times: 1 }; return o; }, {}) }
-    : { success: true });
-  const { w, sent } = boot({ payload: p, reply,
-    /* WHAT THIS PHONE KEPT BEFORE THE SHEET EXISTED: two days the sheet lacks, one it already has. */
-    before: win => {
-      win.localStorage.setItem('done:u:P7:q-offline', '2026-09-01');
-      win.localStorage.setItem('done:u:P7:q-synced', '2026-09-02');
-      win.localStorage.setItem('done:u:P7:q-sheet-older', '2026-09-03');
-      win.localStorage.setItem('done:u:P7:q-sheet-later', '2026-09-04');
-    } });
+check('submission: right, edited, wrong — two events on the account, a draft stays on the device, and the next device opens on the wrong answer', async () => {
+  const rows = [], drafts = {};
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_(drafts, subBackend_(rows)) });
   await wait(300);
-  const d = w.document;
+  const need = ['subRecord_', 'subAdopt_', 'questionCard_', 'questionTiles_', 'ansSavedSay_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was sent'];
   const bad = [];
-  const A = w.__t.ACTIONS;
-  if (typeof w.questionCard_ !== 'function' || !A['qp-check'] || typeof w.adoptMarks_ !== 'function'
-      || typeof w.attemptsLine_ !== 'function' || typeof w.findCard !== 'function') {
-    return ['questionCard_, qp-check, adoptMarks_, attemptsLine_ or findCard is not reachable — renamed? The sheet\'s date was NOT checked'];
-  }
-  const marks = () => sent.filter(b => b.action === 'markDone');
-  const base = { kind: 'question', name: 'Q8', marks: 2,
-    row: { row_id: 'Q-SHEET-8', paper_id: 'P-SHEET', subject: 'Maths', name: 'Sheet' },
-    html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
-  const q = k => Object.assign({}, base, { key: k });
-  /* THE CARD AND ITS TILE ROW -- the date is beside the star (`questionTiles_`). */
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => (card.parentNode.querySelector('.tile-row .qcard-done') || {}).textContent || '';
-  const check_ = card => { card.querySelector('.qp-ans-in').value = '16'; A['qp-check'](card.querySelector('.qp-check')); };
-
-  /* SIGNED OUT: nothing is sent. */
+  const subs = () => sent.filter(b => b.action === 'submitAnswer');
+  const said = card => (card.parentNode.querySelector('.qp-saved') || {}).textContent;
+  w.stuffItemsAll_ = () => [SUB_SUM];
+  /* SIGNED OUT: nothing goes anywhere. */
   w.__t.USER(null);
-  check_(draw(q('q-anon')));
+  const anon = subDraw_(w, SUB_SUM);
+  ansType_(w, anon.querySelector('.qp-ans-in'), '15');
+  anon.querySelector('.qp-check').click();
+  await wait(40);
+  if (subs().length) bad.push('signed out, a Check sent ' + subs().length + ' submission(s)');
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const card = subDraw_(w, SUB_SUM);
+  const inp = () => card.querySelector('.qp-ans-in');
+  const line = () => (card.querySelector('.qp-saved') || {}).textContent;
+  ansType_(w, inp(), '15');
+  if (line() !== 'On this device until you send it') bad.push('an answer typed and not sent says ' + JSON.stringify(line()));
+  card.querySelector('.qp-check').click();
+  await wait(60);
+  if (subs().length !== 1) bad.push('a right Check sent ' + subs().length + ' submitAnswer request(s), wanted 1, at once');
+  const one = ((subs()[0] || {}).items || [])[0] || {};
+  if (one.key !== 'q:Q-SUB-1' || one.answer !== '15' || one.verdict !== 'right' || !/^\d{10,16}-[a-z0-9]{6}$/.test(String(one.id))) bad.push('the press went up as ' + JSON.stringify(one) + ' — wanted the library key (no person in it), 15, right, and an id of its own');
+  if (one.label !== 'Maths · Paper 1 (Calculator) — June 2024 · Q3') bad.push('the press went up named ' + JSON.stringify(one.label) + ' — the weekly email reads the name a parent can');
+  if (one.words !== 'Work out 3 × 5.') bad.push('the press went up with the words ' + JSON.stringify(one.words) + ' — the weekly email prints the question’s own');
+  if ((subs()[0] || {}).token !== 'tok-P7' || (subs()[0] || {}).personId !== 'P7') bad.push('submitAnswer went without the token, or without personId beside it');
+  if (subSlotOf_(card).textContent !== 'Correct') bad.push('after the right Check the card says ' + JSON.stringify(subSlotOf_(card).textContent));
+  if (line() !== 'Sent to Ada’s account') bad.push('a press on the account says ' + JSON.stringify(line()) + ' under the box');
+  /* EDITED, NOT SENT: no verdict, a draft of this device's, and nothing to the account. */
+  ansType_(w, inp(), '16');
+  if (card.querySelector('.qp-verdict').textContent || card.querySelector('.qp-mark.is-right, .qp-mark.is-near')) bad.push('an edit left the old verdict on a different answer: ' + JSON.stringify(card.querySelector('.qp-verdict').textContent));
+  if (subSlotOf_(card).textContent !== 'Correct') bad.push('an edit changed the card to ' + JSON.stringify(subSlotOf_(card).textContent) + ' — the card is the latest SUBMISSION, and nothing new was sent');
+  if (line() !== 'On this device until you send it') bad.push('a draft after a press says ' + JSON.stringify(line()));
+  await wait(1700);
+  if (sent.some(b => b.action === 'saveAnswers' && (b.items || []).some(i => /^ans:/.test(i.key)))) bad.push('a typed draft went up as a saved answer — only what is SENT reaches the account now');
+  if (subs().length !== 1) bad.push('typing sent a submission');
+  /* TYPED BACK TO WHAT WAS SENT: that answer's verdict again, because it is about that answer. */
+  ansType_(w, inp(), '15');
+  if (card.querySelector('.qp-verdict').textContent !== 'Correct') bad.push('typed back to the answer sent, the line says ' + JSON.stringify(card.querySelector('.qp-verdict').textContent));
+  /* WRONG, SENT: the second event. */
+  ansType_(w, inp(), '16');
+  card.querySelector('.qp-check').click();
+  await wait(60);
+  if (subs().length !== 2) bad.push('right then wrong made ' + subs().length + ' submitAnswer request(s) — *"that\'s 2 events"*');
+  if (rows.length !== 2 || rows[0].verdict !== 'right' || rows[1].verdict !== 'wrong' || rows[1].answer !== '16') bad.push('the account holds ' + JSON.stringify(rows.map(r => [r.answer, r.verdict])) + ' — wanted [15, right] then [16, wrong]');
+  if (subSlotOf_(card).textContent !== 'Not yet' || !subSlotOf_(card).classList.contains('is-near')) bad.push('after the wrong press the card says ' + JSON.stringify(subSlotOf_(card).textContent) + ' — the LATEST event is what it shows');
+  /* A DRAFT AFTER THE WRONG ONE, AND THE NEXT PAYLOAD LANDING: the draft stays on this device. */
+  ansType_(w, inp(), '17');
   await wait(20);
-  if (marks().length) bad.push('signed out, a Check sent markDone: ' + JSON.stringify(marks()));
-
-  /* SIGNED IN, AND THE LOAD'S SYNC: the payload landed before USER was set, so it is asked again here
-     the way the next payload would ask it. */
-  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
-  /* TWICE BEFORE THE REPLY IS BACK, as a stored payload and the fresh one land a moment apart. */
-  w.adoptMarks_();
-  w.adoptMarks_();
-  await wait(30);
-  const sync = marks();
-  if (sync.length !== 1) bad.push('the load sent ' + sync.length + ' markDone request(s) for what the phone kept, wanted 1 — two payloads landing together must not send the backlog twice');
-  else {
-    const keys = (sync[0].items || []).map(i => i.key + '@' + i.day).sort().join(', ');
-    if (keys !== 'q-offline@2026-09-01, q-sheet-older@2026-09-03') bad.push('the load sent ' + keys + ' — wanted the two days the sheet lacks (q-offline, q-sheet-older) and not q-synced, which it has');
-    if (sync[0].token !== 'tok-P7') bad.push('markDone went without the sign-in token, so the server cannot know whose it is');
-  }
-  w.adoptMarks_();
-  await wait(30);
-  if (marks().length !== 1) bad.push('a second payload in the same visit sent the backlog again');
-
-  /* THE SHEET'S DATE ON THE CARD. */
-  const shows = k => slot(draw(q(k)));
-  if (shows('q-sheet-only') !== 'Done 4 Oct 2001') bad.push('a question on the sheet and not on this phone reads "' + shows('q-sheet-only') + '", wanted the sheet\'s "Done 4 Oct 2001"');
-  if (shows('q-sheet-later') !== w.doneText_(later)) bad.push('the sheet\'s later day lost to this phone\'s older one: "' + shows('q-sheet-later') + '", wanted "' + w.doneText_(later) + '"');
-  if (shows('q-sheet-older') !== w.doneText_('2026-09-03')) bad.push('this phone\'s later day lost to the sheet\'s older one: "' + shows('q-sheet-older') + '"');
-
-  /* ONE CHECK, ONE ATTEMPT -- and nothing more that day. */
-  const n0 = marks().length;
-  const card = draw(q('q-fresh'));
-  check_(card);
-  await wait(30);
-  const one = marks().slice(n0);
-  if (one.length !== 1) bad.push('a Check sent ' + one.length + ' markDone request(s), wanted 1');
-  else if (JSON.stringify(one[0].items) !== JSON.stringify([{ key: 'q-fresh', day: today }])) bad.push('a Check sent ' + JSON.stringify(one[0].items) + ' — wanted [{ key: "q-fresh", day: "' + today + '" }]');
-  if (slot(card) !== 'Done ' + now.getDate() + ' ' + mon[now.getMonth()]) bad.push('after the Check the card reads "' + slot(card) + '"');
-  check_(card);
-  const inp = card.querySelector('.qp-ans-in');
-  ['1', '15', '150'].forEach(v => { inp.value = v; inp.dispatchEvent(new w.Event('input', { bubbles: true })); });
-  await wait(30);
-  if (marks().length - n0 !== 1) bad.push('a second Check and three keystrokes the same day sent ' + (marks().length - n0 - 1) + ' more markDone — wanted none: once per question per day');
-  /* TYPING INTO A FRESH BOX: thirty keystrokes, one request. */
-  const fin = draw(Object.assign(q('q-typed'), { accept: '' })).querySelector('.qp-ans-in');
-  const n1 = marks().length;
-  const words = 'because the angles add to 180';
-  for (let i = 1; i <= words.length; i++) { fin.value = words.slice(0, i); fin.dispatchEvent(new w.Event('input', { bubbles: true })); }
-  await wait(30);
-  if (marks().length - n1 !== 1) bad.push('typing an answer sent ' + (marks().length - n1) + ' markDone requests, wanted 1');
-
-  /* AND ITS NAME, for the weekly parent email (backend/digest.gs): a card the library holds sends what
-     a parent can read — the subject, the paper, the number — and the subject is not said twice when
-     the paper's name already says it. The cards above are not in the library, and sent no label. */
-  const heldItems = w.stuffItemsAll_;
-  const named = (k, subject, sub, more) => Object.assign(q(k), { subject: subject, sub: sub }, more || {});
-  const qa = named('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024');
-  const qb = named('q-named-2', 'Biology', 'Biology Paper 2 — June 2023');
-  /* FOUNDATION AND HIGHER SIT ONE PAPER UNDER ONE NAME, and so do AQA's GCSE and A-level Physics: a
-     crossover session sent a parent "Q1, Q1" under one heading. The tier goes on the paper's name —
-     or the A-level its band names when the tier cell is empty — unless the name already says it. */
-  const qh = named('q-tier-h', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Higher' });
-  const qf = named('q-tier-f', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Foundation' });
-  const qal = named('q-tier-a', 'Physics', 'Paper 1 — June 2024', { tier: '', bandValue: 'A-Level', row: { level: 'Alevel' } });
-  const qsaid = named('q-tier-s', 'Maths', 'Higher Paper 3 — June 2023', { tier: 'Higher' });
-  const n3 = marks().length;
-  w.stuffItemsAll_ = () => [qa, qb, qh, qf, qal, qsaid];
-  try { [qa, qb, qh, qf, qal, qsaid].forEach(x => check_(draw(x))); } finally { w.stuffItemsAll_ = heldItems; }
-  await wait(30);
-  const labels = marks().slice(n3).map(b => ((b.items || [])[0] || {}).label);
-  const wantLabels = ['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8',
-    'Maths · Paper 1 (Non-calculator) — June 2024 (Higher) · Q8', 'Maths · Paper 1 (Non-calculator) — June 2024 (Foundation) · Q8',
-    'Physics · Paper 1 — June 2024 (A-level) · Q8', 'Maths · Higher Paper 3 — June 2023 · Q8'];
-  if (JSON.stringify(labels) !== JSON.stringify(wantLabels)) {
-    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted ' + JSON.stringify(wantLabels) + ', the names a parent reads in the emails: a paper’s tier said once, and only when its name does not');
-  }
-  /* A PRACTICAL'S WORKSHEET BOX is the card's key with a slot on the end (`guideBox_`), and it was
-     looked up whole, so it found no card and went up nameless — three raw keys in a parent's email
-     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. The
-     card's line is the one `stuffItemsAll_` really builds, and its "60 min" is the card's estimate: it
-     read to a parent as time spent, so it is not part of the name. */
-  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'Physics · Required practical · 60 min' };
-  const n4 = marks().length;
-  w.stuffItemsAll_ = () => [qa, pr];
-  try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldItems; }
-  await wait(30);
-  const prSent = (((marks().slice(n4)[0] || {}).items) || [])[0] || {};
-  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · Required practical · Specific heat capacity · Worksheet') {
-    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · Required practical · Specific heat capacity · Worksheet", no card duration in it');
-  }
-
-  /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
-  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
-  if (shows('q-sheet-only')) bad.push('Ben sees Ada\'s sheet date: "' + shows('q-sheet-only') + '"');
-
-  /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent. */
-  w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
-  w.__t.DATA().attempts = { for: 'P1', mine: {}, people: { P7: { n: 12, last: '2001-10-04' }, P9: { n: 1, last: '2001-10-04' } } };
-  const line = w.attemptsLine_('P7');
-  if (line !== '12 questions · last 4 Oct 2001') bad.push('an admin reads "' + line + '" under a learner, wanted "12 questions · last 4 Oct 2001"');
-  if (w.attemptsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.attemptsLine_('P9') + '"');
-  if (w.attemptsLine_('P5') !== '') bad.push('a person with no attempts reads "' + w.attemptsLine_('P5') + '", wanted nothing');
-  const box = d.createElement('div');
-  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: line } });
-  const act = box.querySelector('.prof-who .prof-act');
-  if (!act || act.textContent !== line) bad.push('the person card does not draw the line under the name: ' + (act ? act.textContent : 'no .prof-act'));
-  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
-  if (w.attemptsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone: "' + w.attemptsLine_('P7') + '"');
-
-  /* A BACKEND WITHOUT `markDone`: the date stays on the phone and nothing is sent. */
-  w.__t.DATA().features = [];
-  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
-  const n2 = marks().length;
-  check_(draw(q('q-old-backend')));
-  await wait(30);
-  if (marks().length !== n2) bad.push('a backend that does not list markDone was sent it anyway');
-  w.__t.USER(null);
-  return bad;
-});
-
-/* ==================================================================================================
-   THE BACKLOG CARRIES EACH QUESTION'S NAME, AND A ROW THE SHEET HOLDS WITHOUT ONE IS SENT ITS NAME.
-   The first learner a parent email was tried on had three rows on the sheet as bare keys — done
-   before the Ledger had an `attempts` tab, sent up by the load with no names — and the email prints
-   no raw key, so his parent would have been told a number and nothing else. `attemptsSync_`
-   now names what it sends (`doneLabel_`, the card this person has for the key), and sends the name
-   for a row the payload says has none (`named`), with that row's own last day — a day the backend
-   already has, where it writes the name alone (check-attempts.js asks that half).
-================================================================================================== */
-check('the load names what it sends, and names a row the sheet holds without a name', async () => {
-  const p = Object.assign(payload(), {
-    features: ['markDone'],
-    attempts: { for: 'P7', mine: {
-      'q:Q-NAME-1': { first: '2026-10-06', last: '2026-10-06', times: 1 },
-      'q:Q-NAME-3': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1 },
-      'q:Q-NOCARD': { first: '2026-10-06', last: '2026-10-06', times: 1 },
-    } },
-  });
-  const reply = b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true });
-  const { w, sent } = boot({ payload: p, reply,
-    before: win => { win.localStorage.setItem('done:u:P7:q:Q-NAME-2', '2026-10-06'); } });
-  await wait(300);
-  if (typeof w.adoptMarks_ !== 'function' || typeof w.doneLabel_ !== 'function') return ['adoptMarks_ or doneLabel_ is not reachable — renamed? Nothing was asked'];
-  /* THE CARDS THIS PHONE HAS, standing in for the library: the lookup is by the item's key, as Find's is. */
-  const card = (k, n) => ({ kind: 'question', key: k, name: n, subject: 'Maths', sub: 'Money', marks: 1, row: { row_id: k.slice(2) } });
-  const cards = [card('q:Q-NAME-1', 'Q1'), card('q:Q-NAME-2', 'Q2'), card('q:Q-NAME-3', 'Q3')];
-  w.stuffItemsAll_ = () => cards;
-  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
   w.adoptMarks_();
   await wait(40);
-  const bad = [];
-  const m = sent.filter(b => b.action === 'markDone');
-  if (m.length !== 1) return ['the load sent ' + m.length + ' markDone request(s), wanted 1'];
-  const by = {}; (m[0].items || []).forEach(i => { by[i.key] = i; });
-  if (!by['q:Q-NAME-2']) bad.push('the backlog day the sheet lacks (Q-NAME-2) was not sent');
-  else if (!by['q:Q-NAME-2'].label || !/Money/.test(by['q:Q-NAME-2'].label) || !/Q2/.test(by['q:Q-NAME-2'].label)) bad.push('the backlog went up without its name: ' + JSON.stringify(by['q:Q-NAME-2']) + ' — a parent would read a key');
-  if (!by['q:Q-NAME-1']) bad.push('a row the sheet holds without a name (Q-NAME-1) was not sent its name');
+  if (w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '17' || inp().value !== '17') bad.push('the next payload put the account’s answer over a draft typed after it: the box reads ' + JSON.stringify(inp().value));
+  if (subs().length !== 2) bad.push('a payload landing sent the draft');
+  /* A FRESH DEVICE — the computer at home, next sign-in — opens on the wrong answer with "Not yet". */
+  /* AND THE ACCOUNT STILL HOLDS A DRAFT OF THIS BOX FROM BEFORE 9 OCT, saved LATER than the press — read back,
+     it would open the box on something nobody sent. */
+  const b2 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows, 'P7') }),
+    reply: ansBackend_({ 'ans:q:Q-SUB-1': { v: '99', at: Date.now() + 60000 } }, subBackend_(rows)),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } });
+  await wait(500);
+  b2.w.stuffItemsAll_ = () => [SUB_SUM];
+  const c2 = subDraw_(b2.w, SUB_SUM);
+  const box2 = c2.querySelector('.qp-ans-in');
+  if (!box2 || box2.value !== '16') bad.push('a fresh device opens the box on ' + JSON.stringify(box2 && box2.value) + ' — wanted the latest answer sent, 16, and never an old draft off the answers tab');
+  if (b2.w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '16') bad.push('the account’s old draft of a typed answer was read back into this device: ' + JSON.stringify(b2.w.localStorage.getItem('ans:u:P7:q:Q-SUB-1')));
+  if (c2.querySelector('.qp-verdict').textContent !== 'Not yet — have another go' || !c2.querySelector('.qp-mark.is-near')) bad.push('a fresh device’s verdict line says ' + JSON.stringify(c2.querySelector('.qp-verdict').textContent) + ' — *"they would see incorrect answer there next time they login"*');
+  if (subSlotOf_(c2).textContent !== 'Not yet') bad.push('a fresh device’s card says ' + JSON.stringify(subSlotOf_(c2).textContent));
+  if ((c2.querySelector('.qp-saved') || {}).textContent !== 'Sent to Ada’s account') bad.push('a fresh device says ' + JSON.stringify((c2.querySelector('.qp-saved') || {}).textContent) + ' under the account’s own answer');
+  if (b2.sent.some(b => b.action === 'submitAnswer')) bad.push('the fresh device sent the account’s presses straight back');
+  /* AND A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
+  const b3 = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows, 'P7') }),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(ANS_BEN)); } });
+  await wait(500);
+  b3.w.stuffItemsAll_ = () => [SUB_SUM];
+  const c3 = subDraw_(b3.w, SUB_SUM);
+  if (subSlotOf_(c3).textContent || c3.querySelector('.qp-ans-in').value) bad.push('BEN’S CARD SHOWS ADA’S SUBMISSION: ' + JSON.stringify([subSlotOf_(c3).textContent, c3.querySelector('.qp-ans-in').value]));
+  /* ANOTHER DEVICE PRESSED SEND BEFORE THIS DRAFT WAS TYPED: its press is the latest on the card, and the
+     draft — typed after it — still stays in the box. */
+  rows.push({ pid: 'P7', id: '1760000000101-ot0001', key: 'q:Q-SUB-1', answer: '20', verdict: 'wrong', at: rows[1].at + 1 });
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
+  w.adoptMarks_();
+  await wait(40);
+  if (inp().value !== '17') bad.push('a press made on another device BEFORE this draft was typed replaced the draft: the box reads ' + JSON.stringify(inp().value));
+  /* AND ONE PRESSED AFTER IT: the latest event, on the card and in the box — the draft is older than it. */
+  rows.push({ pid: 'P7', id: '1760000000102-ot0002', key: 'q:Q-SUB-1', answer: '21', verdict: 'right', at: Date.now() + 5000 });
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
+  w.adoptMarks_();
+  await wait(40);
+  if (inp().value !== '21' || subSlotOf_(card).textContent !== 'Correct' || card.querySelector('.qp-verdict').textContent !== 'Correct') bad.push('a press made on another device AFTER this draft did not take the box and the card: ' + JSON.stringify([inp().value, subSlotOf_(card).textContent, card.querySelector('.qp-verdict').textContent]));
+  /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent — counts and a day, never an answer. */
+  w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
+  w.__t.DATA().submissions = { for: 'P1', mine: {}, people: { P7: { n: 12, last: '2001-10-04' }, P9: { n: 1, last: '2001-10-04' } } };
+  if (typeof w.subsLine_ !== 'function') bad.push('subsLine_ is not reachable — the admin’s line was NOT checked');
   else {
-    if (by['q:Q-NAME-1'].day !== '2026-10-06') bad.push('the unnamed row was sent day ' + by['q:Q-NAME-1'].day + ' — wanted its own last day, so the backend counts nothing');
-    if (!/Q1/.test(String(by['q:Q-NAME-1'].label || ''))) bad.push('the unnamed row went up without a name: ' + JSON.stringify(by['q:Q-NAME-1']));
+    if (w.subsLine_('P7') !== '12 questions · last 4 Oct 2001') bad.push('an admin reads "' + w.subsLine_('P7') + '" under a learner, wanted "12 questions · last 4 Oct 2001"');
+    if (w.subsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.subsLine_('P9') + '"');
+    if (w.subsLine_('P5') !== '') bad.push('a person who sent nothing reads "' + w.subsLine_('P5') + '"');
+    const host = w.document.createElement('div');
+    host.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: w.subsLine_('P7') } });
+    const act = host.querySelector('.prof-who .prof-act');
+    if (!act || act.textContent !== '12 questions · last 4 Oct 2001') bad.push('the person card does not draw the line under the name');
+    w.__t.USER(Object.assign({}, ANS_BEN));
+    if (w.subsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone');
   }
-  if (by['q:Q-NAME-3']) bad.push('a row the sheet already names (Q-NAME-3) was sent again — every visit would send it');
-  if (by['q:Q-NOCARD']) bad.push('a row no card on this phone answers to was sent with nothing to add: ' + JSON.stringify(by['q:Q-NOCARD']));
+  w.__t.USER(null);
   return bad;
 });
 
-/* ==================================================================================================
-   AND ITS WORDS, FOR THE PARENT EMAIL. ASKED FOR AS *"emails all parents on work their child
-   has done with the exact questions for each"*. The backend cannot look a key up, so the phone sends
-   what it draws (`doneWords_`) with the mark, the way it sends the name, and the email prints it.
+check('submission: a pick, an ordering, Mark with AI and a worksheet box are each an event, and a drawing still goes up as it is drawn', async () => {
+  const rows = [], drafts = {};
+  const ORD = { kind: 'question', key: 'q:Q-SUB-ORD', name: 'Q4', marks: 1, subject: 'Maths', sub: 'Order', answerType: 'order',
+    row: { row_id: 'Q-SUB-ORD', paper_id: 'P-SUB', subject: 'Maths', name: 'Order' }, html: '<p>Smallest first.</p>',
+    choices: ['3', '1', '2'], choiceRight: [2, 3, 1], choiceWays: [[2, 3, 1]], orderEnds: ['smallest', 'largest'], answer: '<b>1, 2, 3</b>' };
+  const AIQ = { kind: 'question', key: 'q:Q-SUB-AI', name: 'Q9', marks: 3, subject: 'Science', sub: 'Explain', answerType: 'explain',
+    row: { row_id: 'Q-SUB-AI', paper_id: 'P-SUB', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
+  const PR = { kind: 'practical', name: 'Rates of reaction', key: 'pr:PR-SUB', subject: 'Chemistry', sub: 'Chemistry · Required practical · 60 min' };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
+    reply: ansBackend_(drafts, subBackend_(rows, b => (b.action === 'aiMark' ? { success: true, awarded: 2, available: 3, feedback: 'Say what the heat does.' } : undefined))) });
+  await wait(300);
+  const need = ansNeed_(w).concat(['subRecord_', 'orderBox_', 'guideBox_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Nothing was pressed'];
+  const bad = [], A = w.__t.ACTIONS;
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const c = ansCards_(w, 'S');
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => held().concat([ORD, AIQ, PR]);
+  const items = () => [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+  const of = key => items().filter(i => i.key === key);
+  /* A PICK: marked at once, one event. */
+  A['qp-choose'](c.box().querySelector('[data-n="1"]'));
+  await wait(40);
+  if (of(c.pick.key).length !== 1 || of(c.pick.key)[0].answer !== '1' || of(c.pick.key)[0].verdict !== 'wrong') bad.push('a wrong pick went up as ' + JSON.stringify(of(c.pick.key)) + ' — wanted one event, answer 1, wrong');
+  /* AN ORDERING: placing is not an event, Send is. */
+  const host = w.document.createElement('div');
+  w.document.body.appendChild(host);
+  host.innerHTML = w.questionCard_(ORD, 0);
+  const box = () => host.querySelector('.qp-order');
+  [2, 3].forEach(n => box().querySelector('.qp-item[data-n="' + n + '"]').click());
+  await wait(30);
+  if (of('q:Q-SUB-ORD').length) bad.push('placing items in an ordering sent a submission — Send is the press');
+  box().querySelector('.qp-order-send').click();
+  await wait(30);
+  if (of('q:Q-SUB-ORD').length) bad.push('Send on an ordering with a place still empty sent a submission — it is not an answer yet');
+  box().querySelector('.qp-item[data-n="1"]').click();
+  box().querySelector('.qp-order-send').click();
+  await wait(40);
+  const o = of('q:Q-SUB-ORD');
+  if (o.length !== 1 || o[0].answer !== '2,3,1' || o[0].verdict !== 'right') bad.push('Send on the full ordering went up as ' + JSON.stringify(o) + ' — wanted one event, 2,3,1, right');
+  if ((box().querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the ordering’s verdict is ' + JSON.stringify((box().querySelector('.qp-verdict') || {}).textContent));
+  /* DRAWN AGAIN AFTER A MOVE AND BACK: the verdict is the latest press's, drawn while the row is that row. */
+  box().querySelector('.qp-slot.is-full[data-n="1"]').click();
+  if ((box().querySelector('.qp-verdict') || {}).textContent) bad.push('moving an item left the verdict on a row that changed');
+  box().querySelector('.qp-item[data-n="1"]').click();
+  if ((box().querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('put back to the row that was sent, the verdict did not return: ' + JSON.stringify((box().querySelector('.qp-verdict') || {}).textContent));
+  /* MARK WITH AI: the marks are the verdict, ai:2/3. */
+  const ah = w.document.createElement('div');
+  w.document.body.appendChild(ah);
+  ah.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + w.questionTiles_(AIQ) + '</div>';
+  const ai = ah.querySelector('.qp-ai-go');
+  if (!ai) bad.push('the worded card drew no Mark with AI — the AI press was NOT checked');
+  else {
+    ansType_(w, ah.querySelector('.qp-ans-in'), 'because it is hot');
+    A['qp-ai'](ai);
+    await wait(60);
+    const m = of('q:Q-SUB-AI');
+    if (m.length !== 1 || m[0].verdict !== 'ai:2/3' || m[0].answer !== 'because it is hot') bad.push('Mark with AI went up as ' + JSON.stringify(m) + ' — wanted one event, ai:2/3');
+    const slot = ah.querySelector('.tile-row .qcard-verdict');
+    if (!slot || slot.textContent !== '2/3') bad.push('the card after Mark with AI says ' + JSON.stringify(slot && slot.textContent) + ' — wanted the AI’s 2/3');
+    /* AND WHEN AI MARKING GOES AWAY MID-VISIT, THE BOX KEEPS A SEND. */
+    w.aiOff_('AI marking is switched off');
+    if (!ah.querySelector('.qp-ai [data-do="qp-send"]')) bad.push('with AI marking switched off the worded box has nothing to send with');
+  }
+  /* A PRACTICAL'S WORKSHEET BOX: its own Send, `sent`, the slot on the key. */
+  const sh = w.document.createElement('div');
+  w.document.body.appendChild(sh);
+  sh.innerHTML = w.guideBox_(PR, 'iv', 'Independent variable — the one thing you will change');
+  const gs = sh.querySelector('[data-do="qp-send"]');
+  if (!gs) bad.push('a practical’s worksheet box has no Send, signed in — its answer would never leave the iPad');
+  else {
+    ansType_(w, sh.querySelector('.qp-ans-in'), 'the temperature');
+    gs.click();
+    await wait(40);
+    const p = of('pr:PR-SUB#iv');
+    if (p.length !== 1 || p[0].verdict !== 'sent' || p[0].label !== 'Chemistry · Required practical · Rates of reaction · Worksheet' || 'words' in p[0]) bad.push('the worksheet box went up as ' + JSON.stringify(p) + ' — wanted one event, sent, named as the worksheet, no words');
+    if ((sh.querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('the worksheet box’s line says ' + JSON.stringify((sh.querySelector('.qp-verdict') || {}).textContent));
+  }
+  /* A DRAWING STILL GOES UP AS IT IS DRAWN — it has no Send — and no typed answer goes with it. */
+  ansType_(w, c.ta(), 'a draft');
+  ansStroke_(w, c, [[10, 10], [20, 20], [30, 30], [40, 40]]);
+  await wait(1700);
+  const saves = [].concat(...sent.filter(b => b.action === 'saveAnswers').map(b => b.items || []));
+  if (!saves.some(i => i.key === 'pad:' + c.pen.key)) bad.push('a drawing did not go up to the account: ' + JSON.stringify(saves.map(i => i.key)));
+  if (saves.some(i => /^ans:/.test(i.key))) bad.push('a typed or picked answer went up as a draft beside the drawing: ' + JSON.stringify(saves.filter(i => /^ans:/.test(i.key)).map(i => i.key)));
+  w.__t.USER(null);
+  return bad;
+});
+
+check('submission: kept on the device until the backend can take them, sent again after a refusal with the same id, and never twice', async () => {
+  const rows = [];
+  let refuse = 0;
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: [] }),
+    reply: ansBackend_({}, subBackend_(rows, b => (b.action === 'submitAnswer' && refuse-- > 0 ? { error: 'Busy — it will be sent again.', why: 'busy' } : undefined))) });
+  await wait(300);
+  if (typeof w.subPush_ !== 'function' || typeof w.adoptMarks_ !== 'function') return ['subPush_ or adoptMarks_ not reachable — nothing was checked'];
+  const bad = [];
+  w.stuffItemsAll_ = () => [SUB_SUM];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const card = subDraw_(w, SUB_SUM);
+  const queue = () => { try { return JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) { return []; } };
+  const subs = () => sent.filter(b => b.action === 'submitAnswer');
+  /* A BACKEND FROM BEFORE: kept, not sent, and the card shows it all the same. */
+  ansType_(w, card.querySelector('.qp-ans-in'), '15');
+  card.querySelector('.qp-check').click();
+  ansType_(w, card.querySelector('.qp-ans-in'), '16');
+  card.querySelector('.qp-check').click();
+  await wait(40);
+  if (subs().length) bad.push('a backend without submitAnswer was sent ' + subs().length + ' request(s)');
+  if (queue().length !== 2) bad.push('two presses to a backend that cannot take them left ' + queue().length + ' on the device — wanted both, in order');
+  if (subSlotOf_(card).textContent !== 'Not yet') bad.push('a press kept on the device does not show on the card: ' + JSON.stringify(subSlotOf_(card).textContent));
+  /* THE BACKEND IS UPDATED; THE FIRST TRY IS BUSY. */
+  refuse = 1;
+  w.__t.DATA().features = SUB_FEATURES;
+  w.adoptMarks_();
+  await wait(60);
+  if (subs().length !== 1 || queue().length !== 2) bad.push('a refused send changed the queue (' + queue().length + ' left after ' + subs().length + ' request(s)) — both presses must wait for the next try');
+  const ids0 = ((subs()[0] || {}).items || []).map(i => i.id).join();
+  await w.subPush_(true);
+  const ids1 = ((subs()[1] || {}).items || []).map(i => i.id).join();
+  if (!ids0 || ids1 !== ids0) bad.push('the retry sent ' + JSON.stringify(ids1) + ' after a refusal of ' + JSON.stringify(ids0) + ' — the same presses, under the same ids');
+  if (queue().length) bad.push('after the retry was saved, ' + queue().length + ' press(es) are still waiting');
+  if (rows.length !== 2 || rows[0].answer !== '15' || rows[1].answer !== '16') bad.push('the account holds ' + JSON.stringify(rows.map(r => r.answer)) + ' — wanted 15 then 16, each once');
+  /* A REPLY NEVER SEEN: the same press sent again is one row on the account. */
+  const lost = { id: '1760000000999-zz0001', key: 'q:Q-SUB-1', answer: '17', verdict: 'wrong' };
+  w.localStorage.setItem('subQ:u:P7', JSON.stringify([lost]));
+  await w.subPush_(true);
+  w.localStorage.setItem('subQ:u:P7', JSON.stringify([lost]));
+  await w.subPush_(true);
+  if (rows.filter(r => r.id === lost.id).length !== 1) bad.push('a press sent twice is ' + rows.filter(r => r.id === lost.id).length + ' rows');
+  /* AS THE APP GOES AWAY, WITH keepalive. */
+  const kept = [];
+  const was = w.fetch;
+  w.fetch = (u, o) => { if (o && o.keepalive) kept.push(JSON.parse(o.body)); return was(u, o); };
+  w.localStorage.setItem('subQ:u:P7', JSON.stringify([{ id: '1760000001000-zz0002', key: 'q:Q-SUB-1', answer: '18', verdict: 'wrong' }]));
+  w.dispatchEvent(new w.Event('pagehide'));
+  await wait(60);
+  w.fetch = was;
+  if (!kept.some(b => b.action === 'submitAnswer')) bad.push('pagehide sent nothing with keepalive — closing the iPad would keep the last press waiting');
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- THE QUESTION'S OWN WORDS, WITH EVERY PRESS ---------------------------------------------
+   ASKED FOR AS *"emails all parents on work their child has done with the exact questions for each"*.
+   The backend cannot look a key up, so the phone sends what it draws (`doneWords_`) with each press,
+   the way it sends the name, and the email prints it.
 
    ASKED OF THE LIBRARY'S OWN BUILDER — `questionItems`, over rows shaped as the payload carries them —
-   and the real `doneMark_`, because every way this goes wrong is quiet and is a parent told a
+   and the real `subRecord_`, because every way this goes wrong is quiet and is a parent told a
    different question: a part sent without the scene it hangs from is "work out the probability of
    red" with no bag in it; a fraction flattened is 3/4 read as 34; a power flattened is x² read as x2.
    The library's two stored fractions are both here — `<sup>3</sup>&frasl;<sub>4</sub>` and the stacked
    `.frac` span, which came out "13 × 58" for a third times five eighths until this asked — and so is an
    italic index, which came out "2x" for 2 to the x. A paper's cover is not the question; a drawing's
    labels are not its words; a picture the email cannot draw is said; a practical's worksheet box
-   sends nothing, because its name already says which sheet.
-================================================================================================== */
+   sends nothing, because its name already says which sheet. AND THE NAME, as a parent reads it: the
+   tier when the paper's name does not say it, the subject not twice. */
 const WD_SVG = '<svg viewBox="0 0 10 10"><text x="1" y="5">LABELWORD</text></svg>';
 const wdBank_ = () => [
   /* THE PAPER'S COVER — paper scope. Every question in the paper sits under it, and it is not one. */
@@ -12254,19 +12359,20 @@ const wdBank_ = () => [
   mpRow_('P-WD', 'Words', 11, '', { html: '<p>Is <i>x</i> &lt; 7 when ' + WD_SVG + '<i>x</i> = 3?</p>' }),
 ];
 const WD_ADA = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' };
-check('a Check sends the question’s own words: its stem above the part, a fraction as 3/4, a power as x², a picture said, a worksheet box none', async () => {
-  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: {}, keepsWords: 1 } });
-  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true }) });
+check('submission: a press carries the question’s own words — its stem above the part, a fraction as 3/4, a power as x², a picture said — and the name a parent reads', async () => {
+  const rows = [];
+  const p = Object.assign(payload(), { features: ['submitAnswer'] });
+  const { w, sent } = boot({ payload: p, reply: ansBackend_({}, subBackend_(rows)) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, ansKey = w.__t.ansKey;
-  const need = ['questionItems', 'doneMark_', 'questionCard_', 'questionTiles_'].filter(n => typeof w[n] !== 'function')
+  const need = ['questionItems', 'subRecord_', 'questionCard_', 'questionTiles_'].filter(n => typeof w[n] !== 'function')
     .concat(A['qp-check'] ? [] : ['qp-check']).concat(typeof ansKey === 'function' ? [] : ['ansKey_']);
-  if (need.length) return [need.join(', ') + ' not reachable — renamed? The words a Check sends were NOT checked'];
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The words a press sends were NOT checked'];
   const bad = [];
   const lib = mpLibrary_(w, wdBank_());
   const item = n => lib.items.find(x => x.row.paper === 'P-WD' && x.name === n);
-  const marks = () => sent.filter(b => b.action === 'markDone');
-  const sentFor = key => { let got = null; marks().forEach(b => (b.items || []).forEach(i => { if (i.key === key) got = i; })); return got; };
+  const items = () => [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+  const sentFor = key => items().filter(i => i.key === key).pop() || null;
   try {
     w.__t.USER(WD_ADA);
     /* THE FIRST THROUGH A REAL CARD AND A REAL CHECK, as a child marks it. */
@@ -12279,9 +12385,9 @@ check('a Check sends the question’s own words: its stem above the part, a frac
     const box = card && card.querySelector('.qp-ans-in'), btn = card && card.querySelector('.qp-check');
     if (!box || !btn) bad.push('Q5a was drawn with no answer box or no Check — the Check was NOT pressed');
     else { box.value = '3/8'; A['qp-check'](btn); }
-    /* THE REST AS EVERY OTHER MARK GOES — the first keystroke, Check or tap of the day calls this. */
-    ['Q5b', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11'].forEach(n => { const x = item(n); if (x) w.doneMark_(ansKey(x)); else bad.push(n + ' did not reach the library'); });
-    await wait(40);
+    /* THE REST AS EVERY PRESS GOES — `subRecord_` is what every handler calls. */
+    ['Q5b', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11'].forEach(n => { const x = item(n); if (x) w.subRecord_(ansKey(x), 'an answer', 'sent'); else bad.push(n + ' did not reach the library'); });
+    await wait(150);
     const want = {
       Q5a: 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.',
       Q5b: 'A bag holds 3 red and 5 blue counters.\n---\nTwo are taken. Work out the probability both are blue.',
@@ -12304,213 +12410,341 @@ check('a Check sends the question’s own words: its stem above the part, a frac
     };
     Object.keys(want).forEach(n => {
       const x = item(n), got = x && sentFor(x.key);
-      if (!got) bad.push(n + ' — ' + why[n] + ' — sent no markDone at all');
+      if (!got) bad.push(n + ' — ' + why[n] + ' — sent no submission at all');
       else if (got.words !== want[n]) bad.push(n + ' — ' + why[n] + ' — sent words ' + JSON.stringify(got.words) + ', wanted ' + JSON.stringify(want[n]));
     });
-    const all = JSON.stringify(marks());
+    const all = JSON.stringify(items());
     if (/COVERWORD/.test(all)) bad.push('the paper’s cover went up as part of a question’s words — it is the paper’s, not the question’s');
     if (/LABELWORD/.test(all)) bad.push('a drawing’s labels went up as a question’s words');
-    /* AND STILL ITS NAME, BESIDE THE WORDS — the heading the email lists it under. */
     const named = sentFor(q5a.key);
     if (named && !/Q5a/.test(String(named.label || ''))) bad.push('the words went up without the name: ' + JSON.stringify(named));
-    /* A PRACTICAL'S WORKSHEET BOX: the name says which sheet, and the card's method is not "the question". */
+    /* THE NAME A PARENT READS: the subject not twice, and the tier when the paper's name does not say it. */
+    const named_ = (k, subject, sub, more) => Object.assign({}, SUB_SUM, { key: k, subject: subject, sub: sub }, more || {});
+    const cards = [
+      named_('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024'),
+      named_('q-named-2', 'Biology', 'Biology Paper 2 — June 2023'),
+      named_('q-tier-h', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Higher' }),
+      named_('q-tier-f', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Foundation' }),
+      named_('q-tier-a', 'Physics', 'Paper 1 — June 2024', { tier: '', bandValue: 'A-Level', row: { level: 'Alevel' } }),
+      named_('q-tier-s', 'Maths', 'Higher Paper 3 — June 2023', { tier: 'Higher' }),
+    ];
     const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'Physics · Required practical · 60 min',
                  html: '<p>PRACTICALWORD: heat the block for ten minutes.</p>', lead: '<p>PRACTICALWORD</p>' };
-    const heldAll = w.stuffItemsAll_;
-    const n4 = marks().length;
-    w.stuffItemsAll_ = () => lib.items.concat([pr]);
-    try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldAll; }
-    await wait(30);
-    const box4 = ((marks().slice(n4)[0] || {}).items || [])[0];
-    if (!box4) bad.push('a practical’s worksheet box sent no markDone at all');
-    else if ('words' in box4) bad.push('a practical’s worksheet box sent words: ' + JSON.stringify(box4.words) + ' — its name already says which worksheet');
+    w.stuffItemsAll_ = () => lib.items.concat(cards, [pr]);
+    cards.forEach(x => w.subRecord_(ansKey(x), '15', 'right'));
+    w.subRecord_('ans:' + w.whoIs_() + ':pr:PR-T1#iv', 'the temperature', 'sent');
+    await wait(60);
+    const labels = cards.map(x => (sentFor(x.key) || {}).label);
+    const wantLabels = ['Maths · Paper 1 (Calculator) — June 2024 · Q3', 'Biology Paper 2 — June 2023 · Q3',
+      'Maths · Paper 1 (Non-calculator) — June 2024 (Higher) · Q3', 'Maths · Paper 1 (Non-calculator) — June 2024 (Foundation) · Q3',
+      'Physics · Paper 1 — June 2024 (A-level) · Q3', 'Maths · Higher Paper 3 — June 2023 · Q3'];
+    if (JSON.stringify(labels) !== JSON.stringify(wantLabels)) bad.push('presses on library cards went up named ' + JSON.stringify(labels) + ' — wanted ' + JSON.stringify(wantLabels) + ': a paper’s tier said once, and only when its name does not');
+    /* A PRACTICAL'S WORKSHEET BOX: the name says which sheet, no card duration, and no words. */
+    const box4 = sentFor('pr:PR-T1#iv');
+    if (!box4) bad.push('a practical’s worksheet box sent no submission at all');
+    else {
+      if (box4.label !== 'Physics · Required practical · Specific heat capacity · Worksheet') bad.push('a practical’s worksheet box went up named ' + JSON.stringify(box4.label) + ' — wanted the worksheet, and no "60 min", which a parent reads as time spent');
+      if ('words' in box4) bad.push('a practical’s worksheet box sent words: ' + JSON.stringify(box4.words) + ' — its name already says which worksheet');
+    }
   } finally { lib.put(); w.__t.USER(null); }
   return bad;
 });
 
-/* ---------- AND A ROW THE SHEET HOLDS WITHOUT ITS WORDS IS SENT THEM — ONLY TO A BACKEND THAT KEEPS THEM --
-   Rows marked before the phone sent words have none, and their parent's email would list numbers. So
-   the load sends a row its words the way it sends a name (`attemptsSync_`): for a row the payload says
-   has none (no `worded`), with the row's own last day, which the backend counts as covered. NOT to a
-   backend without `attemptWords` in its features — it has no column for them, and every visit would
-   send every row again for nothing — and NOT for a row that already has them, which is every visit
-   sending every row. The backlog the phone kept goes up with its words as well as its name. */
-check('the load sends a row its words only to a backend that keeps them, and only for a row the sheet holds without', async () => {
-  const mine = () => ({
-    /* NAMED, NOT WORDED: its words alone. */
-    'q:Q-P-WD-5a': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1 },
-    /* NAMED AND WORDED: nothing. */
-    'q:Q-P-WD-5b': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1, worded: 1 },
-    /* NEITHER: both. */
-    'q:Q-P-WD-6': { first: '2026-10-04', last: '2026-10-04', times: 1 },
-  });
-  /* `keeps` IS THE TAB'S OWN WORD (`keepsWords` from `attemptsFor_`): the code can keep words only once
-     the column is there, and a backend synced before `ensureSchema` says the first and not the second. */
-  const run = async (features, keeps) => {
-    const p = Object.assign(payload(), { features: features, attempts: Object.assign({ for: 'P7', mine: mine() }, keeps === false ? {} : { keepsWords: 1 }) });
-    const { w, sent } = boot({ payload: p, reply: b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true }),
-      /* AND THE BACKLOG: a day this phone kept that the sheet lacks. */
-      before: win => { win.localStorage.setItem('done:u:P7:q:Q-P-WD-7', '2026-10-06'); } });
-    await wait(300);
-    if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return null;
-    const lib = mpLibrary_(w, wdBank_());
-    try {
-      w.__t.USER(WD_ADA);
-      w.adoptMarks_();
-      await wait(40);
-    } finally { lib.put(); w.__t.USER(null); }
-    const m = sent.filter(b => b.action === 'markDone');
-    const by = {};
-    m.forEach(b => (b.items || []).forEach(i => { by[i.key] = i; }));
-    return { n: m.length, by: by };
-  };
-  const bad = [];
-  const STEM = 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.';
-  /* A BACKEND WITHOUT `attemptWords`: the names go, as before, and no words at all. */
-  const off = await run(['markDone']);
-  if (!off) return ['adoptMarks_ or questionItems is not reachable — renamed? The backfill was NOT checked'];
-  if (off.n !== 1) bad.push('without attemptWords the load sent ' + off.n + ' markDone request(s), wanted 1 (the unnamed row and the backlog)');
-  Object.keys(off.by).forEach(k => { if ('words' in off.by[k]) bad.push('a backend without attemptWords was sent words for ' + k + ': ' + JSON.stringify(off.by[k].words) + ' — it has no column, and every visit would send them again'); });
-  if (off.by['q:Q-P-WD-5a']) bad.push('without attemptWords a named row was sent anyway: ' + JSON.stringify(off.by['q:Q-P-WD-5a']) + ' — there is nothing it lacks that this backend keeps');
-  if (!off.by['q:Q-P-WD-6'] || !/Q6/.test(String(off.by['q:Q-P-WD-6'].label || ''))) bad.push('without attemptWords the unnamed row did not go up with its name: ' + JSON.stringify(off.by['q:Q-P-WD-6']));
-  if (!off.by['q:Q-P-WD-7']) bad.push('without attemptWords the backlog did not go up');
-  /* A BACKEND THAT KEEPS THEM. */
-  /* THE CODE SAYS YES AND THE TAB HAS NO COLUMN: no words — every visit would send every row for nothing. */
-  const noCol = await run(['markDone', 'attemptWords'], false);
-  if (!noCol) bad.push('the load could not be run without the words column, so that case was NOT checked');
-  else Object.keys(noCol.by).forEach(k => { if ('words' in noCol.by[k]) bad.push('a tab without the words column was sent words for ' + k + ' — attemptsFor_ said it has no column'); });
-  const on = await run(['markDone', 'attemptWords']);
-  if (on.n !== 1) bad.push('with attemptWords the load sent ' + on.n + ' markDone request(s), wanted 1');
-  const a = on.by['q:Q-P-WD-5a'];
-  if (!a) bad.push('a row the sheet names but holds without words (Q5a) was not sent its words');
-  else {
-    if (a.words !== STEM) bad.push('Q5a was sent words ' + JSON.stringify(a.words) + ' — wanted ' + JSON.stringify(STEM));
-    if (a.day !== '2026-10-05') bad.push('Q5a was sent day ' + a.day + ' — wanted its own last day, 2026-10-05, so the backend counts nothing');
-    if ('label' in a) bad.push('Q5a, already named on the sheet, was sent its name again: ' + JSON.stringify(a.label));
-  }
-  if (on.by['q:Q-P-WD-5b']) bad.push('a row the sheet already holds with its name and words (Q5b) was sent again — every visit would send it: ' + JSON.stringify(on.by['q:Q-P-WD-5b']));
-  const six = on.by['q:Q-P-WD-6'];
-  if (!six || six.words !== 'Work out 3/4 of 20.' || !/Q6/.test(String(six.label || '')) || six.day !== '2026-10-04') bad.push('a row with neither (Q6) went up as ' + JSON.stringify(six) + ' — wanted its name, its words and its own day');
-  const seven = on.by['q:Q-P-WD-7'];
-  if (!seven || seven.words !== 'Expand x²(x + y^5).' || seven.day !== '2026-10-06') bad.push('the backlog (Q7) went up as ' + JSON.stringify(seven) + ' — wanted its words and the day the phone kept');
-  return bad;
-});
-
-/* ---------- SIXTY ROWS TO NAME GO UP IN TWO REQUESTS, AND STOP ------------------------------------------
-   MEASURED BEFORE THE FIX: a learner with more than fifty rows to name had the first fifty sent; the
-   reply — from a backend that did not say `named` — was adopted, the next pass found the same fifty
-   still unnamed and sent them again, and again, for as long as the page was open. Every visit, a
-   request a second to the Apps Script quota until it refused. `ATTEMPTS_SENT` now sends a key once a
-   visit whatever the reply says, so sixty rows are fifty and then ten and then nothing.
-
-   THE REPLY IS THE OLD BACKEND'S: every row and its days, and no flag. After the sixth request every
-   reply is a refusal, which ends `attemptsSync_` — so if the loop comes back it is counted here and
-   ended, not left spinning through the rest of the suite. */
-check('sixty unnamed rows go up in two requests, fifty then ten, and stop — a reply with no flags does not send them again', async () => {
-  const rows = [], mine = {};
-  for (let i = 1; i <= 60; i++) {
-    rows.push(mpRow_('P-WL', 'Loop', i, '', { html: '<p>Loop question ' + i + '.</p>' }));
-    mine['q:Q-P-WL-' + i] = { first: '2026-10-05', last: '2026-10-05', times: 1 };
-  }
-  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: mine, keepsWords: 1 } });
-  let asked = 0;
-  const reply = b => {
-    if (b.action !== 'markDone') return { success: true };
-    if (++asked > 6) return { success: false, error: 'stopped by the test' };
-    return { success: true, attempts: (b.items || []).reduce((o, it) => { o[it.key] = { first: '2026-10-05', last: it.day, times: 1 }; return o; }, {}) };
-  };
-  const { w, sent } = boot({ payload: p, reply });
+/* ---------- THE KEYPAD'S GOLD SEND IS THE BOX'S OWN SEND (review of 9 Oct, the blocker) ----------------------
+   `kpDone_` ran `.qp-check` and nothing else, so on every box whose control is the plain Send — about 399
+   maths answers with no scheme, every worksheet box, every worded box while AI marking is off — the gold
+   key (drawn as Send's own aeroplane) and a laptop's Enter put the pad away and sent nothing. Pressed here
+   through the real pad: a maths box with no scheme, two worksheet boxes side by side (only the one typed
+   in is sent), a box with a scheme (Check), and an essay, whose key says "done" and sends nothing. */
+check('submission: the keypad’s gold Send and a laptop’s Enter send the box’s own Send — no scheme, a worksheet box, a Check — and an essay’s “done” sends nothing', async () => {
+  const rows = [];
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_({}, subBackend_(rows)) });
   await wait(300);
-  if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return ['adoptMarks_ or questionItems is not reachable — renamed? The loop was NOT checked'];
-  const lib = mpLibrary_(w, rows);
-  try {
-    w.__t.USER(WD_ADA);
-    w.adoptMarks_();
-    await wait(200);
-  } finally { lib.put(); }
-  const bad = [];
-  const m = sent.filter(b => b.action === 'markDone');
-  const sizes = m.map(b => (b.items || []).length);
-  if (JSON.stringify(sizes) !== '[50,10]') bad.push('sixty unnamed rows went up as ' + m.length + ' request(s) of ' + JSON.stringify(sizes.slice(0, 8)) + (sizes.length > 8 ? '…' : '') + ' — wanted two, [50,10], and then nothing');
-  const keys = new Set();
-  m.forEach(b => (b.items || []).forEach(i => keys.add(i.key)));
-  if (keys.size !== 60) bad.push(keys.size + ' different rows were sent — wanted all 60, each once');
-  const first = (m[0] && m[0].items && m[0].items[0]) || {};
-  if (!/Q1/.test(String(first.label || '')) || first.words !== 'Loop question 1.') bad.push('the first row went up as ' + JSON.stringify(first) + ' — wanted its name and its words');
-  /* AND A SECOND PAYLOAD IN THE SAME VISIT SENDS NOTHING MORE. */
-  const n = m.length;
-  w.adoptMarks_();
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key'] || !A['qp-send'] || !A['qp-check'] || typeof w.guideBox_ !== 'function') return ['the keypad, Send, Check or the worksheet box is not reachable — the gold key was NOT pressed'];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  const base = { kind: 'question', marks: 2, subject: 'Maths', sub: 'Paper 1 (Non-calculator) — November 2018',
+    row: { row_id: 'Q-KP-1', paper_id: 'P-KP', subject: 'Maths', name: 'Paper 1 (Non-calculator) — November 2018' } };
+  const FREE = Object.assign({}, base, { key: 'q:Q-KP-FREE', name: 'Q15', answerType: 'calculation', accept: '', html: '<p>Work out the area.</p>', answer: '<b>42</b>' });
+  const CHK = Object.assign({}, base, { key: 'q:Q-KP-CHK', name: 'Q3', accept: '15', html: '<p>Work out 3 &times; 5.</p>', answer: '<b>15</b>' });
+  const ESS = { kind: 'question', key: 'q:Q-KP-ESS', name: 'Q5', marks: 40, subject: 'English Language', sub: 'Paper 1 — June 2017', answerType: 'written', accept: '',
+    row: { row_id: 'Q-KP-ESS', paper_id: 'P-KP-E', subject: 'English Language', name: 'Paper 1 — June 2017' }, html: '<p>Write a story.</p>', answer: '<b>Level 4</b> compelling' };
+  const PR = { kind: 'practical', name: 'Rates of reaction', key: 'pr:PR-KP', subject: 'Chemistry', sub: 'Chemistry · Required practical · 60 min' };
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => held().concat([FREE, CHK, ESS, PR]);
+  const items = key => [].concat(...sent.filter(b => b.action === 'submitAnswer').map(b => b.items || [])).filter(i => i.key === key);
+  const pad = () => d.getElementById('kp');
+  const press = v => { const b = pad() && pad().querySelector('.kp-key[data-v="' + v + '"]'); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the pad'); };
+  const kd = (el, k, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, o || {})));
+  /* A MATHS BOX WITH NO SCHEME: the plain Send beside it, and the gold key is that Send. */
+  const fc = subDraw_(w, FREE);
+  const fi = fc.querySelector('.kp-in');
+  if (!fi || !fc.querySelector('.qp-send[data-do="qp-send"]')) return bad.concat(['the maths box with no scheme drew no pad box or no plain Send — nothing to press']);
+  fi.focus();
+  press('4'); press('2');
+  press('!done');
   await wait(60);
-  if (sent.filter(b => b.action === 'markDone').length !== n) bad.push('a second payload in the same visit sent the rows again');
+  const f1 = items('q:Q-KP-FREE');
+  if (f1.length !== 1 || f1[0].answer !== '42' || f1[0].verdict !== 'sent') bad.push('the gold key on a maths box with no scheme sent ' + JSON.stringify(f1) + ' — wanted one submission, 42, sent (the review: 0 rows, and the pad went away)');
+  if ((fc.querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('after the gold key the box’s line says ' + JSON.stringify((fc.querySelector('.qp-verdict') || {}).textContent) + ' — wanted its verdict, Sent');
+  if (subSlotOf_(fc).textContent !== 'Sent') bad.push('after the gold key the card says ' + JSON.stringify(subSlotOf_(fc).textContent));
+  if (pad() && !pad().hidden) bad.push('the gold key sent and left the pad up');
+  /* AND ENTER ON A LAPTOP, the same act. */
+  fi.focus();
+  kd(fi, '3');
+  kd(fi, 'Enter');
+  await wait(60);
+  const f2 = items('q:Q-KP-FREE');
+  if (f2.length !== 2 || f2[1].answer !== '423') bad.push('Enter on a laptop in the same box sent ' + JSON.stringify(f2.map(i => i.answer)) + ' — wanted a second submission, 423');
+  /* TWO WORKSHEET BOXES SIDE BY SIDE: the key sends the box it is typing in, and only that one. */
+  const sh = d.createElement('div');
+  d.body.appendChild(sh);
+  sh.innerHTML = w.guideBox_(PR, 'iv', 'Independent variable — the one thing you will change') + w.guideBox_(PR, 'dv', 'Dependent variable — what you will measure');
+  const dv = sh.querySelectorAll('.kp-in')[1];
+  if (!dv || sh.querySelectorAll('.qp-send').length !== 2) bad.push('two worksheet boxes did not draw two boxes with a Send each');
+  else {
+    dv.focus();
+    ['t', 'i', 'm', 'e'].forEach(press);
+    press('!done');
+    await wait(60);
+    const p = items('pr:PR-KP#dv');
+    if (p.length !== 1 || p[0].answer !== 'Time' || p[0].verdict !== 'sent') bad.push('the gold key on a worksheet box sent ' + JSON.stringify(p) + ' — wanted one submission of its own box, Time, sent');
+    if (items('pr:PR-KP#iv').length) bad.push('the gold key in one worksheet box sent the box beside it');
+    if ((dv.closest('.qp-mark').querySelector('.qp-verdict') || {}).textContent !== 'Sent') bad.push('the worksheet box’s own line does not say Sent');
+  }
+  /* A BOX WITH A SCHEME: Check, as before. */
+  const cc = subDraw_(w, CHK);
+  const ci = cc.querySelector('.kp-in');
+  ci.focus();
+  press('1'); press('5'); press('!done');
+  await wait(60);
+  const c1 = items('q:Q-KP-CHK');
+  if (c1.length !== 1 || c1[0].verdict !== 'right' || (cc.querySelector('.qp-verdict') || {}).textContent !== 'Correct') bad.push('the gold key on a box with a scheme did not Check it: ' + JSON.stringify(c1));
+  /* AN ESSAY: its key says "done", and neither it nor Ctrl+Enter sends anything — its Send is a tile. */
+  const eh = d.createElement('div');
+  d.body.appendChild(eh);
+  eh.innerHTML = w.questionCard_(ESS, 0);
+  const ei = eh.querySelector('.kp-in[data-kp-essay]');
+  if (!ei) bad.push('the forty-mark English question drew no essay sheet — its "done" was NOT pressed');
+  else {
+    if (!eh.querySelector('.qp-send[data-do="qp-send"]')) bad.push('with AI marking off the essay sheet has no Send of its own — it could never reach the account');
+    ei.focus();
+    ['O', 'n', 'c', 'e'].forEach(c => kd(ei, c));
+    press('!done');
+    kd(ei, 'Enter', { ctrlKey: true });
+    await wait(60);
+    if (items('q:Q-KP-ESS').length) bad.push('the essay’s "done" (or Ctrl+Enter) sent it — on an essay the key only puts the pad away (note 312)');
+  }
+  w.stuffItemsAll_ = held;
   w.__t.USER(null);
   return bad;
 });
 
-/* ---------- AND A REFUSED SEND IS SENT AGAIN BY THE NEXT PAYLOAD ------------------------------------------
-   `ATTEMPTS_SENT` REMEMBERS WHAT WENT UP, NOT WHAT WAS TRIED. `attemptsSync_` has always promised that a
-   failure — no connection, a "Busy", an old backend's refusal — clears the mark so the next load tries
-   again; a key marked sent before the reply came back, and left marked when it failed, is a backlog
-   that waits for the next visit instead of the next payload, which on a phone that opened offline is
-   the fresh payload a second later. */
-check('a markDone the backend refused is sent again by the next payload in the same visit', async () => {
-  const p = Object.assign(payload(), { features: ['markDone', 'attemptWords'], attempts: { for: 'P7', mine: {
-    'q:Q-P-WD-6': { first: '2026-10-04', last: '2026-10-04', times: 1 } }, keepsWords: 1 } });
-  let n = 0;
-  const reply = b => (b.action !== 'markDone' ? { success: true }
-    : ++n === 1 ? { success: false, error: 'Busy — try again in a moment' } : { success: true, attempts: {} });
-  const { w, sent } = boot({ payload: p, reply,
-    before: win => { win.localStorage.setItem('done:u:P7:q:Q-P-WD-7', '2026-10-06'); } });
-  await wait(300);
-  if (typeof w.adoptMarks_ !== 'function' || typeof w.questionItems !== 'function') return ['adoptMarks_ or questionItems is not reachable — renamed? The retry was NOT checked'];
-  const lib = mpLibrary_(w, wdBank_());
+/* ---------- WHAT WAS DONE BEFORE THE SWITCH BECOMES A SUBMISSION, ONCE, FOR ITS OWN PERSON (decided 10 Oct) ------
+   The live Ledger has 55 `attempts` rows for 5 learners and no `answers` tab: a child's typed answers are
+   on their device and nowhere else. `subMigrate_` (js/submit.js) turns each question this person had DONE
+   (a `done:` date, or an old backend's `DATA.attempts` row) that holds their own non-empty answer and has
+   no account submission into ONE submission, marked by the site's own marker, with an id made from the
+   person and the key. Real rows of data/questions.json through the real loader: an ordering, a pick of
+   two, a maths answer with a scheme and one without. */
+check('submission: what a child had done before the switch becomes one submission each, marked as its press would be — once, on any device, and never another person’s', async () => {
+  const LIB = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const IDS = ['Q-1MA1-2406-1F-4', 'Q-1MA1-2406-2F-1', 'Q-STA-KS2-2024-P2-2', 'Q-STA-KS2-2024-P2-10', 'Q-9MA031-2206-1a', 'Q-9MA031-2206-1aii', 'Q0109', 'Q0110'];
+  const lib = LIB.filter(r => IDS.indexOf(r.row_id) !== -1);
+  if (lib.length !== IDS.length) return ['data/questions.json no longer has ' + IDS.filter(id => !lib.some(r => r.row_id === id)).join(', ') + ' — nothing was migrated'];
+  const serve = u => (/data\/questions\.json/.test(u) ? lib : /data\/videos\.json/.test(u) ? [] : undefined);
+  const K = id => 'q:' + id;
+  const AT = Date.UTC(2026, 9, 6, 15, 0, 0);
+  /* THE DEVICE AS THE OLD CODE LEFT IT: Ada's done dates and answers, a draft she never did, a key the
+     library has not got, an empty answer, one the account already has — and her brother's, and a
+     signed-out answer, on the same iPad. */
+  const DEVICE = {
+    'familyUser': JSON.stringify(ANS_ADA),
+    ['done:u:P7:' + K('Q-1MA1-2406-1F-4')]: '2026-10-05', ['ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: '3,4,5,2,1', ['ansAt:ans:u:P7:' + K('Q-1MA1-2406-1F-4')]: String(AT),
+    ['done:u:P7:' + K('Q-STA-KS2-2024-P2-2')]: '2026-10-06', ['ans:u:P7:' + K('Q-STA-KS2-2024-P2-2')]: '4,1',
+    ['done:u:P7:' + K('Q-9MA031-2206-1a')]: '2026-10-06', ['ans:u:P7:' + K('Q-9MA031-2206-1a')]: '5',
+    ['done:u:P7:' + K('Q0109')]: '2026-10-07', ['ans:u:P7:' + K('Q0109')]: '42',
+    ['done:u:P7:' + K('Q0110')]: '2026-10-07', ['ans:u:P7:' + K('Q0110')]: '  ',
+    ['done:u:P7:q:Q-GONE-FROM-LIBRARY']: '2026-10-07', ['ans:u:P7:q:Q-GONE-FROM-LIBRARY']: 'x',
+    ['done:u:P7:' + K('Q-STA-KS2-2024-P2-10')]: '2026-10-07', ['ans:u:P7:' + K('Q-STA-KS2-2024-P2-10')]: '2,3',
+    ['ans:u:P7:' + K('Q-9MA031-2206-1aii')]: '0.92',
+    ['done:u:P8:' + K('Q0109')]: '2026-10-07', ['ans:u:P8:' + K('Q0109')]: '99',
+    ['ans:' + K('Q0110')]: '77',
+  };
+  const seed = (extra, drop) => win => { Object.keys(DEVICE).concat(Object.keys(extra || {})).forEach(k => { if (!(drop || []).includes(k)) win.localStorage.setItem(k, k in (extra || {}) ? extra[k] : DEVICE[k]); }); };
+  const rows = [];
+  rows.push({ pid: 'P7', id: '1760000000201-ac0001', key: K('Q-STA-KS2-2024-P2-10'), answer: '2,3', verdict: 'right', at: Date.now() - 5000 });
+  const sub = (b, feat) => Object.assign(payload(), { features: feat || SUB_FEATURES, submissions: subMine_(rows, 'P7') });
+  const { w, sent } = boot({ payload: sub(), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: seed() });
+  await wait(700);
+  if (typeof w.subMigrate_ !== 'function' || typeof w.subMigrateId_ !== 'function') return ['subMigrate_ / subMigrateId_ not reachable — renamed? Nothing was migrated'];
   const bad = [];
-  const keys = b => (b.items || []).map(i => i.key).sort().join(', ');
-  try {
-    w.__t.USER(WD_ADA);
-    w.adoptMarks_();
-    await wait(40);
-    /* THE NEXT PAYLOAD, as the fresh one lands after the stored one. */
-    w.adoptMarks_();
-    await wait(40);
-  } finally { lib.put(); w.__t.USER(null); }
-  const m = sent.filter(b => b.action === 'markDone');
-  if (m.length !== 2) bad.push('after a refused send the next payload made ' + (m.length - 1) + ' more markDone request(s) — wanted 1, the same rows again');
-  else if (keys(m[1]) !== keys(m[0]) || keys(m[0]) !== 'q:Q-P-WD-6, q:Q-P-WD-7') bad.push('the retry sent ' + keys(m[1]) + ' after a refusal of ' + keys(m[0]) + ' — wanted the same two rows, q:Q-P-WD-6 and q:Q-P-WD-7');
+  const items = s => [].concat(...s.filter(b => b.action === 'submitAnswer').map(b => b.items || []));
+  const of = (s, id) => items(s).filter(i => i.key === K(id));
+  const want = [['Q-1MA1-2406-1F-4', '3,4,5,2,1', 'right'], ['Q-STA-KS2-2024-P2-2', '4,1', 'right'], ['Q-9MA031-2206-1a', '5', 'wrong'], ['Q0109', '42', 'sent']];
+  want.forEach(([id, a, v]) => {
+    const got = of(sent, id);
+    if (got.length !== 1 || got[0].answer !== a || got[0].verdict !== v) bad.push(id + ' done before the switch went up as ' + JSON.stringify(got) + ' — wanted one submission, ' + a + ', ' + v + ' by the site’s own marker');
+    else if (got[0].id !== w.subMigrateId_('P7', K(id)) || !/^\d{10,16}-[a-z0-9]{3,16}$/.test(got[0].id)) bad.push(id + ' went up with id ' + got[0].id + ' — wanted the one made from the person and the key, in the server’s shape');
+  });
+  const f4 = of(sent, 'Q-1MA1-2406-1F-4')[0];
+  if (f4 && f4.at !== AT) bad.push('the migrated press is dated ' + f4.at + ' — wanted its answer’s own last edit (' + AT + '), so a press made since is later');
+  if (f4 && !f4.label) bad.push('the migrated press carries no name — the weekly email prints the name a parent reads');
+  [['Q-9MA031-2206-1aii', 'a draft never done'], ['Q0110', 'an empty answer'], ['Q-STA-KS2-2024-P2-10', 'a question the account already has a submission for']].forEach(([id, what]) => {
+    if (of(sent, id).length) bad.push(what + ' (' + id + ') was sent: ' + JSON.stringify(of(sent, id)));
+  });
+  if (items(sent).some(i => i.key === 'q:Q-GONE-FROM-LIBRARY')) bad.push('a key the library has not got was sent — nothing can name or mark it');
+  if (items(sent).some(i => i.answer === '99' || i.answer === '77')) bad.push('ANOTHER PERSON’S ANSWER, OR A SIGNED-OUT ONE, WAS SENT AS ADA’S: ' + JSON.stringify(items(sent).filter(i => i.answer === '99' || i.answer === '77')));
+  if (w.localStorage.getItem('ans:u:P8:' + K('Q0109')) !== '99' || w.localStorage.getItem('done:u:P8:' + K('Q0109')) !== '2026-10-07' || w.localStorage.getItem('subLast:u:P8') || w.localStorage.getItem('subMigrated:u:P8')) bad.push('Ben’s keys on the same device were touched by Ada’s migration');
+  if (!w.localStorage.getItem('subMigrated:u:P7')) bad.push('the migration did not mark itself done for Ada on this device');
+  /* ON THE CARD: the migrated verdict, like any press. */
+  const ord = w.stuffItemsAll_().find(it => it.key === K('Q-1MA1-2406-1F-4'));
+  if (!ord) bad.push('the ordering did not come through the loader');
+  else if (subSlotOf_(subDraw_(w, ord)).textContent !== 'Correct') bad.push('the migrated ordering’s card says ' + JSON.stringify(subSlotOf_(subDraw_(w, ord)).textContent) + ' — wanted Correct');
+  const n1 = rows.length;
+  /* A SECOND LOAD ON THE SAME DEVICE, AND THE PASS RUN AGAIN IN THE SAME VISIT: nothing more. */
+  const sent1 = items(sent).length;
+  w.__t.DATA().submissions = subMine_(rows, 'P7');
+  w.adoptMarks_();
+  w.localStorage.removeItem('subMigrated:u:P7');
+  w.subMigrate_();
+  await wait(60);
+  if (items(sent).length !== sent1) bad.push('the migration sent again on the same device — ' + (items(sent).length - sent1) + ' more');
+  const store = {};
+  for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); store[k] = w.localStorage.getItem(k); }
+  const again = boot({ payload: sub(), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: win => { Object.keys(store).forEach(k => win.localStorage.setItem(k, store[k])); } });
+  await wait(700);
+  if (items(again.sent).length) bad.push('a reload of the same device migrated again: ' + JSON.stringify(items(again.sent).map(i => i.key)));
+  /* THE COMPUTER — the same answers, no flag — after the iPad's presses reached the account: none sent. */
+  const pc = boot({ payload: sub(), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: seed() });
+  await wait(700);
+  if (items(pc.sent).length) bad.push('a second device migrated questions the account already had from the first: ' + JSON.stringify(items(pc.sent).map(i => i.key)));
+  /* AND ONE THAT LOADED BEFORE THE ACCOUNT HAD THEM — its payload the account as it was before the iPad's
+     presses arrived, the one real press on it: the same ids, so the account writes each once. */
+  const early = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES, submissions: subMine_(rows.slice(0, 1), 'P7') }), reply: ansBackend_({}, subBackend_(rows)), serve: serve, before: seed() });
+  await wait(700);
+  const ids1 = want.map(([id]) => (of(sent, id)[0] || {}).id).sort().join();
+  const ids2 = want.map(([id]) => (of(early.sent, id)[0] || {}).id).sort().join();
+  if (ids1 !== ids2) bad.push('two devices migrated the same questions under different ids — ' + ids1 + ' / ' + ids2 + ' — the account would hold each twice');
+  if (rows.length !== n1) bad.push('the same questions migrated from a second device made ' + (rows.length - n1) + ' more row(s) on the account');
+  /* AN OLD BACKEND STILL LIVE: its `attempts` row is a question done, the press is queued (not sent: it cannot
+     take it), and it goes up the first time the backend can. */
+  const oldRows = [];
+  const old = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES, attempts: { for: 'P7', mine: { [K('Q-1MA1-2406-2F-1')]: { first: '2026-10-01', last: '2026-10-02', times: 1 } } } }),
+    reply: ansBackend_({}, subBackend_(oldRows)), serve: serve,
+    before: seed({ ['ans:u:P7:' + K('Q-1MA1-2406-2F-1')]: '2,5,4,1,3' }) });
+  await wait(700);
+  if (items(old.sent).length) bad.push('a backend without submitAnswer was sent the migrated presses');
+  let q = [];
+  try { q = JSON.parse(old.w.localStorage.getItem('subQ:u:P7') || '[]'); } catch (e) {}
+  const q2 = q.find(i => i.key === K('Q-1MA1-2406-2F-1'));
+  if (!q2 || q2.verdict !== 'right' || q2.answer !== '2,5,4,1,3') bad.push('a question in an old backend’s `attempts` was not queued as a submission: ' + JSON.stringify(q.map(i => [i.key, i.verdict])));
+  else if (q2.at !== new Date(2026, 9, 2, 12).getTime()) bad.push('the attempts row’s press is dated ' + q2.at + ' — wanted noon on its last day');
+  old.w.__t.DATA().features = SUB_FEATURES;
+  old.w.__t.DATA().submissions = { for: 'P7', mine: {} };
+  old.w.adoptMarks_();
+  await wait(80);
+  if (!of(old.sent, 'Q-1MA1-2406-2F-1').length) bad.push('the queued migration did not go up once the backend could take it');
   return bad;
 });
 
-/* ---------- A REPLY WITHOUT THE FLAGS KEEPS THE ONES THE LOAD SAID ------------------------------------------
-   `attemptsAdopt_` puts what a `markDone` reply says over what the load said. A backend that does not
-   send `named` and `worded` must not wipe them: a row the load said is named and worded would read as
-   neither the moment any reply mentioned it, and the next sync would send it again. A reply that DOES
-   carry them is taken, and the days are always the reply's. */
-check('a markDone reply without named or worded keeps the flags the load said, and takes the reply’s days', async () => {
-  const p = Object.assign(payload(), { features: ['markDone'], attempts: { for: 'P7', mine: {
-    'q-flag-both': { first: '2026-10-01', last: '2026-10-01', times: 1, named: 1, worded: 1 },
-    'q-flag-name': { first: '2026-10-01', last: '2026-10-01', times: 1, named: 1 },
-    'q-flag-none': { first: '2026-10-01', last: '2026-10-01', times: 1 },
-  } } });
-  const { w } = boot({ payload: p });
+/* ---------- A TYPED ANSWER IS ON THE ACCOUNT ONLY AS IT WAS SENT (found at the merge with 317) --------------------
+   `ansOnAccount_` asked "stamped and not due", and since submissions a typed answer is stamped on every key
+   and never due — so to a backend with `saveAnswers` and `submitAnswer` a draft the store refused counted as
+   on the account: no "Not saved" under it, and no "Leave site?" before a reload took it. */
+check('submission: a typed draft the store refuses is not on the account until it is sent — the line says so, and leaving asks first', async () => {
+  const rows = [];
+  const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_({}, subBackend_(rows)), before: signedInAs_(ANS_ADA) });
   await wait(300);
-  if (typeof w.attemptsAdopt_ !== 'function') return ['attemptsAdopt_ is not reachable — renamed? The flags were NOT checked'];
+  const need = ansNeed_(w).concat(['keepAtRisk_', 'ansOnAccount_'].filter(n => typeof w[n] !== 'function'));
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was refused'];
   const bad = [];
-  w.__t.USER(WD_ADA);
-  const day = { first: '2026-10-01', last: '2026-10-07', times: 2 };
-  w.attemptsAdopt_('P7', {
-    'q-flag-both': Object.assign({}, day),
-    'q-flag-name': Object.assign({}, day),
-    'q-flag-none': Object.assign({ worded: 1 }, day),
-    'q-flag-new': { first: '2026-10-07', last: '2026-10-07', times: 1 },
-  });
-  const a = (w.__t.DATA().attempts || {}).mine || {};
-  const flags = q => (a[q] && a[q].named ? 'named' : '-') + ' ' + (a[q] && a[q].worded ? 'worded' : '-');
-  [['q-flag-both', 'named worded', 'a named, worded row'], ['q-flag-name', 'named -', 'a named row'],
-   ['q-flag-none', '- worded', 'a row the reply says is now worded'], ['q-flag-new', '- -', 'a row new in the reply']].forEach(([q, want, what]) => {
-    if (flags(q) !== want) bad.push(what + ' (' + q + ') reads "' + flags(q) + '" after a reply — wanted "' + want + '"');
-  });
-  ['q-flag-both', 'q-flag-name', 'q-flag-none'].forEach(q => {
-    if (!a[q] || a[q].last !== '2026-10-07' || a[q].times !== 2) bad.push(q + ' kept ' + JSON.stringify(a[q]) + ' — the reply’s days must win');
-  });
+  const c = ansCards_(w, 'R');
+  const k = 'ans:u:P7:' + c.words.key;
+  const real = w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem = function (key, v) {
+    if (/^(ans|pad|draft):/.test(String(key))) throw new w.DOMException('The quota has been exceeded.', 'QuotaExceededError');
+    return real.call(this, key, v);
+  };
+  try {
+    ansType_(w, c.ta(), 'because the heat spreads out');
+    if (c.saidFor(c.words) !== 'Not saved — this browser is not keeping it') bad.push('a typed draft the store refused says ' + JSON.stringify(c.saidFor(c.words)) + ' — it is on no device and on no account');
+    if (w.keepAtRisk_().indexOf(k) === -1) bad.push('a typed draft the store refused is not counted as at risk: ' + JSON.stringify(w.keepAtRisk_()));
+    const ev = new w.Event('beforeunload', { cancelable: true });
+    w.dispatchEvent(ev);
+    if (!ev.defaultPrevented) bad.push('leaving with a refused, unsent draft did not ask first');
+    /* SENT: the account holds exactly this, so nothing is at risk and the line says where it went. */
+    const send = c.ta().closest('.qp-mark') && c.ta().closest('.qp-mark').querySelector('[data-do="qp-send"]');
+    if (!send) bad.push('the worded box has no Send — nothing to send it with');
+    else {
+      send.click();
+      await wait(60);
+      if (rows.length !== 1) bad.push('Send went up ' + rows.length + ' time(s)');
+      if (w.keepAtRisk_().indexOf(k) !== -1) bad.push('an answer the account holds, exactly as sent, is still counted as at risk');
+      if (c.saidFor(c.words) !== 'Sent to Ada’s account') bad.push('after Send the line says ' + JSON.stringify(c.saidFor(c.words)));
+      ansType_(w, c.ta(), 'because the heat spreads out evenly');
+      if (w.keepAtRisk_().indexOf(k) === -1) bad.push('typed on after Send, the refused draft is counted as on the account again');
+    }
+  } finally { w.Storage.prototype.setItem = real; }
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- AN EMPTY SUBMISSION NEVER EMPTIES A BOX (decided 10 Oct) ---------------------------------------- */
+check('submission: an empty answer on the account is nobody’s latest and never written over what a box holds', async () => {
+  const { w } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES }), reply: ansBackend_({}, subBackend_([])) });
+  await wait(300);
+  if (typeof w.subAdopt_ !== 'function') return ['subAdopt_ not reachable — nothing was adopted'];
+  const bad = [];
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  w.stuffItemsAll_ = () => [SUB_SUM];
+  const card = subDraw_(w, SUB_SUM);
+  ansType_(w, card.querySelector('.qp-ans-in'), '15');
+  card.querySelector('.qp-check').click();
+  await wait(40);
+  w.__t.DATA().submissions = { for: 'P7', mine: { 'q:Q-SUB-1': { answer: '', verdict: 'wrong', at: Date.now() + 60000, id: '1760000000301-em0001' } } };
+  w.adoptMarks_();
+  await wait(40);
+  if (card.querySelector('.qp-ans-in').value !== '15' || w.localStorage.getItem('ans:u:P7:q:Q-SUB-1') !== '15') bad.push('an empty submission emptied the box: ' + JSON.stringify(card.querySelector('.qp-ans-in').value));
+  if (subSlotOf_(card).textContent !== 'Correct') bad.push('an empty submission became the latest: the card says ' + JSON.stringify(subSlotOf_(card).textContent));
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- "SENT", THEN A LETTER, AFTER AI MARKING WENT AWAY MID-VISIT (review of 9 Oct) ----------------------- */
+check('submission: after AI marking switches off, the plain Send says Sent, and the next letter takes it off like any verdict', async () => {
+  const rows = [];
+  const AIQ = { kind: 'question', key: 'q:Q-OFF-AI', name: 'Q9', marks: 3, subject: 'Science', sub: 'Explain', answerType: 'explain',
+    row: { row_id: 'Q-OFF-AI', paper_id: 'P-OFF', subject: 'Science', name: 'Explain' }, html: '<p>Explain why.</p>', answer: '<b>Because</b> of the heat' };
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: SUB_FEATURES.concat(['aiMark']), aiMarking: true }),
+    reply: ansBackend_({}, subBackend_(rows, b => (b.action === 'aiMark' ? { success: false, why: 'ai-off', message: 'AI marking isn’t switched on' } : undefined))) });
+  await wait(300);
+  const bad = [], A = w.__t.ACTIONS;
+  w.__t.USER(Object.assign({}, ANS_ADA));
+  w.stuffItemsAll_ = () => [AIQ];
+  const h = w.document.createElement('div');
+  w.document.body.appendChild(h);
+  h.innerHTML = w.questionCard_(AIQ, 0) + '<div class="tile-row">' + w.questionTiles_(AIQ) + '</div>';
+  const inp = () => h.querySelector('.qp-ans-in');
+  const out = () => (h.querySelector('.qp-verdict') || {}).textContent;
+  const saved = () => (h.querySelector('.qp-saved') || {}).textContent;
+  ansType_(w, inp(), 'because it is hot');
+  A['qp-ai'](h.querySelector('.qp-ai-go'));
+  await wait(80);
+  const send = h.querySelector('.qp-ai [data-do="qp-send"]');
+  if (!send) return ['the server said ai-off and the box was left with no Send'];
+  if (!/switched on/.test(out())) bad.push('the line does not say AI marking is off: ' + JSON.stringify(out()));
+  /* TYPING WHILE THE LINE STILL SAYS IT KEEPS IT — it is the reason there is no mark. */
+  ansType_(w, inp(), 'because it is hot.');
+  if (!/switched on/.test(out())) bad.push('a letter typed under "AI marking isn’t switched on" took it off');
+  A['qp-send'](send);
+  await wait(60);
+  if (out() !== 'Sent' || rows.length !== 1) bad.push('the plain Send after ai-off gave ' + JSON.stringify(out()) + ' and ' + rows.length + ' row(s) — wanted Sent and one');
+  ansType_(w, inp(), 'because it is hot. And');
+  if (out() === 'Sent') bad.push('a letter typed after "Sent" left "Sent" over an answer nobody sent (the review’s finding)');
+  if (saved() !== 'On this device until you send it') bad.push('the line under the box says ' + JSON.stringify(saved()));
+  ansType_(w, inp(), 'because it is hot.');
+  if (out() !== 'Sent') bad.push('typed back to the answer sent, the line says ' + JSON.stringify(out()) + ' — wanted Sent, the verdict of that answer');
   w.__t.USER(null);
   return bad;
 });
@@ -12528,7 +12762,7 @@ check('a markDone reply without named or worded keeps the flags the load said, a
    answered by the deployed version, the Sunday trigger runs the code as saved), is told to make a new
    version rather than read as the new email. The fixture is the body `digestRender_` writes. */
 check('the weekly parent email card is an admin\'s, says the switch and the words, and Preview opens the emails without sending one', async () => {
-  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0, words: true,
+  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0, words: true, submissions: true,
     week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
     emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
                text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\n'
@@ -12603,11 +12837,20 @@ check('the weekly parent email card is an admin\'s, says the switch and the word
   const oldDoc = new w.DOMParser().parseFromString('<div>' + oldSheet + '</div>', 'text/html').body.firstChild;
   const first = oldDoc && oldDoc.firstElementChild;
   if (!first || !first.classList.contains('digest-old') || !first.querySelector('b') || !/new version/.test(first.textContent)) bad.push('a preview reply with no `words` (a web-app version from before the words) is not told first, in bold, to make a new version: ' + JSON.stringify(first && first.outerHTML));
-  /* AND THE WEEKLY SHEET, WITH NO attempts TAB: the reason, not "nobody has done a question". */
-  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, attempts: false, words: true,
-    warning: 'The Ledger has no attempts tab, so nothing says what anybody did.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
-  if (!/<b>The Ledger has no attempts tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no attempts tab does not say so in bold, or still says nobody has done a question');
-  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', attempts: true, words: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
+  /* AND THE WEEKLY SHEET, WITH NO submissions TAB: the reason, not "nobody has done a question". */
+  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, submissions: false, words: true,
+    warning: 'The Ledger has no submissions tab, so nothing says what anybody sent.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
+  if (!/<b>The Ledger has no submissions tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no submissions tab does not say so in bold, or still says nobody has done a question');
+  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', submissions: true, words: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
+  /* AND A DEPLOYED VERSION FROM BEFORE THE SUBMISSIONS (review of 9 Oct): it answers `words: true` and
+     `attempts:`, never `submissions:`, and plans from a tab nothing writes since the phones took the new
+     code. Its empty week is not a quiet week, and the sheet says which, first and in bold. */
+  const pre = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, words: true, attempts: true, warning: '',
+    week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
+  const preDoc = new w.DOMParser().parseFromString('<div>' + pre + '</div>', 'text/html').body.firstChild;
+  const preFirst = preDoc && preDoc.firstElementChild;
+  if (!preFirst || !preFirst.classList.contains('digest-old') || !preFirst.querySelector('b') || !/attempts/.test(preFirst.textContent) || !/new version/.test(preFirst.textContent)) bad.push('a preview reply from a backend before the submissions (words, attempts, no submissions) is not told first, in bold, that the live web app still reads the attempts tab: ' + JSON.stringify(preFirst && preFirst.outerHTML));
+  if (/digest-old/.test(w.digestSheet_(Object.assign({}, preview)))) bad.push('the new backend’s reply (words and submissions) is told it is old');
   t.USER(null);
   return bad;
 });
@@ -16294,7 +16537,7 @@ check('answers: an edit not yet sent beats the account’s copy, even a later on
 });
 
 check('answers: a backend without saveAnswers is sent nothing, and the box keeps its answer on the device as it always did', async () => {
-  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ['markDone'] }) });
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: [] }) });
   await wait(300);
   const need = ansNeed_(w);
   if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
@@ -17922,7 +18165,7 @@ check('drafts across tabs, the booking\'s addresses, and nothing kept for ever',
 });
 
 /* ---------- SIGNING IN ON A SHARED iPAD ------------------------------------------------------------- */
-check('sign out, then the next child signs in: none of the last child’s messages, stars or done dates are on the screen', async () => {
+check('sign out, then the next child signs in: none of the last child’s messages, stars or submissions are on the screen', async () => {
   /* BEN'S INBOX DOES NOT ARRIVE — the server is slow, then refuses. That is the moment the last child's
      messages, if they were still held, are what the column falls back to drawing (`loadMessages` keeps
      what it had on a failure, so a blip does not read as an empty inbox). */
@@ -17939,12 +18182,21 @@ check('sign out, then the next child signs in: none of the last child’s messag
   t.dmSeed([{ id: 'M1', mine: false, read: false, body: 'Ada — a private note from your tutor', at: '2026-10-08 09:10',
               withId: 'P2', withName: 'Sasha Matola', fromName: 'Sasha Matola' }]);
   t.star('q:Q-ADA-STAR');
-  t.DATA().attempts = { for: 'P7', mine: { 'q:Q-ADA': { first: '2026-10-08', last: '2026-10-08', times: 1 } } };
+  /* ADA'S LATEST SUBMISSION, AS THE PAYLOAD BROUGHT IT, AND ONE SHE MADE HERE. */
+  t.DATA().submissions = { for: 'P7', mine: { 'q:Q-ADA': { answer: '15', verdict: 'right', at: Date.now() - 1000, id: '1760000000001-ad0001' } } };
+  if (typeof w.subAdopt_ === 'function') w.subAdopt_();
+  if (typeof w.subRecord_ === 'function') w.subRecord_('ans:u:P7:q:Q-ADA-2', '16', 'wrong');
+  const QADA = { kind: 'question', key: 'q:Q-ADA', name: 'Q1', marks: 1, row: { row_id: 'Q-ADA', paper_id: 'P-ADA', subject: 'Maths', name: 'Ada' }, html: '<p>Work out 3 × 5.</p>', accept: '15' };
+  const slotFor = x => { const h = d.createElement('div'); h.innerHTML = '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; const s = h.querySelector('.qcard-verdict'); return s ? s.textContent : ''; };
+  if (slotFor(QADA) !== 'Correct') bad.push('Ada’s latest submission was not on her card to begin with (' + JSON.stringify(slotFor(QADA)) + '), so its absence below proves nothing');
   try { w.localStorage.setItem('favs', JSON.stringify(['q:Q-ADA-STAR'])); } catch (e) {}
   t.go('dm', false, true); w.paint('dm');
   if (!/private note/.test(d.getElementById('s-dm').textContent)) bad.push('the seeded message was not drawn for Ada, so its absence below proves nothing');
   t.go('account', false, true);
   t.ACTIONS.signout(d.createElement('button'));
+  /* AT ONCE, before any payload lands: the payload's per-person keys are nobody's. */
+  if ((t.DATA().submissions || {}).for === 'P7' || Object.keys((t.DATA().submissions || {}).mine || {}).length) bad.push('signing out left Ada’s submissions on the device’s payload: ' + JSON.stringify(t.DATA().submissions).slice(0, 120));
+  if (slotFor(QADA)) bad.push('signed out, a card still says Ada’s verdict: ' + JSON.stringify(slotFor(QADA)));
   const so = sent.filter(b => b.action === 'signOut');
   await wait(50);
   if (!sent.some(b => b.action === 'signOut' && b.token === 'tok-P7')) bad.push('sign-out did not end Ada’s session on the server: ' + JSON.stringify(so));
@@ -17960,7 +18212,13 @@ check('sign out, then the next child signs in: none of the last child’s messag
   w.paint('dm');
   if (/private note/.test(d.getElementById('s-dm').textContent)) bad.push('ADA’S PRIVATE MESSAGE IS ON BEN’S MESSAGES COLUMN, drawn in place of his own inbox that did not arrive');
   if (/Saved/.test(w.favTile_({ key: 'q:Q-ADA-STAR', kind: 'question' }))) bad.push('Ada’s star is lit for Ben');
-  if (Object.keys(w.attemptsMine_()).length) bad.push('Ada’s done dates are held for Ben: ' + JSON.stringify(w.attemptsMine_()));
+  const S = t.DATA().submissions || {};
+  if (S.for === 'P7' || Object.keys(S.mine || {}).length) bad.push('Ada’s submissions are still in the payload Ben is drawn from: ' + JSON.stringify(S));
+  if (slotFor(QADA) || slotFor(Object.assign({}, QADA, { key: 'q:Q-ADA-2' }))) bad.push('ADA’S VERDICT IS ON BEN’S CARD: ' + JSON.stringify([slotFor(QADA), slotFor(Object.assign({}, QADA, { key: 'q:Q-ADA-2' }))]));
+  /* AND WHAT ADA SENT FROM HERE, NOT YET ON THE ACCOUNT, IS STILL WAITING UNDER HER OWN KEY — for the next time
+     she signs in here — and not under Ben's. */
+  if (!/Q-ADA-2/.test(String(w.localStorage.getItem('subQ:u:P7') || ''))) bad.push('Ada’s press still to go up was lost at sign-out — it must wait under her key');
+  if (/Q-ADA/.test(String(w.localStorage.getItem('subQ:u:P8') || '') + String(w.localStorage.getItem('subLast:u:P8') || ''))) bad.push('Ada’s press was moved into Ben’s drawer');
   if (/Q-ADA-STAR/.test(String(w.localStorage.getItem('favs') || ''))) bad.push('Ada’s stars are still in the device’s copy');
   if (!asked) bad.push('Ben’s inbox was never asked for, so the column was never drawn without it — NOT checked');
   return bad;
@@ -18029,7 +18287,7 @@ check('the PIN box is not a password the iPad keeps, and handles that signed in 
   const all = []; for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); all.push(k + '=' + w.localStorage.getItem(k)); }
   if (all.some(x => /4826/.test(x))) bad.push('THE PIN IS WRITTEN ON THE DEVICE: ' + all.filter(x => /4826/.test(x)).join(' | '));
   if (w.localStorage.getItem('familyHandles') !== '["ada_kind7"]') bad.push('the handle was not remembered: ' + w.localStorage.getItem('familyHandles'));
-  if (/"answers"|"attempts"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
+  if (/"answers"|"submissions"|"favourites"/.test(String(w.localStorage.getItem('familyUser')))) bad.push('the sign-in reply’s per-person extras were kept in familyUser for thirty days');
   /* SIGNED OUT, THE CHIP IS THERE; TAPPING IT FILLS THE BOX AND PUTS THE CARET IN THE PIN. */
   t.ACTIONS.signout(d.createElement('button'));
   t.go('account', false, true); w.paint('account');
@@ -18088,11 +18346,11 @@ check('the sign-in box has no example; on a device an admin signed in on, it sho
   return bad;
 });
 
-check('signing in brings the done dates, stars, family and answers with the reply, before the payload', async () => {
+check('signing in brings the submissions, stars, family and answers with the reply, before the payload', async () => {
   let hold = false;
   const reply = b => b.action === 'verifyLogin'
     ? Object.assign({ success: true }, ANS_ADA, {
-        attempts: { for: 'P7', mine: { 'q:Q-SIGN': { first: '2026-10-08', last: '2026-10-08', times: 1 } } },
+        submissions: { for: 'P7', mine: { 'q:Q-SIGN': { answer: '3/4', verdict: 'wrong', at: Date.now() - 1000, id: '1760000000002-sg0001' } } },
         favourites: ['q:Q-SIGN-STAR'],
         family: [{ personId: 'P9', title: 'Mo Parent', relation: 'parent', handle: 'mo_kind9', image: '' }], familyFor: 'P7',
         answers: { 'ans:q:Q-ANS-W-J': { v: 'from the account', at: Date.now() - 1000 } } })
@@ -18109,7 +18367,10 @@ check('signing in brings the done dates, stars, family and answers with the repl
   t.ACTIONS['do-signin'](d.querySelector('[data-do="do-signin"]'));
   await wait(300);
   if (!/Signed in as Ada/.test(toastOf_(d))) bad.push('the toast says ' + JSON.stringify(toastOf_(d)) + ' — on an iPad passed between children it has to say whose account');
-  if (!w.attemptsMine_()['q:Q-SIGN']) bad.push('the done dates did not come with the reply: ' + JSON.stringify(w.attemptsMine_()));
+  /* THE LATEST SUBMISSION, on the card and in the box, with "Signed in" — the payload never arrives here. */
+  const late = typeof w.subLatest_ === 'function' ? w.subLatest_('ans:u:P7:q:Q-SIGN') : null;
+  if (!late || late.a !== '3/4' || late.v !== 'wrong') bad.push('the submissions did not come with the reply: ' + JSON.stringify(late));
+  if (w.localStorage.getItem('ans:u:P7:q:Q-SIGN') !== '3/4') bad.push('the box was not filled with the latest answer sent: ' + JSON.stringify(w.localStorage.getItem('ans:u:P7:q:Q-SIGN')));
   if (!/Saved/.test(w.favTile_({ key: 'q:Q-SIGN-STAR', kind: 'question' }))) bad.push('the stars did not come with the reply');
   const D = t.DATA();
   if (D.familyFor !== 'P7' || !(D.family || []).some(f => f.personId === 'P9')) bad.push('the family did not come with the reply: ' + JSON.stringify({ familyFor: D.familyFor, family: D.family }));
@@ -18117,7 +18378,7 @@ check('signing in brings the done dates, stars, family and answers with the repl
   /* AND THE ACCOUNT IS READ AT ONCE, not when the payload lands — `signedIn_` calls `answersPull_`. */
   if (!sent.some(b => b.action === 'myAnswers' && b.personId === 'P7')) bad.push('signing in did not read the account’s answers at once — they would wait for a payload that takes fifteen seconds');
   const u = t.whoami() || {};
-  if ('answers' in u || 'attempts' in u || 'favourites' in u || 'family' in u) bad.push('the per-person extras were put on USER: ' + Object.keys(u).join(', '));
+  if ('answers' in u || 'submissions' in u || 'favourites' in u || 'family' in u) bad.push('the per-person extras were put on USER: ' + Object.keys(u).join(', '));
   return bad;
 });
 
@@ -18620,7 +18881,7 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
     row_id: TIE, question: '4x', html: '<p>Write these in order of size. Start with the smallest.</p>',
     choices: '0.5 | <sup>1</sup>&frasl;<sub>2</sub> | 0.7', choice_right: '2,1,3 | 1,2,3', answer: '<b>0.5, &frac12;, 0.7</b>' })]);
   const server = {};
-  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES.concat(['markDone']) }),
+  const { w, sent } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }),
     reply: ansBackend_(server), serve: url => (/data\/questions\.json/.test(url) ? paper : undefined) });
   await wait(300);
   const need = ansNeed_(w).concat(['orderBox_', 'markOrder_', 'ansRefresh_', 'stuffItemsAll_'].filter(n => typeof w[n] !== 'function'));
@@ -18742,7 +19003,11 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   const up = sent.slice(asked).filter(b => b.action === 'saveAnswers')
     .map(b => (b.items || []).find(it => it.key === 'ans:q:' + ID)).filter(Boolean).pop();
   if (!up || up.v !== '3,4,5,2,1') bad.push('Send did not put the row on the account at once: ' + JSON.stringify(up || null));
-  if (!sent.some(b => b.action === 'markDone' && JSON.stringify(b.items || []).indexOf(ID) !== -1)) bad.push('placing and sending the order did not record the day it was done (markDone)');
+  /* THE SEND IS A SUBMISSION — the order and its verdict — kept on the device until a backend can take
+     it (this one lists no `submitAnswer`), and placing an item was not one. */
+  const q = JSON.parse(w.localStorage.getItem('subQ:u:P7') || '[]').filter(e => e.key === 'q:' + ID);
+  if (!q.length || q[q.length - 1].answer !== '3,4,5,2,1' || q[q.length - 1].verdict !== 'right') bad.push('sending the right order did not record it as a submission: ' + JSON.stringify(q.slice(-1)));
+  if (q.length !== 3) bad.push('three Sends of a full row (reversed, one swap, right) recorded ' + q.length + ' submission(s) — each Send is one, and a tap or a holed Send is none');
   /* DRAWN AGAIN FROM THE STORE: the row and, while it is the row that was sent, its verdict */
   host.innerHTML = w.questionCard_(x, 0);
   card = host.querySelector('.qcard');

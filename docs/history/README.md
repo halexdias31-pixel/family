@@ -309,6 +309,7 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The films are whatever is in the Notflix folder: a sync from Drive, asked for by the videos card, and only an admin ever sees one](305-the-films-are-whatever-is-in-the-notflix-folder.md)
 - [Every widget waits the same way: one loader, three gold dots, and nothing else draws a wait](306-every-widget-waits-the-same-way.md)
 - [Reactions that look finished: one line of pills under the picture, the total on the time line](307-reactions-that-look-finished.md)
+- [Every submission is an event: the card says how the latest one went, never the day, and the weekly email marks each question](308-every-submission-is-an-event.md)
 - [Everyone chooses what they are emailed: a Notifications card on Settings for parents, kids, tutors and the admin, and every sender asks before it sends](309-everyone-chooses-what-they-are-sent.md)
 - [The whiteboard is the question pages' pen on a blank sheet, and what is drawn on it is never an answer](310-the-whiteboard.md)
 - [The videos card reads like YouTube: a pill to search in, a picture on every row, and the watch page when something plays](311-the-videos-card-reads-like-youtube.md)

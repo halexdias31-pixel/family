@@ -171,17 +171,20 @@ const WHERE = {
   post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
   favourites:     { file: 'ledger' },
-  /* WHAT EACH LEARNER WROTE, so it follows them to another device — see SCHEMA.answers. The Ledger
-     beside `favourites` and `attempts`, for their reason: it is a record OF a learner, and the app
+  /* WHAT EACH LEARNER DREW, so it follows them to another device — see SCHEMA.answers. The Ledger
+     beside `favourites` and `submissions`, for their reason: it is a record OF a learner, and the app
      writes it. */
   answers:        { file: 'ledger' },
-  /* THE DAY EACH QUESTION WAS DONE, BY WHOM. The Ledger because it is the only file there is, and
-     because it is where every other record OF a learner already lives — `people`, `exams`,
-     `favourites` — so a tutor looking up a student finds their attempts beside their row rather than
-     in a second spreadsheet. Written by `markDone`, read by `attemptsFor_`; see SCHEMA.attempts. */
-  attempts:       { file: 'ledger' },
+  /* EVERY ANSWER A LEARNER SENT, AND WHAT IT WAS MARKED — one row per press, never rewritten. The Ledger
+     because it is where every other record OF a learner already lives — `people`, `exams`, `favourites`
+     — so a tutor looking up a student finds their work beside their row rather than in a second
+     spreadsheet. Written by `submitAnswer`, read by `submissionsFor_` and the weekly parent email; see
+     SCHEMA.submissions. `attempts` WAS HERE: the day each question was done, one row per question.
+     The owner, 9 Oct: *"Instead of each question just saving number of attempts."* The tab is left in
+     the live sheet and nothing reads it. */
+  submissions:    { file: 'ledger' },
   /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
-     `attempts`, which is what it reports on, and because the app writes it. */
+     `submissions`, which is what it reports on, and because the app writes it. */
   digest_log:     { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: question
      2 of the three-question test at the top of CLAUDE.md, and code cannot be written to at
@@ -332,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-09-d-prefs";
+const BACKEND_VERSION = "2026-10-09-e-submissions";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -362,10 +365,10 @@ const TAB = {
   /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
-  /* What each learner wrote in an answer box, picked or drew — see SCHEMA.answers. */
+  /* What each learner drew on a question — see SCHEMA.answers. */
   answers: 'answers',
-  /* Which questions each learner has done, and when — see SCHEMA.attempts. */
-  attempts: 'attempts',
+  /* Every answer each learner sent, and its verdict — see SCHEMA.submissions. */
+  submissions: 'submissions',
   /* What the weekly parent email sent, or would have — see SCHEMA.digest_log. */
   digest_log: 'digest_log',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
@@ -1293,23 +1296,30 @@ const SCHEMA = {
     "at",
   ],
 
-  /* ---------- ANSWERS: WHAT THE CHILD WROTE, SO IT IS THERE ON THE NEXT DEVICE ----------------------
+  /* ---------- ANSWERS: WHAT THE CHILD DREW, SO IT IS THERE ON THE NEXT DEVICE ------------------------
      REPORTED BY THE OWNER FROM A PUPIL'S iPAD: *"i am very dissapointed it didnt have his answers
      already written in when he went to see them on the computer"*, and *"it doesnt seem to save their
-     answers"*. Until this tab an answer lived in the browser it was typed in and nowhere else: the
-     card on the computer said `Done 8 Oct` (that is `attempts`) over an empty box.
+     answers"*. Until this tab an answer lived in the browser it was typed in and nowhere else.
 
-     ITS OWN TAB, NOT COLUMNS ON `attempts`. An attempt is written once a day and never rewritten; an
-     answer changes on every edit. And `attempts` is what the parent emails read whole — drawings in
-     it would be every email run reading every child's pen strokes for nothing.
+     SINCE 9 OCT IT HOLDS WHAT HAS NO SEND: the pen's strokes and the ringed words. A typed, picked or
+     ordered answer reaches the account when it is SENT, as a row of SCHEMA.submissions — the owner:
+     *"I just want system to record each submition."* Rows of typed answers from 8 Oct stay on the sheet,
+     and `saveAnswers` still takes one from a phone that has not loaded the new site; nothing hands them
+     back to a phone that has (js/answers.js), because the account's record of a typed answer is its
+     submissions now.
+
+     ITS OWN TAB, NOT COLUMNS ON `submissions`. A submission is written once and never rewritten; a
+     drawing changes on every stroke. And `submissions` is what the parent email reads whole — drawings
+     in it would be every email run reading every child's pen strokes for nothing.
 
      ONE ROW PER PERSON PER ANSWER KEY, upserted by `saveAnswers`, read only by `myAnswers` and the
      sign-in reply — for the person the token resolved to and nobody else (no parent, tutor or admin
      view: the owner can open the sheet).
 
-     `answer_key` IS THE PHONE'S OWN KEY WITH THE PERSON TAKEN OUT — `ans:q:<row>` a typed answer or a
-     pick (`2,4`), `ans:q:<row>#iv` a practical's worksheet box, `pad:q:<row>` the pen's strokes,
-     `pad:q:<row>:words` the ringed words. The person is `person_id`, so the key cannot carry another.
+     `answer_key` IS THE PHONE'S OWN KEY WITH THE PERSON TAKEN OUT — `pad:q:<row>` the pen's strokes,
+     `pad:q:<row>:words` the ringed words, and from before 9 Oct `ans:q:<row>` a typed answer or a pick
+     (`2,4`) and `ans:q:<row>#iv` a practical's worksheet box. The person is `person_id`, so the key
+     cannot carry another.
 
      `value` IS ALWAYS TEXT — written with a leading apostrophe whatever it holds. `cellSafe_` guards a
      formula, not a fraction: `3/4` and `1/2` are dates to a sheet, `2,4` (two picked options) can
@@ -1324,51 +1334,67 @@ const SCHEMA = {
     "value", "edited_at", "saved_at",
   ],
 
-  /* ---------- ATTEMPTS: THE DAY A QUESTION WAS DONE, SO IT FOLLOWS THE STUDENT -------------------
-     ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. The
-     question card has said `Done 4 Oct` since 268, from `done:<who>:<key>` in `localStorage` — which
-     a tutor cannot see and which stays behind when the student picks up another phone.
+  /* ---------- SUBMISSIONS: EVERY ANSWER SENT, AND WHAT IT WAS MARKED --------------------------------
+     THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's right
+     or not. Also I just want system to record each submition. So like if they submit a correct answer
+     then change it and submit an incorrect answer, that's 2 events. And it will leave the latest event
+     up, so they would see incorrect answer there next time they login. Simple. Instead of each question
+     just saving number of attempts."*
 
-     ONE ROW PER PERSON PER QUESTION, never one per attempt. A row per press is a tab that grows by a
-     line every time somebody types into a box, and nothing anybody asked for wants that history:
-     the card wants the last day, a tutor wants how many and how recently. So the row is UPSERTED —
-     `first_done` is set once, `last_done` moves, `times` counts the DAYS it was done on (the phone
-     sends once per question per day, and the server ignores a second send for a day it already has,
-     so a retried request cannot count twice).
+     SO ONE ROW PER PRESS, APPENDED AND NEVER UPDATED OR DELETED. A press is one that asks for a verdict:
+     Send on a typed or maths answer, a pick that completes a multiple-choice card, Send on an ordering,
+     Mark with AI, and Send on a box nothing can mark. Typing is not a submission and neither is an item
+     placed in an ordering. Right, then wrong, is two rows; the card and the box show the LATEST, on any
+     device, and a parent's Sunday email lists the week's questions with the latest verdict of the week.
+     It replaced `attempts` (one row per person per question: the first day, the last, and a count of
+     days), which is left in the live sheet and read by nothing.
 
-     NO ID COLUMN. The row is found by what it IS — this person, this question — the way `records`
-     are found by slug; an invented id would be a third thing to keep in step with the two that
-     already identify it.
+     `person_id` IS THE TOKEN'S, NEVER THE BODY'S — `accessDenied` overwrites `body.personId` before
+     `submitAnswer` runs (`self` in ACTION_ACCESS), so a request naming another child writes a row for
+     the child who sent it. A name is a cell they can edit; an id is not.
 
-     `person_id`, NEVER A NAME — the person is the one the sign-in token resolved to (see
-     `accessDenied`), and a name is a cell they can edit. `question_key` is the library's own key,
-     `x.key` in js/find.js, the same string the answer box is stored under.
+     `key` IS THE LIBRARY'S OWN KEY — `q:Q-9MA031-2206-1`, `pr:PR-PH01#iv` for a practical's worksheet
+     box — the same string `attempts.question_key` held. `label` and `words` ARE WHAT A PARENT CAN READ,
+     sent by the phone because the backend cannot look a key up (the library is `data/questions.json`
+     in git, not a tab): `Maths · Paper 1 (Calculator) — June 2024 · Q3`, and the question's own stem, a
+     line holding only `---`, then its ask. The same caps and the same refusals as the email has always
+     applied (`attemptLabel_`, `attemptWords_`, `DIGEST_WORDS_REFUSE`).
 
-     `label` IS WHAT A PARENT CAN READ — `Maths · Paper 1 (Calculator) — June 2024 · Q3` — because a
-     key is `q:Q-9MA031-2206-1` and the weekly email (backend/digest.gs) is read by somebody who has
-     never seen one. The backend cannot look a key up: the library is `data/questions.json` in git,
-     not a tab. So the phone sends the name it is showing as it marks the question, and `markDone`
-     keeps it — set on a new row, filled on an old one the next day it moves, never on a day already
-     covered (that must still write nothing). Blank on every row from before it existed, and on what
-     the load's backlog sends: the email counts that question and does not print it — never the key,
-     which reads to a parent as a fault (`digestQuestions_`). Appended, so `ensureSchema` adds it at
-     the end of a live tab without moving anything. */
-  attempts: [
-    "person_id", "question_key",
-    "first_done", "last_done", "times",
-    "label",
-    /* `words` IS THE QUESTION ITSELF, AS A PARENT READS IT. *"emails all parents on work their child has
-       done with the exact questions for each"* — a name like `Paper 1 · Q3` says which question, not
-       what it asked, and the backend still cannot look a key up. So the phone sends the words it is
-       drawing as it marks the question (`doneWords_` in js/find.js): the question's own stem, a line
-       holding only `---`, then the part's own ask; a picture it cannot carry is said in a bracket at
-       the end. Plain text, `ATTEMPT_WORDS_MAX` at most, filled into a blank cell and never rewritten,
-       exactly as `label` is. WHO CAN WRITE IT is what keeps it in one family: the row is the person the
-       sign-in token resolved to, so a phone writes only its own child's rows, and those go only to that
-       child's parents. Text that reads like a message rather than a question (a link, a phone number, an
-       account number) is never printed — `digestWordsSafe_`. To have a row's words written again, clear
-       the cell: the next time its learner loads the site the phone fills it. Appended, for `ensureSchema`. */
-    "words",
+     `answer` IS WHAT WAS SENT, AS TEXT — a leading apostrophe on every write, the `answers` tab's rule:
+     `3/4` is a date to a sheet and `0.50` comes back `0.5`. A pick is its positions (`2,4`), an ordering
+     its order (`3,4,5,2,1`). Over `ANSWER_TEXT_MAX` the row is refused whole and the answer stays on
+     the device that has it — never cut, because half an answer read back on another device is a
+     different answer.
+
+     `verdict` IS ONE OF `right`, `wrong`, `sent` (nothing could mark it: no scheme, no AI, or an option
+     the scheme never settled) and `ai:N/M` (Mark with AI gave N of M marks) — `SUBMISSION_VERDICT`.
+     THE PHONE MARKS IT: the library and its schemes are on the phone, not here, so a right or wrong is
+     what the phone said. Nothing is paid or ranked on it; it is a child's own practice.
+
+     `submitted_at` IS THE SERVER'S CLOCK, a date-time — never the phone's, which is wrong on enough
+     iPads to put a Sunday's work in the wrong week. It says WHICH WEEK a press is in (the parent email)
+     and nothing else.
+
+     `event_id` IS THE PHONE'S NAME FOR THE PRESS — its own clock in ms, a dash and a random tail. A
+     send that is retried (no reply, a dropped connection, the app put away mid-request) carries the
+     same id, and a row already holding it is not written again: one press is one row, however many
+     times it travels. Appended last, so `ensureSchema` adds it at the end of a tab without moving
+     anything.
+
+     `pressed_at` IS WHEN THE CHILD PRESSED, by the phone's clock and never later than the server's (the
+     `answers` tab's rule, `answersUpsert_`), as ISO text. IT DECIDES WHICH PRESS IS THE LATEST — on the
+     card, in the box, in the email's mark — and of two pressed in the same instant, the later row (lower
+     in the sheet). It was `submitted_at`,
+     and the review of 9 Oct found the rollout itself would invert it: every press is queued on its
+     device until the owner's Apps Script steps are done, so "wrong" on the iPad on Monday and "right" on
+     the computer on Tuesday reach the server in whatever order the two devices next load — and the
+     iPad's older "wrong", arriving last, became the latest everywhere and was written over the box on
+     the computer that had sent "right". A press arrives when it can; it was MADE when it was made.
+     Blank on a row written before the column existed, and then `submitted_at` stands in for it. */
+  submissions: [
+    "person_id", "key", "label", "words",
+    "answer", "verdict", "submitted_at",
+    "event_id", "pressed_at",
   ],
 
   /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS ---------------------------------------------------
@@ -1378,7 +1404,7 @@ const SCHEMA = {
      `send` it is the RECEIPT: a row saying `sent` (or `sending`, written just before the send) for
      this week, this learner and this parent is what stops a second run the same week sending again.
 
-     FOUND BY WHAT IT IS — the week, the learner, the parent — like `attempts`, so no id column.
+     FOUND BY WHAT IT IS — the week, the learner, the parent — like `answers`, so no id column.
      `week_of` is the Monday, written as TEXT (`'2026-09-28`): it is a key compared as a string, and a
      cell the sheet turned into a date would come back as one in whichever time zone the file is set
      to. A learner nobody can be told about is a row too, with no parent and the reason in `note`, so
@@ -1729,8 +1755,10 @@ const FILMS_MIME_DOC = 'application/vnd.google-apps.document';
 
 /* The option lists the CODE owns. These aren't preferences — the code branches on them, so a
    value in the sheet that the code doesn't produce is just a dropdown entry nothing can ever set.
-   ensureSchema keeps these two in step with the code and leaves every other list alone, because
-   the rest (subjects, levels, venues, exam boards) are genuinely yours. */
+   ensureSchema ADDS any of these values a list is missing and touches no row that is there — it
+   rewrote the whole options tab until 10 Oct (`seedOptions` in setup.gs says what that broke) —
+   and leaves every other list alone, because the rest (subjects, levels, venues, exam boards) are
+   genuinely yours. */
 const OPTION_DEFAULTS = {
   participant_status: ['Waiting', 'Agreed', 'Paying', 'Booked'],
   action: ['Request', 'Accept', 'Decline', 'Withdraw', 'Pay'],
@@ -2211,27 +2239,38 @@ const POSTS_FOLDER = '1piJQHYQ2h3I_f3ullEmDcNn_RGti4VVw';
    looking like a grid rather than a row. */
 const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
 
-/* ---------- HOW MANY DONE QUESTIONS ONE `markDone` MAY CARRY ----------------------------------------
-   ONE, NEARLY ALWAYS: the phone sends a question the moment it is first done that day. The batch is
-   for the other case — dates a phone kept while it was offline, or from before this tab existed,
-   sent up together on the next load — and a cap keeps one request from being a whole term's work
-   written under the lock while every other write waits. Anything over it goes on the load after. */
-const ATTEMPTS_PER_POST = 50;
+/* ---------- HOW MANY SUBMISSIONS ONE `submitAnswer` MAY CARRY ----------------------------------------
+   ONE, NEARLY ALWAYS: the phone sends a press the moment it is made. The batch is for the other case —
+   presses a phone kept while it was offline, or while the deployed backend did not yet have the action,
+   sent up together when it can — and a cap keeps one request from being a term's work written under the
+   lock while every other write waits. Anything over it goes on the next send. See SCHEMA.submissions. */
+const SUBMISSIONS_PER_POST = 25;
+/* THE WHOLE VOCABULARY OF `submissions.verdict`: right and wrong from a scheme the phone matched, `sent`
+   where nothing could mark it, and Mark with AI's marks as `ai:N/M` — at most three digits a side, M at
+   least 1, because no question in the library is worth more and a cell is not a place for a number
+   somebody typed. Anything else is refused, row and all: a verdict the email cannot read is one it would
+   print as nonsense. */
+const SUBMISSION_VERDICT = /^(right|wrong|sent|ai:\d{1,3}\/[1-9]\d{0,2})$/;
+/* AND THE PHONE'S NAME FOR A PRESS — its clock in ms, a dash, a random tail (`subId_` in js/submit.js).
+   Checked for its shape so a retried send is recognised and nothing else rides in the column. */
+const SUBMISSION_ID = /^\d{10,16}-[a-z0-9]{3,16}$/;
 /* AND HOW LONG A QUESTION'S NAME MAY BE. A paper's name and a question number are fifty-odd
    characters; this is room for the longest the library has with a margin, and a ceiling on what one
-   request can put in a cell a parent's email prints. See SCHEMA.attempts. */
+   request can put in a cell a parent's email prints. See SCHEMA.submissions. The name says ATTEMPT
+   because it was written for the tab before; the rule is the same one. */
 const ATTEMPT_LABEL_MAX = 120;
-/* AND A QUESTION'S WORDS — SCHEMA.attempts. 99% of the library's questions are under 520 characters
+/* AND A QUESTION'S WORDS — SCHEMA.submissions. 99% of the library's questions are under 520 characters
    with their stem; a stem that is a whole extract (an English insert) is cut, and the email cuts again
    to what fits a phone's screen (`DIGEST_WORDS_SHOWN`). */
 const ATTEMPT_WORDS_MAX = 1200;
 
-/* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers ------------------------------------
+/* ---------- HOW MUCH OF AN ANSWER THE SHEET KEEPS — SCHEMA.answers AND SCHEMA.submissions ---------------
    A TYPED ANSWER, the same ceiling as an answer sent to "Mark with AI" (`AI_ANSWER_MAX`): an essay is an
    answer now (`ansEssay_` in js/keypad.js, 9 Oct) and this was 2,000 characters, about 350 words -- so a
    forty-mark essay saved to the account until its fourth paragraph and then said "On this device only —
    too long for the account" while the pupil was still writing it. 20,000 is three top-band essays and
-   well under the 50,000 a Sheets cell holds.
+   well under the 50,000 a Sheets cell holds. A submission's `answer` is held to it too (note 308), and
+   refused whole over it, never cut: an essay sent for its verdict is the essay the account keeps.
    THE PEN'S STROKES, under the 50,000 characters a Sheets cell holds, with room. The phone simplifies a
    stroke before it sends it (a 504-point freehand line is 33 points after), so a whole graph is a few
    kilobytes; one bigger than this stays on the device that drew it and is never cut — half a JSON list
@@ -2257,8 +2296,8 @@ const AI_SCHEME_MAX = 8000;
 
 /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ------------------------------------------
    `DIGEST_MODES` is the whole vocabulary of `weekly_digest` on the config tab, OFF FIRST: anything not
-   in it reads as off. `DIGEST_TZ` is whose week it is — London's, the same clock `attemptsUpsert_`
-   writes a day in, so a Sunday's question and a Sunday's email agree about which Sunday. `DIGEST_RUN`
+   in it reads as off. `DIGEST_TZ` is whose week it is — London's: a submission's `submitted_at` is an
+   instant, and it is London's calendar that says which Sunday it belongs to. `DIGEST_RUN`
    is the trigger's handler by name, written once, because the trigger is found and deleted by that
    string and two spellings of it would leave a Sunday run nobody can remove. */
 const DIGEST_MODES = ['off', 'preview', 'send'];
@@ -2286,8 +2325,8 @@ const DIGEST_WEEK_LIST_MAX = 80;
 /* THE SHAPE OF A LIBRARY KEY: `q:Q-9MA031-2206-1`, `q:Q-1GK0-2011-1H-6b(i)`, `pr:PR-PH01`. A short
    prefix, a colon, and letters, digits, dashes, underscores and brackets — no space, no full stop, no
    `@`. The email never prints a key; this decides whose WORDS it may print: only a question under a
-   key in the library's own shape, because a "key" that is a sentence or an address (`markDone` takes
-   any 120 characters) is somebody typing into the sheet, and its "question" is whatever they typed.
+   key in the library's own shape, because a "key" that is a sentence or an address (`submitAnswer`
+   takes any 120 characters) is somebody typing into the sheet, and its "question" is whatever they typed.
    Measured against every row_id in data/questions.json. The slot after a `#` is gone before this is
    asked. */
 const DIGEST_KEY_SHAPE = /^[a-z]{1,4}:[A-Za-z0-9][A-Za-z0-9()_-]{0,100}$/;
@@ -3261,10 +3300,12 @@ const ACTION_ACCESS = {
      claims — the gate overwrites it. Nobody reads another person's answers through these. */
   saveAnswers: 'self',
   myAnswers: 'self',
-  /* THE DAY A QUESTION WAS DONE. `self`: the row written is the one for the person the token
-     resolved to, whatever `personId` the body claims — the gate overwrites it before the handler
-     runs. Nobody can date a question for somebody else. */
-  markDone: 'self',
+  /* AN ANSWER SENT, AND ITS VERDICT (SCHEMA.submissions). `self`: the row written is the one for the
+     person the token resolved to, whatever `personId` the body claims — the gate overwrites it before
+     the handler runs. Nobody can send an answer as somebody else. `markDone` WAS HERE, the day a
+     question was done; it went with the `attempts` tab, so an old phone posting it is refused at this
+     gate and keeps its date to itself. */
+  submitAnswer: 'self',
   /* WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK. Admin and nobody else: the reply is every
      learner's week and every parent's address. It writes nothing and sends nothing — see
      backend/digest.gs. */

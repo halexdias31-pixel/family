@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-09-d-prefs";
+const DOPOST_VERSION = "2026-10-09-e-submissions";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4153,54 +4153,56 @@ function doPost(e) {
       return jsonOut({ ok: true, on: TRUE_(body.on) });
     }
 
-    /* ---------- THE DAY A QUESTION WAS DONE, KEPT ON THE SHEET -------------------------------------
-       ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. One
-       row per person per question, upserted — see SCHEMA.attempts for why it is not a row per press.
+    /* ---------- AN ANSWER SENT, KEPT AS AN EVENT ------------------------------------------------------
+       THE OWNER, 9 OCT: *"I just want system to record each submition. So like if they submit a correct
+       answer then change it and submit an incorrect answer, that's 2 events. And it will leave the latest
+       event up, so they would see incorrect answer there next time they login."* So every press that asks
+       for a verdict is a row of SCHEMA.submissions, appended and never touched again; the latest of them
+       is what every device shows (`submissionsFor_` in doget.gs). It replaced `markDone`, which kept one
+       row per question with the first day, the last and a count — the owner's *"number of attempts"*.
 
-       THE PERSON IS THE TOKEN'S. `accessDenied` has already overwritten `body.name` and
-       `body.personId` with whoever the token resolved to, so a request naming another student
-       dates a question for the student who sent it. `check-attempts.js` sends exactly that.
+       THE PERSON IS THE TOKEN'S. `accessDenied` has overwritten `body.personId` with whoever the token
+       resolved to (`self`), so a request naming another child writes a row for the child who sent it.
+       `check-submissions.js` sends exactly that.
 
-       UNDER THE SCRIPT LOCK, like `aiMarkCount_`: two phones of one student both finding no row
-       and both appending is two rows for one question, and every reader after that has to guess
-       which is the truth. Refused rather than written unlocked — the phone keeps its own copy and
-       sends it again on the next load, so a refusal costs a few minutes and never a date.
+       A RETRIED SEND IS ONE ROW. The phone names each press (`id`) and sends it again until it hears back;
+       a row already holding that id is not written twice, and the reply carries it as saved, so the phone
+       stops sending. Without the id a dropped reply would be the same press twice in a parent's week.
 
-       AND IT DOES NOT RETIRE EVERYBODY'S PAYLOAD. Every other write here does, through
-       `POST_WROTE` — and that is right for a price or a post, which every phone shows. A done
-       question is in exactly two payloads: the student's own and an admin's. Bumping the generation
-       for it would make the next visitor of every kind rebuild thirty tabs because a child typed an
-       answer, twenty times an evening.
+       UNDER THE SCRIPT LOCK, like `saveAnswers`: two sends of one press finding no row and both appending
+       is the duplicate the id exists to stop. Refused rather than written unlocked — the phone keeps the
+       press and sends it again (`subPush_` in js/submit.js).
 
-       ---------- AND NOW IT RETIRES NOBODY'S ----------------------------------------------------------
-       IT USED TO RETIRE THOSE TWO BY KEY (`retirePayloadOf_`), and that was the slow half of *"the
-       logging in and everything feels so janky and unresponsive and slow"*: a child's first Check of
-       the evening threw their whole stored payload away, so the next sign-in or reload on any device
-       was a cold rebuild — measured at fifteen to thirty-five seconds — for want of one date. The
-       stored body no longer carries `attempts` at all: `doGet` adds them fresh for the token's person
-       on every answer, hit or miss (`payloadWithFresh_`), so there is nothing here to go stale and
-       the flag is simply put back. */
-    if (action === 'markDone') {
-      const me = findPerson(S(body.name), S(body.personId));
+       AND IT RETIRES NO PAYLOAD. A child's submissions are not in the stored body — `doGet` lays them on
+       fresh for the token's person, hit or miss (`payloadWithFresh_`) — so the flag `addRow` raises is put
+       back, and no visitor rebuilds thirty tabs because a child pressed Send. */
+    if (action === 'submitAnswer') {
+      const me = findPerson('', S(body.personId));
       if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
-      const items = (Array.isArray(body.items) ? body.items : []).slice(0, ATTEMPTS_PER_POST);
-      if (!items.length) return jsonOut({ error: 'No question to mark as done.' });
-
+      const items = (Array.isArray(body.items) ? body.items : []).slice(0, SUBMISSIONS_PER_POST);
+      if (!items.length) return jsonOut({ error: 'No answer to send.' });
       const lock = LockService.getScriptLock();
       if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — it will be sent again.', why: 'busy' });
       let out = {};
       const wroteBefore = POST_WROTE;
       try {
         /* FRESH ROWS UNDER THE LOCK. A copy read before the lock was taken is the copy the other
-           request was about to change. */
+           request was about to change — and the ids already written are what this asks of it. */
         clearCache();
-        out = attemptsUpsert_(S(me.person_id), items);
+        out = submissionsAppend_(S(me.person_id), items);
+        /* WRITTEN, THEN FLUSHED, THEN SAID — the stamp `submissionsFor_` keys this child's copy by moves
+           only once the rows are on the sheet for another request to read, so a load that sees the new
+           stamp reads the new rows (doget.gs). */
+        if (out.wrote) {
+          try { SpreadsheetApp.flush(); } catch (err) {}
+          submissionsTouched_(S(me.person_id));
+        }
       } finally {
         lock.releaseLock();
       }
-      if (out.error) return jsonOut({ error: out.error });
       if (POST_WROTE && !wroteBefore) POST_WROTE = false;
-      return jsonOut({ success: true, attempts: out.attempts });
+      if (out.error) return jsonOut({ error: out.error });
+      return jsonOut({ success: true, saved: out.saved });
     }
 
     /* ---------- WHAT THE CHILD WROTE, KEPT ON THEIR ACCOUNT -------------------------------------------
@@ -4210,19 +4212,19 @@ function doPost(e) {
        background — `answersPush_` in js/answers.js); this keeps one row per person per answer key in
        SCHEMA.answers, and `myAnswers` below hands them back on the next device.
 
-       THE PERSON IS THE TOKEN'S, the `markDone` rule: `accessDenied` has overwritten `body.personId`, so
+       THE PERSON IS THE TOKEN'S, the `submitAnswer` rule: `accessDenied` has overwritten `body.personId`, so
        a request naming another child writes the sender's own row. No token, no row.
 
        THE LATER EDIT WINS, and the reply says which won. A phone that was offline for an hour and sends
        an older answer gets the newer one back instead of writing over it (`answersUpsert_`).
 
-       UNDER THE SCRIPT LOCK, for `markDone`'s reason: two devices finding no row and both appending is
+       UNDER THE SCRIPT LOCK, for `submitAnswer`'s reason: two devices finding no row and both appending is
        two rows for one answer. Refused rather than written unlocked — the phone keeps the key dirty and
        sends it again.
 
        AND IT RETIRES NO PAYLOAD. Answers are not in the payload at all — a child's work is theirs, and
        the payload is cached and shared by key — so the flag `addRow` and `setCells` raise is put back,
-       as `markDone` does, and no visitor rebuilds because a child typed. */
+       as `submitAnswer` does, and no visitor rebuilds because a child drew. */
     if (action === 'saveAnswers') {
       const me = findPerson('', S(body.personId));
       if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
@@ -4233,7 +4235,7 @@ function doPost(e) {
       let out = {};
       const wroteBefore = POST_WROTE;
       try {
-        /* FRESH ROWS UNDER THE LOCK, as `markDone` reads them. */
+        /* FRESH ROWS UNDER THE LOCK, as `submitAnswer` reads them. */
         clearCache();
         out = answersUpsert_(S(me.person_id), items);
       } finally {
@@ -5079,98 +5081,109 @@ function loginReplyFor_(r, token, extra) {
      `profile.location`. */
   /* ---------- AND WHAT THE PAYLOAD WOULD HAVE BROUGHT FIFTEEN SECONDS LATER ---------------------------
      *"the logging in and everything feels so janky and unresponsive and slow"*. Measured on a shared
-     iPad: "Signed in" at 2.5 s, then the person's Done dates, stars and family only when their own
+     iPad: "Signed in" at 2.5 s, then the person's own marks, stars and family only when their own
      `doGet` landed — 15 to 35 s later, as a freeze, often under a child already typing. They are four
      small reads of rows that are this person's and nobody else's, so they come with the sign-in, in
-     exactly the shapes `doGet` sends (`attemptsFor_`, `favouritesOf_`, `familyOf_`), and the phone lays
-     them over `DATA` behind the same `for` checks the payload's copies pass (`signedIn_` in me.js).
+     exactly the shapes `doGet` sends (`submissionsFor_`, `favouritesOf_`, `familyOf_`), and the phone
+     lays them over `DATA` behind the same `for` checks the payload's copies pass (`signedIn_` in me.js).
+     THE SUBMISSIONS ARE WHAT A CHILD SEES ON EVERY CARD SINCE 9 OCT — the latest verdict, and the box
+     opening on the latest answer sent — so on a shared iPad they have to be there with "Signed in".
 
      AND THE ANSWERS, so the boxes on the screen fill with "Signed in" rather than a round trip later
      (`answersFor_`). Each read is its own `try`: a tab that is missing or a read that fails costs that
      one key, never the sign-in. */
-  try { out.attempts = attemptsFor_(r, hasRole(r, 'admin')); } catch (err) {}
+  try { out.submissions = submissionsFor_(r, hasRole(r, 'admin')); } catch (err) {}
   try { out.favourites = favouritesOf_(r); } catch (err) {}
   try { const fam = familyOf_(r); out.family = fam.family; out.familyFor = fam.familyFor; } catch (err) {}
   try { out.answers = answersFor_(meId); } catch (err) {}
   if (extra) Object.assign(out, extra);
   return jsonOut(out);
 }
-/* ---------- ONE ROW PER PERSON PER QUESTION, UPSERTED -----------------------------------------------
-   `items` is `[{ key, day }]`. Returns `{ attempts: { <key>: { first, last, times } } }` for the
-   keys it was given, or `{ error }` before anything is written.
+/* ---------- ONE ROW PER PRESS, APPENDED -------------------------------------------------------------------
+   `items` is `[{ id, key, label, words, answer, verdict, at }]` — see SCHEMA.submissions. Returns
+   `{ saved: { <id>: { key, verdict, at } }, wrote }` for every press now on the sheet, written by this request
+   or by an earlier send of the same press, or `{ error }` before anything is written. `at` is the row's
+   `pressed_at` in ms — the moment the child pressed, by the phone's clock and never later than this
+   server's — which is what the phone, and every load after it, orders the press by.
 
-   THE DAY IS THE PHONE'S, CHECKED. The card says `Done 4 Oct` from the phone's own calendar, and a
-   sheet that wrote the server's day instead would disagree with it every evening after eleven in
-   winter (the server is London; a phone abroad is not). So a well-formed day is believed — unless it
-   is later than tomorrow, which no clock anywhere is, or earlier than this site existed. Anything
-   else is today, London's.
+   WHAT IS REFUSED, and left out of `saved` so the phone can tell it will never be taken: an id not in
+   the phone's shape (`SUBMISSION_ID`), a key that is empty or longer than any library key, a verdict
+   outside `SUBMISSION_VERDICT`, and an answer that is empty or over `ANSWER_TEXT_MAX` — refused whole,
+   never cut: half an answer is not the answer the verdict is about.
 
-   WHICH CELLS MOVE:
-     · no row                 → a row, first = last = day, times 1          (one append)
-     · a day after `last`     → last = day, times + 1                       (one write: adjacent cells)
-     · a day before `first`   → first = day, times + 1   (an offline copy older than the sheet)
-     · a day already covered  → nothing — unless the row has no name and one came with it, when the
-                                name alone is written. A retried request, two phones, a re-sent
-                                backlog: none of them can count a day twice.
+   A RETRIED PRESS WRITES NOTHING. Its id is already on one of this person's rows, and the reply says so
+   with that row's own time — so a send whose reply was lost, sent again a minute later, is one row
+   with one time. Two items with one id in the same request are one row too: the first one written is
+   in `seen` before the second is read.
 
-   `label` IS WRITTEN WHEREVER THE CELL IS BLANK AND A NAME CAME. It used to ride along only where a
-   row was being written anyway, on the reasoning that the weekly email reads only rows whose day
-   moved this week. But the email prints no raw key, and the first learner it was tried on had three
-   unnamed rows the backlog had sent before the phone sent names — counted, never listed, until a day
-   moved — so a name now fills a blank cell on its own, once, and never renames a named row. See
-   SCHEMA.attempts. */
-function attemptsUpsert_(pid, items) {
-  const t = read(TAB.attempts);
-  if (!t.sheet) return { error: 'The sheet has no attempts tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
-  const hasLabel = t.headers.indexOf('label') !== -1;
-  /* `words` THE SAME WAY, for the same reason: a live tab from before the column must not turn every
-     `markDone` into an error, so it is written only where the column is (SCHEMA.attempts). */
-  const hasWords = t.headers.indexOf('words') !== -1;
-  const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
-  const tomorrow = Utilities.formatDate(new Date(Date.now() + 864e5), 'Europe/London', 'yyyy-MM-dd');
-  const out = {};
-  items.forEach(it => {
-    const q = S(it && it.key);
-    /* A KEY IS THE LIBRARY'S, short and plain. Anything else is not a question this site drew. */
-    if (!q || q.length > 120) return;
-    let day = S(it && it.day);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > tomorrow || day < '2024-01-01') day = today;
-    /* NO `label` KEY AT ALL WHEN THERE IS NOTHING TO PUT IN IT, OR NOWHERE TO PUT IT. `addRow` reports
-       every key the tab has no column for, and `jsonOut` turns that into "Nothing was saved for:
-       attempts.label" — so on a live tab from before the column (a sync with the version stamps
-       unmoved, `autoMigrate` not yet run) every `markDone` came back an error, labelled or not, while
-       the rows were in fact written. The name is the weekly email's nicety; the day is the record. */
-    const label = hasLabel ? attemptLabel_(it && it.label) : '';
-    const words = hasWords ? attemptWords_(it && it.words) : '';
-    const row = t.rows.find(r => key(r.person_id) === key(pid) && S(r.question_key) === q);
-    /* THE REPLY SAYS WHETHER THE ROW NOW HAS A NAME AND WORDS, which `attemptsFor_` says on every load.
-       Without it the phone adopted a reply with no `named` on it, still saw every row it had just named
-       as unnamed, and — with more than fifty — sent the same fifty again, for ever. */
-    const flags = (l, w) => Object.assign({}, l ? { named: 1 } : {}, w ? { worded: 1 } : {});
-    if (!row) {
-      addRow(t, Object.assign({ person_id: pid, question_key: q, first_done: day, last_done: day, times: 1 },
-                              label ? { label: label } : {}, words ? { words: words } : {}));
-      out[q] = Object.assign({ first: day, last: day, times: 1 }, flags(label, words));
-      return;
-    }
-    const first = isoDate_(row.first_done), last = isoDate_(row.last_done);
-    const v = {};
-    if (!last || day > last) v.last_done = day;
-    if (!first || day < first) v.first_done = day;
-    if (v.last_done || (v.first_done && first)) v.times = (N(row.times) || 0) + 1;
-    /* A NAME FILLS A BLANK CELL EVEN ON A DAY ALREADY COVERED — the one write that rule allows. It
-       moves no day and counts nothing, so a retry still cannot count twice; and a row that already has
-       a name keeps it, so a second phone cannot rename it. Rows sent up before the phone sent names
-       (the backlog did not, until `attemptsSync_` was mended) are named the next time their learner
-       loads the site, which is what the weekly email needs to list them. */
-    if (label && !S(row.label)) v.label = label;
-    /* AND THE QUESTION'S WORDS BY THE SAME RULE: a blank cell is filled, a written one is never changed. */
-    if (words && !S(row.words)) v.words = words;
-    if (Object.keys(v).length) setCells(t, row, v);
-    out[q] = Object.assign({ first: v.first_done || first, last: v.last_done || last, times: N(v.times || row.times) || 1 },
-                           flags(v.label || S(row.label), v.words || S(row.words)));
+   ---------- AND THE TAB IS NOT READ WHOLE TO FIND THAT OUT (review of 9 Oct) ---------------------------
+   It was `read(TAB.submissions)` — every column of every row anyone has ever sent, a question's words
+   on each — under the site's only script lock, to answer "is this id already here". That read grows by
+   a row a press, and once it nears the 5 s `tryLock` the other writes wait on, they answer "Busy". So
+   only `person_id` and `event_id` are read (`readCols_`, two single columns), and the whole of a row
+   only for an id found there — a retry, which is rare and is one row.
+
+   THE PRESS'S OWN TIME (`at`, `pressed_at`), CLAMPED TO NOW — `answersUpsert_`'s rule: an iPad whose clock
+   runs a day fast would otherwise be the latest at everything for a day. A missing or nonsense `at` is
+   now, which is what a phone from before the column sends.
+
+   THE NAME AND THE WORDS GO IN BY THE RULES THE PARENT EMAIL HAS ALWAYS READ THEM BY — `attemptLabel_`
+   and `attemptWords_`, tags out and capped — and only where the live tab has the column, so a tab made
+   by hand without them still takes the answer and its verdict (`addRow` would otherwise answer "Nothing
+   was saved for: submissions.words" over a row it had in fact written). */
+function submissionsAppend_(pid, items) {
+  const t = readCols_(TAB.submissions, ['person_id', 'event_id']);
+  if (!t.sheet) return { error: 'The sheet has no submissions tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  const has = c => t.headers.indexOf(c) !== -1;
+  const now = new Date(), nowMs = now.getTime();
+  /* THIS PERSON'S PRESSES ALREADY ON THE SHEET, BY ID — once, not a scan of the whole tab per item. */
+  const seen = {};
+  t.rows.forEach(r => {
+    if (key(r.person_id) === key(pid) && S(r.event_id)) seen[S(r.event_id)] = r;
   });
-  return { attempts: out };
+  /* THE WHOLE OF A ROW ALREADY WRITTEN, read only when a retry needs its verdict and its time. */
+  const whole = r => {
+    if (r.key !== undefined) return r;
+    const v = t.sheet.getRange(r._row, 1, 1, t.headers.length).getValues()[0] || [];
+    t.headers.forEach((h, i) => { if (h) r[h] = v[i]; });
+    return r;
+  };
+  const pressedMs = r => answerAtMs_(r.pressed_at) || answerAtMs_(r.submitted_at);
+  const saved = {};
+  let wrote = 0;
+  items.forEach(it => {
+    const id = S(it && it.id);
+    if (!SUBMISSION_ID.test(id)) return;
+    const had = seen[id];
+    if (had) { whole(had); saved[id] = { key: S(had.key), verdict: S(had.verdict), at: pressedMs(had) }; return; }
+    const k = S(it && it.key);
+    if (!k || k.length > 120) return;
+    const verdict = S(it && it.verdict);
+    if (!SUBMISSION_VERDICT.test(verdict)) return;
+    const answer = it && it.answer !== undefined && it.answer !== null ? String(it.answer) : '';
+    if (!answer.trim() || answer.length > ANSWER_TEXT_MAX) return;
+    let at = Math.floor(Number(it && it.at));
+    if (!isFinite(at) || at <= 0 || at > nowMs) at = nowMs;
+    const iso = new Date(at).toISOString();
+    /* TEXT, ALWAYS — the apostrophe is the sheet's own "this is text": `3/4` is otherwise a date, and an
+       ISO time would come back a Date in whichever zone the file is set to. */
+    const row = { person_id: pid, key: k, answer: "'" + answer, verdict: verdict, submitted_at: now };
+    if (has('label')) row.label = attemptLabel_(it && it.label);
+    if (has('words')) row.words = attemptWords_(it && it.words);
+    if (has('event_id')) row.event_id = id;
+    if (has('pressed_at')) row.pressed_at = "'" + iso;
+    const made = addRow(t, row);
+    if (!made) return;
+    /* THE ROW IN MEMORY HOLDS WHAT WAS MEANT, not the apostrophes — and its id, so a second item with the
+       same id in this request is the same press. */
+    made.answer = answer;
+    made.event_id = id;
+    made.pressed_at = iso;
+    seen[id] = made;
+    saved[id] = { key: k, verdict: verdict, at: has('pressed_at') ? at : nowMs };
+    wrote++;
+  });
+  return { saved: saved, wrote: wrote };
 }
 
 /* ---------- ONE ROW PER PERSON PER ANSWER, THE LATER EDIT WINNING ------------------------------------------
@@ -5277,11 +5290,11 @@ function attemptLabel_(v) {
 function attemptWords_(v) {
   /* CUT FIRST, AND A TAG IS `<…>` WITH NO `<` INSIDE IT. `[^>]*` after `<a` re-scanned the rest of the
      string for every `<a` with no `>` after it — measured at 18 s for 160 KB of them, under the script
-     lock that every other `markDone` waits on. */
+     lock that every other `submitAnswer` waits on. */
   return S(v).slice(0, ATTEMPT_WORDS_MAX * 4).replace(/\r\n?/g, '\n').replace(/<\/?[a-z][^<>]*>/gi, ' ')
     .replace(/[ \t\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim()
     .slice(0, ATTEMPT_WORDS_MAX).trim();
 }
 
-/* `adminIds_` WAS HERE — every admin's person id, for `markDone` to retire their payloads by key. Nothing
-   is retired any more (see `markDone`), so nothing asks. */
+/* `adminIds_` WAS HERE — every admin's person id, for `markDone` (the action `submitAnswer` replaced) to
+   retire their payloads by key. Nothing is retired any more (see `submitAnswer`), so nothing asks. */

@@ -929,33 +929,107 @@ const STATES = {
       },
       wants: 'the first page of a long part: its reading, no box, "1 of N", saying it continues',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A QUESTION YOU HAVE DONE, DATED --------------------------------------------------------
-       ASKED FOR AS *"when a student does do a question, it should record the date they did it"*. Signed
-       in only -- signed out records nothing, by design (`doneKeyOf_`). The date is written where the
-       app writes it, under the visitor's own key, and taken off again on the way out so no other state
-       is pictured stamped. The expect asks for the stamp in the header's slot, on the marks' line. */
-    { name: 'a question you have done, dated',
+    /* ---------- HOW YOUR LAST ANSWER WENT, BESIDE THE STAR -------------------------------------------------
+       THE OWNER, 9 OCT: *"The kids don't need to see the day they did something. Just whether it's right
+       or not."* So the slot that said `Done 4 Oct` says how the LATEST submission went (`subSlot_`, js/
+       submit.js): "Correct" with the tick, "Not yet" with the turning arrow, "Sent" in the dim ink. Three
+       states, one verdict each, so `ui.js` measures every one at every width — "Not yet" is the longest
+       beside the star, and the row is 44px tiles that must not wrap. Signed in only: signed out there is
+       no slot. The latest is written where this device keeps it (`subLast:<who>`), and taken off again on
+       the way out so no other state is pictured marked. No card says a day. */
+    { name: 'a question you last got right',
       only: () => typeof whoIs_ === 'function' && !!whoIs_(),
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
-        window.__doneKey = 'done:' + ansKey_(it).slice(4);
-        try { localStorage.setItem(window.__doneKey, '2026-10-04'); } catch (e) {}
+        window.__subWho = whoIs_();
+        window.__subKey = subKeyOf_(ansKey_(it));
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
+        all[window.__subKey] = { a: '7', v: 'right', at: Date.now(), id: '1760000000000-state1' };
+        try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
-      /* IN THE TILE ROW, BESIDE THE STAR -- the gold header it sat in became tags, and the date is yours
-         like the star is (`questionTiles_`). */
       expect: () => {
-        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-done');
-        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent)
-               && !document.querySelector('#s-stuff .page.on .qcard .qcard-done');
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
+        return !!s && s.textContent === 'Correct' && s.classList.contains('is-right')
+               && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
       },
-      wants: 'the question card\'s tile row saying "Done 4 Oct" beside the star',
-      leave: () => { try { localStorage.removeItem(window.__doneKey); } catch (e) {}
-                     STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the question card\'s tile row saying "Correct", with its tick, beside the star — and no day anywhere',
+      leave: () => {
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
+          delete all[window.__subKey];
+          localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+        } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a question you last got wrong, not yet',
+      only: () => typeof whoIs_ === 'function' && !!whoIs_(),
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        window.__subWho = whoIs_();
+        window.__subKey = subKeyOf_(ansKey_(it));
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
+        all[window.__subKey] = { a: '8', v: 'wrong', at: Date.now(), id: '1760000000000-state1' };
+        try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
+        return !!s && s.textContent === 'Not yet' && s.classList.contains('is-near')
+               && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
+      },
+      wants: 'the question card\'s tile row saying "Not yet", with the turning arrow, beside the star — and no day anywhere',
+      leave: () => {
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
+          delete all[window.__subKey];
+          localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+        } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a question you last sent, unmarked',
+      only: () => typeof whoIs_ === 'function' && !!whoIs_(),
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        window.__subWho = whoIs_();
+        window.__subKey = subKeyOf_(ansKey_(it));
+        let all = {};
+        try { all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {}; } catch (e) { all = {}; }
+        all[window.__subKey] = { a: 'because it is', v: 'sent', at: Date.now(), id: '1760000000000-state1' };
+        try { localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-verdict');
+        return !!s && s.textContent === 'Sent' && !s.classList.contains('is-right') && !s.classList.contains('is-near')
+               && !/\d{1,2} [A-Z][a-z]{2}|Done/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-verdict, .qcard-done');
+      },
+      wants: 'the question card\'s tile row saying "Sent", no tick and no arrow, beside the star — and no day anywhere',
+      leave: () => {
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + window.__subWho) || '{}') || {};
+          delete all[window.__subKey];
+          localStorage.setItem('subLast:' + window.__subWho, JSON.stringify(all));
+        } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- A KS2 SATs QUESTION: `SATs` AND `KS2`, TWO TAGS, AND WHAT TO BRING AS ITS OWN ---------
        *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should be
        its own thing."* and *"why do the questions say non calculator but its not a tag?"* One row, named:
@@ -1314,7 +1388,14 @@ const STATES = {
         if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
         if (!orderIs_(it)) throw new Error('Q-1MA1-2406-1F-4 is not an ordering — its answer_type is ' + it.answerType);
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        ORDER_SENT.clear();
+        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
@@ -1345,7 +1426,14 @@ const STATES = {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-4');
         if (!it) throw new Error('Q-1MA1-2406-1F-4 is not in the library');
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        ORDER_SENT.clear();
+        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
@@ -1402,7 +1490,13 @@ const STATES = {
       wants: 'the reversed order sent and marked Not yet, then the right one marked Correct, with the question, the strip, the verdict\'s row, the card\'s height and the Send and Clear tiles (place and size) where they were each time, and every slot and the items where they were before the first tap',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_SENT.clear();
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(window.__ordKey)];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- AN ORDERING OF POWERS: A POWER IS RAISED IN THE ROW AS IT IS IN THE QUESTION ------------
@@ -1419,7 +1513,14 @@ const STATES = {
         if (!it) throw new Error('Q-CBM-5AD-F-0603-1 is not in the library');
         if (!orderIs_(it)) throw new Error('Q-CBM-5AD-F-0603-1 is not an ordering — its answer_type is ' + it.answerType);
         try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
-        ORDER_SENT.clear();
+        /* AND ANY VERDICT IT WAS LAST SENT WITH, which the strip draws from (js/submit.js). */
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(ansKey_(it))];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
@@ -1451,7 +1552,13 @@ const STATES = {
       wants: '2² placed in slot 1, and every power in the strip and the row (2² and 1³, the ghost included) raised at least 2px above its digit, as the question prints it',
       leave: () => {
         try { if (window.__ordKey) localStorage.removeItem(window.__ordKey); } catch (e) {}
-        ORDER_SENT.clear();
+        ORDER_HOLE.clear();
+        try {
+          const all = JSON.parse(localStorage.getItem('subLast:' + whoIs_()) || '{}') || {};
+          delete all[subKeyOf_(window.__ordKey)];
+          localStorage.setItem('subLast:' + whoIs_(), JSON.stringify(all));
+        } catch (e) {}
+        subForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     { name: 'a tapped answer, not yet, nothing moved',

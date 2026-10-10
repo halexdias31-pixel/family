@@ -733,8 +733,10 @@ function signedOut_(opts) {
   try { DM_ASKED = false; DM_DONE = false; DM_LAST = 0; if (typeof dmStop_ === 'function') dmStop_(); } catch (e) {}
   /* THE STARS — the device's copy is a cache of the person, and the next person is not them. */
   try { FAVS = new Set(); localStorage.removeItem('favs'); } catch (e) {}
-  /* THE DONE DATES HELD FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN. */
-  try { if (typeof DONE_HELD !== 'undefined') DONE_HELD.clear(); } catch (e) {}
+  /* WHAT THE LAST PERSON SENT, AS THIS DEVICE HELD IT FOR THE VISIT, AND ANYTHING OPEN OVER THE SCREEN.
+     Their presses still to go up stay queued under their own key, for the next time they sign in here
+     (js/submit.js). It was the done dates held for the visit (`DONE_HELD`) until 9 Oct. */
+  try { if (typeof subForget_ === 'function') subForget_(); } catch (e) {}
   try { if (typeof kpClose_ === 'function') kpClose_(); } catch (e) {}
   /* AND THE KEYPAD'S UNDO (`KP_UNDO`, keypad.js), as the pen's held Clears go (`padWhoChanged_`). It is kept
      by the box's key, and the signed-out key's history outlived the person who typed it: Sam's words, typed
@@ -746,7 +748,7 @@ function signedOut_(opts) {
   /* THE PAYLOAD'S PER-PERSON KEYS. Each is already hidden from the next person by its `for` check, so
      this is not what stops a leak — it is what stops the last person's data sitting on the device. */
   try {
-    DATA.attempts = { for: '', mine: {} };
+    DATA.submissions = { for: '', mine: {} };
     DATA.family = []; DATA.familyFor = '';
     DATA.favourites = []; DATA.everyone = [];
   } catch (e) {}
@@ -790,11 +792,11 @@ function signedOut_(opts) {
 /* `d` is the sign-in reply; `typed` what was typed in the handle box, a name of last resort. */
 function signedIn_(d, typed) {
   /* ---------- THE REPLY'S PER-PERSON EXTRAS GO ON `DATA`, NOT ON `USER` ---------------------------------
-     `loginReplyFor_` sends this person's done dates, stars, family and answers with the reply now, so
+     `loginReplyFor_` sends this person's submissions, stars, family and answers with the reply now, so
      they are on the screen with "Signed in" rather than fifteen to thirty-five seconds later. They are
      the payload's keys, in the payload's shapes, and they go where the payload's copies go — behind the
      same `for` checks. On `USER` they would be written into `familyUser` and kept for thirty days. */
-  const EXTRA = ['attempts', 'favourites', 'family', 'familyFor', 'answers'];
+  const EXTRA = ['submissions', 'favourites', 'family', 'familyFor', 'answers'];
   const got = {};
   const me = Object.assign({}, d);
   EXTRA.forEach(k => { if (k in me) { got[k] = me[k]; delete me[k]; } });
@@ -834,7 +836,7 @@ function signedIn_(d, typed) {
   /* THE BOOKING FORM FOLLOWS — filled in signed out and signed in to send, it is theirs (book.js). */
   try { if (typeof bookFollow_ === 'function') bookFollow_(); } catch (e) {}
   try {
-    if (got.attempts && typeof got.attempts === 'object' && String(got.attempts.for || '') === pid) DATA.attempts = got.attempts;
+    if (got.submissions && typeof got.submissions === 'object' && String(got.submissions.for || '') === pid) DATA.submissions = got.submissions;
     if (Array.isArray(got.favourites)) {
       DATA.favourites = got.favourites;
       if (typeof adoptFavourites_ === 'function') adoptFavourites_();
@@ -853,6 +855,9 @@ function signedIn_(d, typed) {
      found her essay without the words she had typed beside it (317, "Six edges closed", G1). */
   try { if (pid && typeof answersClaim_ === 'function') answersClaim_(pid, !fromNobody); } catch (e) {}
   try { if (typeof answersPull_ === 'function') answersPull_(true); } catch (e) {}
+  /* AND THE LATEST ANSWER SENT FOR EACH QUESTION — onto the cards, into the boxes, with "Signed in" — and
+     whatever this device has waiting for this person goes up (js/submit.js). */
+  try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
   handleRemember_(me.handle);
   signInHintKeep_(typed, me);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed

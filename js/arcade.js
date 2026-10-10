@@ -487,14 +487,15 @@ screen('spotlight', () => pages('spotlight', spotlightCards_()));
    of building it, and deciding it now would be deciding it for a card with nothing on it to show.
 
    WHAT IT WILL DRAW FROM, written here because it is the first thing whoever builds it needs: what
-   the app already keeps about each person's work. Every answer — typed, picked, drawn or ringed —
-   is on the person's account (the `answers` tab; `js/answers.js` is the phone's half), and which
-   questions each person has done, and when, is the `attempts` tab (`SCHEMA.attempts`). "What you
-   got right" and "what to work on next" are questions about those rows, not a new tab. ONLY TABS
-   THAT EXIST ARE NAMED HERE: a record of how each answer was marked was being built elsewhere the
-   day this was written, and naming it before it landed would send whoever builds this looking for
-   something that might arrive under another name or not at all. Look in `TAB` in
-   backend/constants.gs for what has joined or replaced these two since.
+   the app already keeps about each person's work. EVERY ANSWER SENT is a row of the `submissions`
+   tab (`SCHEMA.submissions`; `js/submit.js` is the phone's half, note 308): the question, the answer
+   as it was sent, how it was marked (right, wrong, sent, the AI's marks) and when — one row per
+   press, never updated, so "what you got right" is each question's latest row and "what to work on
+   next" is the questions whose latest row is not right. Drawings and ringed words, which have no
+   Send, are on the account as they are drawn (the `answers` tab; `js/answers.js`). The `attempts`
+   tab this note first named (a first day, a last day, a count) was retired by the submissions on 9
+   Oct and is left in the sheet unread. Look in `TAB` in backend/constants.gs for what has joined or
+   replaced these since.
 
    NOTHING STARTS OR STOPS, Spotlight's reason above: nothing on this column runs. */
 function progressCards_() {

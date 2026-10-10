@@ -23,16 +23,20 @@
    send to parents all they done that week"*, and then *"delete daily email stuff. idk what thats
    about."* So that email is gone — its file, its tab, its switch, its card, its opt-out column — and
    what it had that parents should get is here: every question of the week with its words
-   (`digestQuestions_`, lifted out of it), and the words plumbing it needed (SCHEMA.attempts `words`,
-   `digestWordsSafe_`). `digestMail_` and `digestNoAttempts_` were shaped to be shared with it and are
+   (`digestQuestions_`, lifted out of it), and the words plumbing it needed (the `words` column,
+   `digestWordsSafe_`). `digestMail_` and `digestNoSubmissions_` were shaped to be shared with it and are
    this email's own again. See docs/history/295-one-email-to-parents-at-the-end-of-the-week.md.
 
-   WHAT IT READS. `attempts` — one row per learner per question, `first_done` and `last_done` (see
-   SCHEMA.attempts, and `markDone`, which writes them). A question is in a learner's week when either
-   day falls inside it: `first_done` in the week is NEW, `last_done` in the week and `first_done`
-   before it is DONE AGAIN. That is all the tab can say — it keeps the first and the last day, not
-   every day — and it is enough for a run on the Sunday the week ends. A run days later can miss a
-   question done in the week and again since, because its `last_done` has moved on; said in the note.
+   WHAT IT READS, SINCE 9 OCT: `submissions` — one row per answer a learner SENT, with its verdict and
+   the server's time (see SCHEMA.submissions, and `submitAnswer`, which writes them). The owner: *"I
+   just want system to record each submition ... Instead of each question just saving number of
+   attempts."* A question is in a learner's week when any of its submissions is, by London's calendar;
+   it is GONE BACK TO when it was also submitted before the week began, and NEW otherwise; and the
+   email shows each one's LATEST verdict of the week as a small mark — ✓, ✗, `sent`, or the AI's `3/4`.
+   It read `attempts` until then (the first and the last day a question was done, and a count), which
+   could not say how a question went and lost a week's day when a later one moved `last_done` past
+   it; every press is a row now, so a run days late still finds the week whole. See
+   docs/history/308-every-submission-is-an-event.md.
 
    WHO IT GOES TO, AND THE ONE RULE THAT MATTERS: a learner's ACCEPTED parents with an address
    (`acceptedParents` — a link the child said yes to, on the `family` tab), and nobody else. Not a
@@ -67,9 +71,9 @@ function digestReserve_(cfg) {
 
 
 /* ---------- WHAT A WEEK IS: MONDAY 00:00 TO SUNDAY 23:59, LONDON ---------------------------------------
-   LONDON BECAUSE THAT IS WHOSE CALENDAR THE DAYS ON THE SHEET ARE. `attemptsUpsert_` writes a day as
-   `yyyy-MM-dd` — the phone's own day, or London's today — so the week has to be a run of those same
-   strings, and comparing strings is all the selection does. MONDAY TO SUNDAY because the email goes on
+   LONDON BECAUSE THAT IS WHOSE CALENDAR THE EMAIL IS ON. A submission's `submitted_at` is an instant,
+   and `digestDay_` turns it into London's `yyyy-MM-dd` — so the week is a run of those strings, and
+   comparing strings is all the selection does. MONDAY TO SUNDAY because the email goes on
    the Sunday the week ends, and a week that ended on Saturday would leave the day it is read on out.
 
    BST IS HANDLED BY NEVER DOING ARITHMETIC ON A CLOCK. The one conversion from an instant to a date is
@@ -117,7 +121,7 @@ function digestSpan_(week) {
 
 
 /* ---------- THE PLAN: WHO DID WHAT, AND WHO IS TOLD ----------------------------------------------------
-   PURE. Everything it needs is handed in — the attempts rows, the people rows, a `parentsOf(id)` that
+   PURE. Everything it needs is handed in — the submissions rows, the people rows, a `parentsOf(id)` that
    answers with person rows, and `look` (the business's name and the site's address) — and it reads no
    tab, sends nothing and writes nothing. So the same function is the Sunday run, the admin's Preview
    and the check, and none of the three can be looking at a different rule.
@@ -132,43 +136,58 @@ function digestSpan_(week) {
 
    IT TOOK A RENDER AND AN OPT-OUT COLUMN AS WELL, for the email after each session, which ran this
    with a "week" one day long. That email is gone (docs/history/295), and so are the two arguments. */
-function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
-  const inWeek = d => !!d && d >= week.start && d <= week.end;
+function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
   const byId = {};
   (peopleRows || []).forEach(p => { const id = S(p && p.person_id); if (id && !byId[id]) byId[id] = p; });
 
   /* ONE QUESTION, HOWEVER MANY BOXES IT HAS. A practical's worksheet is three answer boxes, each
-     marked done under the practical's key with its slot on the end (`pr:…#iv`, `#dv`, `#cv` — see
-     `guideBox_` in js/find.js), so one worksheet filled in was three rows and an email saying "3
-     questions" with three raw keys in it. Rows are joined on the key before the `#`: the earliest
-     first day, the latest last day, the first name any of them carries. */
+     sent under the practical's key with its slot on the end (`pr:…#iv`, `#dv`, `#cv` — see `guideBox_`
+     in js/find.js), so one worksheet filled in was three rows and an email saying "3 questions" with
+     three raw keys in it. Rows are joined on the key before the `#`. */
   /* AND NO "60 min" IN A NAME. A practical's card line is `Biology · Required practical · 60 min`, and
      the phone built its name from that line, so a parent read how long the card guesses a practical
      takes as though it were how long their child spent on it. The phone no longer sends it
-     (`doneLabel_` in js/find.js); the rows already on the sheet still carry it, and it comes out here,
-     where the email reads every label. */
+     (`doneLabel_` in js/find.js); a row written before it stopped may still carry it, and it comes out
+     here, where the email reads every label. */
   const tidy = v => attemptLabel_(v).split(' · ').filter(x => !/^\d+ min$/.test(x)).join(' · ');
+  /* ---------- EVERY PRESS, FOLDED INTO ONE LINE PER QUESTION ------------------------------------------
+     IN THE WEEK by its London day — the day it ARRIVED (`submitted_at`, the server's clock: a phone's
+     clock is wrong on enough iPads to put a Sunday's work in the wrong week). BEFORE THE WEEK makes it
+     "gone back to" — the child had sent an answer to it before Monday. AFTER THE WEEK is next week's,
+     and changes nothing here, so a run days late sees the week as it was. THE VERDICT is the week's
+     latest PRESS — the latest `pressed_at` (`submitted_at` on a row without one), and of two in the same
+     instant the later row: *"it will leave the latest event up"*. The card and the box order presses the
+     same way (`submissionsBuild_` in doget.gs), so a parent's mark and the child's card cannot disagree —
+     and a phone's whole queue flushed in one request, every row with one `submitted_at`, is still in
+     the order it was pressed. THE NAME AND THE WORDS are the latest ones any of its rows carries up to
+     the end of the week — a row whose phone sent none does not blank the name an earlier row gave it. */
   const joined = {};
-  (attemptRows || []).forEach(r => {
-    const pid = S(r && r.person_id), q = S(r && r.question_key).split('#')[0];
+  (subRows || []).forEach(r => {
+    const pid = S(r && r.person_id), q = S(r && r.key).split('#')[0];
     if (!pid || !q) return;
-    const first = isoDate_(r.first_done), last = isoDate_(r.last_done);
-    const id = pid + '\u0001' + q, J = joined[id];
-    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: tidy(r.label), words: attemptWords_(r.words), times: N(r.times) || 1 }; return; }
-    if (first && (!J.first || first < J.first)) J.first = first;
-    if (last && last > J.last) J.last = last;
-    if (!J.label) J.label = tidy(r.label);
-    if (!J.words) J.words = attemptWords_(r.words);
-    J.times = Math.max(J.times, N(r.times) || 1);
+    const came = answerAtMs_(r.submitted_at);
+    if (!came) return;
+    const ms = answerAtMs_(r.pressed_at) || came;
+    const day = digestDay_(new Date(came));
+    if (day > week.end) return;
+    const id = pid + '\u0001' + q;
+    const J = joined[id] || (joined[id] = { pid: pid, key: q, before: false, inWeek: false, at: -1, last: '',
+                                            verdict: '', label: '', labelAt: -1, words: '', wordsAt: -1 });
+    const l = tidy(r.label), w = attemptWords_(r.words);
+    if (l && ms >= J.labelAt) { J.label = l; J.labelAt = ms; }
+    if (w && ms >= J.wordsAt) { J.words = w; J.wordsAt = ms; }
+    if (day < week.start) { J.before = true; return; }
+    J.inWeek = true;
+    if (ms >= J.at) { J.at = ms; J.last = day; J.verdict = S(r.verdict); }
   });
 
   const per = {};
   Object.keys(joined).forEach(id => {
     const J = joined[id];
-    const fresh = inWeek(J.first);
-    if (!fresh && !inWeek(J.last)) return;
+    if (!J.inWeek) return;
+    const fresh = !J.before;
     const L = per[J.pid] || (per[J.pid] = { id: J.pid, fresh: [], again: [] });
-    /* THE NAME A PARENT CAN READ — see SCHEMA.attempts for why the backend cannot look a key up for
+    /* THE NAME A PARENT CAN READ — see SCHEMA.submissions for why the backend cannot look a key up for
        itself. BUT ONLY TEXT THAT CANNOT PASS FOR A MESSAGE FROM THE BUSINESS: the label came off a
        phone, and printed under "@family." a label reading "NOTICE: fees overdue, pay at https://…" is
        the business saying it. `digestSafe_` turns away anything with a link or an address in it.
@@ -177,12 +196,14 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
        to a parent as a fault. A question with no printable name is counted and not listed — it is in
        "…and N more" — rather than dropped, so the number the email gives stays true. */
     const label = digestSafe_(J.label) ? J.label : '';
-    /* AND THE QUESTION'S WORDS (SCHEMA.attempts), by the same rule over the whole of them: phone text
+    /* AND THE QUESTION'S WORDS (SCHEMA.submissions), by the same rule over the whole of them: phone text
        with a link or an address in it is not printed (`digestWordsSafe_`). Blank is a real answer — a
-       row from before the phone sent them — and the name stands alone. AND ONLY UNDER A KEY IN THE
-       LIBRARY'S OWN SHAPE: an invented key cannot carry a paragraph. */
+       row whose phone sent none — and the name stands alone. AND ONLY UNDER A KEY IN THE LIBRARY'S OWN
+       SHAPE: an invented key cannot carry a paragraph. */
     const words = label && DIGEST_KEY_SHAPE.test(J.key) && digestWordsSafe_(J.words) ? J.words : '';
-    const item = { key: J.key, label: label, words: words, hidden: !label, last: J.last, times: J.times };
+    /* AND HOW IT WENT, the week's last word on it — a verdict outside the vocabulary prints no mark. */
+    const verdict = SUBMISSION_VERDICT.test(J.verdict) ? J.verdict : '';
+    const item = { key: J.key, label: label, words: words, hidden: !label, last: J.last, verdict: verdict };
     (fresh ? L.fresh : L.again).push(item);
   });
 
@@ -254,8 +275,12 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
 
 /* ---------- ONE EMAIL: A SUBJECT, A PLAIN BODY AND THE SAME IN HTML -----------------------------------
    SHORT AND PLAIN, because it is read on a phone by a parent between other things: who, how many, the
-   list, the site, how to stop. No marks and no verdicts — `attempts` records that a question was done,
-   not how it went, and an email that implied a score would be inventing one.
+   list, the site, how to stop. AND, SINCE 9 OCT, HOW EACH ONE WENT: every press is a row with its
+   verdict now (SCHEMA.submissions), so each question carries the week's latest as a small mark beside
+   its number — ✓, ✗, `sent` where nothing could mark it, or the AI's `3/4`. It said "no marks and no
+   verdicts" while the sheet kept only that a question was done; a mark then would have been invented.
+   A mark is what the child's phone said (the schemes are on the phone, not here), on practice work —
+   a number for nobody to rank on, and no total.
 
    THE LIST IS EVERY QUESTION, EACH WITH ITS OWN WORDS, since 8 Oct. It was a line of names — "New this
    week", "Gone back to", `- Maths · Paper 1 · Q3` — until the owner, shown a daily email that printed
@@ -277,13 +302,13 @@ function digestRender_(L, P, week, look) {
   const qs = x => x + ' question' + (x === 1 ? '' : 's');
   const n = L.fresh.length + L.again.length;
   const hello = S(P && P.first) ? 'Hello ' + S(P.first) + ',' : 'Hello,';
-  /* "WORKED ON", NOT "DID". `markDone` is the first keystroke in an answer box, or enough options
-     chosen — a wrong answer, or one character, is a question marked done. A parent reads "did" as
-     finished work, and an email that implied it would be claiming more than the sheet knows.
+  /* "WORKED ON", NOT "DID". A submission is any answer sent — a wrong one, a one-word one, one nothing
+     could mark. A parent reads "did" as finished work, and an email that implied it would be claiming
+     more than the sheet knows; the marks beside the numbers say how it went.
 
      AND "UP TO" THE HOUR IT IS SENT. The run is at `weekly_digest_hour` on the Sunday (18:00), and a
-     question first done after that is in nobody's week: next week's starts on the Monday, and the
-     sheet keeps days, not times. Said rather than hidden, so "this week" is not a claim to the whole
+     question sent after that is in nobody's email: next week's starts on the Monday, and Sunday's
+     evening is this week's on the calendar. Said rather than hidden, so "this week" is not a claim to the whole
      of Sunday. See CONFIG_DEFAULTS for the trade the hour makes. */
   const hour = look && typeof look.hour === 'number' ? look.hour : -1;
   const upTo = hour >= 0 && hour <= 23
@@ -300,7 +325,7 @@ function digestRender_(L, P, week, look) {
      is part of the "more". */
   const Q = digestQuestions_(L.fresh, L.again, DIGEST_WEEK_LIST_MAX);
 
-  /* THE CHILD CAN SEE THEM, NOT THE PARENT. `attemptsFor_` (doget.gs) sends a signed-in person their
+  /* THE CHILD CAN SEE THEM, NOT THE PARENT. `submissionsFor_` (doget.gs) sends a signed-in person their
      OWN questions and nobody else's — a parent who signed in to look would find none of these, so
      "see them on the site" was a promise to the wrong person. And "which ones" when the list named
      none: "see them" over no list points at nothing. */
@@ -321,12 +346,16 @@ function digestRender_(L, P, week, look) {
 
 /* ---------- THE QUESTIONS, EACH WITH ITS OWN WORDS ----------------------------------------------------------
    *"with the exact questions for each"*. A heading per paper (the label before its last ` · `), then a
-   line per question: its number, and what it asked (SCHEMA.attempts `words`). The stem a question's
+   line per question: its number, how it went, and what it asked (SCHEMA.submissions `words`). The stem a question's
    parts share is printed ONCE, above the first of them — `words` is the stem, a `---` line, then the
    part's own ask — so Q5a, Q5b and Q5c read as the paper prints them rather than as one scene three
    times. Each is cut to what reads on a phone (`DIGEST_WORDS_SHOWN`, `DIGEST_STEM_SHOWN`), and the link
    at the end of the email is where the whole question is drawn, with its picture. Headings sort
    alphabetically, numbers as numbers (Q2 before Q10); an item in `again` says "(again)".
+
+   THE MARK IS THE WEEK'S LATEST VERDICT, beside the number (`digestMark_`): `Q5a ✓: Find P(red).`,
+   `Q9 (again) ✗`, `Q3 sent`, `Q7 3/4`. The owner, 9 Oct: *"Just whether it's right or not."* A
+   question with no number carries its mark alone, ahead of its words.
 
    A PAPER WITH NO WORDS FOR ANY OF ITS QUESTIONS — rows marked before the phone sent them, until their
    learner next loads the site — is the old line of numbers, `Q3, Q7 (again)`.
@@ -340,7 +369,7 @@ function digestRender_(L, P, week, look) {
    over 400 renders — when the owner made the weekly one the email parents get; the daily one was then
    removed (295), and this is what it left behind.
 
-   PURE. `fresh` and `again` are `digestPlan_`'s items (`key`, `label`, `words`, `hidden`). Returns
+   PURE. `fresh` and `again` are `digestPlan_`'s items (`key`, `label`, `words`, `hidden`, `verdict`). Returns
      lines    the plain body's lines for the list — per paper its heading, its questions and a blank
               line, then "…and N more." and a blank line when something was left out of a list that
               named anything
@@ -361,7 +390,7 @@ function digestQuestions_(fresh, again, max) {
     /* THE STEM AND THE ASK, either side of a `---` line — which may be the last line, when a part's own
        ask is only its picture and the cell was trimmed. */
     const w = S(q && q.words), cutAt = /\n---(?:\n|$)/.exec(w);
-    (heads[head] || (heads[head] = [])).push({
+    (heads[head] || (heads[head] = [])).push({ mark: digestMark_(q && q.verdict),
       num: num, again: before, stem: cutAt ? w.slice(0, cutAt.index) : '', ask: cutAt ? w.slice(cutAt.index + cutAt[0].length) : w });
   });
   /* A CAP THAT IS NOT A NUMBER IS THE WEEK'S, never "all of them": `slice(0, undefined)` is the whole
@@ -376,8 +405,9 @@ function digestQuestions_(fresh, again, max) {
     shown.push({ head: h, items: take.filter(it => it.num || it.ask), worded: take.some(it => S(it.ask)) });
   });
   const more = n - printed;
-  /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no tag: its words stand alone, never ": What is 7 × 8?". */
-  const tag = it => (it.num ? it.num + (it.again ? ' (again)' : '') : '');
+  /* A NAME OF ONE SEGMENT HAS NO NUMBER, so no number in its tag: its mark alone, or nothing, and its
+     words after — never ": What is 7 × 8?". */
+  const tag = it => (it.num ? [it.num, it.again ? '(again)' : '', it.mark].filter(Boolean).join(' ') : it.mark || '');
 
   const lines = [];
   const parts = [];
@@ -396,7 +426,7 @@ function digestQuestions_(fresh, again, max) {
         stem = it.stem;
         const said = cut(it.ask, DIGEST_WORDS_SHOWN);
         lines.push(tag(it) && said ? tag(it) + ': ' + said : tag(it) || said);
-        html += '<p>' + (it.num ? '<b>' + digestEsc_(tag(it)) + '</b>' + (said ? ' — ' : '') : '') + digestEsc_(said) + '</p>';
+        html += '<p>' + (tag(it) ? '<b>' + digestEsc_(tag(it)) + '</b>' + (said ? ' — ' : '') : '') + digestEsc_(said) + '</p>';
       });
     }
     lines.push('');
@@ -407,6 +437,18 @@ function digestQuestions_(fresh, again, max) {
            printed: printed, more: more };
 }
 
+/* A VERDICT AS THE EMAIL MARKS IT — ✓ right, ✗ wrong (the site says "Not yet"; in a list of numbers a
+   cross is the mark a parent reads at a glance), `sent` for an answer nothing could mark, and Mark with
+   AI's own `3/4`. Anything else is no mark at all, never a guess. */
+function digestMark_(v) {
+  const t = S(v);
+  if (t === 'right') return '✓';
+  if (t === 'wrong') return '✗';
+  if (t === 'sent') return 'sent';
+  const m = /^ai:(\d{1,3})\/(\d{1,3})$/.exec(t);
+  return m ? m[1] + '/' + m[2] : '';
+}
+
 function digestEsc_(s) {
   return S(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -415,7 +457,8 @@ function digestEsc_(s) {
 /* ---------- TEXT THAT CAME OFF A PHONE, AND MAY GO OUT UNDER THE BUSINESS'S NAME ---------------------
    ESCAPING IS NOT ENOUGH. `digestEsc_` stops a label being markup; it does not stop it being a
    message. A learner's phone sends the label, the key and their own first name, and a reviewer sent
-   "NOTICE FROM @family.: fees overdue, pay today at https://…" through the real `markDone` and saw it
+   "NOTICE FROM @family.: fees overdue, pay today at https://…" through the real `markDone` (the action
+   `submitAnswer` replaced, which takes the same name by the same rule) and saw it
    listed as a question in a parent's email from "@family." — with the link live, because mail clients
    make one of any address in a plain body. So a piece of phone text is printed only when it holds no
    link (`://`), no `www.`, no `@` and nothing shaped like a domain (`word.word`). Every name the
@@ -449,7 +492,7 @@ function digestLook_() {
 /* THE PLAN FOR A WEEK, OFF THE SHEET AS IT IS. The only impure step: three reads and the real
    `acceptedParents`. */
 function digestPlanNow_(week) {
-  return digestPlan_(week, read(TAB.attempts).rows, read(TAB.people).rows, acceptedParents, digestLook_());
+  return digestPlan_(week, read(TAB.submissions).rows, read(TAB.people).rows, acceptedParents, digestLook_());
 }
 
 
@@ -482,8 +525,8 @@ function weeklyDigestRun(e) {
 /* ---------- THE LOCK IS HELD TO CLAIM AN EMAIL, NEVER TO SEND IT ----------------------------------------
    IT WAS HELD FOR THE WHOLE MAILING, and a mailing is a row, a flush, a `sendEmail` and another row per
    parent — a second or so each, so 30–60 seconds at 18:00 on a Sunday during which the site's own
-   writes were refused. `markDone` (`tryLock(5000)`) answered "Busy" and the phone's backlog re-sent the
-   keys without their names; `aiMarkCount_` answered -1 and a student was told their AI marks were used
+   writes were refused. `markDone` (`tryLock(5000)`, as `submitAnswer` is now) answered "Busy" and the
+   phone's backlog re-sent the keys without their names; `aiMarkCount_` answered -1 and a student was told their AI marks were used
    up. The busiest hour of the week for homework is the worst one to hold the only lock the site has.
 
    SO THE LOCK GUARDS ONLY THE CLAIM: under it, the log is read fresh, the row for this week, learner and
@@ -509,13 +552,13 @@ function digestRun_(now) {
   if (mode === 'off') return { mode: 'off', did: 'nothing — weekly_digest on the config tab is off' };
 
   if (!digestLog_().sheet) return { mode: mode, error: 'The sheet has no digest_log tab. Run ensureSchema() (open /exec?setup=1) to add it. Nothing was sent.' };
-  /* NO `attempts` TAB IS NOT A QUIET WEEK. `read` answers a missing tab with no rows, so this run
-     planned nothing, wrote nothing, and the Sunday looked like a week nobody worked — on a Ledger
+  /* NO `submissions` TAB IS NOT A QUIET WEEK. `read` answers a missing tab with no rows, so this run
+     would plan nothing, write nothing, and the Sunday would look like a week nobody worked — on a Ledger
      that was in fact never told what anybody did. It stops here and says so, and the throw in
      `weeklyDigestRun` is the email that says it to the owner. */
-  const noAttempts = digestNoAttempts_();
-  if (noAttempts) return { mode: mode, error: noAttempts };
-  /* THE PLAN IS MADE WITHOUT THE LOCK. It reads `attempts` and `people` and writes nothing; what it
+  const noSubmissions = digestNoSubmissions_();
+  if (noSubmissions) return { mode: mode, error: noSubmissions };
+  /* THE PLAN IS MADE WITHOUT THE LOCK. It reads `submissions` and `people` and writes nothing; what it
      decides is checked against the log, fresh, under the lock, one email at a time. */
   const week = digestWeekToSend_(now);
   const plan = digestPlanNow_(week);
@@ -619,23 +662,24 @@ function digestMail_(emails, o) {
   return out;
 }
 
-/* ---------- NO `attempts` TAB, IN WORDS ----------------------------------------------------------------
-   THE OWNER'S LEDGER DID NOT HAVE ONE until 6 Oct, and nothing said so: `read` answers a missing tab
-   with no rows, which is exactly what a week of nobody working looks like. The weekly preview printed
-   "Nobody has done a question yet this week" over a sheet that had never been told what anybody did.
-   Only `markDone` said it, to a phone, where nobody reads it. So the run and the Preview ask this
-   before they plan, and a run with something to send stops on it. '' when the tab is there. */
-function digestNoAttempts_() {
+/* ---------- NO `submissions` TAB, IN WORDS ---------------------------------------------------------------
+   THE OWNER'S LEDGER DID NOT HAVE AN `attempts` TAB until 6 Oct, and nothing said so: `read` answers a
+   missing tab with no rows, which is exactly what a week of nobody working looks like. The weekly
+   preview printed "Nobody has done a question yet this week" over a sheet that had never been told what
+   anybody did. The same is true of `submissions`, which a pull of the backend does not create —
+   `ensureSchema` does. So the run and the Preview ask this before they plan, and a run with something
+   to send stops on it. '' when the tab is there. */
+function digestNoSubmissions_() {
   let there = false;
-  try { there = !!read(TAB.attempts).sheet; } catch (err) { there = false; }
+  try { there = !!read(TAB.submissions).sheet; } catch (err) { there = false; }
   return there ? ''
-    : 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) '
-    + 'to add it; questions marked from then on are what these emails report. Nothing was sent.';
+    : 'The Ledger has no submissions tab, so nothing says what anybody sent. Open /exec?setup=1 (ensureSchema) '
+    + 'to add it; answers sent from then on are what these emails report. Nothing was sent.';
 }
 
 /* THE LOG AS IT IS NOW — its cached copy dropped first, because a copy read before the lock was taken
    is the one another run has since written to. Only this tab's: `clearCache()` would have the next
-   read of `people` and `attempts`, for nothing, go back to the sheet once per email. */
+   read of `people` and `submissions`, for nothing, go back to the sheet once per email. */
 function digestLog_() {
   try { delete _cache[TAB.digest_log]; } catch (err) {}
   return read(TAB.digest_log);
@@ -716,16 +760,16 @@ function digestPreviewOut_(now) {
   try { cfg = config(); } catch (err) { cfg = {}; }
   const week = digestWeek_(now);
   const plan = digestPlanNow_(week);
-  /* AND WHETHER THERE IS ANYTHING TO READ: with no `attempts` tab the plan is empty for a reason, and
+  /* AND WHETHER THERE IS ANYTHING TO READ: with no `submissions` tab the plan is empty for a reason, and
      the card says the reason rather than "nobody has done a question". */
-  const warning = digestNoAttempts_();
+  const warning = digestNoSubmissions_();
   /* `words` SAYS THIS BACKEND LISTS EACH QUESTION WITH ITS WORDS. The Preview is answered by the
      deployed web-app VERSION, the Sunday trigger runs the code as saved — so after a pull with no new
      version, the card would show the old list of names over a run that sends the new one. A reply
      without it is that older backend, and the card says to make a new version (js/digest.js). */
   return {
     success: true, mode: digestMode_(cfg), hour: digestHour_(cfg), scheduled: digestScheduled_(),
-    attempts: !warning, warning: warning, words: true,
+    submissions: !warning, warning: warning, words: true,
     week: { start: week.start, end: week.end, span: digestSpan_(week) },
     learners: plan.learners.map(L => ({ id: L.id, name: L.name, count: L.count, fresh: L.fresh.length,
       again: L.again.length, to: L.to.map(p => p.name), why: L.why })),
