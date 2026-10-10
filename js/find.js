@@ -12271,7 +12271,14 @@ function accountPages_() {
      returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
      the distinction the note above is about. */
   const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
-    title: USER.name || 'Signed in',
+    /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO --------------------
+       A child is called by her first name (the owner, 10 Oct: *"dont show children's last name"*), and
+       when another child shares it the server says `Wren (@wren_kind43)` (`nameFor_`) — which is right
+       for a roster and wrong here, where `@wren_kind43` is the next line. Measured: the card read
+       "Wren (@wren_kind43) / @wren_kind43". `nameBesideHandle_` (data.js) takes only that suffix, and only
+       when it is this card's own handle; `USER.name` itself is untouched — it is what "is this mine?"
+       compares. */
+    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
     role:  roleOf(USER.role || 'student'),
     handle: USER.handle,
     image: USER.image || USER.photo || '',

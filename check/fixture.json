@@ -259,8 +259,8 @@
     "by": [
      {"name": "Ada Tutor", "emoji": "👍"},
      {"name": "Priya Parent", "emoji": "👍"},
-     {"name": "Carl Everyclient", "emoji": "👍"},
-     {"name": "Evie Everystudent-Longername", "emoji": "❤️"}
+     {"name": "Carl Everyclient-Longername", "emoji": "👍"},
+     {"name": "Evie", "emoji": "❤️"}
     ]
    },
    "comments": {
@@ -387,8 +387,8 @@
  "promotions": [],
  "claims": [],
  "everyone": [
-  {"personId": "P-E1", "title": "Evie Everystudent-Longername", "handle": "evie_calm31", "role": "Student", "image": ""},
-  {"personId": "P-E2", "title": "Carl Everyclient", "handle": "carl_kind32", "role": "Client", "image": ""}
+  {"personId": "P-E1", "title": "Evie", "handle": "evie_calm31", "role": "Student", "image": ""},
+  {"personId": "P-E2", "title": "Carl Everyclient-Longername", "handle": "carl_kind32", "role": "Client", "image": ""}
  ],
  "validations": {
   "qual_1_level": [

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-10-g-schema-grid";
+const DOGET_VERSION = "2026-10-10-i-first-names";
 
 
 function doGet(e) {
@@ -821,8 +821,11 @@ function doGet(e) {
         /* AND THEIR CHILDREN, so the booking form can ask WHICH of them once a client is chosen.
            Names only — the same rule as the list itself, and for the same reason. */
         payload.clients.push({
-          name: personDisplayName(r),
-          children: childrenOf(S(r.person_id)).map(personDisplayName),
+          name: nameFor_(r),
+          /* BY FIRST NAME — the owner, 10 Oct: *"dont show children's last name"* (`nameFor_`, people.gs).
+             The ticklist these fill is what goes into `for_children`, so the booking keeps the name
+             the admin saw. */
+          children: childrenOf(S(r.person_id)).map(c => nameFor_(c)),
         });
       }
 
@@ -841,7 +844,7 @@ function doGet(e) {
           const parent = findPerson(S(f.parent_id));
           payload.claims.push({
             rowIndex: f._row,
-            from: parent ? personDisplayName(parent) : S(f.parent_id),
+            from: parent ? nameFor_(parent) : S(f.parent_id),
             asked: S(f.asked_on),
           });
         });
@@ -865,7 +868,9 @@ function doGet(e) {
         payload.everyone.push({
           /* THE HANDLE OR NOTHING, as on `tutors` — and an admin's card says "no handle yet" for a
              blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
-          personId: S(r.person_id), title: name, handle: S(r.handle),
+          /* A CHILD BY FIRST NAME (`nameFor_`) — the admin included, who reads the surname in the sheet.
+             The card prints the handle, so two children called Sam are told apart by it. */
+          personId: S(r.person_id), title: nameFor_(r, true), handle: S(r.handle),
           role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
         });
       }
@@ -880,7 +885,9 @@ function doGet(e) {
              score and the avatar). A person's OWN family arrives in `payload.family`, and their own
              friends on their own row, which is where each belongs. Not sent is not leaked. */
           avatar: S(r.avatar),
-          name: S(r.first_name) || name,
+          /* THE FIRST NAME, as it always was — through `nameFor_` now, so a row with no first name
+             falls back to its handle and never to the surname it does have. */
+          name: nameFor_(r, true),
           handle: S(r.handle),
           xp: N(r.xp), credits: N(r.credits),
           highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
@@ -1187,11 +1194,13 @@ function doGet(e) {
       read(TAB.people).rows.forEach(pp => {
         const nm = personDisplayName(pp);
         if (!nm) return;
+        /* KEYED BY THE WHOLE NAME, because that is what a post's `author` cell holds — and what goes
+           OUT is `nameFor_`'s: "who reacted" names a child by their first name (the owner, 10 Oct). */
         faces[key(nm)] = {
-          handle: S(pp.handle) || S(pp.first_name) || nm,
+          handle: S(pp.handle) || S(pp.first_name) || nameFor_(pp),
           avatar: S(pp.avatar) || S(pp.photo),
         };
-        if (S(pp.person_id)) byId[S(pp.person_id)] = nm;
+        if (S(pp.person_id)) byId[S(pp.person_id)] = nameFor_(pp);
       });
       read(TAB.posts).rows.forEach(r => {
         if (!S(r.post_id)) return;
@@ -1233,7 +1242,14 @@ function doGet(e) {
 
         payload.posts.push({
           id: S(r.post_id),
-          author: S(r.author),
+          /* THE CELL HOLDS THE WHOLE NAME (the sheet keeps it); what goes out is `nameFor_`'s, so a
+             child's post is signed with their first name. The net in `jsonOut` would catch it too —
+             said here because a post's author is one of the places the owner meant. */
+          author: (function () {
+            const a = S(r.author);
+            const pp = a ? findPerson(a) : null;
+            return pp && key(personDisplayName(pp)) === key(a) ? nameFor_(pp) : a;
+          })(),
           handle: who.handle,
           avatar: who.avatar,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
@@ -1420,7 +1436,7 @@ function doGet(e) {
         const who = findPerson(S(r.person_id));
         payload.exams.push({
           id: S(r.exam_id), personId: S(r.person_id),
-          who: who ? personDisplayName(who) : '',
+          who: who ? nameFor_(who) : '',
           subject: S(r.subject), label: S(r.label),
           date: fmtDate(r.exam_date), kind: norm(r.kind) === 'mock' ? 'mock' : 'exam',
           board: S(r.board), rowIndex: r._row,
@@ -1446,7 +1462,7 @@ function doGet(e) {
           if (examOn[k]) return;
           examOn[k] = true;
           payload.exams.push({ id: S(r.person_id) + ':' + col, personId: S(r.person_id),
-            who: personDisplayName(r), subject: '', label: label, date: fmtDate(d), kind: kind,
+            who: nameFor_(r), subject: '', label: label, date: fmtDate(d), kind: kind,
             board: '', rowIndex: 0 });
         });
       });
@@ -1456,7 +1472,7 @@ function doGet(e) {
         if (!d) return;
         if (!maySee(r.person_id)) return;
         payload.birthdays.push({
-          name: personDisplayName(r),
+          name: nameFor_(r),
           day: d.getDate(), month: d.getMonth() + 1,
         });
       });
@@ -1474,7 +1490,7 @@ function doGet(e) {
         payload.orders.push({
           id: S(r.order_id), rowIndex: r._row,
           personId: S(r.person_id),
-          who: owner ? personDisplayName(owner) : '',
+          who: owner ? nameFor_(owner) : '',
           item: S(r.item), resource: S(r.resource),
           ticks: N(r.cost_ticks), pages: N(r.pages),
           cost: N(r.cost_pence) / 100,
@@ -2087,6 +2103,10 @@ function doGet(e) {
     /* BY NAME IN A LIST, not `payload.films` here: `check-payload.js` counts every `payload.<key>` as a
        key sent, and a line that takes a key OUT would answer for one that was never put in. */
     if (cacheKey) {
+      /* THROUGH THE NET BEFORE IT IS KEPT, because the kept body goes out by `jsonRaw_` and never meets
+         `jsonOut` (`kidNamesOff_`, people.gs — no child's surname leaves). The fresh half meets it in
+         `freshFor_`. */
+      try { kidNamesOff_(payload); } catch (err) {}
       const fresh = {};
       ['submissions', 'films', 'filmsSync'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
@@ -2107,7 +2127,7 @@ function familyOf_(me) {
   const out = { familyFor: '', family: [] };
   if (!me || !S(me.person_id)) return out;
   const famCard_ = (r, rel) => ({
-    personId: S(r.person_id), title: personDisplayName(r), relation: rel,
+    personId: S(r.person_id), title: nameFor_(r, true), relation: rel,
     handle: S(r.handle), image: S(r.photo) || '',
   });
   /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
@@ -2180,6 +2200,8 @@ function freshFor_(viewer) {
     try { out.films = filmsFor_(true); } catch (err) { out.films = []; }
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
   }
+  /* THE NET, for the half laid on a kept body — which goes out through `jsonRaw_`, not `jsonOut`. */
+  try { kidNamesOff_(out); } catch (err) {}
   return out;
 }
 function payloadWithFresh_(body, fresh, cached) {

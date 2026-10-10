@@ -5575,8 +5575,8 @@ const STATES = {
         p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
                         total: 4, yours: '',
                         by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
-                             { name: 'Carl Everyclient', emoji: '👍' },
-                             { name: 'Evie Everystudent-Longername', emoji: '❤️' }] };
+                             { name: 'Carl Everyclient-Longername', emoji: '👍' },
+                             { name: 'Evie', emoji: '❤️' }] };
         repaint(true);
         goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
       },
@@ -5675,8 +5675,8 @@ const STATES = {
         p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [2, 1, 3, 0, 0, 0],
                         total: 6, yours: signed ? '😂' : '',
                         by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '😂' },
-                             { name: 'Evie Everystudent-Longername', emoji: '😂' },
-                             { name: 'Carl Everyclient', emoji: '❤️' }]
+                             { name: 'Evie', emoji: '😂' },
+                             { name: 'Carl Everyclient-Longername', emoji: '❤️' }]
                              .concat(signed ? [{ name: USER.name, emoji: '😂' }] : []) };
         repaint(true);
         goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);

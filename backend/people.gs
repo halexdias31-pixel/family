@@ -812,7 +812,9 @@ function acceptedLinks() {
    functions one letter apart would be the same trap with a longer fuse, and the thing that
    distinguishes them is not the argument but the answer. */
 function childNamesOf(personRow) {
-  const linked = acceptedChildren(S(personRow && personRow.person_id)).map(personDisplayName);
+  /* BY FIRST NAME (`nameFor_`): these fill the booking form's "Which of your children?", and what is
+     ticked there is written into `for_children` and read by the tutor. The owner, 10 Oct. */
+  const linked = acceptedChildren(S(personRow && personRow.person_id)).map(c => nameFor_(c));
   if (linked.length) return linked;
   return S(personRow && personRow.children).split(/[,\n]/).map(x => x.trim()).filter(Boolean);
 }
@@ -856,6 +858,170 @@ function childrenOf(parentId) {
    tab's redesign dropped it — see `SCHEMA.people`. */
 function personDisplayName(r) {
   return (S(r.first_name) + ' ' + S(r.last_name)).trim();
+}
+
+/* ==================================================================================================
+   A CHILD IS CALLED BY THEIR FIRST NAME — TO EVERYBODY, IN EVERYTHING THE SERVER SAYS
+   --------------------------------------------------------------------------------------------------
+   THE OWNER, 10 OCT: *"also side note dont show children's last name."* Asked as a side note and
+   meant everywhere: the people column, a family card, a roster, a post, "who reacted", a message,
+   a receipt, a greeting, the weekly email.
+
+   ABSENT, NOT HIDDEN. A name the phone was sent and then told not to draw is a name in the JSON of
+   every visitor who opens the network tab — the lesson `payload.students` paid for (doget.gs, "CHILDREN
+   ARE NOT SENT TO STRANGERS"). So a child's surname never leaves this server: not to another student,
+   not to a parent, not to a tutor, not to a stranger, and NOT TO THEIR OWN PARENT OR AN ADMIN EITHER.
+   The rule could have let those two in, and the owner's sentence has no exceptions in it — nothing
+   on any screen draws it for them (an admin reads it in the sheet, a parent typed it), so sending it
+   would only be one more copy on one more phone. ONE PLACE IT GOES: the child's own Settings, as the
+   `last_name` box of `profileOf_`, which only their own sign-in reply and `myProfile` carry, so they
+   can see and fix what they typed. (`getProfile` answers with the same boxes, and is an admin-only
+   call nothing on the site makes — the row as the sheet holds it, for somebody who holds the sheet.)
+   The sheet keeps every surname exactly as it was; nothing here writes one.
+
+   WHO IS A CHILD: `mainRole` says `student` — they hold no adult role. A student who is also a tutor
+   is public as a tutor and keeps a tutor's card; a parent who is also learning is a parent.
+
+   TWO HALVES, ONE RULE:
+     · `nameFor_(r)` IS HOW A NAME IS BUILT FOR ANYTHING THAT LEAVES — the payload, a reply, an
+       email. A grown-up's is their whole name, as before; a child's is their first name.
+     · `kidNamesOff_` IS THE NET UNDER IT, at the exits: `jsonOut`, the stored payload in `doGet`,
+       and `mailOut_`. A child's name is not only BUILT here — it is STORED as text, typed whole into
+       an event's `actor`, a post's `author`, a booking's `for_children`, a receipt — and read back
+       out verbatim by a roster, a feed, a waiting list. Every one of those is a route that would
+       have to remember. The net does not: every child's full name in anything leaving is replaced
+       with `nameFor_`'s answer, so a route written next year cannot forget. It asks the same
+       function, so the two halves cannot disagree.
+
+   TWO CHILDREN WITH ONE FIRST NAME are told apart by their handle — `Sam (@sam_bold12)` — wherever
+   the name stands alone. A card that already prints the handle under the name asks for the bare
+   first name (`cardHasHandle`), or it would print the handle twice.
+
+   WHAT THE NET CANNOT KNOW: a surname a child has since changed, still in an old event's `actor`, and
+   a child whose row was deleted — neither is on the people tab to be recognised. And it matches a
+   child's WHOLE name, so a child's surname alone (a parent who shares it) is not touched: that is a
+   grown-up's name, and theirs to show.
+================================================================================================== */
+function isChild_(r) { return !!r && mainRole(r) === 'student'; }
+
+/* THE FIRST NAME, or the handle when the row has none (a hand-typed row with only a surname must not
+   fall back to the one word it has). */
+function kidFirst_(r) {
+  const first = S(r && r.first_name);
+  if (first) return first;
+  return S(r && r.handle) ? '@' + S(r.handle) : '';
+}
+
+/* HOW MANY CHILDREN ANSWER TO THIS FIRST NAME — two or more and the handle goes beside it. */
+function kidFirstShared_(r) {
+  const k = norm(r && r.first_name);
+  if (!k) return false;
+  let n = 0;
+  const rows = read(TAB.people).rows;
+  for (let i = 0; i < rows.length && n < 2; i++) {
+    if (isChild_(rows[i]) && norm(rows[i].first_name) === k) n++;
+  }
+  return n > 1;
+}
+
+/** A person's name as it may leave the server. `cardHasHandle`: the card prints the handle anyway. */
+function nameFor_(r, cardHasHandle) {
+  if (!r) return '';
+  if (!isChild_(r)) return personDisplayName(r);
+  const first = kidFirst_(r);
+  if (!cardHasHandle && S(r.first_name) && S(r.handle) && kidFirstShared_(r)) {
+    return first + ' (@' + S(r.handle) + ')';
+  }
+  return first;
+}
+
+/* ---------- THE NET: EVERY CHILD'S WHOLE NAME, AND WHAT TO SAY INSTEAD ----------------------------
+   Built per exit rather than kept, because a reply is built AFTER its writes — a child renamed by this
+   very request must be recognised under the name the reply is about to carry. One people read (the
+   request's own, usually already in hand) and one RegExp.
+
+   SPACING AND CASE AS TYPED: `Ivy  KIND` in an old cell is the same child, so each word is matched on
+   its own with any run of white space between, case folded. WHOLE WORDS ONLY — `Ivy Kind` must not
+   eat the front of `Ivy Kindersley` — and a letter is any script's letter, which `\b` is not (it
+   would see no edge after the `ë` of a surname ending in one). An apostrophe matches itself and the
+   ways HTML spells it, because the weekly email escapes the names it prints.
+
+   A CHILD WITH NO FIRST NAME has a "full name" of their surname alone, which as a pattern would take
+   a common word out of every sentence ("be kind"). So it is replaced only where it is the WHOLE value
+   — the `actor` of an event, an `author` — and nowhere inside a sentence. */
+function kidNamesIndex_() {
+  const out = { re: null, said: {}, whole: {} };
+  let rows = [];
+  try { rows = read(TAB.people).rows; } catch (err) { return out; }
+  const word = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/['\u2019]/g, "(?:'|\u2019|&#39;|&#x27;|&apos;)");
+  const alts = [];
+  rows.forEach(r => {
+    if (!isChild_(r) || !S(r.last_name)) return;
+    const full = personDisplayName(r), shown = nameFor_(r);
+    if (!S(r.first_name)) { out.whole[norm(full)] = shown; return; }
+    const k = kidNameKey_(full);
+    if (out.said[k] !== undefined) return;
+    out.said[k] = shown;
+    alts.push(full.split(/\s+/).map(word).join('\\s+'));
+  });
+  if (alts.length) {
+    /* LONGEST FIRST, so `Mary Ann Kind` is taken whole before a `Mary Ann` could be. */
+    alts.sort((a, b) => b.length - a.length);
+    out.re = new RegExp('(?<![\\p{L}\\p{N}])(?:' + alts.join('|') + ')(?![\\p{L}\\p{N}])', 'giu');
+  }
+  return out;
+}
+function kidNameKey_(s) {
+  return norm(s).replace(/&#39;|&#x27;|&apos;|\u2019/g, "'").replace(/\s+/g, ' ');
+}
+
+/** Every child's whole name in `v` (a string, or an object or array walked in place) → `nameFor_`. */
+function kidNamesOff_(v, idx) {
+  const i = idx || kidNamesIndex_();
+  const whole = Object.keys(i.whole).length > 0;
+  if (!i.re && !whole) return v;
+  const fix = s => {
+    let t = s;
+    /* A WHOLE NAME HAS A SPACE IN IT — the cheap test that lets nine strings in ten straight past. */
+    if (i.re && /\s/.test(t)) {
+      t = t.replace(i.re, m => { const n = i.said[kidNameKey_(m)]; return n !== undefined ? n : m; });
+    }
+    if (whole) { const w = i.whole[norm(t)]; if (w !== undefined) return w; }
+    return t;
+  };
+  /* ONCE PER OBJECT. `jobs`, `liveJobs` and `clientClasses` are one array under three names, and a walk
+     that followed every reference would do the rosters three times. */
+  const seen = new Set();
+  const walk = x => {
+    if (typeof x === 'string') return fix(x);
+    if (!x || typeof x !== 'object' || seen.has(x)) return x;
+    const kind = Object.prototype.toString.call(x);
+    if (kind !== '[object Object]' && kind !== '[object Array]') return x;      // a Date, a Blob
+    seen.add(x);
+    if (Array.isArray(x)) { for (let n = 0; n < x.length; n++) x[n] = walk(x[n]); return x; }
+    Object.keys(x).forEach(k => {
+      const val = walk(x[k]);
+      /* AND A KEY, because a lookup keyed by a name is a name too. */
+      const k2 = fix(k);
+      if (k2 !== k && !(k2 in x)) { delete x[k]; x[k2] = val; } else x[k] = val;
+    });
+    return x;
+  };
+  return walk(v);
+}
+
+/* ---------- AND THE MAIL, THROUGH ONE DOOR ---------------------------------------------------------
+   EVERY EMAIL THIS PROJECT SENDS GOES THROUGH HERE, so the subject, the text and the HTML are put
+   through the net before they leave — `check-surnames.js` fails on any `MailApp.sendEmail` anywhere
+   else. To EVERYBODY, the child included: the owner's sentence has no "except to themselves", and an
+   email is forwarded more readily than a screen is shown. Throws as `MailApp` does, so each caller's
+   own `try` still says what a failure means for it. */
+function mailOut_(o) {
+  try {
+    const idx = kidNamesIndex_();
+    ['subject', 'body', 'htmlBody'].forEach(k => { if (typeof o[k] === 'string') o[k] = kidNamesOff_(o[k], idx); });
+  } catch (err) { /* a broken people tab names no child, so there is nothing to take out */ }
+  return MailApp.sendEmail(o);
 }
 
 /**
@@ -1036,7 +1202,7 @@ function notify(name, subject, body, kind) {
     /* NOT A KIND THEY HAVE TURNED OFF — see `wants_`. False, like the two above: the action that wanted
        to tell them has happened, and whether they hear of it by email was theirs to decide. */
     if (!wants_(p, kind)) { notifyHeld_(p, kind, subject); return false; }
-    MailApp.sendEmail({ to, subject, body, name: '@family.' });
+    mailOut_({ to, subject, body, name: '@family.' });
     return true;
   } catch (err) {
     return false;

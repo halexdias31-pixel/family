@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-10-g-schema-grid";
+const DOPOST_VERSION = "2026-10-10-i-first-names";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -134,7 +134,7 @@ function signInRow_(t0, r, body, by) {
    each caller says what a failure means for it. `r` needs only `first_name`, `email` and `handle`. */
 function linkMail_(r, token, asParent) {
   const said = S(r.handle) ? '@' + S(r.handle) : '';
-  MailApp.sendEmail({ to: S(r.email), name: '@family.',
+  mailOut_({ to: S(r.email), name: '@family.',
     subject: 'Confirm your @family. account',
     body: 'Hello ' + S(r.first_name) + ',\n\nConfirm your email address by opening this link:\n\n'
         + SITE_URL + '?verify=' + token
@@ -442,9 +442,11 @@ function doPost(e) {
       try {
         /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
         if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
-        else MailApp.sendEmail({ to: grownUp, name: '@family.',
+        else mailOut_({ to: grownUp, name: '@family.',
               subject: first + ' has made an @family. account',
-              body: 'Hello,\n\n' + full + ' has made an account on @family. and gave this address as '
+              /* THE FIRST NAME, as every email names a child now (the owner, 10 Oct: *"dont show
+                 children's last name"*) — the grown-up knows the rest, and `mailOut_` would take it out. */
+              body: 'Hello,\n\n' + first + ' has made an account on @family. and gave this address as '
                   + 'their grown-up\'s, because they have no email of their own.\n\n'
                   + 'Their account works already. If that is right, open this link to confirm your address'
                   + ' (it also puts them on your @family. parent account if you have one and have confirmed it):\n\n'
@@ -506,7 +508,7 @@ function doPost(e) {
            `updateProfile` keeps for a corrected PENDING address. */
         authResetDrop_(mover);
         clearCache();
-        return jsonOut({ success: true, moved: true, email: S(hit.move.to), name: personDisplayName(mover),
+        return jsonOut({ success: true, moved: true, email: S(hit.move.to), name: nameFor_(mover),
                          handle: S(mover.handle), noEmail: false, linkedTo: '', parentPending: false });
       }
       const t = read(TAB.people);
@@ -550,11 +552,11 @@ function doPost(e) {
                                  child_typed: personDisplayName(r), state: 'accepted',
                                  asked_on: new Date(), answered_on: new Date() });
           }
-          if (ok) linked = personDisplayName(par);
+          if (ok) linked = nameFor_(par);
         }
       }
       clearCache();
-      return jsonOut({ success: true, name: personDisplayName(r), handle: S(r.handle),
+      return jsonOut({ success: true, name: nameFor_(r), handle: S(r.handle),
                        noEmail: !S(r.email), linkedTo: linked, parentPending: held });
     }
 
@@ -855,7 +857,12 @@ function doPost(e) {
     if (action === 'myProfile') {
       const me = findPerson('', S(body.personId));
       if (!me) return jsonOut({ error: 'We could not find your account.' });
-      return jsonOut({ success: true, personId: S(me.person_id), profile: profileOf_(me),
+      /* AND THE NAMES, said as the sign-in reply says them — `nameFor_` and `familyNamesOf_`. A phone
+         signed in before 10 Oct kept a child's whole name in `familyUser` (its own, or its children's
+         for the booking form) for the thirty days a session lasts; this is asked on every open, so the
+         first open after the deploy puts the first names over them (`profileRefresh_`, me.js). */
+      return jsonOut(Object.assign({ success: true, personId: S(me.person_id), name: nameFor_(me),
+                       profile: profileOf_(me),
                        agreementSignedAt: S(me.agreement_signed_at),
                        agreementVersion: S(me.agreement_version),
                        role: toAppRole(mainRole(me)), roles: rolesOf(me).map(toAppRole),
@@ -863,7 +870,7 @@ function doPost(e) {
                        /* AND WHETHER THE ADDRESS IS PROVED YET — stale on the phone exactly as the role
                           was: opened on another phone, or by Google, and this phone held the held card
                           for thirty days. The sign-in reply's word, read the same way. */
-                       pendingEmail: pendingEmailOf_(me) });
+                       pendingEmail: pendingEmailOf_(me) }, familyNamesOf_(me)));
     }
 
     if (action === 'getProfile') {
@@ -1195,7 +1202,9 @@ function doPost(e) {
                  + ' no longer does anything.';
       }
       // Only the person themselves needs their session renamed; an admin must not inherit it.
-      if (renamed) out.name = adminEditing ? '' : full;
+      /* AS `nameFor_` SAYS IT, of the row as it now stands — a child renaming herself is still her first
+         name on her own screen (the owner, 10 Oct: *"dont show children's last name"*). */
+      if (renamed) out.name = adminEditing ? '' : (nameFor_(r) || full);
       return jsonOut(out);
     }
 
@@ -1955,7 +1964,7 @@ function doPost(e) {
       /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
          second lookup on a name is a second chance to send somebody's PIN to somebody else. */
       try {
-        MailApp.sendEmail(own
+        mailOut_(own
           ? { to: own, name: BRAND_NAME,
               subject: 'Your new ' + BRAND_NAME + ' PIN',
               body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account'
@@ -2383,9 +2392,11 @@ function doPost(e) {
             fromId: S(r.from_id), toId: S(r.to_id),
             mine: S(r.from_id) === mine,
             withId: other,
-            withName: who ? personDisplayName(who) : '',
-            fromName: S(r.from_id) === mine ? personDisplayName(me)
-                                            : (who ? personDisplayName(who) : ''),
+            /* `nameFor_`: a child in somebody's inbox is their first name, and two children called
+               Sam are two threads told apart by their handles (the owner, 10 Oct). */
+            withName: who ? nameFor_(who) : '',
+            fromName: S(r.from_id) === mine ? nameFor_(me)
+                                            : (who ? nameFor_(who) : ''),
             at: fmtDateTime(r.sent_at),
             body: S(r.body),
             attachments: msgAttachOut_(r.attachments),
@@ -2717,7 +2728,7 @@ function doPost(e) {
          somebody has proved; a second test of the same thing here would be a rule in two places. */
       if (S(me.email)) {
         try {
-          MailApp.sendEmail({ to: S(me.email), name: BRAND_NAME,
+          mailOut_({ to: S(me.email), name: BRAND_NAME,
             subject: first + '\'s ' + BRAND_NAME + ' account',
             body: first + ' has an account on ' + BRAND_NAME + ' now, on yours.\n\n'
                 + 'They sign in with their handle, @' + handle + ', and the PIN you chose.\n\n'
@@ -2725,7 +2736,8 @@ function doPost(e) {
                 + 'straight away.\n\n— ' + BRAND_NAME });
         } catch (err) { /* the account is made and the screen shows the handle; a mail quota is not a refusal */ }
       }
-      return jsonOut({ success: true, name: full, handle: handle, personId: kidId });
+      /* THE FIRST NAME — the slip says "Ivy signs in with…", and the parent typed the rest. */
+      return jsonOut({ success: true, name: nameFor_(kid), handle: handle, personId: kidId });
     }
 
     /* ---------- A NEW PIN FOR SOMEBODY ELSE: THEIR PARENT, OR AN ADMIN -------------------------------
@@ -2800,7 +2812,7 @@ function doPost(e) {
       notify(personDisplayName(kid), 'Your PIN was changed',
         'The PIN on your ' + BRAND_NAME + ' account was just changed by ' + personDisplayName(me)
         + '.\n\nIf you did not ask for that, reply to this message.', 'security');
-      return jsonOut({ success: true, name: personDisplayName(kid), first: S(kid.first_name),
+      return jsonOut({ success: true, name: nameFor_(kid), first: S(kid.first_name),
                        handle: handle, pin: fresh });
     }
 
@@ -3039,7 +3051,11 @@ function doPost(e) {
       if (!r) return jsonOut({ error: 'No such person.' });
       let code = S(r.referral_code);
       if (!code) {
-        const base = personDisplayName(r).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'FAMILY';
+        /* A CHILD'S FROM THEIR FIRST NAME. Six letters of the whole name are the start of the surname
+           whenever the first name is short — `IVYKIN` — and a referral code is made to be handed round
+           (the owner, 10 Oct: *"dont show children's last name"*). A code already in the cell is kept:
+           it may be on a flyer, and it is the sheet's. */
+        const base = nameFor_(r, true).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'FAMILY';
         code = base + String(Math.floor(Math.random() * 90) + 10);
         setCell(t, r, 'referral_code', code);
         clearCache();
@@ -3047,7 +3063,7 @@ function doPost(e) {
       const me = key(S(r.person_id)) || key(personDisplayName(r));
       const sent = t.rows
         .filter(x => key(S(x.invited_by)) === me && me)
-        .map(x => ({ name: personDisplayName(x), joined: fmtDate(x.joined_on) }));
+        .map(x => ({ name: nameFor_(x), joined: fmtDate(x.joined_on) }));
       return jsonOut({ success: true, code, sent });
     }
 
@@ -3667,7 +3683,14 @@ function doPost(e) {
       // lobby: a tutor pressing ✓ to mark themselves ready was recorded as "I accept <the client>",
       // which readied her too — so one person could ready the whole room. Readying up is about
       // yourself; choosing someone is about them, and the difference is whether you said a name.
-      const them = wanted ? others.find(p2 => key(p2.name) === key(wanted)) : null;
+      /* AND BY THE NAME THE PHONE WAS SHOWN. A seat holds the whole name it was booked under, but a
+         child's seat reaches every phone as their first name (`nameFor_`, the owner, 10 Oct) — so a
+         tutor answering Wren's request names `Wren`, and the whole-name match finds nobody. The name as
+         shown is asked second, and only when it picks out exactly one seat: two Wrens are told apart by
+         their handles, which is what the shown name carries when two children share one. */
+      const shownAs = wanted ? others.filter(p2 => key(kidNamesOff_(S(p2.name))) === key(wanted)) : [];
+      const them = wanted ? (others.find(p2 => key(p2.name) === key(wanted))
+                             || (shownAs.length === 1 ? shownAs[0] : null)) : null;
       // Declining still needs a target, and with exactly one candidate there's no ambiguity.
       /* AN ADMIN'S TARGET IS EVERYBODY WHO IS WAITING. They are answering the request rather than
          choosing between people, so with one client on the job that client is the target without
@@ -3835,7 +3858,15 @@ function doPost(e) {
       /* Either name. The booking form sends `clientName`; everything else on the site sends
          `name`, and one handler using its own word for the same thing is how the gate above came
          to disagree with it. */
-      const me = S(body.clientName) || S(body.name);
+      /* ---------- `clientName` IS AN ADMIN'S TO GIVE, AND NOBODY ELSE'S ------------------------------
+         IT IS THE NAME THE PHONE DREW, and since 10 Oct a child's phone draws its own name as the first
+         name alone (`nameFor_` — the owner: *"dont show children's last name"*). Taken as written, a
+         child booking for themselves would go into the events as `Wren` — a seat that answers to no row,
+         and to every other Wren. `body.name` is the token's whole name (`accessDenied`), so anybody but an
+         admin books as who they are; an admin booking for a family names that family, which is the one
+         thing the field was for. It also closes a door: a signed-in parent could name somebody else. */
+      const asker = findPerson('', S(body.personId));
+      const me = (asker && hasRole(asker, 'admin') && S(body.clientName)) || S(body.name);
       const t = read(TAB.jobs);
 
       // Without a cap one family can paper every open slot and tie up every tutor's queue.
@@ -4655,7 +4686,7 @@ function doPost(e) {
       });
       clearCache();
       return jsonOut({ success: true,
-                       parent: personDisplayName(parent), child: personDisplayName(child) });
+                       parent: nameFor_(parent), child: nameFor_(child) });
     }
 
     /* --- AN ADMIN ENDS A SESSION ---------------------------------------------------------------
@@ -4991,13 +5022,45 @@ function profileOf_(r) {
   return out;
 }
 
+/* ---------- THE NAMES OF SOMEBODY'S OWN FAMILY, FOR THE SIGN-IN REPLY AND FOR `myProfile` -----------------
+   `kids` and `children` fill the booking form's "Which of your children?"; `parents`, `siblings` and
+   `claims` the cards that name them. Every one through `nameFor_`, so a child is their first name here
+   as everywhere (the owner, 10 Oct: *"dont show children's last name"*). A FUNCTION, because `myProfile`
+   sends them too: a phone signed in before this kept the old whole names in `familyUser` for the thirty
+   days a session lasts, and the first open after the deploy now puts the first names over them. */
+function familyNamesOf_(r) {
+  const meId = S(r && r.person_id);
+  const out = {
+    parents:  acceptedParents(meId).map(x => nameFor_(x)),
+    children: acceptedChildren(meId).map(x => nameFor_(x)),
+    siblings: siblingsOf(meId).map(x => nameFor_(x)),
+    claims: read(TAB.family).rows
+      .filter(x => S(x.child_id) === meId && norm(x.state) === 'asked')
+      .map(x => {
+        const pr = findPerson(S(x.parent_id));
+        return { rowIndex: x._row, from: pr ? nameFor_(pr) : 'Someone' };
+      }),
+  };
+  /* `childNamesOf`, NOT `childrenOf` — see the note on it. This said `childrenOf(r)`, which after
+     the duplicate declaration was resolved by the second one meant "find children whose parent_id
+     equals this row object", so it has always been `[]`. The booking form reads
+     `USER.children || USER.kids`, and `out.children` above is set correctly from the accepted
+     links, which is why nothing looked broken: the fallback carried it and the primary was dead. */
+  if (toAppRole(mainRole(r)) === 'parent') out.kids = childNamesOf(r);
+  return out;
+}
+
 /* `extra` IS WHAT ONE DOOR HAS TO SAY THAT THE OTHERS DO NOT — Google taking a PENDING row back
    (`googleLogin`). Laid over the reply, so the phone reads one shape whichever door it came through. */
 function loginReplyFor_(r, token, extra) {
 // 'parent'/'kid' are what the frontend calls client/student.
   const appRole = toAppRole(mainRole(r));
   const appRoles = rolesOf(r).map(toAppRole);
-  const out = { success: true, role: appRole, roles: appRoles, name: personDisplayName(r),
+  /* `nameFor_`, EVEN FOR THEMSELVES — a child is called by their first name on their own screen too
+     (the owner, 10 Oct: *"dont show children's last name"*), and it is the same string the net puts
+     on their seat and their posts, so the phone's "is this mine?" still matches. Their surname comes
+     in `profile.last_name`, for the Settings box that edits it, and nowhere else. */
+  const out = { success: true, role: appRole, roles: appRoles, name: nameFor_(r),
                 /* A TUTOR TICK THE BUSINESS HAS NOT SAID YES TO — see `LISTED_PENDING`. The phone
                    reads it for its staff test (`isTutorRole`) and for the line on the roles card. */
                 tutorPending: tutorPending_(r),
@@ -5050,26 +5113,11 @@ function loginReplyFor_(r, token, extra) {
                 agreementSignedAt: S(r.agreement_signed_at), agreementVersion: S(r.agreement_version),
                 highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
                 friends: S(r.friends) };
-  /* `childNamesOf`, NOT `childrenOf` — see the note on it. This said `childrenOf(r)`, which after
-     the duplicate declaration was resolved by the second one meant "find children whose parent_id
-     equals this row object", so it has always been `[]`. The booking form reads
-     `USER.children || USER.kids`, and `out.children` below is set correctly from the accepted
-     links, which is why nothing looked broken: the fallback carried it and the primary was dead. */
-  if (appRole === 'parent') out.kids = childNamesOf(r);
-
   /* Their family, as agreed by both sides, and anything still waiting on them. Sent with the
      person rather than fetched separately — it is three names, and a second round trip for
-     three names costs more than carrying them. */
+     three names costs more than carrying them. `familyNamesOf_`, which `myProfile` sends too. */
+  Object.assign(out, familyNamesOf_(r));
   const meId = S(r.person_id);
-  out.parents  = acceptedParents(meId).map(personDisplayName);
-  out.children = acceptedChildren(meId).map(personDisplayName);
-  out.siblings = siblingsOf(meId).map(personDisplayName);
-  out.claims = read(TAB.family).rows
-    .filter(x => S(x.child_id) === meId && norm(x.state) === 'asked')
-    .map(x => {
-      const pr = findPerson(S(x.parent_id));
-      return { rowIndex: x._row, from: pr ? personDisplayName(pr) : 'Someone' };
-    });
   /* ---------- `out.profile = {}` WAS HERE, AND IT THREW AWAY `profileOf_` TEN LINES AFTER USING IT ---
      The object literal above sets `profile: profileOf_(r)` — every packed cell expanded into the
      boxes the form draws. This block, older than that line, then REPLACED it with `S(r[f])` for each

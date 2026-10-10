@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-10-g-schema-grid";
+const BOOKING_VERSION = "2026-10-10-i-first-names";
 
 
 /**
@@ -502,7 +502,7 @@ function sendInvite(jobId, fromName, toEmail, toName) {
      company mailshot gets the response a company mailshot gets; one that reads like a message from
      somebody you know at the school gate gets read. */
   try {
-    MailApp.sendEmail({
+    mailOut_({
       to: S(toEmail),
       subject: S(fromName) + ' would like to share a tutoring session with you',
       htmlBody:
@@ -1536,7 +1536,7 @@ function authWrong_(t, r) {
   const tos = authGrownUps_(r);
   if (!tos.length) return;
   try {
-    MailApp.sendEmail({ to: tos.join(','), name: BRAND_NAME, subject: 'Too many sign-in attempts',
+    mailOut_({ to: tos.join(','), name: BRAND_NAME, subject: 'Too many sign-in attempts',
       body: said + 'If that was ' + (S(r.first_name) || 'them') + ', "New PIN" on their card on your '
           + 'account gives them a new one at once. If it was not, tell us.' });
   } catch (err) {}
@@ -1895,7 +1895,7 @@ function authMoveFind_(key) {
 /* THE LINK TO THE NEW ADDRESS. It names nobody: the reader may be a stranger whose address was typed by
    mistake, and the account's name and handle are not theirs to be told. Throws as `MailApp` does. */
 function moveMail_(to, key) {
-  MailApp.sendEmail({ to: S(to), name: '@family.',
+  mailOut_({ to: S(to), name: '@family.',
     subject: 'Confirm your new @family. email address',
     body: 'Hello,\n\nSomebody signed in to an @family. account has asked to use this email address for it.'
         + '\n\nIf that was you, open this link on a phone or computer where you are signed in to that account:'

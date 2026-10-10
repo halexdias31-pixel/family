@@ -206,11 +206,22 @@ FILES.forEach(f => {
         }
       }
     }
-    if (c.type === 'MemberExpression' && c.object.type === 'Identifier' && (c.object.name === 'MailApp' || c.object.name === 'GmailApp')
-        && c.property && (c.property.name === 'sendEmail' || c.property.name === 'send')) {
+    /* ---------- `mailOut_` IS THE ONE DOOR, SO A SENDER IS A CALL TO IT --------------------------------
+       SINCE 10 OCT EVERY EMAIL GOES THROUGH `mailOut_` (people.gs), which takes a child's surname out of
+       it on the way (the owner: *"dont show children's last name"*). So the direct senders this table
+       names are the calls to the door, and `MailApp.sendEmail` itself belongs inside the door and nowhere
+       else — one anywhere else is a send that asks nobody about anything, and fails here as the GmailApp
+       one always has. `check-surnames.js` asks the same question from the other side. */
+    const mailCall = c.type === 'MemberExpression' && c.object.type === 'Identifier' && (c.object.name === 'MailApp' || c.object.name === 'GmailApp')
+        && c.property && (c.property.name === 'sendEmail' || c.property.name === 'send');
+    const door = c.type === 'Identifier' && c.name === 'mailOut_';
+    if (mailCall && placeOf(up) === 'mailOut_' && c.object.name === 'MailApp') return;
+    if (mailCall || door) {
       const at_ = placeOf(up);
       directSeen[at_] = (directSeen[at_] || 0) + 1;
-      rule(c.object.name === 'MailApp', 'backend/' + f + ':' + line + ' sends through GmailApp — the senders here are MailApp, and this one asks nobody');
+      rule(!mailCall || c.object.name === 'MailApp', 'backend/' + f + ':' + line + ' sends through GmailApp — the senders here are MailApp, and this one asks nobody');
+      rule(!mailCall, 'backend/' + f + ':' + line + ' sends with `MailApp` from `' + at_ + '` — every email goes through `mailOut_`, '
+        + 'which is what keeps a child\'s surname out of it');
       rule(DIRECT[at_], 'backend/' + f + ':' + line + ' sends an email from `' + at_ + '`, which this check does not know — '
         + 'name its kind in DIRECT here: essential with a reason, or asking `wants_` for its kind');
     }
@@ -615,7 +626,7 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
 console.log('');
 console.log('  ' + Object.keys(KINDS).length + ' kinds (' + OPTIONAL.length + ' optional: ' + OPTIONAL.join(', ') + '; '
   + ESSENTIAL.length + ' always sent: ' + ESSENTIAL.join(', ') + ')');
-console.log('  ' + notifyCalls + ' notify() calls and ' + Object.values(directSeen).reduce((a, x) => a + x, 0) + ' direct MailApp sends, each with its kind');
+console.log('  ' + notifyCalls + ' notify() calls and ' + Object.values(directSeen).reduce((a, x) => a + x, 0) + ' direct sends through mailOut_, each with its kind');
 console.log('  ' + Object.keys(proved).length + ' optional kinds proved off and on through a real sender; ' + asked + ' things asked');
 console.log('');
 if (bad.length) {

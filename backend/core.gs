@@ -368,6 +368,11 @@ function jsonOut(obj) {
         + '. Those columns are not in the sheet — deploy and reload, or run ensureSchema.';
     }
   }
+  /* NO CHILD'S SURNAME LEAVES BY THIS DOOR — the owner, 10 Oct: *"dont show children's last name."*
+     Every reply goes through here, so the net is here rather than in the two hundred and fifty
+     returns that would each have to remember it (`kidNamesOff_` in people.gs). A broken people tab
+     names no child, so a failure here has nothing to take out and must not cost the reply. */
+  try { if (obj && typeof obj === 'object') kidNamesOff_(obj); } catch (err) {}
   const body = JSON.stringify(obj);
   /* WRAPPED AND SERVED AS A SCRIPT, when a callback was asked for. The name is checked rather than
      trusted: it goes into a page as executable code, so anything but a plain identifier is refused

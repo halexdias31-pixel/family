@@ -131,7 +131,7 @@ function meCard(given) {
         ? `<img class="thing-pic" src="${esc(face)}" alt="">`
         : `<span class="thing-pic art">${avatarFor(USER.handle || USER.name, 52, USER.avatar)}</span>`}
       <div class="thing-body">
-        <h3>${esc(USER.name)}</h3>
+        <h3>${esc(nameBesideHandle_(USER.name, USER.handle))}</h3>
         <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
         ${USER.handle ? `<p class="prof-handle">@${esc(USER.handle)}</p>` : ''}
       </div>
