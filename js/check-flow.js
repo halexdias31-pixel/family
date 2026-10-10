@@ -17579,6 +17579,71 @@ check('edges: signed in over somebody else, opening a card or the board hands th
   return bad;
 });
 
+/* THE TWO "NOT DONE"s OF NOTE 317, CLOSED AT THE MERGE. One Backspace on a two-character answer kept one
+   of its two characters, which is half and not more than half — so the last digit of Ada's "80" was a new
+   answer by nobody and went to whoever signed in next. And a device draft marked as somebody's was swept
+   after six hours like a stranger's, while her answers marked the same way wait for her with no limit. */
+check('edges: a visitor trimming the owner\'s answer one key at a time leaves it hers to the last character, and her marked booking form waits for her as long as her answers do (317)', async () => {
+  const bad = [];
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'T1');
+    if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
+    c.draw();
+    const bareM = 'ans:' + c.maths.key, benM = 'ans:u:P8:' + c.maths.key;
+    ansType_(w, c.kp(), '80');
+    if (w.ansMayMove_(bareM, benM) !== '') return ['setup: "80" typed signed out was not marked Ada\'s'];
+    /* The hour passes: nobody's session is fresh, so only the mark keeps it hers. */
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
+    c.draw();
+    const inp = c.kp();
+    inp.setSelectionRange(2, 2);
+    w.kpEdit_(inp, '!back');
+    if (w.ansValue_(bareM) !== '8') return ['setup: one Backspace on "80" gave ' + JSON.stringify(w.ansValue_(bareM))];
+    const m = w.ansMayMove_(bareM, benM);
+    if (m !== '') bad.push('one Backspace on Ada\'s "80" left "8" — her own digit — and it is ' + JSON.stringify(m) + ' for Ben, not hers');
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await w.answersPush_(true);
+    if (b.of('P8')['ans:' + c.maths.key]) bad.push('the "8" left of Ada\'s "80" reached BEN\'S ACCOUNT');
+  }
+  {
+    const ended = new Set(['tok-P7']);
+    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+    await wait(300);
+    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
+    if (w.__t.whoami()) { await w.api({ action: 'myProfile' }); for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50); }
+    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    h.innerHTML = w.noteRow_().sel;
+    const el = h.querySelector('[data-do="book-note"]');
+    el.value = 'Ada signed out: 1 Example Road';
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    const k = 'draft:device:book:form';
+    const d = JSON.parse(w.localStorage.getItem(k) || 'null');
+    if (!d) return bad.concat(['setup: the note typed signed out made no device draft']);
+    if (!(JSON.parse(w.localStorage.getItem('familyGoneKeys') || '{}') || {})[k]) return bad.concat(['setup: the device form typed after Ada\'s session ended is not marked hers']);
+    /* Seven hours on, and a reload: the sweep at load is where a stranger's form goes. */
+    d.at = Date.now() - 7 * 60 * 60 * 1000;
+    w.localStorage.setItem(k, JSON.stringify(d));
+    const store = {};
+    for (let i = 0; i < w.localStorage.length; i++) { const x = w.localStorage.key(i); store[x] = w.localStorage.getItem(x); }
+    const b2 = boot({ before: w2 => { Object.keys(store).forEach(x => { try { w2.localStorage.setItem(x, store[x]); } catch (e) {} }); } });
+    await wait(300);
+    b2.w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
+    if (!/Example Road/.test(String(b2.w.__t.BOOKING.note || ''))) bad.push('Ada signed in after a reload seven hours later and the form marked hers is gone (device draft now ' + b2.w.localStorage.getItem(k) + ') — her answers marked the same way wait with no limit');
+    /* AND A STRANGER'S STILL GOES: the same form, unmarked, is swept as before. */
+    const store3 = Object.assign({}, store);
+    delete store3.familyGoneKeys;
+    const b3 = boot({ before: w3 => { Object.keys(store3).forEach(x => { try { w3.localStorage.setItem(x, store3[x]); } catch (e) {} }); } });
+    await wait(300);
+    if (b3.w.localStorage.getItem(k) !== null) bad.push('an unmarked device form seven hours old survived the sweep at load — a device draft is a reload, not tomorrow\'s visitor');
+  }
+  return bad;
+});
+
 check('signing out sends the notepad typed a moment before — what waits for its moment goes before the session it needs is ended', async () => {
   const { w, sent } = boot({ before: signedInAs_(Object.assign({}, ANS_ADA, { notepad: 'saved earlier' })) });
   await wait(300);

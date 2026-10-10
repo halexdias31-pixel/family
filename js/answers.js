@@ -691,8 +691,8 @@ function ansGoneSay_(k) {
    Ada's for Ada's words, nobody's for the visitor's one letter put back by a Redo. Undo is time going
    backwards for one box; whose it was goes backwards with it.
    A MARK IS `{ who, words }`: whose, and whether it was typed in a worded box (the `input` listener in
-   find.js says), which is what `ansJoin_` needs to know when they sign in again. */
-const ANS_GONE_KEYS = 'familyGoneKeys';
+   find.js says), which is what `ansJoin_` needs to know when they sign in again. The record's name,
+   `ANS_GONE_KEYS`, is declared in data.js: the draft sweep there asks it as that file loads. */
 /* THE WRITE AN UNDO IS MAKING, while it makes it: `{ k, mark }`. `write` is the Undo's own write — the pen's
    `ansStore_`, or the keypad's `input` event, which find.js's listener stores — and the mark is decided here
    and not after it, so the answer is never on the device without its mark, even for a moment (`keepWaits_`).
@@ -732,13 +732,17 @@ function ansGoneMark_(k, v, words, was) {
 /* ---------- DOES A WRITE KEEP WHAT WAS THERE — an edit of it, or a new answer over it? (P7, above) ------------
    A KEY TYPED, A LETTER DELETED, A WORD PASTED IN: one place changes, and the text before it and after it
    is as it was — the keypad writes the whole box on every key, so two writes in a row differ in one place.
-   MORE THAN HALF of the old text still there, at its start and its end, is an edit of it. Less is a new
+   HALF OR MORE of the old text still there, at its start and its end, is an edit of it. Less is a new
    answer written over it: "(5)/(6)" typed over with "(1)/(9)" keeps a bracket at each end, two characters
    of seven, which is chance and not keeping. A drawing or its rings is a list, and is kept while any
    stroke or ring of the old one is still in it: Undo takes one off, and Clear empties it, which takes the
    mark off on its own. NOT AS TEXT: a visitor's Undo that takes Ada's long stroke off leaves her short
    one, a fifth of the characters, and as text that read as a new drawing over hers — and Ben, signing
-   in next, was handed her stroke. */
+   in next, was handed her stroke.
+   HALF COUNTS, and that was found the short way: "more than half" made one Backspace on Ada's "80" a new
+   answer — "8" keeps one character of two — so her own last digit was nobody's and went to Ben. Every
+   key is one write, so with half counted a visitor trimming her words key by key leaves them hers to the
+   last character, and the empty box that ends it takes the mark off with nothing of hers left. */
 function ansKeeps_(k, was, v) {
   if (was === null || was === undefined || v === null || v === undefined) return false;
   if (ansIsPad_(k) || ansIsRing_(k) || ansIsBoard_(k)) {
@@ -755,7 +759,7 @@ function ansKeeps_(k, was, v) {
   while (p < a.length && p < b.length && a[p] === b[p]) p++;
   let s = 0;
   while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
-  return 2 * (p + s) > a.length;
+  return 2 * (p + s) >= a.length;
 }
 /* ONE MARK, READ — `{ who, words }`, or null. A bare string is a mark from before marks said how the
    answer was typed. */

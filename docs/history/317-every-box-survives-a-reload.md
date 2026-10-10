@@ -493,3 +493,27 @@ takes her mark off what is left. That is the "Left as it is" above, at its short
 as somebody's is still swept after `DRAFT_DEVICE_MS` (six hours) like any other device draft, while answers
 marked the same way are kept with no limit. A device that was already signed in, and was not a switch,
 still takes another tab's `'later'` answer into an empty box when the card is drawn, which is 318's door.
+
+## At the merge: two of the "Not done"s closed
+
+Both were found by the verifier and listed as not done above. Each now has a journey in check-flow,
+`edges: a visitor trimming the owner's answer one key at a time…`, and both parts were red before the fix.
+
+- **One Backspace on "80".** `ansKeeps_` asked for MORE than half of the old text kept, so "8" (one
+  character of two) counted as a new answer by nobody. Ada's own last digit went to Ben. It now asks for
+  half or more. The keypad writes the box on every key, so a visitor trimming her words one key at a time
+  now leaves them hers down to the last character. The empty box at the end takes the mark off, with
+  nothing of hers left. "(5)/(6)" typed over with "(1)/(9)" still keeps 4 of 7 characters, short of
+  half, so it is still a new answer.
+- **Her booking form swept at six hours.** `draftOld_` gave every `draft:device:` key `DRAFT_DEVICE_MS`.
+  It now asks `draftHeld_`, and a device draft marked as somebody's lasts `DRAFT_KEEP_MS`, as their own
+  drafts do. A stranger's form still goes at six hours, and the same journey checks that.
+  `ANS_GONE_KEYS` moved to data.js because the sweep runs as data.js loads, before answers.js. The first
+  try asked `typeof ansRec_`. In check-flow every file is one script, so `ansRec_` is declared at load
+  but throws, and the sweep took the throw for "not marked". It is asked inside a try now, falling back
+  to the store.
+  Mutations: `draftHeld_` always false turns the form red; always true turns the stranger red; `>` for
+  `>=` turns the Backspace red. The real files are green after each.
+
+Still not done: a device that was already signed in, and was not a switch, still takes another tab's
+`'later'` answer into an empty box when the card is drawn. That is 318's door, unchanged.

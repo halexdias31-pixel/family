@@ -325,6 +325,10 @@ window.addEventListener('beforeunload', e => {
    nothing ever took one away. `draftSweep_` runs as this file loads: a device's draft after six hours,
    a sent one after `DRAFT_SENT_MS`, anybody's after `DRAFT_KEEP_MS`, and past `DRAFT_MAX` the oldest. */
 const DRAFT_DEVICE_MS = 6 * 60 * 60 * 1000;
+/* WHOSE A SIGNED-OUT ANSWER OR DEVICE DRAFT IS (`ansGoneMark_`, answers.js; docs/history/317). Declared
+   HERE, not beside the code that writes it, because `draftOld_` asks it while `draftSweep_` runs as this
+   file loads — before answers.js exists. */
+const ANS_GONE_KEYS = 'familyGoneKeys';
 const DRAFT_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
 /* LONGER THAN ANY ANSWER APPS SCRIPT GIVES (six minutes is its ceiling), so a send still out in another
    tab is never swept from under it. */
@@ -360,9 +364,26 @@ function draftRaw_(k) {
   return raw === null || raw === undefined ? null : draftParse_(raw);
 }
 /* PAST ITS TIME — see the sweep's note above. */
+/* A DEVICE'S DRAFT MARKED AS SOMEBODY'S lasts as long as their own drafts do, not six hours. The six
+   hours are for a stranger's form: a reload, not tomorrow's visitor. One the device knows is Ada's — typed
+   after the server ended her session — is hers, and `bookFollow_` gives it back when she signs in again;
+   swept at six hours, it was gone by the afternoon, while her answers marked the same way waited with no
+   limit (verifier of 317, B2b). The visit's copy is asked when answers.js can answer; at load, the store.
+   ASKED, NOT `typeof`: where every file is one script (check-flow's jsdom), `ansRec_` is already declared
+   at load but reads names answers.js has not reached yet, and throws — and the sweep took that for "not
+   marked" and swept her form anyway. */
+function draftHeld_(k) {
+  try {
+    let raw;
+    try { raw = ansRec_(ANS_GONE_KEYS); } catch (e) { raw = localStorage.getItem(ANS_GONE_KEYS); }
+    const map = JSON.parse(raw || '{}');
+    return !!(map && map[k]);
+  } catch (e) { return false; }
+}
 function draftOld_(k, d, now) {
   if (d.sent && !DRAFT_SENDING.has(k) && !(now - (Number(d.sent) || 0) < DRAFT_SENT_MS)) return true;
-  return !(now - (Number(d.at) || 0) < (/^draft:device:/.test(k) ? DRAFT_DEVICE_MS : DRAFT_KEEP_MS));
+  const device = /^draft:device:/.test(k) && !draftHeld_(k);
+  return !(now - (Number(d.at) || 0) < (device ? DRAFT_DEVICE_MS : DRAFT_KEEP_MS));
 }
 /* `was`, WHEN GIVEN, is the saved value the box is being drawn from: a draft typed over another one is
    not this box's any more (see `from` above). Callers with no saved value — the booking form, Find's
