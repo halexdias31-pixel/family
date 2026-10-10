@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-10-g-schema-grid";
+const BOOKING_VERSION = "2026-10-10-j-rooms";
 
 
 /**
@@ -376,20 +376,68 @@ function jobStatusOf(jobId) {
   return 'unconfirmed';
 }
 
+/* ---------- A ROOM'S BLANK CELL IS ITS VENUE'S -------------------------------------------------------
+   *"Also I forgot to database even the rooms within venues. For example colliers would library has 3
+   rooms within it. 2 are same size and one is large. And 2 have capacity for 4 kids and large one has
+   capacity for 10 kids."* — the owner, 10 Oct. Capacities, and not one word about price.
+
+   A BLANK RATE WAS SENT AS 0, AND 0 HERE MEANS FREE. `N('')` is 0, so a room row with nothing typed in
+   `rate_per_hour` reached the phone as `rate: 0`: the venue card said "free", `priceFrom` charged the
+   room at nothing, `isHome` read the zero as "nobody pays for this room" and locked "Are you providing
+   the space?" to Yes. The three Colliers Wood rooms, entered exactly as the owner described them, would
+   have made a £15 room free three times over — and `priceLooksWrong` could not catch it, because it
+   looked the venue up by the whole "Venue — Room" label, found nothing, and called the room free as
+   well. Phone and server agreed, on the wrong number.
+
+   A BLANK IS A CELL NOBODY FILLED IN, AND A 0 IS A CELL SOMEBODY DID. The room's own figure where it
+   has one, the building's where it does not: a room with no rate of its own costs what the venue
+   costs, a room with no minimum takes the venue's minimum (and one is the floor, as everywhere), a
+   room with no hours keeps the building's hours, and a room with no capacity holds what the building
+   holds — which `capacityFor` already said and the phone did not. `S()` tells blank from nought;
+   `N()` cannot, it reads both as 0, which is the whole of the fault. An explicit 0 rate stays 0:
+   free on purpose is a thing a person can type.
+
+   ONE FUNCTION, ASKED BY EVERYTHING THAT PRICES OR CAPS A ROOM — the rooms doGet sends on each venue,
+   `capacityFor`, `priceLooksWrong`, `waitlistPrice` and `travelCost` — so the figure the phone draws
+   and the figure the server checks are one answer rather than two copies of it. `fields` on the
+   payload still carries the cells as typed, so a blank stays visibly blank to anybody editing it. */
+function roomTerms_(room, venue) {
+  const v = venue || {};
+  return {
+    rate: S(room.rate_per_hour) === '' ? N(v.cost_per_hour) : N(room.rate_per_hour),
+    /* NOT THE VENUE'S. A concession is a second price on this one room, and a venue has no column
+       for one — blank is "no concession rate", which is what it already meant. */
+    concession: N(room.concession_rate),
+    min: N(room.min_capacity) || N(v.min_students) || 1,
+    max: N(room.max_capacity) || N(v.max_students),
+    availability: S(room.availability) || S(v.availability),
+  };
+}
+
+/* "Colliers Wood Library — Small room 1" → the venue's row, the room's row, and the room's terms.
+   THE LABEL IS THE PHONE'S: `bookableSpaces` names a room `venue + ' — ' + room`, and that string is
+   what a booking sends as its `location` and what the job stores as its `venue`. A bare name is a
+   venue with no room. Every reader below used to look the WHOLE label up on the venues tab, which
+   finds nothing for a room — so the room's travel, floor and seat price all came back as nothing. */
+function spaceOf_(label) {
+  const parts = S(label).split('—').map(x => x.trim());
+  const at = parts[0], roomName = parts.slice(1).join('—').trim();
+  const venue = read(TAB.venues).rows.find(x => key(x.name) === key(at)) || null;
+  const room = roomName
+    ? (read(TAB.rooms).rows.find(x => key(x.venue) === key(at) && key(x.name) === key(roomName)) || null)
+    : null;
+  return { venue, room, terms: room ? roomTerms_(room, venue) : null };
+}
+
 /** The seat cap for a job: the lowest of the tutor's, the venue's and the job's own. */
 function capacityFor(kind, name) {
   if (!name) return 0;
   if (kind === 'venue') {
-    // "Richmond Library — Small room 1" narrows to that room's own capacity; a bare venue name
-    // falls back to the building's.
-    const parts = String(name).split('—').map(x => x.trim());
-    if (parts.length > 1) {
-      const room = read(TAB.rooms).rows.find(x =>
-        key(x.venue) === key(parts[0]) && key(x.name) === key(parts[1]));
-      if (room && N(room.max_capacity)) return N(room.max_capacity);
-    }
-    const v = read(TAB.venues).rows.find(x => key(x.name) === key(parts[0]));
-    return v ? N(v.max_students) : 0;
+    // "Richmond Library — Small room 1" narrows to that room's own capacity; a bare venue name, or a
+    // room with no capacity typed, falls back to the building's — `roomTerms_` does the falling back.
+    const sp = spaceOf_(name);
+    if (sp.terms && sp.terms.max) return sp.terms.max;
+    return sp.venue ? N(sp.venue.max_students) : 0;
   }
   const p = findPerson(name);
   return p ? N(p.max_students) : 0;
@@ -938,7 +986,11 @@ function travelCost(venueName, sessions) {
      a cell somebody has not filled in yet, and it should stay zero even if somebody types a number
      into that row by mistake. */
   if (/^online$/i.test(S(venueName))) return 0;
-  const v = read(TAB.venues).rows.find(x => key(x.name) === key(venueName));
+  /* THE BUILDING, WHICHEVER ROOM. A journey is to an address, so "Colliers Wood Library — Large
+     room 1" travels exactly as far as "Colliers Wood Library" — and looked up whole, the label found
+     no venue and a booking in any room was charged no travel at all. `spaceOf_` reads the venue off
+     the front of it. */
+  const v = spaceOf_(venueName).venue;
   if (!v) return 0;
   const each = N(v.travel_cost);
   if (each <= 0) return 0;
@@ -972,9 +1024,12 @@ function priceLooksWrong(o) {
   const seats = Math.max(1, N(o.seats) || 1);
 
   /* THE ROOM. Free is a legitimate answer — Online costs nothing and a client's own house nearly
-     nothing — so a venue that is not found contributes zero rather than blocking the booking. */
-  const v = read(TAB.venues).rows.find(x => key(x.name) === key(o.venue));
-  const room = v ? N(v.cost_per_hour) : 0;
+     nothing — so a venue that is not found contributes zero rather than blocking the booking.
+     A ROOM IS PRICED AS THE PHONE PRICED IT: its own rate, or its venue's where its cell is blank
+     (`roomTerms_`). This looked the whole "Venue — Room" label up on the venues tab, found nothing,
+     and so judged every room booking as though the room were free. */
+  const sp = spaceOf_(o.venue);
+  const room = sp.terms ? sp.terms.rate : (sp.venue ? N(sp.venue.cost_per_hour) : 0);
 
   /* AND THE TEACHING. The cheapest listed tutor is the floor: nobody on this site works for less,
      so a total that does not cover it is a total that cannot pay for the session it describes. */
@@ -1024,7 +1079,13 @@ function priceLooksWrong(o) {
  * `printPrice` follows for a resource nobody has counted.
  */
 function waitlistPrice(venueName) {
-  const v = read(TAB.venues).rows.find(x => key(x.name) === key(venueName));
+  /* A ROOM'S LIST IS PRICED AS THAT ROOM. The booking form names a room by its whole label once a
+     venue has rooms — the bare building is no longer offered — so a waiting list at Colliers Wood
+     arrives here as "Colliers Wood Library — Small room 1". Looked up whole on the venues tab, that
+     found nothing and answered null: "no price set for a shared session" for every list in a venue
+     the moment its rooms were entered. */
+  const sp = spaceOf_(venueName);
+  const v = sp.venue;
   if (!v) return null;
 
   const cfg = config();
@@ -1048,7 +1109,7 @@ function waitlistPrice(venueName) {
   const seats = room_cap > 0 ? Math.min(room_cap, want) : want;
   if (seats < 1) return null;
 
-  const room = N(v.cost_per_hour);
+  const room = sp.terms ? sp.terms.rate : N(v.cost_per_hour);
   const tutor = N(cfg.open_tutor_rate);
   /* THE TUTOR IS THE PART THAT MUST BE SET. A room can honestly be free — Online is, and a client's
      own house nearly is — but a session with no teaching rate is not a cheap session, it is an

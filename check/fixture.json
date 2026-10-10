@@ -201,13 +201,36 @@
    "rooms": [
     {
      "rowIndex": 2,
-     "name": "Room 1",
+     "name": "Small room 1",
      "rate": 12,
      "concession": 0,
      "min": 1,
-     "max": 8,
+     "max": 4,
+     "notes": "Same size as Small room 2",
+     "avail": { "m09": "", "m10": "", "m11": "", "m12": "", "m13": "", "m14": "", "m15": "", "m16": "", "m17": "", "m18": "", "tu09": "", "tu10": "", "tu11": "", "tu12": "", "tu13": "", "tu14": "", "tu15": "", "tu16": "", "tu17": "", "tu18": "", "w09": "", "w10": "", "w11": "", "w12": "", "w13": "", "w14": "", "w15": "", "w16": "", "w17": "", "w18": "", "th09": "", "th10": "", "th11": "", "th12": "", "th13": "", "th14": "", "th15": "", "th16": "", "th17": "", "th18": "", "f09": "", "f10": "", "f11": "", "f12": "", "f13": "", "f14": "", "f15": "", "f16": "", "f17": "", "f18": "", "sa09": "", "sa10": "", "sa11": "", "sa12": "", "sa13": "", "sa14": "", "sa15": "", "sa16": "", "sa17": "", "sa18": "", "su09": "", "su10": "", "su11": "", "su12": "", "su13": "", "su14": "", "su15": "", "su16": "", "su17": "", "su18": "" },
+     "fields": { "venue": "Colliers Wood Library", "name": "Small room 1", "rate_per_hour": "", "concession_rate": "", "min_capacity": "", "max_capacity": "4", "active": "true", "notes": "Same size as Small room 2" }
+    },
+    {
+     "rowIndex": 3,
+     "name": "Small room 2",
+     "rate": 12,
+     "concession": 0,
+     "min": 1,
+     "max": 4,
+     "notes": "Same size as Small room 1",
+     "avail": { "m09": "", "m10": "", "m11": "", "m12": "", "m13": "", "m14": "", "m15": "", "m16": "", "m17": "", "m18": "", "tu09": "", "tu10": "", "tu11": "", "tu12": "", "tu13": "", "tu14": "", "tu15": "", "tu16": "", "tu17": "", "tu18": "", "w09": "", "w10": "", "w11": "", "w12": "", "w13": "", "w14": "", "w15": "", "w16": "", "w17": "", "w18": "", "th09": "", "th10": "", "th11": "", "th12": "", "th13": "", "th14": "", "th15": "", "th16": "", "th17": "", "th18": "", "f09": "", "f10": "", "f11": "", "f12": "", "f13": "", "f14": "", "f15": "", "f16": "", "f17": "", "f18": "", "sa09": "", "sa10": "", "sa11": "", "sa12": "", "sa13": "", "sa14": "", "sa15": "", "sa16": "", "sa17": "", "sa18": "", "su09": "", "su10": "", "su11": "", "su12": "", "su13": "", "su14": "", "su15": "", "su16": "", "su17": "", "su18": "" },
+     "fields": { "venue": "Colliers Wood Library", "name": "Small room 2", "rate_per_hour": "", "concession_rate": "", "min_capacity": "", "max_capacity": "4", "active": "true", "notes": "Same size as Small room 1" }
+    },
+    {
+     "rowIndex": 4,
+     "name": "Large room 1",
+     "rate": 20,
+     "concession": 0,
+     "min": 1,
+     "max": 10,
      "notes": "",
-     "avail": []
+     "avail": { "m09": "", "m10": "", "m11": "", "m12": "", "m13": "", "m14": "", "m15": "", "m16": "", "m17": "", "m18": "", "tu09": "", "tu10": "", "tu11": "", "tu12": "", "tu13": "", "tu14": "", "tu15": "", "tu16": "", "tu17": "", "tu18": "", "w09": "", "w10": "", "w11": "", "w12": "", "w13": "", "w14": "", "w15": "", "w16": "", "w17": "", "w18": "", "th09": "", "th10": "", "th11": "", "th12": "", "th13": "", "th14": "", "th15": "", "th16": "", "th17": "", "th18": "", "f09": "", "f10": "", "f11": "", "f12": "", "f13": "", "f14": "", "f15": "", "f16": "", "f17": "", "f18": "", "sa09": "", "sa10": "", "sa11": "", "sa12": "", "sa13": "", "sa14": "", "sa15": "", "sa16": "", "sa17": "", "sa18": "", "su09": "", "su10": "", "su11": "", "su12": "", "su13": "", "su14": "", "su15": "", "su16": "", "su17": "", "su18": "" },
+     "fields": { "venue": "Colliers Wood Library", "name": "Large room 1", "rate_per_hour": "20", "concession_rate": "", "min_capacity": "", "max_capacity": "10", "active": "true", "notes": "" }
     }
    ],
    "fields": [],
@@ -506,6 +529,24 @@
   "Colliers Wood Library": {
    "perHour": 12,
    "perSession": 24,
+   "seats": 4,
+   "hours": 2
+  },
+  "Colliers Wood Library — Small room 1": {
+   "perHour": 12,
+   "perSession": 24,
+   "seats": 4,
+   "hours": 2
+  },
+  "Colliers Wood Library — Small room 2": {
+   "perHour": 12,
+   "perSession": 24,
+   "seats": 4,
+   "hours": 2
+  },
+  "Colliers Wood Library — Large room 1": {
+   "perHour": 14,
+   "perSession": 28,
    "seats": 4,
    "hours": 2
   }

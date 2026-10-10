@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-films-leave-find";
+  --css-version: "2026-10-10-rooms-films";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -4354,6 +4354,34 @@ label.bk-k { cursor: pointer; }
    is the other half of the point: a select cannot, so a long venue name was cut mid-word in a column
    with room for it over two lines. Same colour as a locked control, for the same reason. */
 .bk-set { display: block; color: var(--dim); }
+
+/* ---------- AND AN OPEN ANSWER THAT ONLY ITS END TELLS APART WRAPS TOO -------------------------------
+   `stepSelect_`'s `wrap` (book.js): the Venue row, once a venue has rooms. Three rooms of one building
+   read "Colliers …" three times in this column, so the answer is drawn as words that wrap and the
+   select is laid exactly over them — still the control, still under the finger, its arrow still
+   drawn; only its own letters are left unpainted, so the row does not say its answer twice.
+
+   `-webkit-text-fill-color`, NOT `color`. Four rules here already set a select's `color` — unanswered,
+   focused, disabled, and the arrow's ink rides on it — and the unanswered one out-ranks anything this
+   could say through `:has()`. The fill is the property that paints the letters, nothing else sets it,
+   and the picture the Share tile makes copies it (`rcStyle_`), so the clone is as blank as the screen.
+
+   THE WORDS TAKE THE SELECT'S CLOTHES: right-aligned, the same air before the arrow (`.bk-sel`'s
+   `--sel-tri` of 4px twice and .3em), and the same ink for each of its states, asked of the select
+   with `:has()` so there is one source for which state it is in. */
+.bk-face { position: relative; display: block; }
+.bk-said {
+  display: block; text-align: right; line-height: 1.35;
+  padding-right: calc(4px * 2 + .3em);
+  overflow-wrap: break-word;
+}
+.bk-face > .bk-sel {
+  position: absolute; inset: 0; height: 100%;
+  -webkit-text-fill-color: transparent;
+}
+.bk-face:has(> .bk-sel option[value=""]:checked) > .bk-said { color: var(--faint); }
+.bk-face:has(> .bk-sel:focus-visible) > .bk-said { color: var(--ink); }
+.bk-face:has(> .bk-sel:disabled) > .bk-said { color: var(--dim); padding-right: 0; }
 
 /* THE NOTE READS LEFT TO RIGHT. Every other value is right-aligned against its figures; a sentence
    is not a figure, and a sentence that starts at the right edge and grows leftwards is unreadable.

@@ -16,8 +16,9 @@
    the picture (`.rc-snap`, see receipt.js), so the screenshot is taken with that same class on. Any
    other difference is a fault.
 
-   THREE RECEIPTS AT TWO WIDTHS: the booking form as somebody fills it in (a dozen dropdowns on paper,
-   which is where a clone most easily gets the answer wrong), a saved session, and somebody else's
+   FOUR RECEIPTS AT TWO WIDTHS: the booking form as somebody fills it in (a dozen dropdowns on paper,
+   which is where a clone most easily gets the answer wrong), the same form with a room chosen (whose
+   Venue row is words with the select laid over them — see `wrap` in book.js), a saved session, and somebody else's
    waiting list as a family not on it sees it — the one with the `Can come` tally's bars and the
    `Take a seat` tile, since the way in stopped being a block under the paper. The last two are the
    states `check/states.js` already builds, entered through their own `enter`, so this cannot drift
@@ -80,7 +81,7 @@ async function shareOf(page, pick) {
     window.__shared = null;
     navigator.canShare = d => !!(d && d.files && d.files.length);
     navigator.share = d => { window.__shared = d; return Promise.resolve(); };
-    const rc = pick === 'form'
+    const rc = /^(form|room)$/.test(pick)
       ? document.querySelector('#bookr .rc')
       : [...document.querySelectorAll('#s-booking .page .rc')]
           .find(r => new RegExp(ref).test((r.querySelector('.rc-ref') || {}).textContent || ''));
@@ -229,7 +230,16 @@ async function compare(page, a, b) {
   if (!sessionState) { console.log('check/share.js: check/states.js has no "a session receipt" state — renamed?'); process.exit(1); }
   const classState = (STATES.booking || []).find(s => s.name === 'a class with seats, seen by a family not on it');
   if (!classState) { console.log('check/share.js: check/states.js has no "a class with seats, seen by a family not on it" state — renamed?'); process.exit(1); }
-  const ENTER = { session: String(sessionState.enter), class: String(classState.enter) };
+  /* ---------- AND THE FORM WITH A ROOM CHOSEN ---------------------------------------------------------
+     REVIEW, 10 OCT: with each of the fixture's three rooms chosen at 390, the picture the Share tile
+     made said "Colliers …" on the Venue row for every one — as the screen did, so the pixel comparison
+     passed a picture that could not say which room had been booked. The row draws its answer as words
+     now (`wrap`, `stepSelect_`); this pick enters the state `check/ui.js` measures it in, and asks that
+     the whole room is in the picture as those words, uncut on the screen, as well as that the picture
+     is the screen. */
+  const roomState = (STATES.booking || []).find(s => s.name === 'a room chosen, named whole on its row');
+  if (!roomState) { console.log('check/share.js: check/states.js has no "a room chosen, named whole on its row" state — renamed?'); process.exit(1); }
+  const ENTER = { session: String(sessionState.enter), class: String(classState.enter), room: String(roomState.enter) };
 
   const open = async (width, height) => {
     const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2,
@@ -299,7 +309,7 @@ async function compare(page, a, b) {
 
     /* `class` LAST, because its state swaps the visitor for a family not on the class and nothing
        after it on this page needs the admin back. */
-    for (const pick of ['form', 'session', 'class']) {
+    for (const pick of ['form', 'room', 'session', 'class']) {
       await page.evaluate(([pick, enter]) => {
         go('booking', false, true);
         if (enter) (0, eval)('(' + enter + ')')();
@@ -324,6 +334,22 @@ async function compare(page, a, b) {
         if (!chose) bad.push(`form at ${width}px: no select on the form with three options to answer`);
         await page.waitForTimeout(400);
       }
+      /* THE ROOM AS THE SCREEN SHOWS IT: the Venue row's words, whether they are the chosen option's
+         whole text, and whether any of them is cut off. */
+      let room = null;
+      if (pick === 'room') {
+        await page.waitForTimeout(400);
+        room = await page.evaluate(() => {
+          const s = document.querySelector('#bookr select.bk-sel[data-step="loc"]');
+          const w = s && s.closest('.bk-face') && s.closest('.bk-face').querySelector('.bk-said');
+          const o = s && s.options[s.selectedIndex];
+          return { value: s ? s.value : '', text: o ? o.text : '', said: w ? w.textContent : null,
+                   cut: w ? w.scrollWidth > w.clientWidth + 1 : null };
+        });
+        if (!/ \u2014 /.test(room.value)) bad.push(`room at ${width}px: no room is chosen on the Venue row (${JSON.stringify(room.value)})`);
+        else if (room.said !== room.text) bad.push(`room at ${width}px: the Venue row shows ${JSON.stringify(room.said)} for ${JSON.stringify(room.text)} — a select cannot wrap, and three rooms of one building read the same`);
+        else if (room.cut) bad.push(`room at ${width}px: the Venue row's words for ${JSON.stringify(room.text)} are cut off`);
+      }
       const got = await shareOf(page, pick);
       const label = `${pick} at ${width}px`;
       n++;
@@ -340,7 +366,7 @@ async function compare(page, a, b) {
            · the answer picked on the form is the answer in the picture
            · no tile and no admin-only money row is in it */
       const src = await page.evaluate(async ([pick, ref]) => {
-        const rc = pick === 'form' ? document.querySelector('#bookr .rc')
+        const rc = /^(form|room)$/.test(pick) ? document.querySelector('#bookr .rc')
           : [...document.querySelectorAll('#s-booking .page .rc')]
               .find(r => new RegExp(ref).test((r.querySelector('.rc-ref') || {}).textContent || ''));
         const faces = [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch (e) { return []; } })
@@ -369,6 +395,10 @@ async function compare(page, a, b) {
         if (!re.test(svg)) bad.push(`${label}: the empty box's hint "${h.text}" is not in its own faint ink in the picture`);
       });
       if (pick === 'form' && !src.hints.length) bad.push(`${label}: the form has no empty box with a hint — nothing proved`);
+      if (pick === 'room' && room && room.said
+          && !new RegExp('class="bk-said"[^>]*>' + esc(room.said).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '<').test(svg)) {
+        bad.push(`${label}: the room chosen, "${room.said}", is not in the picture as the Venue row's words`);
+      }
       if (/data-do="(book-share|book-send|job-delete|job-take-seat|job-join)"/.test(svg)) bad.push(`${label}: a tile is in the picture`);
       if (/Tutor earns|Admin earns/.test(svg)) bad.push(`${label}: an admin's money row is in the picture`);
       /* ---------- AND THE CLASS'S TWO LINES ARE IN IT, WHICH IS WHAT IT WAS SHARED FOR ------------
@@ -386,9 +416,9 @@ async function compare(page, a, b) {
 
       /* THE SAME ELEMENT, AS THE SCREEN DRAWS IT, with the picture's two exclusions on — and its box
          measured in that state, which is the size the picture has to be. */
-      const rcSel = pick === 'form' ? '#bookr .rc' : '#s-booking .rc.rc-cmp';
+      const rcSel = /^(form|room)$/.test(pick) ? '#bookr .rc' : '#s-booking .rc.rc-cmp';
       const snap = await page.evaluate(([pick, ref]) => {
-        const rc = pick === 'form' ? document.querySelector('#bookr .rc')
+        const rc = /^(form|room)$/.test(pick) ? document.querySelector('#bookr .rc')
           : [...document.querySelectorAll('#s-booking .page .rc')]
               .find(r => new RegExp(ref).test((r.querySelector('.rc-ref') || {}).textContent || ''));
         rc.classList.add('rc-snap'); rc.classList.add('rc-cmp');
