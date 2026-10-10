@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-tutor-photos-still";
+  --css-version: "2026-10-10-films-leave-find";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9347,7 +9347,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder for questions
    and so on?"* — "nice more sleek, fresh stable". The question family has a polish of its own (note
    261); this is everything else Find draws: practicals and their pages, projects and theirs, the
-   textbook and its chapters, films, boxers and fights, and the same cards kept on Saved.
+   textbook and its chapters, boxers and fights, and the same cards kept on Saved. (Films too, until
+   they left Find on 10 Oct; they are found in Games → Videos.)
 
    THEY WERE ONE SYSTEM BY ACCIDENT AND FOUR BY DEFAULT. The practical's `prac-*` classes had become
    the head, the kicker, the meta line and the section of the project, the textbook, the film and
@@ -9509,14 +9510,12 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    `maths_link` are still columns and `check-practicals.js` still counts them, so a guide that wants
    either back needs these two rules and nothing else. */
 .fc-note { margin: var(--fc-line) 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
-/* `notes` IS A PIPE LIST IN THE DATA AND ONLY ONE CALLER EVER SPLIT IT. That was the guide, which
-   no longer draws the practical's notes at all; what produces this class now is a FILM card, with a
-   single `<p>` inside it. The rule is unchanged and still right — three asides run together in one
-   paragraph is three things nobody reads, so the day anything splits the pipes again each part
-   takes its own line. The margin goes on the element rather than on every `p`,
-   so a single-note card is unchanged. */
-.fc-note p { margin: 0 0 .3rem; }
-.fc-note p:last-child { margin-bottom: 0; }
+/* `.fc-note p` WAS HERE, a margin between the paragraphs of a note that held several. The practical
+   guide split its pipe-listed `notes` that way and stopped drawing them; the FILM card was the last
+   thing to put a `<p>` inside a `.fc-note`, and it went with the films (10 Oct, *"films should not
+   appear in the finder it cannot be found there"*). Every `.fc-note` left IS the paragraph. The day
+   something splits the pipes again, each part wants its own line — three asides run together are
+   three things nobody reads — and these two rules are what to put back. */
 
 /* ==================================================================================================
    THE HOME EXPERIMENTS.

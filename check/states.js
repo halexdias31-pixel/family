@@ -2136,37 +2136,35 @@ const STATES = {
         try { localStorage.removeItem(window.__svKey); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
-    /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
+    /* ---------- THE FILMS, WHICH ONLY ONE VISITOR IS SENT — AND WHICH FIND DOES NOT HAVE ----------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
-       `if (viewerIsAdmin)` and sends `[]` to everybody else, so a signed-out visitor has no rows,
-       no funnel answer and nothing to measure. Asking them to reach it would report a fault about
-       the check rather than about the app, which is what `only` is for.
+       `if (viewerIsAdmin)` and sends `[]` to everybody else, so a signed-out visitor has no rows and
+       their Find has no films whatever the code does. Asking them would pass with the fault in place.
 
-       THE FIXTURE'S THREE ROWS ARE INVENTED. That file is committed to a public repository and
-       holds nothing real — see the note on them. What they are for is the SHAPE: a very long
-       title against the flag, a series with no year, and a placeholder with no link, which are the
-       three ways this card can be drawn. */
-    { name: 'the films',
+       THIS STATE OPENED `Learning → Films` AND MEASURED THE FILM CARDS — the fixture's long title, its
+       series and its placeholder, and the Watch tile in the row under the card. THE OWNER, 10 Oct:
+       *"films should not appear in the finder it cannot be found there"*. So it is the admin's What kind
+       question now, drawn WITH the fixture's three films in the payload: it measures the page an admin is
+       shown, and it arrives only if nothing on it, and nothing in Find's list, is a film. A film is
+       measured where it is found — "the films in the videos card, an admin’s", on Games. */
+    { name: 'no films in Find, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Films' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
         paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
+        goPage('stuff', stuffQuestionPage_(), true);
       },
-      /* AND ONE ROW OF TILES. The Watch tile was a `.tile-row` drawn INSIDE the card, above the
-         notes, with the star's row under the card — two rows on one film, where a fight has one.
-         It is `filmTiles_`'s now, so a row inside a film card is that shape coming back. */
       expect: () => {
-        const films = [...document.querySelectorAll('#s-stuff .card.film')];
-        const live = films.find(c => !c.classList.contains('is-off'));
-        const row = live && live.parentElement && live.parentElement.nextElementSibling;
-        return films.length >= 2 && !films.some(c => c.querySelector('.tile-row'))
-               && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
+        const films = (DATA.films || []).filter(f => f && f.title);
+        const kinds = [...document.querySelectorAll('#stuff-groups [data-do="facet-pick"]')]
+          .filter(b => b.dataset.field === 'kindLabel').map(b => b.dataset.value);
+        return films.length >= 2 && kinds.length >= 2 && kinds.indexOf('Films') === -1
+               && !stuffItemsAll_().some(x => x.kind === 'film' || films.some(f => f.title === x.name))
+               && !document.querySelector('#s-stuff .card.film');
       },
-      wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
+      wants: 'the admin’s What kind question drawn with the films in the payload, no Films answer on it, and no film anywhere in Find' },
     /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
        "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
        the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and

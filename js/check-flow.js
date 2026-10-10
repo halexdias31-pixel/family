@@ -3417,11 +3417,13 @@ check('the videos card syncs an admin’s films from Drive on its own when never
   if (asks.some(b => b.token !== 'tk-admin')) bad.push('filmsSync went without the admin’s token');
   if (titles().join('|') !== FILMS_.slice(0, 4).map(f => f.title).join('|')) bad.push('after the sync the card lists ' + titles().join(' | ') + ' — wanted the four the reply carried');
   if (!/synced from Drive just now/.test((box.querySelector('.vid-synced') || {}).textContent || '')) bad.push('the line beside the tile says "' + ((box.querySelector('.vid-synced') || {}).textContent || '') + '" after a sync');
-  /* AND FIND IS TOLD: its lists are kept against `DATA` by identity, and the sync changed `DATA` in place. */
+  /* AND FIND STILL HAS NONE. This asked for the four, to prove `filmsAdopt_` dropped Find's memo; the
+     films left Find on 10 Oct (*"films should not appear in the finder it cannot be found there"*), so a
+     sync that put one there would be them coming back by the side door. */
   try {
-    const n = w.stuffItemsAll_().filter(x => x.kind === 'film').length;
-    if (n !== 4) bad.push('Find has ' + n + ' films after the sync — wanted the four the reply carried (its memo was not dropped)');
-  } catch (e) { bad.push('could not ask Find for its films: ' + e.message); }
+    const n = w.stuffItemsAll_().filter(x => x.kind === 'film' || /^fm:/.test(String(x.key || ''))).length;
+    if (n) bad.push('Find has ' + n + ' film(s) after the sync — films are found in Games → Videos and nowhere in Find');
+  } catch (e) { bad.push('could not ask Find for its items: ' + e.message); }
   /* ONCE A VISIT: a repaint of the column does not sync again. */
   t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
   t.go('games', false, true); await wait(LEAVE_MS); await woken_();
@@ -3508,7 +3510,10 @@ check('a student’s and a stranger’s videos card has no film, no Sync tile an
    on the family's iPad left every film in Games → Videos and in Find for whoever picked it up next, and a
    child signing in after them saw the list until their own payload landed (review of 9 Oct, through the
    real `signout`). Both doors: the Sign out tile, and `signedIn_` for somebody else while their payload is
-   still on its way — the one way in that every sign-in door goes through. */
+   still on its way — the one way in that every sign-in door goes through.
+   FIND'S HALF WENT WITH THE FILMS (10 Oct): this asked that Find held all seven before Sign out and none
+   after. Find holds none at any point now, which is the journey below this one's business — so here the
+   card and `DATA` are what is asked, and Find is asked only that it never had one. */
 check('signing out takes an admin’s films off the device, and a student signing in after an admin sees none before their payload lands', async () => {
   const stamp = () => ({ at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
                          found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } });
@@ -3531,8 +3536,9 @@ check('signing out takes an admin’s films off the device, and a student signin
                          serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
     const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
     if (!box) return ['the videos card did not draw on the Games column'];
-    if (titles().length !== FILMS_.length || filmsIn(w) !== FILMS_.length)
-      return ['the setup: the admin’s card lists ' + titles().length + ' and Find ' + filmsIn(w) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
+    if (titles().length !== FILMS_.length)
+      return ['the setup: the admin’s card lists ' + titles().length + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
+    if (filmsIn(w) !== 0) bad.push('before Sign out the admin’s Find has ' + filmsIn(w) + ' film(s) — films are not in Find for anybody');
     type('paper moon');
     /* A FILM'S PICTURE THAT FAILED is remembered by its address, and that address is the film's file id. */
     const pic = box.querySelector('.vid-list img.vid-img');
@@ -11695,9 +11701,10 @@ check('Find draws the same question family, practical, project and textbook for 
      BUT ONE, BY NAME. *"i want to add the bible to resources as a book. but only admin can see the
      bible."* is the owner asking for exactly one difference, so this expects it exactly: an admin's
      list is everybody else's plus `bible:kjv`, and nobody else's has it. Anything else that differs
-     is still a role showing through. ONE PAYLOAD FOR EVERY ROLE HERE, deliberately: the films are an
-     admin's too, but `doGet` decides that by leaving them out of everybody else's payload, so with
-     the payload held still the only difference left is one the phone made — which is what this asks. */
+     is still a role showing through. ONE PAYLOAD FOR EVERY ROLE HERE, deliberately: the films were an
+     admin's too, decided by `doGet` leaving them out of everybody else's payload (and they are not in
+     Find for anybody since 10 Oct), so with the payload held still the only difference left is one the
+     phone made — which is what this asks. */
   const BIBLE_KEY = 'bible:kjv';
   const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
   const out0 = offered(null);
@@ -15183,6 +15190,10 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
    `.fc-meta`, `.fc-sec`, `.fc-list` — and every kind moved onto it: the boxer off the shop's `.thing`
    row, the fight off a bare paragraph of names, the film's Watch
    tile out of a second tile row inside the card.
+   THE FILM IS NOT ONE OF THEM ANY MORE: it left Find on 10 Oct (*"films should not appear in the finder
+   it cannot be found there"*), and its card and Watch tile with it. The fixture's films are still put in
+   this admin-shaped payload, and the list below asks that none of them reached Find — `film` was the one
+   kind here whose rows only an admin is sent, so this is where a mapper coming back would show first.
 
    ASKED OF THE MARKUP, OVER THE REAL FILES THROUGH THE REAL MAPPER, so a kind added tomorrow with a
    card of its own shape is named here by kind. What it LOOKS like is `check/states.js`'s question
@@ -15206,8 +15217,9 @@ check('every Find kind that is not a question is made of the shared parts: head,
   const p = payload();
   ['textbooks', 'boxers', 'fights', 'projects', 'practicals'].forEach(k => { p[k] = made[k] || []; });
   /* THE FILMS ARE THE FIXTURE'S THREE INVENTED ROWS, shaped as `doGet` sends an admin them — a long
-     title, a series, and a placeholder with no file, the three ways the card is drawn. */
+     title, a series, and a placeholder with no file. Sent so their absence from Find is asked, below. */
   p.films = JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'fixture.json'), 'utf8')).films || [];
+  if (!p.films.length) return ['check/fixture.json has no films, so their absence from Find was NOT checked'];
   const { w } = boot({ payload: p });
   await wait(300);
   const bad = [];
@@ -15222,7 +15234,9 @@ check('every Find kind that is not a question is made of the shared parts: head,
      question — custom properties and its own `animation-name`, nothing else — so its stage is a
      drawing here, as an `<svg>` is. */
   const onCard = el => !el.closest('svg, figure, .tb-an-stage');
-  const KINDS_HERE =['practical', 'project', 'textbook', 'film', 'boxer', 'fight'];
+  const strayFilms = all.filter(x => x.kind === 'film' || p.films.some(f => f.title === x.name));
+  if (strayFilms.length) bad.push(strayFilms.length + ' of the payload\'s films reached Find (' + strayFilms.map(x => x.name).join(', ') + ') — films are found in Games → Videos, not in Find');
+  const KINDS_HERE =['practical', 'project', 'textbook', 'boxer', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);
     if (!xs.length) { bad.push('no ' + kind + ' reached Find, so its card was NOT checked'); return; }
@@ -15254,10 +15268,6 @@ check('every Find kind that is not a question is made of the shared parts: head,
           if (!ol.classList.contains('fc-list')) bad.push(name + ' has a numbered list that is not an `.fc-list`');
         });
       });
-      if (kind === 'film' && !x.row.placeholder) {
-        const row = host.querySelector(':scope > .tile-row');
-        if (!row || !row.querySelector('a.tile[href]')) bad.push(name + '\'s Watch tile is not in the row under the card');
-      }
     });
   });
   return bad.length > 12 ? bad.slice(0, 12).concat(['… and ' + (bad.length - 12) + ' more']) : bad;
@@ -16550,7 +16560,10 @@ check('multipart: with Questions chosen, no page of a two-part paper is an answe
    MEASURED ON 8 OCT: the first question Find asks offered `Answers | Bundles | Films | Practicals | Projects
    | Questions | Resources` -- the alphabet -- so Answers was the first chip, top left where a thumb lands,
    and one tap on it opens every answer at once. In `KIND_BUCKET`'s order now (`orderOf`): Questions, then
-   Answers, its pair. Asked of the facet's own order and of the chips it draws over a real list. */
+   Answers, its pair. Asked of the facet's own order and of the chips it draws over a real list.
+   AND `Films` IS NOT IN THE ORDER AT ALL since 10 Oct (*"films should not appear in the finder it cannot be
+   found there"*): the table no longer places it, so `orderOf` answers -1 for it, and the order of the six
+   left is the one it was with Films taken out from between Bundles and Resources. */
 check('multipart: What kind offers Questions first and Answers next to it, not the alphabet', async () => {
   const { w } = boot();
   await wait(300);
@@ -16558,15 +16571,101 @@ check('multipart: What kind offers Questions first and Answers next to it, not t
   const kind = w.facetList().find(f => f.field === 'kindLabel');
   if (!kind || typeof w.facetValues !== 'function') return ['the What kind facet or facetValues is not reachable — the order was NOT checked'];
   if (typeof kind.orderOf !== 'function') return ['What kind has no `orderOf`, so its chips fall back to the alphabet -- Answers first'];
-  const all = ['Resources', 'Answers', 'Films', 'Bundles', 'Projects', 'Practicals', 'Questions'];
+  const all = ['Resources', 'Answers', 'Bundles', 'Projects', 'Practicals', 'Questions'];
   const o = v => { const i = kind.orderOf(v); return i < 0 ? 1e6 : i; };
   const got = all.slice().sort((a, b) => o(a) - o(b)).join(' ');
-  if (got !== 'Questions Answers Practicals Projects Bundles Films Resources') bad.push('What kind orders its answers "' + got + '"');
+  if (got !== 'Questions Answers Practicals Projects Bundles Resources') bad.push('What kind orders its answers "' + got + '"');
+  if (kind.orderOf('Films') >= 0) bad.push('What kind still has a place for "Films" in its order (' + kind.orderOf('Films') + ') — films are not in Find');
   const lib = mpLibrary_(w, mpBank_());
   try {
     const chips = w.facetValues(lib.items, kind).map(v => String(v.show || v.value));
     if (chips[0] !== 'Questions' || chips[1] !== 'Answers') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Questions then Answers');
   } finally { lib.put(); }
+  return bad;
+});
+
+/* ---------- FILMS ARE NOT IN FIND, FOR ANYBODY — AN ADMIN WITH THE FILMS IN HAND INCLUDED ---------------------
+   THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"*. Find had a `Films`
+   kind, a card and a Watch tile over `DATA.films`; a film is found in Games → Videos. AN ADMIN IS THE ONLY
+   PERSON THIS CAN BE ASKED OF, because nobody else is sent a film (`filmsFor_`, note 068) — a student's Find
+   has no films whether the mapper is there or not, so asking a student would pass with the fault in place.
+
+   THREE DOORS, EACH THE WAY A PERSON USES IT, AND THE SETUP PROVED FIRST (the admin's `DATA` holds the
+   seven): the title typed into Find's own search box, through its own input handler and debounce; every
+   other title and a word only a film's notes carry (`XY9`), asked of the filtered list; `What kind`'s chips
+   as the question page draws them, pressing `What for` → Learning first if it is asked, and the facet's own
+   answers over the whole list. THEN THE VIDEOS CARD FINDS THE SAME FILM, or this would pass on a payload
+   that had lost its films. */
+check('films are not in Find for an admin with films in the payload — not by title, not under What kind — and the videos card still finds one', async () => {
+  /* THE PROJECTS AND THE TEXTBOOKS, REAL, so `What kind` has answers of its own to draw — the fixture has no
+     library, and a Learning holding nothing but films would ask What kind only when the films are there,
+     which is the fault and not a setup. Through the real mapper, as the textbook journey does. */
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so Find had nothing to ask — NOT checked'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { textbooks: read('textbooks'), projects: read('projects') })));
+  const data = payload();
+  data.textbooks = made.textbooks || [];
+  data.projects = made.projects || [];
+  data.films = FILMS_;
+  data.filmsSync = { at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
+                     found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } };
+  const { w } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || !t.STUFF || typeof w.stuffFiltered !== 'function') return ['Find\'s state is not exported to the journey — nothing was checked'];
+  t.USER(Object.assign({}, vidAdmin_));
+  if ((t.DATA().films || []).length !== FILMS_.length) return ['the setup: the admin’s DATA holds ' + (t.DATA().films || []).length + ' of ' + FILMS_.length + ' films, so their absence from Find proves nothing'];
+  const isFilm = x => x && (x.kind === 'film' || /^fm:/.test(String(x.key || '')) || FILMS_.some(f => f.title === x.name));
+  const strays = w.stuffItemsAll_().filter(isFilm);
+  if (strays.length) bad.push('Find holds ' + strays.length + ' item(s) made of the admin’s films: ' + strays.map(x => x.kind + ' "' + x.name + '"').join(', '));
+
+  /* ---- THE SEARCH BOX, TYPED INTO ---- */
+  t.go('stuff', false, true);
+  await wait(60);
+  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  w.paintStuff();
+  await wait(30);
+  const box = d.getElementById('stuff-q');
+  if (!box) return bad.concat(['the Find screen has no search box, so a search was NOT checked']);
+  const title = FILMS_[0].title;
+  box.value = title;
+  box.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await wait(260);
+  if (t.STUFF().q !== title) return bad.concat(['typing into Find’s box did not reach its search (q is ' + JSON.stringify(t.STUFF().q) + '), so NOT checked']);
+  const hit = w.stuffFiltered().filter(isFilm);
+  if (hit.length) bad.push('typing "' + title + '" into Find finds ' + hit.map(x => x.kind + ' "' + x.name + '"').join(', ') + ' — films are found in Games → Videos');
+  const drawn = [...d.querySelectorAll('#s-stuff .card h3')].filter(h => h.textContent.trim() === title).length;
+  if (drawn || d.querySelector('#s-stuff .card.film')) bad.push('Find draws a card for "' + title + '"');
+  FILMS_.slice(1).map(f => f.title).concat(['XY9', 'unfinished']).forEach(q => {
+    t.STUFF().q = q;
+    const got = w.stuffFiltered().filter(isFilm);
+    if (got.length) bad.push('searching Find for "' + q + '" finds ' + got.map(x => '"' + x.name + '"').join(', '));
+  });
+  box.value = ''; t.STUFF().q = '';
+
+  /* ---- WHAT KIND, AS THE QUESTION PAGE DRAWS IT ---- */
+  w.paintStuff();
+  await wait(30);
+  const picks = () => [...d.querySelectorAll('#s-stuff #stuff-groups [data-do="facet-pick"]')];
+  const learning = picks().find(b => b.dataset.field === 'forLabel' && b.dataset.value === 'Learning');
+  if (learning) { t.ACTIONS['facet-pick'](learning); await wait(30); }
+  const kinds = picks().filter(b => b.dataset.field === 'kindLabel').map(b => b.dataset.value);
+  if (kinds.indexOf('Projects') === -1 || kinds.indexOf('Resources') === -1) bad.push('What kind was not drawn with Projects and Resources (the page offers ' + (picks().map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'nothing') + '), so its chips were NOT checked');
+  else if (kinds.indexOf('Films') !== -1) bad.push('What kind offers "Films" to an admin: ' + kinds.join(' | '));
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const answers = kindFacet ? w.facetValues(w.stuffItems(), kindFacet).map(v => String(v.value)) : [];
+  if (!answers.length) bad.push('What kind has no answers over the whole list, so the facet was NOT checked');
+  else if (answers.indexOf('Films') !== -1) bad.push('over the whole list What kind answers "Films": ' + answers.join(' | '));
+  t.STUFF().filters.length = 0;
+
+  /* ---- AND THE VIDEOS CARD STILL FINDS IT ---- */
+  const v = await vidCard_(w, vidAdmin_);
+  if (!v.box) return bad.concat(['the videos card did not draw on the Games column, so where films ARE found was NOT checked']);
+  v.type('paper moon');
+  await wait(30);
+  if (v.titles().indexOf(title) === -1) bad.push('the videos card does not find "' + title + '" for "paper moon" — it lists ' + (v.titles().join(' | ') || 'nothing'));
   return bad;
 });
 
@@ -19144,7 +19243,10 @@ check('an answer typed signed out beats an older one on the account at sign-in, 
    sign-in, fifteen to thirty-five seconds on the wire — that lands after Sign out put the whole film list
    back on a signed-out phone, the Drive links with it (note 068), a moment after `signedOut_` had emptied
    it; and the signed-out funnel offered "Films", a chip a visitor could press and carry into the next
-   child's Find. Now a payload whose person has gone is not adopted, and one is asked for whoever is here. */
+   child's Find. Now a payload whose person has gone is not adopted, and one is asked for whoever is here.
+   THE SETUP ASKED THAT THE ADMIN'S FIND HELD THE FILMS, and Find holds none for anybody since 10 Oct — so
+   the setup is the admin's `DATA.films`, which is what the late payload would put back. "Films" is still
+   refused on the signed-out funnel: absent for a second reason now, and wrong for either. */
 check('an admin’s payload that lands after Sign out is not adopted, and the signed-out phone asks for its own', async () => {
   let hold = false, release = null;
   const adminPayload = () => Object.assign(payload(), { films: FILMS_ });
@@ -19160,7 +19262,8 @@ check('an admin’s payload that lands after Sign out is not adopted, and the si
   await wait(400);
   const t = w.__t, bad = [];
   const films = () => { try { return w.stuffItemsAll_().filter(x => x.kind === 'film').length; } catch (e) { return -1; } };
-  if (films() !== FILMS_.length) return ['the setup: the admin’s Find has ' + films() + ' of ' + FILMS_.length + ' films, so their going was NOT checked'];
+  if ((t.DATA().films || []).length !== FILMS_.length) return ['the setup: the admin’s DATA holds ' + (t.DATA().films || []).length + ' of ' + FILMS_.length + ' films, so their going was NOT checked'];
+  if (films() !== 0) bad.push('the admin’s Find has ' + films() + ' film(s) — films are not in Find for anybody');
   if (typeof w.load !== 'function') return ['load is not reachable — nothing was checked'];
   hold = true;
   w.load();
