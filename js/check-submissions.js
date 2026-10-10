@@ -35,7 +35,8 @@
        person and id columns alone, and a load never reads `label` or `words`.
      · THE OWNER UPDATES IN PLACE (10 Oct): `ensureSchema` over a live Ledger adds `pressed_at` to a
        `submissions` tab that lacks it, and touches no row of the options tab an owner has edited —
-       it adds the code's missing values and nothing else, and a second run adds nothing.
+       it adds the code's missing values and nothing else, and a second run adds nothing. And it gets
+       past a `people` tab with not one spare column, which is how the 4 Oct import left the live one.
 
    THROUGH THE REAL `doPost` AND `doGet`, gate and all, over `check-gas-load.js`. The people are
    invented and their PINs are 0000.
@@ -522,6 +523,41 @@ const ev = (key, answer, verdict, more) => Object.assign({ id: ID(), key: key, a
   const sh = b.tabs.submissions;
   if (JSON.stringify(sh[0]) !== JSON.stringify(SH.concat(['pressed_at']))) bad.push('ensureSchema left the submissions header as ' + JSON.stringify(sh[0]) + ' — wanted pressed_at added at the end');
   if (JSON.stringify(sh[1].slice(0, SH.length)) !== subBefore) bad.push('ensureSchema moved the press already on the submissions tab: ' + subBefore + ' → ' + JSON.stringify(sh[1]));
+}
+
+/* ---------- 9b. AND THE LIVE `people` TAB HAS NOT ONE SPARE COLUMN (review of 10 Oct) -----------------------------
+   SECTION 9 PASSED AND THE OWNER'S STEP WOULD STILL HAVE FAILED. The 4 Oct xlsx import sized `people` to its
+   content — a grid of exactly 61 columns — and `ensureSchema` writes a missing header with `getRange`, which
+   refuses a range past the grid. So it threw on `people`, the FIRST name in SCHEMA, and nothing after it ran:
+   no `submissions`, no `answers`, no config row, and the sheet looked merely untouched. This harness could not
+   see it, because its tabs had no edge; `grid()` gives `people` the one the import left. Asked here because
+   this is the section that says the owner updates in place. */
+{
+  const { b } = world();
+  asked++;
+  const P = b.tabs.people, FULL = P[0].slice(), CUT = 9;
+  P.forEach((row, i) => { P[i] = row.slice(0, FULL.length - CUT); });
+  const keptRows = JSON.stringify(P.slice(1));
+  b.grid('people', { cols: FULL.length - CUT });                 // the import: not one column to spare
+  delete b.tabs.submissions; delete b.tabs.answers;              // the live sheet before 10 Oct
+  const ci = () => b.tabs.config[0].indexOf('key');
+  b.tabs.config = b.tabs.config.filter((r, i) => i === 0 || r[ci()] !== 'gemini_model');
+  let threw = null;
+  try { b.ev('ensureSchema()'); } catch (e) { threw = e; }
+  if (threw) bad.push('ensureSchema threw on a people tab with no spare column, so nothing after it ran: ' + String(threw.message || threw).slice(0, 160));
+  else {
+    if (JSON.stringify(b.tabs.people[0]) !== JSON.stringify(FULL)) bad.push('ensureSchema left the people header as ' + b.tabs.people[0].length + ' columns — wanted the ' + CUT + ' missing ones added at the end, ' + FULL.length + ' in all');
+    if (JSON.stringify(b.tabs.people.slice(1).map(r => r.slice(0, FULL.length - CUT))) !== keptRows) bad.push('ensureSchema moved or changed a cell already on the people tab while widening it');
+    ['submissions', 'answers'].forEach(t => { if (!b.tabs[t]) bad.push('ensureSchema got past people but did not create the ' + t + ' tab'); });
+    if (!b.tabs.config.some((r, i) => i > 0 && r[ci()] === 'gemini_model')) bad.push('ensureSchema got past people but did not seed the config row gemini_model');
+    const gaps = b.ev('schemaGaps()');
+    if (Object.keys(gaps).length) bad.push('after ensureSchema, schemaGaps still says ' + JSON.stringify(gaps).slice(0, 200) + ' — a tab it created must have its header on row 1');
+    /* AND A SECOND RUN, ON THE GRID THE FIRST ONE LEFT, WRITES NOTHING. */
+    asked++;
+    const all = JSON.stringify(b.tabs), w = b.log.writes;
+    try { b.ev('ensureSchema()'); } catch (e) { bad.push('a second ensureSchema threw: ' + String(e.message || e).slice(0, 160)); }
+    if (b.log.writes !== w || JSON.stringify(b.tabs) !== all) bad.push('a second ensureSchema changed the sheet — it must add a missing column once');
+  }
 }
 
 /* ---------- 10. A DEVICE'S CLOCK ERROR IS TAKEN OUT, NOT ONLY A FAST ONE HELD (review of 10 Oct) --------------------

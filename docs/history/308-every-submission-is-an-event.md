@@ -375,6 +375,37 @@ one measured, does not depend on the rule at all (`subBefore:` is read first).
   `check/ui.js --screen=stuff` (615 combinations, nothing new) and `check/press.js --screen=stuff` (49
   presses, 95 swipes) green.
 
+## 10 Oct: `ensureSchema` could not have finished on the live Ledger
+
+Found while building the updated spreadsheet the owner asked for. The owner's sitting below would
+have stopped at step 2 with *"The coordinates of the range are outside the dimensions of the sheet"*.
+That run would have written nothing: no `submissions` tab, no `answers` tab, no config rows.
+
+- **The cause.** A tab imported from an xlsx is exactly as wide as its content. The live `people` came
+  from the 4 Oct file and is 61 columns wide with no spare column. `ensureSchema` appends missing
+  headers with `getRange(1, have + 1, 1, missing)`, and Apps Script refuses a range past the tab's
+  last column. `people` is the first name in SCHEMA and is nine columns short (parent_email,
+  age_min, age_max, weekly_email and the five notification switches), so the first tab threw and
+  nothing after it ran.
+- **Why nobody saw it.** The harness's tabs grew to fit whatever was written to them.
+- **How it was found.** A model sized each tab the way the 11:50Z export sized it, and ran main's
+  `ensureSchema` over that export. It threw on `people` and wrote 0 cells. With nine columns made
+  first, its result matched the updated file in every tab. This was not run on the live sheet.
+- **The fix, at the rule.** `ensureSchema` widens a tab at its right-hand edge first
+  (`insertColumnsAfter`), so nothing already there moves. `js/check-gas-load.js` now gives each tab
+  a grid size (`grid`), and its `getRange` refuses anything past it, as Apps Script does. A new tab
+  starts with no rows, so its header lands on row 1, not row 2. `check-submissions` section 9b runs
+  `ensureSchema` over a `people` tab with no spare column, and fails on the old line.
+  - Mutations: the widening reverted turns 9b red; the old way of starting a tab turns it red; with
+    no grid modelled it passes, which is the blind spot itself.
+  - The patched function, over the real export at its real sizes, finishes, widens `people` to 70
+    and matches the updated file in all 39 tabs. A second run writes nothing.
+- **The stamps** are `2026-10-10-g-schema-grid`, all four.
+- **If the sitting comes before this reaches `main`:** in `people`, insert nine columns to the right
+  of the last one (column BI) first, then run `ensureSchema`. Or use the updated file through
+  **File → Import → Upload → Replace spreadsheet** inside the live Ledger, which keeps its id. That
+  route loses anything written to the sheet after the file was made.
+
 ## For the owner to do — one Apps Script sitting, on the live Ledger
 
 1. **GitHub Assistant ↓** (or clasp) to pull `main` into the Apps Script project. No file is added or
@@ -389,7 +420,7 @@ one measured, does not depend on the rule at all (`subBefore:` is read first).
    (the report says `added: …`). The `attempts` tab stays where it is, read and written by nothing — keep
    it as the record of what was done before, or delete it by hand.
 3. **Deploy → Manage deployments → pencil → New version → Deploy**, so the web app (and the Preview on
-   the weekly email's card) is the new code. The You screen shows `2026-10-10-f-submissions` on all four
+   the weekly email's card) is the new code. The You screen shows `2026-10-10-g-schema-grid` on all four
    stamps when it has landed. Until then the site keeps every press on the device and sends them the
    first time the backend lists `submitAnswer` — and each child's questions done before the switch go up
    from their own device, once, the next time they are signed in there.
