@@ -667,12 +667,14 @@ function findCard(x) {
             FOUR TO A ROW, because this card is somebody's CV rather than their feed: eight photographs
             are two rows of thumbnails a parent can take in at once, where the post grid's two-wide
             squares would be four rows — most of a phone — under a profile.
-            A TAP OPENS ONE IN PLACE, across the whole row, and a second tap puts it back. Not a sheet
-            and not a new tab, both of which the owner refuses; the picture grows where it is. */''}
+            AND THEY STAY SQUARES. A tap opened one across the whole row, and a second put it back; the
+            owner, 10 Oct: *"i dont like how you made it so people can enlarge a photo of tutor. the
+            extra ones"*. So a square is a picture and nothing else — a `<span>`, not a button, with
+            nothing to press and no "tap to see it bigger" read out, the same reason the week on this
+            card is spans (`profAvail_`): a cell that is not a control is not marked up as one. */''}
       ${Array.isArray(t.photos) && t.photos.length
         ? `<div class="prof-photos">${t.photos.slice(0, 8).map(u =>
-             `<button type="button" class="prof-shot" data-do="prof-shot" aria-label="Photo — tap to see it bigger"
-                aria-pressed="false"><img src="${esc(pic(u))}" alt="" loading="lazy"></button>`).join('')}</div>`
+             `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy"></span>`).join('')}</div>`
         : ''}
       ${/* THE THREE ADJECTIVES OFF THE SHEET, AS BOLD WORDS AND NOT CHIPS. Asked for as "the
             adjectives for tutors shouldnt be like google chips. they should be like just bold words to
@@ -915,15 +917,5 @@ on('book-with', () => {
   paintStuff();
 });
 
-/* ONE PHOTOGRAPH BIGGER, IN ITS OWN ROW, and the others back to squares — two open at once would be
-   two full-width pictures and the grid gone. `aria-pressed` says which, because the only other sign
-   is the size. The card grows, and `paneWatch_` hears it and shrinks or scrolls the pane. */
-on('prof-shot', el => {
-  const grid = el.closest('.prof-photos');
-  const open = !el.classList.contains('is-big');
-  if (grid) grid.querySelectorAll('.prof-shot.is-big').forEach(b => {
-    b.classList.remove('is-big'); b.setAttribute('aria-pressed', 'false');
-  });
-  el.classList.toggle('is-big', open);
-  el.setAttribute('aria-pressed', open ? 'true' : 'false');
-});
+/* `on('prof-shot')` WAS HERE — a tutor's extra photograph opened across its row on a tap. Taken out
+   on request (10 Oct, `findCard`): the squares are pictures, not controls. */

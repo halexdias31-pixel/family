@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-submissions-loader-notifications";
+  --css-version: "2026-10-10-tutor-photos-still";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6910,17 +6910,15 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   font-style: italic; color: var(--ink); font-size: .86rem; line-height: 1.45;
 }
 .prof-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
-/* A TUTOR'S OTHER PHOTOGRAPHS — `findCard`. Four squares to a row, and one at a time opens across the
-   whole row at its own proportions. Each square is a button of its own and keeps the 44px floor in px,
-   which four to a row clears at 320 (about 64px each). */
+/* A TUTOR'S OTHER PHOTOGRAPHS — `findCard`. Four squares to a row, and they stay squares: a tap opened
+   one across the row until the owner asked for that to go (10 Oct), so a square is a picture, not a
+   control, and has no tap-target floor or zoom cursor to keep. */
 .prof-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: .6rem; }
 .prof-shot {
-  padding: 0; border: 0; border-radius: var(--r-sm); overflow: hidden;
-  aspect-ratio: 1 / 1; min-height: 44px; background: var(--sunk); cursor: zoom-in;
+  display: block; border-radius: var(--r-sm); overflow: hidden;
+  aspect-ratio: 1 / 1; background: var(--sunk);
 }
 .prof-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.prof-shot.is-big { grid-column: 1 / -1; aspect-ratio: auto; cursor: zoom-out; }
-.prof-shot.is-big img { height: auto; max-height: 60svh; object-fit: contain; }
 .prof-tag {
   font-family: var(--mono); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase;
   padding: .2rem .45rem; border-radius: 999px;

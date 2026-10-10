@@ -2852,13 +2852,13 @@ const STATES = {
         if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
         paint('account');
       } },
-    /* ---------- A TUTOR'S OTHER PHOTOGRAPHS, AND ONE OF THEM OPENED -----------------------------
-       ASKED FOR AS *"tutors should be able to add more pics"*. The grid is four squares to a row and
-       a tap opens one across the row, in place — so the state that matters is the OPENED one: a
-       picture at its own proportions is the tallest thing this card can hold, and it is exactly the
-       height `paneWatch_` has to hear about. `check/fixture.json`'s tutor carries three local
-       pictures so the squares have something real in them. */
-    { name: "a tutor's photographs, one opened",
+    /* ---------- A TUTOR'S OTHER PHOTOGRAPHS, FOUR SQUARES TO A ROW, AND NONE OF THEM OPENS ---------
+       ASKED FOR AS *"tutors should be able to add more pics"*. This state opened one across the row,
+       until the owner, 10 Oct: *"i dont like how you made it so people can enlarge a photo of tutor.
+       the extra ones"*. So it now presses one and asks that nothing happened — the squares are still
+       squares, none is a button, and nothing says it can be made bigger. `check/fixture.json`'s tutor
+       carries three local pictures so the squares have something real in them. */
+    { name: "a tutor's photographs, pressed and staying squares",
       only: () => typeof USER !== 'undefined' && !!USER
                   && (DATA.tutors || []).some(t => t && Array.isArray(t.photos) && t.photos.length),
       enter: () => {
@@ -2874,11 +2874,13 @@ const STATES = {
       expect: () => {
         const grid = document.querySelector('#s-account .page.on .prof-photos');
         const shots = grid ? [...grid.querySelectorAll('.prof-shot')] : [];
-        const big = shots.filter(b => b.classList.contains('is-big'));
-        return shots.length >= 2 && big.length === 1 && big[0] === shots[1]
-          && big[0].getAttribute('aria-pressed') === 'true' ? shots.length : 0;
+        /* SQUARE, STILL: every one as wide as it is tall after the press, none a control, none told
+           it can grow. */
+        const square = b => { const r = b.getBoundingClientRect(); return r.width > 0 && Math.abs(r.width - r.height) < 1.5; };
+        return shots.length >= 2 && shots.every(square)
+          && !grid.querySelector('button, [data-do], [aria-pressed], .is-big') ? shots.length : 0;
       },
-      wants: "a tutor's photographs as squares, with the one tapped opened across the row",
+      wants: "a tutor's photographs as squares, still squares after one is pressed, and none of them a button",
       leave: () => { paint('account'); } },
     /* ---------- WHAT THEY TEACH: ONE CHIP A SUBJECT, ITS LEVELS RAISED — see `teachGroups_` ------
        *"Subject ^level, level, level … no brackets."* The fixture's tutor teaches one level of two
