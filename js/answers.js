@@ -468,6 +468,8 @@ function answersAdopt_(pid, got) {
    Ada came back to the family computer while Ben was still signed in, signed in over him, and her "More
    words" stayed under the signed-out key, out of her essay, in the box for every signed-out visitor after
    her, as P1 had been from nobody. So a switch claims too, and takes the person's own and nothing else.
+   `ansMayMove_` answers '' for 'later' on a switch itself now (`familySwitched`, 317, "Undo, the booking
+   form, a switch"), so there this is a second line; it still decides a same-person sign-in, not a switch.
    ---------- THE WHITEBOARD'S OWN, and only its own (P5) --------------------------------------------------------
    A board drawn signed out with no ended session behind it is the device's, moved to whoever first OPENS
    the board (`padAdopt_`) and never claimed here — note 310's rule, unchanged. One drawn after the server
@@ -677,20 +679,44 @@ function ansGoneSay_(k) {
      nothing on the device can tell who is at the keyboard, and 318's seat is the rule for that.
      Emptied, it is nobody's, as before.
    `was` is the value before this write (`ansLocalPut_` reads it); a caller without it is read for it.
+   ---------- AND UNDO PUTS BACK WHOSE IT WAS, WITH WHAT WAS THERE (317, "Undo, the booking form, a switch") -------
+   EMPTIED IS NOBODY'S — and the two features built for slips put the emptied answer straight back: the pen's
+   Undo after Clear (`PAD_CLEARED`, find.js — the bin sits 4px from Undo) and the keypad's Ctrl+Z (`kpUndo_`,
+   keypad.js) after Ctrl+A and Backspace, or a held Backspace. The write that put it back was judged like a
+   new one, against the empty box or the visitor's one letter, so `ansKeeps_` saw nothing of Ada's to keep:
+   her own stroke and her own words came back with no mark — anybody's, and Ben, signing in next from
+   nobody, was handed them and they went up to HIS account; or, while Cal's ended session was fresh, they
+   came back marked as Cal's. So both Undos write through `ansPutBack_`, below, with the mark the answer had
+   when it was last that value (kept beside the value it undoes to), and that mark is the one written —
+   Ada's for Ada's words, nobody's for the visitor's one letter put back by a Redo. Undo is time going
+   backwards for one box; whose it was goes backwards with it.
    A MARK IS `{ who, words }`: whose, and whether it was typed in a worded box (the `input` listener in
    find.js says), which is what `ansJoin_` needs to know when they sign in again. */
 const ANS_GONE_KEYS = 'familyGoneKeys';
+/* THE WRITE AN UNDO IS MAKING, while it makes it: `{ k, mark }`. `write` is the Undo's own write — the pen's
+   `ansStore_`, or the keypad's `input` event, which find.js's listener stores — and the mark is decided here
+   and not after it, so the answer is never on the device without its mark, even for a moment (`keepWaits_`).
+   `mark` is null for a value that was nobody's. Only a key a mark can name is told anything. */
+let ANS_PUT_BACK = null;
+function ansPutBack_(k, mark, write) {
+  const before = ANS_PUT_BACK;
+  ANS_PUT_BACK = ansMarkable_(k) ? { k: String(k), mark: ansGoneRead_(mark) } : null;
+  try { write(); } finally { ANS_PUT_BACK = before; }
+}
 function ansGoneMark_(k, v, words, was) {
   if (!ansMarkable_(k)) return;
   try {
     const empty = v === null || v === undefined || !String(v).trim() || v === '[]';
+    const back = ANS_PUT_BACK && ANS_PUT_BACK.k === k ? ANS_PUT_BACK : null;
     const gone = empty ? '' : ansGone_();
     const raw = ansRec_(ANS_GONE_KEYS);
-    if (!raw && !gone) return;
+    if (!raw && !gone && !(back && back.mark)) return;
     const map = JSON.parse(raw || '{}') || {};
     const had = ansGoneRead_(map[k]);
     let want = empty || !gone ? null : { who: gone, words: !!words };
-    if (!empty && had && (!want || want.who !== had.who)
+    /* PUT BACK BY AN UNDO: whose it was when it was last this value, whoever's session is fresh now. */
+    if (!empty && back) want = back.mark;
+    else if (!empty && had && (!want || want.who !== had.who)
         && ansKeeps_(k, was === undefined ? ansValue_(k) : was, v)) want = had;
     if (want ? !!had && had.who === want.who && had.words === want.words : !had) return;
     if (want) map[k] = want; else delete map[k];
@@ -804,11 +830,30 @@ function padNoteSay_(k) {
    was moved over it (P4); the claim walked the store's keys and never saw a signed-out answer the visit
    was holding (G2). AND TWO MORE DOORS ASK THIS NOW: the whiteboard (`board:`, P5), and `bookFollow_`
    (book.js), which carries the device's booking form into whoever signs in (`draft:device:`, P8) — `k` is
-   then the person's own key of that shape, and `ansKeyWho_` reads whose it is. */
+   then the person's own key of that shape, and `ansKeyWho_` reads whose it is.
+   ---------- 'later' IS NEVER FOR SOMEBODY WHO ARRIVED OVER SOMEBODY ELSE (317, "Undo, the booking form, a switch") ----
+   THE CLAIM SAID SO (`ownOnly`) AND THE OTHER DOORS DID NOT. Ben signed in; another tab of the site, signed
+   out there and never reloaded, wrote a maths answer and a stroke — nobody's session behind them, so 'later'.
+   Ada signed in over Ben, and the claim rightly left them: a switch is not the same seat (318). Then her
+   card was drawn, and `ansRead_` and `padAdopt_` — which refused only '' — moved the other tab's answer into
+   her empty box and up to HER account; the board's `padAdopt_`, which `wbPaint_` runs at every sign-in, did
+   the same with a board. So whoever signed in over somebody else is written down (`familySwitched`, set by
+   `signedIn_`, gone at the next sign-out — `answersForget_`), kept as carefully as `familyGone` and for as long
+   as the session (a reload is still the same arrival), and for them 'later' is ''. A device signed in from
+   nobody, or already signed in when this tab opened, keeps 318's rule: `ansRead_` is what is left for it. */
+const ANS_SWITCHED = 'familySwitched';
+function ansSwitched_() {
+  const v = String(ansRec_(ANS_SWITCHED) || '');
+  return /^u:[^:]+$/.test(v) ? v : '';
+}
+function ansSwitchedIn_(pid) {
+  try { ansRecPut_(ANS_SWITCHED, pid ? 'u:' + String(pid) : null); } catch (e) {}
+}
 function ansMayMove_(bare, k) {
   const m = ansGoneOf_(bare);
-  if (!m) return 'later';
-  return m.who === ansKeyWho_(k) ? 'own' : '';
+  const who = ansKeyWho_(k);
+  if (m) return m.who === who ? 'own' : '';
+  return who && who === ansSwitched_() ? '' : 'later';
 }
 /* ---------- TWO ANSWERS OF ONE PERSON'S, PUT TOGETHER WHERE THEY CAN BE ONE --------------------------------
    `mine` is what the box holds for them, `v` what they wrote signed out beside it after their session
@@ -989,4 +1034,6 @@ function answersForget_() {
      somebody chose, is a new start. `api()` writes it again AFTER this, for the sign-out it causes.
      Through `ansRecPut_`, so the visit's copy goes with the stored one. */
   try { ansRecPut_('familyGone', null); } catch (e) {}
+  /* AND WHO ARRIVED OVER SOMEBODY ELSE (`ansMayMove_`): the next arrival says again how it came. */
+  try { ansRecPut_(ANS_SWITCHED, null); } catch (e) {}
 }

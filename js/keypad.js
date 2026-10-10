@@ -961,8 +961,16 @@ function kpEdit_(inp, cmd) {
    BY THE BOX'S KEY (`data-k`), NOT THE ELEMENT: a redraw replaces the element under the child
    (`kpLive_`) and the history has to survive it. A RUN OF LETTERS IS ONE STEP, a word at a time, and a
    run of ⌫ is one, as in every editor -- a step per letter would undo a sentence a letter at a time.
-   A run is the same kind of key, at the caret the last one left, inside two seconds. */
+   A run is the same kind of key, at the caret the last one left, inside two seconds.
+   ---------- EACH STEP KEEPS WHOSE THE ANSWER WAS AT THAT VALUE (`mark`; answers.js, `ansPutBack_`) ----------
+   A SIGNED-OUT ANSWER CAN BE SOMEBODY'S: typed after the server ended their session, it is marked as theirs
+   and goes to nobody else (docs/history/317). Emptied, it is nobody's — and Ctrl+Z put Ada's words straight
+   back after a visitor's Ctrl+A and Backspace (or a held Backspace, or one letter typed over all of it),
+   judged as a new answer with no mark, so Ben, signing in next, was handed them and they went to HIS account.
+   So a step remembers the mark the box had at the value it undoes to, read before the edit changes it, and
+   Undo and Redo write that value back with that mark. */
 const KP_UNDO = new Map();
+const kpMark_ = k => (typeof ansMarkable_ === 'function' && ansMarkable_(k) && typeof ansGoneOf_ === 'function' ? ansGoneOf_(k) : null);
 function kpUndoNote_(inp, was, a, b, cmd) {
   const k = inp.getAttribute('data-k') || '';
   let h = KP_UNDO.get(k);
@@ -972,7 +980,7 @@ function kpUndoNote_(inp, was, a, b, cmd) {
   const now = Date.now();
   const word = kind === 'type' && !/\s/.test(cmd) && /\s/.test(was.charAt(a - 1));
   if (!(kind && kind === h.kind && a === h.at && now - h.t < 2000 && !word)) {
-    h.back.push({ v: was, a: a, b: b });
+    h.back.push({ v: was, a: a, b: b, mark: kpMark_(k) });
     if (h.back.length > 200) h.back.shift();
   }
   h.fwd = [];
@@ -981,15 +989,19 @@ function kpUndoNote_(inp, was, a, b, cmd) {
   h.t = now;
 }
 function kpUndo_(inp, redo) {
-  const h = KP_UNDO.get(inp.getAttribute('data-k') || '');
+  const k = inp.getAttribute('data-k') || '';
+  const h = KP_UNDO.get(k);
   const from = h && (redo ? h.fwd : h.back);
   if (!from || !from.length) return;
   const to = from.pop();
-  (redo ? h.back : h.fwd).push({ v: inp.value, a: inp.selectionStart, b: inp.selectionEnd });
+  (redo ? h.back : h.fwd).push({ v: inp.value, a: inp.selectionStart, b: inp.selectionEnd, mark: kpMark_(k) });
   h.kind = '';
   inp.value = to.v;
   try { inp.setSelectionRange(Math.min(to.a, to.v.length), Math.min(to.b, to.v.length)); } catch (e) {}
-  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  /* THE SAME EVENT AS ANY EDIT, so find.js's listener stores it — told that it is a value put back, and
+     whose it was then. */
+  const fire = () => inp.dispatchEvent(new Event('input', { bubbles: true }));
+  if (typeof ansPutBack_ === 'function') ansPutBack_(k, to.mark || null, fire); else fire();
   kpAfter_(inp, '');
 }
 

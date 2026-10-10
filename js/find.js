@@ -8545,8 +8545,12 @@ let PAD_GO = null;                // the drag behind it: which tool, on which in
    and a tool left on the element would be dropped with it, the `PAD_ON` argument one line up. */
 const PAD_TOOL = new Map();
 /* WHAT CLEAR LAST TOOK OFF EACH PAD, by key, for the visit -- so Undo straight after it puts the marks
-   back. See `on('pad-clear')`. */
+   back. See `on('pad-clear')`. AND WHOSE THEY WERE (`PAD_CLEARED_MARK`): a pad drawn signed out after the
+   server ended a session is that person's (answers.js, `ansGoneMark_`), Clear makes it nobody's, and Undo
+   put it back nobody's -- so the next child to sign in was handed it (317, "Undo, the booking form, a
+   switch"). Undo writes the strokes back with the mark they had (`ansPutBack_`). */
 const PAD_CLEARED = new Map();
+const PAD_CLEARED_MARK = new Map();
 
 function padAt_(ink, e) {
   const r = ink.getBoundingClientRect();
@@ -8830,8 +8834,12 @@ on('pad-undo', (el) => {
   /* AN EMPTY PAD THAT CLEAR EMPTIED: the last thing done was the Clear, so it is what Undo undoes. */
   if (!all.length && PAD_CLEARED.has(k)) {
     const back = PAD_CLEARED.get(k);
+    const mark = PAD_CLEARED_MARK.get(k) || null;
     PAD_CLEARED.delete(k);
-    ansStore_(k, JSON.stringify(back));
+    PAD_CLEARED_MARK.delete(k);
+    /* WITH WHOSE THEY WERE, not judged as strokes drawn now over an empty pad. */
+    const put = () => ansStore_(k, JSON.stringify(back));
+    if (typeof ansPutBack_ === 'function') ansPutBack_(k, mark, put); else put();
     padRepaint_(pad, back);
     toast('Put back');
     return;
@@ -8858,6 +8866,8 @@ on('pad-clear', (el) => {
   const had = padRead_(k);
   if (!had.length) return;
   PAD_CLEARED.set(k, had);
+  /* READ BEFORE THE CLEAR BELOW TAKES THE MARK WITH THE STROKES. */
+  PAD_CLEARED_MARK.set(k, typeof ansMarkable_ === 'function' && ansMarkable_(k) && typeof ansGoneOf_ === 'function' ? ansGoneOf_(k) : null);
   /* CLEARED IS A VALUE TOO — sent as nothing, so the drawing goes from the other device as well. */
   ansStore_(k, null);
   padRepaint_(pad, []);
@@ -9012,6 +9022,7 @@ function padWhoChanged_() {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = ''; PAD_ST = null; PAD_GO = null;
   PAD_CLEARED.clear();
+  PAD_CLEARED_MARK.clear();
   wbPaint_();
 }
 

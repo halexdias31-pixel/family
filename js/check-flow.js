@@ -16828,6 +16828,328 @@ check('edges: what the store refused while signed out is claimed at sign-in like
   return bad;
 });
 
+/* ---------- AND THREE MORE, FOUND BY THE VERIFIER OF THE SIX (317, "Undo, the booking form, a switch") ----------
+   UNDO: the two features built for slips — the pen's Undo after Clear, the keypad's Ctrl+Z — put an emptied
+   answer back as though it had just been written, so a child's own work came back with nobody's mark (or
+   with the mark of whoever's ended session was fresh), and went to the next child. THE BOOKING FORM: signing
+   back in, the form typed signed out was written over the person's own draft. A SWITCH: signed in over
+   somebody, opening a card or the board still handed the arriving child what another tab made signed out.
+   Each journey below was red on the code before. */
+const edgeKey_ = (w, el, key, o) => el.dispatchEvent(new w.KeyboardEvent('keydown', Object.assign({ key: key, bubbles: true, cancelable: true }, o || {})));
+
+check('edges: Undo puts back whose it was — Clear then Undo on a pad and on the whiteboard, Ctrl+Z after Backspace or after one letter over all of it — and the keypad\'s history goes with the person who made it', async () => {
+  const bad = [];
+  const mine = (w, k) => { const m = w.ansGoneOf_(k); return m ? m.who : null; };
+  /* ONE — A QUESTION'S PAD (U1). Ada draws signed out after the server ended her session: hers. Ben signs in
+     and out, which ends the hour's note (`familyGone`). The next visitor's finger slips onto the bin, 4px
+     from Undo, and Undo puts the stroke back. Then, while CAL'S ended session is fresh, the same again. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const need = edgeNeed_(w);
+    if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+    const A = w.__t.ACTIONS;
+    const c = ansCards_(w, 'U1');
+    if (!(await b.end('tok-P7'))) return [EDGE_ENDED];
+    c.draw();
+    ansStroke_(w, c, [[10, 10], [80, 80], [150, 40]]);
+    const bareP = 'pad:' + c.pen.key, benP = 'pad:u:P8:' + c.pen.key;
+    const ada = w.ansValue_(bareP);
+    if (!ada || w.ansMayMove_(bareP, benP) !== '') return ['setup: Ada\'s stroke, drawn signed out after her session ended, is not marked as hers — NOT checked'];
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    w.signedOut_();
+    c.draw();
+    A['pad-clear'](c.pad().querySelector('.qpad-clear'));
+    if (w.ansValue_(bareP) !== null) return ['setup: Clear left ' + JSON.stringify(w.ansValue_(bareP)) + ' — NOT checked'];
+    A['pad-undo'](c.pad().querySelector('.qpad-undo'));
+    if (w.ansValue_(bareP) !== ada) return ['setup: Undo after Clear put back ' + JSON.stringify(w.ansValue_(bareP)) + ', not ' + ada + ' — NOT checked'];
+    if (mine(w, bareP) !== 'u:P7') bad.push('Clear then Undo put Ada\'s own stroke back marked ' + JSON.stringify(w.ansGoneOf_(bareP)) + ' — `ansMayMove_` for Ben answers ' + JSON.stringify(w.ansMayMove_(bareP, benP)));
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P9', at: Date.now() }));
+    A['pad-clear'](c.pad().querySelector('.qpad-clear'));
+    A['pad-undo'](c.pad().querySelector('.qpad-undo'));
+    if (mine(w, bareP) !== 'u:P7') bad.push('Clear then Undo while Cal\'s ended session was fresh put Ada\'s stroke back marked ' + JSON.stringify(w.ansGoneOf_(bareP)) + ' — handed to Cal');
+    w.ansRecPut_('familyGone', null);
+    /* BEN SIGNS IN FROM NOBODY: nothing of hers. */
+    w.signedIn_(Object.assign({}, ANS_BEN, { token: 'tok-P8-b', answers: {} }));
+    c.draw();
+    await w.answersPush_(true);
+    if (w.ansValue_(benP) !== null || c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ben signed in from nobody and Ada\'s stroke is on his pad: ' + JSON.stringify(w.ansValue_(benP)));
+    if (b.of('P8')['pad:' + c.pen.key]) bad.push('Ada\'s stroke reached BEN\'S ACCOUNT: ' + JSON.stringify(b.of('P8')['pad:' + c.pen.key]).slice(0, 80));
+    if (w.ansValue_(bareP) !== ada) bad.push('Ada\'s stroke left the signed-out key when Ben signed in: ' + JSON.stringify(w.ansValue_(bareP)));
+  }
+  /* TWO — WORDS, THROUGH A LAPTOP'S KEYS (U2). Ada types signed out after her session ended; Ben signs in and
+     out. A visitor selects the whole answer (⇧Ctrl+Home from the end, as Ctrl+A does), presses Backspace,
+     then Ctrl+Z. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'U2');
+    ansType_(w, c.ta(), 'Ada, signed in');
+    await w.answersPush_(true);
+    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
+    c.draw();
+    const WORDS = 'More words Ada typed signed out';
+    const bareW = 'ans:' + c.words.key, benW = 'ans:u:P8:' + c.words.key;
+    ansType_(w, c.ta(), WORDS);
+    if (w.ansMayMove_(bareW, benW) !== '') return bad.concat(['setup: Ada\'s signed-out words are not marked as hers — the words were NOT checked']);
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    w.signedOut_();
+    c.draw();
+    const inp = c.ta();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    edgeKey_(w, inp, 'Home', { shiftKey: true, ctrlKey: true });
+    edgeKey_(w, inp, 'Backspace');
+    if (String(w.ansValue_(bareW) || '') !== '') return bad.concat(['setup: the whole answer selected and Backspace left ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    if (w.ansValue_(bareW) !== WORDS) return bad.concat(['setup: Ctrl+Z put back ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (mine(w, bareW) !== 'u:P7') bad.push('Ctrl+Z after Backspace over all of it put Ada\'s own words back marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' — `ansMayMove_` for Ben answers ' + JSON.stringify(w.ansMayMove_(bareW, benW)));
+    w.signedIn_(Object.assign({}, ANS_BEN, { token: 'tok-P8-b', answers: {} }));
+    c.draw();
+    await w.answersPush_(true);
+    if (c.ta().value === WORDS) bad.push('Ben signed in from nobody and his words box holds Ada\'s words');
+    if (/More words Ada typed/.test(JSON.stringify(b.of('P8')))) bad.push('Ada\'s words reached BEN\'S ACCOUNT');
+  }
+  /* THREE — THE HOUR HAS PASSED (U2b, U3): a held Backspace to empty, then Ctrl+Z; then one letter over all of
+     it, which takes her mark off (P7), and Ctrl+Z, which puts it back with the words; and ⇧Ctrl+Z, which
+     puts the visitor's letter back as nobody's again. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'U3');
+    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
+    c.draw();
+    const WORDS = 'Ada typed this signed out';
+    const bareW = 'ans:' + c.words.key, benW = 'ans:u:P8:' + c.words.key;
+    ansType_(w, c.ta(), WORDS);
+    if (w.ansMayMove_(bareW, benW) !== '') return bad.concat(['setup: Ada\'s signed-out words are not marked as hers — the hour was NOT checked']);
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
+    c.draw();
+    const inp = c.ta();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    for (let i = 0; i < WORDS.length; i++) edgeKey_(w, inp, 'Backspace');
+    if (String(w.ansValue_(bareW) || '') !== '') return bad.concat(['setup: a held Backspace left ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    if (w.ansValue_(bareW) !== WORDS) return bad.concat(['setup: Ctrl+Z after the held Backspace put back ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (mine(w, bareW) !== 'u:P7') bad.push('after the hour, Ctrl+Z after a held Backspace put Ada\'s words back marked ' + JSON.stringify(w.ansGoneOf_(bareW)));
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    edgeKey_(w, inp, 'Home', { shiftKey: true, ctrlKey: true });
+    edgeKey_(w, inp, 'x');
+    if (w.ansValue_(bareW) !== 'x') return bad.concat(['setup: one letter over the whole answer left ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (w.ansMayMove_(bareW, benW) !== 'later') bad.push('after the hour, one letter typed over all of Ada\'s words is still marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' (P7)');
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    if (w.ansValue_(bareW) !== WORDS) return bad.concat(['setup: Ctrl+Z after the letter put back ' + JSON.stringify(w.ansValue_(bareW)) + ' — NOT checked']);
+    if (mine(w, bareW) !== 'u:P7') bad.push('a visitor\'s letter over Ada\'s words, undone at once, left her words marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' — anybody\'s');
+    edgeKey_(w, inp, 'z', { ctrlKey: true, shiftKey: true });
+    if (w.ansValue_(bareW) !== 'x') return bad.concat(['setup: ⇧Ctrl+Z put back ' + JSON.stringify(w.ansValue_(bareW)) + ', not the letter — NOT checked']);
+    if (w.ansMayMove_(bareW, benW) !== 'later') bad.push('⇧Ctrl+Z put the visitor\'s letter back marked ' + JSON.stringify(w.ansGoneOf_(bareW)) + ' — the visitor\'s answer filed as Ada\'s');
+    edgeKey_(w, inp, 'z', { ctrlKey: true });
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await w.answersPush_(true);
+    if (/Ada typed this/.test(JSON.stringify(b.of('P8')))) bad.push('Ada\'s words reached BEN\'S ACCOUNT after the hour');
+  }
+  /* FOUR — THE WHITEBOARD, after the hour (U4): Clear, Undo, and Ben signs in from nobody. */
+  {
+    const b = edgeBoot_(signedInAs_(ANS_ADA));
+    const { w } = b;
+    await wait(300);
+    if (typeof w.initWhiteboard !== 'function') return bad.concat(['initWhiteboard not reachable — the board was NOT checked']);
+    const A = w.__t.ACTIONS;
+    const host = w.document.createElement('div');
+    host.className = 'wb-box';
+    w.document.body.appendChild(host);
+    w.initWhiteboard();
+    const board = { pad: () => host.querySelector('.qpad') };
+    if (!(await b.end('tok-P7'))) return bad.concat([EDGE_ENDED]);
+    ansStroke_(w, board, [[30, 30], [200, 200]]);
+    const ada = w.ansValue_('board:whiteboard');
+    if (!ada || mine(w, 'board:whiteboard') !== 'u:P7') return bad.concat(['setup: the board drawn signed out is not marked as Ada\'s — the board was NOT checked']);
+    w.ansRecPut_('familyGone', JSON.stringify({ who: 'u:P7', at: Date.now() - 2 * 60 * 60 * 1000 }));
+    A['pad-clear'](board.pad().querySelector('.qpad-clear'));
+    A['pad-undo'](board.pad().querySelector('.qpad-undo'));
+    if (w.ansValue_('board:whiteboard') !== ada) return bad.concat(['setup: Undo after Clear put the board back as ' + JSON.stringify(w.ansValue_('board:whiteboard')) + ' — NOT checked']);
+    if (mine(w, 'board:whiteboard') !== 'u:P7') bad.push('Clear then Undo put Ada\'s board back marked ' + JSON.stringify(w.ansGoneOf_('board:whiteboard')));
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    if (w.ansValue_('board:u:P8:whiteboard') !== null || host.querySelectorAll('.qpad-g path').length) bad.push('Ben signed in from nobody and Ada\'s board is on HIS board: ' + JSON.stringify(w.ansValue_('board:u:P8:whiteboard')));
+  }
+  /* FIVE — THE KEYPAD'S HISTORY OUTLIVED ITS PERSON. Sam types signed out and signs in from nobody: the words
+     are his (318). He signs out, and the next visitor presses Ctrl+Z on the empty signed-out box. */
+  {
+    const b = edgeBoot_();
+    const { w } = b;
+    await wait(300);
+    const c = ansCards_(w, 'U5');
+    const SAM = { name: 'Sam Pupil', personId: 'P10', role: 'kid', roles: ['kid'], token: 'tok-P10', handle: 'sam_sunny10' };
+    const bareW = 'ans:' + c.words.key;
+    const inp = c.ta();
+    inp.setSelectionRange(0, 0);
+    'Sam typed these words'.split('').forEach(ch => edgeKey_(w, inp, ch));
+    if (w.ansValue_(bareW) !== 'Sam typed these words') return bad.concat(['setup: the keys typed signed out stored ' + JSON.stringify(w.ansValue_(bareW)) + ' — the history was NOT checked']);
+    w.signedIn_(Object.assign({}, SAM, { answers: {} }));
+    if (w.ansValue_(bareW) !== null) return bad.concat(['setup: Sam signed in from nobody and his words were not claimed — the history was NOT checked']);
+    w.signedOut_();
+    c.draw();
+    edgeKey_(w, c.ta(), 'z', { ctrlKey: true });
+    if (c.ta().value || w.ansValue_(bareW)) bad.push('Sam signed in and out, and the next visitor\'s Ctrl+Z on the empty signed-out box brought back ' + JSON.stringify(w.ansValue_(bareW)) + ' — his words, nobody\'s now');
+    w.signedIn_(Object.assign({}, ANS_BEN, { answers: {} }));
+    await w.answersPush_(true);
+    if (/Sam typed/.test(JSON.stringify(b.of('P8')))) bad.push('Sam\'s words reached BEN\'S ACCOUNT through the keypad\'s history');
+  }
+  return bad;
+});
+
+check('edges: signing in again, the booking form typed signed out after the session ended is joined to the person\'s own draft, not written over it — and the addresses typed on it go with it, from nobody and over somebody', async () => {
+  const bad = [];
+  for (const over of [false, true]) {
+    const ended = new Set();
+    const { w } = boot({ before: signedInAs_(ANS_ADA), reply: q => (ended.has(q.token) ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+    await wait(300);
+    const fns = ['bookFollow_', 'signedOut_', 'signedIn_', 'noteRow_', 'stepInput_', 'draftRead_', 'ansMayMove_', 'ansGoneOf_'].filter(n => typeof w[n] !== 'function');
+    if (fns.length) return [fns.join(', ') + ' not reachable — nothing was checked'];
+    const B = w.__t.BOOKING;
+    const split = (w.__t.STEPS || []).find(s => s.emails);
+    if (!split) return ['no booking step takes addresses — renamed? NOT checked'];
+    const how = over ? 'over Ben' : 'from nobody';
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    /* THROUGH THE REAL LISTENERS: the note's `input` writes the whole form (`bookKeep_`); the addresses box
+       is a draft of its own until it is left (`draftFrom_`). */
+    const typeNote = text => {
+      h.innerHTML = w.noteRow_().sel;
+      const el = h.querySelector('[data-do="book-note"]');
+      el.value = text;
+      el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    };
+    /* SIGNED IN: Ada part-way through a booking — who it is for, a subject, a level and a note. */
+    B.client = 'Ada';
+    B.subjects = ['Maths'];
+    B.level = 'GCSE';
+    typeNote('Tuesdays after school');
+    if (!/Tuesdays/.test(String(w.localStorage.getItem('draft:u:P7:book:form')))) return bad.concat(['setup: Ada\'s signed-in booking is not her draft — NOT checked']);
+    ended.add('tok-P7');
+    await w.api({ action: 'myProfile' });
+    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
+    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
+    if (B.note || B.client) bad.push('the server ended Ada\'s session and her booking is still on the screen: ' + JSON.stringify([B.note, B.client]));
+    /* SIGNED OUT, ON THE FORM THE ENDED SESSION EMPTIED: another subject, another level, her address, and
+       somebody to share with, typed into the addresses box and not yet left. */
+    B.subjects = ['English'];
+    B.level = 'A level';
+    typeNote('Ada signed out: 1 Example Road');
+    h.innerHTML = w.stepInput_(split);
+    const box = h.querySelector('[data-do="book-emails"]');
+    box.value = 'kit@example.com';
+    box.dispatchEvent(new w.Event('input', { bubbles: true }));
+    if (!/Example Road/.test(String(w.localStorage.getItem('draft:device:book:form'))) || !/kit@example/.test(String(w.localStorage.getItem('draft:device:book:emails:' + split.id)))) {
+      return bad.concat(['setup: the signed-out form and its addresses are not the device\'s drafts — NOT checked']);
+    }
+    if (over) w.signedIn_(Object.assign({}, ANS_BEN));
+    w.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b' }));
+    const NOTE = 'Tuesdays after school\n\nAda signed out: 1 Example Road';
+    if (B.note !== NOTE) bad.push('Ada signed in again ' + how + ' and the note is ' + JSON.stringify(B.note) + ', wanted hers, then what she typed signed out');
+    if (B.client !== 'Ada') bad.push('Ada signed in again ' + how + ' and "who is this for", answered signed in, is ' + JSON.stringify(B.client) + ' — her draft was written over');
+    if (JSON.stringify(B.subjects) !== '["Maths","English"]') bad.push('Ada signed in again ' + how + ' and the subjects are ' + JSON.stringify(B.subjects) + ', wanted both forms\'');
+    if (B.level !== 'A level') bad.push('Ada signed in again ' + how + ' and the level is ' + JSON.stringify(B.level) + ', wanted the one chosen later, signed out');
+    const draft = String(w.draftRead_('book', 'form') || '');
+    if (!/Tuesdays/.test(draft) || !/Example Road/.test(draft) || !/"client":"Ada"/.test(draft)) bad.push('Ada signed in again ' + how + ' and her draft is not the two forms joined: ' + draft.slice(0, 160));
+    if (w.localStorage.getItem('draft:device:book:form') !== null) bad.push('Ada signed in again ' + how + ' and the device still holds her signed-out form');
+    if (w.draftRead_('book', 'emails:' + split.id) !== 'kit@example.com') bad.push('Ada signed in again ' + how + ' and the addresses she typed signed out are ' + JSON.stringify(w.draftRead_('book', 'emails:' + split.id)) + ' in her box — dropped, not carried');
+    if (w.localStorage.getItem('draft:device:book:emails:' + split.id) !== null) bad.push('Ada signed in again ' + how + ' and the device still holds the addresses she typed signed out');
+  }
+  /* AND THE ADDRESSES ARE ASKED ON THEIR OWN. A form nobody's (a visitor's, left on the device) is on the
+     screen when the server ends Ada's session; she types an address into its box and leaves it unsent. Ben
+     signs in next from nobody: the form is his seat's (318), the address is hers. */
+  {
+    const { w } = boot({
+      before: win => {
+        signedInAs_(ANS_ADA)(win);
+        try { win.localStorage.setItem('draft:device:book:form', JSON.stringify({ v: JSON.stringify({ note: 'A visitor\'s note' }), at: Date.now() })); } catch (e) {}
+      },
+      reply: q => (q.token === 'tok-P7' && q.action === 'myProfile' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined)
+    });
+    await wait(300);
+    const split = (w.__t.STEPS || []).find(s => s.emails);
+    if (w.__t.whoami()) await w.api({ action: 'myProfile', token: 'tok-P7' });
+    for (let i = 0; i < 40 && w.__t.whoami(); i++) await wait(50);
+    if (w.__t.whoami()) return bad.concat([EDGE_ENDED]);
+    if (w.__t.BOOKING.note !== 'A visitor\'s note') return bad.concat(['setup: the visitor\'s form is not on the screen after the session ended (' + JSON.stringify(w.__t.BOOKING.note) + ') — the addresses were NOT checked']);
+    const h = w.document.createElement('div');
+    w.document.body.appendChild(h);
+    h.innerHTML = w.stepInput_(split);
+    const box = h.querySelector('[data-do="book-emails"]');
+    box.value = 'ada@example.com';
+    box.dispatchEvent(new w.Event('input', { bubbles: true }));
+    w.signedIn_(Object.assign({}, ANS_BEN));
+    if (w.__t.BOOKING.note !== 'A visitor\'s note') bad.push('Ben signed in from nobody and the visitor\'s form was not carried to his seat: ' + JSON.stringify(w.__t.BOOKING.note));
+    if (/ada@example/.test(String(w.draftRead_('book', 'emails:' + split.id) || ''))) bad.push('Ben signed in from nobody and the address Ada typed after her session ended is in HIS addresses box');
+    if (!/ada@example/.test(String(w.localStorage.getItem('draft:device:book:emails:' + split.id) || ''))) bad.push('the address Ada typed after her session ended left the device when Ben signed in — it is hers to sign in to');
+  }
+  return bad;
+});
+
+check('edges: signed in over somebody else, opening a card or the board hands the arriving child nothing another visitor made signed out — after a reload too; signed in from nobody, it is theirs (318)', async () => {
+  const b = edgeBoot_(signedInAs_(ANS_BEN));
+  const { w } = b;
+  await wait(300);
+  const need = edgeNeed_(w).concat(typeof w.initWhiteboard === 'function' ? [] : ['initWhiteboard']);
+  if (need.length) return [need.join(', ') + ' not reachable — nothing was checked'];
+  const bad = [];
+  const c = ansCards_(w, 'S1');
+  const wb = win => {
+    const host = win.document.createElement('div');
+    host.className = 'wb-box';
+    win.document.body.appendChild(host);
+    win.initWhiteboard();
+    return () => host.querySelectorAll('.qpad-g path').length;
+  };
+  const boardStrokes = wb(w);
+  const bareM = 'ans:' + c.maths.key, bareP = 'pad:' + c.pen.key, bareR = bareP + ':words';
+  const OTHER = [[bareM, '(9)/(10)'], [bareP, '[[1,1,300,300]]'], [bareR, '["0.1"]'], ['board:whiteboard', '[[40,40,90,90]]']];
+  /* BEN IS SIGNED IN. ANOTHER TAB OF THE SITE, SIGNED OUT THERE AND NEVER RELOADED, ANSWERS, DRAWS, RINGS AND
+     SCRIBBLES ON THE BOARD: nobody's session ended, so all of it is 'later' — whoever signs in next from
+     nobody (318). */
+  OTHER.forEach(([k, v]) => {
+    w.localStorage.setItem(k, v);
+    w.dispatchEvent(new w.StorageEvent('storage', { key: k, oldValue: null, newValue: v }));
+  });
+  w.localStorage.setItem('ansAt:' + bareM, String(Date.now()));
+  const left = win => OTHER.filter(([k, v]) => win.localStorage.getItem(k) !== v).map(([k]) => k);
+  /* ADA SIGNS IN OVER BEN, AND HER CARD AND THE BOARD ARE DRAWN. */
+  w.signedIn_(Object.assign({}, ANS_ADA, { answers: {} }));
+  c.draw();
+  const rings = w.circOf_({ key: c.pen.key, surface: 'text' }).on;
+  await w.answersPush_(true);
+  if (c.kp().value) bad.push('Ada signed in over Ben, opened the card, and her empty maths box was given the other tab\'s signed-out answer ' + JSON.stringify(c.kp().value) + ' (`ansRead_`)');
+  if (c.pad().querySelectorAll('.qpad-g path').length) bad.push('Ada signed in over Ben and her pad draws the other tab\'s stroke (`padAdopt_`)');
+  if (rings.length) bad.push('Ada signed in over Ben and the passage rings the other tab\'s word ' + JSON.stringify(rings) + ' (`circOf_`)');
+  if (boardStrokes() || w.localStorage.getItem('board:u:P7:whiteboard') !== null) bad.push('Ada signed in over Ben and her board holds the other tab\'s scribble (`padAdopt_`, from `wbPaint_`)');
+  if (left(w).length) bad.push('Ada signed in over Ben and the other tab\'s work left the signed-out keys: ' + left(w).join(', '));
+  if (Object.keys(b.of('P7')).length) bad.push('the other tab\'s work reached ADA\'S ACCOUNT: ' + JSON.stringify(b.of('P7')).slice(0, 160));
+  /* A RELOAD, STILL ADA: the same arrival. */
+  const store = {};
+  for (let i = 0; i < w.localStorage.length; i++) { const k = w.localStorage.key(i); store[k] = w.localStorage.getItem(k); }
+  const b2 = edgeBoot_(win => { Object.keys(store).forEach(k => { try { win.localStorage.setItem(k, store[k]); } catch (e) {} }); });
+  const w2 = b2.w;
+  await wait(300);
+  if (!w2.__t.whoami() || String(w2.__t.whoami().personId) !== 'P7') return bad.concat(['setup: the reload is not signed in as Ada — the reload was NOT checked']);
+  const c2 = ansCards_(w2, 'S1');
+  const boardStrokes2 = wb(w2);
+  w2.circOf_({ key: c2.pen.key, surface: 'text' });
+  await w2.answersPush_(true);
+  if (c2.kp().value || c2.pad().querySelectorAll('.qpad-g path').length || boardStrokes2()) bad.push('reloaded as Ada, signed in over Ben, and the card or the board took the other tab\'s work: ' + JSON.stringify([c2.kp().value, c2.pad().querySelectorAll('.qpad-g path').length, boardStrokes2()]));
+  if (left(w2).length) bad.push('reloaded as Ada and the other tab\'s work left the signed-out keys: ' + left(w2).join(', '));
+  if (Object.keys(b2.of('P7')).length) bad.push('reloaded, and the other tab\'s work reached ADA\'S ACCOUNT: ' + JSON.stringify(b2.of('P7')).slice(0, 160));
+  /* SHE SIGNS OUT AND IN AGAIN, FROM NOBODY: now she is the one who signs in next — 318's seat — and it is hers. */
+  w2.signedOut_();
+  w2.signedIn_(Object.assign({}, ANS_ADA, { token: 'tok-P7-b', answers: {} }));
+  c2.draw();
+  if (c2.kp().value !== '(9)/(10)') bad.push('Ada signed out and in again from nobody and her maths box holds ' + JSON.stringify(c2.kp().value) + ' — the seat\'s answer was not hers (the switch outlived the sign-out)');
+  if (boardStrokes2() !== 1) bad.push('Ada signed in again from nobody and her board draws ' + boardStrokes2() + ' stroke(s), wanted the signed-out board (note 310)');
+  return bad;
+});
+
 check('signing out sends the notepad typed a moment before — what waits for its moment goes before the session it needs is ended', async () => {
   const { w, sent } = boot({ before: signedInAs_(Object.assign({}, ANS_ADA, { notepad: 'saved earlier' })) });
   await wait(300);
