@@ -3282,6 +3282,60 @@ const STATES = {
           && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
       },
       wants: 'the picture picker and the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+    /* ---------- THREE LIBRARY CARDS, DRAWN AS CARDS — `libraryShelf_` in me.js; docs/history/332 ----------
+       THE OWNER, 10 Oct: *"make each look like a card. with fake barcode."* Seeded with three invented
+       libraries (the longest name the shelf has ever been measured with among them, because the name is the
+       box that gives) and slots four and five empty, so `Add another` is on the page too. Asked of each
+       card, at every width: its three boxes are ON it; it is a bank card's shape (85.6:54, within 3%) and
+       nothing inside it spills past that shape; the ink of every box is 4.5:1 or better on the card's own
+       paper, which `check/ui.js`'s text rule cannot ask because a box's value is not a text node; and the
+       bars are decoration (`aria-hidden`) and different on each of the three. */
+    { name: 'three library cards',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_LIB_WAS = USER.profile;
+        const cards = { lib1_name: 'Merton', lib1_no: '2000000000000', lib1_pin: '0000',
+                        lib2_name: 'Sutton Central', lib2_no: '2000000000001', lib2_pin: '0000',
+                        lib3_name: 'Wandsworth Town and Putney', lib3_no: '2000000000002', lib3_pin: '0000' };
+        for (let i = 4; i <= 5; i++) ['_name', '_no', '_pin'].forEach(k => { cards['lib' + i + k] = ''; });
+        USER.profile = Object.assign({}, USER.profile || {}, cards);
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.lib-face'));
+        if (at < 0) throw new Error('no library cards page on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_LIB_WAS; delete window.STATE_LIB_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        if (!pg) return 0;
+        const faces = [...pg.querySelectorAll('.lib-card:not([hidden]) > .lib-face')];
+        if (faces.length !== 3 || pg.querySelectorAll('[data-do="shelf-more"]').length !== 1) return 0;
+        const rgb = s => (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+        const lum = c => c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
+          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const ratio = (p, q) => { const a = lum(rgb(p)), b = lum(rgb(q)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+        const bars = new Set();
+        const ok = faces.every(f => {
+          const r = f.getBoundingClientRect();
+          const paper = getComputedStyle(f).backgroundColor;
+          const boxes = [...f.querySelectorAll('input[data-me]')];
+          const svg = f.querySelector('svg.lib-bars');
+          if (svg) bars.add(svg.innerHTML);
+          return boxes.length === 3
+            && ['name', 'no', 'pin'].every(k => f.querySelector('input[data-me$="_' + k + '"]'))
+            && Math.abs(r.width / r.height - 85.6 / 54) < 0.03 * (85.6 / 54)
+            && f.scrollHeight <= f.clientHeight + 1 && f.scrollWidth <= f.clientWidth + 1
+            && boxes.every(b => ratio(getComputedStyle(b).color, paper) >= 4.5)
+            && !!svg && svg.getAttribute('aria-hidden') === 'true';
+        });
+        return ok && bars.size === 3 ? 3 : 0;
+      },
+      wants: 'three library cards at a bank card\'s proportions, each with its name, PIN and number boxes on it in ink 4.5:1 on its paper, different bars on each, and one Add another' },
     /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
        *"everyone should have a profile picture selector widget in account settings"*. Seeded with a
        picture already kept, so the preview is a photograph rather than the initial and `Remove` is

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-tutor-photos-still";
+  --css-version: "2026-10-10-library-cards";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1006,9 +1006,12 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    pinned to — the `font: 16px` above is deliberate and is why this cannot be stated in `ch` of the
    row's own font.
 
-   A RULE BETWEEN THE CARDS AND NOT ROUND THEM. A border on each is three boxes inside a box inside
-   a card, which is the "not everything is a card" fault; a hairline between them says the same
-   thing for one declaration and no inset. */
+   A RULE BETWEEN THE CARDS AND NOT ROUND THEM — UNTIL THE OWNER ASKED FOR CARDS. This said a border
+   on each was three boxes inside a box inside a card, the "not everything is a card" fault, and drew
+   a dashed hairline between them. On 10 Oct the owner asked for exactly that, by name: *"make each
+   look like a card. with fake barcode."* A library card IS a card, a thing in a wallet, so each slot
+   is drawn as one now (`.lib-face`, below the shelf's `Add another`) and the hairline went. The
+   two-track `.lib-row` is the business records card's alone since (`bizItem_`). */
 .lib-shelf { display: flex; flex-direction: column; }
 /* ---------- THE QUALIFICATIONS CARD — see `qualShelf_` in me.js ------------------------------------
    ONE LINE A QUALIFICATION, AND THE LINE IS THE BUTTON. *"can you make the qualifications widget more
@@ -1121,13 +1124,14 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* AN UNANSWERED DROP-DOWN READS AS A PLACEHOLDER, in the grey of the empty boxes — `Choose` in full ink
    looks like an answer somebody gave. `.lib-row select` already does this for the library shelf. */
 .q-shelf select:has(option[value=""]:checked) { color: var(--faint); }
-.lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
    `.75rem` is sized for a column of captioned boxes read one at a time; inside a card of three
    identical things it is six gaps' worth of a page that has 31px to find. `.4rem` on the last row
    of each card and `.35rem` inside the row keeps the three visibly separate — the dashed rule
-   between cards is doing most of that work anyway — and buys the shelf back onto a 568px phone. */
+   between cards is doing most of that work anyway — and buys the shelf back onto a 568px phone.
+   THE PHOTOGRAPH SHELF'S NOW: a library card's boxes sit on its face with no margin of their own
+   (`.lib-shelf .lib-face label.field`, one class more, so it wins by count and not by order). */
 .lib-shelf label.field { margin-bottom: .4rem; }
 
 /* ---------- AND AN EMPTY STATUS LINE TOOK EIGHT PIXELS ON EVERY CARD IT SAT ON --------------------
@@ -1240,26 +1244,114 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
 .lib-row select:has(option[value=""]:checked) { color: var(--faint); }
-/* THE MARGIN COMES OFF THE ROW'S OWN CHILDREN, because the row is what separates them now. The
-   number underneath keeps its margin: it is the last thing on the card and the gap before the
-   dashed rule is what stops the three reading as one long list. */
-/* THREE CLASSES, BECAUSE TWO WOULD HAVE TIED WITH THE RULE ABOVE. `.lib-shelf label.field` and
-   `.lib-row > label.field` are both (0,2,1), so which margin the two top boxes got was settled by
-   which line came later — `check/cascade.js` said so on the first run that had a shelf on a screen,
-   naming six elements. The twelfth conviction of `.price.faint` in this stylesheet, and the first
-   one caught by the check rather than by a person reading two blocks side by side. */
-.lib-shelf .lib-row > label.field { margin-bottom: .35rem; }
+/* `.lib-shelf .lib-row > label.field` WENT WITH THE ROW. It took the margin off the name and the PIN
+   when they sat side by side over the number; since 332 they sit on a card's face, which sets its own
+   (below), and no shelf draws a `.lib-row`. Its note's lesson stays where the face's rules are written:
+   `.lib-shelf label.field` and a rule of the same weight tie, and the order decides — the twelfth
+   conviction of `.price.faint`, the first caught by `check/cascade.js`. */
 /* ---------- A SHELF'S `Add another` ---------------------------------------------------------
    The button is the shelf's own last child, so it sits under the last card showing and goes when
    there is nothing left to reveal (`shelf-more` in me.js). A quiet `.btn`, because the Save under
    the card is the page's one action and this is not it — the correction `.reel-sound` records. */
 .lib-shelf .shelf-more { margin: .1rem 0 .6rem; }
+/* ---------- A LIBRARY CARD, DRAWN AS ONE — `libraryShelf_` in me.js; docs/history/332 ------------------
+   THE OWNER, 10 Oct: *"make each look like a card. with fake barcode."* So each slot is a card at a bank
+   card's proportions — 85.6 by 54, the ID-1 size a library card is printed at — on the PAPER palette,
+   because it stands in for a thing you hold, as the receipt and the sign-in slip do: `--paper` and its
+   inks, never a literal. `LIBRARY CARD` small at the top left, the library's name large under it, the PIN
+   small at the top right under its own caption, and along the bottom the bars with the number printed
+   under them in the face's monospace, as on the real one.
+
+   `aspect-ratio` IS THE PROPORTION, AND THE CONTENT MUST FIT INSIDE IT. A grid's automatic minimum lets
+   the card grow past the ratio rather than spill, which is the right failure — but it is still a failure,
+   so the rows are budgeted for the narrowest card there is: at 320 the face measures 244 by 154, and its
+   padding, a 9px caption row, the name's 44px box, 33px of bars and the number's 44px box come to about
+   145 of it.
+   The spare goes to the empty row above the bars, which is where a real card is blank too.
+
+   THE BOXES ARE BORDERLESS AND IN THE CARD'S INK, because they are what is printed on it. What says a box
+   is a box is the FOCUS RING — `--paper-ink`, 2px, 13:1 on the paper where the app's gold edge would be
+   about 1.6:1 — and, for the one box with no words in it while empty, the PIN, a dashed line in
+   `--paper-faint` (3.4:1, past the 3:1 a control's edge needs) until something is typed. The base
+   `input`'s border is kept, transparent, so nothing moves by a pixel when a box takes the focus.
+
+   THREE CLASSES ON EVERY RULE THAT TOUCHES A BOX, deliberately: `.lib-shelf label.field` above and the
+   base `input`, `input:focus` and `input:disabled` rules are what these replace, and a rule of the same
+   weight would win or lose by its line number — the `.price.faint` fault this shelf has already been
+   convicted of once. `input:disabled` matters most: a card locked by `send_` while its Save is on the wire
+   would otherwise turn black under its own ink.
+
+   A FINGERTIP IS NOT SCALED: every box keeps the base `input`'s 44px floor. The PIN's box is four digits
+   of the 16px it is pinned to and a little, never under 44px; it was `6ch` first, and the 320 shot read
+   `Sutton Centr…` beside a PIN box a third empty. A longer PIN ends in an ellipsis and scrolls while
+   its box has the focus, as every other box does with a value longer than itself.
+
+   WHAT IS PRINTED LARGE GROWS WITH THE CARD, AND NOTHING ELSE DOES. The face is a size container, so the
+   name and the bars are in `cqw` of it — the first shots at 768 had 2.2rem of bars and a 1.3rem name on a
+   card 400px wide, a third of it blank. Clamped both ways: the name never under the 16px a box needs (an
+   iPhone zooms the page into a smaller one) nor over 1.5rem, the bars never under 1.9rem nor over 4. */
+.lib-shelf .lib-face {
+  display: grid; min-width: 0; aspect-ratio: 85.6 / 54; container-type: inline-size;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "cap pin" "name pin" ". ." "bars bars" "no no";
+  column-gap: .7rem;
+  margin: 0 0 .6rem; padding: .65rem .85rem 0;
+  background: var(--paper); color: var(--paper-ink);
+  border: 1px solid var(--paper-rule); border-radius: .7rem;
+}
+.lib-cap { grid-area: cap; }
+.lib-name { grid-area: name; min-width: 0; }
+.lib-pin { grid-area: pin; justify-self: end; }
+.lib-no { grid-area: no; min-width: 0; }
+/* THE TWO CAPTIONS ARE ONE STYLE, AND THE SAME HEIGHT, so the name's box and the PIN's sit on one line.
+   `--paper-dim`, not `--paper-faint`: 5.3:1 against 3.4, and a caption this small needs the 4.5. */
+.lib-cap, .lib-shelf .lib-face label.field > span {
+  display: block; margin: 0 0 .15rem;
+  font-size: max(9px, .56rem); line-height: 1.2; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--paper-dim);
+}
+.lib-shelf .lib-pin label.field > span { text-align: right; }
+.lib-shelf .lib-face label.field { margin: 0; min-width: 0; }
+.lib-shelf .lib-face input {
+  min-width: 0; padding: 0 .1rem;
+  background-color: transparent; border: 1px solid transparent; border-radius: 2px;
+  color: var(--paper-ink); text-overflow: ellipsis;
+}
+.lib-shelf .lib-face input::placeholder { color: var(--paper-dim); opacity: 1; font-weight: 400; letter-spacing: normal; }
+.lib-shelf .lib-face input:focus { outline: 2px solid var(--paper-ink); outline-offset: 1px; }
+.lib-shelf .lib-name input { font-size: clamp(16px, 6.5cqw, 1.5rem); font-weight: 700; }
+.lib-shelf .lib-pin input { width: max(44px, calc(4ch + .6rem)); text-align: right; font-variant-numeric: tabular-nums; }
+/* THE EMPTY PIN'S LINE IS DRAWN UNDER THE WORDS' LINE, NOT AT THE FOOT OF THE BOX. The box is 44px for the
+   finger and its text sits in the middle, so its own bottom border sat 12px under the name beside it, and
+   a dashed border's corner left a dot at its left end (the first 390 shot). A one-pixel dashed gradient
+   just under the middle line, where a printed blank would be. */
+.lib-shelf .lib-pin input:placeholder-shown {
+  background-image: repeating-linear-gradient(90deg, var(--paper-faint) 0 3px, transparent 3px 6px);
+  background-size: 100% 1px; background-repeat: no-repeat; background-position: 0 calc(50% + .8em);
+}
+/* THE NUMBER SITS UNDER THE BARS, NOT IN THE MIDDLE OF ITS BOX. The box keeps its 44px for the finger;
+   the padding puts the digits at the top of it, against the bars, where a card prints them, and the
+   rest of the box is the card's bottom margin. ITS RING IS INSIDE IT: the box runs from the bars to the
+   card's foot, and a ring outside it was drawn over the bars and across the card's own edge.
+   ONE CLASS MORE THAN THE FACE'S OWN BOX RULES, and `check/cascade.js` is why: written as
+   `.lib-shelf .lib-no input` it tied `.lib-shelf .lib-face input` on all four paddings and won on its line
+   number alone — the shelf's second conviction of `.price.faint`, caught on its first run. */
+.lib-shelf .lib-face .lib-no input {
+  padding: 1px .1rem 18px; text-align: center;
+  letter-spacing: .16em; font-variant-numeric: tabular-nums;
+}
+.lib-shelf .lib-face .lib-no input:focus { outline-offset: -2px; }
+/* THE BARS — `libBars_` in me.js, decoration and not a symbology. The card's ink through `currentColor`;
+   an empty number's even stand-in in `--paper-rule`, so a card with no number does not look as though
+   it holds one. */
+.lib-bars { grid-area: bars; display: block; width: 100%; height: clamp(1.9rem, 15cqw, 4rem); color: var(--paper-ink); }
+.lib-bars.is-blank { color: var(--paper-rule); }
 /* THE PHOTOGRAPH SHELF — `photoShelf_` in me.js. A 44px square beside each link, showing what the link
    draws, so a Drive file that is not shared is a broken square HERE rather than on the public card.
    The square is the height of the box beside it, so a slot is one line; no dashed rule between them,
    because a photograph is a line of a list and not a card of its own like a library is. */
 .lib-shelf .ph-slot { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: .5rem; align-items: start; }
-.lib-shelf .ph-slot + .ph-slot { border-top: 0; padding-top: 0; }
 .ph-thumb {
   width: 44px; height: 44px; border-radius: var(--r-sm); overflow: hidden;
   background: var(--sunk); border: 1px solid var(--line);

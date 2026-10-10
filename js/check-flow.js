@@ -8483,6 +8483,166 @@ check('the library cards draw no note box, even from a backend that still lists 
   return bad;
 });
 
+/* ---------- EACH LIBRARY CARD IS DRAWN AS A CARD, AND ITS BARS ARE ITS NUMBER'S (docs/history/332) ---------
+   THE OWNER, 10 Oct, with a screenshot of this page: *"make each look like a card. with fake barcode."* So a
+   slot is a card face holding its own three boxes, with an `aria-hidden` barcode worked out from the number
+   (`libBars_` in me.js), and nothing about what it saves changed. Three journeys, each a question the
+   change could have broken: is each entry one card with its boxes ON it; do the bars follow the number
+   and only the number; and does the page still save the fifteen fields, reveal the next card, and treat a
+   reload as it did — every other box on the column kept as a draft, no box of a library card ever one,
+   because the PIN is on it (`setDraftOk_`). Invented libraries, numbers and PINs only: the repository is
+   public, and `0000` is the only PIN it holds. */
+const LIB_FIELDS_ = (() => { const o = []; for (let i = 1; i <= 5; i++) ['_name', '_no', '_pin'].forEach(k => o.push('lib' + i + k)); return o; })();
+const LIB_PROFILE_ = { first_name: 'Test', last_name: 'Admin', phone_cc: '+44', headline: 'Saved headline',
+  lib1_name: 'Merton', lib1_no: '2000000000000', lib1_pin: '0000',
+  lib2_name: 'Sutton Central', lib2_no: '2000000000001', lib2_pin: '0000',
+  lib3_name: 'Wandsworth Town and Putney', lib3_no: '2000000000002', lib3_pin: '0000' };
+const LIB_USER_ = () => ({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+  profile: Object.assign({}, LIB_PROFILE_) });
+const libBoot_ = (more) => {
+  const sent = [];
+  const b = boot(Object.assign({
+    payload: Object.assign(payload(), { profileFields: { 'About you': ['headline'], 'Library cards': LIB_FIELDS_ } }),
+    reply: q => { sent.push(q); return q.action === 'updateProfile' ? { success: true, profile: Object.assign({}, LIB_PROFILE_, q.fields) } : { success: true }; },
+  }, more || {}));
+  return Object.assign(b, { posts: sent });
+};
+const libDraw_ = async w => {
+  w.__t.USER(LIB_USER_());
+  try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { return null; }
+  await wait(300);
+  return [...w.document.querySelectorAll('#s-settings .me-form')].find(f => f.querySelector('[data-me="lib1_name"]')) || null;
+};
+const libD_ = face => { const p = face && face.querySelector('svg.lib-bars path'); return p ? p.getAttribute('d') : null; };
+
+check('each library card is drawn as a card: one face per entry, its three boxes on it, a name for each, the bars decoration', async () => {
+  const { w } = libBoot_();
+  await wait(300);
+  const form = await libDraw_(w);
+  if (!form) return ['the settings column drew no library cards page — nothing was checked'];
+  const bad = [];
+  const slots = [...form.querySelectorAll('.lib-shelf > .lib-card')];
+  if (slots.length !== 5) bad.push('the shelf holds ' + slots.length + ' slots, wanted five (`LIBRARY_CARDS`), each drawn whether shown or not');
+  const shown = slots.filter(s => !s.hidden);
+  if (shown.length !== 3) bad.push(shown.length + ' cards are shown for three filled libraries, wanted three');
+  slots.forEach((s, at) => {
+    const n = at + 1, faces = s.querySelectorAll('.lib-face');
+    if (faces.length !== 1) { bad.push('slot ' + n + ' holds ' + faces.length + ' card faces, wanted one'); return; }
+    const f = faces[0];
+    const names = [...s.querySelectorAll('[data-me]')].map(e => e.getAttribute('data-me')).sort();
+    const want = ['lib' + n + '_name', 'lib' + n + '_no', 'lib' + n + '_pin'].sort();
+    if (JSON.stringify(names) !== JSON.stringify(want)) bad.push('slot ' + n + ' holds the boxes ' + JSON.stringify(names) + ', wanted ' + JSON.stringify(want));
+    const off = [...s.querySelectorAll('[data-me]')].filter(e => !f.contains(e)).map(e => e.getAttribute('data-me'));
+    if (off.length) bad.push('card ' + n + ' has boxes beside it rather than on it: ' + off.join(', '));
+    if (f.getAttribute('role') !== 'group' || !/^Library card\b/.test(f.getAttribute('aria-label') || '')) bad.push('card ' + n + ' is not a group named "Library card …" for a screen reader');
+    const cap = f.querySelector('.lib-cap');
+    if (!cap || !/library card/i.test(cap.textContent) || cap.getAttribute('aria-hidden') !== 'true') bad.push('card ' + n + ' has no hidden "Library card" caption at its top');
+    const nm = f.querySelector('[data-me$="_name"]'), no = f.querySelector('[data-me$="_no"]'), pin = f.querySelector('[data-me$="_pin"]');
+    if (nm && nm.getAttribute('aria-label') !== 'Library name') bad.push('card ' + n + '\'s name box is not labelled "Library name" for a screen reader');
+    if (no && no.getAttribute('aria-label') !== 'Card number') bad.push('card ' + n + '\'s number box is not labelled "Card number" for a screen reader');
+    const pinCap = pin && pin.closest('label') && pin.closest('label').querySelector('span');
+    if (!pinCap || pinCap.textContent.trim() !== 'PIN') bad.push('card ' + n + '\'s PIN box has no visible "PIN" caption in its label');
+    const svg = f.querySelector('svg.lib-bars');
+    if (!svg) bad.push('card ' + n + ' has no barcode');
+    else {
+      if (svg.getAttribute('aria-hidden') !== 'true') bad.push('card ' + n + '\'s barcode is not aria-hidden — it is decoration, not a code anything can read');
+      if (!libD_(f)) bad.push('card ' + n + '\'s barcode draws no bars');
+      if (no && svg.compareDocumentPosition(no) & w.Node.DOCUMENT_POSITION_PRECEDING) bad.push('card ' + n + '\'s number comes before its bars — it is printed under them');
+    }
+    /* THE DRAFT RULE DID NOT MOVE: no box of a library card is a draft, because the PIN is on it. */
+    const drafted = [...f.querySelectorAll('[data-draft]')].map(e => e.getAttribute('data-me'));
+    if (drafted.length) bad.push('card ' + n + ' carries drafts now: ' + drafted.join(', ') + ' — a library card was never drafted (its PIN is on it)');
+  });
+  const ds = shown.map(s => libD_(s.querySelector('.lib-face')));
+  if (new Set(ds).size !== ds.length) bad.push('three different numbers drew ' + new Set(ds).size + ' different barcodes — every card should look like its own');
+  /* NAME FIRST IN THE ORDER A KEYBOARD AND A READER MEET THEM, whatever the grid puts where. */
+  const order = [...shown[0].querySelectorAll('input[data-me]')].map(e => e.getAttribute('data-me'));
+  if (JSON.stringify(order) !== '["lib1_name","lib1_pin","lib1_no"]') bad.push('a card\'s boxes come in the order ' + JSON.stringify(order) + ', wanted the name, the PIN, then the number');
+  return bad;
+});
+
+check('typing a library card number redraws its bars; the same number always draws the same bars; no number draws the even stand-in', async () => {
+  const { w } = libBoot_();
+  await wait(300);
+  const form = await libDraw_(w);
+  if (!form) return ['the settings column drew no library cards page — nothing was checked'];
+  if (typeof w.libBarsOf_ !== 'function') return ['libBarsOf_ is not reachable — the bars were NOT checked'];
+  const bad = [];
+  const face = n => form.querySelector('[data-me="lib' + n + '_no"]').closest('.lib-face');
+  const box = n => form.querySelector('[data-me="lib' + n + '_no"]');
+  const d1 = libD_(face(1));
+  draftType_(w, box(1), '2000000000005');
+  if (libD_(face(1)) === d1) bad.push('typing a different number left the bars as they were');
+  if (box(1).value !== '2000000000005') bad.push('the number printed under the bars reads ' + JSON.stringify(box(1).value) + ' after typing 2000000000005');
+  draftType_(w, box(1), '2000000000000');
+  if (libD_(face(1)) !== d1) bad.push('typing the first number back did not draw the first bars back — the bars are not the number\'s');
+  draftType_(w, box(2), '2000000000000');
+  if (libD_(face(2)) !== d1) bad.push('the same number on another card drew different bars');
+  if (JSON.stringify(w.libBarsOf_('2000000000000')) !== JSON.stringify(w.libBarsOf_('2000000000000'))) bad.push('libBarsOf_ gave two answers for one number');
+  if (JSON.stringify(w.libBarsOf_('2000000000000')) === JSON.stringify(w.libBarsOf_('2000000000001'))) bad.push('two numbers one digit apart drew the same bars');
+  /* NO NUMBER: the even stand-in, marked so the stylesheet draws it faint. */
+  draftType_(w, box(3), '');
+  const blank = face(3).querySelector('svg.lib-bars');
+  if (!blank || !blank.classList.contains('is-blank')) bad.push('an empty number\'s bars are not marked is-blank');
+  const runs = [...String(libD_(face(3)) || '').matchAll(/M(\d+) 0h(\d+)/g)].map(m => [Number(m[1]), Number(m[2])]);
+  const widths = new Set(runs.map(r => r[1])), steps = new Set(runs.slice(1).map((r, i) => r[0] - runs[i][0]));
+  if (runs.length < 10 || widths.size !== 1 || steps.size !== 1) bad.push('an empty number drew ' + runs.length + ' bars of ' + widths.size + ' widths at ' + steps.size + ' spacings — wanted an even pattern');
+  draftType_(w, box(3), '2000000000002');
+  if (face(3).querySelector('svg.lib-bars.is-blank')) bad.push('a number typed into an empty card left its bars marked blank');
+  return bad;
+});
+
+check('the library cards still save the fifteen fields they always did, Add another reveals the next card, and a reload keeps drafts but never a library card\'s', async () => {
+  const one = libBoot_();
+  await wait(300);
+  const form1 = await libDraw_(one.w);
+  if (!form1) return ['the settings column drew no library cards page — nothing was checked'];
+  const bad = [];
+  const head = one.w.document.querySelector('#s-settings [data-me="headline"]');
+  if (!head) return ['no headline box on the settings column — the reload was NOT checked'];
+  draftType_(one.w, head, 'Typed, never saved');
+  draftType_(one.w, form1.querySelector('[data-me="lib2_name"]'), 'Typed on a card, never saved');
+  draftType_(one.w, form1.querySelector('[data-me="lib2_pin"]'), '0000 typed');
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  const kept = keptStore_(one.w);
+  const leaked = Object.keys(kept).filter(k => /^draft:/.test(k) && /lib\d|pin/i.test(k));
+  if (leaked.length) bad.push('a library card box was kept on the device as a draft: ' + leaked.join(', '));
+  if (Object.keys(kept).some(k => /^draft:/.test(k) && /0000 typed/.test(kept[k]))) bad.push('a PIN typed on a card was written to the device');
+  /* THE RELOAD: a second boot from exactly what the first left. */
+  const two = libBoot_({ before: fromStore_(kept) });
+  await wait(300);
+  const form = await libDraw_(two.w);
+  if (!form) return bad.concat(['after the reload the settings column drew no library cards page']);
+  const t = two.w.__t, d = two.w.document;
+  const head2 = d.querySelector('#s-settings [data-me="headline"]');
+  if (!head2 || head2.value !== 'Typed, never saved') bad.push('after a reload the headline box holds ' + JSON.stringify(head2 && head2.value) + ' — the column\'s drafts were lost');
+  const lib2 = form.querySelector('[data-me="lib2_name"]');
+  if (lib2.value !== 'Sutton Central') bad.push('after a reload card 2 holds ' + JSON.stringify(lib2.value) + ', wanted its saved name: no box of a library card is a draft');
+  const savedD = (String(two.w.libBars_('2000000000001')).match(/ d="([^"]+)"/) || [])[1];
+  if (!savedD || libD_(lib2.closest('.lib-face')) !== savedD) bad.push('after a reload card 2\'s bars are not its saved number\'s');
+  /* ADD ANOTHER, STILL: the fourth card shown, its name box focused, and the button still there for the fifth. */
+  try { t.ACTIONS['shelf-more'](form.querySelector('[data-do="shelf-more"]')); } catch (e) { bad.push('Add another threw: ' + e.message); }
+  const four = form.querySelector('[data-me="lib4_name"]').closest('.lib-card');
+  if (four.hidden) bad.push('Add another did not reveal the fourth card');
+  if (d.activeElement !== form.querySelector('[data-me="lib4_name"]')) bad.push('Add another focused ' + JSON.stringify(d.activeElement && d.activeElement.getAttribute('data-me')) + ', wanted the new card\'s name');
+  if (!form.querySelector('[data-do="shelf-more"]')) bad.push('Add another went after the fourth card, with a fifth still to come');
+  draftType_(two.w, form.querySelector('[data-me="lib4_name"]'), 'Mitcham');
+  draftType_(two.w, form.querySelector('[data-me="lib4_no"]'), ' 2000000000003 ');
+  draftType_(two.w, form.querySelector('[data-me="lib4_pin"]'), '0000');
+  draftType_(two.w, form.querySelector('[data-me="lib1_name"]'), 'Merton Park');
+  two.posts.length = 0;
+  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  await wait(400);
+  const post = two.posts.find(b => b.action === 'updateProfile');
+  if (!post) return bad.concat(['Save posted ' + JSON.stringify(two.posts.map(b => b.action)) + ' and no updateProfile']);
+  const keys = Object.keys(post.fields || {}).sort();
+  if (JSON.stringify(keys) !== JSON.stringify(LIB_FIELDS_.slice().sort())) bad.push('Save posted ' + JSON.stringify(keys) + ' — wanted exactly the fifteen library fields, as before');
+  const want = { lib1_name: 'Merton Park', lib1_no: '2000000000000', lib1_pin: '0000', lib2_name: 'Sutton Central',
+                 lib3_name: 'Wandsworth Town and Putney', lib4_name: 'Mitcham', lib4_no: '2000000000003', lib4_pin: '0000', lib5_name: '', lib5_no: '' };
+  Object.keys(want).forEach(k => { if ((post.fields || {})[k] !== want[k]) bad.push('Save posted ' + k + ' as ' + JSON.stringify((post.fields || {})[k]) + ', wanted ' + JSON.stringify(want[k])); });
+  return bad;
+});
+
 check('a backend that never answers does not hang the app for ever', async () => {
   let html = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
   const hasDeadline = /AbortController|Promise\.race|setTimeout\([^)]*abort/i.test(

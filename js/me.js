@@ -4598,21 +4598,103 @@ function qualYears_(current) {
    shelf and the one somebody reads back digit by digit.
 
    NO `<h4>` PER CARD. A heading per library is three more lines of chrome on the group that could
-   not fit in the first place; the name box IS the heading, and its own caption says so. */
+   not fit in the first place; the name box IS the heading, and its own caption says so.
+
+   ---------- AND EACH ONE IS DRAWN AS THE CARD IT IS (docs/history/332) ----------------------------
+   THE OWNER, 10 Oct, with a screenshot of this page — three entries, each a name box with a PIN box
+   beside it and a number box under them: *"make each look like a card. with fake barcode."* So a slot
+   is a library card now, at a bank card's proportions (85.6 by 54, the ID-1 size most library cards
+   are printed at too) and on the PAPER palette, because it stands in for a thing you hold: `LIBRARY CARD`
+   small at the top left, the library's name large under it, the PIN small at the top right under its
+   own `PIN`, and along the bottom a barcode with the number printed under it, as on the real one.
+
+   THE THREE BOXES ARE STILL THE THREE BOXES. They sit ON the card, borderless and in its ink, so the
+   card is edited where it is read — there is no second view of it to keep in step. Every box is still
+   `fieldHtml`'s, with the same `data-me` name, so `meSave_` posts exactly the fifteen fields it always
+   did, `shelfSlots_` still decides which slots show and `Add another` still reveals the next, and the
+   draft rule is untouched: `setDraftOk_` still refuses every `libN_` box, because the PIN is on the card.
+   `spellcheck="false"` on all three because a red squiggle under a borough's name is not printed on
+   any card; `autocomplete="off"` on the number and the PIN, which are this card's and nobody else's.
+
+   EACH BOX KEEPS A NAME A SCREEN READER CAN SAY. The PIN's is its visible `PIN` caption — `fieldHtml`'s
+   own `<span>` inside its `<label>`, so the caption on the card and the name read out are one string.
+   The name and the number say what they are in their placeholders while empty and keep saying it
+   through an `aria-label` once filled, when the placeholder has gone. `LIBRARY CARD` names the whole
+   card as a group, so it is `aria-hidden` itself rather than read twice.
+
+   THE PIN'S PLACEHOLDER IS ONE SPACE, deliberately. Its caption already says `PIN`, and any hint
+   in the box — `0000`, four dots — reads on a card as a PIN somebody saved. The space is only there
+   so `:placeholder-shown` can draw the empty box's dashed line (style.css, `.lib-face`): the one box
+   on the card with no words in it while empty says "write here" without a border. The other two say
+   it in their placeholders. */
 function libraryShelf_(list, value) {
   const nums = [...new Set((list || []).filter(isLibraryCard_)
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
+  const quiet = 'spellcheck="false"';
   return `<div class="lib-shelf">${shelfSlots_(nums,
     i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']),
     (i, hide) => `
     <div class="lib-card"${hide ? ' hidden' : ''}>
-      <div class="lib-row">
-        ${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'), { placeholder: 'Library' })}
-        ${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'), { placeholder: 'PIN' })}
+      <div class="lib-face" role="group" aria-label="Library card ${esc(i)}">
+        <span class="lib-cap" aria-hidden="true">Library card</span>
+        <div class="lib-name">${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'),
+          { placeholder: 'Library name', extra: quiet + ' aria-label="Library name"' })}</div>
+        <div class="lib-pin">${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'),
+          { label: 'PIN', extra: quiet + ' autocomplete="off" placeholder=" "' })}</div>
+        ${libBars_(value('lib' + i + '_no'))}
+        <div class="lib-no">${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
+          { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' })}</div>
       </div>
-      ${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'), { placeholder: 'Card number' })}
     </div>`)}</div>`;
 }
+
+/* ---------- THE BARCODE IS A PICTURE OF ONE, AND NOT ONE ---------------------------------------------
+   *"with fake barcode"* — the owner's word, and it is meant. These bars are NOT a symbology: not
+   Codabar or Code 39 (what library cards commonly print), not EAN — no start and stop characters a
+   reader knows, no check digit, nothing a scanner at a library desk could decode. A barcode that only
+   LOOKED valid would be worse than a plainly fake one: somebody holding this page up to a self-service
+   kiosk is told nothing by a scan that fails. So it is decoration and is marked as such
+   (`aria-hidden`), and the number under it is the thing that is real.
+
+   WORKED OUT FROM THE NUMBER, so every card looks like its own and the same number always draws the
+   same bars. `hashOf` (core.js, FNV-1a) of the number seeds a xorshift stream, and the stream picks
+   each bar 1 to 4 modules wide and each gap 1 to 3, between two thin guard pairs, until the code is
+   about ninety modules long. One changed digit changes every bar, which is what makes three cards
+   on one page read as three. NO NUMBER is an even placeholder — two on, two off — drawn faint by the
+   stylesheet (`.is-blank`), so an empty card does not look as though it holds a number.
+
+   ONE `<path>`, because thirty-odd `<rect>`s per card is ninety elements on this page for one picture,
+   and `currentColor` so the ink is the card's (`--paper-ink`) and never a literal. The viewBox is the
+   modules across and one unit down, stretched to the box by `preserveAspectRatio="none"`;
+   `crispEdges` so a one-module bar is not smeared across two device pixels. */
+function libBarsOf_(no) {
+  const s = String(no ?? '').trim();
+  const w = [];
+  if (!s) { for (let i = 0; i < 24; i++) w.push(2, 2); w.pop(); return w; }
+  let h = hashOf(s) || 0x9e3779b9;
+  const next = n => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return 1 + (h % n); };
+  w.push(1, 1, 1, 2);
+  let at = 5;
+  while (at < 84) { const bar = next(4), gap = next(3); w.push(bar, gap); at += bar + gap; }
+  w.push(1, 1, 1);
+  return w;
+}
+function libBars_(no) {
+  const w = libBarsOf_(no);
+  let x = 0, d = '';
+  w.forEach((n, i) => { if (i % 2 === 0) d += 'M' + x + ' 0h' + n + 'v1h-' + n + 'z'; x += n; });
+  const blank = !String(no ?? '').trim();
+  return `<svg class="lib-bars${blank ? ' is-blank' : ''}" viewBox="0 0 ${x} 1" preserveAspectRatio="none"
+    shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="currentColor" d="${d}"/></svg>`;
+}
+/* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: the card
+   is a preview of itself, so what is printed under the bars and the bars cannot disagree. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.lib-no input')) return;
+  const bars = t.closest('.lib-face') && t.closest('.lib-face').querySelector('.lib-bars');
+  if (bars) bars.outerHTML = libBars_(t.value);
+});
 
 /* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS ----------------------------
    ASKED FOR AS *"theres only 1 photo link slot it seems like. tutors should be able to add more
