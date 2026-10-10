@@ -3055,8 +3055,9 @@ const STATES = {
        *"tutors availability should appear on their card."* The fixture's tutor sends what `doGet`
        sends — 77 codes, nine of them 'TRUE' (Mon 16-18, Tue 10-11, Wed 16, Sat 10-12) — and is
        already teaching Mon 17. So eight hours lit, Mon 17 greyed, and the three days nothing is
-       ticked on (Thu, Fri, Sun) collapsed rather than drawn as thumb-sized rows of grey. Measured at
-       every width because it is the last thing on a card that is already near its pane's height. */
+       ticked on (Thu, Fri, Sun) NOT DRAWN — they were thin collapsed rows until the owner, 10 Oct:
+       *"no need to display monday if they dont have any hours on monday."* Measured at every width
+       because it is the last thing on a card that is already near its pane's height. */
     { name: 'a tutor\'s hours on their card',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -3071,14 +3072,15 @@ const STATES = {
         const wk = pg.querySelector('.prof-week');
         const cap = wk.previousElementSibling;
         const rows = [...wk.querySelectorAll('.slot-row:not(.slot-head)')];
+        const days = rows.map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
         const busy = wk.querySelector('.hr[data-code="m17"]');
         return cap && cap.textContent.trim() === 'Available'
           && wk.querySelectorAll('.hr.on').length === 8
           && !!busy && !busy.classList.contains('on') && busy.classList.contains('shut')
-          && rows.length === 7 && rows.filter(r => r.classList.contains('is-shut')).length === 3
+          && days === 'Mon Tue Wed Sat' && !wk.querySelector('.is-shut')
           && !wk.querySelector('button, input, label') ? 1 : 0;
       },
-      wants: 'an Available caption over a week with eight hours lit, Monday 17 greyed as taught, and Thu, Fri and Sun collapsed',
+      wants: 'an Available caption over Mon, Tue, Wed and Sat only, eight hours lit and Monday 17 greyed as taught',
       leave: () => { paint('account'); } },
     /* ---------- YOUR FAMILY, A CARD EACH ------------------------------------------------------------
        ASKED FOR AS *"students should be able to see their parents and likewise"*. `DATA.family` is a
@@ -5933,6 +5935,33 @@ const STATES = {
       wants: 'a booking row answered through its own select, the answer in BOOKING, and no list of the app\'s own',
       leave: () => { delete window.STATE_SEL_WAS;
         if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+
+    /* ---------- A TUTOR CHOSEN: THE WEEK IS THE DAYS THEY WORK — see `days` in `slotGrid` ---------------
+       THE OWNER, 10 Oct: *"availability of tutors should just show the days they have an availibility
+       up. no need to display monday if they dont have any hours on monday."* The form the lab has
+       always measured names nobody, so it draws seven days — and the week with a tutor named is a
+       different HEIGHT of card, three rows shorter here, which nothing measured. The fixture's Ada
+       ticks Monday, Tuesday, Wednesday and Saturday (Monday 17 already taught), so those four and no
+       other — and no `Thursday —` put back by the spine, which is the second half of the change. Two
+       hours ticked on her Tuesday, so a lit run is on the card the lab looks at. */
+    { name: 'a tutor chosen, and only their days',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        if (!(DATA.tutors || []).some(t => t.title === 'Ada Tutor')) throw new Error('the fixture has no Ada Tutor to choose');
+        BOOKING.tutor = 'Ada Tutor';
+        BOOKING.slots = ['tu10', 'tu11'];
+        drawBooker();
+      },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#s-booking #bookr .bk-row.bk-wk')];
+        const days = rows.map(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim()).join(' ');
+        const dash = [...document.querySelectorAll('#s-booking #bookr .bk-row.is-blank .bk-k')]
+          .some(k => SLOT_DAYS.some(d => d[1] === k.textContent.trim()));
+        return days === 'Monday Tuesday Wednesday Saturday' && !dash
+          && document.querySelectorAll('#s-booking #bookr [data-do="book-slot"].on').length === 2 ? 1 : 0;
+      },
+      wants: 'Ada\'s four days (Mon, Tue, Wed, Sat) and no other, with her Tuesday 10 and 11 ticked',
+      leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
