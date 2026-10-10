@@ -2396,6 +2396,110 @@ const STATES = {
       },
       wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS -------
+       THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
+       shorts in the fight."* `check-flow` asks which words each figure was drawn with; only a browser
+       can say what colour comes out after the custom properties, their fallbacks and `.boxer-ring`'s
+       own palette have all been resolved — a token renamed on one side of that chain paints the
+       corner's colour and says nothing. So these ask for the computed `fill` of each part, against the
+       palette entry the row's word names, at every width, as two visitors:
+
+         a profile   Lennox Lewis — his dreads (hair drawn OUTSIDE the old head, and still inside the
+                     frame), his goatee, his skin and his usual white trunks, none of them the gold
+                     stand-in's colours, the picture box still the 4:5 it was told to be.
+         a fight     Ali v Frazier, 1971: red trunks trimmed white in the red corner, green trimmed gold
+                     in the blue, the blue corner mirrored to face left — and a corner with no trunks
+                     on file, drawn beside them for the asking, painted gold and blue by the
+                     stylesheet's fallbacks.
+
+       `rgb` IS WRITTEN OUT IN EACH, not shared, for the reason `fcHead` is: these functions are passed
+       to the browser as source one at a time and cannot see each other. */
+    { name: 'a boxer who looks like himself',
+      enter: () => {
+        STUFF.q = 'Lennox Lewis';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
+        const row = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Lennox Lewis');
+        if (!c || !row || !row.look || !/Lennox Lewis/.test((c.querySelector('h3') || {}).textContent || '')) return false;
+        const frame = c.querySelector('.boxer-pic .boxer-frame'), ring = frame && frame.querySelector('svg.boxer-ring');
+        const g = ring && ring.querySelector('g.bf.bf-l');
+        if (!g || g.classList.contains('bf-r')) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = n => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = sel => { const el = g.querySelector(sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const L = row.look, t = String(row.trunks || '').split('/');
+        if (L.hair !== 'dreads' || !L.hairColour || !L.skin || !L.facial || L.facial === 'none' || !t[0]) return false;
+        const gold = getComputedStyle(document.documentElement).getPropertyValue('--gold').trim();
+        const f = frame.getBoundingClientRect(), hb = g.querySelector('.bf-hair').getBoundingClientRect(),
+              px = f.width / 40;
+        return g.classList.contains('bf-hs-dreads') && g.classList.contains('bf-fh-' + L.facial)
+               && fill('.bf-skin') === tok('--bf-' + L.skin)
+               && fill('.bf-hair') === tok('--bf-hc-' + L.hairColour)
+               && fill('.bf-face') === tok('--bf-hc-' + L.hairColour)
+               && fill('.bf-trunks') === tok('--bf-tk-' + t[0])
+               && fill('.bf-band') === tok('--bf-tk-' + (t[1] || t[0]))
+               && fill('.bf-trunks') !== rgb(gold)
+               && getComputedStyle(ring).shapeRendering === 'crispedges'
+               /* THE LOCKS HANG BELOW WHERE THE OLD CAP ENDED — seven game pixels of hair, not its five —
+                  and still inside the frame. */
+               && hb.height >= 6.5 * px && hb.left >= f.left && hb.bottom <= f.bottom
+               && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && c.scrollWidth <= c.clientWidth + 1;
+      },
+      wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'a fight in that night\'s trunks',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0033' && !pg.part);
+        if (at < 0) throw new Error('FT0033, the Fight of the Century, is not in the Fights list');
+        goPage('stuff', stuffFirstResult_() + at, true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight');
+        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0033');
+        if (!c || !fr || fr.trunksA !== 'red/white' || fr.trunksB !== 'green/gold') return false;
+        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
+        if (rings.length !== 2) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = (ring, n) => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
+        if (!ga || !gb) return false;
+        /* FACING EACH OTHER: the red corner's gloves to the right of his head, the blue corner's to the left. */
+        const faces = (g, right) => { const gl = g.querySelector('.bf-glove').getBoundingClientRect(), sk = g.querySelector('.bf-skin').getBoundingClientRect();
+                                      return right ? gl.right > sk.right : gl.left < sk.left; };
+        /* AND A CORNER NOBODY RESEARCHED, drawn by the card's own renderer for the asking: the
+           stylesheet's fallbacks are what paint it, and nothing else on this screen would show them. */
+        const probe = document.createElement('span');
+        probe.className = 'boxer-frame';
+        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
+        probe.innerHTML = boxerRing_('X Y', false, null, '') + boxerRing_('X Y', true, null, '');
+        document.body.appendChild(probe);
+        const blanks = [...probe.querySelectorAll('svg.boxer-ring g.bf .bf-trunks')].map(el => getComputedStyle(el).fill);
+        probe.remove();
+        const root = getComputedStyle(document.documentElement);
+        return fill(ra, '.bf-trunks') === tok(ra, '--bf-tk-red') && fill(ra, '.bf-band') === tok(ra, '--bf-tk-white')
+               && fill(ra, '.bf-stripe') === tok(ra, '--bf-tk-white')
+               && fill(rb, '.bf-trunks') === tok(rb, '--bf-tk-green') && fill(rb, '.bf-band') === tok(rb, '--bf-tk-gold')
+               && fill(rb, '.bf-stripe') === tok(rb, '--bf-tk-gold')
+               && ga.classList.contains('bf-l') && gb.classList.contains('bf-r')
+               && faces(ga, true) && faces(gb, false)
+               && blanks.length === 2 && blanks[0] === rgb(root.getPropertyValue('--gold'))
+               && blanks[1] === rgb(root.getPropertyValue('--tag-level'));
+      },
+      wants: 'Ali v Frazier 1971 in that night\'s trunks — red trimmed white facing right, green trimmed gold facing left — and a corner with no trunks on file painted the corner\'s gold or blue',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
        `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
        DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a

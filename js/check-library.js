@@ -964,6 +964,115 @@ EXTRA_FILES.forEach(name => {
   todo.forEach(t => console.log('  ' + t));
 }
 
+/* ---------- A BOXER'S LOOK AND A FIGHT'S TRUNKS USE THE FIGURE'S WORDS, AND SAY WHERE THEY CAME FROM ----
+   THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
+   shorts in the fight."* So data/boxers.json carries `look_skin`, `look_hair`, `look_hair_colour`,
+   `look_facial` and `trunks_usual`, and data/fights.json `trunks_a` and `trunks_b`, and the eight-bit
+   fighter on every card is drawn from them (`boxerFigure_` in find.js).
+
+   A WORD THE FIGURE DOES NOT KNOW DRAWS NOTHING, SILENTLY. "whte/black" is not half a pair of trunks
+   to the renderer, it is a blank — the corner's colour — and a fight with its trunks misspelt looks
+   exactly like a fight nobody researched. So every cell is held to the vocabulary, which is NOT
+   written out again here: it is `BOXER_LOOK`, cut out of find.js, the same list the figure draws
+   from, so the two cannot disagree. Exact words in lower case; a trunks cell is `<main>` or
+   `<main>/<trim>` with the trim a different colour.
+
+   EVERY FILLED CELL HAS A SOURCE IN ITS ROW — `look_source` on a boxer, `trunks_source` on a fight —
+   because a likeness is a claim about a real man and the owner has to be able to check any of them.
+   A look column the figure does not read (`look_skn`) is refused too: a misspelt column is a look
+   nobody will ever draw. */
+{
+  const findSrc = (() => { try { return fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8'); } catch (e) { return ''; } })();
+  const cut = require('./check-marks-load.js').cutFrom(findSrc, 'BOXER_LOOK');
+  let V = null;
+  try { V = cut ? eval('(' + cut.replace(/^const BOXER_LOOK =/, '').replace(/;\s*$/, '') + ')') : null; } catch (e) { V = null; }
+  const read = n => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', n + '.json'), 'utf8')); } catch (e) { return null; } };
+  const boxers = read('boxers'), fights = read('fights');
+  if (!V || !['skin', 'hair', 'hair_colour', 'facial', 'trunks'].every(k => Array.isArray(V[k]) && V[k].length)) {
+    fail.push('BOXER_LOOK could not be cut out of js/find.js — the boxers\' looks and the fights\' trunks were NOT checked');
+  } else if (!Array.isArray(boxers) || !Array.isArray(fights)) {
+    fail.push('data/boxers.json or data/fights.json could not be read — the looks and trunks were NOT checked');
+  } else {
+    /* ---------- AND EVERY WORD HAS SOMETHING TO DRAW ---------------------------------------------------
+       A WORD IN THE LIST WITH NO SHAPE OR NO COLOUR passes the rule below and draws the stand-in's part
+       all the same: a hair style missing from `BOXER_HAIR` throws nothing, and a trunks colour with no
+       `--bf-tk-*` on `.boxer-ring` leaves the custom property pointing at nothing, which the stylesheet
+       then paints as the corner's colour. So the list is held against the shapes in find.js and the
+       colours in style.css, word for word. */
+    const shapes = n => { try { const c = require('./check-marks-load.js').cutFrom(findSrc, n); return c ? eval('(' + c.replace(/^const \w+ =/, '') + ')') : null; } catch (e) { return null; } };
+    const HAIR = shapes('BOXER_HAIR'), FACE = shapes('BOXER_FACE');
+    const ring = (() => {
+      try {
+        const css = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+        const m = css.match(/\n\.boxer-ring\s*\{([^}]*--bf-[^}]*)\}/);
+        return m ? m[1] : '';
+      } catch (e) { return ''; }
+    })();
+    if (!HAIR || !FACE) fail.push('BOXER_HAIR or BOXER_FACE could not be cut out of js/find.js — the shapes were NOT checked');
+    else {
+      V.hair.filter(w => typeof HAIR[w] !== 'string').forEach(w => fail.push('hair style "' + w + '" is in BOXER_LOOK and has no shape in BOXER_HAIR'));
+      V.facial.filter(w => typeof FACE[w] !== 'string').forEach(w => fail.push('facial hair "' + w + '" is in BOXER_LOOK and has no shape in BOXER_FACE'));
+    }
+    if (!ring) fail.push('style.css has no `.boxer-ring { --bf-… }` block — the figure\'s colours were NOT checked');
+    else {
+      [['skin', w => '--bf-' + w], ['hair_colour', w => '--bf-hc-' + w], ['trunks', w => '--bf-tk-' + w]].forEach(([k, tok]) =>
+        V[k].filter(w => !new RegExp(tok(w) + '\\s*:').test(ring)).forEach(w =>
+          fail.push(k + ' "' + w + '" is in BOXER_LOOK and `.boxer-ring` names no ' + tok(w) + ' — it would draw the stand-in\'s colour')));
+      if (!/--bf-tk-leopard-spot\s*:/.test(ring)) fail.push('`.boxer-ring` names no --bf-tk-leopard-spot — leopard would be one tone');
+    }
+    const trunksBad = v => {
+      const parts = v.split('/');
+      if (parts.length > 2) return 'has more than one trim';
+      const odd = parts.filter(c => V.trunks.indexOf(c) < 0);
+      if (odd.length) return 'is not a trunks colour (' + odd.join(', ') + ')';
+      if (parts.length === 2 && parts[0] === parts[1]) return 'has a trim the same as its colour';
+      return '';
+    };
+    const LOOK = { look_skin: 'skin', look_hair: 'hair', look_hair_colour: 'hair_colour', look_facial: 'facial' };
+    const KNOWN_B = Object.keys(LOOK).concat(['trunks_usual', 'look_source']);
+    const KNOWN_F = ['trunks_a', 'trunks_b', 'trunks_source'];
+    const n = { looks: 0, cells: 0, usual: 0, corners: 0, fights: 0 };
+    boxers.forEach(b => {
+      if (!b || typeof b !== 'object') return;
+      const who = 'data/boxers.json ' + (b.boxer_id || '?') + ' ' + (b.name || '');
+      Object.keys(b).filter(k => /^(look|trunks)_/.test(k) && KNOWN_B.indexOf(k) < 0)
+        .forEach(k => fail.push(who + ' has a column `' + k + '` the figure does not read — misspelt?'));
+      let filled = 0;
+      Object.keys(LOOK).forEach(col => {
+        const v = String(b[col] == null ? '' : b[col]);
+        if (!v) return;
+        filled++;
+        if (V[LOOK[col]].indexOf(v) < 0) fail.push(who + ' ' + col + ' is "' + v + '", not one of: ' + V[LOOK[col]].join(' '));
+      });
+      const t = String(b.trunks_usual == null ? '' : b.trunks_usual);
+      if (t) { filled++; n.usual++; const why = trunksBad(t); if (why) fail.push(who + ' trunks_usual "' + t + '" ' + why); }
+      if (filled) { n.looks++; n.cells += filled; }
+      if (filled && !String(b.look_source || '').trim()) fail.push(who + ' has a look and no look_source — say where each value came from');
+    });
+    fights.forEach(f => {
+      if (!f || typeof f !== 'object') return;
+      const who = 'data/fights.json ' + (f.fight_id || '?') + ' ' + (f.boxer_a || '') + ' v ' + (f.boxer_b || '');
+      Object.keys(f).filter(k => /^trunks_/.test(k) && KNOWN_F.indexOf(k) < 0)
+        .forEach(k => fail.push(who + ' has a column `' + k + '` the figure does not read — misspelt?'));
+      let filled = 0;
+      ['trunks_a', 'trunks_b'].forEach(col => {
+        const v = String(f[col] == null ? '' : f[col]);
+        if (!v) return;
+        filled++;
+        const why = trunksBad(v);
+        if (why) fail.push(who + ' ' + col + ' "' + v + '" ' + why);
+      });
+      if (filled) { n.fights++; n.corners += filled; }
+      if (filled && !String(f.trunks_source || '').trim()) fail.push(who + ' names trunks and has no trunks_source — say where they came from');
+    });
+    /* A COUNT, NOT A SILENCE: a vocabulary check over files with no looks in them is not a pass. */
+    console.log('boxers with a look: ' + n.looks + ' of ' + boxers.length + ' (' + n.cells + ' cells, ' + n.usual
+      + ' with their usual trunks)   fights with trunks: ' + n.fights + ' of ' + fights.length
+      + ' (' + n.corners + ' of ' + (2 * fights.length) + ' corners)   — every word one the figure draws');
+    if (!n.looks || !n.corners) fail.push('no boxer has a look or no fight has trunks — the vocabulary rule had nothing to check, NOT a pass');
+  }
+}
+
 /* ---------- THE LEGO SETS: A CATALOGUE SHAPED LIKE THE SHOP, WAITING TO BE STOCKED ------------------
    ASKED FOR AS "just database the lego sets ... include rough price ... maybe ill have these items as
    items in the shop". `data/lego-sets.json` is one row per set, carrying EVERY column of the shop tab

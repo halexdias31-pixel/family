@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-tutor-photos-still";
+  --css-version: "2026-10-10-boxers-look-like-themselves";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -10063,10 +10063,10 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    forehead.
 
    THE STAGE LIGHT IS THE GOLD AT 16%, from the top — the one flourish on the card, behind the
-   placeholder, because it is the arena the stand-in is standing in.
+   placeholder, because it is the arena the fighter is standing in.
 
-   `--bx-mat` is the splash's mat, defined beside `.bx-ring` up in the ring's own block so the two
-   drawings share it. */
+   THE RING AND THE FIGHTER ARE DRESSED BELOW, after `.boxer-ini`, in colours of their own — they no
+   longer share the splash's `--bx-mat` or its `.bx-*` rules. */
 .boxer-pic { margin: 0; }
 .boxer-frame { position: relative; display: block; overflow: hidden; aspect-ratio: 4 / 5;
                border: 1px solid var(--line); border-radius: var(--r);
@@ -10081,6 +10081,67 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
   background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 45%, transparent)); pointer-events: none; }
 .boxer-ini { font-family: var(--mono); font-weight: 700; fill: var(--gold);
              paint-order: stroke; stroke: var(--bg); stroke-width: 1.4; stroke-linejoin: round; }
+/* ---------- THE RING AND THE FIGHTER IN IT: THE CARD'S OWN DRAWING, IN ITS OWN COLOURS ----------------
+   IT NO LONGER MIRRORS THE LOADING SCREEN. The ring and the gold fighter began as the "box" splash's,
+   painted by that block's `.bx-*` rules with its `--bx-mat` shared between the two; the splash teaches
+   nothing and is being retired, and the cards must not go blank with it. So every part here is a
+   `.bf-*` under `.boxer-ring` and needs NOTHING from the splash's block: the same posts, ropes, pads,
+   mat and apron in the same tokens, the mat named here as `--bf-mat`.
+
+   THE FIGHTER'S COLOURS ARE HIS OWN, NAMED HERE AND NOWHERE ELSE — six skin tones, eight hair
+   colours, seventeen trunk colours and the leopard's spot. They belong to this one drawing (a pair of
+   maroon trunks is no other component's colour), so they are defined on `.boxer-ring`, the chess
+   board's rule, rather than offered to the whole stylesheet from `:root`; and none is a paper colour.
+   `boxerFigure_` (find.js) points each part at one through a custom property on the fighter's group —
+   `--bf-skin: var(--bf-s4)` — and every rule below falls back to what the old stand-in wore when the
+   property is not set: paper skin, grey hair (gold in the blue corner), the corner's trunks, an ink
+   waistband. A fighter nobody has described is the figure every card had before 10 Oct.
+
+   THE SKIN TONES ARE SIX STEPS FROM LIGHT TO DEEP, chosen by eye to read as six on the black card and
+   nothing more; the deepest two are lifted a little from true so a face does not sink into the
+   background. BLACK IS NOT #000 FOR THE SAME REASON: black hair and black trunks are a charcoal one
+   step off the card, or Tyson would be a face and a pair of legs. A beard's colour is the hair's.
+
+   `.bf-seen` IS A FIGHTER WE CAN DESCRIBE, and on him a hair colour nobody stated is his own skin
+   mixed halfway to the black — a shape with no colour claimed. The old stand-in's grey (or gold, in
+   the blue corner) is kept for the fighter with no look at all; on a described man it read as grey
+   or blond hair, which no source said. */
+.boxer-ring {
+  --bf-mat: color-mix(in srgb, var(--paper) 14%, var(--bg));
+  --bf-s1: #f6dcc8; --bf-s2: #e7bf9b; --bf-s3: #cf9a6c; --bf-s4: #ad7448; --bf-s5: #855433; --bf-s6: #643d25;
+  --bf-hc-black: #2e2925; --bf-hc-dark-brown: #4b3122; --bf-hc-brown: #6f4a2d; --bf-hc-light-brown: #9b7249;
+  --bf-hc-blond: #dcb866; --bf-hc-red: #b45a2c; --bf-hc-grey: #9d9b97; --bf-hc-white: #ecebe6;
+  --bf-tk-black: #2b2b30; --bf-tk-white: #f5f5f2; --bf-tk-red: #d9302c; --bf-tk-maroon: #7d2230;
+  --bf-tk-blue: #2f6fe0; --bf-tk-navy: #22346e; --bf-tk-sky: #8cc8f0; --bf-tk-green: #23914f;
+  --bf-tk-gold: #e4ae30; --bf-tk-yellow: #f3d935; --bf-tk-orange: #f07f24; --bf-tk-purple: #7440ad;
+  --bf-tk-pink: #f08cbc; --bf-tk-silver: #c7cbcf; --bf-tk-grey: #8b8d91; --bf-tk-tan: #c9a67a;
+  --bf-tk-leopard: #d8a24a; --bf-tk-leopard-spot: #3d2614;
+}
+.boxer-ring .bf-post { fill: var(--dim); }
+.boxer-ring .bf-rope { fill: var(--paper); }
+.boxer-ring .bf-rope-mid { fill: var(--coral); }
+.boxer-ring .bf-pad-l { fill: var(--gold); }
+.boxer-ring .bf-pad-r { fill: var(--tag-level); }
+.boxer-ring .bf-mat { fill: var(--bf-mat); }
+.boxer-ring .bf-mat-edge { fill: var(--dim); }
+.boxer-ring .bf-apron { fill: var(--raised); }
+.boxer-ring .bf-apron-band { fill: var(--gold); }
+.boxer-ring .bf-skin { fill: var(--bf-skin, var(--paper)); }
+.boxer-ring .bf-hair { fill: var(--bf-hair, var(--dim)); }
+.boxer-ring .bf-r .bf-hair { fill: var(--bf-hair, var(--gold)); }
+/* `.bf.bf-seen`, ONE CLASS HEAVIER THAN `.bf-r` ABOVE, so a described fighter in the blue corner gets
+   his shadow by specificity rather than by which rule happens to come later (check/cascade.js). */
+.boxer-ring .bf.bf-seen .bf-hair, .boxer-ring .bf-face {
+  fill: var(--bf-hair, color-mix(in srgb, var(--bf-skin, var(--paper)) 50%, var(--bg))); }
+/* STUBBLE IS THE BEARD'S PIXELS AT A SHADOW'S STRENGTH — whole pixels still, only fainter. */
+.boxer-ring .bf-stubble { opacity: .45; }
+.boxer-ring .bf-eye { fill: var(--bg); }
+.boxer-ring .bf-glove { fill: var(--coral); }
+.boxer-ring .bf-band, .boxer-ring .bf-stripe { fill: var(--bf-trim, var(--ink)); }
+.boxer-ring .bf-trunks { fill: var(--bf-main, var(--gold)); }
+.boxer-ring .bf-r .bf-trunks { fill: var(--bf-main, var(--tag-level)); }
+.boxer-ring .bf-spot { fill: var(--bf-tk-leopard-spot); }
+.boxer-ring .bf-boot { fill: var(--dim); }
 /* THE CREDIT IS SMALL AND IT IS NEVER HIDDEN. The licence makes naming the author and the licence
    the condition of showing the picture at all, so it is in the faint ink at the caption size every
    other small print here uses — legible, not decorative — and nothing on the card covers it.
