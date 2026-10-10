@@ -881,6 +881,23 @@ function ensureSchema() {
     if (missing.length) {
       // Appended at the end, never inserted — inserting would shift every cell to its right and
       // silently move your data under the wrong headers.
+      /* ---------- A TAB IS AS WIDE AS ITS GRID, AND THE GRID IS NOT AS WIDE AS SCHEMA ---------------
+         `getRange` REFUSES A RANGE PAST THE TAB'S LAST COLUMN — "The coordinates of the range are
+         outside the dimensions of the sheet" — and a tab made by importing an xlsx is sized to its
+         content: the live `people` came from the 4 Oct file at exactly 61 columns, `jobs` at 39,
+         `landmarks` at 29, not one spare between them. Found on 10 Oct, before the owner's first
+         sitting with the submissions backend, by running this function over that morning's export
+         in a model that sizes each tab as the export did: it threw here on `people` — the FIRST name
+         in SCHEMA, nine columns short (parent_email … approvals_email) — nothing caught it, and
+         nothing after it ran: no `submissions`, no `answers`, no config rows. Not seen on the live
+         sheet, because it was caught first. The harness could not see it, because its tabs were
+         exactly as wide as whatever was written to them (`grid` in js/check-gas-load.js now gives a
+         tab its size, and check-submissions section 9b runs this over a tab with no spare column).
+
+         THE GRID IS WIDENED FIRST, at its right-hand edge, so nothing that is already there moves —
+         the same rule as the comment above, kept for the grid as well as the headers. */
+      const need = have.length + missing.length;
+      if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
       sh.getRange(1, have.length + 1, 1, missing.length).setValues([missing]);
       report[name] = 'added ' + missing.length + ' column(s): ' + missing.join(', ');
     } else {

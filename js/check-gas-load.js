@@ -45,13 +45,38 @@ function backend(extra) {
   const tabs = {};
   const log = { writes: 0 };
   const cache = new Map();
+  /* ---------- A TAB HAS A GRID, AND `getRange` REFUSES ANYTHING PAST IT -------------------------------
+     THESE TABS WERE EXACTLY AS WIDE AS WHATEVER HAD BEEN WRITTEN TO THEM, and `getRange` wrote anywhere
+     it was pointed. A real tab is a grid of a fixed size: a new one is 1000 x 26, one imported from an
+     xlsx is sized to its content, and Apps Script answers a range past the edge with "The coordinates of
+     the range are outside the dimensions of the sheet". The live `people` was imported at exactly 61
+     columns with not one spare, so `ensureSchema` threw on its first tab every time it had a column to
+     add — and no check here could see it, because no tab here had an edge.
+
+     `gridOf[name]` is the size a check gives a tab (`grid(name, { cols, rows })`); with none, the
+     Sheets default. A grid is never smaller than what is in it — `appendRow` widens and lengthens a
+     real tab too — so only a check that pins a tab to its content meets an edge, and that is exactly
+     the tab the 4 Oct import made. `insertColumnsAfter` widens it, as the real one does. */
+  const gridOf = {};
   const sheetOf = name => {
     const grid = tabs[name];
     const rows = () => grid.length, cols = () => grid.reduce((n, r) => Math.max(n, r.length), 0);
+    const maxCols = () => Math.max(cols(), (gridOf[name] || {}).cols || 26);
+    const maxRows = () => Math.max(rows(), (gridOf[name] || {}).rows || 1000);
     return {
-      getName: () => name, getLastRow: rows, getLastColumn: cols, getMaxRows: rows, getMaxColumns: cols,
+      getName: () => name, getLastRow: rows, getLastColumn: cols, getMaxRows: maxRows, getMaxColumns: maxCols,
+      insertColumnsAfter(after, n) {
+        const wide = maxCols() + n;                    // measured before the cells move, or n is counted twice
+        grid.forEach(row => { if (row.length > after) row.splice(after, 0, ...new Array(n).fill('')); });
+        gridOf[name] = { cols: wide, rows: (gridOf[name] || {}).rows };
+        return this;
+      },
       getRange(r, c, nr, nc) {
         nr = nr || 1; nc = nc || 1;
+        if (r < 1 || c < 1 || r + nr - 1 > maxRows() || c + nc - 1 > maxCols()) {
+          throw new Error('The coordinates of the range are outside the dimensions of the sheet. [' + name
+            + ' is ' + maxRows() + ' x ' + maxCols() + '; asked for row ' + r + ', column ' + c + ', ' + nr + ' x ' + nc + ']');
+        }
         const self = {
           getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => {
             const v = (grid[r - 1 + i] || [])[c - 1 + j]; return v === undefined ? '' : v; })),
@@ -88,7 +113,10 @@ function backend(extra) {
     getName: () => 'Ledger', getId: () => 'ledger',
     getSheets: () => Object.keys(tabs).map(sheetOf),
     getSheetByName: n => (tabs[n] ? sheetOf(n) : null),
-    insertSheet: n => { tabs[n] = [[]]; return sheetOf(n); },
+    /* A NEW TAB HAS NO ROWS, so `appendRow` lands on row 1. It started as `[[]]` — one empty row — and
+       the header `ensureSchema` appends to a tab it creates went to ROW 2, where `schemaGaps` (which
+       reads row 1) could not find it: a tab created and reported as missing in the same breath. */
+    insertSheet: n => { tabs[n] = []; gridOf[n] = { cols: 26, rows: 1000 }; return sheetOf(n); },
   };
   const props = {};
   let out = null;
@@ -163,6 +191,8 @@ function backend(extra) {
   return {
     /* `props` IS SCRIPT PROPERTIES, handed out so a check can put a key in or take one away. */
     ev, tabs, log, cache, props,
+    /* `grid('people', { cols: 61 })` — the tab as an import leaves it: no column past its content. */
+    grid(name, size) { gridOf[name] = Object.assign({}, gridOf[name], size); },
     seed(name, rows) {
       const h = tabs[name][0];
       /* THROUGH `coerce`, as a sheet would store them — a `TRUE` typed into a cell comes back a boolean,
