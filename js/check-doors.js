@@ -147,11 +147,15 @@ files.forEach(({ n, src }) => {
    'shop-item' : 'topic'}"`, so `shop-item` has a door that no search for the literal string finds.
    Both branches are pulled out of the expression rather than guessed at. */
 const tabIds = new Set();
+/* AND WHICH OF THEM ARE AN ADMIN'S — `admin: true` on the entry, read off the same literal. Each entry is
+   one line, so the flag is looked for between its `id:` and the brace that closes it. */
+const adminTabs = new Set();
 const dynamicDoors = new Set();
 files.forEach(({ src }) => {
   const code = strip(src);
   const m = code.match(/const TABS = \[([\s\S]*?)\n\];/);
   if (m) for (const t of m[1].matchAll(/id:\s*'([a-z0-9-]+)'/g)) tabIds.add(t[1]);
+  if (m) for (const t of m[1].matchAll(/\{\s*id:\s*'([a-z0-9-]+)'[^}]*\badmin:\s*true\b/g)) adminTabs.add(t[1]);
   for (const d of code.matchAll(/data-do="\$\{([^}]+)\}"/g))
     for (const lit of d[1].matchAll(/'([a-z0-9-]+)'/g)) dynamicDoors.add(lit[1]);
 });
@@ -228,7 +232,17 @@ files.forEach(({ src }) => {
   for (const m of strip(src).matchAll(/\bpages\(\s*'([a-z0-9-]+)'/g)) paged.add(m[1]);
 });
 
-const noSection  = [...tabIds].filter(t => !sections.has(t)).sort();
+/* ---------- AN ADMIN'S COLUMN IS THE OTHER WAY ROUND ------------------------------------------------
+   `biz` IS IN `TABS` FOR AN ADMIN AND FOR NOBODY ELSE (docs/history/334), and the owner's rule for it was
+   that for anybody else nothing in the page names it. index.html is every visitor's document — a section
+   written there is parsed for a child before any code can take it away — so an admin's column must have
+   NO section in it, and something must make one for the admin: `columnsFor_` in shell.js, which is
+   asked for by name and for the `createElement('section')` it makes the section with. Both halves fail. */
+const noSection  = [...tabIds].filter(t => !sections.has(t) && !adminTabs.has(t)).sort();
+const adminWritten = [...adminTabs].filter(t => sections.has(t)).sort();
+const sectionMaker = files.some(({ src }) => /function columnsFor_\s*\(/.test(src)
+  && /createElement\(\s*'section'\s*\)/.test(src) && /\.admin\b/.test(src));
+const adminUnmade = sectionMaker ? [] : [...adminTabs].sort();
 const noDraw     = [...tabIds].filter(t => !screens.has(t)).sort();
 const noPager    = [...paged].filter(t => !pagerKeys.has(t)).sort();
 const orderOff   = [...new Set([...tabIds].filter(t => !tabOrder.includes(t))
@@ -275,6 +289,10 @@ say('A PAGING TABLE KEYED BY A SCREEN THAT IS NOT REGISTERED — that screen sil
 
 say('A TAB WITH NO SECTION IN index.html — the column swipes to a blank and drops out of the axis',
     noSection, t => 'TABS has \'' + t + '\', index.html has no <section id="s-' + t + '">');
+say('AN ADMIN\'S COLUMN WRITTEN INTO index.html — every visitor\'s document names a column only an admin is given',
+    adminWritten, t => 'TABS marks \'' + t + '\' admin: true, and index.html has <section id="s-' + t + '">');
+say('AN ADMIN\'S COLUMN NOTHING MAKES A SECTION FOR — the admin swipes to a blank',
+    adminUnmade, t => 'TABS marks \'' + t + '\' admin: true, and no columnsFor_ makes its <section>');
 say('A TAB NOTHING DRAWS — paint() finds no screen registered for it',
     noDraw, t => 'TABS has \'' + t + '\', no screen(\'' + t + '\', …) anywhere');
 say('A PAGED SCREEN WITH NO PAGER ENTRY — no `paged` class, no vertical axis, pages nothing reaches',
@@ -301,7 +319,8 @@ if (doors.has('${…}')) {
 
 console.log('');
 console.log('handlers: ' + handlers.size + '   doors: ' + (doors.size - (doors.has('${…}') ? 1 : 0))
-            + '   screens: ' + screens.size);
+            + '   screens: ' + screens.size + '   an admin\'s alone: ' + ([...adminTabs].join(', ') || 'none'));
 process.exit(noDoor.length + noHandler.length + noScreen.length + strayPageKeys.length
-             + noSection.length + noDraw.length + noPager.length + orderOff.length
+             + noSection.length + adminWritten.length + adminUnmade.length
+             + noDraw.length + noPager.length + orderOff.length
              + noColumnRow.length ? 1 : 0);

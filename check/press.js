@@ -507,6 +507,14 @@ for (const who of VISITORS) {
   };
 
   for (const id of screens) {
+  /* ---------- A COLUMN THIS VISITOR IS NOT GIVEN HAS NOTHING OF THEIRS TO PRESS ----------------------
+     `biz` is an admin's (`columnsFor_`, shell.js; docs/history/334): for the signed-out visitor
+     `go('biz')` lands on the front door, and `--screen=biz` pressed the feed's controls under
+     Business's name. Asked of the app's own row; said, and not counted as pressed. The row is asked
+     for AGAIN first (`columnsFor_`): a Settings state plays a parent on this admin's phone, a press in
+     it can repaint while it does, and the row it left would skip an admin's column for the admin. */
+  const given = await page.evaluate(sid => { try { if (typeof columnsFor_ === 'function') columnsFor_(); return TABS.some(t => t.id === sid); } catch (e) { return true; } }, id);
+  if (!given) { console.log('  ' + id + (who.user ? '' : ', signed out') + ': not a column this visitor is given — nothing pressed'); continue; }
   /* ---------- ONE PASS PER DECLARED STATE ----------------------------------------------------------
      `check/states.js` IS SHARED WITH `check/ui.js` and the note at its head says why it is one list.
      It earns its keep loudly here: pressing only the state a screen opens in left `fav`, `spot`,

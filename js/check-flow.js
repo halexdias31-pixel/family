@@ -3258,10 +3258,12 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   const b = boot({ before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} },
                    reply: body => (body.action === 'listRecords' ? held : undefined) });
   await wait(300);
-  b.w.__t.go('settings', false, true);
+  /* ON THEIR OWN COLUMN NOW, the last one (docs/history/334) — `bizStart_` fires on arriving there. */
+  b.w.__t.go('biz', false, true);
   await wait(LEAVE_MS); await woken_();
-  const card = b.w.document.querySelector('#s-settings .me-form[data-biz-page="Insurance"]');
-  if (!card) return bad.concat(['an admin\'s Settings has no Insurance card']);
+  if (b.w.__t.AT() !== 'biz') return bad.concat(['go("biz") left an admin on ' + b.w.__t.AT() + ' — the records\' loader was NOT checked']);
+  const card = b.w.document.querySelector('#s-biz .me-form[data-biz-page="Insurance"]');
+  if (!card) return bad.concat(['an admin\'s Business column has no Insurance card']);
   const l3 = one(card, 'the Insurance card with listRecords held');
   const body = card.querySelector('.biz-body');
   if (l3 && (!body || l3.parentElement !== body || body.getAttribute('aria-busy') !== 'true')) bad.push('the records\' loader is not over the boxes (`.biz-body[aria-busy]`)');
@@ -8210,7 +8212,9 @@ check('each column opens on the page worth reading', async () => {
    before there is anything behind it — and a third a column has and a widget does not: can a person
    get there.
 
-   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served.
+   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served —
+   last for everybody but an admin, whose row has Business after it (the `business:` journeys below;
+   docs/history/334). This one boots signed out, so its row is everybody else's.
    Without it this stub answers that file with the payload, `settingsInto_` skips a thing with no
    `length`, and the app runs on `TAB_ORDER` — where Settings is last and Spotlight's neighbour is
    Settings. A journey asking about the code's order would be asking about an order no phone has.
@@ -8280,6 +8284,250 @@ check('progress is the last column, one card that says it is not built yet with 
     if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
   }
   t.USER(null);
+  return bad;
+});
+
+/* ---------- THE BUSINESS RECORDS: A COLUMN OF THEIR OWN, LAST, AND ONLY AN ADMIN'S ------------------------
+   THE OWNER, 10 Oct: *"the business checklist stuff should go in their own column at the end."* They were
+   five cards at the foot of an admin's Settings (docs/history/207); they are `screen('biz')` now, the last
+   column, for an admin and for nobody else (docs/history/334). Every way that can go wrong draws a
+   perfectly good app: the column a swipe before Progress rather than after it; the five cards still on
+   Settings as well; a Save that posts nothing; the column in a child's row of columns, or its section in
+   a child's document with nothing in it; an admin who signs in and has to reload to see it, or signs out
+   and keeps it; and the person on it when it goes left on a column that is not there.
+
+   THE REAL columns.json IS SERVED, for the Progress journey's reason: the stub otherwise answers that
+   file with the payload and the app runs on `TAB_ORDER`, an order no phone has. Each journey refuses to
+   pass if the file was not applied — Settings straight after You is the file's order and not the code's. */
+const BIZ_COLS_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+const BIZ_SERVE_ = cols => u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined);
+const BIZ_TITLES_ = ['Insurance', 'Tax', 'Legal and data', 'Safeguarding', 'Money and company'];
+const BIZ_ADMIN_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin', handle: 'annadmin' };
+const BIZ_HELD_ = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+                     provider: 'Example Insure', reference: 'PL-000000', due_on: '2030-01-01' }];
+/* WHAT NAMES THE COLUMN IN A PAGE: its section, the cards' own attributes and classes. Asked of the whole
+   serialised document, so a comment, a hidden copy or a stray attribute is found as well as an element. */
+const BIZ_NAMED_ = /\bs-biz\b|data-biz|\bbiz-(body|item|cap|when|flag|said|save)\b|class="card biz"/;
+const bizNamed_ = d => { const m = d.documentElement.outerHTML.match(new RegExp('.{0,50}(' + BIZ_NAMED_.source + ').{0,30}'));
+  return m ? m[0].replace(/\s+/g, ' ') : ''; };
+const bizSwipe_ = async (w, from) => {
+  const d = w.document;
+  const at = d.querySelector('#s-' + from + ' .page .pane') || d.getElementById('s-' + from);
+  at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
+  await wait(LEAVE_MS); await woken_();
+};
+const bizApplied_ = ids => ids.indexOf('settings') === ids.indexOf('account') + 1;
+
+check('business: an admin has a Business column last, straight after Progress, holding the five records cards, and Save posts the card', async () => {
+  const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
+      : body.action === 'saveRecordsPage' ? { success: true, records: body.records } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const bad = [];
+  const ids = () => t.TABS.map(x => x.id);
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — nothing was checked'];
+  if (!bizApplied_(ids())) return ['columns.json was not applied (Settings is not straight after You) — the order a phone gets was NOT checked: ' + ids().join(', ')];
+  if (ids()[ids().length - 1] !== 'biz') bad.push('Business is not the last column for an admin — the order reads ' + ids().join(', '));
+  if (ids().indexOf('biz') !== ids().indexOf('progress') + 1) bad.push('Business is not straight after Progress — the order reads ' + ids().join(', '));
+  const host = d.getElementById('s-biz');
+  if (!host || host.parentElement !== d.getElementById('screen') || host.tagName !== 'SECTION') return bad.concat(['an admin has no <section id="s-biz"> in #screen to draw the column into']);
+
+  /* A SWIPE OFF PROGRESS, as a trackpad sends it, lands on Business; one more stays — the last column. */
+  t.go('progress', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'progress') return bad.concat(['go("progress") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await bizSwipe_(w, 'progress');
+  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Progress landed on ' + t.AT() + ', wanted Business']);
+  await bizSwipe_(w, 'biz');
+  if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Business, to ' + t.AT());
+
+  /* ARRIVING ASKED FOR THE RECORDS, once — `bizStart_` from `startScreen_` — and the five cards are the
+     column's pages, in order, the pager agreeing. */
+  for (let n = 0; n < 50 && host.querySelector('.loading'); n++) await wait(100);
+  const asked = sent.filter(b => b.action === 'listRecords').length;
+  if (asked !== 1) bad.push('arriving on Business asked listRecords ' + asked + ' time(s), wanted once');
+  const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
+  if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
+  const n = host.querySelectorAll(':scope > .page').length;
+  if (n !== 5 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted five and five');
+  const ins = host.querySelector('.me-form[data-biz-page="Insurance"]');
+  if (!ins) return bad.concat(['there is no Insurance card on the Business column']);
+  if (ins.querySelector('.loading')) bad.push('the records came back and the Insurance card is still under the loader');
+  const ref = ins.querySelector('[data-biz="pub_liability"][data-k="reference"]');
+  if (!ref || ref.value !== 'PL-000000') bad.push('the records came back and the policy box reads ' + JSON.stringify(ref && ref.value) + ', not PL-000000');
+
+  /* SAVE: a box typed into marks its card (so the column is not redrawn under the typing), and the
+     card's Save posts that card's three items with what was typed. */
+  const prov = ins.querySelector('[data-biz="prof_indemnity"][data-k="provider"]');
+  if (!prov) return bad.concat(['the Insurance card has no provider box for professional indemnity']);
+  prov.value = 'Pretend Mutual';
+  prov.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (ins.dataset.dirty !== '1') bad.push('typing into a Business card did not mark it as typed into — a payload landing would redraw it under the typing');
+  if (!w.settingsKeep_('biz')) bad.push('`settingsKeep_` lets the Business column be redrawn while a card on it holds unsaved typing');
+  const save = ins.querySelector('.tile[data-do="biz-save"]');
+  if (!save) return bad.concat(['the Insurance card has no Save tile']);
+  const before = sent.length;
+  try { t.ACTIONS['biz-save'](save); } catch (e) { return bad.concat(['biz-save threw: ' + e.message]); }
+  for (let k = 0; k < 30 && !sent.slice(before).some(b => b.action === 'saveRecordsPage'); k++) await wait(100);
+  await wait(300);
+  const post = sent.slice(before).find(b => b.action === 'saveRecordsPage');
+  if (!post) bad.push('pressing Save on the Insurance card posted no saveRecordsPage');
+  else {
+    const got = post.records || [];
+    if (got.map(r => r.id).join() !== 'pub_liability,prof_indemnity,employers_liability') bad.push('Save posted ' + JSON.stringify(got.map(r => r.id)) + ', not the Insurance card\'s three items');
+    if (!got.every(r => r.category === 'Insurance')) bad.push('Save posted items not filed under Insurance');
+    if ((got.find(r => r.id === 'prof_indemnity') || {}).provider !== 'Pretend Mutual') bad.push('Save did not post the provider that was typed');
+    if ((got.find(r => r.id === 'pub_liability') || {}).reference !== 'PL-000000') bad.push('Save did not post the policy number the records brought');
+  }
+  const said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/Saved/.test(said)) bad.push('the save answered and the toast says ' + JSON.stringify(said) + ', not Saved');
+  if (ins.dataset.dirty) bad.push('the card is still marked as typed into after it was saved');
+
+  /* SETTINGS HOLDS NONE OF THEM, and an admin who had been on a page past its new end opens on a real one. */
+  t.go('settings', false, true);
+  await wait(LEAVE_MS); await woken_();
+  w.paint('settings');
+  const set = d.getElementById('s-settings');
+  if (!set || !set.querySelector('.page')) return bad.concat(['Settings did not draw for an admin — it was NOT checked for records']);
+  if (set.querySelector('[data-biz-page], [data-biz], .card.biz')) bad.push('an admin\'s Settings still holds a business-records card');
+  if (/data-biz/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds a business-records card');
+  if (!set.querySelector('.card.digest')) bad.push('the weekly parent email card is gone from an admin\'s Settings — it was to stay');
+  t.PAGE().settings = 999;
+  t.go('feed', false, true); await wait(200);
+  t.go('settings', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const last = t.pageCount('settings') - 1;
+  if (t.PAGE().settings !== last) bad.push('an admin coming back to Settings past its last page is on page ' + t.PAGE().settings + ' of ' + (last + 1));
+  const on = set.querySelectorAll(':scope > .page')[t.PAGE().settings];
+  if (!on || !on.querySelector('.pane .card')) bad.push('an admin coming back to Settings past its last page is on a page with no card');
+  return bad;
+});
+
+check('business: a student, a parent, a tutor and a visitor have no Business column — no tab, no swipe stop, no section, nothing in the page naming it', async () => {
+  const cols = BIZ_COLS_();
+  const who = [['signed out', null],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }]];
+  const bad = [];
+  for (const [as, u] of who) {
+    const { w, sent } = boot({ serve: BIZ_SERVE_(cols),
+      before: win => { try { if (u) win.localStorage.setItem('familyUser', JSON.stringify(u)); win.localStorage.setItem('familyTab', 'biz'); win.localStorage.setItem('familyTabAt', String(Date.now())); } catch (e) {} } });
+    for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+    await wait(600);
+    const t = w.__t, d = w.document;
+    if (!t) { bad.push(as + ': the app did not finish loading'); continue; }
+    if (u && (!t.whoami() || t.whoami().role !== u.role)) { bad.push(as + ': the visitor seeded before boot is not signed in — NOT checked'); continue; }
+    const ids = t.TABS.map(x => x.id);
+    if (!bizApplied_(ids)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
+    if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
+    if (ids[ids.length - 1] !== 'progress') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Progress');
+    /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: they open elsewhere. */
+    if (t.AT() === 'biz') bad.push(as + ': a remembered Business column was honoured');
+    /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
+    for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
+    await wait(LEAVE_MS); await woken_();
+    t.go('progress', false, true);
+    await wait(LEAVE_MS); await woken_();
+    await bizSwipe_(w, 'progress');
+    if (t.AT() !== 'progress') bad.push(as + ': a swipe past Progress moved to ' + t.AT() + ' — wanted to stay on the last column');
+    t.go('biz', false, true);
+    await wait(300);
+    if (t.AT() === 'biz') bad.push(as + ': go("biz") reached a Business column');
+    if (d.getElementById('s-biz')) bad.push(as + ': there is a <section id="s-biz"> in the page');
+    const named = bizNamed_(d);
+    if (named) bad.push(as + ': the page names the column: "…' + named + '…"');
+    if (sent.some(b => b.action === 'listRecords')) bad.push(as + ': the records were asked for');
+  }
+  return bad;
+});
+
+/* THE PAYLOAD THAT SIGNING IN ASKS FOR IS HELD, so the column has to come from signing in itself and not
+   from `applyColumns_` when that payload lands — which on this backend is fifteen seconds later. */
+check('business: signing in as an admin adds the column and signing out takes it away, without a reload and without moving anybody', async () => {
+  const cols = BIZ_COLS_();
+  let hold = false;
+  const { w, gets } = boot({ serve: u => (hold && /script\.google\.com/.test(u) ? new Promise(() => {}) : BIZ_SERVE_(cols)(u)),
+    reply: body => (body.action === 'verifyLogin' ? Object.assign({ success: true }, BIZ_ADMIN_)
+      : body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const bad = [];
+  const ids = () => t.TABS.map(x => x.id);
+  if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
+  if (!bizApplied_(ids())) return ['columns.json was not applied — NOT checked: ' + ids().join(', ')];
+  if (ids().indexOf('biz') !== -1 || d.getElementById('s-biz')) return ['signed out, the Business column is already there — the sign-in was NOT checked'];
+  const doc = d.documentElement;
+
+  /* IN, THROUGH THE SIGN-IN CARD, from Progress by way of You — and back on Progress afterwards
+     (`signedIn_` returns you to the column you came from), with Business beside it. */
+  t.go('progress', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('account', false, true); await wait(LEAVE_MS); await woken_();
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  const btn = d.querySelector('[data-do="do-signin"]');
+  if (!name || !pin || !btn) return ['the sign-in card is not on the account column — NOT checked'];
+  name.value = 'annadmin'; pin.value = '4826';
+  const asked = () => gets.filter(u => /script\.google\.com/.test(u)).length;
+  const askedBefore = asked();
+  hold = true;
+  try { t.ACTIONS['do-signin'](btn); } catch (e) { return ['do-signin threw: ' + e.message]; }
+  for (let n = 0; n < 50 && !(t.whoami() && t.whoami().role === 'admin'); n++) await wait(100);
+  await wait(LEAVE_MS); await woken_();
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
+  if (d.documentElement !== doc) bad.push('the page was reloaded');
+  if (ids()[ids().length - 1] !== 'biz') bad.push('signed in as an admin, the last column is ' + ids()[ids().length - 1] + ', wanted Business, without a reload');
+  if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
+  if (t.AT() !== 'progress') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Progress and go back there');
+  await bizSwipe_(w, 'progress');
+  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Progress landed on ' + t.AT() + ', wanted Business');
+  else {
+    for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
+    const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
+    if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('signed in, the Business column holds ' + JSON.stringify(cards));
+  }
+  /* AND THE INSTRUMENT CAN SEE WHAT IT IS ASKED ABOUT — signed in, the page does name the column. */
+  if (!bizNamed_(d)) bad.push('signed in as an admin, nothing in the page names the column — `bizNamed_` cannot see its subject');
+  if (asked() <= askedBefore) bad.push('signing in asked for no payload — the hold proved nothing');
+
+  /* OUT, FROM SPOTLIGHT: the column goes, and the admin stays where they are. */
+  t.go('spotlight', false, true); await wait(LEAVE_MS); await woken_();
+  try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { return bad.concat(['signout threw: ' + e.message]); }
+  await wait(LEAVE_MS); await woken_();
+  if (t.whoami()) return bad.concat(['Sign out did not sign the admin out — NOT checked']);
+  if (d.documentElement !== doc) bad.push('the page was reloaded');
+  if (ids().indexOf('biz') !== -1) bad.push('signed out, the row still has Business in it: ' + ids().join(', '));
+  if (d.getElementById('s-biz')) bad.push('signed out, the <section id="s-biz"> is still in the page');
+  const named = bizNamed_(d);
+  if (named) bad.push('signed out, the page still names the column: "…' + named + '…"');
+  if (t.AT() !== 'spotlight') bad.push('signing out moved the person from Spotlight to ' + t.AT());
+
+  /* AND THE ONE PERSON IT MOVES: an admin ON Business whose session the server ended (a Save refused with
+     `why: 'signed-out'`). The column goes from under them and they land on the column left of it. */
+  const ended = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
+      : body.action === 'saveRecordsPage' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+  const w2 = ended.w;
+  for (let n = 0; n < 80 && !w2.__t; n++) await wait(100);
+  await wait(600);
+  const t2 = w2.__t, d2 = w2.document;
+  t2.go('biz', false, true); await wait(LEAVE_MS); await woken_();
+  for (let n = 0; n < 50 && d2.querySelector('#s-biz .loading'); n++) await wait(100);
+  const save = d2.querySelector('#s-biz .me-form[data-biz-page="Tax"] .tile[data-do="biz-save"]');
+  if (t2.AT() !== 'biz' || !save) return bad.concat(['the admin could not be put on Business with a Save to press — the ended session was NOT checked']);
+  try { t2.ACTIONS['biz-save'](save); } catch (e) { return bad.concat(['biz-save threw: ' + e.message]); }
+  for (let n = 0; n < 50 && t2.whoami(); n++) await wait(100);
+  await wait(LEAVE_MS); await woken_();
+  if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
+  if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
+  if (t2.AT() !== 'progress') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Progress, the column left of it');
+  if (!d2.querySelector('#s-progress > .page.on')) bad.push('the session ended on Business and Progress, where they were put, shows no page');
   return bad;
 });
 

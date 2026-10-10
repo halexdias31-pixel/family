@@ -3487,118 +3487,6 @@ const STATES = {
         && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
       wants: 'the share box and its worked example' },
 
-    /* THE BUSINESS RECORDS, AN ADMIN'S PAGES OF THIS COLUMN — they were a widget on Tools. `only:`
-       for the flyer's reason: nobody else is drawn one, so asking a stranger to reach it would be a
-       finding about the check. SEEDED THROUGH `BIZ.list`, which is what `listRecords` writes — the
-       fixture answers every POST with the payload, so without a seed the page is measured with every
-       box empty and no flag, which is half of what the card can draw. One item due in ten days, so
-       the Due soon flag is on the screen and measured. */
-    { name: 'the business records (insurance)',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        const d = new Date(); d.setDate(d.getDate() + 10);
-        const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
-          + String(d.getDate()).padStart(2, '0');
-        window.__bizWas = BIZ.list;
-        BIZ.list = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
-          provider: 'Example Insure', reference: 'PL-000000', due_on: iso }];
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
-        if (at < 0) throw new Error('no business-records page on the settings column');
-        goPage('settings', at, true);
-      },
-      leave: () => { BIZ.list = window.__bizWas || null; delete window.__bizWas;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings'); },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        return pg && pg.querySelectorAll('.biz-item').length === 3
-          && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
-          && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
-          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000'
-          /* AND EACH ROW'S TWO BOXES ARE ONE WIDTH. The row is `.lib-row.q-row`, a class pair borrowed
-             from the qualification editor — and when that editor was redrawn, its `.lib-row.q-row` rule
-             went with it and these rows fell back to `.lib-row`'s wide box beside a 7rem one, with
-             nothing here to notice. The rule is back, and this is what says so. */
-          && [...pg.querySelectorAll('.biz-item .lib-row')].every(r => {
-            const w = [...r.children].map(c => c.getBoundingClientRect().width);
-            return w.length === 2 && w[0] > 0 && Math.abs(w[0] - w[1]) <= 1;
-          });
-      },
-      wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
-
-    /* ==============================================================================================
-       THREE WIDGETS WAITING ON A REAL REQUEST, HELD, AND THEN LET GO
-
-       THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
-       simple loading thing while it's info or whatever is loading."* `loading_()` (shell.js) is that
-       thing now, and these are the states that put it on the screen where `check/ui.js` can measure
-       it: the business records (`listRecords`, a POST), the Videos card (`data/videos.json`, a file)
-       and the camera (`getUserMedia`, the device). Each is HELD — the request is made by the app's
-       own code and its answer kept back — so what is measured is the wait the app really draws,
-       not a picture of one.
-
-       `release` LETS IT GO, and `landed` says the content has arrived. `check/ui.js` measures the
-       loader while it is held (one box, the same size on every card, centred), takes the card's
-       height, releases, waits for `landed`, and takes it again: a loader that holds its room leaves
-       the card the height it was. `leave` puts back what was there before and DROPS the held answer
-       rather than delivering it — `check/press.js` never releases, and an answer arriving after the
-       state has gone would land in the middle of the next one.
-
-       THESE ARE THE KIND THAT HOLDS THE CARD — the loader drawn OVER what is already there, which is
-       the only kind that can: a verse or a list whose length is not known until it lands is drawn
-       where it lands, and the card is the size of what came. */
-    { name: 'the business records still coming',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        const held = window.__bizHeld = { list: BIZ.list, fetch: window.fetch, go: null };
-        const real = held.fetch;
-        window.fetch = (url, o) => {
-          let act = '';
-          try { act = JSON.parse((o && o.body) || '{}').action; } catch (e) {}
-          if (act !== 'listRecords') return real(url, o);
-          return new Promise(r => {
-            held.go = () => r(new Response(JSON.stringify({ success: true, records: [{
-              id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
-              provider: 'Example Insure', reference: 'PL-000000', due_on: '2031-01-01' }] }),
-              { status: 200, headers: { 'Content-Type': 'application/json' } }));
-          });
-        };
-        BIZ.list = null; BIZ.error = ''; BIZ.asking = false;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
-        if (at < 0) throw new Error('no business-records page on the settings column');
-        goPage('settings', at, true);
-        bizStart_();
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        const body = pg && pg.querySelector('.biz-body[aria-busy="true"]');
-        return !!body && pg.querySelectorAll('.loading').length === 1 && !!body.querySelector(':scope > .loading')
-          && !!body.querySelector('input[data-biz="pub_liability"][data-k="reference"]');
-      },
-      wants: 'the Insurance card\'s boxes drawn and under the one loader while listRecords is held',
-      release: () => { const h = window.__bizHeld; if (h && h.go) { h.go(); h.go = null; } },
-      landed: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        return !!pg && !pg.querySelector('.loading')
-          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
-      },
-      leave: () => {
-        const h = window.__bizHeld;
-        if (h) { window.fetch = h.fetch; BIZ.list = h.list; BIZ.asking = false; }
-        delete window.__bizHeld;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        /* NOTHING WAS THERE BEFORE EITHER: ask again, on the real wire, rather than leave five cards
-           drawn waiting with nothing on its way to end it. */
-        if (!BIZ.list) bizStart_();
-      } },
-
     /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
        The infrastructure for *"something which triggers every sunday"* and emails parents — built and
        switched off (backend/digest.gs, js/digest.js). The card is the last page of an admin's Settings.
@@ -4220,6 +4108,146 @@ const STATES = {
          column would never be measured again on this run and Saved would be measured with a
          payload key nothing else expects. */
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
+  ],
+
+  /* ---------- THE BUSINESS RECORDS, A COLUMN OF THEIR OWN AND ONLY AN ADMIN'S ------------------------
+     They were pages of an admin's Settings, measured there by the two states below; *"the business
+     checklist stuff should go in their own column at the end"* (the owner, 10 Oct) moved them, and the
+     states moved with them (docs/history/334). EVERY STATE HERE IS `only:` AN ADMIN, the unnamed one
+     included — for anybody else the column is not in `TABS`, `go('biz')` lands on the front door, and
+     measuring that as this column would be a finding about the check. `check/ui.js` and
+     `check/press.js` skip a column a visitor is not given as well, so a state that forgot its `only`
+     still measures nothing in the stranger's name.
+
+     THE UNNAMED STATE ASKS WHAT IT IS LOOKING AT, for Progress's reason: the column a person lands on,
+     the five cards in order, each with its Save — and ANSWERED, no loader left on it. Arriving asks
+     `listRecords` (`bizStart_`), and the first run measured 390 with the dots still over the boxes
+     because a loaded machine answered late; the wait is `the business records still coming`, below,
+     held on purpose, and this one is the column once the answer is in. */
+  biz: [
+    { name: '',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      expect: () => {
+        const h = document.getElementById('s-biz');
+        if (!h || typeof AT === 'undefined' || AT !== 'biz' || h.querySelector('.loading')) return 0;
+        const cards = [...h.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')];
+        return cards.map(c => c.dataset.bizPage).join('|') === 'Insurance|Tax|Legal and data|Safeguarding|Money and company'
+          && cards.every(c => c.querySelector('.tile[data-do="biz-save"]')) ? 1 : 0;
+      },
+      wants: 'the Business column: Insurance, Tax, Legal and data, Safeguarding, Money and company, each with its Save' },
+
+    /* THE INSURANCE CARD WITH SOMETHING RECORDED. `only:` for the flyer's reason: nobody else is drawn
+       one, so asking a stranger to reach it would be a finding about the check. SEEDED THROUGH
+       `BIZ.list`, which is what `listRecords` writes — the fixture answers every POST with the payload,
+       so without a seed the page is measured with every box empty and no flag, which is half of what
+       the card can draw. One item due in ten days, so the Due soon flag is on the screen and measured. */
+    { name: 'the business records (insurance)',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const d = new Date(); d.setDate(d.getDate() + 10);
+        const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
+          + String(d.getDate()).padStart(2, '0');
+        window.__bizWas = BIZ.list;
+        BIZ.list = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+          provider: 'Example Insure', reference: 'PL-000000', due_on: iso }];
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz');
+        const at = [...document.querySelectorAll('#s-biz .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the Business column');
+        goPage('biz', at, true);
+      },
+      leave: () => { BIZ.list = window.__bizWas || null; delete window.__bizWas;
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz'); },
+      expect: () => {
+        const pg = document.querySelector('#s-biz .page.on');
+        return pg && pg.querySelectorAll('.biz-item').length === 3
+          && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
+          && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000'
+          /* AND EACH ROW'S TWO BOXES ARE ONE WIDTH. The row is `.lib-row.q-row`, a class pair borrowed
+             from the qualification editor — and when that editor was redrawn, its `.lib-row.q-row` rule
+             went with it and these rows fell back to `.lib-row`'s wide box beside a 7rem one, with
+             nothing here to notice. The rule is back, and this is what says so. */
+          && [...pg.querySelectorAll('.biz-item .lib-row')].every(r => {
+            const w = [...r.children].map(c => c.getBoundingClientRect().width);
+            return w.length === 2 && w[0] > 0 && Math.abs(w[0] - w[1]) <= 1;
+          });
+      },
+      wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
+
+    /* ==============================================================================================
+       THREE WIDGETS WAITING ON A REAL REQUEST, HELD, AND THEN LET GO — this one, and the Videos card
+       and the camera, which are declared with their own columns
+
+       THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
+       simple loading thing while it's info or whatever is loading."* `loading_()` (shell.js) is that
+       thing now, and these are the states that put it on the screen where `check/ui.js` can measure
+       it: the business records (`listRecords`, a POST), the Videos card (`data/videos.json`, a file)
+       and the camera (`getUserMedia`, the device). Each is HELD — the request is made by the app's
+       own code and its answer kept back — so what is measured is the wait the app really draws,
+       not a picture of one.
+
+       `release` LETS IT GO, and `landed` says the content has arrived. `check/ui.js` measures the
+       loader while it is held (one box, the same size on every card, centred), takes the card's
+       height, releases, waits for `landed`, and takes it again: a loader that holds its room leaves
+       the card the height it was. `leave` puts back what was there before and DROPS the held answer
+       rather than delivering it — `check/press.js` never releases, and an answer arriving after the
+       state has gone would land in the middle of the next one.
+
+       THESE ARE THE KIND THAT HOLDS THE CARD — the loader drawn OVER what is already there, which is
+       the only kind that can: a verse or a list whose length is not known until it lands is drawn
+       where it lands, and the card is the size of what came. */
+    { name: 'the business records still coming',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const held = window.__bizHeld = { list: BIZ.list, fetch: window.fetch, go: null };
+        const real = held.fetch;
+        window.fetch = (url, o) => {
+          let act = '';
+          try { act = JSON.parse((o && o.body) || '{}').action; } catch (e) {}
+          if (act !== 'listRecords') return real(url, o);
+          return new Promise(r => {
+            held.go = () => r(new Response(JSON.stringify({ success: true, records: [{
+              id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+              provider: 'Example Insure', reference: 'PL-000000', due_on: '2031-01-01' }] }),
+              { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          });
+        };
+        BIZ.list = null; BIZ.error = ''; BIZ.asking = false;
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz');
+        const at = [...document.querySelectorAll('#s-biz .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the Business column');
+        goPage('biz', at, true);
+        bizStart_();
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-biz .page.on');
+        const body = pg && pg.querySelector('.biz-body[aria-busy="true"]');
+        return !!body && pg.querySelectorAll('.loading').length === 1 && !!body.querySelector(':scope > .loading')
+          && !!body.querySelector('input[data-biz="pub_liability"][data-k="reference"]');
+      },
+      wants: 'the Insurance card\'s boxes drawn and under the one loader while listRecords is held',
+      release: () => { const h = window.__bizHeld; if (h && h.go) { h.go(); h.go = null; } },
+      landed: () => {
+        const pg = document.querySelector('#s-biz .page.on');
+        return !!pg && !pg.querySelector('.loading')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+      },
+      leave: () => {
+        const h = window.__bizHeld;
+        if (h) { window.fetch = h.fetch; BIZ.list = h.list; BIZ.asking = false; }
+        delete window.__bizHeld;
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz');
+        /* NOTHING WAS THERE BEFORE EITHER: ask again, on the real wire, rather than leave five cards
+           drawn waiting with nothing on its way to end it. */
+        if (!BIZ.list) bizStart_();
+      } },
+
   ],
 
   /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
@@ -5455,7 +5483,7 @@ const STATES = {
       wants: 'the still on the card with Post it under it',
       leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
     /* ---------- AND THE MOMENT BEFORE THE FIRST FRAME: THE ONE LOADER IN THE VIEWFINDER ----------------
-       One of three widgets held on a real request — see `the business records still coming` (settings)
+       One of three widgets held on a real request — see `the business records still coming` (biz)
        for the whole note. The ask is the camera's own (`camStart_`) and the browser's answer is kept
        back, which is what a permission prompt left open does; released, it is handed a stream drawn
        from a canvas, which is a real `MediaStream` a container without a camera can make. The loader
