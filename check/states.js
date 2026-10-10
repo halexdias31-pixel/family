@@ -5833,6 +5833,48 @@ const STATES = {
       leave: () => { delete window.STATE_SEL_WAS;
         if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
+    /* ---------- A ROOM CHOSEN, AND THE ROW SAYING WHICH ------------------------------------------------
+       *"colliers would library has 3 rooms within it"* — the owner, 10 Oct (docs/history/336). Once a
+       venue has rooms the Venue row's answers are one string until the last word, and a select cannot
+       wrap: review chose each of the fixture's three rooms at 390 and every one read "Colliers …", on the
+       form and in the picture the Share tile makes. The row draws its answer as words now (`wrap` on the
+       `loc` step, `stepSelect_`), with the select laid over them.
+
+       THE LARGE ROOM, CHOSEN THROUGH THE SELECT'S OWN `change`, because it is the one whose words differ
+       from a small room's only at the end. What arrives is asked in the real cascade, at every width:
+       the words on the row are the chosen option's whole text and none of them is cut off, and the
+       select still covers them — so the words are the answer and a tap on them is a tap on the control.
+       `check/share.js` takes this state's `enter` for its picture of the form with a room on it. */
+    { name: 'a room chosen, named whole on its row',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const sel = document.querySelector('#bookr select.bk-sel[data-step="loc"]');
+        if (!sel) throw new Error('the booking form draws no Venue select');
+        const rooms = [...sel.options].filter(o => / — /.test(o.value));
+        const to = rooms.find(o => /large/i.test(o.value)) || rooms[rooms.length - 1];
+        if (!to) throw new Error('the fixture offers no room on the Venue row — check/fixture.json lost its rooms');
+        window.STATE_ROOM = to.value;
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      },
+      expect: () => {
+        const want = window.STATE_ROOM;
+        const sel = document.querySelector('#bookr select.bk-sel[data-step="loc"]');
+        const face = sel && sel.closest('.bk-face');
+        const said = face && face.querySelector('.bk-said');
+        if (!want || !sel || sel.value !== want || BOOKING.loc !== want || !said) return 0;
+        const o = sel.options[sel.selectedIndex];
+        const a = said.getBoundingClientRect(), b = sel.getBoundingClientRect();
+        return said.textContent === (o && o.text) && said.textContent.indexOf(want) === 0
+          && said.scrollWidth <= said.clientWidth + 1
+          && Math.abs(a.top - b.top) <= 1 && Math.abs(a.bottom - b.bottom) <= 1
+          && Math.abs(a.left - b.left) <= 1 && Math.abs(a.right - b.right) <= 1 ? 1 : 0;
+      },
+      wants: 'the Venue row naming the whole room chosen, uncut, with its select laid over the words',
+      leave: () => { delete window.STATE_ROOM;
+        if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {

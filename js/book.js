@@ -1261,6 +1261,9 @@ const BOOK_STEPS = [
 
   { id: 'loc', label: 'Where?', short: 'Venue',
     options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
+    /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
+       answer until its last word — see the note at the foot of `stepSelect_`. */
+    wrap: true,
     why: v => {
       const sp = spaceFor(v);
       /* The seat count is already chosen by now, so a room too small says so rather than
@@ -2635,15 +2638,40 @@ function stepSelect_(st) {
   /* DISABLED, NOT ABSENT. The row keeps its height, its label and its answer; only the pointer
      changes. A form whose rows come and go cannot be learnt. */
   const off = stepLocked_(st);
-  return `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
+  /* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off` on
+     the tutor step. The one already chosen is left pressable, so the row can show it. */
+  const noOf = o => st.off ? String(st.off(o) || '') : '';
+  const words = o => said(o) + (noOf(o) ? ' · ' + noOf(o) : '');
+  const blank = dup ? '\u2014' : (fb || '\u2014');
+  const sel = `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
       ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
-    <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(dup ? '\u2014' : (fb || '\u2014'))}</option>
-    ${/* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off`
-          on the tutor step. The one already chosen is left pressable, so the row can show it. */''}
-    ${opts.map(o => { const no = st.off ? String(st.off(o) || '') : '';
-      return `<option value="${esc(o)}"${isOn(o) ? ' selected' : ''}${
-        no && !isOn(o) ? ' disabled' : ''}>${esc(said(o) + (no ? ' · ' + no : ''))}</option>`; }).join('')}
+    <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(blank)}</option>
+    ${opts.map(o => `<option value="${esc(o)}"${isOn(o) ? ' selected' : ''}${
+        noOf(o) && !isOn(o) ? ' disabled' : ''}>${esc(words(o))}</option>`).join('')}
   </select>`;
+  /* ---------- AN ANSWER TOLD APART BY ITS END IS DRAWN IN WORDS, WITH THE SELECT LAID OVER THEM -------
+     A SELECT CANNOT WRAP, and once a venue has rooms its answers are one string until the last word:
+     "Colliers Wood Library — Small room 1", "… — Small room 2", "… — Large room 1". In the 81px the
+     answer column has at 390 every one of them read "Colliers …" — on the form, and in the picture the
+     Share tile makes of it — so which room had been chosen was said by nothing but the rate beside it
+     (found by review, 10 Oct). Putting the room first does not rescue it: "Small room 1" and "Small
+     room 2" are both "Small roo…" in that width.
+
+     SO THE ROW SHOWS ITS ANSWER AS TEXT, which wraps the way a settled answer and a saved receipt
+     already do (`.bk-set`), and the select is still the control: laid exactly over the words, its own
+     letters unpainted, its arrow drawn — so a tap anywhere on the answer is a tap on the platform's own
+     dropdown (note 315), nothing stands in front of it, and the row's `<label for>` still reaches it.
+     The words are the chosen option's own text, from the one `words` the options are written with;
+     `aria-hidden`, because the select already says them to a screen reader. `drawBooker` runs on every
+     `change` (the listener over `book-set`), so the words are redrawn whenever the answer moves.
+
+     OPTED INTO BY THE STEP (`wrap`), not imposed on every row. The other answers on this card are told
+     apart by how they START — `No prefer…`, `Waiting li…` — and wrapping them would make a card already
+     called too long longer, to fix a fault they do not have. */
+  if (!st.wrap) return sel;
+  const picked = opts.filter(isOn).pop();
+  return `<span class="bk-face"><span class="bk-said" aria-hidden="true">${
+    esc(picked !== undefined ? words(picked) : blank)}</span>${sel}</span>`;
 }
 
 /* ---------- THE NOTE IS A ROW LIKE THE REST -------------------------------------------------------

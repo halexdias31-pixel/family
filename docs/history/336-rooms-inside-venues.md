@@ -60,14 +60,34 @@ keeps the building's hours until somebody types otherwise.
   So: **Small room 1, Small room 2, Large room 1.**
 - **Ids in `saveRoom`'s shape**, `'R' + Date.now()`, rather than R001–R003. Nothing reads `room_id`.
 
-### What still caps the large room at four
+### What the large room's ten does, and what it does not
 
-**`max_students_per_job` is 4 on the live config tab** — the business's own limit on a class, which
-`seatLimits` applies on top of the room (*"your limit"*), and which `createJob` writes as the job's
-`max_students`. `waitlist_seats` is 4 too. So until those cells are raised, the large room's ten is a
-line on the venue card and nothing more: a booking there still offers four seats. That is deliberate
-(booking.gs: *"a hall that holds thirty does not mean you want thirty children in one session"*), so
-it was left for the owner to decide rather than changed here.
+**One booking is four seats in any room, by the form's design, and this note first said otherwise.** It
+said `max_students_per_job` (4 on the live config tab) was what held the large room to four, and that
+"until those cells are raised ... a booking there still offers four seats". Review drove the form at 390
+over the fixture, which has no house cap at all: `seatLimits` gave the large room `max: 10`, and the
+Extra seats list still offered 0, 1, 2 and 3 — `BOOK_STEPS`' `n` step is **four options from the floor**,
+the owner's *"change this to be extra seats, then options are 0,1,2,3"*, and `seatLimits` only trims that
+window from above. The check-flow journey was titled "the large one seats ten" and had only ever asked
+the refusal (`why('10')`, which is silent on ten), never the list.
+
+So, measured rather than supposed:
+
+- **One family books 1–4 chairs** in the large room exactly as in a small one, whatever the room or
+  `max_students_per_job` says. Raising that cell does not change it; lowering it below four would.
+- **`max_students_per_job` is how big a class can grow**, not one booking: `createJob` writes it as the
+  job's `max_students`, and a family asking to join an open class is refused once the job is full —
+  the lower of `capacityFor` (the room's ten) and that `max_students`. At 4 a class in the large room
+  stops at four; at 10 it could take ten.
+- **`waitlist_seats` is a waiting list's size** — `waitlistPrice` seats a list at the lower of the room
+  and that cell, so at 4 the large room's list has four seats and its price is divided by four.
+- **The ten is on the venue card**, one line a room, and in `seatLimits`' ceiling (a saved or carried-over
+  count above four is not refused in the large room).
+
+If the owner wants ONE family to be able to book ten in the large room, that is the `n` step's
+four-option window, which is the owner's decision and was not changed. The journey now asks the list —
+`["1","2","3","4"]` in the large room and in a small one — so this note and the form cannot part again
+(mutation: the window widened to nine options turns it red).
 
 ### Deploy the backend before the rows
 
@@ -84,7 +104,35 @@ and own-rate rooms, through the real doGet and doPost — the payload, `capacity
 labels — and **the fixture's rooms rebuilt from their own cells through the real doGet**, which must
 come back identical. `check/fixture.json`'s venue has the three rooms (two at the venue's 12 with no
 rate typed, one at its own 20), and a `check-flow` journey asks the phone about them: the three spaces
-and not the building, ten seats in the large room and four in a small one, the blank one priced at the
+and not the building, a ceiling of ten in the large room and four in a small one (and the seats list
+four options in both), the blank one priced at the
 venue's rate and not taken for a home, "No/Yes" on hosting, a waiting-list price in each room, one card
 line per room, and the live house cap of four still winning. Each was turned red by a mutation and the
 real files went green again.
+
+### Review, 10 Oct: three findings, each reproduced
+
+1. **The large room's ten** — the section above, rewritten. It was a wrong claim in this note and in the
+   report, not a fault in the code.
+2. **Nothing proved a room's own rate prices its waiting list.** All three Colliers Wood rooms have no rate
+   typed, so the room's rate IS the venue's 15, and `waitlistPrice` reading the venue's `cost_per_hour`
+   past the room passed every rule (39 of 39). `check-rooms.js` now prices the invented building's two
+   rooms whose rate differs from it — Medium room 1 at its own 25 (9 a seat-hour, where the building's 20
+   gives 8.17) and Small room 1 at its typed 0 (6.67, not 13.33) — and rule 6 asks that the fixture's
+   room entries in `waitlistSeat`, which `check-flow` believes as they stand, are what the real doGet
+   sends for the same cells (the config worked back from the fixture's own building entry). The
+   mutation now fails three rules; a hand-edited fixture seat fails one.
+3. **You could not tell which room was chosen.** A select cannot wrap, and the three rooms are one string
+   until the last word: at 390 every one read "Colliers …" on the Venue row, on the form and in the
+   picture the Share tile makes, so only the rate beside it said which. Putting the room first would not
+   have saved it — "Small room 1" and "Small room 2" are both "Small roo…" in 81px. **The row draws its
+   answer as words that wrap, with the select laid exactly over them** (`wrap: true` on the `loc` step,
+   the foot of `stepSelect_`; `.bk-face` in style.css): the select is still the control under the finger
+   and the `<label for>`'s target, its arrow is drawn, and only its own letters are unpainted
+   (`-webkit-text-fill-color`, which no other rule sets and the share clone copies). At 390 the large
+   room is five lines — the same five the saved receipt already wraps it to. Opt-in rather than every
+   row: the other answers are told apart by how they start. `check/states.js` has **"a room chosen,
+   named whole on its row"** (the words are the option's whole text, uncut, and the select covers them,
+   at five widths), `check/share.js` photographs the form in that state and asks the room is in the
+   picture as the row's words, and the check-flow journey asks the markup for each room. All three were
+   red with book.js and style.css put back as they were, and green after.

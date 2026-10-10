@@ -6529,7 +6529,7 @@ check('a session at the client\'s own home cannot be booked for one', async () =
   return bad;
 });
 
-check('a venue with rooms offers each room: the large one seats ten, a small one four, a blank rate is the venue\'s, and the card draws a line a room', async () => {
+check('a venue with rooms offers each room: the large one allows ten and a small one four, one booking still offers four seats, a blank rate is the venue\'s, the row names the room, and the card draws a line a room', async () => {
   /* ---------- *"colliers would library has 3 rooms within it. 2 are same size and one is large. And 2
      have capacity for 4 kids and large one has capacity for 10 kids."* — the owner, 10 Oct ------------
      THE VENUE IS `check/fixture.json`'s, NOT ONE WRITTEN HERE. Its rooms are what the real doGet sends
@@ -6538,9 +6538,11 @@ check('a venue with rooms offers each room: the large one seats ten, a small one
      the venue's 12 (`roomTerms_`), and a large one at its own 20. A blank rate used to arrive as 0, and
      every surface below read that as FREE.
 
-     THE HOUSE CAP IS TAKEN OFF FIRST, so the room is what decides the seats. `max_students_per_job`
-     is 4 in this payload — and 4 on the live config tab, which is why the large room's ten is asked
-     again with the cap on at the end: the business's own limit still wins, and says so. */
+     THE HOUSE CAP IS TAKEN OFF FIRST, so the room is what decides `seatLimits`' ceiling — the bound
+     a seat count is refused against. It is not what the seats list offers: that is four options from
+     the floor in every room, asked below. `max_students_per_job` is 4 in this payload — and 4 on the
+     live config tab, which is why the large room's ten is asked again with the cap on at the end: the
+     business's own limit still wins, and says so. */
   const fx = JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'fixture.json'), 'utf8'));
   const fv = (fx.venues || []).find(v => (v.rooms || []).length >= 3);
   if (!fv) return ['check/fixture.json has no venue with three rooms, so nothing here can ask about rooms'];
@@ -6575,6 +6577,24 @@ check('a venue with rooms offers each room: the large one seats ten, a small one
   B.loc = lab(big);
   if (n.why('10')) bad.push('ten seats in ' + lab(big) + ' are refused: ' + n.why('10'));
   if (!n.why('11')) bad.push('eleven seats in ' + lab(big) + ', which holds ten, are not refused');
+  /* ---------- AND ONE BOOKING IS STILL FOUR SEATS, IN ANY ROOM -----------------------------------
+     THIS JOURNEY WAS TITLED "THE LARGE ONE SEATS TEN" AND ONLY EVER ASKED `why('10')` — the refusal,
+     which is silent on ten. The LIST was never asked, and the list is four options from the floor
+     (`BOOK_STEPS` `n`: *"change this to be extra seats, then options are 0,1,2,3"*), so a family can
+     choose 1, 2, 3 or 4 chairs in the large room exactly as in a small one, whatever the room or
+     `max_students_per_job` says. docs/history/336 said raising that cell would let a booking take
+     ten, and review drove the form and found it could not: the room's ten is how many a CLASS there
+     can grow to (`capacityFor` on a join, the waiting list's seats), not what one family books. Asked
+     here so the note and the form cannot part again — the window is the owner's to widen. */
+  if (JSON.stringify(n.options()) !== JSON.stringify(['1', '2', '3', '4'])) {
+    bad.push('the seats list in ' + lab(big) + ' offers ' + JSON.stringify(n.options())
+      + ' — one booking is four options from the floor; docs/history/336 says so, and must change with it');
+  }
+  B.loc = lab(smalls[0]);
+  if (JSON.stringify(n.options()) !== JSON.stringify(['1', '2', '3', '4'])) {
+    bad.push('the seats list in ' + lab(smalls[0]) + ', which holds four, offers ' + JSON.stringify(n.options()));
+  }
+  B.loc = lab(big);
   B.loc = lab(blank);
   if (n.why('4')) bad.push('four seats in ' + lab(blank) + ' are refused: ' + n.why('4'));
   if (!n.why('5')) bad.push('five seats in ' + lab(blank) + ', which holds four, are not refused');
@@ -6597,6 +6617,31 @@ check('a venue with rooms offers each room: the large one seats ten, a small one
   }
   /* A WAITING LIST IN A ROOM IS PRICED: the seat price doGet sends under each room's label. */
   fv.rooms.forEach(r => { B.loc = lab(r); if (!w.waitPrice_()) bad.push('a waiting list in ' + lab(r) + ' has no seat price on the phone'); });
+
+  /* ---------- THE ROW SAYS WHICH ROOM -------------------------------------------------------------
+     A SELECT CANNOT WRAP, and the three rooms are one string until the last word — at 390 review saw
+     "Colliers …" on the Venue row for every one, on the form and in the shared picture. So the row
+     draws the chosen option's whole text as words (`wrap` on the `loc` step), with the select laid
+     over them; jsdom has no layout, so this asks the markup — the words are there, they are the
+     option's own, and the select is still the control inside the same box. Whether they fit uncut is
+     `check/ui.js`'s state "a room chosen, named whole on its row", in the real cascade. */
+  /* SIGNED IN, because the form is drawn for somebody who can send it — the visitor `check/ui.js` and
+     `check/share.js` use. */
+  w.__t.USER({ name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 'tk' });
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { bad.push('opening booking threw: ' + e.message); }
+  await wait(120);
+  fv.rooms.forEach(r => {
+    B.loc = lab(r);
+    w.drawBooker();
+    const sel = w.document.querySelector('#bookr select.bk-sel[data-step="loc"]');
+    if (!sel) { bad.push('the booking form drew no Venue select with ' + lab(r) + ' chosen'); return; }
+    const face = sel.closest('.bk-face'), said = face && face.querySelector('.bk-said');
+    const o = sel.options[sel.selectedIndex];
+    if (!said) bad.push('the Venue row with ' + lab(r) + ' chosen is a bare select — a select cannot wrap, so it reads "Colliers …" like the other two rooms');
+    else if (said.textContent !== lab(r) || !o || o.text !== lab(r)) {
+      bad.push('the Venue row with ' + lab(r) + ' chosen says ' + JSON.stringify(said.textContent) + ' over an option reading ' + JSON.stringify(o && o.text));
+    }
+  });
 
   /* THE CARD: ONE LINE A ROOM, how many fit and what an hour costs. */
   const box = w.document.createElement('div');
