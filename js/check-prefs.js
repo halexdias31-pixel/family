@@ -464,8 +464,9 @@ if (rule(book && book.success && jobId, 'the parent could not book the tutor, so
     const b = w.b;
     b.seed('people', PEOPLE);
     b.seed('family', LINKS);
-    b.seed('attempts', [{ person_id: 'P-S1', question_key: 'q:SAM-1', first_done: '2026-10-01', last_done: '2026-10-01', times: 1,
-      label: 'Maths · Paper 1 (Calculator) — June 2024 · Q1' }]);
+    /* THE WEEK'S WORK IS SUBMISSIONS NOW (docs/history/308): one press in it, so the email has something to say. */
+    b.seed('submissions', [{ person_id: 'P-S1', key: 'q:SAM-1', label: 'Maths · Paper 1 (Calculator) — June 2024 · Q1', words: '',
+      answer: 'an answer', verdict: 'right', submitted_at: new Date('2026-10-01T12:00:00Z'), event_id: '1759320000000-pf0001' }]);
     cfgSet(b, 'weekly_digest', 'send');
     const tk = b.post({ action: 'verifyLogin', email: 'parent@example.org', pin: '0000' });
     if (off) {
@@ -554,8 +555,9 @@ OPTIONAL.forEach(k => rule(proved[k], 'no real sender proved `' + k + '` on and 
     const w = world();
     w.b.seed('people', FAM);
     w.b.seed('family', FLINKS);
-    w.b.seed('attempts', ['P-S8', 'P-S7'].map((pid, i) => ({ person_id: pid, question_key: 'q:FAM-' + i, first_done: '2026-10-01',
-      last_done: '2026-10-01', times: 1, label: 'Maths · Paper 1 (Calculator) — June 2024 · Q' + (i + 1) })));
+    w.b.seed('submissions', ['P-S8', 'P-S7'].map((pid, i) => ({ person_id: pid, key: 'q:FAM-' + i, words: '', answer: 'an answer',
+      verdict: 'right', submitted_at: new Date('2026-10-01T12:00:00Z'), event_id: '1759320000000-pf010' + i,
+      label: 'Maths · Paper 1 (Calculator) — June 2024 · Q' + (i + 1) })));
     cfgSet(w.b, 'weekly_digest', 'send');
     return w;
   };
