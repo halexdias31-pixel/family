@@ -5588,7 +5588,13 @@ on('kt-lesson', el => {
 const VID_KINDS = ['film', 'clip'];
 let VIDEOS_LIST = null;          // null: not asked yet. []: asked, and there is nothing in it
 let VIDEOS_ASKED = null;         // the one request in flight, so two copies of the card ask once
-const VID = { q: '', at: '' };   // what is typed, and the key of the row in the player
+/* `in` IS WHICH COPY OF THE CARD PLAYS IT — the id of the column the tapped copy is on (`s-games`,
+   `s-saved`). The Saved column draws this card again when it is starred, and every copy is painted;
+   before `in`, every copy built the player, so one tap was an `autoplay` embed in the card in front
+   AND one in the copy parked off the glass — two films talking over each other wherever a browser
+   lets one play with sound (review of 10 Oct). Only the tapped copy plays; the others show the
+   results for what is typed. */
+const VID = { q: '', at: '', in: '' };   // what is typed, the key of the row in the player, and whose player
 /* AT MOST FOUR RESULTS — *"max 4 results show."* (10 Oct). */
 const VID_MAX = 4;
 
@@ -5954,6 +5960,38 @@ const vidSet_ = (el, html) => {
   VID_DRAWN.set(el, html);
 };
 
+/* WHICH COPY OF THE CARD A BOX IS: the column it is drawn on. */
+const vidCopy_ = box => ((box && box.closest && box.closest('.screen')) || {}).id || '';
+
+/* ---------- THE BAR STAYS WHERE IT IS WHILE A SEARCH IS TYPED -------------------------------------------
+   THE CARD MAY GROW UNDER THE FINGER, NEVER SHRINK. The column holds a card somebody is using by its top
+   (`HOLD_AT`, shell.js) and lifts it only as far as it must to stay on the glass — so when the first
+   letter took the card from the bar alone to four results, the column lifted it, and when the results
+   narrowed to one the card shrank and the column put it straight back down. Measured by the review of
+   10 Oct, the bar's top keystroke by keystroke for "sunset" and back: 311 → 183 → 183 → 183 → 183 → 311
+   → 311 at 320x568 for an admin, 128px both ways in the middle of a word; 54px for a visitor at 320,
+   88px at 844x390. YouTube's bar stays where it is, and the old card never did it either: it started
+   tall (the whole list) and only got shorter as you typed.
+   SO WHILE RESULTS ARE ON A COPY, THE RESULTS ARE HELD AT THE TALLEST THEY HAVE BEEN IN THIS SEARCH
+   (`minHeight` on `.vid-results`, in its own px — `offsetHeight` is not scaled by `paneReach_`'s zoom,
+   measured in Chromium 141). The room a narrowed search leaves is left under the results, where YouTube
+   leaves it, and an admin's Sync row stays at the foot of the card rather than riding up under one row.
+   A search that starts by leaving a film (an edit over the watch view) is given the height the film had
+   (`before`, the box read before the paint), so that first letter does not drop the bar either. LET GO
+   when the search ends: the box emptied (the bar alone again), a result tapped (the watch view is a new
+   page, as YouTube's is), or the column left (`videosStop_`). Pressing Search on the keyboard does NOT
+   end it — the results stay as they are. The box's own `minHeight` is the app's full screen's (`vidFullOn_`)
+   and is not touched here. */
+const vidHold_ = (box, view, was, before) => {
+  const res = box.querySelector('.vid-results');
+  if (!res) return;
+  if (view === 'results' || view === 'wait') {
+    /* `res.offsetHeight` already counts the floor it was given, so this only ever rises. */
+    const h = res.offsetHeight + Math.max(0, before - box.offsetHeight);
+    if (h > 0) res.style.minHeight = h + 'px';
+  } else if (was === 'results' || was === 'wait') res.style.minHeight = '';
+};
+
 /* THE RESULTS, THE PLAYER AND THE TILES ARE REPAINTED; THE BOX IS NOT. Rewriting the `<input>` on every
    keystroke would drop the keyboard on a phone after one letter — the flinch the note over `tile_`'s
    "filling the shape" records. So the box is built once per copy and only its siblings change.
@@ -5969,7 +6007,9 @@ const vidSet_ = (el, html) => {
        "Nothing matches that." when nothing does.
      WATCH: a result tapped. The player, its title and line, and the Full screen tile, IN PLACE OF the
        results, with the bar still on top holding what was typed. ANY EDIT of the box leaves it (the
-       `input` listener below empties the player) and the results for the new words come back.
+       `input` listener below empties the player) and the results for the new words come back. ONLY IN
+       THE COPY THAT WAS TAPPED (`VID.in`): a copy on another column (Saved) shows the results for the
+       same words with an empty stage, so one tap is one player.
      STILL COMING: something typed before the lists have landed. THE BAR IS NEVER VEILED — it is drawn
        and usable from the first paint, so a fast thumb types into it — and the ONE loader
        (`loading_()`, shell.js) stands where the results will be until they can be ranked. It used to
@@ -5984,18 +6024,28 @@ function vidPaint_() {
   const playing = VID.at ? all.find(r => r.key === VID.at && vidPlays_(r)) || null : null;
   /* A ROW THAT HAS GONE TAKES ITS PLAYER WITH IT — an admin's film after Sign out (me.js empties
      `DATA.films`), so the next paint is not a watch view of a film nobody is listed for. */
-  if (!playing) VID.at = '';
+  if (!playing) { VID.at = ''; VID.in = ''; }
   /* AND THE APP'S FULL SCREEN ENDS WITH WHAT IT WAS SHOWING — leaving the column, an edit, a film that
      went, or the card redrawn under it (`vidFullOn_` says why each matters). */
   if (VID_FS.watch && (!playing || !VID_FS.watch.isConnected)) vidFullOff_();
-  const boxes = document.querySelectorAll('.vid-box');
+  const boxes = [...document.querySelectorAll('.vid-box')];
   if (!boxes.length) return;
+  /* ONE PLAYER, IN THE COPY THAT WAS TAPPED (`VID.in`). A film started by something other than a tap —
+     a check's state setting `VID.at` — is given the copy on the column in front, or the first, once,
+     so a later paint does not move it to another copy and restart it. A tapped copy that is not drawn
+     at this moment shows nothing anywhere rather than a player in a copy nobody tapped. */
+  if (playing && !VID.in) {
+    const front = typeof AT !== 'undefined' ? boxes.find(b => vidCopy_(b) === 's-' + AT) : null;
+    VID.in = vidCopy_(front || boxes[0]) || 'card';
+  }
+  const host = playing ? boxes.find(b => (vidCopy_(b) || 'card') === VID.in) || null : null;
   const waiting = !all.length && (VIDEOS_LIST === null || (typeof awaiting_ === 'function' && awaiting_()));
   const typed = vidNorm_(VID.q) !== '';
-  const view = playing ? 'watch' : !typed ? 'idle' : waiting ? 'wait' : 'results';
-  const found = view === 'results' ? videosFound_(VID.q) : [];
-  const results = view === 'wait' ? loading_()
-    : view !== 'results' ? ''
+  /* WHAT A COPY THAT IS NOT PLAYING SHOWS — the one that is shows the watch view instead. */
+  const search = !typed ? 'idle' : waiting ? 'wait' : 'results';
+  const found = search === 'results' ? videosFound_(VID.q) : [];
+  const results = search === 'wait' ? loading_()
+    : search !== 'results' ? ''
     : !all.length ? '<p class="faint vid-none">No videos listed yet.</p>'
     : !found.length ? '<p class="faint vid-none">Nothing matches that.</p>'
     : `<ul class="vid-list">${found.slice(0, VID_MAX).map(vidRow_).join('')}</ul>`
@@ -6011,7 +6061,7 @@ function vidPaint_() {
      matches that." are on it, which is when an admin is looking for a film and may want the folder
      read again — never in the idle bar, never under a player. The sync that runs by itself once a day
      (`filmsSyncDue_`) does not need the row drawn, and is unchanged. */
-  const mine = view === 'results' && typeof isAdmin === 'function' && isAdmin();
+  const mine = search === 'results' && typeof isAdmin === 'function' && isAdmin();
   const said = mine ? filmsSyncSaid_() : '';
   const admin = mine ? `<div class="tile-row">${tile_({ icon: 'sync', label: 'Sync from Drive', note: said,
       act: 'vid-sync', tone: 'admin', cls: FILMSYNC.asking ? 'is-busy' : '', off: !!FILMSYNC.asking })}
@@ -6032,33 +6082,41 @@ function vidPaint_() {
       </div>
       <div class="vid-results"></div>
       <div class="vid-admin"></div>`;
+      box.dataset.view = 'idle';
     }
+    const here = box === host;
+    const view = here ? 'watch' : search;
+    const was = box.dataset.view || 'idle';
+    /* THE HEIGHT A FILM HAD, read before anything below changes it — see `vidHold_`. */
+    const before = (view === 'results' || view === 'wait') && was === 'watch' ? box.offsetHeight : 0;
     const q = box.querySelector('.vid-q');
     if (q && document.activeElement !== q && q.value !== VID.q) q.value = VID.q;
     const stage = box.querySelector('.vid-stage');
-    const want = playing ? playing.key : '';
+    const want = here ? playing.key : '';
     /* ONLY WHEN IT CHANGED: rebuilding the player for a repaint that changed nothing about it — the
        payload landing, a sync answering — would restart the film under somebody watching it. */
     if (stage && (stage.dataset.k || '') !== want) {
-      stage.innerHTML = vidPlayer_(playing);
+      stage.innerHTML = vidPlayer_(here ? playing : null);
       stage.dataset.k = want;
-      stage.classList.toggle('on', !!playing);
+      stage.classList.toggle('on', here);
     }
-    /* THE WATCH BLOCK IS THERE ONLY WHILE SOMETHING PLAYS — the player, its title and line, and the
-       tiles. No empty stage and no tile with nothing to make full screen. */
+    /* THE WATCH BLOCK IS THERE ONLY WHILE SOMETHING PLAYS IN THIS COPY — the player, its title and line,
+       and the tiles. No empty stage and no tile with nothing to make full screen. */
     const watch = box.querySelector('.vid-watch');
-    if (watch) watch.classList.toggle('on', !!playing);
-    vidSet_(box.querySelector('.vid-now'), vidNow_(playing));
+    if (watch) watch.classList.toggle('on', here);
+    vidSet_(box.querySelector('.vid-now'), vidNow_(here ? playing : null));
     /* FULL SCREEN, AND FOR A FILM FROM THE FOLDER, OPEN IN DRIVE BESIDE IT — the way out when Drive will
        not play a file in a frame (a big `.mkv`, the folder's sharing changed): the door the row itself
        was until it played here. While this copy is the app's own full screen the one tile is Exit. */
     const full = !!VID_FS.watch && VID_FS.watch === watch;
-    vidSet_(box.querySelector('.vid-acts'), !playing ? ''
+    vidSet_(box.querySelector('.vid-acts'), !here ? ''
       : full ? tile_({ icon: 'unfull', label: 'Exit full screen', act: 'vid-unfull' })
       : tile_({ icon: 'full', label: 'Full screen', act: 'vid-full' })
         + (playing.how === 'drive' ? tile_({ icon: 'ext', label: 'Open in Drive', note: 'in a new tab', href: playing.url }) : ''));
-    vidSet_(box.querySelector('.vid-results'), results);
-    vidSet_(box.querySelector('.vid-admin'), admin);
+    vidSet_(box.querySelector('.vid-results'), here ? '' : results);
+    vidSet_(box.querySelector('.vid-admin'), here ? '' : admin);
+    vidHold_(box, view, was, before);
+    box.dataset.view = view;
   });
 }
 
@@ -6178,6 +6236,10 @@ on('vid-sync', () => {
 function videosStop_() {
   VID.at = '';
   vidFullOff_();
+  /* AND THE SEARCH'S HELD HEIGHT GOES WITH THE FINGER THAT HELD IT (`vidHold_`): the column lets go of
+     the card's top on leaving (`HOLD_AT`), so coming back centres a card of its own height, not one
+     still as tall as the longest answer it gave. */
+  document.querySelectorAll('.vid-box .vid-results').forEach(r => { r.style.minHeight = ''; });
   if (document.querySelector('.vid-box')) vidPaint_();
 }
 
@@ -6194,11 +6256,27 @@ document.addEventListener('input', e => {
   vidPaint_();
 });
 
-/* A TAP ON A RESULT PLAYS IT IN THE CARD, in place of the results. AND THE PHONE'S KEYBOARD IS PUT
-   AWAY: a tap on a button does not take the focus from the box on an iPhone, so the keyboard stayed up
-   over the player it had just asked for. `blur` is the box letting go, the way pressing Search does. */
+/* PRESSING SEARCH ON THE KEYBOARD PUTS THE KEYBOARD AWAY AND LEAVES THE RESULTS WHERE THEY ARE. The box
+   says `enterkeyhint="search"`, so a phone shows a Search key — and nothing answered it: the focus
+   stayed in the box and the keyboard stayed up, over exactly the place the four results are drawn (y
+   480 to 768 at 390x844, review of 10 Oct). The results are already there, as you typed, so there is
+   nothing to search for; what the key is for is letting go, which is what it does on YouTube. Not in a
+   `<form>`, so there is no submit to stop; `preventDefault` keeps a browser from doing anything else
+   with the key. The held height (`vidHold_`) stays: the results do not move when the keyboard goes. */
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (e.key !== 'Enter' || e.isComposing || !el || !el.classList || !el.classList.contains('vid-q')) return;
+  e.preventDefault();
+  el.blur();
+});
+
+/* A TAP ON A RESULT PLAYS IT IN THE CARD, in place of the results — IN THAT COPY OF THE CARD (`VID.in`)
+   and no other. AND THE PHONE'S KEYBOARD IS PUT AWAY: a tap on a button does not take the focus from the
+   box on an iPhone, so the keyboard stayed up over the player it had just asked for. `blur` is the box
+   letting go, the way pressing Search does (the listener above). */
 on('vid-play', el => {
   VID.at = String(el.dataset.k || '');
+  VID.in = vidCopy_(el) || 'card';
   const box = el.closest('.vid-box');
   const q = box && box.querySelector('.vid-q');
   if (q && document.activeElement === q) q.blur();
@@ -6231,10 +6309,11 @@ on('vid-play', el => {
    The top layer is the browser's own layer over the page — what a modal dialog uses — and no ancestor's
    transform, containment, overflow or z-index reaches an element in it, while the element stays exactly
    where it is in the document, so the frame is not touched and does not reload. Proved in Chromium at
-   390x844 and 844x390 with the Fullscreen API deleted (note 321): the block is the viewport, the film
-   is the width (or the height) of the glass, and the frame's `load` fired once. `manual`, so nothing
-   but this file closes it — not a tap on the black, not Escape on its own (Escape is handled below,
-   once, here).
+   390x844, 844x390 and 320x568, each turned the other way while on, with the Fullscreen API deleted —
+   and kept proved by `check/videos.js` ('full'), which a scratch script used to be the only proof of:
+   the block is the viewport, the film is the width (or the height) of the glass, the Exit tile is 44px,
+   and the frame loaded once. `manual`, so nothing but this file closes it — not a tap on the black, not
+   Escape on its own (Escape is handled below, once, here).
    WHERE THERE IS NO TOP LAYER EITHER (Safari before 17, iOS 16 and older), a `<video>` still takes the
    phone's own full screen and a frame still says to use the player's own button — the one case left.
 

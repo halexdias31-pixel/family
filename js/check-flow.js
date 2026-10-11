@@ -3181,6 +3181,16 @@ check('the videos widget is last on Games: the bar alone, at most four results a
   if (titles().join() !== 'How volcanoes erupt') bad.push('typing "volc" did not narrow to the one volcano: ' + titles().join(' | '));
   type('maths two');
   if (titles().join() !== 'Fractions in two minutes') bad.push('two words did not narrow to the row holding both: ' + titles().join(' | '));
+  /* ---------- THE KEYBOARD'S SEARCH KEY PUTS THE KEYBOARD AWAY AND LEAVES THE RESULTS (review of 10 Oct) ---
+     The box says `enterkeyhint="search"`, so a phone shows a Search key — and nothing answered it: the
+     focus stayed in the box and the keyboard stayed up over the four results. jsdom has no keyboard, so
+     the focus leaving the box is what says it went; the four rows and the words stay as they were. */
+  type('clip');
+  q.focus();
+  q.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  if (d.activeElement === q) bad.push('Enter in the box left the focus in it — a phone keeps its keyboard up over the results');
+  if (titles().length !== 4 || q.value !== 'clip' || box.querySelector('.vid-watch.on'))
+    bad.push('Enter in the box changed what the card shows: ' + (titles().join(' | ') || 'no rows') + ' for ' + JSON.stringify(q.value));
   type('zzzz');
   const none = (box.querySelector('.vid-results .vid-none') || {}).textContent || '';
   if (titles().length || none !== 'Nothing matches that.') bad.push('a search that matches nothing says "' + none + '" over ' + titles().length + ' row(s) — wanted "Nothing matches that."');
@@ -3312,6 +3322,84 @@ check('the videos widget is last on Games: the bar alone, at most four results a
   await wait(LEAVE_MS); await woken_();
   if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
   if (t.vidFs() || d.querySelector('#s-games .vid-watch.is-fs')) bad.push('leaving the Games column left the app\'s full screen on');
+  return bad;
+});
+
+/* ---------- ONE TAP IS ONE PLAYER, WHEN THE CARD IS ALSO ON THE SAVED COLUMN ---------------------------
+   The Saved column draws a starred card again and `vidPaint_` writes every copy (`.vid-box` is a class
+   for that reason). Every copy used to build the player as well, so one tap was an `autoplay` embed in
+   the copy in front and another in the copy parked off the glass — two films talking at once wherever a
+   browser lets one play with sound (review of 10 Oct; `check/videos.js` asks the same with a real click
+   and counts the requests). So: the tapped copy plays, every other copy shows the results for what was
+   typed with an empty stage, and a tap in the other copy moves the one player there. */
+check('the videos card starred into Saved: one tap is one player, in the copy that was tapped', async () => {
+  const rows = [
+    { title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip', tags: 'science', age: '', notes: '', active: true },
+    { title: 'Volcano islands', url: 'https://www.youtube.com/watch?v=volcanoisle', kind: 'clip', tags: 'science', age: '', notes: '', active: true },
+  ];
+  let asked = 0;
+  const { w } = boot({ before: win => {
+    const f0 = win.fetch;
+    win.fetch = (url, o) => {
+      if (/data\/videos\.json/.test(String(url))) {
+        asked++;
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(rows),
+                                 text: () => Promise.resolve(JSON.stringify(rows)) });
+      }
+      return f0(url, o);
+    };
+  } });
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  if (!t.star) return ['the favourites are not exported'];
+  /* SIGNED IN — a signed-out Saved column is one sentence, not the things kept (`savedCards_`). */
+  t.USER({ name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] });
+  t.star('w:videos');
+  /* AND EVERY COLUMN DRAWN AGAIN FOR THE PERSON NOW SIGNED IN, as a sign-in draws them. */
+  t.repaint(true);
+  await wait(50);
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let n = 0; n < 150 && !(asked && d.querySelector('#s-games #wgt-videos .vid-box .vid-q')); n++) await wait(100);
+  t.go('saved', false, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let n = 0; n < 150 && !d.querySelector('#s-saved .vid-box .vid-q'); n++) await wait(100);
+  const games = d.querySelector('#s-games #wgt-videos .vid-box');
+  const saved = d.querySelector('#s-saved .vid-box');
+  if (!games) return ['the videos card did not draw on the Games column'];
+  if (!saved) return ['the starred videos card did not draw on the Saved column, so this asks nothing'];
+  const bad = [];
+  const q = saved.querySelector('input.vid-q');
+  q.value = 'volc';
+  q.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const players = () => [...d.querySelectorAll('.vid-player')].map(p => (p.closest('.screen') || {}).id || '?');
+  const rowsIn = box => box.querySelectorAll('.vid-results .vid-row').length;
+  if (rowsIn(saved) !== 2 || rowsIn(games) !== 2) bad.push('"volc" drew ' + rowsIn(saved) + ' result(s) on Saved and ' + rowsIn(games) + ' on Games — wanted both rows in both copies');
+  const tap = box => {
+    const r = box.querySelector('.vid-results .vid-row[data-do="vid-play"]');
+    if (!r) { bad.push('there is no result to tap in the ' + (box === saved ? 'Saved' : 'Games') + ' copy'); return false; }
+    t.ACTIONS['vid-play'](r);
+    return true;
+  };
+  const watching = (box, other, said) => {
+    const p = players();
+    if (p.length !== 1 || p[0] !== (box === saved ? 's-saved' : 's-games'))
+      bad.push(said + ' built ' + p.length + ' player(s), in ' + (p.join(', ') || 'none') + ' — wanted one, in the copy tapped');
+    if (!box.querySelector('.vid-watch.on .vid-stage iframe.vid-player') || !box.querySelector('.vid-acts [data-do="vid-full"]'))
+      bad.push(said + ': the copy tapped is not the watch view with its Full screen tile');
+    if (other.querySelector('.vid-watch.on') || other.querySelector('.vid-stage').innerHTML.trim() || other.querySelector('[data-do="vid-full"]'))
+      bad.push(said + ': the copy NOT tapped still draws a player, a stage or a Full screen tile');
+    if (rowsIn(other) !== 2) bad.push(said + ': the copy not tapped shows ' + rowsIn(other) + ' result(s) — wanted the results for "volc"');
+  };
+  if (tap(saved)) watching(saved, games, 'a tap in the Saved copy');
+  /* AND A TAP IN THE OTHER COPY MOVES THE ONE PLAYER THERE. */
+  if (tap(games)) watching(games, saved, 'then a tap in the Games copy');
+  /* AN EDIT IN EITHER COPY STOPS IT EVERYWHERE — an edit is an edit of the one search. */
+  q.value = 'volca';
+  q.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (players().length) bad.push('an edit in the Saved copy left ' + players().join(', ') + ' playing');
+  t.USER(null);
   return bad;
 });
 

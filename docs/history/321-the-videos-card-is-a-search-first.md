@@ -116,8 +116,7 @@ after.
   the phone's own full screen and a frame still says *"Use the full screen button in the player."*. That is
   the one case left; iOS 15.4–16 could have been reached with a `<dialog>` instead of a popover, at the cost
   of a `<dialog>` drawn inline as the watch block, announced as a dialog when it is not one.
-- **Two copies of the card both play.** The Saved column draws the card again and every copy is painted, as
-  before; only the copy whose tile was pressed goes full screen.
+- ~~**Two copies of the card both play.**~~ Fixed after the review — see below: only the copy tapped plays.
 - **The line under a playing film** is the kind and the age, as before ("Film · kids"); its year is on the
   result row, not repeated there.
 - **Not seen against the real hosts.** This sandbox reaches neither YouTube nor Drive. Drive's `/preview`
@@ -190,3 +189,100 @@ after.
   the full screen at 320, 390 and 1280 (black glass, the film the width, Exit under its right corner; at 1280
   beside it) and at 390x844 and 844x390 from the proof; the loader at 320 and 390 under "held"; the admin's
   films at 320 and nobody's at 320 ("No videos listed yet."). Every title and id in them was made up.
+
+### After the review (10–11 Oct): four findings, each reproduced first, each fixed at its cause
+
+The review walked the card in Chromium with a real finger and a real keyboard and found four things
+between what jsdom can see (no layout, no top layer) and what `check/ui.js` can see (one snapshot a
+state, at five sizes none of which is a phone on its side). All four were reproduced on `920afde`
+before anything was changed, with the reviewer's probes and then with the new check below.
+
+**1. THE BAR JUMPED UNDER THE TYPING FINGER.** The column holds a card somebody is using by its top
+(`HOLD_AT`, shell.js) and lifts it only as far as it must to stay on the glass. The first letter took the
+card from the bar alone (about 84px) to four results (about 400px), so the column lifted it; "sunse"
+narrowed to one row, the card shrank, and the column put it straight back down — in the middle of a word.
+The bar's top, keystroke by keystroke for "sunset" and back: **311 → 182 → 182 → 182 → 182 → 311 → 311 →
+311 → 182 …** at 320x568 for an admin (129px both ways); 54px for a visitor at 320; 88px at 844x390; 30px
+for an admin at 390x844. The old card never did it: it started tall (the whole list) and only shrank, and
+YouTube's bar stays where it is.
+*Fixed in `vidPaint_` (`vidHold_`):* while a copy shows results (or the loader in their place), its
+`.vid-results` is held at the tallest it has been in this search — `minHeight` in its own px, which
+`offsetHeight` is (it is not scaled by `paneReach_`'s zoom; measured in Chromium 141) — so the card can grow
+under the finger and never shrink. The room a narrowed search leaves is left under the results, where
+YouTube leaves it, and an admin's Sync row stays at the foot of the card. A search that begins by leaving a
+film (an edit over the watch view) is given the height the film had — read from the box before the paint —
+so its first letter does not drop the bar either: on its side (844x390) the watch view is lifted, and the
+one short row that replaced it dropped the bar 82px without this. Reading the film's height from the box
+needed one more line: the watch block's bottom margin collapsed out through the box and the card into the
+pane, so the box read 8px short and the bar still dropped 2px at 320x568; `.vid-box { display: flow-root }`
+keeps that margin inside the box (the pane is the same height either way — 391px measured with and
+without). **Let go** when the search ends: the box emptied (the bar alone), a result tapped (the watch view
+is a new page), or the column left (`videosStop_`). Not when Search is pressed. *Not chosen:* ratcheting
+`HOLD_AT.top` up in shell.js once a focused card has been lifted — it would have fixed this for every card
+with a field, and changed how the funnel, the essay and the keypad's lift behave, which nothing here asked
+for. Now: 182 at every keystroke at 320x568 admin, 234 visitor, 116 at 844x390, 422 at 390x844.
+
+**2. THE KEYBOARD'S SEARCH KEY DID NOTHING.** The box says `enterkeyhint="search"`, so a phone shows a Search
+key, and nothing answered it: the focus stayed in the box and the keyboard stayed up — over the four
+results, which on a phone sit exactly where the keyboard is (y 480 to 768 at 390x844). The `vid-play`
+comment called `blur` "the box letting go, the way pressing Search does", and nothing made pressing Search
+let go. *Fixed:* one `keydown` listener on the document — Enter in `.vid-q` (not mid-composition) is
+`preventDefault`ed and the box blurred. The results, the words and the held height stay as they are.
+
+**3. THE APP'S OWN FULL SCREEN ON ITS SIDE HAD NO COMMITTED CHECK.** The proof at 390x844 and 844x390 above
+lived in a scratch script; `check/ui.js` measures 320x568, 390x844, 768x1024, 1280x800 and 1920x1080, and
+at none of them does `paneReach_` zoom the card in the full-screen state. So `.pane > :has(.vid-watch.is-fs)
+{ zoom: 1 !important }` could be deleted with every check green: `ui.js --screen=games` "nothing NEW",
+while at 844x390 the Exit tile was 31x31 and the film 485x273 (693x390 with the rule). *Fixed by committing
+the proof* — `check/videos.js`, below — rather than by growing `ui.js`'s sizes for one state.
+
+**4. ONE TAP BUILT TWO PLAYERS WITH THE CARD STARRED.** `vidPaint_` gave every `.vid-box` the same
+`vidPlayer_(playing)`, so the copy on the Saved column — parked off the glass — got an `autoplay=1` embed
+too (and for an admin's film, a second Drive `/preview`): a hidden player beside the one being watched,
+doubled sound wherever a browser lets one autoplay with it, for as long as the person watched. True before
+this branch as well; the rewrite was the place to fix it. *Fixed:* `VID.in` is the id of the column the
+tapped copy is on (`vid-play` sets it), and only the box on that column is the watch view; every other copy
+shows the results for what is typed with an empty stage. A tap in the other copy moves the one player there;
+an edit in either stops it everywhere. A film started without a tap (a check's state setting `VID.at`) is
+given the copy on the column in front, once, so a later paint never moves it and restarts it.
+
+### Checked, after the review
+
+- **`check/videos.js`, new, on check-all's roster** (`npm run videos`; `VIDEOS_PORT`, else a free port). In
+  Chromium, every list, player and picture served by the check itself: **hold** — the bar's top after every
+  keystroke of "sunset" and Backspace back to "s", at 320x568 (both visitors), 844x390 and 390x844, never
+  lower than the keystroke before, and "sunset" tapped then a letter taken off over the film not dropping
+  it either; **search** — a real Enter takes the focus from the box and the four
+  results, the words and the bar stay; **one** — the card starred, one real click in the Saved copy is one
+  frame, in `s-saved`, one request to the player's host, and the Games copy shows the results; **full** —
+  the Fullscreen API deleted before any app script runs, the tile pressed by a real click, at 390x844,
+  844x390 and 320x568, each turned to the other orientation while on and back: the block is the viewport
+  and every corner and the middle land in it, the film is 16:9 and as large as the room allows (390x219
+  upright, 693x390 on its side, 501x282 at 568x320), Exit is 44x44, on the glass and off the picture, Escape
+  gives the screen back, and **the frame loaded once** through all of it. 19 measurements, about a minute.
+- **Red before, green after.** On `920afde` with only the new check copied in: hold red at all four sizes
+  (129, 54, 88 and 30px), search red, one red (2 players, 2 requests, the other copy blank). On this commit:
+  nothing found.
+- **Seven mutations**, each in a throwaway copy of the final tree, each red for its own reason, the real
+  files untouched and green: the zoom rule deleted — `full` red at 844x390 (Exit 31px, film 485x273), at
+  390x844 turned on its side and at 568x320; `vidHold_` returning at once — `hold` red at all four sizes
+  (129, 54, 88, 30px); the film's height not given to the edit that leaves it — `hold` red, 82px at 844x390;
+  `flow-root` taken off — `hold` red, 2px at 320x568; the Enter listener not blurring — `search` red, and
+  check-flow red; every copy the watch view again — `one` red (2 players, 2 requests), and check-flow red;
+  the watch block moved inside the box before `showPopover` — `full` red, "the player's frame loaded 2
+  times".
+- **`check-flow.js`**: the first videos journey asks Enter too (the focus leaves the box, four rows and
+  "clip" stay); a new journey, **the card starred into Saved** — signed in, both copies drawn, "volc" in the
+  Saved copy finds both rows in both copies, a tap in Saved is one player in `s-saved` with Full screen and
+  the Games copy the results with an empty stage, a tap in Games moves it, an edit in Saved stops it
+  everywhere. Both red on `920afde`. **All 274 journeys pass.**
+- `check.js`, `check-const.js`, `check-css.js`, `check-doors.js` (227 handlers), `check-loading.js`,
+  `check-films.js`, `check-strings.js`, `check-drafts.js`: green. `check/ui.js --screen=games`: 250
+  combinations, nothing NEW. `check/press.js --screen=games`: 102 presses, 95 swipes all landing, nothing
+  quiet but the four known Imposter ones. `check/cascade.js`: nothing decided by file order alone.
+- **Looked at**, in Chromium: 320x568 admin at "sun" (four, "1 more — keep typing to narrow", Sync row) and
+  at "sunset" (one row, the bar where it was, the room under the row, the Sync row at the foot); the same
+  after Enter (no focus ring); the watch view at 320; an edit after the film (the bar where the film left
+  it); 390x844 visitor at "sunset" after Enter; the Saved copy drawing four results; and `ui.js --shots` after
+  `flow-root`: the idle bar at 320, four results at 390, one playing at 320, the full screen at 390 — as
+  before. Every title and id in them was made up.

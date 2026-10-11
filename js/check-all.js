@@ -351,6 +351,15 @@ const SUITE = [
      320 and 390, and the cards beside it out of focus. No port to collide on: unset, `SWIPE_PORT`
      is 0 and the OS picks a free one. */
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
+  /* ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS ---------------
+     *"at first all you see is a search bare ... you can click fullscreen to make it fullscreen"* (note
+     321). The review of 10 Oct found four faults between jsdom (no layout, no top layer) and `ui.js`
+     (one snapshot a state, no phone on its side): the bar jumping 128px under the typing finger, the
+     keyboard's Search key doing nothing, one tap building two players with the card starred, and the
+     app's own full screen at 844x390 guarded by nothing — its zoom rule deleted, every check stayed
+     green with the Exit tile at 31px. This asks all four in Chromium. No port to collide on: unset,
+     `VIDEOS_PORT` is 0 and the OS picks a free one. */
+  { file: 'check/videos.js',  what: 'the videos card: the bar held as you type, Search lets go, one player, full screen either way up', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
      `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
      visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own

@@ -2710,6 +2710,13 @@ button.text-drop { color: var(--bad); }
            --vid-scrim: color-mix(in srgb, var(--bg) 80%, transparent);
            --vid-frame: color-mix(in srgb, var(--ink) 11%, var(--raised));
            --vid-mark: var(--faint); }
+/* THE CARD'S LAST MARGIN STAYS INSIDE IT (`flow-root`), so the box's `offsetHeight` is the room the card
+   takes. `vidHold_` (games.js) holds the results at the height a film had when an edit leaves it, read
+   from the box; the watch block's bottom margin used to collapse out through the box and the card into
+   the pane, so the box read 8px short of what the pane had, and the bar dropped 2px at the first letter
+   over a film at 320x568 (`check/videos.js`, 'hold'). Nothing moves on the glass: the margin is the same
+   margin, counted one box further in. */
+.vid-box { display: flow-root; }
 
 /* THE PILL. The magnifier sits inside the box at the left and is not a target — `pointer-events: none`,
    and the `<label>` round both hands a tap on it to the box. The box keeps the stylesheet's 16px type
@@ -2796,7 +2803,9 @@ button.text-drop { color: var(--bad); }
    pane smaller with CSS `zoom` on the pane's child, and a block in the top layer still inherits it from
    the card it stands in — at 320x568 the Exit tile came out at 32px. So while the card's film is full
    screen the card is drawn at its own size underneath, out of sight; `!important` because `paneReach_`
-   writes its zoom inline, and goes on writing it on a resize, which a phone turning sideways is. */
+   writes its zoom inline, and goes on writing it on a resize, which a phone turning sideways is.
+   GUARDED BY `check/videos.js` ('full'), at 844x390 and 568x320 among others: with this line deleted
+   every other check stayed green, and the Exit tile was 31px and the film 485x273 (review of 10 Oct). */
 .pane > :has(.vid-watch.is-fs) { zoom: 1 !important; }
 
 /* ---------- THE ROW: A PICTURE, A TITLE, A LINE ---------------------------------------------------
