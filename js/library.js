@@ -578,7 +578,16 @@ function libraryExtras_(d, extra) {
      `image_credit` RIDES WITH `image`. A Commons photograph is free on condition that its author
      and licence are named wherever it is shown, so the card refuses to draw a photo without its
      credit — see `boxerPic_` in find.js. A column the mapper dropped would have meant no boxer
-     could ever show a photo, which is the safe failure, but a silent one. */
+     could ever show a photo, which is the safe failure, but a silent one.
+
+     `look` AND `trunks` ARE THE EIGHT-BIT FIGHTER'S (`boxerFigure_` in find.js): his skin, hair,
+     hair colour and facial hair, and the trunks he usually wore. Folded to lower case and trimmed,
+     as a cell typed by hand may not be; a word outside the vocabulary is still passed through and the
+     figure draws that part as though it were blank, claiming nothing — `check-library.js` is what
+     refuses the cell. `sex` (above) is read by the figure too: a woman wears a top.
+     `look_source` is NOT mapped: it is for the owner checking a cell in the file, and every phone
+     carrying 103 paragraphs of citations for a drawing it never prints would be weight for nobody. */
+  const libLook = v => libS(v).trim().toLowerCase();
   if (extra.boxers && extra.boxers.length) {
     const out = [];
     extra.boxers.forEach(r => {
@@ -598,6 +607,9 @@ function libraryExtras_(d, extra) {
         promoter: libS(r.promoter), trainer: libS(r.trainer),
         notableWins: libS(r.notable_wins), notableLosses: libS(r.notable_losses),
         image: libS(r.image).trim(), imageCredit: libS(r.image_credit).trim(), notes: libS(r.notes),
+        look: { skin: libLook(r.look_skin), hair: libLook(r.look_hair),
+                hairColour: libLook(r.look_hair_colour), facial: libLook(r.look_facial) },
+        trunks: libLook(r.trunks_usual),
       });
     });
     d.boxers = out;
@@ -629,6 +641,10 @@ function libraryExtras_(d, extra) {
         scorecards: libS(r.scorecards), attendance: libS(r.attendance), notes: libS(r.notes),
         video: libS(r.video_url) || libS(r.video_search_url),
         verified: libOn(r.verified),
+        /* THE TRUNKS EACH CORNER WORE THAT NIGHT, where a source names them — the fight card dresses
+           each fighter in these and in nothing else (`boxerPic_`). `trunks_source` stays in the file
+           for the same reason `look_source` does. */
+        trunksA: libLook(r.trunks_a), trunksB: libLook(r.trunks_b),
       });
     });
     out.sort((p, q) => libS(p.date).localeCompare(libS(q.date)));

@@ -2394,6 +2394,241 @@ const STATES = {
       },
       wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS -------
+       THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
+       shorts in the fight."* `check-flow` asks which words each figure was drawn with; only a browser
+       can say what colour comes out after the custom properties, their fallbacks and `.boxer-ring`'s
+       own palette have all been resolved — a token renamed on one side of that chain paints the
+       corner's colour and says nothing. So these ask for the computed `fill` of each part, against the
+       palette entry the row's word names, at every width, as two visitors:
+
+         a profile   Lennox Lewis — his dreads (hair drawn OUTSIDE the old head, and still inside the
+                     frame), his goatee (in the face's deeper black), his skin and his usual white
+                     trunks, none of them the gold stand-in's colours, the picture box still the 4:5 it
+                     was told to be.
+         a fight     Ali v Frazier, 1971: red trunks trimmed white in the red corner, green trimmed gold
+                     in the blue, the blue corner mirrored to face left — and a corner with no trunks
+                     on file, drawn beside them for the asking, painted the corner's MUTED colour by
+                     the stylesheet's fallbacks, its waistband the same colour darker, no stripe.
+         a stranger  Tyson v Berbick, 1986: Berbick has no row, so beside Tyson in his own skin he is
+                     the silhouette — skin and hair one shadow tone, NOT the old stand-in's paper and
+                     gold, which made him a pale blond man in his own black trunks.
+         the dark    every skin, hair colour, trunks colour, the silhouette and both unrecorded trunks,
+                     drawn for the asking, each clearing 2:1 against the stage he stands in; a black
+                     beard 2:1 on every skin; and the unrecorded trunks well away from every trunks word.
+
+       `rgb` IS WRITTEN OUT IN EACH, not shared, for the reason `fcHead` is: these functions are passed
+       to the browser as source one at a time and cannot see each other. */
+    { name: 'a boxer who looks like himself',
+      enter: () => {
+        STUFF.q = 'Lennox Lewis';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
+        const row = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Lennox Lewis');
+        if (!c || !row || !row.look || !/Lennox Lewis/.test((c.querySelector('h3') || {}).textContent || '')) return false;
+        const frame = c.querySelector('.boxer-pic .boxer-frame'), ring = frame && frame.querySelector('svg.boxer-ring');
+        const g = ring && ring.querySelector('g.bf.bf-l');
+        if (!g || g.classList.contains('bf-r')) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = n => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = sel => { const el = g.querySelector(sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const L = row.look, t = String(row.trunks || '').split('/');
+        if (L.hair !== 'dreads' || !L.hairColour || !L.skin || !L.facial || L.facial === 'none' || !t[0]) return false;
+        const gold = getComputedStyle(document.documentElement).getPropertyValue('--gold').trim();
+        const f = frame.getBoundingClientRect(), hb = g.querySelector('.bf-hair').getBoundingClientRect(),
+              px = f.width / 40;
+        return g.classList.contains('bf-hs-dreads') && g.classList.contains('bf-fh-' + L.facial)
+               && fill('.bf-skin') === tok('--bf-' + L.skin)
+               && fill('.bf-hair') === tok('--bf-hc-' + L.hairColour)
+               /* A BLACK BEARD IS THE DEEPER BLACK — it sits on the face, not the stage (style.css). */
+               && fill('.bf-face') === tok(L.hairColour === 'black' ? '--bf-fh-black' : '--bf-hc-' + L.hairColour)
+               && fill('.bf-trunks') === tok('--bf-tk-' + t[0])
+               && fill('.bf-band') === tok('--bf-tk-' + (t[1] || t[0]))
+               && fill('.bf-trunks') !== rgb(gold)
+               && getComputedStyle(ring).shapeRendering === 'crispedges'
+               /* THE LOCKS HANG BELOW WHERE THE OLD CAP ENDED — seven game pixels of hair, not its five —
+                  and still inside the frame. */
+               && hb.height >= 6.5 * px && hb.left >= f.left && hb.bottom <= f.bottom
+               && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && c.scrollWidth <= c.clientWidth + 1;
+      },
+      wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'a fight in that night\'s trunks',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0033' && !pg.part);
+        if (at < 0) throw new Error('FT0033, the Fight of the Century, is not in the Fights list');
+        goPage('stuff', stuffFirstResult_() + at, true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight');
+        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0033');
+        if (!c || !fr || fr.trunksA !== 'red/white' || fr.trunksB !== 'green/gold') return false;
+        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
+        if (rings.length !== 2) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = (ring, n) => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
+        if (!ga || !gb) return false;
+        /* FACING EACH OTHER: the red corner's gloves to the right of his head, the blue corner's to the left. */
+        const faces = (g, right) => { const gl = g.querySelector('.bf-glove').getBoundingClientRect(), sk = g.querySelector('.bf-skin').getBoundingClientRect();
+                                      return right ? gl.right > sk.right : gl.left < sk.left; };
+        /* AND A CORNER NOBODY RESEARCHED, drawn by the card's own renderer for the asking: the
+           stylesheet's fallbacks are what paint it, and nothing else on this screen would show them. */
+        const probe = document.createElement('span');
+        probe.className = 'boxer-frame';
+        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
+        probe.innerHTML = boxerRing_('X Y', false, null, '') + boxerRing_('X Y', true, null, '');
+        document.body.appendChild(probe);
+        const blanks = [...probe.querySelectorAll('svg.boxer-ring g.bf .bf-trunks')].map(el => getComputedStyle(el).fill);
+        const blankStripes = probe.querySelectorAll('svg.boxer-ring g.bf .bf-stripe').length;
+        probe.remove();
+        const root = getComputedStyle(document.documentElement);
+        /* THE BLANKS ARE THE CORNER'S COLOUR MUTED, NOT THE CORNER'S COLOUR: the old gold and blue with
+           an ink waistband read as a researched gold-and-white pair (the review of 10 Oct). */
+        return fill(ra, '.bf-trunks') === tok(ra, '--bf-tk-red') && fill(ra, '.bf-band') === tok(ra, '--bf-tk-white')
+               && fill(ra, '.bf-stripe') === tok(ra, '--bf-tk-white')
+               && fill(rb, '.bf-trunks') === tok(rb, '--bf-tk-green') && fill(rb, '.bf-band') === tok(rb, '--bf-tk-gold')
+               && fill(rb, '.bf-stripe') === tok(rb, '--bf-tk-gold')
+               && ga.classList.contains('bf-l') && gb.classList.contains('bf-r')
+               && faces(ga, true) && faces(gb, false)
+               && blanks.length === 2 && blanks[0] === tok(ra, '--bf-unsaid-l') && blanks[1] === tok(ra, '--bf-unsaid-r')
+               && blanks[0] !== rgb(root.getPropertyValue('--gold')) && blanks[1] !== rgb(root.getPropertyValue('--tag-level'))
+               && blankStripes === 0;
+      },
+      wants: 'Ali v Frazier 1971 in that night\'s trunks — red trimmed white facing right, green trimmed gold facing left — and a corner with no trunks on file painted the corner\'s muted colour with no stripe',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A FIGHTER WITH NO ROW IS A SILHOUETTE, NOT A PALE BLOND MAN ------------------------------
+       THE REVIEW OF 10 OCT: the 53 corners with no boxer row kept the old stand-in's paper skin and, in
+       the blue corner, its gold hair — while being dressed in their real trunks beside an opponent in
+       his real skin. Trevor Berbick, Cleveland Williams, Andy Ruiz and Benny Paret were drawn as a pale
+       blond man. A corner with no row claims no skin and no hair colour: both are ONE shadow tone.
+       `paint` asks the browser what a token resolves to on a scrap element in the same ring, because a
+       `color-mix` token reads back as its formula, not as a colour. */
+    { name: 'a fighter with no row is a silhouette',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0060' && !pg.part);
+        if (at < 0) throw new Error('FT0060, Tyson v Berbick, is not in the Fights list');
+        goPage('stuff', stuffFirstResult_() + at, true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight');
+        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0060');
+        if (!c || !fr || fr.bId || fr.trunksB !== 'black') return false;
+        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
+        if (rings.length !== 2) return false;
+        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
+        if (!ga || !gb) return false;
+        const paint = (ring, v) => { const e = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                                     e.style.fill = v; ring.appendChild(e); const f = getComputedStyle(e).fill; e.remove(); return f; };
+        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const sk = ([...ga.classList].find(k => /^bf-sk-/.test(k)) || '').slice(6);
+        const ghost = paint(rb, 'var(--bf-ghost)');
+        const skins = ['s1', 's2', 's3', 's4', 's5', 's6'].map(t => paint(rb, 'var(--bf-' + t + ')'));
+        return !!sk && ga.classList.contains('bf-seen') && fill(ra, '.bf-skin') === paint(ra, 'var(--bf-' + sk + ')')
+               && !gb.classList.contains('bf-seen') && !/--bf-(skin|hair):/.test(gb.getAttribute('style') || '')
+               && fill(rb, '.bf-skin') === ghost && fill(rb, '.bf-hair') === ghost
+               && ghost !== paint(rb, 'var(--paper)') && ghost !== paint(rb, 'var(--gold)') && skins.indexOf(ghost) < 0
+               && fill(rb, '.bf-trunks') === paint(rb, 'var(--bf-tk-black)');
+      },
+      wants: 'Tyson v Berbick 1986 — Tyson in his own skin, Berbick (no row) a silhouette in one shadow tone, neither paper nor gold nor any skin, still in his black trunks',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- EVERY COLOUR OF THE FIGURE SHOWS AGAINST THE DARK HE STANDS IN --------------------------
+       THE REVIEW OF 10 OCT measured the 4x shots: black hair 1.29:1 against the stage, black trunks
+       1.40:1, the deepest skin 1.97:1, a black beard on it 1.53:1. Tyson was a face and a pair of legs
+       and Joshua's head a dark hood. So every colour the figure can wear is drawn here, for the asking,
+       by the card's own renderer, and its computed fill is held to 2:1 against the computed fill of
+       `bf-stage`, the dark behind him: six skins, eight hair colours, seventeen trunks, the silhouette
+       and both unrecorded pairs. A black beard is held to 2:1 against each skin, because it sits on the
+       face. The unrecorded pairs are held at least 50 apart (RGB) from every trunks word — the old
+       blue fallback and the vocabulary's sky were the same light blue twice. And Mike Tyson's own
+       profile is measured as drawn: his hair and trunks against his ring's stage, and the stage
+       reaching above his hair, so the gold light behind the initials cannot creep back over his head.
+       A failure is left on `window.__bfDark` for whoever opens the page. */
+    { name: 'every colour of the eight-bit fighter shows against the stage',
+      enter: () => {
+        STUFF.q = 'Mike Tyson';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
+        if (!c || !/Mike Tyson/.test((c.querySelector('h3') || {}).textContent || '')) return false;
+        const col = v => {
+          let m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(v);
+          if (m) return [+m[1], +m[2], +m[3]];
+          m = /^color\(srgb\s+([-\d.e]+)\s+([-\d.e]+)\s+([-\d.e]+)/.exec(v);
+          return m ? [m[1] * 255, m[2] * 255, m[3] * 255] : null;
+        };
+        const lum = v => { const k = col(v); if (!k) return NaN;
+          const [r, g, b] = k.map(x => { x /= 255; return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        const ratio = (p, q) => { const a = lum(p), b = lum(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+        const far = (p, q) => { const a = col(p), b = col(q); return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) : 0; };
+        const bad = [];
+        /* HIS OWN RING, AS DRAWN. */
+        const ring = c.querySelector('.boxer-pic .boxer-frame svg.boxer-ring'), g = ring && ring.querySelector('g.bf');
+        const stageEl = ring && ring.querySelector('.bf-stage');
+        if (!g || !stageEl || !g.classList.contains('bf-hc-black') || !g.classList.contains('bf-tk-black')) return false;
+        const stage = getComputedStyle(stageEl).fill;
+        ['.bf-hair', '.bf-trunks'].forEach(sel => { const r = ratio(getComputedStyle(g.querySelector(sel)).fill, stage);
+          if (!(r >= 2)) bad.push('Tyson ' + sel + ' ' + r.toFixed(2) + ':1'); });
+        if (stageEl.getBoundingClientRect().top > g.querySelector('.bf-hair').getBoundingClientRect().top + 0.5) bad.push('the stage does not reach above his hair');
+        /* EVERY WORD, DRAWN FOR THE ASKING. */
+        const probe = document.createElement('span');
+        probe.className = 'boxer-frame';
+        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
+        const cases = [];
+        BOXER_LOOK.skin.forEach(t => cases.push(['skin ' + t, '.bf-skin', boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black' }, 'white')]));
+        BOXER_LOOK.hair_colour.forEach(t => cases.push(['hair ' + t, '.bf-hair', boxerRing_('X Y', false, { skin: 's3', hair: 'short', hairColour: t }, 'white')]));
+        BOXER_LOOK.trunks.forEach(t => cases.push(['trunks ' + t, '.bf-trunks', boxerRing_('X Y', false, { skin: 's3' }, t)]));
+        cases.push(['the silhouette', '.bf-skin', boxerRing_('X Y', false, null, '')],
+                   ['unrecorded trunks, red corner', '.bf-trunks', boxerRing_('X Y', false, null, '')],
+                   ['unrecorded trunks, blue corner', '.bf-trunks', boxerRing_('X Y', true, null, '')]);
+        probe.innerHTML = cases.map(k => k[2]).join('');
+        document.body.appendChild(probe);
+        const svgs = [...probe.querySelectorAll('svg.boxer-ring')];
+        const fills = {};
+        cases.forEach(([name, sel], i) => {
+          const s = svgs[i], f = getComputedStyle(s.querySelector('g.bf ' + sel)).fill, st = getComputedStyle(s.querySelector('.bf-stage')).fill;
+          fills[name] = f;
+          const r = ratio(f, st);
+          if (!(r >= 2)) bad.push(name + ' ' + r.toFixed(2) + ':1 against the stage');
+        });
+        /* A BLACK BEARD ON EVERY SKIN. */
+        probe.innerHTML = BOXER_LOOK.skin.map(t => boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black', facial: 'beard' }, 'white')).join('');
+        [...probe.querySelectorAll('svg.boxer-ring')].forEach((s, i) => {
+          const r = ratio(getComputedStyle(s.querySelector('.bf-face')).fill, getComputedStyle(s.querySelector('.bf-skin')).fill);
+          if (!(r >= 2)) bad.push('a black beard on ' + BOXER_LOOK.skin[i] + ' ' + r.toFixed(2) + ':1');
+        });
+        probe.remove();
+        ['unrecorded trunks, red corner', 'unrecorded trunks, blue corner'].forEach(u => BOXER_LOOK.trunks.forEach(t => {
+          const d = far(fills[u], fills['trunks ' + t]);
+          if (!(d >= 50)) bad.push(u + ' is ' + Math.round(d) + ' from ' + t);
+        }));
+        window.__bfDark = bad;
+        return bad.length === 0 && Object.keys(fills).length === cases.length;
+      },
+      wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
        `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
        DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a

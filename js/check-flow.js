@@ -482,6 +482,9 @@ function boot(opts) {
       /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
          this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
       'STUFF: () => STUFF,' +
+      /* THE EIGHT-BIT FIGHTER'S WORDS AND SHAPES — `const`s, so a getter built here, like `STUFF`. The
+         boxer journey asks the figure for exactly the pixels these say, rather than a copy of them. */
+      'BOXER: () => (typeof BOXER_LOOK !== "undefined" ? { LOOK: BOXER_LOOK, HAIR: BOXER_HAIR, FACE: BOXER_FACE, BODY: BOXER_BODY, UNSAID: BOXER_HAIR_UNSAID } : null),' +
       /* THE BIBLE READER'S STATE — a `const`, so a getter built here (see `STUFF`): which book is open,
          whether the index landed, which book failed. The Bible journey asks it rather than the DOM
          where the DOM cannot say, such as whether a failure changed the open book. */
@@ -17198,7 +17201,7 @@ check('a boxer without a photo: the ring and his initials, no <img>; no credit m
   else {
     const ini = ring.querySelector('.boxer-ini');
     if (!ini || ini.textContent.trim() !== 'JL') bad.push('the placeholder\'s initials are "' + (ini ? ini.textContent : '') + '", not JL');
-    if (!ring.querySelector('.bx-l .bx-glove')) bad.push('the placeholder has no fighter in it');
+    if (!ring.querySelector('.bf-l .bf-glove')) bad.push('the placeholder has no fighter in it');
   }
   /* A `Jr.` IS NOT A SURNAME — the placeholder for Floyd Mayweather Jr. says FM. */
   const fm = a.item('Floyd Mayweather Jr.');
@@ -17337,7 +17340,7 @@ check('a boxer\'s fights: every bout they are in, newest first, from their side 
     else {
       if (!faces[0].classList.contains('won') || faces[1].classList.contains('won')) bad.push('the winner\'s face is not the one framed');
       if (!faces[0].querySelector('img')) bad.push('Ali\'s photo is not on the fight card');
-      if (faces[1].querySelector('img') || !faces[1].querySelector('.bx-r')) bad.push('Frazier, who has no photo, is not the blue-corner placeholder');
+      if (faces[1].querySelector('img') || !faces[1].querySelector('.bf-r')) bad.push('Frazier, who has no photo, is not the blue-corner placeholder');
     }
     const cr = fc && fc.querySelector('.fight-credit');
     if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
@@ -17348,6 +17351,143 @@ check('a boxer\'s fights: every bout they are in, newest first, from their side 
   }
   if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
   return bad;
+});
+
+/* ---------- THE EIGHT-BIT FIGHTER WEARS WHAT HIS ROW SAYS, AND A FIGHT WHAT THAT NIGHT'S ROW SAYS -------
+   THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
+   shorts in the fight."* The figure is drawn from `look_*` and `trunks_usual` on the boxer and from
+   `trunks_a` / `trunks_b` on the fight, through the real mapper, so each claim is asked of the real
+   files and the markup the app draws from them:
+
+     every profile   all 103: the figure's group carries exactly the words the row holds — skin, hair,
+                     hair colour, facial hair, usual trunks — and NO word for a blank cell; the hair is
+                     that style's own pixels (none at all for bald and shaved); the beard is its own;
+                     the trunks' colour and trim are the custom properties the stylesheet paints from;
+                     a side stripe only when there is a trim; a profile is never mirrored. EVERY
+                     WOMAN (`sex` F, nine rows) is `bf-f` and wears the top, and a woman with no hair
+                     on file is drawn with hair drawn back, NEVER the men's short cap; no man wears a
+                     top. Before 10 Oct's review nothing read `sex`, and all nine were the bare torso.
+     a known fight   Ali v Frazier, 8 March 1971: red/white in the red corner, green/gold in the blue,
+                     each man's skin and hair from his own row, the blue corner mirrored to face left —
+                     and NOT Ali's usual white/black, because the card dresses a corner in that night's
+                     pair or in nothing.
+     a blank fight   Johnson v Jeffries, 1910: no trunks word and no colour property in either corner,
+                     so the stylesheet's fallbacks paint them the corner's colour, muted — and those
+                     fallbacks are asked of style.css as well, because a renamed rule would leave the
+                     property unset and the trunks the colour of nothing. Jeffries has no row: a
+                     silhouette, no look claimed.
+     a stranger      Cleveland Williams has no row and a known pair: the silhouette, in black trunks.
+     a woman's bout  Laila Ali v Jacqui Frazier-Lyde, 2001: Frazier-Lyde has no row, and is a woman
+                     because Ali is — both corners in a top.
+     a misspelt cell Joe Louis given "whte/black" and "s7" IN THE COPY: no half-look — the corner's
+                     colour and the silhouette's skin, the rest of his look as the row says.
+   What the colours come out as in a real browser is `check/states.js`'s question; this is what was
+   drawn and from which cell. */
+check('the eight-bit fighter: every profile wears its row, a fight wears that night\'s trunks, a woman wears a top, a blank claims nothing', async () => {
+  const a = await boxerApp_(raw => {
+    const jl = raw.boxers.find(b => b.name === 'Joe Louis');
+    if (jl) { jl.trunks_usual = 'whte/black'; jl.look_skin = 's7'; }
+  });
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const K = a.w.__t.BOXER && a.w.__t.BOXER();
+  if (!K || !K.LOOK) return ['the figure\'s vocabulary (BOXER_LOOK) is not reachable — NOT checked'];
+  const runs = s => a.w.boxerRuns_(s);
+  const groupIn = el => el && el.querySelector('svg.boxer-ring g.bf');
+  const ok = (k, v) => (K.LOOK[k].indexOf(v) >= 0 ? v : '');
+  /* ONE QUESTION, ASKED OF EVERY FIGURE: does `g` carry exactly this look and these trunks? */
+  const wears = (g, who, look, trunks, blue, sex) => {
+    if (!g) { bad.push(who + ': no fighter drawn in the ring'); return; }
+    const cls = [...g.classList], style = g.getAttribute('style') || '';
+    const woman = String(sex || '').trim().toUpperCase() === 'F';
+    if (g.classList.contains('bf-f') !== woman) bad.push(who + (woman ? ' is a woman and is not drawn as one (no `bf-f`)' : ' is drawn as a woman'));
+    const top = g.querySelector('.bf-top');
+    if (woman ? (!top || top.getAttribute('d') !== runs(K.BODY.top)) : top) bad.push(who + (woman ? ' is a woman and wears no top — a bare torso' : ' is a man and wears a top'));
+    if (!g.classList.contains(blue ? 'bf-r' : 'bf-l')) bad.push(who + ' is not drawn in the ' + (blue ? 'blue' : 'red') + ' corner');
+    if (/scale\(-1 1\)/.test(g.getAttribute('transform') || '') !== !!blue) bad.push(who + (blue ? ' does not face left' : ' is mirrored'));
+    const skin = ok('skin', look.skin), hair = ok('hair', look.hair), hc = ok('hair_colour', look.hairColour);
+    const face = ok('facial', look.facial) === 'none' ? '' : ok('facial', look.facial);
+    [['bf-sk-', skin], ['bf-hs-', hair], ['bf-hc-', hc], ['bf-fh-', face]].forEach(([pre, v]) => {
+      const got = cls.filter(c => c.indexOf(pre) === 0);
+      if (v ? (got.length !== 1 || got[0] !== pre + v) : got.length) bad.push(who + ' wears ' + (got.join(' ') || 'nothing') + ' for ' + pre + '*, the row says "' + v + '"');
+    });
+    if (skin && style.indexOf('--bf-skin:var(--bf-' + skin + ')') < 0) bad.push(who + '\'s skin is not painted from --bf-' + skin);
+    if (hc && style.indexOf('--bf-hair:var(--bf-hc-' + hc + ')') < 0) bad.push(who + '\'s hair is not painted from --bf-hc-' + hc);
+    if (g.classList.contains('bf-seen') !== !!(skin || hair || hc || face)) bad.push(who + (skin || hair || hc || face ? ' has a look and is not `.bf-seen`' : ' has no look and is `.bf-seen`'));
+    const hp = g.querySelector('.bf-hair');
+    if (hair === 'bald' || hair === 'shaved') { if (hp) bad.push(who + ' is ' + hair + ' and has hair drawn'); }
+    else if (!hp || hp.getAttribute('d') !== runs(hair ? K.HAIR[hair] : K.UNSAID[woman ? 'F' : 'M'])) bad.push(who + '\'s hair is not the ' + (hair || (woman ? 'unsaid woman\'s' : 'unsaid man\'s')) + ' shape');
+    else if (woman && !hair && hp.getAttribute('d') === runs(K.HAIR.short)) bad.push(who + ' has no hair on file and is given the men\'s short cap');
+    const fp = g.querySelector('.bf-face');
+    if (face ? (!fp || fp.getAttribute('d') !== runs(K.FACE[face])) : fp) bad.push(who + '\'s face hair is not the ' + (face || 'none') + ' shape');
+    const parts = String(trunks || '').split('/').filter(Boolean);
+    const t = parts.length && parts.every(c => K.LOOK.trunks.indexOf(c) >= 0) && parts.length <= 2 ? parts : [];
+    const tk = cls.filter(c => /^bf-t[kt]-/.test(c)).sort().join(' ');
+    const wantTk = t.length ? ['bf-tk-' + t[0]].concat(t[1] ? ['bf-tt-' + t[1]] : []).sort().join(' ') : '';
+    if (tk !== wantTk) bad.push(who + ' wears "' + tk + '" for trunks "' + (trunks || '') + '", not "' + wantTk + '"');
+    if (t.length) {
+      if (style.indexOf('--bf-main:var(--bf-tk-' + t[0] + ')') < 0 || style.indexOf('--bf-trim:var(--bf-tk-' + (t[1] || t[0]) + ')') < 0) bad.push(who + '\'s trunks are not painted ' + t.join(' with a ') + ' trim');
+    } else if (/--bf-(main|trim):/.test(style)) bad.push(who + ' has no trunks on file and is given a trunks colour: ' + style);
+    if (!!g.querySelector('.bf-stripe') !== !!t[1]) bad.push(who + (t[1] ? ' has a trim and no side stripe' : ' has a side stripe and no trim'));
+    if (!!g.querySelector('.bf-spot') !== t.indexOf('leopard') >= 0) bad.push(who + '\'s leopard spots do not match "' + (trunks || '') + '"');
+  };
+  const lookOf = r => (r ? { skin: r.look_skin, hair: r.look_hair, hairColour: r.look_hair_colour, facial: r.look_facial } : {});
+  let profiles = 0, words = 0, women = 0;
+  a.raw.boxers.forEach(row => {
+    const x = a.item(row.name);
+    if (!x) { bad.push(row.name + ' is not in Find'); return; }
+    const g = groupIn(a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer .boxer-pic'));
+    wears(g, row.name + '\'s profile', lookOf(row), row.trunks_usual, false, row.sex);
+    profiles++;
+    if (String(row.sex).trim().toUpperCase() === 'F') women++;
+    words += ['look_skin', 'look_hair', 'look_hair_colour', 'look_facial', 'trunks_usual'].filter(k => row[k]).length;
+  });
+  console.log('          profiles asked: ' + profiles + ' (' + women + ' women, each in a top) · look and trunks words drawn from the file: ' + words);
+  if (words < 100) bad.push('only ' + words + ' look words in data/boxers.json — the profiles barely tested anything, NOT a pass');
+  if (!women) bad.push('no row in data/boxers.json is sex F — the women\'s top was NOT tested');
+  /* THE MISSPELT COPY: the unknown words drew nothing of their own. */
+  const jl = a.item('Joe Louis');
+  const jg = jl && groupIn(a.draw(a.w.stuffCard(jl)).querySelector('.boxer-pic'));
+  if (!jg || [...jg.classList].some(c => /^bf-(sk|tk|tt)-/.test(c)) || /--bf-(skin|main):/.test(jg.getAttribute('style') || '')) bad.push('a misspelt skin or trunks word drew something of its own on Joe Louis: ' + (jg ? jg.outerHTML.slice(0, 160) : 'no figure'));
+  /* THE FIGHTS. */
+  const fight = id => a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.id === id);
+  const rowOf = id => a.raw.boxers.find(b => b.boxer_id === id);
+  const corners = (id, need) => {
+    const f = a.raw.fights.find(r => r.fight_id === id), x = fight(id);
+    if (!f || !x) { bad.push(id + ' is not in data/fights.json or not in Find'); return null; }
+    if (need && !need(f)) { bad.push(id + ' no longer has the trunks this journey is about — pick another bout'); return null; }
+    const faces = [...a.draw(a.w.stuffCard(x)).querySelectorAll('.card.fc.fight .fight-faces .boxer-pic')];
+    if (faces.length !== 2) { bad.push(id + ' draws ' + faces.length + ' faces'); return null; }
+    /* A CORNER WITH NO ROW TAKES THE OTHER CORNER'S SEX — `fightCard_`'s rule, asked rather than copied. */
+    const ra = rowOf(f.boxer_a_id), rb = rowOf(f.boxer_b_id);
+    const sexOf = r => (r ? r.sex : [ra, rb].some(o => o && String(o.sex).trim().toUpperCase() === 'F') ? 'F' : '');
+    wears(groupIn(faces[0]), id + ' red corner (' + f.boxer_a + ')', lookOf(ra), f.trunks_a, false, sexOf(ra));
+    wears(groupIn(faces[1]), id + ' blue corner (' + f.boxer_b + ')', lookOf(rb), f.trunks_b, true, sexOf(rb));
+    return { f, g: faces.map(groupIn) };
+  };
+  const fotc = corners('FT0033', f => f.trunks_a === 'red/white' && f.trunks_b === 'green/gold');
+  if (fotc) {
+    const ali = rowOf(fotc.f.boxer_a_id);
+    if (!ali || !ali.trunks_usual || ali.trunks_usual === fotc.f.trunks_a) bad.push('Ali\'s usual trunks are not different from the Fight of the Century\'s, so "that night\'s pair, not his usual" was NOT tested');
+    else if (fotc.g[0].classList.contains('bf-tk-' + ali.trunks_usual.split('/')[0]) && ali.trunks_usual.split('/')[0] !== 'red') bad.push('the Fight of the Century dresses Ali in his usual trunks');
+    if (!fotc.g[0].classList.contains('bf-sk-' + ali.look_skin) || !fotc.g[1].classList.contains('bf-hs-' + rowOf(fotc.f.boxer_b_id).look_hair)) bad.push('the Fight of the Century corners do not carry their own skin and hair');
+  }
+  const blank = corners('FT0001', f => !f.trunks_a && !f.trunks_b && !f.boxer_b_id);
+  if (blank && blank.g[1] && blank.g[1].classList.contains('bf-seen')) bad.push('Jeffries has no row and his figure claims a look');
+  corners('FT0031', f => !f.boxer_b_id && f.trunks_b === 'black');
+  const lyde = corners('FT0085', f => !f.boxer_b_id && rowOf(f.boxer_a_id) && rowOf(f.boxer_a_id).sex === 'F');
+  if (lyde && lyde.g[1] && lyde.g[1].classList.contains('bf-seen')) bad.push('Frazier-Lyde has no row and her figure claims a look');
+  /* THE FALLBACKS THE BLANK CORNERS LEAN ON, read off the stylesheet itself: the silhouette's one
+     shadow tone for skin and hair, and the corner's muted colour for trunks, top and waistband. */
+  const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8');
+  [['.boxer-ring .bf-skin', 'fill', 'var(--bf-skin, var(--bf-ghost))'], ['.boxer-ring .bf-hair', 'fill', 'var(--bf-hair, var(--bf-ghost))'],
+   ['.boxer-ring .bf-trunks, .boxer-ring .bf-top', 'fill', 'var(--bf-main, var(--bf-corner))'],
+   ['.boxer-ring .bf-l', '--bf-corner', 'var(--bf-unsaid-l)'], ['.boxer-ring .bf-r', '--bf-corner', 'var(--bf-unsaid-r)']].forEach(([sel, prop, val]) => {
+    const re = new RegExp('(^|\\n)' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{\\s*' + prop + ':\\s*' + val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ';');
+    if (!re.test(css)) bad.push('style.css has lost `' + sel + ' { ' + prop + ': ' + val + '; }` — a blank corner would be painted the colour of nothing');
+  });
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad.length > 14 ? bad.slice(0, 14).concat(['… and ' + (bad.length - 14) + ' more']) : bad;
 });
 
 /* ---------- WHAT A BOXER READS ON EVERY FIGHTER'S CARD, ALL 103 OF THEM -----------------------------
