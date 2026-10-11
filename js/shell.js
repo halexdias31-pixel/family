@@ -2200,9 +2200,51 @@ function placeGrid(instant, drag) {
      half the window and half a card, and one step more, so a column a drag is about to bring in is
      already drawn. */
   const glass = WIDE ? appWidth_() / 2 + stepX * 1.5 : 0;
-  hosts.forEach(({ id, i, host, shift }) => {
+  /* ---------- AND WHAT A SLIDE CARRIES ACROSS THE GLASS STAYS DRAWN WHILE IT IS CARRIED -------------------
+     THE OWNER, 11 Oct: *"If I scrol fast left right up or down it's still clunky. I think because it only
+     loads things which are close to pov."* Half of what he saw was not loading at all. What was drawn
+     here was keyed on the page each column is GOING TO — `d` pages from the target — and in a run of fast
+     flicks the target is two to eight pages ahead of where the column is drawn, because each release
+     re-aims a slide that has not finished. So the cards the slide was carrying across the glass, built and
+     filled, were `.far` (hidden) or at opacity 0 for the whole of their crossing: measured at 4x CPU on a
+     phone and an iPad, 5–43% of a run's frames had a black hole where a card was, and a whole column could
+     be black for 0.3–0.8s in a sideways sweep (docs/history/341).
+     SO A COLUMN KEEPS DRAWN THE BAND ITS SLIDES HAVE SWEPT, measured on the glass in PIXELS and not in
+     pages: an iPad's 1180px glass holds four to eight short cards, so any count of pages is either too
+     few there or too many on a phone. `trailY_` keeps the union of every window the column's glass has
+     been aimed at while its last slide is still running (`TRAIL`, per column, because the settle a
+     release starts says nothing about which column it moves), and a page is drawn when its box meets that
+     union widened by one glass height either way — so a card is visible a whole glass before it can
+     arrive and stays visible until it has gone. Sideways the same, over column indices (`trailX_`).
+     At rest the band is the glass you are looking at, one glass either side, which on a phone is about
+     the cards that were drawn before, and it is put back to that once the slide has ended (`trailEnd_`).
+     READ HERE, in the pass that is already reading: the offsets are those of the layout `columnShift_`
+     has just paid for, so nothing below forces another. */
+  const now = performance.now();
+  if (!drag) TRAIL_X = trailX_(ti, now, !!instant, settle);
+  const xRun = now < TRAIL_X.until || !drag;
+  const xlo = xRun ? Math.min(TRAIL_X.lo, ti) : ti, xhi = xRun ? Math.max(TRAIL_X.hi, ti) : ti;
+  let wider = xlo < xhi;
+  hosts.forEach(h => {
+    const dx = h.i - ti;
+    const at = PAGE[h.id] || 0;
+    const acrossT = h.i < xlo ? xlo - h.i : h.i > xhi ? h.i - xhi : 0;
+    const glassH = h.host.clientHeight || innerHeight;
+    const dur = settle ? settle.dur : 300;
+    const band = trailY_(h.host, h.shift, glassH, now, !!drag, !!instant, dur);
+    if (band.top < -h.shift - 1 || band.bot > -h.shift + glassH + 1) wider = true;
+    const c = { at: at, across: Math.abs(dx), acrossT: acrossT,
+      onGlass: WIDE && acrossT * stepX < glass,
+      drag: !!drag, lo: band.top - glassH, hi: band.bot + glassH };
+    c.skip = !drag && h.id !== AT && GLASS.cols.indexOf(h.id) === -1;
+    h.c = c;
+    h.pg = pagesRead_(h.host, h.id, c);
+  });
+  /* PUT BACK TO THE GLASS ONCE THE SLIDE HAS ENDED — see `trailEnd_`. */
+  if (wider && !drag && typeof afterSlide_ === 'function') afterSlide_(trailEnd_, 'trail');
+  hosts.forEach(({ id, i, host, shift, c, pg }) => {
     const dx = i - ti;
-    const at = PAGE[id] || 0;
+    const at = c.at;
     const x = dx * stepX + dxPx;
 
     /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
@@ -2236,21 +2278,27 @@ function placeGrid(instant, drag) {
        (THE BLUR THAT NOTE MEANS was a blur on the COLUMN, with nothing beside it to say which card
        was in front. `.soft` below blurs a CARD, by 2px, and the card in front is sharp beside it —
        a soft edge next to a sharp one is still an edge.) */
-    const onGlass = WIDE && Math.abs(dx * stepX) < glass;
+    /* ---------- AND THE ROW KEEPS DRAWN THE COLUMNS A SLIDE CROSSES -----------------------------------
+       `acrossT` IS HOW FAR THIS COLUMN IS FROM THE COLUMNS THE ROW HAS SWEPT (`TRAIL_X`), not from the one it
+       is going to. It was `across`, from the target, and a flick of three or four columns in a second
+       carried columns at opacity 0 across the glass — the black column of the sweep, 0.3–0.8s of it at 4x
+       (docs/history/341). Within two of the swept span a column is drawn at .92; the third is drawn and
+       transparent, so its own .22s fade has already happened off the glass when a sweep reaches it; past
+       that, hidden, as before. On a wide window, `onGlass` is asked over the swept span the same way. */
+    const onGlass = c.onGlass;
     host.style.opacity = across === 0 ? '1' : WIDE ? (onGlass ? '1' : '0')
-      : across === 1 ? '.92' : '0';
+      : c.acrossT <= 2 ? '.92' : '0';
     /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
        hidden until the swipe reached it, and a quick flick across two showed a blank in between.
        Held to the same 3 as the column, for the same reason and at the same cost: a handful of
        tabs is a handful of cards, and there is no version of this app where that is expensive. */
-    host.style.visibility = across > 3 && !onGlass ? 'hidden' : 'visible';
+    host.style.visibility = c.acrossT > 3 && !onGlass ? 'hidden' : 'visible';
 
     /* AND EACH PAGE — `placePages_`, below, which a builder placing one column alone (`placeOne_`) shares.
        SKIPPED WHOLE for a column that is neither in front nor on the glass when nothing it is placed by has
        changed (`sig`): a page turn moves ONE column, and walking the other fourteen to write every page the
        value it already holds was the most of a turn's script (docs/history/341). */
-    placePages_({ id: id, host: host }, { at: at, across: across, onGlass: onGlass, drag: !!drag,
-      skip: !drag && id !== AT && GLASS.cols.indexOf(id) === -1 });
+    placePages_({ id: id, host: host }, c, pg);
   });
 
   if (drag) {
@@ -2304,15 +2352,13 @@ function placeGrid(instant, drag) {
        are being compared, not the result it stands for.
    A vertical turn then walks one column, not fifteen. A sideways turn still walks all of them, because
    `across` changes for every column. */
-function placePages_(h, c) {
+function placePages_(h, c, pg) {
   const id = h.id, host = h.host;
-  const pages = host.querySelectorAll(':scope > .page');
-  const sig = [c.at, c.across, c.onGlass ? 1 : 0, WIDE ? 1 : 0, pages.length, PAGE_LO[id] || 0].join('|');
-  if (c.skip && host.PG_SIG === sig) return;
+  const r = pg || pagesRead_(host, id, c);
+  if (r.skipped) return;
   /* A DRAG'S WRITES ARE NOT A RESTING STATE — the blur is left to the finger — so the next placement walks. */
-  host.PG_SIG = c.drag ? null : sig;
-  const rows = glassRows_();
-  pages.forEach((el, pos) => {
+  host.PG_SIG = c.drag ? null : r.sig;
+  r.pages.forEach((el, pos) => {
     /* WHICH PAGE THIS ELEMENT IS -- see `logIndex_`. Identical to `pos` on every screen that
        holds all of its pages, which is all of them but the Find screen. */
     const p = logIndex_(id, pos);
@@ -2332,30 +2378,31 @@ function placePages_(h, c) {
       soft = !focused && (WIDE ? (c.across === 0 || c.onGlass) && d <= 3 : c.across <= 1 && d <= 2);
       if (soft) dim = softDim_(el);
     }
+    /* ---------- DRAWN WHILE ITS BOX MEETS THE BAND, AND ONLY THEN ---------------------------------------
+       IT WAS AN INDEX: `.far` past three pages from the target and opacity 0 past `glassRows_`. Three was
+       bought on 6 Oct for "a fast swipe never shows an empty rectangle", and it was three from where the
+       column was GOING — the cards the slide carried across the glass on its way there were the ones it
+       hid (see the band, in `placeGrid`). Now a page is drawn exactly while its box meets the swept glass
+       widened by a glass height either side, and hidden (`.far`, opacity 0) otherwise; a page more than
+       twelve from the target is not even measured. `.far` stays a class (`check-css.js` holds it to one).
+       ITS SHADE IS STILL BY ITS DISTANCE FROM THE CARD IN FRONT — 1, .9, .75 on a phone, whole on a wide
+       window — because the shade says "behind", and a card carried past is behind the one arriving. */
+    const box = r.boxes[pos];
+    const inBand = !!box && box[0] < c.hi && box[0] + box[1] > c.lo;
+    /* DIMMING ON A BLACK SCREEN IS DELETING.
+       This was .5 and .25, which reads as "further away" on paper and is not what happens here:
+       the card's fill is #101010 on black, so half of it is rgb(8) and a quarter is rgb(4) —
+       two and one shades off pure black, invisible on a phone in any light. The card either side
+       was being drawn and could not be seen, which is indistinguishable from it not being there.
+       Barely dimmed instead. What says a card is behind rather than beside is its POSITION and
+       its edge, both of which are already doing the work. */
+    /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
+       it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
     pageWrite_(el, {
       on: focused,
-      /* ---------- HOW MANY PAGES ARE KEPT VISIBLE EITHER SIDE ----------------------------------
-         `.far` is `visibility: hidden`, so this number is exactly how many pages up and down the
-         column are drawable at any moment. It was 2, which is what you see when you swipe quickly:
-         the third one away arrives as a blank and fills in a beat later.
-
-         THREE. One more each way is one more card's worth of work on a screen that is already
-         drawing them all — the cost is the browser compositing a card nobody is looking at, and
-         the gain is that a fast swipe never shows an empty rectangle. Beyond three the cost grows
-         and the gain does not: nobody swipes four pages faster than a frame. */
-      far: d > 3,
+      far: !inBand,
       soft: soft, dim: dim,
-      /* DIMMING ON A BLACK SCREEN IS DELETING.
-         This was .5 and .25, which reads as "further away" on paper and is not what happens here:
-         the card's fill is #101010 on black, so half of it is rgb(8) and a quarter is rgb(4) —
-         two and one shades off pure black, invisible on a phone in any light. The card either side
-         was being drawn and could not be seen, which is indistinguishable from it not being there.
-         Barely dimmed instead. What says a card is behind rather than beside is its POSITION and
-         its edge, both of which are already doing the work. */
-      /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
-         it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
-      /* HOW FAR THAT IS, `glassRows_` — the one number `goPage` fills out to as well. */
-      op: d > rows ? '0' : WIDE ? '1' : d === 0 ? '1' : d === 1 ? '.9' : '.75',
+      op: !inBand ? '0' : WIDE ? '1' : d === 0 ? '1' : d === 1 ? '.9' : '.75',
       /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD -----------------------------
          THIS WAS `d === 0`, which is every column's current page, and the column's own `none` above
          did not stop it: `pointer-events` is inherited, so an explicit `auto` on a child takes the
@@ -2366,13 +2413,90 @@ function placePages_(h, c) {
          `wideHit_` says cannot happen. With only the focused page taking presses, a press over a
          neighbour falls through to `#screen`, where `wideHit_` brings it forward and does nothing
          else, which is what that note promised. */
-      vis: d > 3 ? 'hidden' : 'visible',
+      vis: inBand ? 'visible' : 'hidden',
     });
     /* A pane used to be measured here, to decide whether it had overflowed and should therefore
        get the vertical gesture back for scrolling. It cannot overflow any more — a card clips
        rather than scrolls — so every vertical drag is the grid's, on every card, everywhere on
        it. Nothing to measure and nothing to decide. */
   });
+}
+/* THE READING HALF, done in `placeGrid`'s reading pass so no offset is asked after a write: the pages, the
+   column's signature and, unless the signature lets the column be skipped, each near page's box in
+   column coordinates. ONLY THE PAGES WITHIN TWELVE OF THE TARGET ARE MEASURED: the band is capped at eight
+   glass heights behind (`TRAIL_CAP`), and twelve pages is more than that on any glass this app is drawn
+   on, so what lies further is hidden without a layout read. */
+const PAGE_READ = 12;
+function pagesRead_(host, id, c) {
+  const pages = host.querySelectorAll(':scope > .page');
+  const sig = [c.at, Math.round(c.lo), Math.round(c.hi), c.across, c.onGlass ? 1 : 0, WIDE ? 1 : 0,
+    pages.length, PAGE_LO[id] || 0].join('|');
+  if (c.skip && host.PG_SIG === sig) return { skipped: true };
+  const boxes = [];
+  for (let pos = 0; pos < pages.length; pos++) {
+    const p = logIndex_(id, pos);
+    boxes.push(Math.abs(p - c.at) > PAGE_READ ? null : [pages[pos].offsetTop, pages[pos].offsetHeight]);
+  }
+  return { pages: pages, sig: sig, boxes: boxes };
+}
+
+/* ---------- THE TRAIL, DOWN ONE COLUMN ------------------------------------------------------------------
+   `top` and `bot` are column coordinates (the same as a page's `offsetTop`) of the union of the windows the
+   column's glass has been aimed at in the current chain of slides; `until` is when this column's last
+   slide ends. A placement that is not a finger's adds its target to the union while the last slide still
+   runs; otherwise the union starts again from the window the column is LEAVING (where the last placement
+   put it, read off the inline value, which is no layout) and the window it is going to. An instant
+   placement leaves from nowhere — nothing is carried — and a drag reads the trail without writing it.
+   CAPPED AT EIGHT GLASS HEIGHTS BEHIND THE TARGET: the measured lag of a run of flicks is two to eight
+   pages, and a thirty-flick run must not keep its whole history drawn (docs/history/341). */
+const TRAIL_CAP = 8;
+function trailY_(host, shift, glassH, now, drag, instant, dur) {
+  const tTop = -shift, tBot = -shift + glassH;
+  const T = host.TRAIL;
+  const run = !!(T && now < T.until);
+  let top = tTop, bot = tBot;
+  if (run) { top = Math.min(top, T.top); bot = Math.max(bot, T.bot); }
+  else if (!drag && !instant) {
+    const was = colPlaced_(host);
+    if (was) { top = Math.min(top, -was[1]); bot = Math.max(bot, -was[1] + glassH); }
+  }
+  top = Math.max(top, tTop - TRAIL_CAP * glassH);
+  bot = Math.min(bot, tBot + TRAIL_CAP * glassH);
+  const band = { top: top, bot: bot, until: drag || instant ? (run ? T.until : 0) : now + dur + 50 };
+  if (!drag) host.TRAIL = band;
+  return band;
+}
+/* AND ACROSS THE ROW: the column indices the row has swept while its sideways slide still runs, the index
+   it is leaving and the one it is going to. `at` is the index this placement was for. */
+let TRAIL_X = { lo: 0, hi: 0, at: null, until: 0 };
+function trailX_(ti, now, instant, settle) {
+  const T = TRAIL_X;
+  const run = now < T.until;
+  let lo = ti, hi = ti;
+  if (run) { lo = Math.min(lo, T.lo); hi = Math.max(hi, T.hi); }
+  else if (!instant && T.at != null) { lo = Math.min(lo, T.at); hi = Math.max(hi, T.at); }
+  const moved = T.at !== ti;
+  const dur = settle && settle.axis === 'x' ? settle.dur : 300;
+  return { lo: lo, hi: hi, at: ti,
+    until: instant ? (run ? T.until : 0) : moved || run ? now + dur + 50 : T.until };
+}
+/* ONCE THE SLIDES HAVE ENDED, THE BAND GOES BACK TO THE GLASS. Booked by any placement that left a column
+   wider than its glass (`afterSlide_`, which waits out the settle and a finger), and asked again until
+   every column's own slide has ended — a tap's slide is not a settle. One instant placement does the
+   collapse: the trails have run out, so it draws each column's glass and a glass either side and nothing
+   more, and only the columns whose band changed are walked (`placePages_`). Until then the pages a run
+   kept cost compositing only. */
+function trailEnd_() {
+  const now = performance.now();
+  let until = TRAIL_X.until;
+  TABS.forEach(t => { const h = $('s-' + t.id); if (h && h.TRAIL) until = Math.max(until, h.TRAIL.until); });
+  if (until > now) { setTimeout(() => afterSlide_(trailEnd_, 'trail'), Math.ceil(until - now)); return; }
+  const wide = TRAIL_X.lo < TRAIL_X.hi || TABS.some(t => {
+    const h = $('s-' + t.id);
+    const was = h && h.TRAIL && colPlaced_(h);
+    return !!(was && (h.TRAIL.top < -was[1] - 1 || h.TRAIL.bot > -was[1] + (h.clientHeight || innerHeight) + 1));
+  });
+  if (wide) placeCells('y', true);
 }
 /* ONE PAGE'S WRITES, EACH ONLY IF IT DIFFERS FROM WHAT THIS ELEMENT WAS LAST GIVEN. `position` and
    `transform` are the same for every page for ever (the column does the moving), so they are written
@@ -2410,12 +2534,18 @@ function placeOne_(id) {
   const stepX = stepX_();
   const at = PAGE[id] || 0;
   const shift = columnShift_(host, domIndex_(id, at));
+  const across = Math.abs(i - ti);
+  const onGlass = WIDE && Math.abs((i - ti) * stepX) < appWidth_() / 2 + stepX * 1.5;
+  const glassH = host.clientHeight || innerHeight;
+  /* NOTHING IS SLIDING (the builder's own gate), so the band is this column's glass and one either side. */
+  const band = trailY_(host, shift, glassH, performance.now(), false, true, 0);
+  const c = { at: at, across: across, acrossT: across, onGlass: onGlass, drag: false, skip: false,
+    lo: band.top - glassH, hi: band.bot + glassH };
+  const pg = pagesRead_(host, id, c);
   colTransition_(host, SLIDE_NONE, SLIDE_NONE, null);
   colWrite_(host, (i - ti) * stepX, shift);
   host.PLACED_P = at;
-  const across = Math.abs(i - ti);
-  const onGlass = WIDE && Math.abs((i - ti) * stepX) < appWidth_() / 2 + stepX * 1.5;
-  placePages_({ id: id, host: host }, { at: at, across: across, onGlass: onGlass, drag: false, skip: false });
+  placePages_({ id: id, host: host }, c, pg);
 }
 
 /* ==================================================================================================
