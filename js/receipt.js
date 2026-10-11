@@ -329,7 +329,7 @@ function rcOffer_(blob, name) {
   const can = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
   /* A DIALOGUE, SO ITS ACTIONS ARE BUTTONS — CLAUDE.md's rule, and the pay sheet is the precedent. */
   openSheet('Share this booking', `
-    <img class="rc-shot" src="${RC_SHOT.url}" alt="This booking, as a picture">
+    <img class="rc-shot" src="${RC_SHOT.url}" alt="This booking, as a picture" decoding="async">
     <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
     <div class="btn-row">
       ${can ? '<button class="btn primary" data-do="rc-shot-share">Share</button>' : ''}

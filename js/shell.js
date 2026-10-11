@@ -2743,8 +2743,10 @@ function placeNow_(which, instant, dragPx, id) {
      photograph adding its controls, `drawBooker()` replacing the card outright — so the measuring
      is also booked on a `ResizeObserver` over the cards themselves. See its note in find.js. */
   if (typeof paneWatch_ === 'function') paneWatch_($('s-' + AT));
-  /* THE FEED'S NEXT PICTURES, asked for a page ahead — see `postsAhead_` in posts.js. */
-  if (AT === 'feed' && typeof postsAhead_ === 'function') postsAhead_('feed');
+  /* THE NEXT PICTURES OF THE COLUMN IN FRONT, asked for six pages ahead — see `picsAhead_` in posts.js. It was
+     the Feed's alone (`postsAhead_`), one behind and two ahead; docs/history/341 measured that a late picture
+     was nearly always one asked for late. */
+  if (typeof picsAhead_ === 'function') picsAhead_(AT);
 
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */
@@ -3671,6 +3673,8 @@ function goPage(id, to, instant) {
      in arcade.js. Before the placement, for the reason the fill above is: a card that grows after
      the column was placed is a card the placement never saw. */
   if (typeof widgetsNear_ === 'function') widgetsNear_(id);
+  /* AND THE REELS KEPT SIX AHEAD, one slide appended now if fewer are left — markup only (`reelAhead_`). */
+  if (id === 'reel' && typeof reelAhead_ === 'function') { try { reelAhead_(n); } catch (e) {} }
   if (id === AT) placeCells('y', instant);
   /* AFTER THE SLIDE, THE LANDING'S OWN WORK — the page in front and one either side if a jump left them
      empty, its textbook animation and its running widget. Not the far pages any more: the late pass that

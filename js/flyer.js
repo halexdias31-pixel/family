@@ -290,7 +290,7 @@ function flyOne(r) {
       ? `<div class="fm-ring"><span>Call</span><b>${esc(B.phone)}</b></div>` : ''}
     ${flyOn('fm-facts')
       ? `<div class="fm-facts">${facts.map(f => `<div>${f}</div>`).join('')}</div>` : ''}
-    ${qr ? `<div class="fm-qr"><img alt="" src="${esc(flyQr(B.site))}"
+    ${qr ? `<div class="fm-qr"><img alt="" decoding="async" src="${esc(flyQr(B.site))}"
              onerror="this.closest('.fm-fly').classList.add('qr-off')"></div>` : ''}
     ${flyOn('fm-foot')
       ? `<div class="fm-foot"><span>${esc(B.area)}</span><b>${esc(B.site)}</b></div>` : ''}

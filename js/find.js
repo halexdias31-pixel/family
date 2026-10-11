@@ -624,7 +624,7 @@ function thingCard_(x, credits) {
               scarf makes the scarf the smallest thing on the card. */''}
         ${x.wearable && x.artId && itemArt(x.slot, x.artId)
           ? `<span class="thing-pic art">${itemArt(x.slot, x.artId, 44)}</span>`
-          : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy">` : ''}
+          : x.image ? `<img class="thing-pic" src="${esc(pic(x.image))}" alt="" loading="lazy" decoding="async">` : ''}
         <div class="thing-body">
           ${/* ---------- A RESULT IS READ LIKE A SEARCH RESULT -------------------------------------
                 WHERE IT IS FROM GOES ABOVE THE NAME, not under it. That is the one structural thing
@@ -4456,6 +4456,29 @@ function bibleLoad_(n) {
   });
   return BIBLE.loading[n];
 }
+
+/* ---------- THE CHOSEN BOOK, ASKED FOR BEFORE ITS VERSES ARE DRAWN (docs/history/341) ---------------------
+   The verse card's own fetch (`bibleCard_`) stays as the floor; this asks as soon as the book chip is
+   chosen, and the builder asks again (the `bible` job) if the book is chosen and still not here — the
+   chip answered before the index had arrived, say. The cards waiting for it are drawn again when it
+   comes, whichever asked first (`bibleRedraw_`). Admin only, as every Bible fetch is (`bibleFor_`). */
+function bibleChosen_() {
+  const st = typeof RES_ST !== 'undefined' ? RES_ST : STUFF;
+  const f = (st.filters || []).find(x => x.field === 'bibleBook' && x.value != null);
+  if (!f || !BIBLE.rank || !BIBLE.rank.b) return 0;
+  return BIBLE.rank.b[spellKey_(f.value)] || 0;
+}
+function bibleAhead_() {
+  const n = bibleChosen_();
+  if (!n || !bibleFor_() || BIBLE.books[n] || BIBLE.loading[n] || BIBLE.missed[n]) return;
+  bibleLoad_(n).then(() => bibleRedraw_(n));
+}
+function bibleJobs_() {
+  const n = TABS.some(t => t.id === 'res') ? bibleChosen_() : 0;
+  if (!n || !bibleFor_() || BIBLE.books[n] || BIBLE.loading[n] || BIBLE.missed[n]) return [];
+  return [{ key: 'bible:' + n, kind: 'bible', d: aheadDist_('res', null), run: bibleAhead_ }];
+}
+AHEAD_KINDS.push(bibleJobs_);
 
 /* ---------- A VERSE, DRAWN ------------------------------------------------------------------------
    THE TWO MARKS THE 1611 PRINTERS LEFT IN THE TEXT, and both are kept in the file for this function
@@ -14532,6 +14555,9 @@ on('facet-pick', el => inFinder_(finderAt_(el), () => {
   if (el.dataset.bucket) f.bucket = true;
   STUFF.filters.push(f);
   paintStuff();
+  /* A BOOK OF THE BIBLE CHOSEN IS FETCHED NOW, not when its first verse card is drawn (docs/history/341):
+     the cards the window fills ahead would otherwise each sit on the loader until the book arrived. */
+  if (f.field === 'bibleBook') bibleAhead_();
 }));
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
    Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
