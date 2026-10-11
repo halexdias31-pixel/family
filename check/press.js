@@ -151,7 +151,9 @@ const ACCEPTED_QUIET = {
                     + 'the paper and the screen rightly stays as it was — check-flow presses it with the paper showing.' },
   /* IT CAME OFF THIS LIST ONCE, WITH THE STATE THAT REACHED IT. The "carry on" block was deleted
      and nothing pressed `pad-clear` again, so the entry would have been a written reason with
-     nothing behind it. `stuff · a diagram you can draw on` reaches it again. */
+     nothing behind it. `stuff · a diagram you can draw on` reached it again; that state went when the pen
+     moved from the figure page to the card (docs/history/337), and the Find states still reach it -- the
+     run names the one it pressed it on. */
   'pad-clear': { why: 'nothing has been drawn on the pad, so this writes an empty list over an '
                     + 'empty list — the same refusal as an empty box, and the same right one.' },
 
@@ -1348,6 +1350,21 @@ for (const who of VISITORS) {
             return 'a swipe beginning on the picture did not change column — it landed on ' + r2.at;
           await page.evaluate(x => go(x, false, true), 'stuff');
           await page.waitForTimeout(420);
+          /* AND MEASURED AGAIN, because coming back places the column afresh. The card grew when Draw
+             turned it to its drawing and the column is not re-placed for that (the card keeps its top,
+             so nothing under the finger jumps); arriving back at Find centres it for the height it has
+             now -- measured, the scale 31px higher than before the swipe at 390x844 -- and a stroke
+             aimed at the old box started below the ink, on the card, where a drag turns the column. */
+          const again = await page.evaluate(() => {
+            const pad = document.querySelector(window.__penSel);
+            const ink = pad && pad.querySelector('.qpad-ink'), btn = pad && pad.querySelector('.qpad-lock');
+            if (!ink || !btn) return null;
+            const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
+            return { ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) },
+                     btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
+          });
+          if (!again) return 'coming back to Find, the card was no longer on its drawing';
+          box.ink = again.ink; box.btn = again.btn;
           return '';
         })();
         swipes.push({ from: 'stuff · a swipe beginning on the picture', dir: 'touch left',

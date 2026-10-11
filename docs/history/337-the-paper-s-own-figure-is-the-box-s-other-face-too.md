@@ -102,6 +102,14 @@ there): the Figure tile opens the picture over the box, which is what it does fo
 figure in front, and Draw turns the box into it. Each follows its own rule, and the row looks like any
 other — but it is the one place two tiles both offer the figure.
 
+**Found by `check/press.js`, and left as it is:** Draw grows the card in place and the column is not
+placed again for the new height — the card keeps its top, so nothing under the finger moves. Leaving Find
+and coming back centres the card for the height it has now: the May 2017 1F Q6(i) scale sat 31px higher
+at 390x844 after the round trip. The press pass measured the scale before a swipe away and drew its
+stroke after coming back, below the ink, where a drag turns the column; it measures again on return now.
+The same is true of 327's surfaces. Re-placing the column on every Draw would make the card jump under
+the thumb that pressed it.
+
 ### Checked
 
 `check-flow` — a new journey over REAL rows (June 2024 1F Q7, the review's own example, and the bearings
@@ -128,7 +136,7 @@ tile 44px, Type hit, nothing smaller whole, the whole figure in the pane, and a 
 narrower than the card needed); AQA Chemistry Q1.9 switched, given way to the floor and no further. The construction (Nov 2019 1H Q4) enters on its card through Draw.
 "A diagram you can draw on", which turned to the figure page for its pen, is replaced by them.
 `check/press.js`: the line of best fit's five gestures are asked of May 2017 1F Q6(i)'s card after a
-real touch on its Draw tile. `check-css.js`: every figure-ink rule names `.qp-area`.
+real touch on its Draw tile (the box measured again after the swipe away and back, above). `check-css.js`: every figure-ink rule names `.qp-area`.
 
 ### Mutations
 
