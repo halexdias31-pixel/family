@@ -1121,12 +1121,26 @@ const lookKey_ = (packed, handle) => {
    already (`.pfp.is-sending`, note 330); the figure counts its requests here, both ways out of `api()`, and
    `card-cancel` waits for nought. A count and not a class on the wardrobe, because a payload landing redraws
    the form under a request and a class would go with the old element. */
+/* ---------- AND ONE AFTER ANOTHER, IN THE ORDER THEY WERE CHOSEN (round 1 of the fixes for docs/history/339) -------
+   THE KEEP MADE IT TWO LOOKS ON THE WIRE BY ITSELF. `avatarKeep_` sends a look the moment a new handle lands, and the
+   wardrobe is two sections above Randomise — a colour tapped straight after was a second `saveAvatar` beside the
+   keep, and with no lock on the server whichever finished last won: measured, the keep finishing last put the sheet
+   back in shirt 0 while the phone wore shirt 3, and Save shut the card over a figure everybody else draws in other
+   clothes. Two quick taps had always been the same race, out of sight (`AV_SEQ` settles the PHONE, not the sheet).
+   So each look waits for the one before it to be answered, and the server finishes them in the order they were
+   chosen — the last one chosen is the last one written. The token goes in when the look is CHOSEN, not when it is
+   sent: a look waiting in this line belongs to whoever picked it, and a phone handed to somebody else who signs in
+   meanwhile must not write it on theirs (`api()` reads `USER.token` at sending time otherwise). */
 let AV_WIRE = 0;
+let AV_LINE = Promise.resolve();
 function avatarPost_(cfg) {
   AV_WIRE++;
   const done = () => { AV_WIRE = Math.max(0, AV_WIRE - 1); };
-  return api({ action: 'saveAvatar', name: USER.name, personId: USER.personId, avatar: cfg })
-    .then(d => { done(); return d; }, e => { done(); throw e; });
+  const body = { action: 'saveAvatar', name: USER.name, personId: USER.personId, avatar: cfg };
+  if (USER.token) body.token = USER.token;
+  const sent = AV_LINE.then(() => api(body));
+  AV_LINE = sent.catch(() => {});
+  return sent.then(d => { done(); return d; }, e => { done(); throw e; });
 }
 /* ---------- EVERY FIGURE ON THE COLUMN, NOT THE FIRST ONE `$()` FINDS ------------------------
    THE WARDROBE WAS SEVEN PAGES AND EACH CARRIED THE FIGURE (it is one card now). As an id that was
@@ -2435,9 +2449,10 @@ function mayAddChild_() {
 /* ---------- LINKING A CHILD WHO HAS AN ACCOUNT: THE LAST SECTION OF "MANAGE YOUR CHILD" -----------------
    It was a card of its own on the Settings column, "Add your child" — before that a sheet opened by a
    tile — and it is one section of the one card now (`childManageCard_`, below; docs/history/339). THE
-   CAPTION KEEPS ITS WORDS, because the server says them: `makeChild`'s refusal for a child who already
-   has an account tells the parent to *use "Add your child"* (dopost.gs), and a sentence pointing at
-   words nobody can find on the screen is the `MESSAGING` fault from the other side. NO IDS ON THE BOXES:
+   HEADING KEEPS ITS WORDS (a heading, not a caption, since the review of 339), because the server says
+   them: `makeChild`'s refusal for a child who already has an account tells the parent to *use "Add your
+   child"* (dopost.gs), and a sentence pointing at words nobody can find on the screen is the `MESSAGING`
+   fault from the other side. NO IDS ON THE BOXES:
    the handler reads the section the button is in, which is what `me-save` does, so a second copy of this
    card anywhere can never be the one it reads. The foot line it had ("nothing changes until they
    accept…") said the sub-line's second sentence again, and went into it. */

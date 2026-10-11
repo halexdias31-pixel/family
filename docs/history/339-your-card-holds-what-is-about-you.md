@@ -170,7 +170,8 @@ Every card after Your roles is still appended, for that reason.
     card's face wears it, Cancel puts the look back through `saveAvatar`); **Manage your child** (the children,
     New PIN from the card, linking one, none linked, the held state with no New PIN, a list stamped for somebody
     else drawn as nobody's, a student without the card); **the library cards on Tools** (a parent, a student, a
-    tutor and an admin, straight after the hours, nobody signed out, not on Settings, typing held through a
+    tutor and an admin, last since the review (straight after the hours before it), nobody signed out, not on
+    Settings, typing held through a
     repaint and a restart, redrawn when `myProfile` lands); **Settings no longer draws what moved, and
     `PAGE.settings` lands on a real page**.
 - **`check-profile.js` §18**, against the real `PROFILE_GROUPS`, `CLIENT_GROUPS` and `STUDENT_GROUPS`: for a tutor
@@ -400,3 +401,44 @@ check that did not exist, so they are proved by mutation alone.
 
 The two hold-backs the roles reader found (the whole Tools column held while a library card holds typing; an unlisted
 tutor's hours in two places), and the older-backend case the builder flagged, are in *Not done* above.
+
+- **An admin's Contact & address is drawn a little smaller at 320x568** than on the base commit (86.5% → 82.7%, its
+  boxes 38px → 36px; the roles reader, in passing): Settings' first card now carries the line that says where things
+  went, four lines at 320. Both were under 44px before this note. The line stays — it is the only thing on Settings
+  that tells a tutor or an admin where their name, picture, handle and figure went — and a page of its own for it
+  would move every Settings page after it (`PAGE.settings`).
+
+### Round 1 of the fixes (11 Oct, evening): every finding re-proved, and one race the fixes made
+
+The container restarted part-way through this step; the fixes above were committed, and nothing else was trusted. So
+every one was proved again from nothing, on a fresh export of the reviewed commit (`893f31d`) and on this tree:
+
+- **Red on the reviewed commit**: the twelve journeys named above under *What holds each fix*, with this tree's
+  `check-flow.js` dropped into the export — 12 of 14 broken there, each with the review's own symptom ("Nothing had
+  changed" and the draft dropped; `pat_humble98` made under "Quinn"; skin 2 → 4 under a new handle; the put-back sent
+  beside the pick; "the You column offers Edit on []"; signing in turning the calendar into Practice; "have not
+  arrived from the server yet"). The other two (Manage's loader and the moved line; the surname walk with her own
+  Edit open) are the coverage gaps, proved by mutation. **All 14 green on this tree.**
+- **Sixteen mutations, each red in its named journey** on a copy, the file put back after each: Randomise locking the
+  whole form; Save's wait gone; `avatarKeep_` not called; the put-back under the NEW handle; Cancel's `AV_WIRE` wait
+  gone; the first-name refusal gone; `cardSelfSay_` gone; `cr` not kept; `fig` not read back; `mineIs_`'s id line
+  gone; `startScreen_`'s hold gone; `libCardsRedraw_` drawing under the caret; Manage's loader gone; the moved line
+  not falling to Signing in; her surname in her own card's editing heading; and the one below.
+
+21. **A colour picked while Randomise was keeping the face could be undone by the keep** (found here, by reading what
+    fix 2 added). `avatarKeep_` sends a `saveAvatar` of its own the moment the new handle lands, and the wardrobe is
+    two sections above Randomise — so a colour tapped straight after was a second look on the wire beside the keep,
+    and `saveAvatar` takes no lock. Held so the keep finished last, the sheet ended in the kept face in shirt 0 while
+    the phone wore shirt 3, and a Save then shut the card over a figure every other phone draws in other clothes. Two
+    quick taps in the wardrobe had always been the same race, out of sight (`AV_SEQ` settles which answer the PHONE
+    believes, never which write the SERVER finishes last). **The looks go to the server one after another, in the
+    order they were chosen** (`AV_LINE` in `avatarPost_`): each waits for the one before it to be answered, so the
+    last look chosen is the last one written. The token is put on the look when it is CHOSEN — a look waiting in that
+    line belongs to whoever picked it, and a phone handed on to somebody who signs in meanwhile must not write it on
+    theirs (`api()` would otherwise read `USER.token` at sending time). Held by *a colour picked while Randomise is
+    still keeping the face is the look the sheet ends with*: red on the commit before this round ("the sheet ends in
+    shirt 0"), green after, red again with the line taken out. Not a lock on the server — `saveAvatar` is not changed,
+    so still no stamps.
+
+Two comments that still called the child forms' headings captions (`kidAddSec_`, the `.kid-sec` rule) were put right;
+the stylesheet's `--css-version` moved with it.

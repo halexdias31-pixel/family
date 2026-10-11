@@ -3193,6 +3193,50 @@ check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for
   return bad;
 });
 
+/* A PICK WHILE THE FACE IS STILL BEING KEPT. The review's fix for a Randomise that changed the face (`avatarKeep_`)
+   sends a `saveAvatar` of its own the moment the new handle lands — so a colour tapped straight after Randomise was a
+   SECOND look on the wire beside it, and `saveAvatar` takes no lock: whichever the server finished last won. Held so
+   the keep finished last, the sheet wore the kept face in shirt 0 while the phone wore shirt 3 — Save then shut the
+   card over a figure everybody else draws in other clothes. Found in round 1 of the fixes for 339, by reading what the
+   fix added. The looks go to the server one after another now (`AV_LINE`), in the order they were chosen. */
+check('review 339: a colour picked while Randomise is still keeping the face is the look the sheet ends with', async () => {
+  const W = cardWorld_();
+  let release = null, n = 0;
+  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b)
+    : b.action === 'saveAvatar' ? (n++ === 0 ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.real.post(b))
+    : W.reply(b));
+  const c = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  if (String(W.real.row('P-C1').avatar || '')) return ['Pat starts with a look of her own — NOT the case asked about'];
+  const drawn = (cell, handle) => c.w.avatarConfig(cell, handle);
+  const face0 = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  c.A('card-edit', c.edit('P-C1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  const was = String(W.real.row('P-C1').handle);
+  c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+  for (let k = 0; k < 30 && !release; k++) await wait(100);
+  if (!release) return ['Randomise sent no keep of the face (' + JSON.stringify(c.sent.map(x => x.action)) + ') — NOT checked'];
+  if (String(W.real.row('P-C1').handle) === was) return ['Randomise wrote no new handle — NOT checked'];
+  await wait(200);
+  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="3"]');
+  if (!sw) return ['Pat\'s figure section has no shirt 3 — NOT checked'];
+  c.A('av-colour', sw);
+  await wait(400);
+  /* THE KEEP FINISHES LAST, if the pick went beside it. */
+  release();
+  for (let k = 0; k < 30 && !/shirt:3/.test(String(W.real.row('P-C1').avatar)); k++) await wait(100);
+  await wait(300);
+  const sheet = drawn(W.real.row('P-C1').avatar, W.real.row('P-C1').handle);
+  const phone = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  if (Number(sheet.shirt) !== 3) bad.push('the sheet ends in shirt ' + sheet.shirt + ' (' + JSON.stringify(W.real.row('P-C1').avatar) + ') — the keep, finishing last, put the shirt picked after it back');
+  if (Number(phone.shirt) !== 3) bad.push('the phone ends in shirt ' + phone.shirt + ', picked 3');
+  if (sheet.skin !== face0.skin || sheet.hairColour !== face0.hairColour) bad.push('the sheet\'s face is not the face the card opened with: skin ' + sheet.skin + ' hair ' + sheet.hairColour + ', opened skin ' + face0.skin + ' hair ' + face0.hairColour);
+  const order = c.sent.filter(x => x.action === 'saveAvatar').map(x => Number(x.avatar && x.avatar.shirt));
+  if (JSON.stringify(order) !== '[0,3]') bad.push('the looks went to the server as ' + JSON.stringify(order) + ', wanted the keep (shirt 0) and then the pick (shirt 3)');
+  return bad;
+});
+
 /* SAVE WITH NOTHING TYPED, AFTER A SECTION SAVED ITSELF. "Nothing had changed" after a Randomise, a pick or a picture
    read as if the press had been thrown away — and for a parent three of her four sections are those. */
 check('review 339: Save with nothing typed after a Randomise, a pick or a picture says what was saved, not "Nothing had changed"', async () => {
