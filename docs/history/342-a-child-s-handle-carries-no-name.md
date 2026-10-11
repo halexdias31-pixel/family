@@ -199,6 +199,13 @@ admin for everybody else.
   layout rules need is a tutor's (`Carl Everyteacher-Longername`), since only a tutor's whole name
   reaches anybody else.
 
+**The run, on the committed files:** `check-flow.js` all 327 journeys (four parts); 52 of the suite's 54
+fast checks green — `check-scope` and `check-dead` are red on the base commit too, with the same findings
+(`check-dead`'s list is one shorter here: `handleIsShaped_` is called now); `check/ui.js` for account,
+settings, feed and dm, nothing new in 415 combinations; `check/press.js` for the same four, every press
+answered — its swipe pass (a flick chain on Games, Draw at 844×390 in Find) went red under a machine load of
+about twenty, and went red on the base commit too.
+
 **Merging with `fix-card-settings`** (which moves Randomise into editing your own card), measured by a
 trial `git merge-tree`: one conflict in `js/me.js`, the Settings "Signing in" card that branch deletes —
 take theirs, and put this wording into their `cardHandleHtml_` ("Randomise saves a new one at once, and
