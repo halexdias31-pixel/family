@@ -252,6 +252,12 @@ function boot(opts) {
      the payload's arrival makes, for somebody signed in from the moment the page opened — a path no
      journey here could stand on. So a journey may hand the window over first, the way `check/ui.js`
      uses `addInitScript`: seed storage, or stand in for a browser API jsdom does not have. */
+  /* ---------- THE BUILDER IS HELD, UNLESS A JOURNEY ASKS FOR IT ---------------------------------------
+     `ahead_` (shell.js, docs/history/341) draws every stale column, every widget slot and both finders'
+     windows in the quiet after a landing. Every journey written before it asks what an ARRIVAL does —
+     a column drawn on the way in, a widget started when its column comes in front — so they boot with it
+     held and go on testing that floor; the journeys about the builder itself pass `ahead: true`. */
+  w.__aheadHold = !opts.ahead;
   if (typeof opts.before === 'function') opts.before(w);
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
@@ -259,7 +265,14 @@ function boot(opts) {
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
       /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_`
          below. A function, because a `let` inside this eval is not reachable from a second one. */
-      'quiet: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
+      'quiet: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length)' +
+      '  && !(typeof aheadBusy_ === "function" && aheadBusy_()),' +
+      /* THE BUILDER'S OWN STATE, for the journeys about it (docs/history/341): what is still marked, what a
+         landing drew, the log of what it ran, and the two landings — a reply (`landRepaint_`) and a change
+         of facts (`repaint`). */
+      'STALE: () => STALE, paints: () => Object.assign({}, PAINT_N), aheadLog: () => window.__aheadLog.slice(),' +
+      'aheadBusy: () => aheadBusy_(), landRepaint: d => landRepaint_(d), epochs: () => ({ act: ACT_EPOCH, draw: DRAW_EPOCH }),' +
+      'TOOLS_ON: () => TOOLS_ON, PRE_PAYLOAD: () => [...PRE_PAYLOAD], GLASS: () => GLASS,' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +

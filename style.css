@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-reach-1";
+  --css-version: "2026-10-11-reach-2";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -5336,6 +5336,12 @@ label.bk-k { cursor: pointer; }
 .av-wrap { display: flex; align-items: center; justify-content: center; padding: .3rem 0; }
 /* `.av-big` WAS HERE, the figure's padding when the wardrobe opened in a sheet; nothing draws it. */
 .avatar, .av-item { display: block; }
+/* THE HEAD-AND-SHOULDERS CROP IS A CIRCLE BY ITS OWN BOX. It was a `<clipPath>` with a numbered id, one
+   per drawing (ids must be unique), which made every column with a face in it draw different markup each
+   time from the same facts — and a landing that changes nothing can only be told apart from one that
+   does when the same facts draw the same markup (`paint`, shell.js; docs/history/341). The bust's circle
+   fills its `4 4 40 40` viewBox exactly, so rounding the svg's box draws the same circle with no id. */
+svg.avatar.is-bust { border-radius: 50%; overflow: hidden; }
 /* On a card, the figure sits in the same square a photograph would — so a row with a picture and
    a row with a figure line up rather than one of them being taller. */
 .thing-pic.art { display: flex; align-items: center; justify-content: center;

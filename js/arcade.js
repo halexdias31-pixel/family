@@ -353,6 +353,34 @@ function widgetWho_() {
    FOR A REPAINT OF THE COLUMN IN FRONT, which draws it from nothing and starts its widgets again at once
    (`paint(AT, true)`, `startScreen_`): a repaint is the facts changing under the column you are on, and
    that has always been a restart. */
+/* ---------- AND A DRAWING MADE FROM OLD FACTS, OR FOR SOMEBODY ELSE, GOES BACK UNDER ITS LOADER --------------
+   A WIDGET THAT HAS DRAWN AND IS NOT RUNNING keeps its drawing — a calendar's month, a notepad's words, a
+   board's scores — and when a landing finds its column's markup unchanged nothing is written (`paint`'s
+   identical-markup skip, shell.js), so that drawing would stay, made from the facts before the landing. So
+   every such slot that READS FACTS is put back under the one loader (its markup, as `widgetOnColumn_` draws
+   it), to be drawn again from the new facts in the next quiet moment (`ahead_`) or on arrival. A widget
+   declared `pure` in `WIDGETS` draws nothing from the facts — a calculator, a timer, a board game — and
+   cannot go stale, so it keeps its drawing; `check-widgets.js` proves the declaration (the slot's markup
+   the same under two payloads and two people), so it cannot drift. `who`: A CHANGE OF PERSON — then every
+   drawn slot whose drawing was somebody else's goes, pure or not (the shared iPad: the last child's notepad
+   must not sit drawn on a column a sign-out marked stale). A slot a widget is running in is left to 331's
+   rules, which stop and start it. docs/history/341. */
+function widgetsReveil_(col, who) {
+  if (WIDGET_COLS.indexOf(col) === -1 || typeof loading_ !== 'function') return;
+  const me = widgetWho_();
+  widgetsOn_(col).forEach(w => {
+    if (typeof w.start !== 'function' && typeof w.draw !== 'function') return;
+    const slot = slotOn_(col, String(w.id));
+    if (!slot || slot.getAttribute('aria-busy')) return;
+    if (TOOLS_ON.some(e => e.slot === slot)) return;
+    if (who ? slot.WHO === me : w.pure) return;
+    slot.innerHTML = w.html + loading_();
+    slot.setAttribute('aria-busy', 'true');
+    delete slot.AHEAD;
+    delete slot.WHO;
+  });
+}
+
 function widgetsHeld_(col) {
   const who = widgetWho_();
   return TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who);
@@ -445,6 +473,8 @@ function widgetUp_(w, col) {
   const slot = col ? slotOn_(col, id) : $('wgt-' + id);
   TOOLS_ON.push({ w, col, slot, who: widgetWho_() });
   if (slot && col) WIDGET_HOME[slot.id] = col;
+  /* WHOM ITS DRAWING IS FOR, kept on the slot after the widget stops — see `widgetsReveil_`. */
+  if (slot) slot.WHO = widgetWho_();
   try { w.start && w.start(); }
   catch (e) { console.warn('[widget]', w.id, e); }
   finally {

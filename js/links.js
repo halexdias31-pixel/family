@@ -167,10 +167,15 @@ function avatarConfig(packed, handle) {
    clipped so a cape or a raised hand stays inside the circle. ONE DRAWING, TWO CROPS: a second
    renderer for the figure-as-picture would be a figure that stops matching the wardrobe the day a
    hat is added, and the owner's point is that it is the avatar.
-   THE CLIP NEEDS AN ID, and an id must be unique on the page — the same person can be on three
-   cards at once — so each drawing takes the next number. The ground is the figure's own colour,
-   not a token: it belongs to this drawing and to nothing else on the screen. */
-let AV_CLIP = 0;
+   THE CIRCLE IS THE SVG'S OWN BOX, NOT A CLIP PATH. It was a `<clipPath>` with an id, and an id must be
+   unique on the page — the same person can be on three cards at once — so each drawing took the next
+   number (`av-clip-1`, `-2`, …). That made every column holding a face draw DIFFERENT markup each time it
+   was drawn from the same facts, and so a landing could never tell that a column had not changed: the
+   identical-markup skip in `paint` (shell.js, docs/history/341) found four of fifteen columns differing
+   by that number alone. The bust's circle fills its 40x40 viewBox exactly, so `border-radius: 50%` and
+   `overflow: hidden` on the svg (`svg.avatar.is-bust`, style.css) draw the same circle with no id at all.
+   The ground is the figure's own colour, not a token: it belongs to this drawing and to nothing else on
+   the screen. */
 const AV_BUST_GROUND = '#a9cfe9';
 function avatarFor(handle, size, packed, o) {
   const c = avatarConfig(packed, handle);
@@ -184,12 +189,10 @@ function avatarFor(handle, size, packed, o) {
     return fn ? fn(colour) : '';
   };
   const bust = !!(o && o.bust);
-  const clip = bust ? 'av-clip-' + (++AV_CLIP) : '';
 
   return `<svg class="avatar${bust ? ' is-bust' : ''}" viewBox="${bust ? '4 4 40 40' : '0 0 48 60'}"
       width="${s}" height="${bust ? s : Math.round(s * 60 / 48)}" aria-hidden="true">
-    ${bust ? `<clipPath id="${clip}"><circle cx="24" cy="24" r="20"/></clipPath>
-    <g clip-path="url(#${clip})"><circle cx="24" cy="24" r="20" fill="${AV_BUST_GROUND}"/>` : ''}
+    ${bust ? `<g><circle cx="24" cy="24" r="20" fill="${AV_BUST_GROUND}"/>` : ''}
     ${art('shoulders', shirt)}
     <rect x="14" y="12" width="20" height="20" rx="6" fill="${skin}"/>
     ${hairShape}
