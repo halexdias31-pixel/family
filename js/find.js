@@ -12245,7 +12245,11 @@ function accountPages_() {
     title: USER.name || 'Signed in',
     role:  roleOf(USER.role || 'student'),
     handle: USER.handle,
-    image: USER.image || USER.photo || '',
+    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the
+       sign-in reply's. With your figure beside it, so `personFace_` can draw `pfp:avatar` — though on
+       your own row it draws `USER.avatar` live anyway. */
+    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
+    avatar: USER.avatar || '',
     rate:  USER.rate,
     teaches: [],
     personId: USER.personId,
@@ -12397,6 +12401,10 @@ function accountPages_() {
     const row = Object.assign({}, asTutor || {}, {
       title: f.title, handle: f.handle || (asTutor || {}).handle, personId: f.personId,
       image: f.image || (asTutor || {}).image || '',
+      /* AND THE FIGURE THAT CAME WITH THE FACE — `doGet` sends `avatar` on a family card only when the
+         face is `pfp:avatar` (`faceFig_`), and this row was rebuilt without it, so a child who chose
+         their figure was an initial on their parent's column. Whichever row the face came from. */
+      avatar: f.image ? f.avatar : (asTutor || {}).avatar,
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
     /* ---------- YOUR CHILD'S CARD CARRIES "NEW PIN" ----------------------------------------------

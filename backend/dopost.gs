@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-10-j-rooms";
+const DOPOST_VERSION = "2026-10-11-k-merged";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1008,6 +1008,14 @@ function doPost(e) {
       if (photosSent) {
         const photoNo = photosRefusal_(fields);
         if (photoNo) return jsonOut({ error: photoNo });
+      }
+      /* AND THE FACE ITSELF: a link, nothing, or one of the eleven tokens — `photoRefusal_` in core.gs,
+         the one judge `savePhoto` shares. Your own Settings never posts `photo` (the picker saves
+         itself), so this is an admin's editor, or anybody with the URL; either way a sentence in this
+         cell is a broken face on every card that draws it. */
+      if (fields.photo !== undefined && allowed.indexOf('photo') !== -1) {
+        const faceNo = photoRefusal_(fields.photo);
+        if (faceNo) return jsonOut({ error: faceNo });
       }
       /* AN EXAM DATE IS A COLUMN, so `wanted` finds it; what a column check cannot say is whether the
          VALUE is a date. A date input cannot produce a bad one, which is not a reason to trust it:
@@ -3087,6 +3095,21 @@ function doPost(e) {
       if (body.remove === true || norm(body.remove) === 'true') {
         setCell(t, r, 'photo', '');
         return jsonOut({ success: true, photo: '' });
+      }
+      /* ---------- OR ONE OF THE ELEVEN, CHOSEN IN THE GRID UNDER THE TILES ------------------------
+         THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics
+         like xbox dp selector, which allow you to use your avatar as a dp."* A tap in the grid posts
+         `choice`, and the cell takes the token — nothing goes to Drive, because there is no file:
+         the drawing is the phone's. `photoChoice_` (core.gs) is the only judge of what counts, so a
+         `choice` that is not exactly one of `PFP_CHOICES` — a link, a tag, a near miss — is refused
+         by name with the cell as it was. A PHONE FROM BEFORE THIS never sends `choice`, and a server
+         from before it answers this request "That is not a picture" and writes nothing, which is the
+         honest refusal the picker says until this file is pulled. */
+      if (body.choice !== undefined && S(body.choice).trim() !== '') {
+        const choice = photoChoice_(body.choice);
+        if (!choice) return jsonOut({ error: 'That is not one of the pictures. Choose one from the grid, or a photo from your phone.' });
+        setCell(t, r, 'photo', choice);
+        return jsonOut(Object.assign({ success: true, photo: choice }, faceFig_(r)));
       }
       const raw = S(body.data).trim();
       if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) {

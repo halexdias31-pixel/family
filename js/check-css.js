@@ -479,6 +479,44 @@ const handTone = [];
   }));
 }
 
+/* ---------- 7c. THE PICTURES' COLOURS ARE THE PICTURES' OWN ------------------------------------------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* The ten drawings (`PFP_ART` in
+   js/links.js) and the figure's round ground (`AV_BUST_GROUND`) carry colours that belong to those
+   drawings and to nothing else — CLAUDE.md: a colour that belongs to ONE component is defined on that
+   component, never offered to the whole stylesheet. So two ways to break it, both read here:
+     · A `--pfp-…` TOKEN ON `:root` — the fox's orange offered to every rule in the app.
+     · A `:root` TOKEN'S HEX SPELLED OUT IN A DRAWING — a paper cream, the gold, the ink. A picture
+       painted in the app's own colours stops being its own the day the palette moves (the `#f4f1e8`
+       find-and-replace across seventy declarations is what the paper tokens cost), and a picture in
+       PAPER cream would be the second paper CLAUDE.md forbids.
+   READ FROM THE FILE, and a file with no drawings in it is a failure rather than a pass: a check that
+   cannot find its subject must not be green. */
+const pfpTone = [];
+{
+  const linksSrc = (() => { try { return fs.readFileSync(path.join(dir, 'js', 'links.js'), 'utf8'); } catch (e) { return ''; } })();
+  const start = linksSrc.indexOf('const PFP_ART = {');
+  const end = start < 0 ? -1 : linksSrc.indexOf('\n};', start);
+  const ground = (/const AV_BUST_GROUND = '(#[0-9a-f]{6})'/i.exec(linksSrc) || [])[1];
+  if (start < 0 || end < 0) pfpTone.push('js/links.js has no `const PFP_ART = {…};` — the ten pictures were NOT checked');
+  else {
+    const art = linksSrc.slice(start, end) + (ground ? ' ' + ground : '');
+    const root = rules.find(r => r.sel === ':root' && !r.cond);
+    const tok = {};
+    (root ? root.decls : []).forEach(d => {
+      if (/^--pfp/i.test(d.prop)) pfpTone.push('style.css line ' + root.line + '  :root declares ' + d.prop + ' — a picture\'s colour offered to the whole app; it belongs in PFP_ART');
+      const m = /^--[\w-]+$/.test(d.prop) && /^#([0-9a-f]{6})\b/i.exec(d.val);
+      if (m) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
+    });
+    if (!Object.keys(tok).length) pfpTone.push(':root holds no hex colour tokens this check can read — the pictures were NOT checked');
+    const hexes = [...art.matchAll(/#([0-9a-f]{6})\b/gi)].map(m => m[1].toLowerCase());
+    if (hexes.length < 20) pfpTone.push('only ' + hexes.length + ' colours found in PFP_ART — the drawings were not read');
+    [...new Set(hexes)].forEach(h => {
+      if (tok[h]) pfpTone.push('js/links.js PFP_ART paints #' + h + ', which is ' + tok[h].join(' / ') + ' — a picture\'s colours are its own, never the app\'s or the paper\'s');
+    });
+  }
+}
+
 /* FIRST, because everything below it reads a file it assumes is well formed. A stylesheet with a
    stray brace is not a stylesheet with a fault in it; it is a stylesheet whose later rules the
    browser may have thrown away, and no amount of checking declarations will say so. */
@@ -515,6 +553,7 @@ say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
 say('PROPERTIES THAT CONTRADICT EACH OTHER', clash);
 say('A TILE THAT WRITES A TOKEN\'S COLOUR OUT BY HAND — a literal cannot say which token it meant', handTone);
+say('A PROFILE PICTURE PAINTED IN THE APP\'S OWN COLOURS, OR ONE OFFERED TO IT — the ten are their own', pfpTone);
 /* SOFT: this is the one section that cannot prove its own findings — see `say` above. */
 say('CLASSES STYLED AND NOWHERE PRODUCED — no literal in the code could assemble these', dead, true);
 say('CLASSES A LITERAL COULD BE ASSEMBLING — ' + [...builtPrefix].sort().join(' ')

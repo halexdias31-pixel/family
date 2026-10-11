@@ -3315,6 +3315,88 @@ const STATES = {
           && !pg.querySelector('[data-me="photo"]') ? 1 : 0;
       },
       wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
+    /* ---------- YOUR PICTURE, ONE OF ELEVEN — AT REST, AND WITH THE FOX CHOSEN ---------------------
+       THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like
+       xbox dp selector, which allow you to use your avatar as a dp."* The grid under the preview: your
+       figure first, then the ten, every one a 44px target or more, in one block that fits the card —
+       FOUR TO A ROW where the picker is under 294px wide (three rows) and SIX where it is not (two
+       rows), the line under the grid rather than beside the tiles. At rest nothing is ringed and the
+       preview is your initial; with the fox chosen the preview IS the fox, the gold ring is on it and
+       only it, and Remove is live because there is a picture to remove. Measured by `check/ui.js` at
+       every width for the tap targets, the contrast and the sideways scroll; asserted here for the
+       shape, because a grid of eleven that wraps 5-5-1 or runs off the card measures as eleven fine
+       buttons. */
+    { name: 'your picture, the eleven at rest',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: '' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
+        if (at < 0) throw new Error('no picture picker on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const opts = [...box.querySelectorAll('.pfp-grid .pfp-opt')];
+        const b = box.getBoundingClientRect();
+        const grid = box.querySelector('.pfp-grid').getBoundingClientRect();
+        const said = box.querySelector('.pfp-said').getBoundingClientRect();
+        /* ZOOM: `paneReach_` may draw a tall card smaller to fit its pane, so a size is read in the
+           card's own pixels — the box's layout width over its drawn width. */
+        const z = box.offsetWidth ? b.width / box.offsetWidth : 1;
+        /* HOW MANY ON EACH ROW, not merely how many rows: 5, 5, 1 is three rows too, and it is the
+           orphan this layout exists to avoid. */
+        const tops = opts.map(o => Math.round(o.getBoundingClientRect().top / z));
+        const rows = [...new Set(tops)].map(t => tops.filter(x => x === t).length).join(',');
+        const big = opts.every(o => { const r = o.getBoundingClientRect(); return r.width / z >= 43.5 && r.height / z >= 43.5; });
+        return opts.length === 11 && opts[0].dataset.pic === 'avatar' && !!opts[0].querySelector('svg.avatar.is-bust')
+          && opts.slice(1).every(o => o.querySelector('svg.pfp-art'))
+          && !box.querySelector('.pfp-opt.on') && !!box.querySelector('.pfp-face .pfp-none')
+          && big && grid.right <= b.right + 0.5 && grid.left >= b.left - 0.5
+          && rows === (box.offsetWidth >= 294 ? '6,5' : '4,4,3')
+          && said.top >= grid.bottom - 1
+          && !!box.querySelector('.tile[data-do="pfp-remove"]') && box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 11 : 0;
+      },
+      wants: 'your figure then the ten pictures, each 44px or more, none ringed, the initial in the preview, 4/4/3 under 294px and 6/5 from it, the line under the grid, and Remove off' },
+    { name: 'your picture, the fox chosen',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'pfp:fox' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
+        if (at < 0) throw new Error('no picture picker on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const on = [...box.querySelectorAll('.pfp-opt.on')];
+        const face = box.querySelector('.pfp-face');
+        const r = face.getBoundingClientRect();
+        const art = face.querySelector('svg.pfp-art');
+        const ring = on[0] && getComputedStyle(on[0]).boxShadow;
+        return on.length === 1 && on[0].dataset.pic === 'fox' && on[0].getAttribute('aria-pressed') === 'true'
+          && !!ring && ring !== 'none'
+          && !!art && Math.abs(art.getBoundingClientRect().width - r.width) < 3
+          && /fox is your picture/i.test(box.querySelector('.pfp-said').textContent)
+          && !box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 1 : 0;
+      },
+      wants: 'the fox in the preview, filling it; the gold ring on the fox and nowhere else, pressed; the line saying the fox is your picture; Remove live' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only

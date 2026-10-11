@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-10-j-rooms";
+const BACKEND_VERSION = "2026-10-11-k-merged";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1978,6 +1978,25 @@ const PHOTO_FIELDS = (() => {
   return out;
 })();
 const PHOTO_FIELD = /^photos_\d+$/;
+
+/* ---------- YOUR PICTURE CAN BE ONE OF OURS, OR YOUR OWN FIGURE --------------------------------------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* So the `photo` cell holds one of three
+   things now: a link (an uploaded photograph, or one pasted by an admin — unchanged), nothing (the
+   initial), or one of the ELEVEN TOKENS below — `pfp:avatar` for your wardrobe figure, `pfp:fox` and
+   the rest for the ten pictures.
+
+   A TOKEN, NOT A PICTURE. The drawings live on the phone (`PFP_ART` in js/links.js), exactly as the
+   wardrobe's shapes do while this file holds the catalogue: a picture can be redrawn without a deploy,
+   and a cell holding SVG would be a public card drawing whatever markup somebody posted into it.
+   `pfp:` because no link starts that way, so a reader can never mistake one for the other.
+
+   THIS LIST IS THE ONLY ONE THE SERVER KEEPS, AND `check-profile.js` HOLDS IT EQUAL TO THE PHONE'S. A
+   picture added here and not drawn there would be a fox nobody can see; drawn there and not here, a
+   tap the server refuses. `photoChoice_` in core.gs is the one reader of it. */
+const PFP_PICTURES = ['fox', 'owl', 'cat', 'dino', 'robot', 'rocket', 'planet', 'football', 'guitar', 'palette'];
+const PFP_AVATAR = 'pfp:avatar';
+const PFP_CHOICES = [PFP_AVATAR].concat(PFP_PICTURES.map(p => 'pfp:' + p));
 
 /* ---------- UP TO TEN QUALIFICATIONS, AS FORTY FORM FIELDS OVER ONE CELL -----------------------
    THE LIBRARY SHELF'S ARRANGEMENT AGAIN, and one constant for the same reason: the field list, the

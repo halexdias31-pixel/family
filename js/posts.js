@@ -166,8 +166,18 @@ function postCard_(p, i) {
     const media = postMedia_(p);
     /* The author's face, or the brand's mark when the post is the business speaking. A column of
        blank circles is the thing that makes a feed look unfinished. */
-    const face = pic(p.avatar || brand('logo_square') || brand('logo_circle'));
     const who = p.handle || p.author || brand('name', '@family.');
+    /* ---------- THROUGH `personFace_`, THE ONE FUNCTION EVERY FACE GOES THROUGH -----------------------
+       `p.avatar` IS THE AUTHOR'S `photo` CELL — a link, nothing, or one of the eleven tokens (the
+       owner, 10 Oct: *"…which allow you to use your avatar as a dp."*) — and `p.figure` is their
+       wardrobe string, sent only when that cell is `pfp:avatar` (`faceFig_` in core.gs). AN OLDER
+       BACKEND PUT THE WEARABLE STRING ITSELF IN `avatar`, ahead of the photograph, and this drew it as
+       an `<img>` — a broken square on every post by anybody who had dressed their figure. `picKind_`
+       reads that string as no picture at all, so it falls to the brand's mark as an empty face always
+       has, on either backend. */
+    const faceHtml = personFace_({ pic: picKind_(p.avatar) ? p.avatar : (brand('logo_square') || brand('logo_circle')),
+                                   avatar: p.figure, handle: p.handle, name: who },
+                                 { cls: 'post-face', none: 'none', size: 30 });
 
     /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES ---------------
        Under the picture when there is one, after the words when there is not — see the two places
@@ -201,9 +211,7 @@ function postCard_(p, i) {
        is the only part you may not read. */
     return `<article class="post" data-post="${esc(p.id)}">
       <header class="post-by">
-        ${face
-          ? `<img class="post-face" src="${esc(face)}" alt="">`
-          : `<span class="post-face none">${esc(initial(who))}</span>`}
+        ${faceHtml}
         <span class="post-nm">
           ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
                  here can be one. */''}
@@ -3270,16 +3278,32 @@ document.addEventListener('visibilitychange', () => {
    row is sent with a name and an avatar and nothing else, so a conversation with a student keeps the
    initial — which is the fallback for every case this cannot place, and the reason a failed image
    quietly becomes one rather than a broken-picture icon. */
+/* ---------- AND IT IS `personFace_`, LIKE EVERY OTHER FACE -------------------------------------------
+   One of the ten pictures, or the figure when the row carries it (the owner, 10 Oct: *"…which allow
+   you to use your avatar as a dp."*), draws in the disc exactly as it does on the card. Your FAMILY's
+   rows and an ADMIN's everyone are looked in too, after the tutors and under the same two locks the
+   account column puts on them — the list stamped for you, and admin — because the server already sent
+   their faces to you for that column; a conversation with your own child had a letter at its head
+   while the child's picture was one swipe away. A PHOTOGRAPH keeps its `onerror`: a Drive file that
+   is not shared becomes the letter rather than a broken square. */
 function dmFace_(t) {
   const letter = initial(t.name);   // letters and digits only, so it is safe inside the onerror below
-  const rows = (DATA && DATA.tutors) || [];
+  const famMine = !!(USER && USER.personId && DATA && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
+  const rows = ((DATA && DATA.tutors) || [])
+    .concat(famMine && Array.isArray(DATA.family) ? DATA.family : [])
+    .concat(typeof isAdmin === 'function' && isAdmin() && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []);
   const id = String(t.id || '');
   const who = (id && rows.find(r => r && String(r.personId || '') === id))
     || rows.find(r => r && t.name && norm(r.title || '') === norm(t.name));
-  const src = who && who.image ? pic(who.image) : '';
-  if (!src) return `<span class="dm-av" aria-hidden="true">${letter}</span>`;
-  return `<span class="dm-av has-pic" aria-hidden="true"><img src="${esc(src)}" alt="" loading="lazy"
-    onerror="this.parentNode.classList.remove('has-pic');this.parentNode.textContent='${letter}'"></span>`;
+  if (!who) return `<span class="dm-av" aria-hidden="true">${letter}</span>`;
+  const face = personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: t.name || who.title,
+                             personId: who.personId }, { cls: 'dm-pic', size: 32 });
+  if (picKind_(who.image) === 'photo') {
+    return `<span class="dm-av has-pic" aria-hidden="true">${face.replace('<img ', `<img onerror="this.parentNode.classList.remove('has-pic');this.parentNode.textContent='${letter}'" `)}</span>`;
+  }
+  return /^<span class="dm-pic face-pic"/.test(face)
+    ? `<span class="dm-av has-pic" aria-hidden="true">${face}</span>`
+    : `<span class="dm-av" aria-hidden="true">${letter}</span>`;
 }
 
 function dmPages_() {

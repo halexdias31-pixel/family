@@ -588,6 +588,59 @@ async function settled(page) {
   } catch (e) { /* a page that cannot answer is measured as it stands */ }
 }
 
+/* ---------- A DRAWN PICTURE IS ROUND, AND ITS OWN BOX MUST NOT CUT IT ----------------------------------
+   THE TEN PICTURES AND THE FIGURE'S BUST (`pfpArt_`, `avatarFor(…, { bust: true })`, links.js) are each a
+   circle that touches the edge of its own `<svg>` — the ground is r=24 in a 48 viewBox, the bust's clip
+   r=20 in a 40 one. An `<svg>` inside a page clips to its own box by default, and that clip is SNAPPED TO
+   THE PIXEL GRID while the circle is not: under `paneReach_`'s zoom (0.858 on a 320 Settings card) or at
+   a fractional column position, the snap lands a pixel inside the circle and the picture gets a flat
+   side. Found by review on 10 Oct: the fox, robot and guitar flat on the right, the football, guitar and
+   palette flat at the bottom, on the picker at 320 — and every rule here measured eleven fine buttons.
+   NO RULE ABOUT BOXES CAN SEE IT: the box is the right size, in the right place, and fully on the glass.
+   It is a question about pixels, so it is asked of pixels. The screen is photographed as it is, then
+   with each drawing's OWN clip lifted (`overflow: visible` on that `<svg>`, nothing else), then as it is
+   again; a pixel counts only where the two as-it-is pictures agree and the lifted one differs, so a
+   loader or a slide moving between the shots cannot be read as a cut. THE FRAME ROUND A FACE IS NOT
+   ASKED: `.prof-pic` and `.post-face` are round by design and clip to their own border, which is a
+   circle — it never makes a flat side. Only the drawings fully on the glass, in the column in front. */
+const FACE_SEL = 'svg.pfp-art, svg.avatar.is-bust';
+function drawnFaces(arg) {
+  const host = document.getElementById('s-' + arg.sid);
+  if (!host) return [];
+  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+  return [...host.querySelectorAll(arg.sel)].map(s => {
+    const r = s.getBoundingClientRect();
+    const frame = s.closest('.pfp-opt, .face-pic, .pfp-face') || s.parentElement;
+    const name = frame && frame.dataset && frame.dataset.pic ? 'the ' + frame.dataset.pic
+      : (s.classList.contains('is-bust') ? 'a figure' : 'a picture');
+    const where = frame ? String(frame.className).split(/\s+/)[0] : '';
+    return { x: r.left, y: r.top, w: r.width, h: r.height, name, where };
+  }).filter(f => f.w >= 8 && f.h >= 8 && f.x >= 0 && f.y >= 0 && f.x + f.w <= vw && f.y + f.h <= vh);
+}
+function facesCut(arg) {
+  const load = u => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = u; });
+  return Promise.all(arg.shots.map(s => load('data:image/png;base64,' + s))).then(imgs => {
+    const px = img => { const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+      return g.getImageData(0, 0, c.width, c.height).data; };
+    const [a, lifted, again] = imgs.map(px);
+    const W = imgs[0].naturalWidth, H = imgs[0].naturalHeight;
+    const dpr = W / document.documentElement.clientWidth;
+    const off = (p, q, i) => Math.max(Math.abs(p[i] - q[i]), Math.abs(p[i + 1] - q[i + 1]), Math.abs(p[i + 2] - q[i + 2]));
+    return arg.faces.map(f => {
+      let cut = 0;
+      const x0 = Math.max(0, Math.floor((f.x - 2) * dpr)), y0 = Math.max(0, Math.floor((f.y - 2) * dpr));
+      const x1 = Math.min(W, Math.ceil((f.x + f.w + 2) * dpr)), y1 = Math.min(H, Math.ceil((f.y + f.h + 2) * dpr));
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        const i = (y * W + x) * 4;
+        if (off(a, again, i) <= 8 && off(a, lifted, i) > 40) cut++;
+      }
+      return Object.assign({ cut }, f);
+    }).filter(f => f.cut > 2);
+  });
+}
+
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
   const found = { overflow: [], hidden: [], offscreen: [], lifted: [], strays: [], shrunk: [],
@@ -1419,6 +1472,8 @@ function inspect(opts) {
      rather than a silence, because "no board was a mess" and "no board was found" both print no
      finding. */
   let boardsMeasured = 0;
+  /* AND HOW MANY DRAWN PICTURES WERE PHOTOGRAPHED FOR A CUT EDGE (`FACE_SEL`), for the same reason. */
+  let facesMeasured = 0;
   /* LOADERS, COUNTED LIKE BOARDS — a run that measured none and a run where every one passed print the
      same nothing. `loaderSizes[width]` collects each one's dot and gap, compared once the run is over:
      "the same size in every card" is a question across states, not inside one. */
@@ -1921,6 +1976,33 @@ function inspect(opts) {
         Object.keys(edgeN || {}).forEach(k => { edgesMeasured[k] = (edgesMeasured[k] || 0) + edgeN[k]; });
         if (boards.out.length) rows.push({ width, id: label, as: who.as, boards: boards.out });
 
+        /* EVERY DRAWN PICTURE ROUND — see `FACE_SEL`. Three photographs only where there is a drawing on
+           the glass, so a screen without one costs one question. AND NONE TO MEASURE IS NOT A PASS on
+           the picker's own states, which exist to put eleven of them in front of this. */
+        const faces = await page.evaluate(drawnFaces, { sid: id, sel: FACE_SEL });
+        if (faces.length) {
+          const shot = async () => (await page.screenshot()).toString('base64');
+          const asIs = await shot();
+          await page.evaluate(sel => {
+            const st = document.createElement('style'); st.id = 'ui-own-clip-lifted';
+            st.textContent = sel + ' { overflow: visible !important; }';
+            document.head.appendChild(st);
+            return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          }, FACE_SEL);
+          const lifted = await shot();
+          await page.evaluate(() => {
+            const st = document.getElementById('ui-own-clip-lifted'); if (st) st.remove();
+            return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          });
+          const again = await shot();
+          const cut = await page.evaluate(facesCut, { shots: [asIs, lifted, again], faces });
+          facesMeasured += faces.length;
+          if (cut.length) rows.push({ width, id: label, as: who.as, faceCut: cut.map(f =>
+            `${f.name} (${f.where}, ${f.w.toFixed(1)}px) loses ${f.cut} pixels of its circle to its own box`) });
+        } else if (/^your picture/.test(state.name || '')) {
+          rows.push({ width, id: label, as: who.as, faceCut: ['the picker drew no picture fully on the glass to measure'] });
+        }
+
         /* EVERY LOADER ON THE PAGE IN FRONT — see `loadersOn`. A state that holds a request and
            shows NO loader is a selector or a state that stopped reaching its subject, and says so. */
         const loaders = await page.evaluate(loadersOn, id);
@@ -2168,6 +2250,7 @@ function inspect(opts) {
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.tinted || []).forEach(f => add('PICTURE NOT AS TAKEN', f, at));
     (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
+    (r.faceCut || []).forEach(f => add('A DRAWN PICTURE CUT BY ITS OWN BOX', f, at));
     (r.loaders || []).forEach(f => add('A WAIT THAT IS NOT THE ONE LOADER, OR MOVES ITS CARD', f, at));
     (r.sound || []).forEach(f => add('THE REELS\' SOUND TILE ON ITS PICTURE', f, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
@@ -2234,6 +2317,7 @@ function inspect(opts) {
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
   console.log(`reel Sound tiles measured on their picture (a tile, ${MIN_TAP}px, inside the slide, 3:1 on white and on black, clear of the ▶): ${soundMeasured}, `
               + `${soundHit} of them in view and hit-tested at their centre (the top thing there is the tile)\n`);
+  console.log(`drawn pictures photographed for a cut edge: ${facesMeasured}\n`);
   /* ONE DOT SIZE AND ONE GAP PER WIDTH, across every loader the run met. */
   Object.keys(loaderSizes).forEach(wd => {
     const kinds = [...new Set(loaderSizes[wd].map(x => x.dot + ' gap ' + x.gap))];

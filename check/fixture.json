@@ -109,7 +109,8 @@
    "title": "Ada Tutor",
    "handle": "ada",
    "subtitle": "Maths and further maths, GCSE to A-Level",
-   "image": "",
+   "image": "pfp:avatar",
+   "avatar": "skin:2|hairColour:3|shirt:2|hair:long|faceware:glasses",
    "mediaUrl": "",
    "tags": [
     "Patient",
@@ -321,7 +322,8 @@
    "id": "PO2",
    "author": "Ada Tutor",
    "handle": "ada",
-   "avatar": "",
+   "avatar": "pfp:avatar",
+   "figure": "skin:2|hairColour:3|shirt:2|hair:long|faceware:glasses",
    "image": "",
    "media": [],
    "caption": "Waiting on a check before this one goes up",
@@ -410,8 +412,8 @@
  "promotions": [],
  "claims": [],
  "everyone": [
-  {"personId": "P-E1", "title": "Evie Everystudent-Longername", "handle": "evie_calm31", "role": "Student", "image": ""},
-  {"personId": "P-E2", "title": "Carl Everyclient", "handle": "carl_kind32", "role": "Client", "image": ""}
+  {"personId": "P-E1", "title": "Evie Everystudent-Longername", "handle": "evie_calm31", "role": "Student", "image": "pfp:fox"},
+  {"personId": "P-E2", "title": "Carl Everyclient", "handle": "carl_kind32", "role": "Client", "image": "pfp:avatar", "avatar": "skin:4|hairColour:0|shirt:5|hair:crop|headwear:cap"}
  ],
  "validations": {
   "qual_1_level": [
