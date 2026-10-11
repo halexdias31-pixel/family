@@ -663,9 +663,9 @@ function startScreen_(id, arriving) {
   /* AND A TEXTBOOK'S ANIMATION PLAYS ONLY ON FIND, ONLY ON THE PAGE IN FRONT — for EVERY screen, because
      arriving anywhere else is what pauses the one on Find. See `tbAnimWatch_` in find.js. */
   if (typeof tbAnimWatch_ === 'function') tbAnimWatch_();
-  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR THE FIRST TIME THEIR COLUMN IS REACHED — a POST,
-     once, and never the payload (see js/records.js). It was the Settings column until they moved to
-     their own (docs/history/334). */
+  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR — a POST, once, and never the payload (see
+     js/records.js). Usually already asked: the column asks when it is first drawn, so it is not left
+     under the loader beside Progress; this is the second door, and `bizStart_` is a no-op after one. */
   if (id === 'biz' && typeof bizStart_ === 'function') bizStart_();
   /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on
      a thread is last month — so something has to say otherwise, once the markup exists. */

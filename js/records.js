@@ -12,7 +12,7 @@
    (the owner, 10 Oct). Settings is about YOU — your details, your PIN, your emails — and five cards of
    the business's insurance and tax at its foot were the one part of it that was not. So the same five
    cards are `screen('biz')` below, the last column, drawn and saved exactly as they were; `bizStart_`
-   fires on arrival there rather than at Settings. The column is in `TABS` for an admin only —
+   fires when the column is drawn for an admin (and again, harmlessly, on arrival). The column is in `TABS` for an admin only —
    `columnsFor_` in shell.js leaves it out for anybody else, section and all (docs/history/334). A
    card typed into is kept as it was on Settings: `.me-form[data-dirty]` and `settingsKeep_` (me.js)
    cover this column too.
@@ -29,8 +29,9 @@
    the day an account was opened is in the past on purpose, and calling it overdue would be a red
    flag on something that is fine. `track: false` says which.
 
-   A POST AND NEVER THE PAYLOAD — see backend/records.gs. `listRecords` is asked once, when an admin
-   first arrives at the Business column (`bizStart_`, from `startScreen_`). Until it answers, Save
+   A POST AND NEVER THE PAYLOAD — see backend/records.gs. `listRecords` is asked once, when the Business
+   column is first drawn for an admin (`bizStart_`, from `screen('biz')`; arriving asks too, and finds it
+   asked). Until it answers, Save
    refuses: a page saved before the rows arrived would post six empty boxes over whatever the sheet
    holds.
 ================================================================================================== */
@@ -146,9 +147,16 @@ function bizPages_() {
   return BIZ_PAGES.map(bizCard_);
 }
 
-/* THE COLUMN. Nothing on it runs, so `startScreen_` only asks `listRecords` the first time, and nothing
-   is stopped on the way out. */
-screen('biz', () => pages('biz', bizPages_()));
+/* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at.
+   On a wide screen it sits beside Progress, on the glass, and asking only on arrival left its first card
+   under the loader for as long as nobody went there; the owner, of exactly that: *"these remain loading
+   untill i scroll to them. i dont like this"* (10 Oct, docs/history 331/334). `bizStart_` asks once and
+   is a no-op after, so a repaint asks nothing new; after the draw, not during it, so a POST is never
+   part of building the markup. Nothing on the column runs, so nothing is stopped on the way out. */
+screen('biz', () => {
+  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} }, 0);
+  return pages('biz', bizPages_());
+});
 
 /* WHAT ARRIVED, WRITTEN INTO THE CARDS ALREADY ON THE PAGE rather than a repaint of the column. A
    repaint throws away every pane's fitted zoom and the column is re-measured a frame later; filling

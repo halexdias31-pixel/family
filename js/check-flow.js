@@ -8703,6 +8703,17 @@ check('business: an admin has a Business column last, straight after Progress, h
   const host = d.getElementById('s-biz');
   if (!host || host.parentElement !== d.getElementById('screen') || host.tagName !== 'SECTION') return bad.concat(['an admin has no <section id="s-biz"> in #screen to draw the column into']);
 
+  /* THE RECORDS ARE ASKED BEFORE ANYBODY GOES THERE. The column is drawn for an admin at boot, and on a
+     wide screen it is on the glass beside Progress; asked only on arrival, its first card sat under the
+     loader until somebody swiped to it (*"these remain loading untill i scroll to them"*, 10 Oct). */
+  for (let n = 0; n < 40 && !sent.some(b => b.action === 'listRecords'); n++) await wait(100);
+  if (t.AT() === 'biz') return bad.concat(['the admin booted onto Business, so asking before arrival was NOT checked']);
+  if (!sent.some(b => b.action === 'listRecords')) bad.push('the records were not asked until somebody went to the Business column — the card beside Progress stays under the loader');
+  else if (host.querySelector('.me-form[data-biz-page="Insurance"] .loading')) {
+    for (let n = 0; n < 30 && host.querySelector('.me-form[data-biz-page="Insurance"] .loading'); n++) await wait(100);
+    if (host.querySelector('.me-form[data-biz-page="Insurance"] .loading')) bad.push('the records were asked and answered, and the Insurance card is still under the loader without anybody going there');
+  }
+
   /* A SWIPE OFF PROGRESS, as a trackpad sends it, lands on Business; one more stays — the last column. */
   t.go('progress', false, true);
   await wait(LEAVE_MS); await woken_();
@@ -8712,7 +8723,7 @@ check('business: an admin has a Business column last, straight after Progress, h
   await bizSwipe_(w, 'biz');
   if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Business, to ' + t.AT());
 
-  /* ARRIVING ASKED FOR THE RECORDS, once — `bizStart_` from `startScreen_` — and the five cards are the
+  /* THE RECORDS WERE ASKED ONCE IN ALL — drawing asked, arriving found it asked — and the five cards are the
      column's pages, in order, the pager agreeing. */
   for (let n = 0; n < 50 && host.querySelector('.loading'); n++) await wait(100);
   const asked = sent.filter(b => b.action === 'listRecords').length;
