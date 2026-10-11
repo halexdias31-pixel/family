@@ -383,7 +383,19 @@ function widgetsReveil_(col, who) {
 
 function widgetsHeld_(col) {
   const who = widgetWho_();
-  return TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who);
+  const run = TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who);
+  /* AND EVERY SLOT DRAWN AHEAD FOR THIS PERSON BY A WIDGET THAT READS NO FACTS (`pure`) — its drawing cannot
+     be stale, so it crosses the paint as it is, and keeps the clocks it was drawn under: on arrival it is
+     started again behind its own drawing rather than adopted, because the paint has moved them (341). A
+     drawing that reads facts is not carried; the new markup puts it back under its loader, and the builder
+     draws it again from the new facts. */
+  const pure = [];
+  widgetsOn_(col).forEach(w => {
+    if (!w.pure) return;
+    const sl = slotOn_(col, String(w.id));
+    if (sl && sl.AHEAD && sl.AHEAD.who === who && !run.some(e => e.slot === sl)) pure.push({ w, col, slot: sl, who });
+  });
+  return run.concat(pure);
 }
 function widgetsBack_(col, held) {
   held.forEach(e => {
@@ -468,14 +480,33 @@ let TOOLS_WAKE = 0;       // the booked step
    is for a widget that has not started, and this one has. A copy OFF the glass keeps its veil — on a
    phone that is every copy but the one in front, and a swipe towards Saved shows the loader it always
    showed — and `widgetsGlass_` takes it off if the copy comes onto the glass while the widget runs. */
+/* ---------- AND ONE DRAWN AHEAD WITH NOTHING CHANGED SINCE IS ADOPTED, NOT STARTED ----------------------
+   THE BUILDER DRAWS A WIDGET WITH NO `stop` BY ITS OWN `start` before anybody arrives (`aheadDrawWidget_`,
+   below), and keeps it out of `TOOLS_ON`: it is drawn, not running, and nothing it did runs on. When it is
+   then asked to start — on arrival, from the queue, beside the column in front — and NOTHING HAS MOVED since
+   it was drawn (the same person; no action dispatched, `ACT_EPOCH`; no repaint or landing, `DRAW_EPOCH`; and
+   no copy of the same widget started meanwhile, `WIDGET_UPS`), starting it again would draw exactly what is
+   on the glass, so it is entered as running and its `start` is not called. Measured on 11 Oct (341): a start
+   is one task of up to 291ms at 4x (chess), and after the slide it was the next flick's stall. Any of those
+   clocks having moved, it is started as before — a press is always a restart (Connect 4's "rebuilt every time
+   it opens"). A widget with a `stop` is never adopted: its `draw` runs none of what its `start` does. */
+const WIDGET_UPS = {};
+function widgetAdoptable_(w, slot) {
+  const a = slot && slot.AHEAD;
+  return !!(a && !w.stop && slot.isConnected && a.who === widgetWho_() && a.act === ACT_EPOCH
+    && a.draw === DRAW_EPOCH && a.ups === (WIDGET_UPS[String(w.id)] || 0));
+}
 function widgetUp_(w, col) {
   const id = String(w.id);
   const slot = col ? slotOn_(col, id) : $('wgt-' + id);
+  const adopt = widgetAdoptable_(w, slot);
   TOOLS_ON.push({ w, col, slot, who: widgetWho_() });
   if (slot && col) WIDGET_HOME[slot.id] = col;
-  /* WHOM ITS DRAWING IS FOR, kept on the slot after the widget stops — see `widgetsReveil_`. */
-  if (slot) slot.WHO = widgetWho_();
-  try { w.start && w.start(); }
+  /* WHOM ITS DRAWING IS FOR, kept on the slot after the widget stops — see `widgetsReveil_`. And ANY other
+     copy drawn ahead is no longer what this widget's state would draw (`WIDGET_UPS`). */
+  if (slot) { slot.WHO = widgetWho_(); delete slot.AHEAD; }
+  WIDGET_UPS[id] = (WIDGET_UPS[id] || 0) + 1;
+  try { if (!adopt && w.start) w.start(); }
   catch (e) { console.warn('[widget]', w.id, e); }
   finally {
     if (typeof loaded_ === 'function') {
@@ -517,9 +548,18 @@ function widgetsWake_(list, col, arriving) {
   toolsStop_(keep, q => !ids.has(String(q.w.id)));
   const up = list.filter(w => !TOOLS_ON.some(e => String(e.w.id) === String(w.id)));
   if (!arriving) { up.forEach(w => widgetUp_(w, col)); return; }
-  const far = up.filter(w => widgetDistance_(w, col) > 1);
-  up.filter(w => far.indexOf(w) === -1).forEach(w => widgetUp_(w, col));
-  far.forEach(w => TOOLS_WAIT.push({ w, col }));
+  /* ARRIVING: WHAT WAS DRAWN AHEAD WITH NOTHING CHANGED IS ADOPTED NOW, every one of them — it costs nothing
+     (`widgetUp_`). A slot still under its loader near the page in front is started now, as it always was:
+     that is the floor, for an arrival that beat the builder. A drawn slot that cannot be adopted is NOT
+     started here; it is queued, and the queue starts it one per task behind the slide — its drawing is on
+     the glass meanwhile, so a 291ms start (chess) is never a stall the next flick waits behind (341). */
+  const veiled = w => { const sl = slotOn_(col, String(w.id)); return !sl || !!sl.getAttribute('aria-busy'); };
+  const adopt = up.filter(w => widgetAdoptable_(w, slotOn_(col, String(w.id))));
+  adopt.forEach(w => widgetUp_(w, col));
+  const rest = up.filter(w => adopt.indexOf(w) === -1);
+  const now = rest.filter(w => veiled(w) && widgetDistance_(w, col) <= 1);
+  now.forEach(w => widgetUp_(w, col));
+  rest.filter(w => now.indexOf(w) === -1).forEach(w => TOOLS_WAIT.push({ w, col }));
   if (TOOLS_WAIT.length) widgetsLater_();
 }
 
@@ -601,9 +641,17 @@ function widgetsLater_() {
    called by `goPage` before the column moves, so a tile that jumps eight widgets down the column
    arrives at a working widget rather than at its markup waiting in the queue. A turn to a page that
    is already running costs one walk of a short list. */
+/* IN THE RELEASE, ONLY A SLOT STILL UNDER ITS LOADER IS STARTED (the floor), and one drawn ahead with nothing
+   changed is adopted, which costs nothing. A drawn slot that has to be started again stays queued and is
+   started after the slide: its drawing is already on the glass, and a start inside a release is the stall
+   this note's first paragraph was written about (docs/history/341). */
 function widgetsNear_(col) {
   if (!TOOLS_WAIT.length) return;
-  const now = TOOLS_WAIT.filter(q => q.col === col && widgetDistance_(q.w, col) <= 1);
+  const now = TOOLS_WAIT.filter(q => {
+    if (q.col !== col || widgetDistance_(q.w, col) > 1) return false;
+    const sl = slotOn_(q.col, String(q.w.id));
+    return !sl || !!sl.getAttribute('aria-busy') || widgetAdoptable_(q.w, sl);
+  });
   if (!now.length) return;
   TOOLS_WAIT = TOOLS_WAIT.filter(q => now.indexOf(q) === -1);
   now.forEach(q => { if (!TOOLS_ON.some(e => String(e.w.id) === String(q.w.id))) widgetUp_(q.w, q.col); });
@@ -750,6 +798,72 @@ function widgetsGlass_(settled) {
 /* THE SAME QUESTION ASKED AGAIN ONCE THE SLIDE HAS SETTLED, and this time what has left is stopped — and
    a starred widget whose copy left while its other copy stayed is queued on the one still there. */
 function widgetsSettle_() { widgetsGlass_(true); }
+
+/* ==================================================================================================
+   EVERY WIDGET SLOT IS DRAWN BEFORE IT IS NEEDED — AND NOTHING RUNS FOR NOBODY
+
+   THE OWNER, 11 Oct: *"If I scrol fast left right up or down it's still clunky … Increase loading scope."*
+   Measured that day (docs/history/341): a widget slot was drawn only by STARTING it, and a widget is started
+   only once its column is in front and the slide has settled — so every arrival at Tools, Games, the shop or
+   Saved showed cards under the loader for 1–4s at 4x, and a sweep across the row showed loaders in 19–77% of
+   its frames. `start` cannot simply run earlier: some starts run things — a frame loop, a clip, the network,
+   the shared classroom round — and those must run only for somebody looking.
+
+   SO A SLOT IS DRAWN IN THE QUIET, ONE PER SLICE (`ahead_`, shell.js), BY WHATEVER DRAWS IT AND RUNS NOTHING:
+     · a widget with no `stop` — whose own note says nothing of it runs on — by its `start`;
+     · a widget WITH a `stop`, by its declared `draw` (map.js): `initTables`, `flappyStill_`, `wgPaint_`,
+       `vidPaint_`, `feedPaint_`. `check-widgets.js` runs every draw ahead in a sandbox and fails on a fetch, a
+       media source or `play()`, sound or speech, the camera, an interval, a timer or frame still pending
+       400ms later, or a write outside the slot — so a draw cannot start running something by accident.
+   It is drawn into its own slot (`WIDGET_HOME` says which copy for that one call), the loader comes off, and
+   the slot is stamped with whom and under which clocks it was drawn. It is NOT entered in `TOOLS_ON`: it is
+   not running, so `check/ui.js`'s "a widget off the glass started" still counts what it counted. On arrival it
+   is adopted if nothing has changed since (`widgetUp_`), or started behind its drawing after the slide.
+   ONLY A SLOT NOTHING IS USING: not on the column in front (`startScreen_` starts those, and `$` resolves to
+   that copy), not running or queued anywhere (`initTables` would clear a running sprint), on a column already
+   drawn (the paint goes first). A reels fact that is a clip stays under its loader (`feedPaint_` says why). */
+function aheadDrawWidget_(w, col) {
+  const id = String(w.id);
+  const slot = slotOn_(col, id);
+  if (!slot || !slot.getAttribute('aria-busy')) return;
+  const had = Object.prototype.hasOwnProperty.call(WIDGET_HOME, slot.id) ? WIDGET_HOME[slot.id] : undefined;
+  WIDGET_HOME[slot.id] = col;
+  let drawn = true;
+  try { drawn = (typeof w.draw === 'function' ? w.draw() : w.start()) !== false; }
+  catch (e) { drawn = false; try { console.warn('[widget ahead]', id, e); } catch (x) {} }
+  finally { if (had === undefined) delete WIDGET_HOME[slot.id]; else WIDGET_HOME[slot.id] = had; }
+  if (!drawn) { slot.NOAHEAD = true; return; }
+  if (typeof loaded_ === 'function') loaded_(slot);
+  slot.AHEAD = { who: widgetWho_(), act: ACT_EPOCH, draw: DRAW_EPOCH, ups: WIDGET_UPS[id] || 0, pure: !!w.pure };
+  slot.WHO = widgetWho_();
+  /* AND ITS COLUMN PLACED AGAIN, NOW: a widget grows its card as it draws (`widgetsLater_`'s reason). */
+  if (typeof placeOne_ === 'function') placeOne_(col);
+}
+/* THE BUILDER'S WIDGET JOBS — every slot `aheadDrawWidget_` may draw, with how far it is (`aheadDist_`). */
+function aheadWidgetJobs_() {
+  const out = [];
+  const front = new Set(WIDGET_COLS.indexOf(AT) !== -1 ? widgetsOn_(AT).map(w => String(w.id)) : []);
+  WIDGET_COLS.forEach(col => {
+    if (col === AT || STALE[col] || !TABS.some(t => t.id === col)) return;
+    const host = document.getElementById('s-' + col);
+    if (!host || !host.firstElementChild) return;
+    let pages = null;
+    widgetsOn_(col).forEach(w => {
+      const id = String(w.id);
+      if (typeof w.start !== 'function' || (w.stop && typeof w.draw !== 'function')) return;
+      if (front.has(id)) return;
+      if (TOOLS_ON.some(e => String(e.w.id) === id) || TOOLS_WAIT.some(q => String(q.w.id) === id)) return;
+      const slot = slotOn_(col, id);
+      if (!slot || !slot.getAttribute('aria-busy') || slot.NOAHEAD) return;
+      if (!pages) pages = [...host.querySelectorAll(':scope > .page')];
+      const pos = pages.indexOf(slot.closest('.page'));
+      out.push({ key: 'widget:' + col + ':' + id, kind: 'widget', d: aheadDist_(col, pos < 0 ? null : logIndex_(col, pos)),
+        run: () => aheadDrawWidget_(w, col) });
+    });
+  });
+  return out;
+}
+AHEAD_KINDS.push(aheadWidgetJobs_);
 
 
 /* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST -------------------------------------------

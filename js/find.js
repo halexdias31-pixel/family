@@ -9385,11 +9385,20 @@ function padWhoChanged_() {
 /* EVERY COPY, BY CLASS -- `tmtPaint_`'s reason: the Saved column draws this same markup, and two
    elements under one id is the `$('msg-text')` fault. The same key in both, so a stroke on one is on
    the other the next time it is drawn. EXCEPT THE COPY A FINGER IS DRAWING ON, `padHold_`'s reason. */
+/* AND EACH SLOT IT DRAWS INTO IS SAID TO BE DRAWN FOR WHOEVER IS SIGNED IN NOW (`slot.WHO`). A change of
+   person puts every drawing that was somebody else's back under its loader, at once (`widgetsReveil_`,
+   arcade.js; docs/history/341) — and this is called by `signedOut_` and `signedIn_` exactly to draw the
+   board for the person arriving, before their repaint. Unstamped, the repaint took the board it had just
+   drawn for them for the last person's and veiled it, and a stale Tools column showed the loader where the
+   arriving child's own strokes belong. */
 function wbPaint_() {
   const html = `<div class="wb">${padWrap_(WB_ITEM, WB_SURF, '')}</div>`;
+  const who = typeof widgetWho_ === 'function' ? widgetWho_() : '';
   document.querySelectorAll('.wb-box').forEach(el => {
     if (PAD_ST && PAD_GO && el.contains(PAD_GO.ink)) return;
     el.innerHTML = html;
+    const slot = el.closest('.widget-slot');
+    if (slot) slot.WHO = who;
   });
 }
 function initWhiteboard() { wbPaint_(); }

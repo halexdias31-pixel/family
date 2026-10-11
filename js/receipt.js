@@ -1199,9 +1199,13 @@ function fitCanvas_(canvas, again) {
   return true;
 }
 
-function initFlappy() {
+/* `still`: DRAWN AHEAD OF ITS ARRIVAL (`flappyStill_`, the widget's declared `draw`) — the board, the canvas
+   fitted to its box and one frame of the scene, and then nothing: no handlers, no key listener, no loop.
+   The loop is the expensive one and runs only for somebody looking (`stop` cancels it). */
+function flappyStill_() { return initFlappy(true); }
+function initFlappy(still) {
   const canvas = $('flappy-canvas');
-  if (!canvas) return;
+  if (!canvas) return still ? false : undefined;
 
   /* THE BOARD IS DRAWN HERE because `startScreen_` calls this on every paint of the column, so it
      picks up the payload the moment `load()` lands and again whenever anything repaints. It is one
@@ -1224,7 +1228,10 @@ function initFlappy() {
      It fell through more often after the pages became a carousel: a pane that is not the centred
      one is scaled and clipped, and a widget starting in it is asking about a box the browser has
      not settled. */
-  if (!fitCanvas_(canvas, () => initFlappy())) return;
+  /* A STILL DRAWING DOES NOT WAIT FOR A BOX: with none it is not drawn (`false`), and the slot keeps its
+     loader until the game is started for somebody looking — a retry booked from here would be a frame loop
+     run for nobody, which is the one thing a still drawing is for not doing (check-widgets.js). */
+  if (!fitCanvas_(canvas, still ? null : () => initFlappy(still))) return still ? false : undefined;
 
   const ctx = canvas.getContext('2d');
   /* THE BOX, not the backing store. Those differ by the pixel ratio now, and using the backing
@@ -1270,8 +1277,8 @@ function initFlappy() {
   const EYE     = '#ffffff';
   const BEAK    = '#f4761e';
 
-  // reset any previous loop
-  if (flappyState?.raf) cancelAnimationFrame(flappyState.raf);
+  // reset any previous loop — but not from a still drawing, which the builder makes only of a game running nowhere
+  if (!still && flappyState?.raf) cancelAnimationFrame(flappyState.raf);
   const S = flappyState = {
     bird: { x: 60, y: H/2, vy: 0, r: 9 },
     pipes: [], score: 0, running: false, dead: false, raf: null, frame: 0
@@ -1580,6 +1587,8 @@ function initFlappy() {
   sky();
   bird();
   hud();
+  /* A STILL DRAWING STOPS HERE — see `flappyStill_`. Nothing below may run for somebody not looking. */
+  if (still) return;
 
   /* ---------- THE FLAP LANDS ON THE FINGER GOING DOWN ---------------------------------------------
      REPORTED AS "when you tap theres like a slight delay" ON AN IPAD, and the delay was the binding

@@ -143,6 +143,22 @@ function drawFeed() {
      The note in `feedShuffle` has the whole argument. */
 }
 
+/* THE FACT'S CARD AND NOTHING ELSE — the widget's declared `draw`, for the builder (docs/history/341). No
+   clip is given a source and no photograph is fetched: those are `drawFeed`'s, on arrival. A fact that is a
+   `<video>` clip is not drawn at all (`false`): a video with no source is a black box, and the loader the
+   slot already shows is the honest face of a clip that has not been asked for. */
+function feedPaint_() {
+  const host = $('feed-screen');
+  if (!host) return false;
+  if (FEED_AT === null) FEED_AT = 0;
+  const it = feedItem(Math.max(0, FEED_AT));
+  if (!it) return false;
+  const html = feedSlide(it);
+  if (/<video\b/i.test(html)) return false;
+  host.innerHTML = html;
+  return true;
+}
+
 function initFeed() {
   if (!$('feed-screen')) return;
   /* EVERY SESSION STARTS AT THE FIRST CARD OF ITS OWN SHUFFLE — see `drawFeed` above and the long
