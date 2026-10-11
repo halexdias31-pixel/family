@@ -11344,7 +11344,7 @@ function stuffItems() {
    become just learning stuff."* The same move as Booking above and the same care: the forty shop
    Things had ONE way onto a screen, this door, so it came out in the commit that built the Shop
    column (`shopCards_` in collections.js) and not before. The wearables, which are `Shop` too, have
-   the wardrobe on Settings. A STARRED shop thing stays on Saved — `collItems_` reads
+   the wardrobe in your own card's Edit (docs/history/339). A STARRED shop thing stays on Saved — `collItems_` reads
    `stuffItemsAll_`, which this does not touch.
 
    A LIST NOW, AND THE TEST IS "EVERY GROUP IT IS IN IS ONE OF THESE". A kind in `Shop` and in
@@ -13001,6 +13001,45 @@ function mineIs_(t) {
     (USER.name && t.name && norm(t.name) === norm(USER.name)));
 }
 
+/* ---------- YOUR OWN ROW, WHEREVER IT COMES FROM ------------------------------------------------------
+   Your row in `DATA.tutors` when you are listed staff — `mineIs_` — and otherwise one built from what
+   signing in returned. LIFTED OUT OF `accountPages_` (docs/history/339) because a second thing asks for it:
+   Edit on your own card is everybody's now, and `card-edit` (me.js) must open the very row the card it was
+   pressed under was drawn from — a parent's, a student's and an unlisted admin's have no tutor row. One
+   builder, so the card and its editor can never be two different people. */
+function myCardRow_() {
+  return (DATA.tutors || []).filter(mineIs_)[0] || {
+    /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO --------------------
+       A child is called by her first name (the owner, 10 Oct: *"dont show children's last name"*), and
+       when another child shares it the server says `Wren (@wren_kind43)` (`nameFor_`) — which is right
+       for a roster and wrong here, where `@wren_kind43` is the next line. Measured: the card read
+       "Wren (@wren_kind43) / @wren_kind43". `nameBesideHandle_` (data.js) takes only that suffix, and only
+       when it is this card's own handle; `USER.name` itself is untouched — it is what "is this mine?"
+       compares. */
+    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
+    role:  roleOf(USER.role || 'student'),
+    handle: USER.handle,
+    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the
+       sign-in reply's. With your figure beside it, so `personFace_` can draw `pfp:avatar` — though on
+       your own row it draws `USER.avatar` live anyway. */
+    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
+    avatar: USER.avatar || '',
+    rate:  USER.rate,
+    teaches: [],
+    personId: USER.personId,
+    /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` --------------------
+       THE STAMP IS A REAL CLAIM. A tutor row's `dbs` comes from `TRUE_(r.dbs_checked)`, so it is
+       always answered — true or false — and the note on the pass defends the negative outright:
+       "a pass without one is visibly a pass without one, which is exactly the right amount of
+       alarming". That is right for somebody a parent is checking.
+
+       IT IS NOT A CLAIM ANYBODY HAS MADE ABOUT A ROW BUILT HERE. A parent looking at their own
+       account has no `dbs_checked` cell anywhere, and printing NO DBS ON FILE across it would be
+       the `cost: 0` shape one more time: a missing fact rendered as a negative one. Omitting the
+       key is what tells the two apart — see `findCard`. */
+  };
+}
+
 function accountPages_() {
   if (!USER) {
     /* THE GOOGLE BUTTON IS MOUNTED A FRAME LATE — Google renders into an element that has to exist
@@ -13040,36 +13079,7 @@ function accountPages_() {
      AND IF YOU ARE NOT STAFF THERE IS NO ROW, so one is built from what signing in already
      returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
      the distinction the note above is about. */
-  const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
-    /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO --------------------
-       A child is called by her first name (the owner, 10 Oct: *"dont show children's last name"*), and
-       when another child shares it the server says `Wren (@wren_kind43)` (`nameFor_`) — which is right
-       for a roster and wrong here, where `@wren_kind43` is the next line. Measured: the card read
-       "Wren (@wren_kind43) / @wren_kind43". `nameBesideHandle_` (data.js) takes only that suffix, and only
-       when it is this card's own handle; `USER.name` itself is untouched — it is what "is this mine?"
-       compares. */
-    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
-    role:  roleOf(USER.role || 'student'),
-    handle: USER.handle,
-    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the
-       sign-in reply's. With your figure beside it, so `personFace_` can draw `pfp:avatar` — though on
-       your own row it draws `USER.avatar` live anyway. */
-    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
-    avatar: USER.avatar || '',
-    rate:  USER.rate,
-    teaches: [],
-    personId: USER.personId,
-    /* ---------- `dbs` IS DELIBERATELY ABSENT HERE, AND ABSENT IS NOT `false` --------------------
-       THE STAMP IS A REAL CLAIM. A tutor row's `dbs` comes from `TRUE_(r.dbs_checked)`, so it is
-       always answered — true or false — and the note on the pass defends the negative outright:
-       "a pass without one is visibly a pass without one, which is exactly the right amount of
-       alarming". That is right for somebody a parent is checking.
-
-       IT IS NOT A CLAIM ANYBODY HAS MADE ABOUT A ROW BUILT HERE. A parent looking at their own
-       account has no `dbs_checked` cell anywhere, and printing NO DBS ON FILE across it would be
-       the `cost: 0` shape one more time: a missing fact rendered as a negative one. Omitting the
-       key is what tells the two apart — see `findCard`. */
-  };
+  const myRow = myCardRow_();
 
   /* ---------- AN ITEM, NOT A ROW, AND THAT IS WHY THE MESSAGE TILE WAS MISSING -------------------
      REPORTED FOR THE SECOND TIME: "I don't see a message tile on tutors." The first time the tile
@@ -13106,7 +13116,8 @@ function accountPages_() {
 
      OTHERS ARE UNCHANGED: `withTiles_` asks for no kind and gets `tutor`, which is what they are. */
   /* `account: true` IS WHERE A CARD CAN BE EDITED — this column, and nowhere else the same tutor is drawn
-     (a star puts them on Saved too). `cardEditTile_` (me.js) draws Edit only for an item carrying it. */
+     (a star puts them on Saved too). `cardEditTile_` (me.js) draws Edit only for an item carrying it —
+     on your own card whoever you are, and on a tutor's for an admin (docs/history/339). */
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
     cost: priced_(t.rate), off: t.listed === false, row: t, account: true,

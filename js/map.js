@@ -1414,6 +1414,24 @@ const WIDGETS = [
     <div id="avail-box"></div>
   </div>` },
 
+  /* ---------- YOUR LIBRARY CARDS (docs/history/339) ---------------------------------------------------
+     THE OWNER, 11 Oct: *"move library card widget to the tools column."* They were the `Library cards`
+     page of Settings; they are this card now, drawn by `initLibCards_` (me.js) with every behaviour 332
+     gave them and saved exactly as they were — `me-save`, `updateProfile`, the fifteen `libN_*` cells.
+     `signedIn: true` is the flyer's `admin: true` for a wider audience: everybody signed in saw the page
+     (every role's map carries the group), and nobody signed out did.
+     STRAIGHT AFTER THE HOURS, because these are the only two tools that edit your own record and save it
+     with the same tick — and because the end of the roster is fifteen swipes away: a parent finds it
+     second, after the calculator, and a tutor straight after their hours. The name carries the word
+     somebody would type, as the hours' does: a widget is searched by its name and nothing else. */
+  { id: 'libcards', kind: 'tool', name: 'Library cards', solid: true, signedIn: true,
+    start: () => initLibCards_?.(),
+    into: 'lib-box', what: 'Your library cards',
+    html: `<div class="card">
+    <h3>Library cards</h3>
+    <div id="lib-box"></div>
+  </div>` },
+
   { id: 'mat', kind: 'tool', name: 'Cheat sheet maker (maths mat)', solid: true,
     start: () => initMat?.(),
     into: 'mat-box', what: 'The cheat sheet',

@@ -687,8 +687,9 @@ on('widget-open', el => {
    tile too."* Every one of the four was a DOOR to the Settings column — `edit-me` and `wardrobe`
    were literally `go('settings')` — and the column is one swipe from this card, so each tile was a
    second route to a place the swipe already reaches. The things themselves moved there: the child
-   request is a card on that column (`childCard_` in me.js), the figure is its last card, and the
-   build stamps sit under the admin's own Signing-in card.
+   request is "Manage your child" on that column (`childManageCard_` in me.js), and the build stamps sit
+   under the admin's own Signing-in card. The figure was that column's last card and is a section of
+   this card's own Edit now (docs/history/339) — Edit is the door, not a tile of its own.
 
    `kind: 'me'` STAYS ON YOUR OWN ITEM and routes to nothing below, which is deliberate: the kind is
    what stops `tutorTiles_` drawing a Message tile addressed to yourself — the reason it was built —
@@ -768,12 +769,14 @@ function cardActions_(x) {
   /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the
      row says why (`mailHeldNote_` in me.js, drawn by `accountPages_`). A thing about your account, so a
      tile in this row and not a button of its own. */
-  /* AND EDIT FIRST, on a tutor's own card — the owner, 10 Oct: *"all of this stuff should be editable
-     directly on the tutors card"*. A pencil, and the card becomes its own form (`cardEditTile_`, me.js,
-     which draws nothing on a card that is not a tutor's row). That is not the `Your settings` tile the
-     note over `fightTiles_` records the owner asking to go (*"remove edit tile as they can already edit
-     their profile on the column to the right"*): that was a door to another column; this edits the card
-     in place, and the Settings pages it would have led to are gone (docs/history/330). */
+  /* AND EDIT FIRST, on your own card — the owner, 10 Oct: *"all of this stuff should be editable
+     directly on the tutors card"*, and 11 Oct, for everybody: *"the random name generator should be one
+     of the editable things in the profile settings of the profile card. your figure should also be in your
+     profile card editing."* A pencil, and the card becomes its own form (`cardEditTile_`, me.js) — on a
+     parent's, a student's and an admin's own card as on a tutor's (docs/history/339). That is not the `Your
+     settings` tile the note over `fightTiles_` records the owner asking to go (*"remove edit tile as they
+     can already edit their profile on the column to the right"*): that was a door to another column; this
+     edits the card in place, and the Settings pages it would have led to are gone (docs/history/330). */
   if (x.kind === 'me') return (typeof cardEditTile_ === 'function' ? cardEditTile_(x) : '')
     + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
