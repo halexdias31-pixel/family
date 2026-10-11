@@ -7103,7 +7103,9 @@ function doneWords_(k, index) {
     let ask = cap([it.lead, it.html].map(doneWordsPlain_).filter(Boolean).join('\n'), DONE_WORDS_ASK);
     /* THE SITE'S OWN TEST FOR A PICTURE (`questionHasFig_`, `stemHasFig_`), never the `figure` cell: that
        is a transcriber's one-word tag — "table", "boxes" — and 622 questions with it draw no picture,
-       so a parent would be sent to look for one that is not there. */
+       so a parent would be sent to look for one that is not there. A MADE-UP SURFACE IS NOT ONE SINCE 327:
+       a blank grid to draw on is not the paper's picture, and "(picture on the site)" over it sent a parent
+       to look for the triangle the question names, which the grid does not have. */
     const pic = questionHasFig_(it) || stems.some(stemHasFig_);
     if (pic) ask += (ask ? ' ' : '') + '(picture on the site)';
     return stem ? stem + '\n---\n' + ask : ask;
@@ -9224,12 +9226,17 @@ const usesHead_ = name => (!name || name === 'Figure' ? 'Your drawing' : name + 
 
 /* DOES THIS PART GET THE PAGE IN FRONT -- see the note above. `prev` is the result before it in the
    strip, as `pageParts_` is told. */
+/* A PART WHOSE OWN PEN IS ON THAT VERY PICTURE carries the marks under its pen and needs no page -- but
+   NOT WHEN ITS OWN IS A MADE-UP SURFACE (327): that surface is the box's other face now, behind `Draw`,
+   and a part that opens on its box would show the graph it is told to use nowhere. Two grid surfaces
+   are the same markup, so this is the case of "draw the line y = 3 on the grid" after (a) drew a curve
+   on one: the page in front shows (a)'s marks, and (b)'s Draw shows them again, fainter, under its pen. */
 function usesPage_(x, prev) {
   const y = usesOf_(x);
   const p = y && padSource_(y);
   if (!p) return false;
   const own = padSource_(x);
-  if ((own && own.svg === p.svg) || (x.diagram && x.diagram === p.svg)) return false;
+  if ((own && own.from !== 'surface' && own.svg === p.svg) || (x.diagram && x.diagram === p.svg)) return false;
   if (prev && prev.key === y.key && pageParts_(prev).slice(-1)[0] === 'fig') return false;
   return true;
 }
@@ -9271,9 +9278,11 @@ function questionUsesCard_(x) {
    enlarge triangle T" over squared paper with no triangle T is a question you cannot fully answer.
    What changed is who decides: the owner, teaching from it, wants somewhere to work -- a square grid
    to sketch the enlargement on, axes to plot the graph on -- over a word box that cannot hold a line
-   at all. So the surface is honest about what it is (its own name in the header, never "Figure", and
-   a line under it saying it is not the paper's), and where the data workflow redraws the paper's own
-   figure, that figure takes the pen and the surface is never drawn.
+   at all. So the surface is honest about what it is (never "Figure", and a line under it saying it is
+   not the paper's), and where the data workflow redraws the paper's own figure, that figure takes the
+   pen and the surface is never drawn. AND IT IS NOT A PAGE OF ITS OWN ANY MORE: it is the answer box's
+   other face, on the card, behind `Draw` -- *"just leave it as an answer box like before but theres an
+   option to switch to drawing box"* (the owner, 10 Oct; `ansArea_`, 327).
 
    WHICH SURFACE, in this order:
      `surface`   the row says: "grid", "coord", "blank" or "text" (`check-library.js` holds the
@@ -9300,8 +9309,10 @@ function padSurface_(x) {
   if (/grid/.test(f) && !/isometric/.test(f)) return 'grid';
   return 'blank';
 }
-/* WHAT EACH IS CALLED in the figure page's header, where a paper figure is called "Figure": a name
-   that says what is on the page, and does not claim to be the paper's. */
+/* WHAT EACH IS CALLED, where a paper figure is called "Figure": a name that says what is drawn and does
+   not claim to be the paper's. It headed the surface's own page until that page went (327); it still
+   names the surface to a screen reader (`surfaceSvg_`) and heads the page in front of a part that uses
+   one ("Axes · your drawing", `questionUsesCard_`). */
 const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw' };
 
 /* ---------- THE SURFACE ITSELF -------------------------------------------------------------------
@@ -9338,6 +9349,268 @@ function surfaceSvg_(kind) {
     out.push(`<rect class="axis" x="${A}" y="${A}" width="${B - A}" height="${B - A}" rx="8" fill="none" stroke-dasharray="6 6"/>`);
   }
   return `<svg class="qsurf is-${kind}" viewBox="0 0 340 340" role="img" aria-label="${SURFACE_NAME[kind] || 'Space to draw'}">${out.join('')}</svg>`;
+}
+
+/* ==================================================================================================
+   THE SURFACE IS THE ANSWER BOX'S OTHER FACE, ON THE CARD, BEHIND ONE TILE.
+
+   THE OWNER, 10 Oct, with a screenshot of a KS1 card -- "How many sides has a hexagon?", a "Type your
+   answer" box, "Space to draw on the next page" -- and the page after it, headed "Space to draw", a
+   dashed square under the pen: *"this is confusing. theres an answer box and draw box? in questions
+   which require a drawing, just leave it as an answer box like before but theres an option to switch
+   to drawing box. this makes more sense and is more uniform."*
+
+   TWO PLACES TO ANSWER ONE QUESTION, A SWIPE APART, and nothing saying which one counted. 270 gave every
+   question answered by drawing a surface (*"some questions require answers on diagram. So should have a
+   diagram for them to draw on"*) and stood it where a figure stands, the page after the card -- so every
+   grid, every blank space and every set of axes sat behind a card that ALSO had a box. The KS1 hexagon,
+   a one-word answer whose row gives it somewhere to count the sides, is the case that showed it.
+
+   SO THE CARD DRAWS ONE OF THE TWO, IN ONE PLACE: the answer box exactly as any other question's (typed,
+   the maths pad, the options -- `ansBox_`, untouched), or the surface under the pen with its own tiles
+   (`padWrap_`, untouched: lock, Undo, Clear, and Ruler and Compass where `padTools_` gives them), and a
+   `Draw` tile in the card's row swaps them in place. Pressed, it reads `Type` and swaps back. A tile
+   because everything on a question's pages is one (*"it should all be tiles"*); in the row under the
+   card because it acts on the card, and a switch inside the face it swaps away would move as it went.
+
+   BOTH ANSWERS ARE KEPT, EACH WHERE IT ALWAYS WAS. The typed one under `ans:` (`ansKey_`), the drawing
+   under `pad:` (`padKey_`) -- the same keys, so every drawing already made is still there, still goes up
+   to the account (308: drawings ride the answers tab) and every rule about whose it is (317, 318:
+   `padAdopt_`, `ansMayMove_`, the claim, Undo putting back whose it was) is the code it was. Check marks
+   the typed answer; a drawing is not marked; showing a face sends nothing.
+
+   ONLY THE MADE-UP SURFACES MOVED. The paper's own figure under a pen (`from: 'part'`, or a stem's) keeps
+   its page where the paper prints it: it is a picture first and somewhere to draw second.
+
+   OPENING THE CARD IS OPENING BOTH, so the phone's old marks and a signed-out answer move to whoever is
+   signed in when the card is drawn, whichever face shows (`padAdopt_`, `ansRead_` -- as the surface's
+   page did when IT was drawn). A drawing that moved only when somebody pressed `Draw` would leave
+   `padFace_` below reading an empty pad and opening on an empty box over the child's own work. */
+const surfaceOf_ = x => { const p = padSource_(x); return p && p.from === 'surface' ? p : null; };
+
+/* ---------- WHICH FACE THIS DEVICE LAST LEFT EACH QUESTION ON ----------------------------------------
+   BY `padKey_`, so it is per person exactly as the drawing is (`pad:u:P7:q:X`), and dropped at sign-out
+   with the rest of the person's device state (`padFaceForget_`, called by `signedOut_` in me.js). Small:
+   one short word a question, the latest `PAD_FACE_MAX`. In `localStorage` with the house's try round
+   every touch, and in `PAD_FACE` for the visit, so a store that throws still remembers until the page
+   goes. A preference about how a card opens, NOT an answer: it never reaches answers.js or the account,
+   and its key (`surfaceFace`) is not a `pad:` or `ans:` one that anything sweeping those would read. */
+const PAD_FACE_STORE = 'surfaceFace';
+const PAD_FACE_MAX = 200;
+let PAD_FACE = null;
+function padFaces_() {
+  if (PAD_FACE) return PAD_FACE;
+  PAD_FACE = {};
+  try {
+    const v = JSON.parse(localStorage.getItem(PAD_FACE_STORE) || '{}');
+    if (v && typeof v === 'object' && !Array.isArray(v)) PAD_FACE = v;
+  } catch (e) {}
+  return PAD_FACE;
+}
+/* ---------- AND WHICH DRAWING `Type` WAS CHOSEN OVER --------------------------------------------------
+   FOUND IN REVIEW, AND IT WAS THE OWNER'S RULE BROKEN BY THE REMEMBERING: Type pressed once on this device,
+   with nothing drawn, and a drawing made afterwards on the tutor's iPad (`answersPull_` brings it here) --
+   the card opened on an empty box, because a stored "type" was asked before "a drawing and nothing typed",
+   and the only sign of the child's work was a pen icon whose "has a drawing" lives in its `aria-label`,
+   which nobody sees on a touch screen. Putting the drawing rule first is not the answer either: then
+   pressing `Type` over an untyped drawing would do nothing a reload could see, which is a choice the
+   device was asked to remember and did not.
+   SO A "type" HOLDS ONLY OVER THE DRAWING IT WAS CHOSEN OVER. It is stored with that drawing's fingerprint
+   -- how many strokes and how long their stored list is, `padSig_` -- as `type:<sig>` (`type` alone over no
+   drawing), and `padFace_` lets "a drawing and nothing typed" win the moment the drawing on the device is
+   not that one. One short string a question, as before. `draw` needs none: it shows the drawing anyway. */
+const padSig_ = marks => (marks && marks.length ? marks.length + '.' + JSON.stringify(marks).length : '');
+function padFaceOf_(k) {
+  const v = String(padFaces_()[k] || '');
+  const at = v.indexOf(':');
+  const face = at < 0 ? v : v.slice(0, at);
+  return face === 'draw' || face === 'type' ? { face: face, over: at < 0 ? '' : v.slice(at + 1) } : null;
+}
+/* THE LATEST LAST, so the oldest are the ones that fall off past the cap. */
+function padFaceSet_(k, face) {
+  const all = padFaces_();
+  delete all[k];
+  const sig = face === 'type' ? padSig_(padRead_(k)) : '';
+  all[k] = sig ? face + ':' + sig : face;
+  const keys = Object.keys(all);
+  keys.slice(0, Math.max(0, keys.length - PAD_FACE_MAX)).forEach(o => { delete all[o]; });
+  try { localStorage.setItem(PAD_FACE_STORE, JSON.stringify(all)); } catch (e) {}
+}
+function padFaceForget_() {
+  PAD_FACE = {};
+  try { localStorage.removeItem(PAD_FACE_STORE); } catch (e) {}
+}
+
+/* THE BOX HOLDS SOMETHING: typed, picked or ordered -- whatever `ansRead_` would draw back into it. */
+const ansTyped_ = x => !!String(ansRead_(ansKey_(x)) || '').trim();
+
+/* ---------- WHICH FACE SHOWS FIRST ---------------------------------------------------------------
+   THE BOX, AS ON EVERY OTHER QUESTION -- *"just leave it as an answer box like before"* -- unless:
+     this device last left this question on the drawing: the drawing. A child who drew, swiped on and
+       came back is on the drawing.
+     this device last left it on the box, over THIS drawing: the box. A child who drew, pressed `Type`
+       and came back is on the box -- the drawing they turned from is the one still there.
+     otherwise, there is a drawing and no typed answer: the drawing, so nobody opens a card whose only
+       work is a picture and reads an empty box as their work gone -- a drawing made on the old surface
+       page, on another device, or after `Type` was last pressed here (`padFaceOf_`, above). */
+function padFace_(x) {
+  const k = padKey_(x);
+  padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
+  const held = ansTyped_(x);
+  const said = padFaceOf_(k);
+  if (said && said.face === 'draw') return 'draw';
+  const marks = padRead_(k);
+  if (said && said.face === 'type' && (held || said.over === padSig_(marks))) return 'type';
+  return marks.length && !held ? 'draw' : 'type';
+}
+
+/* ---------- THE TILE, AND WHAT ITS NOTE SAYS -------------------------------------------------------
+   ONE TILE, TWO FACES, the pen's lock's arrangement (`padLockFace_`): the face is one object handed to
+   `tile_` to draw and to `tileSet_` to rewrite in place, so the two cannot drift. Over the box it is
+   `Draw` (the pen); over the drawing it is `Type` (the keys).
+
+   THE NOTE SAYS WHAT THE FACE YOU CANNOT SEE HOLDS, in three words at most: "has a drawing", "has an
+   answer", or what is there to start on. An empty-looking box over a drawing, or a grid over a typed
+   answer, is the two-places confusion again unless something says the other one is not empty. */
+const PAD_FACE_EMPTY = { grid: 'on squared paper', coord: 'on axes', blank: 'a blank space' };
+function padFaceTile_(x, face) {
+  if (face === 'draw') return { icon: 'type', label: 'Type', note: ansTyped_(x) ? 'has an answer' : 'the answer box' };
+  const surf = surfaceOf_(x);
+  return { icon: 'pen', label: 'Draw',
+           note: padRead_(padKey_(x)).length ? 'has a drawing' : (PAD_FACE_EMPTY[surf && surf.surface] || 'a blank space') };
+}
+function drawTile_(x) {
+  if (!x || !x.key || !surfaceOf_(x)) return '';
+  return tile_(Object.assign({ act: 'q-draw', cls: 'q-drawt', data: { key: x.key } }, padFaceTile_(x, padFace_(x))));
+}
+
+/* ---------- THE ANSWER AREA ---------------------------------------------------------------------
+   `.qp-area` ONLY ROUND A SURFACE QUESTION'S, so every other card's box is the markup it always was.
+   `data-q` names the question (its item key) for the tile's handler to find every copy -- Find and Saved
+   can both be holding the card. The surface still says what it is not, its page's line cut to fit a
+   card: the `figCredit_` argument -- a generated grid passing as the exam board's figure would be the
+   site speaking in the board's voice. CUT AGAIN IN REVIEW to the claim alone, "Not the paper's own
+   figure.", and run on one line with "Saved to Ada's account" (style.css, `.qp-area.is-draw`): two notes
+   under a pen's bar were two lines of a 568px phone the grid needed, and "somewhere to work" is what the
+   surface under it already says by being there. */
+function ansArea_(x) {
+  const surf = surfaceOf_(x);
+  if (!surf || !x.key) return ansBox_(x);
+  const draw = padFace_(x) === 'draw';
+  return `<div class="qp-area${draw ? ' is-draw' : ''}" data-q="${esc(x.key)}">${draw
+    ? padWrap_(x, surf.svg, '<p class="fig-by">Not the paper&rsquo;s own figure.</p>')
+    : ansBox_(x)}</div>`;
+}
+
+/* ---------- THE SWAP, IN PLACE --------------------------------------------------------------------
+   REWRITTEN WHERE IT STANDS, NOT REPAINTED -- `choiceRedraw_`'s way. Both faces are the same page, so the
+   page count does not change and `PAGE.stuff` and the strip stay exactly where they were (318 keeps your
+   place across a sign-in by that index); a repaint would rebuild eleven pages to change one card. Every
+   copy, because Find and Saved can both be holding it, and the panes measured again (`paneReach_`): a
+   grid is taller than a box.
+
+   LEAVING THE BOX PUTS THE KEYPAD AWAY if it was typing into this box -- a pad over a grid types into
+   nothing (`kpLive_` would close it at the next key; this is that key not having to be pressed). LEAVING
+   THE DRAWING TURNS THE PEN OFF if it was on this pad: `PAD_ON` naming a pad that is not on the screen is
+   the invisible mode `padArm_` exists to prevent, and the drawing would come back armed, holding the
+   card still, with nobody having asked. */
+on('q-draw', el => {
+  const key = el.getAttribute('data-key') || '';
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === key) || null; } catch (e) { x = null; }
+  if (!x || !surfaceOf_(x)) return;
+  const k = padKey_(x);
+  /* THE FACE ON THE SCREEN IS THE ONE TURNED FROM, not the one `padFace_` would choose now: a drawing that
+     reached this device after the card was drawn (`answersPull_`, from the account) makes "a drawing and
+     nothing typed" true under a card still showing its box -- and `Draw` pressed there read the rule, found
+     "draw", turned to "type", and the press did nothing a child could see. Asked of the card the tile is
+     under (its page), and only where there is none of the rule. */
+  const near = [].slice.call(((el.closest && el.closest('.page')) || document).querySelectorAll('.qp-area'))
+    .find(a => a.getAttribute('data-q') === key);
+  const shown = near ? (near.classList.contains('is-draw') ? 'draw' : 'type') : padFace_(x);
+  const face = shown === 'draw' ? 'type' : 'draw';
+  padFaceSet_(k, face);
+  if (face === 'draw') {
+    if (typeof KP_AT !== 'undefined' && KP_AT && KP_AT.getAttribute('data-k') === ansKey_(x)
+        && typeof kpClose_ === 'function') kpClose_();
+  } else if (PAD_ON === k) { PAD_ON = ''; PAD_ST = null; PAD_GO = null; }
+  padFaceRedraw_(x);
+});
+/* ---------- AND THE SURFACE GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER ---------------------------------
+   `kpSheetFit_`'s answer for the essay's sheet, one face along. A card taller than its pane is drawn
+   smaller whole (`paneReach_`, *"I don't like scrolling. If you need to leave things more compact or
+   smaller font"*), and the first look at a KS2 grid question switched to its drawing at 320x568 was
+   that card at about three quarters: three rows of tags, two sentences, the grid, the pen's bar on two
+   lines and two notes, every word smaller and every tile under 44px -- to keep a grid at a size nobody
+   had asked for. So the GRID is what gets shorter, down to `PAD_FACE_FLOOR` (a square a finger can
+   still draw a reflection in). Square, so its width is its height; the ink layer follows the picture's
+   box (`padWrap_`), so a mark lands where it was drawn at any size. Measured at zoom 1 every time --
+   `paneReach_` resets before it calls this.
+
+   AND THEN THE WORDS, AND NEVER THE TILES. The review measured what was left after the grid: at 320x568,
+   27 of the 62 surface cards still passed their pane with the grid at its floor, and `paneReach_` drew
+   each of them smaller WHOLE -- the pen's lock, Undo and Clear and the `Type` tile at 31 to 42px, the
+   grid at 126 to 170. The dice-table cards (5-a-day 24 and 30 Oct) went to the 0.7 floor and still did
+   not fit, and since 9px over is inside `PANE_REACH` the pane neither fitted nor scrolled: the `Type`
+   tile was cut in half by the pane's edge, the one way back to the box half there. A tap target is the
+   one size here that must not scale (CLAUDE.md: tap targets in px), and on this face the targets are
+   the point -- the child is drawing. What can give is what was already read: the face was turned to
+   from the box, with the same words over it at full size. So the card's words (its tags and its sheet)
+   are drawn smaller, to `PANE_ZOOM_MIN` like any card's, and the surface, the pen's bar and the row
+   under the card stay the size the stylesheet gave them. A card that still does not fit after that is
+   NOT drawn smaller whole: `paneReach_` scrolls its pane from the first pixel over (`drawn`), so nothing
+   is ever cut off with no way to reach it.
+
+   RESET ON EITHER FACE, so the words come back to full size the moment `Type` turns the card back to its
+   box: `paneReach_` calls this for every pane holding a `.qp-area`, and a zoom left on a box's words by
+   the drawing it replaced would be the card drawn smaller for no reason. `data-face-zoom` marks what this
+   wrote, so only that is undone. */
+const PAD_FACE_FLOOR = 180;
+function padFaceFit_(pane) {
+  try {
+    pane.querySelectorAll('[data-face-zoom]').forEach(e => { e.style.zoom = ''; e.removeAttribute('data-face-zoom'); });
+    const area = pane.querySelector('.qp-area.is-draw');
+    const svg = area && area.querySelector('.qpad-art > svg:first-child');
+    if (!svg) return;
+    svg.style.width = '';
+    const over = () => pane.scrollHeight - pane.clientHeight;
+    let by = over();
+    if (!(by > 2)) return;
+    const w = svg.getBoundingClientRect().width;
+    if (w > 0) {
+      const fit = Math.max(PAD_FACE_FLOOR, Math.floor(w - by - 4));
+      if (fit < w) svg.style.width = fit + 'px';
+      by = over();
+      if (!(by > 2)) return;
+    }
+    /* THE CARD'S OWN CHILDREN THAT ARE NOT THE ANSWER: `qPage_`'s tags and the `.qsheet`. Their heights at
+       zoom 1, and the zoom that takes `by` (and the four pixels `paneReach_` keeps for a border and a line
+       box) off them -- which fits or overshoots, never undershoots, because words drawn smaller wrap less. */
+    const card = area.closest('.qcard');
+    const words = card ? [].filter.call(card.children, e => e !== area && !e.contains(area)) : [];
+    const h = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
+    if (!(h > 0)) return;
+    const z = Math.max(PANE_ZOOM_MIN, Math.floor((h - by - 4) / h * 1000) / 1000);
+    if (z < 1) words.forEach(e => { e.style.zoom = String(z); e.setAttribute('data-face-zoom', ''); });
+  } catch (e) { /* the stylesheet's cap stands, and `paneReach_` scrolls what is left */ }
+}
+function padFaceRedraw_(x) {
+  if (typeof document === 'undefined' || !x) return;
+  const key = x.key || '';
+  const panes = new Set();
+  document.querySelectorAll('.qp-area').forEach(a => {
+    if (a.getAttribute('data-q') !== key) return;
+    const t = document.createElement('div');
+    t.innerHTML = ansArea_(x);
+    const next = t.firstElementChild;
+    if (!next) return;
+    const pane = a.closest('.pane');
+    if (pane) panes.add(pane);
+    a.replaceWith(next);
+  });
+  const face = padFaceTile_(x, padFace_(x));
+  document.querySelectorAll('.q-drawt').forEach(b => { if (b.getAttribute('data-key') === key) tileSet_(b, face); });
+  if (panes.size && typeof paneReach_ === 'function') { try { paneReach_([...panes]); } catch (e) {} }
 }
 
 /* ---------- AND A PASSAGE YOU MARK BY TAPPING ITS WORDS ----------------------------------------------
@@ -9727,7 +10000,8 @@ function questionCard_(x) {
             question and its box are on one screen. `chunkHtml_` draws the lead and the part in the
             wrappers they always had, so a part that fits is the markup it always was.
             NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
-            — see `questionFigCard_`. The answer box stays on this card, under the words. */''}
+            — see `questionFigCard_`. The answer box stays on this card, under the words -- and a
+            made-up surface to draw on is the box's other face, here, not a page (`ansArea_`). */''}
       ${chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x))}
       ${/* AND THE WORDS SAY WHERE IT WENT -- when it went AFTER them. "The angle marked y", with no
             angle on the card, reads as a question that failed to load; one quiet line, a label rather
@@ -9735,13 +10009,15 @@ function questionCard_(x) {
             `partPlan_` that `pageParts_` lays out, so the line and the page that it names cannot
             disagree. A figure standing in front of the card was the page you just turned past, and
             pointing forward at it would send you the wrong way. */''}${
-        partPlan_(x).figAt >= partChunks_(x).length ? `<p class="qsheet-figref">${figWhat_(x)} on the next page &rarr;</p>` : ''}
+        partPlan_(x).figAt >= partChunks_(x).length ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. It is the page after -- see
           `questionAnsCard_` -- and the order is still the whole point: an answer you can see before
           you have written one is not a question, and now it is not even on the same page. What
-          stays here is ANSWERING, which is a form: the box, Check, the options to tap. */''}
-    ${ansBox_(x)}
+          stays here is ANSWERING, which is a form: the box, Check, the options to tap.
+          AND, ON A QUESTION ANSWERED ON A MADE-UP SURFACE, THE SURFACE IN ITS PLACE when `Draw` is
+          pressed -- the box and the drawing are two faces of one answer (`ansArea_`, 327). */''}
+    ${ansArea_(x)}
   </div>`;
 }
 
@@ -9796,7 +10072,7 @@ function questionPreCard_(x, j) {
     ${qPage_(x, 'Question', qNumSay_(x.name, j, chunks.length), false)}
     <div class="qsheet">
       ${chunkHtml_(chunks[j], circOf_(x))}
-      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? figWhat_(x) : 'Continued'} on the next page &rarr;</p>
+      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? 'Figure' : 'Continued'} on the next page &rarr;</p>
     </div>
   </div>`;
 }
@@ -9941,7 +10217,9 @@ function stemChunks_(p) {
                      A marker at the very end (every word before the figure): the card, then the figure.
      NO MARKER,      the figure is the ANSWER SURFACE (a pen, `padSource_`): the card, then
      A PEN           the figure to draw on -- you read what to draw before the thing you draw it on,
-                     and the words with the box are the ask. Whether or not there is a lead.
+                     and the words with the box are the ask. Whether or not there is a lead. ONLY THE
+                     PAPER'S OWN PICTURE: a made-up surface is on the card now, behind `Draw` (327),
+                     so a surface question with photographs lays them out as any other part's.
      NO MARKER,      lead  ->  FIGURE  ->  the html with the box: the lead is the part's own sentence of
      A LEAD          setting ("Here is a grid."), and the ask is what follows the picture.
      NO MARKER,      the figure IN FRONT OF THE QUESTION CARD -- straight before the page with the ask,
@@ -9973,7 +10251,7 @@ function partPlan_(x) {
   };
   if (!questionHasFig_(x)) plan = { chunks: packBlocks_(lead.concat(pb), CHUNK_PAGE, PART_LAST), figAt: -1 };
   else if (fb.at >= 0) plan = split(lead.concat(pb.slice(0, fb.at)), pb.slice(fb.at));
-  else if (padSource_(x)) plan = split(lead.concat(pb), []);
+  else if (padSource_(x) && padSource_(x).from !== 'surface') plan = split(lead.concat(pb), []);
   else if (lead.length) plan = split(lead, pb);
   else {
     const c = packBlocks_(pb, CHUNK_PAGE, PART_LAST);
@@ -10021,10 +10299,10 @@ function circOf_(x) {
   }
   return { k: k, on: circRead_(k) };
 }
-/* WHAT THE NEXT PAGE IS CALLED, in the words its own header uses: "Figure", or a surface's name -- a
-   pointer saying "Figure" at a page headed "Squared grid" that says it is not the paper's figure would
-   be the two pages disagreeing. */
-const figWhat_ = x => { const p = padSource_(x); return (p && p.from === 'surface' && SURFACE_NAME[p.surface]) || 'Figure'; };
+/* `figWhat_` WAS HERE: what the next page is called, "Figure" or a surface's name ("Squared grid on the
+   next page"), so a pointer and the page it named could not disagree. A surface is never a page now --
+   it is the answer's other face, on the card (327) -- so the page a pointer names is always a figure,
+   and the pointer says "Figure". */
 
 /* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
    No question number -- see `figLabel_`. `data-of` is the stem's id, because the figure is the
@@ -10099,26 +10377,30 @@ const figImgs_ = v => (Array.isArray(v) ? v : topicAtoms_(v));
 /* THE PART'S OWN FIGURE, and only its own: the stems' pictures are the stems' pages now (see
    `pageParts_`). With one exception that is not a picture but a surface -- a part asked to draw on
    its stem's diagram ("complete the Venn diagram above") gets that diagram again here, under the pen,
-   because its marks are keyed to the part (`padKey_`) and the stem's page belongs to every part. */
+   because its marks are keyed to the part (`padKey_`) and the stem's page belongs to every part.
+   ---------- AND A MADE-UP SURFACE IS NOT A FIGURE ANY MORE, AND HAS NO PAGE ----------------------------
+   THE OWNER, 10 Oct, over a KS1 card reading "How many sides has a hexagon?" with a box under it and
+   "Space to draw on the next page", and the page after it a dashed square: *"this is confusing. theres
+   an answer box and draw box? in questions which require a drawing, just leave it as an answer box like
+   before but theres an option to switch to drawing box. this makes more sense and is more uniform."* So
+   a squared grid, axes or a blank space (`from: 'surface'`) is the answer box's other face now, on the
+   card behind a `Draw` tile (`ansArea_`), and never a page of its own. The paper's own figure under a
+   pen, and a stem's, still is: that is a picture the paper prints, and it stands where the paper prints
+   it. See docs/history/327. */
 function questionHasFig_(x) {
   if (!x || x.kind !== 'question') return false;
   if (x.diagram || figImgs_(x.images).length) return true;
   const pad = padSource_(x);
-  return !!(pad && pad.from !== 'part');
+  return !!(pad && pad.from !== 'part' && pad.from !== 'surface');
 }
 function questionFigCard_(x) {
   const pad = padSource_(x);
   const out = [];
   const stemNames = (x.stems || []).filter(stemHasFig_).map(p => figLabel_(p.html));
   let label = figLabel_(String(x.lead || '') + ' ' + String(x.html || ''), stemNames);
-  if (pad && pad.from === 'surface') {
-    /* A SURFACE IS NAMED FOR WHAT IT IS AND SAYS IT IS NOT THE PAPER'S -- the `figCredit_` argument:
-       a page that let a generated grid pass as the exam board's figure would be the site speaking in
-       the board's voice. */
-    out.push(padWrap_(x, pad.svg, `<p class="fig-by">Not the paper&rsquo;s own figure &mdash; somewhere to
-      work your answer.</p>`));
-    label = SURFACE_NAME[pad.surface] || 'Space to draw';
-  } else if (pad && pad.from !== 'part') {
+  /* A SURFACE IS NOT DRAWN HERE ANY MORE -- it is the answer's other face, on the card (`ansArea_`).
+     This page draws a surface question's photographs if it has any, and nothing else. */
+  if (pad && pad.from !== 'part' && pad.from !== 'surface') {
     out.push(padWrap_(x, pad.svg));
     label = figLabel_(pad.from.html);
   }
@@ -10150,7 +10432,7 @@ function questionFigCard_(x) {
    grow. A PART QUALIFIES when its own words name a figure (`FIG_NAMED`: "Figure 3", "the graph", "the
    diagram", "the grid", "the table below"…) and NOTHING in its question is one -- not its own, not
    an opening's, not another part's -- and it is not answered on a surface (a grid or a passage to
-   ring is somewhere to answer, and is its own page). Words that carry their own `<svg>`, `<img>` or
+   ring is somewhere to answer, on the card). Words that carry their own `<svg>`, `<img>` or
    `<table>` already hold what they name. */
 const FIG_NAMED = /\b(?:figure\s*\d+[a-z]?|the\s+(?:graphs?|diagrams?|grid|chart|bar\s+chart|pie\s+chart|scatter\s+(?:graph|diagram)|map)\b|the\s+table\s+below)/i;
 function figWanted_(words, figured) {
@@ -10348,8 +10630,11 @@ function questionTiles_(x) {
   /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
      its own end (`ansBox_`), where the keypad cannot cover it. */
   const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) : '';
+  /* AND `Draw` / `Type` ON A QUESTION ANSWERED ON A MADE-UP SURFACE, first after the star: the one
+     switch between the answer's two faces (`ansArea_`, 327). For everybody, signed in or not -- the
+     surface was a page anybody could swipe to. */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
-  return fig + (whoIs_() ? subSlot_(x) : '');
+  return drawTile_(x) + fig + (whoIs_() ? subSlot_(x) : '');
 }
 
 /* ==================================================================================================
@@ -10367,15 +10652,15 @@ function questionTiles_(x) {
    PART WHOSE QUESTION HAS A FIGURE IN FRONT OF IT: the opening's (`stems`), an earlier part's own
    (2H Q14b's graph lives on Q14a), or its own where it stands in front of the card. All of them, in
    the paper's order, because which one a part means is in its words and not in the data -- and a
-   question almost always has one. A drawing surface is not a figure (it is somewhere to answer, and
-   it is the part's own page).
+   question almost always has one. A drawing surface is not a figure (it is somewhere to answer, the
+   card's other face -- `ansArea_`).
 
    A PICTURE AN EARLIER PART DREW ON CARRIES THOSE MARKS, read only (`usesSeen_`), as the paper in front
    of the child would. Found in review: 2F Q24c "Use your graph..." -- the page before it showed the
    child's graph (`use`), and its Figure tile opened (b)'s grid EMPTY, the one place in the app that
    said the graph was not there. Whoever is signed in, as everywhere (`usesMine_`); every earlier part
    whose pen is on that very picture (same markup), so (ii) sees (i)'s cross and (d) the whole chain.
-   Not this part's own marks: they are on its own page, where its pen is.
+   Not this part's own marks: they are where its pen is, on its own page or its card's other face.
 
    The earlier parts are the funnel's own items (`questionParts_`), so Saved, a search and a paper all
    see the same figures. */
@@ -14393,6 +14678,18 @@ function paneReach_(panes) {
        one card whose height follows its width: the faces narrow, keeping their shape, until the page
        fits or the band runs out, and only what is left is drawn smaller (docs/history/332). */
     if (typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
+    /* AND A SURFACE SWITCHED TO ON ITS CARD GIVES WAY THE SAME WAY -- `padFaceFit_`, the sheet's answer one
+       face along (327): the grid gets smaller, then the words, and the pen's 44px tiles and the row with
+       `Type` in it never do. Every pane holding a `.qp-area`, either face, so a card turned back to its box
+       has its words put back to full size. */
+    list.forEach(p => { if (p.querySelector('.qp-area')) padFaceFit_(p); });
+    /* ---------- AND A CARD SWITCHED TO ITS DRAWING IS NEVER DRAWN SMALLER WHOLE -------------------------------
+       The open list's answer below, for the same reason: what is on it is there to be pressed and drawn on,
+       at a fingertip's size. `padFaceFit_` has already taken what can give (the grid to its floor, the words
+       to the zoom floor); what is still over scrolls from its first pixel, so the row under the card -- the
+       one way back to the box -- is never cut off by the pane with no scroll to reach it. Found in review:
+       the 5-a-day dice tables at 320x568, drawn whole at 0.7 and still 9px over, `Type` cut in half. */
+    const drawn = list.map(p => !!p.querySelector('.qp-area.is-draw'));
     const pad = p => {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
@@ -14419,7 +14716,7 @@ function paneReach_(panes) {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
-      if (ticks[i] || forms[i]) return 1;
+      if (ticks[i] || forms[i] || drawn[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
       const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
@@ -14489,14 +14786,23 @@ function paneReach_(panes) {
        instead of fitted, the little it is over is the card's own foot — the Send tile — and 24px of that
        clipped with no scroll is a tile half there. */
     /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i]) && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] ? 2 : PANE_REACH));
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i] || drawn[i]) && want[i] === 1))
+      && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */
     list.forEach((p, i) => {
       const to = over[i] ? 'auto' : '';
-      if (p.style.overflowY !== to) p.style.overflowY = to;
+      if (p.style.overflowY !== to) {
+        p.style.overflowY = to;
+        /* A CARD ON ITS DRAWING THAT HAS TO SCROLL OPENS SCROLLED TO ITS FOOT: the surface, the pen's bar and
+           the row with `Type` in it -- the one way back to the box -- on the glass, and the words, read on
+           the box a moment ago, the part a finger scrolls back to. Opened at its top, the 5-a-day dice
+           tables at 320x568 put `Type` 50 to 100px under the fold of a pane with no scrollbar: a switch you
+           can turn on and then cannot see to turn off. Once, as the pane starts to scroll; never again
+           while it does, so a child who scrolled up to read is left where they are. */
+        if (to && drawn[i]) p.scrollTop = p.scrollHeight;
+      }
     });
   } catch (e) {}
 }

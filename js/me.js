@@ -795,6 +795,9 @@ function signedOut_(opts) {
   /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
      board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  /* AND WHICH FACE EACH SURFACE QUESTION WAS LEFT ON, box or drawing (`padFaceForget_`, find.js; 327). It is
+     kept by the drawing's own per-person key, so it is the person's, and goes with them as the stars do. */
+  try { if (typeof padFaceForget_ === 'function') padFaceForget_(); } catch (e) {}
   /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
      docs/history/317). `typeof`, because book.js loads after this file. */
   try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) {}

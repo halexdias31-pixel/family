@@ -361,6 +361,9 @@ function boot(opts) {
          as the press path. Without it only `padArm_` could be checked — and a `padWrap_` that got
          the armed case wrong would put the fault straight back on the next repaint. */
       'padOn: v => { PAD_ON = v; },' +
+      /* AND READ BACK, so a journey can ask whether leaving a surface's drawing for its box turned the pen
+         off (327) -- a `let`, which a second eval cannot reach. */
+      'padNow: () => PAD_ON,' +
       /* AND THE PAD'S KEY, a `const` arrow, so a journey can arm a pad by the key its marks are kept
          under -- and read those marks back -- without writing the key's format out a second time. */
       'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
@@ -11311,7 +11314,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const { w, errs } = boot({ payload: Object.assign(payload(), { practicals: made.practicals || [] }) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  const need = ['kpField_', 'questionCard_', 'questionFigCard_', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
+  const need = ['kpField_', 'questionCard_', 'padFaceSet_', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
   if (!A['kp-key'] || need.length) return ['the keypad or the cards are not reachable (' + need.join(', ') + ') — nothing was checked'];
   /* EVERY attribute change to `readonly` or `inputmode` anywhere, from here to the end. */
   const touched = [];
@@ -11333,7 +11336,10 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const drawn = {
     'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
     'a short worded answer': host(w.questionCard_(shortW)), 'a drawing question\'s card': host(w.questionCard_(pen)),
-    'a drawing question\'s pen page': host(w.questionFigCard_(pen)), 'a passage to ring words in': host(w.questionCard_(passage)),
+    /* THE SAME CARD SWITCHED TO ITS DRAWING -- a made-up surface is the box's other face now (327), and
+       the surface must open no keyboard: no field at all. */
+    'a drawing question\'s pen page': (w.padFaceSet_(w.__t.padKey(pen), 'draw'), host(w.questionCard_(pen))),
+    'a passage to ring words in': host(w.questionCard_(passage)),
     'a practical\'s worksheet': prac ? host(w.stuffPart_(prac, 'work')) : null,
   };
   if (!prac) bad.push('no practical in the fixture — its worksheet boxes were NOT checked');
@@ -11351,6 +11357,8 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
     if (fields.length !== WANT[name]) bad.push(name + ' draws ' + fields.length + ' text field(s), wanted ' + WANT[name]);
     boxes += fields.length;
   });
+  /* NONE TO TYPE IN IS ONLY A PASS WHERE THE PEN IS ACTUALLY THERE. */
+  if (!drawn['a drawing question\'s pen page'].querySelector('.qp-area.is-draw .qpad')) bad.push('the drawing question switched to its drawing drew no pen, so "no field" proved nothing');
   const pad = () => d.getElementById('kp');
   const key = v => pad() && pad().querySelector('.kp-key[data-v="' + v + '"]');
   const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + (pad() && pad().getAttribute('data-layer')) + ' face'); };
@@ -12628,10 +12636,11 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
    ASKED FOR AS *"some questions require answers on diagram. So should have a diagram for them to draw
    on to do it or whatever."* 234 of the 301 drawing and annotating questions had no picture under the
    pen. Through the app's own builders and handlers:
-     * a drawing question with no picture gets a figure page AFTER its card (the ask first, then the
-       thing to draw on), with the pen over a squared grid, headed "Squared grid" -- never "Figure",
-       never a question number -- and a line saying it is not the paper's figure; marks stored under
-       `padKey_` come back on it
+     * a drawing question with no picture gets a squared grid under the pen -- ON ITS CARD, as the
+       answer box's other face (`ansArea_`), and NOT on a figure page of its own: the owner, 10 Oct,
+       *"just leave it as an answer box like before but theres an option to switch to drawing box"*
+       (327; the face itself has its own journey). One page, no "on the next page" line, a line saying
+       it is not the paper's figure; marks stored under `padKey_` come back on it
      * which surface: `figure` naming a coordinate grid is axes; any other grid is squared; nothing
        is a blank space; an isometric label is blank; `surface` on the row wins, even on a question
        not answered by drawing; a question's own diagram, or its stem's one diagram, wins over all of
@@ -12656,13 +12665,14 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   const q = (id, extra, rowExtra) => Object.assign({ kind: 'question', name: 'Q8', qNumber: '8', marks: 2, key: 'q:Q-SURF-' + id,
     row: row('Q-SURF-' + id, rowExtra), stems: [], html: '<p>Draw the graph of y = 2x + 1.</p>' }, extra || {});
 
-  /* ---------- THE FALLBACK GRID ------------------------------------------------------------------ */
+  /* ---------- THE FALLBACK GRID, ON THE CARD ------------------------------------------------------ */
   const grid = q('grid', { answerType: 'drawing' }, { figure: 'grid-blank' });
-  if (JSON.stringify(w.pageParts_(grid)) !== '[null,"fig"]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null,"fig"] -- the ask, then the surface');
+  if (JSON.stringify(w.pageParts_(grid)) !== '[null]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null] -- the card, its grid the box\'s other face and no page of its own');
   try { w.localStorage.setItem('pad:' + grid.key, JSON.stringify([[20, 20, 200, 200]])); } catch (e) {}
-  const gp = el(w.questionFigCard_(grid));
-  const pad = gp.querySelector('.qcard.qfig .qpad');
-  if (!pad) bad.push('the surface page has no pen');
+  /* A DRAWING AND NO TYPED ANSWER OPENS ON THE DRAWING (`padFace_`), so the card is the grid here. */
+  const gp = el(w.questionCard_(grid));
+  const pad = gp.querySelector('.qcard .qp-area.is-draw .qpad');
+  if (!pad) bad.push('the card of a drawing question with a mark on it and nothing typed shows no pen');
   else {
     if (!pad.querySelector('.qpad-art > svg.qsurf.is-grid')) bad.push('the pen is not over a squared grid: ' + (pad.querySelector('.qpad-art svg') || {}).outerHTML);
     if (pad.querySelectorAll('svg.qsurf line.grid').length < 30) bad.push('the grid has ' + pad.querySelectorAll('svg.qsurf line.grid').length + ' lines -- that is not squared paper');
@@ -12670,12 +12680,9 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (!pad.querySelector('.qpad-g path')) bad.push('a mark stored under the pen\'s key is not drawn back on the surface');
     if (!/not the paper.s own figure/i.test(pad.textContent)) bad.push('the surface does not say it is not the paper\'s figure');
   }
-  const gHead = pageHead(gp);
-  if (gHead !== 'Squared grid') bad.push('the surface page is tagged "' + gHead + '", wanted "Squared grid"');
-  if (/\bQ\d|Figure/.test(gHead)) bad.push('the surface page claims a number or a figure: ' + gHead);
+  if (gp.querySelector('.qsheet-figref') || /on the next page/i.test(gp.textContent)) bad.push('the card still points at a page after it: "' + ((gp.querySelector('.qsheet-figref') || {}).textContent || '').trim() + '"');
+  if (/svg[^>]*qsurf/.test(w.questionFigCard_(grid))) bad.push('a surface is still drawn on a figure page');
   try { w.localStorage.removeItem('pad:' + grid.key); } catch (e) {}
-  const ref = (el(w.questionCard_(grid)).querySelector('.qsheet-figref') || {}).textContent || '';
-  if (!/^Squared grid on the next page/.test(ref.trim())) bad.push('the card does not say the squared grid is on the next page, in the words the page is headed with: "' + ref.trim() + '"');
 
   /* ---------- WHICH SURFACE ----------------------------------------------------------------------- */
   const svgDiag = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
@@ -12689,8 +12696,11 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     const got = w.padSurface_(x);
     if (got !== want) bad.push(x.row.row_id + ' gets surface "' + got + '", wanted "' + want + '"');
   });
-  const coordP = el(w.questionFigCard_(q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' })));
-  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || pageHead(coordP) !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, tagged Axes');
+  const coord2 = q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' });
+  w.padFaceSet_(w.__t.padKey(coord2), 'draw');
+  const coordP = el(w.questionCard_(coord2));
+  if (!coordP.querySelector('.qp-area.is-draw svg.qsurf.is-coord line.axis')) bad.push('a coordinate-grid question is not given axes on a grid, on its card');
+  w.padFaceForget_();
   const own = q('own', { answerType: 'drawing', diagram: svgDiag });
   if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || el(w.questionFigCard_(own)).querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
   const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
@@ -12764,8 +12774,8 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   const t = w.__t;
   const A = t.ACTIONS;
   const bad = [];
-  if (typeof w.questionFigCard_ !== 'function' || typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
-    return ['questionFigCard_, questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
+  if (typeof w.padFaceSet_ !== 'function' || typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
+    return ['padFaceSet_, questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
   }
   const LS = w.localStorage;
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
@@ -12777,7 +12787,9 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   const BEN = { name: 'Ben', personId: 'P22', role: 'student', roles: ['student'] };
   const CY = { name: 'Cy', personId: 'P23', role: 'student', roles: ['student'] };
   const got = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
-  const pad = () => el(w.questionFigCard_(x)).querySelector('.qpad');
+  /* ON ITS CARD, SWITCHED TO THE DRAWING for whoever is signed in -- a made-up surface is the answer box's
+     other face now, not a page (327); the face is remembered by the pad's own per-person key. */
+  const pad = () => { w.padFaceSet_(t.padKey(x), 'draw'); return el(w.questionCard_(x)).querySelector('.qp-area.is-draw .qpad'); };
   const lines = p => (p ? p.querySelectorAll('.qpad-g path').length : -1);
 
   /* SIGNED OUT: THE PHONE'S KEY, AND A LINE LEFT ON IT FROM BEFORE TODAY. */
@@ -12843,6 +12855,251 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   if (JSON.stringify(got(kAw)) !== JSON.stringify([tall])) bad.push('Ben\'s tap changed Ali\'s rings: ' + JSON.stringify(got(kAw)));
   t.USER(null);
   [OLD, kA, kB, 'pad:u:P23:q:Q-WHO-8c', OLDW, kAw, 'pad:u:P22:q:Q-WHO-9:words'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });
+  return bad;
+});
+
+/* ---------- A MADE-UP SURFACE IS THE ANSWER BOX'S OTHER FACE, ON ITS CARD ----------------------------------
+   THE OWNER, 10 Oct, with a screenshot of KS1 "How many sides has a hexagon?" -- a box, "Space to draw on
+   the next page", and the page after it headed "Space to draw": *"this is confusing. theres an answer box
+   and draw box? in questions which require a drawing, just leave it as an answer box like before but
+   theres an option to switch to drawing box. this makes more sense and is more uniform."* Through the
+   app's own builders and handlers, on a library stood in by `stuffItemsAll_`:
+     * a question on a made-up surface is ONE card: its answer box and Check as any question's, no line
+       pointing on, a `Draw` tile in the row under the card -- and no surface page in the strip or on
+       Saved: a page fewer than it had, as many as the same question with no surface
+     * `Draw` turns the box into the surface IN PLACE: the blank space the row names, the pen's own tiles,
+       the line saying it is not the paper's figure; the keypad typing into the box is put away; the tile
+       reads `Type` and its note says the box holds an answer; the face is kept on the device
+     * a stroke on it is kept under the pad's own key, `pad:<question>`, where the old page kept it
+     * `Type` turns it back, the typed answer still in the box; the pen that was on is off; the note says
+       the drawing holds something; and the drawing comes back with the stroke on it, not armed
+     * a reload opens on the face last left; on a device that never chose, a drawing with nothing typed
+       opens on the drawing and a typed answer on the box; Sign out forgets the faces
+     * the paper's own figure under a pen keeps its page and has no Draw; a later part using an earlier
+       part's surface still gets its page in front with those marks, read from the same `pad:` key --
+       also a later part on the same kind of surface, whose Draw shows them fainter under its pen */
+check('a question answered on a made-up surface is one card: its box, a Draw tile that turns it into the surface in place, both answers kept, the face remembered', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, t = w.__t, A = t.ACTIONS, LS = w.localStorage;
+  const bad = [];
+  const need = ['ansArea_', 'drawTile_', 'padFace_', 'padFaces_', 'padFaceSet_', 'padFaceForget_', 'questionCard_', 'questionFigCard_',
+                'stuffCard', 'pageParts_', 'stuffPages_', 'cardPages_', 'stuffPart_'].filter(n => typeof w[n] !== 'function');
+  if (need.length || !A['q-draw'] || !A['signout'] || !t.padKey || !t.ansKey || !t.padNow) {
+    return [(need.join(', ') || 'q-draw, signout, padKey_, ansKey_ or PAD_ON') + ' not reachable — renamed? The surface\'s two faces were NOT checked'];
+  }
+  const row = (id, extra) => Object.assign({ row_id: id, paper_id: 'P-FACE', subject: 'Maths', name: 'Faces' }, extra || {});
+  const q = (id, extra) => Object.assign({ kind: 'question', name: 'Q' + id, qNumber: id.replace(/\D.*$/, ''), marks: 1,
+    key: 'q:Q-FACE-' + id, row: row('Q-FACE-' + id), stems: [], html: '<p>How many sides has a hexagon?</p>', answer: '<b>6</b>' }, extra || {});
+  const hex = q('1', { answerType: 'short', surface: 'blank', accept: '6' });
+  const plain = q('2', { answerType: 'short', accept: '6' });
+  const grid = q('3', { answerType: 'drawing', html: '<p>Draw the line y = 2x.</p>', row: row('Q-FACE-3', { figure: 'grid-blank' }) });
+  const paper = q('4', { answerType: 'drawing', diagram: '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>', html: '<p>Complete the diagram.</p>' });
+  const axA = q('5a', { qPart: 'a', answerType: 'drawing', surface: 'coord', html: '<p>On the axes, draw y = 2x.</p>', answer: '' });
+  const axB = q('5b', { qPart: 'b', uses: 'a', html: '<p>Use your graph to find x when y = 6.</p>', answer: '<b>3</b>' });
+  const axC = q('5c', { qPart: 'c', uses: 'a', answerType: 'drawing', surface: 'coord', html: '<p>On the same axes, draw y = 6.</p>', answer: '' });
+  const LIB = [hex, plain, grid, paper, axA, axB, axC];
+  const heldAll = w.stuffItemsAll_, heldItems = w.stuffItems, heldF = w.stuffFiltered;
+  w.stuffItemsAll_ = () => LIB;
+  w.stuffItems = () => LIB;
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const card = x => { host.innerHTML = '<div class="pane">' + w.stuffCard(x, 0) + '</div>'; return host; };
+  const area = () => host.querySelector('.qp-area');
+  const tile = () => host.querySelector('.tile-row .q-drawt[data-do="q-draw"]');
+  const said = () => (tile() && tile().getAttribute('aria-label')) || '';
+  const box = () => host.querySelector('.qp-area .qp-ans-in');
+  const pad = () => host.querySelector('.qp-area.is-draw .qpad');
+  const faces = () => { try { return JSON.parse(LS.getItem('surfaceFace') || '{}'); } catch (e) { return { unreadable: true }; } };
+  /* THE FACE WORD ALONE: a `type` is kept with the drawing it was chosen over (`type:<sig>`, `padFaceOf_`). */
+  const faceOf = k => String(faces()[k] || '').split(':')[0];
+  const kpUp = () => { const k = d.getElementById('kp'); return !!(k && !k.hidden); };
+  const pk = 'pad:' + hex.key, ak = 'ans:' + hex.key;
+  try {
+    t.USER(null);
+    LIB.forEach(x => { try { LS.removeItem(t.padKey(x)); LS.removeItem(t.ansKey(x)); } catch (e) {} });
+    w.padFaceForget_();
+
+    /* ---------- ONE CARD, A PAGE FEWER ------------------------------------------------------------------ */
+    if (JSON.stringify(w.pageParts_(hex)) !== '[null,"ans"]') bad.push('the hexagon has pages ' + JSON.stringify(w.pageParts_(hex)) + ', wanted [null,"ans"] -- its card and its answer, no "Space to draw" page');
+    if (w.pageParts_(hex).length !== w.pageParts_(plain).length) bad.push('a question on a surface has ' + w.pageParts_(hex).length + ' pages and the same question with none ' + w.pageParts_(plain).length + ' -- the surface is still a page');
+    if (JSON.stringify(w.pageParts_(grid)) !== '[null,"ans"]') bad.push('a question on a squared grid has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null,"ans"]');
+    w.stuffFiltered = () => [hex, grid];
+    let strip = '';
+    try { strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' '); } finally { w.stuffFiltered = heldF; }
+    if (strip !== 'Q1:card Q1:ans Q3:card Q3:ans') bad.push('the strip reads "' + strip + '", wanted "Q1:card Q1:ans Q3:card Q3:ans" -- four pages and no surface page');
+    const saved = w.cardPages_(hex, 0);
+    if (saved.length !== 2 || saved.some(h => /qcard qfig/.test(h))) bad.push('on Saved the hexagon is ' + saved.length + ' pages' + (saved.some(h => /qcard qfig/.test(h)) ? ', one of them a figure page' : ''));
+
+    /* ---------- THE BOX, AND `Draw` IN THE ROW UNDER THE CARD -------------------------------------------- */
+    card(hex);
+    if (!area() || area().classList.contains('is-draw')) bad.push('the hexagon\'s card does not open on its answer box');
+    if (!box() || !host.querySelector('.qp-area .qp-check')) bad.push('the card does not draw the answer box and its Check as any question does');
+    if (host.querySelector('.qpad')) bad.push('the card draws a pen beside the box -- two places to answer again');
+    if (host.querySelector('.qsheet-figref') || /next page/i.test(host.textContent)) bad.push('the card still points at a page after it');
+    if (!tile()) return bad.concat(['no Draw tile in the row under the card -- nothing below could be pressed']);
+    if (said() !== 'Draw · a blank space') bad.push('the tile reads "' + said() + '", wanted "Draw · a blank space"');
+    if (tile().closest('.qcard')) bad.push('the Draw tile is inside the card, not in the row under it');
+    box().focus();
+    ansType_(w, box(), '6');
+    if (!kpUp()) bad.push('setup: focusing the box did not lift the keypad, so putting it away was NOT checked');
+
+    /* ---------- `Draw` -------------------------------------------------------------------------------------- */
+    A['q-draw'](tile());
+    if (!pad()) bad.push('Draw did not turn the box into the surface');
+    else {
+      if (pad().getAttribute('data-k') !== pk) bad.push('the surface keeps its marks under ' + pad().getAttribute('data-k') + ', not ' + pk + ' -- where every drawing already made is kept');
+      if (!pad().querySelector('.qpad-art > svg.qsurf.is-blank')) bad.push('the surface is not the blank space the row names');
+      ['qpad-lock', 'qpad-undo', 'qpad-clear'].forEach(c => { if (!pad().querySelector('.tile.' + c)) bad.push('the surface has no ' + c + ' tile'); });
+      if (!/not the paper.s own figure/i.test(pad().textContent)) bad.push('the surface does not say it is not the paper\'s figure');
+    }
+    if (host.querySelector('.qp-area .qp-ans')) bad.push('the box is still drawn beside the surface');
+    if (kpUp()) bad.push('the keypad stayed up over the surface, typing into a box that is gone');
+    if (said() !== 'Type · has an answer') bad.push('after Draw the tile reads "' + said() + '", wanted "Type · has an answer"');
+    if (faceOf(pk) !== 'draw') bad.push('the face was not kept on the device: ' + JSON.stringify(faces()));
+
+    /* ---------- A STROKE, KEPT WHERE IT ALWAYS WAS ------------------------------------------------------------ */
+    if (pad()) {
+      A['pad-draw'](pad().querySelector('.qpad-lock'));
+      const ink = pad().querySelector('.qpad-ink');
+      ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+      const Ev = w.PointerEvent || w.MouseEvent;
+      const fire = (type, x, y) => ink.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));
+      fire('pointerdown', 40, 40); fire('pointermove', 120, 40); fire('pointermove', 160, 120); fire('pointerup', 160, 120);
+      let st = [];
+      try { st = JSON.parse(LS.getItem(pk) || '[]'); } catch (e) {}
+      if (st.length !== 1) bad.push('a stroke on the card\'s surface was stored under ' + pk + ' as ' + JSON.stringify(st));
+      if (t.padNow() !== pk) bad.push('setup: the pen is not on, so turning it off was NOT checked');
+    }
+
+    /* ---------- `Type` -------------------------------------------------------------------------------------- */
+    A['q-draw'](tile());
+    if (!box() || box().value !== '6') bad.push('Type did not bring the box back with "6" in it: ' + (box() ? JSON.stringify(box().value) : 'no box'));
+    if (host.querySelector('.qpad')) bad.push('the surface is still drawn after Type');
+    if (t.padNow() === pk) bad.push('the pen stayed on, on a pad no longer on the screen -- the drawing would come back holding the card still');
+    if (said() !== 'Draw · has a drawing') bad.push('after Type the tile reads "' + said() + '", wanted "Draw · has a drawing"');
+    if (faceOf(pk) !== 'type') bad.push('Type was not kept on the device: ' + JSON.stringify(faces()));
+    A['q-draw'](tile());
+    if (!pad() || pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('back on the drawing, the stroke is not on it');
+    else if (pad().classList.contains('is-drawing')) bad.push('the drawing came back armed');
+
+    /* ---------- A DRAWING THAT ARRIVES UNDER A CARD SHOWING ITS BOX ------------------------------------------------
+       From the account, a moment after the card was drawn (`answersPull_`): "a drawing and nothing typed"
+       is true now under a card still on its box, and `Draw` must still turn THAT card to the drawing. */
+    w.padFaceForget_();
+    LS.removeItem(pk); LS.removeItem(ak);
+    card(hex);
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200]]));
+    A['q-draw'](tile());
+    if (!pad()) bad.push('a drawing arrived under a card showing its box, and Draw then did nothing -- it read the rule ("a drawing and nothing typed") instead of the card in front of it');
+    A['q-draw'](tile());
+    LS.setItem(pk, JSON.stringify([[40, 40, 120, 40, 160, 120]]));
+    LS.setItem(ak, '6');
+    A['q-draw'](tile());
+
+    /* ---------- A RELOAD OPENS ON THE FACE LEFT ------------------------------------------------------------- */
+    const keep = { surfaceFace: LS.getItem('surfaceFace') };
+    keep[pk] = LS.getItem(pk);
+    keep[ak] = LS.getItem(ak);
+    const two = boot({ before: w2 => Object.keys(keep).forEach(k => { try { if (keep[k] !== null) w2.localStorage.setItem(k, keep[k]); } catch (e) {} }) });
+    await wait(300);
+    two.w.stuffItemsAll_ = () => LIB;
+    two.w.stuffItems = () => LIB;
+    const reopened = two.w.document.createElement('div');
+    reopened.innerHTML = two.w.stuffCard(hex, 0);
+    if (!reopened.querySelector('.qp-area.is-draw .qpad')) bad.push('after a reload the hexagon opened on its box, though this device left it on the drawing');
+    else if (reopened.querySelectorAll('.qpad-g path').length !== 1) bad.push('after a reload the drawing has ' + reopened.querySelectorAll('.qpad-g path').length + ' strokes, wanted its one');
+    if (!/^Type · has an answer$/.test((reopened.querySelector('.q-drawt') || { getAttribute: () => '' }).getAttribute('aria-label'))) bad.push('after a reload the tile does not say the box holds an answer');
+
+    /* ---------- A DEVICE THAT NEVER CHOSE --------------------------------------------------------------------- */
+    w.padFaceForget_();
+    LS.removeItem(ak);
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('with a drawing and nothing typed, on a device that never chose, the card opened on an empty box over the child\'s work');
+    w.padFaceForget_();
+    LS.setItem(ak, '6');
+    card(hex);
+    if (area().classList.contains('is-draw')) bad.push('with a typed answer and a drawing, on a device that never chose, the card did not open on its box');
+
+    /* ---------- A `Type` CHOSEN OVER ONE DRAWING DOES NOT HIDE THE NEXT ------------------------------------------
+       Found in review: Type pressed here once, over nothing, and a drawing made afterwards on the tutor's iPad
+       (`answersPull_` writes it under the same `pad:` key) -- the card opened on an empty box, the drawing's
+       only sign a "has a drawing" in an `aria-label` nobody sees. A remembered `type` holds over the drawing it
+       was chosen over and no other; pressed over THIS drawing, with nothing typed, it still holds. */
+    w.padFaceForget_();
+    LS.removeItem(pk); LS.removeItem(ak);
+    card(hex);
+    A['q-draw'](tile());
+    A['q-draw'](tile());
+    if (faceOf(pk) !== 'type') bad.push('setup: Draw then Type with nothing drawn did not leave "type" on the device, so a Type over nothing was NOT checked: ' + JSON.stringify(faces()));
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200], [20, 20, 40, 60]]));
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('Type was pressed here once over nothing, then a drawing arrived from the account with nothing typed, and the card opened on an empty box over it');
+    A['q-draw'](tile());
+    card(hex);
+    if (area().classList.contains('is-draw')) bad.push('Type pressed over a drawing with nothing typed did not hold: the card opened on that same drawing again');
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200], [20, 20, 40, 60], [300, 20, 300, 300]]));
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('the drawing grew on another device after Type was pressed over it here, and the card opened on an empty box over the new marks');
+    LS.removeItem(pk);
+
+    /* ---------- A SURFACE QUESTION WITH PHOTOGRAPHS: THEY ARE A FIGURE, IN FRONT, AS ANY PART'S ------------------
+       The pen-figure rule (the card, then the figure to draw on) was for a picture under the pen; a made-up
+       surface is on the card now, so its question's photographs stand where any part's figure does. */
+    const pics = q('6', { answerType: 'drawing', surface: 'grid', images: ['data/none.png'], html: '<p>Draw the next pattern.</p>' });
+    if (JSON.stringify(w.pageParts_(pics)) !== '["fig",null,"ans"]') bad.push('a surface question with a photograph has pages ' + JSON.stringify(w.pageParts_(pics)) + ', wanted ["fig",null,"ans"] -- the photograph in front, the surface on the card');
+    const picsFig = d.createElement('div');
+    picsFig.innerHTML = w.questionFigCard_(pics);
+    if (!picsFig.querySelector('img') || picsFig.querySelector('.qpad, svg.qsurf')) bad.push('the photograph page of a surface question draws ' + (picsFig.querySelector('.qpad, svg.qsurf') ? 'the surface' : 'no photograph'));
+
+    /* ---------- THE PAPER'S OWN FIGURE KEEPS ITS PAGE ---------------------------------------------------------- */
+    if (JSON.stringify(w.pageParts_(paper)) !== '[null,"fig","ans"]') bad.push('a pen on the paper\'s own figure has pages ' + JSON.stringify(w.pageParts_(paper)) + ', wanted [null,"fig","ans"] -- the figure keeps its page');
+    if (!(() => { const h = d.createElement('div'); h.innerHTML = w.questionFigCard_(paper); return h.querySelector('.qcard.qfig .qpad'); })()) bad.push('the paper\'s own figure lost its pen from its page');
+    card(paper);
+    if (tile() || area()) bad.push('a question drawn on the paper\'s own figure was given a Draw tile -- only a made-up surface is a face of the box');
+
+    /* ---------- "USE YOUR GRAPH" AFTER A SURFACE ---------------------------------------------------------------- */
+    LS.setItem(t.padKey(axA), JSON.stringify([[20, 300, 300, 20]]));
+    if (w.pageParts_(axB).indexOf('use') < 0) bad.push('a part using an earlier part\'s axes has no page with them: ' + JSON.stringify(w.pageParts_(axB)));
+    if (w.pageParts_(axB, axA).indexOf('use') < 0) bad.push('straight after (a), whose axes are on its card now and not a page, (b) has no page with them');
+    const useB = d.createElement('div');
+    useB.innerHTML = w.stuffPart_(axB, 'use');
+    if ((useB.querySelector('.qcard.qfig-uses') || {}).getAttribute && useB.querySelector('.qcard.qfig-uses').getAttribute('data-uses') !== 'Q-FACE-5a') bad.push('(b)\'s page in front does not name (a) as where its marks came from');
+    if (useB.querySelectorAll('.qpad-was path').length !== 1) bad.push('(b)\'s page in front shows ' + useB.querySelectorAll('.qpad-was path').length + ' of (a)\'s one mark -- not read from (a)\'s pad: key');
+    if (w.pageParts_(axC).indexOf('use') < 0) bad.push('(c), on axes of its own that are behind Draw now, has no page in front with (a)\'s graph: ' + JSON.stringify(w.pageParts_(axC)));
+    w.padFaceSet_(t.padKey(axC), 'draw');
+    card(axC);
+    if (!pad() || pad().querySelectorAll('.qpad-was path').length !== 1) bad.push('(c)\'s Draw does not show (a)\'s graph fainter under its pen');
+
+    /* ---------- OPENING THE CARD IS OPENING THE DRAWING -----------------------------------------------------------
+       The phone's old marks move to the first person signed in who opens them (`padAdopt_`, 317) -- and the
+       card is where they are opened now, whichever face it shows. A drawing that moved only when somebody
+       pressed Draw would be read as no drawing, and Ada's card would open on an empty box over it. */
+    t.USER(null);
+    LS.setItem('pad:' + grid.key, JSON.stringify([[10, 10, 100, 100]]));
+    t.USER(Object.assign({}, ANS_ADA));
+    w.padFaceForget_();
+    card(grid);
+    if (!area() || !area().classList.contains('is-draw')) bad.push('Ada opened a card whose drawing the phone kept from before she signed in, and it opened on an empty box');
+    if (LS.getItem('pad:' + grid.key) !== null || !LS.getItem(t.padKey(grid))) bad.push('opening the card did not move the phone\'s drawing to Ada: ' + JSON.stringify([LS.getItem('pad:' + grid.key), LS.getItem(t.padKey(grid))]));
+
+    /* ---------- SIGN OUT FORGETS THE FACES ---------------------------------------------------------------------- */
+    t.USER(Object.assign({}, ANS_ADA));
+    w.padFaceSet_(t.padKey(hex), 'draw');
+    if (!Object.keys(faces()).some(k => /^pad:u:P7:/.test(k))) bad.push('setup: Ada\'s face was not kept under her own key, so Sign out was NOT checked');
+    A['signout'](d.createElement('button'));
+    await wait(80);
+    if (t.whoami()) bad.push('setup: Sign out left somebody signed in');
+    if (LS.getItem('surfaceFace') !== null || Object.keys(w.padFaces_()).length) bad.push('Sign out left the faces on the device: ' + LS.getItem('surfaceFace'));
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    w.stuffItemsAll_ = heldAll;
+    w.stuffItems = heldItems;
+    w.stuffFiltered = heldF;
+    t.padOn('');
+    t.USER(null);
+  }
   return bad;
 });
 
@@ -13190,13 +13447,18 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     pages.push({ at: x.row.row_id + '#' + (part || 'card') + when, html: part ? w.stuffPart_(x, part) : w.stuffCard(x, 0) });
   }));
   drawAll('');
-  /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. */
+  /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. Q7's grid is its card's
+     other face now (327): drawn switched to, off and then on, with `Type` in the row under it. */
+  const q7 = fam.find(f => f.key === 'q:Q-TILES-7');
+  w.padFaceSet_(w.__t.padKey(q7), 'draw');
+  pages.push({ at: q7.row.row_id + '#card, the drawing', html: w.stuffCard(q7, 0) });
   ['q:Q-TILES-7', 'q:Q-TILES-8'].forEach(k => {
     const x = fam.find(f => f.key === k);
     t.padOn(w.__t.padKey ? w.__t.padKey(x) : 'pad:' + k);
-    pages.push({ at: x.row.row_id + '#fig, pen on', html: w.stuffPart_(x, 'fig') });
+    pages.push({ at: x.row.row_id + (x === q7 ? '#card, pen on' : '#fig, pen on'), html: x === q7 ? w.stuffCard(x, 0) : w.stuffPart_(x, 'fig') });
   });
   t.padOn('');
+  w.padFaceForget_();
   /* AND EVERY ANSWER PAGE, SHOWN, then put back. */
   fam.forEach(x => { w.ansShow_(x); pages.push({ at: x.row.row_id + '#ans-shown', html: w.questionAnsCard_(x) }); w.ansHide_(x); });
   const EXEMPT = [
@@ -13227,7 +13489,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
    ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
    ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
-   ['fav', 'the star']].forEach(([act, what]) => {
+   ['fav', 'the star'], ['q-draw', 'Draw / Type']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
   });
   ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
@@ -18240,7 +18502,8 @@ check('multipart: the answer is a swipe after the card -- after the drawing page
   const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
   const front = q('3', { diagram: MP_SVG });
   [[plain, '[null,"ans"]', 'a card whose answer is the next page'],
-   [grid, '[null,"fig","ans"]', 'a card with the grid to draw on between it and its answer'],
+   /* THE GRID IS THE CARD'S OTHER FACE NOW, NOT A PAGE BETWEEN IT AND ITS ANSWER (327). */
+   [grid, '[null,"ans"]', 'a card answered on a grid, the grid on the card itself'],
    [front, '["fig",null,"ans"]', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
     const got = JSON.stringify(w.pageParts_(x));
     if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want + ' -- the answer the swipe after the last page the child works on');
