@@ -387,3 +387,31 @@ it, and the real files green again after (machine load 20–45 on four cores thr
 | `markPlay_` deferred 300 ms | journeys 1–4; `check/sounds.js`: "made … tap:false", "resume() was called outside the tap" |
 | the old tuning (110 Hz, 800 Hz, 0.045; chime 0.04) | `check/sounds.js`: "8.4 dB quieter, wanted no more than 3", 10.9 through a phone |
 | and the builder's seven, again on the new code: one per copy, a paint that plays, the switch ignored, the buzzer for right, the AI press not waking, a click at the chime's start, a context at load | all red: journeys 1–4 and/or `check/sounds.js` as before |
+
+#### Checked after review
+
+On the final files, on a machine at a load average of 10–45 on four cores (other branches' suites running
+beside it):
+
+- `check.js`, `check-const`, `check-css`, `check-doors` (234 handlers, 233 doors), `check-loading`,
+  `check-marking`, `check-drafts`, `check-payload`, `check-backend`, `check-manifest`: all OK. `check-dead`:
+  the same report as on cafb838, diffed line by line (it exits 1 on both).
+- **check-flow, all four parts: 82 + 82 + 82 + 83 = 329 journeys, every one passing** (the fourth `mark sound`
+  journey is the new one). Part 1's first run, at load 31–35, failed one Games journey — "taboo shows a word
+  … a paused card still shows the word" — which then passed three times out of three alone on the branch,
+  failed once in three alone on cafb838, and passed in part 1 run again (82 of 82): a flake older than this
+  branch, on a column it does not touch. `FLOW_ONLY='mark sound'`: 4 of 4, five runs.
+- `check/sounds.js`: OK, every run (chime −36.3, buzzer −36.9, the Timer −25.4 dB(A)).
+- `check/ui.js --screen=stuff` (630 combinations) and `--screen=tools` (95): nothing new; the unreachable
+  states are the same six and five as before this branch.
+- `check/cascade.js`: nothing decided by file order alone.
+- `check/press.js`: every run "nothing threw, nothing was silently inert", and in every run a few swipes went
+  elsewhere, never the same ones twice: `--screen=stuff` at load 31, a Games flick and a Tools star; again,
+  verbose, at load 35, with the Sound tile pressed for both visitors, a Games flick, the Psalms chapter grid, the
+  pen on a diagram and a Draw tap (a third run, at load 40, was cut off by my own 590 s limit); `--screen=tools`
+  at load 22, a Games flick; again at 19–39, Draw tapped on Q-1CM-transformations-of-graphs-8 (which has no
+  Sound tile) at two sizes. cafb838, run the same way at load 38: three swipes elsewhere, the same Draw tap
+  among them. The machine, not the change.
+- The reviews' own scripts, run again on the fix in Chromium: the Saved un-star case silent; a signed-out
+  AI-only card with no switch; the held card heard as a chime under its "Correct"; two real tabs following one
+  switch both ways.
