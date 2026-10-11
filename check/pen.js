@@ -24,28 +24,44 @@
      bar      a palm on Undo during a stroke, lifted before and after the finger: nothing undone
      drift    a palm down first beside the pad (the primary pointer), a finger draws, the palm drifts 30px
               sideways: the column does not move and the stroke is kept
+     grip     a thumb gripping the screen's edge pans 40px with a finger (two fingers: nothing), then STAYS DOWN,
+              still, while two lines are drawn: both are kept -- a hand gone still is not half of a pan (after review)
+     settle   a thumb that rolls 9px as a line starts, a palm on the card that settles 12px, a palm that lands 120ms
+              into a line and settles 10px: every line is kept -- a settle is not a second finger (after review)
+     phase    a two-finger pan whose second finger reports 5ms out of phase, eight times: nothing, every time
+     types    a stylus draws and a palm lands as the primary TOUCH; a finger draws and a mouse clicks beside the
+              board: the stylus's line and the finger's line -- "primary" is per kind of pointer (after review)
+     pin      on November 2019 1H Q4, a pin held on the compass's centre (and a ruler's end) and a second finger
+              swinging round it: nothing stored, as before 338 -- a pin is not a palm (after review)
      hold     a finger held 1.1s on the armed card: nothing selected, and the callout rule in style.css
      inv      the geometry the rules rest on: no zoomed ancestor, the ink's box is the picture's, 16px from the edges
      samples  a 1,200-sample zigzag at 8ms, 4x CPU: at least 95% of the distinct samples kept (about a third
               were, before); Q7's 120-sample drag keeps 114 or more; ONE box read per pen event and no path
-              written inside one (the budget -- counted, not timed); the live chunks, at a frame, are exactly
-              `padPath_` of the points so far, and the path after the lift is `padPath_` of what was stored.
-              Printed, not judged: the handler's p50/p95, the frames over 33ms, and how long from an event
-              to the path's next write
+              written inside one; NO FORCED LAYOUT inside a pen event, counted from a Chromium trace; at most
+              TWO live `d`s written in any frame (the open chunk and one being frozen -- a frame's cost does not
+              grow with the stroke); the path PAINTED IN THE FIRST FRAME after the event for 95% of events (no
+              latency added); the live chunks, at a frame, are exactly `padPath_` of the points so far, and the
+              path after the lift is `padPath_` of what was stored. All counts. Printed, not judged: the
+              handler's p50/p95 (wall clock and the trace's thread time), the frames over 33ms, and how long
+              from an event to the path's next write
      round    a fast circle (one turn in 200ms and in 120ms) is stored with no chord longer than 1.5 x its
               share of the circle, and on Q7 is DRAWN within 1.5px of round; a STARVED circle -- nine events a
               turn, what an iPad without coalesced events gives -- is drawn within 1.5px of round between its
               ends, where its polygon was 6% of the radius off, on the board and on Q7
 
    COUNTS AND GEOMETRY ARE PASS OR FAIL; TIMINGS ARE PRINTED. The machine is shared and a frame time is
-   noise, but a coalesced sample arrives whatever the frame rate, and "what was stored" is not noise.
+   noise, but a coalesced sample arrives whatever the frame rate, and "what was stored" is not noise. The first
+   build also JUDGED the handler's p95 against a backstop, gated on how many frames ran slow: the review found it
+   almost never judged under load, failed once on unchanged code, and passed a mutation that added a frame of
+   latency and one that forced a layout per event. Those two are counted now, and the time is printed.
    A section that cannot reach its subject -- no board, the pen not armed, no Q7 -- FAILS saying so.
 
      node check/pen.js                 everything
      node check/pen.js --only=two,palm some of it, for proving one rule by mutation
      node check/pen.js --verbose       every gesture's numbers, not only the failures
      node check/pen.js --shots         and pictures of what was drawn, for a person to read
-   PEN_PORT pins the port; unset, the OS picks a free one.
+   PEN_PORT pins the port; unset, the OS picks a free one. PEN_RATE=1 runs at full speed. PEN_QUERY=pen=sizes loads
+   every page with the sizes line up.
 ================================================================================================== */
 const fs = require('fs');
 const path = require('path');
@@ -67,19 +83,26 @@ const shot = async (page, name) => {
 const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' };
 /* June 2024 Foundation, Q7: a grid figure, 180px wide at 320 -- the smallest pad a child draws on. */
 const Q7 = 'Q-1MA1-2406-1F-7';
+/* November 2019 Higher, Q4: a construction, so its bar offers a Ruler and a Compass. */
+const COMPASS_Q = 'Q-1MA1-1911-1H-4';
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
                '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
                '.jpg': 'image/jpeg', '.webmanifest': 'application/json' };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 /* THE PEN'S POINTERMOVE AT 4x CPU, p95: 3.3-3.4ms before note 338, a forced layout and a whole path per event;
-   1.6-2.6ms after, run to run on this shared machine (p50 0.2-0.6). The COUNTED budgets -- one box read per
-   event, no path written inside one -- are the exact ones and catch that regression by name; this time is the
-   backstop for a cost nobody counted, set where the old pen's p95 sat so noise does not cross it. */
+   1.6-2.6ms after on a quiet machine (p50 0.2-0.6). PRINTED BESIDE ITS REFERENCE, NOT JUDGED (after review): the
+   exact budgets are counted -- one box read and no path written per event, no forced layout in a trace, two live
+   writes a frame, the path painted in the first frame -- and a time measures the neighbours on a shared machine. */
 const PEN_P95_MS = Number(process.env.PEN_P95_MS || 3.0);
+const PAINTED_MIN = 0.95;     // events whose path is painted in the first frame after them: 100% measured, 37-40% with a frame added
+const FRAME_WRITES_MAX = 2;   // live `d`s written in one frame: the open chunk, and one being frozen
 const PAD_CHUNK_EXPECT = 130;
 /* THE CPU THROTTLE THE GESTURES RUN UNDER: 4x, a slow phone, unless PEN_RATE says otherwise -- `PEN_RATE=1` for
    the numbers at full speed (338 prints both). Counts and geometry are judged at any rate. */
 const RATE = Number(process.env.PEN_RATE || 4);
+/* AN ADDRESS QUERY FOR EVERY PAGE -- `PEN_QUERY=pen=sizes` runs the gestures with the sizes line up, where the iPad
+   reading is to be taken: 'samples' must then count no forced layout either (the review found 78 in 78). */
+const QUERY = process.env.PEN_QUERY || '';
 
 function serve() {
   return new Promise((ok, no) => {
@@ -109,7 +132,7 @@ async function boot(browser, W, H, port) {
   await page.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, USER);
   await page.addInitScript(() => { window.confirm = () => true; window.alert = () => {}; window.open = () => null; });
   await page.route('**://script.google.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
-  await page.goto(`http://localhost:${port}/index.html`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`http://localhost:${port}/index.html${QUERY ? '?' + QUERY : ''}`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof initWhiteboard === 'function', null, { timeout: 90000 });
   await sleep(1200);
   const cdp = await ctx.newCDPSession(page);
@@ -120,12 +143,16 @@ async function boot(browser, W, H, port) {
        the ink's box was read and how many `d`s were written -- and, timed for the record, how long they took
        and when the live path was next written. A capture listener added now runs after the app's own capture
        listeners and before the pen's; a bubble listener added now runs after the pen's. */
-    const M = window.__pm = { on: false, reads: [], writes: [], dur: [], t0s: [], t1s: [], dw: [] };
+    const M = window.__pm = { on: false, reads: [], writes: [], dur: [], t0s: [], t1s: [], dw: [], fw: 0 };
     let inH = false, r = 0, wr = 0, t0 = 0;
     const gbcr = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function () { if (inH && this.classList && this.classList.contains('qpad-ink')) r++; return gbcr.call(this); };
     const sa = Element.prototype.setAttribute;
-    Element.prototype.setAttribute = function (n, v) { if (inH && n === 'd') wr++; return sa.call(this, n, v); };
+    /* AND EVERY LIVE `d` WRITTEN, counted into the frame it was written in (the frame tick in 'samples' empties it). */
+    Element.prototype.setAttribute = function (n, v) {
+      if (n === 'd') { if (inH) wr++; if (M.on && this.hasAttribute && this.hasAttribute('data-live')) M.fw++; }
+      return sa.call(this, n, v);
+    };
     document.addEventListener('pointermove', () => { if (!M.on) return; inH = true; r = 0; wr = 0; t0 = performance.now(); }, true);
     document.addEventListener('pointermove', () => {
       if (!M.on || !inH) return;
@@ -161,6 +188,63 @@ async function stream(env, frames, dt, from) {
   await Promise.all(ps);
 }
 const begin = env => { env.t0 = Date.now(); };
+/* NOW, ON THE GESTURE'S OWN CLOCK -- for a stroke planned after waits whose length the machine decides. */
+const since = env => Date.now() - (env.t0 || 0);
+
+/* ---------- A CHROMIUM TRACE: FORCED LAYOUTS INSIDE THE PEN'S EVENTS, COUNTED --------------------------------
+   A layout or a style recalculation INSIDE a `pointermove`'s dispatch is a read after a write -- the cost 1b took out
+   of the pen. Counted from the browser's own trace, so load cannot move it: the review's positive control was
+   `?pen=sizes` as first built, 78 forced in 78 events. Thread time (`tdur`) is printed beside the wall clock. */
+async function traceStart(env) {
+  env.trace = [];
+  env.onTrace = d => { env.trace.push(...d.value); };
+  env.cdp.on('Tracing.dataCollected', env.onTrace);
+  await env.cdp.send('Tracing.start', { categories: 'devtools.timeline', transferMode: 'ReportEvents' });
+}
+async function traceEnd(env) {
+  const done = new Promise(r => env.cdp.once('Tracing.tracingComplete', r));
+  await env.cdp.send('Tracing.end');
+  await done;
+  env.cdp.off('Tracing.dataCollected', env.onTrace);
+  const ev = env.trace || [];
+  env.trace = null;
+  const disp = ev.filter(e => e.name === 'EventDispatch' && e.ph === 'X' && e.args && e.args.data && e.args.data.type === 'pointermove');
+  const lay = ev.filter(e => (e.name === 'Layout' || e.name === 'UpdateLayoutTree') && (e.ph === 'X' || e.ph === 'B'));
+  let forced = 0;
+  disp.forEach(d => { if (lay.some(l => l.pid === d.pid && l.tid === d.tid && l.ts >= d.ts && l.ts < d.ts + (d.dur || 0))) forced++; });
+  return { n: disp.length, forced, tdur: disp.map(e => (e.tdur || e.dur || 0) / 1000) };
+}
+
+/* A PLAN OF FRAMES, PLAYED ON THE WALL CLOCK -- for gestures where a hand and a finger each do their own thing. A track is
+   one contact's `{t, p: [x, y, id, radius]}`, down from its first entry to its last; `plan` merges tracks into frames
+   that list every point down at each moment (each contact where it last was), with a frame 8ms after each track's last
+   entry from which it is gone. `play` sends them: a point new since the last frame goes down (`touchStart` lists every
+   point down), a point gone goes up (`touchEnd` lists the ones that go -- CDP releases the points it lists), the rest
+   move. As `stream`, it does not wait for each to be delivered. */
+const track = (id, r, from, to, dt, at) => { const o = []; for (let u = 0; from + u <= to + 1e-9; u += dt) o.push({ t: Math.round(from + u), p: [...at(u), id, r] }); return o; };
+function plan(...tracks) {
+  tracks = tracks.filter(tr => tr.length);
+  const times = [...new Set([].concat(...tracks.map(tr => tr.map(f => f.t).concat([tr[tr.length - 1].t + 8]))))].sort((a, b) => a - b);
+  return times.map(t => ({ t, pts: tracks.filter(tr => t >= tr[0].t && t <= tr[tr.length - 1].t).map(tr => { let f = tr[0]; for (const g of tr) if (g.t <= t) f = g; return f.p; }) }));
+}
+async function play(env, frames) {
+  let prev = [];
+  const start = Date.now(), t0 = since(env), ps = [];
+  const P = q => pt(q[0], q[1], q[2], q[3] || 8);
+  for (const f of frames) {
+    while (Date.now() < start + f.t) await new Promise(r => setImmediate(r));
+    const ids = f.pts.map(q => q[2]), pids = prev.map(q => q[2]);
+    const gone = prev.filter(q => ids.indexOf(q[2]) < 0), added = f.pts.some(q => pids.indexOf(q[2]) < 0);
+    if (gone.length) ps.push(T(env, 'touchEnd', f.pts.length ? gone.map(P) : [], t0 + f.t));
+    if (added) ps.push(T(env, 'touchStart', f.pts.map(P), t0 + f.t));
+    else if (!gone.length && f.pts.length) ps.push(T(env, 'touchMove', f.pts.map(P), t0 + f.t));
+    prev = f.pts;
+  }
+  await Promise.all(ps);
+  if (prev.length) await T(env, 'touchEnd', [], t0 + frames[frames.length - 1].t + 5);
+}
+/* A MOUSE OR A STYLUS, through CDP's mouse events -- `pointerType: 'pen'` is a stylus. */
+const MO = (env, type, x, y, kind, buttons) => env.cdp.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons, clickCount: 1, pointerType: kind }).catch(() => {});
 
 /* ---------- THE BOARD ------------------------------------------------------------------------------- */
 async function board(env) {
@@ -305,7 +389,7 @@ const unmoved = (sec, where, r, b) => {
   /* ==================== THE BOARD, AT A PHONE AND AN iPAD ==================== */
   for (const [W, H] of [[390, 844], [820, 1180]]) {
     const at = `${W}x${H}`;
-    if (!['two', 'palm', 'large', 'tap', 'cancel', 'lost', 'bar', 'drift', 'inv', 'samples', 'round'].some(want)) break;
+    if (!['two', 'palm', 'large', 'tap', 'cancel', 'lost', 'bar', 'drift', 'grip', 'settle', 'phase', 'types', 'inv', 'samples', 'round'].some(want)) break;
     const env = await boot(browser, W, H, port);
     let b = await board(env);
     if (!b) { fail('REACH', at, 'no whiteboard on Tools'); await env.ctx.close(); continue; }
@@ -462,13 +546,14 @@ const unmoved = (sec, where, r, b) => {
           const fr2 = [];
           for (let i = 1; i <= 6; i++) fr2.push([pt(a.x + 30 + 5 * i, a.y, 1), pt(u.x, u.y, 2, 25)]);
           await stream(env, fr2, 8, 170);
-          if (order === 'palm first') {
-            await T(env, 'touchEnd', [pt(a.x + 60, a.y, 1)], 230); await sleep(60);
-            await T(env, 'touchEnd', [], 290);
-          } else {
-            await T(env, 'touchEnd', [pt(u.x, u.y, 2, 25)], 230); await sleep(60);
-            await T(env, 'touchEnd', [], 290);
-          }
+          /* CDP's `touchEnd` RELEASES THE POINTS IT LISTS (an empty list releases every one) -- measured by both reviews of
+             11 Oct, and the first build had the two orders the wrong way round. So the palm first lists the palm. And the
+             order is asked of the pen itself between the two lifts, so a label can never again say the other one. */
+          await T(env, 'touchEnd', [order === 'palm first' ? pt(u.x, u.y, 2, 25) : pt(a.x + 60, a.y, 1)], 230); await sleep(60);
+          const between = await env.page.evaluate(() => ({ go: !!PAD_GO, n: PAD_TOUCH.size }));
+          if (order === 'palm first' && !between.go) fail('bar', at + ' ' + order, 'after the first lift the stroke had ended — the finger lifted first, not the palm');
+          if (order === 'finger first' && (between.go || between.n !== 1)) fail('bar', at + ' ' + order, `after the first lift the stroke ${between.go ? 'was still being drawn' : 'had ended'} with ${between.n} contact(s) down — wanted the finger gone and the palm still down`);
+          await T(env, 'touchEnd', [], 290);
         });
         if (JSON.stringify(r.stored[0]) !== JSON.stringify(prev[0]) || r.stored.length !== 2) fail('bar', at + ' ' + order, `a palm lifting off Undo during a stroke left ${JSON.stringify(r.stored).slice(0, 90)} — wanted the earlier stroke and the new one`);
         if (r.paths !== r.stored.length) fail('bar', at + ' ' + order, `${r.paths} drawn for ${r.stored.length} stored`);
@@ -496,6 +581,121 @@ const unmoved = (sec, where, r, b) => {
       await fresh();
     }
 
+
+    /* A LINE ACROSS THE BOARD AT A CHILD'S 300px/s (2.4px every 8ms), from 15% to 85% of its width at `f` of its height. */
+    const nL = Math.round(b.ink.w * 0.7 / 2.4);
+    const lineT = (id, f, from) => track(id, 8, from, from + 8 * nL, 8, u => [b.ink.l + b.ink.w * 0.15 + 2.4 * u / 8, b.ink.t + b.ink.h * f]);
+    const lines = (r, want, sec, name) => {
+      if (r.stored.length !== want || r.stored.some(st => st.length < 4)) fail(sec, at + ' ' + name, `stored ${JSON.stringify(r.stored).slice(0, 120)} — wanted ${want} line(s)`);
+      unmoved(sec, at + ' ' + name, r, b);
+      say(`${sec} ${at} ${name} ${JSON.stringify(r.stored).slice(0, 80)}`);
+    };
+
+    if (want('grip')) {
+      /* A THUMB GRIPPING THE SCREEN'S EDGE (radius 11) DOWN FIRST; a finger lands on the board and the two pan 40px
+         SIDEWAYS together -- two fingers, nothing. (Sideways: a thumb on the column moving up or down is the browser's own
+         scroll, which cancels the thumb's pointer -- measured, the first try of this section.) The finger lifts and the
+         THUMB STAYS, still, while two lines are drawn: both kept. The pen as first built held the thumb in the dead
+         gesture and drew neither (the review's `stuck.js`). */
+      const th = [6, b.ink.t + b.ink.h * 0.6], a = A(), l3 = 1100, l4 = 1100 + 8 * nL + 300;
+      const thumb = [{ t: 0, p: [th[0], th[1], 1, 11] }];
+      for (let i = 1; i <= 10; i++) thumb.push({ t: 400 + 8 * i, p: [th[0] + 4 * i, th[1], 1, 11] });
+      thumb.push({ t: l4 + 8 * nL + 200, p: [th[0] + 40, th[1], 1, 11] });
+      const f2 = [{ t: 400, p: [a.x, a.y, 2, 8] }];
+      for (let i = 1; i <= 10; i++) f2.push({ t: 400 + 8 * i, p: [a.x + 4 * i, a.y, 2, 8] });
+      const r = await gesture(env, k, BOARD, () => play(env, plan(thumb, f2, lineT(3, 0.35, l3), lineT(4, 0.55, l4))));
+      lines(r, 2, 'grip', 'thumb left down after a two-finger pan');
+      if (W === 390) await shot(env.page, `${at}-grip`);
+      await fresh();
+    }
+
+    if (want('settle')) {
+      /* A THUMB AT THE EDGE ROLLS 9px UP IN THE FIRST 48ms OF A LINE, then is still; a second line 300ms after. */
+      const th = [6, b.ink.t + b.ink.h * 0.6], l2 = 1000 + 8 * nL + 300;
+      const thumb = [{ t: 0, p: [th[0], th[1], 1, 11] }];
+      for (let i = 1; i <= 6; i++) thumb.push({ t: 1000 + 8 * i, p: [th[0], th[1] - 1.5 * i, 1, 11] });
+      thumb.push({ t: l2 + 8 * nL + 200, p: [th[0], th[1] - 9, 1, 11] });
+      let r = await gesture(env, k, BOARD, () => play(env, plan(thumb, lineT(2, 0.35, 1000), lineT(3, 0.55, l2))));
+      lines(r, 2, 'settle', 'thumb-roll-9');
+      await fresh();
+      /* A PALM ON THE CARD BELOW THE BOARD (radius 28), STILL FOR A SECOND, SETTLES 12px SIDEWAYS IN THE FIRST 80ms. */
+      if (b.note) {
+        const pm = [Math.min(b.note.x, W - 40), Math.min(b.note.y, H - 30)];
+        const palm = [{ t: 0, p: [pm[0], pm[1], 1, 28] }];
+        for (let i = 1; i <= 10; i++) palm.push({ t: 1000 + 8 * i, p: [pm[0] + 1.2 * i, pm[1], 1, 28] });
+        palm.push({ t: 1000 + 8 * nL + 200, p: [pm[0] + 12, pm[1], 1, 28] });
+        r = await gesture(env, k, BOARD, () => play(env, plan(palm, lineT(2, 0.35, 1000))));
+        lines(r, 1, 'settle', 'palm-card-settle-12');
+        await fresh();
+      }
+      /* A PALM LANDS ON THE BOARD 120ms INTO A LINE, 110px BELOW THE FINGER, AND ITS CENTRE SETTLES 10px IN 60ms. */
+      const ln = lineT(1, 0.35, 0), at120 = ln.find(f => f.t >= 120).p;
+      const palm2 = [{ t: 122, p: [at120[0], at120[1] + 110, 2, 28] }];
+      for (let i = 1; i <= 7; i++) palm2.push({ t: 122 + 8 * i, p: [at120[0] + 10 * i / 7, at120[1] + 110, 2, 28] });
+      palm2.push({ t: 8 * nL - 4, p: [at120[0] + 10, at120[1] + 110, 2, 28] });
+      r = await gesture(env, k, BOARD, () => play(env, plan(ln, palm2)));
+      lines(r, 1, 'settle', 'palm-lands-settles');
+      const st = r.stored[0] || [], py = (at120[1] + 110 - b.ink.t) / b.ink.h * 340;
+      for (let i = 1; i < st.length; i += 2) if (Math.abs(st[i] - py) < 40) { fail('settle', at + ' palm-lands-settles', 'the stroke has a point where the palm was'); break; }
+      await fresh();
+    }
+
+    if (want('phase')) {
+      /* A TWO-FINGER PAN, 150px UP, WITH THE SECOND FINGER'S REPORTS 5ms OUT OF PHASE -- each finger's moves in their own
+         dispatch, as a digitizer scanning them apart sends them. Eight times: judged by when each one's event arrived, the
+         review drew 8 pans in 28 at 820 and 1024. Judged at each finger's samples' own time, none. */
+      let drew = 0;
+      for (let rep = 0; rep < 8; rep++) {
+        const a = A(), c = B();
+        const f1 = track(1, 8, 0, 240, 8, u => [a.x, a.y + 150 - 5 * u / 8]);
+        const f2 = track(2, 8, 5, 245, 8, u => [c.x, c.y + 150 - 5 * u / 8]);
+        const r = await gesture(env, k, BOARD, () => play(env, plan(f1, f2)));
+        if (r.stored.length) { drew++; say(`phase ${at} rep ${rep}: stored ${JSON.stringify(r.stored).slice(0, 60)}`); }
+        unmoved('phase', at + ' rep ' + rep, r, b);
+        await fresh();
+      }
+      if (drew) fail('phase', at, `${drew} of 8 two-finger pans with the second finger out of phase stored a line — wanted none`);
+      console.log(`  phase ${at} ${RATE}x: ${drew} of 8 out-of-phase pans drew`);
+    }
+
+    if (want('types')) {
+      /* A STYLUS DRAWS 250px; HALF WAY A PALM (a touch, radius 25) LANDS ON THE BOARD -- the primary TOUCH, while the stylus
+         is down -- and lifts; the stylus goes on. The stylus's line, and nothing of the palm. */
+      const a = { x: b.ink.l + b.ink.w * 0.1, y: b.ink.t + b.ink.h * 0.25 }, palm = { x: b.ink.l + b.ink.w * 0.7, y: b.ink.t + b.ink.h * 0.85 };
+      const step = Math.min(5, b.ink.w * 0.8 / 50);
+      let r = await gesture(env, k, BOARD, async () => {
+        await MO(env, 'mousePressed', a.x, a.y, 'pen', 1);
+        for (let i = 1; i <= 50; i++) {
+          if (i === 21) await T(env, 'touchStart', [pt(palm.x, palm.y, 7, 25)], since(env));
+          if (i === 41) await T(env, 'touchEnd', [], since(env));
+          await MO(env, 'mouseMoved', a.x + step * i, a.y + 2 * i, 'pen', 1); await sleep(8);
+        }
+        await MO(env, 'mouseReleased', a.x + step * 50, a.y + 100, 'pen', 0);
+      });
+      const st = r.stored[0] || [], pu = [(palm.x - b.ink.l) / b.ink.w * 340, (palm.y - b.ink.t) / b.ink.h * 340];
+      if (r.stored.length !== 1 || st.length < 4) fail('types', at + ' stylus', `a stylus line with a palm landing stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted the stylus's one line`);
+      for (let i = 0; i + 1 < st.length; i += 2) if (Math.hypot(st[i] - pu[0], st[i + 1] - pu[1]) < 20) { fail('types', at + ' stylus', 'the stroke has a point at the palm'); break; }
+      unmoved('types', at + ' stylus', r, b);
+      say(`types ${at} stylus ${JSON.stringify(r.stored).slice(0, 80)}`);
+      await fresh();
+      /* A FINGER DRAWS; HALF WAY A MOUSE CLICKS ON THE CARD BESIDE THE BOARD -- a touchscreen laptop. The finger's line. */
+      r = await gesture(env, k, BOARD, async () => {
+        const fr1 = [], fr2 = [];
+        for (let i = 1; i <= 20; i++) fr1.push([pt(a.x + step * i, a.y + 2 * i, 3)]);
+        for (let i = 21; i <= 50; i++) fr2.push([pt(a.x + step * i, a.y + 2 * i, 3)]);
+        await T(env, 'touchStart', [pt(a.x, a.y, 3)], 0);
+        await stream(env, fr1, 8);
+        await MO(env, 'mousePressed', Math.max(4, b.ink.l - 6), b.ink.t + 20, 'mouse', 1); await sleep(30);
+        await MO(env, 'mouseReleased', Math.max(4, b.ink.l - 6), b.ink.t + 20, 'mouse', 0);
+        await stream(env, fr2, 8, since(env));
+        await T(env, 'touchEnd', [], since(env) + 8);
+      });
+      if (r.stored.length !== 1 || (r.stored[0] || []).length < 4) fail('types', at + ' mouse', `a finger line with a mouse click beside the board stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted the finger's line`);
+      unmoved('types', at + ' mouse', r, b);
+      say(`types ${at} mouse ${JSON.stringify(r.stored).slice(0, 80)}`);
+      await fresh();
+    }
+
     if (want('samples')) {
       /* A ZIGZAG OVER THE WHOLE BOARD, 1,200 samples at 8ms -- a 120Hz digitizer -- sent on the wall clock. */
       const Lx = b.ink.l + b.ink.w * 0.06, Rx = b.ink.l + b.ink.w * 0.94, Ty = b.ink.t + b.ink.h * 0.05, By = b.ink.t + b.ink.h * 0.95;
@@ -512,10 +712,13 @@ const unmoved = (sec, where, r, b) => {
         if (ux !== px || uy !== py) distinct++;
         px = ux; py = uy;
       });
-      await env.page.evaluate(() => { const M = window.__pm; M.reads = []; M.writes = []; M.dur = []; M.t0s = []; M.t1s = []; M.dw = []; M.on = true;
+      await env.page.evaluate(() => { const M = window.__pm; M.reads = []; M.writes = []; M.dur = []; M.t0s = []; M.t1s = []; M.dw = []; M.fw = 0; M.on = true;
         /* EACH FRAME'S CALLBACKS BEGIN: `performance.now()` in a frame callback asked for before any of the pen's,
-           so a write in a frame's callbacks comes after its tick and a write in an event handler before the next. */
-        window.__fr = []; window.__ft = []; const tick = t => { if (!M.on) return; window.__fr.push(t); window.__ft.push(performance.now()); requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+           so a write in a frame's callbacks comes after its tick and a write in an event handler before the next.
+           And the live `d`s written since the last tick -- one frame's -- are put down at each. */
+        window.__fr = []; window.__ft = []; window.__fw = [];
+        const tick = t => { if (!M.on) return; window.__fr.push(t); window.__ft.push(performance.now()); window.__fw.push(M.fw); M.fw = 0; requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+      await traceStart(env);
       begin(env);
       await T(env, 'touchStart', [pt(Lx, Ty)], 0);
       await stream(env, frames, 8);
@@ -530,6 +733,7 @@ const unmoved = (sec, where, r, b) => {
       });
       await T(env, 'touchEnd', [], 8 * N + 300);
       await sleep(800);
+      const tr = await traceEnd(env);
       const m = await env.page.evaluate(k => {
         const M = window.__pm; M.on = false;
         const pad = document.querySelector('#s-tools #wgt-whiteboard .qpad');
@@ -552,6 +756,7 @@ const unmoved = (sec, where, r, b) => {
           if (wf !== undefined && wf === first) same++;
         });
         return { reads: Math.max(0, ...M.reads), writes: M.writes.reduce((a, b) => a + b, 0), dur: M.dur, lat, gaps, moves: M.dur.length, same, n,
+                 fw: Math.max(0, ...window.__fw), fwn: window.__fw.length,
                  stored: st, drawn: paths.length === 1 && paths[0].getAttribute('d') === padPath_(st[0] || [], ka) };
       }, k);
       const q = (a, p) => { if (!a.length) return null; const z = a.slice().sort((x, y) => x - y); return Math.round(z[Math.min(z.length - 1, Math.floor(p * z.length))] * 100) / 100; };
@@ -561,13 +766,18 @@ const unmoved = (sec, where, r, b) => {
       if (m.reads > 1) fail('samples', at, `a pen event read the ink's box ${m.reads} times — the budget is one, shared by its samples`);
       if (m.writes) fail('samples', at, `${m.writes} path write(s) inside pen events — the path is written once a frame`);
       if (m.stored.length !== 1 || !m.drawn) fail('samples', at, 'after the lift the board does not draw padPath_ of the one stroke stored');
-      const p95 = q(m.dur, 0.95), slow = m.gaps.filter(g => g > 33).length;
-      /* JUDGED ONLY ON A MACHINE THAT KEPT UP: more than 8% of frames over 33ms says the processor was taken by
-         something else, and then a time measures the neighbours -- printed, not judged (it passed re-run alone). */
-      if (slow > m.gaps.length * 0.08) console.log(`  NOTE samples ${at}: ${slow} of ${m.gaps.length} frames over 33ms — the machine was busy, so the handler's ${p95}ms p95 is printed and not judged`);
-      else if (p95 > PEN_P95_MS) fail('samples', at, `the pen's pointermove p95 is ${p95}ms at ${RATE}x — over the ${PEN_P95_MS}ms backstop (it was 3.3-3.4 before 338)`);
+      const p95 = q(m.dur, 0.95);
+      /* THE COUNTS THAT STAND FOR THE TIME (after review): a frame's cost does not grow with the stroke, nothing is painted
+         a frame late, and no event forces a layout. */
+      if (m.fw > FRAME_WRITES_MAX) fail('samples', at, `a frame wrote ${m.fw} live \`d\`s — the open chunk and one being frozen is ${FRAME_WRITES_MAX}: the frame redraws more of the stroke than it grew by`);
+      if (!m.fwn) fail('samples', at, 'no frame was counted — the live writes were NOT checked');
+      if (!m.n) fail('samples', at, 'no event was followed by a live path write — the first-frame paint was NOT checked');
+      else if (m.same / m.n < PAINTED_MIN) fail('samples', at, `the path was painted in the first frame after its event for ${Math.round(m.same / m.n * 100)}% of ${m.n} events — under ${PAINTED_MIN * 100}%: a frame of latency was added`);
+      if (!tr.n) fail('samples', at, 'the trace held no pointermove dispatch — forced layouts were NOT counted');
+      else if (tr.forced) fail('samples', at, `${tr.forced} of ${tr.n} pen pointermoves forced a layout or a style recalculation in the browser's trace — a read after a write inside the event`);
       const line = `zigzag ${at} ${RATE}x: ${m.moves} pen events, ${mid.points} of ${distinct} distinct samples kept (${Math.round(mid.points / distinct * 100)}%), ${mid.chunks} chunk(s) live; `
-        + `handler p50 ${q(m.dur, 0.5)} / p95 ${p95} / max ${q(m.dur, 1)}ms; event -> next path write p50 ${q(m.lat, 0.5)} / p95 ${q(m.lat, 0.95)}ms, `
+        + `at most ${m.fw} live write(s) in a frame of ${m.fwn}; forced layouts ${tr.forced} of ${tr.n} traced; `
+        + `handler p50 ${q(m.dur, 0.5)} / p95 ${p95} (reference ${PEN_P95_MS}, printed) / max ${q(m.dur, 1)}ms, thread time p50 ${q(tr.tdur, 0.5)} / p95 ${q(tr.tdur, 0.95)}ms; event -> next path write p50 ${q(m.lat, 0.5)} / p95 ${q(m.lat, 0.95)}ms, `
         + `painted in the first frame after the event ${m.n ? Math.round(m.same / m.n * 100) : '-'}% of ${m.n}; `
         + `frames over 33ms ${m.gaps.filter(g => g > 33).length} of ${m.gaps.length}; stored ${m.stored[0] ? m.stored[0].length / 2 : 0} points, ${JSON.stringify(m.stored).length} chars`;
       console.log('  ' + line);
@@ -748,6 +958,54 @@ const unmoved = (sec, where, r, b) => {
       say(`hold ${at} ${JSON.stringify(h)}`);
     }
     if (env.errs.length) fail('ERRORS', at, env.errs.slice(0, 3).join(' | '));
+    await env.ctx.close();
+  }
+
+  /* ==================== A PIN HELD ON THE CENTRE: November 2019 1H Q4, AT 390 ==================== */
+  if (want('pin')) {
+    const W = 390, H = 844, at = `${W}x${H}`;
+    const env = await boot(browser, W, H, port);
+    await env.page.waitForFunction(r => typeof stuffItemsAll_ === 'function' && stuffItemsAll_().some(x => x.row && x.row.row_id === r), COMPASS_Q, { timeout: 90000 }).catch(() => {});
+    const k = await card(env, COMPASS_Q);
+    const toolBox = () => env.page.evaluate(() => {
+      const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__k);
+      const box = el => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+      return pad ? { compass: box(pad.querySelector('.qpad-tool[data-tool="compass"]')), ruler: box(pad.querySelector('.qpad-tool[data-tool="ruler"]')),
+                     tool: PAD_TOOL.get(window.__k) || 'pen' } : null;
+    });
+    let c = k ? await cardBox(env) : null;
+    if (c) c = await arm(env, c, cardBox);
+    const tb = c ? await toolBox() : null;
+    if (!c || !tb || !tb.compass || !tb.ruler) fail('REACH', at + ' pin', 'November 2019 1H Q4\'s pad, armed, with a Compass and a Ruler tile, is not on the screen — the held pin was NOT checked');
+    else {
+      reached++;
+      await reset(env, k);
+      await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
+      for (const name of ['compass', 'ruler']) {
+        /* THE TOOL CHOSEN WITH A REAL TAP ON ITS TILE. */
+        begin(env);
+        const tile = (await toolBox())[name];
+        await T(env, 'touchStart', [pt(tile.x, tile.y, 9)], 0); await sleep(40); await T(env, 'touchEnd', [], 40);
+        await sleep(600);
+        if ((await toolBox()).tool !== name) { fail('pin', at + ' ' + name, `a tap on the ${name} tile did not choose it — NOT checked`); continue; }
+        c = (await cardBox(env)) || c;
+        /* FINGER 1 ON THE CENTRE, HELD, TREMBLING UNDER A PIXEL; FINGER 2 LANDS 300ms LATER AT THE RADIUS AND SWINGS 270 DEGREES
+           ROUND IT IN 60 MOVES 10ms APART (the compass), or slides 40px (the ruler). Nothing stored, as before 338. */
+        const cx = c.ink.l + c.ink.w * 0.45, cy = c.ink.t + c.ink.h * 0.5, R0 = 0.28 * Math.min(c.ink.w, c.ink.h);
+        const pin = [];
+        for (let t = 0; t <= 920; t += 10) pin.push({ t, p: [cx + (t % 20 ? 0.4 : -0.4), cy, 1, 8] });
+        const f2 = name === 'compass' ? track(2, 8, 300, 900, 10, u => { const g = 1.5 * Math.PI * u / 600; return [cx + R0 * Math.cos(g), cy + R0 * Math.sin(g)]; })
+          : track(2, 8, 300, 500, 10, u => [cx + R0 + 2 * u / 10, cy]);
+        const r = await gesture(env, k, CARD, () => play(env, plan(pin, f2)));
+        if (r.stored.length) fail('pin', at + ' ' + name, `a pin held on the ${name}'s centre and a second finger moving stored ${JSON.stringify(r.stored).slice(0, 100)} — wanted nothing`);
+        if (r.live || r.busy || r.touch) fail('pin', at + ' ' + name, 'the pen did not let go after both fingers lifted');
+        say(`pin ${at} ${name} ${JSON.stringify(r.stored).slice(0, 80)}`);
+        if (name === 'compass') await shot(env.page, `${at}-pin-compass`);
+        await reset(env, k);
+      }
+      await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    }
+    if (env.errs.length) fail('ERRORS', at + ' pin', env.errs.slice(0, 3).join(' | '));
     await env.ctx.close();
   }
 

@@ -385,6 +385,8 @@ function boot(opts) {
          and the stored one up against `padPath_` of the points (338). */
       'padSt: () => (typeof PAD_ST !== "undefined" ? PAD_ST : null),' +
       'padPath: (st, k) => padPath_(st, k),' +
+      /* AND THE PATHS IT KEEPS (`PAD_PATHS`, a `const` Map, after review), so a journey can ask what it holds. */
+      'padPaths: () => (typeof PAD_PATHS !== "undefined" ? PAD_PATHS : null),' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -4171,6 +4173,337 @@ check('the finger pen on the board: a hand resting on the card never moves the c
   return bad;
 });
 
+/* ---------- THE FINGER PEN, AFTER REVIEW: A HAND THAT STAYS, A HAND THAT SETTLES, A PIN, A LATE REPORT, ANOTHER KIND ----
+   The review of 11 Oct drove the pen with real touch as a child would (338, "After review") and found five ways it lost a
+   line or kept the wrong one. Each is asked here through the pen's own listeners, with the events as a phone sends them:
+   - A HAND LEFT DOWN AFTER A TWO-FINGER GESTURE kept the pen dead -- every later line drew nothing until it lifted, and a
+     gripping thumb or a resting palm never lifts. A hand gone still is not half of a pan in progress.
+   - A THUMB OR A PALM THAT ROLLS OR SETTLES a few pixels as the line starts was taken for the second finger of a pan, and
+     the line was lost. A settle stops; a second finger keeps up.
+   - A PIN HELD ON THE CENTRE (a compass, a ruler's end) and a second finger moving was handed to the second finger, and
+     stored a mark neither meant. It stores nothing, as it did before 338.
+   - THE OTHER FINGER'S REPORT FOR THE SAME MOMENT came in an event stamped later than its samples, and was judged as if
+     it were current: a pan drew a line. Each finger is judged at its samples' own time.
+   - A POINTER OF ANOTHER KIND going down as the primary one ended the stroke: "primary" is per kind, so a palm is the
+     primary touch while a stylus draws, and a mouse click is primary while a finger does.
+   And the two counted costs the review found unasked: Undo on a full board rebuilt and recomputed every stroke, where one
+   came off. */
+check('the finger pen after review: a hand left down after two fingers, a thumb or palm that settles, a held pin, a late report and a pointer of another kind all leave the line that was meant, and Undo takes off one stroke without redrawing the rest', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
+  if (!t || typeof w.initWhiteboard !== 'function' || typeof w.padBusy_ !== 'function' || typeof w.padDrop_ !== 'function'
+      || typeof t.padTouch !== 'function' || !t.padTouch() || typeof t.padWrap !== 'function' || typeof t.padKey !== 'function'
+      || !A['pad-undo'] || !A['pad-tool'] || typeof w.padSegs_ !== 'function') {
+    return ['the board, padBusy_, padDrop_, PAD_TOUCH, padWrap_, padSegs_ or the pad-undo / pad-tool handlers are not reachable — the review\'s cases were NOT checked'];
+  }
+  t.USER({ name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] });
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  t.goPage('tools', roster.indexOf('whiteboard'), true);
+  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  await woken_();
+  if (!pad()) return ['the whiteboard did not draw a pad on the Tools column'];
+  const bk = pad().getAttribute('data-k');
+
+  /* ==================== ON THE BOARD, AT (20, 100), 300 x 400 -- note 310's ==================== */
+  const BL = 20, BT = 100, BW = 300, BH = 400;
+  const bink = () => pad().querySelector('.qpad-ink');
+  const bfix = () => { bink().getBoundingClientRect = () => ({ left: BL, top: BT, width: BW, height: BH, right: BL + BW, bottom: BT + BH, x: BL, y: BT }); };
+  const bfresh = () => { w.padDrop_(); try { w.localStorage.removeItem(bk); } catch (e) {} t.padOn(bk); w.initWhiteboard(); bfix(); };
+  const card = () => pad().querySelector('.qpad-note');
+  const bfire = (type, id, px, py, ts, o) => penEv_(w, (o && o.on) || bink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const bstored = () => { try { return JSON.parse(w.localStorage.getItem(bk) || '[]'); } catch (e) { return ['unreadable']; } };
+  /* WHAT THE PEN STORES FOR A TRACK, by its own arithmetic: each point in units, a repeat of the one before dropped. The
+     board thins at one unit, and a straight track thins to its two ends. */
+  const btrack = pts => { const o = []; pts.forEach(p => { const x = Math.round((p[0] - BL) / BW * 340), y = Math.round((p[1] - BT) / BH * 340);
+    if (o.length && o[o.length - 2] === x && o[o.length - 1] === y) return; o.push(x, y); }); return typeof w.ansSimplify_ === 'function' ? w.ansSimplify_(o, 1) : o; };
+  const bclean = (what, want) => {
+    const s = bstored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+    if (pad().querySelectorAll('.qpad-g path').length !== s.length) bad.push(what + ': ' + pad().querySelectorAll('.qpad-g path').length + ' path(s) drawn for ' + s.length + ' stored');
+    if (pad().querySelector('[data-live]')) bad.push(what + ': a live preview was left on the board');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the board');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind');
+  };
+  /* A LINE ACROSS THE BOARD at 300px/s -- 2.4px every 8ms, a child's steady stroke -- from (x0, y), `n` steps, with a FRAME
+     every fourth step: the pen decides two fingers at a frame, with every report in, so a journey that never let a frame
+     run would only ever ask the lift. */
+  const bline = async (id, x0, y, n, t0, also) => {
+    const pts = [[x0, y]];
+    bfire('pointerdown', id, x0, y, t0);
+    for (let i = 1; i <= n; i++) {
+      pts.push([x0 + 2.4 * i, y]); bfire('pointermove', id, x0 + 2.4 * i, y, t0 + 8 * i); if (also) also(i, t0 + 8 * i);
+      if (!(i % 4)) await wait(1);
+    }
+    bfire('pointerup', id, x0 + 2.4 * n, y, t0 + 8 * n + 4);
+    return pts;
+  };
+
+  /* A HAND LEFT DOWN AFTER TWO FINGERS (the review's case, as note 338's P16 begins): a hand on the card goes down first, a
+     finger lands on the board and the two move 30px together -- two fingers, nothing. The finger lifts, the HAND STAYS,
+     still. Two lines drawn after it are each drawn: a hand gone still is not half of a pan in progress. */
+  bfresh();
+  bfire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  bfire('pointerdown', 2, 100, 200, 2000);
+  for (let i = 1; i <= 6; i++) { bfire('pointermove', 2, 100 + 5 * i, 200, 2000 + 8 * i); bfire('pointermove', 1, 170 + 5 * i, 560, 2000 + 8 * i, { on: card() }); }
+  bfire('pointerup', 2, 130, 200, 2100);
+  if (bstored().length) bad.push('a hand and a finger moving 30px together stored ' + JSON.stringify(bstored()) + ' — two fingers draw nothing');
+  bfire('pointerdown', 3, 60, 300, 2400);
+  for (let i = 1; i <= 25; i++) bfire('pointermove', 3, 60 + 4 * i, 300, 2400 + 12 * i);
+  bfire('pointerup', 3, 160, 300, 2700);
+  bfire('pointerdown', 4, 60, 400, 3000);
+  for (let i = 1; i <= 25; i++) bfire('pointermove', 4, 60 + 4 * i, 400, 3000 + 12 * i);
+  bfire('pointerup', 4, 160, 400, 3300);
+  bfire('pointerup', 1, 200, 560, 3400, { on: card() });
+  bclean('a hand left still on the card after a two-finger gesture, then two lines', [[45, 170, 159, 170], [45, 255, 159, 255]]);
+
+  /* A THUMB GRIPPING THE EDGE ROLLS 9px IN 48ms AS THE LINE STARTS, then is still; a second line with the thumb still down. */
+  bfresh();
+  bfire('pointerdown', 1, 8, 340, 1000, { prim: true, on: card() });
+  const r1 = await bline(2, 40, 200, 100, 2000, (i, ts) => { if (i <= 6) bfire('pointermove', 1, 8, 340 - 1.5 * i, ts, { on: card() }); });
+  const r2 = await bline(3, 40, 400, 100, 3200);
+  bfire('pointerup', 1, 8, 331, 4200, { on: card() });
+  bclean('a thumb at the edge that rolled 9px as the line started', [btrack(r1), btrack(r2)]);
+
+  /* A PALM ON THE CARD SETTLES 12px SIDEWAYS IN 80ms AS THE LINE STARTS. */
+  bfresh();
+  bfire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  const r3 = await bline(2, 40, 200, 100, 2000, (i, ts) => { if (i <= 10) bfire('pointermove', 1, 170 + 1.2 * i, 560, ts, { on: card() }); });
+  bfire('pointerup', 1, 182, 560, 3000, { on: card() });
+  bclean('a palm on the card that settled 12px as the line started', [btrack(r3)]);
+
+  /* A PALM LANDS ON THE BOARD 120ms INTO A LINE, 110px BELOW IT, AND ITS CENTRE SETTLES 10px IN 60ms as it flattens -- the
+     finger draws on throughout. The whole line, every sample, and nothing of the palm. */
+  bfresh();
+  const r4 = await bline(1, 40, 200, 100, 2000, (i, ts) => {
+    if (i === 15) bfire('pointerdown', 2, 90, 310, ts + 2);
+    else if (i > 15 && i <= 23) bfire('pointermove', 2, 90 + 1.25 * (i - 15), 310, ts + 2);
+  });
+  bfire('pointerup', 2, 100, 310, 3000);
+  bclean('a palm that landed 120ms into a line and settled 10px', [btrack(r4)]);
+
+  /* A PALM FIRST, ON THE BOARD, SETTLING 12px IN 80ms WHILE THE FINGER, 40ms LATER, DRAWS: the finger's line, from its own
+     first point, every sample. */
+  bfresh();
+  bfire('pointerdown', 1, 300, 450, 1000, { prim: true });
+  const r5 = await bline(2, 40, 200, 60, 1040, (i, ts) => { if (i <= 10) bfire('pointermove', 1, 300 - 1.2 * i, 450, ts); });
+  bfire('pointerup', 1, 288, 450, 1600);
+  bclean('a palm first that settled 12px as the finger drew', [btrack(r5)]);
+
+  /* A PALM THAT CAME LATER TO ONE LINE IS NOT LATER THAN THE NEXT (found while fixing these). A palm lands on the board as
+     a line ends -- a rest, having come after that line's finger -- and the next finger lands 64ms later, so the palm is a
+     young contact held against it. The palm then slides 30px while the finger is still: it was down BEFORE this finger,
+     so it may never take its stroke (a watched contact never may, 338 T3); the finger's line is drawn. Kept marked as
+     "came later" from the line before, the palm was handed the stroke -- its slide stored, the finger's line lost. */
+  bfresh();
+  const r6 = await bline(1, 40, 150, 100, 1000, (i, ts) => { if (i === 98) bfire('pointerdown', 2, 250, 450, ts + 2); });
+  bfire('pointerdown', 3, 60, 250, 1850);
+  for (let i = 1; i <= 6; i++) bfire('pointermove', 2, 250 - 5 * i, 450, 1850 + 8 * i);
+  await wait(5);
+  const r7 = [[60, 250]];
+  for (let i = 1; i <= 25; i++) { r7.push([60 + 4 * i, 250]); bfire('pointermove', 3, 60 + 4 * i, 250, 1910 + 12 * i); if (!(i % 4)) await wait(1); }
+  bfire('pointerup', 3, 160, 250, 2220);
+  bfire('pointerup', 2, 220, 450, 2240);
+  bclean('a palm left down from one line, sliding as the next finger lands', [btrack(r6), btrack(r7)]);
+
+  /* AND A TWO-FINGER GESTURE STILL IN PROGRESS TAKES IN A FINGER THAT LANDS: a pinch, one finger lifts and the other drags on
+     -- it is still moving, so the gesture is not over -- and a tap lands meanwhile. Nothing: the tap joined the gesture.
+     (Dissolved at every landing instead, the dragging finger would be held against the tap, move alone, be a rest -- it
+     was down first -- and the tap's dot would be stored.) */
+  bfresh();
+  bfire('pointerdown', 1, 150, 300, 1000, { prim: true });
+  bfire('pointerdown', 2, 230, 300, 1040);
+  for (let i = 1; i <= 10; i++) { bfire('pointermove', 1, 150 - 4 * i, 300, 1040 + 8 * i); bfire('pointermove', 2, 230 + 4 * i, 300, 1040 + 8 * i); }
+  bfire('pointerup', 1, 110, 300, 1130);
+  for (let i = 1; i <= 30; i++) {
+    if (i === 10) bfire('pointerdown', 3, 120, 200, 1130 + 8 * i - 2);
+    if (i === 14) bfire('pointerup', 3, 120, 200, 1130 + 8 * i - 2);
+    bfire('pointermove', 2, 270, 300 - 4 * i, 1130 + 8 * i);
+  }
+  bfire('pointerup', 2, 270, 180, 1400);
+  bclean('a tap landing while the other finger of a pinch dragged on', []);
+
+  /* ==================== UNDO TAKES OFF ONE STROKE AND REDRAWS NOTHING ELSE ====================
+     MEASURED BY THE REVIEW: on a full board (314 strokes, 98,942 characters) Undo cost 74ms of main thread at 4x against 31
+     before -- every stroke's curve recomputed and every `d` parsed again, for one stroke taken off. The screen is still
+     the store's: a path is kept only where it already says exactly what its stroke draws. */
+  const ring = (cx, cy, r, n) => { const st = []; for (let i = 0; i <= n; i++) { const a = 2 * Math.PI * i / n; st.push(Math.round(cx + r * Math.cos(a)), Math.round(cy + r * Math.sin(a))); } return st; };
+  bfresh();
+  const three = [ring(100, 100, 60, 12), ring(240, 120, 70, 12), ring(170, 250, 50, 12)];
+  w.ansStore_(bk, JSON.stringify(three));
+  w.initWhiteboard(); bfix();
+  const was = [...pad().querySelectorAll('.qpad-g path')];
+  if (was.length !== 3 || !/C/.test(was[0].getAttribute('d'))) bad.push('setup: the board drew ' + was.length + ' path(s) for three rings, or drew them without curves — Undo was NOT checked');
+  else {
+    const seg = w.padSegs_;
+    let calls = 0;
+    w.padSegs_ = function () { calls++; return seg.apply(this, arguments); };
+    try { A['pad-undo'](pad().querySelector('.qpad-undo')); } finally { w.padSegs_ = seg; }
+    const now = [...pad().querySelectorAll('.qpad-g path')];
+    if (bstored().length !== 2) bad.push('Undo on three rings left ' + bstored().length + ' stored');
+    if (now.length !== 2 || now[0] !== was[0] || now[1] !== was[1]) bad.push('Undo redrew the strokes it did not take off (' + now.length + ' paths, the first two ' + (now[0] === was[0] && now[1] === was[1] ? 'kept' : 'replaced') + ') — one comes off, the rest are already the store\'s');
+    if (calls) bad.push('Undo recomputed ' + calls + ' stroke(s)\' curves for strokes already drawn');
+    if (now.map(p => p.getAttribute('d')).join('|') !== three.slice(0, 2).map(st => w.padPath_(st, 1.3333)).join('|')) bad.push('after Undo the board does not draw exactly what is stored');
+  }
+  /* AND WHAT IS KEPT IS HELD TO A SIZE, NOT A COUNT: a question keeps every sample, so 150 long strokes (1,200 points each,
+     about 40K characters of key and path apiece) are 6M characters -- under a cap of 4,000 strokes they would all be kept.
+     The memo must stay within its character budget, and still answer for the stroke drawn last. */
+  try {
+    const big = [];
+    /* EACH STEP ABOUT 10-14 UNITS AND TURNING 7 DEGREES: long and gentle, so every segment is a curve -- the size a fast
+       stroke really draws at. */
+    for (let s = 0; s < 150; s++) { const st = []; for (let i = 0; i < 1200; i++) { const a = i / 8 + s; st.push(Math.round(170 + (80 + s % 30) * Math.cos(a)), Math.round(170 + (80 + s % 30) * Math.sin(a * 1.01))); } big.push(st); }
+    big.forEach(st => w.padPath_(st, 1));
+    const memo = t.padPaths && t.padPaths();
+    if (!memo) throw new Error('PAD_PATHS is not reachable');
+    const held = [...memo].reduce((a, e) => a + e[0].length + e[1].length, 0);
+    if (held > 4.1e6) bad.push('the kept paths hold ' + Math.round(held / 1e3) + 'K characters after 150 long strokes — a memo held to a count of strokes is hundreds of megabytes on a long visit; it is held to 4M characters');
+    if (memo.get('1|' + big[149].join(',')) !== w.padPath_(big[149], 1)) bad.push('the memo does not hold the stroke drawn last');
+  } catch (e) { bad.push('the kept paths could not be read (' + e.message + ') — the memo\'s size was NOT checked'); }
+
+  /* ==================== ON A QUESTION'S PAD, 340 x 170 AT (100, 50) ==================== */
+  const L = 100, T = 50, W = 340, H = 170;
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  let x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-5' };
+  let k = t.padKey(x);
+  const ink = () => host.querySelector('.qpad-ink');
+  const fresh = (item) => {
+    w.padDrop_();
+    if (item) { x = item; k = t.padKey(x); }
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    t.padOn(k);
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, (o && o.on) || ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const units = pts => { const o = []; pts.forEach(p => { const a = Math.round((p[0] - L) / W * 340), b = Math.round((p[1] - T) / H * 340);
+    if (o.length && o[o.length - 2] === a && o[o.length - 1] === b) return; o.push(a, b); }); return o; };
+  const clean = (what, want) => {
+    const s = stored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+    if (host.querySelectorAll('.qpad-g path').length !== s.length) bad.push(what + ': ' + host.querySelectorAll('.qpad-g path').length + ' path(s) drawn for ' + s.length + ' stored');
+    if (host.querySelector('[data-live]')) bad.push(what + ': a live preview was left on the picture');
+    if ((host.querySelector('.qpad-aid') || {}).innerHTML) bad.push(what + ': the aid was left on the picture');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the drawing');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind after every finger lifted');
+  };
+
+  /* A PINCH, ONE FINGER LIFTS, THE OTHER RESTS ON THE PICTURE half a second -- then a third finger draws: its line. */
+  fresh();
+  fire('pointerdown', 1, 200, 135, 1000, { prim: true });
+  fire('pointerdown', 2, 260, 135, 1040);
+  for (let i = 1; i <= 10; i++) { fire('pointermove', 1, 200 - 4 * i, 135, 1040 + 8 * i); fire('pointermove', 2, 260 + 4 * i, 135, 1040 + 8 * i); }
+  fire('pointerup', 1, 160, 135, 1200);
+  const q3 = [[120, 80]];
+  fire('pointerdown', 3, 120, 80, 1700);
+  for (let i = 1; i <= 20; i++) { q3.push([120 + 5 * i, 80]); fire('pointermove', 3, 120 + 5 * i, 80, 1700 + 8 * i); }
+  fire('pointerup', 3, 220, 80, 1900);
+  fire('pointerup', 2, 300, 135, 2000);
+  clean('a finger left resting after a pinch, then a third finger drew', [units(q3)]);
+
+  /* THE OTHER FINGER'S REPORT COMES LATE: finger 2 of a pan reports 5ms out of phase, and one of its events is stamped after
+     finger 1 has gone 10px while carrying only its sample from 16ms before (4px). Judged at that event's stamp it reads as
+     still and the pan draws finger 1's line; judged at its samples' own time it is moving with finger 1. */
+  fresh();
+  fire('pointerdown', 1, 150, 210, 1000, { prim: true });
+  fire('pointerdown', 2, 230, 212, 1005);
+  const s2 = i => ({ clientX: 230, clientY: 212 - 4 * i, timeStamp: 1005 + 8 * i });
+  fire('pointermove', 1, 150, 206, 1008);
+  fire('pointermove', 1, 150, 202, 1016);
+  fire('pointermove', 1, 150, 198, 1024);
+  fire('pointermove', 2, 230, 208, 1029, { co: [s2(1)] });
+  /* A FRAME HERE: finger 1 has gone 12px by 1024, finger 2 has reported only to 1013 -- so it is judged at 1013, where neither
+     has gone 10px, and not at 1024 with finger 2 taken to be where its old sample left it. */
+  await wait(5);
+  fire('pointermove', 2, 230, 196, 1037, { co: [s2(2), s2(3), s2(4)] });
+  for (let i = 4; i <= 37; i++) {
+    fire('pointermove', 1, 150, 210 - 4 * i, 1000 + 8 * i); fire('pointermove', 2, 230, 212 - 4 * (i + 1), 1005 + 8 * (i + 1));
+    if (!(i % 4)) await wait(1);
+  }
+  fire('pointerup', 1, 150, 62, 1310); fire('pointerup', 2, 230, 60, 1315);
+  clean('a two-finger pan whose second finger reported late', []);
+
+  /* A STYLUS DRAWS AND A PALM LANDS ON THE PICTURE -- the palm is the PRIMARY TOUCH, primary being per kind of pointer: the
+     stylus's line, and nothing of the palm. */
+  fresh();
+  const sty = [[150, 100]];
+  fire('pointerdown', 3, 150, 100, 1000, { prim: true, type: 'pen' });
+  for (let i = 1; i <= 50; i++) {
+    if (i === 21) fire('pointerdown', 4, 380, 190, 1000 + 8 * i - 2, { prim: true });
+    if (i === 41) fire('pointerup', 4, 380, 190, 1000 + 8 * i - 2);
+    sty.push([150 + 5 * i, 100 + 2 * i]);
+    fire('pointermove', 3, 150 + 5 * i, 100 + 2 * i, 1000 + 8 * i, { type: 'pen' });
+  }
+  fire('pointerup', 3, 400, 200, 1420, { type: 'pen' });
+  clean('a stylus line with a palm landing as the primary touch', [units(sty)]);
+
+  /* A FINGER DRAWS AND A MOUSE CLICKS BESIDE THE PICTURE (a touchscreen laptop) -- the mouse is primary among mice: the
+     finger's line. */
+  fresh();
+  const fin = [[110, 60]];
+  fire('pointerdown', 2, 110, 60, 1000, { prim: true });
+  for (let i = 1; i <= 50; i++) {
+    if (i === 21) { penEv_(w, host, 'pointerdown', { id: 1, x: 60, y: 30, t: 1166, prim: true, type: 'mouse' }); penEv_(w, host, 'pointerup', { id: 1, x: 60, y: 30, t: 1170, prim: true, type: 'mouse' }); }
+    fin.push([110 + 4 * i, 60 + 2 * i]);
+    fire('pointermove', 2, 110 + 4 * i, 60 + 2 * i, 1000 + 8 * i);
+  }
+  fire('pointerup', 2, 310, 160, 1410);
+  clean('a finger line with a mouse click beside the picture', [units(fin)]);
+
+  /* ==================== A PIN HELD ON A COMPASS'S CENTRE OR A RULER'S END ==================== */
+  const tq = { kind: 'question', answerType: 'drawing', html: '<p>Use a ruler and compasses to construct the bisector of angle ABC.</p>', key: 'q:Q-FINGER-6' };
+  fresh(tq);
+  const tool = name => host.querySelector('.qpad-tool[data-tool="' + name + '"]');
+  if (!tool('compass') || !tool('ruler')) bad.push('setup: the construction question has no Ruler and Compass tiles — the held pin was NOT checked');
+  else {
+    for (const name of ['compass', 'ruler']) {
+      fresh();
+      A['pad-tool'](tool(name));
+      ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+      /* THE PIN: finger 1 on (270, 135), held 300ms, trembling under a pixel. Finger 2 lands 60px right and swings 270
+         degrees round it (the compass) or slides 40px (the ruler). Nothing is stored -- as before 338. */
+      fire('pointerdown', 1, 270, 135, 1000, { prim: true });
+      for (let i = 1; i <= 30; i++) fire('pointermove', 1, 270 + (i % 2 ? 0.4 : -0.4), 135, 1000 + 10 * i);
+      fire('pointerdown', 2, 330, 135, 1302);
+      for (let i = 1; i <= 60; i++) {
+        const a = 1.5 * Math.PI * i / 60;
+        if (name === 'compass') fire('pointermove', 2, 270 + 60 * Math.cos(a), 135 + 60 * Math.sin(a), 1302 + 10 * i);
+        else if (i <= 20) fire('pointermove', 2, 330 + 2 * i, 135, 1302 + 10 * i);
+        fire('pointermove', 1, 270 + (i % 2 ? 0.4 : -0.4), 135, 1305 + 10 * i);
+      }
+      fire('pointerup', 2, 330, 135, 1920); fire('pointerup', 1, 270, 135, 1925);
+      clean('a pin held on the ' + name + '\'s centre and a second finger moving', []);
+    }
+    /* AND A PALM FIRST, THEN THE COMPASS FINGER 40ms LATER: the finger's circle, about where IT went down. */
+    fresh();
+    A['pad-tool'](tool('compass'));
+    ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+    fire('pointerdown', 1, 420, 210, 1000, { prim: true });
+    fire('pointerdown', 2, 270, 135, 1040);
+    for (let i = 1; i <= 12; i++) fire('pointermove', 2, 270 + 5 * i, 135, 1040 + 8 * i);
+    fire('pointerup', 2, 330, 135, 1150); fire('pointerup', 1, 420, 210, 1160);
+    const s = stored(), rg = s[0] || [];
+    const xs = rg.filter((v, i) => !(i % 2)), ys = rg.filter((v, i) => i % 2);
+    if (s.length !== 1 || rg.length < 40 || Math.abs((Math.max(...xs) + Math.min(...xs)) / 2 - 170) > 1 || Math.abs((Math.max(...ys) + Math.min(...ys)) / 2 - 170) > 1) {
+      bad.push('a palm first and then the compass finger stored ' + JSON.stringify(s).slice(0, 80) + ' — wanted one ring about where the finger went down, (170, 170)');
+    }
+  }
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(bk); } catch (e) {}
+  host.remove();
+  t.USER(null);
+  return bad;
+});
+
 /* ---------- THE FINGER PEN KEEPS EVERY SAMPLE, AND DRAWS IT ONCE A FRAME (338, increment 1b) ------------------
    MEASURED BEFORE: a 1,200-sample zigzag at 4x CPU reached the pen as 395 events and 394 points were kept --
    every sample was there in `getCoalescedEvents`. And the whole live path was rebuilt per event, with the next
@@ -4270,9 +4603,21 @@ check('the finger pen keeps every sample: the folded ones, one box read per even
   if (ch.length < 2) bad.push('a 300-point stroke was drawn as ' + ch.length + ' live path(s) — the frame rewrites the whole stroke');
   const joined = ch.map((s, i) => (i ? s.replace(/^M[^LC]*/, '') : s)).join('');
   if (joined !== t.padPath(t.padSt(), kOf())) bad.push('the chunks of a 300-point stroke do not join into padPath_ of it');
-  fire('pointerup', 1, 409, 102, 2300);
-  if ((stored()[0] || []).length !== 600) bad.push('the 300-point stroke stored ' + ((stored()[0] || []).length / 2) + ' points');
-  one('a 300-point stroke');
+  /* AND A FRAME AFTER THAT WRITES THE OPEN CHUNK, NOT THE STROKE: at most two `d`s -- the open chunk and one being frozen
+     -- however long the stroke has grown. Every chunk rewritten every frame keeps every other line here true and costs a
+     frame more as the stroke grows (the review's mutation: 20 writes a frame at 2,500 points, where this writes 1-2). */
+  let dw = 0;
+  const sa = w.Element.prototype.setAttribute;
+  w.Element.prototype.setAttribute = function (n, v) { if (n === 'd' && this.hasAttribute && this.hasAttribute('data-live')) dw++; return sa.call(this, n, v); };
+  try {
+    for (let i = 300; i < 320; i++) fire('pointermove', 1, 110 + i, 100 + (i % 2) * 2, 1000 + 4 * i);
+    await wait(5);
+  } finally { w.Element.prototype.setAttribute = sa; }
+  if (dw > 2) bad.push('a frame of a 320-point stroke wrote ' + dw + ' live `d`s — wanted the open chunk only (and one being frozen): a frame\'s cost must not grow with the stroke');
+  if (!dw) bad.push('a frame after 20 more points wrote no live path at all');
+  fire('pointerup', 1, 429, 102, 2300);
+  if ((stored()[0] || []).length !== 640) bad.push('the 320-point stroke stored ' + ((stored()[0] || []).length / 2) + ' points');
+  one('a 320-point stroke');
 
   w.padDrop_();
   t.padOn('');
@@ -4426,6 +4771,9 @@ check('?pen=sizes lists the last eight contacts\' widths for one reading on a de
       penEv_(w, ink, 'pointermove', Object.assign({ x: 25 + i * 30, y: 80, t: 1040 + 100 * i }, o, { size: 60 + i * 5 }));
       penEv_(w, ink, 'pointerup', Object.assign({ x: 25 + i * 30, y: 80, t: 1060 + 100 * i }, o, { size: 1 }));
     }
+    /* THE LINE IS WRITTEN AT THE NEXT FRAME, never inside a pointer event (after review: written in every `pointermove` it
+       forced a layout per move, in the very mode the iPad reading is taken in). */
+    await wait(5);
     const line = d.querySelector('.pad-sizes');
     let st = []; try { st = JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) {}
     if (st.length !== 10) bad.push(url + ': ten strokes by contacts 30 to 75px wide stored ' + st.length + ' — size must decide nothing until a device has been measured');
@@ -4436,6 +4784,15 @@ check('?pen=sizes lists the last eight contacts\' widths for one reading on a de
         if (rows.length !== 8) bad.push('the sizes line lists ' + rows.length + ' contacts, wanted the last 8');
         if (rows[rows.length - 1] !== 'touch 75x75 largest 105') bad.push('the last contact reads "' + rows[rows.length - 1] + '", wanted "touch 75x75 largest 105" — its kind, its size at the down and the largest during (the 1 of a lift is not a size)');
         if (line.getAttribute('aria-hidden') !== 'true') bad.push('the sizes line is read out to a screen reader');
+        /* A CONTACT THAT GROWS: nothing written while its events are handled, the new size at the next frame. */
+        const before = line.textContent;
+        penEv_(w, ink, 'pointerdown', { id: 1, prim: true, size: 90, x: 30, y: 50, t: 3000 });
+        penEv_(w, ink, 'pointermove', { id: 1, prim: true, size: 120, x: 40, y: 90, t: 3040 });
+        if (line.textContent !== before) bad.push('the sizes line was written inside a pointer event — it forces a layout on every move; it is written once a frame');
+        await wait(5);
+        const last = line.textContent.split('\n').pop();
+        if (last !== 'touch 90x90 largest 120') bad.push('a frame after a contact grew the sizes line ends "' + last + '", wanted "touch 90x90 largest 120"');
+        penEv_(w, ink, 'pointerup', { id: 1, prim: true, size: 1, x: 40, y: 90, t: 3060 });
       }
     } else if (line) bad.push('without ?pen=sizes in the address the sizes line was drawn anyway');
     w.padDrop_(); t.padOn(''); try { w.localStorage.removeItem(k); } catch (e) {} host.remove();

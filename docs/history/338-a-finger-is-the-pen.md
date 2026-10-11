@@ -104,9 +104,10 @@ screen); TWO (`PAD_TWO`: no stroke, nothing drawn until every member has lifted)
 
 **The rules.**
 
-- **T0, stale contacts.** A `pointerdown` with `isPrimary === true` forgets every contact first — the
-  platform saying no other touch is down — and drops any stroke still held (its preview removed, nothing
-  stored). jsdom's `undefined` never resets anything. `visibilitychange` (hidden), `pagehide` and `blur` end a
+- **T0, stale contacts.** A `pointerdown` with `isPrimary === true` forgets every contact **of its kind**
+  first — the platform saying no other pointer of that kind is down — and drops a stroke made by that kind (its
+  preview removed, nothing stored). *Of its kind* was added after review: `isPrimary` is per pointer type, so a
+  palm is the primary touch while a stylus draws (see "After review", 11). jsdom's `undefined` never resets anything. `visibilitychange` (hidden), `pagehide` and `blur` end a
   stroke by the cancel rule and forget every contact. The same id going down again replaces its contact.
 - **T1, a contact lands on the armed ink with nothing drawn.** Not primary while the swipe engine is already
   carrying another pointer → a rest (a moving column is not drawn on). A mouse or a stylus → the owner,
@@ -129,7 +130,11 @@ screen); TWO (`PAD_TWO`: no stroke, nothing drawn until every member has lifted)
   third contact → TWO. One of a held pair lifting is forgotten (the owner's samples with it); the other, if
   it is on the ink and came later, is held alone — it becomes the stroke if it goes on to move 10px, and
   nothing if it lifts still. So a two-finger tap stores nothing whichever finger lifts first.
-- **T5, TWO.** Nothing is drawn until every member has lifted. A contact landing on the ink joins.
+- **T5, TWO.** Nothing is drawn until every member has lifted — **or has gone still**: a contact landing while
+  a member has moved 5px in the last 200ms joins the gesture; one landing after every member has been still that
+  long ends it, and the members are ordinary contacts already down (T1 watches them). Amended after review: a
+  gripping thumb or a resting palm that was half of a two-finger decision never lifts, and kept the pen dead
+  (see "After review", 1).
 - **T6, the owner lifts.** Today's lift: the tool's end, the board's thinning, `padSave_`.
 - **T7, cancel.** The owner's `pointercancel` (or a page event) **withdraws a tentative stroke and commits an
   established one.** Cancels that are not ink arrive early — platform palm rejection, system edge gestures;
@@ -142,7 +147,10 @@ screen); TWO (`PAD_TWO`: no stroke, nothing drawn until every member has lifted)
   neither, so a tap on a tile still works. `contextmenu` on the armed ink is prevented (the keypad's
   precedent).
 
-**One decision this build added, measured: who went first is decided one frame late.** Asked per event as
+**One decision this build added, measured: who went first is decided one frame late.** *(Rewritten after
+review — decided at a frame, at each finger's own samples' time, and only once the one that went furthest has
+gone 30px when the other has moved too: see "After review", 2 and 4. The paragraph below is what was built
+first.)* Asked per event as
 written, two fingers of one pan were told apart wrongly: the platform sends each finger's moves as their own
 `pointermove`, one after the other, and under load one event carries several folded samples — finger 1's
 event arrives 15px on while finger 2's event for the same frame has not been dispatched, so finger 2 reads as
@@ -192,6 +200,18 @@ increment 2 waits for.
   already the rule.
 - **On iOS only the first touch gets real coalesced samples** (WebKit 284852): a finger that lands after a
   palm runs at its own event rate, and the curves cover the gap.
+- *(After review.)* **A real two-finger gesture is decided at 30px, not 10**, when both have moved: a held
+  stroke stays hidden that much longer (nothing visible — it is held), and a pan begun with a finger already
+  down for more than 200ms shows up to 30px of line before it is taken off.
+- *(After review.)* **A hand that rolls or settles more than half as far as the finger has gone by 30px** — a
+  settle of over 15px — still reads as moving with it, and the line is lost; and a line shorter than about
+  twice a hand's roll, lifted while the hand is still settling, is judged at the lift by the same half.
+- *(After review.)* **A palm that slides along with the finger at more than half its speed for the whole line** is,
+  by movement, a second finger: the line is lost (the review's hand-ink-60 and hand-card-60 — 2a7a7f3 lost both
+  lines, now only the first). A higher half would let the spec's pinch with one finger off a small figure draw (its
+  off-figure finger moves 0.56 of the other). Only size can tell a palm sliding from a finger panning (increment 2).
+- *(After review.)* **A two-finger compass or ruler stores nothing** (a pin held on the centre and a second
+  finger swinging), as before 338: neither finger is handed the stroke. A two-finger tool is a revisit.
 
 ### 5. Every sample, and the live path (increment 1)
 
@@ -313,6 +333,7 @@ grid lattice waits for zoom**: at 1x the largest card square is 18.8px, under an
 | curves with no minimum chord (B) | every dense stroke's `d` about 3x longer for nothing visible | — |
 | edge-start rejection | no pad reaches an edge (`check/pen.js` asks: 16px) | that invariant fails |
 | haptics | iOS has no vibration API | — |
+| a two-finger compass or ruler: the still finger the pin, the moving one the pencil *(after review)* | two fingers do nothing through all three increments; it is a new gesture to design, teach and prove | a device session shows children reaching for a pin finger (until then the pin's stroke stores nothing, as before 338) |
 
 ### 10. What only a device can settle
 
@@ -337,6 +358,10 @@ grid lattice waits for zoom**: at 1x the largest card square is 18.8px, under an
 | `PAD_TOGETHER_PX` | 200 | px | 1 |
 | "moving" (already down) | 10px from its down and a 5px move ≤ 200ms ago | px, ms | 1 |
 | `PAD_BAR_MS` | 400 | ms | 1 |
+| `PAD_KEEPUP_PX` *(after review)* | 30 | px | 1 |
+| `PAD_WITH` *(after review)* | 0.5 | — | 1 |
+| `PAD_LAG_MS` *(after review)* | 40 | ms | 1 |
+| a two-finger gesture in progress *(after review)* | a member moved 5px in the last 200ms | px, ms | 1 |
 | `PAD_CHUNK` | 128 | segments | 1 |
 | `PAD_CORNER_DEG` | 50 | degrees | 1 |
 | `PAD_CURVE_MIN` | 8 | units across | 1 |
@@ -414,9 +439,11 @@ The write moved from inside the handler to the next frame's callbacks, and both 
 frame: **no latency added**, which is the design's claim measured rather than argued. The board's stroke is
 *smaller* stored: every sample gives the 1-unit thinning a truer line to fit than one sample in three did.
 A fuller run of the check, beside the other sections on a busier machine, had 90 of 545 frames over 33ms and a
-3.1ms p95 — load; the same section alone measured the line above. So the handler's time is judged against its
-2.5ms budget only when the frame record shows a machine that kept up (no more than 8% of frames over 33ms), and
-printed either way; the COUNTED budget — one box read, no write inside an event — is judged always.
+3.1ms p95 — load; the same section alone measured the line above. So the handler's time was judged against a
+backstop (3.0ms in the code; this note said 2.5) only when the frame record showed a machine that kept up (no
+more than 8% of frames over 33ms), and printed either way; the COUNTED budget — one box read, no write inside an
+event — is judged always. *(After review the time is printed only, beside its 3.0ms reference, and what it stood
+for is counted: see "After review", 6.)*
 
 check-flow: one journey — six folded samples in one event, one with no `pointerId` (every one kept, the repeat
 dropped, ONE box read); an event whose list is empty (its own point); the box read again after the pad moved
@@ -525,10 +552,262 @@ range; every member that touches the pen, the swipe engine or the stylesheet was
 
 - **The seam of a closed fast circle keeps one point** (§1c above). Declined in §9; a device screenshot decides.
 - **Undo on a board at its ceiling** repaints in 82–95ms median at 4x, its worst run 101–121ms (§1c). The
-  first change if it is ever seen to lag: `PAD_CURVE_MIN` raised for the board.
+  first change if it is ever seen to lag: `PAD_CURVE_MIN` raised for the board. *(After review: one stroke comes
+  off and nothing else is redrawn — 13–24ms; see "After review", 7.)*
 - **Who-went-first decided one frame late** is this build's own addition (§3), measured on the folded pan; a
   child's real two-finger timing on an iPad has not been seen (§10.3).
 - **R11, a palm on Undo**, did not reproduce in Chromium; the guard is built from the source, not from a red run.
 - **The time backstop** in `check/pen.js` (p95 3.0ms at 4x, judged only when no more than 8% of frames ran over
   33ms) is set from this machine's spread, 1.6–2.6ms after against 3.3–3.4 before. A quieter machine could
-  tighten it; the counted budgets (one box read, no write inside an event) are the exact ones.
+  tighten it; the counted budgets (one box read, no write inside an event) are the exact ones. *(After review:
+  printed only; see "After review", 6.)*
+
+### After review (11 Oct)
+
+Three reviews read increment 1 at 2a7a7f3, each through one lens: **real multi-touch as a child would draw**
+(Chromium 1194, CDP `Input.dispatchTouchEvent` with ids, radii and timestamps, on the board, Q7's face, a
+made-up grid surface and the ruler-and-compass card, at 390, 820 and 1024, 4x CPU); **performance and latency**
+(Chromium traces — thread time, forced layouts, frame writes — because the machine was at a load average of
+7–23); and **compatibility** (every changed line against 4955c7c, the storage format from real input, 3,164
+fuzzed strokes through `padPath_`). They confirmed what increment 1 set out to do — fast circles 0.3–0.7px off
+round where they were 9-gons, every sample kept, no latency added (the path painted in the first frame after
+its event for 99.9–100% of events), the stored format byte for byte the same from real input, no stroke
+dropped at a lift, the column never moved by a resting hand. And they found twelve things wrong. Each was
+reproduced on 2a7a7f3 first, fixed, given a check that is red on 2a7a7f3 (or red under a mutation, where the
+check itself was what was missing) and green after, and every mutation was undone with the real files compared
+byte for byte. The load average through this work was 9–53 on four cores.
+
+**1. A hand left down after a two-finger gesture kept the pen dead** (must-fix). T5 said "nothing is drawn until
+every member has lifted". A thumb gripping the screen's edge, or a palm on the card, that was half of a
+two-finger decision and then stayed down kept every later line from drawing — no preview under the finger,
+nothing stored, until that hand lifted, which a gripping thumb never does. The review: 0, 0 and 0 strokes for
+three lines where af08dee drew 1, 2, 3. **T5 is amended**: a contact landing while TWO joins it only while the
+gesture is in progress — a member having moved `PAD_ALSO_PX` in the last `PAD_TOGETHER_MS`; otherwise TWO is
+over, and its members are ordinary contacts already down, which T1 then watches (so one can still make the new
+stroke two-finger by moving with it, and can never take it over). And every contact already down when a new
+owner lands loses its "came later" mark, so a member of an old gesture can never be handed a new stroke.
+*Checked:* check-flow — the review's own case (P16, then the hand stays and two lines are drawn: wanted
+`[[45,170,159,170],[45,255,159,255]]`, 2a7a7f3 stored `[]`) and a finger left resting after a pinch while a
+third draws (2a7a7f3 `[]`); `check/pen.js` 'grip', a thumb at the screen's edge that pans 40px sideways with a
+finger and then stays still for two lines (2a7a7f3 `[]` at 390 and at 820; now two lines at both). The guard
+the other way: a tap landing while the other finger of a pinch drags on still joins the gesture and stores
+nothing. *Mutations:* TWO kept while still → both journeys and 'grip' red; TWO dissolved at every landing →
+the tap's guard red (it stored the dragging finger's line).
+
+**2. A thumb or palm that rolls or settles as the line starts was taken for a second finger** (should-fix). T3
+and T4 called it two fingers when the other had moved 5px by the time the first went 10px. A thumb gripping
+the edge rolls 6–12px in the first 50–80ms of a line and stops; a palm put down flattens and its centre slides
+as far. The review drew nothing on all 12 pad x size combinations for a 9px thumb roll and a 12px palm settle
+(af08dee drew every one), and lost an already-drawn line when a palm landed 120ms in and settled 10px.
+**The rule now:** when one of them has gone 10px and another has moved 5px too, nothing is decided until the one
+that went furthest has gone `PAD_KEEPUP_PX` = 30px; then every one that has gone `PAD_WITH` = half of that is a
+finger moving with it — two fingers, nothing drawn — and one that fell behind settled. *Why these numbers:* at a
+child's 300px/s the leader takes 100ms to go 30px, past the 50–80ms a roll or a settle takes; a settle of up to
+12px is then under 15px, while the second finger of a pan or a pinch, moving with the first, is at about 30.
+Slower lines give a settle longer to stop; faster ones give it less distance (at 1,000px/s the leader is at
+30px in 30ms, when a 12px settle over 80ms has gone 4.5px). A lift, a cancel or the page going away decides at
+once from where each one got to, by the same half. Nothing is lost by waiting: a held stroke keeps every sample,
+and a watched one is drawn all along. The costs are in §4. *Checked:* check-flow — a thumb rolling 9px in 48ms,
+a palm on the card settling 12px in 80ms, a palm landing 120ms into a line and settling 10px in 60ms, and a palm
+first settling 12px while the finger draws: 2a7a7f3 stored `[]` in all four; now the line, every sample (with a
+frame every fourth step, so the decision is asked while drawing and not only at the lift). `check/pen.js`
+'settle' (thumb-roll-9, palm-card-settle-12, palm-lands-settles, real touch): 2a7a7f3 `[]` in all six at 390
+and 820; now every line. The real pans and pinches stay nothing (P3, P4, P9, P10, P14, P16, R2 and 'phase').
+*Mutations:* the keep-up wait removed (5px at the crossing decides) and the half removed (any 5px is with it):
+the journeys red, and 'settle' red (at 390 the thumb roll kept one line of two; at 820 the palm settle and the
+palm that landed kept nothing).
+
+**3. A pin held on a compass's centre was handed to the second finger** (should-fix). One finger held still on
+the centre and a second landing later and swinging round it — a real compass's way — made the second finger the
+owner (T4's palm-first swap): an arc centred where IT landed, and for the ruler a line from its start to its end.
+4955c7c stored nothing. **Chosen: (a), keep the owner** — for the ruler and the compass, a candidate that came
+more than `PAD_TOGETHER_MS` after an owner held still on its point never takes the stroke (a pin placed on
+purpose is not a palm), so the pin's stroke ends as the slip it is and nothing is stored, as before 338. Not (b),
+a two-finger compass (the still finger the centre, the moving one the pencil): the spec decided two fingers do
+nothing through all three increments, and (b) is a new gesture to design, teach and prove, where (a) restores
+what was. **(b) is a revisit**, in §9's table: when a device session shows children reaching for a pin
+finger. The palm-first swap stays for the pen, and for a tool when the second came within 200ms (a palm first,
+then the compass finger: its ring about where IT went down — checked). *Checked:* check-flow — compass and
+ruler with a pin held 300ms (2a7a7f3: a 33-point arc, and `[[230,170,270,170]]`); `check/pen.js` 'pin' on
+November 2019 1H Q4 at 390 with real taps on the tool tiles (2a7a7f3: an arc `[[191,296,186,294,…]]` and
+`[[205,170,254,170]]`; now `[]` and `[]`). *Mutation:* the pin rule removed → both red.
+
+**4. The other finger was judged by its event's time, not its samples'** (nit). Two fingers are now compared at one
+moment: each contact keeps its recent samples with their own times (`hist`, `padPos_`), the moment judged is the
+latest every finger still reporting has reported (`PAD_LAG_MS` = 40ms: one silent longer than that has not moved
+since), and each is taken where it was then. **And the decision is made at a frame, not inside an event.** The
+first version of this fix judged inside each event and drew 3 of 8 out-of-phase pans at 390 and 3 of 8 at 820:
+inside an event the other finger's events of the same batch can still be queued behind it, and a stall of the
+main thread makes it look silent. Input that has arrived is dispatched before a frame's callbacks, so at the
+frame every queued report is in. *Checked:* check-flow — finger 2's event stamped 1029 carrying only its sample of
+1013 (4px), with a frame there: 2a7a7f3 stored finger 1's line; now nothing. `check/pen.js` 'phase' (eight pans
+with the second finger 5ms out of phase, at 390 and 820): 0 of 8 at both. On 2a7a7f3 this section drew 0 of 16
+here (the review, with its own pan, 8 of 28 at 820 and 1024), so the browser red is the mutation's: *Mutations:*
+judged at the latest arrival (no `PAD_LAG_MS`) → the journey red; decided inside the event → 'phase' drew 5 of 8
+and 6 of 8 (run again after the restart below, at a load average of 35–37: 8 of 8 and 3 of 8).
+
+**5. Nothing noticed a frame that redraws the whole stroke** (should-fix). Both checks now count: check-flow, a
+frame of a 320-point stroke writes at most two live `d`s (the open chunk and one being frozen); `check/pen.js`
+'samples', the live `d`s written in each frame of a 1,200-sample zigzag, at most 2 (measured: 2, in every one of
+587 and 639 frames). *Mutation:* every chunk rewritten every frame → the journey red (3 writes) and 'samples' red
+(10 writes in a frame, at both sizes).
+
+**6. `check/pen.js` judged a time that load moves** (should-fix). The handler's p95 was judged against a 3.0ms
+backstop (this note said 2.5) only when the frame record showed a machine that kept up — so it almost never
+judged here, failed once on unchanged code, and passed a mutation that added a frame of latency and one that
+forced a layout per event at one size of two. **The p95 is printed only**, beside its 3.0ms reference (this note
+corrected), and what it stood for is counted: the path **painted in the first frame** after its event for at
+least 95% of events (now 100% of 287 and 368; the extra-frame mutation 42% and 36% → red), and **no forced
+layout** inside a pen `pointermove`, counted from a Chromium trace (`Layout` or `UpdateLayoutTree` inside the
+`EventDispatch`) — now 0 of 287 and 0 of 368; a style write and a box read per event → 107 of 213 and 92 of 174
+→ red; and the positive control, 2a7a7f3 loaded with `?pen=sizes` (`PEN_QUERY=pen=sizes`), 179 of 179 and 263 of
+263 → red. Thread time is printed beside the wall clock.
+
+**7. Undo on a full board** (should-fix). `padRepaint_` recomputed every stroke's curve and re-parsed a `d` 2.3–2.5x
+longer, for one stroke taken off: the review measured Undo's task at 74ms of main thread at 4x against 31 before.
+**Both halves removed, and the screen is still the store's:** `padPath_` keeps the path of every stroke it has
+drawn (`PAD_PATHS`, by aspect and stroke — a stroke stored never changes; the live preview of a growing stroke is
+not kept), and `padRepaint_` keeps a `<path>` that already says exactly what its stroke draws and rewrites from the
+first that differs (a live chunk or anything else in the group is taken off as before). **The memo is held to a
+size in characters, not a count of strokes** (`PAD_PATHS_MAX`, 4M characters of keys and paths, about 8MB; past it
+it starts again empty): a question keeps every sample, so one stroke can be a 10K key and a 30K path, and the first
+version's cap of 4,000 strokes would have let a long visit hold hundreds of megabytes. A full board is about 350K,
+so eleven fit. *Checked:* check-flow, Undo on a board of three rings keeps the two path nodes it did not take off
+and recomputes no curve (2a7a7f3: both replaced, two recomputed); and 150 long curved strokes leave the memo under
+its budget, still holding the last. *Mutations:* the whole group rewritten → red; no memo → red; the memo held to
+4,000 strokes → red (5,772K characters held). *Measured:*
+the review's own benchmark (its seeded board of handwriting-like scribbles,
+thinned as the board stores them, to 99,000 characters; nine Undos each, median, Chromium trace thread time),
+4x CPU, two runs per build, load average 16–17:
+
+| | 4955c7c (before 338) | 2a7a7f3 | after review |
+|---|---|---|---|
+| the Undo click's task | 37.7 / 43.1ms | 65.0 / 42.3ms (the review: 73.9) | **24.3 / 13.0ms** |
+| layout after it | 3.6 / 5.0ms | 6.6 / 1.5ms | **0.1 / 0.1ms** |
+| the drawn `d`, all strokes | 98,312 chars | 241,936 | 241,936 |
+
+Cheaper than before 338, curves and all: one `<path>` comes off where every one was parsed again.
+
+**8. Fast drawing fills the board faster than this note said** (should-fix, recorded). The wave this note measured
+(§12, 1c) was slow; the review measured handwriting: 0.8s scribbles at about 7Hz store 275–277 characters a stroke
+on this branch against 115–185 on af08dee at 4x and 6x (1.5–2.4x — the old pen kept a third of a fast wiggle's
+samples), and a 20s spiral 5,631 against 1,796–3,048. So **a board holds about 360 such scribbles where it held
+540–870** — about five minutes of continuous fast handwriting — beside note 310's "349 waves fill it" (slow waves,
+before 338) and §12's 442. **Decided: the thinning stays at one unit.** The stroke stored is the one drawn, which
+is the point of 1b; thinning harder to buy room back would cut off the very wiggles a child's handwriting is
+made of, and the store's format is untouched either way. When the board is full the toast says to Clear, and Clear
+can be undone. Revisit if a device session shows a child filling it.
+
+**9. `?pen=sizes` forced a layout on every move** (nit). The line was written inside each `pointermove`, before
+the box was read — the read after write 1b removed, in the mode the iPad reading is to be taken in (the review:
+78 in 78, 2.3ms each). It is now written at the next frame, and only when a contact is new or has grown.
+*Checked:* check-flow, a contact growing changes nothing in the line inside its events and shows at the next
+frame (2a7a7f3: written in the event); `check/pen.js` with `PEN_QUERY=pen=sizes`: 2a7a7f3 forced a layout in 179 of 179 and 263 of 263 pen events (handler p50 7.8 and
+7.3ms); now 0 of 336 and 0 of 283 (p50 0.8 and 0.6ms). *Mutation:* the
+line written in every event, as built → red in both.
+
+**10. The lift of a long board stroke costs more** (nit, recorded). Measured by the review (traces, a 20s spiral of
+2,500 samples on the board): the `pointerup`'s CPU 40–58ms at 4x against 14–18 on af08dee, 67–112 against 22–47 at
+6x; its profile at 4x: `padCommit_` 46.7ms, of which `ansStore_` 17.8, `ansSimplify_` 9.1, `padPath_` 6.8, and the
+garbage of the per-sample arrays. Ordinary 0.8s strokes: 11–23ms against 11–14. It is three times the points,
+thinned and stored once; no change unless a device shows a hitch at the lift. (The `padPath_` worked out at the
+lift is now kept, so the next Undo or copy does not work it out again.)
+
+**11. T0 read "primary" as "no other pointer of any kind"** (should-fix). The Pointer Events spec makes `isPrimary`
+per pointer type: a touch is primary while a stylus is down, and a mouse click is primary while a finger draws. So
+a palm landing as a stylus drew threw the stylus's line away and stored the palm's dot, and a mouse clicked beside
+the board on a touchscreen laptop threw the finger's line away — where 4955c7c kept both. **T0 is per kind**
+(`padPrimary_`): only contacts of the newcomer's kind are forgotten, each as a lift that never came; a stroke of
+another kind carries on, and the newcomer is classed by T1/T2 as any other (a touch under a stylus is the hand
+holding it, as T1b always said and could never reach). Every contact of that kind is the old reset. *Checked:*
+check-flow, a stylus line with a palm landing as the primary touch, and a finger line with a mouse click beside
+the picture (2a7a7f3: `[[280,280]]` and `[]`); `check/pen.js` 'types' with real input, a stylus through CDP's
+mouse events with `pointerType: 'pen'` (2a7a7f3: `[[238,289]]` and `[]` at 390 and 820; now the stylus's line and
+the finger's). On an iPad with an Apple Pencil, whether WebKit marks the palm primary is unverified; the devices
+this certainly reached are Android stylus tablets and touchscreen laptops. *Mutation:* T0 for every kind → red
+in both.
+
+**12. `check/pen.js`'s 'bar' had its two orders swapped** (nit). CDP's `touchEnd` releases the points it lists (both
+reviews measured it), so "palm first" lifted the finger first. The listed points are swapped, and the order is now
+asked of the pen between the two lifts — the stroke still drawn after the palm lifts; ended, with the palm still
+down, after the finger lifts — so the label can never again say the other one.
+
+**Found while fixing:** a contact that came later to one stroke kept that mark into the next, where it could have
+been handed a stroke it was down before; every contact already down when an owner lands is now marked as such.
+*Checked:* check-flow, a palm landing on the board as a line ends (a rest, later than that line's finger), the next
+finger landing 64ms after it, and the palm sliding 30px while the finger is still: the finger's line is stored.
+*Mutation:* the mark kept → red (the palm's slide stored, `[261,298,227,298]`, and the finger's line lost). The
+cost, written here so it is chosen and not found: if the contact left down is the next FINGER and the one landing
+64ms after it a palm, the finger moving alone is now a rest and the palm's dot is kept. The palm landing as a line
+ends is the ordinary case (note 310); a second finger put down before the first lifts, then a palm, is not.
+
+**What the review's own matrix says now** (the touch review's `drive.js`, run against this branch's gesture code —
+the same code as the commit, whose only later change to `find.js` is the memo's budget, which no gesture reaches; the
+script itself went with the review's folder and could not be run again after the restart: the board,
+Q7's face, a made-up grid surface and November 2019 1H Q4, at 390, 820 and 1024, 4x CPU): 372 gestures, no page error, and the column never moved. **Every
+resting-hand gesture of the review now keeps its lines on all 12 pad x size combinations** — thumb-roll-6 and -9,
+palm-card-settle-6 and -12, palm-card-roll, palm-rest-slide (and the line after it), hand-edge-30, hand-ink-25 and
+palm-lands-settles — where 2a7a7f3 kept them in 2, 0, 3, 0, 3, 2 (7), 5 and 5 of 12. Two-finger taps, pans in step
+and out of it, the staggered pans of 30–150ms, the palm first, a palm 100 and 350ms into a line, dots, edges, the
+ruler and compass and Undo/Clear by real taps: as wanted, 12 of 12 (3 of 3 for the tools on Q4), and the two-finger
+compass and ruler store nothing (3 of 3). Two kinds still lose a line, both now written in §4: second-pan-80 and -150
+on the 820 and 1024 boards, whose fingers land more than `PAD_TOGETHER_PX` apart (as on 2a7a7f3); and hand-ink-60
+and hand-card-60, a palm sliding at 60% of the finger's speed through the whole line — line 2 is kept now, line 1
+is two fingers by movement (2a7a7f3 kept neither). The frame probe found the live path off the finger in 19 of 6,023
+frames, one at a hold or a swap in a two-contact gesture each time, as 2a7a7f3's run did (22).
+
+#### The suite, after review
+
+**The container restarted** part-way through this work, after the fixes were written and before they were committed.
+Nothing it had run was taken on trust: every check below was run again on the files as committed, every mutation was
+made again from them (one change each, in a copy — the worktree never written), and every red on 2a7a7f3 was asked
+again of a copy of 2a7a7f3 with today's checks laid over it. Two things were added in the rerun: the memo's
+character budget (7, above) and a check for the "came later" mark (Found while fixing, above), each with its
+mutation. The load average through it was 9–53 on four cores, from other builds; every timing below says so.
+Ports 19883–19888 only.
+
+- `check.js`, `check-const`, `check-css`, `check-doors` (233 handlers, 232 doors), `check-loading`, `check-scope`,
+  `check-strings`, `check-drafts`, `check-widgets`: green. `check-dead` (soft) prints the report 2a7a7f3 prints.
+- **check-flow in four parts: 82 + 83 + 83 + 83 = 331 journeys** (330 at 2a7a7f3, and the one added here). Part 4,
+  at a load average of 26–33, failed one journey that does not touch the pen — "the payload landing does not rebuild
+  Find under a keypad box…", whose wait is half a second — and it passed run again alone (load 34): load. **The 21 pen
+  journeys together, alone** (the 15 of 4955c7c, the five of increment 1, the one added here): all green.
+- **`check/pen.js` in full: OK in 269s** (load 32–35). Its 'samples': 1,201 of 1,201 distinct samples kept at 390
+  and 820; at most 2 live `d`s written in any frame (of 798 and 591 frames); **0 forced layouts** in 125 and 213
+  traced pen events; the path painted in the first frame after its event for **100%** of them; the handler's p95
+  3.6 and 2.9ms by the wall clock and 3.25 and 2.88ms of thread time (printed, against the 3.0 reference) — the
+  frames over 33ms (63 of 797 at 390) say how busy the machine was. With `PEN_QUERY=pen=sizes`: OK, 0 forced in 229
+  and 169 events. 'phase': 0 of 8 at both sizes. Its pictures read: the gripped board with both lines, the
+  two-finger compass on November 2019 1H Q4 with nothing on it and the Compass tile chosen, the round circle.
+- **On 2a7a7f3, the same sections red:** 'grip' (both sizes, `[]`), 'settle' (thumb-roll-9, palm-card-settle-12,
+  palm-lands-settles, all `[]`, both sizes), 'types' (the palm's dot `[[238,289]]` for the stylus's line, and `[]`
+  for the finger's, both sizes), 'pin' (the swung arc and `[[205,170,254,170]]`), and 'samples' with `?pen=sizes`
+  (138 of 138 and 155 of 155 events forced a layout). 'phase' drew 0 of 8 there too; its red is the mutation's.
+  check-flow's review journey on 2a7a7f3: every case named in 1–4 and 7, 9 and 11 above red.
+- **Mutations, each in its own copy, each red, the real files green after** (and compared: a copy differs from the
+  worktree by its one change and nothing else). check-flow: TWO kept while still (both held-hand cases); TWO
+  dissolved at every landing (the tap's guard, `[[113,85]]`); no keep-up wait (the thumb roll keeps one line of
+  two, the palm first keeps none); no half (all four settle cases); the pin rule removed (the compass arc and the
+  ruler line); no `PAD_LAG_MS` (the late report's pan drew); every chunk rewritten every frame (3 writes in a
+  frame); the group rewritten on Undo; no memo; the memo held to 4,000 strokes (5,772K characters); the sizes line
+  written in the event; T0 for every kind (the stylus's line and the finger's); the "came later" mark kept (the
+  palm's slide stored). `check/pen.js`: TWO kept while still → 'grip' `[]` at both sizes; no keep-up and no half
+  → 'settle' (no keep-up: thumb-roll-9 one line of two at 390, the palm settle and the landed palm nothing at both;
+  no half: all three at both); the pin rule removed → 'pin'; decided inside the event → 'phase' 8 of 8 and 3 of 8;
+  T0 for every kind → 'types' at both sizes; the bar's lifts swapped back → 'bar' (the pen itself says which lifted
+  first); every chunk rewritten → 10 live writes in a frame; a frame added → painted in the first frame for 33%
+  and 36%; a style write and a box read per event → 44 of 114 and 92 of 186 forced; the sizes line in the event →
+  202 of 202 and 168 of 168 forced. Decided inside the event stays green in jsdom (its frames are timers): the
+  browser holds it.
+- **`check/swipe.js` in full: OK** (410s, load 28–30). **`check/cascade.js`: OK. `check/cards.js`: OK.**
+- **`check/ui.js`** `--screen=tools`, `--screen=saved` and `--screen=stuff`: exit 0, nothing new; their "not reachable"
+  lists are word for word the ones printed before the restart, which increment 1 recorded as 4955c7c's.
+- **`check/press.js`** `--screen=tools`: 6 swipes went elsewhere at a load average of 30–48, and 4 run again at
+  11–20 — every one a timed tap or flick: "tap Draw" on Q-1CM-transformations-of-graphs-8 not turning the card in
+  300ms, a flick chain on Games, a press mark on Feed. **4955c7c, before any of 338, under the same load (40),
+  missed 6 — the same "tap Draw" at both sizes, and the padlock and "touch across" ones** — and 2a7a7f3 missed 4.
+  None arms a pad, so none reaches the pen (`PAD_ON` is empty and the listeners do nothing). `--screen=stuff`: 4,
+  then 3 — the same kinds; 4955c7c at a load of 37–39 missed 3, the same "tap Draw" at 844x390 among them. Nothing threw and nothing was silently inert in any run. Load, and the same on the base.
+
+**Not run as one: `npm run check`.** Its browser members take fixed or OS-chosen ports outside this build's range;
+every member that touches the pen, the swipe engine or the stylesheet was run above, alone.
