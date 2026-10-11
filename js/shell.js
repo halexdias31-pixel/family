@@ -830,6 +830,9 @@ function paint(id, fresh) {
     ? html
     : '<p class="empty">Nothing here yet.</p>';
   if (held.length) widgetsBack_(id, held);
+  /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
+     (`placePages_`). */
+  el.PG_SIG = null;
 
   /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN ------------------------------------
      WHILE EVERY CARD HUNG FROM ONE TOP LINE, a column redrawn with a taller or shorter card needed
@@ -2139,7 +2142,12 @@ function placeGrid(instant, drag) {
     host.style.position = 'absolute';
     host.style.top = '0'; host.style.right = '0'; host.style.bottom = '0'; host.style.left = '0';
     host.style.overflow = 'visible';
-    host.classList.toggle('on', id === AT);
+    /* `is-front`, NOT `on`. Nothing reads the column's mark — `.page.on` is the card in front and is what
+       every reader asks — and `on` in an ancestor compound of the component rules (`.picker.on span`,
+       `.page:not(.on) .loading > span`, `.hr.on + .hr.on`, `.tile.on .tile-i-*`) made every toggle of it on a
+       COLUMN invalidate that column's whole subtree: 870 elements and 31ms at 4x on the Feed, twice a
+       sideways turn. A name no rule mentions invalidates nothing (133 elements). docs/history/341. */
+    host.classList.toggle('is-front', id === AT);
     /* A FINGER IS DOWN — read by `holdColumn_`. It used to be `no-anim`, which switched off every
        transition on the column; a drag now zeroes only its own axis (`colTransition_` below). */
     host.classList.toggle('dragging', !!drag);
@@ -2237,70 +2245,12 @@ function placeGrid(instant, drag) {
        tabs is a handful of cards, and there is no version of this app where that is expensive. */
     host.style.visibility = across > 3 && !onGlass ? 'hidden' : 'visible';
 
-    /* AND EACH PAGE, faded by how far down the column it is. No position — the column does that.
-       This distance is an INDEX, not a measurement, so nothing here can be read at a bad moment. */
-    host.querySelectorAll(':scope > .page').forEach((el, pos) => {
-      /* WHICH PAGE THIS ELEMENT IS -- see `logIndex_`. Identical to `pos` on every screen that
-         holds all of its pages, which is all of them but the Find screen. */
-      const p = logIndex_(id, pos);
-      const d = Math.abs(p - at);
-      el.style.position = 'static';
-      el.style.transform = 'none';
-      const focused = id === AT && p === at;
-      el.classList.toggle('on', focused);
-      /* ---------- HOW MANY PAGES ARE KEPT VISIBLE EITHER SIDE ----------------------------------
-         `.far` is `visibility: hidden`, so this number is exactly how many pages up and down the
-         column are drawable at any moment. It was 2, which is what you see when you swipe quickly:
-         the third one away arrives as a blank and fills in a beat later.
-
-         THREE. One more each way is one more card's worth of work on a screen that is already
-         drawing them all — the cost is the browser compositing a card nobody is looking at, and
-         the gain is that a fast swipe never shows an empty rectangle. Beyond three the cost grows
-         and the gain does not: nobody swipes four pages faster than a frame. */
-      el.classList.toggle('far', d > 3);
-      /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
-         the cards ARE, and a finger has not moved the focus until it lets go. */
-      /* AND ON A WIDE WINDOW, EVERY CARD ON THE GLASS BUT ONE. It was left sharp there and dimmed a
-         little instead, on the reasoning that whole screens side by side are there to be read. The
-         owner, 6 Oct: *"what happened to widgets not in focus should have the not in focus effect."*
-         The blur is how this app says which card is in front, on every window; a card beside it is
-         a press away (`wideHit_`) and sharpens when it arrives. Which cards: every column on the
-         glass (`onGlass`) and, down each, the three either side that a tall window draws. */
-      if (!drag) {
-        const soft = !focused && (WIDE ? (across === 0 || onGlass) && d <= 3 : across <= 1 && d <= 2);
-        el.classList.toggle('soft', soft);
-        if (soft) el.classList.toggle('soft-dim', softDim_(el));
-      }
-      /* DIMMING ON A BLACK SCREEN IS DELETING.
-         This was .5 and .25, which reads as "further away" on paper and is not what happens here:
-         the card's fill is #101010 on black, so half of it is rgb(8) and a quarter is rgb(4) —
-         two and one shades off pure black, invisible on a phone in any light. The card either side
-         was being drawn and could not be seen, which is indistinguishable from it not being there.
-         Barely dimmed instead. What says a card is behind rather than beside is its POSITION and
-         its edge, both of which are already doing the work. */
-      /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
-         it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
-      /* HOW FAR THAT IS, `glassRows_` — the one number `goPage` fills out to as well. */
-      el.style.opacity = d > glassRows_() ? '0' : WIDE ? '1'
-        : d === 0 ? '1' : d === 1 ? '.9' : '.75';
-      /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD -----------------------------
-         THIS WAS `d === 0`, which is every column's current page, and the column's own `none` above
-         did not stop it: `pointer-events` is inherited, so an explicit `auto` on a child takes the
-         press back from a parent that refused it. On a phone that was a 23px sliver nobody aimed at.
-         On a wide window it is three or five whole cards — and measured at 1280 with Find in front,
-         a mouse press on the Sign in button of the You card beside it ran `do-signin` AND brought You
-         forward: the "presses a card that is about to slide under the pointer" that the note over
-         `wideHit_` says cannot happen. With only the focused page taking presses, a press over a
-         neighbour falls through to `#screen`, where `wideHit_` brings it forward and does nothing
-         else, which is what that note promised. */
-      el.style.pointerEvents = focused ? 'auto' : 'none';
-      el.style.visibility = d > 3 ? 'hidden' : 'visible';
-
-      /* A pane used to be measured here, to decide whether it had overflowed and should therefore
-         get the vertical gesture back for scrolling. It cannot overflow any more — a card clips
-         rather than scrolls — so every vertical drag is the grid's, on every card, everywhere on
-         it. Nothing to measure and nothing to decide. */
-    });
+    /* AND EACH PAGE — `placePages_`, below, which a builder placing one column alone (`placeOne_`) shares.
+       SKIPPED WHOLE for a column that is neither in front nor on the glass when nothing it is placed by has
+       changed (`sig`): a page turn moves ONE column, and walking the other fourteen to write every page the
+       value it already holds was the most of a turn's script (docs/history/341). */
+    placePages_({ id: id, host: host }, { at: at, across: across, onGlass: onGlass, drag: !!drag,
+      skip: !drag && id !== AT && GLASS.cols.indexOf(id) === -1 });
   });
 
   if (drag) {
@@ -2334,6 +2284,138 @@ function placeGrid(instant, drag) {
     const pg = fe && fe !== document.body && fe.closest ? fe.closest('#screen .page') : null;
     if (pg && !pg.classList.contains('on') && typeof fe.blur === 'function') fe.blur();
   } catch (e) { /* a field that keeps its focus is the behaviour before this existed */ }
+}
+
+/* ---------- EACH PAGE OF ONE COLUMN, AND ONLY WHAT CHANGED --------------------------------------------
+   `h` is `{ id, host }`; `c` is what the column was placed by — `at` (its page), `across` (columns from the
+   one in front), `onGlass`, `drag`, and `skip` (the column is neither in front nor on the glass).
+
+   EVERY PLACEMENT USED TO WRITE EVERY PAGE OF EVERY COLUMN — about 88 pages, eight inline styles and four
+   classes each, on every page turn — to arrive, for every column but the one that moved, at the values
+   they already held. Writing a style to the value it has costs the browser nothing (measured 11 Oct: no
+   change in style recalc either way); walking ninety elements and comparing in script does, and the
+   window of Find's pages is wider now (41, find.js) so that walk grew. TWO SAVINGS, both exact:
+     · A COLUMN whose signature — its page, its distance across, whether it is on the glass, the width
+       class, how many pages it has, where Find's window starts — is what it was last time is not walked
+       at all, unless it is in front or on the glass (where a page turn moves things). `paint` and
+       `stuffWindow_` forget the signature, because new markup or a moved window is new pages.
+     · A PAGE writes only what differs from what was last written ON IT, kept on the element (`PG`). A
+       recycled window page carries its state with it, which is right: it is the element's styles that
+       are being compared, not the result it stands for.
+   A vertical turn then walks one column, not fifteen. A sideways turn still walks all of them, because
+   `across` changes for every column. */
+function placePages_(h, c) {
+  const id = h.id, host = h.host;
+  const pages = host.querySelectorAll(':scope > .page');
+  const sig = [c.at, c.across, c.onGlass ? 1 : 0, WIDE ? 1 : 0, pages.length, PAGE_LO[id] || 0].join('|');
+  if (c.skip && host.PG_SIG === sig) return;
+  /* A DRAG'S WRITES ARE NOT A RESTING STATE — the blur is left to the finger — so the next placement walks. */
+  host.PG_SIG = c.drag ? null : sig;
+  const rows = glassRows_();
+  pages.forEach((el, pos) => {
+    /* WHICH PAGE THIS ELEMENT IS -- see `logIndex_`. Identical to `pos` on every screen that
+       holds all of its pages, which is all of them but the Find screen. */
+    const p = logIndex_(id, pos);
+    const d = Math.abs(p - c.at);
+    const focused = id === AT && p === c.at;
+    const was = el.PG || null;
+    /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
+       the cards ARE, and a finger has not moved the focus until it lets go. */
+    /* AND ON A WIDE WINDOW, EVERY CARD ON THE GLASS BUT ONE. It was left sharp there and dimmed a
+       little instead, on the reasoning that whole screens side by side are there to be read. The
+       owner, 6 Oct: *"what happened to widgets not in focus should have the not in focus effect."*
+       The blur is how this app says which card is in front, on every window; a card beside it is
+       a press away (`wideHit_`) and sharpens when it arrives. Which cards: every column on the
+       glass (`onGlass`) and, down each, the three either side that a tall window draws. */
+    let soft = was ? was.soft : false, dim = was ? was.dim : null;
+    if (!c.drag) {
+      soft = !focused && (WIDE ? (c.across === 0 || c.onGlass) && d <= 3 : c.across <= 1 && d <= 2);
+      if (soft) dim = softDim_(el);
+    }
+    pageWrite_(el, {
+      on: focused,
+      /* ---------- HOW MANY PAGES ARE KEPT VISIBLE EITHER SIDE ----------------------------------
+         `.far` is `visibility: hidden`, so this number is exactly how many pages up and down the
+         column are drawable at any moment. It was 2, which is what you see when you swipe quickly:
+         the third one away arrives as a blank and fills in a beat later.
+
+         THREE. One more each way is one more card's worth of work on a screen that is already
+         drawing them all — the cost is the browser compositing a card nobody is looking at, and
+         the gain is that a fast swipe never shows an empty rectangle. Beyond three the cost grows
+         and the gain does not: nobody swipes four pages faster than a frame. */
+      far: d > 3,
+      soft: soft, dim: dim,
+      /* DIMMING ON A BLACK SCREEN IS DELETING.
+         This was .5 and .25, which reads as "further away" on paper and is not what happens here:
+         the card's fill is #101010 on black, so half of it is rgb(8) and a quarter is rgb(4) —
+         two and one shades off pure black, invisible on a phone in any light. The card either side
+         was being drawn and could not be seen, which is indistinguishable from it not being there.
+         Barely dimmed instead. What says a card is behind rather than beside is its POSITION and
+         its edge, both of which are already doing the work. */
+      /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
+         it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
+      /* HOW FAR THAT IS, `glassRows_` — the one number `goPage` fills out to as well. */
+      op: d > rows ? '0' : WIDE ? '1' : d === 0 ? '1' : d === 1 ? '.9' : '.75',
+      /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD -----------------------------
+         THIS WAS `d === 0`, which is every column's current page, and the column's own `none` above
+         did not stop it: `pointer-events` is inherited, so an explicit `auto` on a child takes the
+         press back from a parent that refused it. On a phone that was a 23px sliver nobody aimed at.
+         On a wide window it is three or five whole cards — and measured at 1280 with Find in front,
+         a mouse press on the Sign in button of the You card beside it ran `do-signin` AND brought You
+         forward: the "presses a card that is about to slide under the pointer" that the note over
+         `wideHit_` says cannot happen. With only the focused page taking presses, a press over a
+         neighbour falls through to `#screen`, where `wideHit_` brings it forward and does nothing
+         else, which is what that note promised. */
+      vis: d > 3 ? 'hidden' : 'visible',
+    });
+    /* A pane used to be measured here, to decide whether it had overflowed and should therefore
+       get the vertical gesture back for scrolling. It cannot overflow any more — a card clips
+       rather than scrolls — so every vertical drag is the grid's, on every card, everywhere on
+       it. Nothing to measure and nothing to decide. */
+  });
+}
+/* ONE PAGE'S WRITES, EACH ONLY IF IT DIFFERS FROM WHAT THIS ELEMENT WAS LAST GIVEN. `position` and
+   `transform` are the same for every page for ever (the column does the moving), so they are written
+   once, the first time an element is placed. */
+function pageWrite_(el, st) {
+  const was = el.PG;
+  if (!was) { el.style.position = 'static'; el.style.transform = 'none'; }
+  if (!was || was.on !== st.on) {
+    el.classList.toggle('on', st.on);
+    el.style.pointerEvents = st.on ? 'auto' : 'none';
+  }
+  if (!was || was.far !== st.far) el.classList.toggle('far', st.far);
+  if (!was || was.soft !== st.soft) el.classList.toggle('soft', st.soft);
+  if (st.soft && (!was || was.dim !== st.dim)) el.classList.toggle('soft-dim', !!st.dim);
+  if (!was || was.op !== st.op) el.style.opacity = st.op;
+  if (!was || was.vis !== st.vis) el.style.visibility = st.vis;
+  el.PG = st;
+}
+
+/* ---------- ONE COLUMN PLACED ON ITS OWN, WITH NOTHING MOVING ------------------------------------------
+   FOR THE BUILDER (`ahead_`, below `afterSlide_`), which paints a column nobody is looking at in a quiet
+   moment and must leave it where the next arrival expects it: centred on its page in front, its pages
+   given their states, the layout that costs paid now rather than in the frame a release begins. A full
+   placement would do the same for every column and run `widgetsGlass_` and the sweeps behind it; this
+   is the one host's writes, its `columnShift_` read and its page loop, with no transition — the builder
+   runs only when nothing is sliding. A column that is in front or on the glass is the full placement's,
+   because what is on the glass is said there (`GLASS`) and only there. */
+function placeOne_(id) {
+  const host = $('s-' + id);
+  if (!host || !PLACED_ONCE || !host.style.transform) return;
+  if (id === AT || GLASS.cols.indexOf(id) !== -1) { placeCells('y', true, 0, id); return; }
+  const tabs = TABS.map(t => t.id);
+  const ti = Math.max(0, tabs.indexOf(AT)), i = tabs.indexOf(id);
+  if (i < 0) return;
+  const stepX = stepX_();
+  const at = PAGE[id] || 0;
+  const shift = columnShift_(host, domIndex_(id, at));
+  colTransition_(host, SLIDE_NONE, SLIDE_NONE, null);
+  colWrite_(host, (i - ti) * stepX, shift);
+  host.PLACED_P = at;
+  const across = Math.abs(i - ti);
+  const onGlass = WIDE && Math.abs((i - ti) * stepX) < appWidth_() / 2 + stepX * 1.5;
+  placePages_({ id: id, host: host }, { at: at, across: across, onGlass: onGlass, drag: false, skip: false });
 }
 
 /* ==================================================================================================
@@ -2945,10 +3027,31 @@ function pageHome_(id) {
    paint that changes the pages and counts them a line later still sees the new number. */
 let COUNT_HOLD = null;
 function countHold_(on) { COUNT_HOLD = on ? new Map() : null; }
+/* ---------- AND NOT BUILT AT ALL WHILE THE COLUMN IS THE ONE IT WAS --------------------------------------
+   THE HOLD ABOVE STILL LEFT TWO BUILDS A GESTURE, and a fast run of flicks is five gestures a second.
+   Measured at 4x CPU on 11 Oct (docs/history/341), each count a whole column's markup written to a string
+   and thrown away: Feed 16.6ms, Saved 38.6, Settings 45.6, the Spotlight 16.3, the shop 15.6 — twice per
+   flick, inside the axis decision and the release, which is where *"if I scrol fast … it's still clunky"*
+   lives. A count that cannot have changed is a count that need not be made.
+   KEPT PER COLUMN AGAINST ITS FIRST PAGE ELEMENT AND HOW MANY CHILDREN IT HAS. Both change with every paint
+   (a paint writes new elements) and every top-up (the reels append, which is the count changing), so a
+   count kept against them is the count of the pages that ARE ON THE SCREEN — which is the number the pager
+   needs: a column marked `STALE` whose facts have grown is still showing its old pages, and a turn past
+   them would be a turn to a page that is not there. NOT FOR THE FINDERS, whose pages are a window over
+   thousands and whose count is `finderPageCount_`'s, memoised by the engine on its own terms. */
+const COUNT_MEMO = new Map();
 const pageCount = id => {
   if (COUNT_HOLD && COUNT_HOLD.has(id)) return COUNT_HOLD.get(id);
-  const v = pagerNames(id);
-  const n = typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+  const host = typeof finderOf_ === 'function' && finderOf_(id) ? null : document.getElementById('s-' + id);
+  const k = host && host.firstElementChild;
+  const m = k ? COUNT_MEMO.get(id) : null;
+  let n;
+  if (m && m.k === k && m.len === host.childElementCount) n = m.n;
+  else {
+    const v = pagerNames(id);
+    n = typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+    if (k) COUNT_MEMO.set(id, { k: k, len: host.childElementCount, n: n });
+  }
   if (COUNT_HOLD) COUNT_HOLD.set(id, n);
   return n;
 };

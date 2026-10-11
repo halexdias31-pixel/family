@@ -14618,6 +14618,8 @@ function stuffLo_(want, keep, had) {
 function stuffWindow_() {
   const host = $('s-' + FINDER.id);
   if (!host) return;
+  /* A WINDOW THAT MAY MOVE IS PAGES THAT MAY MOVE — the next placement walks them (`placePages_`). */
+  host.PG_SIG = null;
   /* ASKED OF THE DOM, because a star adds a page in front of the question and the number of pages
      before the results is exactly what this has to be right about. */
   const keep = stuffFirstResult_();
@@ -14718,6 +14720,7 @@ function paintStuff(keepPage) {
 
   const host = $('s-' + FINDER.id);
   if (!host) return;
+  host.PG_SIG = null;
   /* THE QUESTION PAGE, BY ITS ID. `:scope > .page` was "the first one", which is a saved thing now
      — so this kept a favourite and deleted the search box. */
   const ctrl = $(FINDER.id + '-controls');
