@@ -89,7 +89,8 @@ right for the one a child must not mistake.
   suspends it for a phone call (`interrupted`) and the app suspends it when it goes out of sight (below).
   `AudioContext || webkitAudioContext`; `resume()` may return a promise that rejects or nothing at all —
   caught either way.
-- **The four presses that answer at once** are inside their tap already, so `markPlay_` wakes the context
+- **The presses that answer at once** — Check, a pick, an ordering's Send, the ✓ key, Enter — are inside
+  their tap already (a click or a keydown), so `markPlay_` wakes the context
   itself. If it is still waking (`resume()` pending), the sound plays when it is awake, unless that took more
   than 600 ms (`MARK_LATE_MS`) — the moment has gone.
 - **Mark with AI's verdict lands after a network wait**, outside any tap. So its press calls `markHear_()`
@@ -202,6 +203,22 @@ already lights. `style.css` is not touched, so `--css-version` stays as it was.
   Headless Chromium does not refuse a context made without a tap (a mutation making one at load came up
   `running`, with no warning), so "inside the tap" is proved by `navigator.userActivation.isActive` written
   down at the moment.
+
+- **The row, measured** at 320x568 and 390x844 with "Not yet" in the slot (a scratch script, real Find
+  cards): Q0664 is the star, Sound and the verdict, 244px of a 320px phone; a pick with a figure is the star,
+  Figure, Sound and the verdict, 240px; one line, nothing scrolling sideways. Seen in screenshots.
+- **The rest of the suite on this commit**, on a machine at a load average of 10–29 on four cores: `check.js`,
+  `check-const`, `check-css`, `check-doors` (no door without a handler or handler without a door),
+  `check-loading`, `check-marking`, `check-drafts`, `check-payload` — all OK; `check-dead` prints the same
+  report as on the commit before. **check-flow, all four parts: 82 + 82 + 82 + 82 = 328 journeys, every one
+  passing.** `check/ui.js --screen=stuff` (630 combinations) and `--screen=tools` (95; Practice lives on
+  Tools): nothing new; the unreachable states are the same six and five as in runs before this change.
+  `check/press.js --screen=stuff`: 52 actions for two visitors, `mark-sound` pressed and changing something for
+  both, nothing thrown, every swipe landed; a second run (verbose, load 16) had two swipes on the Games column
+  go elsewhere. `--screen=tools`: the first run, at load 20–29, had three swipes go elsewhere (a Games flick
+  chain, and Draw tapped at 844x390 on two drawing questions — which carry no Sound tile); run again alone it
+  passed, all 107. Swipes that differ from run to run, on columns this does not touch, are the machine.
+  `check/cascade.js`: nothing decided by file order alone. `check/sounds.js`: OK, four runs out of four.
 
 ### Mutations
 

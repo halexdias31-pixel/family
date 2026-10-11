@@ -654,8 +654,8 @@ function subMark_(v) {
 
    BUILT, NOT FETCHED -- the Timer's reason (games.js): a file is a request that can fail silently. Web Audio,
    ONE CONTEXT for the visit (`MARK_AC`), made or woken INSIDE THE PRESS (`markHear_`), because Safari on an
-   iPad lets a page start sound only from a tap. The four presses that answer at once are inside their tap
-   already; Mark with AI's verdict lands after a network wait, so its press wakes the context before the
+   iPad lets a page start sound only from a tap. The presses that answer at once -- Check, a pick, an
+   ordering's Send, the ✓ key, Enter -- are inside their tap already; Mark with AI's verdict lands after a network wait, so its press wakes the context before the
    request goes and the verdict plays through it (`'late'`) -- a context first made after an `await` is one
    an iPad keeps silent for ever, and so is a context the Timer makes inside a `setInterval`. No context at
    load, and none at all while the switch is off. The iPad's silent switch mutes Web Audio and that is left
