@@ -1275,7 +1275,12 @@ for (const who of VISITORS) {
     {
       const PEN_PAPER = 'RS1786302107764-481';         // May 2017 Foundation, Q6(i): annotate a scale
       const PEN_ROW = 'Q-1MA1-1706-1F-6i';
-      const box = await page.evaluate(async a => {
+      /* ---------- ITS CARD, AND THE SCALE THROUGH THE CARD'S OWN `Draw`, TOUCHED -------------------------
+         THIS TURNED TO THE FIGURE PAGE, where the pen was. Since 11 Oct the pen is the card's other face for
+         the paper's own figures too (docs/history/337) and the figure page is a picture with no pen, so the
+         card is opened on its box and its `Draw` tile is touched as a finger touches it -- a real tap, for
+         `PRESS_MOVED`'s reason below -- and the five gestures are asked of the face that comes up. */
+      const draw = await page.evaluate(async a => {
         if (typeof stuffFiltered !== 'function') return null;
         go('stuff', false, true);
         STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: a.paper }];
@@ -1283,10 +1288,18 @@ for (const who of VISITORS) {
         await new Promise(r => setTimeout(r, 500));
         const hit = stuffFiltered().find(x => x.row && x.row.row_id === a.row);
         if (!hit) return null;
-        /* ITS FIGURE PAGE, the one after the question: the pen moved with the picture. */
-        goPage('stuff', stuffPageOf_(hit, 'fig') + stuffFirstResult_(), true);
-        window.__penSel = '#s-stuff .qfig .qpad[data-k="' + padKey_(hit) + '"]';
+        padFaceSet_(padKey_(hit), 'type');
+        goPage('stuff', stuffPageOf_(hit) + stuffFirstResult_(), true);
+        window.__penSel = '#s-stuff .qp-area.is-draw .qpad[data-k="' + padKey_(hit) + '"]';
+        window.__penKey = hit.key;
         await new Promise(r => setTimeout(r, 650));
+        const t = [...document.querySelectorAll('#s-stuff .page.on .q-drawt')].find(b => b.getAttribute('data-key') === hit.key);
+        if (!t) return null;
+        const r = t.getBoundingClientRect();
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+      }, { paper: PEN_PAPER, row: PEN_ROW });
+      if (draw) { await touch(draw.x, draw.y, 0, 0); await page.waitForTimeout(450); }
+      const box = !draw ? null : await page.evaluate(async () => {
         /* ---------- `.qpad-lock`, BECAUSE THE PICTURE CARRIES THE SAME ACTION NOW ------------
            THIS WAS `[data-do="pad-draw"]` AND IT STOPPED BEING UNAMBIGUOUS. `padWrap_` puts the
            action on `.qpad-art` while the pen is off — the second door, and the one a finger
@@ -1306,11 +1319,11 @@ for (const who of VISITORS) {
                  ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
                         w: Math.round(r.width), h: Math.round(r.height) },
                  btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
-      }, { paper: PEN_PAPER, row: PEN_ROW });
+      });
       if (!box || box.ink.w < 80) {
         swipes.push({ from: 'stuff · the pen on a diagram', dir: 'touch across', ok: false,
-                      got: box ? 'the pad was ' + box.ink.w + 'px wide' : 'no pad on that card',
-                      want: 'a question card carrying a pad' });
+                      got: box ? 'the pad was ' + box.ink.w + 'px wide' : (draw ? 'touching Draw brought no pen over the figure on that card' : 'no Draw tile on that card'),
+                      want: 'a question card whose Draw brings its figure under the pen' });
       } else {
         /* A TAP IS `touch(x, y, 0, 0)` AND NOT `el.click()`. The stroke below sets `PRESS_MOVED`,
            and a synthetic click cannot clear it because nothing sent a `pointerdown` first -- so
@@ -1384,6 +1397,8 @@ for (const who of VISITORS) {
           }
         }
       }
+      /* THE CARD BACK ON ITS BOX FOR WHATEVER IS PRESSED NEXT, and nothing of this one left on the device. */
+      await page.evaluate(() => { try { padFaceForget_(); } catch (e) {} go('stuff', false, true); });
     }
 
     /* ==================================================================================================

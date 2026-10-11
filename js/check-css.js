@@ -899,6 +899,32 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A SPLASH BUILT AS ONE LOOP THAT IS NOT ONE — ' + Object.keys(LOOPED).join(', '), loopBad);
 }
 
+/* ---------- A FIGURE'S INK THAT THE CARD'S DRAWING FACE DOES NOT GET ------------------------------------
+   THE PEN'S PICTURE IS DRAWN ON THE CARD NOW, outside the sheet, for every question answered by drawing
+   (`ansArea_`; docs/history/327, 337) -- and a figure is inked by classes (`.lbl`, `.num`, `.grid`...)
+   whose rules were written as `.qsheet .lbl`. 327's first screenshot of a made-up grid on the card was
+   an empty card: three of those rules had no way to reach it. The paper's own figures use all nine, so
+   a rule that names the sheet and not the answer area is a figure drawn on the card with its labels in
+   the pen note's coding font and its grid unstroked -- which nothing else here can see, because the
+   markup is right and the rule is right, only not for that container. So every rule that inks a figure
+   inside `.qsheet` must name `.qp-area` too. Read off the selectors, comments out. */
+{
+  const INK = ['lbl', 'num', 'ax', 'axis', 'grid', 'pt', 'coin', 'tag', 'cap'];
+  const inkBad = [];
+  const seen = new Set();
+  rules.forEach(r => {
+    const parts = r.sel.split(',').map(x => x.trim());
+    INK.forEach(k => {
+      if (!parts.includes('.qsheet .' + k)) return;
+      seen.add(k);
+      if (!parts.includes('.qp-area .' + k)) inkBad.push('line ' + r.line + '  ' + r.sel + '  →  inks `.' + k
+        + '` in a figure page\'s sheet and not on the card\'s drawing face (`.qp-area .' + k + '`)');
+    });
+  });
+  INK.filter(k => !seen.has(k)).forEach(k => inkBad.push('no rule inks `.qsheet .' + k + '` at all -- renamed? whether the card\'s drawing face gets it was NOT checked'));
+  say('A FIGURE\'S INK THE CARD\'S DRAWING FACE DOES NOT GET -- every pen is on the card (337)', inkBad);
+}
+
 console.log('');
 console.log('rules read: ' + rules.length);
 console.log(fail

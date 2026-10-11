@@ -243,9 +243,9 @@ const TILE_ICONS = {
      as wide as the playing one and the tile does not look half empty in one of its two states. */
   sound: TILE_CONE_ + TILE_WAVES_,
   mute:  TILE_CONE_ + '<path d="M2.5 2.5 15.5 14.5"/>',
-  /* THE KEYS, FOR `Type` -- the face a question answered on a made-up surface turns back to its box with
-     (`q-draw` in find.js; the owner, 10 Oct: *"just leave it as an answer box like before but theres an
-     option to switch to drawing box"*). `pen` is the other face, so this had to say "type" in the same
+  /* THE KEYS, FOR `Type` -- the face a question answered by drawing turns back to its box with (`q-draw`
+     in find.js; the owner, 10 Oct: *"just leave it as an answer box like before but theres an option to
+     switch to drawing box"* -- a made-up surface then, and the paper's own figures too since 11 Oct). `pen` is the other face, so this had to say "type" in the same
      outline: a keyboard, its frame, a row of keys and the space bar, open strokes at the set's 1.4 --
      the mark for the site's own keypad, which is how a box is typed into here. */
   type:  '<rect x="1.5" y="4" width="15" height="9.5" rx="1.5"/><path d="M4.5 7h1M8.5 7h1M12.5 7h1"/>'

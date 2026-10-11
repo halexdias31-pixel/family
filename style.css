@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-merge-videos";
+  --css-version: "2026-10-11-fig-draw";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -8556,16 +8556,21 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    AND IT IS A DIFFERENT OBJECT ANYWAY. These four classes ink an exam figure — a printed diagram
    redrawn from a paper — where `--font` is the app's own voice. Measured before it was kept, which
    is the only reason this is a decision rather than a thing the font change missed. */
-.qsheet .lbl, .gd .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
-.qsheet .num, .gd .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
-/* `.qsurf` TOO: A MADE-UP SURFACE INKS ITSELF WHEREVER IT IS DRAWN. It was only ever drawn inside a
-   `.qsheet`, on its own page; on the card it stands in the answer box's place, outside the sheet (327),
-   and the first screenshot of it there was an empty card -- a squared grid with no squares and a blank
-   space with no dashed edge, the lines present and unstroked. */
-.qsheet .ax, .gd .ax, .qsurf .ax { font: italic 9px serif; fill: currentColor; }
-.qsheet .axis, .gd .axis, .qsurf .axis { stroke: currentColor; stroke-width: 1.2; }
-.qsheet .grid, .gd .grid, .qsurf .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
-.qsheet .pt, .gd .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
+/* `.qp-area` TOO: WHATEVER THE PEN IS ON INKS ITSELF ON THE CARD. Every figure was only ever drawn inside a
+   `.qsheet`, on its own page; the card's drawing face stands in the answer box's place, outside the sheet,
+   and the first screenshot of a made-up surface there was an empty card -- a squared grid with no squares
+   and a blank space with no dashed edge, the lines present and unstroked (327, which added `.qsurf` to
+   three of these rules). The paper's own figures moved onto the card on 11 Oct (337) and they use every
+   class here: without them a Venn diagram is unlabelled circles, a number line's numbers fall back to the
+   pen note's 0.62rem coding font anchored at their left ends, and a histogram loses its grid. So the area
+   is in every rule, beside the sheet and the guide -- one container named once, not a list of the kinds
+   of picture that might be drawn in it. check-css.js holds every figure-ink rule to naming it. */
+.qsheet .lbl, .gd .lbl, .qp-area .lbl { font: italic 700 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .num, .gd .num, .qp-area .num { font: 13px serif; fill: currentColor; text-anchor: middle; }
+.qsheet .ax, .gd .ax, .qp-area .ax { font: italic 9px serif; fill: currentColor; }
+.qsheet .axis, .gd .axis, .qp-area .axis { stroke: currentColor; stroke-width: 1.2; }
+.qsheet .grid, .gd .grid, .qp-area .grid { stroke: currentColor; stroke-width: .4; opacity: .3; }
+.qsheet .pt, .gd .pt, .qp-area .pt { stroke: currentColor; stroke-width: 1.3; fill: none; }
 
 /* ---------- COINS, PRICE TAGS, AND SAYING WHO DREW THEM -------------------------------------------
    THE SIZES CARRY INFORMATION, which is why the coins are not all one circle: a child recognises a
@@ -8575,9 +8580,9 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 
    `currentColor` THROUGHOUT, like the two diagrams that were here before, so one drawing works on
    both of this app's palettes without a second copy of it. */
-.qsheet .coin { fill: none; stroke: currentColor; stroke-width: 1.3; }
-.qsheet .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
-.qsheet .cap, .gd .cap { font: 12px serif; fill: currentColor; text-anchor: middle; opacity: .7; }
+.qsheet .coin, .qp-area .coin { fill: none; stroke: currentColor; stroke-width: 1.3; }
+.qsheet .tag, .qp-area .tag { fill: none; stroke: currentColor; stroke-width: 1.2; }
+.qsheet .cap, .gd .cap, .qp-area .cap { font: 12px serif; fill: currentColor; text-anchor: middle; opacity: .7; }
 
 /* A CREDIT IS NOT A CAPTION AND MUST NOT READ AS ONE. It is the smallest, quietest thing on the
    card, because it is a disclosure rather than part of the question — but it is on the card, every
@@ -11840,18 +11845,25 @@ button.scr-sq { cursor: pointer; }
 .qpad { margin: 1rem 0; }
 .qpad-art { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
 .qpad-art > svg:first-child { width: min(100%, 20rem); height: auto; display: block; }
-/* ---------- A MADE-UP SURFACE, ON THE CARD, IN THE ANSWER BOX'S PLACE ----------------------------------
+/* ---------- WHATEVER THE PEN IS ON, ON THE CARD, IN THE ANSWER BOX'S PLACE ---------------------------------
    THE OWNER, 10 Oct: *"just leave it as an answer box like before but theres an option to switch to
-   drawing box."* `.qp-area` holds one face of the answer -- the box, or the surface under the pen -- and
-   `Draw` in the row under the card swaps them in place (`ansArea_`, docs/history/327). The surface takes
-   the box's own margins. AND IT IS HELD SHORTER THAN ON ITS OLD PAGE: there it had the page to itself;
-   here it shares the screen with the ask, the pen's bar and the row with `Type` in it, and a grid that
-   pushed `Type` under the fold of a 568px phone is a switch you can turn on and then not see to turn
-   off. `svh`, the smallest the screen is, because the bar a browser hides on scroll comes back exactly
-   when a finger is reaching for the row. This is the first guess; a card still too tall has its grid
-   made smaller again by `padFaceFit_` (find.js) before the card itself is drawn smaller. */
+   drawing box."* -- and 11 Oct, of the paper's own figures: *"simplest and most uniform"*. `.qp-area` holds
+   one face of the answer -- the box, or the picture under the pen -- and `Draw` in the row under the card
+   swaps them in place (`ansArea_`; docs/history/327, 337). The drawing takes the box's own margins.
+   A MADE-UP SURFACE IS HELD SHORTER THAN ON ITS OLD PAGE: there it had the page to itself; here it shares
+   the screen with the ask, the pen's bar and the row with `Type` in it, and a grid that pushed `Type`
+   under the fold of a 568px phone is a switch you can turn on and then not see to turn off. `svh`, the
+   smallest the screen is, because the bar a browser hides on scroll comes back exactly when a finger is
+   reaching for the row. A square has nothing to read in it, so a cap on its width is a cap on its height.
+   THE PAPER'S OWN FIGURE IS NOT (`svg.qsurf` only): it keeps the figure page's own size, `min(100%,
+   20rem)` above, because it carries labels and grid lines at the paper's scale, and its shape is anything
+   from a 35-unit number line to a graph nearly twice as tall as it is wide -- a width cap in `svh` would
+   shrink a tall one below what anyone reads and leave a flat one exactly where it was, and a `max-height`
+   would letterbox the picture inside its box and put every mark beside the point it was drawn on (the ink
+   is stretched to the box, `padWrap_`). What a card too tall gives up, and in what order, is
+   `padFaceFit_`'s (find.js), with the drawing's own shape. */
 .qp-area.is-draw > .qpad { margin: .9rem 0 .2rem; }
-.qp-area.is-draw .qpad-art > svg:first-child { width: min(100%, 20rem, 44svh); }
+.qp-area.is-draw .qpad-art > svg.qsurf:first-child { width: min(100%, 20rem, 44svh); }
 /* ONE LINE OF SMALL PRINT UNDER THE BAR, NOT TWO. "Not the paper's own figure." and "Saved to Ada's
    account" are both footnotes in one voice (`.qpad > .fig-by` takes `.qpad-note`'s), and stacked they
    were two lines of a 568px phone that the grid and the row with `Type` needed -- the review counted 27
@@ -11861,10 +11873,17 @@ button.scr-sq { cursor: pointer; }
    THE NOTES' OWN SIZE, because run-in text sits on its block's line, and `.qpad`'s line was the card's
    body text: the first look had the two notes wrapped onto a second line a whole body-line further
    down, a gap wider than the line saved. Everything else in `.qpad` sizes itself -- the tiles in px,
-   the picture at `line-height: 0`. */
+   the picture at `line-height: 0`. Under the paper's own figure the first of the two is its credit
+   ("drawn for @family. from the paper's own figures..."), run on the same way (337). */
 .qp-area.is-draw > .qpad { font: 400 .62rem/1.4 var(--font); }
 .qp-area.is-draw .qpad-bar { margin-bottom: .35rem; }
 .qp-area.is-draw .qpad > .fig-by, .qp-area.is-draw .qpad > .qpad-note { display: inline; margin: 0; }
+/* AND "FIGURE ON THE NEXT PAGE" GOES WHILE THE FIGURE IS HERE. A question whose row prints its figure after
+   its words keeps that figure's page after the card, and the line says so -- true on the box. On the
+   drawing the same figure is under the pen right below the line, and the first screenshot (a dot and
+   cross diagram, 320x568) read "Figure on the next page ->" over the figure itself (337). The line is the
+   card's words and is not redrawn by `Draw`, so it is hidden by the face it would contradict. */
+.qcard:has(> .qp-area.is-draw) .qsheet-figref { display: none; }
 .qpad-ink {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;

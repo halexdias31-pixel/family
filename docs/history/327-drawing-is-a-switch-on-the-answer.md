@@ -1,5 +1,9 @@
 ## Drawing is a switch on the answer: a made-up surface is the box's other face, on the card, behind one tile
 
+**See 337:** the owner answered the question at the foot of this note on 11 Oct (*"simplest and most
+uniform"*), and the paper's own figures are the box's other face too now; the figure page is a picture to
+look at, with no pen.
+
 **The owner, 10 October**, with a screenshot of KS1 "How many sides has a hexagon?": the card with a
 "Type your answer" box and the line *Space to draw on the next page*, then a page headed **Space to
 draw** — a dashed square, the lock, Undo and Clear, and "Not the paper's own figure — somewhere to work
@@ -58,7 +62,7 @@ stored under `pad:<question>`; Type brings back "6", the pen off, `Draw · has a
 drawing with the stroke, not armed; a second window seeded with the device's storage opens on the
 drawing; a drawing that lands under a card on its box, then Draw, shows it; a device that never chose opens on a drawing with nothing typed and on the box with something
 typed; the phone's old drawing moves to Ada when her card is opened and the card opens on it; the
-paper's own figure keeps its page and has no Draw; a surface question's photograph stands in front; (b)
+paper's own figure keeps its page and has no Draw (reversed by 337); a surface question's photograph stands in front; (b)
 and (c) using (a)'s axes get the page with its mark, (c)'s Draw shows it fainter; Sign out empties
 `surfaceFace`. Rewritten for the card: the surface journey, whose-drawing (Ali, Ben, Cy on one phone),
 no-keyboard (the drawing face draws no field — and must draw the pen), every-control-is-a-tile (`q-draw`
@@ -72,7 +76,7 @@ switched to* (a real grid row given `surface: "coord"` for the state, as the pas
 **Mutations, each red on its own, the real files green after:** a surface counted as a figure again;
 no Draw tile; Draw rewriting nothing; Draw turning from the rule instead of the card on the screen; the keypad left up; the pen left on; the face not written to the
 device; never opening on the drawing by itself; `padFace_` not opening the pad first; a same-surface
-later part losing its page; Sign out keeping the faces; every pen made a face (the paper's figure got
+later part losing its page; Sign out keeping the faces; every pen made a face (the rule since 337; the paper's figure got
 Draw); the note not saying the box holds an answer; a surface question's photograph put after the card;
 the surface drawn on a figure page again (surface journey); the box drawn under the surface
 (no-keyboard journey). The states' own `expect`, run in the real app, went false for "a surface counted
@@ -119,7 +123,7 @@ do nothing a reload could see, which the device was asked to remember. So a `typ
 drawing it was chosen over: `padFaceSet_` stores `type:<sig>` (`padSig_`, the strokes and their stored
 length), and `padFace_` lets the drawing win the moment the one on the device is not that one.
 
-**Not fixed, a question for the owner: the paper's own figures.** The review: a drawing question whose pen
+**A question for the owner, answered 11 Oct (337): the paper's own figures.** The review: a drawing question whose pen
 is on the PAPER'S figure — 470 of them, against 62 made-up surfaces — still has an answer box on its card,
 "Figure on the next page", and the pen on that page. Q-1MA1-2406-1F-7, *"On the grid, draw a suitable
 diagram or chart for this information"*, whose paper prints a blank grid, reads side by side with the
@@ -128,9 +132,16 @@ just leave it as an answer box like before but theres an option to switch to dra
 to cover them; *"like before"* reads the other way, since before 270 a made-up surface did not exist and
 the paper's figure under the pen already had its page. The task decided they stay (a picture the paper
 prints, standing where the paper prints it, and a figure page is what every question with a figure has),
-and they do; the owner has not said. If the answer is yes, the shape the review suggested is the figure page
+and they did. If the answer is yes, the shape the review suggested is the figure page
 kept as the picture to look at without the pen, and the same Draw tile on the card swapping the box for that
-figure under the pen, on the same `pad:` key.
+figure under the pen, on the same `pad:` key. **The owner, 11 Oct: *"You decide best for paper figure thing.
+I just want simplest and most uniform"* — and that shape is what was built (337):** every question answered
+by drawing has `Draw` on its card, on the `pad:` key it always had; every figure page is the picture with no
+pen; the 84 stem-pen parts lost the copy of the stem's figure that was there only for the pen; a pen
+question's figure stands where any part's does. Two things this note says no longer hold: "the paper's own
+figure keeps its page and has no Draw" (Checked, and the mutation "every pen made a face") is the opposite
+of the rule now, and those lines in check-flow state the new one; and `padFaceFit_` keeps the drawing's own
+shape rather than a square's, and lets a paper figure's words give way before the figure.
 
 **Checked after review.** `check/states.js`: *a tall question switched to the drawing, its tiles a
 fingertip and `Type` on the glass* — the dice table of 24 October, its `expect` asking the glass, because

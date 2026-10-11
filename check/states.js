@@ -472,58 +472,231 @@ const STATES = {
       },
       wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
-       THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
-       want a pen and 26 carry the picture to put one over — and every one of them is inside the
-       funnel behind a filter, so `check/ui.js` has measured question cards for as long as it has
-       existed without once measuring the one that carries a control over a drawing.
-
-       OFF RATHER THAN ON, because off is the state the card ARRIVES in and the state the report
-       was about: "when you are drawing its moving the widget itself". Armed, the card differs by a
-       gold frame and a gold fill, which the contrast rule has already seen on other surfaces; the
-       lock control's gold-on-sunk outline is new here and is the thing worth measuring.
-
-       BY `paperId` AND THEN BY POSITION, not by `kindLabel`. Every question in the library is one
-       `kindLabel`, so filtering on it and taking the first would land on whichever question sorts
-       first — which is not a pen card. The paper is the narrowest chip that reaches this row, and
-       `stuffFiltered()` after the repaint is the order the pages are built from: the list is sorted
-       before it is paged, so `stuffItemsAll_()`'s first is not the card the screen shows. */
-    { name: 'a diagram you can draw on',
+    /* ---------- A QUESTION DRAWN ON THE PAPER'S OWN FIGURE: ITS BOX, AND `Draw` -----------------------------------
+       THE PEN WAS ON THE FIGURE PAGE, and the state that stood here ("a diagram you can draw on") turned to that
+       page and measured the lock over the picture. Since the owner's 11 Oct *"simplest and most uniform"* the
+       pen is the card's other face for every question answered by drawing (docs/history/337), so the paper's
+       own figure is measured where a made-up surface is: on the card, on its box first, then switched. June
+       2024 1F Q7, *"On the grid, draw a suitable diagram or chart for this information"* -- the review's own
+       example, whose paper prints a blank grid, which read side by side with the owner's hexagon exactly as
+       that did. By id, so it follows the row; the face set to the box first, as a device that never chose. */
+    { name: 'a question drawn on the paper\'s own figure, on its answer box with a Draw tile',
       enter: () => {
-        /* THE PAPER'S OWN PICTURE UNDER THE PEN, NOT A MADE-UP SURFACE: a surface is the answer box's other
-           face on the card now (`ansArea_`, docs/history/327), with no figure page to turn to -- its states
-           are below. */
-        const pen = stuffItemsAll_().find(it => it.kind === 'question'
-          && typeof padSource_ === 'function' && padSource_(it) && padSource_(it).from !== 'surface');
-        if (!pen) throw new Error('no question in the list carries a pen');
-        /* THE VALUE THE FACET ITSELF WOULD READ, not a field name written out here. `paperId`'s
-           `of` is `x.row.paper_id` and the item carries no `paperId` of its own — so a state that
-           reached for one would set a chip matching nothing and report the app broken, which is
-           what the first version of this did. */
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-7');
+        if (!it) throw new Error('Q-1MA1-2406-1F-7 is not in the library');
+        if (!padSource_(it) || padSource_(it).from !== 'part') throw new Error('Q-1MA1-2406-1F-7 is not drawn on its own figure any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
         const facet = FACETS.find(f => f.field === 'paperId');
-        if (!facet) throw new Error('there is no paperId facet to narrow by');
-        STUFF.filters = [{ field: 'paperId', value: facet.of(pen) }];
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        if (stuffFiltered().indexOf(pen) < 0) throw new Error('the paper chip does not return its own pen question');
-        /* ONTO ITS FIGURE PAGE, the one after the question — the pen goes with the picture, and the
-           picture is its own card now. `stuffPageOf_` is the app's own mapping from an item and a
-           part to a page. */
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1)
-          + stuffPageOf_(pen, 'fig'));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
       },
-      /* THE PICTURE AND ITS CONTROL, PER CARD. `.qpad-art[data-do]` is the half that was missing —
-         a pad whose picture is not a door is the card as it was reported, and it measures perfectly
-         either way, so it has to be asserted rather than looked at. */
       expect: () => {
-        /* ON THE FIGURE CARD, AND ON NO QUESTION CARD — the pen moved with the picture. */
-        const c = document.querySelector('#s-stuff .qfig .qpad');
-        return !!c && !document.querySelector('#s-stuff .qcard:not(.qfig) .qpad')
-               && !!c.querySelector('.qpad-art[data-do="pad-draw"]')
-               && !!c.querySelector('.qpad-lock')
-               && !c.classList.contains('is-drawing');
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const page = a && a.closest('.page');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        return !!tile && !a.classList.contains('is-draw') && !!a.querySelector('.qp-ans .kp-in') && !page.querySelector('.qpad')
+               && (tile.getAttribute('aria-label') || '') === 'Draw · on the figure';
       },
-      wants: 'a figure card, after its question, whose diagram takes a pen, with the lock control drawn and the pen off',
+      wants: 'June 2024 1F Q7 on its card: the answer box, no pen anywhere on the page, and "Draw · on the figure" in the row under it',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE SAME CARD, SWITCHED TO ITS FIGURE -------------------------------------------------------------
+       `Draw` through its own handler: the box gives way IN PLACE to the paper's own grid under the pen -- the
+       picture its figure page draws, on the same `pad:` key that page used, so every drawing made there is
+       here -- with the lock (off: the card arrives with the pen off), Undo and Clear, the figure's credit and
+       no "Not the paper's own figure"; the tile reads `Type`, and the page has not moved. */
+    { name: 'a question drawn on the paper\'s own figure, switched to its figure under the pen',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-7');
+        if (!it) throw new Error('Q-1MA1-2406-1F-7 is not in the library');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__facePage = (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it);
+        goPage('stuff', window.__facePage, true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-1MA1-2406-1F-7 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const page = a && a.closest('.page');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        const pad = a && a.querySelector('.qpad');
+        const art = pad && pad.querySelector('.qpad-art > svg:first-child');
+        return !!tile && a.classList.contains('is-draw') && !a.querySelector('.qp-ans')
+               && !!pad && pad.getAttribute('data-k') === padKey_(it) && !pad.classList.contains('is-drawing')
+               && !!art && !art.classList.contains('qsurf') && /^A grid of squares/.test(art.getAttribute('aria-label') || '')
+               && !!pad.querySelector('.qpad-art[data-do="pad-draw"]') && !!pad.querySelector('.qpad-lock')
+               && !!pad.querySelector('.qpad-undo') && !!pad.querySelector('.qpad-clear')
+               && /drawn for @family/.test(pad.textContent) && !/not the paper.s own figure/i.test(pad.textContent)
+               && /^Type\b/.test(tile.getAttribute('aria-label') || '') && PAGE.stuff === window.__facePage;
+      },
+      wants: 'June 2024 1F Q7\'s own grid under the pen where its box was, on its pad: key, the pen off with the lock, Undo and Clear, the figure\'s credit, the tile reading Type, on the same page',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND ITS FIGURE PAGE, A PICTURE TO LOOK AT ------------------------------------------------------------
+       A picture the paper prints keeps its own page, where the paper prints it -- Q7's row marks its figure
+       after the ask, so the page after the card -- and the page is the picture and its credit: no lock, no
+       Undo, no Clear, nothing that takes a finger. That page is where the pen was until 11 Oct. */
+    { name: 'the paper\'s own figure on its page, a picture to look at with no pen',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-7');
+        if (!it) throw new Error('Q-1MA1-2406-1F-7 is not in the library');
+        if (pageParts_(it).indexOf('fig') < 0) throw new Error('Q-1MA1-2406-1F-7 has no figure page: ' + JSON.stringify(pageParts_(it)));
+        window.__faceItem = it;
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'), true);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const page = document.querySelector('#s-stuff .page.on');
+        const c = page && page.querySelector('.qcard.qfig');
+        return !!c && c.getAttribute('data-of') === it.row.row_id && !!c.querySelector('figure svg[aria-label^="A grid of squares"]')
+               && /drawn for @family/.test(c.textContent) && !page.querySelector('.qpad, .qpad-lock, [data-do^="pad-"]');
+      },
+      wants: 'Q7\'s grid on its own figure page, credited, with no pen, no lock and nothing to press',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A STEM'S MAP UNDER ONE PART'S OWN PEN -----------------------------------------------------------------
+       The bearings sheet's Q2 opens with a map that (a), (b) and (c) each draw on. Each part's pen was on a
+       copy of the map on its own figure page; the map is the stem's page now, once, and each part's Draw
+       puts it under that part's own pen, on that part's key. (b), so it is not simply the page after the map. */
+    { name: 'a stem\'s map switched to under the second part\'s own pen',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1CM-bearings-2b');
+        if (!it) throw new Error('Q-1CM-bearings-2b is not in the library');
+        if (!padSource_(it) || typeof padSource_(it).from !== 'object') throw new Error('Q-1CM-bearings-2b is not drawn on its stem\'s map any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__facePage = (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it);
+        goPage('stuff', window.__facePage, true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-1CM-bearings-2b has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const pad = a && a.querySelector('.qpad');
+        const art = pad && pad.querySelector('.qpad-art > svg:first-child');
+        return !!pad && a.classList.contains('is-draw') && pad.getAttribute('data-k') === padKey_(it)
+               && !!art && /^A map of an island/.test(art.getAttribute('aria-label') || '')
+               && !stuffPages_().some(pg => pg.x === it && pg.part === 'fig') && PAGE.stuff === window.__facePage;
+      },
+      wants: 'bearings Q2(b)\'s card with the stem\'s map under its own pen, on its own key, and no figure page of its own in the strip',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE TALLEST PAPER FIGURE SWITCHED TO: EVERY TILE A FINGERTIP, `Type` ON THE GLASS, THE FIGURE WHOLE ----
+       The transformations-of-graphs sheet's Q8 stem: four sine grids stacked, 340 by 640 -- 1.88 times as tall as
+       it is wide, the tallest of the 470, shared by (a), (b) and (c). At 320x568 its natural width draws it 420px
+       tall in a 534px pane, so the square shrink 327 wrote for a made-up grid would have taken nearly twice the
+       width it needed; and opened at its foot, its top was above the fold. `padFaceFit_` works from the drawing's
+       own shape now, the words give way first, then the figure to `PAD_FACE_FLOOR` -- and further only so the
+       figure, its bar and `Type` are on the glass together. The dice table's `expect`, asked of this card, and
+       two things more: the whole picture inside the pane, and a picture drawn narrower than its page only by
+       as much as the card needed -- a pane that fits with room to spare under a narrowed figure is the square
+       shrink back, taking width by the pixel of height when a figure this tall gives nearly two. Every width. */
+    { name: 'the tallest paper figure switched to its drawing, its tiles a fingertip, Type and the whole figure on the glass',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1CM-transformations-of-graphs-8');
+        if (!it) throw new Error('Q-1CM-transformations-of-graphs-8 is not in the library');
+        if (!padSource_(it) || padSource_(it).from === 'surface') throw new Error('Q-1CM-transformations-of-graphs-8 is not drawn on its stem\'s figure any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-1CM-transformations-of-graphs-8 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        if (!a || !a.classList.contains('is-draw')) return false;
+        const pane = a.closest('.pane');
+        const tile = [...a.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        const art = a.querySelector('.qpad-art > svg:first-child');
+        if (!pane || !tile || !art) return false;
+        const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
+        const taps = [...a.querySelectorAll('.qpad-bar [data-do]')].concat([tile]);
+        const pr = pane.getBoundingClientRect(), tr = tile.getBoundingClientRect(), fr = art.getBoundingClientRect();
+        const hit = document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height * 0.9);
+        const words = a.closest('.qcard').querySelector(':scope > .qsheet');
+        const gave = words && Math.abs(parseFloat(words.style.zoom || '1') - PANE_ZOOM_MIN) < 0.001;
+        /* THE ROOM LEFT UNUSED: a pane is as tall as what is in it, up to its cap (`max-height`), so the room a
+           narrowed figure gave away and did not need is the cap less the pane's height. */
+        const cap = parseFloat(getComputedStyle(pane).maxHeight);
+        const slack = isFinite(cap) ? cap - pane.clientHeight : 0;
+        return taps.length >= 4 && taps.every(e => side(e) >= 43.5)
+               && [...pane.children].every(k => !k.style.zoom)
+               && tr.top >= pr.top - 0.5 && tr.bottom <= pr.bottom + 0.5
+               && !!hit && tile.contains(hit)
+               && fr.top >= pr.top - 0.5 && fr.bottom <= pr.bottom + 0.5
+               && (!art.style.width || pane.style.overflowY === 'auto' || slack <= 16)
+               && (pane.style.overflowY !== 'auto' || !!gave);
+      },
+      wants: 'the four sine grids under the pen with the lock, Undo, Clear and Type at 44px on the glass, nothing drawn smaller whole, Type where a press lands on it, the whole figure inside the pane, and no scroll before the words have given way',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A DENSE FIGURE THAT GIVES WAY TO ITS FLOOR AND NO FURTHER ---------------------------------------------
+       AQA Chemistry, June 2024 Paper 2F Q1.9: "Complete Figure 2" -- a percentage grid of 2mm squares with its
+       axis labels 13 units in a 340-unit box, under a page of words and a pen bar of six tiles on two rows. At
+       320x568 its words go to `PANE_ZOOM_MIN`, its figure to `PAD_FACE_FLOOR` (180px wide, labels 6.9px), and the
+       last 60px or so scroll, opened at the foot. Without the floor it would have kept shrinking until the card
+       fitted -- labels at 5px and squares a finger cannot tell apart, to save one short scroll; the owner's "I
+       don't like scrolling" is answered by the words and the figure giving what they can and not past it. At
+       390 and wider it is drawn at its page's size. The `expect` is the tall figure's, and the floor. */
+    { name: 'a dense paper figure switched to its drawing, given way to its floor and no further',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-AQA-8462-2406-2F-019');
+        if (!it) throw new Error('Q-AQA-8462-2406-2F-019 is not in the library');
+        if (!padSource_(it) || padSource_(it).from !== 'part') throw new Error('Q-AQA-8462-2406-2F-019 is not drawn on its own figure any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-AQA-8462-2406-2F-019 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        if (!a || !a.classList.contains('is-draw')) return false;
+        const pane = a.closest('.pane');
+        const tile = [...a.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        const art = a.querySelector('.qpad-art > svg:first-child');
+        if (!pane || !tile || !art) return false;
+        const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
+        const taps = [...a.querySelectorAll('.qpad-bar [data-do]')].concat([tile]);
+        const pr = pane.getBoundingClientRect(), tr = tile.getBoundingClientRect(), fr = art.getBoundingClientRect();
+        const hit = document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height * 0.9);
+        const words = a.closest('.qcard').querySelector(':scope > .qsheet');
+        const gave = words && Math.abs(parseFloat(words.style.zoom || '1') - PANE_ZOOM_MIN) < 0.001;
+        return taps.length >= 6 && taps.every(e => side(e) >= 43.5)
+               && [...pane.children].every(k => !k.style.zoom)
+               && tr.top >= pr.top - 0.5 && tr.bottom <= pr.bottom + 0.5 && !!hit && tile.contains(hit)
+               && fr.top >= pr.top - 0.5 && fr.bottom <= pr.bottom + 0.5
+               && (!art.style.width || parseFloat(art.style.width) >= PAD_FACE_FLOOR) && fr.width >= PAD_FACE_FLOOR - 0.5
+               && (pane.style.overflowY !== 'auto' || !!gave);
+      },
+      wants: 'the chemistry grid under the pen, no narrower than the floor, its six tiles and Type at 44px on the glass, the whole figure inside the pane, and a scroll only once the words have given way',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED BY TAPPING ---------------------------------
        ITS OPTIONS ARE BUTTONS AND THERE IS NO TEXT BOX — asked for in as many words. Narrowed by
        its own paper, exactly as the pen state above, and landed on its own page. The expect asks
@@ -916,10 +1089,11 @@ const STATES = {
        *"some questions require a compass or ruler. so should have a tile for these things."* November 2019
        Higher Paper 1, Q4: "Use a ruler and compasses to construct the line from the point P perpendicular
        to the line CD" -- the one pen question in the library whose own row asks for compasses, found by
-       id. On its figure page, with the Compass in hand (pressed as a finger would, which also locks the
-       card) and two marks made the way the tools make them: a ruler's two-point line and a closed ring
-       built by the app's own `padArc_` from the ink's real box, so it is round at every width. Measured
-       armed, because the bar's lit tile and the gold-filled lock are what is new here. */
+       id. On its card switched to its figure (the pen is the card's other face since 337; it was on the
+       figure page), with the Compass in hand (pressed as a finger would, which also locks the card) and
+       two marks made the way the tools make them: a ruler's two-point line and a closed ring built by the
+       app's own `padArc_` from the ink's real box, so it is round at every width. Measured armed, because
+       the bar's lit tile and the gold-filled lock are what is new here. */
     { name: 'a construction with the ruler and compass in the pen bar, a line and a circle drawn',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
@@ -927,10 +1101,16 @@ const STATES = {
         if (padToolsOf_(it).join(' ') !== 'pen ruler compass') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
         window.__toolKey = padKey_(it);
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
+        padFaceSet_(window.__toolKey, 'type');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'), true);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* ONTO ITS FIGURE THROUGH ITS OWN `Draw`, as the paper-figure states above. */
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-1MA1-1911-1H-4 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
         /* IN THE TICK THE PAGE IS BUILT, found by its key (`.page.on` comes a frame later), with a
            tick's grace if it is not there yet -- the timing the answer states above settled on. */
         const mark = () => {
@@ -950,16 +1130,16 @@ const STATES = {
         if (!mark()) setTimeout(mark, 150);
       },
       expect: () => {
-        const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+        const pad = [...document.querySelectorAll('#s-stuff .page.on .qp-area.is-draw .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
         const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
         return !!pad && pad.classList.contains('is-drawing') && lit === 'compass'
                && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !!pad.querySelector('.qpad-lock.on')
                && pad.querySelectorAll('.qpad-g path').length === 2;
       },
-      wants: 'Q4\'s figure under the pen, armed, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
+      wants: 'Q4\'s figure under the pen on its card, armed, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
       leave: () => {
         try { localStorage.removeItem(window.__toolKey); } catch (e) {}
-        PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
+        PAD_ON = ''; PAD_TOOL.delete(window.__toolKey); padFaceForget_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     /* ---------- A PASSAGE WITH TWO WORDS RINGED -----------------------------------------------------------
