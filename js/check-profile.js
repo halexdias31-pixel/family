@@ -489,7 +489,9 @@ PEOPLE.forEach(p => {
      P-SA in the URL has none. This is also the payload that used to be an error — see `claims`. */
   const claimsOf = d => (Array.isArray(d.claims) ? d.claims : []).map(c => c.from).sort().join(',');
   const sb = tok('P-SB');
-  if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea Parent');
+  /* BY HER FIRST NAME (docs/history/342): a parent's surname goes to nobody but herself and an admin, and
+     the child she is asking about is somebody else. */
+  if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea');
   if (sb.token) want('the claims sent to P-SB', claimsOf(f.get({ token: sb.token })), '');
   /* A CHILD OF ANOTHER FAMILY, AND AN ASKED LINK: Ben shares no ACCEPTED parent with Abe or Cal. */
   if (sb.token) want('the student P-SB (only an asked and a refused link to the other family)',

@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-11-m-merged";
+const BACKEND_VERSION = "2026-10-11-n-kid-handles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1898,6 +1898,16 @@ const _cache = {};
    by any write to that tab (`kidMemoDrop_`) — a reply is built after its writes, and a child renamed
    by this very request must be recognised under the name the reply is about to carry. */
 let KID_MEMO_ = null;
+/* ---------- AND WHO THE NET IS WORKING FOR, THIS REQUEST ------------------------------------------------
+   `{ id, admin }` of the person a reply or an email is going to, or null for nobody known (a stranger, a
+   typed address, a reply before anybody signed in). Set by `netViewerSet_` (people.gs) in `doGet` from
+   the token, in `doPost` after the gate, in `loginReplyFor_` to the row signing in, and per email in
+   `mailOut_`. It decides one thing: whether a GROWN-UP'S surname (a parent, a client — not a tutor or an
+   admin) may go to this viewer, which is only themselves and an admin (docs/history/342). A child's
+   surname goes to nobody whoever is asking, so the 333 half of the net never reads it. RESET AT THE TOP
+   OF `doGet` AND `doPost`, because Apps Script keeps an instance between requests and the last
+   request's viewer must never be the next one's. */
+let NET_VIEWER_ = null;
 /* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS — `HANDLE_WAS_KEEP`'s number, for its reason. */
 const NAME_WAS_KEEP = 10;
 
@@ -3027,6 +3037,15 @@ const RUNNABLE = {
      virtue and number, or the 1 October `<first>_<virtue>` — is left alone, so a second run changes
      nothing and nobody who signs in with their handle is moved by it. */
   renameHandles:     () => renameHandles(),
+  /* ---------- AND EVERY CHILD'S HANDLE INTO INITIALS AND FOUR DIGITS, PREVIEWED FIRST (342) -------------
+     The owner, 11 Oct: *"Change usernames to be more abstract to hide the names of kids. Just use
+     initials..."* `?run=kidHandles&name=…&pin=…` WRITES NOTHING: it counts the children, says which
+     would move and what each would become (`ej····`, the initials — the digits are drawn when it is
+     run for real). `&arg=apply` moves them: every old handle onto `handle_was`, where it goes on signing
+     its child in (`handleWasRows_`), and every `friends` list that named it moved with it. A second run
+     moves nothing — a handle already in the shape is left alone. `previewFromGitHub`'s rule: look,
+     then do. Children only; a grown-up's handle is `renameHandles`'. */
+  kidHandles:        a => kidHandles(a),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are
      `data/questions.json` in this repository, and CLAUDE.md has said "do not seed that tab" since

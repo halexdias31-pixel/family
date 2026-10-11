@@ -1459,10 +1459,14 @@ function accountChanged_() { ACCOUNT_AT_ = Date.now(); }
      2.6-second toast: it is about somebody's children, and nobody can ask for it again. The same for a
      change of address the taking back cancelled (`moveDropped`, `authResetTake_`): it may have been the
      owner's own, and this sentence is the only place they learn to type it again.
-   · A MOVE LINK THAT WAS WAITING FOR A SIGN-IN (`verifyFromLink_`), sent now. */
+   · A MOVE LINK THAT WAS WAITING FOR A SIGN-IN (`verifyFromLink_`), sent now.
+   · AN OLD HANDLE THAT LET THEM IN (`handleMoved`, docs/history/342): a child whose handle the business
+     moved to their initials typed the one on their slip — it still works, and this is where they learn
+     the new one, in a sheet they close rather than a toast that closes itself. */
 function afterSignIn_(d) {
-  if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped) && d.message) {
-    openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know' : 'Signed in',
+  if (d && (d.childrenHeld || d.pinCleared || d.pinLink || d.moveDropped || d.handleMoved) && d.message) {
+    openSheet(d.pinCleared ? 'Your PIN has changed' : d.childrenHeld ? 'Signed in — one thing to know'
+              : d.handleMoved ? 'Your handle has changed' : 'Signed in',
       `<p class="sub">${esc(d.message)}</p>
        <button class="btn quiet" data-do="sheet-done">Done</button>`);
   }
@@ -1509,7 +1513,7 @@ const friendHandles = () =>
 function friendsSheet() {
   openSheet('Add a friend', `
     <label class="field"><span>their handle</span>
-      <input id="fr-add" placeholder="e.g. ada_kind42" autocomplete="off"></label>
+      <input id="fr-add" placeholder="as it is on their card" autocomplete="off"></label>
     <button class="btn" data-do="friend-add">Add</button>
     <p class="faint" id="fr-said" style="margin:.6rem 0 0">
       Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is
@@ -1551,6 +1555,9 @@ on('friend-add-open', () => friendsSheet());
    is visible before the round trip and put back if it fails. */
 function friendsSave(list, said) {
   const before = USER.friends;
+  /* A `myProfile` ASKED BEFORE THIS IS ABOUT THE LIST BEFORE IT (342) — it carries `friends` now, and
+     landing after this it would put the old list back (`profileRefresh_` asks again instead). */
+  accountChanged_();
   USER.friends = list.join(', ');
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
   /* The list lives on Find now, so that is what has to be redrawn — and the memo has to be told,
@@ -2804,18 +2811,18 @@ function settingsPages_() {
           from `tile_`, with the tap target, the mark and the press that come from that one place,
           and `send_` already knows a tile has no word to swap for "Choosing…".
 
-          THE LINE UNDER IT SAYS WHAT A PRESS MAKES. *"their first name, a virtuous adjective and
-          random numbers and maybe an underscore. but all random order."* — so a person is told the
-          number and the order move too, rather than discovering it. And that a child with no e-mail
-          signs in with the handle: a press changes what they type at sign-in, which is the one
-          thing about this tile somebody could regret, and it is said once here rather than as a
-          confirm that would be the pop-up this app has been asked not to have. */''}
+          THE LINE UNDER IT SAYS WHAT A PRESS DOES, NOT WHAT A HANDLE IS MADE OF. It said "your first
+          name, a word that suits you and a number", and since 11 Oct a child's handle is their
+          initials and four digits (docs/history/342) — one sentence for two shapes would be wrong for
+          one of them, and the server is the one that knows which (`MESSAGING`'s argument: a rule written
+          twice is two rules). What it does say is the thing somebody could regret: a child with no
+          e-mail signs in with the handle, so a press changes what they type at sign-in — said once here
+          rather than as a confirm that would be the pop-up this app has been asked not to have. */''}
     <div class="tile-row">${tile_({ icon: 'shuffle', label: 'Randomise', note: 'a new handle',
                                     act: 'handle-shuffle' })}</div>
     <p class="faint handle-said" style="margin:.6rem 0 0">${esc(
       (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
-      || 'Your first name, a word that suits you and a number. Randomise mixes up a new one — '
-       + 'if you sign in with your handle, that is your new sign-in name.')}</p>
+      || 'Randomise makes a new one — if you sign in with your handle, that is your new sign-in name.')}</p>
     <div class="f-row pin-row" style="--n:3">
       <label class="field"><span>current PIN</span>
         <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
@@ -5487,15 +5494,38 @@ function profileRefresh_(loud, onOld) {
          old ones; an older server sends none and this keeps what it had. A name that changed is a repaint,
          like a role: it is on the card at the top of the column. */
       const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
-        String(USER.name || ''), USER.children, USER.kids]);
+        String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]);
       if (d.role) USER.role = d.role;
       if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
       if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
       if (d.name) USER.name = String(d.name);
       ['children', 'kids', 'parents', 'siblings'].forEach(k => { if (Array.isArray(d[k])) USER[k] = d[k]; });
+      /* ---------- AND THE HANDLE, WHICH THE BUSINESS MAY HAVE MOVED UNDER THIS PHONE (342) -----------------
+         `?run=kidHandles` gives a child their initials and four digits while their phone is signed in, and
+         that phone said the old handle on their card for the thirty days a session lasts — and kept the
+         old FRIENDS list, which the next "Add a friend" would have posted back over the moved one. Both
+         come with `myProfile` now. A handle that changed is said ONCE: under the handle, as Randomise says
+         it (`HANDLE_SAID`), and in a toast — the next open finds them equal and says nothing. An older
+         server sends neither and this keeps what it had.
+         A REPLY NAMING THE HANDLE THIS PHONE HAS JUST RANDOMISED AWAY FROM is older than the press — asked
+         at open, answered after Randomise landed — and would put the old handle back and say the new one
+         was the old; `HANDLE_SAID` is what the press left, so it is the test. A friends list changed on this
+         phone marks `ACCOUNT_AT_` (`friendsSave`), so an answer asked before it is asked again above. */
+      const handleStale = !!d.handle && HANDLE_SAID.pid === String(USER.personId || '')
+        && HANDLE_SAID.text === 'You were @' + d.handle + '.';
+      if (d.handle && !handleStale && USER.handle && String(d.handle) !== String(USER.handle)) {
+        HANDLE_SAID = { pid: String(USER.personId || ''), text: 'You were @' + USER.handle + '.' };
+        try { toast('Your handle is @' + d.handle + ' now'); } catch (e) {}
+      }
+      if (d.handle && !handleStale) USER.handle = String(d.handle);
+      if (typeof d.friends === 'string' && d.friends !== String(USER.friends || '')) {
+        USER.friends = d.friends;
+        /* THE FRIENDS LIST ON FIND IS MEMOISED — told, as `friendsSave` tells it. */
+        try { FIND_MEMO.key = null; } catch (e) {}
+      }
       const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
-        String(USER.name || ''), USER.children, USER.kids]) !== roleWas;
+        String(USER.name || ''), USER.children, USER.kids, String(USER.handle || ''), String(USER.friends || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: a
          select somebody has open, or a box they are in, is not rebuilt under them. Found by review on

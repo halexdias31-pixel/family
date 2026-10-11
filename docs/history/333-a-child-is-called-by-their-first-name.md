@@ -199,3 +199,5 @@ question of identity, not of names shown.
   (@wren_kind43) and the volcano"), the admin's inbox ("Wren (@wren_kind43)"), her own card ("Wren",
   her handle under it) and her Settings — where the Last name box is the one place her surname is.
 - **Mutations**, each red for its own reason and green on restore — see the commit message.
+
+**Since 11 Oct (342):** a child's handle carries no name either — their initials and four digits — and the rule here grew a viewer-aware half: a parent's or client's surname goes to nobody but themselves and an admin (tutors and admins keep their whole names). `nameFor_` asks who the reply is for (`NET_VIEWER_`), and "a grown-up's is their whole name" above now means a tutor's or an admin's. See [342](342-a-child-s-handle-carries-no-name.md).

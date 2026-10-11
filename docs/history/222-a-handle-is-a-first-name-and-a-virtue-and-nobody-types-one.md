@@ -47,3 +47,5 @@ on every one of 15 presses, the history capped at ten, another person's id poste
 own handle changes), signed out (refused and nothing written), and `changeHandle` no longer an action.
 `check/states.js` has `settings · your handle`, which fails at all four widths if a box comes back
 beside the button.
+
+**Since 11 Oct (342):** a child's handle is no longer a first name — it is their initials and four digits; Randomise keeps the initials and draws a new tail. A grown-up's is unchanged. See [342](342-a-child-s-handle-carries-no-name.md).

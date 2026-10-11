@@ -100,6 +100,25 @@ const SRC = [
   grab(people, /const HANDLE_UNDERSCORE_ODDS[^;]*;/, 'HANDLE_UNDERSCORE_ODDS'),
   grab(people, /const HANDLE_TRIES[^;]*;/, 'HANDLE_TRIES'),
   grab(people, /const HANDLE_WAS_KEEP[^;]*;/, 'HANDLE_WAS_KEEP'),
+  /* ---------- A CHILD'S HANDLE (342), AND THE ONE TEST THAT SAYS WHO IS A CHILD ---------------------
+     `handleMake_` ASKS `isChild_` NOW, so the test comes with it — the real one and what it reaches for,
+     cut out the same way, rather than a stub that says "student" and would agree with itself. A second
+     reading of who is a child is the thing 333 refused to have. */
+  grab(consts, /const SELF_ROLE_ALIASES\s*=\s*\{[\s\S]*?\};/, 'SELF_ROLE_ALIASES'),
+  grab(consts, /const LISTED_PENDING[^;]*;/, 'LISTED_PENDING'),
+  grab(people, /function rolesOf\([\s\S]*?\n\}/, 'rolesOf'),
+  grab(people, /function hasRole\([^\n]*\n/, 'hasRole'),
+  grab(people, /function tutorPending_\([\s\S]*?\n\}/, 'tutorPending_'),
+  grab(people, /function actingRole_\([\s\S]*?\n\}/, 'actingRole_'),
+  grab(people, /function isChild_\([\s\S]*?\n\}/, 'isChild_'),
+  grab(people, /const HANDLE_KID_DIGITS[^;]*;/, 'HANDLE_KID_DIGITS'),
+  grab(people, /const HANDLE_KID_TAIL[^;]*;/, 'HANDLE_KID_TAIL'),
+  grab(people, /const HANDLE_KID_TRIES[^;]*;/, 'HANDLE_KID_TRIES'),
+  grab(people, /const HANDLE_KID_FOLD[^;]*;/, 'HANDLE_KID_FOLD'),
+  grab(people, /function handleInitials_\([\s\S]*?\n\}/, 'handleInitials_'),
+  grab(people, /function handleKidTail_\([\s\S]*?\n\}/, 'handleKidTail_'),
+  grab(people, /function handleKidShaped_\([\s\S]*?\n\}/, 'handleKidShaped_'),
+  grab(people, /function handleKid_\([\s\S]*?\n\}/, 'handleKid_'),
   grab(people, /function handleFirst_\([\s\S]*?\n\}/, 'handleFirst_'),
   grab(people, /function handleParts_\([\s\S]*?\n\}/, 'handleParts_'),
   grab(people, /function handleIsShaped_\([\s\S]*?\n\}/, 'handleIsShaped_'),
@@ -177,6 +196,8 @@ new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = 
            + ' box.first = handleFirst_; box.shaped = handleIsShaped_; box.rename = renameHandles;'
            + ' box.parts = handleParts_; box.ORDERS = HANDLE_ORDERS; box.TRIES = HANDLE_TRIES;'
            + ' box.fill = fillHandles;'
+           + ' box.initials = handleInitials_; box.kidShaped = handleKidShaped_; box.isChild = isChild_;'
+           + ' box.KID_DIGITS = HANDLE_KID_DIGITS; box.KID_TAIL = HANDLE_KID_TAIL; box.KID_TRIES = HANDLE_KID_TRIES;'
            /* THE GATE ITSELF, SO THE GENERATOR'S OWN LOOP CAN BE TESTED. `handleTrouble_` is a
               function DECLARATION in this scope, so it can be rebound — and that is the way to reach
               `handleMake_`'s retry and its give-up branch deterministically, because the order the
@@ -714,6 +735,179 @@ function run() {
     if (got !== want) bad.push({ handle: 'handle_was', want: want, why: why, said: got });
   });
 
+  /* ==================================================================================================
+     A CHILD'S HANDLE IS THEIR INITIALS AND FOUR DIGITS, AND NOTHING ELSE ABOUT THEM (docs/history/342)
+
+     THE OWNER, 11 OCT: *"Change usernames to be more abstract to hide the names of kids. Just use
+     initials and some combination which comes from date of birth or something."* The initials, yes;
+     the date of birth, no — a birthday is a fact about a child, and a handle is on every screen. So
+     the contract, written HERE rather than read from people.gs (the generator is what is checked):
+     every child's handle is their initials, exactly, then four digits from 2 to 9; nothing of either
+     name past its first letter; nothing the gate refuses; read back as the shape by the parser the
+     migration asks; and NOT A FUNCTION OF THE BIRTHDAY — two children who differ only in it are given
+     the same handle by the same dice. And who gets one is the one test 333 uses, `isChild_`.
+     ================================================================================================== */
+  box.setRows([]);
+  let kidN = 0;
+  const kidRow = (first, last, extra) => Object.assign({ person_id: 'K' + (++kidN), role: 'student',
+    first_name: first, last_name: last }, extra || {});
+  const TAILS = [];
+  (function all(pre) {
+    if (pre.length === box.KID_TAIL) { TAILS.push(pre); return; }
+    box.KID_DIGITS.split('').forEach(d => all(pre + d));
+  })('');
+  const tailRe = new RegExp('^[' + box.KID_DIGITS + ']{' + box.KID_TAIL + '}$');
+  /* [first, last, the initials it must have] — accents, a stroke NFKD keeps, an apostrophe, a digit in
+     front, one name, the other, another script, none. */
+  const KID_SHAPES = [
+    ['Ella', 'Jones', 'ej'], ['Émile', 'Ørsted', 'eo'], ['Rue', "O'Dell", 'ro'], ['Łukasz', 'Nowak', 'ln'],
+    ['Zoë', 'Quorrington', 'zq'], ['2Pac', 'Shakur', 'ps'], ['Ivy', '', 'i'], ['', 'Thistlebrook', 't'],
+    ['李', '王', box.FALLBACK], ['', '', box.FALLBACK],
+  ];
+  let kidDrawn = 0;
+  const kidTails = {};
+  KID_SHAPES.forEach(([first, last, ini]) => {
+    const want = ini === box.FALLBACK ? '' : ini;
+    if (box.initials(first, last) !== want) bad.push({ handle: 'handleInitials_', want: want || '(none)',
+      why: 'the initials are the FIRST letter of each name, folded to a–z', said: '"' + box.initials(first, last) + '" for "' + first + ' ' + last + '"' });
+    for (let i = 0; i < 40; i++) {
+      const me = kidRow(first, last);
+      const made = box.make(me, first);
+      kidDrawn++;
+      const tail = made.slice(ini.length);
+      const bits = [first, last].map(x => String(x).toLowerCase().replace(/[^a-z]/g, '')).filter(x => x.length > 1);
+      const leak = bits.find(x => made.indexOf(x) !== -1);
+      const why = !made ? 'nothing came back'
+        : made.slice(0, ini.length) !== ini ? 'it does not start with the initials ' + ini
+        : !tailRe.test(tail) ? 'what follows the initials is not ' + box.KID_TAIL + ' digits from ' + box.KID_DIGITS
+        : /[01]/.test(made) ? 'it has a 0 or a 1 — a digit read as a letter, and the start of a year or a month'
+        : leak ? 'it carries "' + leak + '", part of the child\'s name past its initial'
+        : box.trouble(made, me) ? 'the gate refuses it: ' + box.trouble(made, me)
+        : !box.kidShaped(made, me) ? 'handleKidShaped_ does not read it, so ?run=kidHandles would move it again'
+        : '';
+      if (why) { bad.push({ handle: made || '(nothing)', want: ini + ' and four digits from 2 to 9', why: why,
+        said: 'a child called "' + first + ' ' + last + '", draw ' + (i + 1) }); break; }
+      kidTails[tail] = true;
+    }
+  });
+  if (Object.keys(kidTails).length < kidDrawn / 2) bad.push({ handle: 'handleKid_', want: 'a fresh tail each draw',
+    why: 'only ' + Object.keys(kidTails).length + ' different tails in ' + kidDrawn + ' draws — the tail is drawn, not counted',
+    said: Object.keys(kidTails).slice(0, 6).join(', ') });
+
+  /* NOT THE BIRTHDAY. The same dice for two children who differ only in their date of birth must give
+     the same handle: anything read off the date would make them differ. Pinned dice, restored after. */
+  const dice = () => { let n = 0; return () => ((n++ * 0.6180339887498949) % 1); };
+  const realRnd = Math.random;
+  let dobA = '', dobB = '', dobC = '';
+  try {
+    box.setRows([]);
+    Math.random = dice(); dobA = box.make(kidRow('Ella', 'Jones', { date_of_birth: '25/06/2023' }));
+    Math.random = dice(); dobB = box.make(kidRow('Ella', 'Jones', { date_of_birth: '22/09/2017' }));
+    Math.random = dice(); dobC = box.make(kidRow('Ella', 'Jones', { date_of_birth: '' }));
+  } finally { Math.random = realRnd; }
+  if (!dobA || dobA !== dobB || dobA !== dobC) bad.push({ handle: 'handleKid_', want: 'one handle for one set of dice',
+    why: 'two children who differ only in their birthday were given different handles — the handle is reading the date of birth, which is a fact about a child on every screen it is shown',
+    said: [dobA, dobB, dobC].join(' / ') });
+
+  /* WHO GETS ONE: `isChild_`, the test 333 uses — and nobody else. */
+  [[{ role: 'student' }, true, 'a student'],
+   [{ role: 'pupil' }, true, 'a pupil, read through SELF_ROLE_ALIASES'],
+   [{ role: 'student, tutor', listed: 'PENDING' }, true, 'a child whose Tutor tick nobody has said yes to'],
+   [{ role: 'student, tutor', listed: 'TRUE' }, false, 'an approved student-tutor, on a public card'],
+   [{ role: 'client, student' }, false, 'a parent who is also learning'],
+   [{ role: 'client' }, false, 'a parent'],
+   [{ role: '' }, false, 'an empty role cell, which rolesOf reads as a client'],
+  ].forEach(([extra, kid, why]) => {
+    box.setRows([]);
+    const r = Object.assign(kidRow('Ella', 'Jones'), extra);
+    const made = box.make(r);
+    if (/^ej[2-9]{4}$/.test(made) !== kid) bad.push({ handle: made || '(nothing)',
+      want: kid ? "a child's initials and tail" : "a grown-up's first name, virtue and number",
+      why: why, said: 'role "' + extra.role + '"' });
+  });
+
+  /* RANDOMISE KEEPS THE INITIALS AND NEVER HANDS BACK THE ONE THEY HAVE. */
+  const kidMe = kidRow('Ella', 'Jones', { handle: 'ej2345' });
+  box.setRows([kidMe]);
+  for (let i = 0; i < 30; i++) {
+    const again = box.make(kidMe, kidMe.first_name, kidMe.handle);
+    if (!/^ej[2-9]{4}$/.test(again) || again === 'ej2345') {
+      bad.push({ handle: again || '(nothing)', want: 'ej and a new tail',
+        why: 'Randomise on a child keeps their initials and draws a tail they do not have', said: again || '(nothing)' });
+      break;
+    }
+  }
+
+  /* NEVER A HANDLE SOMEBODY ELSE USED TO HAVE — an old handle still signs its owner in. Seven in eight
+     of Ella's tails sit in another person's history; twenty draws must find the eighth, never the rest.
+     And with the dice pinned so every candidate is the one old handle, the walk falls to the fallback
+     rather than reissue it. The gate itself: refused for anybody else, free for the person whose
+     history it is. */
+  const takenOld = TAILS.filter((t, i) => i % 8).map(t => 'ej' + t);
+  const other = { person_id: 'OTH', role: 'client', first_name: 'Oli', last_name: 'Ther', handle: 'oli_kind42',
+                  handle_was: takenOld.join(', ') };
+  box.setRows([other]);
+  for (let i = 0; i < 20; i++) {
+    const made = box.make(kidRow('Ella', 'Jones'));
+    if (!made || takenOld.indexOf(made) !== -1) {
+      bad.push({ handle: made || '(nothing)', want: 'a handle nobody has had',
+        why: 'a child was given a handle that is on somebody else\'s handle_was, which still signs that person in', said: made || '(nothing)' });
+      break;
+    }
+  }
+  let pinnedOld = '';
+  try {
+    box.setRows([Object.assign({}, other, { handle_was: 'ej2222' })]);
+    Math.random = () => 0;
+    pinnedOld = box.make(kidRow('Ella', 'Jones'));
+  } finally { Math.random = realRnd; }
+  if (pinnedOld === 'ej2222' || !/^friend2222$/.test(pinnedOld)) bad.push({ handle: pinnedOld || '(nothing)',
+    want: box.FALLBACK + '2222', why: 'every draw was somebody\'s old handle, so the walk must fall to the fallback rather than reissue it', said: pinnedOld });
+  box.setRows([other]);
+  if (!box.trouble(takenOld[0], null)) bad.push({ handle: takenOld[0], want: 'no',
+    why: 'the gate let a handle through that is on another person\'s handle_was', said: '(allowed)' });
+  if (box.trouble(takenOld[0], other)) bad.push({ handle: takenOld[0], want: 'yes',
+    why: 'your own old handle is not a clash with yourself — going back to it is a true history', said: box.trouble(takenOld[0], other) });
+
+  /* THE BLOCKLIST AGAINST EVERY PAIR OF INITIALS. Digits fold onto letters (5→s, 7→t), so a pair and a
+     tail can meet as a word and be drawn again — what matters is that no pair loses so many tails that
+     sixty draws could all miss. Every pair, every single letter, the fallback, all 4096 tails. */
+  box.setRows([]);
+  const AZ = 'abcdefghijklmnopqrstuvwxyz'.split('');
+  const kidHeads = [box.FALLBACK].concat(AZ, [].concat(...AZ.map(a => AZ.map(b => a + b))));
+  let kidPaired = 0, kidRefused = 0, kidWorst = 0, worstHead = '';
+  kidHeads.forEach(h => {
+    let n = 0;
+    TAILS.forEach(t => { if (box.trouble(h + t, null)) n++; });
+    kidPaired += TAILS.length; kidRefused += n;
+    if (n / TAILS.length > kidWorst) { kidWorst = n / TAILS.length; worstHead = h; }
+  });
+  const missAll = Math.pow(kidWorst, box.KID_TRIES);
+  if (missAll > 1e-9) bad.push({ handle: 'initials ' + worstHead, want: 'a free tail within ' + box.KID_TRIES + ' draws',
+    why: Math.round(kidWorst * 100) + '% of this pair\'s tails are refused, so a child could run out of draws', said: missAll.toExponential(2) });
+
+  /* `renameHandles` IS NOT A CHILD'S JOB, and a grown-up who was a child keeps the handle they sign in with. */
+  box.setHeaders(['person_id', 'handle', 'handle_was', 'handle_changed_at', 'first_name', 'last_name', 'role']);
+  const krows = [
+    { person_id: 'KC', role: 'student', first_name: 'Ella', last_name: 'Jones', handle: 'ella_kind42' },
+    { person_id: 'KU', role: 'student', first_name: 'Una', last_name: 'Kept', handle: 'BrightOtter42' },
+    { person_id: 'KG', role: 'client', first_name: 'Gil', last_name: 'Grown', handle: 'gg2345' },
+  ];
+  box.setRows(krows);
+  const kr = box.rename();
+  if (krows[0].handle !== 'ella_kind42' || krows[1].handle !== 'BrightOtter42' || kr.children !== 2)
+    bad.push({ handle: 'renameHandles', want: 'children untouched, and counted',
+      why: 'a child\'s handle is moved only by ?run=kidHandles, which previews first', said: krows[0].handle + ', ' + krows[1].handle + ' / ' + kr.children });
+  if (krows[2].handle !== 'gg2345') bad.push({ handle: 'renameHandles', want: 'gg2345, untouched',
+    why: 'a grown-up who was a child keeps their initials-and-tail until they press Randomise', said: krows[2].handle });
+  /* AND `fillHandles` GIVES A BLANK CHILD THE CHILD'S SHAPE. */
+  box.setHeaders(['person_id', 'handle', 'email', 'first_name', 'last_name']);
+  const frow = { person_id: 'KF', role: 'student', first_name: 'Fay', last_name: 'Blank', handle: '' };
+  box.setRows([frow]);
+  box.fill();
+  if (!/^fb[2-9]{4}$/.test(frow.handle)) bad.push({ handle: 'fillHandles', want: 'fb and four digits',
+    why: 'a child typed into the sheet with no handle is given a child\'s, not one with her first name in it', said: frow.handle });
+
   /* ---------- THE RETRY, AND THE GIVE-UP, WHICH ONLY A STUBBED GATE CAN REACH ---------------------
      The generator's contract is "keep asking until the gate says yes, and give up rather than loop",
      and that is a statement about the loop rather than about the words — so the gate is rebound. A
@@ -982,6 +1176,16 @@ function run() {
        long first name does not open a second spelling of it. */
     { person_id: 'P11', email: '',               pin: '0000', username: 'MaxL',   handle: 'maximili_rocks',
       first_name: 'Maximilian' },
+    /* ---------- A CHILD WHOSE HANDLE WAS MOVED (342), and the two ways an old handle could go wrong ------
+       P12 had two handles before her initials; P13 holds today a handle P14 used to have, so the old one
+       must sign in P13 — whoever has it NOW; P15 and P16 both had one handle once, which is two accounts
+       on one old name and is refused, never guessed. */
+    { person_id: 'P12', email: '',               pin: '0000', username: 'EllaJ',  handle: 'ej2345',
+      handle_was: 'ella_kind42, Ella_Bold17', first_name: 'Ella', last_name: 'Jones' },
+    { person_id: 'P13', email: '',               pin: '0000', username: 'MoNow',  handle: 'mo_brave33' },
+    { person_id: 'P14', email: '',               pin: '0000', username: 'MoWas',  handle: 'mz6789', handle_was: 'mo_brave33' },
+    { person_id: 'P15', email: '',               pin: '0000', username: 'ZedA',   handle: 'ab2345', handle_was: 'zed_kind11' },
+    { person_id: 'P16', email: '',               pin: '0000', username: 'ZedB',   handle: 'ab3456', handle_was: 'zed_kind11' },
   ];
   /* THE HELPER THE TWO DOORS SHARE (the lock, the PIN, the session) is cut out too, because the
      handler hands every found row to it. */
@@ -1001,6 +1205,9 @@ function run() {
     grab(people, /function handleFirst_\([\s\S]*?\n\}/, 'handleFirst_'),
     grab(people, /function handleParts_\([\s\S]*?\n\}/, 'handleParts_'),
     grab(people, /function handleRows_\([\s\S]*?\n\}/, 'handleRows_'),
+    /* AND THE OLD HANDLES (342), asked only when nobody holds what was typed now. */
+    grab(people, /function handleWasRows_\([\s\S]*?\n\}/, 'handleWasRows_'),
+    grab(people, /function handleWasEntry_\([\s\S]*?\n\}/, 'handleWasEntry_'),
   ].join('\n');
   const signIn = new Function('body', 'ROWS', `
     const S = v => String(v == null ? '' : v).trim();
@@ -1026,7 +1233,9 @@ function run() {
     /* THE ONE READER BOTH DOORS USE, cut out of people.gs with what it reaches for. */
     ` + HANDLE_LOOKUP + `
     const authNewSession_ = () => 'token';
-    const loginReplyFor_ = r => ({ success: true, who: r.person_id });
+    /* WHICH OLD HANDLE LET THEM IN, AND WHAT THEY ARE NOW — the reply's handleMoved (342). */
+    const loginReplyFor_ = (r, tok, extra) => ({ success: true, who: r.person_id,
+      moved: extra && extra.handleMoved ? extra.handleMoved.was + '>' + extra.handleMoved.now : '' });
     const action = 'verifyLogin';
     ` + helperSrc + `
     ` + post.slice(vlAt, vlEnd) + `
@@ -1059,6 +1268,13 @@ function run() {
     { body: { email: '@UprightChristopher71', pin: '0000' }, want: 'P10', why: 'spelled out, with the @, the case and no underscore' },
     { body: { email: 'uprightchristophe_71', pin: '0000' },  want: '', code: 'not-an-email', why: 'a misspelling of the name is not the name' },
     { body: { email: 'maximilian_rocks', pin: '0000' },      want: '', code: 'not-an-email', why: 'a hand-typed handle is compared as it stands — no second spelling of it' },
+    /* THE OLD HANDLE ON A CHILD'S SLIP STILL LETS HER IN, AND SAYS WHAT SHE IS NOW (342). */
+    { body: { email: 'ella_kind42', pin: '0000' },          want: 'P12', moved: 'ella_kind42>ej2345', why: 'a handle on handle_was still signs its child in, and the reply says the new one' },
+    { body: { email: '@ella_bold17', pin: '0000' },         want: 'P12', moved: 'Ella_Bold17>ej2345', why: 'an older one too, typed as a card prints it — and said back as it is stored' },
+    { body: { email: 'ej2345', pin: '0000' },               want: 'P12', moved: '', why: 'her handle now signs her in and says nothing has moved' },
+    { body: { email: 'ella_kind42', pin: 'wrong' },         want: '', code: 'wrong-pin', said: 'Wrong PIN for that handle.', why: 'an old handle meets the same PIN and the same throttle as a new one' },
+    { body: { email: 'mo_brave33', pin: '0000' },           want: 'P13', moved: '', why: 'A HANDLE SOMEBODY HAS NOW WINS — it was P14\'s once, and an old entry must never sign in a different person' },
+    { body: { email: 'zed_kind11', pin: '0000' },           want: '', why: 'an old handle in two accounts\' histories is refused, not guessed' },
   ];
   SIGNIN.forEach(c => {
     let got;
@@ -1075,6 +1291,8 @@ function run() {
        sentence, the sentence is compared whole. */
     else if (c.said && (!got || got.error !== c.said)) bad.push({ handle: 'verifyLogin ' + JSON.stringify(c.body),
       want: 'refused with "' + c.said + '"', why: c.why, said: JSON.stringify(got) });
+    else if (c.moved !== undefined && (!got || got.moved !== c.moved)) bad.push({ handle: 'verifyLogin ' + JSON.stringify(c.body),
+      want: c.moved ? 'told ' + c.moved : 'told nothing moved', why: c.why, said: JSON.stringify(got) });
   });
 
   /* ---------- THE HEADING NAMES BOTH THINGS, because it checks both -------------------------------
@@ -1096,6 +1314,8 @@ function run() {
     + '  ·  handles generated and shaped: ' + drawn + ' over ' + shapeCases.length + ' first names, orders seen: '
     + Object.keys(seenOrders).length + ', numbers seen: ' + Object.keys(seenNums).length
     + '  ·  handle_was histories: ' + WAS.length
+    + '  ·  children\'s handles drawn: ' + kidDrawn + ' over ' + KID_SHAPES.length + ' names; initials and tails asked of the gate: '
+    + kidPaired + ', ' + kidRefused + ' refused (worst pair ' + worstHead + ', ' + Math.round(kidWorst * 100) + '%)'
     + '  ·  findPerson terms resolved: ' + FINDS.length
     + '  ·  sign-ins checked: ' + SIGNIN.length
     + '  ·  e-mail clashes checked: ' + MAILCASES.length
@@ -1113,10 +1333,11 @@ function run() {
               + 'against. This is the only thing standing between any of them and the sheet.');
     process.exitCode = 1;
   } else {
-    console.log('OK — every handle is a first name, a virtue and a fresh number in a random order, '
+    console.log('OK — every grown-up\'s handle is a first name, a virtue and a fresh number in a random order, '
               + 'never starting with the digits, never the one you have, every older shape still '
-              + 'reads as shaped, nobody can be handed a name that already answers to somebody '
-              + 'else, and the pricing month holds.');
+              + 'reads as shaped; every child\'s is their initials and four digits from 2 to 9, nothing of '
+              + 'their name or birthday; nobody can be handed a name that answers, or once answered, to somebody '
+              + 'else; an old handle signs in only its own person; and the pricing month holds.');
   }
 }
 

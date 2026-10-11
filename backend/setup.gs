@@ -287,12 +287,17 @@ function renameHandles() {
   }
   const keepWas = t.headers.indexOf('handle_was') !== -1;
   const keepAt = t.headers.indexOf('handle_changed_at') !== -1;
-  const out = { renamed: [], leftAlone: 0, couldNotGenerate: [] };
+  const out = { renamed: [], leftAlone: 0, children: 0, couldNotGenerate: [] };
   t.rows.forEach(r => {
     const who = S(r.person_id) || '(a row with no id)';
     const has = S(r.handle);
-    const parts = handleParts_(has, r.first_name);
-    if (parts) { out.leftAlone++; return; }
+    /* A CHILD'S HANDLE IS NOT THIS JOB'S (342). It is moved by `kidHandles`, which shows what it would
+       do before it does it; this one writes as it goes, and a child with no email signs in with the
+       handle. Counted, so a run says it left them. */
+    if (isChild_(r)) { out.children++; return; }
+    /* SHAPED FOR THIS PERSON — a grown-up's arrangement, or the initials-and-tail of a grown-up who was
+       a child (`handleIsShaped_`): they keep it until they press Randomise. */
+    if (handleIsShaped_(has, r.first_name, r.last_name)) { out.leftAlone++; return; }
     const made = handleMake_(r, undefined, has);
     if (!made) { out.couldNotGenerate.push(who); return; }
     const cells = { handle: made };
@@ -303,9 +308,87 @@ function renameHandles() {
   });
   clearCache();
   out.renamedCount = out.renamed.length;
-  out.means = 'every handle that was not a first name and a virtue (with or without a number, in '
+  out.means = 'every grown-up\'s handle that was not a first name and a virtue (with or without a number, in '
             + 'any order) was regenerated and the old one put at the front of handle_was. Shaped '
-            + 'handles were left alone, so nobody signing in with a handle was moved.';
+            + 'handles were left alone, so nobody signing in with a handle was moved. Children are '
+            + '?run=kidHandles\'s, and were not touched.';
+  return out;
+}
+
+/* ==================================================================================================
+   EVERY CHILD'S HANDLE INTO THEIR INITIALS AND FOUR DIGITS — `?run=kidHandles`, PREVIEWED FIRST (342)
+
+   THE OWNER, 11 OCT: *"Change usernames to be more abstract to hide the names of kids. Just use
+   initials..."* `register`, `makeChild`, Randomise, `resetPin` and `fillHandles` give a child the new
+   shape from now on (`handleMake_` asks `isChild_`); this is the other half — the children who already
+   have a handle with their first name in it, which is every child on the sheet today.
+
+   A PREVIEW UNLESS IT IS TOLD OTHERWISE. With no `arg` it writes NOTHING: how many children there are,
+   how many it would move, how many of those sign in with the handle (no email of their own — the ones
+   to tell), and each one by `person_id` with the handle they have and the initials they would get
+   (`ej····` — the digits are drawn when it runs for real, so a preview that showed them would be
+   showing handles nobody gets). `previewFromGitHub`'s rule, written down in CLAUDE.md: the run you can
+   read before the run that writes. `&arg=apply` then moves them, and answers with the real before and
+   after by `person_id`.
+
+   WHY AN ADMIN'S JOB AND NOT THE NEXT SIGN-IN. A child who never signs in would keep a name-bearing
+   handle on the score board, under their posts and on their family's cards for as long as they did
+   not — and a handle changed in the middle of somebody signing in is a sign-in that cannot be
+   previewed. Nor `autoMigrate`: that runs on every `?run` and `?setup`, with nothing shown first.
+
+   NOBODY LOSES THEIR SIGN-IN. Every old handle goes to the front of `handle_was` (`handleWasWith_`),
+   and `verifyLogin` and `forgotPin` still let it in when nobody has it as their handle now
+   (`handleWasRows_`), saying the new one as they do. `handleTrouble_` will never hand an old one to
+   somebody else. Sessions are keyed by `person_id`, so nobody is signed out; a signed-in phone learns
+   the new handle from `myProfile` on its next open. Every `friends` list that named an old handle is
+   moved with it (`handleFriendsMove_`).
+
+   SAFE TO RUN TWICE: a handle already in a child's shape for that child is left alone, so the second
+   run moves nobody. A grown-up is never touched — their handles are `renameHandles`'. */
+function kidHandles(arg) {
+  const apply = norm(arg) === 'apply';
+  const t = read(TAB.people);
+  if (!t.sheet) return { error: 'no people tab' };
+  /* ALL THREE BEFORE ANYTHING, as `randomiseHandle` asks — a handle moved with nowhere to put the old one
+     is a child whose slip no longer signs them in. */
+  const lacking = ['handle', 'handle_was', 'handle_changed_at'].filter(c => t.headers.indexOf(c) === -1);
+  if (lacking.length) {
+    return { error: 'the people tab has no ' + lacking.join(', ') + ' column. Run ?setup=1 first '
+                  + '— nothing was changed.' };
+  }
+  const out = { mode: apply ? 'apply' : 'preview', children: 0, toMove: 0, leftAlone: 0,
+                signInByHandle: 0, couldNotGenerate: [], rows: [] };
+  const moves = {};
+  t.rows.forEach(r => {
+    if (!isChild_(r)) return;
+    out.children++;
+    const has = S(r.handle);
+    if (has && handleKidShaped_(has, r)) { out.leftAlone++; return; }
+    const who = S(r.person_id) || '(a row with no id)';
+    out.toMove++;
+    if (!S(r.email)) out.signInByHandle++;
+    if (!apply) {
+      out.rows.push({ id: who, from: has,
+                      to: (handleInitials_(r.first_name, r.last_name) || HANDLE_FALLBACK) + '····' });
+      return;
+    }
+    const made = handleMake_(r, undefined, has);
+    if (!made) { out.couldNotGenerate.push(who); return; }
+    setCells(t, r, { handle: made, handle_was: handleWasWith_(r.handle_was, has), handle_changed_at: new Date() });
+    if (has) moves[key(has)] = made;
+    out.rows.push({ id: who, from: has, to: made });
+  });
+  if (apply) {
+    out.friendsMoved = handleFriendsMove_(t, moves);
+    clearCache();
+  }
+  out.means = apply
+    ? 'every child whose handle was not their initials and four digits has one now; the old one is at the '
+      + 'front of handle_was and still signs them in, and is never given to anybody else. Grown-ups were not touched.'
+    : 'NOTHING WAS CHANGED. This is what &arg=apply would do: ' + out.toMove + ' of ' + out.children
+      + ' children moved to their initials and four digits (drawn when it runs), ' + out.signInByHandle
+      + ' of them signing in with the handle — their old one keeps working and they are told the new one '
+      + 'when they use it.';
   return out;
 }
 

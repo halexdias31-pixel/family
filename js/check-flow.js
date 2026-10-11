@@ -263,6 +263,8 @@ function boot(opts) {
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
+      /* WHAT THE LINE UNDER YOUR HANDLE SAYS (`HANDLE_SAID`, me.js) — a `let`, so a function (342). */
+      'handleSaid: () => HANDLE_SAID,' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -9603,8 +9605,9 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
       caption: 'A Tuesday at the library', body: '', location: '', when: '01/09/2026',
       at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
       reactions: { emoji: FACES.slice(), counts: [2, 1, 0, 0, 0, 0], total: 3, yours: '',
-        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
-             { name: 'Carl Everyclient', emoji: '❤️' }] },
+        /* A PARENT BY HER FIRST NAME, as `doGet` sends one to anybody but herself and an admin (342). */
+        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya', emoji: '👍' },
+             { name: 'Carl', emoji: '❤️' }] },
       comments: { total: 0, list: [] } }];
     return p;
   };
@@ -24138,15 +24141,28 @@ function surnameWorld_() {
     const t3 = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
     if (!(t1 && t1.tutorPending) || !(t2 && t2.success) || !(t3 && t3.success)) tk.junoFailed = JSON.stringify([t1, t2, t3]).slice(0, 300);
   }
+  /* AND OLA, ANOTHER PARENT, SAYS A WORD UNDER IT (docs/history/342) — so a grown-up's whole name is in a
+     comment every visitor's feed draws, beside Pip's in the events of the session she booked for Wren. */
+  if (tk['P-OTH']) {
+    const o1 = as('P-OTH', { action: 'addComment', postId: 'PO-1', body: 'lovely' });
+    if (!(o1 && o1.success)) tk.olaFailed = JSON.stringify(o1).slice(0, 300);
+  }
   return { b, tk };
 }
-check('a child is her first name on every screen: no surname drawn for a visitor, her tutor, another parent, an admin, or herself outside her own Settings boxes', async () => {
+/* AND A PARENT'S SURNAME, SINCE 11 OCT (docs/history/342): *"don't show surname as some kids have different
+   surnames and gets a bit awkward"*. Pip's and Ola's surnames are hunted on every screen of every visitor
+   but themselves and the admin — who must still see Pip's, or a rule that took every name out would pass.
+   Pip is a visitor here too, so her own whole name is drawn for her and Ola's is not. */
+const GROWN_ = { 'P-PAR': 'Ashdown', 'P-OTH': 'Brisk' };
+check('a child is her first name on every screen, and a parent is hers to everybody but herself and an admin: no surname drawn for a visitor, her tutor, another parent, her parent, an admin, or herself outside her own Settings boxes', async () => {
   let world;
   try { world = surnameWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was drawn — ' + e.message]; }
   const { b, tk } = world;
   if (tk.junoFailed) return ['Juno could not tick Tutor, book and comment, so a pending tick was NOT asked — ' + tk.junoFailed];
+  if (tk.olaFailed) return ['Ola could not comment, so a grown-up\'s name under a post was NOT asked — ' + tk.olaFailed];
   if (Object.keys(tk).length < 7) return ['only ' + Object.keys(tk).join(', ') + ' could sign in, so most screens were NOT drawn — not a pass'];
-  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID']];
+  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID'],
+                ['her parent', 'P-PAR']];
   const bad = [];
   for (const [who, pid] of VIEW) {
     /* WHAT `familyUser` HOLDS: the real sign-in reply — and for her, that reply as a phone signed in
@@ -24162,14 +24178,17 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     await wait(600); await woken_();
     if (!!pid !== !!t.whoami()) { bad.push(who + ': the app reads this visitor as signed ' + (t.whoami() ? 'in' : 'out') + ' — NOT asked about'); continue; }
     const seen = [];
-    let sawJuno = false;
+    let sawJuno = false, sawWhole = false;
+    /* A GROWN-UP'S SURNAME IS HUNTED FOR EVERYBODY BUT THEMSELVES AND THE ADMIN; A CHILD'S FOR EVERYBODY. */
+    const hunt = SURS_.concat(pid === 'P-ADM' ? [] : Object.keys(GROWN_).filter(g => g !== pid).map(g => GROWN_[g]));
     const look = (where) => {
       const root = w.document.documentElement.cloneNode(true);
       /* HER OWN SETTINGS BOXES, AND NOTHING ELSE, are where her surname belongs. */
       if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea').forEach(el => el.remove());
       const html = root.outerHTML;
-      const m = html.match(new RegExp('.{0,70}(?:' + SURS_.join('|') + ').{0,40}', 'i'));
+      const m = html.match(new RegExp('.{0,70}(?:' + hunt.join('|') + ').{0,40}', 'i'));
       if (/Juno/.test(html)) sawJuno = true;
+      if (/Pip Ashdown/.test(html)) sawWhole = true;
       if (m) seen.push(where + ': …' + m[0].replace(/\s+/g, ' ') + '…');
     };
     let pages = 0;
@@ -24186,7 +24205,9 @@ check('a child is her first name on every screen: no surname drawn for a visitor
       }
     }
     if (pages < 12) bad.push(who + ': only ' + pages + ' pages were drawn — the walk did not reach the screens');
-    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown her surname on ' + x));
+    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown a surname that is not theirs to see on ' + x));
+    /* AND THE ADMIN IS SHOWN PIP'S WHOLE NAME — the rule is "to everybody but herself and an admin", not "to nobody". */
+    if (pid === 'P-ADM' && !sawWhole) bad.push('an admin: "Pip Ashdown" is nowhere on any screen, so the admin\'s exemption was NOT seen — or the net took her surname from the admin too');
     /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
     const all = w.document.documentElement.outerHTML;
     if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
@@ -24197,6 +24218,96 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     }
     if (errs.length) bad.push(who + ': errors: ' + errs.slice(0, 3).join(' | '));
   }
+  return bad;
+});
+
+/* ---------- A CHILD WHOSE HANDLE WAS MOVED STILL GETS IN, AND IS TOLD WHAT IT IS NOW (docs/history/342) -------
+   The owner, 11 Oct: *"Change usernames to be more abstract to hide the names of kids. Just use initials…"*
+   `?run=kidHandles` moves every child's handle to their initials and four digits — and seven in eight of
+   them have no email and sign in with the handle written on a slip. THE REAL BACKEND, a child whose
+   handle has moved (`handle_was` holds the old one): typed into the real sign-in box, the old one signs
+   her in, and the sheet she closes says the new one. */
+function movedWorld_() {
+  const { backend } = require('./check-gas-load.js');
+  const b = backend({ MailApp: { sendEmail() {}, getRemainingDailyQuota: () => 100 } });
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0, email: '' };
+  b.seed('people', [
+    Object.assign({ person_id: 'P-EJ', role: 'student', first_name: 'Ella', last_name: 'Jones', handle: 'ej2345',
+                    handle_was: 'ella_kind42', friends: 'ab3456' }, base),
+    Object.assign({ person_id: 'P-AB', role: 'student', first_name: 'Abe', last_name: 'Bell', handle: 'ab3456' }, base),
+  ]);
+  return b;
+}
+check('a child whose handle was moved signs in with the old one on her slip, and a sheet she closes says the new one', async () => {
+  let b;
+  try { b = movedWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was signed into — ' + e.message]; }
+  const { w } = boot({ payload: b.get({}), reply: body => b.post(body) });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t) return ['the app did not finish loading'];
+  await wait(300);
+  t.go('account', false, true);
+  await wait(120);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['there is no sign-in card to sign in on, so the old handle was NOT typed'];
+  name.value = 'ella_kind42'; pin.value = '0000';
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
+  await wait(200);
+  const u = t.whoami();
+  if (!u || u.personId !== 'P-EJ') return ['the old handle on her slip did not sign her in — ' + JSON.stringify(u && u.personId)];
+  if (u.handle !== 'ej2345') bad.push('the phone calls her @' + u.handle + ' after signing in, not @ej2345');
+  const title = String((d.getElementById('sheet-title') || {}).textContent || '');
+  const body = String((d.getElementById('sheet-body') || {}).textContent || '');
+  const open = !d.getElementById('sheet').classList.contains('hidden');
+  if (!open || title !== 'Your handle has changed' || body.indexOf('@ej2345') === -1)
+    bad.push('no sheet she has to close said her new handle — ' + JSON.stringify({ open, title, body: body.slice(0, 160) }));
+  /* AND HER NEW ONE SAYS NOTHING — the sheet is for the old one, every time it is used, and only then. */
+  const again = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!again.success || again.handleMoved) bad.push('signing in with her new handle says something moved — ' + JSON.stringify(again).slice(0, 200));
+  return bad;
+});
+
+/* ---------- AND A PHONE SIGNED IN BEFORE THE MOVE LEARNS IT ON ITS NEXT OPEN, ONCE ------------------------
+   `familyUser` holds the handle and the friends list the sign-in reply carried, for the thirty days a
+   session lasts — so a child whose handle the business moved while she was signed in was shown her old
+   one, and her friends list named handles that no longer exist (the next "Add a friend" would post them
+   back). `myProfile`, asked on every open, carries both now: the phone takes them, says the new handle
+   once (a toast, and "You were @…" under it, `HANDLE_SAID`), and the open after that says nothing. */
+check('a phone signed in before her handle moved takes the new one from myProfile and says so once', async () => {
+  let b;
+  try { b = movedWorld_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend, so NOTHING was asked — ' + JSON.stringify(signed).slice(0, 200)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42', friends: 'ab_kind11' });
+  const bad = [];
+  const toastsIn = win => { const said = []; const obs = new win.MutationObserver(() => {
+    const el = win.document.getElementById('toast'); if (el && el.textContent) said.push(el.textContent); });
+    obs.observe(win.document.body, { childList: true, subtree: true, characterData: true }); return said; };
+  const first = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyUser', JSON.stringify(stale)) });
+  const said1 = toastsIn(first.w);
+  for (let k = 0; k < 80 && !first.w.__t; k++) await wait(100);
+  const t = first.w.__t;
+  if (!t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  const u = t.whoami() || {};
+  if (u.handle !== 'ej2345') bad.push('the phone still calls her @' + u.handle + ' after myProfile — a moved handle stays stale for thirty days');
+  if (u.friends !== 'ab3456') bad.push('the phone kept the old friends list ' + JSON.stringify(u.friends) + ' — its next save would post names nobody has');
+  let said = {};
+  try { said = t.handleSaid(); } catch (e) {}
+  if (!said || said.text !== 'You were @ella_kind42.' || said.pid !== 'P-EJ') bad.push('the line under her handle does not say who she was — ' + JSON.stringify(said));
+  if (!said1.some(m => /Your handle is @ej2345 now/.test(m))) bad.push('nothing told her the new handle — toasts: ' + JSON.stringify(said1));
+  /* THE NEXT OPEN, from what that one stored: nothing more to say. */
+  let kept = '';
+  try { kept = first.w.localStorage.getItem('familyUser'); } catch (e) {}
+  const second = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => { if (kept) win.localStorage.setItem('familyUser', kept); } });
+  const said2 = toastsIn(second.w);
+  for (let k = 0; k < 80 && !second.w.__t; k++) await wait(100);
+  await wait(1200);
+  if (said2.some(m => /Your handle is/.test(m))) bad.push('the next open said the new handle again — it is said once');
+  if (first.errs.length || second.errs.length) bad.push('errors: ' + first.errs.concat(second.errs).slice(0, 3).join(' | '));
   return bad;
 });
 

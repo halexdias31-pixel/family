@@ -1255,6 +1255,137 @@ let proofRules = 0;
   }
 }
 
+/* ==================================================================================================
+   10. A CHILD'S HANDLE CARRIES NO NAME, AND NOBODY LOSES THEIR SIGN-IN OVER IT (docs/history/342)
+
+   THE OWNER, 11 OCT: *"Change usernames to be more abstract to hide the names of kids. Just use initials
+   and some combination which comes from date of birth or something."* Every door that makes a child's
+   handle makes their initials and four digits from 2 to 9 (a parent's, a self-registered child's, a
+   blank one filled, Randomise); a grown-up's is still the first name, a virtue and a number. And the
+   children who already have a first-name handle are moved by `?run=kidHandles`, which with no `arg`
+   WRITES NOTHING and says what it would do, and with `arg=apply` moves only children, puts every old
+   handle at the front of `handle_was`, moves every friends list that named it — and a second run moves
+   nobody. Through all of it, the old handle on a child's slip still signs them in, and says the new
+   one; it never signs in anybody else.
+   ================================================================================================== */
+let kidRules = 0;
+const kidRule = (ok, what, got) => { kidRules++; if (!ok) no(what, got); return !!ok; };
+{
+  const b = fresh();
+  b.seed('people', [
+    person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind60' }),
+    person('P-PAT', 'client', 'Pat', 'Ashdown', { email: 'pat@example.org', handle: 'pat_kind61' }),
+    /* THE CHILDREN AS THE LIVE SHEET HAS THEM TODAY: a first name in every handle. Two sign in with it
+       (no email), one has an address, one has a handle in no generated shape at all. */
+    person('P-EJ', 'student', 'Ella', 'Jones', { handle: 'ella_kind62', handle_was: 'ellajones', date_of_birth: '25/06/2016' }),
+    person('P-OS', 'student', 'Otto', 'Sand', { handle: 'kindotto63', friends: 'ella_kind62, tam_kind66' }),
+    person('P-NB', 'student', 'Nia', 'Brook', { email: 'nia@example.org', handle: 'NiaTyped' }),
+    /* A GROWN-UP WITH AN UNSHAPED HANDLE — the migration is not theirs. And a tutor, likewise. */
+    person('P-GR', 'client', 'Gus', 'Grown', { email: 'gus@example.org', handle: 'GusTyped', friends: 'ella_kind62' }),
+    person('P-TAM', 'tutor', 'Tam', 'Tutor', { email: 'tam@example.org', handle: 'tam_kind66', listed: true }),
+  ]);
+  b.seed('family', [{ link_id: 'L1', parent_id: 'P-PAT', child_id: 'P-EJ', state: 'accepted' },
+                    { link_id: 'L2', parent_id: 'P-PAT', child_id: 'P-OS', state: 'accepted' }]);
+  const kidShape = (h, ini) => new RegExp('^' + ini + '[2-9]{4}$').test(S(h));
+  /* ELLA'S PIN AFTER HER PARENT'S NEW PIN BELOW — read from the reply, never written here. */
+  let ejPin = PLACE;
+
+  /* ---- EVERY DOOR THAT MAKES A CHILD'S HANDLE ---- */
+  const pat = signIn(b, 'pat@example.org', PLACE);
+  if (!pat.token) no('the parent could not sign in, so the doors that make a child\'s handle were NOT checked', pat);
+  else {
+    const made = post(b, { action: 'makeChild', token: pat.token, firstName: 'Ivy', lastName: 'Kemp', pin: ZERO });
+    kidRule(made.success && kidShape(made.handle, 'ik'), 'a child a parent made was not given her initials and four digits', made);
+    kidRule(!/ivy|kemp/i.test(S(made.handle)), 'the handle of a child a parent made carries her name', made.handle);
+    const pin = post(b, { action: 'resetPin', token: pat.token, targetId: 'P-EJ' });
+    ejPin = S(pin.pin) || PLACE;
+    kidRule(pin.success && pin.handle === 'ella_kind62', 'a New PIN moved the handle a child signs in with — that is the migration\'s, previewed, never a side effect', pin);
+  }
+  const reg = post(b, { action: 'register', who: 'student', first_name: 'Rex', last_name: 'Vale', parent_email: 'rexmum@example.org', pin: ZERO });
+  kidRule(reg.success && kidShape(reg.handle, 'rv'), 'a child who registered with a grown-up\'s address was not given his initials and four digits', reg);
+  const regP = post(b, { action: 'register', who: 'parent', first_name: 'Una', last_name: 'Vale', email: 'una@example.org', pin: ZERO2 });
+  kidRule(regP.success && /una/.test(S(regP.handle)) && !kidShape(regP.handle, 'uv'), 'a parent who registered was not given a grown-up\'s handle (her first name, a virtue, a number)', regP);
+  const ivyMail = MAIL.filter(m => m.to === 'pat@example.org').pop();
+  kidRule(ivyMail && /@ik[2-9]{4}/.test(S(ivyMail.body)), 'the parent was not emailed the new child\'s initials-and-digits handle', ivyMail && ivyMail.body);
+
+  /* ---- THE PREVIEW: counts, before and after, and NOTHING WRITTEN ---- */
+  const run = (arg) => { asked++; return b.get(Object.assign({ run: 'kidHandles', name: 'Hal Admin', pin: PLACE }, arg ? { arg: arg } : {})); };
+  run();                                   // the first ?run brings the sheet up to date (`autoMigrate`), as every ?run does
+  const snap = JSON.stringify(b.tabs.people), w0 = b.log.writes;
+  const pv = run();
+  const r0 = pv.result || {};
+  kidRule(b.log.writes === w0 && JSON.stringify(b.tabs.people) === snap, 'THE PREVIEW WROTE — ?run=kidHandles with no arg must change nothing', { writes: b.log.writes - w0 });
+  kidRule(r0.mode === 'preview' && r0.children === 5 && r0.toMove === 3 && r0.leftAlone === 2 && r0.signInByHandle === 2,
+    'the preview does not count 5 children, 3 to move (2 of them signing in by handle) and 2 already in the shape', r0);
+  const ejRow = (r0.rows || []).find(x => x.id === 'P-EJ') || {};
+  kidRule(ejRow.from === 'ella_kind62' && ejRow.to === 'ej····', 'the preview does not show Ella\'s handle now and the initials she would get', ejRow);
+  kidRule(!(r0.rows || []).some(x => /^P-(GR|TAM|PAT|ADM)$/.test(x.id)), 'the preview would move a grown-up', r0.rows);
+  /* A ROW NOT A CHILD'S STAYS SO THROUGH `renameHandles` TOO — and that job leaves the children to this one. */
+  const ren = b.get({ run: 'renameHandles', name: 'Hal Admin', pin: PLACE }).result || {};
+  kidRule(S(rowOf(b, x => x.person_id === 'P-EJ').handle) === 'ella_kind62' && ren.children >= 5,
+    'renameHandles moved a child\'s handle — that is kidHandles\', which shows what it will do first', ren);
+
+  /* ---- APPLY ---- */
+  const ojWas = S(rowOf(b, x => x.person_id === 'P-OS').handle);
+  const grownWas = [S(rowOf(b, x => x.person_id === 'P-GR').handle), S(rowOf(b, x => x.person_id === 'P-TAM').handle)];
+  const ap = run('apply');
+  const r1 = ap.result || {};
+  const ej = rowOf(b, x => x.person_id === 'P-EJ'), os = rowOf(b, x => x.person_id === 'P-OS'), nb = rowOf(b, x => x.person_id === 'P-NB');
+  kidRule(r1.mode === 'apply' && (r1.rows || []).length === 3, 'apply did not report the three children it moved', r1);
+  kidRule(kidShape(ej.handle, 'ej') && kidShape(os.handle, 'os') && kidShape(nb.handle, 'nb'), 'apply did not give every child their initials and four digits', [ej.handle, os.handle, nb.handle]);
+  kidRule(S(ej.handle_was).split(', ')[0] === 'ella_kind62' && S(ej.handle_was).split(', ')[1] === 'ellajones',
+    'the old handle is not at the FRONT of handle_was with the history behind it', ej.handle_was);
+  kidRule(S(ej.handle_changed_at) !== '', 'apply did not stamp handle_changed_at');
+  kidRule(S(rowOf(b, x => x.person_id === 'P-GR').handle) === grownWas[0] && S(rowOf(b, x => x.person_id === 'P-TAM').handle) === grownWas[1],
+    'apply moved a grown-up\'s handle', grownWas);
+  kidRule(S(rowOf(b, x => x.person_id === 'P-GR').friends) === S(ej.handle) && S(os.friends) === S(ej.handle) + ', tam_kind66',
+    'a friends list that named a moved handle was left naming nobody', [rowOf(b, x => x.person_id === 'P-GR').friends, os.friends]);
+  kidRule(ojWas === 'kindotto63' && S(os.handle_was) === 'kindotto63', 'Otto\'s old handle is not on his handle_was', os.handle_was);
+  const snap2 = JSON.stringify(b.tabs.people);
+  const again = run('apply').result || {};
+  kidRule(again.toMove === 0 && JSON.stringify(b.tabs.people) === snap2, 'a second run moved somebody — it must be safe to run twice', again);
+
+  /* ---- AND NOBODY LOSES THEIR SIGN-IN ---- */
+  const viaOld = signIn(b, '@Ella_Kind62', ejPin);
+  kidRule(viaOld.success && viaOld.personId === 'P-EJ', 'a migrated child cannot sign in with the handle on her slip', viaOld);
+  kidRule(viaOld.handleMoved && viaOld.handleMoved.was === 'ella_kind62' && viaOld.handleMoved.now === ej.handle
+    && S(viaOld.message).indexOf('@' + ej.handle) !== -1, 'signing in with her old handle did not tell her the new one', viaOld);
+  const viaOlder = signIn(b, 'ellajones', ejPin);
+  kidRule(viaOlder.success && viaOlder.personId === 'P-EJ', 'an older handle still on her history does not sign her in', viaOlder);
+  const viaNew = signIn(b, ej.handle, ejPin);
+  kidRule(viaNew.success && !viaNew.handleMoved, 'her new handle does not sign her in, or says something moved', viaNew);
+  const m0 = MAIL.length;
+  const fp = post(b, { action: 'forgotPin', who: 'ella_kind62' });
+  kidRule(fp.success && mailTo('pat@example.org', m0).length === 1, '"Forgotten your PIN?" with the old handle did not reach her parent', fp);
+  /* HER PHONE, SIGNED IN BEFORE THE MOVE, LEARNS IT ON ITS NEXT OPEN. */
+  if (viaNew.token) {
+    const me = post(b, { action: 'myProfile', token: viaNew.token });
+    kidRule(me.success && me.handle === ej.handle && 'friends' in me, 'myProfile does not carry the handle and the friends list, so a signed-in phone keeps the old ones', me);
+  }
+  /* AN OLD HANDLE NEVER SIGNS IN SOMEBODY ELSE: nobody can be GIVEN one (`handleTrouble_`), and if the
+     sheet is typed so somebody holds one now, they are who it signs in. */
+  const t = b.ev('JSON.stringify(handleTrouble_("ella_kind62", null))');
+  kidRule(JSON.parse(t), 'the gate would hand Ella\'s old handle to somebody else', t);
+  b.seed('people', [person('P-NEW', 'student', 'Eve', 'Lane', { handle: 'ellajones' })]);
+  const clash = signIn(b, 'ellajones', PLACE);
+  kidRule(clash.success && clash.personId === 'P-NEW' && !clash.handleMoved,
+    'a handle somebody holds NOW signed in the child who used to have it', clash);
+
+  /* ---- AND RANDOMISE ON A CHILD: the same initials, a new tail, the old one kept and still working ---- */
+  const osIn = signIn(b, os.handle, PLACE);
+  if (!osIn.token) no('Otto could not sign in, so Randomise on a child was NOT checked', osIn);
+  else {
+    const before = S(rowOf(b, x => x.person_id === 'P-OS').handle);
+    const rnd = post(b, { action: 'randomiseHandle', token: osIn.token });
+    const after = rowOf(b, x => x.person_id === 'P-OS');
+    kidRule(rnd.success && kidShape(rnd.handle, 'os') && rnd.handle !== before && rnd.was === before,
+      'Randomise on a child did not keep his initials and draw a new tail', rnd);
+    kidRule(S(after.handle_was).split(', ')[0] === before, 'Randomise did not put the handle it replaced at the front of handle_was', after.handle_was);
+    kidRule(signIn(b, before, PLACE).personId === 'P-OS', 'the handle Randomise replaced no longer signs him in');
+  }
+  kidRule(kidRules >= 28, 'only ' + kidRules + ' of the children\'s-handle rules were asked');
+}
+
 const PROOF_RULES = 81;
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 
@@ -1262,7 +1393,8 @@ console.log('\nWRONG  (' + bad.length + ')');
 if (!bad.length) console.log('  none');
 bad.forEach(x => console.log('  ' + x));
 console.log('\nrequests made: ' + asked + '   emails caught: ' + MAIL.length + '   who-the-account-is-for rules held: ' + whoRules + ' of ' + WHO_RULES
-          + '   unproved-address rules held: ' + proofRules + ' of ' + PROOF_RULES);
+          + '   unproved-address rules held: ' + proofRules + ' of ' + PROOF_RULES
+          + '   children\'s-handle rules asked: ' + kidRules);
 if (bad.length) {
   console.log('FAILED — a child who cannot get in, or a classmate who can keep them out, is the whole of what the '
             + 'owner asked to be sure of: "all kids can login easily with their handle and pin".');

@@ -6797,8 +6797,8 @@ const STATES = {
         window.__RX_HELD = JSON.stringify(p.reactions);
         p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
                         total: 4, yours: '',
-                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
-                             { name: 'Carl Everyclient-Longername', emoji: '👍' },
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya', emoji: '👍' },
+                             { name: 'Carl Everyteacher-Longername', emoji: '👍' },
                              { name: 'Evie', emoji: '❤️' }] };
         repaint(true);
         goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
@@ -6833,7 +6833,7 @@ const STATES = {
         p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [12, 9, 15, 3, 27, 11],
                         total: 77, yours: '❤️',
                         by: [{ name: USER.name, emoji: '❤️' }, { name: 'Ada Tutor', emoji: '👍' },
-                             { name: 'Priya Parent', emoji: '😂' }] };
+                             { name: 'Priya', emoji: '😂' }] };
         repaint(true);
         goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
       },
@@ -6897,9 +6897,11 @@ const STATES = {
         const signed = typeof USER !== 'undefined' && !!USER;
         p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [2, 1, 3, 0, 0, 0],
                         total: 6, yours: signed ? '😂' : '',
-                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '😂' },
+                        /* THE LONG NAME IS A TUTOR'S: a parent reaches anybody else as her first name, as
+                           a child does (docs/history/333, 342), so a long whole name is only ever a tutor's. */
+                        by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya', emoji: '😂' },
                              { name: 'Evie', emoji: '😂' },
-                             { name: 'Carl Everyclient-Longername', emoji: '❤️' }]
+                             { name: 'Carl Everyteacher-Longername', emoji: '❤️' }]
                              .concat(signed ? [{ name: USER.name, emoji: '😂' }] : []) };
         repaint(true);
         goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);

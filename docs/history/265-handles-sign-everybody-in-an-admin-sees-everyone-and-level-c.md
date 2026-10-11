@@ -41,3 +41,5 @@ SATs` / `KS2 SATs`, and a card's crumb shows the level rather than `KS3, KS4`. C
 check-library unchanged — the key-stage cell is untouched; only how it is presented moved.
 Checked: check-funnel (order in code and live, no key stage without a level, no bare KS level,
 Key stage asked inside 0 levels).
+
+**Since 11 Oct (342):** a handle that has moved still signs its person in — `handleWasRows_`, asked only when nobody holds what was typed as their handle now — and the reply says the new one. No old handle is ever reissued to somebody else (`handleTrouble_`). See [342](342-a-child-s-handle-carries-no-name.md).
