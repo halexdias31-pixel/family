@@ -488,6 +488,10 @@ function boot(opts) {
       /* THE EIGHT-BIT FIGHTER'S WORDS AND SHAPES — `const`s, so a getter built here, like `STUFF`. The
          boxer journey asks the figure for exactly the pixels these say, rather than a copy of them. */
       'BOXER: () => (typeof BOXER_LOOK !== "undefined" ? { LOOK: BOXER_LOOK, HAIR: BOXER_HAIR, FACE: BOXER_FACE, BODY: BOXER_BODY, UNSAID: BOXER_HAIR_UNSAID } : null),' +
+      /* AND THE SECOND FINDER'S — the Resources column's own words and chips (docs/history/329). The
+         object itself, never parked or replaced; `STUFF` outside a binding is Find's, so the two
+         getters name the two finders. */
+      'RES: () => (typeof RES_ST !== "undefined" ? RES_ST : null),' +
       /* THE BIBLE READER'S STATE — a `const`, so a getter built here (see `STUFF`): which book is open,
          whether the index landed, which book failed. The Bible journey asks it rather than the DOM
          where the DOM cannot say, such as whether a failure changed the open book. */
@@ -530,16 +534,20 @@ function boot(opts) {
    written as questions somebody would actually ask of the app, not as assertions about internals. */
 const checks = [];
 /* `FLOW_ONLY=words node js/check-flow.js` runs the journeys whose names contain those words — for
-   working on one; the suite always runs the lot, and says how many it ran. */
+   working on one; the suite always runs the lot, and says how many it ran.
+   `FLOW_RE='one|two'` is the same as a regular expression, for several journeys that share no words —
+   the review of the second finder ran six that way, and without it `FLOW_RE` was silently ignored and
+   all of them ran, which looks exactly like a slow selection. */
 /* `FLOW_SLICE=1/3` RUNS EVERY THIRD JOURNEY, starting from the second — the suite in pieces, for a machine
    too busy to run all of it inside one ten-minute window. The pieces together are the suite; each says
-   how many it ran. */
+   how many it ran. (`FLOW_PART=2/4`, at the foot of the roster, is the same in four runs of neighbours.) */
+const FLOW_RE_ = process.env.FLOW_RE ? new RegExp(process.env.FLOW_RE) : null;
 const FLOW_SLICE = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_SLICE || '');
 let flowSeen = 0;
 const check = (name, fn) => {
   const n = flowSeen++;
   if (FLOW_SLICE && n % Number(FLOW_SLICE[2]) !== Number(FLOW_SLICE[1])) return;
-  if (!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) checks.push({ name, fn });
+  if ((!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) && (!FLOW_RE_ || FLOW_RE_.test(name))) checks.push({ name, fn });
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -13273,7 +13281,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
    which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
-check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
+check('Find and Resources draw the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -13304,8 +13312,11 @@ check('Find draws the same question family, practical, project and textbook for 
     { kind: 'question', name: 'Q12', qNumber: '12', marks: 1, key: 'q:Q-SAME-12', row: row('Q-SAME-12'), stems: [],
       answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
   ];
-  const real = ['practical', 'project', 'textbook'].map(k => w.stuffItems().find(x => x.kind === k));
-  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached Find, so it was NOT compared'); });
+  /* EACH FROM THE FINDER THAT CARRIES IT — the textbook from the Resources column since the resources
+     moved (docs/history/329), the practical and the project from Find. */
+  const R = resView_(w);
+  const real = [['practical', w], ['project', w], ['textbook', R]].map(([k, V]) => V.stuffItems().find(x => x.kind === k));
+  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached ' + (i === 2 ? 'Resources' : 'Find') + ', so it was NOT compared'); });
   const items = fam.concat(real.filter(Boolean));
   /* A PERSON'S, NOT A ROLE'S -- see the note above. */
   const norm = html => {
@@ -13368,7 +13379,8 @@ check('Find draws the same question family, practical, project and textbook for 
      Find for anybody since 10 Oct), so with the payload held still the only difference left is one the
      phone made — which is what this asks. */
   const BIBLE_KEY = 'bible:kjv';
-  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
+  /* OVER BOTH FINDERS: the Bible is on the Resources column now, and the rule is about everything offered. */
+  const offered = u => { t.USER(u); const ks = w.stuffItems().concat(R.stuffItems()).filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
   const out0 = offered(null);
   if (out0.indexOf(BIBLE_KEY) >= 0) bad.push('somebody signed out is offered the Bible — it is for admins only');
   who.slice(1).forEach(([what, u]) => {
@@ -16144,7 +16156,9 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
    chapter page has its key words, its formulas STACKED by `typeset_`, its worked lines and the
    Higher mark; typing a word that is only inside a chapter finds it; and the star keeps it on
    Saved. */
-check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
+/* MOVED TO THE SECOND FINDER WITH THE BOOK (docs/history/329): the route is the Resources column's now —
+   `What for` and `What kind` have one answer there and are skipped, so the shelf is its first question. */
+check('the @family. textbook, on the Resources column: @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -16161,7 +16175,8 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   const { w } = boot({ payload: p });
   await wait(300);
   const t = w.__t;
-  if (!t.STUFF) return ['Find\'s state is not exported to the journey'];
+  if (!t.RES || !t.RES()) return ['the Resources column\'s state is not exported to the journey'];
+  const R = resView_(w);
   const bad = [];
   const book = books.find(b => b.name === 'GCSE Statistics');
   if (!book) return ['data/textbooks.json has no book called GCSE Statistics — names: ' + books.map(b => b.name).join(', ')];
@@ -16169,9 +16184,11 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   /* THE ROUTE, ONE PRESS AT A TIME, on whatever the question page draws. A grouped question may
      draw the BUCKET first (`Read or watch it`), and pressing it is the same route one tap longer,
      so a bucket that holds the next word on the route is pressed and the question asked again. */
-  t.go('stuff');
-  t.STUFF().filters.length = 0; t.STUFF().q = '';
-  w.paintStuff();
+  t.go('res');
+  t.RES().filters.length = 0; t.RES().q = '';
+  w.paintFinder_('res');
+  /* AND FIND DOES NOT HOLD IT ANY MORE. */
+  if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('Find still holds the textbooks');
   /* AND `Subject` AFTER THE SHELF, now that the shelf holds a book for every GCSE: the book is found
      by its subject's group and then its subject — Maths, then Statistics — before `Book`, which is
      only asked if two books are left. With one book on the shelf the rung has one answer and is
@@ -16185,13 +16202,13 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   const rungs = ['forLabel', 'kindLabel', 'shelf', 'subject'];
   const pressed = [];
   for (let guard = 0; route.length && guard < 10; guard++) {
-    const btns = [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+    const btns = [...w.document.querySelectorAll('#s-res [data-do="facet-pick"]')];
     let el = btns.find(b => b.dataset.value === route[0]);
     /* A RUNG EVERYTHING LEFT ALREADY ANSWERS IS SKIPPED BY THE ONE-ANSWER RULE, and that is the
        route working rather than failing: the fixture has nothing under `What for` but Learning. The
        question is only allowed to be absent when its one answer IS the next word on the route. */
     const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
-    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
     if (!el && only.length === 1 && only[0] === route[0]) {
       pressed.push('(' + route.shift() + ')');
       continue;
@@ -16213,9 +16230,10 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   /* THE SHELF HAS TO HAVE BEEN PRESSED, not skipped: one answer there would mean the boxing was
      not beside it, and the door this journey is about was never on screen. Same for Resources. */
   if (pressed.indexOf('@family. textbooks') < 0) bad.push('the shelf was never a question — ' + pressed.join(' → '));
-  if (pressed.indexOf('Resources') < 0) bad.push('Resources was never pressed — ' + pressed.join(' → '));
+  /* AND `What kind` IS NOT A QUESTION HERE: every thing on the column is a resource. */
+  if (pressed.indexOf('(Resources)') < 0) bad.push('What kind was asked on the Resources column, or not skipped — ' + pressed.join(' → '));
   /* THE SHELF QUESTION OFFERED BOXING BESIDE IT, or it was not a door — it was the only answer. */
-  const left = w.stuffFiltered();
+  const left = R.stuffFiltered();
   if (left.length !== 1 || left[0].kind !== 'textbook' || left[0].name !== 'GCSE Statistics') {
     bad.push('after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
       + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the book');
@@ -16224,14 +16242,14 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
      Boxing, so a boxer with no shelf would vanish from the route that used to reach him — the door
      would have cost the boxing what it gave the book. */
   const shelfFacet = w.facetList().find(f => f.field === 'shelf');
-  const resources = w.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
-  const unshelved = resources.filter(i => !w.facetValues([i], shelfFacet).length);
+  const resources = R.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
+  const unshelved = resources.filter(i => !R.facetValues([i], shelfFacet).length);
   if (unshelved.length) {
     bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf ('
       + [...new Set(unshelved.map(i => i.kind))].join(', ') + ') — pressing a shelf hides them');
   }
-  const x = left.find(i => i.kind === 'textbook') || w.stuffItems().find(i => i.kind === 'textbook');
-  if (!x) return bad.concat(['Find offers no textbook at all']);
+  const x = left.find(i => i.kind === 'textbook') || R.stuffItems().find(i => i.kind === 'textbook');
+  if (!x) return bad.concat(['Resources offers no textbook at all']);
 
   /* CARD, THEN A PAGE PER CHAPTER IN ORDER — AND AFTER EACH CHAPTER ITS ANIMATIONS. "Add the animations
      from loading to respective subject text books" (the owner, 8 Oct): Statistics teaches the mean, Bayes,
@@ -16263,9 +16281,9 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   if (hc && !box(w.stuffPart_(x, 'ch' + hc.n)).querySelector('h3 .tb-h')) bad.push('chapter ' + hc.n + ' is Higher all through and its heading does not say so');
 
   /* SEARCHABLE BY ITS WORDS — one that is only inside a chapter, never in the title. */
-  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
-  if (!w.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" does not find the book — the chapters are not in its haystack');
-  t.STUFF().q = '';
+  t.RES().filters.length = 0; t.RES().q = 'frequency density';
+  if (!R.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" on Resources does not find the book — the chapters are not in its haystack');
+  t.RES().q = '';
 
   /* STARRABLE, by the card's own Save tile, and kept on Saved. */
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
@@ -16275,6 +16293,605 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
     t.ACTIONS.fav(fav);
     if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
   }
+  return bad;
+});
+
+/* ==================================================================================================
+   THE SECOND FINDER: RESOURCES, IMMEDIATELY RIGHT OF FIND (docs/history/329)
+   THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+   column to the right of the current finder. this new column is "finder 2". it carries resources.
+   like text books, boxing stuff books. ect."* One journey per rule of the build: the column is there
+   and where it was asked for; it carries the resources and Find none; the two share no state; each
+   keeps its own place across a reload and a sign-in; a link into a resource from elsewhere — Find, Saved
+   — opens it in the Resources column. The resources are the real files mapped by the app's own
+   `libraryExtras_`, so the shelves and questions are the ones a phone is asked.
+================================================================================================== */
+const RES_MADE_ = { v: null };
+const resPayload_ = async () => {
+  if (!RES_MADE_.v) {
+    const one = boot();
+    for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+    if (typeof one.w.libraryExtras_ !== 'function') return null;
+    const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+    RES_MADE_.v = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+      { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
+  }
+  const m = RES_MADE_.v;
+  /* THE PROJECTS TOO, so Find has a `What kind` of its own to ask while the resources are away. */
+  return Object.assign(payload(), { textbooks: m.textbooks || [], boxers: m.boxers || [], fights: m.fights || [], projects: m.projects || [] });
+};
+/* A call made as the second finder: `inFinder_` is the app's own binding (find.js). */
+const inRes_ = (w, fn) => w.inFinder_(w.finderOf_('res'), fn);
+/* THE APP'S OWN FUNCTIONS, EACH CALLED AS THE SECOND FINDER — `R.stuffFiltered()` is Resources' list,
+   `R.nextFacet(l)` its next question, `R.paintStuff()` its repaint. A journey that moved from Find to
+   Resources reads exactly as it did, with `w.` become `R.` where the finder is asked. */
+const resView_ = w => new Proxy({}, { get: (_, k) => (...a) => inRes_(w, () => w[k](...a)) });
+const resBoot_ = async (opts) => {
+  const p = await resPayload_();
+  if (!p) return null;
+  const b = boot(Object.assign({ payload: p }, opts || {}));
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(250);
+  return b.w.__t ? b : null;
+};
+/* THE PAGE TABLE ITSELF. `__t.PAGE` is a getter (`PAGE: () => PAGE`, which overrides the bare `PAGE`
+   earlier in the same literal), so `pg_(t).res` is undefined and a comparison of two of them passes
+   whatever the app did. Asked through this, so a page check can fail. */
+const pg_ = t => (typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {};
+const resIs_ = (w, x) => !!x && (x.kindLabel || w.kindOf_(x).label) === 'Resources';
+const resPick_ = (w, id, v) => [...w.document.querySelectorAll('#s-' + id + ' #' + id + '-groups [data-do="facet-pick"]')]
+  .find(b => b.dataset.value === v);
+const resType_ = (w, id, v) => {
+  const el = w.document.getElementById(id + '-q');
+  if (!el) return false;
+  el.value = v;
+  el.dispatchEvent(new w.Event('input', { bubbles: true }));
+  return true;
+};
+
+check('the second finder: a column called Resources immediately right of Find — the tab row, data/settings/columns.json, one swipe from Find, and its own search box and first question', async () => {
+  const file = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+  /* THE REAL FILE, SERVED, so the order a phone is given is the one checked — `applyColumns_` keeps only
+     the columns it names, in its order. */
+  const b = await resBoot_({ serve: url => (/data\/settings\/columns\.json/.test(url) ? file : undefined) });
+  if (!b) return ['the app or libraryExtras_ did not load — the second finder was NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  for (let i = 0; i < 80 && !(t.DATA().columns || []).length; i++) await wait(25);
+  if (!(t.DATA().columns || []).length) bad.push('data/settings/columns.json never reached DATA.columns — the file\'s order was NOT checked');
+  const ids = t.TABS.map(x => x.id);
+  const i = ids.indexOf('stuff'), j = ids.indexOf('res');
+  if (j < 0) return bad.concat(['there is no `res` column on the phone: ' + ids.join(' ')]);
+  if (j !== i + 1) bad.push('Resources is column ' + j + ' and Find ' + i + ' — wanted immediately right of Find: ' + ids.join(' '));
+  if (t.TABS[j].label !== 'Resources') bad.push('the column is labelled ' + JSON.stringify(t.TABS[j].label) + ', not Resources');
+  const row = file.find(r => r.screen === 'res');
+  if (!row) bad.push('data/settings/columns.json has no `res` row, so the column is on no phone');
+  /* AND IN THE CODE'S OWN ORDER, which is the order whenever the file is not read (`TAB_ORDER`). */
+  const bare = boot();
+  for (let k = 0; k < 80 && !bare.w.__t; k++) await wait(25);
+  if (bare.w.__t) {
+    const ids0 = bare.w.__t.TABS.map(x => x.id);
+    if (ids0.indexOf('res') !== ids0.indexOf('stuff') + 1) bad.push('without the file, TAB_ORDER puts Resources at ' + ids0.indexOf('res') + ' and Find at ' + ids0.indexOf('stuff') + ': ' + ids0.join(' '));
+  } else bad.push('the second boot did not load, so TAB_ORDER was NOT checked');
+  /* ONE SWIPE FROM FIND, AND ITS OWN PAGE: a search box, chips and the question, under its own ids. */
+  t.go('stuff', false, true);
+  await wait(60);
+  const next = t.TABS[t.TABS.findIndex(x => x.id === t.AT()) + 1];
+  if (!next || next.id !== 'res') bad.push('the column one swipe right of Find is ' + (next ? next.id : 'nothing'));
+  t.go('res', false, true);
+  await wait(120); await woken_();
+  const host = d.getElementById('s-res');
+  if (!host) return bad.concat(['index.html has no <section id="s-res">']);
+  if (!host.querySelector('#res-q.search')) bad.push('the Resources column has no search box of its own (#res-q)');
+  if (!host.querySelector('#res-chips') || !host.querySelector('#res-groups')) bad.push('the Resources column has no chips row or question (#res-chips, #res-groups)');
+  if (host.querySelector('#stuff-q') || d.getElementById('s-stuff').querySelector('#res-q')) bad.push('a finder drew the other finder\'s search box');
+  /* ITS FIRST QUESTION, BY THE FUNNEL'S OWN RULES: Shelf. What for and What kind have one answer each
+     over the resources, so both are skipped. */
+  const answers = [...host.querySelectorAll('#res-groups [data-do="facet-pick"]')].map(el => el.dataset.field + ':' + el.dataset.value);
+  if (!answers.length || !answers.every(a => a.indexOf('shelf:') === 0)) bad.push('the first question on Resources is not Shelf: ' + (answers.join(' | ') || 'no answers'));
+  ['@family. textbooks', 'Boxing'].forEach(v => { if (answers.indexOf('shelf:' + v) < 0) bad.push('Shelf does not offer ' + v + ': ' + answers.join(' | ')); });
+  if (host.querySelector('#res-groups [data-field="forLabel"], #res-groups [data-field="kindLabel"]')) bad.push('Resources asks What for or What kind, which each have one answer there');
+  return bad;
+});
+
+check('the second finder carries every resource kind and nothing else, and Find carries none — not in its list, its What kind or its search', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  const find = w.stuffItems();
+  const res = inRes_(w, () => w.stuffItems());
+  const kinds = l => [...new Set(l.map(x => x.kind))].sort().join(', ') || 'nothing';
+  if (!res.length) return ['the Resources column holds nothing — NOT checked'];
+  ['textbook', 'boxer', 'fight'].forEach(k => {
+    if (!res.some(x => x.kind === k)) bad.push('Resources holds no ' + k);
+    if (find.some(x => x.kind === k)) bad.push('Find still holds ' + find.filter(x => x.kind === k).length + ' ' + k + '(s)');
+  });
+  if (find.some(x => resIs_(w, x))) bad.push('Find still holds Resources: ' + kinds(find.filter(x => resIs_(w, x))));
+  if (!res.every(x => resIs_(w, x))) bad.push('Resources holds things that are not Resources: ' + kinds(res.filter(x => !resIs_(w, x))));
+  if (!find.some(x => x.kind === 'project')) bad.push('Find lost its projects — NOT a split, a loss');
+  /* AND SAVED STILL SEES BOTH: the whole list is untouched (`stuffItemsAll_`). */
+  const all = w.stuffItemsAll_();
+  if (!all.some(x => x.kind === 'textbook') || !all.some(x => x.kind === 'project')) bad.push('the whole list (Saved, Spotlight, answer lookups) lost a kind: ' + kinds(all));
+  /* WHAT KIND ON FIND: no Resources answer, bucketed or not. */
+  const kl = w.facetList().find(f => f.field === 'kindLabel');
+  const said = w.facetValues(find, kl).map(v => String(v.value));
+  if (said.indexOf('Resources') >= 0) bad.push('Find\'s What kind still offers Resources: ' + said.join(', '));
+  if (find.some(x => [].concat(kl.of(x)).indexOf('Resources') >= 0)) bad.push('an item on Find still answers What kind with Resources');
+  /* SEARCH: words that are only inside a textbook's chapters. */
+  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
+  const fHits = w.stuffFiltered();
+  if (fHits.some(x => resIs_(w, x))) bad.push('typing "frequency density" on Find finds ' + kinds(fHits.filter(x => resIs_(w, x))));
+  t.STUFF().q = '';
+  t.RES().filters.length = 0; t.RES().q = 'frequency density';
+  const rHits = inRes_(w, () => w.stuffFiltered());
+  if (!rHits.some(x => x.kind === 'textbook')) bad.push('typing "frequency density" on Resources does not find the textbook');
+  t.RES().q = '';
+  /* THE BIBLE IS A RESOURCE — the item that holds it decides the column. */
+  if (w.finderOfItem_({ kind: 'bible' }).id !== 'res') bad.push('the Bible would open in ' + w.finderOfItem_({ kind: 'bible' }).id + ', not Resources');
+  /* ANYTHING ELSE WHOSE LABEL IS RESOURCES — the live kinds tab decides, with no deploy. Relabel the
+     boxers in the sheet and they change column; put the label back and they come home. */
+  const was = t.DATA().kinds;
+  t.DATA().kinds = [{ kind: 'boxer', group: 'Learning', label: 'Fighters', active: true }];
+  w.stuffForget_();
+  const fMoved = w.stuffItems().filter(x => x.kind === 'boxer').length;
+  const rMoved = inRes_(w, () => w.stuffItems()).filter(x => x.kind === 'boxer').length;
+  if (!fMoved || rMoved) bad.push('the kinds tab relabelled the boxers and they did not move to Find (Find ' + fMoved + ', Resources ' + rMoved + ')');
+  t.DATA().kinds = was;
+  w.stuffForget_();
+  if (inRes_(w, () => w.stuffItems()).filter(x => x.kind === 'boxer').length !== res.filter(x => x.kind === 'boxer').length) bad.push('the boxers did not come back to Resources when the label did');
+  return bad;
+});
+
+check('two finders, no shared state: a chip, a search word or a page turned in one never reaches the other — whichever column a press comes from', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const F = () => JSON.stringify([t.STUFF().filters, t.STUFF().q]);
+  const R = () => JSON.stringify([t.RES().filters, t.RES().q]);
+  t.go('stuff', false, true); await wait(60);
+  t.go('res', false, true); await wait(120); await woken_();
+  /* A CHIP PRESSED ON RESOURCES IS RESOURCES' ALONE. */
+  const shelf = resPick_(w, 'res', 'Boxing');
+  if (!shelf) return ['Resources does not offer Shelf · Boxing to press — NOT checked'];
+  const f0 = F();
+  A['facet-pick'](shelf);
+  if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('pressing Boxing on Resources left its chips ' + JSON.stringify(t.RES().filters));
+  if (F() !== f0) bad.push('a chip pressed on Resources reached Find: ' + F());
+  if (!/Boxing/.test(d.getElementById('res-chips').textContent)) bad.push('the Resources chips row does not show Boxing');
+  if (/Boxing/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('Find\'s chips row shows Boxing');
+  /* A WORD TYPED IN RESOURCES' BOX IS RESOURCES' ALONE. */
+  resType_(w, 'res', 'ali');
+  await wait(260);
+  if (t.RES().q !== 'ali') bad.push('typing in #res-q left Resources\' words ' + JSON.stringify(t.RES().q));
+  if (t.STUFF().q) bad.push('typing in #res-q put ' + JSON.stringify(t.STUFF().q) + ' into Find\'s words');
+  /* A PAGE TURNED IN RESOURCES IS RESOURCES' ALONE. */
+  const p0 = pg_(t).stuff;
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  const n = inRes_(w, () => w.stuffPages_().length);
+  if (!n) bad.push('Shelf · Boxing and "ali" left nothing to turn to on Resources — the page rule was NOT checked');
+  else {
+    t.goPage('res', first + Math.min(1, n - 1), true);
+    await wait(80);
+    if (pg_(t).res !== first + Math.min(1, n - 1)) bad.push('Resources did not turn to page ' + (first + 1) + ' (it is on ' + pg_(t).res + ')');
+    if (pg_(t).stuff !== p0) bad.push('turning a page on Resources moved Find from page ' + p0 + ' to ' + pg_(t).stuff);
+  }
+  /* AND BACK ON FIND, EVERYTHING THE OTHER WAY ROUND. */
+  t.go('stuff', false, true); await wait(120); await woken_();
+  const r0 = R(), pr = pg_(t).res;
+  const pick = d.querySelector('#s-stuff #stuff-groups [data-do="facet-pick"]');
+  if (!pick) bad.push('Find drew no answer to press — the reverse was NOT checked');
+  else {
+    A['facet-pick'](pick);
+    if (!t.STUFF().filters.length) bad.push('pressing an answer on Find left no chip on Find');
+    if (R() !== r0) bad.push('a chip pressed on Find changed Resources: ' + R());
+  }
+  resType_(w, 'stuff', 'fractions');
+  await wait(260);
+  if (t.STUFF().q !== 'fractions') bad.push('typing in #stuff-q left Find\'s words ' + JSON.stringify(t.STUFF().q));
+  if (t.RES().q !== 'ali') bad.push('typing in #stuff-q changed Resources\' words to ' + JSON.stringify(t.RES().q));
+  t.goPage('stuff', 0, true);
+  if (pg_(t).res !== pr) bad.push('turning a page on Find moved Resources from ' + pr + ' to ' + pg_(t).res);
+  /* A PRESS FROM NOWHERE — a detached button, as the checks press — acts on the column in front. */
+  A['filter-clear'](d.createElement('button'));
+  if (t.STUFF().filters.length) bad.push('Clear pressed with Find in front left Find\'s chips');
+  if (R() !== r0) bad.push('Clear pressed with Find in front cleared Resources too: ' + R());
+  /* AND RESOURCES' OWN CLEAR TILE CLEARS RESOURCES ONLY. */
+  t.go('res', false, true); await wait(120);
+  const clear = d.querySelector('#res-clear [data-do="filter-clear"]');
+  if (!clear) bad.push('Resources has no Clear tile beside its box while it holds a chip');
+  else {
+    t.STUFF().filters.push({ field: 'kindLabel', value: 'Projects' });
+    A['filter-clear'](clear);
+    if (t.RES().filters.length) bad.push('Resources\' Clear left ' + JSON.stringify(t.RES().filters));
+    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('Resources\' Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
+  }
+  return bad;
+});
+
+check('the second finder keeps its own place across a reload — the column, its chips and the chapter in front — and Find keeps its own', async () => {
+  const ADA = ANS_ADA;
+  const one = await resBoot_({ before: signedInAs_(ADA) });
+  if (!one) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const W = one.w, T = W.__t, bad = [];
+  /* REMEMBERED, as a finger's swipe is (`familyTab`): the column is half of where you were. */
+  T.go('res');
+  await wait(80);
+  const chips = [{ field: 'shelf', value: '@family. textbooks' }, { field: 'subject', value: 'Statistics' }];
+  T.RES().filters = chips.map(f => Object.assign({}, f));
+  W.paintFinder_('res');
+  const pages = inRes_(W, () => W.stuffPages_());
+  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'textbook' && pg.part === 'ch3');
+  if (at < 0) return ['Shelf · @family. textbooks, Subject · Statistics has no chapter 3 page — nothing was reloaded'];
+  T.goPage('res', inRes_(W, () => W.stuffFirstResult_()) + at, true);
+  await wait(150);
+  const want = pg_(T).res;
+  /* FIND HAS A PLACE OF ITS OWN, which is not in front and so is not the one a reload comes back to. */
+  T.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  W.paintStuff();
+  W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const kept = keptStore_(W);
+  const resKey = Object.keys(kept).find(k => /^draft:u:P7:res:place$/.test(k));
+  if (!resKey) return bad.concat(['nothing was kept under draft:u:P7:res:place: ' + Object.keys(kept).filter(k => /place/.test(k)).join(', ')]);
+  if (Object.keys(kept).some(k => /:find:place$/.test(k) && /textbooks/.test(kept[k]))) bad.push('Resources\' chips were kept under Find\'s place');
+  const two = await resBoot_({ before: fromStore_(kept) });
+  if (!two) return bad.concat(['the reload did not load — NOT checked']);
+  const w = two.w, t = w.__t;
+  for (let i = 0; i < 100 && !(t.RES().filters || []).length; i++) await wait(50);
+  await wait(200);
+  if (t.AT() !== 'res') bad.push('the reload opened on ' + t.AT() + ', not Resources');
+  if (JSON.stringify(t.RES().filters) !== JSON.stringify(chips)) bad.push('the reload brought Resources back with the chips ' + JSON.stringify(t.RES().filters));
+  if (pg_(t).res !== want) bad.push('the reload put Resources on page ' + pg_(t).res + ', not chapter 3\'s ' + want);
+  const shown = w.document.querySelector('#s-res .card.is-ch3');
+  if (!shown) bad.push('after the reload no chapter 3 card is drawn on Resources');
+  if ((t.STUFF().filters || []).length) bad.push('the reload put Resources\' place on Find: ' + JSON.stringify(t.STUFF().filters));
+  /* AND FIND'S OWN, FROM FIND: kept under its own name and brought back to Find, Resources untouched. */
+  const t2 = two.w;
+  t.go('stuff');
+  await wait(60);
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  t2.paintStuff();
+  t2.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  t2.dispatchEvent(new t2.Event('pagehide'));
+  const kept2 = keptStore_(t2);
+  const three = await resBoot_({ before: fromStore_(kept2) });
+  if (!three) return bad.concat(['the second reload did not load — NOT checked']);
+  const t3 = three.w.__t;
+  for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
+  if (t3.AT() !== 'stuff') bad.push('the reload from Find opened on ' + t3.AT());
+  if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('the reload from Find brought Find back with ' + JSON.stringify(t3.STUFF().filters));
+  if ((t3.RES().filters || []).length) bad.push('the reload from Find put chips on Resources: ' + JSON.stringify(t3.RES().filters));
+  /* A PLACE KEPT BEFORE THE RESOURCES MOVED: Find's own, holding a resource chip, comes back without it. */
+  const stale = Object.assign({}, kept2);
+  Object.keys(stale).filter(k => /^draft:u:P7:find:place$/.test(k)).forEach(k => {
+    const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
+    /* AND THE BIBLE'S CHIPS (the review, finding 3): nothing on any list answers a Bible book, so the
+       rule that drops a chip only the other finder answers read it as early and kept it. */
+    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' },
+           { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }];
+    dd.v = JSON.stringify(p); stale[k] = JSON.stringify(dd);
+  });
+  const four = await resBoot_({ before: fromStore_(stale) });
+  if (four) {
+    const t4 = four.w.__t;
+    for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
+    if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('a place kept before the move, holding Shelf · Boxing and a Bible book, came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' — wanted the resource chip dropped and the rest kept');
+  }
+  return bad;
+});
+
+check('the second finder across a sign-in: kept from signed out, kept for the child whose session ended, cleared when an admin signs out or another child signs in', async () => {
+  const bad = [];
+  const where = t => JSON.stringify([t.RES().filters, t.RES().q, pg_(t).res]);
+  /* ---- SIGNED OUT, ON A CHAPTER, THEN SIGNED IN ---- */
+  {
+    const b = await resBoot_();
+    if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+    const { w } = b, t = w.__t;
+    if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
+    t.go('res', false, true); await wait(100);
+    const btn = resPick_(w, 'res', '@family. textbooks');
+    if (!btn) return ['Resources does not offer the textbooks shelf — NOT checked'];
+    t.ACTIONS['facet-pick'](btn);
+    resType_(w, 'res', 'probability');
+    await wait(260);
+    const n = inRes_(w, () => w.stuffPages_().length);
+    if (n < 3) return ['the textbooks searched for "probability" left ' + n + ' page(s) — the page was NOT checked'];
+    t.goPage('res', inRes_(w, () => w.stuffFirstResult_()) + 2, true);
+    await wait(80);
+    const before = where(t);
+    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
+    await wait(80);
+    if ((t.whoami() || {}).personId !== 'P12') return ['the child did not sign in: ' + JSON.stringify(t.whoami())];
+    if (where(t) !== before) bad.push('signing in from signed out changed Resources from ' + before + ' to ' + where(t));
+  }
+  /* ---- AN ADMIN, ON THE BOOKS SHELF (which lives in Resources now), SIGNS OUT ---- */
+  {
+    const b = await resBoot_({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
+    if (!b) return bad.concat(['the admin boot did not load — NOT checked']);
+    const { w } = b, t = w.__t, d = w.document;
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().q = 'genesis';
+    w.paintFinder_('res');
+    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Resources chips do not name the Books shelf, so its going was NOT checked');
+    t.ACTIONS.signout(d.createElement('button'));
+    await wait(60);
+    if (t.whoami()) bad.push('Sign out left somebody signed in');
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    t.go('res', false, true); await wait(60);
+    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, the Resources chips still name the Books shelf');
+  }
+  /* ---- A CHILD'S SESSION ENDS ON RESOURCES: kept for them, not for the next child ---- */
+  {
+    const b = await resBoot_({ before: signedInAs_(KEEP_SOL_) });
+    if (!b) return bad.concat(['the child boot did not load — NOT checked']);
+    const { w } = b, t = w.__t;
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+    w.paintFinder_('res');
+    w.signedOut_({ ended: true, quiet: true });
+    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('a session ending under the child emptied Resources: ' + JSON.stringify(t.RES().filters));
+    if (t.RES().whose !== 'P12') bad.push('the kept Resources does not say whose it is: ' + JSON.stringify(t.RES().whose));
+    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
+    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('the same child signing in again lost Resources\' chips');
+    if (t.RES().whose) bad.push('signed in, RES.whose still names ' + JSON.stringify(t.RES().whose));
+    w.signedOut_({ ended: true, quiet: true });
+    w.signedIn_(Object.assign({ success: true }, KEEP_KIT_), 'kit');
+    if (t.RES().filters.length) bad.push('the next child signing in over a dead session is handed the last child\'s Resources: ' + JSON.stringify(t.RES().filters));
+  }
+  return bad;
+});
+
+check('a link into a resource from elsewhere opens it in Resources: pressed on Find, and Saved\'s Open under a kept textbook — on its card, the chapters a swipe up', async () => {
+  const b = await resBoot_({ before: signedInAs_(ANS_ADA) });
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const book = w.stuffItemsAll_().find(x => x.kind === 'textbook' && x.name === 'GCSE Statistics');
+  const boxer = w.stuffItemsAll_().find(x => x.kind === 'boxer');
+  if (!book || !boxer) return ['no GCSE Statistics or no boxer in the whole list — NOT checked'];
+  const onCard = (x, when) => {
+    if (t.AT() !== 'res') bad.push(when + ': the column in front is ' + t.AT() + ', not Resources');
+    const pg = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_()]);
+    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Resources is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
+    const next = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_() + 1]);
+    if (x.kind === 'textbook' && !(next && next.x === x && next.part === 'ch1')) bad.push(when + ': the page after the card is not chapter 1');
+  };
+  /* ---- FROM FIND: the tile a link into a textbook draws, pressed while Find is in front ---- */
+  t.go('stuff', false, true); await wait(60);
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  w.paintStuff();
+  const f0 = JSON.stringify(t.STUFF().filters), p0 = pg_(t).stuff;
+  const host = d.createElement('div');
+  d.getElementById('s-stuff').querySelector('.pane').appendChild(host);
+  host.innerHTML = w.finderOpenTile_(book);
+  const link = host.querySelector('[data-do="find-open"]');
+  if (!link) return bad.concat(['a textbook drawn on Find has no Open tile into Resources']);
+  if (!/Resources/.test(link.getAttribute('aria-label') || '')) bad.push('the Open tile does not say where it goes: ' + JSON.stringify(link.getAttribute('aria-label')));
+  A['find-open'](link);
+  await wait(120);
+  onCard(book, 'a textbook opened from Find');
+  if (JSON.stringify(t.STUFF().filters) !== f0 || pg_(t).stuff !== p0) bad.push('opening a textbook from Find changed Find\'s own chips or page');
+  if (!t.RES().filters.some(f => f.field === 'shelf' && f.value === '@family. textbooks')) bad.push('Resources opened the book without the shelf a finger would have pressed: ' + JSON.stringify(t.RES().filters));
+  host.remove();
+  /* INSIDE RESOURCES THE CARD IS ALREADY OPEN: no tile. */
+  const inside = inRes_(w, () => w.finderOpenTile_(book));
+  if (inside) bad.push('a textbook drawn on Resources carries an Open tile to where it already is');
+  /* ---- FROM SAVED: star the book and a boxer, open each from its Open tile ---- */
+  t.RES().filters = []; t.RES().q = '';
+  [book, boxer].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
+  t.go('saved', false, true); await wait(150); await woken_();
+  const saved = d.getElementById('s-saved');
+  const opens = [...saved.querySelectorAll('[data-do="find-open"]')];
+  const forBook = opens.find(el => el.getAttribute('data-key') === book.key);
+  const forBoxer = opens.find(el => el.getAttribute('data-key') === boxer.key);
+  if (!forBook) return bad.concat(['the textbook kept on Saved has no Open tile — its chapters cannot be reached from there']);
+  A['find-open'](forBook);
+  await wait(150);
+  onCard(book, 'a textbook opened from Saved');
+  if (!forBoxer) bad.push('the boxer kept on Saved has no Open tile');
+  else {
+    t.go('saved', false, true); await wait(120);
+    const again = [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === boxer.key);
+    A['find-open'](again || forBoxer);
+    await wait(150);
+    onCard(boxer, 'a boxer opened from Saved');
+  }
+  /* A QUESTION KEPT ON SAVED IS FIND'S, and is not given a way into Resources. */
+  const q = w.stuffItemsAll_().find(x => x.kind === 'project');
+  if (q && w.finderOpenTile_(q)) bad.push('a project kept on Saved was given an Open tile into Resources');
+  return bad;
+});
+
+/* ==================================================================================================
+   THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). Each journey below was a probe of
+   the reviewer's first — reproduced on this branch before anything was changed, red — and is held here
+   so the rule it found stays found.
+================================================================================================== */
+
+/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS ----------------------------------------------
+   FINDING 1. Find's search stopped carrying the resources, which is the owner's split — and its empty
+   answer still said "Try fewer words." for a boxer that is one swipe away. Before the move, typing a
+   boxer's name, a verse's book or a textbook's word into Find was the way to reach it by name; the
+   owner's list of links into a resource names "a search hit". So an empty search counts what the same
+   words find in the other finder and, if anything, says how many and where, with one Open tile that
+   carries the words there — and the other way round, Resources pointing to Find. A word nobody has
+   still says "Try fewer words." with no tile, and a chip on the other finder that would hide every hit
+   is taken off by the tile rather than landing on "Nothing matches" over there. */
+check('a search one finder cannot answer and the other can says where: Find\'s "Olivares" offers Resources and lands on his card there; a project\'s word on Resources offers Find', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const olivares = w.stuffItemsAll_().find(x => x.kind === 'boxer' && /Olivares/.test(x.name));
+  if (!olivares) return ['no Ruben Olivares among the boxers — NOT checked'];
+  /* RESOURCES HOLDS A CHIP UNDER WHICH HE IS NOT ON THE LIST: the tile must not land there blind. */
+  t.RES().filters = [{ field: 'shelf', value: '@family. textbooks' }];
+  t.go('stuff', false, true); await wait(80); await woken_();
+  if (!resType_(w, 'stuff', 'Olivares')) return ['Find has no search box — NOT checked'];
+  await wait(260); await woken_();
+  if (t.STUFF().q !== 'Olivares') return ['typing into #stuff-q did not reach Find\'s words — NOT checked'];
+  if (w.stuffFiltered().length) return ['the setup: Find itself finds ' + w.stuffFiltered().length + ' thing(s) for "Olivares", so the empty answer was NOT checked'];
+  const groups = d.getElementById('stuff-groups');
+  const said = (groups.textContent || '').replace(/\s+/g, ' ').trim();
+  if (/Try fewer words/.test(said)) bad.push('Find says "Try fewer words." for a boxer one swipe away in Resources: "' + said + '"');
+  if (!/\b1 in Resources\b/.test(said)) bad.push('Find\'s empty search does not say "1 in Resources": "' + said + '"');
+  const tile = groups.querySelector('.tile-row [data-do="finder-words"]');
+  if (!tile) return bad.concat(['no Open tile under Find\'s empty search, so nothing carries the words to Resources']);
+  if (tile.getAttribute('data-to') !== 'res') bad.push('the tile goes to ' + JSON.stringify(tile.getAttribute('data-to')) + ', not res');
+  if (!/Resources/.test(tile.getAttribute('aria-label') || '')) bad.push('the tile does not say where it goes: ' + JSON.stringify(tile.getAttribute('aria-label')));
+  const f0 = JSON.stringify([t.STUFF().filters, t.STUFF().q]), p0 = pg_(t).stuff;
+  A['finder-words'](tile);
+  await wait(150); await woken_();
+  if (t.AT() !== 'res') bad.push('the Open tile landed on ' + t.AT() + ', not Resources');
+  if (t.RES().q !== 'Olivares') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q) + ', not "Olivares"');
+  if ((d.getElementById('res-q') || {}).value !== 'Olivares') bad.push('Resources\' box reads ' + JSON.stringify((d.getElementById('res-q') || {}).value) + ' — the words are not shown where they now narrow');
+  if (t.RES().filters.length) bad.push('the tile left Resources\' chip that hides him: ' + JSON.stringify(t.RES().filters));
+  const pg = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_()]);
+  if (!pg || pg.x !== olivares || pg.part) bad.push('Resources is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not Ruben Olivares\'s card');
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('the page in front of Resources is not drawn after the tile');
+  if (JSON.stringify([t.STUFF().filters, t.STUFF().q]) !== f0 || pg_(t).stuff !== p0) bad.push('the tile changed Find\'s own words, chips or page');
+  /* ---- THE OTHER WAY: a project's word, typed on Resources ---- */
+  const proj = w.stuffItems().filter(x => x.kind === 'project');
+  let word = '';
+  for (const x of proj) {
+    for (const v of String(x.name || '').split(/[^A-Za-z]+/).filter(s => s.length >= 5)) {
+      const inRes = inRes_(w, () => { const was = w.__t.STUFF().q; w.__t.STUFF().q = v; try { return w.stuffFiltered().length; } finally { w.__t.STUFF().q = was; } });
+      if (!inRes) { word = v; break; }
+    }
+    if (word) break;
+  }
+  if (!word) return bad.concat(['no project word that Resources does not answer — the reverse was NOT checked']);
+  t.RES().filters = []; 
+  resType_(w, 'res', word);
+  await wait(260); await woken_();
+  const rsaid = (d.getElementById('res-groups').textContent || '').replace(/\s+/g, ' ').trim();
+  if (!/\b\d+ in Find\b/.test(rsaid)) bad.push('Resources\' empty search for "' + word + '" does not say how many are in Find: "' + rsaid + '"');
+  const back = d.querySelector('#res-groups .tile-row [data-do="finder-words"]');
+  if (!back) bad.push('no Open tile under Resources\' empty search for "' + word + '"');
+  else {
+    if (back.getAttribute('data-to') !== 'stuff') bad.push('Resources\' tile goes to ' + back.getAttribute('data-to'));
+    A['finder-words'](back);
+    await wait(150); await woken_();
+    if (t.AT() !== 'stuff') bad.push('Resources\' Open landed on ' + t.AT() + ', not Find');
+    if (t.STUFF().q !== word) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q) + ', not ' + JSON.stringify(word));
+    if (!w.stuffFiltered().length) bad.push('Find finds nothing for "' + word + '" after the tile');
+  }
+  /* ---- A WORD NOBODY HAS: the old sentence, and no tile ---- */
+  t.go('stuff', false, true);
+  resType_(w, 'stuff', 'zqxjv');
+  await wait(260); await woken_();
+  const none = (d.getElementById('stuff-groups').textContent || '').replace(/\s+/g, ' ');
+  if (!/Try fewer words/.test(none)) bad.push('a word nobody has no longer says "Try fewer words.": "' + none.trim() + '"');
+  if (d.querySelector('#stuff-groups [data-do="finder-words"]')) bad.push('a word nobody has drew an Open tile to the other finder');
+  return bad;
+});
+
+/* ---------- A FIND PLACE KEPT BEFORE THE MOVE, INSIDE THE BIBLE, AN ADMIN'S ------------------------------
+   FINDING 3. `finderForeign_` drops a chip that only the other finder answers — and nothing on any list
+   answers a Bible book, a chapter or a verse (the verses are a list of their own, `bibleVerses_`), so
+   `Genesis` read as EARLY rather than foreign, stayed on Find, and Find came back inside the Bible
+   saying "Nothing matches". Only an admin could have had the Bible on Find, so this is an admin's. */
+check('a Find place kept before the move inside the Bible (an admin\'s) comes back to Find without any Bible chip', async () => {
+  const ADMIN = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' };
+  /* THE REAL BIBLE FILES, SERVED, so the Bible is on the admin's list as it is on the site — without its
+     index there is no Bible item, and the chips would be measured against a list that has no Bible. */
+  const bibleDir = path.join(dir, '..', 'data', 'bible');
+  const serve = url => {
+    const m = /(?:^|\/)data\/bible\/([a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(bibleDir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const one = await resBoot_({ serve, before: signedInAs_(ADMIN) });
+  if (!one) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const W = one.w, T = W.__t, bad = [];
+  for (let i = 0; i < 80 && !(T.BIBLE() && T.BIBLE().index); i++) await wait(25);
+  if (!(T.BIBLE() && T.BIBLE().index)) return ['the Bible\'s index never loaded for the admin — NOT checked'];
+  T.go('stuff'); await wait(80);
+  T.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' },
+    { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' }];
+  W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const kept = keptStore_(W);
+  if (!Object.keys(kept).some(x => /^draft:u:P001:find:place$/.test(x))) return ['nothing was kept under draft:u:P001:find:place — NOT checked'];
+  const two = await resBoot_({ serve, before: fromStore_(kept) });
+  if (!two) return ['the reload did not load — NOT checked'];
+  const w = two.w, t = w.__t;
+  for (let i = 0; i < 100 && !(t.STUFF().filters || []).length; i++) await wait(50);
+  for (let i = 0; i < 80 && !(t.BIBLE() && t.BIBLE().index); i++) await wait(25);
+  await wait(200);
+  if (t.AT() !== 'stuff') bad.push('the reload opened on ' + t.AT() + ', not Find — the place was NOT brought back');
+  const fl = t.STUFF().filters || [];
+  if (JSON.stringify(fl) !== JSON.stringify([{ field: 'forLabel', value: 'Learning' }])) bad.push('Find came back with ' + JSON.stringify(fl) + ' — wanted Learning and every resource and Bible chip dropped');
+  if (w.bibleInside_()) bad.push('Find is inside the Bible after the reload');
+  if (/Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || '')) bad.push('Find says "Nothing matches" after the reload');
+  /* AND THE SAME CHIPS ARE RESOURCES' OWN: a place kept there keeps them. */
+  if (w.inFinder_(w.finderOf_('res'), () => w.finderForeign_({ field: 'bibleBook', value: 'Genesis' }))) bad.push('Resources would drop its own Bible book chip from a kept place');
+  return bad;
+});
+
+/* ---------- WORK THAT RUNS LATER, BOUND TO ITS FINDER ----------------------------------------------------
+   FINDING 4. The build listed the delayed work it re-binds — the search box's debounce, the draw's
+   microtask, `goPage` — and none of the six journeys above failed when any one of them was undone,
+   while the Resources column visibly broke: it never updated as you typed, a landing repaint left the
+   page in front blank, and a swipe turned to blank pages until the after-slide fill. One journey each,
+   asked of what is on the screen. */
+check('Resources\' search box repaints Resources after its debounce, even with an answer pressed on Find inside the 180ms', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  t.go('res', false, true); await wait(120); await woken_();
+  const resQ0 = d.getElementById('res-groups').innerHTML;
+  resType_(w, 'res', 'frequency density');
+  t.go('stuff', false, true);
+  const pick = d.querySelector('#s-stuff #stuff-groups [data-do="facet-pick"]');
+  if (pick) A['facet-pick'](pick); else bad.push('Find drew no answer to press inside the debounce');
+  const findGroups = d.getElementById('stuff-groups').innerHTML;
+  const findF = JSON.stringify(t.STUFF().filters);
+  await wait(400); await woken_();
+  if (t.RES().q !== 'frequency density') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q));
+  if (t.STUFF().q) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q));
+  /* NORMALISED THROUGH AN ELEMENT, as the screen's own markup is once the browser has parsed it. */
+  const tmp = d.createElement('div'); tmp.innerHTML = inRes_(w, () => w.stuffQuestion());
+  const want = tmp.innerHTML;
+  if (want === resQ0) return bad.concat(['the setup: "frequency density" does not change Resources\' question, so its repaint was NOT checked']);
+  if (d.getElementById('res-groups').innerHTML !== want) bad.push('Resources\' question on screen is not what its own state draws after the debounce (unchanged since before typing: ' + (d.getElementById('res-groups').innerHTML === resQ0) + ')');
+  if (d.getElementById('stuff-groups').innerHTML !== findGroups) bad.push('Find\'s question was repainted by Resources\' debounce');
+  if (JSON.stringify(t.STUFF().filters) !== findF) bad.push('Find\'s chips changed under Resources\' debounce');
+  return bad;
+});
+
+check('a landing repaint on a Resources result leaves the page in front drawn (the draw\'s microtask fills in Resources\' binding)', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  t.go('res', false, true); await wait(80);
+  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('res');
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  t.goPage('res', first + 7, true); await wait(200); await woken_();
+  if (!inRes_(w, () => w.stuffHeld_())) return ['the setup: the page in front of Resources was not filled before the repaint — NOT checked'];
+  w.landRepaint_();
+  await wait(300); await woken_();
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('after a landing repaint the page in front of Resources is empty (PAGE.res ' + pg_(t).res + ')');
+  if (!w.document.querySelectorAll('#s-res > .page.is-res[data-filled="1"]').length) bad.push('no result page of Resources is filled after a landing repaint');
+  return bad;
+});
+
+check('a page turn on Resources from outside any binding (a swipe) has the page in front drawn at once, near and far', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  t.go('res', false, true); await wait(80);
+  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('res');
+  await wait(200); await woken_();
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  if (inRes_(w, () => w.stuffPages_().length) < 45) return ['the setup: Shelf · Boxing has too few pages to jump 40 — NOT checked'];
+  /* EACH READ SYNCHRONOUSLY, BEFORE ANY TIMER — the after-slide fill would hide a page drawn late. */
+  t.goPage('res', first + 40, true);
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('jumped to result 40: the page in front is not drawn synchronously');
+  t.goPage('res', first + 41);
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('turned one page: the page in front is not drawn synchronously');
   return bad;
 });
 
@@ -16363,7 +16980,8 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
    when the page turns; its stylesheet is in the page once and is the row's; the drawing is the row's
    markup with its ids made its own; no id inside any drawing on the page is shared; the chapter's
    formula under it is typeset; the book's search words hold no markup; and Play again starts it over. */
-check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
+/* ON THE RESOURCES COLUMN, where the textbooks are (docs/history/329). */
+check('a chapter plays its animation on the Resources column: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -16378,20 +16996,21 @@ check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, dr
   const bad = [];
   const row = rows.find(r => r.anim === 'pyth');
   if (!row) return ['data/textbooks.json has no pyth row — NOT checked'];
-  t.go('stuff');
-  const S = t.STUFF();
+  const R = resView_(w);
+  t.go('res');
+  const S = t.RES();
   S.q = ''; S.filters.length = 0;
-  S.filters.push({ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
-  w.paintStuff();
-  const pages = w.stuffPages_();
+  S.filters.push({ field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
+  w.paintFinder_('res');
+  const pages = R.stuffPages_();
   const at = pages.findIndex(pg => pg.part === 'an17-pyth');
   if (at < 0) return ['GCSE Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
   if (!pages[at - 1] || pages[at - 1].part !== 'ch17') bad.push('Pythagoras is not the page straight after chapter 17 (it follows ' + (pages[at - 1] && pages[at - 1].part) + ')');
-  const first = w.stuffFirstResult_();
-  t.goPage('stuff', first + at);
+  const first = R.stuffFirstResult_();
+  t.goPage('res', first + at);
   await wait(450); await woken_();
-  const host = w.document.getElementById('s-stuff');
-  /* THE PAGE IN FRONT, AS FIND MARKS IT — `.on` on the page the column is placed at. */
+  const host = w.document.getElementById('s-res');
+  /* THE PAGE IN FRONT, AS THE FINDER MARKS IT — `.on` on the page the column is placed at. */
   const cardEl = host.querySelector('.card.is-an17-pyth');
   const here = cardEl && cardEl.closest('.page');
   const stage = here && here.querySelector('.tb-an-stage[data-anim="pyth"]');
@@ -16447,7 +17066,7 @@ check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, dr
     if (stage.innerHTML !== box.innerHTML) bad.push('Play again changed the drawing');
   }
   /* AND IT STOPS WHEN THE PAGE TURNS. */
-  t.goPage('stuff', first + at + 1);
+  t.goPage('res', first + at + 1);
   await wait(450); await woken_();
   if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
   return bad;
@@ -16535,6 +17154,10 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
    words, presses the Bible's answers and its tiles as forged buttons — and the list of everything
    fetched is read: not one URL under `data/bible/`.
 
+   ON THE RESOURCES COLUMN SINCE THE RESOURCES MOVED (docs/history/329): `What for` and `What kind` have
+   one answer each there and are skipped, so the walk is Books first, and the Chapter tile — from a verse
+   found here or kept on Saved — lands on that column.
+
    AN ADMIN, BY REAL PRESSES. Learning → Resources → Books → KJV → Old Testament → Torah → Genesis → 1 →
    3, reading what each question offers and in what order; every verse of Genesis 1 drawn from the
    file, italics and pilcrows as printed; the Chapter tile; Psalms's 150 chapters and Psalm 119's 176
@@ -16542,7 +17165,7 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
    forged, a citation typed; every chapter of every book walked; a book that does not come and comes on
    the second try; the late index; the library held back; stars; a demotion; and signing out. On every
    Bible list, what the funnel TALLIED is read as well as what it asked. */
-check('the Bible: Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
+check('the Bible, on the Resources column: Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -16578,25 +17201,26 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     const b = boot({ payload: base(), serve, before: u ? seed(u) : undefined });
     await wait(300);
     const w = b.w, t = w.__t;
+    const R = resView_(w);
     if (!t || !t.STUFF) { bad.push(what + ': the app did not load, so it was NOT checked'); continue; }
     if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
-    t.go('stuff');
-    t.STUFF().q = '';
-    t.STUFF().filters = [{ field: 'kindLabel', value: 'Resources' }];
-    w.paintStuff();
+    t.go('res');
+    t.RES().q = '';
+    t.RES().filters = [{ field: 'kindLabel', value: 'Resources' }];
+    w.paintFinder_('res');
     await wait(30);
     const shelf = w.facetList().find(f => f.field === 'shelf');
-    const shelves = shelf ? w.facetValues(w.stuffFiltered(), shelf).map(v => String(v.value)) : [];
+    const shelves = shelf ? R.facetValues(R.stuffFiltered(), shelf).map(v => String(v.value)) : [];
     if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
     if (shelves.indexOf('@family. textbooks') < 0) bad.push(what + ' was not offered the textbooks shelf — the walk did not reach Resources, so the absence proves nothing');
     if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
     for (const q of ['bible', 'genesis', 'king james', 'kjv', 'psalms']) {
-      t.STUFF().filters = []; t.STUFF().q = q;
-      if (w.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
+      t.RES().filters = []; t.RES().q = q;
+      if (R.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
     }
-    t.STUFF().q = '';
-    t.STUFF().filters = [];
-    w.paintStuff();
+    t.RES().q = '';
+    t.RES().filters = [];
+    w.paintFinder_('res');
     if (w.document.querySelector('.card.bible, [data-do^="bible-"]')) bad.push(what + ' has a Bible card or button drawn');
     /* AND THE BIBLE'S ANSWERS, PRESSED ANYWAY — forged, because nothing draws them for this visitor. */
     for (const [field, value] of [['bibleTranslation', 'KJV'], ['bibleBook', 'Genesis']]) {
@@ -16605,18 +17229,18 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       try { t.ACTIONS['facet-pick'](fake); } catch (e) { bad.push(what + ': pressing a forged ' + field + ' threw ' + e.message); }
     }
     await wait(60);
-    if (w.stuffFiltered().length) bad.push(what + ' pressed a forged KJV and Genesis and was shown ' + w.stuffFiltered().length + ' thing(s)');
-    if (w.bibleInside_()) bad.push(what + ' holding forged Bible chips is "inside the Bible" — the verses would be read for them');
+    if (R.stuffFiltered().length) bad.push(what + ' pressed a forged KJV and Genesis and was shown ' + R.stuffFiltered().length + ' thing(s)');
+    if (R.bibleInside_()) bad.push(what + ' holding forged Bible chips is "inside the Bible" — the verses would be read for them');
     if (w.document.querySelector('.card.bb-verse')) bad.push(what + ' has a verse card drawn');
     /* AND ITS TILES, PRESSED ANYWAY: the chips must not move and nothing may be fetched. */
-    const was = JSON.stringify(t.STUFF().filters);
+    const was = JSON.stringify(t.RES().filters);
     for (const [act, attrs] of [['bible-go', { 'data-key': 'bible:kjv:1:1:3' }], ['bible-go', {}], ['bible-retry', { 'data-n': '1' }], ['bible-retry', {}]]) {
       const fake = w.document.createElement('button');
       Object.keys(attrs).forEach(k => fake.setAttribute(k, attrs[k]));
       try { t.ACTIONS[act](fake); } catch (e) { bad.push(what + ': pressing a forged ' + act + ' threw ' + e.message); }
     }
     await wait(60);
-    if (JSON.stringify(t.STUFF().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Find\'s chips changed to ' + JSON.stringify(t.STUFF().filters));
+    if (JSON.stringify(t.RES().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Resources\' chips changed to ' + JSON.stringify(t.RES().filters));
     const got = ofBible(b.gets);
     if (got.length) bad.push(what + ' fetched ' + got.length + ' file(s) of the Bible: ' + got.slice(0, 3).join(', '));
     if (!b.gets.length) bad.push(what + ': no fetch was recorded at all, so "nothing of the Bible" proves nothing');
@@ -16626,22 +17250,26 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] };
   const a = boot({ payload: base(), serve, before: seed(admin) });
   const w = a.w, t = w.__t, d = w.document;
+  /* THE BIBLE IS A RESOURCE, so every question below is asked of the Resources column (docs/history/329). */
+  const R = resView_(w);
   for (let i = 0; i < 40 && !(t && t.BIBLE && t.BIBLE() && t.BIBLE().index); i++) await wait(25);
   if (!t || !t.BIBLE || !t.BIBLE()) return bad.concat(['the Bible\'s state is not exported to the journey']);
   if (!t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — fetched: ' + ofBible(a.gets).join(', ')]);
   if (ofBible(a.gets).length !== 1 || !/index\.json/.test(ofBible(a.gets)[0])) bad.push('an admin\'s boot fetched ' + JSON.stringify(ofBible(a.gets)) + ' — the index and no book is the right answer');
-  if (w.stuffItemsAll_().some(i => i.bb)) bad.push('a verse is on Find\'s own list — the 31,102 are a list of their own, read only while the Bible is open');
+  if (w.stuffItemsAll_().some(i => i.bb)) bad.push('a verse is on the app\'s own list — the 31,102 are a list of their own, read only while the Bible is open');
+  if (w.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is on Find\'s list for an admin — it is a resource, and lives on the Resources column');
+  if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is not on the Resources column\'s list for an admin');
   /* EVERY TOAST, COUNTED: a book that does not come must be said once, not once per card waiting on it. */
   const toasts = [];
   const realToast = w.toast;
   w.toast = msg => { toasts.push(String(msg)); return realToast(msg); };
   const box = html => { const e = d.createElement('div'); e.innerHTML = html; return e; };
-  const answersOn = () => [...d.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
+  const answersOn = () => [...d.querySelectorAll('#res-groups [data-do="facet-pick"]')];
   const asked = () => {
     const a2 = answersOn();
     return { field: a2.length ? a2[0].dataset.field : '', vals: a2.map(b => b.dataset.value),
-             grid: !!d.querySelector('#stuff-groups .answers.is-grid'),
-             end: ((d.querySelector('#stuff-groups .find-end') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
+             grid: !!d.querySelector('#res-groups .answers.is-grid'),
+             end: ((d.querySelector('#res-groups .find-end') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
   };
   const pick = async (field, value) => {
     const el = answersOn().find(b => b.dataset.field === field && b.dataset.value === value);
@@ -16651,24 +17279,26 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     return true;
   };
   const skip = async field => {
-    const el = d.querySelector('#stuff-groups [data-do="facet-skip"][data-field="' + field + '"]');
+    const el = d.querySelector('#res-groups [data-do="facet-skip"][data-field="' + field + '"]');
     if (!el) { bad.push('no "Doesn\'t matter" under ' + field + ' to press'); return false; }
     t.ACTIONS['facet-skip'](el);
     await wait(60);
     return true;
   };
-  const DOORS = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+  /* THE ONE DOOR LEFT: on the Resources column `What for` and `What kind` have one answer each and are
+     skipped, so the Books shelf is the only chip in front of the Bible's own (docs/history/329). */
+  const DOORS = [{ field: 'shelf', value: 'Books' }];
   const KJV = { field: 'bibleTranslation', value: 'KJV' };
-  const setTo = list => { t.STUFF().q = ''; t.STUFF().filters = list.map(f => Object.assign({}, f)); w.paintStuff(); };
+  const setTo = list => { t.RES().q = ''; t.RES().filters = list.map(f => Object.assign({}, f)); w.paintFinder_('res'); };
   const same = (got, want, say) => { if (got.join('|') !== want.join('|')) bad.push(say + ' offers ' + (got.slice(0, 8).join(', ') || 'nothing') + (got.length > 8 ? '… (' + got.length + ')' : '') + ' — not ' + want.slice(0, 8).join(', ') + (want.length > 8 ? '… (' + want.length + ')' : '')); };
   const run = n => Array.from({ length: n }, (_, i) => String(i + 1));
   /* WHAT THE FUNNEL TALLIED, not only what it asked: on a fresh copy of the list, `nextFacet` may tally
      one Bible question — or none, once nothing is left — and nothing that is not the Bible's. */
   const tallies = say => {
-    const list = w.stuffFiltered();
+    const list = R.stuffFiltered();
     if (!list.length || !list[0].bb) return;
     const copy = list.slice();
-    const nf = w.nextFacet(copy);
+    const nf = R.nextFacet(copy);
     const keys = Object.keys(t.FACET_TALLY().get(copy) || {}).map(k => k.split('|')[0]);
     if (keys.some(k => !/^bible/.test(k)) || keys.length > 1 || (nf && keys.length !== 1)) {
       bad.push(say + ': a fresh nextFacet over the verses tallied ' + (keys.join(', ') || 'nothing')
@@ -16676,9 +17306,9 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     }
   };
 
-  t.go('stuff');
-  t.STUFF().filters.length = 0; t.STUFF().q = '';
-  w.paintStuff();
+  t.go('res');
+  t.RES().filters.length = 0; t.RES().q = '';
+  w.paintFinder_('res');
   const route = ['Learning', 'Resources', 'Books'];
   const rungs = ['forLabel', 'kindLabel', 'shelf'];
   const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
@@ -16687,7 +17317,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     const btns = answersOn();
     let el = btns.find(b => b.dataset.value === route[0]);
     const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
-    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
     if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
     if (!el) {
       const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
@@ -16706,14 +17336,14 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (pressed.indexOf('Books') < 0) bad.push('the Books shelf was never a question for an admin — ' + pressed.join(' → '));
 
   /* ---------- 1. BOOKS: THE COVER, AND ONE QUESTION WITH ONE ANSWER --------------------------------- */
-  const left = w.stuffFiltered();
+  const left = R.stuffFiltered();
   const x = left[0];
   if (left.length !== 1 || !x || x.kind !== 'bible' || x.bb) return bad.concat(['after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
     + left.slice(0, 4).map(i => i.kind + ' ' + i.name).join(', ') + ' — not the Bible\'s cover']);
   let q = asked();
   if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('on the Books shelf the question is ' + (q.field || 'nothing') + ' ' + JSON.stringify(q.vals) + ' — it should be Translation, with KJV its one answer (a folder is asked with one)');
   if (ofBible(a.gets).length !== 1) bad.push('a book was fetched before KJV was pressed: ' + ofBible(a.gets).join(', '));
-  const coverBox = box(w.stuffCard(x));
+  const coverBox = box(R.stuffCard(x));
   const cover = coverBox.querySelector('.favwrap > .card') || coverBox.firstElementChild;
   if (!cover || !cover.classList.contains('bible') || !cover.classList.contains('fc')) bad.push('the cover is not a `.card.fc.bible`');
   else {
@@ -16730,7 +17360,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   /* ---------- 2. KJV: EVERY VERSE, AND THE TESTAMENTS IN THEIR ORDER -------------------------------- */
   if (!(await pick('bibleTranslation', 'KJV'))) return bad;
   await wait(150);
-  const verses = w.stuffFiltered();
+  const verses = R.stuffFiltered();
   if (verses.length !== index.totals.verses) bad.push('KJV leaves ' + verses.length + ' verses, not ' + index.totals.verses);
   if (verses !== w.bibleVerses_()) bad.push('KJV\'s list is not the verse list itself — every verse answers KJV, so nothing should have been copied');
   if (!verses[0] || verses[0].key !== 'bible:kjv:1:1:1' || verses[verses.length - 1].key !== 'bible:kjv:66:22:21') {
@@ -16742,7 +17372,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   tallies('KJV');
   const gen = () => ofBible(a.gets).filter(u => /01-genesis\.json/.test(u)).length;
   if (gen() !== 1) bad.push('drawing the first verses fetched Genesis ' + gen() + ' times — once, when its first card is drawn');
-  const c11 = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:1"] .bb-v');
+  const c11 = d.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:1:1:1"] .bb-v');
   if (!c11) bad.push('the first verse card was not drawn after KJV');
   /* `.loading` IN THE CARD, NOT `.bb-v.is-wait`: a verse waiting for its book is the one loader now
      (`loading_`, shell.js — the owner, 9 Oct, *"they should all have a simplistic simple loading
@@ -16783,7 +17413,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   same(q.vals, run(31), 'Genesis 1\'s Verse question');
   tallies('Genesis 1');
   const genesis = JSON.parse(fs.readFileSync(path.join(bibleDir, '01-genesis.json'), 'utf8'));
-  const ch1 = w.stuffFiltered();
+  const ch1 = R.stuffFiltered();
   same(ch1.map(i => i.key), run(31).map(v => 'bible:kjv:1:1:' + v), 'Genesis 1\'s results');
   /* THE FILE'S VERSE AS A CARD MUST PRINT IT, WRITTEN OUT HERE AND NOT ASKED OF `bibleV_`. This compared
      each card with `bibleV_` of the same verse — the function that drew it, so it was comparing the card
@@ -16794,7 +17424,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const printed = raw => '<p class="bb-v">' + (/^#/.test(raw) ? '<span class="bb-para" aria-hidden="true">¶</span> ' : '')
     + escH(raw.replace(/^#\s*/, '')).replace(/\[([^\[\]]*)\]/g, '<i>$1</i>') + '</p>';
   ch1.forEach((v, i) => {
-    const html = w.stuffCard(v);
+    const html = R.stuffCard(v);
     const card = box(html);
     const p = card.querySelector('.card.bb-verse .bb-v');
     const text = p ? p.textContent : '';
@@ -16804,34 +17434,34 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
     if (i === 0 && tags.join('|') !== 'Verse|Genesis 1:1|KJV|Old Testament|Torah') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
   });
-  const v2 = box(w.stuffCard(ch1[1])).querySelector('.bb-v');
+  const v2 = box(R.stuffCard(ch1[1])).querySelector('.bb-v');
   if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
-  if (!box(w.stuffCard(ch1[5])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:6 starts a paragraph in the 1611 text and carries no pilcrow');
+  if (!box(R.stuffCard(ch1[5])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:6 starts a paragraph in the 1611 text and carries no pilcrow');
   /* AND ITS WORDS, BY EYE: the first verse under a pilcrow is the one a slip there blanks. */
-  const v6 = box(w.stuffCard(ch1[5])).querySelector('.bb-v');
+  const v6 = box(R.stuffCard(ch1[5])).querySelector('.bb-v');
   if (!v6 || v6.textContent.indexOf('Let there be a firmament in the midst of the waters') < 0) bad.push('Genesis 1:6 reads "' + (v6 ? v6.textContent.trim().slice(0, 60) : 'nothing') + '" — not "And God said, Let there be a firmament in the midst of the waters"');
-  if (box(w.stuffCard(ch1[0])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:1 carries a pilcrow it does not have');
+  if (box(R.stuffCard(ch1[0])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:1 carries a pilcrow it does not have');
 
   /* ---------- 5. VERSE 3: ONE CARD, THE LINE THAT SAYS SO, AND ITS CHAPTER TILE ----------------------- */
   if (!(await pick('bibleVerse', '3'))) return bad;
-  const v3 = w.stuffFiltered();
+  const v3 = R.stuffFiltered();
   if (v3.length !== 1 || v3[0].key !== 'bible:kjv:1:1:3') bad.push('Genesis 1:3 leaves ' + v3.map(i => i.name).join(', '));
   q = asked();
   if (q.vals.length) bad.push('after the verse the funnel still asks ' + q.field);
   if (q.end !== 'Genesis 1:3. Swipe up for it.') bad.push('the line under the chips says "' + q.end + '", not "Genesis 1:3. Swipe up for it."');
   tallies('Genesis 1:3');
-  const v3card = box(w.stuffCard(v3[0]));
+  const v3card = box(R.stuffCard(v3[0]));
   if (!/And God said, Let there be light: and there was light\./.test((v3card.querySelector('.bb-v') || {}).textContent || '')) bad.push('Genesis 1:3 does not read "And God said, Let there be light: and there was light."');
   if (gen() !== 1) bad.push('Genesis was fetched ' + gen() + ' times by the end of chapter 1');
-  const go3 = d.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+  const go3 = d.querySelector('#s-res [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
   if (!go3) bad.push('Genesis 1:3 found alone has no Chapter tile drawn under it');
   else {
     t.ACTIONS['bible-go'](go3);
     await wait(80);
-    const f = t.STUFF().filters, last = f[f.length - 1] || {};
+    const f = t.RES().filters, last = f[f.length - 1] || {};
     if (last.field !== 'bibleChapter' || last.value !== '1' || f.some(c => c.field === 'bibleVerse')) bad.push('the Chapter tile set the chips to ' + JSON.stringify(f));
-    if (w.stuffFiltered().length !== 31) bad.push('the Chapter tile left ' + w.stuffFiltered().length + ' verses, not Genesis 1\'s 31');
-    if (t.PAGE().stuff !== w.stuffFirstResult_() + 2) bad.push('the Chapter tile turned to page ' + t.PAGE().stuff + ', not Genesis 1:3 (' + (w.stuffFirstResult_() + 2) + ')');
+    if (R.stuffFiltered().length !== 31) bad.push('the Chapter tile left ' + R.stuffFiltered().length + ' verses, not Genesis 1\'s 31');
+    if (t.PAGE().res !== R.stuffFirstResult_() + 2) bad.push('the Chapter tile turned to page ' + t.PAGE().res + ', not Genesis 1:3 (' + (R.stuffFirstResult_() + 2) + ')');
   }
 
   /* ---------- 6. THE LONGEST RUNS: PSALMS'S 150 CHAPTERS AND PSALM 119'S 176 VERSES ------------------- */
@@ -16840,19 +17470,19 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   q = asked();
   same(q.vals, run(150), 'Psalms\'s Chapter question');
   if (!q.grid) bad.push('Psalms\'s 150 chapters are not drawn as a grid');
-  const nfPs = w.nextFacet(w.stuffFiltered());
+  const nfPs = R.nextFacet(R.stuffFiltered());
   if (!nfPs || nfPs.field !== 'bibleChapter') bad.push('nextFacet asks ' + (nfPs ? nfPs.field : 'nothing') + ' of Psalms — a grid is exempt from the answer cap, so it should be Chapter, not left to overFacet_');
   if (!(await pick('bibleChapter', '119'))) return bad;
   q = asked();
   same(q.vals, run(176), 'Psalm 119\'s Verse question');
-  const nf119 = w.nextFacet(w.stuffFiltered());
+  const nf119 = R.nextFacet(R.stuffFiltered());
   if (!nf119 || nf119.field !== 'bibleVerse') bad.push('nextFacet asks ' + (nf119 ? nf119.field : 'nothing') + ' of Psalm 119 — Verse, its 176 as a grid');
   tallies('Psalm 119');
   if (!(await pick('bibleVerse', '105'))) return bad;
   let lamp = null;
   for (let i = 0; i < 40 && !(lamp && !lamp.closest('.bb-verse').querySelector('.loading')); i++) {
     await wait(25);
-    lamp = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:19:119:105"] .bb-v');
+    lamp = d.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:19:119:105"] .bb-v');
   }
   if (!lamp || lamp.innerHTML.indexOf('Thy word <i>is</i> a lamp unto my feet, and a light unto my path.') < 0) {
     bad.push('Psalm 119:105 reads "' + (lamp ? lamp.textContent.trim() : 'nothing') + '"');
@@ -16872,11 +17502,11 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   /* ---------- 8. EVERY RUNG SKIPPED: BOOK BEFORE CHAPTER, DRAWN WHOLE; THEN THE LONGEST RUNS ---------- */
   setTo(DOORS.concat([KJV]));
   if (await skip('bibleTestament') && await skip('bibleGroup')) {
-    const list = w.stuffFiltered();
+    const list = R.stuffFiltered();
     q = asked();
     if (q.field !== 'bibleBook' || q.vals.length !== index.books.length) bad.push('with Testament and Group skipped the question is ' + q.field + ' with ' + q.vals.length + ' answers — Book, all 66, before any chapter');
     else same(q.vals, index.books.map(b => b.book), 'Book over the whole Bible');
-    if (w.nextFacet(list)) bad.push('nextFacet asks ' + w.nextFacet(list).field + ' with Testament and Group skipped — Book is over the cap, and nothing else may go before it');
+    if (R.nextFacet(list)) bad.push('nextFacet asks ' + R.nextFacet(list).field + ' with Testament and Group skipped — Book is over the cap, and nothing else may go before it');
     tallies('Testament and Group skipped');
     if (await skip('bibleBook')) {
       q = asked();
@@ -16890,20 +17520,20 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
 
   /* ---------- 9. A CHIP DROPPED, A CHIP FORGED, A CITATION TYPED --------------------------------------- */
   setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' }]));
-  const kjvChip = d.querySelector('#stuff-chips [data-do="filter-drop"][data-i="3"]');
+  const kjvChip = d.querySelector('#res-chips [data-do="filter-drop"][data-i="1"]');
   if (!kjvChip) bad.push('there is no ✕ on the KJV chip to press');
   else {
     t.ACTIONS['filter-drop'](kjvChip);
     q = asked();
     if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('KJV dropped with the other rungs on asks ' + q.field + ' ' + JSON.stringify(q.vals) + ' — Translation again, like any dropped chip');
-    if (w.stuffFiltered().length !== 5852) bad.push('KJV dropped leaves ' + w.stuffFiltered().length + ' verses, not the Torah\'s 5,852');
+    if (R.stuffFiltered().length !== 5852) bad.push('KJV dropped leaves ' + R.stuffFiltered().length + ' verses, not the Torah\'s 5,852');
   }
   setTo(DOORS.concat([{ field: 'subject', value: 'Maths' }, KJV]));
-  if (w.stuffFiltered().length) bad.push('a forged Subject: Maths chip beside KJV leaves ' + w.stuffFiltered().length + ' verses — the cover answers the chips that are not the Bible\'s, and it is not Maths');
+  if (R.stuffFiltered().length) bad.push('a forged Subject: Maths chip beside KJV leaves ' + R.stuffFiltered().length + ' verses — the cover answers the chips that are not the Bible\'s, and it is not Maths');
   setTo(DOORS.concat([KJV]));
-  t.STUFF().q = 'john 3:16';
-  same(w.stuffFiltered().slice(0, 3).map(i => i.name), ['John 3:16', 'John 13:16', '1 John 3:16'], '"john 3:16" typed inside the Bible');
-  t.STUFF().q = '';
+  t.RES().q = 'john 3:16';
+  same(R.stuffFiltered().slice(0, 3).map(i => i.name), ['John 3:16', 'John 13:16', '1 John 3:16'], '"john 3:16" typed inside the Bible');
+  t.RES().q = '';
 
   /* ---------- 9b. A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE ---------------------------
      FOUND BY THE REVIEW: `testaments`, `old and new testaments` and `poetry and wisdom` typed on the
@@ -16921,7 +17551,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     .concat([...new Set(index.books.map(b => b.group))].map(g => g.toLowerCase()), index.books.map(b => b.book.toLowerCase()));
   /* ASKED OF THE LIST, NOT DRAWN: a drawn verse fetches its book, and Leviticus has to be still to come
      for step 11's refusal to mean anything. */
-  const asking = (list, q2) => { t.STUFF().filters = list.map(f => Object.assign({}, f)); t.STUFF().q = q2; return w.stuffFiltered(); };
+  const asking = (list, q2) => { t.RES().filters = list.map(f => Object.assign({}, f)); t.RES().q = q2; return R.stuffFiltered(); };
   const crossBad = [];
   let crossKept = 0;
   crossWords.forEach(q2 => {
@@ -16935,13 +17565,13 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (crossBad.length) bad.push('a search on the Books shelf and the same search inside the Bible disagree: ' + crossBad.join(' | '));
   if (crossKept < index.books.length) bad.push('only ' + crossKept + ' of ' + crossWords.length + ' searches kept the cover — the comparison above was NOT reached for the books, so it is not a pass');
   /* AND ONE OF THEM BY THE SCREEN: a citation typed on the shelf, Translation asked, KJV pressed. */
-  setTo(DOORS); t.STUFF().q = 'psalm 23'; w.paintStuff();
+  setTo(DOORS); t.RES().q = 'psalm 23'; w.paintFinder_('res');
   q = asked();
   if (q.field !== 'bibleTranslation') bad.push('"psalm 23" typed on the Books shelf asks ' + (q.field || 'nothing') + ' — the cover, and Translation, because Psalm 23 is a verse of it');
   else if (await pick('bibleTranslation', 'KJV')) {
-    if (!w.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" with KJV pressed does not hold Psalm 23:1 — it leaves ' + w.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
+    if (!R.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" with KJV pressed does not hold Psalm 23:1 — it leaves ' + R.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
   }
-  t.STUFF().q = '';
+  t.RES().q = '';
 
   /* ---------- 10. EVERY BOOK AND EVERY CHAPTER, WALKED -------------------------------------------------
      THROUGH THE FUNNEL'S OWN NARROWING AND ITS OWN QUESTION, chip by chip as a finger would set them, but
@@ -16953,19 +17583,19 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   index.books.forEach(b => {
     const head = DOORS.concat([KJV, { field: 'bibleTestament', value: b.testament === 'NT' ? 'New Testament' : 'Old Testament' },
                                { field: 'bibleGroup', value: b.group }, { field: 'bibleBook', value: b.book }]);
-    t.STUFF().filters = head.map(f => Object.assign({}, f));
+    t.RES().filters = head.map(f => Object.assign({}, f));
     const list = w.stuffNarrow_(all, [{ field: 'bibleBook', value: b.book }], [], 0);
-    const nf = w.nextFacet(list);
-    const vals = nf ? w.facetValues(list, nf).map(v => String(v.value)) : [];
+    const nf = R.nextFacet(list);
+    const vals = nf ? R.facetValues(list, nf).map(v => String(v.value)) : [];
     if (!nf || nf.field !== 'bibleChapter' || vals.join('|') !== run(b.chapters).join('|')) {
       if (walkBad.length < 4) walkBad.push(b.book + ' asks ' + (nf ? nf.field : 'nothing') + ' with ' + vals.length + ' answers');
       return;
     }
     b.chapterVerses.forEach((n, ci) => {
-      t.STUFF().filters = head.concat([{ field: 'bibleChapter', value: String(ci + 1) }]).map(f => Object.assign({}, f));
+      t.RES().filters = head.concat([{ field: 'bibleChapter', value: String(ci + 1) }]).map(f => Object.assign({}, f));
       const cl = w.stuffNarrow_(list, [{ field: 'bibleChapter', value: String(ci + 1) }], [], 0);
-      const vf = w.nextFacet(cl);
-      const vv = vf ? w.facetValues(cl, vf).map(v => String(v.value)) : [];
+      const vf = R.nextFacet(cl);
+      const vv = vf ? R.facetValues(cl, vf).map(v => String(v.value)) : [];
       const keys = cl.map(i => i.key).join('|');
       const want = run(n).map(v => 'bible:kjv:' + b.n + ':' + (ci + 1) + ':' + v).join('|');
       if (!vf || vf.field !== 'bibleVerse' || vv.join('|') !== run(n).join('|') || keys !== want) {
@@ -16973,7 +17603,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       } else walked++;
     });
   });
-  t.STUFF().filters = [];
+  t.RES().filters = [];
   if (walkBad.length) bad.push('walking every chapter, ' + walkBad.join(' | '));
   if (walked !== index.totals.chapters) bad.push('the walk reached ' + walked + ' of ' + index.totals.chapters + ' chapters whole');
 
@@ -16987,20 +17617,20 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     t.ACTIONS['facet-pick'](levBtn);
     /* AND THREE MORE CARDS OF IT DRAWN WHILE IT IS ON ITS WAY — as Saved, or the pages filled a beat
        later, would draw them. Every one of them is waiting on the same fetch, and the failure is one. */
-    w.stuffFiltered().slice(1, 4).forEach(v => w.stuffCard(v));
+    R.stuffFiltered().slice(1, 4).forEach(v => R.stuffCard(v));
     await wait(150);
-    const miss = d.querySelector('#s-stuff .card.bb-verse[data-bn="3"] .bb-miss');
+    const miss = d.querySelector('#s-res .card.bb-verse[data-bn="3"] .bb-miss');
     if (!miss || !/Leviticus/.test(miss.textContent)) bad.push('Leviticus did not arrive and its cards do not say so');
     const said = toasts.filter(m => /Leviticus/.test(m)).length;
     if (said !== 1) bad.push('Leviticus did not arrive and ' + said + ' toasts said so — one, however many cards were waiting on it');
-    const again = d.querySelector('#s-stuff [data-do="bible-retry"][data-n="3"]');
+    const again = d.querySelector('#s-res [data-do="bible-retry"][data-n="3"]');
     if (!again) bad.push('a verse of Leviticus, which did not arrive, has no Try again tile');
     else {
       refuse.delete('03-leviticus.json');
       t.ACTIONS['bible-retry'](again);
       await wait(150);
       const lev = JSON.parse(fs.readFileSync(path.join(bibleDir, '03-leviticus.json'), 'utf8'));
-      const back = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:3:1:1"] .bb-v');
+      const back = d.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:3:1:1"] .bb-v');
       if (!back || back.closest('.bb-verse').querySelector('.loading') || back.textContent.trim() !== lev.chapters[0][0].replace(/^#\s*/, '').replace(/[\[\]]/g, '')) {
         bad.push('Try again did not draw Leviticus 1:1 — it reads "' + (back ? back.textContent.trim().slice(0, 60) : 'nothing') + '"');
       }
@@ -17019,31 +17649,31 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
                       serve: url => (/data\/bible\/index\.json/.test(url) ? late.then(() => serve(url)) : serve(url)) });
   await wait(300);
   const st = slow.w.__t, sd = slow.w.document;
-  st.go('stuff');
-  st.STUFF().q = '';
-  st.STUFF().filters = DOORS.map(f => Object.assign({}, f));
-  slow.w.paintStuff();
-  const said = () => ((sd.getElementById('stuff-groups') || {}).textContent || '').replace(/\s+/g, ' ');
+  st.go('res');
+  st.RES().q = '';
+  st.RES().filters = DOORS.map(f => Object.assign({}, f));
+  slow.w.paintFinder_('res');
+  const said = () => ((sd.getElementById('res-groups') || {}).textContent || '').replace(/\s+/g, ' ');
   /* THE ONE LOADER WHERE THE QUESTION WILL BE, and no sentence of its own: it said "The list of the
      Bible's books is on its way" until 9 Oct, and `check-loading.js` now fails on those words. */
-  const waitingAt = () => sd.querySelectorAll('#stuff-groups .loading[role="status"]').length;
+  const waitingAt = () => sd.querySelectorAll('#res-groups .loading[role="status"]').length;
   if (waitingAt() !== 1) bad.push('the Books shelf with the index still coming shows ' + waitingAt() + ' loaders under the question, not one — it says "' + said().trim().slice(0, 80) + '"');
-  st.STUFF().q = 'psalms';
-  const early = slow.w.stuffFiltered().some(i => i.kind === 'bible');
-  slow.w.paintStuff();
+  st.RES().q = 'psalms';
+  const early = resView_(slow.w).stuffFiltered().some(i => i.kind === 'bible');
+  slow.w.paintFinder_('res');
   release();
   await wait(80);
   if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
-  else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
-  if (!sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
+  else if (!resView_(slow.w).stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
+  if (!sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
   if (waitingAt()) bad.push('the index landed and the Books shelf still shows its loader');
-  const kjvLate = sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
+  const kjvLate = sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
   if (kjvLate) {
     st.ACTIONS['facet-pick'](kjvLate);
-    const n = slow.w.stuffFiltered().length;
+    const n = resView_(slow.w).stuffFiltered().length;
     if (n !== 2461) bad.push('KJV with "psalms" typed leaves ' + n + ' verses, not the Psalms\' 2,461');
   }
-  st.STUFF().q = '';
+  st.RES().q = '';
 
   /* ---------- 13. NOT BEFORE THE LIBRARY ----------------------------------------------------------------
      With `data/questions.json` still on its way an admin's Find has to say the questions are still
@@ -17052,21 +17682,21 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const held = boot({ payload: base(), before: seed(admin),
                       serve: url => (/data\/questions\.json/.test(url) ? new Promise(() => {}) : serve(url)) });
   await wait(300);
-  held.w.__t.go('stuff');
-  held.w.__t.STUFF().filters = []; held.w.__t.STUFF().q = '';
-  held.w.paintStuff();
+  held.w.__t.go('res');
+  held.w.__t.RES().filters = []; held.w.__t.RES().q = '';
+  held.w.paintFinder_('res');
   if (held.w.stuffItemsAll_().some(i => i.kind === 'bible')) bad.push('an admin is offered the Bible before the library has landed');
   /* THE ONE LOADER, not "The questions are still coming" — the words went on 9 Oct (`nothingHere`). */
-  if (!held.w.document.querySelector('#s-stuff .loading[role="status"]')
-      || /Nothing in the shop or the library/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
+  if (!held.w.document.querySelector('#s-res .loading[role="status"]')
+      || /Nothing in the shop or the library/.test((held.w.document.getElementById('s-res') || {}).textContent || '')) {
     bad.push('an admin\'s Find with the library still on its way does not show the loader — or calls it empty');
   }
 
   /* ---------- 14. KEPT: A STARRED VERSE ON SAVED, THE OLD STAR ON THE COVER, AND BACK INTO ITS CHAPTER --- */
   const x13 = w.bibleByKey_('bible:kjv:1:1:3');
-  const fav13 = x13 && box(w.stuffCard(x13)).querySelector('[data-do="fav"]');
-  const coverItem = w.stuffItems().find(i => i.kind === 'bible');
-  const favCover = coverItem && box(w.stuffCard(coverItem)).querySelector('[data-do="fav"]');
+  const fav13 = x13 && box(R.stuffCard(x13)).querySelector('[data-do="fav"]');
+  const coverItem = R.stuffItems().find(i => i.kind === 'bible');
+  const favCover = coverItem && box(R.stuffCard(coverItem)).querySelector('[data-do="fav"]');
   if (!fav13 || !favCover) bad.push('a verse or the cover has no Save tile');
   else {
     t.ACTIONS.fav(fav13);
@@ -17085,18 +17715,18 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       await wait(60);
       t.ACTIONS['bible-go'](back);
       await wait(80);
-      if (t.AT() !== 'stuff') bad.push('the Chapter tile on Saved left the app on ' + t.AT() + ', not Find');
-      const f = t.STUFF().filters;
+      if (t.AT() !== 'res') bad.push('the Chapter tile on Saved left the app on ' + t.AT() + ', not Resources');
+      const f = t.RES().filters;
       if (!f.some(c => c.field === 'bibleChapter' && c.value === '1') || !f.some(c => c.field === 'bibleBook' && c.value === 'Genesis')) bad.push('the Chapter tile on Saved set the chips to ' + JSON.stringify(f));
-      if (t.PAGE().stuff !== w.stuffFirstResult_() + 2) bad.push('the Chapter tile on Saved turned to page ' + t.PAGE().stuff + ', not Genesis 1:3');
+      if (t.PAGE().res !== R.stuffFirstResult_() + 2) bad.push('the Chapter tile on Saved turned to page ' + t.PAGE().res + ', not Genesis 1:3');
     }
   }
 
   /* ---------- 15. MADE A TUTOR WITHOUT SIGNING OUT: THE VERSES GO AT THE NEXT LOOK -------------------- */
   setTo(DOORS.concat([KJV]));
-  const inside = w.stuffFiltered().length;
+  const inside = R.stuffFiltered().length;
   t.USER(Object.assign({}, admin, { role: 'tutor', roles: ['tutor'] }));
-  const after = w.stuffFiltered().length;
+  const after = R.stuffFiltered().length;
   t.USER(admin);
   if (!inside) bad.push('the Bible was not open before the demotion, so the demotion was NOT checked');
   else if (after) bad.push('an admin made a tutor inside the Bible is still handed ' + after + ' verses — the memo held the list the role no longer has');
@@ -17105,33 +17735,33 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
      FOUND BY THE FIRST REVIEW: an admin signed out on the Books shelf left "WHAT KIND Resources ✕ SHELF
      Books ✕" on the signed-out Find. Signed out from Genesis, with a word typed too — and then the
      Bible's tiles pressed by whoever picks the phone up, with its index still in memory. */
-  t.go('stuff');
+  t.go('res');
   setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }]));
-  t.STUFF().q = 'genesis';
-  const qBox = d.getElementById('stuff-q');
-  if (!qBox) bad.push('there is no search box on Find, so whether its word is left behind was NOT checked');
+  t.RES().q = 'genesis';
+  const qBox = d.getElementById('res-q');
+  if (!qBox) bad.push('there is no search box on Resources, so whether its word is left behind was NOT checked');
   else qBox.value = 'genesis';
   if (!t.ACTIONS.signout) bad.push('there is no signout action to press, so signing out from the Bible was NOT checked');
   else {
     t.ACTIONS.signout(d.createElement('button'));
     await wait(60);
-    t.go('stuff');
+    t.go('res');
     await wait(30);
     if (t.whoami()) bad.push('pressing sign out left somebody signed in, so what it leaves behind was NOT checked');
-    const f = t.STUFF().filters, said2 = (d.getElementById('s-stuff') || {}).textContent || '';
-    if (f.length || t.STUFF().q) bad.push('signed out, Find still holds the admin\'s question: ' + JSON.stringify(f) + (t.STUFF().q ? ' and "' + t.STUFF().q + '"' : ''));
-    if (/\bBooks\b/.test(said2)) bad.push('signed out, Find still names the Books shelf: …' + said2.slice(Math.max(0, said2.indexOf('Books') - 60), said2.indexOf('Books') + 20).replace(/\s+/g, ' '));
-    if (d.querySelector('#s-stuff .card.bible')) bad.push('signed out, a Bible card is still drawn on Find');
-    if (d.getElementById('stuff-q') && d.getElementById('stuff-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('stuff-q').value + '"');
+    const f = t.RES().filters, said2 = (d.getElementById('s-res') || {}).textContent || '';
+    if (f.length || t.RES().q) bad.push('signed out, Resources still holds the admin\'s question: ' + JSON.stringify(f) + (t.RES().q ? ' and "' + t.RES().q + '"' : ''));
+    if (/\bBooks\b/.test(said2)) bad.push('signed out, Resources still names the Books shelf: …' + said2.slice(Math.max(0, said2.indexOf('Books') - 60), said2.indexOf('Books') + 20).replace(/\s+/g, ' '));
+    if (d.querySelector('#s-res .card.bible')) bad.push('signed out, a Bible card is still drawn on Resources');
+    if (d.getElementById('res-q') && d.getElementById('res-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('res-q').value + '"');
     if (/bible/i.test(t.savedPages().join(''))) bad.push('signed out, Saved still draws something of the Bible');
-    const was = JSON.stringify(t.STUFF().filters), fetched = ofBible(a.gets).length;
+    const was = JSON.stringify(t.RES().filters), fetched = ofBible(a.gets).length;
     for (const [act, attrs] of [['bible-go', { 'data-key': 'bible:kjv:1:1:3' }], ['bible-go', {}], ['bible-retry', { 'data-n': '1' }], ['bible-retry', {}]]) {
       const fake = d.createElement('button');
       Object.keys(attrs).forEach(k => fake.setAttribute(k, attrs[k]));
       t.ACTIONS[act](fake);
     }
     await wait(60);
-    if (JSON.stringify(t.STUFF().filters) !== was) bad.push('signed out, a Bible tile pressed anyway set Find\'s chips to ' + JSON.stringify(t.STUFF().filters) + ' — the index was still in memory and the handler did not ask who is looking');
+    if (JSON.stringify(t.RES().filters) !== was) bad.push('signed out, a Bible tile pressed anyway set Resources\' chips to ' + JSON.stringify(t.RES().filters) + ' — the index was still in memory and the handler did not ask who is looking');
     if (ofBible(a.gets).length !== fetched) bad.push('signed out, a Bible tile pressed anyway fetched ' + (ofBible(a.gets).length - fetched) + ' file(s)');
   }
   w.toast = realToast;
@@ -17158,53 +17788,61 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
   const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
   const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
                ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }]];
+  /* BOTH FINDERS (docs/history/329): the Books shelf moved to the Resources column with the rest of the
+     resources, so its four starts are walked there, and Find's six on Find — where the Bible must now cost
+     nothing at all, not even the shelf. */
   const STARTS = [
-    ['the top', []],
-    ['Learning', [['forLabel', 'Learning']]],
-    ['Learning → Questions', [['forLabel', 'Learning'], ['kindLabel', 'Questions']]],
-    ['Learning → Resources', [['forLabel', 'Learning'], ['kindLabel', 'Resources']]],
-    ['→ Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', 'Boxing']]],
-    ['→ @family. textbooks', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', '@family. textbooks']]],
-    ['Learning → skip', [['forLabel', 'Learning'], 'skip']],
-    ['Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip']],
-    ['Learning → Resources → skip', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], 'skip']],
-    ['Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']]],
+    ['Find, the top', [], 'stuff'],
+    ['Find, Learning', [['forLabel', 'Learning']], 'stuff'],
+    ['Find, Learning → Questions', [['forLabel', 'Learning'], ['kindLabel', 'Questions']], 'stuff'],
+    ['Find, Learning → skip', [['forLabel', 'Learning'], 'skip'], 'stuff'],
+    ['Find, Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip'], 'stuff'],
+    ['Find, Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']], 'stuff'],
+    ['Resources, the top', [], 'res'],
+    ['Resources → Boxing', [['shelf', 'Boxing']], 'res'],
+    ['Resources → @family. textbooks', [['shelf', '@family. textbooks']], 'res'],
+    ['Resources → skip', ['skip'], 'res'],
   ];
   const bad = [];
   const traces = [];
   for (const [what, u] of who) {
     const b = boot({ serve: serveAll, before: seed(u) });
     const w = b.w, t = w.__t;
-    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && w.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
+    const R = resView_(w);
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
-    if (u.role === 'admin' && !w.stuffItems().some(x => x.kind === 'bible')) { bad.push('the admin holds no Bible cover, so the walk proves nothing about it'); return bad; }
-    t.go('stuff');
+    if (u.role === 'admin' && !R.stuffItems().some(x => x.kind === 'bible')) { bad.push('the admin\'s Resources holds no Bible cover, so the walk proves nothing about it'); return bad; }
+    if (w.stuffItems().some(x => x.kind === 'bible')) bad.push(what + ': the Bible is on Find\'s list — it is a resource');
     const trace = {};
-    STARTS.forEach(([say, steps]) => {
-      t.STUFF().q = '';
-      t.STUFF().filters = [];
+    STARTS.forEach(([say, steps, fid]) => {
+      const V = fid === 'res' ? R : w;
+      const S = fid === 'res' ? t.RES() : t.STUFF();
+      t.go(fid);
+      S.q = '';
+      S.filters = [];
       const out = [];
       steps.forEach(s => {
         if (s === 'skip') {
-          const f = w.nextFacet(w.stuffFiltered()) || w.overFacet_(w.stuffFiltered());
+          const f = V.nextFacet(V.stuffFiltered()) || V.overFacet_(V.stuffFiltered());
           out.push('skip ' + (f ? f.field : 'nothing'));
-          if (f) t.STUFF().filters.push({ field: f.field, any: true });
-        } else t.STUFF().filters.push({ field: s[0], value: s[1] });
+          if (f) S.filters.push({ field: f.field, any: true });
+        } else S.filters.push({ field: s[0], value: s[1] });
       });
       for (let step = 0; step < 8; step++) {
-        const list = w.stuffFiltered();
+        const list = V.stuffFiltered();
         if (!list.length) { out.push('(empty)'); break; }
-        const f = w.nextFacet(list) || w.overFacet_(list);
+        const f = V.nextFacet(list) || V.overFacet_(list);
         if (!f) { out.push('(end, ' + list.length + ')'); break; }
-        const vals = w.facetValues(list, f);
+        const vals = V.facetValues(list, f);
         out.push({ field: f.field, vals: vals.map(v => String(v.value)) });
+        if (fid === 'stuff' && f.field === 'shelf') bad.push(what + ' is asked Shelf on Find, from ' + say + ' — the shelves are the Resources column\'s');
         let best = vals[0];
         vals.forEach(v => { if (v.n > best.n) best = v; });
-        t.STUFF().filters.push({ field: f.field, value: best.value });
+        S.filters.push({ field: f.field, value: best.value });
       }
       trace[say] = out;
+      S.filters = [];
     });
-    t.STUFF().filters = [];
     traces.push(trace);
   }
   const [parent, admin] = traces;
@@ -18786,16 +19424,21 @@ check('multipart: What kind offers Questions first and Answers next to it, not t
    answers over the whole list. THEN THE VIDEOS CARD FINDS THE SAME FILM, or this would pass on a payload
    that had lost its films. */
 check('films are not in Find for an admin with films in the payload — not by title, not under What kind — and the videos card still finds one', async () => {
-  /* THE PROJECTS AND THE TEXTBOOKS, REAL, so `What kind` has answers of its own to draw — the fixture has no
+  /* THE PROJECTS AND THE PRACTICALS, REAL, so `What kind` has answers of its own to draw — the fixture has no
      library, and a Learning holding nothing but films would ask What kind only when the films are there,
-     which is the fault and not a setup. Through the real mapper, as the textbook journey does. */
+     which is the fault and not a setup. Through the real mapper, as the textbook journey does.
+     THE PRACTICALS AND NOT THE TEXTBOOKS SINCE THE SECOND FINDER (docs/history/329): the textbooks are a
+     resource and live in the Resources column, so on Find they left Learning with one kind — Projects —
+     and a question with one answer is skipped. This journey then failed asking for `Projects and
+     Resources` on a page that drew Year instead: it was written on the branch where Find still held the
+     resources. Practicals are Find's own sibling of Projects (`KIND_BUCKET`), so the page is What kind. */
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so Find had nothing to ask — NOT checked'];
-  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { textbooks: read('textbooks'), projects: read('projects') })));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { practicals: read('practicals'), projects: read('projects') })));
   const data = payload();
-  data.textbooks = made.textbooks || [];
+  data.practicals = made.practicals || [];
   data.projects = made.projects || [];
   data.films = FILMS_;
   data.filmsSync = { at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
@@ -18841,8 +19484,14 @@ check('films are not in Find for an admin with films in the payload — not by t
   const learning = picks().find(b => b.dataset.field === 'forLabel' && b.dataset.value === 'Learning');
   if (learning) { t.ACTIONS['facet-pick'](learning); await wait(30); }
   const kinds = picks().filter(b => b.dataset.field === 'kindLabel').map(b => b.dataset.value);
-  if (kinds.indexOf('Projects') === -1 || kinds.indexOf('Resources') === -1) bad.push('What kind was not drawn with Projects and Resources (the page offers ' + (picks().map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'nothing') + '), so its chips were NOT checked');
+  if (kinds.indexOf('Projects') === -1 || kinds.indexOf('Practicals') === -1) bad.push('What kind was not drawn with Projects and Practicals (the page offers ' + (picks().map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'nothing') + '), so its chips were NOT checked');
   else if (kinds.indexOf('Films') !== -1) bad.push('What kind offers "Films" to an admin: ' + kinds.join(' | '));
+  /* AND NOT IN THE OTHER FINDER EITHER: a film is not a resource, so the column the resources moved to
+     must not have become where the films went. */
+  if (typeof w.finderOf_ === 'function') {
+    const resList = w.inFinder_(w.finderOf_('res'), () => w.stuffItems());
+    if (resList.some(isFilm)) bad.push('the Resources column holds ' + resList.filter(isFilm).length + ' film(s)');
+  }
   const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
   const answers = kindFacet ? w.facetValues(w.stuffItems(), kindFacet).map(v => String(v.value)) : [];
   if (!answers.length) bad.push('What kind has no answers over the whole list, so the facet was NOT checked');
@@ -19643,7 +20292,9 @@ check('a reload puts Find back on the question: the column, the paper\'s chip an
   /* THE CHILD HAD BEEN WRITING FOR TWENTY MINUTES: the column was chosen long ago, and is left just now. */
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
   W.dispatchEvent(new W.Event('pagehide'));
-  const want = W.__t.PAGE.stuff;
+  /* THROUGH THE GETTER (`pg_`): `__t.PAGE.stuff` was undefined on both sides, so this compared nothing. */
+  const want = pg_(W.__t).stuff;
+  if (!(want > 0)) bad.push('the setup: Find is on page ' + want + ' before the reload, so keeping the page was NOT checked');
   const kept = keptStore_(W);
   const two = boot({ serve, before: fromStore_(kept) });
   const w = two.w;
@@ -19652,7 +20303,7 @@ check('a reload puts Find back on the question: the column, the paper\'s chip an
   if (w.__t.AT() !== 'stuff') bad.push('the reload opened on ' + w.__t.AT() + ', not Find');
   const f = JSON.stringify(w.__t.STUFF().filters);
   if (f !== JSON.stringify([{ field: 'paperId', value: row.paper_id }])) bad.push('the reload brought Find back with the chips ' + f);
-  if (w.__t.PAGE.stuff !== want) bad.push('the reload put Find on page ' + w.__t.PAGE.stuff + ', not the essay\'s ' + want);
+  if (pg_(w.__t).stuff !== want) bad.push('the reload put Find on page ' + pg_(w.__t).stuff + ', not the essay\'s ' + want);
   const box2 = w.document.querySelector('#s-stuff [data-do="qp-ans"][data-k="' + k + '"]');
   if (!box2) bad.push('after the reload the essay\'s box is not on the page in front');
   else if (box2.value !== RELOAD_ESSAY) bad.push('after the reload the essay\'s box holds ' + box2.value.length + ' characters');
@@ -21202,28 +21853,34 @@ check('signing in from signed out keeps Find’s chips, the card and its page �
    named on a signed-out phone if Find is kept (the review of the Bible, recorded in `signedOut_`), and one
    child signing in over another is the next person, not the same seat: both still clear the search and
    the chips, through the real Sign out tile and through `signedIn_`, the door every sign-in uses. */
-check('Find is still started again when an admin signs out from an admin-only shelf, and when another child signs in over the last', async () => {
+check('both finders are started again when an admin signs out from the admin-only shelf, and when another child signs in over the last', async () => {
   const bad = [];
   /* ---- AN ADMIN, ON THE BOOKS SHELF, SIGNS OUT ---- */
   {
     const { w } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
     await wait(300);
     const t = w.__t, d = w.document;
-    t.go('stuff', false, true);
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
-    t.STUFF().q = 'genesis';
-    w.paintStuff();
-    if (!/\bBooks\b/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('the setup: the admin’s chips do not name the Books shelf, so its going was NOT checked');
+    /* THE BOOKS SHELF IS ON THE RESOURCES COLUMN NOW (docs/history/329); Find holds a question of the
+       admin's own beside it, and both go. */
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().q = 'genesis';
+    w.paintFinder_('res');
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
+    t.STUFF().q = 'fractions';
+    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Resources chips do not name the Books shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(50);
-    t.go('stuff', false, true);
+    t.go('res', false, true);
     await wait(30);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out from the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (/\bBooks\b/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('signed out, Find’s chips still name the Books shelf');
-    /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — Find kept, and it holds nothing of the admin's. */
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, the Resources chips still name the Books shelf');
+    /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — kept, and holding nothing of the admin's. */
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
+    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in after the admin signed out is handed the admin’s Resources: ' + JSON.stringify(t.RES().filters));
   }
   /* ---- ONE CHILD SIGNED IN, ANOTHER SIGNS IN OVER THEM ---- */
   {
@@ -21234,10 +21891,13 @@ check('Find is still started again when an admin signs out from an admin-only sh
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
     t.STUFF().q = 'fractions';
     w.paintStuff();
+    t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+    t.RES().q = 'ali';
     if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the switch was NOT checked']);
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the second child did not sign in: ' + JSON.stringify(t.whoami())]);
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in over Ada is handed Ada’s Resources: ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     /* THE SAME CHILD SIGNING IN AGAIN IS NOT A SWITCH: their Find stays. */
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }];
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
@@ -21353,15 +22013,16 @@ check('a session that ends while a child types keeps Find for them to sign in ag
       reply: b => (b.action === 'sessionProbe' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
     await wait(300);
     const t = w.__t;
-    t.go('stuff', false, true);
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
-    t.STUFF().q = 'genesis';
-    w.paintStuff();
+    /* ON THE RESOURCES COLUMN, where the Books shelf is now (docs/history/329). */
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().q = 'genesis';
+    w.paintFinder_('res');
     await w.api({ action: 'sessionProbe', personId: 'P001' });
     await wait(30);
     if (t.whoami()) return bad.concat(['the admin’s refused request did not sign the phone out — the admin case was NOT checked']);
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin’s session ending on the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (t.STUFF().whose) bad.push('an admin’s dead session left STUFF.whose = ' + JSON.stringify(t.STUFF().whose));
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin’s session ending on the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().whose || t.STUFF().whose) bad.push('an admin’s dead session left whose = ' + JSON.stringify([t.STUFF().whose, t.RES().whose]));
   }
   return bad;
 });
@@ -21855,6 +22516,17 @@ check('a child is her first name on every screen: no surname drawn for a visitor
 });
 
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
+/* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes
+   longer than one shell may wait (four cores shared with other builders: the full run passed 600s on
+   10 Oct). Each part says which slice it ran, so four parts are seen to cover the lot. The suite never
+   sets it. */
+const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');
+if (FLOW_PART_) {
+  const k = Number(FLOW_PART_[1]), n = Number(FLOW_PART_[2]), all = checks.length;
+  const a = Math.floor((k - 1) * all / n), b = Math.floor(k * all / n);
+  checks.splice(0, all, ...checks.slice(a, b));
+  console.log('part ' + k + '/' + n + ': journeys ' + (a + 1) + '–' + b + ' of ' + all);
+}
 (async () => {
   let failed = 0;
   console.log('');

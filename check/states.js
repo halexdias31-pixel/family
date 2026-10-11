@@ -79,8 +79,10 @@ const STATES = {
         /* EVERY MEMO, AND `DATA` IS WHAT THEY ARE KEYED ON. `stuffItems` and `stuffFiltered` both
            hold `from: DATA` by object identity, so emptying its arrays leaves all three handing
            back the 5,587 items they built when the payload was whole -- which is a state the app
-           is never in and would have measured the wrong screen. */
-        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+           is never in and would have measured the wrong screen.
+           `stuffForget_` RATHER THAN THE THREE BY NAME: there are two finders now (docs/history/329), and
+           the names are the bound one's; the app's own forgetting empties every finder's. */
+        stuffForget_();
         STUFF.filters = []; STUFF.q = '';
         paintStuff();
       },
@@ -88,7 +90,7 @@ const STATES = {
         const held = window.__LIB_HELD || { rows: null, data: {} };
         Object.keys(held.data).forEach(k => { DATA[k] = held.data[k]; });
         LIBRARY_ROWS = held.rows;
-        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+        stuffForget_();
         paintStuff();
       },
       /* THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN — the owner, 9 Oct: *"They should all have a
@@ -469,118 +471,6 @@ const STATES = {
                && !!steps.querySelector('.prac-steps ol > li');
       },
       wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
-       "the @family textbook should be bare bones for now and the textbooks will be in the resources
-       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
-       shelf — and then the Measures of spread chapter, because it is the one with everything a
-       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
-       stacked fractions under a root are the widest thing on any page of the book. The chapters
-       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
-       ratio and a sideways scroll. */
-    { name: 'a textbook chapter',
-      enter: () => {
-        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
-           and the first one on it, or a chapter numbered like this one in another book, is not the
-           page this state was written about. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = typeof stuffPages_ === 'function'
-          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
-      },
-      expect: () => {
-        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
-           either side of this one, and the card is nine pages back. The card has a journey of its
-           own in check-flow; this state is about the widest page. */
-        const ch = [...document.querySelectorAll('#s-stuff .card.tb.prac-part')]
-          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
-        return !!ch && !!ch.querySelector('.tb-words li b')
-               && !!ch.querySelector('.tb-math .frac .frac-d')
-               && !!ch.querySelector('.tb-points li')
-               && !!ch.querySelector('li .tb-h')
-               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
-               && !document.querySelector('#s-stuff .card:not(.tb) .boxer-rec');
-      },
-      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
-       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
-       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
-       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
-       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
-       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
-       by its page; the pages either side are in the DOM beside it and are measured too. */
-    { name: 'a textbook animation: Pythagoras',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
-        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an17-pyth');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
-        return !!stage && !!stage.querySelector('.an-pyth')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="pyth"]');
-      },
-      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'a textbook animation: Bayes',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
-        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an15-bayes');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
-        return !!stage && !!stage.querySelector('.an-bayes')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="bayes"]');
-      },
-      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'a textbook animation: standard form',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
-        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an2-sf');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
-        return !!stage && !!stage.querySelector('.an-sf')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="sf"]');
-      },
-      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
        THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
@@ -2357,524 +2247,39 @@ const STATES = {
 
        THIS STATE OPENED `Learning → Films` AND MEASURED THE FILM CARDS — the fixture's long title, its
        series and its placeholder, and the Watch tile in the row under the card. THE OWNER, 10 Oct:
-       *"films should not appear in the finder it cannot be found there"*. So it is the admin's What kind
-       question now, drawn WITH the fixture's three films in the payload: it measures the page an admin is
-       shown, and it arrives only if nothing on it, and nothing in Find's list, is a film. A film is
-       measured where it is found — "the films in the videos card, an admin’s", on Games. */
+       *"films should not appear in the finder it cannot be found there"*. So it is the admin's first
+       question in Find now, drawn WITH the fixture's three films in the payload: it measures the page an
+       admin is shown, and it arrives only if nothing on it, nothing What kind could answer over Find's
+       whole list, and nothing a film's title finds in Find's search, is a film. A film is measured where
+       it is found — "the films in the videos card, an admin’s", on Games.
+       NOT `Learning`'s What kind ANY MORE, which is what the films branch asked for: the second finder
+       took the textbooks to the Resources column (docs/history/329), and over the fixture Learning in Find
+       then holds one kind, so What kind is skipped and the page drew Year. A state that wants a second
+       What kind answer on Find cannot arrive, whatever the films do — so this asks What kind's answers of
+       the facet over the whole list instead, which is the same question without the funnel's skip. */
     { name: 'no films in Find, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
+        STUFF.filters = [];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
       },
       expect: () => {
         const films = (DATA.films || []).filter(f => f && f.title);
-        const kinds = [...document.querySelectorAll('#stuff-groups [data-do="facet-pick"]')]
-          .filter(b => b.dataset.field === 'kindLabel').map(b => b.dataset.value);
-        return films.length >= 2 && kinds.length >= 2 && kinds.indexOf('Films') === -1
-               && !stuffItemsAll_().some(x => x.kind === 'film' || films.some(f => f.title === x.name))
+        const isFilm = x => x && (x.kind === 'film' || films.some(f => f.title === x.name));
+        const kl = facetList().find(f => f.field === 'kindLabel');
+        const kinds = kl ? facetValues(stuffItems(), kl).map(v => String(v.value)) : [];
+        const was = STUFF.q;
+        let found = 0;
+        try { films.forEach(f => { STUFF.q = f.title; found += stuffFiltered().filter(isFilm).length; }); }
+        finally { STUFF.q = was; }
+        return films.length >= 2 && kinds.length >= 1 && kinds.indexOf('Films') === -1 && !found
+               && !!document.querySelector('#stuff-groups [data-do="facet-pick"]')
+               && !stuffItemsAll_().some(isFilm)
                && !document.querySelector('#s-stuff .card.film');
       },
-      wants: 'the admin’s What kind question drawn with the films in the payload, no Films answer on it, and no film anywhere in Find' },
-    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
-       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
-       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
-       asking a stranger to reach it would report a fault about the check (check-flow proves the
-       absence; this measures the presence).
-
-       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
-       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
-       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
-       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
-       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
-       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
-       either side of it.
-       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
-       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
-       so the cards after it are drawn from memory as a second visit would draw them. */
-    { name: 'the Bible, the KJV question',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-        bibleLoad_(1);
-        bibleLoad_(17);
-        bibleLoad_(19);
-      },
-      expect: () => {
-        const a = [...document.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
-        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
-               && !!document.querySelector('#s-stuff .card.bible[data-bb="card"]');
-      },
-      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
-    { name: 'the Bible, Psalms\'s chapters',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-      },
-      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
-      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
-    { name: 'the Bible, Psalm 119\'s verses',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-      },
-      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
-      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
-    { name: 'the Bible, Genesis 1:3',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
-                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
-                         { field: 'bibleVerse', value: '3' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
-        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
-               && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
-      },
-      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
-    { name: 'the Bible, Esther 8:9',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
-                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
-                         { field: 'bibleVerse', value: '9' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
-      expect: () => {
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
-        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
-      },
-      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ==============================================================================================
-       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
-
-       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
-       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
-       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
-       paragraph of names, and nothing measured either, because no state reached Resources ›
-       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
-       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
-       now has), and the numbers on the gold meta line.
-
-       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
-       browser as source one at a time and cannot see each other — the note at the top of the file.
-    ============================================================================================== */
-    { name: 'the boxers, on the shared head',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
-         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
-         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
-         beside the name — so this asks what only a browser can answer about that: the picture box is
-         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
-         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
-         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
-         stay: one title size, the flag above the title. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)')
-               || document.querySelector('#s-stuff .card.fc.boxer:not(.is-fights)');
-        if (!c || c.querySelector('.thing')) return false;
-        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
-        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
-        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
-        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
-                                 : /No fight record on file/.test(rec.textContent);
-        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
-        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= t.top + .5
-               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
-               && f.right <= t.left + .5
-               && c.scrollWidth <= c.clientWidth + 1;
-      },
-      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
-       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
-       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
-       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
-       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
-       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
-       the picture and across the card rather than in the photo's column, and its words at least
-       `.62rem` — the size the review measured the old `.56` against and found unreadable.
-
-       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
-       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
-       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
-       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
-       the card draws when the photo loads. */
-    { name: 'a boxer photo\'s credit, a link a finger can hit',
-      enter: () => {
-        STUFF.q = 'Muhammad Ali';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
-        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
-        const box = c && c.querySelector('.boxer-pic');
-        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
-        let line = c.querySelector('.boxer-credit');
-        if (!line) {
-          BOXER_PIC_DEAD.delete(pic(b.image));
-          line = document.createElement('p');
-          line.className = 'boxer-credit';
-          line.innerHTML = boxerCredit_(b, b.imageCredit);
-          box.after(line);
-          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
-             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
-             the rest of this file reported 42px below the fold that no real phone ever has. */
-          try { paneReach_([c.closest('.pane')]); } catch (e) {}
-        }
-        const a = line.querySelector('a.boxer-src');
-        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
-        let z = 1;
-        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
-        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        return r.height / z >= 43.5 && r.width / z >= 43.5
-               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
-               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
-      },
-      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'the fights, on the shared head',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Fights' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
-         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
-         every other meta line rather than in capitals. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.fight')
-               || document.querySelector('#s-stuff .card.fc.fight');
-        if (!c || c.querySelector('p.note')) return false;
-        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
-        const how = c.querySelector('.fc-meta');
-        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
-           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
-        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
-        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
-               && getComputedStyle(how).textTransform === 'none'
-               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
-                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
-      },
-      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS -------
-       THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
-       shorts in the fight."* `check-flow` asks which words each figure was drawn with; only a browser
-       can say what colour comes out after the custom properties, their fallbacks and `.boxer-ring`'s
-       own palette have all been resolved — a token renamed on one side of that chain paints the
-       corner's colour and says nothing. So these ask for the computed `fill` of each part, against the
-       palette entry the row's word names, at every width, as two visitors:
-
-         a profile   Lennox Lewis — his dreads (hair drawn OUTSIDE the old head, and still inside the
-                     frame), his goatee (in the face's deeper black), his skin and his usual white
-                     trunks, none of them the gold stand-in's colours, the picture box still the 4:5 it
-                     was told to be.
-         a fight     Ali v Frazier, 1971: red trunks trimmed white in the red corner, green trimmed gold
-                     in the blue, the blue corner mirrored to face left — and a corner with no trunks
-                     on file, drawn beside them for the asking, painted the corner's MUTED colour by
-                     the stylesheet's fallbacks, its waistband the same colour darker, no stripe.
-         a stranger  Tyson v Berbick, 1986: Berbick has no row, so beside Tyson in his own skin he is
-                     the silhouette — skin and hair one shadow tone, NOT the old stand-in's paper and
-                     gold, which made him a pale blond man in his own black trunks.
-         the dark    every skin, hair colour, trunks colour, the silhouette and both unrecorded trunks,
-                     drawn for the asking, each clearing 2:1 against the stage he stands in; a black
-                     beard 2:1 on every skin; and the unrecorded trunks well away from every trunks word.
-
-       `rgb` IS WRITTEN OUT IN EACH, not shared, for the reason `fcHead` is: these functions are passed
-       to the browser as source one at a time and cannot see each other. */
-    { name: 'a boxer who looks like himself',
-      enter: () => {
-        STUFF.q = 'Lennox Lewis';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
-        const row = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Lennox Lewis');
-        if (!c || !row || !row.look || !/Lennox Lewis/.test((c.querySelector('h3') || {}).textContent || '')) return false;
-        const frame = c.querySelector('.boxer-pic .boxer-frame'), ring = frame && frame.querySelector('svg.boxer-ring');
-        const g = ring && ring.querySelector('g.bf.bf-l');
-        if (!g || g.classList.contains('bf-r')) return false;
-        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
-                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
-        const tok = n => rgb(getComputedStyle(ring).getPropertyValue(n));
-        const fill = sel => { const el = g.querySelector(sel); return el ? getComputedStyle(el).fill : 'missing'; };
-        const L = row.look, t = String(row.trunks || '').split('/');
-        if (L.hair !== 'dreads' || !L.hairColour || !L.skin || !L.facial || L.facial === 'none' || !t[0]) return false;
-        const gold = getComputedStyle(document.documentElement).getPropertyValue('--gold').trim();
-        const f = frame.getBoundingClientRect(), hb = g.querySelector('.bf-hair').getBoundingClientRect(),
-              px = f.width / 40;
-        return g.classList.contains('bf-hs-dreads') && g.classList.contains('bf-fh-' + L.facial)
-               && fill('.bf-skin') === tok('--bf-' + L.skin)
-               && fill('.bf-hair') === tok('--bf-hc-' + L.hairColour)
-               /* A BLACK BEARD IS THE DEEPER BLACK — it sits on the face, not the stage (style.css). */
-               && fill('.bf-face') === tok(L.hairColour === 'black' ? '--bf-fh-black' : '--bf-hc-' + L.hairColour)
-               && fill('.bf-trunks') === tok('--bf-tk-' + t[0])
-               && fill('.bf-band') === tok('--bf-tk-' + (t[1] || t[0]))
-               && fill('.bf-trunks') !== rgb(gold)
-               && getComputedStyle(ring).shapeRendering === 'crispedges'
-               /* THE LOCKS HANG BELOW WHERE THE OLD CAP ENDED — seven game pixels of hair, not its five —
-                  and still inside the frame. */
-               && hb.height >= 6.5 * px && hb.left >= f.left && hb.bottom <= f.bottom
-               && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
-               && c.scrollWidth <= c.clientWidth + 1;
-      },
-      wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'a fight in that night\'s trunks',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Fights' }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0033' && !pg.part);
-        if (at < 0) throw new Error('FT0033, the Fight of the Century, is not in the Fights list');
-        goPage('stuff', stuffFirstResult_() + at, true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.fight');
-        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0033');
-        if (!c || !fr || fr.trunksA !== 'red/white' || fr.trunksB !== 'green/gold') return false;
-        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
-        if (rings.length !== 2) return false;
-        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
-                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
-        const tok = (ring, n) => rgb(getComputedStyle(ring).getPropertyValue(n));
-        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
-        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
-        if (!ga || !gb) return false;
-        /* FACING EACH OTHER: the red corner's gloves to the right of his head, the blue corner's to the left. */
-        const faces = (g, right) => { const gl = g.querySelector('.bf-glove').getBoundingClientRect(), sk = g.querySelector('.bf-skin').getBoundingClientRect();
-                                      return right ? gl.right > sk.right : gl.left < sk.left; };
-        /* AND A CORNER NOBODY RESEARCHED, drawn by the card's own renderer for the asking: the
-           stylesheet's fallbacks are what paint it, and nothing else on this screen would show them. */
-        const probe = document.createElement('span');
-        probe.className = 'boxer-frame';
-        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
-        probe.innerHTML = boxerRing_('X Y', false, null, '') + boxerRing_('X Y', true, null, '');
-        document.body.appendChild(probe);
-        const blanks = [...probe.querySelectorAll('svg.boxer-ring g.bf .bf-trunks')].map(el => getComputedStyle(el).fill);
-        const blankStripes = probe.querySelectorAll('svg.boxer-ring g.bf .bf-stripe').length;
-        probe.remove();
-        const root = getComputedStyle(document.documentElement);
-        /* THE BLANKS ARE THE CORNER'S COLOUR MUTED, NOT THE CORNER'S COLOUR: the old gold and blue with
-           an ink waistband read as a researched gold-and-white pair (the review of 10 Oct). */
-        return fill(ra, '.bf-trunks') === tok(ra, '--bf-tk-red') && fill(ra, '.bf-band') === tok(ra, '--bf-tk-white')
-               && fill(ra, '.bf-stripe') === tok(ra, '--bf-tk-white')
-               && fill(rb, '.bf-trunks') === tok(rb, '--bf-tk-green') && fill(rb, '.bf-band') === tok(rb, '--bf-tk-gold')
-               && fill(rb, '.bf-stripe') === tok(rb, '--bf-tk-gold')
-               && ga.classList.contains('bf-l') && gb.classList.contains('bf-r')
-               && faces(ga, true) && faces(gb, false)
-               && blanks.length === 2 && blanks[0] === tok(ra, '--bf-unsaid-l') && blanks[1] === tok(ra, '--bf-unsaid-r')
-               && blanks[0] !== rgb(root.getPropertyValue('--gold')) && blanks[1] !== rgb(root.getPropertyValue('--tag-level'))
-               && blankStripes === 0;
-      },
-      wants: 'Ali v Frazier 1971 in that night\'s trunks — red trimmed white facing right, green trimmed gold facing left — and a corner with no trunks on file painted the corner\'s muted colour with no stripe',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A FIGHTER WITH NO ROW IS A SILHOUETTE, NOT A PALE BLOND MAN ------------------------------
-       THE REVIEW OF 10 OCT: the 53 corners with no boxer row kept the old stand-in's paper skin and, in
-       the blue corner, its gold hair — while being dressed in their real trunks beside an opponent in
-       his real skin. Trevor Berbick, Cleveland Williams, Andy Ruiz and Benny Paret were drawn as a pale
-       blond man. A corner with no row claims no skin and no hair colour: both are ONE shadow tone.
-       `paint` asks the browser what a token resolves to on a scrap element in the same ring, because a
-       `color-mix` token reads back as its formula, not as a colour. */
-    { name: 'a fighter with no row is a silhouette',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Fights' }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0060' && !pg.part);
-        if (at < 0) throw new Error('FT0060, Tyson v Berbick, is not in the Fights list');
-        goPage('stuff', stuffFirstResult_() + at, true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.fight');
-        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0060');
-        if (!c || !fr || fr.bId || fr.trunksB !== 'black') return false;
-        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
-        if (rings.length !== 2) return false;
-        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
-        if (!ga || !gb) return false;
-        const paint = (ring, v) => { const e = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                                     e.style.fill = v; ring.appendChild(e); const f = getComputedStyle(e).fill; e.remove(); return f; };
-        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
-        const sk = ([...ga.classList].find(k => /^bf-sk-/.test(k)) || '').slice(6);
-        const ghost = paint(rb, 'var(--bf-ghost)');
-        const skins = ['s1', 's2', 's3', 's4', 's5', 's6'].map(t => paint(rb, 'var(--bf-' + t + ')'));
-        return !!sk && ga.classList.contains('bf-seen') && fill(ra, '.bf-skin') === paint(ra, 'var(--bf-' + sk + ')')
-               && !gb.classList.contains('bf-seen') && !/--bf-(skin|hair):/.test(gb.getAttribute('style') || '')
-               && fill(rb, '.bf-skin') === ghost && fill(rb, '.bf-hair') === ghost
-               && ghost !== paint(rb, 'var(--paper)') && ghost !== paint(rb, 'var(--gold)') && skins.indexOf(ghost) < 0
-               && fill(rb, '.bf-trunks') === paint(rb, 'var(--bf-tk-black)');
-      },
-      wants: 'Tyson v Berbick 1986 — Tyson in his own skin, Berbick (no row) a silhouette in one shadow tone, neither paper nor gold nor any skin, still in his black trunks',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- EVERY COLOUR OF THE FIGURE SHOWS AGAINST THE DARK HE STANDS IN --------------------------
-       THE REVIEW OF 10 OCT measured the 4x shots: black hair 1.29:1 against the stage, black trunks
-       1.40:1, the deepest skin 1.97:1, a black beard on it 1.53:1. Tyson was a face and a pair of legs
-       and Joshua's head a dark hood. So every colour the figure can wear is drawn here, for the asking,
-       by the card's own renderer, and its computed fill is held to 2:1 against the computed fill of
-       `bf-stage`, the dark behind him: six skins, eight hair colours, seventeen trunks, the silhouette
-       and both unrecorded pairs. A black beard is held to 2:1 against each skin, because it sits on the
-       face. The unrecorded pairs are held at least 50 apart (RGB) from every trunks word — the old
-       blue fallback and the vocabulary's sky were the same light blue twice. And Mike Tyson's own
-       profile is measured as drawn: his hair and trunks against his ring's stage, and the stage
-       reaching above his hair, so the gold light behind the initials cannot creep back over his head.
-       A failure is left on `window.__bfDark` for whoever opens the page. */
-    { name: 'every colour of the eight-bit fighter shows against the stage',
-      enter: () => {
-        STUFF.q = 'Mike Tyson';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
-        if (!c || !/Mike Tyson/.test((c.querySelector('h3') || {}).textContent || '')) return false;
-        const col = v => {
-          let m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(v);
-          if (m) return [+m[1], +m[2], +m[3]];
-          m = /^color\(srgb\s+([-\d.e]+)\s+([-\d.e]+)\s+([-\d.e]+)/.exec(v);
-          return m ? [m[1] * 255, m[2] * 255, m[3] * 255] : null;
-        };
-        const lum = v => { const k = col(v); if (!k) return NaN;
-          const [r, g, b] = k.map(x => { x /= 255; return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
-          return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
-        const ratio = (p, q) => { const a = lum(p), b = lum(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
-        const far = (p, q) => { const a = col(p), b = col(q); return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) : 0; };
-        const bad = [];
-        /* HIS OWN RING, AS DRAWN. */
-        const ring = c.querySelector('.boxer-pic .boxer-frame svg.boxer-ring'), g = ring && ring.querySelector('g.bf');
-        const stageEl = ring && ring.querySelector('.bf-stage');
-        if (!g || !stageEl || !g.classList.contains('bf-hc-black') || !g.classList.contains('bf-tk-black')) return false;
-        const stage = getComputedStyle(stageEl).fill;
-        ['.bf-hair', '.bf-trunks'].forEach(sel => { const r = ratio(getComputedStyle(g.querySelector(sel)).fill, stage);
-          if (!(r >= 2)) bad.push('Tyson ' + sel + ' ' + r.toFixed(2) + ':1'); });
-        if (stageEl.getBoundingClientRect().top > g.querySelector('.bf-hair').getBoundingClientRect().top + 0.5) bad.push('the stage does not reach above his hair');
-        /* EVERY WORD, DRAWN FOR THE ASKING. */
-        const probe = document.createElement('span');
-        probe.className = 'boxer-frame';
-        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
-        const cases = [];
-        BOXER_LOOK.skin.forEach(t => cases.push(['skin ' + t, '.bf-skin', boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black' }, 'white')]));
-        BOXER_LOOK.hair_colour.forEach(t => cases.push(['hair ' + t, '.bf-hair', boxerRing_('X Y', false, { skin: 's3', hair: 'short', hairColour: t }, 'white')]));
-        BOXER_LOOK.trunks.forEach(t => cases.push(['trunks ' + t, '.bf-trunks', boxerRing_('X Y', false, { skin: 's3' }, t)]));
-        cases.push(['the silhouette', '.bf-skin', boxerRing_('X Y', false, null, '')],
-                   ['unrecorded trunks, red corner', '.bf-trunks', boxerRing_('X Y', false, null, '')],
-                   ['unrecorded trunks, blue corner', '.bf-trunks', boxerRing_('X Y', true, null, '')]);
-        probe.innerHTML = cases.map(k => k[2]).join('');
-        document.body.appendChild(probe);
-        const svgs = [...probe.querySelectorAll('svg.boxer-ring')];
-        const fills = {};
-        cases.forEach(([name, sel], i) => {
-          const s = svgs[i], f = getComputedStyle(s.querySelector('g.bf ' + sel)).fill, st = getComputedStyle(s.querySelector('.bf-stage')).fill;
-          fills[name] = f;
-          const r = ratio(f, st);
-          if (!(r >= 2)) bad.push(name + ' ' + r.toFixed(2) + ':1 against the stage');
-        });
-        /* A BLACK BEARD ON EVERY SKIN. */
-        probe.innerHTML = BOXER_LOOK.skin.map(t => boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black', facial: 'beard' }, 'white')).join('');
-        [...probe.querySelectorAll('svg.boxer-ring')].forEach((s, i) => {
-          const r = ratio(getComputedStyle(s.querySelector('.bf-face')).fill, getComputedStyle(s.querySelector('.bf-skin')).fill);
-          if (!(r >= 2)) bad.push('a black beard on ' + BOXER_LOOK.skin[i] + ' ' + r.toFixed(2) + ':1');
-        });
-        probe.remove();
-        ['unrecorded trunks, red corner', 'unrecorded trunks, blue corner'].forEach(u => BOXER_LOOK.trunks.forEach(t => {
-          const d = far(fills[u], fills['trunks ' + t]);
-          if (!(d >= 50)) bad.push(u + ' is ' + Math.round(d) + ' from ' + t);
-        }));
-        window.__bfDark = bad;
-        return bad.length === 0 && Object.keys(fills).length === cases.length;
-      },
-      wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
-       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
-       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
-       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
-       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
-       indent against the width of its widest number, set in the list's own font. */
-    { name: "the textbook's contents, every number inside the card",
-      enter: () => {
-        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
-           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .card.tb:not(.prac-part)');
-        const ol = c && c.querySelector('.tb-toc ol.fc-list');
-        const li = ol && ol.children;
-        if (!li || li.length < 10) return false;
-        const probe = document.createElement('span');
-        probe.textContent = li.length + '. ';
-        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
-        li[li.length - 1].appendChild(probe);
-        const need = probe.getBoundingClientRect().width;
-        probe.remove();
-        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
-      },
-      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the admin’s first question in Find drawn with the films in the payload, no Films answer What kind could give, no film found by its title, and no film anywhere in Find' },
     /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION ------------------------------------
        NEITHER WAS A STATE. `Nothing matches` is what a search for nothing says, and "Nothing left to
        narrow" is the last line under the chips when every question is answered — an inline
@@ -2885,6 +2290,33 @@ const STATES = {
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
       leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
+    /* AND A SEARCH THAT MATCHES NOTHING HERE BUT SOMETHING ONE COLUMN OVER — the review of the second
+       finder, finding 1 (docs/history/329): a boxer's name typed into Find said "Try fewer words." with
+       him one swipe away in Resources. It says how many and where now, with an Open tile under it, and a
+       tile is a tap target and a line of faint words is a contrast ratio, which only a browser measures. */
+    { name: 'a search only Resources answers',
+      enter: () => { STUFF.filters = []; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+      expect: () => {
+        const g = document.querySelector('#stuff-groups');
+        const t = g && g.querySelector('.tile-row [data-do="finder-words"][data-to="res"]');
+        return !!t && /\bin Resources\b/.test(g.textContent) && !/Try fewer words/.test(g.textContent);
+      },
+      wants: 'Find\'s empty search saying how many are in Resources, with an Open tile under it',
+      /* AND RESOURCES PUT BACK TOO. `check/press.js` presses the Open tile, which is the point of it:
+         it carries "Olivares" into Resources' words and box and turns that column to his card. Left
+         there, every `res` state after it — which set chips and not words — entered a column searching
+         for a boxer, and the textbook chapter and the three animations "did not arrive". */
+      leave: () => {
+        STUFF.q = ''; paintStuff(); goPage('stuff', 0);
+        inFinder_(finderOf_('res'), () => {
+          STUFF.q = ''; STUFF.filters = [];
+          const box = document.getElementById('res-q');
+          if (box) box.value = '';
+          paintStuff(); goPage('res', 0);
+        });
+        /* AND FIND IN FRONT AGAIN — the tile went to Resources, and the states after this one are Find's. */
+        if (AT !== 'stuff') go('stuff', false, true);
+      } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
@@ -3001,6 +2433,621 @@ const STATES = {
       },
       wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+  ],
+  /* ================================================================================================
+     THE SECOND FINDER: RESOURCES, RIGHT OF FIND (docs/history/329)
+
+     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+     column to the right of the current finder. this new column is "finder 2". it carries resources."*
+     The textbooks, the Bible, the boxers and the fights left Find for this column, and every state that
+     measured them moved with them, word for word, but for three things: each runs in the second
+     finder's binding (`inFinder_`, find.js — inside it `STUFF` IS this column's state, so the code reads
+     as it did), each turns `goPage('res', …)` and looks in `#s-res`, and none sets a `What for` or
+     `What kind` chip, because over the resources both have one answer and the funnel skips them — a
+     chip nobody could have pressed is not a state anybody is in.
+  ================================================================================================ */
+  res: [
+    { name: 'the question' },
+    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
+       "the @family textbook should be bare bones for now and the textbooks will be in the resources
+       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
+       shelf — and then the Measures of spread chapter, because it is the one with everything a
+       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
+       stacked fractions under a root are the widest thing on any page of the book. The chapters
+       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
+       ratio and a sideways scroll. */
+    { name: 'a textbook chapter',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
+           and the first one on it, or a chapter numbered like this one in another book, is not the
+           page this state was written about. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
+        goPage('res', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      }),
+      expect: () => {
+        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
+           either side of this one, and the card is nine pages back. The card has a journey of its
+           own in check-flow; this state is about the widest page. */
+        const ch = [...document.querySelectorAll('#s-res .card.tb.prac-part')]
+          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
+        return !!ch && !!ch.querySelector('.tb-words li b')
+               && !!ch.querySelector('.tb-math .frac .frac-d')
+               && !!ch.querySelector('.tb-points li')
+               && !!ch.querySelector('li .tb-h')
+               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
+               && !document.querySelector('#s-res .card:not(.tb) .boxer-rec');
+      },
+      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
+       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
+       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
+       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
+       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
+       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
+       by its page; the pages either side are in the DOM beside it and are measured too. */
+    { name: 'a textbook animation: Pythagoras',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
+        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an17-pyth');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
+        return !!stage && !!stage.querySelector('.an-pyth')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="pyth"]');
+      },
+      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a textbook animation: Bayes',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
+        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an15-bayes');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
+        return !!stage && !!stage.querySelector('.an-bayes')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="bayes"]');
+      },
+      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a textbook animation: standard form',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
+        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an2-sf');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
+        return !!stage && !!stage.querySelector('.an-sf')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="sf"]');
+      },
+      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
+       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
+       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
+       asking a stranger to reach it would report a fault about the check (check-flow proves the
+       absence; this measures the presence).
+
+       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
+       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
+       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
+       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
+       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
+       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
+       either side of it.
+       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
+       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
+       so the cards after it are drawn from memory as a second visit would draw them. */
+    { name: 'the Bible, the KJV question',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+        bibleLoad_(1);
+        bibleLoad_(17);
+        bibleLoad_(19);
+      }),
+      expect: () => {
+        const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
+        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
+               && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
+      },
+      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+    { name: 'the Bible, Psalms\'s chapters',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+      }),
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
+      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
+    { name: 'the Bible, Psalm 119\'s verses',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+      }),
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
+      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
+    { name: 'the Bible, Genesis 1:3',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
+                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
+                         { field: 'bibleVerse', value: '3' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
+        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
+               && !!document.querySelector('#s-res [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+      },
+      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
+    { name: 'the Bible, Esther 8:9',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
+                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
+                         { field: 'bibleVerse', value: '9' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
+      expect: () => {
+        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
+      },
+      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ==============================================================================================
+       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
+
+       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
+       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
+       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
+       paragraph of names, and nothing measured either, because no state reached Resources ›
+       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
+       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
+       now has), and the numbers on the gold meta line.
+
+       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
+       browser as source one at a time and cannot see each other — the note at the top of the file.
+    ============================================================================================== */
+    { name: 'the boxers, on the shared head',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
+         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
+         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
+         beside the name — so this asks what only a browser can answer about that: the picture box is
+         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
+         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
+         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
+         stay: one title size, the flag above the title. */
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)')
+               || document.querySelector('#s-res .card.fc.boxer:not(.is-fights)');
+        if (!c || c.querySelector('.thing')) return false;
+        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
+        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
+        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
+        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
+                                 : /No fight record on file/.test(rec.textContent);
+        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= t.top + .5
+               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && f.right <= t.left + .5
+               && c.scrollWidth <= c.clientWidth + 1;
+      },
+      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
+       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
+       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
+       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
+       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
+       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
+       the picture and across the card rather than in the photo's column, and its words at least
+       `.62rem` — the size the review measured the old `.56` against and found unreadable.
+
+       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
+       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
+       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
+       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
+       the card draws when the photo loads. */
+    { name: 'a boxer photo\'s credit, a link a finger can hit',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = 'Muhammad Ali';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
+        const box = c && c.querySelector('.boxer-pic');
+        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
+        let line = c.querySelector('.boxer-credit');
+        if (!line) {
+          BOXER_PIC_DEAD.delete(pic(b.image));
+          line = document.createElement('p');
+          line.className = 'boxer-credit';
+          line.innerHTML = boxerCredit_(b, b.imageCredit);
+          box.after(line);
+          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
+             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
+             the rest of this file reported 42px below the fold that no real phone ever has. */
+          try { paneReach_([c.closest('.pane')]); } catch (e) {}
+        }
+        const a = line.querySelector('a.boxer-src');
+        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
+        let z = 1;
+        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
+        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return r.height / z >= 43.5 && r.width / z >= 43.5
+               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
+               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
+      },
+      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'the fights, on the shared head',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
+         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
+         every other meta line rather than in capitals. */
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.fight')
+               || document.querySelector('#s-res .card.fc.fight');
+        if (!c || c.querySelector('p.note')) return false;
+        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
+        const how = c.querySelector('.fc-meta');
+        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
+           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
+        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && getComputedStyle(how).textTransform === 'none'
+               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
+                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
+      },
+      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS -------
+       THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
+       shorts in the fight."* `check-flow` asks which words each figure was drawn with; only a browser
+       can say what colour comes out after the custom properties, their fallbacks and `.boxer-ring`'s
+       own palette have all been resolved — a token renamed on one side of that chain paints the
+       corner's colour and says nothing. So these ask for the computed `fill` of each part, against the
+       palette entry the row's word names, at every width, as two visitors:
+
+         a profile   Lennox Lewis — his dreads (hair drawn OUTSIDE the old head, and still inside the
+                     frame), his goatee (in the face's deeper black), his skin and his usual white
+                     trunks, none of them the gold stand-in's colours, the picture box still the 4:5 it
+                     was told to be.
+         a fight     Ali v Frazier, 1971: red trunks trimmed white in the red corner, green trimmed gold
+                     in the blue, the blue corner mirrored to face left — and a corner with no trunks
+                     on file, drawn beside them for the asking, painted the corner's MUTED colour by
+                     the stylesheet's fallbacks, its waistband the same colour darker, no stripe.
+         a stranger  Tyson v Berbick, 1986: Berbick has no row, so beside Tyson in his own skin he is
+                     the silhouette — skin and hair one shadow tone, NOT the old stand-in's paper and
+                     gold, which made him a pale blond man in his own black trunks.
+         the dark    every skin, hair colour, trunks colour, the silhouette and both unrecorded trunks,
+                     drawn for the asking, each clearing 2:1 against the stage he stands in; a black
+                     beard 2:1 on every skin; and the unrecorded trunks well away from every trunks word.
+
+       `rgb` IS WRITTEN OUT IN EACH, not shared, for the reason `fcHead` is: these functions are passed
+       to the browser as source one at a time and cannot see each other. */
+    { name: 'a boxer who looks like himself',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = 'Lennox Lewis';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const row = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Lennox Lewis');
+        if (!c || !row || !row.look || !/Lennox Lewis/.test((c.querySelector('h3') || {}).textContent || '')) return false;
+        const frame = c.querySelector('.boxer-pic .boxer-frame'), ring = frame && frame.querySelector('svg.boxer-ring');
+        const g = ring && ring.querySelector('g.bf.bf-l');
+        if (!g || g.classList.contains('bf-r')) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = n => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = sel => { const el = g.querySelector(sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const L = row.look, t = String(row.trunks || '').split('/');
+        if (L.hair !== 'dreads' || !L.hairColour || !L.skin || !L.facial || L.facial === 'none' || !t[0]) return false;
+        const gold = getComputedStyle(document.documentElement).getPropertyValue('--gold').trim();
+        const f = frame.getBoundingClientRect(), hb = g.querySelector('.bf-hair').getBoundingClientRect(),
+              px = f.width / 40;
+        return g.classList.contains('bf-hs-dreads') && g.classList.contains('bf-fh-' + L.facial)
+               && fill('.bf-skin') === tok('--bf-' + L.skin)
+               && fill('.bf-hair') === tok('--bf-hc-' + L.hairColour)
+               /* A BLACK BEARD IS THE DEEPER BLACK — it sits on the face, not the stage (style.css). */
+               && fill('.bf-face') === tok(L.hairColour === 'black' ? '--bf-fh-black' : '--bf-hc-' + L.hairColour)
+               && fill('.bf-trunks') === tok('--bf-tk-' + t[0])
+               && fill('.bf-band') === tok('--bf-tk-' + (t[1] || t[0]))
+               && fill('.bf-trunks') !== rgb(gold)
+               && getComputedStyle(ring).shapeRendering === 'crispedges'
+               /* THE LOCKS HANG BELOW WHERE THE OLD CAP ENDED — seven game pixels of hair, not its five —
+                  and still inside the frame. */
+               && hb.height >= 6.5 * px && hb.left >= f.left && hb.bottom <= f.bottom
+               && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && c.scrollWidth <= c.clientWidth + 1;
+      },
+      wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a fight in that night\'s trunks',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0033' && !pg.part);
+        if (at < 0) throw new Error('FT0033, the Fight of the Century, is not in the Fights list');
+        goPage('res', stuffFirstResult_() + at, true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.fight');
+        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0033');
+        if (!c || !fr || fr.trunksA !== 'red/white' || fr.trunksB !== 'green/gold') return false;
+        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
+        if (rings.length !== 2) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = (ring, n) => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
+        if (!ga || !gb) return false;
+        /* FACING EACH OTHER: the red corner's gloves to the right of his head, the blue corner's to the left. */
+        const faces = (g, right) => { const gl = g.querySelector('.bf-glove').getBoundingClientRect(), sk = g.querySelector('.bf-skin').getBoundingClientRect();
+                                      return right ? gl.right > sk.right : gl.left < sk.left; };
+        /* AND A CORNER NOBODY RESEARCHED, drawn by the card's own renderer for the asking: the
+           stylesheet's fallbacks are what paint it, and nothing else on this screen would show them. */
+        const probe = document.createElement('span');
+        probe.className = 'boxer-frame';
+        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
+        probe.innerHTML = boxerRing_('X Y', false, null, '') + boxerRing_('X Y', true, null, '');
+        document.body.appendChild(probe);
+        const blanks = [...probe.querySelectorAll('svg.boxer-ring g.bf .bf-trunks')].map(el => getComputedStyle(el).fill);
+        const blankStripes = probe.querySelectorAll('svg.boxer-ring g.bf .bf-stripe').length;
+        probe.remove();
+        const root = getComputedStyle(document.documentElement);
+        /* THE BLANKS ARE THE CORNER'S COLOUR MUTED, NOT THE CORNER'S COLOUR: the old gold and blue with
+           an ink waistband read as a researched gold-and-white pair (the review of 10 Oct). */
+        return fill(ra, '.bf-trunks') === tok(ra, '--bf-tk-red') && fill(ra, '.bf-band') === tok(ra, '--bf-tk-white')
+               && fill(ra, '.bf-stripe') === tok(ra, '--bf-tk-white')
+               && fill(rb, '.bf-trunks') === tok(rb, '--bf-tk-green') && fill(rb, '.bf-band') === tok(rb, '--bf-tk-gold')
+               && fill(rb, '.bf-stripe') === tok(rb, '--bf-tk-gold')
+               && ga.classList.contains('bf-l') && gb.classList.contains('bf-r')
+               && faces(ga, true) && faces(gb, false)
+               && blanks.length === 2 && blanks[0] === tok(ra, '--bf-unsaid-l') && blanks[1] === tok(ra, '--bf-unsaid-r')
+               && blanks[0] !== rgb(root.getPropertyValue('--gold')) && blanks[1] !== rgb(root.getPropertyValue('--tag-level'))
+               && blankStripes === 0;
+      },
+      wants: 'Ali v Frazier 1971 in that night\'s trunks — red trimmed white facing right, green trimmed gold facing left — and a corner with no trunks on file painted the corner\'s muted colour with no stripe',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- A FIGHTER WITH NO ROW IS A SILHOUETTE, NOT A PALE BLOND MAN ------------------------------
+       THE REVIEW OF 10 OCT: the 53 corners with no boxer row kept the old stand-in's paper skin and, in
+       the blue corner, its gold hair — while being dressed in their real trunks beside an opponent in
+       his real skin. Trevor Berbick, Cleveland Williams, Andy Ruiz and Benny Paret were drawn as a pale
+       blond man. A corner with no row claims no skin and no hair colour: both are ONE shadow tone.
+       `paint` asks the browser what a token resolves to on a scrap element in the same ring, because a
+       `color-mix` token reads back as its formula, not as a colour. */
+    { name: 'a fighter with no row is a silhouette',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0060' && !pg.part);
+        if (at < 0) throw new Error('FT0060, Tyson v Berbick, is not in the Fights list');
+        goPage('res', stuffFirstResult_() + at, true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.fight');
+        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0060');
+        if (!c || !fr || fr.bId || fr.trunksB !== 'black') return false;
+        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
+        if (rings.length !== 2) return false;
+        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
+        if (!ga || !gb) return false;
+        const paint = (ring, v) => { const e = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                                     e.style.fill = v; ring.appendChild(e); const f = getComputedStyle(e).fill; e.remove(); return f; };
+        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const sk = ([...ga.classList].find(k => /^bf-sk-/.test(k)) || '').slice(6);
+        const ghost = paint(rb, 'var(--bf-ghost)');
+        const skins = ['s1', 's2', 's3', 's4', 's5', 's6'].map(t => paint(rb, 'var(--bf-' + t + ')'));
+        return !!sk && ga.classList.contains('bf-seen') && fill(ra, '.bf-skin') === paint(ra, 'var(--bf-' + sk + ')')
+               && !gb.classList.contains('bf-seen') && !/--bf-(skin|hair):/.test(gb.getAttribute('style') || '')
+               && fill(rb, '.bf-skin') === ghost && fill(rb, '.bf-hair') === ghost
+               && ghost !== paint(rb, 'var(--paper)') && ghost !== paint(rb, 'var(--gold)') && skins.indexOf(ghost) < 0
+               && fill(rb, '.bf-trunks') === paint(rb, 'var(--bf-tk-black)');
+      },
+      wants: 'Tyson v Berbick 1986 — Tyson in his own skin, Berbick (no row) a silhouette in one shadow tone, neither paper nor gold nor any skin, still in his black trunks',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- EVERY COLOUR OF THE FIGURE SHOWS AGAINST THE DARK HE STANDS IN --------------------------
+       THE REVIEW OF 10 OCT measured the 4x shots: black hair 1.29:1 against the stage, black trunks
+       1.40:1, the deepest skin 1.97:1, a black beard on it 1.53:1. Tyson was a face and a pair of legs
+       and Joshua's head a dark hood. So every colour the figure can wear is drawn here, for the asking,
+       by the card's own renderer, and its computed fill is held to 2:1 against the computed fill of
+       `bf-stage`, the dark behind him: six skins, eight hair colours, seventeen trunks, the silhouette
+       and both unrecorded pairs. A black beard is held to 2:1 against each skin, because it sits on the
+       face. The unrecorded pairs are held at least 50 apart (RGB) from every trunks word — the old
+       blue fallback and the vocabulary's sky were the same light blue twice. And Mike Tyson's own
+       profile is measured as drawn: his hair and trunks against his ring's stage, and the stage
+       reaching above his hair, so the gold light behind the initials cannot creep back over his head.
+       A failure is left on `window.__bfDark` for whoever opens the page. */
+    { name: 'every colour of the eight-bit fighter shows against the stage',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = 'Mike Tyson';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        if (!c || !/Mike Tyson/.test((c.querySelector('h3') || {}).textContent || '')) return false;
+        const col = v => {
+          let m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(v);
+          if (m) return [+m[1], +m[2], +m[3]];
+          m = /^color\(srgb\s+([-\d.e]+)\s+([-\d.e]+)\s+([-\d.e]+)/.exec(v);
+          return m ? [m[1] * 255, m[2] * 255, m[3] * 255] : null;
+        };
+        const lum = v => { const k = col(v); if (!k) return NaN;
+          const [r, g, b] = k.map(x => { x /= 255; return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        const ratio = (p, q) => { const a = lum(p), b = lum(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+        const far = (p, q) => { const a = col(p), b = col(q); return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) : 0; };
+        const bad = [];
+        /* HIS OWN RING, AS DRAWN. */
+        const ring = c.querySelector('.boxer-pic .boxer-frame svg.boxer-ring'), g = ring && ring.querySelector('g.bf');
+        const stageEl = ring && ring.querySelector('.bf-stage');
+        if (!g || !stageEl || !g.classList.contains('bf-hc-black') || !g.classList.contains('bf-tk-black')) return false;
+        const stage = getComputedStyle(stageEl).fill;
+        ['.bf-hair', '.bf-trunks'].forEach(sel => { const r = ratio(getComputedStyle(g.querySelector(sel)).fill, stage);
+          if (!(r >= 2)) bad.push('Tyson ' + sel + ' ' + r.toFixed(2) + ':1'); });
+        if (stageEl.getBoundingClientRect().top > g.querySelector('.bf-hair').getBoundingClientRect().top + 0.5) bad.push('the stage does not reach above his hair');
+        /* EVERY WORD, DRAWN FOR THE ASKING. */
+        const probe = document.createElement('span');
+        probe.className = 'boxer-frame';
+        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
+        const cases = [];
+        BOXER_LOOK.skin.forEach(t => cases.push(['skin ' + t, '.bf-skin', boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black' }, 'white')]));
+        BOXER_LOOK.hair_colour.forEach(t => cases.push(['hair ' + t, '.bf-hair', boxerRing_('X Y', false, { skin: 's3', hair: 'short', hairColour: t }, 'white')]));
+        BOXER_LOOK.trunks.forEach(t => cases.push(['trunks ' + t, '.bf-trunks', boxerRing_('X Y', false, { skin: 's3' }, t)]));
+        cases.push(['the silhouette', '.bf-skin', boxerRing_('X Y', false, null, '')],
+                   ['unrecorded trunks, red corner', '.bf-trunks', boxerRing_('X Y', false, null, '')],
+                   ['unrecorded trunks, blue corner', '.bf-trunks', boxerRing_('X Y', true, null, '')]);
+        probe.innerHTML = cases.map(k => k[2]).join('');
+        document.body.appendChild(probe);
+        const svgs = [...probe.querySelectorAll('svg.boxer-ring')];
+        const fills = {};
+        cases.forEach(([name, sel], i) => {
+          const s = svgs[i], f = getComputedStyle(s.querySelector('g.bf ' + sel)).fill, st = getComputedStyle(s.querySelector('.bf-stage')).fill;
+          fills[name] = f;
+          const r = ratio(f, st);
+          if (!(r >= 2)) bad.push(name + ' ' + r.toFixed(2) + ':1 against the stage');
+        });
+        /* A BLACK BEARD ON EVERY SKIN. */
+        probe.innerHTML = BOXER_LOOK.skin.map(t => boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black', facial: 'beard' }, 'white')).join('');
+        [...probe.querySelectorAll('svg.boxer-ring')].forEach((s, i) => {
+          const r = ratio(getComputedStyle(s.querySelector('.bf-face')).fill, getComputedStyle(s.querySelector('.bf-skin')).fill);
+          if (!(r >= 2)) bad.push('a black beard on ' + BOXER_LOOK.skin[i] + ' ' + r.toFixed(2) + ':1');
+        });
+        probe.remove();
+        ['unrecorded trunks, red corner', 'unrecorded trunks, blue corner'].forEach(u => BOXER_LOOK.trunks.forEach(t => {
+          const d = far(fills[u], fills['trunks ' + t]);
+          if (!(d >= 50)) bad.push(u + ' is ' + Math.round(d) + ' from ' + t);
+        }));
+        window.__bfDark = bad;
+        return bad.length === 0 && Object.keys(fills).length === cases.length;
+      },
+      wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
+       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
+       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
+       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
+       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
+       indent against the width of its widest number, set in the list's own font. */
+    { name: "the textbook's contents, every number inside the card",
+      enter: () => inFinder_(finderOf_('res'), () => {
+        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
+           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .card.tb:not(.prac-part)');
+        const ol = c && c.querySelector('.tb-toc ol.fc-list');
+        const li = ol && ol.children;
+        if (!li || li.length < 10) return false;
+        const probe = document.createElement('span');
+        probe.textContent = li.length + '. ';
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+        li[li.length - 1].appendChild(probe);
+        const need = probe.getBoundingClientRect().width;
+        probe.remove();
+        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
+      },
+      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------

@@ -734,7 +734,9 @@ function cardTiles_(x) {
      margin, so the admin marks sit at the far end of the row with the whole gap between them and
      the trolley — further apart on a phone than they were stacked, where a bin sat directly beneath
      a trolley and a thumb travels vertically. The colour says the rest. */
-  const mine = favTile_(x) + cardActions_(x);
+  /* AND `Open`, for a resource drawn outside the second finder — on Saved, in the Spotlight — which is
+     where it now lives and where its chapters or bouts are (`finderOpenTile_`, docs/history/329). */
+  const mine = favTile_(x) + cardActions_(x) + finderOpenTile_(x);
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   return `<div class="tile-row">${mine}${admin}</div>`;

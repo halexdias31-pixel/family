@@ -1,5 +1,7 @@
 ## The boxer card is a fighter's profile: the photo, the record as the centrepiece, the tape, and his fights
 
+**Since 10 Oct the boxers and their fights are on the Resources column** ([329](329-the-second-finder-carries-the-resources.md)); a boxer kept on Saved carries an Open tile that opens him there, his fights a swipe up.
+
 **"can you refine the boxers widget. maybe add image of each boxer. and make it look nicer. the wins
 losses etc. my mate's a boxer and i want to impress him."** (5 Oct)
 

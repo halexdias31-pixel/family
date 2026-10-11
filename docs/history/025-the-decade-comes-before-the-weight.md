@@ -1,5 +1,7 @@
 ## The decade comes before the weight
 
+**Since 10 Oct the boxers and the fights are on the Resources column** — the second finder, right of Find ([329](329-the-second-finder-carries-the-resources.md)) — and their questions, Decade before Division among them, are asked there by the same engine.
+
 **"Boxers and fights shouldn't be organised by weight category before the decade/s involved."**
 `nextFacet` walks `FACETS` in order, so a `Decade` question sits above `Division`.
 

@@ -1,5 +1,7 @@
 ## The Bible is asked like everything else: six questions, and a card a verse
 
+**Since 10 Oct these six questions are asked on the Resources column** ([329](329-the-second-finder-carries-the-resources.md)): Books is its shelf question's answer, and the Chapter tile — on a verse found there or kept on Saved — lands on that column.
+
 The owner, 6 Oct: *"the bible needs to be redone. youve gone awol there. it should be like the other
 stuff. tags in finder. should go translation e.g. kjv, then old testament or new, then group the
 books, e.g. torah, pauline epistles ect. then the book titles e.g. genises, eodus. then the

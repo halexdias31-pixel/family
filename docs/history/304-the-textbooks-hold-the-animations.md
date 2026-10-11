@@ -1,5 +1,7 @@
 ## The textbooks hold the teaching animations, and the loading screen draws its copy of them
 
+**Since 10 Oct the chapters, and so the animations, play on the Resources column** ([329](329-the-second-finder-carries-the-resources.md)); `tbAnimWatch_` asks every finder's column, and `check/anims.js` turns to them there.
+
 **The owner, 8 Oct**: *"Add the animations from loading to respective subject text books. Matter of
 fact the source for the animations should be in text books. The animation from loading screen are
 pulling and syncing from the text book animations."*

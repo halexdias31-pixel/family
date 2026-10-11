@@ -9,7 +9,7 @@
    and the solar system since — are drawn in a second: a card, narrower than the phone by its padding,
    with words above and below.
    `check-anims.js` proves the rows are one source, kept and drawn as written; this asks what only a
-   browser can answer about each one, on the page Find turns to after its chapter, at 320 and 390:
+   browser can answer about each one, on the page the Resources column turns to after its chapter, at 320 and 390:
 
      · THE DRAWING IS THERE: the stage holds its root, with a size;
      · NOTHING OF IT LEAVES THE CARD: every part of it, sampled at six moments of its loop (a hop, a
@@ -97,22 +97,28 @@ async function boot(ctx) {
   await page.waitForTimeout(600);
   return page;
 }
-/* TO THE ANIMATION'S PAGE, THE WAY A READER GETS THERE: the book's chips, then its page. */
+/* TO THE ANIMATION'S PAGE, THE WAY A READER GETS THERE: the book's chips, then its page — on the
+   Resources column, where the textbooks and so their chapters are (docs/history/329). The chips are set
+   in that finder's binding (`inFinder_`), inside which `STUFF` is the column's own state. */
 async function turnTo(page, r) {
   const part = 'an' + r.chapter + '-' + r.anim;
   return page.evaluate(async ([book, part]) => {
-    if (AT !== 'stuff') go('stuff');
+    if (AT !== 'res') go('res');
     const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === book);
     if (!x) return 'no book ' + book;
-    STUFF.q = '';
-    STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf }, { field: 'book', value: x.name }];
-    paintStuff();
-    const at = stuffPages_().findIndex(pg => pg.part === part);
-    if (at < 0) return 'no ' + part + ' page';
-    goPage('stuff', stuffFirstResult_() + at, true);
+    const miss = inFinder_(finderOf_('res'), () => {
+      STUFF.q = '';
+      STUFF.filters = [{ field: 'shelf', value: x.shelf }, { field: 'book', value: x.name }];
+      paintStuff();
+      const at = stuffPages_().findIndex(pg => pg.part === part);
+      if (at < 0) return 'no ' + part + ' page';
+      goPage('res', stuffFirstResult_() + at, true);
+      return '';
+    });
+    if (miss) return miss;
     for (let i = 0; i < 60; i++) {
       await new Promise(d => setTimeout(d, 100));
-      const st = document.querySelector('#s-stuff .card.is-' + part + ' .tb-an-stage');
+      const st = document.querySelector('#s-res .card.is-' + part + ' .tb-an-stage');
       if (st && st.classList.contains('is-on')) return '';
     }
     return 'the stage never came on';
@@ -136,10 +142,10 @@ let PORT = 0;
       const why = await turnTo(page, r);
       if (why) { bad.push(r.anim + ' at ' + W + ': ' + why); continue; }
       const got = await page.evaluate(async ([part, id, moments]) => {
-        const card = document.querySelector('#s-stuff .card.is-' + part);
+        const card = document.querySelector('#s-res .card.is-' + part);
         const root = card && card.querySelector('.tb-an-stage > .an-' + id);
         if (!root) return { missing: true };
-        /* WHERE THE SLIDE STOPS. Find's columns slide sideways into place, so a card measured while
+        /* WHERE THE SLIDE STOPS. The columns slide sideways into place, so a card measured while
            its column is still travelling is a card in the wrong place; this waits for it to be on the
            glass and holding still. */
         for (let k = 0, last = null; k < 40; k++) {
@@ -230,7 +236,7 @@ let PORT = 0;
     for (const r of want) {
       const why = await turnTo(page, r);
       if (why) { bad.push(r.anim + ' with less movement: ' + why); continue; }
-      const card = '#s-stuff .card.is-an' + r.chapter + '-' + r.anim;
+      const card = '#s-res .card.is-an' + r.chapter + '-' + r.anim;
       const n = await still(page, card + ' .tb-an-stage');
       if (n) bad.push(r.anim + ' with less movement, in its chapter: ' + (n < 0 ? 'no stage' : n + ' of 7 frames changed'));
       looping(r, 'in its chapter', await running(page, card + ' .tb-an-stage > .an-' + r.anim));
