@@ -310,7 +310,11 @@ const LOUD = (() => {
       await page.waitForTimeout(200);
       const off = await page.evaluate(() => { const t = document.querySelector('[data-sounds="switch"]'); return { name: t.getAttribute('aria-label'), pressed: t.getAttribute('aria-pressed'), kept: localStorage.getItem('mark-sound') }; });
       if (off.name !== 'Sound off' || off.pressed !== 'false' || off.kept !== '0') bad.push('the switch pressed off says ' + JSON.stringify(off));
-      if (!(await restsBy(2000)) || (await au()).suspended === restsBefore) bad.push('the switch pressed off did not put the AudioContext to rest — nothing can play');
+      /* A NEW `suspend()`, waited for -- the context may already be at rest from the chime on a loaded machine,
+         and the switch's own rest is 0.1s away. */
+      let restedNow = false;
+      for (let t = 0; t <= 2000 && !restedNow; t += 100) { restedNow = (await au()).suspended > restsBefore; if (!restedNow) await page.waitForTimeout(100); }
+      if (!restedNow || !(await restsBy(2000))) bad.push('the switch pressed off did not put the AudioContext to rest — nothing can play');
       const hush = await press('16');
       if (hush.outs || hush.starts.length) bad.push('with the switch off a real tap made ' + hush.outs + ' sound(s)');
       const was = await au();

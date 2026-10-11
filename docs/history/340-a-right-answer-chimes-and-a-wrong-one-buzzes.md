@@ -358,3 +358,32 @@ sound fails it.
 - **A double-tap is two sounds** — written down above, and left: one sound per press.
 - **The Timer keeps its own sound and no switch** — the reading of "respect it everywhere sounds play" as the
   marking sounds, which the ear review asked the main session to confirm, is unchanged.
+
+#### Mutations after review
+
+Each applied alone to a copy of the final files, the four `mark sound` journeys and/or `check/sounds.js` run on
+it, and the real files green again after (machine load 20–45 on four cores throughout):
+
+| mutation | caught by |
+|---|---|
+| `markWhere_` back to column and page number | journey 2: another card on the same number heard `[buzzer]`; the same card on a new number `[]` |
+| `markWhere_` asking only that a page is in front, not which card | journey 2: another column, the next page, another card — each heard |
+| `markWhere_` ignoring a hidden app | journey 2: heard while out of sight |
+| `markCan_` without the session test | journey 2: a signed-out AI-only card carries the switch |
+| the store asked before the visit's choice | journey 3: a full store holding '1' buzzes after Sound off; holding '0', silent after Sound on |
+| no `storage` listener | journey 3: tiles say "Sound on" after another tab turned it off, its buzzer not cut |
+| no toast | journey 3: "Sound off said \"\"" |
+| no rest after a sound | journey 4 ("still running"); `check/sounds.js` |
+| a rest at once instead of after the sound | journeys 1 (the second press finds nothing to cut) and 4 ("put to rest 105ms after the press") |
+| no rest when the switch goes off | journey 3; `check/sounds.js` (each with the earlier sound's own rest cancelled first, so it cannot stand in) |
+| no hold during Mark with AI's wait | journey 2: "went to rest while Mark with AI was still marking", the marks silent |
+| `subRecord_` silent on a card keyed to somebody gone | journey 1: `[]`, wanted `[chime]` |
+| the switch test removed from `markPlay_` / only on the late path | journey 2: switched off, 3/3 heard as `[chime]` (both survived the first version of the step — see above) |
+| the switch test removed from `markHear_` | journey 2: a device left off makes an AudioContext at Mark with AI |
+| no cut when the switch goes off | journey 3: the buzzer not cut, here and from another tab |
+| no suspend on hidden | journey 4 |
+| `MARK_LATE_MS` dropped | journey 4: an 800 ms wake still played |
+| a chime for every key the account pull lays on | journey 1: the pull heard as `[chime]` |
+| `markPlay_` deferred 300 ms | journeys 1–4; `check/sounds.js`: "made … tap:false", "resume() was called outside the tap" |
+| the old tuning (110 Hz, 800 Hz, 0.045; chime 0.04) | `check/sounds.js`: "8.4 dB quieter, wanted no more than 3", 10.9 through a phone |
+| and the builder's seven, again on the new code: one per copy, a paint that plays, the switch ignored, the buzzer for right, the AI press not waking, a click at the chime's start, a context at load | all red: journeys 1–4 and/or `check/sounds.js` as before |

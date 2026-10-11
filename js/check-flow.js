@@ -17045,7 +17045,11 @@ check('mark sound: the switch is the sound tile on a card that can be marked, of
   if (!earCut_(buzzing)) bad.push('Sound off pressed while the buzzer played did not stop it (its gain cancelled and ramped to 0): ' + JSON.stringify(buzzing && buzzing.gain.ev));
   rec.frozen = null;
   if (!/right and wrong/i.test(toastSays()) || !/\boff\b/i.test(toastSays())) bad.push('Sound off said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is off');
-  if (!(await earRests_(rec, 3000)) || rec.suspended.length === restsWere) bad.push('Sound off left the context ' + rec.acs.map(a => a.state).join(', ') + ' — nothing can play, so it should rest straight after the fade');
+  /* A NEW `suspend()`, waited for: the context may already be at rest from the buzzer on a loaded machine,
+     and the switch's own rest is 0.1s away. */
+  let restedNow = false;
+  for (let t = 0; t < 30 && !restedNow; t++) { restedNow = rec.suspended.length > restsWere; if (!restedNow) await wait(100); }
+  if (!restedNow || rec.acs.some(a => a.state !== 'suspended')) bad.push('Sound off did not put the context to rest (' + rec.acs.map(a => a.state).join(', ') + ') — nothing can play, so it should rest straight after the fade');
   earTap_(rec, tileOf(tCard));
   await wait(30);
   if (!/right and wrong/i.test(toastSays()) || !/\bon\b/i.test(toastSays())) bad.push('Sound on said ' + JSON.stringify(toastSays()) + ' — the toast should say it is the sound for right and wrong answers, and that it is on');
