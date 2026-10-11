@@ -8700,6 +8700,13 @@ function padRead_(k) {
    rounded coordinates per stroke, because a list of {x,y} objects is three times the characters for
    the same marks and `localStorage` is a few megabytes shared with everything else this app keeps.
    Rounded to whole units of a 340-wide picture, which is finer than a finger. */
+/* SEGMENTS a..b-1 OF A STROKE, the one writer the stored path and the live chunks share (`padChunks_`), so
+   the two can never draw a stroke two ways. */
+function padSegs_(st, a, b) {
+  let d = '';
+  for (let i = a; i < b; i++) d += 'L' + st[2 * i + 2] + ' ' + st[2 * i + 3];
+  return d;
+}
 const padPath_ = st => {
   let d = '';
   for (let i = 0; i + 1 < st.length; i += 2) d += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
@@ -9132,8 +9139,18 @@ function padMap_(r, cx, cy) {
   if (!r || !r.width || !r.height) return null;
   return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
 }
-/* EVERY SAMPLE AN EVENT CARRIES. One per event, for now; see `padFeed_`. */
-const padSamples_ = e => [e];
+/* ---------- EVERY SAMPLE THE FINGER GAVE ----------------------------------------------------------------
+   MEASURED BEFORE: under load the pen kept about one sample in three -- a 1,200-sample zigzag at 4x CPU
+   reached it as 395 `pointermove`s, and every one of the 1,200 was there in `getCoalescedEvents`. A fast
+   circle came out a 9-gon. So every sample an event carries is the stroke's, read the way overworld.js
+   reads them for the swipe: where the call exists AND answers something (Firefox on Android answers `[]`,
+   Safari before 18.2 and jsdom have none), else the event itself. From each entry only the point and its
+   time: iOS 18.2 shipped them with no `pointerId` and no `target`, so those come from the event. Predicted
+   events are never read -- ink where the finger has not been is the surprise the brief forbids (338). */
+function padSamples_(e) {
+  const co = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null;
+  return co && co.length ? co : [e];
+}
 
 /* ---------- A STROKE STARTS: today's start, for one contact ----------------------------------------
    THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
@@ -9142,7 +9159,7 @@ function padStart_(c, at, r) {
   const pad = c.ink.closest('.qpad');
   PAD_GO = { tool: padToolNow_(pad), ink: c.ink, from: at, sx: r.width / 340, sy: r.height / 340,
              r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: c.id,
-             c: c, t0: c.t0, est: false, pen: false, dirty: false };
+             c: c, t0: c.t0, est: false, pen: false, dirty: false, live: [], start: 0 };
   PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
   c.role = 'owner';
   return PAD_GO;
@@ -9163,6 +9180,8 @@ function padKeep_(pts, at) {
 /* ---------- WHAT IS ON THE SCREEN OF IT ----------------------------------------------------------- */
 function padLiveOff_(g) {
   if (!g || !g.ink) return;
+  (g.live || []).forEach(p => p.remove());
+  g.live = [];
   g.ink.querySelectorAll('[data-live]').forEach(p => p.remove());
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
@@ -9176,23 +9195,66 @@ function padLivePath_(g, d) {
   if (host) host.appendChild(path);
   return path;
 }
-/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. */
+/* ---------- THE PEN'S LIVE PATH, ONCE A FRAME, IN CHUNKS ---------------------------------------------------
+   IT WAS REWRITTEN WHOLE ON EVERY `pointermove`: the whole `d` rebuilt and re-parsed per event, and the next
+   event's box read then forced the layout that write had dirtied -- `padAt_` measured 1.0ms at p95 at 4x, a
+   forced layout every move. With every coalesced sample kept a stroke is three times longer, so rebuilding
+   it whole would cost three times as much per move. So the samples are fed as they come, and the PATH is
+   written once a frame: a frame asked for from an input handler runs before the next paint, so nothing is
+   drawn later than it was -- only less often than the events come (iOS sends touches unaligned to frames,
+   two writes a frame became one). And nothing is written between two pen events, so each event's box read
+   finds clean layout.
+   IN CHUNKS OF `PAD_CHUNK` SEGMENTS, so a frame's cost does not grow with the stroke: only the OPEN chunk's
+   `d` is rewritten; at 128 segments, once the stroke has 2 points beyond it (what its last segment's
+   corner test and far handle need), it is written one last time and left, and the next starts at its last
+   point. At every frame the chunks draw exactly `padPath_` of the points so far; the pen is opaque with
+   round caps, so the joins do not show. On a lift they collapse into one path (`padCommit_`), so a stroke
+   is one `<path>` as it always was.
+   THE RULER AND THE COMPASS STAY SYNCHRONOUS: a two-point line or one ring of at most 120 points, and the
+   journeys read their live radius straight after `pointermove`. */
+const PAD_CHUNK = 128;
+/* ONE CHUNK: points a..b, through the one segment writer `padPath_` uses. */
+const padChunk_ = (st, a, b) => 'M' + st[2 * a] + ' ' + st[2 * a + 1] + padSegs_(st, a, b);
+function padChunks_(g) {
+  g.dirty = false;
+  const st = PAD_ST, n = st.length / 2;
+  let open = g.live[g.live.length - 1];
+  /* A REPAINT OF THIS PAD TOOK THE CHUNKS (an Undo from the other hand, a copy repainted): drawn again whole. */
+  if (!open || !open.isConnected) {
+    g.live.forEach(p => p.remove());
+    open = padLivePath_(g, '');
+    g.live = [open];
+    g.start = 0;
+  }
+  while (n - 1 - g.start >= PAD_CHUNK + 2) {
+    const b = g.start + PAD_CHUNK;
+    open.setAttribute('d', padChunk_(st, g.start, b));
+    open = padLivePath_(g, '');
+    g.live.push(open);
+    g.start = b;
+  }
+  open.setAttribute('d', g.start ? padChunk_(st, g.start, n - 1) : padPath_(st));
+}
+/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. Now, not at
+   the next frame: the dot is under the finger the moment it lands. */
 function padLiveShow_() {
   const g = PAD_GO;
   if (!g) return;
   padLiveOff_(g);
-  padLivePath_(g, padPath_(PAD_ST));
-  g.dirty = false;
-  if (g.tool !== 'pen') padAid_(g);
+  g.live = [padLivePath_(g, '')];
+  g.start = 0;
+  if (g.tool === 'pen') padChunks_(g);
+  else { g.live[0].setAttribute('d', padPath_(PAD_ST)); g.dirty = false; padAid_(g); }
 }
-/* AND AS IT GROWS. */
+/* AND AS IT GROWS: the pen at the next frame, the ruler and the compass now. */
 function padLive_() {
   const g = PAD_GO;
   if (!g || PAD_HUSH || !g.dirty) return;
+  if (g.tool === 'pen') { padFrameWant_(); return; }
   g.dirty = false;
-  const live = g.ink.querySelector('[data-live]');
+  const live = g.live[0];
   if (live) live.setAttribute('d', padPath_(PAD_ST));
-  if (g.tool !== 'pen') padAid_(g);
+  padAid_(g);
 }
 
 /* ---------- THE TRANSITIONS --------------------------------------------------------------------- */
@@ -9271,6 +9333,8 @@ function padFrameWant_() {
 function padFrame_() {
   PAD_FRAME = 0;
   padDecide_();
+  const g = PAD_GO;
+  if (g && g.dirty && !PAD_HUSH && g.tool === 'pen') padChunks_(g);
 }
 /* THE DECISION. `who` went 10px first; `others` is what moved with it. */
 function padDecide_() {
@@ -9428,6 +9492,9 @@ function padCommit_() {
   if (!g) return;
   let st = PAD_DRAW[g.tool].end(g, PAD_ST);
   PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
+  /* THE FRAME NOT YET RUN IS DONE HERE, NOW: the stroke is stored from every sample fed, and drawn below
+     from what was stored -- never from what the last frame happened to have drawn. */
+  if (PAD_FRAME && typeof cancelAnimationFrame === 'function') { cancelAnimationFrame(PAD_FRAME); PAD_FRAME = 0; }
   if (g.c && g.c.role === 'owner') g.c.role = 'rest';
   const lives = [].slice.call(g.ink.querySelectorAll('[data-live]'));
   const aid = g.ink.querySelector('.qpad-aid');

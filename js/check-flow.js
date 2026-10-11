@@ -381,6 +381,10 @@ function boot(opts) {
          the card did not take the column while a finger was on the drawing. */
       'padTouch: () => (typeof PAD_TOUCH !== "undefined" ? PAD_TOUCH : null),' +
       'swipe: () => (typeof SWIPE !== "undefined" ? SWIPE : null),' +
+      /* AND THE STROKE BEING DRAWN, and the path the pen draws a stroke as, so a journey can hold the live path
+         and the stored one up against `padPath_` of the points (338). */
+      'padSt: () => (typeof PAD_ST !== "undefined" ? PAD_ST : null),' +
+      'padPath: (st, k) => padPath_(st, k),' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -4164,6 +4168,116 @@ check('the finger pen on the board: a hand resting on the card never moves the c
   t.padOn('');
   try { w.localStorage.removeItem(k); } catch (e) {}
   t.USER(null);
+  return bad;
+});
+
+/* ---------- THE FINGER PEN KEEPS EVERY SAMPLE, AND DRAWS IT ONCE A FRAME (338, increment 1b) ------------------
+   MEASURED BEFORE: a 1,200-sample zigzag at 4x CPU reached the pen as 395 events and 394 points were kept --
+   every sample was there in `getCoalescedEvents`. And the whole live path was rebuilt per event, with the next
+   event's box read forcing the layout that write dirtied. Asked here on a question's 340x170 pad: the folded
+   samples are the stroke's (one of them with no `pointerId`, as iOS 18.2 sends them); an event that answers
+   `[]` is its own sample; ONE box read per event however many samples it carries; the box read AGAIN when the
+   pad has moved under the finger (a box kept from the down would put the rest of the line in the wrong
+   place); before a frame the live path is behind, after one it is exactly `padPath_` of the points so far;
+   past 128 segments it is in chunks; and on the lift the last point is in the store and in the one path
+   drawn -- nothing the last frame had not yet drawn is lost. */
+check('the finger pen keeps every sample: the folded ones, one box read per event, the box read again when the pad moves, the frame\'s live path is padPath_ of the points so far, chunked past 128 segments, and the last point is never dropped', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || typeof t.padWrap !== 'function' || typeof t.padKey !== 'function' || typeof t.padOn !== 'function'
+      || typeof w.padDrop_ !== 'function' || typeof t.padSt !== 'function' || typeof t.padPath !== 'function') {
+    return ['padWrap_, padKey_, padDrop_, PAD_ST or padPath_ are not reachable — every sample was NOT checked'];
+  }
+  const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-2' };
+  const k = t.padKey(x);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const W = 340, H = 170;
+  let L = 100, T = 50, reads = 0;
+  const ink = () => host.querySelector('.qpad-ink');
+  const kOf = () => Number((host.querySelector('.qpad') || { getAttribute: () => 1 }).getAttribute('data-aspect')) || 1;
+  const fresh = () => {
+    w.padDrop_();
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    t.padOn(k);
+    L = 100; T = 50;
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    ink().getBoundingClientRect = () => { reads++; return { left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }; };
+  };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const lives = () => [...host.querySelectorAll('.qpad-g [data-live]')];
+  const one = (what) => {
+    const s = stored(), paths = [...host.querySelectorAll('.qpad-g path')];
+    if (lives().length) bad.push(what + ': ' + lives().length + ' live chunk(s) left after the lift');
+    if (paths.length !== s.length) bad.push(what + ': ' + paths.length + ' path(s) drawn for ' + s.length + ' stored');
+    const last = paths[paths.length - 1], want = s.length ? t.padPath(s[s.length - 1], kOf()) : '';
+    if (last && last.getAttribute('d') !== want) bad.push(what + ': the path drawn after the lift is not padPath_ of what was stored — ' + String(last.getAttribute('d')).slice(-60) + ' against ' + want.slice(-60));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+  };
+
+  /* P1: ONE MOVE CARRYING SIX FOLDED SAMPLES, one a duplicate and none with a `pointerId`; then a move whose
+     list is empty. (150,100) is units (50,100). */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  const co = [[152, 100], [154, 101], [154, 101], [156, 102], [158, 103], [160, 104]]
+    .map((p, i) => ({ clientX: p[0], clientY: p[1], timeStamp: 1002 + 2 * i }));
+  reads = 0;
+  fire('pointermove', 1, 160, 104, 1012, { co: co });
+  if (reads !== 1) bad.push('a move carrying six samples read the pad\'s box ' + reads + ' times — wanted once, shared by all of them');
+  if (JSON.stringify(t.padSt()) !== '[50,100,52,100,54,102,56,104,58,106,60,108]') bad.push('six folded samples gave the stroke ' + JSON.stringify(t.padSt()) + ', wanted [50,100,52,100,54,102,56,104,58,106,60,108] — every one, less the repeat');
+  fire('pointermove', 1, 170, 110, 1020, { co: [] });
+  fire('pointerup', 1, 170, 110, 1030);
+  if (JSON.stringify(stored()) !== '[[50,100,52,100,54,102,56,104,58,106,60,108,70,120]]') bad.push('the folded samples and an empty list stored ' + JSON.stringify(stored()) + ' — wanted every sample, then the event\'s own point');
+  one('the folded samples');
+
+  /* THE PAD MOVES UNDER THE FINGER (a sibling's zoom, `padFaceFit_`, the pane scrolled): the next event reads
+     the box again. Units 50, then 60; the pad 50px further right; (220,100) is then unit 70, not 120. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointermove', 1, 160, 100, 1010);
+  L = 150;
+  fire('pointermove', 1, 220, 100, 1020);
+  fire('pointerup', 1, 220, 100, 1030);
+  if (JSON.stringify(stored()) !== '[[50,100,60,100,70,100]]') bad.push('after the pad moved 50px under the finger the stroke was stored as ' + JSON.stringify(stored()) + ', wanted [[50,100,60,100,70,100]] — a box kept from the down');
+  one('the pad moved');
+
+  /* P20: THE LIVE PATH AGAINST WHAT IS STORED. */
+  fresh();
+  fire('pointerdown', 1, 110, 60, 1000, { prim: true });
+  const dot = (lives()[0] || { getAttribute: () => null }).getAttribute('d');
+  if (dot !== t.padPath([10, 20], kOf())) bad.push('the finger\'s dot was not drawn the moment it landed: ' + dot);
+  for (let i = 1; i <= 40; i++) fire('pointermove', 1, 110 + 4 * i, 60 + (i % 5) * 3, 1000 + 8 * i);
+  const before = (lives()[0] || { getAttribute: () => '' }).getAttribute('d');
+  if (before === t.padPath(t.padSt(), kOf())) bad.push('the live path was rewritten inside every event — it was meant to be written once a frame');
+  await wait(5);
+  const framed = lives().map(p => p.getAttribute('d'));
+  if (framed.length !== 1 || framed[0] !== t.padPath(t.padSt(), kOf())) bad.push('after a frame the live path is not padPath_ of the points so far: ' + framed.map(s => s.slice(-40)).join(' | '));
+  fire('pointermove', 1, 280, 70, 1400);
+  fire('pointermove', 1, 300, 80, 1408);
+  fire('pointerup', 1, 300, 80, 1410);
+  const s20 = stored()[0] || [];
+  if (JSON.stringify(s20.slice(-4)) !== '[180,40,200,60]') bad.push('the last two points, moved after the last frame, are not the stored stroke\'s end: ' + JSON.stringify(s20.slice(-6)));
+  one('the live path against the stored');
+
+  /* P21: A 300-POINT STROKE IS DRAWN IN CHUNKS while it is drawn, and is one path after. */
+  fresh();
+  fire('pointerdown', 1, 110, 100, 1000, { prim: true });
+  for (let i = 1; i < 300; i++) fire('pointermove', 1, 110 + i, 100 + (i % 2) * 2, 1000 + 4 * i);
+  await wait(5);
+  const ch = lives().map(p => p.getAttribute('d'));
+  if (ch.length < 2) bad.push('a 300-point stroke was drawn as ' + ch.length + ' live path(s) — the frame rewrites the whole stroke');
+  const joined = ch.map((s, i) => (i ? s.replace(/^M[^LC]*/, '') : s)).join('');
+  if (joined !== t.padPath(t.padSt(), kOf())) bad.push('the chunks of a 300-point stroke do not join into padPath_ of it');
+  fire('pointerup', 1, 409, 102, 2300);
+  if ((stored()[0] || []).length !== 600) bad.push('the 300-point stroke stored ' + ((stored()[0] || []).length / 2) + ' points');
+  one('a 300-point stroke');
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  host.remove();
   return bad;
 });
 

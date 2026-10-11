@@ -384,3 +384,48 @@ and 820 — the two-finger gestures, the palm, the early cancel, the pinch off Q
 lost lift (a planted stale contact, then a real swipe: the page turns) and the invariants: no zoomed ancestor,
 the ink's box the picture's, and the ink at least 16px from the sides and the bottom (smallest: 48px, Q7 at
 320).
+
+#### 1b — every sample
+
+js/find.js: `padSamples_` (the coalesced samples, or the event itself), one box read per event shared by its
+samples, the pen's live path written once a frame (`padFrame_`, `padChunks_`) in chunks of `PAD_CHUNK` = 128
+segments through `padSegs_` — the one segment writer the stored path shares — and the lift flushing it:
+the frame cancelled, the stroke stored from every sample fed and drawn from what was stored, the chunks one
+path. Every `[data-live]` lookup is a list. The ruler and the compass stay synchronous.
+
+**Measured with `check/pen.js --only=samples`, the same script against the unchanged 4955c7c and against 1b,
+back to back, 4x CPU, load average 2.1 then 3.3:**
+
+| | before | after 1b |
+|---|---|---|
+| zigzag at 390, distinct samples kept | 421 of 1,201 (35%) | 1,201 of 1,201 (100%) |
+| zigzag at 820 | 376 of 1,201 (31%) | 1,201 of 1,201 (100%) |
+| Q7, a 120-sample drag, points kept (320 / 390) | 43 / 39 | 121 / 121 |
+| pen `pointermove` handler p50 / p95, 390 | 1.2 / 3.4ms | 0.3 / 2.1ms |
+| the same, 820 | 1.1 / 3.3ms | 0.6 / 2.0ms |
+| ink box reads per pen event | 1 (then a forced layout) | at most 1, on clean layout |
+| path writes inside a pen event | one per event | none |
+| event → the live path's next write, p50 / p95 | 1.1 / 3.3ms (inside the handler) | 5.7 / 16.2ms (in the next frame's callbacks) |
+| **painted in the first frame after the event** | **100%** | **100%** |
+| frames over 33ms (390 / 820) | 21 of 624 / 21 of 627 | 39 of 602 / 34 of 611 (a later run, load 1.7: 23 of 619 / 20 of 625) |
+| the board's stored zigzag | 20 points, 145 chars | 14 points, 104 chars |
+
+The write moved from inside the handler to the next frame's callbacks, and both are painted by the same
+frame: **no latency added**, which is the design's claim measured rather than argued. The board's stroke is
+*smaller* stored: every sample gives the 1-unit thinning a truer line to fit than one sample in three did.
+A fuller run of the check, beside the other sections on a busier machine, had 90 of 545 frames over 33ms and a
+3.1ms p95 — load; the same section alone measured the line above. So the handler's time is judged against its
+2.5ms budget only when the frame record shows a machine that kept up (no more than 8% of frames over 33ms), and
+printed either way; the COUNTED budget — one box read, no write inside an event — is judged always.
+
+check-flow: one journey — six folded samples in one event, one with no `pointerId` (every one kept, the repeat
+dropped, ONE box read); an event whose list is empty (its own point); the box read again after the pad moved
+50px under the finger; before a frame the live path is behind, after one it is exactly `padPath_` of the points
+so far; the last two points, moved after the last frame, are the stored stroke's end and the drawn path is
+`padPath_` of what was stored; a 300-point stroke is three chunks that join into `padPath_` of it, and one path
+after the lift.
+
+**Mutations, each red on its own and the real files green after:** coalesced samples ignored (`[e]`); the box
+read per sample; the box kept from the down (C's cache); no flush on the lift (the drawn path behind the store);
+samples left for a frame with no flush (the last points dropped from the store); no chunks; the path written per
+event instead of per frame.
