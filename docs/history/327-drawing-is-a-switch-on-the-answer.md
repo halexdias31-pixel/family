@@ -141,7 +141,10 @@ pen; the 84 stem-pen parts lost the copy of the stem's figure that was there onl
 question's figure stands where any part's does. Two things this note says no longer hold: "the paper's own
 figure keeps its page and has no Draw" (Checked, and the mutation "every pen made a face") is the opposite
 of the rule now, and those lines in check-flow state the new one; and `padFaceFit_` keeps the drawing's own
-shape rather than a square's, and lets a paper figure's words give way before the figure.
+shape rather than a square's, and lets the card's words give way before a picture with something to read in
+it -- a blank one, made up or the paper's, still gives way first, as here (337, after review). Its 180px
+floor holds for every picture, as this note says it does: 337's first build crossed it on a phone turned on
+its side, and the review put it back.
 
 **Checked after review.** `check/states.js`: *a tall question switched to the drawing, its tiles a
 fingertip and `Type` on the glass* — the dice table of 24 October, its `expect` asking the glass, because

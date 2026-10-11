@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-fig-draw";
+  --css-version: "2026-10-11-fig-draw-2";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11864,6 +11864,15 @@ button.scr-sq { cursor: pointer; }
    `padFaceFit_`'s (find.js), with the drawing's own shape. */
 .qp-area.is-draw > .qpad { margin: .9rem 0 .2rem; }
 .qp-area.is-draw .qpad-art > svg.qsurf:first-child { width: min(100%, 20rem, 44svh); }
+/* AND THE PICTURE'S BOX HELD TO IT TOO, OR THE INK IS NOT OVER THE GRID. `.qpad-art` is an inline-block sized by
+   what is in it, and a picture whose width is a percentage gives a shrink-to-fit box its default 300px; the
+   ink layer stretches to that box (`padWrap_`). Wherever the `44svh` cap binds -- only where 44% of the
+   screen's height is less than the column's width, a phone on its side -- the grid was drawn 141px wide in a
+   293px box at 568x320: the ink
+   152px wider than the squares, so a mark made sideways was stored against the wrong box and moved when the
+   phone was turned upright. Found by the sweep of 337's review over every pen at 568x320; 327's surfaces
+   had it from the day they moved. Upright the cap never binds and this changes nothing. */
+.qp-area.is-draw .qpad-art:has(> svg.qsurf:first-child) { max-width: min(100%, 20rem, 44svh); }
 /* ONE LINE OF SMALL PRINT UNDER THE BAR, NOT TWO. "Not the paper's own figure." and "Saved to Ada's
    account" are both footnotes in one voice (`.qpad > .fig-by` takes `.qpad-note`'s), and stacked they
    were two lines of a 568px phone that the grid and the row with `Type` needed -- the review counted 27

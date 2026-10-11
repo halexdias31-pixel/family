@@ -497,16 +497,27 @@ const STATES = {
         const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
         const page = a && a.closest('.page');
         const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        /* AND "FIGURE ON THE NEXT PAGE" SHOWN: true on the box, whose figure is the page after (the switched state
+           below asks that it goes when the figure is under the pen). Only a browser computes `:has`. */
+        const ref = [...a.closest('.qcard').querySelectorAll('.qsheet-figref')];
         return !!tile && !a.classList.contains('is-draw') && !!a.querySelector('.qp-ans .kp-in') && !page.querySelector('.qpad')
-               && (tile.getAttribute('aria-label') || '') === 'Draw · on the figure';
+               && (tile.getAttribute('aria-label') || '') === 'Draw · on the figure'
+               && ref.length > 0 && ref.every(e => getComputedStyle(e).display !== 'none');
       },
-      wants: 'June 2024 1F Q7 on its card: the answer box, no pen anywhere on the page, and "Draw · on the figure" in the row under it',
+      wants: 'June 2024 1F Q7 on its card: the answer box, "Figure on the next page" over it, no pen anywhere on the page, and "Draw · on the figure" in the row under it',
       leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE SAME CARD, SWITCHED TO ITS FIGURE -------------------------------------------------------------
        `Draw` through its own handler: the box gives way IN PLACE to the paper's own grid under the pen -- the
        picture its figure page draws, on the same `pad:` key that page used, so every drawing made there is
-       here -- with the lock (off: the card arrives with the pen off), Undo and Clear, the figure's credit and
-       no "Not the paper's own figure"; the tile reads `Type`, and the page has not moved. */
+       here -- with the lock (off: the card arrives with the pen off), Undo and Clear, the card's one line of
+       credit ("The paper's figure, redrawn.") and no "Not the paper's own figure"; the tile reads `Type`, and
+       the page has not moved. AND TWO THINGS THE REVIEW OF 337 FOUND NOTHING HOLDING:
+         "Figure on the next page" is hidden -- the figure is right under it. The rule is one line of
+           style.css (`.qcard:has(> .qp-area.is-draw) .qsheet-figref`), and deleting it left every check green
+           while 198 cards pointed at the next page over the figure under the pen.
+         Q7's grid is blank -- nothing to read in it -- so it gives way BEFORE the card's words, as a made-up
+           grid does (`padFaceFit_`): the words drawn smaller only once the grid is at its floor. Split by who
+           drew it, Q7's question went to 0.7 at 320 beside a made-up blank grid's at 0.95. */
     { name: 'a question drawn on the paper\'s own figure, switched to its figure under the pen',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-7');
@@ -530,15 +541,19 @@ const STATES = {
         const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
         const pad = a && a.querySelector('.qpad');
         const art = pad && pad.querySelector('.qpad-art > svg:first-child');
+        const words = a && a.closest('.qcard').querySelector(':scope > .qsheet');
         return !!tile && a.classList.contains('is-draw') && !a.querySelector('.qp-ans')
                && !!pad && pad.getAttribute('data-k') === padKey_(it) && !pad.classList.contains('is-drawing')
                && !!art && !art.classList.contains('qsurf') && /^A grid of squares/.test(art.getAttribute('aria-label') || '')
                && !!pad.querySelector('.qpad-art[data-do="pad-draw"]') && !!pad.querySelector('.qpad-lock')
                && !!pad.querySelector('.qpad-undo') && !!pad.querySelector('.qpad-clear')
-               && /drawn for @family/.test(pad.textContent) && !/not the paper.s own figure/i.test(pad.textContent)
-               && /^Type\b/.test(tile.getAttribute('aria-label') || '') && PAGE.stuff === window.__facePage;
+               && ((pad.querySelector(':scope > .fig-by') || {}).textContent || '').trim() === 'The paper\u2019s figure, redrawn.'
+               && !/not the paper.s own figure/i.test(pad.textContent)
+               && /^Type\b/.test(tile.getAttribute('aria-label') || '') && PAGE.stuff === window.__facePage
+               && [...a.closest('.qcard').querySelectorAll('.qsheet-figref')].every(e => getComputedStyle(e).display === 'none')
+               && !padFaceReads_(art) && (!words || !words.style.zoom || art.getBoundingClientRect().width <= PAD_FACE_FLOOR + 0.5);
       },
-      wants: 'June 2024 1F Q7\'s own grid under the pen where its box was, on its pad: key, the pen off with the lock, Undo and Clear, the figure\'s credit, the tile reading Type, on the same page',
+      wants: 'June 2024 1F Q7\'s own grid under the pen where its box was, on its pad: key, the pen off with the lock, Undo and Clear, the card\'s one line of credit, the tile reading Type, on the same page, no "Figure on the next page" over it, and its words drawn smaller only once the blank grid is at its floor',
       leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AND ITS FIGURE PAGE, A PICTURE TO LOOK AT ------------------------------------------------------------
        A picture the paper prints keeps its own page, where the paper prints it -- Q7's row marks its figure
@@ -600,12 +615,15 @@ const STATES = {
        The transformations-of-graphs sheet's Q8 stem: four sine grids stacked, 340 by 640 -- 1.88 times as tall as
        it is wide, the tallest of the 470, shared by (a), (b) and (c). At 320x568 its natural width draws it 420px
        tall in a 534px pane, so the square shrink 327 wrote for a made-up grid would have taken nearly twice the
-       width it needed; and opened at its foot, its top was above the fold. `padFaceFit_` works from the drawing's
-       own shape now, the words give way first, then the figure to `PAD_FACE_FLOOR` -- and further only so the
-       figure, its bar and `Type` are on the glass together. The dice table's `expect`, asked of this card, and
-       two things more: the whole picture inside the pane, and a picture drawn narrower than its page only by
-       as much as the card needed -- a pane that fits with room to spare under a narrowed figure is the square
-       shrink back, taking width by the pixel of height when a figure this tall gives nearly two. Every width. */
+       width it needed. `padFaceFit_` works from the drawing's own shape now; its graphs carry axis numbers, so
+       the words give way first, then the figure, to `PAD_FACE_FLOOR` and never under it. The dice table's
+       `expect`, asked of this card, and more: the whole picture inside the pane; a picture drawn narrower than
+       its page only by as much as the card needed -- a pane that fits with room to spare under a narrowed
+       figure is the square shrink back, taking width by the pixel of height when a figure this tall gives
+       nearly two; never under the floor (it was 179px at 320 for "the face on the glass at once", a rule that
+       took it to 88px on a phone on its side -- check/press.js turns one); and narrowed only once the words
+       are at `PANE_ZOOM_MIN`, which is the order a picture with something to read in it gives way in. Every
+       width. */
     { name: 'the tallest paper figure switched to its drawing, its tiles a fingertip, Type and the whole figure on the glass',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1CM-transformations-of-graphs-8');
@@ -646,18 +664,21 @@ const STATES = {
                && !!hit && tile.contains(hit)
                && fr.top >= pr.top - 0.5 && fr.bottom <= pr.bottom + 0.5
                && (!art.style.width || pane.style.overflowY === 'auto' || slack <= 16)
-               && (pane.style.overflowY !== 'auto' || !!gave);
+               && (pane.style.overflowY !== 'auto' || !!gave)
+               && fr.width >= PAD_FACE_FLOOR - 0.5 && padFaceReads_(art) && (!art.style.width || !!gave);
       },
-      wants: 'the four sine grids under the pen with the lock, Undo, Clear and Type at 44px on the glass, nothing drawn smaller whole, Type where a press lands on it, the whole figure inside the pane, and no scroll before the words have given way',
+      wants: 'the four sine grids under the pen with the lock, Undo, Clear and Type at 44px on the glass, nothing drawn smaller whole, Type where a press lands on it, the whole figure inside the pane, no narrower than the floor, narrowed only after the words, and no scroll before the words have given way',
       leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DENSE FIGURE THAT GIVES WAY TO ITS FLOOR AND NO FURTHER ---------------------------------------------
        AQA Chemistry, June 2024 Paper 2F Q1.9: "Complete Figure 2" -- a percentage grid of 2mm squares with its
        axis labels 13 units in a 340-unit box, under a page of words and a pen bar of six tiles on two rows. At
-       320x568 its words go to `PANE_ZOOM_MIN`, its figure to `PAD_FACE_FLOOR` (180px wide, labels 6.9px), and the
-       last 60px or so scroll, opened at the foot. Without the floor it would have kept shrinking until the card
-       fitted -- labels at 5px and squares a finger cannot tell apart, to save one short scroll; the owner's "I
-       don't like scrolling" is answered by the words and the figure giving what they can and not past it. At
-       390 and wider it is drawn at its page's size. The `expect` is the tall figure's, and the floor. */
+       320x568 its words go to `PANE_ZOOM_MIN`, then its figure to `PAD_FACE_FLOOR` (180px wide: its 13-unit
+       labels 6.9px, its 9-unit axis captions 4.8px -- "labels at 6.9px" was said of all of them until the review
+       of 337 measured the captions), and what is left scrolls. Without the floor it would have kept shrinking
+       until the card fitted -- labels at 5px and squares a finger cannot tell apart, to save one short scroll;
+       the owner's "I don't like scrolling" is answered by the words and the figure giving what they can and
+       not past it. At 390 and wider it is drawn at its page's size. The `expect` is the tall figure's, the
+       floor, and the order: a figure with labels in it is narrowed only once the words are at their floor. */
     { name: 'a dense paper figure switched to its drawing, given way to its floor and no further',
       enter: () => {
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-AQA-8462-2406-2F-019');
@@ -693,9 +714,57 @@ const STATES = {
                && tr.top >= pr.top - 0.5 && tr.bottom <= pr.bottom + 0.5 && !!hit && tile.contains(hit)
                && fr.top >= pr.top - 0.5 && fr.bottom <= pr.bottom + 0.5
                && (!art.style.width || parseFloat(art.style.width) >= PAD_FACE_FLOOR) && fr.width >= PAD_FACE_FLOOR - 0.5
-               && (pane.style.overflowY !== 'auto' || !!gave);
+               && (pane.style.overflowY !== 'auto' || !!gave)
+               && padFaceReads_(art) && (!art.style.width || !!gave);
       },
-      wants: 'the chemistry grid under the pen, no narrower than the floor, its six tiles and Type at 44px on the glass, the whole figure inside the pane, and a scroll only once the words have given way',
+      wants: 'the chemistry grid under the pen, no narrower than the floor and narrowed only after the words, its six tiles and Type at 44px on the glass, the whole figure inside the pane, and a scroll only once the words have given way',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A FIGURE WITH NUMBERS IN IT, WHOSE CARD'S WORDS ALONE MAKE THE ROOM -----------------------------------
+       June 2024 2H Q21, *"On the grid, draw the graph of y = g(-x) + 2"*: a coordinate grid numbered -6 to 6 with
+       g(x) drawn on it. At 320x568 its card fits once its words give way (to about 0.79), its grid at its page's
+       size. THE ORDER IS THE POINT, and the two states above cannot hold it alone: there the words run out and
+       the figure is narrowed anyway, which a rule that narrowed the figure FIRST also arrives at -- the review
+       of 337 made every picture give way first and every check stayed green. Here a figure-first rule narrows
+       the grid (its numbers smaller) to save the words a squeeze they could take. So: a picture with something
+       to read in it is narrowed only once the words are at `PANE_ZOOM_MIN` -- here, not at all. At 390 and wider
+       nothing gives way and the `expect` is the plain one. */
+    { name: 'a figure with numbers in it switched to its drawing, its card\'s words giving way first and the figure kept whole',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2H-21');
+        if (!it) throw new Error('Q-1MA1-2406-2H-21 is not in the library');
+        if (!padSource_(it) || padSource_(it).from !== 'part') throw new Error('Q-1MA1-2406-2H-21 is not drawn on its own figure any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-1MA1-2406-2H-21 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        if (!a || !a.classList.contains('is-draw')) return false;
+        const pane = a.closest('.pane');
+        const tile = [...a.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        const art = a.querySelector('.qpad-art > svg:first-child');
+        if (!pane || !tile || !art) return false;
+        const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
+        const taps = [...a.querySelectorAll('.qpad-bar [data-do]')].concat([tile]);
+        const pr = pane.getBoundingClientRect(), tr = tile.getBoundingClientRect(), fr = art.getBoundingClientRect();
+        const hit = document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height * 0.9);
+        const words = a.closest('.qcard').querySelector(':scope > .qsheet');
+        const gave = words && Math.abs(parseFloat(words.style.zoom || '1') - PANE_ZOOM_MIN) < 0.001;
+        return taps.length >= 4 && taps.every(e => side(e) >= 43.5)
+               && [...pane.children].every(k => !k.style.zoom)
+               && tr.top >= pr.top - 0.5 && tr.bottom <= pr.bottom + 0.5 && !!hit && tile.contains(hit)
+               && fr.top >= pr.top - 0.5 && fr.bottom <= pr.bottom + 0.5
+               && padFaceReads_(art) && (!art.style.width || !!gave);
+      },
+      wants: 'June 2024 2H Q21\'s numbered grid under the pen, its tiles and Type at 44px on the glass, the whole grid in the pane, and the grid narrowed only if the words are already at their floor',
       leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED BY TAPPING ---------------------------------
        ITS OPTIONS ARE BUTTONS AND THERE IS NO TEXT BOX — asked for in as many words. Narrowed by

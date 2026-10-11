@@ -1609,6 +1609,128 @@ for (const who of VISITORS) {
       await ctx.close();
     }
 
+    /* ---------- AND A FIGURE UNDER THE PEN ON A PHONE ON ITS SIDE, WHERE IT WAS A FEW PIXELS WIDE --------------
+       FOUND BY THE REVIEW OF 337. Every pen is on its card since 11 Oct (docs/history/337), and `padFaceFit_`
+       had a rule to keep the picture, its bar and `Type` on the glass together, even past the picture's
+       180px floor. On a phone held upright it moved three cards a pixel; turned on its side the pane is
+       about 350px tall and the rule took the pictures down to nothing: the transformations stem 88px wide
+       at 844x390 (axis numbers 3.4px), June 2024 1F Q7's grid 82px at 568x320 and 4px at 568x240, and
+       327's made-up grid on 1F Q11c from 141px to 111 -- while every check passed, because every check here
+       measured a phone held upright. The rule is gone: a picture is never drawn under the floor (or under
+       the size the stylesheet gave it, a made-up grid's `44svh` cap), the card scrolls, and it opens with
+       the picture's top at the top of the pane rather than its foot, where four graphs under a pen would
+       be their bottom halves.
+       So, in a phone-shaped context at both sizes the board above is measured at: the tallest paper figure
+       (it has numbers in it), the paper's own blank grid and a made-up blank space, each opened on its box,
+       its `Draw` touched as a finger touches it, and then
+         the picture at least `PAD_FACE_FLOOR` wide, or the width the stylesheet gave it where that is less
+         the ink layer exactly over the picture, to the pixel -- found by the same review's sweep: at the made-up
+           grid's `44svh` cap its box stayed 300px wide round a 141px grid, so a mark made on its side was
+           stored against the wrong box (`.qpad-art:has(> svg.qsurf)` in style.css)
+         every tile of the pen's bar and the row under the card a 44px square -- nothing drawn smaller whole
+         the picture's top inside the pane as it opens
+         and the pane scrolled to its foot (the card scrolls when it does not fit): `Type` inside the pane,
+           a press at its centre landing on it, and a real tap on it bringing the box back
+       Proved by mutation: with the "glass" rule back, five of the six are under their floor; with the card
+       opened at its foot again, four have the picture's top above the pane; without the box held to the
+       capped grid, Q11c's ink is 152px off it at 568x320 and 128 at 844x390. */
+    for (const [sw, sh] of [[568, 320], [844, 390]]) {
+      const ctx = await browser.newContext({ viewport: { width: sw, height: sh }, hasTouch: true, isMobile: true });
+      const tp = await ctx.newPage();
+      tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
+      await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
+      await tp.addInitScript(GUARDS);
+      await tp.route('**://script.google.com/**', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      await tp.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+      /* THE LIBRARY IN, not a guess at when: the three rows are in `data/questions.json`, which lands after the
+         payload. */
+      await tp.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof stuffItemsAll_ === 'function'
+        && stuffItemsAll_().some(x => x.row && x.row.row_id === 'Q-1CM-transformations-of-graphs-8'), null, { timeout: 60000 }).catch(() => {});
+      await tp.waitForTimeout(600);
+      const tc = await ctx.newCDPSession(tp);
+      const tap = async (x, y) => {
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(520);
+      };
+      for (const id of ['Q-1CM-transformations-of-graphs-8', 'Q-1MA1-2406-1F-7', 'Q-1MA1-2406-1F-11c']) {
+        const W_ = 'stuff · ' + id + ' switched to its drawing at ' + sw + 'x' + sh;
+        /* ITS CARD, ON ITS BOX, AND ITS `Draw` WHERE A FINGER CAN SEE IT -- a box face too tall for a short pane
+           scrolls, and a child scrolls to the tile before pressing it. */
+        const t = await tp.evaluate(async id => {
+          const it = stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+          if (!it || !padSource_(it)) return { err: 'not in the library, or no pen' };
+          window.__side = it;
+          go('stuff', false, true);
+          padFaceSet_(padKey_(it), 'type');
+          STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: FACETS.find(f => f.field === 'paperId').of(it) }];
+          paintStuff(true);
+          goPage('stuff', stuffFirstResult_() + stuffPageOf_(it), true);
+          let tile = null;
+          for (let i = 0; i < 60 && !tile; i++) {
+            await new Promise(r => setTimeout(r, 100));
+            tile = [...document.querySelectorAll('#s-stuff .page.on .q-drawt')].find(b => b.getAttribute('data-key') === it.key) || null;
+          }
+          if (!tile) return { err: 'no Draw tile on its card' };
+          await new Promise(r => setTimeout(r, 400));
+          const pane = tile.closest('.pane');
+          const below = tile.getBoundingClientRect().bottom - pane.getBoundingClientRect().bottom;
+          if (below > 0) { pane.scrollTop += below + 8; await new Promise(r => setTimeout(r, 120)); }
+          const r = tile.getBoundingClientRect();
+          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+        }, id);
+        if (t.err) { swipes.push({ from: W_, dir: 'tap Draw', ok: false, got: t.err, want: 'its card with a Draw tile' }); continue; }
+        await tap(t.x, t.y);
+        await tp.waitForTimeout(300);
+        const m = await tp.evaluate(() => {
+          const it = window.__side;
+          const area = [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(a => a.getAttribute('data-q') === it.key);
+          if (!area || !area.classList.contains('is-draw')) return { err: 'touching Draw did not turn the card' };
+          const pane = area.closest('.pane');
+          const art = area.querySelector('.qpad-art > svg:first-child');
+          const tile = [...area.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+          const was = art.style.width; art.style.width = '';
+          const nat = art.getBoundingClientRect().width; art.style.width = was;
+          const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
+          const taps = [...area.querySelectorAll('.qpad-bar [data-do]')].concat(tile ? [tile] : []);
+          const pr = pane.getBoundingClientRect(), fr = art.getBoundingClientRect();
+          const ir = area.querySelector('.qpad-ink').getBoundingClientRect();
+          const out = { w: Math.round(fr.width), nat: Math.round(nat), small: Math.round(Math.min(...taps.map(side)) * 10) / 10,
+                        inkOff: Math.round(Math.max(Math.abs(ir.left - fr.left), Math.abs(ir.top - fr.top), Math.abs(ir.width - fr.width), Math.abs(ir.height - fr.height))),
+                        whole: [...pane.children].some(k => !!k.style.zoom), top: Math.round(fr.top - pr.top),
+                        topIn: fr.top >= pr.top - 0.5 && fr.top < pr.bottom,
+                        over: pane.scrollHeight - pane.clientHeight, scrolls: getComputedStyle(pane).overflowY === 'auto' };
+          /* AND THE FOOT: `Type` reached by scrolling, as a finger beside the picture would. */
+          pane.scrollTop = pane.scrollHeight;
+          const tr = tile ? tile.getBoundingClientRect() : null, pr2 = pane.getBoundingClientRect();
+          const hit = tr && document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height / 2);
+          out.typeIn = !!tr && tr.top >= pr2.top - 0.5 && tr.bottom <= pr2.bottom + 0.5 && !!hit && tile.contains(hit);
+          if (tr) { out.tx = Math.round(tr.left + tr.width / 2); out.ty = Math.round(tr.top + tr.height / 2); }
+          return out;
+        });
+        if (m.err) { swipes.push({ from: W_, dir: 'tap Draw', ok: false, got: m.err, want: 'the card on its drawing' }); continue; }
+        let back = false;
+        if (m.typeIn) {
+          await tap(m.tx, m.ty);
+          back = await tp.evaluate(() => {
+            const a = [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === window.__side.key);
+            return !!a && !a.classList.contains('is-draw') && !!a.querySelector('.qp-ans');
+          });
+        }
+        const floor = Math.min(180, m.nat);
+        swipes.push({ from: W_, dir: 'tap Draw, then Type', ok: m.w >= floor - 0.5 && m.inkOff <= 1 && m.small >= 43.5 && !m.whole && m.topIn
+                        && (m.over <= 2 || m.scrolls) && m.typeIn && back,
+                      got: 'the picture ' + m.w + 'px wide (its own ' + m.nat + 'px)' + (m.inkOff > 1 ? ', the ink ' + m.inkOff + 'px off it' : ', the ink over it') + ', the smallest tile ' + m.small + 'px'
+                           + (m.whole ? ', the card drawn smaller whole' : '') + ', its top ' + m.top + 'px into the pane'
+                           + (m.over > 2 ? ', the card ' + m.over + 'px over and ' + (m.scrolls ? 'scrolling' : 'NOT scrolling') : '')
+                           + (m.typeIn ? (back ? ', Type at the foot brought the box back' : ', Type at the foot did not bring the box back') : ', Type not reachable at the foot'),
+                      want: 'the picture at least ' + floor + 'px wide with the ink over it, every tile 44px, its top in the pane as it opens, and Type at the foot bringing the box back' });
+        await tp.evaluate(() => { try { padFaceForget_(); } catch (e) {} STUFF.filters = []; paintStuff(true); });
+      }
+      await ctx.close();
+    }
+
     /* ==================================================================================================
        AND A TAP ON THE GAME FLAPS ON THE FINGER GOING DOWN, NOT ON IT COMING UP.
 

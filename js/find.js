@@ -8803,7 +8803,11 @@ function padWrap_(x, svg, credit) {
         <g class="qpad-aid"></g>
       </svg>
     </div>
-    ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
+    ${padBar_(pen, tools, tool)}${credit || ''} ${was.length ? usesSaid_(x, svg, true) : ''}
+    ${/* A SPACE BETWEEN THE CREDIT AND THE EARLIER MARKS' LINE, because on the card's drawing face the small
+          print runs on as one line (style.css, `.qp-area.is-draw .qpad > .fig-by`), and two inline `<p>`s with
+          nothing between them read "...redrawn.The fainter marks are yours from Q6(i)" -- on the old figure
+          page the credit was a block and nothing showed (337, after review). */''}
     ${/* WHERE THE MARKS GO, AND ONLY A `pad:` KEY GOES ANYWHERE: `padNoteSay_` says "Saved to Ada's
           account" signed in, "Not saved" when the store refused it and who was signed out when a session ended
           (317). The whiteboard's (`padPrefix_`) stays on this device, so of those only "Not saved" is ever
@@ -9109,7 +9113,23 @@ function padSave_(pad, k, all) {
     return false;
   }
   ansStore_(k, v);
+  padCopies_(k, pad, all);
   return true;
+}
+/* ---------- AND EVERY OTHER COPY OF THE SAME PAD, FROM THE STORE ------------------------------------------
+   ONE KEY CAN BE ON THE SCREEN TWICE: Find's card and Saved's (or Spotlight's) are the same question, and
+   `q-draw` turns every copy's face together. A stroke, an Undo or a Clear repainted only the pad it was
+   made on, so the other copy went on showing what was there when it was drawn -- found by the review of
+   11 Oct with a stroke on Saved's copy of June 2024 1F Q7 and Find's copy at 0 strokes over a store holding
+   1, where `Clear` on Find's copy would have wiped a drawing the child could not see. True of 327's
+   surfaces and the old figure page's pen as well; it reaches the 470 through their cards now (337). So
+   every other `.qpad` on the key is repainted from what was just stored -- `padRepaint_`'s rule, that the
+   screen is what a reload would bring back. Not the pad drawn on, whose stroke is already where the finger
+   left it. */
+function padCopies_(k, pad, all) {
+  document.querySelectorAll('.qpad[data-k]').forEach(p => {
+    if (p !== pad && p.getAttribute('data-k') === k) padRepaint_(p, all);
+  });
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
@@ -9172,6 +9192,7 @@ on('pad-undo', (el) => {
     const put = () => ansStore_(k, JSON.stringify(back));
     if (typeof ansPutBack_ === 'function') ansPutBack_(k, mark, put); else put();
     padRepaint_(pad, back);
+    padCopies_(k, pad, back);
     toast('Put back');
     return;
   }
@@ -9179,6 +9200,7 @@ on('pad-undo', (el) => {
   all.pop();
   ansStore_(k, JSON.stringify(all));
   padRepaint_(pad, all);
+  padCopies_(k, pad, all);
 });
 
 /* ---------- CLEAR CAN BE UNDONE ------------------------------------------------------------------
@@ -9202,6 +9224,7 @@ on('pad-clear', (el) => {
   /* CLEARED IS A VALUE TOO — sent as nothing, so the drawing goes from the other device as well. */
   ansStore_(k, null);
   padRepaint_(pad, []);
+  padCopies_(k, pad, []);
   toast('Cleared. Undo puts it back.');
 });
 
@@ -9773,21 +9796,32 @@ function drawTile_(x) {
    `.qp-area` ONLY ROUND A QUESTION WITH A PEN, so every other card's box is the markup it always was.
    `data-q` names the question (its item key) for the tile's handler to find every copy -- Find and Saved
    can both be holding the card. The drawing face is the picture `padSource_` names under the pen, and the
-   line under it says whose picture it is, as the figure page's always did:
-     the paper's own figure, or a stem's    its `figCredit_` ("drawn for @family. from the paper's own
-                                            figures..."), the sentence that stood under the pen on the
-                                            figure page -- the honesty argument is the same on a card
+   line under it says whose picture it is, in a card's length -- the claim alone, one line where it can be:
+     the paper's own figure, or a stem's    "The paper's figure, redrawn." (`FIG_CARD`) -- the honesty
+                                            argument the figure page's credit makes, on a card
      a made-up surface                      "Not the paper's own figure." -- a generated grid passing as
-                                            the exam board's would be the site speaking in its voice. CUT
-                                            IN REVIEW (327) to the claim alone: two notes under a pen's bar
-                                            were two lines of a 568px phone the grid needed
-   Either way run on one line with "Saved to Ada's account" (style.css, `.qp-area.is-draw`) -- so the credit
+                                            the exam board's would be the site speaking in its voice
+   CUT IN REVIEW, BOTH OF THEM. 327 cut the surface's line from its page's sentence to the claim alone: two
+   notes under a pen's bar were two lines of a 568px phone the grid needed. 337 first carried the figure
+   page's whole sentence here ("drawn for @family. from the paper's own figures -- the original is the
+   board's and is not reproduced here") and the review of 11 Oct measured what that cost: three lines at
+   320, four signed out with "Kept on this device only -- sign in to keep it."; with the one-line credit
+   (and the floor and order fixes in `padFaceFit_` beside it) the cards still scrolling with Draw pressed at
+   320x568 went from 33 to 17, measured over all 532. The figure's own page beside the card -- the
+   stem's, for a stem's part -- still carries the whole sentence, so nothing is disclosed less.
+   NOT FOR `family-set`, whose sentence says something else entirely: these are OUR coins and OUR answer
+   (see `FIG_BY`). Cut to "redrawn" it would be the fault that note records the other way round -- a
+   picture whose content we chose, captioned as the board's. It keeps its whole sentence; none of the 470
+   is one today.
+   Either way run on one line with "Saved to Ada's account" (style.css, `.qp-area.is-draw`) -- so a credit
    ends in a full stop here, which `FIG_BY`'s sentences do not have (a caption needs none): run on, the
    first screenshot read "...is not reproduced here Kept on this device only". */
+const FIG_CARD = { family: 'The paper&rsquo;s figure, redrawn.' };
 const padCredit_ = (x, p) => {
   if (p.from === 'surface') return '<p class="fig-by">Not the paper&rsquo;s own figure.</p>';
-  const by = FIG_BY[(p.from === 'part' ? x : p.from).diagramBy];
-  return by ? `<p class="fig-by">${by}.</p>` : '';
+  const of = (p.from === 'part' ? x : p.from).diagramBy;
+  const by = FIG_CARD[of] || (FIG_BY[of] ? FIG_BY[of] + '.' : '');
+  return by ? `<p class="fig-by">${by}</p>` : '';
 };
 function ansArea_(x) {
   const p = x && x.key ? padSource_(x) : null;
@@ -9861,36 +9895,47 @@ on('q-draw', el => {
    box: `paneReach_` calls this for every pane holding a `.qp-area`, and a zoom left on a box's words by
    the drawing it replaced would be the card drawn smaller for no reason. `data-face-zoom` marks what this
    wrote, so only that is undone. */
-/* ---------- AND THE PAPER'S OWN FIGURE GIVES WAY IN THE OTHER ORDER, KEEPING ITS SHAPE (337) ------------------
+/* ---------- AND THE PAPER'S OWN FIGURES GIVE WAY BY THE SAME RULES, KEEPING THEIR SHAPE (337) -----------------
    EVERY PEN IS ON ITS CARD SINCE 11 OCT, and the paper's figures are not squares: a 35-unit number line,
    a histogram, a graph nearly twice as tall as it is wide (the transformations-of-graphs stems). The
    shrink above was `w - by - 4` -- a square's width is its height -- which for a graph 1.88 times as tall
-   as wide takes nearly twice the width it needs, and for a number line a hundred times. So the width the
-   figure is drawn at is worked from its own box: `w * (h - by - 4) / h`, whatever its shape.
+   as wide takes nearly twice the width it needs, and for a number line a hundred times. So the width a
+   picture is drawn at is worked from its own box, `w * (h - by - 4) / h`: for 327's squares that is the
+   line it always was, and for anything else it is the width that takes `by` off the height.
 
-   WORDS FIRST, THEN THE FIGURE, because a paper figure carries the detail and a made-up surface carries
-   none. Its labels are 13 units in a 340-unit box -- 8.5px at a 320 phone's natural width and smaller at
-   any width under it -- and its finest graph paper is 2px squares there; the words were read on the box a
-   moment ago at full size and are 10px at `PANE_ZOOM_MIN`. A blank grid has nothing in it to read, which
-   is why 327 shrinks it first. Measured on the built card over the 470 at 320x568, words first leaves 380
-   of them at the size their own page draws them (the census for 337 had figure first shrinking 254).
+   WHICH GIVES WAY FIRST IS WHAT IS IN THE PICTURE, NOT WHO DREW IT. A picture with words or numbers in it
+   (any `<text>`: a Venn diagram's letters, a scale's numbers, an axis caption) keeps its size until the
+   card's words have given way: its labels are 13 units in a 340-unit box -- 8.5px at a 320 phone's
+   natural width -- and its finest graph paper is 2px squares there, while the words over it were read on
+   the box a moment ago at full size and are still 10px at `PANE_ZOOM_MIN`. A picture with nothing in it to
+   read -- a blank grid, a dashed square, the empty circle a pie chart is drawn in -- gives way first, as
+   327's grids always did: it is only somewhere to draw.
+   THE FIRST BUILD SPLIT THEM BY WHO DREW THEM -- a made-up surface first, the paper's figure second -- and
+   the review of 11 Oct put June 2024 1F Q7, the paper's own blank grid, beside 1F Q11c, a made-up blank
+   one, at 320x568: Q7's question drawn at 0.7, Q11c's at 0.95, the same empty squares under both. Two
+   blank grids that give way differently because of who drew them is the "two ways" the owner asked to be
+   rid of (*"simplest and most uniform"*). None of the 62 made-up surfaces has anything to read in it (43
+   blank, 19 squared, no axes), so their order is 327's, unchanged.
 
-   AND THE SAME FLOOR, `PAD_FACE_FLOOR`, IN px. A label's size is the drawing's width (13 units in 340), so
-   180px wide is 6.9px labels on every screen -- a legibility floor is a fingertip's kind of number, the same
-   on a phone and a laptop, and the made-up grid's floor was already it. Chosen from screenshots at 320x568
-   of the finest grids (Nov 2022 2H Q11's cumulative frequency, 2mm paper), the densest (AQA Physics
-   Paper 3 2023 Q1.6) and the tallest, with the figure kept at the page's size, at 0.9 of it and at 0.8 --
-   which at 320 is 180px: the grids were still read and drawn on at 0.8, and 90 of the 470 cards scrolled
-   at the page's size, 53 at 0.9 and 33 at 180px (docs/history/337). The owner's own word on the trade is
-   *"I don't like scrolling. If you need to leave things more compact or smaller font"*. At 390 and wider
-   no paper figure comes near it.
-
-   AND THE FACE ON THE GLASS AT ONCE, whatever the floor says. A card that still does not fit scrolls and
-   opens at its foot (`paneReach_`), which is only any use if the figure, its bar and `Type` are all in
-   that last screenful: a figure whose top is above the fold is one you draw on half-seen, and scroll to
-   see with the pen holding the card still. So the figure is narrowed enough for everything from its top
-   edge down -- the figure, the pen's bar, the small print and the row under the card -- to fit the pane,
-   even past its floor. Measured on the library it binds only where it must: the 1.88-tall stems. */
+   AND ONE FLOOR, `PAD_FACE_FLOOR`, IN px, FOR EVERY PICTURE, AND NEVER CROSSED. A 13-unit label is the
+   drawing's width over 340 times 13, so 180px wide draws labels at 6.9px and a 9-unit axis caption at
+   4.8px -- a legibility floor is a fingertip's kind of number, the same on a phone and a laptop, and the
+   made-up grid's floor was already it. Chosen from screenshots at 320x568 of the finest grids (Nov 2022
+   2H Q11's cumulative frequency, 2mm paper), the densest (AQA Physics Paper 3 2023 Q1.6) and the
+   tallest, with the figure kept at the page's size, at 0.9 of it and at 0.8 -- which at 320 is 180px: the
+   grids were still read and drawn on at 0.8 (docs/history/337). The owner's own word on the trade is
+   *"I don't like scrolling. If you need to leave things more compact or smaller font"*.
+   IT WAS CROSSED ONCE, FOR "THE FACE ON THE GLASS AT ONCE": a picture narrowed past the floor until it,
+   its bar and `Type` fitted the pane together, so a card opened at its foot would show the picture's top.
+   On a phone held upright that moved three cards by a pixel; on one turned on its side it took them all.
+   The review measured the transformations stem at 844x390 drawn 88px wide, its axis numbers 3.4px, and
+   June 2024 1F Q7 at 568x240 at 4px -- a card of the question, a lock, Undo and Clear, and nothing to draw
+   on -- and 327's own grids went with them (1F Q11c, 141px to 111 at 568x320), when 327's floor was the one
+   thing it said would hold. A picture too small to read is not a picture on the glass. So nothing is
+   drawn narrower than the floor; a card still too tall scrolls from its first pixel, and opens with the
+   picture's top at the top of the pane rather than past it (`paneReach_`). A picture the stylesheet has
+   already drawn under the floor -- a made-up grid at its `44svh` cap on a phone on its side -- is left
+   at that size, as 327 left it. */
 const PAD_FACE_FLOOR = 180;
 function padFaceFit_(pane) {
   try {
@@ -9902,19 +9947,13 @@ function padFaceFit_(pane) {
     const over = () => pane.scrollHeight - pane.clientHeight;
     let by = over();
     if (!(by > 2)) return;
-    const made = svg.classList.contains('qsurf');
     const box = svg.getBoundingClientRect();
     const w = box.width, h = box.height;
-    /* THE PICTURE, KEEPING ITS SHAPE: to fit, but not under its floor -- unless the face would not be on
-       the glass at once without it. `top` is the picture's top edge in the pane's own scrolled box, read
-       now because the words above it may have just been drawn smaller. */
+    /* THE PICTURE, KEEPING ITS SHAPE: to fit, and never under its floor. */
     const narrow = () => {
       if (!(w > 0 && h > 0)) return;
-      const top = svg.getBoundingClientRect().top - pane.getBoundingClientRect().top - (pane.clientTop || 0) + pane.scrollTop;
-      const tall = pane.scrollHeight - top - pane.clientHeight + 4;
-      const glass = tall > 0 ? Math.floor(w * (h - tall) / h) : w;
-      const fit = Math.max(Math.min(PAD_FACE_FLOOR, glass), Math.floor(w * (h - by - 4) / h));
-      if (fit < w) svg.style.width = Math.max(1, fit) + 'px';
+      const fit = Math.max(PAD_FACE_FLOOR, Math.floor(w * (h - by - 4) / h));
+      if (fit < w) svg.style.width = fit + 'px';
       by = over();
     };
     /* THE CARD'S OWN CHILDREN THAT ARE NOT THE ANSWER: `qPage_`'s tags and the `.qsheet`. Their heights at
@@ -9929,10 +9968,13 @@ function padFaceFit_(pane) {
       if (z < 1) words.forEach(e => { e.style.zoom = String(z); e.setAttribute('data-face-zoom', ''); });
       by = over();
     };
-    if (made) { narrow(); if (by > 2) shrinkWords(); }
-    else { shrinkWords(); if (by > 2) narrow(); }
+    if (padFaceReads_(svg)) { shrinkWords(); if (by > 2) narrow(); }
+    else { narrow(); if (by > 2) shrinkWords(); }
   } catch (e) { /* the stylesheet's size stands, and `paneReach_` scrolls what is left */ }
 }
+/* SOMETHING TO READ IN THE PICTURE: a `<text>` with a character in it. Asked of the drawing, not of where it
+   came from -- see above. check/states.js asks the same question of the cards it measures. */
+const padFaceReads_ = svg => [].some.call(svg.querySelectorAll('text'), e => !!String(e.textContent || '').trim());
 function padFaceRedraw_(x) {
   if (typeof document === 'undefined' || !x) return;
   const key = x.key || '';
@@ -15073,10 +15115,11 @@ function paneReach_(panes) {
        one card whose height follows its width: the faces narrow, keeping their shape, until the page
        fits or the band runs out, and only what is left is drawn smaller (docs/history/332). */
     if (typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
-    /* AND A SURFACE SWITCHED TO ON ITS CARD GIVES WAY THE SAME WAY -- `padFaceFit_`, the sheet's answer one
-       face along (327): the grid gets smaller, then the words, and the pen's 44px tiles and the row with
-       `Type` in it never do. Every pane holding a `.qp-area`, either face, so a card turned back to its box
-       has its words put back to full size. */
+    /* AND A CARD SWITCHED TO ITS DRAWING GIVES WAY THE SAME WAY -- `padFaceFit_`, the sheet's answer one
+       face along (327, 337): the picture and the words get smaller, the one with nothing to read in it
+       first, the picture never under its floor, and the pen's 44px tiles and the row with `Type` in it
+       never at all. Every pane holding a `.qp-area`, either face, so a card turned back to its box has its
+       words put back to full size. */
     list.forEach(p => { if (p.querySelector('.qp-area')) padFaceFit_(p); });
     /* ---------- AND A CARD SWITCHED TO ITS DRAWING IS NEVER DRAWN SMALLER WHOLE -------------------------------
        The open list's answer below, for the same reason: what is on it is there to be pressed and drawn on,
@@ -15195,8 +15238,20 @@ function paneReach_(panes) {
            the box a moment ago, the part a finger scrolls back to. Opened at its top, the 5-a-day dice
            tables at 320x568 put `Type` 50 to 100px under the fold of a pane with no scrollbar: a switch you
            can turn on and then cannot see to turn off. Once, as the pane starts to scroll; never again
-           while it does, so a child who scrolled up to read is left where they are. */
-        if (to && drawn[i]) p.scrollTop = p.scrollHeight;
+           while it does, so a child who scrolled up to read is left where they are.
+           AND NO FURTHER THAN PUTS THE PICTURE'S TOP AT THE TOP OF THE PANE (337, after review). The foot
+           shows the picture, its bar and `Type` together whenever they fit the pane together -- every card
+           on a phone held upright. On one turned on its side they cannot, now that the picture is never
+           drawn under its floor (`padFaceFit_`): the transformations stem at 844x390 is taller than the
+           pane on its own. Opened at its foot it would be the bottom half of four graphs under a pen;
+           opened at the picture's top it is the graphs, whole or nearly, with the bar and `Type` a scroll
+           below -- which a finger beside the picture reaches, armed or not (the pen holds the picture, not
+           the card). Eight pixels above it, for the gold frame an armed pen draws round it. */
+        if (to && drawn[i]) {
+          const art = p.querySelector('.qp-area.is-draw .qpad-art');
+          const top = art ? art.getBoundingClientRect().top - p.getBoundingClientRect().top - (p.clientTop || 0) + p.scrollTop - 8 : Infinity;
+          p.scrollTop = Math.max(0, Math.min(p.scrollHeight - p.clientHeight, Math.floor(top)));
+        }
       }
     });
   } catch (e) {}
