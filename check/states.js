@@ -7395,7 +7395,8 @@ const STATES = {
                   { n: 2, client: 'Second Family', status: 'Booked' }],
           /* ---------- THE JOB'S OWN LOG, WHICH IS WHERE TWO OF THE FIVE DATES COME FROM --------
              `doGet` HAS PUT `events: eventsForJob(jobId)` ON EVERY JOB SINCE THE ROSTER WAS
-             DERIVED FROM IT, and this state seeded none — so `Accepted` and `Paid` could tick with
+             DERIVED FROM IT (since 342, every job the viewer is ON, or every job for an admin — this
+             viewer is on it), and this state seeded none — so `Accepted` and `Paid` could tick with
              no date and the lab could not tell that from a date that failed to draw.
 
              TWO FAMILIES, EACH ACCEPTING AND PAYING ON A DIFFERENT DAY, because that is the only

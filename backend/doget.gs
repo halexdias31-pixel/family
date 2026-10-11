@@ -2145,7 +2145,14 @@ function doGet(e) {
                                         status: t.status === BM.AGREED || t.status === BM.BOOKED
                                           ? 'Confirmed' : 'Applied', chats: {} })),
         offerTurn: '',
-        events: eventsForJob(jobId),
+        /* ---------- THE LOG, TO THE PEOPLE ON IT (342, the review) ---------------------------------------
+           IT WENT TO EVERYBODY THE JOB WAS SENT TO, an open class's strangers included — so every
+           family's name was in `actor` and in the messages, three lines below the `slots` that blank
+           them ("NO NAMES TO SOMEBODY WHO IS NOT IN IT"), and a festive join's typed list of children
+           with them. `iAmIn`, the slots' own test: the people on the job and an admin. The phone reads
+           it only for the dates beside a booking's stage ticks (`evAt_`, book.js), which is a document
+           only somebody on the booking is shown. */
+        events: iAmIn ? eventsForJob(jobId) : [],
         // Looked up now rather than copied onto the job when it was booked: a tutor who changes
         // their photo should change it on every class they teach, not just future ones.
         image: (venuesTab.find(v => key(v.name) === key(j.venue)) || {}).photo || '',

@@ -404,11 +404,18 @@ const HANDLE_UNDERSCORE_ODDS = 0.5;
    word nothing on an ordinary tab is close to running out — the bound is there so a gate that has
    started refusing everything is reported rather than spun on. */
 const HANDLE_TRIES = 2 * HANDLE_ADJ.length;
-/* HOW MANY EARLIER HANDLES `handle_was` KEEPS. There is no cooldown now, so somebody can press
-   Randomise all afternoon — the cell keeps the newest ten rather than growing for ever, which is
-   enough to answer "who was @foo last week" about anybody who has not pressed it eleven times since,
-   and every one of the eleven was a first name, a word off this list and a number. */
-const HANDLE_WAS_KEEP = 10;
+/* HOW MANY EARLIER HANDLES `handle_was` MAY HOLD BEFORE RANDOMISE STOPS — AND NONE IS EVER DROPPED.
+   IT WAS `HANDLE_WAS_KEEP = 10`, a trim: the cell kept the newest ten, which was enough to answer "who
+   was @foo last week" while the column was only a RECORD. Since 342 every entry is a CREDENTIAL (an old
+   handle still signs its person in, `handleWasRows_`) and a RESERVATION (`handleTrouble_` never hands one
+   to anybody else) — so the trim retired both at the eleventh press. The review measured it: a child
+   moved by `?run=kidHandles` who then pressed Randomise ten times lost the handle on her parent's slip,
+   and it became free to give to a grown-up with the same first name, whose wrong tries the child's next
+   attempt would then count. A credential is not retired by tidying a cell.
+   So `handleWasWith_` keeps every entry, and `randomiseHandle` refuses once the history holds this many
+   — two hundred presses, about four thousand characters against the fifty thousand a cell takes. The two
+   admin jobs (`renameHandles`, `kidHandles`) may each add one past it; they run once. */
+const HANDLE_WAS_MAX = 200;
 
 /* ==================================================================================================
    A CHILD'S HANDLE IS THEIR INITIALS AND FOUR DIGITS, AND NOTHING ELSE ABOUT THEM (docs/history/342)
@@ -448,8 +455,19 @@ const HANDLE_WAS_KEEP = 10;
    grown-ups' rule for a name the handle cannot carry. RANDOMISE KEEPS THE INITIALS AND DRAWS A NEW
    TAIL: the initials are the child's, the tail is the only choice there is.
 
-   WHAT THE INITIALS STILL SAY, said plainly: `Wren (@wq4827)` beside a second Wren shows the first
-   letter of her surname. That is what *"just use initials"* asked for, and it is one letter. */
+   WHAT THE INITIALS STILL SAY, said plainly — and the first draft of this said it too narrowly. THE
+   SECOND LETTER IS HER SURNAME'S FIRST, AND IT GOES WHEREVER HER HANDLE GOES, BESIDE HER FIRST NAME: the
+   score board every signed-in account reads (and registration is open, so that is anybody who signs
+   up), every post and comment of hers that a signed-out visitor's payload carries, every family card
+   and roster. So the whole of what a stranger can learn is "Wren Q." — not only when a second Wren is
+   on the sheet (`Wren (@wq4827)`), as this first said; the review measured it. Before 342 the same
+   places carried `wren_kind43`, which held no part of the surname, so this NARROWS 333's "a child's
+   surname goes to nobody" to "its first letter goes with her handle", and note 333 says so.
+   KEPT KNOWINGLY: *"just use initials"* is the owner's ask and the main session's decision, a first
+   name and a surname initial is the convention schools use for exactly this, and the initial is the one
+   thing about her that tells two Wrens' handles apart to the children who know them. The other way —
+   the first initial alone (`w4827`) — is one change in `handleKid_` and `handleKidShaped_` if that call
+   is ever made the other way. */
 const HANDLE_KID_DIGITS = '23456789';
 const HANDLE_KID_TAIL = 4;
 /* HOW MANY TAILS A HEAD IS TRIED WITH before the fallback, and then the fallback as many again. The
@@ -501,13 +519,13 @@ function handleParts_(h, first) {
   return null;
 }
 
-/** Does `h` already have the generated shape for somebody called `first` (and `last`)? Every
-    arrangement, the 1 October `<first>_<virtue>` — and, since 342, a child's initials and tail made
-    from these names. `?run=renameHandles` leaves all of them alone: a grown-up who was a child keeps
-    the handle they sign in with until THEY press Randomise, which then gives a grown-up's. Moving a
-    sign-in name nobody asked to move is the lock-out every job here is written to avoid. */
-function handleIsShaped_(h, first, last) {
-  return !!handleParts_(h, first) || handleKidShaped_(h, { first_name: first, last_name: last });
+/** Does `h` already have the generated shape for somebody called `first`? Every arrangement, the
+    1 October `<first>_<virtue>` — and, since 342, a child's initials and tail (`handleKidShaped_`).
+    `?run=renameHandles` leaves all of them alone: a grown-up who was a child keeps the handle they
+    sign in with until THEY press Randomise, which then gives a grown-up's. Moving a sign-in name
+    nobody asked to move is the lock-out every job here is written to avoid. */
+function handleIsShaped_(h, first) {
+  return !!handleParts_(h, first) || handleKidShaped_(h);
 }
 
 /* ---------- A CHILD'S INITIALS: the first letter of the first name and of the last, folded to a–z ------
@@ -532,11 +550,15 @@ function handleKidTail_() {
   return t;
 }
 
-/** Is `h` this row's initials (or the fallback) and a tail? What `kidHandles` leaves alone. */
-function handleKidShaped_(h, r) {
-  const head = handleInitials_(r && r.first_name, r && r.last_name);
-  const heads = [head, HANDLE_FALLBACK].filter(Boolean);
-  return new RegExp('^(' + heads.join('|') + ')[' + HANDLE_KID_DIGITS + ']{' + HANDLE_KID_TAIL + '}$')
+/** Is `h` in a child's shape — one or two letters (or the fallback) and a tail? What `kidHandles` leaves
+    alone, and what `renameHandles` leaves a grown-up who was a child.
+    ANY INITIALS, NOT THIS ROW'S. It asked for the initials of the names on the row TODAY, so a child
+    whose surname was added or corrected after the move was moved again by the next run (the review,
+    "a later run moves a child whose name changed"): a sign-in name changed that nobody asked to change,
+    over a letter. A handle of initials and a tail carries no more of a name than its initials did on
+    the day it was made, so it is left; Randomise draws one from the names as they are now. */
+function handleKidShaped_(h) {
+  return new RegExp('^([a-z]{1,2}|' + HANDLE_FALLBACK + ')[' + HANDLE_KID_DIGITS + ']{' + HANDLE_KID_TAIL + '}$')
     .test(String(h == null ? '' : h));
 }
 
@@ -564,15 +586,22 @@ function handleKid_(me, avoid) {
    sign in a DIFFERENT person who holds that handle today. Two rows with it in their histories is
    refused, as two rows on one handle is. `handleTrouble_` refuses to reissue any old handle, so after
    342 that second case only comes from the sheet typed by hand. */
+/* EACH ENTRY ANSWERS AS A CURRENT HANDLE DOES (`handleAnswers_`) — exactly, or with a long first name
+   spelled out where the handle keeps nine letters of it. It compared `key(w) === key(typed)` alone, so
+   the review's Christopher, who had always typed `christopher_kind42` for `christoph_kind42`, was let in
+   the day before the move and refused the day after it, at the sign-in box and at "Forgotten your PIN?"
+   both: a lock-out the move itself caused. One matcher for the handle and for every old one, so a
+   spelling one of them answers to the other does too. */
 function handleWasRows_(rows, typed) {
   const want = key(typed);
   if (!want) return [];
-  return (rows || []).filter(r => S(r.handle_was).split(',').some(w => key(w) === want));
+  return (rows || []).filter(r => S(r.handle_was).split(',').some(w => handleAnswers_(w, r.first_name, want)));
 }
 /* THE ENTRY AS IT IS STORED — what the reply says the child used to be, not what they typed. */
 function handleWasEntry_(r, typed) {
   const want = key(typed);
-  return S(r && r.handle_was).split(',').map(w => w.trim()).find(w => w && key(w) === want) || '';
+  return S(r && r.handle_was).split(',').map(w => w.trim())
+    .find(w => w && handleAnswers_(w, r && r.first_name, want)) || '';
 }
 
 /* ---------- AND EVERY `friends` LIST THAT NAMED AN OLD HANDLE, MOVED TO THE NEW ONE (342) ----------------
@@ -606,16 +635,22 @@ function handleFriendsMove_(t, moves) {
 function handleRows_(rows, typed) {
   const want = key(typed);
   if (!want) return [];
-  return (rows || []).filter(r => {
-    const have = key(r.handle);
-    if (!have) return false;
-    if (have === want) return true;
-    const cut = handleFirst_(r.first_name);
-    const whole = String(r.first_name == null ? '' : r.first_name).toLowerCase()
-      .replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '');
-    if (!cut || whole.length <= cut.length || !handleParts_(r.handle, r.first_name)) return false;
-    return have.replace(cut, whole) === want;
-  });
+  return (rows || []).filter(r => handleAnswers_(r.handle, r.first_name, want));
+}
+/* ONE HANDLE AGAINST WHAT WAS TYPED (`want`, already through `key`), for somebody called `first`: the
+   same handle, or the same handle with the whole first name where its nine letters are. Lifted out of
+   `handleRows_` (342) so an OLD handle answers to exactly what it answered to the day it was current
+   (`handleWasRows_`) — the rule written once rather than twice. A prefix, a part, a near miss is not a
+   handle: only the whole key, either way. */
+function handleAnswers_(h, first, want) {
+  const have = key(h);
+  if (!have || !want) return false;
+  if (have === want) return true;
+  const cut = handleFirst_(first);
+  const whole = String(first == null ? '' : first).toLowerCase()
+    .replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '');
+  if (!cut || whole.length <= cut.length || !handleParts_(h, first)) return false;
+  return have.replace(cut, whole) === want;
 }
 
 /** The list in a random order. Fisher–Yates, because `sort(() => Math.random() - 0.5)` is the
@@ -680,13 +715,17 @@ function handleMake_(me, first, avoid) {
    one that was no longer needed. A number is on every handle now, so that question would strip the
    number off every handle Randomise makes — it went rather than stay as a rule nothing should ask. */
 
-/** `handle_was` with `was` added at the front: newest first, comma-separated, the last
-    `HANDLE_WAS_KEEP`. Nothing is de-duplicated — a history that says somebody went back to an
-    earlier handle is a true history. */
+/** `handle_was` with `was` added at the front: newest first, comma-separated, EVERY ONE KEPT (see
+    `HANDLE_WAS_MAX` — an entry still signs its person in, so none is trimmed). Nothing is de-duplicated
+    — a history that says somebody went back to an earlier handle is a true history — except `was`
+    already at the front, which is no change at all: a `kidHandles` run that wrote the history and failed
+    before the handle (342, the review's "a failure between the two writes") writes it again when it is
+    re-run, and the second copy would say the child had that handle twice in a row. */
 function handleWasWith_(cell, was) {
   const list = String(cell == null ? '' : cell).split(',').map(x => x.trim()).filter(Boolean);
-  if (String(was == null ? '' : was).trim()) list.unshift(String(was).trim());
-  return list.slice(0, HANDLE_WAS_KEEP).join(', ');
+  const w = String(was == null ? '' : was).trim();
+  if (w && (!list.length || key(list[0]) !== key(w))) list.unshift(w);
+  return list.join(', ');
 }
 
 /* ==================================================================================================
@@ -1016,6 +1055,20 @@ function typedKids_(personRow) {
   });
 }
 
+/* ---------- WHO A FAMILY SAYS IT IS BRINGING, AS OTHER FAMILIES MAY READ IT (342, the review) ---------------
+   `joinFestive` ASKS "Who is coming? Names, or just how many children." and kept the answer word for word
+   in the joining event — which every family on the event reads, and which went to every signed-out visitor
+   until `doGet` stopped sending an open job's events to people not in it. So "Wren Quorrington and Bo
+   Ashdown-Vance" put two surnames in front of strangers, one of them a child who is no row the net could
+   recognise. EACH NAME CUT TO ITS FIRST WORD, `typedKids_`'s rule for a child who is only words: split at a
+   comma, a semicolon, a slash, `&`, `+`, a new line or the word "and", and the separators kept. A count
+   ("3") is its own first word. "just two" becomes "just" — the admin's email keeps the words as typed,
+   and a party's headcount is not worth a surname. */
+function typedFirstWords_(s) {
+  return S(s).split(/(\s*(?:,|;|\/|&|\+|\n|\band\b)\s*)/i)
+    .map((part, i) => (i % 2 ? part : S(part).split(/\s+/)[0] || '')).join('').trim();
+}
+
 /* `for_children` AS IT MAY BE KEPT: each name the phone sent that is one of the booker's typed-only
    children (`typedKids_`) becomes what `childNamesOf` offers for her; the rest as sent. Empty stays
    empty — a booking for yourself. */
@@ -1177,6 +1230,40 @@ function mailViewer_(to) {
   let hits = [];
   try { hits = read(TAB.people).rows.filter(r => norm(r.email) === a); } catch (err) { return null; }
   return hits.length === 1 && !addressPending_(hits[0]) ? hits[0] : null;
+}
+
+/* ---------- A WHOLE NAME TYPED TO SEE WHETHER IT IS SOMEBODY'S ACCOUNT (342, the review) -----------------
+   `register` IS OPEN TO ANYBODY, and it answered "There is already an account in that name" BEFORE it
+   looked at the address — so anybody holding a list of surnames could pass an address that is already
+   registered (a miss then wrote nothing either) and confirm, guess by guess, the whole name of any child
+   or any parent: 333's rule and 342's undone by a form. The review measured four guesses, zero writes.
+   `makeChild` answered the same thing, by name, to any confirmed parent.
+   NOW: the address is asked first, so a registered one is that answer whatever the name; a clash is the
+   same sentence as any other refusal of its kind and does not say which half; and each clash with a
+   PRIVATE whole name (a child's, a parent's — `namePrivate_`; a tutor's is on a public card and tells
+   nobody anything) is counted here, `NAME_CLASH_MAX` a day across every caller, after which both doors
+   refuse EVERY new account until the day has passed — every one, so a refusal during the pause says
+   nothing about the name either. What is left is honest and said in note 342: a refusal still means
+   "one of these is taken", but finding that out now costs a fresh address per guess, writes a PENDING
+   row and mails that address on every miss (which an admin sees), and stops after five hits a day.
+   Allowing two accounts with one whole name would close it entirely, and is not done: `findPerson` and
+   everything that resolves a person by name would then have two answers. */
+const NAME_CLASH_MAX = 5;
+const NAME_CLASH_WINDOW_MS = 24 * 60 * 60 * 1000;
+function nameClashTimes_() {
+  try {
+    const v = JSON.parse(authProps_().getProperty('NAME_CLASHES') || '[]');
+    const since = Date.now() - NAME_CLASH_WINDOW_MS;
+    return Array.isArray(v) ? v.map(Number).filter(t => t > since) : [];
+  } catch (err) { return []; }
+}
+function nameClashPaused_() { return nameClashTimes_().length >= NAME_CLASH_MAX; }
+const NAME_CLASH_PAUSED_SAY = 'New accounts are paused for today — please try again tomorrow, or ask us to help. '
+  + 'Nothing was saved.';
+function nameClashNoted_(hit) {
+  if (!hit || !namePrivate_(hit)) return;
+  try { authProps_().setProperty('NAME_CLASHES', JSON.stringify(nameClashTimes_().concat([Date.now()]))); }
+  catch (err) { /* uncounted is the old behaviour, not a new fault */ }
 }
 
 function isChild_(r) {

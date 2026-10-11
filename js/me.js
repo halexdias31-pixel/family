@@ -883,6 +883,8 @@ function signedIn_(d, typed) {
   /* AND THE LATEST ANSWER SENT FOR EACH QUESTION — onto the cards, into the boxes, with "Signed in" — and
      whatever this device has waiting for this person goes up (js/submit.js). */
   try { if (typeof subAdopt_ === 'function') subAdopt_(); } catch (e) {}
+  /* SIGNED IN BY A HANDLE THAT HAS MOVED ON (342): its chip becomes the new one, so the next tap says nothing. */
+  if (d && d.handleMoved) handleRename_(d.handleMoved.was, me.handle);
   handleRemember_(me.handle);
   signInHintKeep_(typed, me);
   /* WHO, NOT JUST THAT. *"i feel very insecure when signing into the kids accounts"* — on an iPad passed
@@ -928,6 +930,24 @@ function handleRemember_(h) {
   if (!/^[\w.-]{1,40}$/.test(h)) return;
   const list = [h].concat(handlesKnown_().filter(x => x.toLowerCase() !== h.toLowerCase())).slice(0, HANDLES_MAX);
   try { localStorage.setItem(HANDLES_KEY, JSON.stringify(list)); } catch (e) {}
+}
+/* ---------- A HANDLE THAT MOVED MOVES ON THIS DEVICE TOO (docs/history/342, the review) -------------------
+   `?run=kidHandles` gives a child their initials and four digits, and the family iPad's sign-in card went on
+   offering the old chip — `@ella_kind42`, her first name, on the shared device — beside the new one, and the
+   one-tap way in was the old one, so "Your handle has changed" came back on every sign-in until somebody
+   pressed ✕. The old chip becomes the new one IN ITS PLACE; a device that never had the old one, or forgot
+   it with ✕, is not given the new one by this. Called by the three things that learn a handle moved: a
+   sign-in by an old handle (`signedIn_`), `myProfile` (`profileRefresh_`) and Randomise. */
+function handleRename_(was, now) {
+  was = String(was || '').trim().toLowerCase();
+  now = String(now || '').trim();
+  if (!was || !/^[\w.-]{1,40}$/.test(now) || was === now.toLowerCase()) return;
+  const list = handlesKnown_();
+  if (!list.some(x => x.toLowerCase() === was)) return;
+  const out = [];
+  list.map(x => (x.toLowerCase() === was ? now : x))
+    .forEach(x => { if (!out.some(y => y.toLowerCase() === x.toLowerCase())) out.push(x); });
+  try { localStorage.setItem(HANDLES_KEY, JSON.stringify(out)); } catch (e) {}
 }
 /* ---------- THE ADMIN'S SIGN-IN NAME, AS THIS DEVICE LAST SAW IT -----------------------------------------
    THE GREY TEXT IN THE SIGN-IN BOX (`signInCard_`). What the admin TYPED, email or handle, because that is
@@ -1556,7 +1576,9 @@ on('friend-add-open', () => friendsSheet());
 function friendsSave(list, said) {
   const before = USER.friends;
   /* A `myProfile` ASKED BEFORE THIS IS ABOUT THE LIST BEFORE IT (342) — it carries `friends` now, and
-     landing after this it would put the old list back (`profileRefresh_` asks again instead). */
+     landing after this it would put the old list back (`profileRefresh_` asks again instead). Marked
+     again when the save lands, as Randomise marks it: one asked while the save was on its way may have
+     been answered from the sheet before the save reached it. */
   accountChanged_();
   USER.friends = list.join(', ');
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
@@ -1565,7 +1587,7 @@ function friendsSave(list, said) {
   FIND_MEMO.key = null;
   if (AT === 'stuff') paintStuff();
   api({ action: 'saveFriends', name: USER.name, personId: USER.personId, friends: USER.friends })
-    .then(d => { if (d && d.error) throw new Error(d.error); })
+    .then(d => { if (d && d.error) throw new Error(d.error); accountChanged_(); })
     .catch(err => {
       USER.friends = before;
       FIND_MEMO.key = null;
@@ -5508,17 +5530,17 @@ function profileRefresh_(loud, onOld) {
          come with `myProfile` now. A handle that changed is said ONCE: under the handle, as Randomise says
          it (`HANDLE_SAID`), and in a toast — the next open finds them equal and says nothing. An older
          server sends neither and this keeps what it had.
-         A REPLY NAMING THE HANDLE THIS PHONE HAS JUST RANDOMISED AWAY FROM is older than the press — asked
-         at open, answered after Randomise landed — and would put the old handle back and say the new one
-         was the old; `HANDLE_SAID` is what the press left, so it is the test. A friends list changed on this
-         phone marks `ACCOUNT_AT_` (`friendsSave`), so an answer asked before it is asked again above. */
-      const handleStale = !!d.handle && HANDLE_SAID.pid === String(USER.personId || '')
-        && HANDLE_SAID.text === 'You were @' + d.handle + '.';
-      if (d.handle && !handleStale && USER.handle && String(d.handle) !== String(USER.handle)) {
+         A REPLY ASKED BEFORE A CHANGE MADE ON THIS PHONE is asked again above (`ACCOUNT_AT_`): Randomise
+         marks it when its answer lands, and so does a friends list saved here (`friendsSave`). It was a
+         text test — "does `HANDLE_SAID` say I was this?" — which knew only the LAST press: two presses
+         under one slow `myProfile` and the reply put the first handle back (the review, R2).
+         AND THE DEVICE'S CHIP FOR THE OLD ONE BECOMES THE NEW ONE (`handleRename_`). */
+      if (d.handle && USER.handle && String(d.handle) !== String(USER.handle)) {
         HANDLE_SAID = { pid: String(USER.personId || ''), text: 'You were @' + USER.handle + '.' };
+        handleRename_(USER.handle, d.handle);
         try { toast('Your handle is @' + d.handle + ' now'); } catch (e) {}
       }
-      if (d.handle && !handleStale) USER.handle = String(d.handle);
+      if (d.handle) USER.handle = String(d.handle);
       if (typeof d.friends === 'string' && d.friends !== String(USER.friends || '')) {
         USER.friends = d.friends;
         /* THE FRIENDS LIST ON FIND IS MEMOISED — told, as `friendsSave` tells it. */
@@ -5570,6 +5592,11 @@ on('handle-shuffle', el => {
   send_({ action: 'randomiseHandle', name: USER.name, personId: USER.personId || '' },
         { button: el, busy: 'Choosing…', where: said || undefined })
     .then(d => {
+      /* A `myProfile` ASKED BEFORE THIS ANSWER IS ABOUT THE HANDLE BEFORE IT, and is asked again rather than
+         landing (`ACCOUNT_AT_`, 342 — two presses under one slow reply put the first handle back). And this
+         device's chip for the old handle becomes the new one (`handleRename_`). */
+      accountChanged_();
+      handleRename_(d.was, d.handle);
       USER.handle = d.handle;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       const shown = card && card.querySelector('.handle-shown');

@@ -23227,7 +23227,7 @@ check('sign out, then the next child signs in: none of the last child’s messag
 
 check('a wrong PIN empties the PIN box, focuses it and marks it, with one toast and the banner unchanged', async () => {
   const { w } = boot({ reply: b => (b.action === 'verifyLogin'
-    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle (like halex_kind42).' }
+    ? (/^@?nobody/.test(String(b.email)) ? { success: false, why: 'not-an-email', error: 'Sign in with the email on your account — or your handle, as it is on your card.' }
                                         : { success: false, why: 'wrong-pin', error: 'Wrong PIN for that handle.' })
     : { success: true }) });
   await wait(300);
@@ -24309,6 +24309,146 @@ check('a phone signed in before her handle moved takes the new one from myProfil
   if (said2.some(m => /Your handle is/.test(m))) bad.push('the next open said the new handle again — it is said once');
   if (first.errs.length || second.errs.length) bad.push('errors: ' + first.errs.concat(second.errs).slice(0, 3).join(' | '));
   return bad;
+});
+
+/* ---------- AFTER REVIEW, ROUND 1 (docs/history/342): the device's chips, and the two races ----------------
+   THE FAMILY IPAD KEPT THE OLD CHIP. Signing in by a moved handle, or learning it from `myProfile`, added
+   the new handle's chip and left `@ella_kind42` — her first name, on the shared device — beside it; and the
+   one-tap way in was the old one, so "Your handle has changed" came back on every sign-in. The old chip
+   becomes the new one in its place (`handleRename_`, me.js).
+   AND NO JOURNEY PRESSED RANDOMISE OR ADDED A FRIEND, so the two guards against a `myProfile` asked before
+   the press and answered after it were held by nothing: the review took each away and every check stayed
+   green. Randomise's was a text test that knew only the LAST press — two presses under one slow reply put
+   the first handle back. Both are `ACCOUNT_AT_` now (`accountChanged_`), and these hold them. The tile is
+   drawn here rather than found on a screen, because which screen it lives on is moving (fix-card-settings)
+   and what is asked is what a press does, not where it is. */
+function movedWorld3_() {
+  const b = movedWorld_();
+  b.seed('people', [{ person_id: 'P-CD', role: 'student', first_name: 'Cy', last_name: 'Dunn', handle: 'cd4567',
+    pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0, email: '' }]);
+  return b;
+}
+/* SIGNED IN AS ELLA, THE APP OPEN, AND THE `myProfile` IT ASKED AT OPEN HELD until `release()`. */
+async function heldProfileOpen_(b, chips) {
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) throw new Error('she could not sign in on the real backend');
+  let release, held = null;
+  const gate = new Promise(r => { release = r; });
+  const reply = body => {
+    if (body.action === 'myProfile' && !held) { held = b.post(body); return gate.then(() => held); }
+    return b.post(body);
+  };
+  const { w, errs } = boot({ payload: b.get({ token: signed.token }), reply,
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(signed));
+                     if (chips) win.localStorage.setItem('familyHandles', JSON.stringify(chips)); } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  if (!w.__t) throw new Error('the app did not finish loading');
+  for (let k = 0; k < 60 && !held; k++) await wait(100);
+  if (!held) throw new Error('myProfile was never asked at open, so the race was NOT set up');
+  return { w, t: w.__t, d: w.document, errs, release: () => release() };
+}
+function shuffleTile_(d) {
+  const card = d.createElement('div'); card.className = 'card';
+  card.innerHTML = '<span class="handle-shown"></span><button data-do="handle-shuffle"></button><p class="handle-said"></p>';
+  d.body.appendChild(card);
+  return card.querySelector('button');
+}
+const serverCell_ = (b, pid, col) => JSON.parse(b.ev('JSON.stringify(String(read(TAB.people).rows.find(r => r.person_id === '
+  + JSON.stringify(pid) + ').' + col + ' || ""))'));
+async function pressShuffle_(t, tile, n) {
+  for (let i = 0; i < n; i++) {
+    const before = String((t.whoami() || {}).handle);
+    t.ACTIONS['handle-shuffle'](tile);
+    for (let k = 0; k < 60 && String((t.whoami() || {}).handle) === before; k++) await wait(100);
+    await wait(300);
+  }
+}
+const chipsOf_ = w => { try { return JSON.parse(w.localStorage.getItem('familyHandles') || '[]'); } catch (e) { return ['(unreadable)']; } };
+
+check('a child who signs in on the family iPad with her moved handle: its chip becomes the new one, so the next tap says nothing', async () => {
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const { w } = boot({ payload: b.get({}), reply: body => b.post(body),
+    before: win => win.localStorage.setItem('familyHandles', JSON.stringify(['ab3456', 'ella_kind42'])) });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  await wait(300);
+  t.go('account', false, true); await wait(150);
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (!name || !pin) return ['there is no sign-in card, so the old chip was NOT asked about'];
+  name.value = 'ella_kind42'; pin.value = '0000';
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  for (let k = 0; k < 40 && !t.whoami(); k++) await wait(100);
+  await wait(400);
+  const u = t.whoami() || {};
+  if (u.personId !== 'P-EJ') return ['the old handle did not sign her in, so the chip was NOT asked about — ' + JSON.stringify(u.personId)];
+  const chips = chipsOf_(w);
+  return chips.indexOf('ella_kind42') !== -1 || chips.indexOf('ej2345') === -1 || chips.indexOf('ab3456') === -1
+    ? ['after signing in by her old handle the device offers ' + JSON.stringify(chips) + ' — the name-bearing chip stays on the shared iPad, and tapping it says "Your handle has changed" every time'] : [];
+});
+check('a phone that learns a moved handle from myProfile swaps the old chip for the new one in its place', async () => {
+  let b;
+  try { b = movedWorld3_(); } catch (e) { return ['the real backend could not be built — ' + e.message]; }
+  const signed = b.post({ action: 'verifyLogin', email: 'ej2345', name: 'ej2345', pin: '0000' });
+  if (!signed.success) return ['she could not sign in on the real backend — ' + JSON.stringify(signed).slice(0, 160)];
+  const stale = Object.assign(JSON.parse(JSON.stringify(signed)), { handle: 'ella_kind42' });
+  const { w } = boot({ payload: b.get({ token: signed.token }), reply: body => b.post(body),
+    before: win => { win.localStorage.setItem('familyUser', JSON.stringify(stale));
+                     win.localStorage.setItem('familyHandles', JSON.stringify(['cd4567', 'ella_kind42', 'ab3456'])); } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t;
+  if (!t) return ['the app did not finish loading'];
+  for (let k = 0; k < 40 && (t.whoami() || {}).handle !== 'ej2345'; k++) await wait(100);
+  if ((t.whoami() || {}).handle !== 'ej2345') return ['the phone never took the moved handle from myProfile, so the chip was NOT asked about'];
+  const chips = chipsOf_(w);
+  return JSON.stringify(chips) !== JSON.stringify(['cd4567', 'ej2345', 'ab3456'])
+    ? ['the phone calls her @ej2345 but the device\'s chips are ' + JSON.stringify(chips) + ' — wanted the old one replaced where it was'] : [];
+});
+check('a myProfile asked at open and answered after TWO Randomise presses keeps the handle the server has', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b, ['ej2345']); } catch (e) { return [e.message]; }
+  const tile = shuffleTile_(o.d);
+  const seen = [String(o.t.whoami().handle)];
+  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
+  await pressShuffle_(o.t, tile, 1); seen.push(String(o.t.whoami().handle));
+  const server = serverCell_(b, 'P-EJ', 'handle');
+  if (seen[2] !== server || seen[1] === seen[0]) return ['the two presses did not land as asked, so the race was NOT set up — ' + JSON.stringify(seen) + ' / server ' + server];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {}, bad = [];
+  if (String(u.handle) !== server) bad.push('the presses gave ' + JSON.stringify(seen) + '; the myProfile asked at open landed after them and the phone says @' + u.handle + ' while the server has @' + server);
+  const chips = chipsOf_(o.w);
+  if (JSON.stringify(chips) !== JSON.stringify([server])) bad.push('the device\'s chip did not follow Randomise — ' + JSON.stringify(chips) + ', the server has @' + server);
+  if (o.errs.length) bad.push('errors: ' + o.errs.slice(0, 3).join(' | '));
+  return bad;
+});
+check('a myProfile asked at open and answered after one Randomise press keeps the new handle', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
+  const tile = shuffleTile_(o.d);
+  const was = String(o.t.whoami().handle);
+  await pressShuffle_(o.t, tile, 1);
+  const server = serverCell_(b, 'P-EJ', 'handle');
+  if (server === was) return ['Randomise never landed, so the race was NOT set up'];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {};
+  return String(u.handle) !== server ? ['after one press the phone says @' + u.handle + ', the server @' + server + ' — the reply asked before the press put the old handle back'] : [];
+});
+check('a myProfile asked at open and answered after a friend is added keeps the new friend', async () => {
+  let b, o;
+  try { b = movedWorld3_(); o = await heldProfileOpen_(b); } catch (e) { return [e.message]; }
+  o.t.ACTIONS['friend-add-open']();
+  await wait(100);
+  const box = o.d.getElementById('fr-add');
+  if (!box) return ['there is no Add a friend box, so the race was NOT set up'];
+  box.value = 'cd4567';
+  o.t.ACTIONS['friend-add']();
+  for (let k = 0; k < 30 && serverCell_(b, 'P-EJ', 'friends').indexOf('cd4567') === -1; k++) await wait(100);
+  const server = serverCell_(b, 'P-EJ', 'friends');
+  if (server.indexOf('cd4567') === -1) return ['the friend was never saved on the server, so the race was NOT set up: ' + server];
+  o.release(); await wait(1500);
+  const u = o.t.whoami() || {};
+  return String(u.friends) !== server ? ['the server has friends ' + JSON.stringify(server) + ' but after the reply asked at open landed the phone has ' + JSON.stringify(u.friends)] : [];
 });
 
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */

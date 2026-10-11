@@ -1386,6 +1386,186 @@ const kidRule = (ok, what, got) => { kidRules++; if (!ok) no(what, got); return 
   kidRule(kidRules >= 28, 'only ' + kidRules + ' of the children\'s-handle rules were asked');
 }
 
+/* ==================================================================================================
+   11. AFTER REVIEW, ROUND 1 (docs/history/342, "After review") — WHAT SECTION 10 DID NOT HOLD
+
+   Three reviewers read the branch and found the lock-outs section 10 could not see, because it asked
+   only the cases the builder thought of. Each rule below was RED on the branch before its fix:
+     · an old handle answered only to its exact spelling, so a child who had always spelled out her long
+       first name (`christopher_kind42` for `christoph_kind42`) was let in the day before the move and
+       refused the day after it — at the sign-in box and at "Forgotten your PIN?";
+     · `handle_was` was trimmed to ten, so ten Randomise presses after the move retired the handle on
+       the slip: it stopped signing her in AND became free to give to somebody else;
+     · nothing held "a current handle wins" for "Forgotten your PIN?", or Randomise moving friends lists;
+     · "not the birthday" was held only at `handleMake_`, not at the doors that call it;
+     · a run that failed part-way left friends lists naming handles nobody has, for good, and on a tab
+       whose `handle_was` is not beside `handle` it could leave a child with a new handle and no history;
+     · a handle Randomise had reissued before 342 became ambiguous after the move, unseen;
+     · a later run moved a child again because a surname had been corrected;
+     · a private grown-up's hand-typed handle could carry the surname the net takes out of their name;
+     · and the refusal for a handle nobody has still showed a grown-up's handle as the example.
+   ================================================================================================== */
+let revRules = 0;
+const revRule = (ok, what, got) => { revRules++; if (!ok) no(what, got); return !!ok; };
+const kidRun = (b, arg) => {
+  asked++;
+  return (b.get(Object.assign({ run: 'kidHandles', name: 'Hal Admin', pin: PLACE }, arg ? { arg: arg } : {})) || {}).result || {};
+};
+const halRow = () => person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind110' });
+const byId = (b, id) => rowOf(b, x => x.person_id === id);
+/* THE SAME DICE, TWICE — for "the same handle from the same dice, whatever the birthday says". */
+const dice = () => { let n = 0; return () => ((n++ * 0.6180339887498949) % 1); };
+const withDice = fn => { const real = Math.random; Math.random = dice(); try { return fn(); } finally { Math.random = real; } };
+
+/* ---- A LONG FIRST NAME SPELLED OUT, BEFORE AND AFTER THE MOVE ---- */
+{
+  const b = fresh();
+  b.seed('people', [halRow(),
+    person('P-LP', 'client', 'Lou', 'Lane', { email: 'lou@example.org', handle: 'lou_kind111' }),
+    person('P-CL', 'student', 'Christopher', 'Lane', { handle: 'christoph_kind42' })]);
+  b.seed('family', [{ link_id: 'L1', parent_id: 'P-LP', child_id: 'P-CL', state: 'accepted' }]);
+  revRule(signIn(b, 'christopher_kind42', PLACE).personId === 'P-CL',
+    'before the move a child with a long first name could not sign in with it spelled out, so the case after it means nothing');
+  kidRun(b); kidRun(b, 'apply');
+  const cl = byId(b, 'P-CL');
+  revRule(/^cl[2-9]{4}$/.test(S(cl.handle)), 'the long-named child was not moved to his initials, so his old handle was NOT asked', cl.handle);
+  const spelled = signIn(b, 'christopher_kind42', PLACE);
+  revRule(spelled.success && spelled.personId === 'P-CL' && spelled.handleMoved && spelled.handleMoved.was === 'christoph_kind42'
+    && spelled.handleMoved.now === S(cl.handle), 'after the move his old handle, spelled the way he has always typed it, no longer signs him in — the move locked him out', spelled);
+  const m0 = MAIL.length;
+  const fp = post(b, { action: 'forgotPin', who: 'christopher_kind42' });
+  revRule(fp.success && mailTo('lou@example.org', m0).length === 1, '"Forgotten your PIN?" with his old handle spelled out did not reach his parent', fp);
+  /* A PART OF AN OLD HANDLE IS NOT IT. */
+  revRule(!signIn(b, 'christoph_kin', PLACE).success, 'a PREFIX of an old handle signed somebody in');
+  /* AND THE REFUSAL FOR A HANDLE NOBODY HAS DOES NOT SHOW A GROWN-UP'S AS THE EXAMPLE. */
+  const nobody = signIn(b, 'zz9999', PLACE);
+  revRule(nobody.why === 'not-an-email' && /handle/.test(S(nobody.error)) && !/like\s+@?[a-z]+_[a-z]+/i.test(S(nobody.error)),
+    'the refusal for an unknown handle shows a first-name-and-a-word example, which is not what a child\'s handle looks like any more', nobody.error);
+}
+
+/* ---- MORE PRESSES THAN THE OLD CAP: the slip still signs her in and is still hers; and Randomise moves friends ---- */
+{
+  const b = fresh();
+  b.seed('people', [halRow(),
+    person('P-EJ', 'student', 'Ella', 'Jones', { handle: 'ella_kind62' }),
+    person('P-AB', 'student', 'Abe', 'Bell', { handle: 'ab3456' })]);
+  kidRun(b); kidRun(b, 'apply');
+  const now0 = S(byId(b, 'P-EJ').handle);
+  const ej = signIn(b, now0, PLACE);
+  if (!ej.token) no('Ella could not sign in with her new handle, so Randomise after the move was NOT asked', ej);
+  else {
+    /* ABE HAS HER AS A FRIEND, by the handle she has now. */
+    b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-AB"); '
+      + 'setCell(t, r, "friends", ' + JSON.stringify(now0) + '); clearCache(); })()');
+    const first = post(b, { action: 'randomiseHandle', token: ej.token });
+    revRule(first.success && S(byId(b, 'P-AB').friends) === S(first.handle),
+      'Randomise left a friend\'s list naming the handle she just gave up — it took her off his list without a word', [first.handle, byId(b, 'P-AB').friends]);
+    let pressed = 1;
+    for (let i = 0; i < 11; i++) { const d = post(b, { action: 'randomiseHandle', token: ej.token }); if (d.success) pressed++; }
+    const slip = signIn(b, 'ella_kind62', PLACE);
+    revRule(pressed === 12 && slip.success && slip.personId === 'P-EJ',
+      'after ' + pressed + ' Randomise presses the handle on her slip no longer signs her in — the history was trimmed', slip.error || slip.personId);
+    const held = JSON.parse(b.ev('JSON.stringify(handleTrouble_("ella_kind62", null))'));
+    revRule(!!held, 'after twelve presses the handle on her slip could be given to somebody else', held);
+    revRule(S(byId(b, 'P-EJ').handle_was).split(',').length === 13, 'handle_was does not hold every handle she has had', byId(b, 'P-EJ').handle_was);
+  }
+}
+
+/* ---- "FORGOTTEN YOUR PIN?" BY A HANDLE SOMEBODY HOLDS NOW: the holder's grown-up, never the one who had it ---- */
+{
+  const b = fresh();
+  b.seed('people', [halRow(),
+    person('P-NP', 'client', 'Nan', 'Now', { email: 'now-parent@example.org', handle: 'nan_kind112' }),
+    person('P-WP', 'client', 'Wes', 'Was', { email: 'was-parent@example.org', handle: 'wes_kind113' }),
+    person('P-K1', 'student', 'Mo', 'Ash', { handle: 'mo_brave33' }),
+    person('P-K2', 'student', 'Mia', 'Zed', { handle: 'mz6789', handle_was: 'mo_brave33' })]);
+  b.seed('family', [{ link_id: 'L1', parent_id: 'P-NP', child_id: 'P-K1', state: 'accepted' },
+                    { link_id: 'L2', parent_id: 'P-WP', child_id: 'P-K2', state: 'accepted' }]);
+  const m0 = MAIL.length;
+  const fp = post(b, { action: 'forgotPin', who: 'mo_brave33' });
+  revRule(fp.success && mailTo('now-parent@example.org', m0).length === 1 && mailTo('was-parent@example.org', m0).length === 0,
+    '"Forgotten your PIN?" for a handle one child holds NOW went to the grown-up of the child who used to have it', { fp, to: MAIL.slice(m0).map(m => m.to) });
+}
+
+/* ---- NOT THE BIRTHDAY, AT THE DOORS: the same dice give the same handle whatever the date of birth ---- */
+{
+  const made = dob => {
+    const b = fresh();
+    b.seed('people', [halRow(), person('P-PAT', 'client', 'Pat', 'Ashdown', { email: 'pat@example.org', handle: 'pat_kind114' })]);
+    const pat = signIn(b, 'pat@example.org', PLACE);
+    return withDice(() => post(b, { action: 'makeChild', token: pat.token, firstName: 'Ivy', lastName: 'Kemp', pin: ZERO,
+                                     dob: dob, dateOfBirth: dob, date_of_birth: dob })).handle;
+  };
+  const a = made('25/06/2016'), c = made('22/09/2017');
+  revRule(/^ik[2-9]{4}$/.test(S(a)) && a === c, 'two children a parent made, alike but for the birthday posted, were given different handles from the same dice', [a, c]);
+  const moved = dob => {
+    const b = fresh();
+    b.seed('people', [halRow(), person('P-EJ', 'student', 'Ella', 'Jones', { handle: 'ella_kind62', date_of_birth: dob })]);
+    kidRun(b);
+    withDice(() => kidRun(b, 'apply'));
+    return S(byId(b, 'P-EJ').handle);
+  };
+  const m1 = moved('25/06/2016'), m2 = moved('22/09/2017');
+  revRule(/^ej[2-9]{4}$/.test(m1) && m1 === m2, 'two children moved by ?run=kidHandles, alike but for their birthday, were given different handles from the same dice — the move reads the date of birth', [m1, m2]);
+}
+
+/* ---- A RUN THAT FAILS PART-WAY, ON A TAB AS IMPORTED AND AS MADE: every child still gets in, and a re-run mends the lists ---- */
+[[false, 3], [true, 6]].forEach(([apart, failAt]) => {
+  const b = fresh();
+  if (apart) { const h = b.tabs.people[0]; h.splice(h.indexOf('handle_was'), 1); h.push('handle_was'); }
+  const names = ['Ava', 'Ben', 'Cal', 'Dee', 'Eva', 'Fin'];
+  const kids = names.map((n, i) => person('P-K' + i, 'student', n, 'Moss', { handle: n.toLowerCase() + '_kind5' + i }));
+  kids[5].friends = 'ava_kind50, ben_kind51';
+  b.seed('people', [halRow()].concat(kids));
+  kidRun(b);
+  b.ev('(function () { clearCache(); const t = read(TAB.people); const real = t.sheet; let n = 0;'
+    + ' t.sheet = Object.assign(Object.create(real), { getRange: function (r, c, nr, nc) { const g = real.getRange(r, c, nr, nc);'
+    + ' return Object.assign(Object.create(g), { setValues: function (v) { n++; if (n === ' + failAt + ') throw new Error("Service error: Spreadsheets"); return g.setValues(v); },'
+    + ' setValue: function (v) { return g.setValue(v); }, getValues: function () { return g.getValues(); }, getValue: function () { return g.getValue(); } }); } }); })()');
+  let threw = '';
+  try { b.ev('kidHandles("apply")'); } catch (e) { threw = String(e && e.message); }
+  b.ev('clearCache()');
+  const where = apart ? ' (handle_was not beside handle)' : '';
+  if (!threw) { no('the failure put into the run' + where + ' never fired, so a part-way run was NOT asked'); return; }
+  const locked = kids.filter(k => signIn(b, k.handle, PLACE).personId !== k.person_id || signIn(b, S(byId(b, k.person_id).handle), PLACE).personId !== k.person_id)
+    .map(k => ({ id: k.person_id, handle: byId(b, k.person_id).handle, was: byId(b, k.person_id).handle_was }));
+  revRule(!locked.length, 'after a run that failed part-way' + where + ' a child signs in with neither her old handle nor her new one', locked);
+  kidRun(b, 'apply');
+  const fin = S(byId(b, 'P-K5').friends);
+  const ava = S(byId(b, 'P-K0').handle), ben = S(byId(b, 'P-K1').handle);
+  revRule(fin === ava + ', ' + ben, 'after a failed run and a re-run' + where + ', a friends list still names handles nobody has', { fin, ava, ben });
+});
+
+/* ---- WHAT THE PREVIEW SAYS BEFORE ANYTHING IS MOVED, BY ID: a handle in two histories-to-be, a grown-up's surname in a handle ---- */
+{
+  const b = fresh();
+  b.seed('people', [halRow(),
+    person('P-A', 'client', 'Ella', 'Older', { email: 'ella@example.org', handle: 'ella_brave3', handle_was: 'ella_kind62' }),
+    person('P-B', 'student', 'Ella', 'Jones', { handle: 'ella_kind62' }),
+    person('P-OLA', 'client', 'Ola', 'Brisk', { email: 'ola@example.org', handle: 'olabrisk' }),
+    person('P-TAM', 'tutor', 'Tam', 'Tutor', { email: 'tam@example.org', handle: 'tamtutor', listed: true })]);
+  kidRun(b);
+  const pv = kidRun(b);
+  revRule(JSON.stringify(pv.inAnotherHistory) === JSON.stringify(['P-B']),
+    'the preview does not say that Ella\'s handle is on another row\'s history — after the move she would be the one refused', pv.inAnotherHistory);
+  revRule(JSON.stringify(pv.grownUpsSurnameInHandle) === JSON.stringify(['P-OLA']),
+    'the preview does not list the parent whose handle carries her surname (and only her: a tutor\'s whole name is public)', pv.grownUpsSurnameInHandle);
+  revRule(!/Brisk|Jones|Older|Ella|Ola/.test(JSON.stringify(pv)), 'the preview names somebody — it is by id only', JSON.stringify(pv).slice(0, 200));
+}
+
+/* ---- A NAME CORRECTED AFTER THE MOVE DOES NOT MOVE THE CHILD AGAIN ---- */
+{
+  const b = fresh();
+  b.seed('people', [halRow(), person('P-EJ', 'student', 'Ella', 'Jones', { handle: 'ella_kind62' })]);
+  kidRun(b); kidRun(b, 'apply');
+  const was = S(byId(b, 'P-EJ').handle);
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-EJ"); setCell(t, r, "last_name", "Smith"); clearCache(); })()');
+  const again = kidRun(b, 'apply');
+  revRule(again.toMove === 0 && S(byId(b, 'P-EJ').handle) === was,
+    'a child whose surname was corrected after the move was moved again by the next run — a sign-in name changed over a letter', { toMove: again.toMove, was, now: byId(b, 'P-EJ').handle });
+}
+revRule(revRules >= 17, 'only ' + revRules + ' of the after-review rules were asked');
+
 const PROOF_RULES = 81;
 if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
 
@@ -1394,7 +1574,7 @@ if (!bad.length) console.log('  none');
 bad.forEach(x => console.log('  ' + x));
 console.log('\nrequests made: ' + asked + '   emails caught: ' + MAIL.length + '   who-the-account-is-for rules held: ' + whoRules + ' of ' + WHO_RULES
           + '   unproved-address rules held: ' + proofRules + ' of ' + PROOF_RULES
-          + '   children\'s-handle rules asked: ' + kidRules);
+          + '   children\'s-handle rules asked: ' + kidRules + '   after-review rules asked: ' + revRules);
 if (bad.length) {
   console.log('FAILED — a child who cannot get in, or a classmate who can keep them out, is the whole of what the '
             + 'owner asked to be sure of: "all kids can login easily with their handle and pin".');

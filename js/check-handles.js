@@ -99,7 +99,7 @@ const SRC = [
   grab(people, /const HANDLE_ORDERS\s*=\s*\[[\s\S]*?\]\];/, 'HANDLE_ORDERS'),
   grab(people, /const HANDLE_UNDERSCORE_ODDS[^;]*;/, 'HANDLE_UNDERSCORE_ODDS'),
   grab(people, /const HANDLE_TRIES[^;]*;/, 'HANDLE_TRIES'),
-  grab(people, /const HANDLE_WAS_KEEP[^;]*;/, 'HANDLE_WAS_KEEP'),
+  grab(people, /const HANDLE_WAS_MAX[^;]*;/, 'HANDLE_WAS_MAX'),
   /* ---------- A CHILD'S HANDLE (342), AND THE ONE TEST THAT SAYS WHO IS A CHILD ---------------------
      `handleMake_` ASKS `isChild_` NOW, so the test comes with it — the real one and what it reaches for,
      cut out the same way, rather than a stub that says "student" and would agree with itself. A second
@@ -134,6 +134,10 @@ const SRC = [
   grab(setup,  /function fillHandles\([\s\S]*?\n\}/, 'fillHandles'),
   /* AND THE ONE THAT REPLACES A HANDLE ON PURPOSE, into the owner's `<first>_<virtue>`. */
   grab(setup,  /function renameHandles\([\s\S]*?\n\}/, 'renameHandles'),
+  /* WHICH NOW REPORTS A PRIVATE GROWN-UP WHOSE HANDLE CARRIES THEIR SURNAME (342) — the real test of who
+     is private, cut out with it. */
+  grab(people, /function namePrivate_\([\s\S]*?\n\}/, 'namePrivate_'),
+  grab(setup,  /function handleSurnameIn_\([\s\S]*?\n\}/, 'handleSurnameIn_'),
   grab(consts, /const PRICING_COOLDOWN_DAYS[^;]*;/, 'PRICING_COOLDOWN_DAYS'),
   /* THE FOUR FIELDS THE RULE IS ABOUT, READ OUT OF `constants.gs` RATHER THAN LISTED HERE. A copy
      would agree with itself and with nothing else — so a fifth field added there is under these
@@ -192,11 +196,12 @@ new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = 
            + ' box.make = handleMake_; box.ADJ = HANDLE_ADJ;'
            + ' box.FIRST_MAX = HANDLE_FIRST_MAX; box.FALLBACK = HANDLE_FALLBACK;'
            + ' box.TAIL_MIN = HANDLE_TAIL_MIN; box.TAIL_MAX = HANDLE_TAIL_MAX;'
-           + ' box.WAS_KEEP = HANDLE_WAS_KEEP; box.wasWith = handleWasWith_;'
+           + ' box.WAS_MAX = HANDLE_WAS_MAX; box.wasWith = handleWasWith_;'
            + ' box.first = handleFirst_; box.shaped = handleIsShaped_; box.rename = renameHandles;'
            + ' box.parts = handleParts_; box.ORDERS = HANDLE_ORDERS; box.TRIES = HANDLE_TRIES;'
            + ' box.fill = fillHandles;'
            + ' box.initials = handleInitials_; box.kidShaped = handleKidShaped_; box.isChild = isChild_;'
+           + ' box.surnameIn = handleSurnameIn_;'
            + ' box.KID_DIGITS = HANDLE_KID_DIGITS; box.KID_TAIL = HANDLE_KID_TAIL; box.KID_TRIES = HANDLE_KID_TRIES;'
            /* THE GATE ITSELF, SO THE GENERATOR'S OWN LOOP CAN BE TESTED. `handleTrouble_` is a
               function DECLARATION in this scope, so it can be rebound — and that is the way to reach
@@ -717,18 +722,21 @@ function run() {
       said: 'first "' + first + '": no' });
   });
 
-  /* ---------- `handle_was`: NEWEST FIRST, AND THE LAST TEN ------------------------------------------
-     There is no cooldown, so somebody can press Randomise all afternoon: the history keeps the newest
-     `HANDLE_WAS_KEEP` rather than growing for ever, and the one just replaced is at the front. A
-     version that overwrote the cell — which is what it did while there was a month between changes —
-     answers "who was @foo" only about the last name. */
+  /* ---------- `handle_was`: NEWEST FIRST, AND EVERY ONE KEPT ---------------------------------------
+     The one just replaced is at the front. A version that overwrote the cell — which is what it did
+     while there was a month between changes — answers "who was @foo" only about the last name. It kept
+     the newest ten until 342, when an old handle became a credential (it still signs its person in) and
+     a reservation (nobody else is given it): the trim retired both at the eleventh press, so nothing
+     falls off now, and Randomise stops at `HANDLE_WAS_MAX` instead (`check-profile.js`). */
   const WAS = [
     ['', 'ada_kind', 'ada_kind', 'the first change starts the history'],
     ['ada_brave', 'ada_kind', 'ada_kind, ada_brave', 'the newest goes at the FRONT and the rest stay'],
     ['ada_brave', '', 'ada_brave', 'a blank handle replaced adds nothing'],
-    [Array.from({ length: box.WAS_KEEP }, (_, i) => 'old' + i).join(', '), 'new',
-      ['new'].concat(Array.from({ length: box.WAS_KEEP - 1 }, (_, i) => 'old' + i)).join(', '),
-      'past ' + box.WAS_KEEP + ' the OLDEST falls off'],
+    ['ada_kind, ada_brave', 'Ada_Kind', 'ada_kind, ada_brave', 'the handle already at the front is no change — a re-run after a failed write does not say it twice'],
+    ['ada_kind, ada_brave', 'ada_brave', 'ada_brave, ada_kind, ada_brave', 'going BACK to an older handle is a true history, kept'],
+    [Array.from({ length: box.WAS_MAX }, (_, i) => 'old' + i).join(', '), 'new',
+      ['new'].concat(Array.from({ length: box.WAS_MAX }, (_, i) => 'old' + i)).join(', '),
+      'past ' + box.WAS_MAX + ' NOTHING falls off — every old handle still signs its person in'],
   ];
   WAS.forEach(([cell, was, want, why]) => {
     const got = box.wasWith(cell, was);
@@ -908,6 +916,31 @@ function run() {
   if (!/^fb[2-9]{4}$/.test(frow.handle)) bad.push({ handle: 'fillHandles', want: 'fb and four digits',
     why: 'a child typed into the sheet with no handle is given a child\'s, not one with her first name in it', said: frow.handle });
 
+  /* AFTER REVIEW (342): A CHILD'S SHAPE IS ANY INITIALS AND A TAIL — not only the initials of the names on
+     the row today, or a surname corrected after the move moves the child again over a letter. And not a
+     name with digits after it, nor digits that could be a year. */
+  [['ej4827', true, 'her own initials'], ['es4827', true, 'initials from before a surname was corrected'],
+   ['e4827', true, 'one initial'], [box.FALLBACK + '4827', true, 'the fallback'],
+   ['ella4827', false, 'a first name with a tail'], ['ej2016', false, 'a tail with a 0 and a 1 in it'],
+   ['ej482', false, 'three digits'], ['EJ4827', false, 'capitals, which nothing makes']].forEach(([h, want, why]) => {
+    if (box.kidShaped(h, kidRow('Ella', 'Jones')) !== want) bad.push({ handle: h, want: want ? 'shaped' : 'not shaped',
+      why: 'a child\'s shape is any one or two letters (or the fallback) and four digits from 2 to 9 — ' + why, said: String(!want) });
+  });
+
+  /* AND A PRIVATE GROWN-UP WHOSE HANDLE CARRIES THEIR SURNAME IS REPORTED, BY ID — the net takes the surname
+     out of their name, and a hand-typed handle would carry it straight back beside their first name. */
+  const sIn = box.surnameIn([
+    { person_id: 'G1', role: 'client', first_name: 'Ola', last_name: 'Brisk', handle: 'olabrisk' },
+    { person_id: 'G2', role: 'client', first_name: 'Pip', last_name: 'Ashdown', handle: 'pip_kind42' },
+    { person_id: 'G3', role: 'tutor', listed: 'TRUE', first_name: 'Tam', last_name: 'Tutor', handle: 'tamtutor' },
+    { person_id: 'G4', role: 'student', first_name: 'Wren', last_name: 'Quorrington', handle: 'wrenquorrington' },
+    { person_id: 'G5', role: 'client', first_name: 'Bo', last_name: 'Li', handle: 'boli22' },
+    { person_id: 'G6', role: 'client, student', first_name: 'Gus', last_name: 'Hartwell', handle: 'Hartwell_Gus' },
+  ]);
+  if (JSON.stringify(sIn) !== JSON.stringify(['G1', 'G6'])) bad.push({ handle: 'handleSurnameIn_', want: '["G1","G6"]',
+    why: 'a private grown-up (a client, a parent who is learning) with their surname in their handle is listed by id; a tutor\'s whole name is public, a child\'s handle is moved to initials anyway, and a two-letter surname is inside too many handles to mean anything',
+    said: JSON.stringify(sIn) });
+
   /* ---------- THE RETRY, AND THE GIVE-UP, WHICH ONLY A STUBBED GATE CAN REACH ---------------------
      The generator's contract is "keep asking until the gate says yes, and give up rather than loop",
      and that is a statement about the loop rather than about the words — so the gate is rebound. A
@@ -1000,7 +1033,7 @@ function run() {
 
      And a second run changes nothing. */
   box.setHeaders(['person_id', 'handle', 'handle_was', 'handle_changed_at', 'first_name']);
-  const full = Array.from({ length: box.WAS_KEEP }, (_, i) => 'old' + i).join(', ');
+  const full = Array.from({ length: box.WAS_MAX }, (_, i) => 'old' + i).join(', ');
   const rrows = [
     { person_id: 'R1', handle: 'BrightOtter42', first_name: 'Halex' },
     { person_id: 'R2', handle: 'ada_kind', first_name: 'Ada' },
@@ -1034,9 +1067,9 @@ function run() {
     why: 'a handle in one of the new orders must be left alone, or the job renames every '
        + 'Randomise press', said: r5.handle });
   const r6was = r6.handle_was.split(', ');
-  if (r6was.length !== box.WAS_KEEP || r6was[0] !== 'Pat_Typed' || r6was.indexOf('old' + (box.WAS_KEEP - 1)) !== -1)
-    bad.push({ handle: 'renameHandles', want: 'Pat_Typed first, ' + box.WAS_KEEP + ' kept',
-      why: 'handle_was is the last ten, newest first', said: r6.handle_was });
+  if (r6was.length !== box.WAS_MAX + 1 || r6was[0] !== 'Pat_Typed' || r6was[r6was.length - 1] !== 'old' + (box.WAS_MAX - 1))
+    bad.push({ handle: 'renameHandles', want: 'Pat_Typed first, all ' + (box.WAS_MAX + 1) + ' kept',
+      why: 'handle_was is every earlier handle, newest first — none dropped, since each still signs its person in', said: r6.handle_was.slice(0, 120) });
   if (ren.renamedCount !== 3 || ['R1', 'R3', 'R6'].some(id => ren.renamed.indexOf(id) === -1)
       || ren.leftAlone !== rrows.length - 3) {
     bad.push({ handle: 'renameHandles', want: '3 renamed by id, the rest left alone',
@@ -1186,6 +1219,10 @@ function run() {
     { person_id: 'P14', email: '',               pin: '0000', username: 'MoWas',  handle: 'mz6789', handle_was: 'mo_brave33' },
     { person_id: 'P15', email: '',               pin: '0000', username: 'ZedA',   handle: 'ab2345', handle_was: 'zed_kind11' },
     { person_id: 'P16', email: '',               pin: '0000', username: 'ZedB',   handle: 'ab3456', handle_was: 'zed_kind11' },
+    /* AND A LONG FIRST NAME WHOSE OLD HANDLE WAS CUT TO NINE LETTERS (342, the review): he typed it in
+       full before the move and must still be let in by it after. */
+    { person_id: 'P17', email: '',               pin: '0000', username: 'ChrisL', handle: 'cl2345', handle_was: 'christoph_kind42',
+      first_name: 'Christopher', last_name: 'Lane' },
   ];
   /* THE HELPER THE TWO DOORS SHARE (the lock, the PIN, the session) is cut out too, because the
      handler hands every found row to it. */
@@ -1205,6 +1242,8 @@ function run() {
     grab(people, /function handleFirst_\([\s\S]*?\n\}/, 'handleFirst_'),
     grab(people, /function handleParts_\([\s\S]*?\n\}/, 'handleParts_'),
     grab(people, /function handleRows_\([\s\S]*?\n\}/, 'handleRows_'),
+    /* THE ONE MATCHER BOTH READ (342, the review): a handle, or a long first name spelled out in it. */
+    grab(people, /function handleAnswers_\([\s\S]*?\n\}/, 'handleAnswers_'),
     /* AND THE OLD HANDLES (342), asked only when nobody holds what was typed now. */
     grab(people, /function handleWasRows_\([\s\S]*?\n\}/, 'handleWasRows_'),
     grab(people, /function handleWasEntry_\([\s\S]*?\n\}/, 'handleWasEntry_'),
@@ -1275,6 +1314,13 @@ function run() {
     { body: { email: 'ella_kind42', pin: 'wrong' },         want: '', code: 'wrong-pin', said: 'Wrong PIN for that handle.', why: 'an old handle meets the same PIN and the same throttle as a new one' },
     { body: { email: 'mo_brave33', pin: '0000' },           want: 'P13', moved: '', why: 'A HANDLE SOMEBODY HAS NOW WINS — it was P14\'s once, and an old entry must never sign in a different person' },
     { body: { email: 'zed_kind11', pin: '0000' },           want: '', why: 'an old handle in two accounts\' histories is refused, not guessed' },
+    /* AFTER REVIEW (342): an old handle answers to every spelling it answered to when it was current —
+       the whole first name where it keeps nine letters — and to nothing less than the whole of it. */
+    { body: { email: 'christopher_kind42', pin: '0000' },   want: 'P17', moved: 'christoph_kind42>cl2345', why: 'an OLD handle, spelled with the whole first name the way he always typed it — the move must not be what locks him out' },
+    { body: { email: 'ella_kin', pin: '0000' },             want: '', code: 'not-an-email', why: 'a prefix of an old handle is not the handle' },
+    { body: { email: 'ella_kind4', pin: '0000' },           want: '', code: 'not-an-email', why: 'nor is an old handle one character short' },
+    { body: { email: 'zz9999', pin: '0000' },               want: '', said: 'Sign in with the email on your account — or your handle, as it is on your card.',
+      why: 'a handle nobody has is refused WITHOUT a grown-up\'s handle as the example — a child\'s is their initials and four digits' },
   ];
   SIGNIN.forEach(c => {
     let got;

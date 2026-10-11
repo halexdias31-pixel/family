@@ -38,8 +38,16 @@ each from **2 to 9**, no separator. `handleKid_` in people.gs, beside `handleMak
   handle cannot carry.
 - **Randomise keeps the initials and draws a new tail.** The initials are the child's; the tail is the
   only choice there is.
-- **What the initials still say**, said plainly: `Wren (@wq4827)`, beside a second Wren, shows the first
-  letter of her surname. That is what "just use initials" asked for, and it is one letter.
+- **What the initials still say**, said plainly — and this first said it too narrowly (see *After
+  review*, P1): the second letter is her surname's first, and it goes wherever her handle goes, beside her
+  first name — the score board every signed-in account reads (and registration is open), every post and
+  comment a signed-out visitor's payload carries, every family card and roster. A stranger can learn
+  "Wren Q.". Before 342 the same places carried `wren_kind43`, with no part of the surname. **Kept
+  knowingly**: it is the owner's "just use initials" and the main session's decision, a first name and a
+  surname initial is the convention schools use for this, and the initial is what tells two Wrens'
+  handles apart to the children who know them. Note 333 records it as a narrowing of "a child's surname
+  goes to nobody". The first initial alone (`w4827`) is one change in `handleKid_` and `handleKidShaped_`
+  if that call is ever made the other way.
 
 **This reverses 2 October for children, and says so** (211, 222, 250: a handle is the first name, a
 virtue and a number; 250's "existing handles are not regenerated"). A grown-up's handle is unchanged.
@@ -47,8 +55,9 @@ virtue and a number; 250's "existing handles are not regenerated"). A grown-up's
 ### 2. A grown-up's handle is unchanged — and a grown-up who was a child keeps theirs until they press Randomise
 
 The rule is per person and decided by the child test at the moment a handle is MADE. A child who
-becomes a grown-up (the test stops saying child) keeps `ej4827` — `handleIsShaped_` reads it as shaped
-for that row's names, so `?run=renameHandles` leaves it — until they press Randomise, which then makes
+becomes a grown-up (the test stops saying child) keeps `ej4827` — `handleIsShaped_` reads any initials
+and a tail as shaped (after review: not only today's initials), so `?run=renameHandles` leaves it — until
+they press Randomise, which then makes
 a grown-up's. Moving a sign-in name nobody asked to move is exactly the lock-out every job here avoids.
 
 ### 3. Nobody loses their sign-in
@@ -57,10 +66,14 @@ a grown-up's. Moving a sign-in name nobody asked to move is exactly the lock-out
   `handle_was` holds what was typed, and `verifyLogin` and `forgotPin` ask it **only when no row holds
   it as its handle now** — a current handle always wins, so an old entry can never sign in a different
   person who holds that handle today. Two rows with it in their histories is refused, worded as two rows
-  on one handle is. The same PIN, the same throttle, the same "Wrong PIN for that handle."
+  on one handle is. The same PIN, the same throttle, the same "Wrong PIN for that handle." And the same
+  spellings: an old handle answers to whatever it answered to when it was current, a long first name
+  spelled out included (`handleAnswers_`, after review).
 - **An old handle is never given to anybody else.** `handleTrouble_`'s clash now refuses any entry on
   ANOTHER row's `handle_was` too (your own history is not a clash). Uniform for grown-ups as well: before
-  this, Randomise could reissue yesterday's handle to the next person the same afternoon.
+  this, Randomise could reissue yesterday's handle to the next person the same afternoon. **And none is
+  ever dropped** (after review): `handle_was` kept the newest ten, which retired the slip's handle at the
+  eleventh press; it keeps every one now, and Randomise stops at `HANDLE_WAS_MAX` (200) instead.
 - **The child is told.** The sign-in reply carries `handleMoved: { was, now }` and a sentence ("Your
   handle is @ej4827 now. @ella_kind42 still signs you in, but use @ej4827 from now on."); the phone opens
   it in the sheet it already uses for sentences that must not be lost (`afterSignIn_`, me.js), titled
@@ -82,7 +95,8 @@ An admin's one-off, the `previewFromGitHub` rule: **look, then do.**
 …/exec?run=kidHandles&name=Your%20Name&pin=0000&arg=apply  ← moves them
 ```
 (your own name and PIN, not these.) The preview answers with `children`, `toMove`, `leftAlone`,
-`signInByHandle` (the ones with no email — the ones to tell) and each child by `person_id` with the
+`signInByHandle` (the ones with no email — the ones to tell), `inAnotherHistory` and
+`grownUpsSurnameInHandle` (after review, by id) and each child by `person_id` with the
 handle they have and the initials they would get (`ej····`: the digits are drawn when it runs for real,
 so a preview showing them would show handles nobody gets). `apply` moves every child whose handle is not
 already their initials and a tail, puts the old one at the FRONT of `handle_was` (`handleWasWith_`),
@@ -141,10 +155,13 @@ the two surnames differ.
   the net shortened for a tutor and saved again keeps the parent's whole name in the sheet.
 - **A private grown-up whose whole name a tutor or admin also answers to is left out of the net** — that
   name is on a public card, and the net cannot tell which of the two a sentence meant.
-- **Not changed, and why:** an open class's `events` still go to strangers (the names in them are netted
-  now, so nothing is shown that should not be; whether strangers need the events at all is a separate
-  question). An invitation to a typed address names the inviter by first name — the uniform rule; the
-  recipient knows who asked them from the session itself.
+- **An open class's `events` go only to the people on it and an admin** (after review — this first said
+  they "still go to strangers", and they named every family three lines below the slots that blank them).
+  An invitation to a typed address names the inviter by first name — the uniform rule; the recipient
+  knows who asked them from the session itself.
+- **"Confirmed on every exit" depends on the doors that answer a NAME** (after review): `register` and
+  `makeChild` no longer say "there is already an account in that name", and a festive join's typed list
+  is cut to first names before other families read it. See *After review*, P2 and P3.
 
 **This narrows 333's "a grown-up's is their whole name"** to tutors and admins, and to the person and an
 admin for everybody else.
@@ -156,11 +173,11 @@ admin for everybody else.
   that is your new sign-in name."* The server is the one that knows which shape.
 - "Add a friend"'s placeholder no longer shows a first-name handle.
 - `afterSignIn_` opens the sheet for `handleMoved`; `profileRefresh_` adopts `handle` and `friends`.
-  Two races are closed while doing it: a `myProfile` asked at open and answered after Randomise landed
-  would have put the old handle back and called the new one the old — a reply naming the handle
-  `HANDLE_SAID` says this phone just left is older than the press and is not taken; and a friends list
-  changed on the phone marks `ACCOUNT_AT_` (`friendsSave`), so a `myProfile` asked before it is asked
-  again rather than putting the old list back.
+  Two races are closed while doing it, both by `ACCOUNT_AT_` (`accountChanged_`): Randomise marks it when
+  its answer lands and a friends list saved here marks it on the press and on the answer, so a `myProfile`
+  asked before either is asked again rather than putting the old handle or the old list back. (The first
+  version tested Randomise's race by `HANDLE_SAID`'s text, which knew only the last press — see *After
+  review*, C2.) And the device's chip for a moved handle becomes the new one (`handleRename_`).
 - No CSS changed, so `--css-version` stays.
 
 ### Checked
@@ -212,7 +229,8 @@ take theirs, and put this wording into their `cardHandleHtml_` ("Randomise saves
 Cancel does not put the old one back — if you sign in with your handle, that is your new sign-in name",
 without the first-name sentence); and `docs/history/README.md`, where both append a line. Everything else
 — `profileRefresh_`, `afterSignIn_`, `friendsSave`, the journeys, the states, the notes — merges by itself.
-`HANDLE_SAID` must keep its "You were @…" text: `profileRefresh_` reads it to tell a stale reply.
+(Round 1 adds a conflict in the Randomise handler and lifts the `HANDLE_SAID` dependency — see *After
+review*, "Merging".)
 
 **Mutations, each alone, red for its own reason, the real files green again after:**
 
@@ -225,3 +243,119 @@ without the first-name sentence); and `docs/history/README.md`, where both appen
 | a parent's surname reaches another user (`namePrivate_` = children only) | `check-surnames` ("Pip Ashdown" in who reacted and "Tess Lowe" in an open class's events, for a stranger, fresh and kept) |
 
 Stamps: `2026-10-11-n-kid-handles`, all four.
+
+### After review (round 1)
+
+Three reviewers read `01adec5` and `18278c5` — one for privacy, one for "nobody is locked out", one for
+what the checks actually hold. Every finding was reproduced on that head first. Each fix has a rule that
+was red before it (on the head's own files, or with the old line put back) and is green after; the table
+at the end is the proof. Pre-existing faults the reviewers found on the way are fixed too, because each
+contradicted something this note claimed.
+
+**Privacy**
+
+- **P1 — the surname initial goes further than §1 said** (should-fix). §1 said one letter of a child's
+  surname shows "only when two children share a first name". In fact the handle travels beside her first
+  name everywhere: a signed-out visitor's payload carries her posts as `author: "Wren", handle: "wq3572"`,
+  and anybody who registers (the door is open, a PENDING row signs in) sees every child on the score board
+  the same way. **Kept, knowingly — option (b)**: the initials are the owner's ask and the main session's
+  decision, first name plus surname initial is the convention schools use, and the initial is what tells
+  two Wrens apart to the children who know them. §1, the comment over `HANDLE_KID_DIGITS` and note 333 now
+  say exactly how far it goes. Option (a), the first initial alone, is one change in `handleKid_` and
+  `handleKidShaped_` if the main session prefers it.
+- **P2 — a festive join's typed names reached strangers** (pre-existing). `joinFestive` logged the parent's
+  "Who is coming?" words as typed, into an open job whose `events` went to every visitor — a surname of a
+  child who is no row the net knows, and every family's first name as `actor` three lines below the slots
+  that blank names for anybody not on the job. Now each name goes on the event as its first word
+  (`typedFirstWords_`, `typedKids_`'s rule — "just two" becomes "just"; the admin's email keeps the words as
+  typed), and `doGet` sends `events` only to the people on the job and an admin (`iAmIn`, the slots' own
+  test; the phone reads events only for the dates on a booking's stage ticks, a document only somebody on
+  the booking sees). §5's "an open class's events still go to strangers" is struck.
+- **P3 — `register` confirmed a guessed whole name to anybody** (pre-existing; the published initial made
+  it cheaper). It asked `findPerson(full)` before the address, so an address already on a row plus a guessed
+  name answered "There is already an account in that name" or "That email is already registered", writing
+  nothing either way: four guesses, zero writes, the review measured. `makeChild` named the clash to any
+  confirmed parent. Now the address is asked first; a name clash is "We could not make that account. If you
+  have one already, sign in — or ask us to help." (and the make-child form's equivalent), naming nothing; and
+  each clash with a PRIVATE whole name (`namePrivate_`; a tutor's is public) is counted, and five in a day
+  pause EVERY new account, hit or miss, until the day has passed (`nameClashNoted_`, `NAME_CLASH_MAX`).
+  **What is left, said honestly:** a refusal still means "one of these is taken". Finding that out now costs
+  a fresh address per guess, writes a PENDING row and mails that address on every miss (which an admin sees),
+  and stops after five hits a day. Two accounts with one whole name would close it entirely and is not done:
+  `findPerson` and everything that resolves a person by name would have two answers. §5's "confirmed on
+  every exit" depends on this, and says so.
+- **P4 — a private grown-up's hand-typed handle can carry their surname** (nit). The net takes it out of
+  their name and the handle carries it back. Not moved (their sign-in name is theirs): reported by id as
+  `grownUpsSurnameInHandle` in `?run=kidHandles`'s preview and `surnameInHandle` in `renameHandles`'
+  report (`handleSurnameIn_`). The Ledger snapshot has none.
+
+**Nobody locked out**
+
+- **S1 — an old handle no longer answered to a long first name spelled out** (should-fix). `handleRows_`
+  lets `christopher_kind42` stand for `christoph_kind42`; `handleWasRows_` and `handleWasEntry_` compared
+  keys exactly, so the move refused at the sign-in box and at "Forgotten your PIN?" the spelling the child
+  had always used. One matcher now, `handleAnswers_`, for the handle and every old one; a prefix or a near
+  miss is still nothing.
+- **S2 — `handle_was` was trimmed to ten** (should-fix). Ten Randomise presses after the move retired the
+  slip's handle: it stopped signing her in, and `handleTrouble_` could give it to the next person with that
+  first name, whose throttle the child's tries would then count. Nothing is trimmed now
+  (`handleWasWith_`), and `randomiseHandle` refuses — writing nothing — once the history holds
+  `HANDLE_WAS_MAX` (200, about four thousand characters of a fifty-thousand cell). `name_was` keeps its own
+  ten: an old name is only what the net recognises, never a credential. `handleWasWith_` also no longer
+  writes a handle twice in a row (a re-run after a failed write).
+- **S3 — a run that failed part-way left friends lists wrong for good** (nit). The re-run found the moved
+  children "already shaped" and had no moves of its own. The lists are now mended from EVERY child's
+  history — an entry on one row's history only, that row a child's, nobody holding it now — and the cache
+  is cleared in a `finally`.
+- **S4 — one child's move was all-or-nothing only when the columns were adjacent** (nit). `kidHandles`,
+  `randomiseHandle` and `renameHandles` now write `handle_was` first, in its own write, then the handle; a
+  failure between them leaves an extra history entry, never a new handle with no history.
+- **S5 — a handle Randomise reissued before 342 became ambiguous after the move** (nit). The preview lists
+  such children by id (`inAnotherHistory`) and says to take the entry off the other row first. Not guessed
+  at sign-in: "two accounts have had it" stays a refusal. None on the snapshot.
+- **S6 — a later run moved a child whose surname was corrected** (nit). A child's shape is now any one or
+  two letters (or the fallback) and four digits from 2 to 9 (`handleKidShaped_`), not today's initials.
+  Randomise still draws from the names as they are.
+- **S7 / C1 — the family iPad kept the old, name-bearing chip** (should-fix). `handleRename_` (me.js)
+  replaces it in place when a sign-in by an old handle, `myProfile` or Randomise learns the handle moved; a
+  device that never had the chip, or forgot it with ✕, is not given one.
+- **S8 / C13 — the unknown-handle refusal still showed `(like halex_kind42)`** (nit). It now says "or your
+  handle, as it is on your card." (check-flow's stub of that sentence moved with it).
+- **Not done, and why:** neither `?run` job nor Randomise takes the script lock, so a Randomise landing
+  during an apply could be overwritten. The reviewer did not report it — theoretical, an existing pattern,
+  and not reproducible in the single-threaded harness — and neither job is run while children are using it.
+
+**What the checks hold**
+
+- **C2 — two Randomise presses under one slow `myProfile` put the first handle back** (should-fix). The
+  guard compared `HANDLE_SAID`'s text with the reply, which knew only the last press. Randomise now marks
+  `ACCOUNT_AT_` when its answer lands (`accountChanged_`), so any `myProfile` asked before it is asked
+  again; the text test is gone, and with it the dependency on `HANDLE_SAID`'s wording. `friendsSave` marks
+  it on the answer too, not only on the press.
+- **C3 — nothing pressed Randomise or added a friend** under a held `myProfile`: two journeys now do, and
+  three more hold the chips and the two-press race (`check-flow.js`, beside the other 342 journeys).
+- **C4** `forgotPin`'s "a current handle wins", **C10** Randomise moving friends lists, **C12** "not the
+  birthday" at `makeChild` and `kidHandles` (two worlds, the same dice, different birthdays) and a prefix of
+  an old handle refused — all in `check-signin.js` section 11 and `check-handles.js`' sign-in table.
+- **C5** `mailOut_`'s `finally` (two parents' `move` replies in a class taught by an admin), **C6** an open
+  action claiming the admin's id, **C7** a grown-up with a Tutor tick still waiting (Tess ticks it before the
+  viewer sweep), **C11** referral codes — `check-surnames.js` section 7 and the new section 8, with P2's and
+  P3's rules.
+
+**The Ledger snapshot of 10 Oct, after round 1** (read in place, piped, counts only): 8 children, all 8 would
+move, 7 sign in by handle, 0 could not be given one, 0 in another row's history, 0 private grown-ups with
+their surname in their handle (of 6 private grown-ups). An in-memory apply moved 8; every old handle and
+every new one resolves to exactly its own child (8 and 8); 0 friends lists to move; a second run moves 0.
+
+**Merging with `fix-card-settings`, updated:**
+- `js/me.js`, the Randomise handler (`on('handle-shuffle')`): round 1 adds `accountChanged_();` and
+  `handleRename_(d.was, d.handle);` at the top of its `.then`. That branch rewrites the handler, so this now
+  conflicts: put both lines right after `HANDLE_ASKING = false;` in their version, and keep their section
+  lock and DATA patching.
+- `profileRefresh_`: the `handleStale` lines are gone (replaced by `ACCOUNT_AT_`), and `handleRename_` is
+  called where a changed handle is adopted. Their hunk is elsewhere in the function; take both.
+- `HANDLE_SAID`'s "You were @…" text is no longer read by anything — the old merge note's constraint is lifted.
+- Their `HANDLE_NAME_FIRST_` guard compares only `first_name` ("a handle is your first name and a virtue").
+  A child's handle is built from the last name's initial too, so it should compare `last_name` as well and
+  its sentence should change (the checks reviewer's note).
+- `docs/history/README.md`: both branches append one line.

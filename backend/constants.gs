@@ -425,7 +425,8 @@ const SCHEMA = {
      types into. `ensureSchema` only ever ADDS, so a column dropped here is never deleted from a live
      sheet by code — the new tab is pasted in whole, from the CSV that goes with this commit.
 
-     `handle_was` IS A SAFEGUARDING COLUMN — the last ten handles, newest first — and
+     `handle_was` IS A SAFEGUARDING COLUMN — every earlier handle, newest first, none dropped since
+     each still signs its person in (342, `HANDLE_WAS_MAX`) — and
      `handle_changed_at` is when the newest one began: most of the people here are children, and "who
      was @foo last week" is asked exactly once, about the one account it matters for. Neither is a
      cooldown any more; that went with the typed handle box (see `handleTrouble_`).
@@ -1908,7 +1909,9 @@ let KID_MEMO_ = null;
    OF `doGet` AND `doPost`, because Apps Script keeps an instance between requests and the last
    request's viewer must never be the next one's. */
 let NET_VIEWER_ = null;
-/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS — `HANDLE_WAS_KEEP`'s number, for its reason. */
+/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS. It was "`HANDLE_WAS_KEEP`'s number, for its reason",
+   and that cap went in 342: an old HANDLE is a credential, never trimmed. An old NAME is only what the
+   net recognises in text stored under it — a person renamed eleven times is not a person — so ten stays. */
 const NAME_WAS_KEEP = 10;
 
 /* ---------- A WRITE THAT GOES NOWHERE -------------------------------------------------------------

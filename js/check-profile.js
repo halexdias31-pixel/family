@@ -251,13 +251,16 @@ PEOPLE.forEach(p => {
    the asker's first name, a virtue and a fresh two-digit number in a random order, never led by the
    digits (*"their first name, a virtuous adjective and random numbers and maybe an underscore. but
    all random order"*, 2 October — it was `ada_<virtue>` with no number until then), never the
-   handle they already had, the old one at the FRONT of `handle_was` with the history capped at
-   `HANDLE_WAS_KEEP`, what the next sign-in hands back, the asker's own row whatever id is posted, a
+   handle they already had, the old one at the FRONT of `handle_was` with EVERY earlier one kept (342: an
+   old handle still signs its person in, so none is trimmed) and Randomise refused, writing nothing, once
+   the history holds `HANDLE_WAS_MAX`, what the next sign-in hands back, the asker's own row whatever id is posted, a
    refusal that writes nothing for somebody signed out — and `changeHandle`, the typed box it
    replaced, no longer an action at all. `check-handles.js` holds the generator's own rules. */
 {
   const t = tokens['P-T1'];
-  const VIRTUES = b.ev('HANDLE_ADJ'), KEEP = b.ev('HANDLE_WAS_KEEP');
+  const VIRTUES = b.ev('HANDLE_ADJ'), MAX = b.ev('HANDLE_WAS_MAX'), PRESSES = 14;
+  const histOf = () => String(b.row('P-T1').handle_was || '').split(',').map(x => x.trim()).filter(Boolean);
+  const hist0 = histOf().length;
   const shuffle = body => { shuffles++; return b.post(Object.assign({ action: 'randomiseHandle' }, body)); };
   const before = b.row('P-T1').handle;
   const d = shuffle({ token: t.token, name: t.name, personId: 'P-T1' });
@@ -283,10 +286,10 @@ PEOPLE.forEach(p => {
     tokens['P-T1'] = back;
     if (back.handle !== d.handle) bad.push('the next sign-in handed back "' + back.handle + '", not the randomised "' + d.handle + '"');
   }
-  /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and capped. */
+  /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and WHOLE. */
   let prev = b.row('P-T1').handle, same = 0;
   const orders = [];
-  for (let i = 0; i < KEEP + 4; i++) {
+  for (let i = 0; i < PRESSES; i++) {
     const tk = tokens['P-T1'];
     const e = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
     if (!e.success) { bad.push('randomiseHandle press ' + (i + 2) + ' was refused — ' + e.error); break; }
@@ -303,9 +306,11 @@ PEOPLE.forEach(p => {
      reads. One order in fourteen presses is a fixed order, one chance in sixty million. */
   if (orders.filter(Boolean).length < 2) bad.push('fourteen Randomise presses all laid the parts out '
     + 'in one order — the owner asked for a random one');
-  const hist = String(b.row('P-T1').handle_was).split(', ');
-  if (hist.length !== KEEP) bad.push('after ' + (KEEP + 5) + ' presses handle_was holds ' + hist.length
-    + ' handle(s), wanted the last ' + KEEP);
+  /* EVERY ONE KEPT — it was "the last ten", and the eleventh press retired the handle on a child's slip,
+     which since 342 still signs her in and is reserved for her (the review). */
+  const hist = histOf();
+  if (hist.length !== hist0 + PRESSES + 1) bad.push('after ' + (PRESSES + 1) + ' presses handle_was holds ' + hist.length
+    + ' handle(s), wanted all ' + (hist0 + PRESSES + 1) + ' — an old handle is a credential, never trimmed');
 
   /* SOMEBODY ELSE'S ID POSTED: the gate writes `personId` from the token, so the asker's own changes. */
   const parentWas = b.row('P-C1').handle, mineWas = b.row('P-T1').handle;
@@ -318,6 +323,19 @@ PEOPLE.forEach(p => {
   const out = shuffle({ name: 'Ada Tutor', personId: 'P-T1' });
   if (out.success) bad.push('randomiseHandle with no token was allowed');
   else if (out.writes) bad.push('a refused randomiseHandle had already written ' + out.writes + ' cell(s)');
+
+  /* AND A FULL HISTORY STOPS THE PRESS, WRITING NOTHING, rather than losing its oldest. */
+  {
+    const full = Array.from({ length: MAX }, (_, i) => 'ada_kind' + (i % 90 + 10) + '_' + i).join(', ');
+    b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-T1"); '
+      + 'setCell(t, r, "handle_was", ' + JSON.stringify(full) + '); clearCache(); })()');
+    const hBefore = b.row('P-T1').handle, w0 = b.log.writes;
+    const tk = tokens['P-T1'];
+    const capped = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
+    if (capped.success || b.row('P-T1').handle !== hBefore || histOf().length !== MAX || b.log.writes !== w0)
+      bad.push('with ' + MAX + ' handles in its history Randomise was not refused with nothing written — '
+        + JSON.stringify({ capped, handle: b.row('P-T1').handle, kept: histOf().length, writes: b.log.writes - w0 }));
+  }
 
   /* AND THE TYPED BOX IS GONE FROM THE SERVER TOO, not only from the phone. */
   const typed = b.post({ action: 'changeHandle', token: tokens['P-T1'].token, name: tokens['P-T1'].name,

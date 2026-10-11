@@ -297,17 +297,24 @@ function renameHandles() {
     if (isChild_(r)) { out.children++; return; }
     /* SHAPED FOR THIS PERSON — a grown-up's arrangement, or the initials-and-tail of a grown-up who was
        a child (`handleIsShaped_`): they keep it until they press Randomise. */
-    if (handleIsShaped_(has, r.first_name, r.last_name)) { out.leftAlone++; return; }
+    if (handleIsShaped_(has, r.first_name)) { out.leftAlone++; return; }
     const made = handleMake_(r, undefined, has);
     if (!made) { out.couldNotGenerate.push(who); return; }
-    const cells = { handle: made };
+    /* THE HISTORY BEFORE THE HANDLE (342, the review): one `setCell` per column, in this order, so a
+       write that fails between them leaves the old handle in `handle_was` AND in `handle` — harmless —
+       never a new handle with nothing to say what the old one was, which for a row with no email is a
+       sign-in name nobody can recover. */
+    const cells = {};
     if (keepWas && has) cells.handle_was = handleWasWith_(r.handle_was, has);
+    cells.handle = made;
     if (keepAt) cells.handle_changed_at = new Date();
     Object.keys(cells).forEach(c => setCell(t, r, c, cells[c]));
     out.renamed.push(who);
   });
   clearCache();
   out.renamedCount = out.renamed.length;
+  /* A PRIVATE GROWN-UP WHOSE HANDLE STILL CARRIES THEIR SURNAME (342) — by id, never moved here. */
+  out.surnameInHandle = handleSurnameIn_(t.rows);
   out.means = 'every grown-up\'s handle that was not a first name and a virtue (with or without a number, in '
             + 'any order) was regenerated and the old one put at the front of handle_was. Shaped '
             + 'handles were left alone, so nobody signing in with a handle was moved. Children are '
@@ -343,8 +350,29 @@ function renameHandles() {
    the new handle from `myProfile` on its next open. Every `friends` list that named an old handle is
    moved with it (`handleFriendsMove_`).
 
-   SAFE TO RUN TWICE: a handle already in a child's shape for that child is left alone, so the second
-   run moves nobody. A grown-up is never touched — their handles are `renameHandles`'. */
+   SAFE TO RUN TWICE: a handle already in a child's shape is left alone (`handleKidShaped_` — any
+   initials, so a child whose name was corrected since is not moved again over a letter), so the second
+   run moves nobody. A grown-up is never touched — their handles are `renameHandles'`.
+
+   AND SAFE TO RUN AGAIN AFTER A RUN THAT FAILED PART-WAY (the review, round 1). Each child's history is
+   written BEFORE their handle, in its own write — so whatever column order an import has left, a
+   failure between the two leaves the old handle in both cells (harmless; the re-run moves them) rather
+   than a new handle with no history, which for a child with no email is a lock-out nobody can see. The
+   friends lists are moved from EVERY child's history, not only from this run's moves: a re-run after a
+   failure finds the children already moved "already shaped" and has no moves of its own, and the lists
+   naming their old handles were left wrong for good. An old handle nobody holds now and only one child
+   ever had is that child, whichever run moved it. And the cache is cleared in a `finally`.
+
+   WHAT THE PREVIEW ALSO SAYS, BY ID AND NEVER BY NAME:
+     · `inAnotherHistory` — a child whose CURRENT handle is on somebody else's `handle_was`. Randomise
+       could reissue a handle before 342 made old ones reservations; after the move that handle would be
+       in two histories, and typing it would be refused as two accounts' ("ask us to sort it out") — so
+       the child holding the slip would be the one locked out. Take the entry off the other row first.
+     · `grownUpsSurnameInHandle` — a private grown-up (a parent, a client: `namePrivate_`) whose handle
+       carries their surname. The net takes the surname out of their NAME everywhere, and a hand-typed
+       `olabrisk` would carry it straight back beside their first name on every post and roster. Not
+       moved here — a grown-up's sign-in name is theirs, and their handles are `renameHandles'` — only
+       counted, so the admin sees it before anybody else does. */
 function kidHandles(arg) {
   const apply = norm(arg) === 'apply';
   const t = read(TAB.people);
@@ -357,39 +385,79 @@ function kidHandles(arg) {
                   + '— nothing was changed.' };
   }
   const out = { mode: apply ? 'apply' : 'preview', children: 0, toMove: 0, leftAlone: 0,
-                signInByHandle: 0, couldNotGenerate: [], rows: [] };
-  const moves = {};
-  t.rows.forEach(r => {
-    if (!isChild_(r)) return;
-    out.children++;
-    const has = S(r.handle);
-    if (has && handleKidShaped_(has, r)) { out.leftAlone++; return; }
-    const who = S(r.person_id) || '(a row with no id)';
-    out.toMove++;
-    if (!S(r.email)) out.signInByHandle++;
-    if (!apply) {
-      out.rows.push({ id: who, from: has,
-                      to: (handleInitials_(r.first_name, r.last_name) || HANDLE_FALLBACK) + '····' });
-      return;
+                signInByHandle: 0, couldNotGenerate: [], rows: [],
+                inAnotherHistory: [], grownUpsSurnameInHandle: handleSurnameIn_(t.rows) };
+  const inOthers = (r, h) => !!key(h)
+    && t.rows.some(x => x !== r && S(x.handle_was).split(',').some(w => key(w) === key(h)));
+  try {
+    t.rows.forEach(r => {
+      if (!isChild_(r)) return;
+      out.children++;
+      const has = S(r.handle);
+      const who = S(r.person_id) || '(a row with no id)';
+      if (has && handleKidShaped_(has)) { out.leftAlone++; return; }
+      out.toMove++;
+      if (!S(r.email)) out.signInByHandle++;
+      if (inOthers(r, has)) out.inAnotherHistory.push(who);
+      if (!apply) {
+        out.rows.push({ id: who, from: has,
+                        to: (handleInitials_(r.first_name, r.last_name) || HANDLE_FALLBACK) + '····' });
+        return;
+      }
+      const made = handleMake_(r, undefined, has);
+      if (!made) { out.couldNotGenerate.push(who); return; }
+      /* THE HISTORY FIRST, IN ITS OWN WRITE — see above. */
+      setCells(t, r, { handle_was: handleWasWith_(r.handle_was, has) });
+      setCells(t, r, { handle: made, handle_changed_at: new Date() });
+      out.rows.push({ id: who, from: has, to: made });
+    });
+    if (apply) {
+      /* EVERY CHILD'S OLD HANDLES, whichever run moved them: an entry on ONE row's history only, that
+         row a child's, and nobody holding it now. `handleTrouble_` never reissues one, so "nobody holds
+         it" stays true; an entry on two rows' histories is the case `inAnotherHistory` reports, and a
+         list naming it is left as it is rather than guessed. */
+      const had = {};
+      t.rows.forEach(r => {
+        [...new Set(S(r.handle_was).split(',').map(w => key(w)).filter(Boolean))]
+          .forEach(k => { (had[k] = had[k] || []).push(r); });
+      });
+      const moves = {};
+      Object.keys(had).forEach(k => {
+        const r = had[k].length === 1 ? had[k][0] : null;
+        if (r && isChild_(r) && S(r.handle) && !t.rows.some(x => key(x.handle) === k)) moves[k] = S(r.handle);
+      });
+      out.friendsMoved = handleFriendsMove_(t, moves);
     }
-    const made = handleMake_(r, undefined, has);
-    if (!made) { out.couldNotGenerate.push(who); return; }
-    setCells(t, r, { handle: made, handle_was: handleWasWith_(r.handle_was, has), handle_changed_at: new Date() });
-    if (has) moves[key(has)] = made;
-    out.rows.push({ id: who, from: has, to: made });
-  });
-  if (apply) {
-    out.friendsMoved = handleFriendsMove_(t, moves);
-    clearCache();
+  } finally {
+    if (apply) clearCache();
   }
-  out.means = apply
-    ? 'every child whose handle was not their initials and four digits has one now; the old one is at the '
+  out.means = (apply
+    ? 'every child whose handle was not initials and four digits has one now; the old one is at the '
       + 'front of handle_was and still signs them in, and is never given to anybody else. Grown-ups were not touched.'
     : 'NOTHING WAS CHANGED. This is what &arg=apply would do: ' + out.toMove + ' of ' + out.children
       + ' children moved to their initials and four digits (drawn when it runs), ' + out.signInByHandle
       + ' of them signing in with the handle — their old one keeps working and they are told the new one '
-      + 'when they use it.';
+      + 'when they use it.')
+    + (out.inAnotherHistory.length ? ' ' + out.inAnotherHistory.length + ' child(ren) in inAnotherHistory hold a '
+      + 'handle that is also on somebody else\'s handle_was — after the move typing it would be refused as two '
+      + 'accounts\', so take it off the other row\'s handle_was first.' : '')
+    + (out.grownUpsSurnameInHandle.length ? ' ' + out.grownUpsSurnameInHandle.length + ' grown-up(s) in '
+      + 'grownUpsSurnameInHandle have their surname in their handle, which is shown beside their first name — '
+      + 'not changed here; Randomise gives them one without it.' : '');
   return out;
+}
+
+/* ---------- A PRIVATE GROWN-UP WHOSE HANDLE CARRIES THEIR SURNAME (342, the review) -------------------
+   The net calls a parent or a client by their first name to everybody else (`namePrivate_`), and the
+   handle goes out beside it exactly as stored — so a hand-typed `olabrisk` defeats the rule on every
+   post, roster and family card. By `person_id`, for an admin's report; a surname of under three letters
+   is not looked for, because it is inside too many handles by chance to mean anything. Children are not
+   asked: a child's handle is moved to initials by `kidHandles` whatever it says. */
+function handleSurnameIn_(rows) {
+  const fold = v => String(v == null ? '' : v).toLowerCase().normalize('NFKD').replace(/[^a-z]/g, '');
+  return (rows || []).filter(r => !isChild_(r) && namePrivate_(r)
+      && fold(r.last_name).length >= 3 && fold(r.handle).indexOf(fold(r.last_name)) !== -1)
+    .map(r => S(r.person_id) || '(a row with no id)');
 }
 
 /** Add any config key that's missing. Never overwrites a value you've set. */

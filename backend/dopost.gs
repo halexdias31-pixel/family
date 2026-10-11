@@ -398,11 +398,20 @@ function doPost(e) {
       if (grownUp && t.headers.indexOf('parent_email') === -1) {
         return jsonOut({ error: 'The sheet has no column for: parent_email. Run ?setup=1 — nothing was saved.' });
       }
-      if (findPerson(full)) {
-        return jsonOut({ error: 'There is already an account in that name. Try logging in, or ask us to help.' });
-      }
+      /* ---------- THE ADDRESS FIRST, AND A NAME CLASH THAT DOES NOT SAY IT IS ONE (342, the review) -------
+         The name was asked first and answered "There is already an account in that name" — so an address
+         already on a row, passed with a guessed whole name, told anybody whether that child or parent
+         existed and wrote nothing either way. The address is the person's own to ask about; the name is
+         not. A clash with a private name is counted, and five a day pause new accounts (`nameClashNoted_`,
+         people.gs). */
       if (email && t.rows.some(r => S(r.email) && norm(r.email) === norm(email))) {
         return jsonOut({ error: 'That email is already registered. Try logging in.' });
+      }
+      if (nameClashPaused_()) return jsonOut({ error: NAME_CLASH_PAUSED_SAY });
+      const clashed = findPerson(full);
+      if (clashed) {
+        nameClashNoted_(clashed);
+        return jsonOut({ error: 'We could not make that account. If you have one already, sign in — or ask us to help.' });
       }
 
       /* PENDING until they click the link. Deliberately a third state rather than a blank:
@@ -868,7 +877,10 @@ function doPost(e) {
             error: 'That handle is on more than one account — ask us to sort it out.' });
         }
         return jsonOut({ success: false, why: 'not-an-email',
-          error: 'Sign in with the email on your account — or your handle (like halex_kind42).' });
+          /* NO EXAMPLE HANDLE (342): it said "(like halex_kind42)", a first name and a word — and a
+             child's handle is their initials and four digits now, so a child who mistyped was shown a
+             shape that is not theirs. The card shows the real one. */
+          error: 'Sign in with the email on your account — or your handle, as it is on your card.' });
       }
       const hits = t0.rows.filter(x => norm(x.email) === mail);
       if (hits.length > 1) {
@@ -2747,13 +2759,26 @@ function doPost(e) {
       const r = want ? t.rows.find(x => key(x.person_id) === want) : null;
       if (!r) return jsonOut({ error: 'We could not find your account.' });
       const was = S(r.handle);
+      /* A FULL HISTORY STOPS THE PRESS, IT DOES NOT LOSE ITS OLDEST (342, the review). Every old handle
+         still signs its person in and is never given to anybody else, so trimming the cell — it kept the
+         newest ten — retired the handle on a child's slip at the eleventh press and freed it for the next
+         person with that first name. `HANDLE_WAS_MAX` presses is a child who will be told to ask. */
+      const hist = S(r.handle_was).split(',').map(x => x.trim()).filter(Boolean);
+      if (hist.length >= HANDLE_WAS_MAX) {
+        return jsonOut({ error: 'You have had ' + hist.length + ' handles — ask us if you want another. '
+                              + 'Nothing was changed.' });
+      }
       const made = handleMake_(r, r.first_name, was);
       if (!made) return jsonOut({ error: 'No free handle could be found just now. Nothing was changed '
                                        + '— try again.' });
-      /* `handle_was` IS A HISTORY, newest first and capped — see `handleWasWith_`. It was one cell
-         overwritten by each change, which answered "who was @foo" only about the most recent name. */
-      setCells(t, r, { handle: made, handle_was: handleWasWith_(r.handle_was, was),
-                       handle_changed_at: new Date() });
+      /* `handle_was` IS A HISTORY, newest first and kept whole — see `handleWasWith_`. It was one cell
+         overwritten by each change, which answered "who was @foo" only about the most recent name.
+         WRITTEN FIRST, IN ITS OWN WRITE (342, the review): `setCells` writes one run of adjacent columns
+         at a time, so on a tab where `handle_was` is not beside `handle` a failure between the two left
+         a new handle with nothing to say what the old one was — and the old one, on the slip, no longer
+         signing anybody in. This way round a failure leaves an extra history entry and the old handle. */
+      setCells(t, r, { handle_was: handleWasWith_(r.handle_was, was) });
+      setCells(t, r, { handle: made, handle_changed_at: new Date() });
       /* AND EVERY FRIENDS LIST THAT NAMED THE OLD ONE (342) — it was left naming nobody, so a press of
          this took the person off every friend's list without a word. */
       if (was) handleFriendsMove_(t, { [key(was)]: made });
@@ -2819,9 +2844,14 @@ function doPost(e) {
       if (lacking.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
       }
-      if (findPerson(full)) {
-        return jsonOut({ error: 'There is already an account called ' + full + '. If it is your child\'s, '
-                              + 'use "Add your child" to ask them to link it.' });
+      /* NOT "THERE IS ALREADY AN ACCOUNT CALLED …" (342, the review) — that confirmed a guessed whole name
+         to any confirmed parent. `register`'s rule: the same sentence as any refusal, counted, paused. */
+      if (nameClashPaused_()) return jsonOut({ error: NAME_CLASH_PAUSED_SAY });
+      const clashed = findPerson(full);
+      if (clashed) {
+        nameClashNoted_(clashed);
+        return jsonOut({ error: 'We could not make that account. If your child has one already, use "Add your '
+                              + 'child" to ask them to link it — or ask us to help.' });
       }
       /* A DRAFT OF THE ROW ABOUT TO BE WRITTEN, a student with both names — so it is a child's handle,
          their initials and a tail (342), never their first name. */
@@ -4722,8 +4752,11 @@ function doPost(e) {
          waitlist keeps availability, and for the same reason: it is per family and the job is one
          row. A party needs a headcount and a family with three children is three chairs. */
       const kids = S(body.kids);
+      /* EACH NAME BY ITS FIRST WORD ON THE EVENT (342, the review) — every family on it reads the event,
+         and a name typed here is very often a child who is no row the net knows (`typedFirstWords_`). The
+         admin's email below keeps the words as typed: an admin sees everybody's whole name. */
       logEvent({ jobId, actor: personDisplayName(me), role: 'client', action: ACT.REQUEST,
-                 message: 'coming to ' + offer.name + (kids ? ' — bringing: ' + kids : ''),
+                 message: 'coming to ' + offer.name + (kids ? ' — bringing: ' + typedFirstWords_(kids) : ''),
                  requestId: S(body.requestId) });
       clearCache();
 

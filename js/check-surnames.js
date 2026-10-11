@@ -454,6 +454,13 @@ if (own && own.success) {
    ================================================================================================== */
 const GROWN = { 'P-PAR': 'Ashdown', 'P-OTH': 'Brisk', 'P-TYP': 'Lowe', 'P-GUS': 'Hartwell' };
 const growRe = sur => new RegExp('\\b' + sur + '\\b');
+/* TESS TICKS TUTOR AND IS LEFT WAITING (after review, round 1) — a Tutor tick nobody has said yes to is not
+   a public card (`namePrivate_` asks `actingRole_`, not the role cell), so her surname is hunted below while
+   it waits. No fixture had a grown-up in that state, and reading the role cell instead stayed green. */
+const tessTick = as('P-TYP', { action: 'setMyRoles', roles: ['client', 'tutor'] });
+rule(tessTick && tessTick.success && tessTick.tutorPending === true && S(b.row('P-TYP').listed) === 'PENDING',
+  'Tess could not tick Tutor and be left waiting, so a grown-up with a pending tick was NOT asked — ' + JSON.stringify(tessTick));
+b.ev('clearCache(); clearPayloadCache()');
 const said2 = as('P-PAR', { action: 'addComment', postId: 'PO-1', body: 'what a volcano' });
 rule(said2 && said2.success, 'Pip could not comment, so a grown-up\'s comment was not asked — ' + JSON.stringify(said2));
 b.seed('post_reactions', [{ reaction_id: 'R3', post_id: 'PO-1', person_id: 'P-PAR', emoji: '👍', reacted_on: dmy(day(-1)) }]);
@@ -539,6 +546,132 @@ if (pipJob) {
   const decd = b.tabs.events.slice(1).filter(r => S(r[evH.indexOf('action')]) === 'Decline' && S(r[evH.indexOf('target')]) === 'Pip Ashdown');
   rule(dec && dec.success && decd.length, 'a tutor declining "Pip (@pip_kind42)" — the name they were shown — did not reach her seat — ' + JSON.stringify(dec));
 } else rule(false, 'Pip\'s booking is not on the tutor\'s roster, so answering her seat by the name shown was not asked');
+
+/* ==================================================================================================
+   8. AFTER REVIEW, ROUND 1 (docs/history/342, "After review") — the doors section 7 did not walk
+
+   Each was found by a reviewer who changed one line and watched every check stay green — so each is
+   asked here by the reply or the payload it would have changed:
+     · `mailOut_` puts back whoever the request was for after each email (`finally`). Without it a reply
+       built after a notification is built for the email's recipient — an admin who teaches the class,
+       and each parent's `move` reply then names the other parent whole.
+     · an OPEN action's viewer comes from the token, never from `personId` off the request: a stranger
+       claiming the admin's id must get what any stranger gets.
+     · a referral code is cut from the name as OTHERS have it, since a code is handed round.
+     · a festive join's typed list of children reached every signed-out visitor, word for word, in the
+       events of an open job — and the events named every family three lines below the slots that blank
+       them. A typed surname is cut on the way in; the log goes only to the people on the job.
+     · `register` confirmed a guessed whole name to anybody, writing nothing; `makeChild` to any parent.
+   ================================================================================================== */
+let revAsked = 0;
+const revRule = (ok, what) => { revAsked++; return rule(ok, what); };
+
+/* ---- AN OPEN ACTION, SIGNED OUT, CLAIMING TO BE THE ADMIN: the stranger's answer, not the admin's ---- */
+{
+  const jid = tessB && (tessB.jobId || tessB.id);
+  const sent = as('P-TYP', { action: 'sendInvites', jobId: jid, emails: ['stranger@example.org'] });
+  const ih = b.tabs.invites[0];
+  const irow = b.tabs.invites.slice(1).reverse().find(r => S(r[ih.indexOf('to_email')]) === 'stranger@example.org');
+  const itok = irow ? S(irow[ih.indexOf('token')]) : '';
+  revRule(sent && sent.success && itok, 'Tess could not invite a stranger, so an open action\'s viewer was NOT asked — ' + JSON.stringify(sent));
+  if (itok) {
+    const plain = b.post({ action: 'openInvite', token: itok });
+    const forged = b.post({ action: 'openInvite', token: itok, personId: 'P-ADM', name: 'Hal Admin' });
+    revRule(S(plain.from) === 'Tess' && S(forged.from) === 'Tess',
+      'an invitation opened by a stranger names the inviter by more than her first name when the request claims the admin\'s id — the viewer came off the request: '
+      + JSON.stringify([plain.from, forged.from]));
+  }
+}
+
+/* ---- A REFERRAL CODE CARRIES NO SURNAME: a parent's, and a child's ---- */
+{
+  const pipRef = as('P-PAR', { action: 'myReferral' });
+  revRule(pipRef && /^[A-Z]+\d+$/.test(S(pipRef.code)) && !/ASH/.test(S(pipRef.code)),
+    'Pip\'s referral code carries the start of her surname — a code is handed round: ' + JSON.stringify(pipRef && pipRef.code));
+  const kidRef = as('P-KID', { action: 'myReferral' });
+  revRule(kidRef && /^[A-Z]+\d+$/.test(S(kidRef.code)) && !/QUO/.test(S(kidRef.code)),
+    'Wren\'s referral code carries the start of her surname: ' + JSON.stringify(kidRef && kidRef.code));
+}
+
+/* ---- A FESTIVE JOIN: the typed surname cut on the way in, and the log only to the people on the job ---- */
+{
+  b.seed('holidays', [{ holiday_id: 'H1', name: 'Half term', date: dmy(day(7)), active: 'TRUE', venue: 'Library',
+                        price_per_child: 10, event_name: 'Craft morning' }]);
+  b.ev('clearCache(); clearPayloadCache()');
+  const mf = MAIL.length;
+  const join = as('P-PAR', { action: 'joinFestive', holidayId: 'H1', kids: 'Wren ' + SUR + ' and Bo Kettleworth', requestId: 'fest-1' });
+  revRule(join && join.success, 'Pip could not join the festive event, so a typed list of children was NOT asked — ' + JSON.stringify(join));
+  const fj = d => [].concat(d.liveJobs || []).find(j => /^F-/.test(S(j.id || j.jobId)) || /Craft/.test(S(j.subject))) || null;
+  const strangerJob = fj(get(null)), nedJob = fj(get('P-STU')), pipJob = fj(get('P-PAR'));
+  revRule(strangerJob && nedJob && pipJob, 'the festive event is not in every payload, so who it names was NOT asked — '
+    + JSON.stringify([!!strangerJob, !!nedJob, !!pipJob]));
+  if (strangerJob && nedJob && pipJob) {
+    revRule(!(strangerJob.events || []).length && !(nedJob.events || []).length,
+      'an open job\'s events — every family\'s name and what they typed — go to somebody not on it: '
+      + JSON.stringify((strangerJob.events || []).concat(nedJob.events || [])).slice(0, 200));
+    const msg = JSON.stringify(pipJob.events || []);
+    revRule(/bringing: Wren and Bo\b/.test(msg) && !/Kettleworth/.test(msg),
+      'the festive join keeps the typed surname of a child who is no row ("Bo Kettleworth") where the other families read it: ' + msg.slice(0, 200));
+    const stranger = JSON.stringify(get(null));
+    revRule(!/Kettleworth/.test(stranger), 'a typed child\'s surname reached a signed-out visitor');
+  }
+  /* THE ADMIN'S EMAIL KEEPS WHAT WAS TYPED — an admin sees everybody's whole name. */
+  const adm = MAIL.slice(mf).find(m => m.to === 'admin@example.org');
+  revRule(adm && /Kettleworth/.test(S(adm.body)), 'the admin was not told the names as Pip typed them — ' + JSON.stringify(adm && adm.body));
+}
+
+/* ---- THE MAIL'S VIEWER IS PUT BACK: two parents in one open class taught by an admin, each move's reply theirs ---- */
+{
+  const jid = tessB && (tessB.jobId || tessB.id);
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-TUT"); '
+    + 'setCell(t, r, "role", "admin, tutor"); clearCache(); clearPayloadCache(); })()');
+  const m0 = MAIL.length;
+  const req = as('P-PAR', { action: 'move', jobId: jid, role: 'client', move: 'Request', requestId: 'rv-req' });
+  const say = as('P-TYP', { action: 'move', jobId: jid, role: 'client', move: 'Say', text: 'see you there', requestId: 'rv-say' });
+  revRule(req && req.success && say && say.success && MAIL.slice(m0).some(m => m.to === 'tutor@example.org'),
+    'the two parents could not move on the admin-taught class, or nothing mailed its tutor, so a reply built after an email was NOT asked — '
+    + JSON.stringify([req, say]).slice(0, 200));
+  revRule(!/\bLowe\b/.test(JSON.stringify(req)) && /Pip Ashdown/.test(JSON.stringify(req)),
+    'Pip\'s reply, built after the tutor-admin was emailed, names Tess whole or Pip not whole — it was built for the email\'s recipient: '
+    + JSON.stringify(req).slice(0, 240));
+  revRule(!/\bAshdown\b/.test(JSON.stringify(say)) && /Tess Lowe/.test(JSON.stringify(say)),
+    'Tess\'s reply, built after the tutor-admin was emailed, names Pip whole or Tess not whole: ' + JSON.stringify(say).slice(0, 240));
+  b.ev('(function () { const t = read(TAB.people); const r = t.rows.find(x => S(x.person_id) === "P-TUT"); '
+    + 'setCell(t, r, "role", "tutor"); clearCache(); clearPayloadCache(); })()');
+}
+
+/* ---- REGISTER AND MAKE-CHILD DO NOT CONFIRM A GUESSED WHOLE NAME ---- */
+{
+  const peopleNow = () => JSON.stringify(b.tabs.people);
+  const reg = (first, last, email) => b.post({ action: 'register', who: 'parent', first_name: first, last_name: last, email: email, pin: '4826' });
+  /* AN ADDRESS ALREADY ON A ROW: one answer whatever the name, and nothing written. */
+  const p0 = peopleNow();
+  const hit = reg('Wren', SUR, 'pip@example.org'), miss = reg('Wren', 'Quinn', 'pip@example.org');
+  revRule(S(hit.error) && S(hit.error) === S(miss.error) && peopleNow() === p0,
+    'register with an address already on a row answers a guessed real whole name differently from a wrong one — it confirms the surname: '
+    + JSON.stringify([hit.error, miss.error]));
+  /* A FRESH ADDRESS AND A NAME THAT IS AN ACCOUNT: refused, without saying it is the name. */
+  const clash = reg('Pip', 'Ashdown', 'guess1@example.org');
+  revRule(clash.error && !/name|called|Ashdown/i.test(S(clash.error)) && peopleNow() === p0,
+    'register refused a whole name that is an account by saying so: ' + JSON.stringify(clash.error));
+  const pipMade = as('P-PAR', { action: 'makeChild', firstName: 'Ned', lastName: 'Pell', pin: '4826' });
+  revRule(pipMade.error && !/called|Ned Pell/i.test(S(pipMade.error)) && peopleNow() === p0,
+    'make-child refused a whole name that is an account by naming it: ' + JSON.stringify(pipMade.error));
+  /* A TUTOR'S WHOLE NAME IS PUBLIC, so a clash with it is not counted; five clashes with private names pause
+     every new account for the day — a miss as well, so the pause says nothing either. */
+  for (let i = 0; i < 6; i++) reg('Tam', 'Tutor', 'tam' + i + '@example.org');
+  const notYet = reg('Zed', 'Newcomer', 'zed@example.org');
+  revRule(notYet.success, 'clashes with a TUTOR\'s whole name paused new accounts — a public name tells nobody anything: ' + JSON.stringify(notYet));
+  for (let i = 0; i < 4; i++) reg('Ola', 'Brisk', 'g' + i + '@example.org');
+  const p1 = peopleNow();
+  const paused = reg('Yan', 'Freshly', 'yan@example.org');
+  const pausedHit = reg('Ned', 'Pell', 'ned2@example.org');
+  revRule(!paused.success && S(paused.error) === S(pausedHit.error) && peopleNow() === p1,
+    'after five clashes with private whole names new accounts were not paused for every name alike — '
+    + JSON.stringify([paused.error || paused.success, pausedHit.error]));
+  delete b.props.NAME_CLASHES;
+}
+rule(revAsked >= 15, 'only ' + revAsked + ' after-review rules were asked');
 
 console.log('');
 console.log('  ' + asked + ' things asked of the real backend; ' + MAIL.length + ' emails caught; ' + FILES.length + ' backend files read; '
