@@ -17218,7 +17218,7 @@ const pickEvery_ = (w, src, n) => {
   const sp = w.document.getElementById('splash');
   const was = w.Math.random, out = [];
   const reset = () => {
-    sp.className = 'is-tag';
+    sp.className = 'is-still';
     [...sp.querySelectorAll(':scope > [class|="an"]')].forEach(e => e.remove());
     [...w.document.head.querySelectorAll('style[data-anim]')].forEach(e => e.remove());
   };
@@ -17383,7 +17383,8 @@ check('a chapter plays its animation on the Resources column: Pythagoras after G
    owner. Boot 1 is a real load that reads the real books and keeps the copy. Boot 2 is the next visit
    on the same device: its storage carried over, Pythagoras the one the coin can land on, the real
    picker run as index.html runs it. The drawing on the splash is the chapter's drawing; and when the
-   load finishes, it is taken off and the splash goes back to the tag for any Try again. */
+   load finishes, it is taken off and the splash goes back to the still name and the loader for any
+   Try again. */
 check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
   const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
   const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
@@ -17399,14 +17400,15 @@ check('the splash is drawn from the textbooks\' copy: a load keeps it, the next 
   if (idx.ids.join() !== want.join()) bad.push('the first load kept ' + idx.ids.length + ' animations, not the books\' ' + want.length + ' in order');
   const src = pickerSrc_();
   if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — NOT checked']);
-  const inline = ((/var kinds = \[([^\]]*)\]/.exec(src.replace(/\/\*[\s\S]*?\*\//g, '')) || [])[1] || '').match(/'([a-z0-9]+)'/g).map(x => x.slice(1, -1));
+  /* EVERY OTHER DRAWING RETIRED, so the coin can only land on Pythagoras. The books' copy is the whole
+     pool: the inline splashes it was once mixed with are gone (docs/history/322). */
   const two = boot({ serve, before: w2 => {
     Object.keys(kept).forEach(k => w2.localStorage.setItem(k, kept[k]));
-    w2.localStorage.setItem('splashOff', JSON.stringify(inline.concat(idx.ids).filter(k => k !== 'pyth').map(k => 'is-' + k)));
+    w2.localStorage.setItem('splashOff', JSON.stringify(idx.ids.filter(k => k !== 'pyth').map(k => 'is-' + k)));
   } });
   const w = two.w;
   const sp = w.document.getElementById('splash');
-  sp.className = 'is-tag';
+  sp.className = 'is-still';
   w.eval(src);
   const root = sp.querySelector(':scope > .an-pyth');
   if (sp.className !== 'is-an' || !root) return bad.concat(['the next visit drew "' + sp.className + '", not Pythagoras from the kept copy']);
@@ -17427,7 +17429,10 @@ check('the splash is drawn from the textbooks\' copy: a load keeps it, the next 
   w.splashOff_();
   await wait(650);
   if (sp.querySelector(':scope > [class|="an"]')) bad.push('half a second after the splash came off, its drawing is still in it');
-  if (sp.className.split(/\s+/).indexOf('is-tag') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash');
+  /* BACK TO THE STILL NAME AND THE LOADER, which is what a Try again is: a wait. It went back to the tag
+     until the tag was deleted with the other splashes that taught nothing. */
+  if (sp.className.split(/\s+/).indexOf('is-still') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash, not the name and the loader');
+  else if (!sp.querySelector('#splash-still .loading[role="status"]') || !/@family\./.test((sp.querySelector('#splash-still') || {}).textContent || '')) bad.push('after the splash came off, the still one it went back to has no name or no loader in it');
   return bad;
 });
 

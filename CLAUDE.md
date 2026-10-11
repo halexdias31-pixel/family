@@ -84,8 +84,13 @@ almost never writes to it directly.
   `tools/anim_row.py`): for those **the script is the source** — change it and re-run it, and never
   edit the row by hand, because the next run puts back everything the script writes and nothing
   notices but `check-anims.js`. For the other 15 **the row is the source**: edit it in place. Never
-  in `index.html` or `style.css`: those hold only the 13 splashes that teach nothing, and
-  `check-anims.js` fails on a teaching one left there. See docs/history/304.
+  in `index.html` or `style.css`: the loading screen there has no drawing of its own — the 13
+  splashes that taught nothing were deleted on 10 Oct (*"delete all animations for loading which dont
+  come from text books or arnt educational"*). With nothing kept (a first visit), the splash is the
+  name, still, with `loading_()`'s loader under it, written out by hand; `check-loading.js` holds
+  that copy to `loading_()` byte for byte, `check-css.js` keeps an inline splash out (what `#splash`
+  holds is a closed list), and `check-anims.js` fails on a teaching one left there. See
+  docs/history/304, 322.
 - Everything else — people, venues, jobs, pricing, posts, links, laws, landmarks, holidays — is a
   tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it and the
   file it lives in in `WHERE`. **All three have to name it.** `TAB` without `WHERE` is a tab nothing

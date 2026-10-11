@@ -5368,8 +5368,8 @@ function boxerSplit_(parts) {
    row is a woman when the other corner is one: a bout is fought between two women or two men.
 
    IT NO LONGER MIRRORS THE SPLASH. The figure began as `tools/boxing.py`'s guard pose, painted by
-   the loading screen's `.bx-*` rules; that splash teaches nothing and is being retired, and the card
-   must not lose its fighter with it. So the ring, the figure and every colour they use are the
+   the loading screen's `.bx-*` rules; that splash taught nothing and went on 10 Oct (docs/history/322),
+   and the card did not lose its fighter with it — the last `.bx-*` rules went with the merge. So the ring, the figure and every colour they use are the
    card's own — `bf-*` here, and under `.boxer-ring` in style.css — and nothing the loading screen
    does can change them. His initials over the ropes still say whose page it is. */
 

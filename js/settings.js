@@ -155,10 +155,11 @@ function settingsInto_(d, extra) {
   }
 
   /* --- which splashes are retired ---------------------------------------------------------------
-     THE ONES THAT ARE OFF, not the ones that are on — so a splash written in `index.html` and never
-     entered here still appears. A list of exceptions, not a whitelist somebody has to keep in step
-     with the markup. That distinction is the backend's and it is the reason this key is shaped the
-     way it is. */
+     THE ONES THAT ARE OFF, not the ones that are on — so a drawing added to a book (a row of
+     data/textbooks.json) and never entered here still appears. A list of exceptions, not a whitelist
+     somebody has to keep in step with the books. That distinction is the backend's and it is the
+     reason this key is shaped the way it is. Every row here is a teaching animation now: the splashes
+     that were written in `index.html` and taught nothing are gone (docs/history/322). */
   const splashes = extra['settings/splashes'];
   if (splashes && splashes.length) {
     d.splashOff = splashes
