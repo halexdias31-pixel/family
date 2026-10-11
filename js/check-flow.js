@@ -13629,9 +13629,11 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none say
   if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('a cell of the card\'s week is a control, so it can be pressed and is counted as a tap target');
   if (!/Monday 16:00/.test(((box.querySelector('.prof-week') || {}).getAttribute || (() => ''))
       .call(box.querySelector('.prof-week'), 'aria-label') || '')) bad.push('the card\'s week does not say its hours to a screen reader');
+  /* ONLY THE DAYS THEY WORK — the owner, 10 Oct: *"no need to display monday if they dont have any
+     hours on monday."* Tuesday to Friday were four thin `is-shut` rows; they are not drawn now. */
   const rows = [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')];
-  const shut = rows.filter(r => r.classList.contains('is-shut')).length;
-  if (rows.length !== 7 || shut !== 4) bad.push(`${rows.length} days drawn with ${shut} collapsed, wanted 7 with 4 (Tue to Fri) collapsed`);
+  const names = rows.map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
+  if (names !== 'Mon Sat Sun' || box.querySelector('.prof-week .is-shut')) bad.push(`the card's week draws [${names}]${box.querySelector('.prof-week .is-shut') ? ' with a collapsed day' : ''}, wanted [Mon Sat Sun] and nothing collapsed`);
   const none = d.createElement('div');
   none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su18: '' }) }) }) || '');
   if (none.querySelector('.prof-week')) bad.push('a tutor with no hours ticked is drawn with a week anyway');
@@ -13639,6 +13641,165 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none say
      nothing at all, which left the greyed name in the booking form unexplained. */
   if (!/hasn.t set their hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
     bad.push('a tutor with no hours ticked does not say "hasn\'t set their hours yet" on their card');
+  }
+  return bad;
+});
+
+/* ---------- A TUTOR'S WEEK IS THE DAYS THEY WORK — ON THEIR CARD ------------------------------------
+   THE OWNER, 10 Oct: *"availability of tutors should just show the days they have an availibility up.
+   no need to display monday if they dont have any hours on monday."* Asked of `findCard` over the
+   shape `doGet` sends (70 codes, 'TRUE' or ''). Three tutors: Tuesday and Thursday hours draw exactly
+   those two rows, in the week's order, and nothing collapsed; a Thursday whose one ticked hour is
+   already taught still counts as a day they work; and a tutor whose only tick is 19:00 — outside the
+   bookable span, which `AVAIL_HOURS` used to reach — gets the "no free hours" sentence and no week,
+   rather than a caption over a header row with no day under it. */
+check('a tutor\'s card draws only the days they work, and ticks outside the span say no free hours', async () => {
+  const { w } = boot();
+  const d = w.document;
+  await wait(300);
+  if (typeof w.findCard !== 'function') return ['findCard is not reachable, so the card\'s days were NOT checked — not a pass'];
+  const blank = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) blank[p + String(h).padStart(2, '0')] = ''; });
+  const card = (avail, busy) => {
+    const box = d.createElement('div');
+    box.innerHTML = String(w.findCard({ kind: 'tutor', row: { title: 'Tia Tutor', handle: 'tia', rate: 30, teaches: [],
+      listed: true, personId: 'P-t', avail: Object.assign({}, blank, avail), busy: busy || {} } }) || '');
+    return box;
+  };
+  const days = box => [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')]
+    .map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
+  const bad = [];
+  const two = card({ tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' });
+  if (days(two) !== 'Tue Thu') bad.push('a tutor with Tuesday and Thursday hours draws [' + days(two) + '], wanted exactly [Tue Thu]');
+  if (two.querySelector('.prof-week .is-shut')) bad.push('a day nobody works is still drawn on the card as a collapsed row');
+  if (!/^Available Tuesday 10:00, 11:00; Thursday 16:00$/.test((two.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '')) {
+    bad.push('the card\'s week reads "' + ((two.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label')) + '" to a screen reader');
+  }
+  /* A DAY WHOSE ONLY TICKED HOUR IS ALREADY TAUGHT IS STILL A DAY THEY WORK — greyed, not gone. */
+  const taught = card({ tu10: 'TRUE', th16: 'TRUE' }, { th16: 'Maths' });
+  if (days(taught) !== 'Tue Thu') bad.push('a Thursday whose ticked hour is already taught is drawn as [' + days(taught) + '], wanted [Tue Thu]');
+  /* ---------- AND THAT DAY IS NOT A ROW OF NOTHING -------------------------------------------------
+     FOUND IN REVIEW: the taught hour was `hr shut`, the same dark cell as an hour never ticked, so
+     the Thursday kept for it was ten identical empty cells — the row the owner asked to drop — and
+     the difference was in a `title` no phone shows. Asked here of the markup and the stylesheet's
+     rule; `check/states.js` ("a tutor's hours on their card") asks a real browser that the two
+     cells COMPUTE differently, which jsdom cannot be trusted to say (it applies rules in sheet
+     order, not by weight, and drops values it cannot parse). */
+  const th16 = taught.querySelector('.prof-week .hr[data-code="th16"]');
+  const th09 = taught.querySelector('.prof-week .hr[data-code="th09"]');
+  if (!th16 || !th16.classList.contains('is-busy') || !th16.classList.contains('shut') || th16.classList.contains('on')) {
+    bad.push('the taught Thursday 16:00 is not drawn as taught (`hr shut is-busy`): ' + (th16 ? th16.className : 'no cell'));
+  }
+  if (!th09 || th09.classList.contains('is-busy')) bad.push('an hour never ticked is marked taught too, so the two still look the same: ' + (th09 ? th09.className : 'no cell'));
+  const key = taught.querySelector('.prof-week .prof-key');
+  if (!key || !/already teaching/i.test(key.textContent) || !key.querySelector('.hr.is-busy')) {
+    bad.push('a week with a taught hour has no key saying what the taught cell means' + (key ? ': "' + key.textContent.trim() + '"' : ''));
+  }
+  if (two.querySelector('.prof-key')) bad.push('a week with nothing taught still draws the "already teaching" key');
+  const taughtSaid = (taught.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '';
+  if (!/^Available Tuesday 10:00\. Already teaching Thursday 16:00$/.test(taughtSaid)) {
+    bad.push('a week with Thursday 16:00 taught reads "' + taughtSaid + '" to a screen reader — the day drawn for that hour is silent');
+  }
+  /* THE RULE THAT MAKES IT LOOK DIFFERENT, read out of style.css with the comments taken off. It must
+     undo `.hr.shut`'s fade and paint something of its own; a rule that only restated the cursor would
+     pass the markup half above and look exactly as it did. */
+  const sheet = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const busyRule = (sheet.match(/(^|\})\s*([^{}]*\.prof-week\s+\.hr\.is-busy(?![\w-])[^{}]*)\{([^}]*)\}/) || [])[3] || '';
+  if (!busyRule) bad.push('style.css has no `.prof-week .hr.is-busy` rule, so a taught hour is the same cell as one never ticked');
+  else if (!/opacity:\s*1\b/.test(busyRule) || !/background/.test(busyRule)) {
+    bad.push('`.prof-week .hr.is-busy` does not undo the shut fade and paint its own face: {' + busyRule.trim().replace(/\s+/g, ' ') + '}');
+  }
+  /* TICKED, BUT ONLY AT 19:00 — a tick from when the Settings grid ran to seven. */
+  const late = card({ tu19: 'TRUE' });
+  if (late.querySelector('.prof-week')) bad.push('a tutor ticked only at 19:00, outside the bookable span, is drawn with a week (' + days(late) + ')');
+  if (!/No free hours/.test((late.querySelector('.prof-nofree') || {}).textContent || '')) bad.push('a tutor ticked only at 19:00 does not say "No free hours" on their card');
+  if (late.querySelector('.prof-nohours')) bad.push('a tutor ticked only at 19:00 is told they "haven\'t set their hours", which is untrue');
+  return bad;
+});
+
+/* ---------- A TUTOR'S WEEK IS THE DAYS THEY WORK — ON THE BOOKING FORM ---------------------------------
+   THE SAME SENTENCE, ASKED OF THE PAPER AS DRAWN (`bookBreakdown`). Nobody chosen: all seven days —
+   nobody's week is being shown. Tia chosen (Tuesday and Thursday): exactly those two day rows, and no
+   `Monday —` invented by the spine for the days the week left out. Her Thursday fully taught: it stays,
+   collapsed, because a day she works with nothing free is a different fact from a day she does not
+   work. And a Monday hour ticked BEFORE choosing her is the form's old rule for an hour that stops
+   being bookable: kept, its day still drawn, the cell lit and greyed, and still counted. */
+check('the booking week shows all seven days with no tutor, and only the chosen tutor\'s days once one is named', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.paper || typeof w.slotGrid !== 'function') return ['the paper / slotGrid are not reachable, so the booking week was NOT checked — not a pass'];
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const D = t.DATA();
+  const blank = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) blank[p + String(h).padStart(2, '0')] = ''; });
+  const tia = { title: 'Tia Tutor', rate: 14, teaches: ['Maths (GCSE)'], listed: true,
+                avail: Object.assign({}, blank, { tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' }), busy: {} };
+  D.tutors = [tia];
+  const B = t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = ((t.STEPS.find(s => s.id === 'how') || { options: () => [] }).options().find(k => !/wait/i.test(k))) || '';
+  const doc = () => new w.DOMParser().parseFromString('<div>' + String(t.paper() || '') + '</div>', 'text/html');
+  const week = () => [...doc().querySelectorAll('.bk-row.bk-wk')].map(r => ({
+    day: ((r.querySelector('.bk-k') || {}).textContent || '').trim(), shut: r.classList.contains('is-shut'), row: r }));
+  const named = () => week().map(x => x.day).join(' ');
+  const dashed = () => [...doc().querySelectorAll('.bk-row.is-blank .bk-k')].map(k => k.textContent.trim())
+    .filter(k => t.days().indexOf(k) !== -1);
+  const bad = [];
+  const seven = t.days().join(' ');
+  if (named() !== seven) bad.push('with no tutor chosen the week draws [' + named() + '], wanted all seven');
+  B.tutor = 'No preference';
+  if (named() !== seven) bad.push('with No preference the week draws [' + named() + '], wanted all seven');
+  B.tutor = 'Tia Tutor';
+  if (named() !== 'Tuesday Thursday') bad.push('with Tia (Tuesday and Thursday) chosen the week draws [' + named() + '], wanted [Tuesday Thursday]');
+  if (dashed().length) bad.push('the spine put back the days the week left out, as dashes: [' + dashed().join(' ') + ']');
+  if (week().some(x => x.shut)) bad.push('a day Tia works with hours free is drawn collapsed');
+  /* A DAY SHE WORKS WITH EVERY HOUR TAKEN STAYS, collapsed. */
+  tia.busy = { th16: 'Maths' };
+  const th = week().find(x => x.day === 'Thursday');
+  if (!th) bad.push('Tia\'s Thursday, fully taught, left the week — a day she works with nothing free is not a day she does not work');
+  else if (!th.shut) bad.push('Tia\'s Thursday, fully taught, is drawn as a full row with nothing on it to press');
+  tia.busy = {};
+  /* ---------- AND A DAY SHE WORKS AT A VENUE SHUT THAT DAY STAYS TOO --------------------------------
+     THE RULE HAS TWO HALVES — "every hour already taken, OR THE VENUE IS SHUT" — and this journey
+     proved only the first: it ran with no venue chosen, so a `works` test that also asked the venue
+     (`tAvail[h.code] && (!haveV || vAvail[h.code])`) stayed green while dropping the Thursday a family
+     might move to another hall for. Found in review. A hall of our own, open every hour of every day
+     but Thursday, with a rate so it is not read as the client's house (`isHome`). */
+  const hall = { title: 'Thursday Shut Hall', bestRate: 12, minCapacity: 1, maxCapacity: 8, minHours: 1, maxHours: 4,
+                 avail: Object.assign({}, blank) };
+  ['m', 'tu', 'w', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) hall.avail[p + String(h).padStart(2, '0')] = 'TRUE'; });
+  const venuesWas = D.venues;
+  D.venues = (venuesWas || []).concat([hall]);
+  B.loc = hall.title;
+  const thV = week().find(x => x.day === 'Thursday');
+  const tuV = week().find(x => x.day === 'Tuesday');
+  if (named() !== 'Tuesday Thursday') bad.push('with Tia chosen at a hall shut on Thursdays the week draws [' + named() + '], wanted [Tuesday Thursday] — a worked day the venue shuts is still a day she works');
+  if (thV && !thV.shut) bad.push('Tia\'s Thursday at a hall shut on Thursdays is drawn as a full row with nothing on it to press');
+  if (!tuV || tuV.shut) bad.push('Tia\'s Tuesday at a hall open on Tuesdays is ' + (tuV ? 'collapsed' : 'missing') + ' — the venue test is not reading the hall');
+  B.loc = '';
+  D.venues = venuesWas;
+  /* A TICK MADE BEFORE SHE WAS CHOSEN, on a day she does not work: kept, drawn, greyed, counted. */
+  B.tutor = 'No preference';
+  B.slots = ['m10'];
+  B.tutor = 'Tia Tutor';
+  const mon = week().find(x => x.day === 'Monday');
+  if (named() !== 'Monday Tuesday Thursday') bad.push('a Monday tick made before choosing Tia leaves the week as [' + named() + '], wanted [Monday Tuesday Thursday] — the tick would be priced and not seen');
+  const cell = mon && mon.row.querySelector('[data-code="m10"]');
+  if (mon && (!cell || !cell.classList.contains('on') || !cell.classList.contains('shut') || !cell.hasAttribute('disabled'))) {
+    bad.push('the kept Monday 10:00 tick is not drawn lit and greyed: ' + (cell ? cell.className : 'no cell'));
+  }
+  if ((B.slots || []).join(',') !== 'm10') bad.push('choosing a tutor changed the ticked hours to [' + (B.slots || []).join(',') + ']');
+  /* A NAMED TUTOR WITH NO DAY TO DRAW KEEPS ALL SEVEN, so the week can still say why it is shut —
+     `weekRows_` puts the sentence under the last row, and an empty week has none. */
+  B.slots = [];
+  D.tutors = [tia, { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, blank) }];
+  B.tutor = 'Nia Nohours';
+  /* THE WEEK'S OWN SENTENCE — `weekRows_` writes it `warn: false` — not the Tutor row's refusal
+     (`.bk-say.is-warn`) nor Nia's option, which both carry the same words. */
+  const why = [...doc().querySelectorAll('.bk-say:not(.is-warn)')].map(p => p.textContent).join(' ');
+  if (named() !== seven || !/hasn.t set their hours yet/.test(why)) {
+    bad.push('a named tutor with no hours draws [' + named() + ']' + (/hasn.t set their hours yet/.test(why) ? '' : ' and loses the sentence under the week saying why') + ', wanted all seven, greyed, with the reason');
   }
   return bad;
 });

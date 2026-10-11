@@ -324,5 +324,6 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [A Progress column at the end of the row, waiting to be built — and columns.json is the list of columns, not only their order](320-a-progress-column-waiting-to-be-built.md)
 - [The reels' Sound and Imposter's Read aloud are tiles: a speaker that says the state it is in](323-the-sound-is-a-tile.md)
 - [Ten pictures and your own figure, chosen like an Xbox gamerpic: one token in the `photo` cell, one judge on the server, one function that draws every face — and a dressed child's photograph still off the feed](324-ten-pictures-and-your-figure-as-your-face.md)
+- [A tutor's week is the days they work: the card leaves out a day with nothing ticked, the booking form does the same once a tutor is named, a day holding a tick stays, and a taught hour is hatched so the day kept for it is not a row of nothing](325-a-tutor-s-week-is-the-days-they-work.md)
 - [Films leave Find: no kind, no card, no answer and nothing in its search — Games → Videos is where a film is found; and a tutor's extra photographs stay squares, nothing to press](326-films-leave-find-and-tutor-photos-stay-squares.md)
 - [Rooms inside a venue: a blank cell is the venue's, an explicit 0 stays 0, and every reader that prices or caps a room asks one function](336-rooms-inside-venues.md)
