@@ -1,5 +1,7 @@
 ## Everyone chooses what they are emailed: a Notifications card on Settings, and every sender asks
 
+**Since 11 Oct the held card is the same "Manage your child" card saying so**, one page in every state, with the children listed and no New PIN while the address waits ([339](339-your-card-holds-what-is-about-you.md)).
+
 **The owner, 9 Oct:** *"Also let parents select their communication preferences like notification. And
 kids and tutors too I guess"*
 

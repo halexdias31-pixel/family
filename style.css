@@ -10661,6 +10661,15 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   padding: .9rem;
   margin-bottom: var(--gap);
 }
+/* ---------- THE LIBRARY CARDS' WIDGET GIVES ITS FACES THE FRAME'S SIDES (docs/history/339) ----------------------
+   *"move library card widget to the tools column."* On Settings a face had the pane's whole width; in a widget it
+   sits inside the widget's own body as well, and that `.9rem` a side is what a bank card's shape could not spare at
+   320: a face's height has a floor (its two 44px boxes, the caption and the bars), and below about 223px wide the
+   floor wins over `aspect-ratio`, so the 85.6:54 card came out 214 by 138 — measured, 3% off the shape `check/states.js`
+   holds it to. The one widget whose height follows its width, so the one whose body is narrower at the sides;
+   the star, the title, the faces and the tick all keep one left edge. Three classes, so it wins on count and not
+   on the line below it. */
+.card.is-widget:has(.lib-shelf) { padding-left: .45rem; padding-right: .45rem; }
 .card.is-widget:last-child { margin-bottom: 0; }
 
 /* ---------- ONE REGION INSIDE A WIDGET GIVES UP ITS HEIGHT FIRST ---------------------------------

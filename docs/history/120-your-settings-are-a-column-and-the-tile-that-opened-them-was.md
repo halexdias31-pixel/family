@@ -1,5 +1,7 @@
 ## Your settings are a column, and the tile that opened them was drawn on no screen
 
+**Since 11 Oct Settings holds only what is not about your card** — your name, picture, handle and figure are edited on your own card (Edit on the You column), the library cards are a widget on Tools, and the two child cards are one, "Manage your child" ([339](339-your-card-holds-what-is-about-you.md)).
+
 **Asked for as "account setting should appear in a new column by itself. For now make that new
 column at the end."** What was there was one sheet — `openSheet('Your details', …)` — holding the
 profile form, a week of seventy-seven tickboxes, the username and the PIN.

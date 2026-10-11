@@ -234,6 +234,8 @@ const VISITORS = [
                        profile: { first_name: 'Test', last_name: 'Admin',
                                   borough: 'Sutton', city: 'London',
                                   /* ---------- THREE LIBRARIES, BECAUSE THE SHELF DRAWS THREE ------
+                                     (The shelf is the library cards widget on Tools since
+                                     docs/history/339, drawn from this profile.)
                                      THE SEED HELD `library_card`/`library_pin`, which are the
                                      names from before the nine boxes became one cell — so it
                                      would have measured an EMPTY shelf, which is the fault this
@@ -325,7 +327,10 @@ const ACCEPTED_TAP = [
   + 'element any more \u2014 a day is a row of the card. A sentence that outlived what it '
   + 'described, which is the shape this repository records under `.favwrap.is-fav`.' },
   { cls: /^av-(sw|opt)\b/, why:
-    'THE WARDROBE IS ONE CARD NOW, AND ITS CONTROLS ARE SIZED SO IT IS. Asked for as *"the avatar '
+    'THE WARDROBE IS ONE SECTION OF YOUR OWN CARD\'S EDIT NOW (docs/history/339 — *"your figure should also be in your '
+  + 'profile card editing"*), drawn at full size in a form that scrolls, so the sizes below are what keep it one block '
+  + 'beside its label column, not what keeps it inside a pane. It was the last card of Settings, ONE CARD, AND ITS CONTROLS '
+  + 'WERE SIZED SO IT WAS. Asked for as *"the avatar '
   + 'bit is split into like 4 widgets. should just be 1. make things smaller to fit on a screen if '
   + 'need be."* It was four pages — Colours, then the six slots two at a time — because at 44px '
   + 'every swatch and every drawing-with-its-name the whole wardrobe was 1517px against a 534px pane '

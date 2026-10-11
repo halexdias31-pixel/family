@@ -2043,16 +2043,37 @@ for (const who of VISITORS) {
            under the sheet's BODY rather than its backdrop. So the select is the favourite colour when
            the backdrop is over it, and otherwise the first select on the page in front that the
            backdrop does cover — and none at all is a failure to reach, not a pass. */
-        const spot = await tp.evaluate(f => {
+        const under = f => tp.evaluate(f => {
           const back = el => !!el && el.id === 'sheet-back';
-          if (back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
+          if (f && back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
           for (const s of document.querySelectorAll('#s-settings .page.on select')) {
             const r = s.getBoundingClientRect();
             const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
             if (back(document.elementFromPoint(x, y))) return { x, y, name: s.getAttribute('data-me') || s.name || 'a select' };
           }
           return null;
-        }, fav);
+        }, f);
+        let spot = await under(fav);
+        /* ---------- AND IF THIS PAGE'S SELECTS ARE ALL UNDER THE SHEET'S BODY, THE NEXT PAGE THAT HAS ONE ----------
+           THE SHEET IS A CENTRED DIALOG, so which selects it leaves to the backdrop depends on how tall the card
+           in front is. On 11 Oct the name went from About you to your own card's Edit (docs/history/339), the
+           card came up two rows shorter, and all three of its selects sat under the sheet's body at 390x844 — the
+           question was not reached, though nothing about a backdrop had changed. So the other Settings pages that
+           hold a select are asked in turn, the sheet opened again on each, until one leaves a select to the
+           backdrop; none on any page is still a failure to reach. */
+        if (!spot) {
+          const others = await tp.evaluate(() => [...document.querySelectorAll('#s-settings > .page')]
+            .map((p, i) => (p.querySelector('select') && !p.classList.contains('on') ? i : -1)).filter(i => i >= 0));
+          for (const i of others) {
+            await reset();
+            await tp.evaluate(i => goPage('settings', typeof logIndex_ === 'function' ? logIndex_('settings', i) : i, true), i);
+            await tp.waitForTimeout(900);
+            await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));
+            await tp.waitForTimeout(700);
+            spot = await under(null);
+            if (spot) break;
+          }
+        }
         if (!spot) {
           want('settings · a select under a sheet\'s backdrop', false, 'every select on the page in front is under the sheet itself',
                'one select the backdrop covers, to tap');

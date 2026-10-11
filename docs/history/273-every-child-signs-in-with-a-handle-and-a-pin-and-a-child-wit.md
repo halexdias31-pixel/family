@@ -1,5 +1,7 @@
 ## Every child signs in with a handle and a PIN — and a child with no email can get an account at all
 
+**Since 11 Oct making a child's account and adding a child are one card, "Manage your child"**, with the children already linked listed on it and New PIN beside each ([339](339-your-card-holds-what-is-about-you.md)).
+
 The owner, 5 October: *"audit the registration process and so on so all kids can login easily with
 their handle and pin."*
 
