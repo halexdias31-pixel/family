@@ -190,7 +190,38 @@ Every card after Your roles is still appended, for that reason.
   every select on the first is under the sheet's body — with the name gone, About you came up two rows shorter and
   all three of its selects sat under the centred sheet at 390x844, so the question was not reached.
 
-MUTATIONS_AND_RUNS
+**Proved by mutation, each red on its own, the real files green after each** (`git checkout` of the file, the
+journeys run again):
+
+- **Edit only for tutors again** (`cardMayEdit_` wanting a tutor row on your own card) — three journeys: a parent
+  and a student offered no Edit, Pat signed in on Ada's phone offered none.
+- **Randomise left on Settings** (the handle section drawn on Signing in as well) — "Settings holds only…" for all
+  four roles and the PAGE.settings journey; and `check/ui.js --screen=account --width=390`: *your handle, on your
+  own card* NOT measured.
+- **The wardrobe page left in Settings** — "Settings holds only…" (a parent's pages gain "Your figure") and the
+  PAGE.settings journey.
+- **The library cards still in Settings** (no `notLibrary_`) — four journeys: every role's Settings, the note box,
+  the Tools journey and the PAGE.settings journey.
+- **The two child cards back** — the make-a-child journey, Manage your child, the PAGE.settings journey.
+- **The library widget shown to everybody** (no `signedIn`) — the Tools journey: a visitor signed out is shown it.
+- And two more: **no hold on Tools** (`settingsKeep_` not answering for `tools`) — the Tools journey, typing thrown
+  away by a repaint and by a restart; **`notLibrary_` keeping the library fields** — `check-profile.js`, every role's
+  library cards drawn in two places.
+
+**Run, on the final tree:** `check.js`, `check-const`, `check-css`, `check-doors`, `check-loading`, `check-drafts`,
+`check-profile` (44 card rules), `check-signin`, `check-handles`, `check-payload`, `check-post`, `check-library`,
+`check-settings`, `check-widgets`, `check-strings` — green; `check-dead` reports the same eight front-end and five
+backend names it did on the base commit and nothing new; `check-scope` is red on the base commit and here alike, on
+`states.real.js`, a file this change does not touch. **All 328 `check-flow` journeys** in four `FLOW_PART`s.
+`check/ui.js --screen=account`, `--screen=settings` and `--screen=tools`: nothing new (the library cards' and Manage
+your child's zoom at 320 print as known). `check/press.js --screen=account`, `settings` and `tools`: green — the
+first tools run failed four swipes on stuff, games and biz and one venues tap at a load average of 9, which passed
+run again alone; and before the press fix above, all three failed only on the backdrop select. `check/cascade.js`
+and `check/swipe.js`: green.
+
+**Looked at**, at 320x568, 390x844 and 1280x800: each role's own card at rest and in Edit (the figure and the
+handle sections scrolled to; every section of a tutor's at 390), the library cards on Tools for each role, Manage
+your child with two children, with none and held, and every role's Settings.
 
 ### Not done, and worth knowing
 
