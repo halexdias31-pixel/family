@@ -1743,8 +1743,14 @@ function inspect(opts) {
             }
           }, String(state.expect));
           if (!got) {
+            /* AND WHY, WHEN THE STATE CAN SAY. A state that measures something over time inside the
+               page — a tap and the frames after it — knows what it saw, and "shows no …" alone sends
+               whoever reads this to a screenshot that cannot show a fault three frames long. */
+            const why = state.why ? await page.evaluate(src => {
+              try { return String((0, eval)('(' + src + ')')() || ''); } catch (e) { return ''; }
+            }, String(state.why)) : '';
             console.warn(`  ! "${label}" at ${width}px was entered and shows no ${state.wants} — `
-                       + `that state was NOT measured.`);
+                       + `that state was NOT measured.` + (why ? `\n      ${why}` : ''));
             failures++;
             continue;
           }

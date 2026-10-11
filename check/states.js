@@ -6530,6 +6530,239 @@ const STATES = {
         if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
         repaint(true);
       } },
+    /* ---------- A TAP ON A FACE, AND THE CARD IT IS ON DOES NOT MOVE ---------------------------------
+       THE OWNER, 10 Oct: *"The post section is a bit buggy. When I click a reaction it bugs out a bit.
+       On only some of them."* Every state above draws the row and looks at it; none of them pressed it,
+       so none could see what a press did to the card around it. A face called `repaint()`, which
+       rebuilt the whole column — so the post's picture was a new `<img>` with no pixels and no size,
+       held at the 4:5 stand-in until it was read again (`.page .post-pic { aspect-ratio: auto 4 / 5 }`),
+       and the card changed height and zoom under the finger, then changed back (docs/history/335).
+       THIS LAB STANDS IN FOR THE PHONE THAT CANNOT HAND THE PICTURE STRAIGHT BACK: `page.route` turns
+       the browser's cache off, so a rebuilt picture is fetched again here every time.
+
+       A SINGLE SQUARE PHOTOGRAPH, because that is a post the fault reached and the fixture's PO1 is a
+       grid, whose cells are fixed squares and only blinked. Square is not 4:5, so a rebuilt picture
+       is a taller card for as long as it waits. Signed in only: signed out, a face goes to sign in.
+
+       WHAT IS HELD, from the frame before the tap, in the tap's own task and on every frame for half a
+       second after it: the same `<article>`, the same pane, the same `<img>`, and the card's height,
+       zoom and top and the picture's height to within a pixel. Measured inside the page because the
+       fault lasts a few frames and `check/ui.js` looks once; the result is read by `expect`, and `why`
+       says what moved. A TOKEN, so a `leave` that comes first (cascade.js does not wait for `expect`)
+       stops the tap rather than letting it land on the post `leave` just put back. */
+    { name: 'reactions a tap keeps the card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to press a face on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        window.__RX_MEDIA = JSON.stringify({ image: p.image, media: p.media });
+        p.image = 'data/reels/archetest.jpg'; p.media = ['data/reels/archetest.jpg'];
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
+                        total: 4, yours: '', by: [{ name: 'Ada Tutor', emoji: '👍' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const me = { done: false, seen: [], tapped: false };
+        window.__RX_TAP = me;
+        const card = () => document.querySelector('#s-feed [data-post="PO1"]');
+        const look = () => {
+          const c = card(), img = c && c.querySelector('img.post-pic');
+          return { c, pane: c && c.closest('.pane'), img, zoom: c ? c.style.zoom || '1' : '',
+                   h: c ? c.getBoundingClientRect().height : 0, top: c ? c.getBoundingClientRect().top : 0,
+                   ih: img ? img.getBoundingClientRect().height : 0 };
+        };
+        const t0 = performance.now();
+        const ready = () => {
+          if (window.__RX_TAP !== me) return;
+          const c = card(), img = c && c.querySelector('img.post-pic');
+          if (!img || !img.complete || !img.naturalWidth) {
+            if (performance.now() - t0 < 1500) { setTimeout(ready, 40); return; }
+            me.seen.push('the square photograph never arrived, so nothing was pressed'); me.done = true; return;
+          }
+          ts = performance.now(); settle();
+        };
+        /* AND THE CARD STILL BEFORE THE TAP. `repaint(true)` and `goPage` above leave the column gliding
+           onto its line for a few hundred milliseconds at 768 and wider — measured with the tap taken
+           out, the card's top went 58 → 103.5 at 1920 with nothing pressed — and a tap in the middle
+           of that would charge the glide to the tap. So five frames running with the same top and
+           height first; if the column never stops within 1.2s the tap goes ahead and the top is not
+           compared, rather than failing on a movement that is not the tap's. Every wait here is
+           bounded to fit inside the 3s `check/ui.js` and `check/press.js` give `expect`. */
+        let last = '', still = 0, ts = 0;
+        const settle = () => {
+          if (window.__RX_TAP !== me) return;
+          const r = card() ? card().getBoundingClientRect() : { top: 0, height: 0 };
+          const k = Math.round(r.top * 2) + ',' + Math.round(r.height * 2);
+          still = k === last ? still + 1 : 0; last = k;
+          if (still >= 5) { tap(true); return; }
+          if (performance.now() - ts > 1200) { tap(false); return; }
+          requestAnimationFrame(settle);
+        };
+        const tap = settled => {
+          {
+            const was = look();
+            me.settled = settled;
+            const face = was.c.querySelector('.react[data-emoji="😂"]');
+            if (!face) { me.seen.push('no 😂 on the post to press'); me.done = true; return; }
+            const say = (when, what) => { const s = when + ': ' + what; if (me.seen.indexOf(s) < 0 && me.seen.length < 12) me.seen.push(s); };
+            const check = when => {
+              const now = look();
+              if (now.c !== was.c) say(when, 'the post is a new <article>');
+              else if (now.pane !== was.pane) say(when, 'the pane is a new element');
+              if (now.img !== was.img) say(when, 'the picture is a new <img>');
+              if (Math.abs(now.h - was.h) > 1) say(when, `the card is ${now.h.toFixed(1)}px tall, was ${was.h.toFixed(1)}`);
+              if (now.zoom !== was.zoom) say(when, `the card is drawn at zoom ${now.zoom}, was ${was.zoom}`);
+              if (Math.abs(now.ih - was.ih) > 1) say(when, `the picture is ${now.ih.toFixed(1)}px tall, was ${was.ih.toFixed(1)}`);
+              if (settled && Math.abs(now.top - was.top) > 1) say(when, `the card's top is at ${now.top.toFixed(1)}, was ${was.top.toFixed(1)}`);
+            };
+            face.click();                 // the app's own one click handler, as a finger's tap reaches it
+            me.tapped = true;
+            check('in the tap');
+            const t1 = performance.now();
+            const frame = () => {
+              if (window.__RX_TAP !== me) return;
+              check('a frame later');
+              if (performance.now() - t1 < 500) requestAnimationFrame(frame);
+              else me.done = true;
+            };
+            requestAnimationFrame(frame);
+          }
+        };
+        ready();
+      },
+      expect: () => {
+        const t = window.__RX_TAP;
+        const el = document.querySelector('#s-feed [data-post="PO1"]');
+        const mine = el && el.querySelector('.react.mine');
+        return !!t && t.done && t.tapped && !t.seen.length && !!mine && mine.dataset.emoji === '😂';
+      },
+      why: () => {
+        const t = window.__RX_TAP;
+        return !t ? 'the tap never started' : !t.done ? 'the half second after the tap never finished'
+          : t.seen.join('; ') || 'nothing moved, and 😂 is not yours';
+      },
+      wants: 'a tap on 😂 landing on a square photograph\'s post with the card, its pane and its picture the same elements, at the same height, zoom and top',
+      leave: () => {
+        window.__RX_TAP = null;
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        if (p && window.__RX_MEDIA) Object.assign(p, JSON.parse(window.__RX_MEDIA));
+        /* AND THE HOLD THE TAP TOOK IS LET GO. A press on the card in front holds its top where it is
+           (`HOLD_AT`, shell.js) so a card that changes under a finger grows downward — right for a
+           person, and wrong here, where the lab is swapping the post's square photograph back for
+           the fixture's grid, 90px taller at 1920. Held, the grid hung 43.8px below the middle and
+           the columns-in-line rule named it after every screen had been visited. Nobody is using
+           the card once the state is over, which is what arriving anywhere else would say too. */
+        HOLD_AT = null;
+        repaint(true);
+      } },
+    /* ---------- A POST WITH NO DATE: THE FIRST FACE AND THE LAST TAKEN BACK, AND THE CARD DOES NOT MOVE --
+       THE STATE ABOVE PRESSES A DATED POST, and the fix it holds held for every dated post and no other.
+       A row typed into the posts tab by hand without a date column arrives as `at: 0, when: ''`; with no
+       reactions it drew no time line, so the first face fell back to rebuilding the column (a 16:9 card
+       428.5 → 689px at 390 and thrown off the glass for a frame or two) and taking the last face back
+       removed the line (the card 36.6px shorter, the tile row jumping up under the thumb). The line is
+       there now whenever a post has faces, empty until somebody reacts (`postWhen_`, docs/history/335).
+       THE SAME SQUARE PHOTOGRAPH AND THE SAME MEASURES as the state above, over TWO taps on 👍 a quarter
+       of a second apart — the first face, then the last taken back — each held against the card as it
+       was before the first: the same `<article>`, pane and `<img>`, the same height, zoom and top. */
+    { name: 'reactions an undated post keeps the card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to press a face on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        window.__RX_MEDIA = JSON.stringify({ image: p.image, media: p.media, at: p.at, when: p.when });
+        p.image = 'data/reels/archetest.jpg'; p.media = ['data/reels/archetest.jpg'];
+        p.at = 0; p.when = '';
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                        total: 0, yours: '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const me = { done: false, seen: [], taps: 0 };
+        window.__RX_TAP = me;
+        const card = () => document.querySelector('#s-feed [data-post="PO1"]');
+        const look = () => {
+          const c = card(), img = c && c.querySelector('img.post-pic');
+          return { c, pane: c && c.closest('.pane'), img, zoom: c ? c.style.zoom || '1' : '',
+                   h: c ? c.getBoundingClientRect().height : 0, top: c ? c.getBoundingClientRect().top : 0,
+                   line: !!(c && c.querySelector('.post-when')) };
+        };
+        const t0 = performance.now();
+        let last = '', still = 0, ts = 0;
+        const ready = () => {
+          if (window.__RX_TAP !== me) return;
+          const img = card() && card().querySelector('img.post-pic');
+          if (!img || !img.complete || !img.naturalWidth) {
+            if (performance.now() - t0 < 1200) { setTimeout(ready, 40); return; }
+            me.seen.push('the square photograph never arrived, so nothing was pressed'); me.done = true; return;
+          }
+          ts = performance.now(); settle();
+        };
+        /* STILL FIRST, for the reason the state above gives: `goPage` leaves the column gliding. */
+        const settle = () => {
+          if (window.__RX_TAP !== me) return;
+          const r = card() ? card().getBoundingClientRect() : { top: 0, height: 0 };
+          const k = Math.round(r.top * 2) + ',' + Math.round(r.height * 2);
+          still = k === last ? still + 1 : 0; last = k;
+          if (still >= 5) { run(true); return; }
+          if (performance.now() - ts > 1000) { run(false); return; }
+          requestAnimationFrame(settle);
+        };
+        const run = settled => {
+          const was = look();
+          if (!was.line) me.seen.push('before any face, the post has no time line — the first face has nowhere to put its total');
+          const say = (when, what) => { const s = when + ': ' + what; if (me.seen.indexOf(s) < 0 && me.seen.length < 12) me.seen.push(s); };
+          const check = when => {
+            const now = look();
+            if (now.c !== was.c) say(when, 'the post is a new <article>');
+            else if (now.pane !== was.pane) say(when, 'the pane is a new element');
+            if (now.img !== was.img) say(when, 'the picture is a new <img>');
+            if (!now.line) say(when, 'the time line is gone');
+            if (Math.abs(now.h - was.h) > 1) say(when, `the card is ${now.h.toFixed(1)}px tall, was ${was.h.toFixed(1)}`);
+            if (now.zoom !== was.zoom) say(when, `the card is drawn at zoom ${now.zoom}, was ${was.zoom}`);
+            if (settled && Math.abs(now.top - was.top) > 1) say(when, `the card's top is at ${now.top.toFixed(1)}, was ${was.top.toFixed(1)}`);
+          };
+          const press = what => {
+            const f = card() && card().querySelector('.react[data-emoji="👍"]');
+            if (!f) { say(what, 'there is no 👍 to press'); return; }
+            f.click(); me.taps++;
+            check(what);
+          };
+          press('the first face');
+          const t1 = performance.now();
+          let second = false;
+          const frame = () => {
+            if (window.__RX_TAP !== me) return;
+            const t = performance.now() - t1;
+            if (!second && t >= 250) { second = true; press('the last face taken back'); }
+            else check(second ? 'a frame after the last face went' : 'a frame after the first face');
+            if (t < 500) requestAnimationFrame(frame); else me.done = true;
+          };
+          requestAnimationFrame(frame);
+        };
+        ready();
+      },
+      expect: () => {
+        const t = window.__RX_TAP;
+        const el = document.querySelector('#s-feed [data-post="PO1"]');
+        return !!t && t.done && t.taps === 2 && !t.seen.length && !!el && !el.querySelector('.react.mine')
+          && !!el.querySelector('.post-when');
+      },
+      why: () => {
+        const t = window.__RX_TAP;
+        return !t ? 'the taps never started' : !t.done ? 'the half second of taps never finished'
+          : t.seen.join('; ') || (t.taps !== 2 ? `${t.taps} taps landed, not 2` : 'a face is still yours, or the line is gone');
+      },
+      wants: 'the first face on an undated post and the last taken back, with the card, its pane and its picture the same elements at the same height, zoom and top, and the time line there throughout',
+      leave: () => {
+        window.__RX_TAP = null;
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        if (p && window.__RX_MEDIA) Object.assign(p, JSON.parse(window.__RX_MEDIA));
+        HOLD_AT = null;                 // the hold the taps took — see the state above
+        repaint(true);
+      } },
   ],
 
   booking: [

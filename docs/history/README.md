@@ -334,4 +334,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [Each library card looks like one: a bank card's shape on paper, a fake barcode worked out from its number, and its three boxes still on it](332-each-library-card-looks-like-a-card.md)
 - [A child is called by their first name — to everybody, in everything the server says, and the sheet keeps the rest](333-a-child-is-called-by-their-first-name.md)
 - [The business records have a column of their own, the last one, for an admin only: no tab, no section and nothing in the page for anybody else, and it comes and goes with signing in and out](334-the-business-records-have-a-column.md)
+- [A reaction tap is still: a press on one post redraws that post's own parts, never the column — the picture, the clip and the pane are the ones that were there; an undated post keeps its time line; one save at a time, carrying the end state](335-a-reaction-tap-is-still.md)
 - [Rooms inside a venue: a blank cell is the venue's, an explicit 0 stays 0, and every reader that prices or caps a room asks one function](336-rooms-inside-venues.md)

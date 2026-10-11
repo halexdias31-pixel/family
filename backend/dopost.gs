@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-11-k-merged";
+const DOPOST_VERSION = "2026-10-11-m-merged";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -2086,31 +2086,52 @@ function doPost(e) {
          The same function the payload used to build the row, so the two cannot disagree — reading
          the set twice in two places is how a face gets drawn that the server then refuses. */
       const allowed = reactionSet(post);
-      const emoji = S(body.emoji).trim();
-      if (allowed.indexOf(emoji) === -1) return jsonOut({ error: 'That is not one of them.' });
+      /* ---------- `want` IS THE FACE TO END ON, AND IT IS SET, NOT TOGGLED ------------------------
+         THIS WAS ONLY A TOGGLE — "the same one again takes it back" — and a toggle is a request that
+         means something different depending on what arrived before it. The phone sent one per tap and
+         undid each refused one on its own, so a quick double tap whose first save was refused and
+         second accepted left 😂 here and nothing on the page; a reload brought back a reaction the
+         person had taken back (docs/history/335). The phone now sends one save at a time carrying
+         `want` ('' for none), and this sets it: the same request twice, or one arriving late, changes
+         nothing. `emoji` alone is still the toggle, for a phone running code from before `want`. */
+      const setting = typeof body.want === 'string';
+      const emoji = S(setting ? body.want : body.emoji).trim();
+      if ((emoji || !setting) && allowed.indexOf(emoji) === -1) return jsonOut({ error: 'That is not one of them.' });
 
-      const t = read(TAB.post_reactions);
-      const mine = t.rows.find(x => S(x.post_id) === S(body.postId)
-                                 && S(x.person_id) === S(me.person_id));
-      if (mine) {
-        if (S(mine.emoji) === emoji) {          // the same one again takes it back
-          delRow(t, mine);
-          clearCache();
-          return jsonOut({ success: true, emoji: '' });
+      /* ---------- UNDER THE SCRIPT LOCK, AND OVER EVERY ROW OF YOURS -----------------------------
+         Look-then-write with no lock: two requests read "nothing of yours", and both added a row.
+         So the read is fresh under the lock, as `submitAnswer`'s is, and it takes EVERY row this
+         person has on this post rather than the first — a copy an old race left behind would have
+         counted twice on every load, and come back after the first was taken away. */
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — press it again in a moment.', why: 'busy' });
+      try {
+        clearCache();
+        const t = read(TAB.post_reactions);
+        const mine = t.rows.filter(x => S(x.post_id) === S(body.postId)
+                                     && S(x.person_id) === S(me.person_id));
+        const keep = mine[0];
+        const to = !setting && keep && S(keep.emoji) === emoji ? '' : emoji;   // the old toggle
+        mine.slice(to ? 1 : 0).forEach(x => delRow(t, x));
+        if (to && keep) {
+          if (S(keep.emoji) !== to) {
+            setCell(t, keep, 'emoji', to);
+            setCell(t, keep, 'reacted_on', new Date());
+          }
+        } else if (to) {
+          addRow(t, {
+            reaction_id: 'RE' + new Date().getTime(),
+            post_id: S(body.postId),
+            person_id: S(me.person_id),
+            emoji: to,
+            reacted_on: new Date(),
+          });
         }
-        setCell(t, mine, 'emoji', emoji);
-        setCell(t, mine, 'reacted_on', new Date());
-      } else {
-        addRow(t, {
-          reaction_id: 'RE' + new Date().getTime(),
-          post_id: S(body.postId),
-          person_id: S(me.person_id),
-          emoji: emoji,
-          reacted_on: new Date(),
-        });
+        clearCache();
+        return jsonOut({ success: true, emoji: to });
+      } finally {
+        lock.releaseLock();
       }
-      clearCache();
-      return jsonOut({ success: true, emoji: emoji });
     }
 
     /* --- saying something under a post ------------------------------------------------------------
@@ -2209,35 +2230,47 @@ function doPost(e) {
       if (!post) return jsonOut({ error: 'That post is gone.' });
 
       const opts = S(post.poll).split(',').map(x => x.trim()).filter(Boolean);
-      const choice = S(body.choice).trim();
+      /* `want` IS THE ANSWER TO END ON ('' for none), SET RATHER THAN TOGGLED, and `choice` alone the
+         toggle for a phone from before it — `reactPost` above says why, and it is the same fault. */
+      const setting = typeof body.want === 'string';
+      const choice = S(setting ? body.want : body.choice).trim();
       /* The choice must be one of the OPTIONS. Without this anybody could post any string and it
          would appear as an answer nobody was offered. */
-      if (opts.indexOf(choice) === -1) return jsonOut({ error: 'That is not one of the answers.' });
+      if ((choice || !setting) && opts.indexOf(choice) === -1) return jsonOut({ error: 'That is not one of the answers.' });
 
-      const t = read(TAB.post_votes);
-      const mine = t.rows.find(x => S(x.post_id) === S(body.postId)
-                                 && S(x.person_id) === S(me.person_id));
-      if (mine) {
+      /* UNDER THE LOCK AND OVER EVERY ROW OF YOURS, as a reaction is. */
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — press it again in a moment.', why: 'busy' });
+      try {
+        clearCache();
+        const t = read(TAB.post_votes);
+        const mine = t.rows.filter(x => S(x.post_id) === S(body.postId)
+                                     && S(x.person_id) === S(me.person_id));
+        const keep = mine[0];
         /* Tapping the answer you already chose takes the vote back — the same gesture that cast
-           it, which is how every poll a person has used already behaves. */
-        if (S(mine.choice) === choice) {
-          delRow(t, mine);
-          clearCache();
-          return jsonOut({ success: true, choice: '' });
+           it, which is how every poll a person has used already behaves. A phone that sends `want`
+           has worked that out itself and sends ''. */
+        const to = !setting && keep && S(keep.choice) === choice ? '' : choice;
+        mine.slice(to ? 1 : 0).forEach(x => delRow(t, x));
+        if (to && keep) {
+          if (S(keep.choice) !== to) {
+            setCell(t, keep, 'choice', to);
+            setCell(t, keep, 'voted_on', new Date());
+          }
+        } else if (to) {
+          addRow(t, {
+            vote_id: 'V' + new Date().getTime(),
+            post_id: S(body.postId),
+            person_id: S(me.person_id),
+            choice: to,
+            voted_on: new Date(),
+          });
         }
-        setCell(t, mine, 'choice', choice);
-        setCell(t, mine, 'voted_on', new Date());
-      } else {
-        addRow(t, {
-          vote_id: 'V' + new Date().getTime(),
-          post_id: S(body.postId),
-          person_id: S(me.person_id),
-          choice: choice,
-          voted_on: new Date(),
-        });
+        clearCache();
+        return jsonOut({ success: true, choice: to });
+      } finally {
+        lock.releaseLock();
       }
-      clearCache();
-      return jsonOut({ success: true, choice: choice });
     }
 
     /* --- the photographs already in the folder, that are not posts yet ---------------------
