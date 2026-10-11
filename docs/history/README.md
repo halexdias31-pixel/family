@@ -332,6 +332,7 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The boxers look like themselves: an eight-bit likeness from what sources show — skin, hair, beard and the trunks of that night — with blanks that claim nothing, the women in a top, every colour 2:1 against the stage, and no longer the splash's gold fighter](328-the-boxers-look-like-themselves.md)
 - [The second finder carries the resources: a Resources column right of Find — the textbooks, the boxers, the fights and the Bible — on one engine with two states](329-the-second-finder-carries-the-resources.md)
 - [A tutor edits their own card, on the card: Edit turns it into its form, one Save posts what changed, and five Settings pages go](330-a-tutor-edits-their-own-card.md)
+- [A widget on the glass is drawn: whichever column it is in, started within a moment, stopped when it leaves the glass, and one widget started once for its two copies](331-a-widget-on-the-glass-is-drawn.md)
 - [Each library card looks like one: a bank card's shape on paper, a fake barcode worked out from its number, and its three boxes still on it](332-each-library-card-looks-like-a-card.md)
 - [A child is called by their first name — to everybody, in everything the server says, and the sheet keeps the rest](333-a-child-is-called-by-their-first-name.md)
 - [The business records have a column of their own, the last one, for an admin only: no tab, no section and nothing in the page for anybody else, and it comes and goes with signing in and out](334-the-business-records-have-a-column.md)

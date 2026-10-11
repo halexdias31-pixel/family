@@ -532,8 +532,12 @@ function go(id, remember, instant) {
   /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves.
      Markup first, `start` second — an id cannot be found before the markup carrying it is in the
      document, which is why this is here and not inside the screen's own draw. */
-  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games' && AT !== 'saved'
-      && AT !== 'shop') toolsStop_();
+  /* `toolsStop_()` WAS HERE, for any column that was not one of the four — and it stopped every
+     widget in the app, including the ones on the column beside you that a wide window shows whole.
+     That is the loader the owner sent on 10 Oct (docs/history/331). Leaving is now asked of the
+     glass rather than of `AT`: the placement `placeCells('x')` above asks for says what is on it, and
+     `widgetsGlass_` (arcade.js) stops what has left — on a phone, everything not in front, exactly as
+     this line did, once the slide has settled rather than before it begins. */
   /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
@@ -753,7 +757,9 @@ function paintNeighbours() {
    old markup until you swipe to it. A sliver of a sentence, corrected by arriving. */
 let STALE = {};
 
-function paint(id) {
+/* `fresh`: DRAWN FROM NOTHING, because the caller starts again whatever runs in it — `repaint`, for the
+   column in front. Without it, a widget running on the column keeps its slot (see below). */
+function paint(id, fresh) {
   /* ---------- A SETTINGS CARD WITH SOMETHING TYPED INTO IT IS NOT REDRAWN UNDER THE TYPING ---------
      REPORTED AS "some things arent updating when i click save", and part of it was this: a Save on
      one card called `load()`, and when the payload landed — and again when the inbox landed — every
@@ -811,9 +817,19 @@ function paint(id) {
       </div></div>`;
     return;
   }
+  /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN ---------------------
+     The arrival at a `STALE` column is a `paint` of it — and on a wide window a column beside the one in
+     front has its widgets running (docs/history/331). Its first arrival after any repaint threw the
+     running calculator's slot away and drew the loader in its place, then started it again from
+     nothing. `widgetsHeld_` / `widgetsBack_` (arcade.js) put each running slot back where the new markup
+     draws that widget; the rest is the new markup. NOT FOR `repaint`'s own column (`fresh`), which it
+     starts again at once and always has: a box there is new markup, and `landRepaint_`'s and
+     `reconnectKeep_`'s notes are written about exactly that. */
+  const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id) : [];
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
+  if (held.length) widgetsBack_(id, held);
 
   /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN ------------------------------------
      WHILE EVERY CARD HUNG FROM ONE TOP LINE, a column redrawn with a taller or shorter card needed
@@ -1042,7 +1058,7 @@ const repaint = (instant) => {
   /* 0. EVERY OTHER SCREEN IS NOW OUT OF DATE — see the note on `STALE`. Marked before painting, so
         the two that are about to be drawn for real clear their own mark on the way through. */
   TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
-  paint(AT);                       // 1. the screen you are on
+  paint(AT, true);                 // 1. the screen you are on, drawn from nothing (it is restarted below)
   /* 1b. AND WHATEVER THAT SCREEN HAS RUNNING, because `paint` has just replaced the markup it was
          running in. Without this, a repaint while the camera column is open leaves a `<video>` with
          no stream in it — the card looks live and shows black. Same list `go` uses; see
@@ -1994,6 +2010,84 @@ function dragFast_(drag) {
    either side and the glass showed three, and an empty card sat on the glass of the owner's iPad. */
 const glassRows_ = () => (WIDE ? 3 : 2);
 
+/* ---------- WHICH CARDS ARE ON THE GLASS, SAID ONCE PER PLACEMENT -----------------------------------
+   ASKED FOR BY WHAT RUNS IN THEM. The owner, 10 Oct, on a 1194px window: *"these remain loading untill
+   i scroll to them. i dont like this"* — two widget cards on the column beside Settings, each the
+   loader and a star, because only the column in front ever started its widgets. `widgetsGlass_`
+   (arcade.js) starts what is on the glass and stops what has left it, and this is where "on the glass"
+   comes from, because this function is the one that put everything where it is.
+
+     · `cols` — the column in front, and on a wide window every column showing MORE of its card than
+       `WIDE_EDGE`, the edge the layout leaves past the last whole card on purpose: at 1194, 1280 and
+       1920 that edge is 8px of card, which shows no widget, and at 768 or 1700 it is 144–146px, which
+       shows a third of one. On a phone the neighbour is the 6% peek — a band of card edge — and is
+       not counted, so a phone runs what it always ran: the column in front.
+     · `pages` — down each of those columns, the pages whose WIDGET is on the glass where this
+       placement leaves it: more than `WIDE_EDGE` of its slot inside the window both ways (the column's
+       shift, the page's own top, the slot's place in the page; and across, as much of the card as
+       shows past the window's edge less the slot's inset). A page with no widget is asked the same of
+       the whole page. Out to `glassRows_` either side, the furthest this function draws.
+       IT WAS ANY PIXEL OF THE PAGE, and the review of 331 measured what that started: at 1194 on
+       Settings the flyer maker's page reached 75px into the window and its slot began 13px below the
+       bottom edge — nothing of it showed but its star, and it was running. 24px is the same line
+       `check/ui.js` draws for "on the glass", so what is started here is what that check counts.
+   READ IN THE PASS THAT IS ALREADY READING — after `columnShift_`'s layout and before a single write —
+   so it forces no layout of its own (the slot's offsets are as clean as the page's); never during a
+   drag, when nothing is created or stopped and the answer would be thrown away sixty times a second.
+   `at` says which column in front it was worked out for, so a column change asked for and not yet
+   placed is not mistaken for it (`widgetsLater_`). */
+let GLASS = { at: null, cols: [], pages: [] };
+
+function glassNow_(hosts, ti, stepX) {
+  const out = { at: AT, cols: [], pages: [] };
+  const W = appWidth_();
+  const card = WIDE ? stepX - CELL_GAP : 0;
+  hosts.forEach(h => {
+    const dx = h.i - ti;
+    /* HOW MUCH OF THIS COLUMN'S CARD IS INSIDE THE WINDOW, ACROSS — all of it for the column in front. */
+    const across = dx ? W / 2 + card / 2 - Math.abs(dx) * stepX : Infinity;
+    if (dx && !(WIDE && across > WIDE_EDGE)) return;
+    out.cols.push(h.id);
+    const H = h.host.clientHeight || innerHeight;
+    const at = PAGE[h.id] || 0;
+    h.host.querySelectorAll(':scope > .page').forEach((el, pos) => {
+      if (Math.abs(logIndex_(h.id, pos) - at) > glassRows_()) return;
+      if (glassShows_(el, h.shift + el.offsetTop, H, across)) out.pages.push(el);
+    });
+  });
+  return out;
+}
+
+/* IS A PAGE'S WIDGET ON THE GLASS — its slot, or the page when it has none, showing more than `WIDE_EDGE`
+   of itself inside a window `H` tall, with the page's top at `top` and `across` of the card showing
+   sideways. A box with no height has not been laid out (jsdom, which `check-flow` runs in, lays nothing
+   out: every page is 0px at the column's middle) and is counted by where it sits, as it always was. */
+function glassShows_(el, top, H, across) {
+  const sl = el.querySelector('.widget-slot');
+  const at = sl && glassOffset_(sl, el);
+  const y = at ? top + at.top : top;
+  const tall = at ? sl.offsetHeight : el.offsetHeight;
+  if (!tall) return y > 0 && y < H;
+  const down = Math.min(y + tall, H) - Math.max(y, 0);
+  const side = Math.min((at ? sl.offsetWidth : el.offsetWidth) || Infinity, across - (at ? at.left : 0));
+  return down > WIDE_EDGE && side > WIDE_EDGE;
+}
+
+/* WHERE A SLOT SITS INSIDE ITS PAGE, by offsets — the same untransformed layout the page's own
+   `offsetTop` is, so it agrees with where this placement puts the page rather than with where a slide
+   has it this frame. Summed up the chain to the page, or to the page's own offset parent and less the
+   page's offset from it (a page is `position: static`), and less any scroll between the two. Null when
+   the chain never reaches either — a slot not laid out — and the page is asked instead. */
+function glassOffset_(sl, page) {
+  let top = 0, left = 0, n = sl;
+  const base = page.offsetParent;
+  while (n && n !== page && n !== base) { top += n.offsetTop; left += n.offsetLeft; n = n.offsetParent; }
+  if (!n) return null;
+  if (n !== page) { top -= page.offsetTop; left -= page.offsetLeft; }
+  for (let p = sl.parentNode; p && p !== page; p = p.parentNode) top -= p.scrollTop || 0;
+  return { top, left };
+}
+
 function placeGrid(instant, drag) {
   if (drag && dragFast_(drag)) return;
   DRAG_PLAN = null;
@@ -2059,6 +2153,8 @@ function placeGrid(instant, drag) {
   hosts.forEach(h => {
     h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0)) + (h.id === AT ? dyPx : 0);
   });
+  /* AND WHICH CARDS THAT LEAVES ON THE GLASS — see `GLASS`. Still in the reading pass. */
+  if (!drag) GLASS = glassNow_(hosts, ti, stepX);
   /* THE SETTLE, if this placement is the one a release asked for. The distance is the column that
      moves furthest along the swipe's axis, read off where the last placement put it — the drag's last
      position, written inline, so nothing is forced to lay out — against the one it is about to get. */
@@ -2319,6 +2415,14 @@ function placeNow_(which, instant, dragPx, id) {
      That is most of what made a sideways swipe feel heavy, and none of it was doing anything. They
      run when the drag ends, which is when the answer can have changed. */
   if (dragPx) return;
+
+  /* ---------- AND WHAT RUNS IN THE CARDS THIS LEFT ON THE GLASS ------------------------------------
+     A third sweep with the same reason to wait for the release: a widget on the glass is started and
+     one that has left it is stopped (`widgetsGlass_`, arcade.js, from `GLASS` above), and a finger
+     dragging a column across is neither — it may yet let go where it began. Starting is only ever
+     QUEUED from here, one per task behind the settle, and stopping is booked for after the slide, so
+     this placement's frame pays for a walk of a short list and nothing else. */
+  if (typeof widgetsGlass_ === 'function') widgetsGlass_();
 
   /* ---------- AND WHICH CARDS ARE TOO TALL FOR THE PANE THEY ARE IN ------------------------------
      `paneReach_` GIVES AN OVERFLOWING PANE `overflow-y: auto` so `scrollHost_` can scroll it from

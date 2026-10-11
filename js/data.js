@@ -572,12 +572,31 @@ window.addEventListener('storage', e => {
    Tools one. Rewriting every widget to scope its lookups to its own box is forty-odd widgets; this
    is the one place they all ask. Only when the first match is NOT on the screen in front is the
    screen asked for a copy of its own, so a unique id costs exactly what it did. */
+/* ---------- AND WHEN THE SCREEN IN FRONT HAS NO COPY, THE COPY ITS WIDGET WAS STARTED ON ----------
+   A WIDGET RUNS BESIDE THE COLUMN IN FRONT NOW — on a wide window every widget whose card is on the
+   glass is started, whichever column it is in (docs/history/331, `widgetsGlass_` in arcade.js). So a
+   starred widget can be running on Saved's copy while Spotlight is in front, and the first copy in
+   the document is the one on Tools, off the glass: its `start` would have drawn into Tools, and every
+   tick after it (a timer's display, a board's next move) would have gone there too, while the copy
+   on the glass sat as markup. `WIDGET_HOME` is the column each widget's slot was started on — the
+   slot's id to the column — written by `widgetUp_` and taken back by `widgetDown_`; asked only when
+   the screen in front has no copy and the element is inside a widget's slot, so every other lookup
+   costs one `closest` more than it did. */
+const WIDGET_HOME = {};
 const $ = id => {
   const el = document.getElementById(id);
   if (!el || typeof AT === 'undefined' || !AT) return el;
   const scr = document.getElementById('s-' + AT);
   if (!scr || scr.contains(el)) return el;
-  try { return scr.querySelector('#' + CSS.escape(id)) || el; } catch { return el; }
+  try {
+    const mine = scr.querySelector('#' + CSS.escape(id));
+    if (mine) return mine;
+    const slot = el.closest && el.closest('.widget-slot');
+    const home = slot && WIDGET_HOME[slot.id];
+    const host = home && home !== AT && document.getElementById('s-' + home);
+    if (!host || host.contains(el)) return el;
+    return host.querySelector('#' + CSS.escape(id)) || el;
+  } catch { return el; }
 };
 
 /* The letter to put in a circle when there is no picture. The first LETTER, not the first
