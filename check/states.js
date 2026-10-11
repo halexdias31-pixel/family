@@ -3292,6 +3292,105 @@ const STATES = {
           && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
       },
       wants: 'the picture picker and the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+    /* ---------- THREE, FOUR AND FIVE LIBRARY CARDS, DRAWN AS CARDS — `libraryShelf_` in me.js; docs/history/332 -----
+       THE OWNER, 10 Oct: *"make each look like a card. with fake barcode."* Seeded with invented libraries (the
+       longest name the shelf has ever been measured with among the first three, because the name is the box
+       that gives), the rest of the five slots empty. Asked of each card, at every width: its three boxes are ON
+       it; it is a bank card's shape (85.6:54, within 3%) and nothing inside it spills past that shape; the ink
+       of every box is 4.5:1 or better on the card's own paper, which `check/ui.js`'s text rule cannot ask
+       because a box's value is not a text node; and the bars are decoration (`aria-hidden`) and different on
+       every card. `Add another` is on the page while a slot is left to reveal, and not once all five show.
+
+       FOUR AND FIVE AS WELL AS THREE, BECAUSE THE CARD'S SHAPE IS WHAT MAKES THE PAGE TALL. A face's height
+       follows its width, so at the column's full width three cards were the most a 390x844 phone drew at full
+       size: the fit rule took four to 81% and five to its 70% floor there, and at 1280x800 three to 81% —
+       every card with a blank band between its name and its bars. The review of 10 Oct found this file seeded
+       three, so `check/ui.js` had never once drawn the page where it cost most. Now it draws all three counts.
+       And the cards give that band back first (`libFit_` in me.js, called by `paneReach_`): they narrow,
+       keeping the shape, until the page fits or the band runs out, and only the rest is drawn smaller. Asked
+       of every count, at every width: A PAGE DRAWN SMALLER HAS NO BLANK BAND LEFT ON ITS CARDS (3px of
+       slack for the last pass's rounding) — red before `libFit_`, when four cards at 390 were at 81% with
+       45px of blank on each and three at 1280 at 81% with 68; and the fit rule's own promise, that the page
+       is no smaller than the app's `PANE_ZOOM_MIN` and the tick is on the glass or the pane scrolls to it.
+       The cost that is left prints as `CARD DRAWN SMALLER TO FIT` with its percentage, beside every other
+       card that pays it.
+
+       WHY `new Function`: every state is carried into the page as its source and run there (the
+       notifications states below say so at length), so a closure over `n` would arrive empty. Each state is
+       the one source below with its count written in as a literal. */
+    ...(() => {
+      const enter = n => {
+        window.STATE_LIB_WAS = USER.profile;
+        const seed = [['Merton', '2000000000000'], ['Sutton Central', '2000000000001'],
+                      ['Wandsworth Town and Putney', '2000000000002'], ['Larkbridge', '2000000000003'],
+                      ['Fennmoor Green', '2000000000004']];
+        const cards = {};
+        for (let i = 1; i <= 5; i++) {
+          const s = i <= n ? seed[i - 1] : ['', ''];
+          cards['lib' + i + '_name'] = s[0]; cards['lib' + i + '_no'] = s[1]; cards['lib' + i + '_pin'] = i <= n ? '0000' : '';
+        }
+        USER.profile = Object.assign({}, USER.profile || {}, cards);
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.lib-face'));
+        if (at < 0) throw new Error('no library cards page on the settings column');
+        goPage('settings', at, true);
+      };
+      const expect = n => {
+        const pg = document.querySelector('#s-settings .page.on');
+        if (!pg) return 0;
+        const slots = pg.querySelectorAll('.lib-card').length;
+        const faces = [...pg.querySelectorAll('.lib-card:not([hidden]) > .lib-face')];
+        if (faces.length !== n || pg.querySelectorAll('[data-do="shelf-more"]').length !== (n < slots ? 1 : 0)) return 0;
+        const rgb = s => (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+        const lum = c => c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
+          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const ratio = (p, q) => { const a = lum(rgb(p)), b = lum(rgb(q)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+        const bars = new Set();
+        const ok = faces.every(f => {
+          const r = f.getBoundingClientRect();
+          const paper = getComputedStyle(f).backgroundColor;
+          const boxes = [...f.querySelectorAll('input[data-me]')];
+          const svg = f.querySelector('svg.lib-bars');
+          if (svg) bars.add(svg.innerHTML);
+          return boxes.length === 3
+            && ['name', 'no', 'pin'].every(k => f.querySelector('input[data-me$="_' + k + '"]'))
+            && Math.abs(r.width / r.height - 85.6 / 54) < 0.03 * (85.6 / 54)
+            && f.scrollHeight <= f.clientHeight + 1 && f.scrollWidth <= f.clientWidth + 1
+            && boxes.every(b => ratio(getComputedStyle(b).color, paper) >= 4.5)
+            && !!svg && svg.getAttribute('aria-hidden') === 'true';
+        });
+        if (!ok || bars.size !== n) return 0;
+        /* THE FIT RULE'S PROMISE, read off the page rather than restated: no smaller than its floor, and the
+           tick on the glass or one scroll of the pane away. */
+        const pane = faces[0].closest('.pane'), tick = pg.querySelector('[data-do="me-save"]');
+        if (!pane || !tick || typeof PANE_ZOOM_MIN !== 'number') return 0;
+        const zoom = Math.min(1, ...[...pane.children].map(k => Number(k.style.zoom || 1)));
+        if (zoom < PANE_ZOOM_MIN - 0.001) return 0;
+        /* THE CARDS GAVE THEIR BLANK BAND BEFORE THE PAGE WAS DRAWN SMALLER — the face's third row. */
+        const band = parseFloat(String(getComputedStyle(faces[0]).gridTemplateRows).split(/\s+/)[2]) || 0;
+        if (zoom < 1 && band > 3) return 0;
+        const p = pane.getBoundingClientRect(), t = tick.getBoundingClientRect();
+        const seen = t.top >= p.top - 1 && t.bottom <= p.bottom + 1 && t.bottom <= innerHeight + 1;
+        const scrolls = pane.style.overflowY === 'auto' && pane.scrollHeight - pane.clientHeight > 2;
+        return seen || scrolls ? n : 0;
+      };
+      const word = { 3: 'three', 4: 'four', 5: 'five' };
+      return [3, 4, 5].map(n => ({
+        name: word[n] + ' library cards',
+        only: () => typeof USER !== 'undefined' && !!USER,
+        enter: new Function('return (' + String(enter) + ')(' + n + ');'),
+        leave: () => {
+          USER.profile = window.STATE_LIB_WAS; delete window.STATE_LIB_WAS;
+          document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+          paint('settings');
+        },
+        expect: new Function('return (' + String(expect) + ')(' + n + ');'),
+        wants: word[n] + ' library cards at a bank card\'s proportions, each with its name, PIN and number boxes on it in ink '
+          + '4.5:1 on its paper, different bars on each, ' + (n < 5 ? 'one Add another' : 'no Add another')
+          + ', no blank band left on a card if the page is drawn smaller, no smaller than PANE_ZOOM_MIN, and the tick '
+          + 'on the glass or one scroll away' }));
+    })(),
     /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
        *"everyone should have a profile picture selector widget in account settings"*. Seeded with a
        picture already kept, so the preview is a photograph rather than the initial and `Remove` is
