@@ -14948,6 +14948,9 @@ function paintStuff(keepPage) {
 
   fillStuffPages();
   paintPager(FINDER.id, true);
+  /* A NEW QUESTION IS A NEW WINDOW TO FILL — the builder is asked to look (`ahead_`, shell.js; 341). It runs
+     nothing periodic, so whatever makes work says so. */
+  if (typeof aheadKick_ === 'function') aheadKick_();
 }
 
 /**

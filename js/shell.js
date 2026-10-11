@@ -818,6 +818,11 @@ function paint(id, fresh, o) {
      a landing's `'maybe'` may be answered by writing nothing (below). */
   const mark = STALE[id];
   delete STALE[id];
+  /* A COLUMN STILL HOLDING THE BOOT'S MARKUP IS DRAWN FROM NOTHING, whoever draws it — an arrival (`go`), the
+     builder or anything else — so a widget started on the boot's markup starts again in the payload's (331's
+     "flyer maker beside You"). The first payload used to empty these columns, which made every first paint
+     fresh by accident; it keeps their loader now (docs/history/341), so the rule is said here, once. */
+  if (PRE_PAYLOAD.has(id)) fresh = true;
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
      against the screen's padding box and would otherwise be inset by it and then pad itself again.
      Marked here rather than in the markup so the two lists of paged screens cannot disagree:
@@ -882,6 +887,7 @@ function paint(id, fresh, o) {
     ? html
     : '<p class="empty">Nothing here yet.</p>';
   el.DRAWN = { html: html, epoch: ACT_EPOCH };
+  PRE_PAYLOAD.delete(id);
   PAINT_N[id] = (PAINT_N[id] || 0) + 1;
   if (held.length) widgetsBack_(id, held);
   /* NEW MARKUP IS NEW PAGES, so the next placement walks this column's pages whatever its signature says
@@ -1134,6 +1140,12 @@ const repaint = (instant) => {
         the two that are about to be drawn for real clear their own mark on the way through. A LANDING
         MARKS `'maybe'` and never takes a 1 back (`REPAINT_MARK`, `landRepaint_`). */
   TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = STALE[t.id] === 1 ? 1 : REPAINT_MARK; });
+  /* 0b. AND EVERY WIDGET DRAWN FROM THE FACTS THAT HAVE JUST MOVED IS PUT BACK UNDER ITS LOADER NOW, on every
+         column just marked — not when the column is next drawn. A stale column keeps its markup until the
+         builder or an arrival draws it, and a calendar drawn ahead of this landing would have stood on it
+         showing last minute's month, beside the column in front on a wide window (docs/history/341). A
+         widget declared `pure` reads no facts and keeps its drawing; one running is 331's to restart. */
+  if (typeof widgetsReveil_ === 'function') WIDGET_COLS.forEach(c => { if (c !== AT && STALE[c]) widgetsReveil_(c, false); });
   paint(AT, true);                 // 1. the screen you are on, drawn from nothing (it is restarted below)
   /* 1b. AND WHATEVER THAT SCREEN HAS RUNNING, because `paint` has just replaced the markup it was
          running in. Without this, a repaint while the camera column is open leaves a `<video>` with
@@ -2359,17 +2371,23 @@ function placeGrid(instant, drag) {
        `acrossT` IS HOW FAR THIS COLUMN IS FROM THE COLUMNS THE ROW HAS SWEPT (`TRAIL_X`), not from the one it
        is going to. It was `across`, from the target, and a flick of three or four columns in a second
        carried columns at opacity 0 across the glass — the black column of the sweep, 0.3–0.8s of it at 4x
-       (docs/history/341). Within two of the swept span a column is drawn at .92; the third is drawn and
+       (docs/history/341). Within THREE of the swept span a column is drawn at .92; the fourth is drawn and
        transparent, so its own .22s fade has already happened off the glass when a sweep reaches it; past
-       that, hidden, as before. On a wide window, `onGlass` is asked over the swept span the same way. */
+       that, hidden, as before. THREE AND NOT TWO, MEASURED: with two, check/reach.js still read a column at
+       opacity nought 41px onto a 390 glass in one or two sweeps of four flicks a second at 4x CPU — its
+       style said .92 and its fade had not begun, because the style recalc that starts a fade waits behind
+       the long tasks of the releases before it, while the row's slide does not. One more column of lead is
+       one more flick of time for the fade. On a wide window the same: a column is drawn whole while it is on
+       the glass anywhere over the swept span (`onGlass`) or one step short of it. */
     const onGlass = c.onGlass;
-    host.style.opacity = across === 0 ? '1' : WIDE ? (onGlass ? '1' : '0')
-      : c.acrossT <= 2 ? '.92' : '0';
+    const lit = WIDE && c.acrossT * stepX < glass + stepX;
+    host.style.opacity = across === 0 ? '1' : WIDE ? (lit ? '1' : '0')
+      : c.acrossT <= 3 ? '.92' : '0';
     /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
        hidden until the swipe reached it, and a quick flick across two showed a blank in between.
        Held to the same 3 as the column, for the same reason and at the same cost: a handful of
        tabs is a handful of cards, and there is no version of this app where that is expensive. */
-    host.style.visibility = c.acrossT > 3 && !onGlass ? 'hidden' : 'visible';
+    host.style.visibility = c.acrossT > 4 && !lit ? 'hidden' : 'visible';
 
     /* AND EACH PAGE — `placePages_`, below, which a builder placing one column alone (`placeOne_`) shares.
        SKIPPED WHOLE for a column that is neither in front nor on the glass when nothing it is placed by has
