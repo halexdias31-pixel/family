@@ -1314,6 +1314,9 @@ const WIDGETS = [
      type, a player in the card, and a Full screen tile under it. The engine is `initVideos` in
      games.js, with the long note on where the list comes from and why YouTube is embedded here when
      the reels' embeds were taken out.
+     AND SINCE 10 OCT IT OPENS ON THE BAR ALONE: *"at first all you see is a search bare, then you
+     search and you see relevant result underneath. max 4 results show."* — four results as you type,
+     a tap plays in the card in their place, Full screen fills the glass (note 321).
 
      LAST ON THE COLUMN, after `contest`, for `contest`'s own reason: `PAGE.games` remembers a page by
      its index, and an entry placed anywhere above would move every saved position after it by one.

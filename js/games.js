@@ -5540,11 +5540,23 @@ on('kt-lesson', el => {
 
 
 /* ==================================================================================================
-   VIDEOS — A SEARCH BOX, A LIST, A PLAYER IN THE CARD, AND A FULL SCREEN TILE
+   VIDEOS — A SEARCH BAR, FOUR RESULTS UNDER IT, A PLAYER IN THE CARD, AND A FULL SCREEN TILE
 
    ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
    type in. and there should be a full screen button." — and earlier as "Video cool videos database
    for reals and movies". The roster entry is `videos` in map.js, last on the Games column.
+
+   AND THEN, THE OWNER, 10 Oct: *"make it look more like youtube, the widget, in the sense that at
+   first all you see is a search bare, then you search and you see relevant result underneath. max 4
+   results show. you click on one, then it shows video. you can click fullscreen to make it
+   fullscreen"* — note 321. So the card is ONE OF FOUR THINGS, decided in `vidPaint_`:
+     idle      the search bar and nothing else — no count, no list, no admin row, no empty player;
+     results   what is typed, narrowed and ranked (`videosFound_`), at most four, best first, with
+               one faint line under them when there are more;
+     watch     a result tapped: the player, its title and line, and Full screen, in place of the
+               results — any edit of the box goes back to the results;
+     full      the player over the whole screen, the browser's own full screen or, where a phone
+               has none for a frame, the app's (`vidFullOn_`).
 
    WHAT IT SEARCHES, AND IT IS TWO LISTS THE APP ALREADY HAS OR THE OWNER FILLS:
      - `data/videos.json` — the curated database, one row per video: `title`, `url`, `kind`
@@ -5564,8 +5576,9 @@ on('kt-lesson', el => {
 
    NOT ALL OF YOUTUBE. A live search of YouTube needs a YouTube Data API key in the page, which in a
    public repository is a published key; that is the owner's decision and it has not been taken. So
-   the box searches what is listed, and says how many it searched, rather than pretending to be
-   YouTube.
+   the box searches what is listed, and says how many more it found than the four it shows (or that
+   nothing matches), rather than pretending to be YouTube. It used to say "3 of 12 videos" over the
+   list; with no list on an idle card there is nothing for that count to count (note 321).
 
    ---------- WHY YOUTUBE IS EMBEDDED HERE WHEN THE REELS' EMBEDS WERE TAKEN OUT ----------------------
    The owner's word on the reels was "remove the embedded reels. they suck." — see `clipPlayable_`
@@ -5574,8 +5587,11 @@ on('kt-lesson', el => {
    row is tapped, and the person then drives the player themselves. A YouTube link has no address a
    `<video>` can read, so the choice for one is an embed or nothing — and the youtube-NOCOOKIE host,
    which sets no tracking cookie until the video is actually played. An `.mp4` plays in a `<video>`,
-   as a reel does. A Drive film plays in neither, for the reason note 068 gives (a 3 GB `.mkv`), so
-   its row is a door to Drive, marked as one.
+   as a reel does. A Drive film plays in neither, for the reason note 068 gives (a 3 GB `.mkv`) — so
+   it was a door to Drive, until the owner asked for every result to play in the card (10 Oct). It
+   plays in DRIVE'S OWN PLAYER now, an iframe on the file's `/preview`, which streams what Drive can
+   transcode; and it keeps the door beside Full screen (an Open in Drive tile) for the file Drive will
+   not play in a frame. ONLY A FILE FROM THE FILMS LIST: see `vidPlayer_`.
 
    THE LIST IS FETCHED ON FIRST OPEN, NOT AT BOOT. Every visitor pays for the payload and the
    library; a list of videos is for the ones who come to this card. `?t=LOAD` is the same stamp the
@@ -5585,10 +5601,20 @@ on('kt-lesson', el => {
 const VID_KINDS = ['film', 'clip'];
 let VIDEOS_LIST = null;          // null: not asked yet. []: asked, and there is nothing in it
 let VIDEOS_ASKED = null;         // the one request in flight, so two copies of the card ask once
-const VID = { q: '', at: '' };   // what is typed, and the key of the row in the player
+/* `in` IS WHICH COPY OF THE CARD PLAYS IT — the id of the column the tapped copy is on (`s-games`,
+   `s-saved`). The Saved column draws this card again when it is starred, and every copy is painted;
+   before `in`, every copy built the player, so one tap was an `autoplay` embed in the card in front
+   AND one in the copy parked off the glass — two films talking over each other wherever a browser
+   lets one play with sound (review of 10 Oct). Only the tapped copy plays; the others show the
+   results for what is typed. */
+const VID = { q: '', at: '', in: '' };   // what is typed, the key of the row in the player, and whose player
+/* AT MOST FOUR RESULTS — *"max 4 results show."* (10 Oct). */
+const VID_MAX = 4;
 
 /* A ROW IS ONE SHAPE WHEREVER IT CAME FROM, built here once rather than at each reader. `how` is
-   how it plays: `yt` in an iframe, `file` in a `<video>`, `out` a door to somewhere else. */
+   how it plays: `yt` in an iframe, `file` in a `<video>`, `drive` in Drive's own player (a film
+   from the films list whose address is a Drive file — set in `videosAll_`, never here), `out` a
+   door to somewhere else, `none` nothing to open. */
 function vidHow_(url) {
   const u = String(url || '').trim();
   if (vidYouTubeId_(u)) return 'yt';
@@ -5650,13 +5676,19 @@ function videosAll_() {
     /* `year` AND `seasons` RIDE ALONG FOR THE ROW'S META LINE -- YouTube's "3 years ago" spot (note 311).
        Both were already on the row and searched through `tags`; they were never said. */
     const seasons = Number(f.seasons) || 0;
+    /* A FILE IN DRIVE PLAYS IN THE CARD; A FOLDER CANNOT. *"you click on one, then it shows video"*
+       (10 Oct, note 321): a film or a documentary whose address is a Drive FILE plays in Drive's own
+       player (`vidPlayer_`). A SERIES IS ITS FOLDER (068) — Drive has no player for a folder, so it
+       stays the door to it that it always was; and so does any address that is not a Drive file. */
+    const how = !door ? 'none' : vidDriveId_(url) ? 'drive' : 'out';
     /* `fromFilms` SAYS WHERE THE ROW CAME FROM, and it is the one thing that lets a row ask Drive for a
-       picture (`vidThumb_`): only the backend's films list, which only an admin is sent, may. */
+       picture (`vidThumb_`) or for its player (`vidPlayer_`): only the backend's films list, which only
+       an admin is sent, may. */
     add({ key: 'f' + (f.id || i), title: String(f.title), url: door ? url : '', kind: 'film', label: label,
           fromFilms: true,
           year: String(f.year || '').trim(),
           seasons: k === 'series' && seasons ? seasons + (seasons === 1 ? ' season' : ' seasons') : '',
-          how: door ? 'out' : 'none', none: f.placeholder ? 'not in the Drive yet' : 'no Drive link yet',
+          how: how, none: f.placeholder ? 'not in the Drive yet' : 'no Drive link yet',
           tags: [f.year, f.director, f.lead, words, f.audience].filter(Boolean).join(' '),
           age: f.audience === 'kids' ? 'kids' : '', notes: String(f.notes || '') });
   });
@@ -5668,18 +5700,53 @@ function videosAll_() {
    for; "narrows as you type" was the request. */
 /* AND A PLURAL FINDS ITS SINGULAR: `films`, `documentaries`, `movies` — the folder's own words are
    plurals, and they are what an admin who has the folder in mind will type. */
+const vidForms_ = w => [w].concat(w.length > 3 && /ies$/.test(w) ? [w.slice(0, -3) + 'y'] : [],
+                                  w.length > 3 && /s$/.test(w) ? [w.slice(0, -1)] : []);
+const vidNorm_ = s => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/* ---------- AND THE BEST ONE FIRST, BECAUSE ONLY FOUR ARE SHOWN ---------------------------------------
+   *"you search and you see relevant result underneath. max 4 results show."* (10 Oct.) A list cut at
+   four is only as good as its order: in the order the rows were written, "sun" put a weather report
+   with `sun` in its tags above a clip called Sun. So every row that narrows is RANKED, YouTube's way —
+   by how much of what was typed is the TITLE, since the title is the thing a person has in mind:
+     0  the whole query IS the title             "sun" → Sun
+     1  the title STARTS with the whole query    "sun" → Sunsets explained
+     2  every word STARTS a word of the title    "moon sun" → The sun and moon
+     3  every word is somewhere IN the title     "sun" → Tsunami waves
+     4  found only in the tags, kind or notes    "sun" → a weather report tagged sun
+   TIES: a row that plays in the card, then one that opens elsewhere, then one that cannot open — so
+   four places are not spent on doors when there are things to watch — then the title A to Z, so the
+   same words always give the same four. The plural rule counts at every rank the narrowing does
+   (`gardens` starts the word `garden`), so a word that finds a row also ranks it. */
 function videosFound_(q) {
-  const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
-  const all = videosAll_();
-  if (!words.length) return all;
-  const has = (hay, w) => hay.indexOf(w) !== -1
-    || (w.length > 3 && /ies$/.test(w) && hay.indexOf(w.slice(0, -3) + 'y') !== -1)
-    || (w.length > 3 && /s$/.test(w) && hay.indexOf(w.slice(0, -1)) !== -1);
-  return all.filter(r => {
-    const hay = [r.title, r.tags, r.kind, r.notes, r.age].join(' ').toLowerCase();
-    return words.every(w => has(hay, w));
-  });
+  const whole = vidNorm_(q);
+  const forms = whole.split(' ').filter(Boolean).map(vidForms_);
+  /* AN EMPTY BOX FINDS NOTHING — it is the bar alone (`vidPaint_`), not "everything". */
+  if (!forms.length) return [];
+  const has = (hay, fs) => fs.some(f => hay.indexOf(f) !== -1);
+  const rank = r => {
+    const t = vidNorm_(r.title);
+    if (t === whole) return 0;
+    if (t.indexOf(whole) === 0) return 1;
+    const tw = t.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+    if (forms.every(fs => tw.some(x => fs.some(f => x.indexOf(f) === 0)))) return 2;
+    if (forms.every(fs => has(t, fs))) return 3;
+    return 4;
+  };
+  const door = r => (vidPlays_(r) ? 0 : r.how === 'out' ? 1 : 2);
+  return videosAll_()
+    .filter(r => {
+      const hay = vidNorm_([r.title, r.tags, r.kind, r.notes, r.age].join(' '));
+      return forms.every(fs => has(hay, fs));
+    })
+    .map(r => ({ r, k: rank(r), d: door(r) }))
+    .sort((a, b) => a.k - b.k || a.d - b.d
+      || a.r.title.localeCompare(b.r.title, 'en', { sensitivity: 'base', numeric: true }))
+    .map(x => x.r);
 }
+
+/* WHAT PLAYS IN THE CARD: YouTube, a file, and a film from the films list that is a Drive file. */
+const vidPlays_ = r => !!r && (r.how === 'yt' || r.how === 'file' || r.how === 'drive');
 
 /* ==================================================================================================
    WHAT IT LOOKS LIKE: YOUTUBE'S LAYOUT AND TYPE, IN THIS APP'S BLACK AND GOLD — note 311
@@ -5724,8 +5791,8 @@ function videosFound_(q) {
    A ROW IS A LIST ITEM, NOT A TILE, and this is the one place a reader could wonder, since CLAUDE.md
    says a thing has tiles. A row IS the thing — the picture and the title are what is pressed, the
    way a result is pressed on YouTube — and a tile is an action UNDER a thing. So a row stays the
-   `<button>` (plays here) or the `<a>` (opens Drive) it always was, and Full screen, which is an
-   action on the thing playing, stays a tile.
+   `<button>` (plays here) or the `<a>` (opens a page or a folder elsewhere) it always was, and Full
+   screen, Exit full screen and Open in Drive, which are actions on the thing playing, are tiles.
 ================================================================================================== */
 
 /* EVERY PICTURE THAT FAILED THIS VISIT, by address, so the list repainted on the next keystroke draws
@@ -5786,6 +5853,26 @@ function vidPlayer_(r) {
       title="${esc(r.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
       allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
   }
+  /* ---------- A FILM FROM THE FOLDER, IN DRIVE'S OWN PLAYER -------------------------------------------
+     *"you click on one, then it shows video"* (10 Oct, note 321). `drive.google.com/file/d/<id>/preview`
+     is the player Drive itself draws for a file it is asked to show in a frame — the same page Google
+     Sites embeds — so a film streams at whatever Drive can transcode instead of downloading 3 GB.
+     `how === 'drive'` is set in `videosAll_` for a films-list row whose address is a Drive FILE and
+     nothing else: a Drive address the owner typed into data/videos.json stays a link (note 311 — that
+     list reaches every child, and `drive.google.com` carries Google's cookies), and a series is a
+     folder, which no player opens. BUILT ONLY AFTER THE TAP: nothing calls this with a row that was not
+     chosen, so no device asks Drive for a player it was not asked for. `fullscreen` in `allow` and
+     `allowfullscreen` so Drive's own full-screen button works inside it; `autoplay` for the tap that
+     chose it, though Drive's player waits for its own. The referrer is the origin and no more — the
+     browser's default, said here as the YouTube frame says it. */
+  if (r.how === 'drive' && r.fromFilms) {
+    const id = vidDriveId_(r.url);
+    if (id) {
+      return `<iframe class="vid-player" src="https://drive.google.com/file/d/${esc(encodeURIComponent(id))}/preview"
+        title="${esc(r.title)}" allow="autoplay; fullscreen" allowfullscreen
+        referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    }
+  }
   /* `playsinline`, OR AN IPHONE TAKES EVERY TAP STRAIGHT TO ITS OWN FULL SCREEN and the card never
      holds the video at all — which would make the Full screen tile the only way NOT to be full
      screen. */
@@ -5807,7 +5894,6 @@ function vidNow_(r) {
 
 function vidRow_(r) {
   const flag = vidFlag_(r);
-  const on = VID.at === r.key && (r.how === 'yt' || r.how === 'file');
   /* THE DIM LINE: what the row already said after its kind, which has moved to the badge — a placeholder's
      reason, the year, a series' seasons, the age. Absent when there is nothing to say, rather than an
      empty line. ONE LINE, as YouTube's is: the stylesheet clips it, so the reason a row opens nothing
@@ -5817,8 +5903,8 @@ function vidRow_(r) {
      came at two different pitches (review of 9 Oct). */
   const sub = [r.how === 'none' ? r.none : '', r.year, r.seasons, r.age].filter(Boolean).join(' · ');
   const src = vidThumb_(r);
-  /* `loading="lazy"`: forty pictures for a list somebody may only read the top of, on a column most of
-     which is parked off the glass. `decoding="async"` keeps the decode off the keystroke that drew it. */
+  /* `loading="lazy"`: a picture for a row somebody may scroll past, on a column most of which is parked
+     off the glass. `decoding="async"` keeps the decode off the keystroke that drew it. */
   const img = src && !VID_BROKEN.has(src)
     ? `<img class="vid-img" src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : '';
   /* THE BADGE, IN YOUTUBE'S DURATION SPOT — AND ONLY WHEN IT TELLS THIS ROW FROM ITS NEIGHBOURS. YouTube
@@ -5826,17 +5912,19 @@ function vidRow_(r) {
      says, so it was the same word five times down a student's list. The plain kind is left off; a kind
      that tells a row apart (Film, Series, Documentary) is drawn, and so is the out-arrow on a row that
      leaves. The arrow is `role="img"` WITH A NAME because the words "opens in a new tab" are no longer
-     in the line beside it, and a screen reader would otherwise never hear where the link goes. */
+     in the line beside it, and a screen reader would otherwise never hear where the link goes. A film
+     that plays in the card (`drive`) has no arrow: it does not leave. */
   const word = flag === 'Clip' ? '' : flag;
   const out = r.how === 'out'
     ? `<span class="vid-out" role="img" aria-label="opens in a new tab">${tileIcon_('ext')}</span>` : '';
   const badge = word || out ? `<span class="vid-badge">${esc(word)}${out}</span>` : '';
   /* THE WORDS COME FIRST IN THE MARKUP, AND THE PICTURE IS DRAWN FIRST (`order` on `.vid-th`). So a screen
-     reader hears the title, then its line, then the kind — it was "Playing, Clip, How volcanoes erupt",
-     the picture's labels before what the row is called. `Playing` is aria-hidden as well: `aria-current`
-     on the button is what says it to a screen reader, and it says it once. */
-  const th = `<span class="vid-th">${vidPoster_(r)}${img}${
-    on ? `<span class="vid-playing" aria-hidden="true">${tileIcon_('play')}Playing</span>` : ''}${badge}</span>`;
+     reader hears the title, then its line, then the kind — the picture's labels never before what the
+     row is called.
+     NO "PLAYING" VEIL ANY MORE. A row that is playing was marked on its picture while the list stayed
+     under the player (note 311); the watch view REPLACES the results now (note 321), so the row that is
+     playing is never drawn beside its player and there is nothing to mark. */
+  const th = `<span class="vid-th">${vidPoster_(r)}${img}${badge}</span>`;
   const inner = `<span class="vid-txt"><span class="vid-t">${esc(r.title)}</span>${
     sub ? `<span class="vid-k">${esc(sub)}</span>` : ''}</span>${th}`;
   /* NOTHING TO OPEN, AND IT SAYS SO — not a button that does nothing when pressed. */
@@ -5846,8 +5934,7 @@ function vidRow_(r) {
   if (r.how === 'out') {
     return `<li><a class="vid-row is-out" href="${esc(r.url)}" target="_blank" rel="noopener">${inner}</a></li>`;
   }
-  return `<li><button type="button" class="vid-row${on ? ' on' : ''}" data-do="vid-play"
-      data-k="${esc(r.key)}"${on ? ' aria-current="true"' : ''}>${inner}</button></li>`;
+  return `<li><button type="button" class="vid-row" data-do="vid-play" data-k="${esc(r.key)}">${inner}</button></li>`;
 }
 
 /* A PICTURE THAT FAILED IS TAKEN AWAY, AND THE POSTER UNDER IT IS WHAT IS LEFT. One listener for every
@@ -5875,115 +5962,174 @@ document.addEventListener('load', e => {
   if (im.naturalWidth > 0 && im.naturalWidth <= 120) vidGone_(im);
 }, true);
 
-/* THE LIST AND THE PLAYER ARE REPAINTED; THE BOX IS NOT. Rewriting the `<input>` on every keystroke
-   would drop the keyboard on a phone after one letter — the flinch the note over `tile_`'s "filling
-   the shape" records. So the box is built once per copy and only its siblings change. */
-function vidPaint_(only) {
-  const boxes = document.querySelectorAll('.vid-box');
-  if (!boxes.length) return;
+/* EVERY PART OF THE CARD THAT IS WRITTEN WHOLE, AND WHAT WAS LAST WRITTEN INTO IT — so a repaint that
+   would write the same markup writes nothing. The player has its own rule (`stage.dataset.k`); this is
+   for the title, the tiles, the results and the admin's row, so a picture is not fetched again and a
+   tile under a finger is not replaced by its own copy. */
+const VID_DRAWN = new WeakMap();
+const vidSet_ = (el, html) => {
+  if (!el || VID_DRAWN.get(el) === html) return;
+  el.innerHTML = html;
+  VID_DRAWN.set(el, html);
+};
+
+/* WHICH COPY OF THE CARD A BOX IS: the column it is drawn on. */
+const vidCopy_ = box => ((box && box.closest && box.closest('.screen')) || {}).id || '';
+
+/* ---------- THE BAR STAYS WHERE IT IS WHILE A SEARCH IS TYPED -------------------------------------------
+   THE CARD MAY GROW UNDER THE FINGER, NEVER SHRINK. The column holds a card somebody is using by its top
+   (`HOLD_AT`, shell.js) and lifts it only as far as it must to stay on the glass — so when the first
+   letter took the card from the bar alone to four results, the column lifted it, and when the results
+   narrowed to one the card shrank and the column put it straight back down. Measured by the review of
+   10 Oct, the bar's top keystroke by keystroke for "sunset" and back: 311 → 183 → 183 → 183 → 183 → 311
+   → 311 at 320x568 for an admin, 128px both ways in the middle of a word; 54px for a visitor at 320,
+   88px at 844x390. YouTube's bar stays where it is, and the old card never did it either: it started
+   tall (the whole list) and only got shorter as you typed.
+   SO WHILE RESULTS ARE ON A COPY, THE RESULTS ARE HELD AT THE TALLEST THEY HAVE BEEN IN THIS SEARCH
+   (`minHeight` on `.vid-results`, in its own px — `offsetHeight` is not scaled by `paneReach_`'s zoom,
+   measured in Chromium 141). The room a narrowed search leaves is left under the results, where YouTube
+   leaves it, and an admin's Sync row stays at the foot of the card rather than riding up under one row.
+   A search that starts by leaving a film (an edit over the watch view) is given the height the film had
+   (`before`, the box read before the paint), so that first letter does not drop the bar either. LET GO
+   when the search ends: the box emptied (the bar alone again), a result tapped (the watch view is a new
+   page, as YouTube's is), or the column left (`videosStop_`). Pressing Search on the keyboard does NOT
+   end it — the results stay as they are. The box's own `minHeight` is the app's full screen's (`vidFullOn_`)
+   and is not touched here. */
+const vidHold_ = (box, view, was, before) => {
+  const res = box.querySelector('.vid-results');
+  if (!res) return;
+  if (view === 'results' || view === 'wait') {
+    /* `res.offsetHeight` already counts the floor it was given, so this only ever rises. */
+    const h = res.offsetHeight + Math.max(0, before - box.offsetHeight);
+    if (h > 0) res.style.minHeight = h + 'px';
+  } else if (was === 'results' || was === 'wait') res.style.minHeight = '';
+};
+
+/* THE RESULTS, THE PLAYER AND THE TILES ARE REPAINTED; THE BOX IS NOT. Rewriting the `<input>` on every
+   keystroke would drop the keyboard on a phone after one letter — the flinch the note over `tile_`'s
+   "filling the shape" records. So the box is built once per copy and only its siblings change.
+
+   ---------- WHICH OF THE FOUR THINGS THE CARD IS (note 321) ------------------------------------------
+   *"at first all you see is a search bare, then you search and you see relevant result underneath.
+   max 4 results show. you click on one, then it shows video."* — the owner, 10 Oct.
+     IDLE: nothing typed (or only spaces) and nothing playing. THE BAR ALONE, for everybody — the admin
+       too: no "12 videos" line, no list, no Sync row and no empty player. The count went with the list
+       it counted; a number over nothing is a sentence about nothing.
+     RESULTS: something typed. At most four rows, ranked (`videosFound_`), and under them ONE faint line
+       when there are more — "8 more — keep typing to narrow", a count rather than a silence — or
+       "Nothing matches that." when nothing does.
+     WATCH: a result tapped. The player, its title and line, and the Full screen tile, IN PLACE OF the
+       results, with the bar still on top holding what was typed. ANY EDIT of the box leaves it (the
+       `input` listener below empties the player) and the results for the new words come back. ONLY IN
+       THE COPY THAT WAS TAPPED (`VID.in`): a copy on another column (Saved) shows the results for the
+       same words with an empty stage, so one tap is one player.
+     STILL COMING: something typed before the lists have landed. THE BAR IS NEVER VEILED — it is drawn
+       and usable from the first paint, so a fast thumb types into it — and the ONE loader
+       (`loading_()`, shell.js) stands where the results will be until they can be ranked. It used to
+       veil the whole card (`aria-busy` over the box), which was right while the card was a list, and
+       wrong for a card whose first job is to be typed into.
+   BOTH SOURCES: the owner's list is `data/videos.json` and an admin's films come with the payload, so
+   an empty list with either still out is a list on its way — measured on 9 Oct with the payload held,
+   an admin's card said "No videos listed yet" over films that landed fifteen seconds later. "No videos
+   listed yet" is a fact once both have answered, and keeps its words. */
+function vidPaint_() {
   const all = videosAll_();
-  const found = videosFound_(VID.q);
-  const playing = all.find(r => r.key === VID.at) || null;
-  /* A COUNT RATHER THAN A SILENCE: "3 of 12 videos" says the box searched something, where an
-     empty list under a search box looks exactly like a search that never ran. */
-  /* ---------- STILL COMING IS THE ONE LOADER, OVER THE CARD IT WILL FILL ------------------------
-     It was "Looking for videos…" in the count's faint line, under a search box with nothing to
-     search, over an empty list — a wait of its own. The owner, 9 Oct: *"They should all have a
-     simplistic simple loading thing while it's info or whatever is loading."* So until the list is in
-     the box is drawn whole and veiled by `loading_()` (shell.js): the search box and the count line —
-     held at one line by a space, so it is the height it will be — out of sight under the dots, and
-     nothing can be typed into a search with nothing behind it.
-     THE LIST IS NOT HELD, AND THE CARD GROWS WHEN IT LANDS. This said the card was "already the size
-     it is about to be", measured by `check/ui.js` — and found by review, that measurement could not
-     fail: the state released into an empty list ("No videos listed yet.", the same one line), so it
-     passed on a card that, with three real rows, grows about 200px (171→369 at 390, signed out). How
-     many rows are coming is not known until they come — none for a stranger today, every film for an
-     admin — so any room held for them is a guess that jumps the other way when it is wrong, which is
-     the full-cell frame's fault (style.css, "A WHOLE PAGE WAITING"). So the list is drawn where it
-     lands and the card is the size of what came, the rule for a list in `check/states.js`; the state
-     now releases three real rows and `ui.js` holds it to that: the veiled part keeps its room, the
-     card never shrinks, and the rows arrive. "No videos listed yet" is a fact once both sources have
-     answered, and keeps its words.
-     BOTH SOURCES: the owner's list is `data/videos.json` and an admin's films come with the payload,
-     so an empty list with either still out is a list on its way — measured on 9 Oct with the payload
-     held, an admin's card said "No videos listed yet" over films that landed fifteen seconds later. */
+  const playing = VID.at ? all.find(r => r.key === VID.at && vidPlays_(r)) || null : null;
+  /* A ROW THAT HAS GONE TAKES ITS PLAYER WITH IT — an admin's film after Sign out (me.js empties
+     `DATA.films`), so the next paint is not a watch view of a film nobody is listed for. */
+  if (!playing) { VID.at = ''; VID.in = ''; }
+  /* AND THE APP'S FULL SCREEN ENDS WITH WHAT IT WAS SHOWING — leaving the column, an edit, a film that
+     went, or the card redrawn under it (`vidFullOn_` says why each matters). */
+  if (VID_FS.watch && (!playing || !VID_FS.watch.isConnected)) vidFullOff_();
+  const boxes = [...document.querySelectorAll('.vid-box')];
+  if (!boxes.length) return;
+  /* ONE PLAYER, IN THE COPY THAT WAS TAPPED (`VID.in`). A film started by something other than a tap —
+     a check's state setting `VID.at` — is given the copy on the column in front, or the first, once,
+     so a later paint does not move it to another copy and restart it. A tapped copy that is not drawn
+     at this moment shows nothing anywhere rather than a player in a copy nobody tapped. */
+  if (playing && !VID.in) {
+    const front = typeof AT !== 'undefined' ? boxes.find(b => vidCopy_(b) === 's-' + AT) : null;
+    VID.in = vidCopy_(front || boxes[0]) || 'card';
+  }
+  const host = playing ? boxes.find(b => (vidCopy_(b) || 'card') === VID.in) || null : null;
   const waiting = !all.length && (VIDEOS_LIST === null || (typeof awaiting_ === 'function' && awaiting_()));
-  const said = waiting ? '\u00a0'
-    : !all.length ? 'No videos listed yet.'
-    : found.length === all.length ? all.length + (all.length === 1 ? ' video' : ' videos')
-    : found.length + ' of ' + all.length + ' videos';
+  const typed = vidNorm_(VID.q) !== '';
+  /* WHAT A COPY THAT IS NOT PLAYING SHOWS — the one that is shows the watch view instead. */
+  const search = !typed ? 'idle' : waiting ? 'wait' : 'results';
+  const found = search === 'results' ? videosFound_(VID.q) : [];
+  const results = search === 'wait' ? loading_()
+    : search !== 'results' ? ''
+    : !all.length ? '<p class="faint vid-none">No videos listed yet.</p>'
+    : !found.length ? '<p class="faint vid-none">Nothing matches that.</p>'
+    : `<ul class="vid-list">${found.slice(0, VID_MAX).map(vidRow_).join('')}</ul>`
+      + (found.length > VID_MAX
+        ? `<p class="faint vid-more">${found.length - VID_MAX} more — keep typing to narrow</p>` : '');
+  /* ---------- THE ADMIN'S ROW: SYNC FROM DRIVE, AND WHEN IT LAST RAN ----------------------------------
+     ONLY FOR AN ADMIN, and an EMPTY ELEMENT for everybody else — no tile, no sentence, no word that says
+     films exist. `isAdmin()` decides what is DRAWN; what is SENT is the backend's, and a student's
+     payload has no film and no stamp in it to draw from. Silver, like every admin control (tiles.js).
+     The sentence beside the tile is the tile's note made visible: a 44px plate has no room for "synced
+     an hour ago", and that is the line the admin is looking for.
+     AND ONLY UNDER A SEARCH'S ANSWER (note 321): at the foot of the card while results or "Nothing
+     matches that." are on it, which is when an admin is looking for a film and may want the folder
+     read again — never in the idle bar, never under a player. The sync that runs by itself once a day
+     (`filmsSyncDue_`) does not need the row drawn, and is unchanged. */
+  const mine = search === 'results' && typeof isAdmin === 'function' && isAdmin();
+  const said = mine ? filmsSyncSaid_() : '';
+  const admin = mine ? `<div class="tile-row">${tile_({ icon: 'sync', label: 'Sync from Drive', note: said,
+      act: 'vid-sync', tone: 'admin', cls: FILMSYNC.asking ? 'is-busy' : '', off: !!FILMSYNC.asking })}
+    <span class="vid-synced">${esc(said)}</span></div>` : '';
   boxes.forEach(box => {
     if (!box.querySelector('.vid-q')) {
       /* THE PILL IS A `<label>` ROUND THE BOX, so a tap on the magnifier is a tap on the box. The
          placeholder is YouTube's one word; the box's NAME is still "Search videos", for a screen
          reader, which cannot see what the card is called above it. `type="search"` keeps the phone's
-         keyboard saying Search and the clearing ✕ a browser draws in one, which YouTube's pill has. */
+         keyboard saying Search and the clearing ✕ a browser draws in one, which YouTube's pill has.
+         THE RESULTS UNDER THE PLAYER'S PLACE AND THE ADMIN'S ROW UNDER BOTH: the card reads top to
+         bottom as the owner described it — the bar, then what it found. */
       box.innerHTML = `<label class="vid-search">${tileIcon_('search')}<input class="vid-q" type="search" placeholder="Search"
         autocomplete="off" enterkeyhint="search" aria-label="Search videos"></label>
       <div class="vid-watch">
         <div class="vid-stage"></div>
         <div class="vid-under"><div class="vid-now"></div><div class="tile-row vid-acts"></div></div>
       </div>
-      <div class="vid-admin"></div>
-      <p class="faint vid-said"></p>
-      <ul class="vid-list"></ul>`;
+      <div class="vid-results"></div>
+      <div class="vid-admin"></div>`;
+      box.dataset.view = 'idle';
     }
-    /* ---------- THE ADMIN'S ROW: SYNC FROM DRIVE, AND WHEN IT LAST RAN ----------------------------------
-       ONLY FOR AN ADMIN, and an EMPTY ELEMENT for everybody else — no tile, no sentence, no word that says
-       films exist. `isAdmin()` decides what is DRAWN; what is SENT is the backend's, and a student's
-       payload has no film and no stamp in it to draw from. Silver, like every admin control (tiles.js).
-       The sentence beside the tile is the tile's note made visible: a 44px plate has no room for "synced
-       an hour ago", and that is the line the admin is looking for. */
-    const adm = box.querySelector('.vid-admin');
-    if (adm) {
-      const mine = typeof isAdmin === 'function' && isAdmin();
-      const said = mine ? filmsSyncSaid_() : '';
-      const html = mine ? `<div class="tile-row">${tile_({ icon: 'sync', label: 'Sync from Drive', note: said,
-          act: 'vid-sync', tone: 'admin', cls: FILMSYNC.asking ? 'is-busy' : '', off: !!FILMSYNC.asking })}
-        <span class="vid-synced">${esc(said)}</span></div>` : '';
-      if (adm.dataset.html !== html) { adm.innerHTML = html; adm.dataset.html = html; }
-    }
+    const here = box === host;
+    const view = here ? 'watch' : search;
+    const was = box.dataset.view || 'idle';
+    /* THE HEIGHT A FILM HAD, read before anything below changes it — see `vidHold_`. */
+    const before = (view === 'results' || view === 'wait') && was === 'watch' ? box.offsetHeight : 0;
     const q = box.querySelector('.vid-q');
     if (q && document.activeElement !== q && q.value !== VID.q) q.value = VID.q;
-    if (only !== 'list') {
-      const stage = box.querySelector('.vid-stage');
-      const want = playing ? playing.key : '';
-      /* ONLY WHEN IT CHANGED: rebuilding the player on a keystroke would restart the video under
-         somebody who is searching for the next one while this one plays. */
-      if (stage && (stage.dataset.k || '') !== want) {
-        stage.innerHTML = vidPlayer_(playing);
-        stage.dataset.k = want;
-        stage.classList.toggle('on', !!playing);
-      }
-      /* THE WATCH BLOCK IS THERE ONLY WHILE SOMETHING PLAYS — the player, its title and line, and the
-         Full screen tile. No empty stage and no tile with nothing to make full screen: the list is
-         what the card is, until a row is pressed. The title and the tile are written only when they
-         change, the admin row's rule, so a keystroke repaints neither. */
-      const watch = box.querySelector('.vid-watch');
-      if (watch) watch.classList.toggle('on', !!playing);
-      const now = box.querySelector('.vid-now');
-      const nowHtml = vidNow_(playing);
-      if (now && now.dataset.html !== nowHtml) { now.innerHTML = nowHtml; now.dataset.html = nowHtml; }
-      const acts = box.querySelector('.vid-acts');
-      const actsHtml = playing ? tile_({ icon: 'full', label: 'Full screen', act: 'vid-full' }) : '';
-      if (acts && acts.dataset.html !== actsHtml) { acts.innerHTML = actsHtml; acts.dataset.html = actsHtml; }
+    const stage = box.querySelector('.vid-stage');
+    const want = here ? playing.key : '';
+    /* ONLY WHEN IT CHANGED: rebuilding the player for a repaint that changed nothing about it — the
+       payload landing, a sync answering — would restart the film under somebody watching it. */
+    if (stage && (stage.dataset.k || '') !== want) {
+      stage.innerHTML = vidPlayer_(here ? playing : null);
+      stage.dataset.k = want;
+      stage.classList.toggle('on', here);
     }
-    box.querySelector('.vid-said').textContent = said;
-    /* THE VEIL GOES ON ONCE AND COMES OFF ONCE: a repaint while still waiting finds it already there,
-       and the paint that has the list takes it off with `loaded_`. */
-    if (waiting && typeof loading_ === 'function') {
-      if (box.getAttribute('aria-busy') !== 'true') {
-        box.setAttribute('aria-busy', 'true');
-        box.insertAdjacentHTML('beforeend', loading_());
-      }
-    } else if (typeof loaded_ === 'function') loaded_(box);
-    /* FORTY ROWS, AND THEN A SENTENCE SAYING THERE ARE MORE — the count above said "60 videos" over a
-       list that stopped at forty with nothing to say the rest existed. */
-    box.querySelector('.vid-list').innerHTML = waiting ? ''
-      : found.length
-      ? found.slice(0, 40).map(vidRow_).join('')
-        + (found.length > 40 ? `<li class="faint vid-none">${found.length - 40} more — type to narrow the list.</li>` : '')
-      : (all.length ? '<li class="faint vid-none">Nothing matches that.</li>' : '');
+    /* THE WATCH BLOCK IS THERE ONLY WHILE SOMETHING PLAYS IN THIS COPY — the player, its title and line,
+       and the tiles. No empty stage and no tile with nothing to make full screen. */
+    const watch = box.querySelector('.vid-watch');
+    if (watch) watch.classList.toggle('on', here);
+    vidSet_(box.querySelector('.vid-now'), vidNow_(here ? playing : null));
+    /* FULL SCREEN, AND FOR A FILM FROM THE FOLDER, OPEN IN DRIVE BESIDE IT — the way out when Drive will
+       not play a file in a frame (a big `.mkv`, the folder's sharing changed): the door the row itself
+       was until it played here. While this copy is the app's own full screen the one tile is Exit. */
+    const full = !!VID_FS.watch && VID_FS.watch === watch;
+    vidSet_(box.querySelector('.vid-acts'), !here ? ''
+      : full ? tile_({ icon: 'unfull', label: 'Exit full screen', act: 'vid-unfull' })
+      : tile_({ icon: 'full', label: 'Full screen', act: 'vid-full' })
+        + (playing.how === 'drive' ? tile_({ icon: 'ext', label: 'Open in Drive', note: 'in a new tab', href: playing.url }) : ''));
+    vidSet_(box.querySelector('.vid-results'), here ? '' : results);
+    vidSet_(box.querySelector('.vid-admin'), here ? '' : admin);
+    vidHold_(box, view, was, before);
+    box.dataset.view = view;
   });
 }
 
@@ -6102,42 +6248,172 @@ on('vid-sync', () => {
    so the player is emptied, and a tap on the row starts it again. */
 function videosStop_() {
   VID.at = '';
+  vidFullOff_();
+  /* AND THE SEARCH'S HELD HEIGHT GOES WITH THE FINGER THAT HELD IT (`vidHold_`): the column lets go of
+     the card's top on leaving (`HOLD_AT`), so coming back centres a card of its own height, not one
+     still as tall as the longest answer it gave. */
+  document.querySelectorAll('.vid-box .vid-results').forEach(r => { r.style.minHeight = ''; });
   if (document.querySelector('.vid-box')) vidPaint_();
 }
 
+/* ANY EDIT OF THE BOX LEAVES THE WATCH VIEW (note 321): the player is EMPTIED — an iframe cannot be
+   paused from outside it, so emptied is the only stopped there is — and the results for the new words
+   are drawn where it was. Clearing the box is the bar alone again. Typing a second search over a film
+   that keeps talking under the results was the alternative, and YouTube does not do that either: a
+   new search is a new page. */
 document.addEventListener('input', e => {
   const el = e.target;
   if (!el || !el.classList || !el.classList.contains('vid-q')) return;
   VID.q = String(el.value || '');
-  vidPaint_('list');
-});
-
-on('vid-play', el => {
-  VID.at = String(el.dataset.k || '');
+  VID.at = '';
   vidPaint_();
 });
 
-/* ---------- FULL SCREEN, AND THE IPHONE IS THE ONE THAT DOES IT DIFFERENTLY -------------------------
-   `requestFullscreen` on the player itself, so what fills the screen is the picture and not the
-   card with a search box round it. Older Safari wants `webkitRequestFullscreen`; Safari on an iPhone
-   has no element full screen at all and offers ONLY `webkitEnterFullscreen`, which exists on a
-   `<video>` and nowhere else — so a YouTube embed on an iPhone goes full screen from its own button
-   in the player, and this says so rather than doing nothing. */
+/* PRESSING SEARCH ON THE KEYBOARD PUTS THE KEYBOARD AWAY AND LEAVES THE RESULTS WHERE THEY ARE. The box
+   says `enterkeyhint="search"`, so a phone shows a Search key — and nothing answered it: the focus
+   stayed in the box and the keyboard stayed up, over exactly the place the four results are drawn (y
+   480 to 768 at 390x844, review of 10 Oct). The results are already there, as you typed, so there is
+   nothing to search for; what the key is for is letting go, which is what it does on YouTube. Not in a
+   `<form>`, so there is no submit to stop; `preventDefault` keeps a browser from doing anything else
+   with the key. The held height (`vidHold_`) stays: the results do not move when the keyboard goes. */
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (e.key !== 'Enter' || e.isComposing || !el || !el.classList || !el.classList.contains('vid-q')) return;
+  e.preventDefault();
+  el.blur();
+});
+
+/* A TAP ON A RESULT PLAYS IT IN THE CARD, in place of the results — IN THAT COPY OF THE CARD (`VID.in`)
+   and no other. AND THE PHONE'S KEYBOARD IS PUT AWAY: a tap on a button does not take the focus from the
+   box on an iPhone, so the keyboard stayed up over the player it had just asked for. `blur` is the box
+   letting go, the way pressing Search does (the listener above). */
+on('vid-play', el => {
+  VID.at = String(el.dataset.k || '');
+  VID.in = vidCopy_(el) || 'card';
+  const box = el.closest('.vid-box');
+  const q = box && box.querySelector('.vid-q');
+  if (q && document.activeElement === q) q.blur();
+  vidPaint_();
+});
+
+/* ==================================================================================================
+   FULL SCREEN — *"you can click fullscreen to make it fullscreen"* (10 Oct, note 321)
+
+   THE BROWSER'S OWN FIRST: `requestFullscreen` on the player itself, so what fills the screen is the
+   picture and not the card with a search box round it (older Safari: `webkitRequestFullscreen`). A
+   `<video>` on an iPhone has only `webkitEnterFullscreen`, the phone's own player, which is better than
+   anything drawn here, so it gets that.
+
+   AND WHERE THERE IS NO FULL SCREEN FOR A FRAME AT ALL — Safari on an iPhone, which offers element full
+   screen to nothing but a `<video>`, and a YouTube or Drive player is a frame — THE APP FILLS THE SCREEN
+   ITSELF. The tile said "Use the full screen button in the player." there, which on the phone most of
+   the children hold was the tile not working.
+
+   TWO THINGS STOOD IN THE WAY, AND BOTH ARE STRUCTURAL:
+     · A FIXED BOX IS NOT FIXED TO THE SCREEN IN HERE. Measured in Chromium on 10 Oct, the card's
+       ancestors hold four containing blocks for `position: fixed` — the column's `transform` and
+       `translate` (`placeCells`), the page's `contain: layout`, the pane's `contain: content` (which
+       clips as well) and `#screen`'s `container-type` — so "fixed, inset 0" covered the card, not the
+       glass. Lifting them for the length of the film would move every column and pane under it, and
+       `check/ui.js` would call the card off the screen.
+     · MOVING THE PLAYER TO `<body>` WOULD RELOAD IT. An iframe that changes parent loads again from
+       the start; the film would restart at the moment it was asked to grow.
+   SO THE PLAYER'S BLOCK GOES INTO THE TOP LAYER, WHERE IT IS: `popover="manual"` and `showPopover()`.
+   The top layer is the browser's own layer over the page — what a modal dialog uses — and no ancestor's
+   transform, containment, overflow or z-index reaches an element in it, while the element stays exactly
+   where it is in the document, so the frame is not touched and does not reload. Proved in Chromium at
+   390x844, 844x390 and 320x568, each turned the other way while on, with the Fullscreen API deleted —
+   and kept proved by `check/videos.js` ('full'), which a scratch script used to be the only proof of:
+   the block is the viewport, the film is the width (or the height) of the glass, the Exit tile is 44px,
+   and the frame loaded once. `manual`, so nothing but this file closes it — not a tap on the black, not
+   Escape on its own (Escape is handled below, once, here).
+   WHERE THERE IS NO TOP LAYER EITHER (Safari before 17, iOS 16 and older), a `<video>` still takes the
+   phone's own full screen and a frame still says to use the player's own button — the one case left.
+
+   WHILE IT IS ON: `data-noswipe`, so a finger on the black round the film is not a swipe that turns the
+   column out from under it (overworld.js); the arrow keys are kept from the grid for the same reason,
+   and Escape leaves; the card underneath keeps its height (`minHeight`), so nothing on the column moves
+   when the block leaves the flow and nothing moves when it comes back. The ONE inherited thing the top
+   layer does not shed is CSS `zoom` — `paneReach_` draws a tall card smaller with it, and a top-layer
+   block inherits it from the card it sits in — so the card is held at zoom 1 while its film is full
+   screen (style.css, beside `.vid-watch.is-fs`). */
+const VID_FS = { watch: null, box: null };
+
+function vidFullOn_(box) {
+  const watch = box && box.querySelector('.vid-watch.on');
+  if (!watch || VID_FS.watch || typeof watch.showPopover !== 'function') return false;
+  const title = ((box.querySelector('.vid-now-t') || {}).textContent || '').trim();
+  VID_FS.watch = watch;
+  VID_FS.box = box;
+  box.style.minHeight = box.offsetHeight + 'px';
+  watch.classList.add('is-fs');
+  watch.setAttribute('data-noswipe', '');
+  /* A DIALOG FOR AS LONG AS IT COVERS EVERYTHING, so a screen reader is told it is in one; an ordinary
+     part of the card again the moment it does not. */
+  watch.setAttribute('role', 'dialog');
+  watch.setAttribute('aria-modal', 'true');
+  watch.setAttribute('aria-label', title ? title + ', full screen' : 'Full screen');
+  watch.setAttribute('popover', 'manual');
+  try { watch.showPopover(); } catch (e) { vidFullOff_(); return false; }
+  vidPaint_();
+  const exit = watch.querySelector('[data-do="vid-unfull"]');
+  if (exit) { try { exit.focus({ preventScroll: true }); } catch (e) {} }
+  return true;
+}
+
+/* AND OFF AGAIN — by its tile, by Escape, by leaving the column, by an edit, or because the card it was
+   in was drawn again. Safe to call when it is not on. */
+function vidFullOff_() {
+  const watch = VID_FS.watch, box = VID_FS.box;
+  if (!watch) return;
+  VID_FS.watch = null;
+  VID_FS.box = null;
+  try { watch.hidePopover(); } catch (e) {}
+  ['popover', 'data-noswipe', 'role', 'aria-modal', 'aria-label'].forEach(a => watch.removeAttribute(a));
+  watch.classList.remove('is-fs');
+  if (box) box.style.minHeight = '';
+  vidPaint_();
+  const back = box && box.isConnected && box.querySelector('.vid-acts [data-do="vid-full"]');
+  if (back) { try { back.focus({ preventScroll: true }); } catch (e) {} }
+}
+
 on('vid-full', el => {
   const box = el.closest('.vid-box');
   const p = box && box.querySelector('.vid-stage .vid-player');
   if (!p) { toast('Pick a video first.'); return; }
-  const iphone = () => {
+  const own = () => {
+    if (vidFullOn_(box)) return;
     if (p.webkitEnterFullscreen) { try { p.webkitEnterFullscreen(); return; } catch (e) {} }
     toast('Use the full screen button in the player.');
   };
-  try {
-    if (p.requestFullscreen) {
-      const r = p.requestFullscreen();
-      if (r && r.catch) r.catch(iphone);
+  const ask = p.requestFullscreen || p.webkitRequestFullscreen;
+  if (typeof ask === 'function') {
+    try {
+      const r = ask.call(p);
+      /* REFUSED IS NOT THE END OF IT: a browser that has the API and will not use it here (a frame it
+         will not enlarge, a gesture it did not count) gets the app's own. */
+      if (r && typeof r.catch === 'function') r.catch(own);
       return;
-    }
-    if (p.webkitRequestFullscreen) { p.webkitRequestFullscreen(); return; }
-  } catch (e) {}
-  iphone();
+    } catch (e) {}
+  }
+  if (p.tagName === 'VIDEO' && p.webkitEnterFullscreen) { try { p.webkitEnterFullscreen(); return; } catch (e) {} }
+  own();
 });
+
+on('vid-unfull', () => vidFullOff_());
+
+/* ESCAPE LEAVES THE APP'S FULL SCREEN, AND THE ARROWS DO NOT TURN THE COLUMN UNDER IT. In the capture
+   phase so the grid's own arrow keys (shell.js) never hear them while the film covers the glass; only
+   while it is on. A block that has left the document (the card drawn again) lets go here too. */
+document.addEventListener('keydown', e => {
+  const w = VID_FS.watch;
+  if (!w) return;
+  if (!w.isConnected) { vidFullOff_(); return; }
+  if (e.key === 'Escape' || e.key === 'Esc') {
+    e.preventDefault();
+    e.stopPropagation();
+    vidFullOff_();
+    return;
+  }
+  if (/^Arrow/.test(e.key || '')) e.stopPropagation();
+}, true);
