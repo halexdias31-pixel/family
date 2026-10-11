@@ -334,17 +334,28 @@ async function main() {
      The splash is put back as the markup has it first — `is-still`, nothing drawn — so each pick
      starts where a fresh page does. */
   const sp = w.document.getElementById('splash');
+  /* THE SPLASH'S OWN CHILDREN, AS THE MARKUP HAS THEM — so "what did the picker put in" is every node
+     that is not one of these, whatever it is. It was `:scope > [class|="an"]`, an `an-` root and
+     nothing else, and that was the picker's own blind spot copied into its check: a refused record
+     of `<p>` markup was left in the splash above the still name, and the case written for exactly
+     that record passed, because the only thing it looked for was the one shape the record was not. */
+  const own = new Set(sp.childNodes);
+  const added = () => [...sp.childNodes].filter(n => !own.has(n));
   const resetSplash = () => {
     sp.className = 'is-still';
-    [...sp.querySelectorAll(':scope > [class|="an"]')].forEach(e => e.remove());
+    added().forEach(n => n.remove());
     [...w.document.head.querySelectorAll('style[data-anim]')].forEach(e => e.remove());
   };
+  const show = n => (n.nodeType === 1 ? n.outerHTML : n.nodeType === 3 ? JSON.stringify(n.nodeValue) : '<!--' + n.nodeValue + '-->').slice(0, 80);
   const run = r => {
     const was = w.Math.random;
     w.Math.random = () => r;
     try { w.eval(picker); } finally { w.Math.random = was; }
     const root = sp.querySelector(':scope > [class|="an"]');
-    return { cls: sp.className, root: root ? root.outerHTML : null, rootCls: root ? root.getAttribute('class') : '' };
+    /* AND ANYTHING ELSE IT LEFT: every node it added but the one drawing it drew, and whitespace
+       either side of that drawing (a row may end in a newline). With nothing drawn, any node at all. */
+    const stray = added().filter(n => !(sp.className === 'is-an' && n === root) && !(sp.className === 'is-an' && n.nodeType === 3 && !/\S/.test(n.nodeValue))).map(show);
+    return { cls: sp.className, root: root ? root.outerHTML : null, rootCls: root ? root.getAttribute('class') : '', stray };
   };
   const pick = id => {
     resetSplash();
@@ -352,14 +363,18 @@ async function main() {
     LS.setItem('splashOff', JSON.stringify(ids.filter(k => k !== id).map(k => 'is-' + k)));
     const got = run(0);
     const st = w.document.head.querySelector('style[data-anim="' + id + '"]');
-    return { cls: got.cls, root: got.root, css: st ? st.textContent : null, sig: !!(got.root && /class="sp-sig"/.test(got.root)) };
+    return { cls: got.cls, root: got.root, css: st ? st.textContent : null, sig: !!(got.root && /class="sp-sig"/.test(got.root)), stray: got.stray };
   };
-  /* WHAT THE STILL ONE IS: the markup's own `is-still`, nothing drawn in front of the picker, and no
-     drawing's stylesheet left in the head. */
+  /* WHAT THE STILL ONE IS: the markup's own `is-still`, nothing the picker put in left in the splash —
+     not a drawing, and not anything else in front of the still name — and no drawing's stylesheet
+     left in the head. */
   const isStill = (what, got) => {
     if (got.cls !== 'is-still') fail.push(what + ': the splash is "' + got.cls + '", not the still name and the loader (is-still)');
     if (got.root) fail.push(what + ': a drawing was left in the splash — ' + got.root.slice(0, 60));
+    (got.stray || []).filter(s => !got.root || s !== got.root.slice(0, 80)).forEach(s => fail.push(what + ': left in the splash, in front of the still one — ' + s));
   };
+  /* AND A DRAWING IS THE ONLY THING DRAWN: nothing it brought with it beside its root. */
+  const onlyDrawing = (what, got) => (got.stray || []).forEach(s => fail.push(what + ': drawn beside the drawing, in the splash — ' + s));
 
   /* ---------- 1. THE REAL BOOKS: EVERY KEPT DRAWING IS ITS ROW ---------------------------------------- */
   LS.clear();
@@ -381,6 +396,7 @@ async function main() {
         const got = pick(r.anim);
         if (got.cls !== 'is-an') fail.push(r.anim + ': the picker, with every other splash retired, drew "' + got.cls + '"');
         else {
+          onlyDrawing(r.anim, got);
           if (got.root !== parsed(r.html)) fail.push(r.anim + ': the splash drew a root that is not the row\'s markup plus the signature');
           if (got.css !== r.css) fail.push(r.anim + ': the splash\'s <style> is not the row\'s CSS');
         }
@@ -415,7 +431,7 @@ async function main() {
         resetSplash();
         const got = run((k + 0.5) / N);
         const id = String(got.rootCls || '').split(/\s+/)[0].replace(/^an-/, '');
-        if (got.cls !== 'is-an' || ids.indexOf(id) < 0) other++; else seen.add(id);
+        if (got.cls !== 'is-an' || ids.indexOf(id) < 0 || got.stray.length) other++; else seen.add(id);
       }
       if (other) fail.push(other + ' of ' + N + ' answers of the coin drew something that is not one of the books\' drawings, with the real books kept');
       if (seen.size < Math.min(ids.length, 20)) fail.push(N + ' answers of the coin drew only ' + seen.size + ' of the ' + ids.length + ' kept drawings — the coin was NOT exercised');
@@ -423,6 +439,7 @@ async function main() {
       resetSplash();
       const all = run(0.3);
       if (all.cls !== 'is-an' || !all.root) fail.push('with every drawing retired in the sheet the splash is "' + all.cls + '" — a device that has the books must still draw one of them');
+      else onlyDrawing('with every drawing retired', all);
       said.push('a first visit is the still name and the loader whatever the coin says; with the real books kept, ' + N + ' answers of the coin drew ' + seen.size + ' different drawings and nothing else; with all ' + ids.length + ' retired, one is still drawn');
     }
     resetSplash();
@@ -494,6 +511,12 @@ async function main() {
     sync(withRows([A2, B]));
     const good = pick('zzb');
     if (good.cls !== 'is-an' || good.root !== parsed(B.html) || good.css !== B.css) fail.push('the picker did not draw a good kept copy as its row: ' + JSON.stringify(good).slice(0, 160));
+    else onlyDrawing('a good kept copy', good);
+    /* AND ONE THAT ENDS IN A NEWLINE IS STILL A GOOD ONE — `zza`, whose row does: whitespace either
+       side of the root is not something beside it, and a picker that refused it would refuse a row. */
+    LS.clear(); sync(withRows([A2, B]));
+    const nl = pick('zza');
+    if (nl.cls !== 'is-an' || !nl.root) fail.push('a kept copy whose markup ends in a newline was not drawn (' + nl.cls + ') — whitespace beside the root is not a second thing'); else onlyDrawing('a kept copy ending in a newline', nl);
     /* A COPY THAT FAILS ITS CHECK IS THE STILL ONE — "a kept copy that fails its check: the splash is
        still and quiet". It fell back to an inline splash until those were deleted (docs/history/322). */
     const bad = (what, spoil, dropsIndex) => {
@@ -514,7 +537,14 @@ async function main() {
     bad('a record with no markup', () => { const r = rec('zzb'); delete r.html; LS.setItem('splashAnim:zzb', JSON.stringify(r)); }, true);
     bad('a record whose markup is empty, its hash and index matching', () => respoil(''), true);
     bad('a record whose markup is not one `an-` root, its hash and index matching', () => respoil('<p class="zzb-x">not a drawing</p>'), true);
-    said.push('the sync replaces a changed drawing and writes nothing else, deletes a deleted one, sweeps an orphan, gives the whole copy back when a drawing or the index is refused without touching pad:/ans:, and ignores an empty fetch; the picker draws a good copy, and each of six bad ones is the still name and the loader instead');
+    /* THE THREE SHAPES THE OLD TAKE-BACK MISSED: it removed an `an-` root and nothing else, so bare
+       text stayed, and a root with company was drawn with its company — a sibling after it that
+       `splashOff_` (which takes off the root) left in the splash for the Try again. */
+    bad('a record whose markup is text and no element', () => respoil('not a drawing'), true);
+    bad('a record whose `an-` root has an element after it', () => respoil('<div class="an-zzb"><i class="zzb-x"></i></div><p class="zzb-t">tail</p>'), true);
+    bad('a record whose `an-` root has text after it', () => respoil('<div class="an-zzb"><i class="zzb-x"></i></div>tail'), true);
+    bad('a record with an element in front of its `an-` root', () => respoil('<p class="zzb-t">head</p><div class="an-zzb"><i class="zzb-x"></i></div>'), true);
+    said.push('the sync replaces a changed drawing and writes nothing else, deletes a deleted one, sweeps an orphan, gives the whole copy back when a drawing or the index is refused without touching pad:/ans:, and ignores an empty fetch; the picker draws a good copy (one ending in a newline too) and nothing beside it, and each of ten bad ones is the still name and the loader with nothing of the record left in front of it'); 
     LS.clear();
   }
   resetSplash();

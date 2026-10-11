@@ -288,7 +288,18 @@ let PORT = 0;
       const anims = el => document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && el.contains(a.effect.target))
         .map(a => a.animationName || '?');
       const dots = ld ? [...ld.children] : [];
+      /* AND NOTHING ELSE IN THE SPLASH MOVES. The name being still and the loader being the loader
+         said nothing about a third thing: a decoration put in `#splash` with a class — or drawn by a
+         `::before` with no markup at all — ran on every first visit beside the loader and this
+         passed. Every running animation whose target is the splash or anything in it, pseudo-elements
+         included, unless it is the loader's own. */
+      const others = document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target
+          && sp.contains(a.effect.target) && !(ld && ld.contains(a.effect.target)))
+        .map(a => (a.animationName || '?') + ' on ' + (a.effect.target.id ? '#' + a.effect.target.id : a.effect.target.tagName.toLowerCase()
+          + (a.effect.target.getAttribute('class') ? '.' + a.effect.target.getAttribute('class').trim().split(/\s+/).join('.') : ''))
+          + (a.effect.pseudoElement || ''));
       return {
+        others,
         cls: sp.className, drawn: !!sp.querySelector(':scope > [class|="an"]'), sw: document.documentElement.clientWidth,
         still: !!still, shown: !!(still && still.getClientRects().length), name: name ? name.textContent.trim() : null,
         nameBox: name ? box(name) : null, nameAnims: name ? anims(name) : [], nameKf: name ? getComputedStyle(name).animationName : '',
@@ -301,6 +312,7 @@ let PORT = 0;
     else {
       if (got.name !== '@family.') bad.push(where + ': the name reads "' + got.name + '"');
       if (got.nameAnims.length || got.nameKf !== 'none') bad.push(where + ': the name is animated (' + (got.nameAnims.join(', ') || got.nameKf) + ') — it is set plainly and does not move');
+      if (got.others.length) bad.push(where + ': something else on the splash moves beside the loader — ' + got.others.join(', ') + ' — a first visit is the name, still, and the one loader, and nothing more');
       if (got.loader !== got.want) bad.push(where + ': the loader under the name is ' + JSON.stringify(got.loader) + ', and loading_() draws ' + JSON.stringify(got.want));
       if (!reduced && got.ldAnims.length < 3) bad.push(where + ': ' + got.ldAnims.length + ' of the loader\'s three dots are moving');
       if (reduced && got.ldAnims.length) bad.push(where + ': the loader keeps moving with less movement asked for (' + got.ldAnims.join(', ') + ')');
@@ -330,7 +342,7 @@ let PORT = 0;
   srv.close();
   console.log('\n' + want.length + ' animations, ' + looked + ' chapter pages measured at ' + SIZES.map(s => s[0]).join(' and ')
     + ', six moments each; and with less movement, each in its chapter and on the splash, with nothing left looping.'
-    + '\nA first visit, ' + firsts + ' of ' + (SIZES.length * 2) + ' ways (' + SIZES.map(s => s[0]).join(' and ') + ', with motion and without): the name still, the one loader under it.'
+    + '\nA first visit, ' + firsts + ' of ' + (SIZES.length * 2) + ' ways (' + SIZES.map(s => s[0]).join(' and ') + ', with motion and without): the name still, the one loader under it, nothing else on the splash moving.'
     + (SHOTS ? '\nThe reduced-motion stills are in check/shots/anim-still-<id>.png — look at them: still is not the same as showing the lesson.' : ''));
   if (bad.length) {
     console.log('\nBROKEN  (' + bad.length + ')');

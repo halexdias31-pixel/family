@@ -51,8 +51,11 @@ a hash that is not the index's, a record with no markup — where it used to fal
 splash. One more was added while here: **a record whose markup is empty, or is not one `an-` root**,
 with its hash and index matching. `''` is a string, so it passed every test the picker had, and then
 `el.firstElementChild` was the picker's own `<script>`: the signature was appended to the script and
-`is-an` set over nothing — a black screen. The picker now requires the first element it inserted to be
-an `an-` root, or it takes everything back out and drops the index.
+`is-an` set over nothing — a black screen. The picker now requires what it inserted to be **one `an-`
+root and nothing beside it** (whitespace either side is allowed: a row may end in a newline), or it
+takes back out everything it inserted — everything in front of the node that was first before it —
+and drops the index. The first version of this guard took out only an `an-` root, which is exactly the
+one shape a refused record is not; see "After review" below.
 
 **A TRY AGAIN SHOWS THE STILL ONE.** `splashOff_` took a drawn animation off after the fade and set
 `is-tag`, so Try again (`splashOn_`) showed the tag. It sets `is-still` now — the name and the loader,
@@ -108,19 +111,22 @@ header over them says so, and `check-css` will list them as styled and never pro
 
 |  | before (a47d338) | after |
 |---|---|---|
-| `index.html` | 93 346 bytes, 31 886 gzipped | 72 900 bytes, 26 468 gzipped |
-| `style.css` | 910 721 bytes, 303 623 gzipped | 850 840 bytes, 286 422 gzipped |
+| `index.html` | 93 346 bytes, 31 886 gzipped | 74 320 bytes, 27 021 gzipped |
+| `style.css` | 910 721 bytes, 303 623 gzipped | 850 840 bytes, 286 432 gzipped |
 | `@keyframes` in style.css (`check-loading.js`'s count) | 57 | 8 |
 | rules `check-css.js` reads | 2 543 | 2 055 |
 
-The two files every load parses before anything is drawn lost 80 KB between them, 22.6 KB over the wire.
+The two files every load parses before anything is drawn lost 79 KB between them, 22 KB over the wire
+(`gzip -9`). `index.html` was 72 900 bytes at the first version; the picker's take-back and its comments
+after review (below) put back 1 420 of them. `style.css` was not touched by the review.
 
 ### The checks
 
 Every check that measured or listed the deleted splashes was changed to the new rule, not skipped:
 
 - **`js/check-css.js` §6** was "the hide list, the picker's list and the sheet's brand/game/calm rows are
-  one list". There is no list now, so it holds that none comes back: the only `splash-` ids in
+  one list". There is no list now, so it holds that none comes back (and, after review, that what
+  `#splash` holds is a closed list of its parts, not only its ids): the only `splash-` ids in
   `index.html` are the still one, `#splash-say` and `#splash-wait`; the picker has no `kinds` and sets
   only `is-an` or `is-still`, never `'is-' + pick`; the splash opens as `is-still`; every `#splash-` id
   and `#splash.is-` state the stylesheet names is one of those; only `#splash-still { display: none }`
@@ -167,10 +173,56 @@ every drawing but Pythagoras retired, is Pythagoras signed `@family.`; the next 
 drew Bayes; and a boxer card with its photo refused is the ring placeholder, posts, ropes with the red
 middle one, gold and blue pads, mat, apron and the gold fighter in his guard, painted by the kept rules.
 
+### After review: three faults in the first version, each reproduced, fixed and held
+
+**1. A REFUSED RECORD STAYED IN THE SPLASH.** The guard above refused a record whose markup was not an
+`an-` root — and then its catch removed `:scope > [class|="an"]`, an `an-` root and nothing else. So a
+kept record of `<p class="zzb-x">not a drawing</p>` was refused (`is-still`, index dropped) and its `<p>`
+was left in `#splash` above the still name, pushing the name and its loader off centre; bare text did
+the same. The note above said the picker "takes everything back out"; it did not. On the success path,
+a root with a sibling after it (`<div class="an-x">…</div><p>tail</p>`) was drawn with the sibling,
+which `splashOff_` — taking off the root — then left in the splash for the Try again. Reproduced with
+the real picker in jsdom (and the reviewer's in Chromium): `p.zzb-x, script#pick-splash,
+div#splash-still, …`. Low reach — every real row is one `an-` root, and `check-anims.js` part 1 fails
+on a row that is not before it ships — but a loading screen is the one place nobody can tap past.
+
+*Fixed* in the picker: `mark = el.firstChild` just before the insert; everything in front of `mark`
+afterwards is the record's. It must be one element, an `an-` root, with only whitespace text beside
+it, or it throws; the catch removes everything in front of `mark`. *The check had the same blind spot
+as the code*: `check-anims.js`'s harness asked only for an `[class|="an"]` root, so the case written for
+this record passed. It now snapshots `#splash`'s own children and reports every node the picker added —
+anything at all when the splash is still, anything but the one drawing (and whitespace) when it is
+drawn — and four bad shapes were added: bare text, an element after the root, text after the root, an
+element in front of it; plus a good copy ending in a newline, which must still be drawn.
+
+**2. AN INLINE SPLASH COULD COME BACK UNDER A CLASS.** `check-css` §6 closed the `splash-` *ids*. A
+decoration put in `#splash` with a class and no id — `<svg class="tg-art">` animated by `#splash.is-still
+.tg-art`, hidden under `is-an` — passed check.js, check-css, check-anims, check-loading, check-const,
+check-splash-loops and `check/anims.js` while it ran beside the loader on every first visit: the thing
+the owner asked to go. And a `::before` with `content` and an `animation` is the same splash with no
+markup at all. *Fixed* in three places: §6 now holds `#splash`'s direct children (comments out, the
+picker's body blanked, depth counted) to a closed list — `script#pick-splash`, `div#splash-still`,
+`p#splash-say`, `p#splash-wait`, `p#boot-slow` — with no bare text between them; `#splash-still`'s to
+the name then the loader; the name to text and no element; and no style.css rule reaching into the
+loading screen (`#splash`, its parts, `.sp-name`, `#boot-slow`) may give `content` or run an
+`animation`. `check/anims.js`'s first visit fails on any running animation whose target is the splash
+or anything in it, pseudo-elements included, unless it is inside the loader.
+
+**3. `CLAUDE.md` WAS WRONG ABOUT THE SPLASH** — it said `index.html` and `style.css` "hold only the 13
+splashes that teach nothing". Rewritten: the loading screen there has no drawing of its own; with
+nothing kept it is the name, still, with `loading_()`'s loader written out under it, which
+`check-loading.js` holds byte for byte, and `check-css.js` keeps an inline splash out.
+
+**Mutations, each red, real files green after — 11 more:** the catch taking out only an `an-` root
+(5 cases red in `check-anims`); the old first-element test, so a sibling after the root is drawn (2 red);
+the whole picker as it was before review (5 red); the reviewer's `svg.tg-art` decoration and its rules
+(`check-css`: the child and the animation, 2 red; `check/anims.js`: `tg-write on svg.tg-art`, 4 ways
+red); a markup-free `#splash.is-still::before` with `content` and an animation (`check-css` 2 red;
+`check/anims.js` `tg-write on #splash::before`, 4 ways red); bare text in `#splash`, an `<img>` in the
+still one and a `<span>` in the name (`check-css`, 4 red).
+
 ### Not changed
 
-- **`CLAUDE.md`** says the teaching animations are "Never in `index.html` or `style.css`: those hold only
-  the 13 splashes that teach nothing". The 13 are gone; that sentence wants updating by whoever keeps it.
 - **`backend/constants.gs` and `backend/doget.gs`** carry comments about the splashes tab ("Twenty-nine of
   them", "proof, brand, game, tool", "all 26 rows active") that were stale before this and are staler
   now. Comments only, in the Apps Script copy; left for the next backend change rather than a deploy of

@@ -627,9 +627,10 @@
      not on this device yet, and a decoration in their place is exactly what the owner asked to go.
 
      A COPY THAT IS NOT WHOLE IS NOT DRAWN. Each kept drawing carries the hash its index promised; one
-     that does not match, does not parse or draws no root of its own is taken back out, the index is
-     dropped so the next load writes everything again, and the splash is the still one a first visit
-     gets. A splash from yesterday is fine. A garbled one is not. */
+     that does not match, does not parse, or is not one drawing (one `an-` root and nothing beside it)
+     is taken back out — all of what it put in, not only a root — the index is dropped so the next load
+     writes everything again, and the splash is the still one a first visit gets. A splash from
+     yesterday is fine. A garbled one is not. */
   (function () {
     /* THE MOMENT THE CHOICE IS MADE, so `check/load.js` can hold it against the first paint. */
     try { performance.mark('splash-pick'); } catch (e) {}
@@ -641,7 +642,7 @@
        switched off wholesale, must not be what decides that a device which has the books shows none
        of them — the failure mode of this feature is "you see one you had turned off", which nobody
        minds. The still name is for a device with nothing kept, not a punishment for a tidy sheet. */
-    var off = [], idx = null, anims = [], st = null;
+    var off = [], idx = null, anims = [], st = null, mark = null, put = false;
     try { off = JSON.parse(localStorage.getItem('splashOff') || '[]') || []; } catch (e) { off = []; }
     try {
       idx = JSON.parse(localStorage.getItem('splashAnims') || 'null');
@@ -660,19 +661,34 @@
       st.setAttribute('data-anim', pick); st.setAttribute('data-h', rec.h); st.textContent = rec.css;
       document.head.appendChild(st);
       /* IN FRONT OF THIS SCRIPT, as the first thing in the splash. The book's drawing carries no
-         name — a chapter page has its book's — so the splash signs it, as the still one is signed. */
+         name — a chapter page has its book's — so the splash signs it, as the still one is signed.
+         `mark` IS WHAT WAS FIRST BEFORE IT, so everything in front of `mark` afterwards is what the
+         record put there and nothing else — the line the catch below takes back out to. */
+      mark = el.firstChild; put = true;
       el.insertAdjacentHTML('afterbegin', rec.html);
-      /* AND IT MUST BE A DRAWING. A record whose markup is empty, or is not one `an-` root, passed
-         every test above — `''` is a string — and then signed THIS SCRIPT, the first element left,
-         and set `is-an` over nothing: a black screen saying @family. in the corner. */
-      var root = el.firstElementChild;
+      /* AND IT MUST BE ONE DRAWING, AND NOTHING BESIDE IT. A record whose markup is empty, or is not
+         one `an-` root, passed every test above — `''` is a string — and then signed THIS SCRIPT, the
+         first element left, and set `is-an` over nothing: a black screen saying @family. in the
+         corner. And a root with a sibling after it (`<div class="an-x">…</div><p>tail</p>`) drew the
+         sibling too, beside the drawing, where `splashOff_` — which takes off the root — left it for
+         the Try again. Every row in the books is one `an-` root (`check-anims.js` part 1), so a kept
+         copy that is anything else is not a copy of a row, and is not drawn. Whitespace may sit
+         either side: a row is compared byte for byte, and a newline is allowed to end it. */
+      var root = null;
+      for (var n = el.firstChild; n && n !== mark; n = n.nextSibling) {
+        if (n.nodeType === 1 && !root) root = n;
+        else if (n.nodeType !== 3 || /\S/.test(n.nodeValue)) throw 0;
+      }
       if (!root || !/^an-/.test(root.getAttribute('class') || '')) throw 0;
       root.insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>');
       el.className = 'is-an';
     } catch (e) {
       if (st && st.parentNode) st.parentNode.removeChild(st);
-      var r = el.querySelector(':scope > [class|="an"]');
-      if (r) el.removeChild(r);
+      /* EVERYTHING THE RECORD PUT IN, whatever it was — up to `mark`, and not only an `an-` root.
+         This took out `:scope > [class|="an"]` and nothing else, which is exactly the one shape a
+         refused record is NOT: a `<p>`, or bare text, was refused and then left in the splash above
+         the still name, pushing the name and its loader off centre. */
+      if (put) while (el.firstChild && el.firstChild !== mark) el.removeChild(el.firstChild);
       try { localStorage.removeItem('splashAnims'); } catch (e2) {}
       el.className = 'is-still';
     }

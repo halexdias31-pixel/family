@@ -386,6 +386,71 @@ const splashBad = [];
     if (first !== '<script id="pick-splash">') splashBad.push('the first element inside #splash is `' + first.slice(0, 60)
       + '`, not `<script id="pick-splash">` — the splash markup is parsed (and can be painted) before the pick');
   }
+  /* ---------- AND NOTHING ELSE IN IT: WHAT `#splash` HOLDS IS A CLOSED LIST, NOT JUST ITS IDS ---------
+     THE RULE ABOVE CLOSED THE `splash-` IDS, and an inline splash does not need one. A decoration put
+     in `#splash` with a class and no id — `<svg class="tg-art">`, animated by `#splash.is-still
+     .tg-art` and hidden by `#splash.is-an .tg-art` — passed every check in the suite while it moved on
+     every first visit beside the loader: the very thing the owner asked to go, back under a name
+     nothing was looking for. So the splash's own children are held to the list of its parts, by
+     element and id, with no bare text between them; the still one's to the name and the loader, and
+     the name to its words. Read off the file with comments out and the picker's body blanked (it
+     writes markup in strings), counting depth, so a child's own insides are its business.
+     AND THE STYLESHEET MAY NOT DRAW ONE WITHOUT MARKUP. `#splash.is-still::before { content: '';
+     animation: … }` is an inline splash in two lines of CSS and no element at all, so a rule that
+     reaches into the loading screen — `#splash`, its parts, the name — gives nothing `content` and
+     runs no `animation`. The loader moves by its own block, which names none of them; a book's
+     drawing moves by its row's CSS, which is not in style.css. */
+  const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+  const flat = html_.replace(/(<script\b[^>]*>)[\s\S]*?(<\/script>)/gi, '$1$2');
+  /* THE DIRECT CHILDREN OF THE FIRST ELEMENT `open` MATCHES: each child's opening tag, and any text
+     that is not whitespace between them. */
+  const kidsOf = open => {
+    const m0 = open.exec(flat);
+    if (!m0) return null;
+    const re = /<(\/?)([a-z][\w-]*)\b[^>]*>/gi;
+    re.lastIndex = m0.index + m0[0].length;
+    const tags = [], text = [];
+    let depth = 0, last = re.lastIndex, m;
+    while ((m = re.exec(flat))) {
+      if (!depth && flat.slice(last, m.index).trim()) text.push(flat.slice(last, m.index).trim().slice(0, 40));
+      last = re.lastIndex;
+      if (m[1]) { if (!depth) break; depth--; continue; }
+      if (!depth) tags.push(m[0]);
+      if (!VOID.has(m[2].toLowerCase()) && !/\/>$/.test(m[0])) depth++;
+    }
+    return { tags, text };
+  };
+  const attr = (tag, a) => (new RegExp('\\s' + a + '="([^"]*)"').exec(tag) || [])[1] || '';
+  /* AN ELEMENT BY ITS ID WHERE IT HAS ONE, ELSE BY ITS CLASSES: `p#boot-slow`, `div.loading`. */
+  const named = tag => (/^<([a-z][\w-]*)/i.exec(tag) || [])[1].toLowerCase()
+    + (attr(tag, 'id') ? '#' + attr(tag, 'id') : attr(tag, 'class').trim() ? '.' + attr(tag, 'class').trim().split(/\s+/).join('.') : '');
+  const closed = (where, got, allowed, why) => {
+    if (!got) return;
+    got.tags.map(named).forEach((n, i, all) => {
+      if (!allowed.includes(n)) splashBad.push(where + ' holds `' + n + '` — ' + why);
+      else if (all.indexOf(n) !== i) splashBad.push(where + ' holds `' + n + '` twice');
+    });
+    got.text.forEach(t => splashBad.push(where + ' holds the bare text "' + t + '" — ' + why));
+  };
+  const SPLASH_KIDS = ['script#pick-splash', 'div#splash-still', 'p#splash-say', 'p#splash-wait', 'p#boot-slow'];
+  const kids = kidsOf(/<div id="splash"[^>]*>/);
+  if (page_ && !kids) splashBad.push('index.html has no `<div id="splash">` — what it holds was NOT checked');
+  closed('#splash', kids, SPLASH_KIDS, 'the loading screen is the picker, the still name and its loader, the line said out loud, the slow line and the boot caption, and nothing else; anything more is a splash drawn by the page, which is what went (docs/history/322)');
+  if (kids && kids.tags.length < SPLASH_KIDS.length) splashBad.push('#splash holds ' + kids.tags.length + ' elements, not its ' + SPLASH_KIDS.length + ' parts (' + kids.tags.map(named).join(' ') + ') — the closed list was NOT compared whole');
+  const still = kidsOf(/<div id="splash-still"[^>]*>/);
+  closed('#splash-still', still, ['p.sp-name', 'div.loading'], 'the still one is the name and the loader under it, and nothing else');
+  if (still && still.tags.map(named).join(' ') !== 'p.sp-name div.loading') splashBad.push('#splash-still holds ' + (still.tags.map(named).join(' ') || 'nothing') + ' — it is the name, then the loader under it');
+  const name = kidsOf(/<p class="sp-name"[^>]*>/);
+  if (name && name.tags.length) splashBad.push('the still name holds `' + name.tags.map(named).join(' ') + '` — it is the words @family. set plainly, and an element inside it is a decoration');
+  const INTO = /#splash\b|\.sp-name\b|#boot-slow\b/;
+  rules.forEach(r => {
+    if (!r.sel.split(',').some(sel => INTO.test(sel))) return;
+    r.decls.forEach(d => {
+      const k = d.prop.toLowerCase();
+      if (k === 'content') splashBad.push('style.css line ' + r.line + '  ' + r.sel + ' gives `content` — a thing drawn on the loading screen with no markup, which no check of the markup sees');
+      if ((k === 'animation' || k === 'animation-name') && !/^none\b/.test(d.val.trim())) splashBad.push('style.css line ' + r.line + '  ' + r.sel + ' runs `' + k + ': ' + d.val + '` — nothing on the loading screen animates but a book\'s drawing (its row\'s CSS) and the loader (its own block)');
+    });
+  });
 }
 
 /* ---------- 7. EVERYTHING TAPPABLE MUST LOOK TAPPABLE --------------------------------------------
