@@ -636,7 +636,9 @@ function paintNeighbours() {
    old markup until you swipe to it. A sliver of a sentence, corrected by arriving. */
 let STALE = {};
 
-function paint(id) {
+/* `fresh`: DRAWN FROM NOTHING, because the caller starts again whatever runs in it — `repaint`, for the
+   column in front. Without it, a widget running on the column keeps its slot (see below). */
+function paint(id, fresh) {
   /* ---------- A SETTINGS CARD WITH SOMETHING TYPED INTO IT IS NOT REDRAWN UNDER THE TYPING ---------
      REPORTED AS "some things arent updating when i click save", and part of it was this: a Save on
      one card called `load()`, and when the payload landed — and again when the inbox landed — every
@@ -694,9 +696,19 @@ function paint(id) {
       </div></div>`;
     return;
   }
+  /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN ---------------------
+     The arrival at a `STALE` column is a `paint` of it — and on a wide window a column beside the one in
+     front has its widgets running (docs/history/331). Its first arrival after any repaint threw the
+     running calculator's slot away and drew the loader in its place, then started it again from
+     nothing. `widgetsHeld_` / `widgetsBack_` (arcade.js) put each running slot back where the new markup
+     draws that widget; the rest is the new markup. NOT FOR `repaint`'s own column (`fresh`), which it
+     starts again at once and always has: a box there is new markup, and `landRepaint_`'s and
+     `reconnectKeep_`'s notes are written about exactly that. */
+  const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id) : [];
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
+  if (held.length) widgetsBack_(id, held);
 
   /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN ------------------------------------
      WHILE EVERY CARD HUNG FROM ONE TOP LINE, a column redrawn with a taller or shorter card needed
@@ -919,7 +931,7 @@ const repaint = (instant) => {
   /* 0. EVERY OTHER SCREEN IS NOW OUT OF DATE — see the note on `STALE`. Marked before painting, so
         the two that are about to be drawn for real clear their own mark on the way through. */
   TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
-  paint(AT);                       // 1. the screen you are on
+  paint(AT, true);                 // 1. the screen you are on, drawn from nothing (it is restarted below)
   /* 1b. AND WHATEVER THAT SCREEN HAS RUNNING, because `paint` has just replaced the markup it was
          running in. Without this, a repaint while the camera column is open leaves a `<video>` with
          no stream in it — the card looks live and shows black. Same list `go` uses; see
@@ -1883,13 +1895,20 @@ const glassRows_ = () => (WIDE ? 3 : 2);
        1920 that edge is 8px of card, which shows no widget, and at 768 or 1700 it is 144–146px, which
        shows a third of one. On a phone the neighbour is the 6% peek — a band of card edge — and is
        not counted, so a phone runs what it always ran: the column in front.
-     · `pages` — down each of those columns, the pages whose card is inside the window where this
-       placement leaves it (the column's shift plus the page's own top and height), out to
-       `glassRows_` either side, the furthest this function draws.
+     · `pages` — down each of those columns, the pages whose WIDGET is on the glass where this
+       placement leaves it: more than `WIDE_EDGE` of its slot inside the window both ways (the column's
+       shift, the page's own top, the slot's place in the page; and across, as much of the card as
+       shows past the window's edge less the slot's inset). A page with no widget is asked the same of
+       the whole page. Out to `glassRows_` either side, the furthest this function draws.
+       IT WAS ANY PIXEL OF THE PAGE, and the review of 331 measured what that started: at 1194 on
+       Settings the flyer maker's page reached 75px into the window and its slot began 13px below the
+       bottom edge — nothing of it showed but its star, and it was running. 24px is the same line
+       `check/ui.js` draws for "on the glass", so what is started here is what that check counts.
    READ IN THE PASS THAT IS ALREADY READING — after `columnShift_`'s layout and before a single write —
-   so it forces no layout of its own; never during a drag, when nothing is created or stopped and the
-   answer would be thrown away sixty times a second. `at` says which column in front it was worked
-   out for, so a column change asked for and not yet placed is not mistaken for it (`widgetsLater_`). */
+   so it forces no layout of its own (the slot's offsets are as clean as the page's); never during a
+   drag, when nothing is created or stopped and the answer would be thrown away sixty times a second.
+   `at` says which column in front it was worked out for, so a column change asked for and not yet
+   placed is not mistaken for it (`widgetsLater_`). */
 let GLASS = { at: null, cols: [], pages: [] };
 
 function glassNow_(hosts, ti, stepX) {
@@ -1898,17 +1917,48 @@ function glassNow_(hosts, ti, stepX) {
   const card = WIDE ? stepX - CELL_GAP : 0;
   hosts.forEach(h => {
     const dx = h.i - ti;
-    if (dx && !(WIDE && W / 2 + card / 2 - Math.abs(dx) * stepX > WIDE_EDGE)) return;
+    /* HOW MUCH OF THIS COLUMN'S CARD IS INSIDE THE WINDOW, ACROSS — all of it for the column in front. */
+    const across = dx ? W / 2 + card / 2 - Math.abs(dx) * stepX : Infinity;
+    if (dx && !(WIDE && across > WIDE_EDGE)) return;
     out.cols.push(h.id);
     const H = h.host.clientHeight || innerHeight;
     const at = PAGE[h.id] || 0;
     h.host.querySelectorAll(':scope > .page').forEach((el, pos) => {
       if (Math.abs(logIndex_(h.id, pos) - at) > glassRows_()) return;
-      const top = h.shift + el.offsetTop;
-      if (top < H && top + el.offsetHeight > 0) out.pages.push(el);
+      if (glassShows_(el, h.shift + el.offsetTop, H, across)) out.pages.push(el);
     });
   });
   return out;
+}
+
+/* IS A PAGE'S WIDGET ON THE GLASS — its slot, or the page when it has none, showing more than `WIDE_EDGE`
+   of itself inside a window `H` tall, with the page's top at `top` and `across` of the card showing
+   sideways. A box with no height has not been laid out (jsdom, which `check-flow` runs in, lays nothing
+   out: every page is 0px at the column's middle) and is counted by where it sits, as it always was. */
+function glassShows_(el, top, H, across) {
+  const sl = el.querySelector('.widget-slot');
+  const at = sl && glassOffset_(sl, el);
+  const y = at ? top + at.top : top;
+  const tall = at ? sl.offsetHeight : el.offsetHeight;
+  if (!tall) return y > 0 && y < H;
+  const down = Math.min(y + tall, H) - Math.max(y, 0);
+  const side = Math.min((at ? sl.offsetWidth : el.offsetWidth) || Infinity, across - (at ? at.left : 0));
+  return down > WIDE_EDGE && side > WIDE_EDGE;
+}
+
+/* WHERE A SLOT SITS INSIDE ITS PAGE, by offsets — the same untransformed layout the page's own
+   `offsetTop` is, so it agrees with where this placement puts the page rather than with where a slide
+   has it this frame. Summed up the chain to the page, or to the page's own offset parent and less the
+   page's offset from it (a page is `position: static`), and less any scroll between the two. Null when
+   the chain never reaches either — a slot not laid out — and the page is asked instead. */
+function glassOffset_(sl, page) {
+  let top = 0, left = 0, n = sl;
+  const base = page.offsetParent;
+  while (n && n !== page && n !== base) { top += n.offsetTop; left += n.offsetLeft; n = n.offsetParent; }
+  if (!n) return null;
+  if (n !== page) { top -= page.offsetTop; left -= page.offsetLeft; }
+  for (let p = sl.parentNode; p && p !== page; p = p.parentNode) top -= p.scrollTop || 0;
+  return { top, left };
 }
 
 function placeGrid(instant, drag) {

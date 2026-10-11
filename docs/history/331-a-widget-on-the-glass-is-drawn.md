@@ -32,8 +32,11 @@ any write, so it forces no layout of its own) and never during a drag:
   of its card. At 1194, 1280 and 1920 the column past the last whole one shows 8px of card and no widget;
   at 768 or 1700 it shows 144–146px, a third of one, and counts. On a phone the neighbour is the 6% peek
   and does not count, so a phone runs what it ran.
-- `pages` — down each of those columns, the pages whose card is inside the window where the placement
-  leaves it (the column's shift plus the page's top and height), out to `glassRows_` either side.
+- `pages` — down each of those columns, the pages whose **widget slot** shows more than `WIDE_EDGE` of itself
+  inside the window both ways where the placement leaves it (the column's shift, the page's top, the slot's
+  offset in the page; across, as much of the card as shows less the slot's inset), out to `glassRows_`
+  either side. A page with no widget is asked the same of the whole page. (It was any pixel of the page
+  until the review below.)
 - `at` — which column in front it was worked out for.
 
 **No IntersectionObserver.** The reel column had one over a scroller of its own and it went for exactly this
@@ -66,9 +69,10 @@ column again. Now a widget already running on the arriving column's own copy, in
 document, is left running — the calculator that started while Settings was in front is not stopped and
 started again 300ms after you reach Tools (the Connect 4 "fresh board" the note over `startScreen_`'s
 booking in `go` is about). One running on another column's copy is stopped and started on the copy in
-front, because that is the one a press can reach; one whose slot a paint replaced (`STALE`, drawn on the way
-in) is started again. A repaint still restarts the whole column in front at once and leaves the columns
-beside it alone — their markup was not replaced.
+front, because that is the one a press can reach. A column that is `STALE` is still drawn again on the way
+in, and the slot a widget is running in is carried into the new markup (`widgetsHeld_`, below — the first
+version threw it away and started the widget again, which the review found). A repaint still restarts the
+whole column in front at once, from fresh markup, and leaves the columns beside it alone.
 
 **One widget, one start.** `TOOLS_ON` is `{ w, col, slot }`, one entry per widget, not per copy. A starred
 widget is drawn on its own column and on Saved and has one set of state behind it, so with both copies on
@@ -100,6 +104,89 @@ instant placement, coalesced like every other.
   nothing busy: a queue emptied mid-swipe kept the old moment, and the next queue's first busy step was
   already past the 1.5s cap and started its widget under the finger. `toolsStop_` clears it when it empties
   the queue.
+
+### The review of 331, and what it found
+
+Three findings, each reproduced in Chromium before it was touched, each fixed at its cause, each with a check
+that was red before and is green after.
+
+**1. A widget drawn beside the column in front went back to the loader on its first arrival, and lost what
+was typed into it.** Every signed-in load lands twice — the payload, then the inbox about two seconds later —
+and the second `repaint` marks every column but the one in front `STALE`. Tools beside Settings kept its
+markup (a column is drawn again when it is next arrived at), with the calculator running in it. The first
+arrival at Tools drew it again: the slot the calculator ran in was thrown away, the new one was drawn under
+the loader, and 240–690ms later the calculator was started again from nothing. Reproduced at 1194x827 as
+the review had it — admin, Settings, `7+5` typed, a real flick left: the slot replaced 8ms after the
+release, the loader for 350ms, the display `0` after (the screenshot: the calculator in
+front is the three dots). Once Tools had been visited the same flick kept it, which is why the first
+version's journey passed.
+- **`paint` carries the slot a widget is running in** (`widgetsHeld_` before the new markup, `widgetsBack_`
+  after, arcade.js): each running slot of that column is put where the new markup drew that widget's slot.
+  The card, its star and every other widget are the new markup; the widget is the one that was running, as
+  it was. The arrival finds it running in a slot in the document and leaves it. A widget the new markup no
+  longer draws has nowhere to go and is stopped like any widget whose slot has gone.
+- **Not for `repaint`'s own column** (`paint(AT, true)`): a repaint is the facts changing under the column
+  you are on, it has always started that column again at once from fresh markup, and `landRepaint_`'s and
+  `reconnectKeep_`'s rules are written about exactly that. Carried there too, the notepad journey of 313
+  went red ("the notepad was left and the column was never drawn with the payload") — its box survived the
+  redraw it is there to see.
+- **Not across a change of person** (`who` on every `TOOLS_ON` entry, `widgetWho_()`): what a slot holds can
+  be a person's. And a widget beside the column in front started for somebody else is now stopped once the
+  slide settles and started again if its column still draws it — a sign-out on Settings at 1194 had left the
+  admin's flyer maker and the calculator started for the admin running on Tools beside it, in markup the
+  sign-out left `STALE`, until somebody went there.
+- **A copy on the glass is unveiled for a running widget only if that widget is being kept.** On the first
+  payload, which empties every column before drawing it, the new flyer maker's slot was unveiled at once
+  because the old one — running in markup the landing had thrown away — still counted, and it sat there as
+  markup nobody had started until the slide settled. It keeps its veil until it is started now.
+- **The lost "7" was not this.** The review also clicked the calculator's 7 beside Settings with a real mouse
+  and the 7 never arrived. A press on a card beside the one in front brings it to the front and goes no
+  further — on purpose (`wideHit_`'s note in shell.js: "arriving first and pressing second is the carousel
+  every reader already knows"). What was wrong was the slot: veiled 60ms after that click. It is not now.
+
+After, the same flick three times at 1194 and once at 1920: slot kept, no veiled frame, `7+5` still on the
+display. The reviewer's reveal probe, Tools to Games at 1194: chess and
+Times Tables, which had flashed for about 200ms, are never veiled. A column newly on the glass (Games, coming
+in as Settings slides out) still shows the loader over widgets that have never started until its slide has
+settled and the queue reaches them — 449ms in that run — which is the queue doing what point 3 asks of it.
+
+**2. A widget whose slot was off the window was started because a pixel of its page was on it.**
+`glassNow_` lit a page if `top < H && top + offsetHeight > 0`. At 1194 on Settings the flyer maker's page
+began at y=752 and its slot at y=840, below the 827px window — nothing of it on the glass but its star — and
+it was running. `glassShows_` now asks the slot: more than `WIDE_EDGE` (24px) of it inside the window both
+ways, its place in the page read from offsets (`glassOffset_`: up the offset chain to the page, or to the
+page's offset parent less the page's own offset, less any scroll between), in the same read pass, so it
+forces no layout. 24px is the line `check/ui.js` draws, so what is started is what that check counts. A box
+with no height has not been laid out (jsdom) and is counted where it sits, as before. After, at 1194: the
+calculator lit and running, the flyer maker not; at 1920: the calculator, the flyer maker (114px of its slot
+showing), chess and Times Tables lit and running, Flabby Pird (slot at y=1218) not.
+
+**3. Nothing measured the other direction.** `veiledOnGlass` in `check/ui.js` asked whether a slot on the glass
+was still veiled; starting too much passed it, and the jsdom journeys have no layout. It now also reads
+`TOOLS_ON` and reports **A WIDGET OFF THE GLASS STARTED**: every entry whose column is not the one in front
+whose slot shows 24px or less of itself on the glass either way, or is in no column at all, asked over the
+same 3s, with a count printed (`widgets running beside the column in front asked whether their slot was on
+the glass`). On the branch before this fix it was red at 1280 on Settings: "tools #wgt-flyers (342x0px of its
+slot on the glass)" across 33 states. With the review's mutation M8 (every page lit), red with five widgets.
+
+#### Smoothness, after the review's fixes
+
+The reviewer's swipe probe — real touch through CDP, the CPU at a quarter, the admin's fixture with four
+widgets starred, from Settings across Tools, Games and Saved and back twice, 700ms between swipes, 12 swipes a
+run — on the branch as committed (`c8d8ddc`, "before") and with these fixes ("after"), alternated, load
+average 9–12 on the shared four cores:
+
+| | before | after |
+|---|---|---|
+| 1194x827, worst delay of a touch reaching the page | 260, 569, 395ms | 188, 426, 363ms |
+| 1194x827, worst long task under a finger | 62, 514, 108ms | 136, 333, 336ms |
+| 390x844, worst delay of a touch reaching the page | 634, 395ms | 382, 145ms |
+| 390x844, worst long task under a finger | 619, 372ms | 297, 78ms |
+| widget starts begun under a finger | none in any run | none in any run |
+
+The two overlap; the worst long task under a finger is `go`'s own arrival — `paint` and `paintPager` of the
+column arrived at (85–617ms at a quarter CPU) — in both. Carrying a slot is a filter of a short list and a
+`replaceWith` per running widget of that column.
 
 ### What the loader still means (306)
 
@@ -155,9 +242,18 @@ after: the calculator, the flyer maker, chess and Times Tables, drawn. 1194 with
 the calculator on Tools beside it under the dots; after: drawn. 390x844 on Settings and on Tools: the same
 before and after — the column in front, its widgets drawn; nothing beside it started.
 
+After the review, the owner's path at 1194x827, admin, opened on Settings: on the base commit the Tools card
+beside About you is the dots and a star; on the branch as first committed and now, the calculator, drawn,
+and the card below it (the flyer maker, whose slot is under the window's edge) only its star — now because
+it is not started rather than started out of sight. Then `7+5` and a flick to Tools, 150ms after the
+release: on the branch as first committed the calculator in front is the three dots; now it is the
+calculator reading `7+5`, with chess coming in beside it under the loader until the slide settles, and
+drawn 2.6s later. 390x844 on Settings: the same in all three trees.
+
 ### The checks
 
-- **`check-flow`, five journeys** (277 of 277 green on the final run):
+- **`check-flow`, seven journeys** (279 of 279 green on the final run; the last two and the "never bare"
+  half of the fourth are the review's):
   - *a wide window starts the widgets on the glass beside the column in front, and stops them when they
     leave it* — jsdom made a 1194x827 window (`innerWidth`, `matchMedia` answering from it, a resize event to
     narrow it) with the sheet's column order: arriving at Settings starts every Tools card on the glass —
@@ -177,6 +273,18 @@ before and after — the column in front, its widgets drawn; nothing beside it s
   - *a column left before its placement has happened starts nothing more of its widgets* — a phone, Tools'
     far widgets queued, `requestAnimationFrame` held, Settings in front: nothing more starts; once placed,
     nothing of Tools is running or queued.
+  - *the payload journey above, never bare on the way* — after every change to Tools between the landing and
+    the flyer maker being drawn, no flyer slot is without its veil while nothing runs in it.
+  - *a repaint and then an arrival keep the widget running beside the column in front: the same slot, never
+    the loader, the sum still in it* — 1194, Settings, `7+5` typed into the calculator beside it,
+    `repaint()` (Tools left `STALE`), go to Tools: the column is drawn again (its star is a new element and
+    Tools is no longer stale), the calculator's slot is the same element, never veiled at any change to the
+    column, still reads `7+5`, and was not started again.
+  - *a sign-out stops what its column no longer draws beside the column in front, and nothing runs on for
+    the last person* — the admin on Settings with the calculator and the flyer maker running beside it; signed
+    out with nobody moving, the flyer maker stops and the calculator is started again for nobody; signed in,
+    then out and straight to Tools before anything beside was restarted, the new Tools markup does not hold
+    the slot started for the admin, and the calculator in front is started for nobody.
 - **Mutations, each red on a copy of the files, the real files green after** (`js/check-flow.js` unless said):
   nothing beside the column in front queued (journey 1, eleven lines); what leaves the glass never stopped
   (journey 1); a start per copy (journey 2: "started 2 time(s)", "running 2 time(s) at once"); a running copy
@@ -186,9 +294,18 @@ before and after — the column in front, its widgets drawn; nothing beside it s
   already runs (journey 3); an arrival starting every far widget in one task (journey 3: "5 widgets started in
   one task"); what ran in a slot a paint replaced kept running (journey 4: "never started — its box is the
   empty markup"); the queue not waiting for an unplaced column change (journey 5: "7 Tools widget(s) were
-  started after Tools was left"). Two of them were green on the first version of their journey and the
-  journey was what changed: journey 2 passed with `$`'s half taken out until the tree-order lookup, and
-  journey 4 passed with its mutation until it asked for the flyer's controls rather than for no loader.
+  started after Tools was left"). The review's: no carry through `paint` (journey 6: slot replaced, veiled
+  once, "reads 0", started 1 time more); `repaint` carrying its own column (the notepad journey: "never
+  drawn with the payload"); no `who` in the reconcile's keep (journey 7: the flyer maker went on running, the
+  calculator "still the one started for P001"); no `who` in the carry (journey 7: "holds the calculator slot
+  that was started for the admin", "nothing started it again for nobody"); unveiling for a widget running
+  but not kept (journey 4: "shown without its veil and with nothing running in it, 2 time(s)"); every page
+  lit in `glassNow_` (`check/ui.js` at 1280: A WIDGET OFF THE GLASS STARTED, five). A check written for a
+  "column no longer draws it" rule beside the `who` one stayed green with it deleted — `who` covered every
+  case a journey could reach — and the rule went. Two of the first ones were green on the first version of
+  their journey and the journey was what changed: journey 2 passed with `$`'s half taken out until the
+  tree-order lookup, and journey 4 passed with its mutation until it asked for the flyer's controls rather
+  than for no loader.
 - **`check/ui.js` — A WIDGET ON THE GLASS NEVER STARTED.** Every widget slot anywhere on the glass, whichever
   column, more than 24px of it inside `#screen` both ways in a drawn column and page, that still holds the
   "not started" veil 3s after the screen settled. A count is printed (`widget slots on the glass asked
@@ -197,6 +314,11 @@ before and after — the column in front, its widgets drawn; nothing beside it s
   in front queued, red at 1920 (six findings); on the final files `--screen=tools` (95 combinations; 22, 47,
   89, 66, 89 slots at the five widths) and `--screen=settings` (170 combinations; 0, 0, 68, 35, 136) report
   nothing new.
+- **`check/ui.js` — A WIDGET OFF THE GLASS STARTED** (the review's third finding, above): every widget running
+  beside the column in front whose slot shows 24px or less of itself on the glass, or is in no column. Red on
+  the branch as first committed at 1280 on Settings (the flyer maker, 33 states), red with every page lit
+  (five widgets); on the final files `--screen=tools` asked 0, 0, 38, 26, 38 running widgets at the five
+  widths and `--screen=settings` 0, 0, 68, 35, 136, and both report nothing new.
 - **`check-flow`'s notepad journey (313) waits for the notepad to start before typing.** It wrote its words
   with `.value` at a fixed 600ms after arriving, and the notepad's `start` writes the account's notes back;
   when the start landed after the words it put back "". Once in ten on the base commit (306 recorded it),
@@ -213,3 +335,8 @@ before and after — the column in front, its widgets drawn; nothing beside it s
   passed alone twice. `check/press.js --screen=games`: see the chained flick above; nothing threw and
   nothing was silently inert in any run. `check/cascade.js`: "nothing is decided by file order alone" (the
   first attempt ran past the ten minutes this session gave it and was cut off before it reported).
+- **And again after the review's fixes:** `check.js`, `check-const`, `check-loading`, `check-doors` green;
+  `check-flow` 279 of 279; `check/ui.js --screen=tools` and `--screen=settings` nothing new; `check/swipe.js`
+  whole this time (112 gestures and measurements, 255s, all green); `check/press.js --screen=games` 100
+  presses and 94 swipes, every one landed, nothing threw or was silently inert; `check/cascade.js` nothing
+  decided by file order alone.

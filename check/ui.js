@@ -605,42 +605,73 @@ async function settled(page) {
 
    AFTER SETTLE AND THEN ASKED AGAIN FOR UP TO 3s, because a widget beside the one in front is started by
    the same queue as a far one — one per task, behind the slide — and a loaded machine is late, not wrong.
-   One that has not started by then never will without somebody going to it. */
+   One that has not started by then never will without somebody going to it.
+
+   ---------- AND THE OTHER WAY: A WIDGET RUNNING BESIDE THE COLUMN IN FRONT WITH NO SLOT ON THE GLASS ----------
+   FOUND BY THE REVIEW OF 331. The rule above only asked whether a slot on the glass was still veiled, so
+   starting too MUCH passed it: `glassNow_` (shell.js) lit a page if any pixel of the PAGE was in the
+   window, and at 1194 on Settings the flyer maker's page reached 75px into the window while its slot began
+   13px below it — only its star showed, and the widget was running. The review took the page test out of
+   `glassNow_` altogether (every page lit) and this rule, and all five journeys, stayed green while Chromium
+   ran three Tools widgets off the glass. So every entry of `TOOLS_ON` (arcade.js: the widget, the column it
+   was started on and its slot) whose column is not the one in front — the column in front starts all of its
+   widgets, by design — is measured by the same test as above, and one whose slot shows 24px or less of
+   itself on the glass either way, or is in no column at all (a paint threw its markup away), is a widget
+   running for nobody. Asked over the same 3s, because what leaves the glass is stopped once the slide has
+   settled, and on a loaded machine that is late too. */
 async function veiledOnGlass(page) {
   try {
     return await page.evaluate(async () => {
+      /* HOW MUCH OF A SLOT IS ON THE GLASS, across and down — nought for one in a column or a page that is
+         not drawn, or in no column at all. */
+      const shows = (sl, box) => {
+        const col = sl && sl.isConnected && sl.closest('.screen'), pg = col && sl.closest('.page');
+        if (!col) return { w: 0, h: 0, col: null };
+        const cs = getComputedStyle(col);
+        if (+cs.opacity === 0 || cs.visibility === 'hidden' || cs.display === 'none') return { w: 0, h: 0, col };
+        if (pg) { const ps = getComputedStyle(pg); if (+ps.opacity === 0 || ps.visibility === 'hidden') return { w: 0, h: 0, col }; }
+        const r = sl.getBoundingClientRect();
+        return { w: Math.min(r.right, box.right) - Math.max(r.left, box.left),
+                 h: Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top), col };
+      };
       const look = () => {
         const sc = document.getElementById('screen');
-        if (!sc) return { n: 0, left: [] };
+        if (!sc) return { n: 0, left: [], beside: 0, off: [] };
         const box = sc.getBoundingClientRect();
         let n = 0;
         const left = [];
         document.querySelectorAll('#screen .widget-slot').forEach(sl => {
-          const col = sl.closest('.screen'), pg = sl.closest('.page');
-          if (!col) return;
-          const cs = getComputedStyle(col);
-          if (+cs.opacity === 0 || cs.visibility === 'hidden' || cs.display === 'none') return;
-          if (pg) { const ps = getComputedStyle(pg); if (+ps.opacity === 0 || ps.visibility === 'hidden') return; }
-          const r = sl.getBoundingClientRect();
-          const w = Math.min(r.right, box.right) - Math.max(r.left, box.left);
-          const h = Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top);
-          if (w <= 24 || h <= 24) return;
+          const { w, h, col } = shows(sl, box);
+          if (!col || w <= 24 || h <= 24) return;
           n++;
           if (sl.getAttribute('aria-busy') === 'true' && sl.querySelector(':scope > .loading')) {
             left.push(col.id.slice(2) + ' #' + sl.id + ' (' + Math.round(w) + 'x' + Math.round(h) + 'px of it on the glass)');
           }
         });
-        return { n, left };
+        /* `TOOLS_ON` and `AT` are `let`s of the app's own scripts, which an evaluation shares. */
+        let beside = 0;
+        const off = [];
+        try {
+          TOOLS_ON.forEach(e => {
+            if (!e || e.col === AT) return;
+            beside++;
+            const { w, h, col } = shows(e.slot, box);
+            if (col && w > 24 && h > 24) return;
+            off.push(e.col + ' #wgt-' + String(e.w && e.w.id) + (!col ? ' (its slot is in no column)'
+              : ' (' + Math.max(0, Math.round(w)) + 'x' + Math.max(0, Math.round(h)) + 'px of its slot on the glass)'));
+          });
+        } catch (err) { /* an app with no widgets running has nothing to say here */ }
+        return { n, left, beside, off };
       };
       const t0 = performance.now();
       let r = look();
-      while (r.left.length && performance.now() - t0 < 3000) {
+      while ((r.left.length || r.off.length) && performance.now() - t0 < 3000) {
         await new Promise(res => setTimeout(res, 100));
         r = look();
       }
       return r;
     });
-  } catch (e) { return { n: 0, left: [] }; }
+  } catch (e) { return { n: 0, left: [], beside: 0, off: [] }; }
 }
 
 function inspect(opts) {
@@ -1482,6 +1513,9 @@ function inspect(opts) {
   /* AND THE WIDGET SLOTS ON THE GLASS THE "NOT STARTED" RULE LOOKED AT, per width — see `veiledOnGlass`.
      A count, so a run whose selector stopped matching says 0 rather than nothing. */
   const slotsOnGlass = {};
+  /* AND THE WIDGETS RUNNING BESIDE THE COLUMN IN FRONT THE "STARTED OFF THE GLASS" RULE LOOKED AT, per
+     width, for the same reason. */
+  const runningBeside = {};
   /* AND HOW MANY CONTROLS THE EDGE RULE (4, in `inspect`) MEASURED, per subject, for the same reason: a
      keypad that never came up and a keypad whose every key passed print the same nothing. */
   const edgesMeasured = {};
@@ -1781,7 +1815,9 @@ function inspect(opts) {
            glass with its widgets drawn. */
         const veil = await veiledOnGlass(page);
         slotsOnGlass[width] = (slotsOnGlass[width] || 0) + veil.n;
+        runningBeside[width] = (runningBeside[width] || 0) + (veil.beside || 0);
         if (veil.left.length) rows.push({ width, id: label, as: who.as, unstarted: veil.left });
+        if ((veil.off || []).length) rows.push({ width, id: label, as: who.as, offGlass: veil.off });
         const { found, counted, guessed, edgeN } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
@@ -2112,6 +2148,8 @@ function inspect(opts) {
     (r.loaders || []).forEach(f => add('A WAIT THAT IS NOT THE ONE LOADER, OR MOVES ITS CARD', f, at));
     (r.unstarted || []).forEach(f => add('A WIDGET ON THE GLASS NEVER STARTED',
       `${f} still holds the loader that stands for "not started", 3s after the screen settled`, at));
+    (r.offGlass || []).forEach(f => add('A WIDGET OFF THE GLASS STARTED',
+      `${f} is running beside the column in front, 3s after the screen settled`, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
@@ -2190,6 +2228,8 @@ function inspect(opts) {
               + [...new Set(loaderSizes[wd].map(x => x.dot + '/' + x.gap))].join(',')).join(' · ') || 'none'}\n`);
   console.log(`widget slots on the glass asked whether they had started: `
             + (Object.keys(slotsOnGlass).map(wd => `${wd} ${slotsOnGlass[wd]}`).join(', ') || 'none') + '\n');
+  console.log(`widgets running beside the column in front asked whether their slot was on the glass: `
+            + (Object.keys(runningBeside).map(wd => `${wd} ${runningBeside[wd]}`).join(', ') || 'none') + '\n');
   console.log(`edges measured against what is behind them (WCAG 1.4.11, 3:1): `
             + Object.keys(edgesMeasured).map(k => `${k} ${edgesMeasured[k]}`).join(', ') + '\n');
   /* A SUBJECT THE RULE NEVER REACHED IS NOT A PASS. The Find screen's states put the answer bar, Send

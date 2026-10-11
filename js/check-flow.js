@@ -436,7 +436,9 @@ function boot(opts) {
       /* WHICH WIDGETS ARE RUNNING AND ON WHICH COLUMN'S COPY, WHICH ARE WAITING THEIR TURN, AND WHAT
          THE LAST PLACEMENT SAID IS ON THE GLASS — three `let`s in arcade.js and shell.js, so only
          functions built in this evaluation can read them (docs/history/331). */
-      'running: () => TOOLS_ON.map(e => ({ id: String(e.w.id), col: e.col })),' +
+      'running: () => TOOLS_ON.map(e => ({ id: String(e.w.id), col: e.col, who: e.who, slot: e.slot })),' +
+      /* AND WHICH COLUMNS A REPAINT LEFT TO BE DRAWN ON ARRIVAL — a `let` in shell.js. */
+      'stale: id => !!STALE[id],' +
       'waiting: () => TOOLS_WAIT.map(q => ({ id: String(q.w.id), col: q.col })),' +
       'glass: () => ({ at: GLASS.at, cols: GLASS.cols.slice(), pages: GLASS.pages.slice() }),' +
       /* WHAT THE FIND SCREEN OFFERS AGAINST WHAT THE APP HOLDS, and the Saved column that reads the
@@ -3549,11 +3551,21 @@ check('a widget beside the column in front that waits for the payload is drawn w
   if (!card().querySelector('.loading')) return ['the flyer maker beside You shows no loader with the payload held, so nothing was waiting'];
   if (card().getAttribute('aria-busy') === 'true') bad.push('the flyer maker still holds the "not started" veil after it started');
   const was = card();
+  /* AND NEVER BARE ON THE WAY. A new slot with its veil off and nothing running in it is markup nobody
+     started — and that is what the new flyer maker was, from the landing until the slide settled, while
+     the old one, running in markup the landing had thrown away, still counted as "running" and its copy
+     on the glass was unveiled for it (review of 331). Asked after every change to the column. */
+  let bare = 0;
+  const look = () => { const sl = card(); if (sl && sl !== was && !sl.getAttribute('aria-busy') && !t.running().some(r => r.slot === sl)) bare++; };
+  const mo = new w.MutationObserver(look);
+  mo.observe(w.document.getElementById('s-tools'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
   release();
   /* WAITED FOR UNTIL IT IS DRAWN, NOT UNTIL `quiet()`: the after-slide jobs run one per task from a
      list `afterSlide_` has already emptied, so `quiet()` says yes while the restart is still in it. */
   await until_(() => card() && card() !== was && !!card().querySelector('#fm-wrap .widget-squeeze'));
   await woken_();
+  mo.disconnect();
+  if (bare) bad.push('the payload landed and the new flyer maker beside You was shown without its veil and with nothing running in it, ' + bare + ' time(s) — markup nobody had started, unveiled because the one in the thrown-away markup still counted as running');
   if (card() === was) bad.push('the payload landed and Tools was not drawn again, so starting the new markup was not asked');
   if (card() && card().getAttribute('aria-busy') === 'true') bad.push('the payload landed, Tools was drawn again beside You, and the new flyer maker sits under the "not started" veil — only going to Tools would have started it');
   else if (card() && card().querySelector('.loading')) bad.push('the payload landed and the flyer maker beside You still shows the loader');
@@ -3563,6 +3575,109 @@ check('a widget beside the column in front that waits for the payload is drawn w
   if (card() && !card().querySelector('#fm-wrap .widget-squeeze')) bad.push('the payload landed and the new flyer maker beside You was never started — its box is the empty markup');
   if (t.running().filter(r => r.id === 'flyers').length !== 1) bad.push('after the payload the flyer maker is running ' + t.running().filter(r => r.id === 'flyers').length + ' time(s), not once');
   if (t.AT() !== 'account') bad.push('the column in front moved to ' + t.AT());
+  return bad;
+});
+
+/* ---------- A REPAINT AND THEN AN ARRIVAL KEEP THE WIDGET RUNNING BESIDE YOU ---------------------------
+   FOUND BY THE REVIEW OF 331, on the owner's own path. Every signed-in load lands twice (the payload, then
+   the inbox), and the second `repaint` marks every column but the one in front `STALE`; a column is drawn
+   again when it is next arrived at. So at 1194 with Settings in front, the calculator on Tools beside it
+   ran in markup that was due to be thrown away — and the first arrival at Tools threw it away: a new slot
+   under the loader for 240–690ms, then the calculator started again from nothing, a sum typed into it
+   gone. `paint` now hands the running slot back into the new markup (`widgetsHeld_`, arcade.js). The
+   column itself IS drawn again — its star is a new element — and the widget is the one that was running. */
+check('a repaint and then an arrival keep the widget running beside the column in front: the same slot, never the loader, the sum still in it', async () => {
+  const { w } = wideBoot_();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('settings', false, true);
+  await settle_();
+  const d = w.document;
+  const slot = () => d.querySelector('#s-tools #wgt-calculator');
+  const shown = () => { const el = d.querySelector('#s-tools #wgt-calculator #mc-display'); return el ? el.textContent : null; };
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools') && slot() && !slot().getAttribute('aria-busy'));
+  if (!t.running().some(r => r.id === 'calculator' && r.col === 'tools')) return ['the calculator beside Settings never started, so nothing was asked'];
+  if (typeof w._mcClick !== 'function') return ['the calculator set no `_mcClick`, so nothing could be typed into it'];
+  ['7', '+', '5'].forEach(k => w._mcClick(k));
+  if (shown() !== '7+5') return ['typed 7+5 into the calculator beside Settings and it reads ' + JSON.stringify(shown()) + ', so nothing was asked'];
+  const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
+  let starts = 0;
+  const realStart = calc.start;
+  calc.start = function () { starts++; return realStart.apply(this, arguments); };
+  const was = slot();
+  const star = () => { const sl = slot(); const c = sl && sl.closest('.card'); return c && c.querySelector('.wgt-keep'); };
+  const starWas = star();
+  /* EVERY CHANGE TO THE COLUMN, ASKED: is the calculator's slot there and without the loader? */
+  let veiled = 0;
+  const look = () => { const sl = slot(); if (!sl || sl.getAttribute('aria-busy') === 'true' || sl.querySelector(':scope > .loading')) veiled++; };
+  const mo = new w.MutationObserver(look);
+  mo.observe(d.getElementById('s-tools'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
+  const bad = [];
+  t.repaint();
+  if (!t.stale('tools')) bad.push('the repaint did not leave Tools stale, so its first arrival did not draw it again and nothing was asked');
+  await wait(300);
+  t.go('tools', false, true);
+  await settle_();
+  await until_(() => t.AT() === 'tools' && t.quiet());
+  look();
+  mo.disconnect();
+  calc.start = realStart;
+  if (t.stale('tools')) bad.push('Tools is still stale after arriving at it — the column was not drawn again, so keeping the slot through a paint was not asked');
+  else if (star() === starWas) bad.push('the calculator\'s star is the element it was before the arrival — the column was not drawn again, so keeping the slot through a paint was not asked');
+  if (slot() !== was) bad.push('arriving at Tools after a repaint threw away the slot the calculator was running in and drew a new one');
+  if (veiled) bad.push('between the repaint and arriving at Tools the calculator\'s slot was gone or held the loader ' + veiled + ' time(s): drawn, the dots, drawn');
+  if (shown() !== '7+5') bad.push('the sum typed beside Settings reads ' + JSON.stringify(shown()) + ' once Tools is in front — the calculator was started again from nothing');
+  if (starts) bad.push('arriving at Tools started the calculator ' + starts + ' time(s) more, though it was running on Tools\' own copy');
+  const on = t.running().filter(r => r.id === 'calculator');
+  if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs ' + JSON.stringify(on.map(r => r.col)) + ', not once on Tools');
+  return bad;
+});
+
+/* ---------- AND NOT FOR THE PERSON WHO HAS GONE -------------------------------------------------------
+   A widget beside the column in front runs in markup a repaint leaves `STALE`, so a sign-out on Settings
+   at 1194 left Tools beside it running as it was: the admin's flyer maker, which a signed-out Tools does
+   not draw, and the calculator started for the admin. The column in front is started again by the
+   repaint a change of person makes; a widget beside it started for somebody else is now stopped, and
+   started again if its column still draws it for whoever is here (`widgetsGlass_`). And a paint never
+   carries a slot started for somebody else into the new markup (`widgetsHeld_`): what is in it is theirs. */
+check('a sign-out stops what its column no longer draws beside the column in front, and nothing runs on for the last person', async () => {
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't-ann' };
+  const { w } = wideBoot_({ before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('settings', false, true);
+  await settle_();
+  const runs = id => t.running().find(r => r.id === id && r.col === 'tools');
+  await until_(() => runs('calculator') && runs('flyers'));
+  if (!runs('flyers') || !runs('calculator')) return ['with the admin signed in, the calculator and the flyer maker are not both running beside Settings (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
+  if (runs('calculator').who !== 'P001') return ['the calculator beside Settings says it was started for ' + JSON.stringify(runs('calculator').who) + ', not for the admin, so nothing was asked'];
+  const bad = [];
+  if (typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function') return ['signedOut_ / signedIn_ are not globals, so a change of person was NOT asked'];
+  /* SIGNED OUT WITH SETTINGS IN FRONT, and nobody goes anywhere. */
+  try { w.signedOut_(); } catch (e) { return ['signedOut_ threw: ' + e.message]; }
+  await settle_();
+  await until_(() => !runs('flyers') && runs('calculator') && runs('calculator').who === '');
+  if (!t.stale('tools')) bad.push('the sign-out did not leave Tools stale, so nothing beside Settings was running in markup it would not draw now');
+  if (runs('flyers')) bad.push('signed out with Settings in front, the admin\'s flyer maker went on running on Tools beside it — a signed-out Tools does not draw it');
+  if (!runs('calculator')) bad.push('signed out with Settings in front, the calculator on Tools beside it stopped and was not started again');
+  else if (runs('calculator').who !== '') bad.push('signed out with Settings in front, the calculator beside it is still the one started for ' + JSON.stringify(runs('calculator').who));
+  /* SIGNED IN AGAIN, then out and STRAIGHT to Tools — before anything beside Settings has been started
+     again — so the arrival's paint meets a slot started for the admin. It must not carry it. */
+  try { w.signedIn_(Object.assign({}, admin)); } catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }
+  await settle_();
+  await until_(() => runs('calculator') && runs('calculator').who === 'P001');
+  if (!runs('calculator') || runs('calculator').who !== 'P001') return bad.concat(['signed in again, the calculator beside Settings was not started for the admin (' + JSON.stringify(runs('calculator') && runs('calculator').who) + '), so carrying a slot across a change of person was not asked']);
+  const adminSlot = runs('calculator').slot;
+  try { w.signedOut_(); t.go('tools', false, true); } catch (e) { return bad.concat(['signing out and going to Tools threw: ' + e.message]); }
+  const now = w.document.querySelector('#s-tools #wgt-calculator');
+  if (now === adminSlot) bad.push('signed out and straight to Tools, the new Tools markup holds the calculator slot that was started for the admin — carried across a change of person');
+  await settle_();
+  await until_(() => t.AT() === 'tools' && runs('calculator') && runs('calculator').who === '' && t.quiet());
+  if (!runs('calculator')) bad.push('signed out and at Tools, the calculator is not running');
+  else if (runs('calculator').who !== '') bad.push('signed out and at Tools, the calculator in front is the one started for ' + JSON.stringify(runs('calculator').who) + ' — nothing started it again for nobody');
+  if (runs('flyers')) bad.push('signed out and at Tools, the admin\'s flyer maker is running');
   return bad;
 });
 
