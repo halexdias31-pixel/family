@@ -429,3 +429,55 @@ after the lift.
 read per sample; the box kept from the down (C's cache); no flush on the lift (the drawn path behind the store);
 samples left for a frame with no flush (the last points dropped from the store); no chunks; the path written per
 event instead of per frame.
+
+#### 1c — round when fast
+
+js/find.js: `padSegs_` (corner-keeping centripetal Catmull-Rom, §6), `padPath_(st, k)` through it, `padAspect_`
+(4/3 for the board, a figure's viewBox h/w, else 1) written on `.qpad` as `data-aspect`, and that one number read
+by the live path (`PAD_GO.k`), the lift, `padRepaint_`, `usesInk_` and `usesSeen_`. Nothing stored changes.
+
+**Measured with `check/pen.js --only=round`, 4x CPU, load average 0.6:**
+
+| | before 338 | after |
+|---|---|---|
+| one turn in 200ms, board at 390 | 10 points, chord 114px, a lopsided 9-gon | 26 points, chord 25px, 0.46px off round between its ends |
+| one turn in 120ms, board at 390 | 9 points, chord 115px | 16 points, chord 40.7px, 0.41px off round |
+| the same on the iPad board (820), 200 / 120ms | 9 points, chord 227px / 8, 200px | 26 / 16 points, chords 34.6 / 56.4px, 0.71 / 0.61px off round |
+| Q7 at 390, 200ms | 11 points, a polygon | 26 points, drawn 0.41px off round |
+| **a starved circle — 9 events a turn, nothing folded (an iPad without coalesced events)** | a 9-gon, 5.9–8.1px off round | **drawn 0.53px (Q7), 0.87px (board 390), 1.27px (board 820) off round** |
+| Q7 at 390, 200ms, `getCoalescedEvents` deleted (reported, not judged) | — | 9–11 irregular points, chords up to 137px: 16–27px off round — where the events came unevenly, a vertex turns past 50° and keeps its corner |
+
+**Looked at** (a scratch script, real touch at 4x, the same strokes on the unchanged 4955c7c and on this branch:
+a fast circle, a slow wobbly line, handwriting — a row of joined loops — a dot, a ruler line and a compass arc,
+on Q7's face, on a made-up surface (KS2 2024 P2 Q1's grid), on the board, and the ruler and compass on November
+2019 1H Q4, at 390x844 and 820x1180): the circle a 7–9-gon before and round after on every pad and size; the
+handwriting's loops smoother on the board; the slow line, the dot, the ruler line and the compass arc drawn as
+before. **One thing a screenshot shows that the maths said:** a circle drawn as one closed stroke keeps a point
+at its seam — the stroke's two ends take their chord's direction (§6). It is the polygon's own 40° vertex, the
+other eight gone; closing a seam was declined (§9). If a device screenshot of a child's circles shows it, closing
+a stroke whose first and last points coincide is the change.
+
+**Storage, measured** (a wave across the board, 150 samples at 8ms, 4x, the way 310 measured one): stored 181–211
+characters before and 226 after (1.07–1.25x, inside the 1.3x expected — every sample gives the thinning a truer
+line, so a wave keeps 30 points where it kept 24–28); so a board holds about 442 such waves where it held 473–552.
+A question's drawing (the visual set on Q7) is 2,446 characters stored where it was 1,349–1,502 (1.6–1.8x, under
+the 3x at which question strokes would be thinned locally); the account copy is thinned at 1 unit on the way, as
+before. **The board at its ceiling** (442 of those waves, 99,840 characters): the drawn `d` is 345K characters
+against 99K (3.5x — over the 2.5x expected, because a thinned board stroke is all long, gentle segments, the very
+case curves are written for), and `padRepaint_` — what Undo and Clear run — takes 82–95ms median at 4x (max
+101–121) against 27–40ms. Under the 100ms at which `PAD_CURVE_MIN` was to be raised for the board, by its median;
+over it at the worst run. Recorded as the first change to make if Undo on a full board is ever seen to lag.
+
+check-flow: one journey — today's string byte for byte for a dot, two points, a repeated pair, a square, a
+triangle, 310's stroke, a ruler line, a malformed list (an odd length, NaN, Infinity) and a dense stroke at
+k = 1, 0.5 and 4/3, and for every stroke this file's journeys store; an L keeps its corner; a 12-gon of radius
+100 is drawn 0.17 units off its circle between its ends (the bound is 0.5) and its two end segments under the
+polygon's own 3.4; a 9-point ring curves and a hexagon does not; a circle stored round on the 3:4 board is round
+drawn with k = 4/3 and different with k = 1; duplicates and a straight run draw no NaN; and on a pad,
+`data-aspect` is 1 for a square figure and 0.5 for a 340x170 one, an old fast circle (whole numbers, as every
+device stores them) is drawn round through every stored point, an old ruler line is `M50 100L200 180`, a repaint
+draws with the pad's own aspect, and the stored value is byte for byte what it was.
+
+**Mutations, each red on its own and the real files green after:** `PAD_CORNER_DEG = 180`; `PAD_CURVE_MIN = 0`;
+smoothing off (every segment straight); the aspect ignored; the storage format changed (an object per stroke);
+the storage format changed (unrounded points).

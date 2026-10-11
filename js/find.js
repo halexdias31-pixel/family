@@ -8700,21 +8700,115 @@ function padRead_(k) {
    rounded coordinates per stroke, because a list of {x,y} objects is three times the characters for
    the same marks and `localStorage` is a few megabytes shared with everything else this app keeps.
    Rounded to whole units of a 340-wide picture, which is finer than a finger. */
-/* SEGMENTS a..b-1 OF A STROKE, the one writer the stored path and the live chunks share (`padChunks_`), so
-   the two can never draw a stroke two ways. */
-function padSegs_(st, a, b) {
-  let d = '';
-  for (let i = a; i < b; i++) d += 'L' + st[2 * i + 2] + ' ' + st[2 * i + 3];
+/* ---------- A FAST LINE IS DRAWN ROUND: CORNER-KEEPING CENTRIPETAL CATMULL-ROM (338) ---------------------
+   MEASURED BEFORE: one turn of a circle in 200ms, at 4x CPU on a phone, stored 10 points -- a lopsided 9-gon
+   with a 114px chord -- and on an iPad without coalesced samples that is all a fast line will ever have. The
+   STORE is right (every point the finger gave, rounded to a unit); the DRAWING was a polyline through it. So a
+   long, gently turning segment is drawn as a curve THROUGH the two stored points at its ends, and nothing
+   stored changes: every drawing on every device and account loads as it was and is drawn round where it was
+   a polygon of a curve, and an older copy of the app draws a new stroke as the polyline it always drew.
+
+   THE MATHS, in Q = (x, k·y) -- proportional to screen pixels, because 340 units span the box's width AND its
+   height (`preserveAspectRatio="none"`), so `k` = H/W of the box (`padAspect_`). A segment Qi -> Qi+1 is a
+   cubic with centripetal handles (alpha = 1/2; Yuksel, Schaefer and Keyser 2011: the one member of the family
+   with no cusps and no self-intersection within a segment), d0 = |Qi - Qi-1|^1/2, d1 = |Qi+1 - Qi|^1/2,
+   d2 = |Qi+2 - Qi+1|^1/2:
+     B1 = (d0^2 Qi+1 - d1^2 Qi-1 + (2d0^2 + 3d0d1 + d1^2) Qi) / (3d0(d0 + d1))
+     B2 = (d2^2 Qi - d1^2 Qi+2 + (2d2^2 + 3d2d1 + d1^2) Qi+1) / (3d2(d2 + d1))
+   and at a CORNER the handle runs along the chord (a third of it), which is the same formula with a
+   reflected phantom point. A vertex turning 50 degrees or more is a corner, and so are the two ends.
+   WHY 50: a circle of 8 or 9 points a turn (45 and 40 degrees -- the measured fast circles) comes out round,
+   0.82 and 0.52px off the true circle against 7.4 and 5.9px of polygon; a heptagon (51.4), a hexagon, a
+   square, a triangle -- a reflection on squared paper, where the corner IS the answer -- keep their corners.
+   WHY 8 UNITS: a chord's sagitta is about L.theta/8, so under 8 units and 50 degrees a straight segment is
+   within 0.87 units of the curve it stands for -- 0.96px at most, on the iPad board. A slowly drawn stroke
+   (samples 1-3 units apart) is therefore drawn BYTE FOR BYTE as before, and `d` grows only where a curve
+   shows. Both are free to re-tune: no stored point depends on either.
+   NOTHING FILTERS OR PREDICTS THE INPUT (338, section 6): a filter quiet enough for a still finger lags 8px at
+   the corner a child slows down for, and is irreversible; this is drawing, and can be changed tomorrow. */
+const PAD_CORNER_DEG = 50;
+const PAD_CURVE_MIN = 8;
+const PAD_CORNER_COS = Math.cos(PAD_CORNER_DEG * Math.PI / 180);
+/* A CONTROL POINT TO ONE DECIMAL, "12.3" or "12" -- whole units would bend a curve by up to half a unit. */
+const padNum_ = v => String(Math.round(v * 10) / 10);
+/* SEGMENTS a..b-1 OF A STROKE `st` (a flat list with no point repeated), with neighbours from the whole of it
+   -- the one writer the stored path and the live chunks share (`padChunks_`), so the two can never draw a
+   stroke two ways. The last point of the list is an end (a corner), so a live chunk drawn now is exactly
+   what a lift now would store. */
+function padSegs_(st, k, a, b) {
+  const m = st.length / 2;
+  const X = i => st[2 * i], Y = i => k * st[2 * i + 1];
+  const corner = i => {
+    if (i <= 0 || i >= m - 1) return true;
+    const ux = X(i) - X(i - 1), uy = Y(i) - Y(i - 1), vx = X(i + 1) - X(i), vy = Y(i + 1) - Y(i);
+    return ux * vx + uy * vy <= PAD_CORNER_COS * Math.hypot(ux, uy) * Math.hypot(vx, vy);
+  };
+  let d = '', c0 = corner(a);
+  for (let i = a; i < b; i++) {
+    const c1 = corner(i + 1);
+    const x0 = X(i), y0 = Y(i), x1 = X(i + 1), y1 = Y(i + 1);
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    if (len < PAD_CURVE_MIN || (c0 && c1)) d += 'L' + st[2 * i + 2] + ' ' + st[2 * i + 3];
+    else {
+      const d1 = Math.sqrt(len);
+      let b1x, b1y, b2x, b2y;
+      if (c0) { b1x = x0 + (x1 - x0) / 3; b1y = y0 + (y1 - y0) / 3; }
+      else {
+        const px = X(i - 1), py = Y(i - 1), d0 = Math.sqrt(Math.hypot(x0 - px, y0 - py));
+        const q = 3 * d0 * (d0 + d1), w = 2 * d0 * d0 + 3 * d0 * d1 + d1 * d1;
+        b1x = (d0 * d0 * x1 - d1 * d1 * px + w * x0) / q; b1y = (d0 * d0 * y1 - d1 * d1 * py + w * y0) / q;
+      }
+      if (c1) { b2x = x1 - (x1 - x0) / 3; b2y = y1 - (y1 - y0) / 3; }
+      else {
+        const nx = X(i + 2), ny = Y(i + 2), d2 = Math.sqrt(Math.hypot(nx - x1, ny - y1));
+        const q = 3 * d2 * (d2 + d1), w = 2 * d2 * d2 + 3 * d2 * d1 + d1 * d1;
+        b2x = (d2 * d2 * x0 - d1 * d1 * nx + w * x1) / q; b2y = (d2 * d2 * y0 - d1 * d1 * ny + w * y1) / q;
+      }
+      d += 'C' + padNum_(b1x) + ' ' + padNum_(b1y / k) + ' ' + padNum_(b2x) + ' ' + padNum_(b2y / k)
+        + ' ' + st[2 * i + 2] + ' ' + st[2 * i + 3];
+    }
+    c0 = c1;
+  }
   return d;
 }
-const padPath_ = st => {
-  let d = '';
-  for (let i = 0; i + 1 < st.length; i += 2) d += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
-  /* A SINGLE TAP IS A DOT, and a dot is a real answer — "mark with a cross" starts as one, and a
-     `<path>` with one point paints nothing at all. Repeating the point gives it length, and
-     `stroke-linecap: round` makes that length a disc. */
-  return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : d;
-};
+/* A STROKE AS A PATH. `k` is the pad's aspect (`data-aspect`, `padAspect_`); a wrong or missing one only
+   changes how a curve bends, never where a point is. TODAY'S STRING, BYTE FOR BYTE, for a dot, two points, a
+   list that is malformed (an odd length, a value that is not a finite number) and a stroke with no segment
+   long and gentle enough to curve -- so every journey's `M50 100L200 180` still reads as it did. */
+function padPath_(st, k) {
+  const plain = () => {
+    let d = '';
+    for (let i = 0; i + 1 < st.length; i += 2) d += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
+    /* A SINGLE TAP IS A DOT, and a dot is a real answer — "mark with a cross" starts as one, and a
+       `<path>` with one point paints nothing at all. Repeating the point gives it length, and
+       `stroke-linecap: round` makes that length a disc. */
+    return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : d;
+  };
+  if (!Array.isArray(st) || st.length < 6 || st.length % 2) return plain();
+  const q = k > 0 && isFinite(k) ? k : 1;
+  const s = [];
+  for (let i = 0; i < st.length; i += 2) {
+    const x = st[i], y = st[i + 1];
+    if (typeof x !== 'number' || typeof y !== 'number' || !isFinite(x) || !isFinite(y)) return plain();
+    if (s.length && s[s.length - 2] === x && s[s.length - 1] === y) continue;
+    s.push(x, y);
+  }
+  if (s.length < 6) return plain();
+  const segs = padSegs_(s, q, 0, s.length / 2 - 1);
+  return segs.indexOf('C') === -1 ? plain() : 'M' + s[0] + ' ' + s[1] + segs;
+}
+/* THE PAD'S SHAPE, H/W OF ITS BOX: the board is 3:4 whatever its surface's viewBox says (note 310 -- the
+   surface is 340x340 stretched); a figure's is its own first `viewBox` (the picture is drawn at its own
+   shape: width set, height auto); a made-up surface is square. Four decimals, so the attribute it is written
+   to reads back as the same number the markup was drawn with. */
+function padAspect_(x, svg) {
+  if (x && padPrefix_(x) === 'board') return Math.round(4 / 3 * 1e4) / 1e4;
+  const m = /viewBox\s*=\s*["']\s*[-\d.eE+]+[\s,]+[-\d.eE+]+[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)/.exec(String(svg || ''));
+  const w = m ? Number(m[1]) : 0, h = m ? Number(m[2]) : 0;
+  return w > 0 && h > 0 && isFinite(w) && isFinite(h) ? Math.round(h / w * 1e4) / 1e4 : 1;
+}
+/* AND WHAT A PAD ELEMENT SAYS IT IS. */
+const padAspectOf_ = pad => Number(pad && pad.getAttribute && pad.getAttribute('data-aspect')) || 1;
 
 /* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE --------------------------------------------------
    THE HANDLER REWRITES THIS TILE IN PLACE rather than repainting the card, so its face exists in
@@ -8787,6 +8881,9 @@ function padWrap_(x, svg, credit) {
      the invisible mode this repository already records for the reel that was paused with nothing
      on it saying so. */
   const pen = PAD_ON === k;
+  /* THE PAD'S SHAPE, written on it for the live path and every repaint to read -- one number for all of them,
+     so the stroke under the finger and the same stroke drawn again agree byte for byte (`padPath_`). */
+  const ka = padAspect_(x, svg);
   const tools = padToolsOf_(x);
   const held = PAD_TOOL.get(k);
   const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
@@ -8801,12 +8898,12 @@ function padWrap_(x, svg, credit) {
      different thicknesses on any box that is not square. `vector-effect="non-scaling-stroke"` is
      the answer to exactly that: the width is measured on the screen rather than in the stretched
      user space, so the pen is one pen. */
-  return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}">
+  return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}" data-aspect="${ka}">
     <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
-        ${was.length ? usesInk_(was) : ''}
+        ${was.length ? usesInk_(was, ka) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
-          `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
+          `<path vector-effect="non-scaling-stroke" d="${padPath_(st, ka)}"/>`).join('')}</g>
         <g class="qpad-aid"></g>
       </svg>
     </div>
@@ -9159,7 +9256,7 @@ function padStart_(c, at, r) {
   const pad = c.ink.closest('.qpad');
   PAD_GO = { tool: padToolNow_(pad), ink: c.ink, from: at, sx: r.width / 340, sy: r.height / 340,
              r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: c.id,
-             c: c, t0: c.t0, est: false, pen: false, dirty: false, live: [], start: 0 };
+             c: c, t0: c.t0, k: padAspectOf_(pad), est: false, pen: false, dirty: false, live: [], start: 0 };
   PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
   c.role = 'owner';
   return PAD_GO;
@@ -9214,7 +9311,7 @@ function padLivePath_(g, d) {
    journeys read their live radius straight after `pointermove`. */
 const PAD_CHUNK = 128;
 /* ONE CHUNK: points a..b, through the one segment writer `padPath_` uses. */
-const padChunk_ = (st, a, b) => 'M' + st[2 * a] + ' ' + st[2 * a + 1] + padSegs_(st, a, b);
+const padChunk_ = (st, k, a, b) => 'M' + st[2 * a] + ' ' + st[2 * a + 1] + padSegs_(st, k, a, b);
 function padChunks_(g) {
   g.dirty = false;
   const st = PAD_ST, n = st.length / 2;
@@ -9228,12 +9325,12 @@ function padChunks_(g) {
   }
   while (n - 1 - g.start >= PAD_CHUNK + 2) {
     const b = g.start + PAD_CHUNK;
-    open.setAttribute('d', padChunk_(st, g.start, b));
+    open.setAttribute('d', padChunk_(st, g.k, g.start, b));
     open = padLivePath_(g, '');
     g.live.push(open);
     g.start = b;
   }
-  open.setAttribute('d', g.start ? padChunk_(st, g.start, n - 1) : padPath_(st));
+  open.setAttribute('d', g.start ? padChunk_(st, g.k, g.start, n - 1) : padPath_(st, g.k));
 }
 /* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. Now, not at
    the next frame: the dot is under the finger the moment it lands. */
@@ -9244,7 +9341,7 @@ function padLiveShow_() {
   g.live = [padLivePath_(g, '')];
   g.start = 0;
   if (g.tool === 'pen') padChunks_(g);
-  else { g.live[0].setAttribute('d', padPath_(PAD_ST)); g.dirty = false; padAid_(g); }
+  else { g.live[0].setAttribute('d', padPath_(PAD_ST, g.k)); g.dirty = false; padAid_(g); }
 }
 /* AND AS IT GROWS: the pen at the next frame, the ruler and the compass now. */
 function padLive_() {
@@ -9253,7 +9350,7 @@ function padLive_() {
   if (g.tool === 'pen') { padFrameWant_(); return; }
   g.dirty = false;
   const live = g.live[0];
-  if (live) live.setAttribute('d', padPath_(PAD_ST));
+  if (live) live.setAttribute('d', padPath_(PAD_ST, g.k));
   padAid_(g);
 }
 
@@ -9510,7 +9607,7 @@ function padCommit_() {
      repainted): a stored stroke that is not on the screen is the one Undo then takes off unseen. */
   const live = lives[0] || padLivePath_(g, '');
   live.removeAttribute('data-live');
-  live.setAttribute('d', padPath_(st));
+  live.setAttribute('d', padPath_(st, g.k));
   if (!pad) return;
   const all = padRead_(k); all.push(st);
   padSave_(pad, k, all);
@@ -9767,8 +9864,9 @@ on('pad-clear', (el) => {
    that disagrees is the one you find out about a week later. */
 function padRepaint_(pad, all) {
   const g = pad.querySelector('.qpad-g');
+  const k = padAspectOf_(pad);
   if (g) g.innerHTML = (all || [])
-    .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
+    .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st, k)}"/>`).join('');
 }
 
 /* ==================================================================================================
@@ -10022,14 +10120,14 @@ function usesSaid_(x, svg, under) {
 }
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
-const usesInk_ = all => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
-  `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>`;
+const usesInk_ = (all, k) => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
+  `<path vector-effect="non-scaling-stroke" d="${padPath_(st, k)}"/>`).join('')}</g>`;
 /* A PICTURE WITH MARKS ON IT AND NO PEN: the pad's box and ink layer (`.qpad-art`, `.qpad-ink`) so a
    mark lands exactly where `padWrap_` drew it, inside `.qseen` rather than `.qpad` -- the class every
    pen handler and `padArm_` look for, so none of them can arm a picture that is not for drawing on. */
 const usesSeen_ = (svg, all, note) => `<div class="qseen">
     <div class="qpad-art">${svg}
-      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all)}</svg>
+      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all, padAspect_(null, svg))}</svg>
     </div>${note || ''}
   </div>`;
 /* A PART THAT ONLY LOOKS AT THE PICTURE AN EARLIER PART DREW ON: its own copy, with those marks. */

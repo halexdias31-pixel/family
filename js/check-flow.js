@@ -4281,6 +4281,124 @@ check('the finger pen keeps every sample: the folded ones, one box read per even
   return bad;
 });
 
+/* ---------- A FAST LINE IS DRAWN ROUND, AND EVERY STORED STROKE STILL DRAWS (338, increment 1c) ----------------
+   `padPath_(st, k)` draws long, gently turning segments as corner-keeping centripetal Catmull-Rom curves
+   through every stored point, and NOTHING STORED CHANGES. Asked here of the function itself and of a pad:
+   today's string byte for byte for a dot, two points, a repeated pair, a square, a triangle, note 310's
+   stroke, a dense stroke, a malformed one and every stroke the journeys in this file store; an L keeps its
+   corner; a 12-gon of radius 100 is drawn within half a percent of its circle and a 9-point ring curves while a
+   hexagon does not; a circle stored on the 3:4 board is round on the screen when drawn with the board's
+   aspect; and an OLD drawing -- whole numbers in the store, as every device holds them -- is drawn round, its
+   stored value byte for byte what it was, every stored point an end of a segment. */
+check('a fast line is drawn round and every stored stroke still draws: padPath_ keeps dots, rulers, corners and dense strokes byte for byte, curves a fast circle within half a percent, reads the pad\'s aspect, and an old drawing loads unchanged', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.padPath_ !== 'function' || typeof w.padAspect_ !== 'function' || !t || typeof t.padWrap !== 'function') {
+    return ['padPath_, padAspect_ or padWrap_ is not reachable — the curves were NOT checked'];
+  }
+  /* TODAY'S STRING, written out here as it was: the polyline, and a lone point as a dot. */
+  const today = st => { let s = ''; for (let i = 0; i + 1 < st.length; i += 2) s += (i ? 'L' : 'M') + st[i] + ' ' + st[i + 1];
+    return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : s; };
+  const P = (st, k) => w.padPath_(st, k);
+  /* THE PATH AS SEGMENTS, and points along it: a cubic at 21 values of t, a line at its two ends. */
+  const segs = s => { const out = []; let cur = null; const re = /([MLC])([^MLC]*)/g; let m;
+    while ((m = re.exec(s))) {
+      const n = m[2].trim().split(/[\s,]+/).map(Number);
+      if (m[1] === 'M') cur = [n[0], n[1]];
+      else if (m[1] === 'L') { out.push([cur, [n[0], n[1]]]); cur = [n[0], n[1]]; }
+      else { out.push([cur, [n[0], n[1]], [n[2], n[3]], [n[4], n[5]]]); cur = [n[4], n[5]]; }
+    }
+    return out; };
+  const along = (s, from, to) => [].concat(...segs(s).slice(from || 0, to).map(g => {
+    if (g.length === 2) return [g[0], g[1]];
+    const pts = [];
+    for (let i = 0; i <= 20; i++) { const u = i / 20, v = 1 - u;
+      pts.push([0, 1].map(c => v * v * v * g[0][c] + 3 * v * v * u * g[1][c] + 3 * v * u * u * g[2][c] + u * u * u * g[3][c])); }
+    return pts; }));
+  /* EVERY STORED POINT IS AN END OF A SEGMENT, in order -- the curve passes through what was drawn. */
+  const ends = (s, st) => {
+    const want = []; for (let i = 0; i + 1 < st.length; i += 2) if (!want.length || want[want.length - 1][0] !== st[i] || want[want.length - 1][1] !== st[i + 1]) want.push([st[i], st[i + 1]]);
+    const g = segs(s), got = g.length ? [g[0][0]].concat(g.map(x => x[x.length - 1])) : [];
+    return JSON.stringify(got) === JSON.stringify(want) || JSON.stringify(got) === JSON.stringify(want.concat([want[want.length - 1]]));
+  };
+  /* THE WORST DISTANCE OF THE DRAWN PATH FROM A CIRCLE, in Q = (x, k.y) -- proportional to the screen. */
+  const radial = (s, k, cx, cy, r, from, to) => Math.max(...along(s, from, to).map(p => Math.abs(Math.hypot(p[0] - cx, k * p[1] - k * cy) - r)));
+
+  /* PP1, PP2, PP7: TODAY'S STRING, BYTE FOR BYTE. */
+  const same = [[5, 5], [1, 2, 3, 4], [5, 5, 5, 5], [0, 0, 100, 0, 100, 100, 0, 100, 0, 0], [0, 0, 200, 0, 100, 170, 0, 0],
+    [34, 34, 306, 34, 306, 170], [50, 100, 200, 180], [1, 2, NaN, 4, 5, 6], [1, 2, 3, 4, 5, 6, 7], [1, 2, Infinity, 4, 5, 6, 7, 8]];
+  /* PP3: A DENSE STROKE (every chord under 8 units) and every stroke the journeys in this file store. */
+  const dense = []; for (let i = 0; i <= 90; i++) dense.push(Math.round(170 + 60 * Math.cos(i / 15)), Math.round(170 + 60 * Math.sin(i / 15)));
+  same.push(dense);
+  /* (AT k = 1: a vertex's turn is measured on the screen, so a stroke's corners are the same at every aspect
+     only where they are square to the page -- the rest are drawn as the pad's own shape bends them.) */
+  const journeys = [[20, 20, 200, 200], [5, 5, 9, 9], [1, 1, 300, 300], [10, 10, 100, 100], [40, 40, 120, 40, 160, 120], [34, 34, 170, 34], [45, 85, 159, 85], [34, 34, 306, 306], [30, 30, 90, 30]];
+  same.concat(journeys).forEach((st, n) => { (n < same.length ? [1, 0.5, 4 / 3] : [1]).forEach(k => {
+    let got;
+    try { got = P(st, k); } catch (e) { got = 'threw ' + e.message; }
+    if (got !== today(st)) bad.push('padPath_(' + JSON.stringify(st).slice(0, 50) + ', ' + k + ') drew ' + String(got).slice(0, 70) + ' — wanted today\'s ' + today(st).slice(0, 70));
+  }); });
+  /* PP4: AN L KEEPS ITS CORNER. */
+  const ell = P([0, 0, 100, 0, 100, 100], 1);
+  if (/C/.test(ell) || !/L100 0L100 100/.test(ell)) bad.push('an L was drawn ' + ell + ' — its corner is the answer');
+  /* PP5: A 12-GON OF RADIUS 100, k = 1: curves, within half a percent of its circle between its ends, through every
+     point. AT THE TWO ENDS a stroke's tangent runs along its chord (it has no point beyond), so the first and last
+     segments are held to the polygon's own sagitta -- never worse than the straight line was. Closing the seam of a
+     ring was declined (338, section 9): the kink there is no larger than the ring's own step. */
+  const ring = n => { const st = []; for (let i = 0; i <= n; i++) { const a = 2 * Math.PI * i / n; st.push(170 + 100 * Math.cos(a), 170 + 100 * Math.sin(a)); } return st; };
+  const g12 = P(ring(12), 1);
+  if (!/C/.test(g12)) bad.push('a 12-gon of radius 100 was drawn with no curve: ' + g12.slice(0, 60));
+  const e12 = radial(g12, 1, 170, 170, 100, 1, -1), x12 = radial(g12, 1, 170, 170, 100), sag = 100 * (1 - Math.cos(Math.PI / 12));
+  if (!(e12 <= 0.5)) bad.push('a 12-gon of radius 100 is drawn ' + e12.toFixed(2) + ' units off its circle between its ends — wanted 0.5 (half a percent) at most');
+  if (!(x12 < sag)) bad.push('a 12-gon\'s end segments are ' + x12.toFixed(2) + ' units off its circle — worse than the polygon\'s ' + sag.toFixed(2));
+  if (!ends(g12, ring(12))) bad.push('the 12-gon\'s curve does not pass through every stored point');
+  /* PP6: A 9-POINT RING CURVES (40 degrees a vertex); A HEXAGON DOES NOT (60). */
+  if (!/C/.test(P(ring(9), 1))) bad.push('a 9-point ring (40 degrees a turn) was drawn with no curve');
+  if (/C/.test(P(ring(6), 1))) bad.push('a hexagon (60 degrees a turn) was drawn with curves — its corners are corners');
+  /* PP8: A CIRCLE STORED ON THE 3:4 BOARD -- round on the screen, so an ellipse in units -- is round drawn with
+     k = 4/3, and the k = 1 string differs. Board 300 x 400px: one unit across is 300/340px, down 400/340. */
+  const sx = 300 / 340, sy = 400 / 340, R = 120, board = [];
+  for (let i = 0; i <= 12; i++) { const a = 2 * Math.PI * i / 12; board.push(Math.round(170 + R * Math.cos(a) / sx), Math.round(170 + R * Math.sin(a) / sy)); }
+  const kb = w.padAspect_({ prefix: 'board' }, '');
+  if (kb !== 1.3333) bad.push('the board\'s aspect is ' + kb + ', wanted 1.3333 — it is 3:4 whatever its surface\'s viewBox says');
+  const gb = P(board, kb), eb = radial(gb, kb, 170, 170, R / sx, 1, -1);
+  if (!(eb <= R / sx * 0.01)) bad.push('a round circle stored on the board is drawn ' + eb.toFixed(2) + ' units off round between its ends with the board\'s aspect — wanted 1% at most');
+  if (gb === P(board, 1)) bad.push('the board\'s circle is drawn the same with k = 1 and k = 4/3 — the aspect is not read');
+  /* PP9: DUPLICATES AND COLLINEAR RUNS -- nothing that is not a number. */
+  const dup = P([10, 10, 10, 10, 50, 10, 90, 10, 90, 10, 130, 10, 170, 50, 170, 50, 210, 90], 1);
+  if (/NaN|Infinity|undefined/.test(dup)) bad.push('duplicates and a straight run drew ' + dup);
+  if (!ends(dup, [10, 10, 10, 10, 50, 10, 90, 10, 90, 10, 130, 10, 170, 50, 170, 50, 210, 90])) bad.push('duplicates and a straight run: not every point is an end of a segment');
+
+  /* ---------- AND ON A PAD: THE ASPECT IT IS DRAWN WITH, AND AN OLD DRAWING ------------------------------- */
+  const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-3' };
+  const k = t.padKey(x);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  /* AN OLD DRAWING: a fast circle as a phone stored it before 338 -- ten whole-number points a turn. */
+  const old = []; for (let i = 0; i <= 9; i++) { const a = 2 * Math.PI * i / 9; old.push(Math.round(170 + 120 * Math.cos(a)), Math.round(170 + 120 * Math.sin(a))); }
+  const value = JSON.stringify([old, [50, 100, 200, 180]]);
+  w.localStorage.setItem(k, value);
+  host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+  const pad = host.querySelector('.qpad');
+  if (pad.getAttribute('data-aspect') !== '1') bad.push('a square figure\'s pad says data-aspect="' + pad.getAttribute('data-aspect') + '", wanted 1');
+  const ds = [...pad.querySelectorAll('.qpad-g path')].map(p => p.getAttribute('d'));
+  if (!/C/.test(ds[0] || '') || !ends(ds[0] || '', old)) bad.push('an old fast circle is not drawn round through its stored points: ' + String(ds[0]).slice(0, 60));
+  if (ds[1] !== 'M50 100L200 180') bad.push('an old ruler line is drawn ' + ds[1] + ', wanted M50 100L200 180');
+  if (w.localStorage.getItem(k) !== value) bad.push('drawing an old drawing changed what is stored');
+  host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+  const wide = host.querySelector('.qpad');
+  if (wide.getAttribute('data-aspect') !== '0.5') bad.push('a 340x170 figure\'s pad says data-aspect="' + wide.getAttribute('data-aspect') + '", wanted 0.5');
+  if (wide.querySelector('.qpad-g path').getAttribute('d') !== P(old, 0.5)) bad.push('the pad does not draw its marks with its own aspect');
+  /* AND A REPAINT (Undo, Clear, a copy) DRAWS WITH THE SAME NUMBER. */
+  w.padRepaint_(wide, [old]);
+  if (wide.querySelector('.qpad-g path').getAttribute('d') !== P(old, 0.5)) bad.push('padRepaint_ does not draw with the pad\'s own aspect');
+  if (w.localStorage.getItem(k) !== value) bad.push('drawing the pad again changed what is stored');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  host.remove();
+  return bad;
+});
+
 /* ---------- VIDEOS: THE BAR ALONE, RESULTS AS YOU TYPE, A TAP PLAYS IN THEIR PLACE, FULL SCREEN -------
    ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
    type in. and there should be a full screen button." AND THEN, 10 Oct (note 321): *"make it look more
