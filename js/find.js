@@ -3346,7 +3346,7 @@ function fightCard_(x) {
      ASKED FOR WITH THE BOXER'S PHOTO ("maybe add image of each boxer"), and a bout is two boxers, so
      it gets both — small, side by side, the winner's frame in gold. Each is `boxerPic_`'s corner:
      the photo where the boxer's row has one WITH its credit, and the ring placeholder otherwise —
-     mirrored in the blue corner's colours on the right, as the splash draws its second fighter. An
+     mirrored in the blue corner's colours on the right, as the ring splash drew its second one. An
      opponent with no row at all (52 corners) gets the placeholder with his initials, which is what
      he is: somebody this library has no picture of.
 
@@ -5082,12 +5082,13 @@ function boxerSplit_(parts) {
    box shows, so nothing jumps and nothing sits grey; if the photo never arrives, `boxerPicFail_`
    takes the `<img>` out and it is all that is left. Never a broken-picture icon.
 
-   THE BOXER IN IT IS THE SPLASH'S GOLD FIGHTER IN HIS GUARD — `tools/boxing.py`'s `guard` pose,
-   the same paths, painted by the same `.bx-*` rules — so the loading screen and the placeholder are
-   one drawing in one set of colours. NOBODY'S LIKENESS, which is the point that file makes and the
-   one that matters most here: a stand-in that looked like a person would be a picture of the wrong
-   man. His initials beside it say whose page it is. If the splash is regenerated, paste its new
-   guard paths over these. */
+   THE BOXER IN IT WAS THE RING SPLASH'S GOLD FIGHTER IN HIS GUARD — `tools/boxing.py`'s `guard`
+   pose, the same paths, painted by the same `.bx-*` rules. The splash and the script went on 10 Oct
+   with every loading screen that taught nothing (docs/history/322); these paths are the card's own
+   now, and the `.bx-*` rules that paint them stayed in style.css for this card alone (the block
+   headed "THE BOXER CARD'S RING AND FIGHTER"). NOBODY'S LIKENESS, which is the point that script
+   made and the one that matters most here: a stand-in that looked like a person would be a picture
+   of the wrong man. His initials beside it say whose page it is. */
 const BOXER_GUARD = '<path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/>'
   + '<path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM7 7h2v1h-2zM4 8h6v1h-6zM3 9h8v1h-8zM3 10h5v1h-5zM11 10h1v1h-1zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/>'
   + '<path class="bx-eye" d="M10 4h1v1h-1z"/>'
@@ -5096,9 +5097,9 @@ const BOXER_GUARD = '<path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-
   + '<path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/>'
   + '<path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/>';
 
-/* THE RING, SIDE ON: two posts, three ropes (the middle one red, as the splash's), the pads in each
-   corner's colour, the mat and the apron, and his initials over the top rope like the name on a
-   corner banner. 40 by 50 game pixels, which is the portrait frame's own 4:5, so the drawing fills
+/* THE RING, SIDE ON: two posts, three ropes (the middle one red, as the ring splash's was), the pads
+   in each corner's colour, the mat and the apron, and his initials over the top rope like the name on
+   a corner banner. 40 by 50 game pixels, which is the portrait frame's own 4:5, so the drawing fills
    it without letterboxing; the fight card's square corner crops five pixels off the top and the
    bottom, which is sky and apron. `crispEdges` keeps every pixel square at any size. The fighter
    stands on whole pixels — a half-pixel offset is a blurred boxer. */
@@ -5108,7 +5109,7 @@ function boxerRing_(name, blue) {
     + `<rect class="bx-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
     + `<rect class="bx-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
   /* THE BLUE CORNER IS THE GOLD ONE MIRRORED about the middle of the ring — `.bx-r` gives him the
-     splash's blue trunks and gold hair, exactly as the splash draws its second fighter. */
+     blue trunks and gold hair the ring splash gave its second fighter. */
   const who = blue ? `<g class="bx-r" transform="translate(29 21) scale(-1 1)">${BOXER_GUARD}</g>`
                    : `<g class="bx-l" transform="translate(11 21)">${BOXER_GUARD}</g>`;
   return `<svg class="boxer-ring" viewBox="0 0 40 50" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">`
@@ -5135,7 +5136,7 @@ function boxerPicSrc_(b) {
 
 /* `corner` IS THE FIGHT CARD'S: 'a' or 'b', the same frame and the same placeholder, square and
    small, with no caption of its own — the fight card gathers its credits into one line under both
-   faces. The blue corner's stand-in faces left, as the splash's second fighter does, and the
+   faces. The blue corner's stand-in faces left, as the ring splash's second fighter did, and the
    winner's frame is gold. */
 function boxerPic_(b, corner, won) {
   const src = boxerPicSrc_(b);

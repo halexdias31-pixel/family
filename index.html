@@ -584,13 +584,13 @@
      slowest, which is the one moment it needed to be moving. It is removed by `load()` when the
      payload lands, and by the boot handler if that throws, so it cannot outlive what it covers.
 ================================================================================================== -->
-<div id="splash" class="is-tag">
+<div id="splash" class="is-still">
   <script id="pick-splash">
   /* THE PICKER IS THE FIRST THING INSIDE THE SPLASH, AND THAT IS ITS WHOLE POSITION.
 
      IT RAN AFTER ALL OF IT. It sat in the script below the markup, so every splash's markup -- a
      thousand lines of it -- was parsed before the class was chosen, and the element carries
-     `is-tag` in the markup as the no-script default. A browser is free to paint between those two
+     `is-still` in the markup as the no-script default. A browser is free to paint between those two
      moments, and it did: measured by `check/load.js` at 4x CPU, four loads in seven painted before
      the pick. Here, inside `#splash` and before anything else in it, the element exists (its
      opening tag has been read) and nothing that could be painted has been parsed yet: none of seven.
@@ -605,321 +605,100 @@
      `Math.random()` and not a rotation: a rotation needs somewhere to remember what came last, and
      the thing it would have to remember outlives the page. A coin is honest about it.
 
-     ---------- TWO KINDS OF SPLASH, AND ONLY ONE OF THEM IS IN THIS FILE ----------------------------
-     "Add the animations from loading to respective subject text books. Matter of fact the source for
-     the animations should be in text books. The animation from loading screen are pulling and syncing
-     from the text book animations." — the owner, 8 Oct.
+     ---------- ONLY WHAT THE BOOKS TEACH ------------------------------------------------------------
+     "delete all animations for loading which dont come from text books or arnt educational." — the
+     owner, 10 Oct. THIRTEEN SPLASHES LIVED IN THIS FILE until then: the tag, the 1974 readout, the
+     torch, the tube, the columns, the blocks, the ring, and six calm ones (a ripple, a tide, a dawn,
+     breathing, rain on glass, a pendulum wave). No chapter of any book was about any of them, which
+     is what had kept them here — and is why they went, every one, with their rules in style.css,
+     their rows of data/settings/splashes.json and the two scripts that drew nothing else
+     (tools/blocks.py, tools/boxing.py). docs/history/322.
 
-     THE ONES IN THE LIST BELOW ARE IN THIS FILE: the brand, the two games and the calm ones, each
-     with its markup further down and its CSS in style.css. THE TEACHING ONES — a proof, a law, a
-     process — LIVE IN THE TEXTBOOKS, a row of data/textbooks.json under the chapter each one teaches.
-     The last load kept a copy of them on this device (`splashSync_` in shell.js) and this draws from
-     it: no fetch and no script file, because nothing else has arrived yet when this runs. A first
-     visit has no copy, so its pool is the inline ones — the same splash a first visit always had a
-     chance of getting. ONE LOAD BEHIND, like `splashOff`: a drawing changed in a book reaches the
-     splash on the load after the one that read the book.
+     SO THE POOL IS THE BOOKS' DRAWINGS AND NOTHING ELSE. "Add the animations from loading to respective
+     subject text books. Matter of fact the source for the animations should be in text books. The
+     animation from loading screen are pulling and syncing from the text book animations." — the owner,
+     8 Oct. Each is a row of data/textbooks.json under the chapter it teaches; the last load kept a copy
+     of them on this device (`splashSync_` in shell.js) and this draws from it — no fetch and no script
+     file, because nothing else has arrived yet when this runs. ONE LOAD BEHIND, like `splashOff`: a
+     drawing changed in a book reaches the splash on the load after the one that read the book.
 
-     A COPY THAT IS NOT WHOLE IS NOT DRAWN. Each kept drawing carries the hash its index promised;
-     any that does not match, or does not parse, is taken back out and an inline splash drawn instead,
-     and the index is dropped so the next load writes everything again. A splash from yesterday is
-     fine. A garbled one is not. */
+     A FIRST VISIT HAS NO COPY, and is left with the markup as it is written below: the name, still,
+     and the app's one loader under it. NOT an animation found to fill the gap — the teaching ones are
+     not on this device yet, and a decoration in their place is exactly what the owner asked to go.
+
+     A COPY THAT IS NOT WHOLE IS NOT DRAWN. Each kept drawing carries the hash its index promised; one
+     that does not match, does not parse or draws no root of its own is taken back out, the index is
+     dropped so the next load writes everything again, and the splash is the still one a first visit
+     gets. A splash from yesterday is fine. A garbled one is not. */
   (function () {
     /* THE MOMENT THE CHOICE IS MADE, so `check/load.js` can hold it against the first paint. */
     try { performance.mark('splash-pick'); } catch (e) {}
     var el = document.getElementById('splash');
-    /* An array rather than a chain of ifs, so adding one is adding a word — the chain is where
-       somebody eventually writes `< 0.5` twice and one of them never comes up. `js/check-css.js`
-       holds this list to the stylesheet's hide list and to the brand, game and calm rows of
-       data/settings/splashes.json. */
-    var kinds = ['tag', 'led', 'torch', 'tube', 'ps',
-                 /* THE BLOCKS, AND THE RING: two boxers of our own, eight-bit. See tools/boxing.py. */
-                 'blocks', 'box',
-                 /* ---------- AND SIX THAT TEACH NOTHING ---------------------------------------
-                    A set of proofs is a set that never lets anybody just wait — some loads should
-                    be calm, or pretty, and nothing more. No chapter of any book is about them,
-                    which is what keeps them here and not in a book.
-                    THE ORBIT WAS ONE AND IS IN A BOOK. It was listed here as having "no words at
-                    all", and it never needed any: every planet turns in its real period, which is
-                    Kepler's third law, and GCSE Physics chapter 12 says it in its own words ("a
-                    faster satellite needs a smaller orbit"). A law is teaching, so it is a row of
-                    data/textbooks.json under that chapter now, drawn here from the kept copy.
-                    The tide is a travelling wave, and stays: seven columns a beat apart show what
-                    "transverse" means only to somebody who already knows.
-                    THE WEAVE WAS ONE AND IS GONE. Six threads each way sliding across themselves:
-                    it read as a tartan square holding still, which is a picture rather than an
-                    animation, and a loading screen that looks frozen reads as an app that has. */
-                 'ripple', 'tide', 'dawn', 'breathe', 'rain', 'pend'];
     /* ---------- THE SHEET MAY TURN ANY OF THEM OFF ---------------------------------------------
-       THE LIST IS WHAT EXISTS; THE SHEET SAYS WHICH ARE IN USE. `splashOff` is the retired ones as
-       the last load read them off data/settings/splashes.json (`splashSync_`), `is-` and an id each,
-       for the kept drawings as for the inline ones.
-       AND IF ANYTHING IS MISSING OR EMPTY, EVERY SPLASH STAYS IN. A misspelt row in a spreadsheet
-       must not leave a blank loading screen — the failure mode of this feature is "you see one you
-       had turned off", which nobody minds. So does a sheet that retires every one of them. */
+       `splashOff` is the retired ones as the last load read them off data/settings/splashes.json
+       (`splashSync_`), `is-` and an id each.
+       AND IF IT RETIRES EVERY ONE, EVERY ONE STAYS IN. A misspelt row in a spreadsheet, or a sheet
+       switched off wholesale, must not be what decides that a device which has the books shows none
+       of them — the failure mode of this feature is "you see one you had turned off", which nobody
+       minds. The still name is for a device with nothing kept, not a punishment for a tidy sheet. */
     var off = [], idx = null, anims = [], st = null;
     try { off = JSON.parse(localStorage.getItem('splashOff') || '[]') || []; } catch (e) { off = []; }
     try {
       idx = JSON.parse(localStorage.getItem('splashAnims') || 'null');
       if (idx && idx.f === 1 && idx.ids && idx.h) anims = idx.ids;
     } catch (e) { anims = []; }
-    var on = function (k) { return off.indexOf('is-' + k) === -1; };
-    var all = kinds.concat(anims), pool = all.filter(on);
-    if (!pool.length) pool = all;
+    /* NOTHING KEPT: the still name and the loader, exactly as the markup has them. */
+    if (!anims.length) return;
+    var pool = anims.filter(function (k) { return off.indexOf('is-' + k) === -1; });
+    if (!pool.length) pool = anims;
     var pick = pool[Math.floor(Math.random() * pool.length)];
-    if (anims.indexOf(pick) !== -1) {
-      try {
-        var rec = JSON.parse(localStorage.getItem('splashAnim:' + pick) || 'null');
-        if (!rec || rec.h !== idx.h[pick] || typeof rec.html !== 'string' || typeof rec.css !== 'string') throw 0;
-        /* ITS STYLESHEET, WHICH A CHAPTER PAGE SHARES — see `animStyle_` in find.js. */
-        st = document.createElement('style');
-        st.setAttribute('data-anim', pick); st.setAttribute('data-h', rec.h); st.textContent = rec.css;
-        document.head.appendChild(st);
-        /* IN FRONT OF THIS SCRIPT, as the first thing in the splash. The book's drawing carries no
-           name — a chapter page has its book's — so the splash signs it, as every splash here is. */
-        el.insertAdjacentHTML('afterbegin', rec.html);
-        el.firstElementChild.insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>');
-        el.className = 'is-an';
-        return;
-      } catch (e) {
-        if (st && st.parentNode) st.parentNode.removeChild(st);
-        var r = el.querySelector(':scope > [class|="an"]');
-        if (r) el.removeChild(r);
-        try { localStorage.removeItem('splashAnims'); } catch (e2) {}
-        var inl = kinds.filter(on);
-        if (!inl.length) inl = kinds;
-        pick = inl[Math.floor(Math.random() * inl.length)];
-      }
+    try {
+      var rec = JSON.parse(localStorage.getItem('splashAnim:' + pick) || 'null');
+      if (!rec || rec.h !== idx.h[pick] || typeof rec.html !== 'string' || typeof rec.css !== 'string') throw 0;
+      /* ITS STYLESHEET, WHICH A CHAPTER PAGE SHARES — see `animStyle_` in find.js. */
+      st = document.createElement('style');
+      st.setAttribute('data-anim', pick); st.setAttribute('data-h', rec.h); st.textContent = rec.css;
+      document.head.appendChild(st);
+      /* IN FRONT OF THIS SCRIPT, as the first thing in the splash. The book's drawing carries no
+         name — a chapter page has its book's — so the splash signs it, as the still one is signed. */
+      el.insertAdjacentHTML('afterbegin', rec.html);
+      /* AND IT MUST BE A DRAWING. A record whose markup is empty, or is not one `an-` root, passed
+         every test above — `''` is a string — and then signed THIS SCRIPT, the first element left,
+         and set `is-an` over nothing: a black screen saying @family. in the corner. */
+      var root = el.firstElementChild;
+      if (!root || !/^an-/.test(root.getAttribute('class') || '')) throw 0;
+      root.insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>');
+      el.className = 'is-an';
+    } catch (e) {
+      if (st && st.parentNode) st.parentNode.removeChild(st);
+      var r = el.querySelector(':scope > [class|="an"]');
+      if (r) el.removeChild(r);
+      try { localStorage.removeItem('splashAnims'); } catch (e2) {}
+      el.className = 'is-still';
     }
-    el.className = 'is-' + pick;
   })();
   </script>
-  <!-- ============================================================================================
-       TWO OF THEM, AND WHICH ONE YOU GET IS THE TOSS OF A COIN.
 
-       Both are in the markup and CSS shows one, because the splash has to be on the screen before
-       any script has run — that is the whole point of it — and building the chosen one in
-       JavaScript would mean it appeared after the work it exists to hide.
+  <!-- ---------- WITH NOTHING KEPT: THE NAME, STILL, AND THE ONE LOADER --------------------------------
+       WHAT THE MARKUP SAYS IS WHAT A DEVICE WITH NO KEPT COPY SEES — a first visit, a copy that failed
+       its check, a store that gave the copy up for a child's answer, a Try again after the drawing was
+       taken off (`splashOff_`) — and what a browser running no script sees.
 
-       So the only thing the script does is pick, which is one line and happens during parsing.
-  ============================================================================================ -->
+       THE NAME IS SET PLAINLY AND DOES NOT MOVE. It was the tag: written on in a second and a half
+       with a mist drifting behind it, which taught nothing, and a name that performs is a decoration.
+       Text in the app's own face, so nothing can be spelt two ways.
 
-  <!-- ---------- ONE: THE TAG. Sprayed on, by hand. ------------------------------------------- -->
-  <svg id="splash-tag" viewBox="0 0 300 120" aria-hidden="true">
-    <g id="splash-mist">
-      <circle cx="86"  cy="60" r="40" fill="#f0a93c" opacity=".16"/>
-      <circle cx="158" cy="52" r="34" fill="#3ddc84" opacity=".13"/>
-      <circle cx="220" cy="64" r="36" fill="#7de6ff" opacity=".11"/>
-    </g>
-    <!-- Set as TEXT, not drawn as a path. A path is a list of numbers and nothing in it knows what
-         an `m` is meant to look like — which is how the first version of this came out reading
-         "Amifaloy". A font knows. -->
-    <text id="splash-line" x="150" y="76" text-anchor="middle">@family.</text>
-    <text id="splash-fill" x="150" y="76" text-anchor="middle">@family.</text>
-  </svg>
+       THE LOADER IS `loading_()`'s, WRITTEN OUT, because this is parsed before shell.js exists and so
+       cannot call it: the same element, the same classes, the same three gold dots and the same words
+       for a screen reader. "Every widget has unique loading look. They should all have a simplistic
+       simple loading thing" — the owner, 9 Oct; a loading screen is one more of those, so it waits
+       the way every card does. `js/check-loading.js` holds this copy to what `loading_()` returns,
+       byte for byte, so the two cannot drift; `check/anims.js` holds the name still in a browser.
 
-  <!-- ---------- TWO: THE READOUT. A machine from 1974 warming up. ---------------------------- -->
-  <div id="splash-led" aria-hidden="true">
-    <!-- The panel it is set into. A readout of that age is always sunk behind a bezel, and the dark
-         glass is what makes an amber segment look lit rather than painted. -->
-    <div class="led-panel">
-      <div class="led-word">@FAMILY.</div>
-      <!-- THE BAR. Twelve blocks that light in turn — the loading indicator of a decade before
-           anybody had a spinner, because a spinner needs a screen that can draw a circle and these
-           machines could light a square. The dead ones stay faintly visible, which is the thing
-           that makes it read as hardware: on a real display an unlit segment is still there. -->
-      <div class="led-bar">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      </div>
-      <div class="led-say">LOADING<span class="led-cur">_</span></div>
-    </div>
-  </div>
-
-  <!-- ---------- THREE: THE TORCH. Finding the name in the dark. ------------------------------
-       The word is already on the wall — painted in something barely lighter than the black around
-       it — and a pool of light passes over and picks it out. So what you are watching is not a
-       thing being drawn, it is a thing being FOUND, which is a different feeling and the reason
-       this one is worth having beside the other two.
-
-       Two copies of the same word, exactly on top of each other: the dark one is the paint, the
-       bright one is the paint with light on it, revealed through a mask that moves. Same text in
-       both, so there is nothing that can be spelt two ways. -->
-  <div id="splash-torch" aria-hidden="true">
-    <div class="tor-pool"></div>
-    <div class="tor-word tor-dim">@family.</div>
-    <div class="tor-word tor-lit">@family.</div>
-  </div>
-
-  <!-- ---------- FIVE: THE LINE. A roundel, and a train running along under it. -----------------
-       THE ROUNDEL IS THE SHAPE THAT SAYS "LONDON" FASTER THAN ANY WORD, and the bar across the middle
-       of it exists to hold a name. In @family.'s own colours, not TfL's: the FORM, a circle with a bar
-       through it, is what anybody recognises, and their red and blue with their typeface would be
-       pretending to be them.
-
-       IT NAMED TWO BOROUGHS UNDER IT AND NO LONGER DOES. The owner asked for them to come off: the
-       splash is the first thing every visitor sees, and where the business works is not something
-       it needs to announce there. "Mind the gap" is the line anybody who has stood on a platform
-       already knows, and it belongs to nobody's address.
-
-       AND UNDERNEATH, the reason this is a LOADING animation rather than a picture: a line with four
-       stations and a train that stops at each, lighting it as it arrives. The wait has a shape and
-       you can see how much of it is left. See style.css for why the train moves by `transform`. -->
-  <div id="splash-tube" aria-hidden="true">
-    <svg class="tube-roundel" viewBox="0 0 200 150" aria-hidden="true">
-      <!-- The circle, drawn on rather than appearing — a ring that is struck looks made. -->
-      <circle class="tube-ring" cx="100" cy="72" r="42"/>
-      <!-- The bar, pulled across after it. -->
-      <rect class="tube-bar" x="26" y="60" width="148" height="24" rx="2"/>
-      <text class="tube-name" x="100" y="76.5" text-anchor="middle">@family.</text>
-    </svg>
-
-    <div class="tube-line">
-      <span class="tube-track"></span>
-      <span class="tube-rail">
-        <span class="tube-stop"></span>
-        <span class="tube-stop"></span>
-        <span class="tube-stop"></span>
-        <span class="tube-stop"></span>
-      </span>
-      <span class="tube-run"><span class="tube-train"></span></span>
-    </div>
-    <div class="tube-say">MIND THE GAP</div>
-  </div>
-
-  <!-- ---------- SIX: THE COLUMNS. Something enormous, starting up, a long way off. ------------
-       A dark plain with a horizon on it, and columns of light standing up out of the ground one
-       after another — slow, quiet, and much bigger than the screen it is on. Anybody who owned a
-       console around 2000 knows the feeling without being able to say what it was of, which is the
-       point: it is a mood rather than a picture of anything.
-
-       ABSTRACT ON PURPOSE. Light on a dark plain is a shape, not somebody's property, and this
-       borrows the HUSH — the long pauses, the low blue, the sense of a machine thinking — rather
-       than any mark. There is nothing here to mistake for anybody else's. -->
-  <div id="splash-ps" aria-hidden="true">
-    <div class="ps-field">
-      <span class="ps-tower"></span>
-      <span class="ps-tower"></span>
-      <span class="ps-tower"></span>
-      <span class="ps-tower"></span>
-      <span class="ps-tower"></span>
-      <span class="ps-tower"></span>
-      <span class="ps-tower"></span>
-    </div>
-    <!-- The ground they stand on, and the light of them lying along it. -->
-    <div class="ps-floor"></div>
-    <div class="ps-say">@family.</div>
-  </div>
-
-
-  <!-- ---------- THREE THAT TEACH NOTHING AT ALL --------------------------------------------------
-       A SET OF THIRTY PROOFS IS A SET THAT NEVER LETS ANYBODY JUST WAIT. These make no claim and ask
-       for nothing back: a ripple, a tide, a sunrise. Somebody opening the app for the fourth time
-       today is not there to be taught, and a loading screen that insists on teaching them is a
-       loading screen that has stopped reading the room.
-       (There were four. The orbit was the solar system at its real periods, which is a law, and it is
-       in Physics chapter 12 now — a row of data/textbooks.json, written by tools/solar.py.)
-
-       AND THEY ARE ALL ONE PROPERTY EACH — a scale, a rotation, a height, a rise. Nothing measured,
-       nothing positioned by hand, nothing that can be a pixel out on a phone. -->
-
-  <!-- A RIPPLE. Three rings leaving the same point, each starting as the one before it fades. -->
-  <div id="splash-ripple" aria-hidden="true">
-    <div class="rp-box"><span></span><span></span><span></span></div>
-    <div class="sp-sig">@family.</div>
-  </div>
-
-  <!-- A TIDE. Seven columns rising and falling a beat apart, so the swell travels along them. -->
-  <div id="splash-tide" aria-hidden="true">
-    <div class="td-row"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i></div>
-    <div class="sp-sig">@family.</div>
-  </div>
-
-  <!-- A SUNRISE. A disc comes up behind a line and goes back down. Slow on purpose. -->
-  <div id="splash-dawn" aria-hidden="true">
-    <div class="dw-box"><span class="dw-sun"></span><span class="dw-sky"></span></div>
-    <div class="sp-sig">@family.</div>
-  </div>
-
-  <!-- BREATHING. A ring that swells and settles, and a word that keeps time with it. Nothing to
-       learn — some loads should just be calm, and a set of twenty-seven proofs is a set that never
-       lets anybody rest. -->
-  <div id="splash-breathe" aria-hidden="true">
-    <div class="br-ring"><i></i><i></i><i></i></div>
-    <div class="br-say">breathe</div>
-    <div class="sp-sig">@family.</div>
-  </div>
-
-  <!-- RAIN ON GLASS. Drops running down and pooling at the bottom. A pattern, not a proof, and the
-       one thing on this list a person in London recognises without being told. -->
-  <div id="splash-rain" aria-hidden="true">
-    <div class="rn-glass">
-      <i style="--x:6%;--d:0s;--t:1.4s"></i><i style="--x:17%;--d:.5s;--t:1.9s"></i>
-      <i style="--x:28%;--d:.2s;--t:1.2s"></i><i style="--x:39%;--d:.9s;--t:1.7s"></i>
-      <i style="--x:50%;--d:.35s;--t:1.5s"></i><i style="--x:61%;--d:1.1s;--t:2.1s"></i>
-      <i style="--x:72%;--d:.15s;--t:1.3s"></i><i style="--x:83%;--d:.75s;--t:1.8s"></i>
-      <i style="--x:94%;--d:.45s;--t:1.6s"></i>
-    </div>
-    <div class="rn-say">@family.</div>
-  </div>
-
-  <!-- A PENDULUM WAVE, SEEN END-ON. Fifteen pendulums on one bar, released together; each makes
-       a different number of swings in forty seconds, so they bend into a snake, scatter and come
-       back into line. It looks choreographed and is not — they only have different lengths. The
-       arithmetic is in style.css beside `.pd-rack`. -->
-  <div id="splash-pend" aria-hidden="true">
-    <div class="pd-rack">
-      <i style="--n:0"></i><i style="--n:1"></i><i style="--n:2"></i><i style="--n:3"></i>
-      <i style="--n:4"></i><i style="--n:5"></i><i style="--n:6"></i><i style="--n:7"></i>
-      <i style="--n:8"></i><i style="--n:9"></i><i style="--n:10"></i><i style="--n:11"></i>
-      <i style="--n:12"></i><i style="--n:13"></i><i style="--n:14"></i>
-    </div>
-    <div class="pd-say">@family.</div>
-  </div>
-
-  <!-- ---------- SEVEN: THE BLOCKS. A row of them, bumped from below. --------------------------
-       A side-scrolling platformer, in the sense that everybody who has played one recognises: a
-       hard ground, chunky blocks floating over it, and something popping out when you hit one from
-       underneath. Each block gives up a letter until the row spells the name, and the last one
-       gives up a coin.
-
-       NOTHING BORROWED BUT THE GRAMMAR. No mushroom, no pipe, no ? on a block and no plumber —
-       the one character is our own, a student in a gold mortarboard drawn pixel by pixel in
-       tools/blocks.py, which writes everything inside this div. A block that is struck from
-       below and gives something up is a game-design idea forty years old and belongs to nobody.
-       What comes out is this app's own name in its own colours, which is why it can be
-       affectionate without pretending to be anybody else's.
-       THIS COMMENT SAT 600 LINES ABOVE THE MARKUP, between two other splashes, where it described
-       nothing near it. It lives with the thing it describes now. -->
-  <div id="splash-blocks" aria-hidden="true">
-    <div class="mb-row">
-      <span class="mb-block"><i>@</i></span>
-      <span class="mb-block"><i>f</i></span>
-      <span class="mb-block"><i>a</i></span>
-      <span class="mb-block"><i>m</i></span>
-      <span class="mb-block"><i>i</i></span>
-      <span class="mb-block"><i>l</i></span>
-      <span class="mb-block"><i>y</i></span>
-      <span class="mb-block"><i>.</i><b class="mb-coin"></b></span>
-    </div>
-    <div class="mb-run"><div class="mb-hop"><svg class="mb-sprite is-a" viewBox="0 0 8 11" shape-rendering="crispEdges"><path class="mb-px-gold" d="M1 0h7v1h-7zM2 1h4v1h-4zM2 5h4v1h-4zM1 6h5v1h-5zM2 7h4v1h-4z"/><path class="mb-px-tassel" d="M0 1h1v1h-1zM0 2h1v1h-1z"/><path class="mb-px-skin" d="M2 2h4v1h-4zM2 3h4v1h-4zM2 4h4v1h-4zM6 6h1v1h-1z"/><path class="mb-px-eye" d="M6 3h1v1h-1z"/><path class="mb-px-leg" d="M2 8h4v1h-4zM1 9h2v1h-2zM5 9h2v1h-2z"/><path class="mb-px-shoe" d="M0 10h2v1h-2zM6 10h2v1h-2z"/></svg><svg class="mb-sprite is-b" viewBox="0 0 8 11" shape-rendering="crispEdges"><path class="mb-px-gold" d="M1 0h7v1h-7zM2 1h4v1h-4zM2 5h4v1h-4zM1 6h5v1h-5zM2 7h4v1h-4z"/><path class="mb-px-tassel" d="M0 1h1v1h-1zM0 2h1v1h-1z"/><path class="mb-px-skin" d="M2 2h4v1h-4zM2 3h4v1h-4zM2 4h4v1h-4zM6 6h1v1h-1z"/><path class="mb-px-eye" d="M6 3h1v1h-1z"/><path class="mb-px-leg" d="M2 8h4v1h-4zM3 9h2v1h-2z"/><path class="mb-px-shoe" d="M2 10h3v1h-3z"/></svg></div></div>
-    <div class="mb-ground"></div>
-  </div>
-
-  <!-- ---------- EIGHT: THE RING. Two boxers, eight-bit. -------------------------------------
-       ASKED FOR AS "add a boxing animation loading. like boxing in the ring 8 bit." A ring from the
-       side — three ropes, two corner posts, a bell over the middle — and two boxers in their guard:
-       gold jabs and blue ducks it, blue lands one back, gold lands one, the bell goes and both
-       return to their corners and come out again. One loop; 100% is 0%.
-       NOBODY'S LIKENESS AND NOBODY'S GAME: both boxers are drawn from nothing in tools/boxing.py,
-       which writes everything inside this div, in this app's own colours. -->
-  <div id="splash-box" aria-hidden="true">
-    <svg class="bx-ring" viewBox="0 0 100 60" shape-rendering="crispEdges">
-      <rect class="bx-post" x="3" y="18" width="3" height="29"/><rect class="bx-post" x="94" y="18" width="3" height="29"/><rect class="bx-rope" x="6" y="22" width="88" height="1"/><rect class="bx-pad bx-pad-l" x="2" y="21" width="5" height="3"/><rect class="bx-pad bx-pad-r" x="93" y="21" width="5" height="3"/><rect class="bx-rope bx-rope-mid" x="6" y="29" width="88" height="1"/><rect class="bx-pad bx-pad-l" x="2" y="28" width="5" height="3"/><rect class="bx-pad bx-pad-r" x="93" y="28" width="5" height="3"/><rect class="bx-rope" x="6" y="36" width="88" height="1"/><rect class="bx-pad bx-pad-l" x="2" y="35" width="5" height="3"/><rect class="bx-pad bx-pad-r" x="93" y="35" width="5" height="3"/><rect class="bx-mat" x="0" y="47" width="100" height="3"/><rect class="bx-mat-edge" x="0" y="47" width="100" height="1"/><rect class="bx-apron" x="2" y="50" width="96" height="8"/><rect class="bx-apron-band" x="2" y="52" width="96" height="1"/>
-      <rect class="bx-post" x="49" y="0" width="2" height="2"/><g class="bx-bell"><path class="bx-gold" d="M49 2h2v1h-2zM48 3h4v1h-4zM47 4h6v1h-6zM47 5h6v1h-6zM46 6h8v1h-8z"/><path class="bx-clapper" d="M49 7h2v1h-2z"/></g><g class="bx-ding"><rect class="bx-spk" x="41" y="3" width="2" height="1"/><rect class="bx-spk" x="40" y="6" width="2" height="1"/><rect class="bx-spk" x="57" y="3" width="2" height="1"/><rect class="bx-spk" x="58" y="6" width="2" height="1"/><rect class="bx-spk" x="43" y="1" width="1" height="1"/><rect class="bx-spk" x="56" y="1" width="1" height="1"/></g>
-      <g class="bx-l" transform="translate(32 25)"><g class="bx-go bx-l-go"><g class="bx-bob"><g class="bx-pose bx-l-guard"><path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/><path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM7 7h2v1h-2zM4 8h6v1h-6zM3 9h8v1h-8zM3 10h5v1h-5zM11 10h1v1h-1zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/><path class="bx-eye" d="M10 4h1v1h-1z"/><path class="bx-glove" d="M11 6h3v1h-3zM10 7h5v1h-5zM10 8h5v1h-5zM11 9h3v1h-3zM8 10h3v1h-3zM8 11h4v1h-4zM9 12h3v1h-3z"/><path class="bx-band" d="M4 13h7v1h-7z"/><path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/><path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/></g><g class="bx-pose bx-l-hit"><path class="bx-hair" d="M3 1h4v1h-4zM2 2h6v1h-6zM2 3h2v1h-2zM2 4h1v1h-1z"/><path class="bx-skin" d="M4 3h5v1h-5zM3 4h4v1h-4zM8 4h1v1h-1zM3 5h5v1h-5zM4 6h4v1h-4zM5 7h3v1h-3zM4 8h5v1h-5zM3 9h6v1h-6zM3 10h7v1h-7zM3 11h4v1h-4zM4 12h3v1h-3zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/><path class="bx-eye" d="M7 4h1v1h-1z"/><path class="bx-glove" d="M10 7h3v1h-3zM9 8h5v1h-5zM9 9h5v1h-5zM10 10h3v1h-3zM7 11h3v1h-3zM7 12h4v1h-4zM8 13h3v1h-3z"/><path class="bx-band" d="M4 13h4v1h-4z"/><path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/><path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/></g><g class="bx-pose bx-l-jab"><path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/><path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM11 6h4v1h-4zM7 7h7v1h-7zM4 8h7v1h-7zM3 9h7v1h-7zM3 10h6v1h-6zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM2 19h2v1h-2zM12 19h2v1h-2z"/><path class="bx-eye" d="M10 4h1v1h-1z"/><path class="bx-glove" d="M15 4h4v1h-4zM14 5h6v1h-6zM15 6h5v1h-5zM14 7h6v1h-6zM15 8h4v1h-4zM10 9h2v1h-2zM9 10h4v1h-4zM8 11h5v1h-5zM9 12h3v1h-3z"/><path class="bx-band" d="M4 13h7v1h-7z"/><path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/><path class="bx-boot" d="M1 20h3v1h-3zM12 20h3v1h-3zM1 21h3v1h-3zM12 21h4v1h-4z"/></g></g></g></g>
-      <g class="bx-r" transform="translate(68 25) scale(-1 1)"><g class="bx-go bx-r-go"><g class="bx-bob"><g class="bx-pose bx-r-duck"><path class="bx-hair" d="M6 7h4v1h-4zM5 8h6v1h-6zM5 9h2v1h-2zM4 10h1v1h-1z"/><path class="bx-glove" d="M13 8h2v1h-2zM11 9h5v1h-5zM11 10h6v1h-6zM12 11h4v1h-4zM10 12h3v1h-3zM9 13h4v1h-4zM10 14h3v1h-3z"/><path class="bx-skin" d="M7 9h4v1h-4zM5 10h5v1h-5zM3 11h9v1h-9zM3 12h7v1h-7zM3 13h6v1h-6zM2 17h3v1h-3zM11 17h3v1h-3zM2 18h2v1h-2zM12 18h2v1h-2zM2 19h2v1h-2zM12 19h2v1h-2z"/><path class="bx-eye" d="M10 10h1v1h-1z"/><path class="bx-band" d="M4 14h6v1h-6z"/><path class="bx-trunks" d="M4 15h7v1h-7zM3 16h4v1h-4zM9 16h4v1h-4z"/><path class="bx-boot" d="M1 20h3v1h-3zM12 20h3v1h-3zM1 21h3v1h-3zM12 21h4v1h-4z"/></g><g class="bx-pose bx-r-guard"><path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/><path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM7 7h2v1h-2zM4 8h6v1h-6zM3 9h8v1h-8zM3 10h5v1h-5zM11 10h1v1h-1zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/><path class="bx-eye" d="M10 4h1v1h-1z"/><path class="bx-glove" d="M11 6h3v1h-3zM10 7h5v1h-5zM10 8h5v1h-5zM11 9h3v1h-3zM8 10h3v1h-3zM8 11h4v1h-4zM9 12h3v1h-3z"/><path class="bx-band" d="M4 13h7v1h-7z"/><path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/><path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/></g><g class="bx-pose bx-r-hit"><path class="bx-hair" d="M3 1h4v1h-4zM2 2h6v1h-6zM2 3h2v1h-2zM2 4h1v1h-1z"/><path class="bx-skin" d="M4 3h5v1h-5zM3 4h4v1h-4zM8 4h1v1h-1zM3 5h5v1h-5zM4 6h4v1h-4zM5 7h3v1h-3zM4 8h5v1h-5zM3 9h6v1h-6zM3 10h7v1h-7zM3 11h4v1h-4zM4 12h3v1h-3zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/><path class="bx-eye" d="M7 4h1v1h-1z"/><path class="bx-glove" d="M10 7h3v1h-3zM9 8h5v1h-5zM9 9h5v1h-5zM10 10h3v1h-3zM7 11h3v1h-3zM7 12h4v1h-4zM8 13h3v1h-3z"/><path class="bx-band" d="M4 13h4v1h-4z"/><path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/><path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/></g><g class="bx-pose bx-r-jab"><path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/><path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM11 6h4v1h-4zM7 7h7v1h-7zM4 8h7v1h-7zM3 9h7v1h-7zM3 10h6v1h-6zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM2 19h2v1h-2zM12 19h2v1h-2z"/><path class="bx-eye" d="M10 4h1v1h-1z"/><path class="bx-glove" d="M15 4h4v1h-4zM14 5h6v1h-6zM15 6h5v1h-5zM14 7h6v1h-6zM15 8h4v1h-4zM10 9h2v1h-2zM9 10h4v1h-4zM8 11h5v1h-5zM9 12h3v1h-3z"/><path class="bx-band" d="M4 13h7v1h-7z"/><path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/><path class="bx-boot" d="M1 20h3v1h-3zM12 20h3v1h-3zM1 21h3v1h-3zM12 21h4v1h-4z"/></g></g></g></g>
-      <g class="bx-spark bx-spark-1"><path class="bx-spk" d="M42 27h1v1h-1zM40 28h1v1h-1zM42 28h1v1h-1zM44 28h1v1h-1zM41 29h1v1h-1zM43 29h1v1h-1zM40 30h2v1h-2zM43 30h2v1h-2zM41 31h1v1h-1zM43 31h1v1h-1zM40 32h1v1h-1zM42 32h1v1h-1zM44 32h1v1h-1zM42 33h1v1h-1z"/><path class="bx-gold" d="M42 29h1v1h-1zM42 30h1v1h-1zM42 31h1v1h-1z"/></g><g class="bx-spark bx-spark-2"><path class="bx-spk" d="M57 27h1v1h-1zM55 28h1v1h-1zM57 28h1v1h-1zM59 28h1v1h-1zM56 29h1v1h-1zM58 29h1v1h-1zM55 30h2v1h-2zM58 30h2v1h-2zM56 31h1v1h-1zM58 31h1v1h-1zM55 32h1v1h-1zM57 32h1v1h-1zM59 32h1v1h-1zM57 33h1v1h-1z"/><path class="bx-gold" d="M57 29h1v1h-1zM57 30h1v1h-1zM57 31h1v1h-1z"/></g>
-    </svg>
-    <div class="sp-sig">@family.</div>
+       `aria-hidden` on the name, because `#splash-say` below already says it out loud. -->
+  <div id="splash-still">
+    <p class="sp-name" aria-hidden="true">@family.</p>
+    <div class="loading" role="status" aria-label="Loading"><span></span><span></span><span></span></div>
   </div>
 
   <!-- Said, as well as drawn: whichever one is showing, this is what it says. -->
@@ -931,9 +710,9 @@
        other failure in this app ends with a sentence and a Try again; this one was a minute of
        silence.
 
-       IT IS IN THE MARKUP RATHER THAN BUILT, for the reason the two splashes above are: the boot
-       path is where this app once took itself down, and anything there that has to be constructed
-       is one more thing that can be missing. Hidden until something asks for it.
+       IT IS IN THE MARKUP RATHER THAN BUILT, for the reason the still name and its loader above
+       are: the boot path is where this app once took itself down, and anything there that has to be
+       constructed is one more thing that can be missing. Hidden until something asks for it.
 
        NOT AN ERROR, AND IT DOES NOT OFFER A WAY OUT. At fifteen seconds the request may well still
        land — the deadline and its banner are what handle the case where it does not. This says the
@@ -949,9 +728,10 @@
        and a message saying it was still trying: three things on screen disagreeing about whether
        anything was happening.
 
-       Written here instead, over the animation that is still running, so nothing has to be
-       removed to say it. `boot-` and not `splash-`, deliberately: every `#splash-*` id is a
-       loading screen as far as check-css.js is concerned, and this is a caption on one.
+       Written here instead, over whatever the splash is showing, so nothing has to be removed to
+       say it. `boot-` and not `splash-`, deliberately: check-css.js holds the `#splash-*` ids to a
+       closed list of the loading screen's own parts — the still name, the line said out loud, the
+       slow line — so that an inline splash cannot come back, and this is a caption over all of them.
   ============================================================================================ -->
   <p id="boot-slow" class="hidden"></p>
 </div>
@@ -1001,9 +781,9 @@
   /* ==================================================================================================
      THE ANIMATION RUNS FOR AS LONG AS THE LOAD DOES.
 
-     EVERY SPLASH TELLS A STORY THAT ENDS. The tag is written on in 1.7 seconds, the tube map draws
-     itself in 2.1, Pythagoras squares up in 2.4 — and then `forwards` holds the last frame and the
-     screen is a still picture. On a backend that answers in fifteen seconds that is two seconds of
+     A DRAWING CAN TELL A STORY THAT ENDS. The tag was written on in 1.7 seconds and the tube map
+     drew itself in 2.1 (both gone, docs/history/322); Pythagoras squared up in 2.4 — and then
+     `forwards` held the last frame and the screen was a still picture. On a backend that answers in fifteen seconds that is two seconds of
      animation and thirteen of a photograph, which reads as the app having stopped rather than as
      the app working, and it is the reason a slow load FEELS broken rather than slow.
 
@@ -1020,8 +800,9 @@
      pass" and "one of the eighteen names". The point it is making does not need the count, so it no
      longer carries one.
 
-     THE INFINITE ONES ARE LEFT ALONE — the mist, the glow, the ticking clock. They never finish,
-     so waiting for them would wait for ever, and restarting a texture would make it stutter.
+     THE INFINITE ONES ARE LEFT ALONE — the loader's dots, a drawing's idle, the ticking clock. They
+     never finish, so waiting for them would wait for ever, and restarting a texture would make it
+     stutter.
   ================================================================================================== */
   (function () {
     var sp = document.getElementById('splash');

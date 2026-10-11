@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-submissions-loader-notifications";
+  --css-version: "2026-10-11-the-loading-screen-teaches";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -5775,20 +5775,23 @@ textarea { touch-action: none; }
      ink, the parts not filled in yet the colour of a placeholder. */
 
 /* ==================================================================================================
-   THE SPLASH — @family., sprayed on, while the payload is on its way.
+   THE SPLASH — what covers the app while the payload is on its way.
 
    WHAT IT IS FOR. The first request reads a dozen tabs and a cold Apps Script instance can take a
    couple of seconds over it. What the app looked like for those seconds was a black rectangle,
    which reads as broken rather than as busy — and the difference between those two is whether
    somebody waits or closes it.
 
+   ONLY WHAT THE BOOKS TEACH. "delete all animations for loading which dont come from text books or
+   arnt educational." — the owner, 10 Oct. Thirteen splashes were drawn here — the tag, the 1974
+   readout, the torch, the tube, the columns, the blocks, the ring and six calm ones — and every rule
+   and keyframe of theirs went with them (docs/history/322). What the splash draws now is one of the
+   textbooks' teaching animations, from the copy the device kept (its CSS is its row's, in a
+   `<style data-anim>`, never here); or, with nothing kept, the still name and the app's one loader.
+
    ALL CSS, NO SCRIPT. It has to keep moving while the main thread is parsing eighteen files and
    building four screens, and a spinner driven by JavaScript stops precisely then — at the one
    moment it was needed. An animation the compositor owns does not care how busy the page is.
-
-   DRAWN, NOT FADED IN. The line appears at the speed a hand moves, because that is what a tag is:
-   somebody wrote it. A logo that simply fades up is a picture of a brand; a line that arrives is
-   the act of putting one on a wall.
 ================================================================================================== */
 #splash {
   position: fixed; inset: 0; z-index: 200;
@@ -5816,63 +5819,32 @@ textarea { touch-action: none; }
 #boot-slow b { color: var(--warn, #f0a93c); }
 #boot-slow code { color: #7de6ff; word-break: break-all; }
 
-#splash-tag { width: min(78vw, 22rem); height: auto; overflow: visible; }
+/* ---------- WITH NOTHING KEPT: THE NAME, STILL, AND THE ONE LOADER UNDER IT -----------------------
+   A FIRST VISIT HAS NO COPY OF THE BOOKS' DRAWINGS YET, and neither has a device whose copy failed
+   its check or was given up for a child's answer. What it gets is the name, set plainly and not
+   moving — it used to be written on as a tag, which taught nothing — and under it the loader every
+   card waits with (`loading_()`, shell.js; the block headed "WAITING: ONE LOADER"). Nothing here
+   dresses the loader: its own block sizes and colours it, and a rule for `.loading` outside that
+   block is a second loader (`check-loading.js`). This only stacks the two and centres them.
 
-/* THE WORD, DRAWN ON. Both layers are the same text in the same place: one is the outline being
-   walked on by a dash offset, the other is the solid fill arriving behind it. Same font, same size,
-   same anchor — set them apart and you get two words slightly out of register, which reads as a
-   printing fault. */
-#splash-line, #splash-fill {
-  font-family: var(--font);
-  font-size: 54px;
-  font-weight: 700;
-  letter-spacing: -.02em;
-  dominant-baseline: middle;
+   SHOWN ONLY BY ITS STATE CLASS. The picker sets `is-an` when it draws a book's animation and leaves
+   `is-still` (the markup's own) when it does not; `splashOff_` puts `is-still` back for a Try again.
+   One rule hides it and one rule shows it, and nothing else may say how it is displayed — the rule
+   `check-css` keeps, because a splash with its own opinion about `display` is how two loading
+   screens once came to be drawn at once.
+
+   THE NAME IS PAPER ON BLACK, as the tag was — the splash is one of the paper things (see the second
+   palette) — and the size the tag's letters stood at on a 390 phone, in `rem`: nothing here is
+   pressed. `nowrap`, because "@family." broken over two lines is not the name. */
+#splash-still { display: none; }
+#splash.is-still #splash-still {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  width: min(78vw, 22rem);
 }
-
-/* THE OUTLINE. `stroke-dasharray` on TEXT walks the edge of every glyph, which is why this works
-   without anybody drawing letters: the font supplies the shapes and the dash supplies the hand.
-   The dash only has to be comfortably longer than the longest glyph outline — 400 is, and being
-   generous costs a fraction of a second at the start rather than a wrong result. */
-#splash-line {
-  fill: none;
-  stroke: var(--paper);
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 400;
-  stroke-dashoffset: 400;
-  animation: tag-write 1.7s cubic-bezier(.65, 0, .35, 1) .15s forwards;
-}
-@keyframes tag-write { to { stroke-dashoffset: 0; } }
-
-/* AND THE PAINT, arriving behind the line once it is drawn — the way you outline a letter and then
-   fill it. The stop is its own colour, which is the only thing about this that is decoration. */
-#splash-fill {
-  fill: var(--paper);
-  opacity: 0;
-  animation: tag-fill .6s ease-out 1.5s forwards,
-             tag-glow 2.4s ease-in-out 2s infinite;
-}
-@keyframes tag-fill { to { opacity: 1; } }
-
-/* A wet line catches the light. Faint, and slower than the writing, so it reads as the paint
-   settling rather than as a second animation. */
-@keyframes tag-glow {
-  0%, 100% { filter: drop-shadow(0 0 0 rgb(244 241 232 / 0)); }
-  50%      { filter: drop-shadow(0 0 7px rgb(244 241 232 / .3)); }
-}
-
-/* THE MIST behind it — the overspray. It drifts and breathes, so the still moment before the line
-   starts is not a dead screen. */
-/* FIVE SECONDS AND LEFT ALONE. A drifting mist behind a wordmark has no beginning or end to miss —
-   it is a texture, and seeing 40% of a loop that looks the same throughout is seeing all of it.
-   The measure flags it because it is the longest animation on the splash; the measure is a rule of
-   thumb and this is the case it does not fit. */
-#splash-mist { animation: tag-drift 5s ease-in-out infinite; transform-origin: 50% 50%; }
-@keyframes tag-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); opacity: .9; }
-  50%      { transform: translate(6px, -4px) scale(1.06); opacity: 1; }
+#splash-still .sp-name {
+  margin: 0; white-space: nowrap;
+  font-family: var(--font); font-size: 3.4rem; font-weight: 700; line-height: 1.1;
+  letter-spacing: -.02em; color: var(--paper);
 }
 
 /* SAID AS WELL AS DRAWN, for a screen reader and for the moment before an SVG has painted. Kept
@@ -5884,15 +5856,15 @@ textarea { touch-action: none; }
 }
 
 /* ---------- THE LINE THAT ONLY A SLOW LOAD EVER SEES ---------------------------------------------
-   BELOW THE ART AND OUT OF ITS WAY. The splash centres one drawing; this sits under it rather than
-   beside it, so nothing about either of the two splashes has to know the other exists.
+   BELOW THE ART AND OUT OF ITS WAY. The splash centres one thing — a drawing, or the still name and
+   its loader; this sits under it rather than beside it, so neither has to know the other exists.
 
    QUIET ON PURPOSE. It is not an alarm — the request may still land — so it is the faint ink this
    app uses for an aside, at the size of one. The second line is quieter still because it is the
    explanation rather than the fact.
 
-   NO ANIMATION. Everything else on this screen is moving, and a message that also moves reads as
-   part of the decoration rather than as something that has just been said. */
+   NO ANIMATION. The drawing or the loader above it is moving, and a message that also moved would
+   read as part of the picture rather than as something that has just been said. */
 #splash-wait {
   position: absolute; left: 0; right: 0; bottom: max(12vh, 4.5rem);
   margin: 0; padding: 0 1.25rem;
@@ -5902,711 +5874,20 @@ textarea { touch-action: none; }
 #splash-wait span { display: block; font-size: .74rem; color: var(--faint); }
 #splash-wait[hidden] { display: none; }
 
-/* SOMEBODY WHO HAS ASKED FOR LESS MOVEMENT gets the tag whole and still. The splash still does its
-   job — it says the app is coming and covers the black — and nothing sweeps or pulses. */
-@media (prefers-reduced-motion: reduce) {
-  #splash-line { stroke-dashoffset: 0; animation: none; }
-  #splash-fill { opacity: 1; animation: none; }
-  #splash-mist { animation: none; }
-}
-
-/* ==================================================================================================
-   THE SECOND SPLASH — a readout from about 1974, warming up.
-
-   WHY A SECOND ONE AT ALL. The first is a tag somebody sprayed; this is a machine coming on. They
-   are the two halves of what the app is — a thing made by hand, run on a computer — and getting one
-   or the other is a small pleasure that costs nothing, because both are markup that was going to be
-   parsed anyway.
-
-   WHAT MAKES IT READ AS 1974 rather than as a modern loading bar:
-     · the unlit segments are still THERE, faintly. On a real display a dark segment has not gone
-       anywhere, and this is the single detail that separates hardware from a drawing of hardware.
-     · it is set behind dark glass in a bezel, because a readout of that age always was, and amber
-       on near-black is what makes a lit segment look lit rather than painted.
-     · the blocks light in TURN. Nobody had a spinner; a spinner needs a screen that can draw a
-       circle, and these machines could light a square.
-     · a block cursor that blinks on a half-second, which is the one piece of timing everybody who
-       has used a terminal has in their hands.
-================================================================================================== */
-
-/* WHICH ONE SHOWS. The picker in index.html puts one of these on the splash during parsing, so the
-   other is never painted at all — not hidden after the fact, which would be a frame of both. */
-/* ONE SHOWS, THE OTHERS ARE NOT DRAWN. Stated as "hide unless chosen" rather than as a rule per
-   pair — three splashes is three pairs and four would be six, and the pair version is where one
-   combination eventually gets missed and two of them stack. */
-/* HIDDEN BY DEFAULT, ALL OF THEM. This list is also what `check-css` reads to know which elements
-   ARE splashes — so a new one left out of here is not merely visible when it should not be, it is
-   also invisible to the checker that would have said so. Both faults at once, from one omission. */
-#splash-tag, #splash-led, #splash-torch, #splash-tube, #splash-ps, #splash-blocks,
-#splash-box,
-#splash-breathe, #splash-rain, #splash-pend,
-#splash-ripple, #splash-tide, #splash-dawn { display: none; }
-#splash.is-led   #splash-led   { display: block; }
-/* `grid`, not `block` — the two copies of the word sit in one grid cell so they are on top of each
-   other by construction. The display value belongs to the rule that decides it is visible, so
-   there is one place that says whether and how this is laid out. */
-#splash.is-torch #splash-torch { display: grid; }
-#splash.is-tube  #splash-tube  { display: block; }
-#splash.is-ps    #splash-ps    { display: block; }
-#splash.is-blocks #splash-blocks { display: block; }
-#splash.is-box   #splash-box   { display: block; }
-#splash.is-ripple #splash-ripple { display: block; }
-#splash.is-tide   #splash-tide   { display: block; }
-#splash.is-dawn   #splash-dawn   { display: block; }
-/* THE FOUR NEW ONES ARE FLEX COLUMNS, set below with their centring — a `display: block` here
-   would win or lose on source order depending on where somebody adds the next rule. */
-
-/* ---------- THE FALLBACK, AND WHY IT IS NOW A CLASS RATHER THAN A CHAIN OF `:not` ---------------
-   THIS WAS EIGHTEEN `:not()` CLAUSES BY THE END and would have been twenty-nine. Every splash added
-   had to be added twice — once to say when it shows and once to the chain that stops the tag
-   showing with it — and forgetting the second is invisible until two splashes are drawn at once,
-   which is a fault this stylesheet has had before.
-
-   `.is-tag` IS SET BY THE PICKER LIKE ANY OTHER, and the tag now shows only when it is chosen. The
-   no-script case is handled by putting `is-tag` in the markup, so the default is stated where it is
-   read rather than derived from the absence of everything else. */
-#splash.is-tag #splash-tag { display: block; }
-
-#splash-led { width: min(80vw, 21rem); }
-
-/* THE PANEL. Sunk, dark, with a hairline of light along the top edge where a moulded bezel catches
-   it — the same trick the timer's LED panel uses, and for the same reason. */
-.led-panel {
-  background: #0a0b0d;
-  border: 1px solid #23262c;
-  border-radius: 5px;
-  padding: 1.1rem 1rem 1rem;
-  box-shadow: inset 0 2px 14px rgb(0 0 0 / .8), 0 1px 0 rgb(255 255 255 / .06);
-  font-family: var(--mono);
-  text-align: center;
-}
-
-/* THE NAME, in the amber every one of these displays used. Letter-spaced, because a readout has a
-   fixed cell per character and the gaps between them are part of the look. */
-.led-word {
-  color: #ffb648;
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: .22em;
-  text-shadow: 0 0 6px rgb(255 182 72 / .8), 0 0 18px rgb(255 140 20 / .4);
-  /* Warming up. A tube does not come on at full brightness — it climbs, which is why the first
-     second of an old machine looks alive. */
-  animation: led-warm 1.4s ease-out both;
-}
-@keyframes led-warm {
-  0%   { opacity: .25; letter-spacing: .5em; filter: blur(1px); }
-  60%  { opacity: 1; }
-  100% { opacity: 1; letter-spacing: .22em; filter: blur(0); }
-}
-
-/* THE BAR. Twelve blocks, dark but present, lighting in turn. */
-.led-bar { display: flex; gap: 3px; justify-content: center; margin: .8rem 0 .7rem; }
-.led-bar i {
-  width: 100%; max-width: 14px; height: 12px;
-  background: rgb(255 182 72 / .08);      /* unlit — still there, which is the whole point */
-  border-radius: 1px;
-  animation: led-chase 1.5s steps(1, end) infinite;
-}
-@keyframes led-chase {
-  0%, 22%   { background: #ffb648; box-shadow: 0 0 8px rgb(255 182 72 / .7); }
-  23%, 100% { background: rgb(255 182 72 / .08); box-shadow: none; }
-}
-/* Each block a little later than the one before, so the light travels. Written out rather than
-   generated: twelve is a number you can see, and a loop in a preprocessor would be a build step
-   for twelve lines. */
-.led-bar i:nth-child(1)  { animation-delay: 0s; }
-.led-bar i:nth-child(2)  { animation-delay: .075s; }
-.led-bar i:nth-child(3)  { animation-delay: .15s; }
-.led-bar i:nth-child(4)  { animation-delay: .225s; }
-.led-bar i:nth-child(5)  { animation-delay: .3s; }
-.led-bar i:nth-child(6)  { animation-delay: .375s; }
-.led-bar i:nth-child(7)  { animation-delay: .45s; }
-.led-bar i:nth-child(8)  { animation-delay: .525s; }
-.led-bar i:nth-child(9)  { animation-delay: .6s; }
-.led-bar i:nth-child(10) { animation-delay: .675s; }
-.led-bar i:nth-child(11) { animation-delay: .75s; }
-.led-bar i:nth-child(12) { animation-delay: .825s; }
-
-/* THE LINE UNDERNEATH, and the cursor. Dimmer than the name — on these machines the status line
-   always was, because it is the machine talking rather than the thing you came for. */
-.led-say {
-  color: #8a6a3a;
-  font-size: .6rem;
-  letter-spacing: .3em;
-}
-/* Half a second on, half a second off. Not a fade: a block cursor of that age switched. */
-.led-cur { animation: led-blink 1s steps(1, end) infinite; }
-@keyframes led-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
-
-/* SOMEBODY WHO HAS ASKED FOR LESS MOVEMENT gets the readout lit and still — it still says the app
-   is coming and still covers the black, and nothing chases or blinks. */
-@media (prefers-reduced-motion: reduce) {
-  .led-word { animation: none; }
-  .led-bar i { animation: none; background: rgb(255 182 72 / .55); }
-  .led-cur { animation: none; }
-}
-
-/* ==================================================================================================
-   THE THIRD SPLASH — a torch, finding the name in the dark.
-
-   THE OTHER TWO ARE THINGS BEING MADE: a tag sprayed on, a machine coming on. This one is a thing
-   being FOUND. The word is already on the wall, painted in something barely lighter than the black
-   around it, and a pool of light passes over and picks it out — which is a different feeling from
-   either, and the reason it earns a place beside them rather than being a third variation.
-
-   HOW IT WORKS. Two copies of the same word, exactly on top of each other. The lower one is the
-   paint in the dark; the upper one is the paint with light on it, and it is revealed through a mask
-   — a soft circle — that travels across. Where the mask is, you see the lit copy; everywhere else,
-   the dark one. The pool of light on the wall moves on the same timing, so the light and what it
-   reveals are never out of step.
-
-   IF A BROWSER CANNOT MASK, the lit copy simply shows in full and you get the name, brightly, with
-   a light drifting over it. Less interesting and not broken, which is the right way for an effect
-   to fail.
-================================================================================================== */
-#splash-torch {
-  position: relative;
-  /* NO `display` HERE, and this is what made two splashes show at once.
-
-     It said `display: grid`, in its own rule, further down the file than the one that hides all
-     five. Same specificity — one id each — so the later one won and the torch was drawn on top of
-     whichever splash had been picked, every single time.
-
-     Nothing about that looks wrong in either rule. One says "this is a grid", which is true; the
-     other says "hide these until chosen", which is also true. They only disagree when read in
-     order, which is the one way nobody reads a stylesheet.
-
-     So the layout that a `display` value implies is set where it belongs — in the rule that SHOWS
-     it, below — and nothing here has an opinion about whether it is visible. */
-  place-items: center;
-  width: min(80vw, 22rem);
-  height: 7rem;
-}
-
-/* Both copies in the same cell of the same grid, so they are on top of each other by construction
-   rather than by two sets of coordinates that have to agree. */
-.tor-word {
-  grid-area: 1 / 1;
-  font-family: var(--font);
-  font-size: clamp(2rem, 11vw, 3.2rem);
-  font-weight: 700;
-  letter-spacing: -.02em;
-  white-space: nowrap;
-}
-
-/* THE PAINT IN THE DARK. Not invisible — a wall you cannot see at all is a black screen, and then
-   the light appears to be creating the word rather than finding it. Just barely there. */
-.tor-dim { color: #1c1a17; }
-
-/* THE PAINT WITH LIGHT ON IT, shown only where the mask is. Warm, because a torch is. */
-.tor-lit {
-  color: #fff6e6;
-  text-shadow: 0 0 18px rgb(255 214 150 / .45);
-  -webkit-mask-image: radial-gradient(circle at 50% 50%,
-    #000 0, #000 14%, rgb(0 0 0 / .55) 30%, transparent 52%);
-          mask-image: radial-gradient(circle at 50% 50%,
-    #000 0, #000 14%, rgb(0 0 0 / .55) 30%, transparent 52%);
-  -webkit-mask-size: 190% 300%;
-          mask-size: 190% 300%;
-  -webkit-mask-repeat: no-repeat;
-          mask-repeat: no-repeat;
-  animation: tor-sweep 3.6s cubic-bezier(.45, 0, .55, 1) infinite;
-}
-/* The beam crosses, pauses at the far side the way a hand does, and comes back. The pause is the
-   detail that makes it read as somebody looking rather than as something scanning. */
-@keyframes tor-sweep {
-  0%   { -webkit-mask-position: -30% 50%;  mask-position: -30% 50%; }
-  45%  { -webkit-mask-position: 130% 50%;  mask-position: 130% 50%; }
-  55%  { -webkit-mask-position: 130% 50%;  mask-position: 130% 50%; }
-  100% { -webkit-mask-position: -30% 50%;  mask-position: -30% 50%; }
-}
-
-/* THE POOL ON THE WALL. The light itself, as against what it reveals — without it the letters
-   brighten out of nowhere and the effect is a wipe rather than a torch. Same timing, so the two
-   cannot drift apart. */
-.tor-pool {
-  grid-area: 1 / 1;
-  width: 11rem; height: 11rem;
-  border-radius: 50%;
-  background: radial-gradient(circle,
-    rgb(255 224 170 / .16) 0, rgb(255 210 140 / .07) 42%, transparent 68%);
-  animation: tor-pool 3.6s cubic-bezier(.45, 0, .55, 1) infinite;
-  pointer-events: none;
-}
-@keyframes tor-pool {
-  0%   { transform: translateX(-58%) scale(.92); }
-  45%  { transform: translateX(58%)  scale(1.06); }
-  55%  { transform: translateX(58%)  scale(1.06); }
-  100% { transform: translateX(-58%) scale(.92); }
-}
-
-/* LESS MOVEMENT: the light rests on the word and stays there. Still lit, still legible, nothing
-   sweeping. */
-@media (prefers-reduced-motion: reduce) {
-  .tor-lit { animation: none; -webkit-mask-image: none; mask-image: none; }
-  .tor-pool { animation: none; transform: none; }
-}
-
-/* ==================================================================================================
-   THE FIFTH SPLASH — a roundel, and a train running along the line under it.
-
-   The roundel is the shape that says London faster than any word, and the bar across the middle of
-   it exists to hold a name. It used to name two boroughs underneath; the owner asked for those to
-   come off, and it says MIND THE GAP instead — see index.html.
-
-   IN THIS APP'S OWN COLOURS, deliberately. The FORM — a circle with a bar through it — is a
-   geometric idea and what anybody recognises; their exact red and blue with their typeface would be
-   pretending to be them. Gold and the app's own ink is a nod to a city, which is what was meant.
-
-   AND THE LINE UNDERNEATH is the reason this is a loading animation rather than a picture. Four
-   stops and a train that visits each one, so the wait has a shape and you can see how much is left
-   — which is the entire job of a loading animation, and a joke anybody who has stood on a platform
-   already knows.
-================================================================================================== */
-#splash-tube { width: min(76vw, 19rem); text-align: center; }
-
-.tube-roundel { width: 100%; height: auto; display: block; overflow: visible; }
-
-/* THE RING, struck rather than faded on — a circle that is drawn looks made. */
-.tube-ring {
-  fill: none; stroke: var(--gold, #f0a93c); stroke-width: 13;
-  stroke-dasharray: 264; stroke-dashoffset: 264;   /* 2πr, r = 42, rounded up */
-  transform-origin: 100px 72px;
-  /* From the top, the way you would start one. */
-  transform: rotate(-90deg);
-  animation: tube-ring 1s cubic-bezier(.4, 0, .2, 1) .1s forwards;
-}
-@keyframes tube-ring { to { stroke-dashoffset: 0; } }
-
-/* THE BAR, pulled across afterwards. Straight, flat, and the full width of the mark — it is the
-   part that carries the name, so it arrives second and lands. */
-.tube-bar {
-  fill: #101010; stroke: var(--line, #232323); stroke-width: 1;
-  transform-origin: 100px 72px;
-  animation: tube-bar .42s cubic-bezier(.2, .9, .3, 1) .95s both;
-}
-@keyframes tube-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-
-.tube-name {
-  fill: var(--paper);
-  font-family: var(--font);
-  font-size: 17px; font-weight: 700; letter-spacing: .01em;
-  opacity: 0;
-  animation: tube-name .35s ease-out 1.3s forwards;
-}
-@keyframes tube-name { from { opacity: 0; } to { opacity: 1; } }
-
-/* ---------- THE JOURNEY ------------------------------------------------------------------------
-   THE TRAIN MOVES BY `transform`, AND IT USED TO MOVE BY `left`. `left` is layout: the main thread
-   recomputes and repaints it every frame, and during boot that thread is parsing half a megabyte of
-   JavaScript — which is exactly when a splash is on screen. A transform is the compositor's, so the
-   train keeps moving while the page is busy.
-
-   A PERCENTAGE IN `translateX` IS OF THE ELEMENT ITSELF, so the train rides inside `.tube-run`, a box
-   exactly as wide as the distance it travels (the line less one train). `translateX(100%)` of that
-   box is the far end, and a third of it is the second station. The stations sit on `.tube-rail`,
-   inset by half a train at each end, so a station's centre and the train's centre are the same point
-   by construction rather than by four sets of pixels that have to agree. The old version was up to
-   seven pixels off at the middle stations. */
-.tube-line {
-  position: relative;
-  margin: 1.3rem .4rem .75rem;
-  height: 16px;
-  --train: 30px;
-}
-.tube-track {
-  position: absolute; left: 0; right: 0; top: 50%;
-  height: 4px; margin-top: -2px; border-radius: 2px;
-  background: rgb(244 241 232 / .14);
-}
-.tube-rail {
-  position: absolute; top: 0; bottom: 0;
-  left: calc(var(--train) / 2); right: calc(var(--train) / 2);
-}
-.tube-stop {
-  position: absolute; top: 50%;
-  width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px;
-  border-radius: 50%;
-  background: #101010;
-  border: 3px solid rgb(244 241 232 / .5);
-}
-.tube-stop:nth-child(1) { left: 0; }
-.tube-stop:nth-child(2) { left: 33.333%; }
-.tube-stop:nth-child(3) { left: 66.667%; }
-.tube-stop:nth-child(4) { left: 100%; }
-/* A STATION LIGHTS WHEN THE TRAIN ARRIVES and stays lit until the line resets, so the four of them
-   are the progress bar. A gold ring laid over the grey one and faded in, because opacity is the
-   compositor's too. */
-.tube-stop::after {
-  content: ''; position: absolute; inset: -3px; border-radius: 50%;
-  border: 3px solid var(--gold, #f0a93c);
-  box-shadow: 0 0 8px rgb(240 169 60 / .55);
-  opacity: 0;
-  animation: tube-lit-1 3s linear 1.4s infinite both;
-}
-.tube-stop:nth-child(2)::after { animation-name: tube-lit-2; }
-.tube-stop:nth-child(3)::after { animation-name: tube-lit-3; }
-.tube-stop:nth-child(4)::after { animation-name: tube-lit-4; }
-@keyframes tube-lit-1 { 0%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
-@keyframes tube-lit-2 { 0%, 26% { opacity: 0; } 28%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
-@keyframes tube-lit-3 { 0%, 52% { opacity: 0; } 54%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
-@keyframes tube-lit-4 { 0%, 78% { opacity: 0; } 80%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
-
-.tube-run {
-  position: absolute; top: 0; bottom: 0; left: 0;
-  width: calc(100% - var(--train));
-  z-index: 2;
-  animation: tube-run 3s 1.4s infinite both;
-}
-/* A TRAIN THAT SLIDES EVENLY IS A PROGRESS BAR WITH A HIGHLIGHT ON IT. Each run pulls away slowly,
-   gets going and brakes into the platform, which is the easing on each moving stretch; the flat
-   stretches are the station stops. At the end the train leaves the last station and the line goes
-   dark before it starts again, so the loop reads as a new journey rather than a jump back. */
-@keyframes tube-run {
-  0%   { transform: translateX(0);       opacity: 1; animation-timing-function: step-end; }
-  6%   { transform: translateX(0);       animation-timing-function: cubic-bezier(.55, 0, .35, 1); }
-  28%  { transform: translateX(33.333%); animation-timing-function: step-end; }
-  34%  { transform: translateX(33.333%); animation-timing-function: cubic-bezier(.55, 0, .35, 1); }
-  54%  { transform: translateX(66.667%); animation-timing-function: step-end; }
-  60%  { transform: translateX(66.667%); animation-timing-function: cubic-bezier(.55, 0, .35, 1); }
-  80%  { transform: translateX(100%);    animation-timing-function: step-end; }
-  90%  { transform: translateX(100%);    opacity: 1; animation-timing-function: ease-in; }
-  97%  { transform: translateX(100%);    opacity: 0; }
-  100% { transform: translateX(0);       opacity: 0; }
-}
-/* THE TRAIN: two carriages rather than a dash, because a dash on a line is a road marking. A lit
-   cab at the front, so it has a direction; a slight lean into each start, so it has weight. */
-.tube-train {
-  position: absolute; top: 50%; left: 0;
-  width: var(--train); height: 9px; margin-top: -4.5px;
-  border-radius: 4px 5px 5px 4px;
-  background:
-    linear-gradient(90deg, transparent calc(50% - 1px), #101010 calc(50% - 1px), #101010 calc(50% + 1px), transparent calc(50% + 1px)),
-    linear-gradient(90deg, #d8902a, var(--gold, #f0a93c) 70%, #ffe2a6);
-  box-shadow: 0 0 14px rgb(240 169 60 / .6);
-}
-
-.tube-say {
-  font-family: var(--mono);
-  font-size: .58rem; letter-spacing: .32em;
-  color: rgb(244 241 232 / .42);
-  opacity: 0;
-  animation: tube-name .5s ease-out 1.7s forwards;
-}
-
-/* LESS MOVEMENT: the roundel whole, the train standing at the first stop. It still says the app is
-   coming and still covers the black; nothing is struck, pulled or run. */
-@media (prefers-reduced-motion: reduce) {
-  .tube-ring { stroke-dashoffset: 0; animation: none; transform: none; }
-  .tube-bar, .tube-name, .tube-say { animation: none; opacity: 1; transform: none; }
-  .tube-run, .tube-stop::after { animation: none; }
-  .tube-stop:first-child::after { opacity: 1; }
-}
-
-/* ==================================================================================================
-   THE SIXTH SPLASH — columns of light standing up out of a dark plain.
-
-   Something enormous starting up, a long way off. Anybody who owned a console around the turn of
-   the century knows the feeling without being able to say what it was OF, which is exactly the
-   point: what is borrowed here is the HUSH — the long pauses, the low blue, a machine thinking —
-   and not a mark. Light on a dark plain is a shape rather than somebody's property, and there is
-   nothing here to mistake for anybody else's.
-
-   WHY IT WORKS AS A LOADING SCREEN. The others fill their two seconds and stop. This one has no
-   destination: the columns keep coming, at their own pace, for as long as it takes. A wait with no
-   end in sight is better served by something that is not counting than by a bar that reaches the
-   right-hand side and then has to explain itself.
-================================================================================================== */
-#splash-ps {
-  position: relative;
-  width: min(86vw, 26rem);
-  height: 14rem;
-  overflow: hidden;
-}
-
-/* THE PLAIN. Not black — a very dark blue, because the whole feeling depends on the ground being a
-   colder colour than the light standing on it. On true black a blue column reads as a blue line;
-   over blue it reads as distance. */
-#splash-ps::before {
-  content: '';
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(120% 70% at 50% 100%, rgb(60 110 190 / .14), transparent 62%),
-    linear-gradient(#04060e 0%, #050a16 62%, #070d1c 100%);
-}
-
-/* WHERE THE GROUND IS. The towers stand on this line and their light lies along it. */
-.ps-field {
-  position: absolute; left: 0; right: 0; bottom: 42%;
-  height: 0;
-  display: flex; justify-content: space-between; align-items: flex-end;
-  padding: 0 8%;
-}
-
-/* A COLUMN. It grows upward out of nothing, holds, and fades — so at any moment some are rising,
-   some standing and some going, which is what stops seven identical things reading as a row of
-   seven identical things. */
-.ps-tower {
-  width: 3px;
-  height: 0;
-  border-radius: 2px;
-  background: linear-gradient(to top,
-    rgb(150 200 255 / .95), rgb(110 170 255 / .55) 55%, transparent);
-  box-shadow: 0 0 14px rgb(120 180 255 / .55), 0 0 40px rgb(80 140 240 / .3);
-  animation: ps-rise 4.2s cubic-bezier(.3, 0, .2, 1) infinite;
-}
-@keyframes ps-rise {
-  0%   { height: 0;      opacity: 0; }
-  18%  { opacity: 1; }
-  46%  { height: 6.5rem; opacity: 1; }
-  72%  { height: 6.5rem; opacity: .85; }
-  100% { height: 7.5rem; opacity: 0; }
-}
-/* Each on its own clock, and deliberately NOT evenly spaced — an even stagger reads as a wave
-   travelling along the row, which is a mechanism. Uneven reads as things happening. */
-.ps-tower:nth-child(1) { animation-delay: 0s;    height: 0; }
-.ps-tower:nth-child(2) { animation-delay: 1.7s;  width: 2px; }
-.ps-tower:nth-child(3) { animation-delay: .6s; }
-.ps-tower:nth-child(4) { animation-delay: 2.9s;  width: 4px; }
-.ps-tower:nth-child(5) { animation-delay: 1.1s;  width: 2px; }
-.ps-tower:nth-child(6) { animation-delay: 3.6s; }
-.ps-tower:nth-child(7) { animation-delay: 2.2s;  width: 2px; }
-
-/* THE GROUND ITSELF, as a band of light lying where the columns meet it — the reflection, without
-   pretending to reflect anything in particular. It breathes very slowly, which is most of why the
-   thing feels calm rather than static. */
-.ps-floor {
-  position: absolute; left: 0; right: 0; bottom: 42%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent,
-    rgb(140 190 255 / .5) 20%, rgb(180 215 255 / .8) 50%, rgb(140 190 255 / .5) 80%, transparent);
-  box-shadow: 0 0 18px rgb(110 170 255 / .45);
-  /* SIX SECONDS AND DELIBERATE. A slow breath under the floor line has no payoff to miss — seeing
-     part of it is seeing it, and speeding it up would make the calm thing restless. */
-  animation: ps-breathe 6s ease-in-out infinite;
-}
-@keyframes ps-breathe {
-  0%, 100% { opacity: .5; }
-  50%      { opacity: 1; }
-}
-
-/* The name, low and quiet, the way a title sits under something like this. */
-.ps-say {
-  position: absolute; left: 0; right: 0; bottom: 18%;
-  text-align: center;
-  font-family: var(--font);
-  font-size: 1.15rem; font-weight: 600; letter-spacing: .06em;
-  color: rgb(214 232 255 / .92);
-  text-shadow: 0 0 14px rgb(120 180 255 / .45);
-  opacity: 0;
-  animation: ps-name 1.6s ease-out 1.1s forwards;
-}
-@keyframes ps-name { from { opacity: 0; letter-spacing: .22em; } to { opacity: 1; letter-spacing: .06em; } }
-
-/* LESS MOVEMENT: the columns standing, the ground lit, the name there. The scene, held. */
-@media (prefers-reduced-motion: reduce) {
-  .ps-tower { animation: none; height: 5rem; opacity: .9; }
-  .ps-floor { animation: none; opacity: .8; }
-  .ps-say { animation: none; opacity: 1; letter-spacing: .06em; }
-}
-
-/* ==================================================================================================
-   THE SEVENTH SPLASH — a row of blocks, bumped from below. Keyframes, delays and markup written by
-   tools/blocks.py.
-
-   A side-scrolling platformer in the sense everybody who has played one recognises: a hard ground,
-   chunky blocks floating over it, and something popping out when you hit one from underneath. Each
-   block gives up a letter until the row spells the name; the last gives up a coin.
-
-   NOTHING BORROWED BUT THE GRAMMAR. No pipe, no mushroom, no ? on a block, and the one character is
-   ours — a student in a gold mortarboard, eight pixels by eleven, drawn in tools/blocks.py. A block
-   struck from below that gives something up is a game-design idea forty years old and belongs to
-   nobody. What comes out is this app's own name in its own colours, which is what lets it be
-   affectionate without pretending to be somebody else's.
-
-   ASKED FOR AS "refine super mario animation", and what was wrong was measured, not guessed:
-     THE COIN WAS ON SCREEN FROM THE FIRST FRAME. `mb-coin … 1.45s both` filled BACKWARDS, so its
-       0% keyframe — opacity 1 — sat on the row for the 1.45s before it was due.
-     AND IN THE WRONG PLACE. It was pinned to the stage at `left: 50%` plus 6.2rem, and the blocks
-       are centred by flexbox, so at 390 it rose from between the seventh block and the eighth and
-       at 320 further off still. It now lives INSIDE the eighth block, so it cannot drift.
-     THE LETTERS CAME OUT OVER THE FACE, not from behind it, because a child paints over its
-       parent's background. The face is now `::before` with a z-index over the letter — inside the
-       block's own stacking context, which its transform makes — so a letter at rest is hidden by
-       the face and rises out over the top edge.
-     NOTHING HIT THE BLOCKS. Now the runner does: it hops under each one, apex on the bump.
-     AND IT RAN ONCE. The bump played in 1.5s and `mb-idle` hovered the row for ever after —
-     animating `box-shadow` — and because the hover was `infinite`, index.html's replay loop never
-     ran the bumps again. Now the whole thing is one loop: run, bump, spell, coin, hold, letters back
-     in, repeat. The hover is gone; nothing needs replaying.
-
-   HARD EDGES EVERYWHERE, and that is the whole look: no soft shadows, no gradients that fade, no
-   rounded corners. The moment one curve creeps in it stops reading as a game from 1985 and starts
-   reading as a modern app doing an impression of one.
-
-   THE LAYOUT IS ARITHMETIC, because the runner's head has to meet the blocks. The row's top is at
-   3.6rem, so a block's underside is at 5.6rem; the ground is the bottom 2.2rem of a 10.6rem stage;
-   the runner is 1.98rem tall standing on it, so its head is at 6.42rem and a hop of .82rem
-   (tools/blocks.py `HOP`) touches 5.6rem exactly. Change one and change the others.
-   `overflow: hidden` is the edge of the "screen" the runner enters and leaves by; everything else
-   stays inside it — the letters rise to 1.45rem and the coin to about .7rem.
-================================================================================================== */
-#splash-blocks {
-  position: relative;
-  width: min(88vw, 25rem);
-  height: 10.6rem;
-  overflow: hidden;
-  /* the row's width: eight blocks and seven gaps. The runner's positions are measured from its
-     left end, so the row is placed by this rather than centred by flexbox and guessed at. */
-  --mb-row: calc(8 * 2rem + 7 * 4px);
-}
-
-.mb-row {
-  position: absolute; top: 3.6rem; left: 50%;
-  width: var(--mb-row); margin-left: calc(var(--mb-row) / -2);
-  display: flex; gap: 4px;
-}
-
-/* A BLOCK is a box that moves; its FACE is `::before`, drawn over everything inside it. Flat colour
-   with a hard light edge on the top and left and a hard dark one on the bottom and right — which is
-   how every sprite of this kind was shaded, because a two-pixel border was all anybody could afford
-   and it turned out to be enough. */
-.mb-block {
-  position: relative; flex: none;
-  width: 2rem; height: 2rem;
-  animation: mb-bump 6s steps(4, end) infinite both;
-}
-.mb-block::before {
-  content: ''; position: absolute; inset: 0; z-index: 1;
-  background: #c9832f;
-  border-top: 3px solid #f0b45f;
-  border-left: 3px solid #f0b45f;
-  border-right: 3px solid #8a5312;
-  border-bottom: 3px solid #8a5312;
-}
-/* THE LETTER, at rest exactly behind its block's face. */
-.mb-block i {
-  position: absolute; left: 0; right: 0; top: 0;
-  font-family: var(--font);
-  font-style: normal; font-weight: 700;
-  font-size: 1.25rem; line-height: 2rem;
-  color: var(--paper);
-  text-align: center;
-  animation: mb-letter 6s linear infinite both;
-}
-
-/* THE COIN off the last one. Square, because a circle of this size in a game of that age was a
-   square with its corners taken off — and it spins by being squashed flat and back, which is how
-   a coin was animated before anybody could rotate anything. The squash was `width`; it is now
-   `scaleX` on the face, so the box that rises and the face that spins are two elements and two
-   transforms that cannot fight. */
-.mb-coin {
-  position: absolute; left: 50%; top: 50%;
-  width: 14px; height: 14px; margin: -7px 0 0 -7px;
-  animation: mb-coin 6s linear infinite both;
-}
-.mb-coin::before {
-  content: ''; position: absolute; inset: 0;
-  background: var(--gold, #f0a93c);
-  box-shadow: inset 0 0 0 2px #8a5312;
-  animation: mb-spin .36s steps(4, end) infinite;
-}
-@keyframes mb-spin { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.28); } }
-
-/* THE RUNNER. `.mb-run` carries it across, `.mb-hop` lifts it, and its two frames — mid-stride and
-   passing — swap by opacity on a beat of their own. Its pixels are paths in two small SVGs drawn
-   with `crispEdges`, so a pixel is a square at every size rather than a blurred box-shadow. */
-.mb-run {
-  position: absolute; bottom: 2.2rem; left: 50%; z-index: 1;
-  margin-left: calc(var(--mb-row) / -2);
-  width: 1.44rem; height: 1.98rem;
-  animation: mb-run 6s linear infinite both;
-}
-.mb-hop { position: absolute; inset: 0; animation: mb-hop 6s linear infinite both; }
-.mb-sprite { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.mb-sprite.is-b { opacity: 0; animation: mb-stride .2s steps(1, end) infinite; }
-.mb-sprite.is-a { animation: mb-stride .2s steps(1, end) -.1s infinite; }
-@keyframes mb-stride { 0% { opacity: 0; } 50% { opacity: 1; } }
-/* ITS COLOURS ARE THE APP'S: the gold of the one action, the paper, the ink, the coral. */
-.mb-px-gold { fill: var(--gold); }
-.mb-px-tassel { fill: var(--coral); }
-.mb-px-skin { fill: var(--paper); }
-.mb-px-eye { fill: var(--bg); }
-.mb-px-leg { fill: var(--dim); }
-.mb-px-shoe { fill: var(--ink); }
-
-/* THE GROUND. Solid, with a lighter cap along the top — in these games the ground is a thing you
-   stand on, not a line under a picture. */
-.mb-ground {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  height: 2.2rem;
-  background: #6b4a22;
-  border-top: 4px solid #a3763a;
-}
-/* Bricks in it. A repeating gradient rather than eight more elements: the pattern is the point and
-   nothing has to interact with any single brick. */
-.mb-ground::after {
-  content: '';
-  position: absolute; inset: 4px 0 0 0;
-  background:
-    repeating-linear-gradient(90deg, transparent 0 1.9rem, rgb(0 0 0 / .35) 1.9rem 2rem),
-    repeating-linear-gradient(0deg,  transparent 0 1rem,   rgb(0 0 0 / .35) 1rem 1.06rem);
-}
-
-/* THE TIMELINE — from tools/blocks.py. Left to right, .17s apart, the way somebody running along
-   would hit them; a block and its letter share a delay so they cannot come apart. */
-@keyframes mb-run { 0% { transform: translateX(-6rem); opacity: 1; } 8.33% { transform: translateX(0.28rem); opacity: 1; } 28.17% { transform: translateX(calc(7 * (2rem + 4px) + 0.28rem)); opacity: 1; } 35.67% { transform: translateX(calc(7 * (2rem + 4px) + 6.28rem)); opacity: 1; } 36.5% { transform: translateX(calc(7 * (2rem + 4px) + 6.28rem)); opacity: 0; } 37.33%, 98.33% { transform: translateX(-6rem); opacity: 0; } 100% { transform: translateX(-6rem); opacity: 1; } }
-@keyframes mb-hop { 0%, 6.92% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 8.33% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 9.75% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 11.17% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 12.58% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 14% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 15.42% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 16.83% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 18.25% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 19.67% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 21.08% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 22.5% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 23.92% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 25.33% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 26.75% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 28.17% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 29.58%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } }
-@keyframes mb-bump { 0% { transform: translateY(0); } 2.27% { transform: translateY(-11px); } 5.67%, 100% { transform: translateY(0); } }
-@keyframes mb-letter { 0% { transform: translateY(0); animation-timing-function: cubic-bezier(.2,.9,.3,1); } 8.33%, 65% { transform: translateY(-2.15rem); animation-timing-function: ease-in; } 70%, 100% { transform: translateY(0); } }
-@keyframes mb-coin { 0% { transform: translateY(0); opacity: 1; animation-timing-function: ease-out; } 9.17% { transform: translateY(-3.4rem); opacity: 1; animation-timing-function: ease-in; } 16.67% { transform: translateY(-2rem); opacity: 0; } 17.5%, 99.17% { transform: translateY(0); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-.mb-block:nth-child(1), .mb-block:nth-child(1) i { animation-delay: 0.5s; }
-.mb-block:nth-child(2), .mb-block:nth-child(2) i { animation-delay: 0.67s; }
-.mb-block:nth-child(3), .mb-block:nth-child(3) i { animation-delay: 0.84s; }
-.mb-block:nth-child(4), .mb-block:nth-child(4) i { animation-delay: 1.01s; }
-.mb-block:nth-child(5), .mb-block:nth-child(5) i { animation-delay: 1.18s; }
-.mb-block:nth-child(6), .mb-block:nth-child(6) i { animation-delay: 1.35s; }
-.mb-block:nth-child(7), .mb-block:nth-child(7) i { animation-delay: 1.52s; }
-.mb-block:nth-child(8), .mb-block:nth-child(8) i { animation-delay: 1.69s; }
-.mb-coin { animation-delay: 1.8s; }
-
-/* LESS MOVEMENT: the finished still — the row spelt out, the coin gone, the runner standing under
-   the last block it hit. */
-@media (prefers-reduced-motion: reduce) {
-  .mb-block, .mb-block i, .mb-coin, .mb-coin::before, .mb-run, .mb-hop,
-  .mb-sprite.is-a, .mb-sprite.is-b { animation: none; }
-  .mb-block i { transform: translateY(-2.15rem); }
-  .mb-coin { opacity: 0; }
-  .mb-run { transform: translateX(calc(7 * (2rem + 4px) + .28rem)); }
-  .mb-sprite.is-b { opacity: 0; }
-}
-
-/* ==================================================================================================
-   THE RING — two boxers, eight-bit. GENERATED by tools/boxing.py: the markup in index.html and the
-   @keyframes at the foot of this block; the rules here are written by hand.
-
-   ASKED FOR AS "add a boxing animation loading. like boxing in the ring 8 bit." Gold jabs and blue
-   ducks it; blue lands one back and gold rocks with a spark; gold lands one and blue rocks; the bell
-   swings and dings; both go back to their corners and come out again to where they began.
-
-   A PIXEL IS THREE SCREEN PIXELS where there is room — 300px for a 100-pixel ring — and the stage
-   shrinks with the screen below that, so at 320 it is 300 wide and nothing is cut. Every pixel is a
-   path in one SVG drawn with `crispEdges`, so it is a square edge at any size rather than a blur.
-
-   EVERY ANIMATION IS `step-end` AND 4.8s. Step-end is what makes it eight-bit in motion: a pose is
-   swapped and a step is a whole pixel, never a cross-fade or a glide. One duration is one clock, so
-   nothing drifts out of step over a long load — js/check-splash-loops.js reads both off this file.
+/* ---------- THE BOXER CARD'S RING AND FIGHTER: WHAT IS LEFT OF THE RING SPLASH -----------------------
+   THE RING WAS A LOADING SPLASH — two eight-bit boxers trading jabs, generated by tools/boxing.py —
+   and it went on 10 Oct with every other splash that taught nothing (docs/history/322), its markup,
+   its keyframes, its bell and sparks and poses, and the script. THESE RULES STAYED, AND ONLY THESE,
+   because the boxer cards draw that ring's posts, ropes, pads, mat and apron and its gold fighter in
+   his guard as the placeholder behind a photo (`BOXER_GUARD` and `boxerRing_` in find.js), painted by
+   exactly these classes. Every class below is one `boxerRing_` writes; the ones only the splash wrote
+   — `.bx-ring`, `.bx-gold`, `.bx-clapper`, `.bx-spk`, `.bx-pose`, the sparks, the bell, the bob —
+   went. If the cards stop drawing a `.bx-` class, its rule here goes too.
 
    THE COLOURS ARE THE APP'S TOKENS. Gold's trunks are `--gold`, blue's are `--tag-level`, the gloves
-   `--coral`, the skin and ropes `--paper`. The mat is the one colour that is this ring's own, so it
-   is named on the ring rather than offered to the whole stylesheet.
-================================================================================================== */
-#splash-box { width: min(300px, 94vw); }
-/* THE MAT'S COLOUR IS SHARED WITH THE BOXER CARD'S PLACEHOLDER (`.boxer-ring`, find.js), which draws
-   this ring's posts, ropes, mat and gold fighter at a different size — one drawing, one mat. */
-.bx-ring, .boxer-ring { --bx-mat: color-mix(in srgb, var(--paper) 14%, var(--bg)); }
-.bx-ring { display: block; width: 100%; height: auto; aspect-ratio: 100 / 60; overflow: visible; }
-#splash-box .sp-sig { margin-top: .9rem; }
+   `--coral`, the skin and ropes `--paper`. The mat is the one colour that is this ring's own, so it is
+   named on the ring rather than offered to the whole stylesheet. */
+.boxer-ring { --bx-mat: color-mix(in srgb, var(--paper) 14%, var(--bg)); }
 
 .bx-post { fill: var(--dim); }
 .bx-rope { fill: var(--paper); }
@@ -6627,60 +5908,6 @@ textarea { touch-action: none; }
 .bx-l .bx-trunks { fill: var(--gold); }
 .bx-r .bx-hair { fill: var(--gold); }
 .bx-r .bx-trunks { fill: var(--tag-level); }
-
-.bx-gold { fill: var(--gold); }
-.bx-clapper { fill: var(--dim); }
-.bx-spk { fill: var(--paper); }
-
-/* WHAT SHOWS WHEN NOTHING IS ANIMATING: each boxer's guard. The keyframes take over from the first
-   frame; this is what the reduced-motion still starts from. */
-.bx-pose, .bx-spark, .bx-ding { opacity: 0; }
-.bx-l-guard, .bx-r-guard { opacity: 1; }
-.bx-l-go    { animation: bx-l-go 4.8s step-end infinite; }
-.bx-r-go    { animation: bx-r-go 4.8s step-end infinite; }
-.bx-bob     { animation: bx-bob 4.8s step-end infinite; }
-/* OFF THE BEAT BY ONE BOUNCE, so the two are not a mirror image of each other bobbing in unison —
-   a delay, not a second duration, so it is still one clock. */
-.bx-r .bx-bob { animation-delay: -.3s; }
-.bx-l-guard { animation: bx-l-guard 4.8s step-end infinite; }
-.bx-l-jab   { animation: bx-l-jab 4.8s step-end infinite; }
-.bx-l-hit   { animation: bx-l-hit 4.8s step-end infinite; }
-.bx-r-guard { animation: bx-r-guard 4.8s step-end infinite; }
-.bx-r-jab   { animation: bx-r-jab 4.8s step-end infinite; }
-.bx-r-duck  { animation: bx-r-duck 4.8s step-end infinite; }
-.bx-r-hit   { animation: bx-r-hit 4.8s step-end infinite; }
-.bx-spark-1 { animation: bx-spark-1 4.8s step-end infinite; }
-.bx-spark-2 { animation: bx-spark-2 4.8s step-end infinite; }
-.bx-bell    { animation: bx-bell 4.8s step-end infinite; }
-.bx-ding    { animation: bx-ding 4.8s step-end infinite; }
-
-/* LESS MOVEMENT: one punch, held. Gold's jab has landed, blue is rocked back and the spark is on —
-   a picture of boxing rather than of two people standing about. */
-@media (prefers-reduced-motion: reduce) {
-  .bx-l-go, .bx-r-go, .bx-bob, .bx-l-guard, .bx-l-jab, .bx-l-hit, .bx-r-guard, .bx-r-jab,
-  .bx-r-duck, .bx-r-hit, .bx-spark-1, .bx-spark-2, .bx-bell, .bx-ding { animation: none; }
-  .bx-l-guard, .bx-r-guard { opacity: 0; }
-  .bx-l-jab, .bx-r-hit, .bx-spark-2 { opacity: 1; }
-  .bx-l-go { transform: translateX(4px); }
-  .bx-r-go { transform: translateX(-3px); }
-}
-
-/* BOXING-FRAMES: written by tools/boxing.py — re-run it rather than editing these. */
-@keyframes bx-l-go { 0% { transform: translateX(0px); } 11.667% { transform: translateX(0px); } 12.222% { transform: translateX(1px); } 12.778% { transform: translateX(2px); } 13.333% { transform: translateX(3px); } 19.167% { transform: translateX(3px); } 20% { transform: translateX(2px); } 20.833% { transform: translateX(1px); } 21.667% { transform: translateX(0px); } 33.333% { transform: translateX(0px); } 34.167% { transform: translateX(-1px); } 35% { transform: translateX(-2px); } 42.083% { transform: translateX(-2px); } 43.333% { transform: translateX(-1px); } 44.583% { transform: translateX(0px); } 50.833% { transform: translateX(0px); } 51.25% { transform: translateX(1px); } 51.667% { transform: translateX(2px); } 52.083% { transform: translateX(3px); } 52.5% { transform: translateX(4px); } 58.75% { transform: translateX(4px); } 59.479% { transform: translateX(3px); } 60.208% { transform: translateX(2px); } 60.938% { transform: translateX(1px); } 61.667% { transform: translateX(0px); } 70.833% { transform: translateX(0px); } 72.083% { transform: translateX(-1px); } 73.333% { transform: translateX(-2px); } 74.583% { transform: translateX(-3px); } 75.833% { transform: translateX(-4px); } 77.083% { transform: translateX(-5px); } 78.333% { transform: translateX(-6px); } 79.583% { transform: translateX(-7px); } 80.833% { transform: translateX(-8px); } 89.583% { transform: translateX(-8px); } 90.833% { transform: translateX(-7px); } 92.083% { transform: translateX(-6px); } 93.333% { transform: translateX(-5px); } 94.583% { transform: translateX(-4px); } 95.833% { transform: translateX(-3px); } 97.083% { transform: translateX(-2px); } 98.333% { transform: translateX(-1px); } 99.583% { transform: translateX(0px); } 100% { transform: translateX(0px); } }
-@keyframes bx-l-guard { 0% { opacity: 1; } 12.5% { opacity: 0; } 19.167% { opacity: 1; } 33.333% { opacity: 0; } 42.083% { opacity: 1; } 52.083% { opacity: 0; } 58.75% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes bx-l-hit { 0% { opacity: 0; } 12.5% { opacity: 0; } 19.167% { opacity: 0; } 33.333% { opacity: 1; } 42.083% { opacity: 0; } 52.083% { opacity: 0; } 58.75% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes bx-l-jab { 0% { opacity: 0; } 12.5% { opacity: 1; } 19.167% { opacity: 0; } 33.333% { opacity: 0; } 42.083% { opacity: 0; } 52.083% { opacity: 1; } 58.75% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes bx-r-go { 0% { transform: translateX(0px); } 10.833% { transform: translateX(0px); } 11.389% { transform: translateX(-1px); } 11.944% { transform: translateX(-2px); } 12.5% { transform: translateX(-3px); } 20.833% { transform: translateX(-3px); } 21.528% { transform: translateX(-2px); } 22.222% { transform: translateX(-1px); } 22.917% { transform: translateX(0px); } 30.417% { transform: translateX(0px); } 30.833% { transform: translateX(1px); } 31.25% { transform: translateX(2px); } 31.667% { transform: translateX(3px); } 32.083% { transform: translateX(4px); } 38.333% { transform: translateX(4px); } 39.062% { transform: translateX(3px); } 39.792% { transform: translateX(2px); } 40.521% { transform: translateX(1px); } 41.25% { transform: translateX(0px); } 53.333% { transform: translateX(0px); } 53.889% { transform: translateX(-1px); } 54.444% { transform: translateX(-2px); } 55% { transform: translateX(-3px); } 62.5% { transform: translateX(-3px); } 63.194% { transform: translateX(-2px); } 63.889% { transform: translateX(-1px); } 64.583% { transform: translateX(0px); } 70.833% { transform: translateX(0px); } 72.083% { transform: translateX(-1px); } 73.333% { transform: translateX(-2px); } 74.583% { transform: translateX(-3px); } 75.833% { transform: translateX(-4px); } 77.083% { transform: translateX(-5px); } 78.333% { transform: translateX(-6px); } 79.583% { transform: translateX(-7px); } 80.833% { transform: translateX(-8px); } 89.583% { transform: translateX(-8px); } 90.833% { transform: translateX(-7px); } 92.083% { transform: translateX(-6px); } 93.333% { transform: translateX(-5px); } 94.583% { transform: translateX(-4px); } 95.833% { transform: translateX(-3px); } 97.083% { transform: translateX(-2px); } 98.333% { transform: translateX(-1px); } 99.583% { transform: translateX(0px); } 100% { transform: translateX(0px); } }
-@keyframes bx-r-duck { 0% { opacity: 0; } 10.833% { opacity: 1; } 20.833% { opacity: 0; } 31.667% { opacity: 0; } 38.333% { opacity: 0; } 53.333% { opacity: 0; } 62.5% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes bx-r-guard { 0% { opacity: 1; } 10.833% { opacity: 0; } 20.833% { opacity: 1; } 31.667% { opacity: 0; } 38.333% { opacity: 1; } 53.333% { opacity: 0; } 62.5% { opacity: 1; } 100% { opacity: 1; } }
-@keyframes bx-r-hit { 0% { opacity: 0; } 10.833% { opacity: 0; } 20.833% { opacity: 0; } 31.667% { opacity: 0; } 38.333% { opacity: 0; } 53.333% { opacity: 1; } 62.5% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes bx-r-jab { 0% { opacity: 0; } 10.833% { opacity: 0; } 20.833% { opacity: 0; } 31.667% { opacity: 1; } 38.333% { opacity: 0; } 53.333% { opacity: 0; } 62.5% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes bx-bob { 0% { transform: translateY(0px); } 6.25% { transform: translateY(-1px); } 12.5% { transform: translateY(0px); } 18.75% { transform: translateY(-1px); } 25% { transform: translateY(0px); } 31.25% { transform: translateY(-1px); } 37.5% { transform: translateY(0px); } 43.75% { transform: translateY(-1px); } 50% { transform: translateY(0px); } 56.25% { transform: translateY(-1px); } 62.5% { transform: translateY(0px); } 68.75% { transform: translateY(-1px); } 75% { transform: translateY(0px); } 81.25% { transform: translateY(-1px); } 87.5% { transform: translateY(0px); } 93.75% { transform: translateY(-1px); } 100% { transform: translateY(0px); } }
-@keyframes bx-spark-1 { 0% { opacity: 0; } 33.333% { opacity: 1; } 35.417% { opacity: 0; } 36.458% { opacity: 1; } 37.5% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes bx-spark-2 { 0% { opacity: 0; } 53.333% { opacity: 1; } 55.417% { opacity: 0; } 56.458% { opacity: 1; } 57.5% { opacity: 0; } 100% { opacity: 0; } }
-@keyframes bx-bell { 0% { transform: translateX(0px); } 68.75% { transform: translateX(1px); } 70.833% { transform: translateX(-1px); } 72.917% { transform: translateX(1px); } 75% { transform: translateX(-1px); } 77.083% { transform: translateX(1px); } 79.167% { transform: translateX(-1px); } 81.25% { transform: translateX(1px); } 83.333% { transform: translateX(0px); } 100% { transform: translateX(0px); } }
-@keyframes bx-ding { 0% { opacity: 0; } 68.75% { opacity: 1; } 70.833% { opacity: 0; } 72.917% { opacity: 1; } 75% { opacity: 0; } 77.083% { opacity: 1; } 79.167% { opacity: 0; } 81.25% { opacity: 1; } 83.333% { opacity: 0; } 100% { opacity: 0; } }
-/* /BOXING-FRAMES */
 
 /* ==================================================================================================
    IF IT CAN BE TAPPED, IT LOOKS LIKE IT
@@ -7272,19 +6499,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 /* A venue is somewhere you can be taught, which is the one thing on this board worth acting on. */
 .ow-tag.is-venue { color: #17130b; background: var(--gold); border-color: rgb(0 0 0 / .3); }
 
-/* ==================================================================================================
-   ELEVEN VISUAL PROOFS, as loading screens.
-
-   PUBLIC-DOMAIN MATHEMATICS, DRAWN FROM SCRATCH. Nicomachus on odd numbers, Eratosthenes on primes,
-   Archimedes on the circle — results that have been shown this way for centuries, where the drawing
-   IS the argument. A loading screen that teaches something is one nobody minds waiting through.
-
-   EVERY ONE FINISHES ITS ARGUMENT AND THEN KEEPS MOVING. That was the fault with the earlier batch:
-   the proof assembled in two seconds, the load took eight, and six seconds of held stillness reads
-   as a page that has died rather than one that is working. Each has an idle below, and each idle
-   MOVES something rather than fading it — a dimmed stroke is technically animated and visually
-   still, which is the worst of both.
-================================================================================================== */
+/* THE SIGNATURE UNDER A BOOK'S DRAWING ON THE SPLASH. A row's markup carries no name — a chapter page
+   has its book's — so the picker in index.html adds this line as it draws one, and every loading
+   screen says whose app it is. It stood under a header for the eleven visual proofs that were drawn
+   here; they are rows of data/textbooks.json now (docs/history/304) and this is all that is left. */
 .sp-sig { margin-top: .7rem; font: 600 .72rem/1 var(--mono); letter-spacing: .16em;
           color: rgb(240 236 224 / .38); text-align: center; }
 
@@ -7338,55 +6556,9 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .in-or span { font-size: .72rem; color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
 #g-btn { display: flex; justify-content: center; min-height: 2.5rem; }
 
-/* ---------- A RIPPLE ---------------------------------------------------------------------------------
-   THREE RINGS ON ONE TIMER, A THIRD OF A CYCLE APART, so one is always leaving as another arrives
-   and the box is never empty. Scale and opacity only: a ring that grew by changing its width and
-   height would redraw its border thickness on every frame and shimmer. */
-#splash-ripple .rp-box { position: relative; width: 9rem; height: 9rem; margin: 0 auto; }
-.rp-box span { position: absolute; inset: 0; border: 2px solid #6fa8dc; border-radius: 50%;
-               opacity: 0; animation: rp-out 3.6s ease-out infinite; }
-.rp-box span:nth-child(2) { animation-delay: 1.2s; }
-.rp-box span:nth-child(3) { animation-delay: 2.4s; }
-@keyframes rp-out { 0% { transform: scale(.2); opacity: 0; }
-                    18% { opacity: .85; }
-                    100% { transform: scale(1); opacity: 0; } }
-
-/* ---------- A SOLAR SYSTEM WAS HERE, AND IS IN PHYSICS CHAPTER 12 NOW -------------------------------
-   Each planet at its real period is Kepler's third law, which is teaching; its row of
-   data/textbooks.json holds the drawing and tools/solar.py writes it. See docs/history/304. */
-
-/* ---------- A TIDE ------------------------------------------------------------------------------------
-   SEVEN COLUMNS, EACH A BEAT BEHIND THE ONE BEFORE IT, which is all a travelling wave is. The delay
-   is negative so every column is already mid-swell on the first frame — starting them at rest would
-   show a flat line for a moment, and a loading screen's first frame is the one most often seen. */
-#splash-tide .td-row { display: flex; align-items: center; justify-content: center;
-                       gap: .4rem; height: 8rem; }
-.td-row i { width: 1rem; height: 1rem; border-radius: .5rem; background: #6fa8dc;
-            animation: td-swell 2.8s ease-in-out infinite;
-            animation-delay: calc(var(--i) * -.34s + -2.8s); }
-@keyframes td-swell { 0%,100% { height: 1rem; opacity: .45; }
-                      50% { height: 5.5rem; opacity: 1; } }
-
-/* ---------- A SUNRISE ---------------------------------------------------------------------------------
-   THE DISC RISES BEHIND THE LINE AND SETS AGAIN. `overflow: hidden` on the box is what makes the
-   horizon a horizon — the sun is simply moved up and down, and the edge of the box does the rest,
-   which is fewer moving parts than masking it would be. */
-#splash-dawn .dw-box { position: relative; width: 11rem; height: 6rem; margin: 0 auto;
-                       overflow: hidden; }
-.dw-sun { position: absolute; left: 50%; bottom: 0; width: 4.4rem; height: 4.4rem;
-          margin-left: -2.2rem; border-radius: 50%; background: #e8862c;
-          animation: dw-rise 7s ease-in-out infinite; }
-@keyframes dw-rise { 0%,100% { transform: translateY(3.4rem); }
-                     50% { transform: translateY(-.6rem); } }
-.dw-sky { position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-          background: rgb(244 241 232 / .5); }
-
-/* `.mx-line` WAS IN THIS LIST, and `transform: none` would now lay the y = mx + c line flat — m = 0,
-   with the triangle, the rise and the number for m = 2 drawn over it. Its still is its own base rules,
-   written by tools/mxc.py with their reduced-motion rule beside them. */
-@media (prefers-reduced-motion: reduce) {
-  .rp-box span, .td-row i, .dw-sun { animation: none; opacity: 1; transform: none; }
-}
+/* A RIPPLE, A TIDE AND A SUNRISE WERE HERE — three loading splashes that taught nothing, gone on
+   10 Oct with their keyframes and their still (docs/history/322). The solar system that stood among
+   them is Kepler's third law and lives in Physics chapter 12 (docs/history/304). */
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS ---------------------------------------------
    The multiplier, rate and total are a fixed 151px plus gaps on every row, reserved whether or not
@@ -8801,133 +7973,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   @page { size: A4 portrait; margin: 0; }
 }
 
-/* ==================================================================================================
-   FOUR THAT TEACH NOTHING.
-
-   TWENTY-SEVEN PROOFS IN A ROW IS A SET THAT NEVER LETS ANYBODY WAIT. Every splash so far explains
-   something, and a loading screen that always wants to teach is a loading screen that never lets a
-   tired parent at eleven at night just look at it. These four are calm or pretty and nothing more,
-   and the set is better for having somewhere to land.
-================================================================================================== */
-
-/* ---------- BREATHING ----------------------------------------------------------------------------
-   Three rings swelling and settling out of phase, and a word keeping time. Four seconds in and four
-   out is the pace people are actually taught, and matching it means somebody who notices is
-   breathing at the right rate without being asked to. */
-/* ---------- A FLEX ITEM DOES NOT CENTRE WITH `margin: 0 auto` ------------------------------------
-   `#splash` IS A FLEX COLUMN, and `margin: 0 auto` centres a BLOCK in its containing block — in a
-   flex column the item is stretched or aligned by the parent, and the auto margin has nothing to
-   divide. All four new splashes drew hard against the left edge while every earlier one, built
-   before I forgot this, sets `align-self` or lives inside a centred wrapper.
-   Each of the four is a flex item, so each says so. */
-#splash-breathe, #splash-rain, #splash-pend {
-  display: none;                 /* shown by the `.is-` rule below */
-  /* `align-items` CENTRES THE CHILDREN; `align-self` centres THIS. I set the first and the splash
-     still drew hard left — the ring was neatly centred inside a box that was itself against the
-     edge. Two properties one word apart, and only one of them was the question being asked. */
-  flex-direction: column; align-items: center; align-self: center; text-align: center;
-}
-/* ONE RULE EACH, NOT ONE RULE FOR FOUR. `check-css` looks for a `.is-` rule naming each splash and
-   a combined selector hid three of them from it — the check was right to complain: a grouped rule
-   is one edit away from dropping a splash from the pool silently, and nothing would show it. */
-#splash.is-breathe #splash-breathe { display: flex; }
-#splash.is-rain    #splash-rain    { display: flex; }
-#splash.is-pend    #splash-pend    { display: flex; }
-.br-ring { position: relative; width: min(46vw, 9rem); aspect-ratio: 1; margin: 0 auto; }
-.br-ring i { position: absolute; inset: 0; border-radius: 50%;
-             border: 2px solid rgb(111 216 196 / .5);
-             animation: br-swell 8s cubic-bezier(.4,0,.5,1) infinite; }
-.br-ring i:nth-child(2) { animation-delay: -.55s; border-color: rgb(111 216 196 / .3); }
-.br-ring i:nth-child(3) { animation-delay: -1.1s; border-color: rgb(111 216 196 / .16); }
-@keyframes br-swell {
-  0%   { transform: scale(.42); opacity: .25; }
-  50%  { transform: scale(1);   opacity: .95; }
-  100% { transform: scale(.42); opacity: .25; }
-}
-.br-say { margin-top: 1rem; font: 600 .82rem var(--mono); letter-spacing: .22em;
-          text-transform: lowercase; color: #6fd8c4;
-          animation: br-word 8s cubic-bezier(.4,0,.5,1) infinite; }
-@keyframes br-word { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
-
-/* ---------- RAIN ON GLASS ------------------------------------------------------------------------
-   NINE DROPS, EACH WITH ITS OWN SPEED AND START, given as custom properties in the markup rather
-   than as nine rules here — one rule and nine sets of numbers, so a tenth drop is one element.
-   The speeds are deliberately not multiples of each other: drops that share a rhythm read as a
-   machine, and rain is the opposite of that. */
-.rn-glass { position: relative; width: min(56vw, 12rem); height: 9rem; margin: 0 auto;
-            overflow: hidden; border-radius: 6px;
-            background: linear-gradient(180deg, rgb(111 168 220 / .06), rgb(111 168 220 / .12)); }
-.rn-glass i { position: absolute; top: -12%; left: var(--x); width: 2px; height: 14%;
-              border-radius: 2px;
-              background: linear-gradient(180deg, transparent, rgb(190 220 250 / .85));
-              animation: rn-fall var(--t) linear var(--d) infinite; }
-@keyframes rn-fall { to { transform: translateY(820%); } }
-/* THE POOL AT THE FOOT, which is what makes it glass rather than a screensaver — rain that vanishes
-   at the bottom edge is rain nobody has watched. */
-.rn-glass::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 8%;
-                   background: linear-gradient(180deg, transparent, rgb(190 220 250 / .3));
-                   animation: rn-pool 2.6s ease-in-out infinite; }
-@keyframes rn-pool { 0%,100% { opacity: .45; } 50% { opacity: .9; } }
-.rn-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
-          color: rgb(240 236 224 / .45); text-align: center; }
-
-/* ---------- A PENDULUM WAVE ----------------------------------------------------------------------
-   FIFTEEN PENDULUMS SEEN END-ON, hanging from one bar that points straight at you — so every string
-   leaves the same point at the top, and the bobs sit one behind the other at different depths. They
-   are released together, drift out of step, draw a travelling snake, then a double one, and come
-   back into line; nothing coordinates them. That is the thing worth looking at.
-
-   REFINED FROM A ROW SEEN FROM THE FRONT, which is the wrong view of this toy. From the front the
-   fifteen swings overlap sideways, and with periods of 2.4 to 3.2 seconds they stayed nearly in
-   step for the whole of a loading screen — a screenshot at 2.2s was a tilted comb, fifteen balls in
-   a straight slanted line. End-on is the view every film of one of these is shot from, because it
-   is the only one where the pattern is visible.
-
-   THE ARITHMETIC IS THE REAL DEVICE'S. Pendulum n makes `24 + n` swings in forty seconds, so its
-   period is `40s / (24 + n)` (1.67s down to 1.05s) and all fifteen are back in line every forty
-   seconds. A pendulum's period goes as the square root of its length, so the length goes as the
-   period squared: `(24 / (24 + n))²` of the longest, which is why the far ones bunch up near the
-   bar — that bunching is what a real one looks like, and it reads as depth. Half a period is one
-   `alternate` leg, and `cubic-bezier(.37,0,.63,1)` is ease-in-out-sine, which is the shape a small
-   swing actually has. The snake forms after about three seconds, when neighbours are a fifteenth of
-   a swing apart; in the first second they are already bending into a curve.
-
-   NEARER IS BIGGER AND BRIGHTER. n = 0 is the longest string and the nearest bob; the size and
-   opacity ramps give the depth a flat drawing otherwise lacks, at the cost of two calcs. */
-.pd-rack { position: relative; width: min(60vw, 13rem); height: 10rem; margin: 0 auto .4rem; }
-/* The bar, seen end-on: a short gold-grey stub the strings leave from. */
-.pd-rack::before { content: ""; position: absolute; left: 50%; top: -3px; width: 14px; height: 3px;
-                   margin-left: -7px; border-radius: 2px; background: rgb(244 241 232 / .4); }
-.pd-rack i { position: absolute; left: 50%; top: 0; width: 1px; margin-left: -.5px;
-             height: calc(100% * 576 / ((24 + var(--n)) * (24 + var(--n))));
-             transform-origin: 50% 0;
-             animation: pd-swing calc(20s / (24 + var(--n))) cubic-bezier(.37,0,.63,1)
-                        infinite alternate; }
-.pd-rack i::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
-                     background: rgb(244 241 232 / calc(.1 + (14 - var(--n)) * .012)); }
-.pd-rack i::after { content: ""; position: absolute; left: 50%; bottom: 0;
-                    width: calc(3px + (14 - var(--n)) * .3px); aspect-ratio: 1;
-                    transform: translate(-50%, 50%); border-radius: 50%;
-                    background: #f0b45f; opacity: calc(.45 + (14 - var(--n)) * .04);
-                    box-shadow: 0 0 6px rgb(240 180 95 / .5); }
-@keyframes pd-swing { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
-.pd-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
-          color: rgb(240 236 224 / .45); }
-
-@media (prefers-reduced-motion: reduce) {
-  /* STILL SOMETHING TO LOOK AT, not four blank boxes. Reduced motion means no movement, not no
-     picture — the rings sit at their widest, the weave holds still as cloth, the pendulums hang in
-     the fan they make halfway through a cycle. */
-  .br-ring i, .br-say, .rn-glass i, .rn-glass::after,
-  .pd-rack i { animation: none; }
-  .br-ring i { transform: scale(1); opacity: .8; }
-  .br-say { opacity: 1; }
-  .rn-glass i { top: 30%; }
-  /* THE SNAKE, HELD STILL — one gentle S down the depth, which is the picture the moving version
-     is known for. `sin()` in `calc` is in every browser this app supports; where it is not, the
-     declaration is dropped and the strings hang straight, which is still a pendulum. */
-  .pd-rack i { transform: rotate(calc(sin(var(--n) * 24deg) * 18deg)); }
-}
+/* BREATHING, RAIN ON GLASS AND A PENDULUM WAVE WERE HERE — "four that teach nothing", the calm
+   loading splashes, gone on 10 Oct with every rule and keyframe of theirs (docs/history/322). */
 
 
 /* ---------- "OR THE 212 PAPERS THESE ARE IN" -----------------------------------------------------
@@ -9994,7 +9041,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    in the app means those three things, so `--boxer-w` is offered here and nowhere else. The fight
    card carries the same names because its faces are the same frames.
      --boxer-w    a win      gold, which on this card means "what he won" and nothing else
-     --boxer-l    a loss     the ring's red — the splash's middle rope and gloves
+     --boxer-l    a loss     the ring's red — the placeholder ring's middle rope and gloves
      --boxer-d    a draw     the quiet ink
      --boxer-nc   no contest fainter again: it is not a result at all
 ================================================================================================== */
@@ -10067,8 +9114,8 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    THE STAGE LIGHT IS THE GOLD AT 16%, from the top — the one flourish on the card, behind the
    placeholder, because it is the arena the stand-in is standing in.
 
-   `--bx-mat` is the splash's mat, defined beside `.bx-ring` up in the ring's own block so the two
-   drawings share it. */
+   `--bx-mat` is the ring's mat, defined on `.boxer-ring` beside the `.bx-*` rules this placeholder
+   kept when the ring splash went (the block headed "THE BOXER CARD'S RING AND FIGHTER"). */
 .boxer-pic { margin: 0; }
 .boxer-frame { position: relative; display: block; overflow: hidden; aspect-ratio: 4 / 5;
                border: 1px solid var(--line); border-radius: var(--r);

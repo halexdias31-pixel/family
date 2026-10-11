@@ -180,8 +180,8 @@ async function visit(page, cdp, label, note) {
   await page.waitForLoadState('load').catch(() => {});
   const loaded = Date.now() - t0;
   /* ---------- AND WHETHER THE SPLASH WAS CHOSEN BEFORE ANYTHING WAS PAINTED ----------------------
-     THE PICKER USED TO RUN AFTER EVERY SPLASH'S MARKUP, so the no-script default (`is-tag`) could be
-     painted and then swapped for the one the coin chose. It is the first thing inside `#splash` now
+     THE PICKER USED TO RUN AFTER EVERY SPLASH'S MARKUP, so the no-script default (`is-tag` then,
+     `is-still` now) could be painted and then swapped for the one the coin chose. It is the first thing inside `#splash` now
      and marks `splash-pick` as it runs; the browser's `first-contentful-paint` is the other end. A
      load that painted something before the pick is a load that could have shown the wrong splash.
      CONTENTFUL, NOT `first-paint`: the first version of this read `first-paint` and failed three

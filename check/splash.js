@@ -45,7 +45,7 @@
    check people learn to ignore.
 
    RUN IT:  npm run splash          every splash, 8 seconds each — about six minutes
-            npm run splash -- is-sf is-tri      just these
+            npm run splash -- is-sf is-pyth     just these
 ================================================================================================== */
 const http = require('http');
 const fs = require('fs');
@@ -64,18 +64,16 @@ const MIME = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
 /* THE POOL, READ OFF index.html RATHER THAN LISTED HERE. A checker holding its own copy of the list
    it checks passes for ever the day somebody adds a splash — the sentence `check-spine.js` already
    carries. */
-/* ---------- AND HALF OF IT IS NOT IN index.html ANY MORE ---------------------------------------------
-   THE TEACHING SPLASHES LIVE IN THE TEXTBOOKS (data/textbooks.json), and the picker draws them from the
-   copy a load keeps on the device (`splashSync_` in shell.js). So the inline list is read off the
-   picker's literal, and the rest is whatever a REAL boot of the app saved — the app filling its own
-   cache, not this file writing one it hopes looks the same. */
+/* ---------- AND NONE OF IT IS IN index.html ANY MORE ------------------------------------------------
+   THE SPLASHES ARE THE TEXTBOOKS' ANIMATIONS (data/textbooks.json), drawn from the copy a load keeps on
+   the device (`splashSync_` in shell.js). Half of the pool was an inline list in the picker until 10
+   Oct, when every splash that taught nothing was deleted (docs/history/322); the pool is now whatever
+   a REAL boot of the app saved — the app filling its own cache, not this file writing one it hopes
+   looks the same. This only asks that the picker is there to choose from it. A first visit's still
+   name is not in the pool and is not measured: it is meant to hold still (`check/anims.js` holds it). */
 function kinds() {
   const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const a = src.indexOf("var kinds = ['tag'");
-  if (a < 0) return null;
-  const b = src.indexOf('];', a);
-  const out = [...src.slice(a, b).replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/'([a-z0-9]+)'/g)].map(m => 'is-' + m[1]);
-  return out.length ? out : null;
+  return /<script id="pick-splash">/.test(src) ? [] : null;
 }
 function serve() {
   const srv = http.createServer((q, r) => {
@@ -95,7 +93,7 @@ function serve() {
   if (!ALL) {
     /* A CHECK THAT CANNOT FIND ITS SUBJECT MUST SAY SO AND EXIT NON-ZERO — "I did not check" is not
        the same answer as "I checked and it was fine". */
-    console.log('COULD NOT RUN — the splash list was not found in index.html');
+    console.log('COULD NOT RUN — the picker (`<script id="pick-splash">`) was not found in index.html');
     process.exitCode = 1; return;
   }
   const srv = await serve();

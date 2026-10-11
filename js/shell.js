@@ -832,8 +832,11 @@ function nothingHere(whenEmpty, needsLibrary) {
    A REAL ERROR OR AN EMPTY RESULT IS NOT LOADING. "Nothing found", "did not arrive — Try again" keep
    their words; this is only ever drawn while something is actually on its way.
 
-   NOT THE SPLASH. `#splash` in index.html is the loading SCREEN, deliberately animated and a thing
-   of its own; this is what a card shows once the app is up.
+   AND THE SPLASH, WITH NOTHING KEPT. `#splash` in index.html draws one of the textbooks' animations
+   when the device has kept them; a first visit has none, and waits as a card does — the name, still,
+   and THIS loader under it (docs/history/322). That copy is written out in index.html, because the
+   page parses it before this file exists and so cannot call this; `js/check-loading.js` holds it to
+   what this returns, byte for byte. Change one and change both.
 
    `role="status"` with the word for a screen reader, because three dots say nothing out loud. In
    shell.js, which loads before every file that draws a card — `check.js` names anything read before
@@ -4767,8 +4770,8 @@ function splashWaitWatch_() {
    A drawing is written again only when its hash moved, so a load where nothing changed writes one
    small index. The index goes LAST and names only what was written, so a load cut off half way leaves
    either the old index or none — never one that names a record that is not there; and the picker
-   checks every record's hash against the index before it draws, so a damaged one costs an inline
-   splash and a full rewrite next time, never a garbled screen.
+   checks every record's hash against the index before it draws, so a damaged one costs the still
+   splash (the name and the loader) and a full rewrite next time, never a garbled screen.
    A FAILED FETCH LEAVES THE COPY ALONE, for the reason a failed splashes file leaves `splashOff`.
    OUT OF STORAGE, THE WHOLE COPY GOES (`splashGiveWay_`). This said "out of storage on one drawing
    leaves that one out, and nothing else is touched … a child's saved answers and drawings cannot be
@@ -4780,8 +4783,8 @@ function splashWaitWatch_() {
    room for the 27 but not for the index after them, all 27 were written, the index failed, and the
    27 stayed behind with nothing naming them — never drawn, rewritten whole on every load, the index
    failing again each time. A decoration has no claim on the last of the room. So: any write here that
-   throws takes the index and every `splashAnim:` key with it, and the splash falls back to the inline
-   ones, as on a first visit; the next load tries again from nothing. And a child's write that throws
+   throws takes the index and every `splashAnim:` key with it, and the splash is the still name and
+   the loader, as on a first visit; the next load tries again from nothing. And a child's write that throws
    (`ansLocalPut_`, answers.js) takes the copy away and tries once more, so a copy that fitted
    yesterday cannot hold space a child needs today. WHAT IS GUARANTEED, then: this never removes
    anything but its own keys, never keeps a part-copy after a refusal, and never stands between an
@@ -4858,15 +4861,17 @@ function splashOff_() {
   /* AND OUT OF THE DOCUMENT ONCE IT HAS FADED. `done` hides it, and a hidden splash still runs its
      endless animations — one kept eight of them restyling on every frame, drags included. Half a
      second is past the fade; `splashOn_` puts it back. */
-  /* AND A DRAWING THE PICKER PUT ON IT FROM THE BOOKS' COPY GOES WITH IT, back to the tag — so a
-     Try again (`splashOn_`) shows a splash rather than an empty black screen whose class names a root
-     that is no longer there. The drawing's `<style>` stays: a chapter page may be using it. */
+  /* AND A DRAWING THE PICKER PUT ON IT FROM THE BOOKS' COPY GOES WITH IT, back to the still name and
+     the loader — so a Try again (`splashOn_`) shows the app waiting rather than an empty black screen
+     whose class names a root that is no longer there. It went back to the tag until the tag was
+     deleted (docs/history/322); the loader is the truer answer anyway, because a Try again IS a wait.
+     The drawing's `<style>` stays: a chapter page may be using it. */
   if (el) setTimeout(() => {
     if (!el.classList.contains('done')) return;
     el.style.display = 'none';
     const root = el.querySelector(':scope > [class|="an"]');
     if (root) root.remove();
-    if (el.classList.contains('is-an')) { el.classList.remove('is-an'); el.classList.add('is-tag'); }
+    if (el.classList.contains('is-an')) { el.classList.remove('is-an'); el.classList.add('is-still'); }
   }, 500);
 }
 function splashOn_()  { const el = $('splash'); if (el) { el.style.display = ''; el.classList.remove('done'); } }

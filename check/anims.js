@@ -25,6 +25,16 @@
        frame the global `.01ms` loop happened to stop at, which is not the picture their blocks meant:
        no threes lit under "multiples of 3" at 390, the threes lit at 820, the 5s lit on the splash.
 
+   AND A FIRST VISIT, WHICH HAS NOTHING KEPT: the still name and the one loader. "delete all animations
+   for loading which dont come from text books or arnt educational." — the owner, 10 Oct; the splashes
+   that taught nothing went (docs/history/322), and a device with no copy of the books' drawings yet is
+   shown the name, not moving, and the loader every card waits with. At 320 and 390, with the backend
+   never answering so the splash stays up: the splash is `is-still` with nothing drawn; NO ANIMATION
+   touches the name and four frames of it a quarter-second apart are the same picture; the loader under
+   it is `loading_()`'s own markup, its three dots moving — and, with less movement asked for, still;
+   the name and the loader sit inside the screen, the loader centred under the name. `--shots` writes
+   check/shots/splash-first-<width>.png.
+
    WHAT THE STILL SHOWS IS FOR A PERSON TO LOOK AT. Holding still is not showing the lesson: the
    sorting bars all came out full height (`transform: none` wiped out their `scaleY`), and ½, 0.5 and
    50% printed on top of one another as one orange glyph — both perfectly still. `--shots` writes each
@@ -237,18 +247,14 @@ let PORT = 0;
       if (SHOTS) await (await page.$(card)).screenshot({ path: path.join(__dirname, 'shots', 'anim-still-' + r.anim + '.png') });
     }
     const ids = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('splashAnims')).ids; } catch (e) { return []; } });
-    const inline = await page.evaluate(() => {
-      const s = document.getElementById('pick-splash').textContent.replace(/\/\*[\s\S]*?\*\//g, '');
-      const m = /var kinds = \[([^\]]*)\]/.exec(s);
-      return m ? m[1].match(/'([a-z0-9]+)'/g).map(x => x.slice(1, -1)) : [];
-    });
     await page.close();
     for (const r of want) {
       if (ids.indexOf(r.anim) < 0) { bad.push(r.anim + ': the boot kept no copy of it, so its splash was NOT measured'); continue; }
       const pg = await ctx.newPage();
       await route(pg, false);
+      /* EVERY OTHER DRAWING RETIRED: the books' copy is the whole pool, so this is the app choosing. */
       await pg.addInitScript(off => { try { localStorage.setItem('splashOff', JSON.stringify(off)); } catch (e) {} },
-        inline.concat(ids).filter(k => k !== r.anim).map(k => 'is-' + k));
+        ids.filter(k => k !== r.anim).map(k => 'is-' + k));
       await pg.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
       await pg.waitForTimeout(500);
       const drew = await pg.evaluate(id => !!document.querySelector('#splash > .an-' + id), r.anim);
@@ -261,10 +267,70 @@ let PORT = 0;
     await ctx.close();
   }
 
+  /* ---------- 3. A FIRST VISIT: THE NAME, STILL, AND THE ONE LOADER UNDER IT ------------------------
+     A fresh device — nothing in its storage — and a backend that never answers, so the splash stays up
+     for as long as this looks at it. Asked at both widths, with motion and with less of it. */
+  let firsts = 0;
+  for (const [W, H] of SIZES) for (const reduced of [false, true]) {
+    const where = 'a first visit at ' + W + (reduced ? ', less movement' : '');
+    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, serviceWorkers: 'block',
+      reducedMotion: reduced ? 'reduce' : 'no-preference' });
+    const pg = await ctx.newPage();
+    await route(pg, false);
+    await pg.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+    const up = await pg.waitForFunction(() => typeof loading_ === 'function', null, { timeout: 60000 }).then(() => true, () => false);
+    if (!up) { bad.push(where + ': shell.js never loaded, so the splash\'s loader could NOT be compared'); await ctx.close(); continue; }
+    await pg.waitForTimeout(400);
+    const got = await pg.evaluate(() => {
+      const sp = document.getElementById('splash'), still = document.getElementById('splash-still');
+      const name = still && still.querySelector('.sp-name'), ld = still && still.querySelector(':scope > .loading');
+      const box = el => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+      const anims = el => document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && el.contains(a.effect.target))
+        .map(a => a.animationName || '?');
+      const dots = ld ? [...ld.children] : [];
+      return {
+        cls: sp.className, drawn: !!sp.querySelector(':scope > [class|="an"]'), sw: document.documentElement.clientWidth,
+        still: !!still, shown: !!(still && still.getClientRects().length), name: name ? name.textContent.trim() : null,
+        nameBox: name ? box(name) : null, nameAnims: name ? anims(name) : [], nameKf: name ? getComputedStyle(name).animationName : '',
+        loader: ld ? ld.outerHTML : null, want: loading_(), ldAnims: ld ? anims(ld) : [],
+        dotsBox: dots.length ? (() => { const bs = dots.map(box); return { l: Math.min(...bs.map(b => b.l)), r: Math.max(...bs.map(b => b.r)), t: Math.min(...bs.map(b => b.t)) }; })() : null,
+      };
+    });
+    if (got.cls !== 'is-still' || got.drawn) bad.push(where + ': the splash is "' + got.cls + '"' + (got.drawn ? ' with a drawing in it' : '') + ' — nothing is kept, so it is the still name and the loader');
+    if (!got.still || !got.shown) bad.push(where + ': #splash-still is ' + (got.still ? 'not shown' : 'not in the page') + ' — a first visit is a black screen');
+    else {
+      if (got.name !== '@family.') bad.push(where + ': the name reads "' + got.name + '"');
+      if (got.nameAnims.length || got.nameKf !== 'none') bad.push(where + ': the name is animated (' + (got.nameAnims.join(', ') || got.nameKf) + ') — it is set plainly and does not move');
+      if (got.loader !== got.want) bad.push(where + ': the loader under the name is ' + JSON.stringify(got.loader) + ', and loading_() draws ' + JSON.stringify(got.want));
+      if (!reduced && got.ldAnims.length < 3) bad.push(where + ': ' + got.ldAnims.length + ' of the loader\'s three dots are moving');
+      if (reduced && got.ldAnims.length) bad.push(where + ': the loader keeps moving with less movement asked for (' + got.ldAnims.join(', ') + ')');
+      const n = got.nameBox, d = got.dotsBox;
+      if (n && (n.l < 0 || n.r > got.sw || n.w <= 0)) bad.push(where + ': the name runs off the screen (' + Math.round(n.l) + ' to ' + Math.round(n.r) + ' of ' + got.sw + ')');
+      if (n && d) {
+        if (Math.abs((n.l + n.r) / 2 - (d.l + d.r) / 2) > 2) bad.push(where + ': the loader is not centred under the name (' + ((n.l + n.r) / 2).toFixed(1) + ' against ' + ((d.l + d.r) / 2).toFixed(1) + ')');
+        if (d.t < n.b) bad.push(where + ': the loader is not under the name');
+      }
+      /* AND STILL TO THE EYE, not only by what the browser says is running: four frames of the name. */
+      let prev = null, moved = 0;
+      for (let i = 0; i < 4; i++) {
+        const el = await pg.$('#splash-still .sp-name');
+        const buf = el ? await el.screenshot() : null;
+        if (prev && buf && Buffer.compare(prev, buf)) moved++;
+        prev = buf;
+        await pg.waitForTimeout(250);
+      }
+      if (moved) bad.push(where + ': ' + moved + ' of 3 frames of the name changed — it is meant to hold still');
+      if (SHOTS && !reduced) { fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true }); await pg.screenshot({ path: path.join(__dirname, 'shots', 'splash-first-' + W + '.png') }); }
+      firsts++;
+    }
+    await ctx.close();
+  }
+
   await browser.close();
   srv.close();
   console.log('\n' + want.length + ' animations, ' + looked + ' chapter pages measured at ' + SIZES.map(s => s[0]).join(' and ')
     + ', six moments each; and with less movement, each in its chapter and on the splash, with nothing left looping.'
+    + '\nA first visit, ' + firsts + ' of ' + (SIZES.length * 2) + ' ways (' + SIZES.map(s => s[0]).join(' and ') + ', with motion and without): the name still, the one loader under it.'
     + (SHOTS ? '\nThe reduced-motion stills are in check/shots/anim-still-<id>.png — look at them: still is not the same as showing the lesson.' : ''));
   if (bad.length) {
     console.log('\nBROKEN  (' + bad.length + ')');
