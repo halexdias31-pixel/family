@@ -364,6 +364,13 @@ const SUITE = [
      320 and 390, and the cards beside it out of focus. No port to collide on: unset, `SWIPE_PORT`
      is 0 and the OS picks a free one. */
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
+  /* ---------- AND A FINGER ON THE PEN -------------------------------------------------------------------
+     *"they are just using their fingers"* (note 338). jsdom asks every rule of the contact model; this asks
+     what only a browser with real touch can say -- two fingers, a palm, a cancel, a palm drifting beside the
+     pad while the swipe engine follows it, a lost lift, a held finger and the geometry the rules rest on --
+     on the board and on Q7's card. Counts and geometry fail; timings print. No port to collide on: unset,
+     `PEN_PORT` is 0 and the OS picks a free one. */
+  { file: 'check/pen.js',     what: 'a finger on the pen: two fingers, a palm or a thumb leave nothing, and the column holds', slow: true },
   /* ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS ---------------
      *"at first all you see is a search bare ... you can click fullscreen to make it fullscreen"* (note
      321). The review of 10 Oct found four faults between jsdom (no layout, no top layer) and `ui.js`

@@ -375,6 +375,12 @@ function boot(opts) {
       /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
          ask whether the bar, not the Map, decides what a drag draws. */
       'padTool: () => (typeof PAD_TOOL !== "undefined" ? PAD_TOOL : null),' +
+      /* THE FINGER PEN'S CONTACTS, a `const` Map (338) -- a journey asks that every one is forgotten when the
+         fingers have lifted, because one left behind is a pad the swipe engine refuses for ever. AND THE
+         SWIPE ENGINE'S OWN STATE, a `const` in overworld.js, so a journey can ask that a palm drifting on
+         the card did not take the column while a finger was on the drawing. */
+      'padTouch: () => (typeof PAD_TOUCH !== "undefined" ? PAD_TOUCH : null),' +
+      'swipe: () => (typeof SWIPE !== "undefined" ? SWIPE : null),' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -3798,6 +3804,365 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   w.toast = realToast;
   t.padOn('');
   try { w.localStorage.removeItem(k); w.localStorage.removeItem('board:whiteboard'); } catch (e) {}
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- THE FINGER PEN: TWO FINGERS, A PALM OR A THUMB LEAVE NOTHING (338) -----------------------------
+   *"they are just using their fingers"* -- the owner, 11 Oct. Measured before with real touch: a two-finger
+   tap stored a dot, a pan or a pinch a line, and a palm that landed first took the stroke and lost the
+   finger's whole line. Each rule of the contact model (find.js, over `padLand_`) is asked here through the
+   pen's own listeners, on a question's 340x170 pad (one unit across is 1px, one down 0.5px) and on the
+   board, with events the way a phone sends them: `pointerType: 'touch'`, the first finger primary, each
+   carrying its own `timeStamp`. Every case asks, synchronously after the last lift: what was stored, that no
+   preview or aid is left, that `padBusy_` has let go of the swipe engine, and that no contact is left
+   behind -- a contact left behind is a pad the column can never be swiped off. */
+const penEv_ = (w, el, type, o) => {
+  const e = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: o.x, clientY: o.y });
+  const put = (n, v) => Object.defineProperty(e, n, { value: v });
+  put('pointerId', o.id);
+  put('pointerType', o.type === undefined ? 'touch' : o.type);
+  put('isPrimary', !!o.prim);
+  if (o.t !== undefined) put('timeStamp', o.t);
+  put('width', o.size || 16); put('height', o.size || 16);
+  if (o.co) put('getCoalescedEvents', () => o.co);
+  el.dispatchEvent(e);
+  return e;
+};
+/* EVERY STORED VALUE IS A LIST OF LISTS OF WHOLE NUMBERS -- the format every device and account holds. */
+const penWhole_ = all => Array.isArray(all) && all.every(st => Array.isArray(st) && st.length % 2 === 0
+  && st.every(v => typeof v === 'number' && Number.isInteger(v)));
+
+check('the finger pen: on a question\'s pad a two-finger tap, pan or pinch, a third finger or a palm leave nothing, a palm that lands first does not take the finger\'s line, and a cancel keeps only a real line', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || typeof t.padWrap !== 'function' || typeof t.padKey !== 'function' || typeof t.padOn !== 'function'
+      || typeof w.padBusy_ !== 'function' || typeof w.padDrop_ !== 'function' || typeof t.padTouch !== 'function' || !t.padTouch()) {
+    return ['padWrap_, padKey_, padBusy_, padDrop_ or PAD_TOUCH are not reachable — the finger pen was NOT checked'];
+  }
+  const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-1' };
+  const k = t.padKey(x);
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  /* (100, 50) to (440, 220) on the screen: x units = px - 100, y units = (py - 50) * 2. */
+  const L = 100, T = 50, W = 340, H = 170;
+  const ink = () => host.querySelector('.qpad-ink');
+  const fresh = () => {
+    w.padDrop_();
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    t.padOn(k);
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const clean = (what, want) => {
+    const s = stored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want).slice(0, 160));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers: ' + JSON.stringify(s).slice(0, 80));
+    const paths = host.querySelectorAll('.qpad-g path').length;
+    if (paths !== s.length) bad.push(what + ': ' + paths + ' path(s) drawn for ' + s.length + ' stored');
+    if (host.querySelector('[data-live]')) bad.push(what + ': a live preview was left on the picture');
+    if ((host.querySelector('.qpad-aid') || {}).innerHTML) bad.push(what + ': the aid was left on the picture');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the drawing, so the column could never be swiped off it');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind after every finger lifted');
+  };
+  /* A LINE OF n STEPS from (x0, y0) by (dx, dy) a step, every `dt` ms from `t0`, as one finger's moves. */
+  const line = (id, x0, y0, dx, dy, n, t0, dt) => { for (let i = 1; i <= n; i++) fire('pointermove', id, x0 + dx * i, y0 + dy * i, t0 + dt * i); };
+  /* AND TWO FINGERS MOVING TOGETHER, each frame's moves one after the other, as the platform sends them. */
+  const both = (a, b, n, t0, dt) => {
+    for (let i = 1; i <= n; i++) {
+      fire('pointermove', a.id, a.x + a.dx * i, a.y + a.dy * i, t0 + dt * i);
+      fire('pointermove', b.id, b.x + b.dx * i, b.y + b.dy * i, t0 + dt * i);
+    }
+  };
+  /* IN UNITS BY THE PEN'S OWN ARITHMETIC (`padMap_`), so a half is rounded the way the pen rounds it. */
+  const units = (pts) => [].concat(...pts.map(p => [Math.round((p[0] - L) / W * 340), Math.round((p[1] - T) / H * 340)]));
+
+  /* P2: A TWO-FINGER TAP, 40ms apart, both still, lifted in either order. */
+  for (const first of [1, 2]) {
+    fresh();
+    fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+    fire('pointerdown', 2, 250, 110, 1040);
+    if (host.querySelector('[data-live]')) bad.push('a second finger 40ms after the first left the first one\'s dot showing');
+    fire('pointerup', first, first === 1 ? 150 : 250, 100, 1100);
+    fire('pointerup', 3 - first, first === 1 ? 250 : 150, 110, 1110);
+    clean('a two-finger tap, finger ' + first + ' lifted first', []);
+  }
+  /* P3: A TWO-FINGER PAN, 40ms apart, 150px up together -- in 5px steps, and in 15px steps (several samples
+     folded into one event, finger 1's arriving before finger 2's of the same frame). */
+  for (const step of [5, 15]) {
+    fresh();
+    fire('pointerdown', 1, 150, 210, 1000, { prim: true });
+    fire('pointerdown', 2, 230, 212, 1040);
+    both({ id: 1, x: 150, y: 210, dx: 0, dy: -step }, { id: 2, x: 230, y: 212, dx: 0, dy: -step }, 150 / step, 1040, 8);
+    fire('pointerup', 1, 150, 60, 1300); fire('pointerup', 2, 230, 62, 1302);
+    clean('a two-finger pan in ' + step + 'px steps', []);
+  }
+  /* P4: A PINCH, then one finger lifts and the other drags on 100px. */
+  fresh();
+  fire('pointerdown', 1, 200, 135, 1000, { prim: true });
+  fire('pointerdown', 2, 260, 135, 1040);
+  both({ id: 1, x: 200, y: 135, dx: -4, dy: 0 }, { id: 2, x: 260, y: 135, dx: 4, dy: 0 }, 10, 1040, 8);
+  fire('pointerup', 1, 160, 135, 1200);
+  line(2, 300, 135, 5, 0, 20, 1200, 8);
+  fire('pointerup', 2, 400, 135, 1400);
+  clean('a pinch, then the other finger dragged on', []);
+  /* P5: A THIRD FINGER while the first two are held. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointerdown', 2, 300, 100, 1040);
+  fire('pointerdown', 3, 220, 180, 1060);
+  line(1, 150, 100, 3, 0, 5, 1060, 8);
+  fire('pointerup', 3, 220, 180, 1120); fire('pointerup', 2, 300, 100, 1125); fire('pointerup', 1, 165, 100, 1130);
+  clean('a third finger while two were held', []);
+  /* P6: A PALM FIRST (its size unknown), the fingertip 40ms later drawing 4.5px a step, the palm trembling
+     by a pixel: exactly the finger's line, from its own first point, and nothing of the palm. */
+  fresh();
+  fire('pointerdown', 1, 380, 190, 1000, { prim: true, size: 1 });
+  fire('pointerdown', 2, 150, 80, 1040);
+  const finger = [[150, 80]];
+  for (let i = 1; i <= 30; i++) {
+    finger.push([150 + 4.5 * i, 80 + 2 * i]);
+    fire('pointermove', 2, 150 + 4.5 * i, 80 + 2 * i, 1040 + 8 * i);
+    fire('pointermove', 1, 380 + ((i % 3) - 1) * 1.2, 190 + ((i + 1) % 3) * 0.4, 1040 + 8 * i, { size: 1 });
+  }
+  fire('pointerup', 2, 285, 140, 1300);
+  fire('pointerup', 1, 380, 190, 1320);
+  clean('a palm first and then the finger', [units(finger)]);
+  /* P7: A FINGER HELD STILL 300ms, A PALM LANDS ON THE INK, the finger draws 100px, the palm lifts: the
+     finger's line with every sample, those taken while it was held too -- and the preview back within a
+     frame of the finger moving on alone. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointerdown', 2, 380, 190, 1300);
+  if (host.querySelector('[data-live]')) bad.push('a palm landing beside a finger held still left the finger\'s dot showing — it is not yet known which is the finger');
+  const held = [[150, 100]];
+  for (let i = 1; i <= 10; i++) { held.push([150 + 2 * i, 100]); fire('pointermove', 1, 150 + 2 * i, 100, 1300 + 8 * i); }
+  await wait(5);
+  if (!host.querySelector('[data-live]')) bad.push('the finger moved 20px with the palm still and its line did not come back within a frame');
+  for (let i = 11; i <= 50; i++) { held.push([150 + 2 * i, 100]); fire('pointermove', 1, 150 + 2 * i, 100, 1300 + 8 * i); }
+  fire('pointerup', 2, 380, 190, 1800);
+  fire('pointerup', 1, 250, 100, 1810);
+  clean('a finger held still, then a palm, then the line', [units(held)]);
+  /* P8: A BRUSH -- a still touch 80px away at +60ms, lifted while the finger draws on: one stroke, every
+     sample. */
+  fresh();
+  const brush = [[150, 100]];
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  for (let i = 1; i <= 50; i++) {
+    if (i === 8) fire('pointerdown', 2, 230, 100, 1060);
+    if (i === 13) fire('pointerup', 2, 230, 100, 1100);
+    brush.push([150 + 2 * i, 100]);
+    fire('pointermove', 1, 150 + 2 * i, 100, 1000 + 8 * i);
+  }
+  fire('pointerup', 1, 250, 100, 1410);
+  clean('a brush of another finger while drawing', [units(brush)]);
+  /* P9: A STAGGERED PAN -- the second finger 150ms after the first has gone 30px, and 300ms after with the
+     first still. */
+  fresh();
+  fire('pointerdown', 1, 150, 200, 1000, { prim: true });
+  line(1, 150, 200, 0, -2, 15, 1000, 10);
+  fire('pointerdown', 2, 250, 200, 1150);
+  both({ id: 1, x: 150, y: 170, dx: 0, dy: -5 }, { id: 2, x: 250, y: 200, dx: 0, dy: -5 }, 20, 1150, 8);
+  fire('pointerup', 1, 150, 70, 1400); fire('pointerup', 2, 250, 100, 1402);
+  clean('a pan whose second finger came 150ms late', []);
+  fresh();
+  fire('pointerdown', 1, 150, 200, 1000, { prim: true });
+  fire('pointerdown', 2, 250, 200, 1300);
+  both({ id: 1, x: 150, y: 200, dx: 0, dy: -5 }, { id: 2, x: 250, y: 200, dx: 0, dy: -5 }, 20, 1300, 8);
+  fire('pointerup', 1, 150, 100, 1500); fire('pointerup', 2, 250, 100, 1502);
+  clean('a pan whose second finger came 300ms after a still first', []);
+  /* P10: A THUMB AND AN INDEX FINGER PINCHING, sizes 24 and 16. */
+  fresh();
+  fire('pointerdown', 1, 200, 135, 1000, { prim: true, size: 24 });
+  fire('pointerdown', 2, 260, 135, 1040, { size: 16 });
+  for (let i = 1; i <= 15; i++) {
+    fire('pointermove', 1, 200 - 4 * i, 135, 1040 + 8 * i, { size: 24 });
+    fire('pointermove', 2, 260 + 4 * i, 135, 1040 + 8 * i, { size: 16 });
+  }
+  fire('pointerup', 1, 140, 135, 1200); fire('pointerup', 2, 320, 135, 1202);
+  clean('a thumb-and-finger pinch', []);
+  /* P12: A CANCEL 50ms IN (a system gesture, the platform's own palm rejection) withdraws; A CANCEL AFTER
+     500ms AND 200px of a real line keeps it, every sample. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  line(1, 150, 100, 5, 0, 6, 1000, 8);
+  fire('pointercancel', 1, 180, 100, 1050);
+  clean('a cancel 50ms into a stroke', []);
+  fresh();
+  const real = [[110, 60]];
+  fire('pointerdown', 1, 110, 60, 2000, { prim: true });
+  for (let i = 1; i <= 50; i++) { real.push([110 + 4 * i, 60 + 2 * i]); fire('pointermove', 1, 110 + 4 * i, 60 + 2 * i, 2000 + 10 * i); }
+  fire('pointercancel', 1, 310, 160, 2500);
+  clean('a cancel after 500ms and 200px', [units(real)]);
+  /* P13: TWO FINGERS WITH ONE LIFT NEVER SENT, then a touch the platform calls primary -- nothing else is
+     down -- draws its line. */
+  fresh();
+  fire('pointerdown', 1, 150, 100, 1000, { prim: true });
+  fire('pointerdown', 2, 250, 100, 1040);
+  both({ id: 1, x: 150, y: 100, dx: 5, dy: 0 }, { id: 2, x: 250, y: 100, dx: 5, dy: 0 }, 6, 1040, 8);
+  fire('pointerup', 1, 180, 100, 1200);
+  const after = [[120, 150]];
+  fire('pointerdown', 3, 120, 150, 3000, { prim: true });
+  for (let i = 1; i <= 10; i++) { after.push([120 + 3 * i, 150]); fire('pointermove', 3, 120 + 3 * i, 150, 3000 + 8 * i); }
+  fire('pointerup', 3, 150, 150, 3100);
+  clean('a primary touch after a lost lift', [units(after)]);
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  host.remove();
+  return bad;
+});
+
+check('the finger pen on the board: a hand resting on the card never moves the column under a stroke, a repaint does not cut a held stroke, Undo and Clear wait for the drawing hand, a change of person puts it all down', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t && t.ACTIONS, d = w.document, bad = [];
+  if (!t || typeof w.initWhiteboard !== 'function' || typeof w.padBusy_ !== 'function' || typeof w.padDrop_ !== 'function'
+      || typeof w.padHold_ !== 'function' || typeof w.padWhoChanged_ !== 'function' || typeof t.swipe !== 'function' || !t.swipe()
+      || typeof t.padTouch !== 'function' || !t.padTouch() || !A['pad-undo'] || !A['pad-clear']) {
+    return ['the board, padBusy_, padDrop_, padHold_, padWhoChanged_, SWIPE or PAD_TOUCH is not reachable — the finger pen on the board was NOT checked'];
+  }
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
+  t.USER(sam);
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS); await woken_();
+  t.goPage('tools', roster.indexOf('whiteboard'), true);
+  const pad = () => d.querySelector('#s-tools #wgt-whiteboard .qpad');
+  for (let i = 0; i < 100 && !pad(); i++) await wait(100);
+  await woken_();
+  if (!pad()) return ['the whiteboard did not draw a pad on the Tools column'];
+  const k = pad().getAttribute('data-k');
+  const page0 = t.PAGE.tools;
+  /* THE BOARD AT (20, 100), 300 x 400 -- note 310's. */
+  const L = 20, T = 100, W = 300, H = 400;
+  const ink = () => pad().querySelector('.qpad-ink');
+  const fix = () => { ink().getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T }); };
+  const fresh = () => { w.padDrop_(); try { w.localStorage.removeItem(k); } catch (e) {} t.padOn(k); w.initWhiteboard(); fix(); };
+  const fire = (type, id, px, py, ts, o) => penEv_(w, (o && o.on) || ink(), type, Object.assign({ id: id, x: px, y: py, t: ts }, o || {}));
+  /* OFF THE INK: the note under the board, where a hand holding the card rests. */
+  const card = () => pad().querySelector('.qpad-note');
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const paths = () => pad().querySelectorAll('.qpad-g path').length;
+  const still = (what) => {
+    if (t.screenAt() !== 'tools' || t.PAGE.tools !== page0) bad.push(what + ': the column or page moved — now ' + t.screenAt() + ' page ' + t.PAGE.tools);
+    if (t.padNow() !== k) bad.push(what + ': the board is no longer armed');
+  };
+  const clean = (what, want) => {
+    const s = stored();
+    if (JSON.stringify(s) !== JSON.stringify(want)) bad.push(what + ': stored ' + JSON.stringify(s).slice(0, 160) + ', wanted ' + JSON.stringify(want));
+    if (!penWhole_(s)) bad.push(what + ': the store holds something that is not a list of lists of whole numbers');
+    if (paths() !== s.length) bad.push(what + ': ' + paths() + ' path(s) drawn for ' + s.length + ' stored');
+    if (pad().querySelector('[data-live]')) bad.push(what + ': a live preview was left on the board');
+    if (w.padBusy_()) bad.push(what + ': padBusy_ still says a finger is on the board');
+    if (t.padTouch().size) bad.push(what + ': ' + t.padTouch().size + ' contact(s) left behind');
+  };
+  fresh();
+  if (!pad().classList.contains('is-drawing')) return ['setup: the board did not arm, so the finger pen on it was NOT checked'];
+
+  /* P11, TIMED: note 310's palm, landing 350ms into a line that has gone 120px, 150px from the finger --
+     an established stroke, so the palm is a rest and the line is finger 1's (the untimed original is the
+     journey above, unchanged). */
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointermove', 1, 170, 140, 1300);
+  fire('pointerdown', 2, 260, 260, 1350);
+  fire('pointermove', 2, 255, 255, 1360);
+  fire('pointermove', 1, 290, 140, 1400);
+  fire('pointerup', 2, 255, 255, 1410);
+  fire('pointermove', 1, 290, 300, 1450);
+  fire('pointerup', 1, 290, 300, 1460);
+  clean('a palm 350ms into an established line', [[34, 34, 306, 34, 306, 170]]);
+
+  /* P14: A HAND ON THE CARD FIRST (primary), A FINGER ON THE INK 40ms LATER, BOTH MOVE: two fingers, so
+     nothing -- and the hand, the pointer the grid follows, does not take the column. */
+  fresh();
+  fire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  fire('pointerdown', 2, 150, 300, 1040);
+  for (let i = 1; i <= 8; i++) {
+    fire('pointermove', 1, 170 + 5 * i, 560, 1040 + 8 * i, { on: card() });
+    fire('pointermove', 2, 150 + 5 * i, 300, 1040 + 8 * i);
+  }
+  if (t.swipe().live || t.swipe().axis) bad.push('a hand on the card and a finger on the board moving together: the swipe engine took the hand (' + JSON.stringify({ live: t.swipe().live, axis: t.swipe().axis }) + ')');
+  fire('pointerup', 2, 190, 300, 1200); fire('pointerup', 1, 210, 560, 1210, { on: card() });
+  clean('a hand on the card and a finger on the board moving together', []);
+  still('a hand on the card and a finger on the board moving together');
+
+  /* P15: THE HAND DOWN FOR A SECOND, A FINGER DRAWS, THEN THE HAND DRIFTS 30px SIDEWAYS: the line, and the
+     column stays where it is. */
+  fresh();
+  fire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  fire('pointerdown', 2, 60, 200, 2000);
+  for (let i = 1; i <= 25; i++) fire('pointermove', 2, 60 + 4 * i, 200, 2000 + 8 * i);
+  await wait(5);
+  for (let i = 1; i <= 10; i++) fire('pointermove', 1, 170 + 3 * i, 560, 2300 + 8 * i, { on: card() });
+  if (t.swipe().live || t.swipe().axis) bad.push('a hand drifting 30px on the card while a finger drew: the swipe engine took it (' + JSON.stringify({ live: t.swipe().live, axis: t.swipe().axis }) + ')');
+  fire('pointerup', 2, 160, 200, 2400); fire('pointerup', 1, 200, 560, 2410, { on: card() });
+  clean('a hand resting a second, then drifting while the finger drew', [[45, 85, 159, 85]]);
+  still('a hand resting a second, then drifting while the finger drew');
+
+  /* P16: THE HAND STILL FOR A SECOND, A FINGER LANDS, BOTH MOVE 30px: a two-finger gesture begun with a
+     finger already down -- nothing. */
+  fresh();
+  fire('pointerdown', 1, 170, 560, 1000, { prim: true, on: card() });
+  fire('pointerdown', 2, 100, 200, 2000);
+  for (let i = 1; i <= 6; i++) {
+    fire('pointermove', 2, 100 + 5 * i, 200, 2000 + 8 * i);
+    fire('pointermove', 1, 170 + 5 * i, 560, 2000 + 8 * i, { on: card() });
+  }
+  fire('pointerup', 2, 130, 200, 2100); fire('pointerup', 1, 200, 560, 2110, { on: card() });
+  clean('a hand already down and a finger moving together', []);
+  still('a hand already down and a finger moving together');
+
+  /* P17: A REPAINT WHILE A STROKE IS HELD, then the finger moves on: the column is held (`padHold_`), the
+     board under the finger is the same one, and the whole line is kept. */
+  fresh();
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointerdown', 2, 280, 470, 1040);
+  const was = ink();
+  if (!w.padHold_('tools')) bad.push('a stroke held by a second finger does not hold the Tools column against a repaint');
+  try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  await wait(50);
+  if (ink() !== was) { bad.push('a repaint replaced the board under a held stroke'); fix(); }
+  for (let i = 1; i <= 12; i++) fire('pointermove', 1, 50 + 10 * i, 140, 1040 + 8 * i);
+  fire('pointerup', 2, 280, 470, 1200);
+  fire('pointerup', 1, 170, 140, 1210);
+  clean('a repaint while a stroke was held', [[34, 34, 170, 34]]);
+
+  /* P18: UNDO AND CLEAR PRESSED WHILE A FINGER IS ON THE BOARD -- a palm on the bar -- do nothing, and the
+     stroke under the finger is kept and drawn. */
+  fresh();
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointermove', 1, 290, 460, 1100);
+  fire('pointerup', 1, 290, 460, 1110);
+  fire('pointerdown', 1, 50, 300, 2000, { prim: true });
+  fire('pointermove', 1, 150, 300, 2100);
+  A['pad-undo'](pad().querySelector('.qpad-undo'));
+  A['pad-clear'](pad().querySelector('.qpad-clear'));
+  fire('pointermove', 1, 250, 300, 2200);
+  fire('pointerup', 1, 250, 300, 2210);
+  clean('Undo and Clear pressed while a finger drew', [[34, 34, 306, 306], [34, 170, 261, 170]]);
+  /* AND ONCE THE HAND HAS LIFTED, they work again. */
+  A['pad-undo'](pad().querySelector('.qpad-undo'));
+  if (stored().length !== 1) bad.push('Undo after the drawing hand lifted did nothing: ' + JSON.stringify(stored()));
+
+  /* P19: A CHANGE OF PERSON WHILE A STROKE IS HELD puts everything down, and stores nothing. */
+  fresh();
+  fire('pointerdown', 1, 50, 140, 1000, { prim: true });
+  fire('pointerdown', 2, 280, 470, 1040);
+  w.padWhoChanged_();
+  fire('pointerup', 1, 50, 140, 1100);
+  fire('pointerup', 2, 280, 470, 1110);
+  if (pad().querySelector('[data-live]')) bad.push('a change of person under a held stroke left its preview');
+  if (w.padBusy_() || t.padTouch().size) bad.push('a change of person under a held stroke left the pen holding contacts');
+  if (stored().length) bad.push('a change of person under a held stroke stored ' + JSON.stringify(stored()));
+
+  w.padDrop_();
+  t.padOn('');
+  try { w.localStorage.removeItem(k); } catch (e) {}
   t.USER(null);
   return bad;
 });

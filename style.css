@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-fig-draw-2";
+  --css-version: "2026-10-11-finger-pen-1";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11907,6 +11907,26 @@ button.scr-sq { cursor: pointer; }
    swallows the click a swipe produces. */
 .qpad-art[data-do] { cursor: pointer; }
 .qpad.is-drawing .qpad-ink { pointer-events: auto; touch-action: none; cursor: crosshair; }
+/* ---------- A FINGER HELD ON THE ARMED CARD SELECTS NOTHING ----------------------------------------------
+   iOS SELECTS THE NEAREST TEXT ON A HELD PRESS, `preventDefault` or not (note 301), and the nearest text to
+   a pad is the question's own words and the pane's next heading -- a child holding a finger still to aim
+   a dot got a selection and a callout instead. So while the pen is on, the pane and the pad are not
+   selectable and give no callout: the flappy card's rule (above), the pane as well as the card. ONLY WHILE
+   ARMED -- a question is text somebody may want to copy. The pad's own selector is written as well,
+   because `:has()` needs iOS 15.4. And a box to type in stays one: on iOS an input inside an unselectable
+   box can stop taking a caret (338). */
+.pane:has(.qpad.is-drawing), .qpad.is-drawing {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.pane:has(.qpad.is-drawing) :is(input, textarea) {
+  -webkit-user-select: text; user-select: text; }
+/* ---------- `?pen=sizes`: THE LAST EIGHT CONTACTS' WIDTHS, FOR ONE READING ON AN iPAD ----------------------
+   Increment 2's size rules wait for one screenshot of this (338): a fingertip, a palm and a thumb, as the
+   device reports them. Shown only with `?pen=sizes` in the address; it presses nothing and says nothing to
+   a screen reader. */
+.pad-sizes { position: fixed; left: 8px; bottom: 8px; z-index: 9999; max-width: calc(100% - 16px);
+  padding: .3rem .5rem; font: 400 .7rem/1.35 var(--font); white-space: pre;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm);
+  pointer-events: none; }
 .qpad.is-drawing .qpad-art { outline: 2px solid var(--gold); outline-offset: 4px;
                              border-radius: var(--r-sm); }
 /* GOLD, BECAUSE THE PAPER'S OWN INK IS `currentColor`. Your marks have to be visibly yours — a line

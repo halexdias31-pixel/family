@@ -8786,7 +8786,7 @@ function padWrap_(x, svg, credit) {
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
      than by parsing a viewBox out of the drawing's markup. `preserveAspectRatio="none"` is what
      makes that exact: 340 units of user space map to the box's width and 340 to its HEIGHT
-     whatever shape the box is, which is the same arithmetic `padAt_` does on a pointer. Reading
+     whatever shape the box is, which is the same arithmetic `padMap_` does on a pointer. Reading
      the drawing's own viewBox instead would mean trusting a string, and a diagram that ever
      omitted one would silently put every mark in the wrong place.
 
@@ -8886,13 +8886,6 @@ const PAD_TOOL = new Map();
    switch"). Undo writes the strokes back with the mark they had (`ansPutBack_`). */
 const PAD_CLEARED = new Map();
 const PAD_CLEARED_MARK = new Map();
-
-function padAt_(ink, e) {
-  const r = ink.getBoundingClientRect();
-  if (!r.width || !r.height) return null;
-  return [Math.round((e.clientX - r.left) / r.width * 340),
-          Math.round((e.clientY - r.top) / r.height * 340)];
-}
 
 /* THE TOOL A DRAG ON THIS PAD USES: what was chosen for it, and only if the bar offers that tool.
    Asked of the bar rather than of `padTools_` again, so a tool the decider did not give this question
@@ -9010,80 +9003,528 @@ function padAid_(g) {
   aid.innerHTML = pin + rad;
 }
 
-/* ---------- ONE FINGER IS ONE STROKE, AND A SECOND ONE IS NOT A TAKEOVER ---------------------------
-   FOUND BY THE REVIEW OF THE WHITEBOARD with real touches through CDP: finger 1 drawing, a second
-   touch down near the bottom of the board -- a palm resting, or a second child's finger, which on a
-   board the size of a page is the ordinary case and not the odd one -- and the second `pointerdown`
-   replaced the stroke in progress while `pointermove` took every pointer's moves as the stroke's. The
-   stored line alternated between the two (`[272,306,272,305,156,68,272,304,169,68,…]`, a fan of
-   spokes from the palm), finger 1's first 60px were gone, and the first live preview was left in the
-   DOM as a path nothing had stored. The question pages' pen had the same three lines; a question's
-   picture is small enough that nobody rests a hand on it.
-   SO A STROKE BELONGS TO THE POINTER THAT STARTED IT (`PAD_GO.id`): another pointer going down while
-   it is drawn is ignored, and only that pointer's moves and lift are the stroke's. THE SAME ID GOING
-   DOWN AGAIN means its own lift never arrived -- a mouse is always pointer 1 -- so that starts afresh
-   rather than wedging the pen, and so does a stroke whose ink a repaint has already replaced. */
-document.addEventListener('pointerdown', e => {
-  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
-  if (!ink) return;
-  const pad = ink.closest('.qpad');
-  if (!pad || pad.getAttribute('data-k') !== PAD_ON) return;
-  if (PAD_GO && PAD_GO.id !== e.pointerId && PAD_GO.ink.isConnected) { e.preventDefault(); return; }
-  const at = padAt_(ink, e);
-  if (!at) return;
-  e.preventDefault();
-  /* A STROKE LEFT HALF DRAWN BY A LIFT THAT NEVER CAME takes its preview with it. */
-  if (PAD_GO) { const old = PAD_GO.ink.querySelector('[data-live]'); if (old) old.remove(); }
-  const r = ink.getBoundingClientRect();
-  PAD_GO = { tool: padToolNow_(pad), ink: ink, from: at, sx: r.width / 340, sy: r.height / 340,
-             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: e.pointerId };
-  /* THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
-     because a ring of no width is not a mark -- its point is the aid's. */
-  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
-  const g = ink.querySelector('.qpad-g');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', padPath_(PAD_ST));
-  path.setAttribute('vector-effect', 'non-scaling-stroke');
-  path.setAttribute('data-live', '1');
-  if (g) g.appendChild(path);
-  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
-  try { ink.setPointerCapture(e.pointerId); } catch (err) {}
-});
+/* ==================================================================================================
+   A FINGER IS THE PEN, AND TWO FINGERS, A PALM OR A THUMB ARE NOT (docs/history/338).
 
-document.addEventListener('pointermove', e => {
-  if (!PAD_ST || !PAD_GO || e.pointerId !== PAD_GO.id) return;
-  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
-  if (!ink || ink !== PAD_GO.ink) return;
-  const at = padAt_(ink, e);
-  if (!at) return;
-  const st = PAD_DRAW[PAD_GO.tool].move(PAD_GO, at, PAD_ST);
+   THE OWNER, 11 OCT: *"drawing or editing with a finger (especially on tablets like an iPad or
+   touchscreens) feels finicky, imprecise, and frustrating"* -- naming *"accidental stray ink blobs while
+   trying to pan"* -- and, asked what the children draw with, *"they are just using their fingers"*.
+
+   MEASURED BEFORE A LINE OF THIS WAS WRITTEN, with real touch through CDP on the board and on June 2024
+   1F Q7 at 390x844 and 820x1180: finger 1 always owned the stroke (note 310's rule, below), so a
+   two-finger tap stored a DOT, a two-finger pan or a pinch stored a LINE, and a palm that landed first
+   took the stroke -- its blob was stored (`[238,299,240,299,238,299]`) and the fingertip's whole line was
+   lost. And a palm or a thumb resting on the card beside the pad is the PRIMARY pointer, the one the
+   swipe engine follows, so it could slide the column out from under a finger that was drawing.
+
+   ---------- WHAT NOTE 310 SAID, AND HOW THIS AMENDS IT -- READ THIS BEFORE "SIMPLIFYING" IT BACK ----------
+   310: *"a stroke belongs to the pointer that started it; a second pointer neither takes it over nor
+   ends it."* That stands for a stroke that is ESTABLISHED -- the finger has gone 10px and 200ms -- and a
+   palm landing mid-line is a rest exactly as before. It is amended ONLY for a stroke that is still
+   TENTATIVE (a dot, or under 200ms old) or HELD: there a second contact is evidence of a gesture, so the
+   preview is hidden (every sample kept) until movement says which it was -- two fingers moving is a pan
+   or a pinch and stores nothing; the first finger moving alone carries on with nothing lost; the SECOND
+   one moving alone, on the ink, was the real finger after a palm, and takes the stroke from its own
+   first point. Restore first-finger-wins and the palm blob comes back, and a two-finger pan draws.
+
+   CONTACTS, NOT TIMERS. Nothing here waits: a one-finger stroke is drawn the moment the finger lands,
+   exactly as before, and a stroke is held back only when a second contact gives evidence. Contacts are
+   told apart by HOW THEY MOVE. Contact size is recorded (`?pen=sizes`) and decides nothing yet: no
+   finger or palm on an iPad here has ever been measured, and a size threshold that is wrong low silently
+   stops a child drawing (338, increment 2).
+
+   THE THRESHOLDS ARE CSS PIXELS AND MILLISECONDS, never rem -- a fingertip is the same size on every
+   screen (CLAUDE.md). Every age is a difference of two events' `timeStamp`s. */
+const PAD_STILL_PX = 10;      // "a dot", and "has moved": the app's own drag decision (`PRESS_MOVED`), iOS's 10pt
+const PAD_ALSO_PX = 5;        // "moving too": half of it -- by the time one finger of a pan has gone 10, the other has gone 5
+const PAD_TOGETHER_MS = 200;  // twice Android's tap timeout, because children's fingers land less in step
+const PAD_TOGETHER_PX = 200;  // two fingertips of one hand (38mm on an iPad, 31 on a phone), not a palm heel
+const PAD_BAR_MS = 400;       // a resting hand's release becomes a click within this: Android's long press
+
+/* THE CONTACTS, by `pointerId` (jsdom's `undefined` is a key like any other). Every pointer that goes
+   down on the armed ink, of any kind, and every TOUCH that goes down anywhere while a pad is armed -- a
+   palm on the card, a gripping thumb, the second finger of a pinch on a 180px figure. Each is
+   `{id, type, t0, p0, p, pm, tm, far, onInk, ink, k, size, big, role, pts, m0, h0, late, busy}`:
+   points in client px, `far` the furthest it has been from where it went down, `tm` the last time it
+   moved `PAD_ALSO_PX`, `role` one of owner / cand / watch / rest / two. */
+const PAD_TOUCH = new Map();
+/* HELD: the stroke is kept (`PAD_ST`, `PAD_GO`, so `padHold_` and `findKeep_` still hold its column) and
+   its samples go on accumulating, but nothing of it is on the screen. `{cand, kind, from}`: the contact
+   that caused it (null once it has gone), `b` if the owner was still a dot when it came and `a` if the
+   owner had moved but was young, and where the owner was when it began. */
+let PAD_HUSH = null;
+/* TWO FINGERS: no stroke, and nothing drawn until every one of these has lifted. */
+const PAD_TWO = new Set();
+/* A DECISION THAT WAITS ONE FRAME, for the other finger's events of the same frame -- see `padDue_`. */
+let PAD_DUE = null;
+let PAD_FRAME = 0;
+/* UNDO AND CLEAR REFUSED UNTIL THIS TIME, by pad key -- a hand resting on the bar (`padRested_`). */
+const PAD_RESTED = new Map();
+/* `?pen=sizes` IN THE ADDRESS: the last eight contacts' widths, on the screen -- the reading increment 2
+   waits for. Nothing reads it but the line that shows it. */
+const PAD_SIZES = (() => { try { return /[?&]pen=sizes(&|$)/.test(location.search) ? [] : null; } catch (e) { return null; } })();
+
+const padDist_ = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+/* A CONTACT'S SIZE: the larger of its two sides, and only when the platform reports one -- 1 (or 0) is
+   "not known", which is what a mouse, iOS before 18 and Android's `pointerup` say. */
+const padSizeOf_ = e => { const s = Math.max(Number(e && e.width) || 0, Number(e && e.height) || 0); return s > 1 ? s : 0; };
+
+/* WHETHER A FINGER IS ON THE ARMED DRAWING -- the swipe engine asks this before it takes a gesture
+   (overworld.js, the axis decision), so a palm or a thumb that went down first beside the pad, which is
+   the pointer the grid follows, cannot slide the column out from under a stroke. Keyed by the pad's KEY,
+   not its element, so a repaint in the middle of a gesture does not let go of it; T0 and `padDrop_` are
+   what clear it, and a stuck one would mean the column never moves again -- which is why both exist. */
+function padBusy_(k) {
+  const on = k === undefined ? PAD_ON : k;
+  if (!on || on !== PAD_ON || !PAD_TOUCH.size) return false;
+  for (const c of PAD_TOUCH.values()) if (c.onInk && c.k === on) return true;
+  return false;
+}
+/* ---------- UNDO AND CLEAR UNDER A RESTING HAND -----------------------------------------------------
+   THE BAR SITS RIGHT UNDER THE PICTURE, WHERE A DRAWING HAND RESTS. A palm lifting off Undo is a click,
+   and that undid the stroke before this one -- and `padRepaint_` wiped the preview of the one being
+   drawn. So Undo and Clear do nothing while a finger is on that drawing, or within `PAD_BAR_MS` of the
+   lift of a touch that went down off the ink while one was: a click follows its `pointerup` in the same
+   task, and 400ms is the longest a resting hand's release takes to become one. Silently -- a child
+   resting a palm should not be told anything. The lock and the tools are NOT guarded: "Done drawing"
+   pressed by the other hand still ends the stroke as it always did. */
+const padRested_ = k => padBusy_(k) || (PAD_RESTED.get(k) || 0) > performance.now();
+
+function padSizesSay_(c, e) {
+  if (!PAD_SIZES || typeof document === 'undefined') return;
+  if (e.type === 'pointerdown') {
+    c.say = { type: c.type || '?', w: Math.round(Number(e.width) || 0), h: Math.round(Number(e.height) || 0), big: c.size };
+    PAD_SIZES.push(c.say);
+    if (PAD_SIZES.length > 8) PAD_SIZES.shift();
+  } else if (c.say) c.say.big = Math.max(c.say.big, padSizeOf_(e));
+  let el = document.querySelector('.pad-sizes');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'pad-sizes';
+    el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el);
+  }
+  el.textContent = PAD_SIZES.map(s => s.type + ' ' + s.w + 'x' + s.h + ' largest ' + Math.round(s.big)).join('\n');
+}
+
+/* A CONTACT, NEW. `busy` names the pad a finger was on when an OFF-ink touch went down, for the bar. */
+function padContact_(e, ink, k) {
+  const at = [e.clientX, e.clientY], ts = e.timeStamp;
+  const c = { id: e.pointerId, type: e.pointerType || '', t0: ts, p0: at, p: at.slice(), pm: at.slice(), tm: ts, far: 0,
+              onInk: !!ink, ink: ink || null, k: k || '', size: padSizeOf_(e), big: 0, role: 'rest', pts: null,
+              m0: null, h0: null, late: false, busy: !ink && padBusy_() ? PAD_ON : '' };
+  c.big = c.size;
+  PAD_TOUCH.set(e.pointerId, c);
+  padSizesSay_(c, e);
+  return c;
+}
+/* AND WHERE IT HAS GOT TO: how far from where it went down, and when it last really moved. A "move" is
+   `PAD_ALSO_PX`, so a resting palm's tremble is not a contact on the move. */
+function padTrack_(c, x, y, ts) {
+  c.p = [x, y];
+  const d = padDist_(c.p0, c.p);
+  if (d > c.far) c.far = d;
+  if (padDist_(c.pm, c.p) >= PAD_ALSO_PX) { c.pm = c.p.slice(); c.tm = ts; }
+}
+
+/* WHERE A POINT IS ON THE PICTURE, IN ITS 340 UNITS, from a box ALREADY READ -- one read per event. */
+function padMap_(r, cx, cy) {
+  if (!r || !r.width || !r.height) return null;
+  return [Math.round((cx - r.left) / r.width * 340), Math.round((cy - r.top) / r.height * 340)];
+}
+/* EVERY SAMPLE AN EVENT CARRIES. One per event, for now; see `padFeed_`. */
+const padSamples_ = e => [e];
+
+/* ---------- A STROKE STARTS: today's start, for one contact ----------------------------------------
+   THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
+   because a ring of no width is not a mark -- its point is the aid's. */
+function padStart_(c, at, r) {
+  const pad = c.ink.closest('.qpad');
+  PAD_GO = { tool: padToolNow_(pad), ink: c.ink, from: at, sx: r.width / 340, sy: r.height / 340,
+             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null, id: c.id,
+             c: c, t0: c.t0, est: false, pen: false, dirty: false };
+  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
+  c.role = 'owner';
+  return PAD_GO;
+}
+/* ONE SAMPLE OF THE OWNER, THROUGH ITS TOOL. */
+function padStep_(g, at) {
+  const st = PAD_DRAW[g.tool].move(g, at, PAD_ST);
   if (!st) return;
   PAD_ST = st;
-  const live = ink.querySelector('[data-live]');
-  if (live) live.setAttribute('d', padPath_(PAD_ST));
-  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
-});
+  g.dirty = true;
+}
+/* A CANDIDATE'S OWN SAMPLES, in units of its own ink, for the day it turns out to be the finger. */
+function padKeep_(pts, at) {
+  if (pts.length && pts[pts.length - 2] === at[0] && pts[pts.length - 1] === at[1]) return;
+  pts.push(at[0], at[1]);
+}
 
-function padEnd_(e) {
-  if (!PAD_ST || !PAD_GO) { PAD_ST = null; PAD_GO = null; return; }
-  /* ANOTHER FINGER LIFTING IS NOT THE END OF THIS STROKE -- the note over `pointerdown`. */
-  if (e && e.pointerId !== PAD_GO.id) return;
+/* ---------- WHAT IS ON THE SCREEN OF IT ----------------------------------------------------------- */
+function padLiveOff_(g) {
+  if (!g || !g.ink) return;
+  g.ink.querySelectorAll('[data-live]').forEach(p => p.remove());
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (aid) aid.innerHTML = '';
+}
+function padLivePath_(g, d) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('vector-effect', 'non-scaling-stroke');
+  path.setAttribute('data-live', '1');
+  const host = g.ink.querySelector('.qpad-g');
+  if (host) host.appendChild(path);
+  return path;
+}
+/* THE PREVIEW, DRAWN WHOLE FROM EVERY SAMPLE KEPT -- at the start, and when a hold resolves. */
+function padLiveShow_() {
   const g = PAD_GO;
-  let st = PAD_DRAW[g.tool].end(g, PAD_ST);
-  PAD_ST = null; PAD_GO = null;
+  if (!g) return;
+  padLiveOff_(g);
+  padLivePath_(g, padPath_(PAD_ST));
+  g.dirty = false;
+  if (g.tool !== 'pen') padAid_(g);
+}
+/* AND AS IT GROWS. */
+function padLive_() {
+  const g = PAD_GO;
+  if (!g || PAD_HUSH || !g.dirty) return;
+  g.dirty = false;
   const live = g.ink.querySelector('[data-live]');
+  if (live) live.setAttribute('d', padPath_(PAD_ST));
+  if (g.tool !== 'pen') padAid_(g);
+}
+
+/* ---------- THE TRANSITIONS --------------------------------------------------------------------- */
+/* NOTHING OF THE STROKE: no preview, no aid, nothing stored. The owner's contact stays (it is still down). */
+function padWithdraw_() {
+  const g = PAD_GO;
+  PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
+  if (g) { padLiveOff_(g); if (g.c && g.c.role === 'owner') g.c.role = 'rest'; }
+}
+/* HELD: see `PAD_HUSH`. The candidate's own samples are kept from now on, if it is on the ink. */
+function padHush_(c, kind) {
+  c.role = 'cand';
+  c.h0 = c.p.slice();
+  c.pts = null;
+  if (c.onInk && c.ink && c.ink.isConnected) {
+    const at = padMap_(c.ink.getBoundingClientRect(), c.p[0], c.p[1]);
+    if (at) c.pts = at;
+  }
+  PAD_HUSH = { cand: c, kind: kind, from: PAD_GO.c.p.slice() };
+  padLiveOff_(PAD_GO);
+}
+/* THE OWNER WAS THE FINGER: the preview comes back from every sample kept, and the other is a rest. */
+function padResume_() {
+  const h = PAD_HUSH;
+  if (h && h.cand && h.cand.role === 'cand') { h.cand.role = 'rest'; h.cand.pts = null; }
+  PAD_HUSH = null;
+  padLiveShow_();
+}
+/* THE OTHER WAS THE FINGER (a palm landed first): it takes the stroke from its own first point, with
+   every sample it gave while held, and the palm is a rest. `held` keeps it hidden -- the owner lifted
+   still, and the one left has yet to move. */
+function padSwap_(c, held) {
+  const old = PAD_GO ? PAD_GO.c : null;
+  padWithdraw_();
+  if (old && PAD_TOUCH.get(old.id) === old) old.role = 'rest';
+  const pts = c.pts || [];
+  c.pts = null;
+  if (pts.length < 2 || !c.ink || !c.ink.isConnected) { c.role = 'rest'; return; }
+  const r = c.ink.getBoundingClientRect();
+  const g = padStart_(c, pts.slice(0, 2), r);
+  for (let i = 2; i + 1 < pts.length; i += 2) padStep_(g, [pts[i], pts[i + 1]]);
+  if (held) { PAD_HUSH = { cand: null, kind: 'b', from: c.h0.slice() }; padLiveOff_(g); }
+  else padLiveShow_();
+}
+/* TWO FINGERS: whatever the owner drew goes, and nothing is drawn until every one of these lifts. */
+function padTwo_(more) {
+  const who = [];
+  if (PAD_GO && PAD_GO.c) who.push(PAD_GO.c);
+  if (PAD_HUSH && PAD_HUSH.cand) who.push(PAD_HUSH.cand);
+  (more || []).forEach(c => { if (c) who.push(c); });
+  padWithdraw_();
+  who.forEach(c => { if (PAD_TOUCH.get(c.id) === c) { c.role = 'two'; c.pts = null; PAD_TWO.add(c.id); } });
+  PAD_TOUCH.forEach(c => { if (c.role === 'watch' || c.role === 'cand') c.role = 'rest'; });
+}
+/* A STROKE IS TENTATIVE while its finger is still a dot, or younger than `PAD_TOGETHER_MS`, or held. */
+const padTentative_ = now => !!PAD_GO && !PAD_GO.est
+  && (!!PAD_HUSH || PAD_GO.c.far < PAD_STILL_PX || !(now - PAD_GO.t0 >= PAD_TOGETHER_MS));
+
+/* ---------- WHO MOVED FIRST, DECIDED ONE FRAME LATE --------------------------------------------------
+   THE RULE IS "the first of the two to go 10px decides, by how far the other has gone". Asked per
+   event, two fingers of one pan were told apart wrongly: the platform sends each finger's moves as
+   their own `pointermove`, one after the other, and under load one event carries several folded samples
+   -- finger 1's event arrives 14px on while finger 2's event FOR THE SAME FRAME has not been dispatched
+   yet, so finger 2 reads as still and the pan draws finger 1's line. So the decision is recorded when
+   the first one crosses and MADE at the next frame (input is dispatched before a frame's callbacks),
+   at the other finger's next event at or after that time, or at any lift, landing or cancel --
+   whichever comes first. Nothing is lost by the wait: a held stroke keeps every sample and shows none. */
+function padDue_(who, now) {
+  PAD_DUE = { who: who, at: now };
+  padFrameWant_();
+}
+function padFrameWant_() {
+  if (PAD_FRAME || typeof requestAnimationFrame !== 'function') return;
+  PAD_FRAME = requestAnimationFrame(padFrame_);
+}
+function padFrame_() {
+  PAD_FRAME = 0;
+  padDecide_();
+}
+/* THE DECISION. `who` went 10px first; `others` is what moved with it. */
+function padDecide_() {
+  const d = PAD_DUE;
+  if (!d) return;
+  PAD_DUE = null;
+  if (!PAD_GO || PAD_TWO.size) return;
+  const o = PAD_GO.c, h = PAD_HUSH, cand = h ? h.cand : null;
+  const watched = [];
+  PAD_TOUCH.forEach(c => { if (c.role === 'watch') watched.push(c); });
+  if (d.who === o) {
+    /* THE OWNER WENT FIRST: anything that moved half as far with it makes it two fingers (T3, T4). */
+    const moved = watched.filter(c => padDist_(c.m0, c.p) >= PAD_ALSO_PX);
+    if (cand && padDist_(cand.h0, cand.p) >= PAD_ALSO_PX) moved.push(cand);
+    if (moved.length) { padTwo_(moved); return; }
+    watched.forEach(c => { c.role = 'rest'; });
+    if (h) padResume_();
+    return;
+  }
+  const mo = h ? padDist_(h.from, o.p) : o.far;
+  if (d.who.role === 'watch') {
+    /* A WATCHED CONTACT WENT FIRST (T3): with the owner moving too it is two fingers, alone it is a rest.
+       It can never take the stroke: it was down first. */
+    if (o.far >= PAD_ALSO_PX) { padTwo_([d.who]); return; }
+    d.who.role = 'rest';
+    return;
+  }
+  if (h && d.who === cand) {
+    /* THE CANDIDATE WENT FIRST (T4). */
+    if (mo >= PAD_ALSO_PX || h.kind === 'a') { padTwo_(); return; }
+    if (cand.late && cand.onInk && cand.k === PAD_ON && cand.pts) { padSwap_(cand, false); return; }
+    cand.role = 'rest'; cand.pts = null;
+    padResume_();
+  }
+}
+/* EVERY MOVE OF A CONTACT, AFTER ITS SAMPLES: has the owner, the candidate or a watched contact gone
+   10px from where it is measured? A decision already recorded is made at the other's next event. */
+function padRules_(c, now) {
+  if (!PAD_GO || PAD_TWO.size) return;
+  const o = PAD_GO.c, h = PAD_HUSH;
+  if (PAD_DUE) {
+    /* THE OTHER FINGER'S EVENT FOR THE SAME MOMENT HAS COME: decided now, with its samples in. */
+    if (c !== PAD_DUE.who && (c === o || c.role === 'cand' || c.role === 'watch') && now >= PAD_DUE.at) padDecide_();
+    return;
+  }
+  let watching = false;
+  PAD_TOUCH.forEach(x => { if (x.role === 'watch') watching = true; });
+  if (h) {
+    if (c === o && padDist_(h.from, o.p) >= PAD_STILL_PX) {
+      /* HELD ALONE (the other has gone) and nothing else to wait for: decided now. */
+      if (!h.cand && !watching) { padResume_(); return; }
+      padDue_(o, now);
+    } else if (c === h.cand && padDist_(c.h0, c.p) >= PAD_STILL_PX) padDue_(c, now);
+    return;
+  }
+  if (!watching) return;
+  if (c === o && o.far >= PAD_STILL_PX) padDue_(o, now);
+  else if (c.role === 'watch' && padDist_(c.m0, c.p) >= PAD_STILL_PX) padDue_(c, now);
+}
+
+/* ---------- A CONTACT LANDS --------------------------------------------------------------------------
+   T1, ON THE ARMED INK WITH NOTHING DRAWN: the stroke starts as it always did -- the owner, a dot drawn at
+   once -- and every contact already down is looked at. One that landed in the last `PAD_TOGETHER_MS`, or
+   is moving now, is a second finger: the stroke is held. An old, still one (a thumb gripping the card, a
+   palm put down a while ago) is WATCHED: it can make the stroke two-finger by moving with it, and never
+   take it over. A mouse or a stylus owns the pad outright, as before.
+   T2, WHILE A STROKE IS DRAWN: an established stroke makes the newcomer a rest (310's rule); a dot of a
+   stroke is held, at any age and distance; a young one is held if the newcomer is within
+   `PAD_TOGETHER_PX` (two fingers of one hand, not the heel of the palm); anything else is a rest. */
+function padLand_(e, ink, k) {
+  const old = PAD_TOUCH.get(e.pointerId);
+  /* THE SAME ID GOING DOWN AGAIN means its own lift never came -- a mouse is always pointer 1 -- so it
+     starts afresh rather than wedging the pen; and so does a stroke whose ink a repaint has replaced. */
+  if (old) padGone_(old, e.timeStamp, 'lost');
+  if (PAD_GO && !(PAD_GO.ink && PAD_GO.ink.isConnected)) { const g = PAD_GO; padWithdraw_(); if (g.c) PAD_TOUCH.delete(g.c.id); }
+  if (PAD_DUE) padDecide_();
+  const c = padContact_(e, ink, k);
+  const now = e.timeStamp;
+  if (PAD_TWO.size) { if (ink) { c.role = 'two'; PAD_TWO.add(c.id); } return; }
+  if (PAD_GO && PAD_GO.pen) return;
+  if (PAD_HUSH) {
+    /* A THIRD CONTACT is two fingers and more (T4). Held ALONE -- the other has lifted -- it is a second. */
+    if (PAD_HUSH.cand) { padTwo_([c]); return; }
+    c.late = true;
+    padHush_(c, 'b');
+    return;
+  }
+  if (PAD_ST && PAD_GO) {
+    const o = PAD_GO.c;
+    c.late = true;
+    if (PAD_GO.est || (o.far >= PAD_STILL_PX && now - PAD_GO.t0 >= PAD_TOGETHER_MS)) return;
+    if (o.far < PAD_STILL_PX) { padHush_(c, 'b'); return; }
+    if (now - PAD_GO.t0 < PAD_TOGETHER_MS && padDist_(c.p0, o.p) <= PAD_TOGETHER_PX) { padHush_(c, 'a'); return; }
+    return;
+  }
+  if (!ink) return;
+  /* A COLUMN OR A PANE ALREADY MOVING IS NOT DRAWN ON: the swipe engine is carrying another finger. */
+  if (e.isPrimary === false && typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis && SWIPE.id !== e.pointerId) return;
+  const r = ink.getBoundingClientRect();
+  const at = padMap_(r, e.clientX, e.clientY);
+  if (!at) { PAD_TOUCH.delete(c.id); return; }
+  padStart_(c, at, r);
+  padLiveShow_();
+  if (c.type === 'mouse' || c.type === 'pen') {
+    PAD_GO.est = true;
+    /* A STYLUS: every touch already down, and every one to come, is the hand holding it. */
+    if (c.type === 'pen') { PAD_GO.pen = true; PAD_TOUCH.forEach(x => { if (x !== c) x.role = 'rest'; }); }
+    return;
+  }
+  const young = [];
+  PAD_TOUCH.forEach(x => {
+    if (x === c) return;
+    const moving = padDist_(x.p0, x.p) >= PAD_STILL_PX && now - x.tm <= PAD_TOGETHER_MS;
+    if (now - x.t0 <= PAD_TOGETHER_MS || moving) young.push(x);
+    else { x.role = 'watch'; x.m0 = x.p.slice(); }
+  });
+  if (young.length > 1) padTwo_(young);
+  else if (young.length) padHush_(young[0], 'b');
+}
+
+/* ---------- A CONTACT GOES -----------------------------------------------------------------------------
+   `how` is up, cancel, or lost (a lift that never came). THE OWNER LIFTING ends the stroke as it always
+   did (T6), unless it was held -- then whatever it drew goes, and the other, if it came later and is on
+   the ink, is held alone: it becomes the stroke if it goes on to move 10px, and nothing if it lifts still.
+   So a two-finger tap stores nothing whichever finger lifts first, and a finger that slides on after the
+   other lifts is a deliberate stroke.
+   A CANCEL (T7) WITHDRAWS A TENTATIVE STROKE AND KEEPS AN ESTABLISHED ONE. The cancels that are not ink
+   arrive early -- the platform's own palm rejection, a system edge gesture -- and one after 200ms and
+   10px of a real line is an interruption; dropping it would lose a mark the child saw. It was always
+   kept, which stored the stray mark of every early one. */
+function padGone_(c, now, how) {
+  if (PAD_TOUCH.get(c.id) === c) PAD_TOUCH.delete(c.id);
+  if (c.busy && !c.onInk) PAD_RESTED.set(c.busy, performance.now() + PAD_BAR_MS);
+  if (PAD_TWO.has(c.id)) { PAD_TWO.delete(c.id); return; }
+  const g = PAD_GO;
+  if (g && g.c === c) {
+    if (how === 'lost') { padWithdraw_(); return; }
+    if (PAD_HUSH) {
+      const cand = PAD_HUSH.cand;
+      padWithdraw_();
+      if (cand && cand.late && cand.onInk && cand.k === PAD_ON && cand.pts) padSwap_(cand, true);
+      else if (cand) { cand.role = 'rest'; cand.pts = null; }
+      return;
+    }
+    /* THE LOCK PRESSED OFF BY ANOTHER HAND mid-stroke: an established stroke is kept, as it always was. */
+    if ((how === 'cancel' || PAD_ON !== c.k) && padTentative_(now)) { padWithdraw_(); return; }
+    padCommit_();
+    return;
+  }
+  if (PAD_HUSH && PAD_HUSH.cand === c) { PAD_HUSH.cand = null; c.pts = null; }
+}
+/* T6: THE STROKE KEPT. Today's lift, unchanged: the tool's end, the board's thinning, `padSave_`. */
+function padCommit_() {
+  const g = PAD_GO;
+  if (!g) return;
+  let st = PAD_DRAW[g.tool].end(g, PAD_ST);
+  PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
+  if (g.c && g.c.role === 'owner') g.c.role = 'rest';
+  const lives = [].slice.call(g.ink.querySelectorAll('[data-live]'));
   const aid = g.ink.querySelector('.qpad-aid');
   if (aid) aid.innerHTML = '';
   /* A SLIP IS TAKEN BACK OFF THE SCREEN as well as never stored: the preview is not a mark. */
-  if (!st) { if (live) live.remove(); return; }
+  if (!st) { lives.forEach(p => p.remove()); return; }
   const pad = g.ink.closest('.qpad');
   const k = (pad && pad.getAttribute('data-k')) || '';
   /* THE WHITEBOARD'S STROKE IS STORED THINNED -- see `PAD_BOARD_MAX`. A question's keeps every point. */
   if (padIsBoard_(k) && typeof ansSimplify_ === 'function') st = ansSimplify_(st, 1);
-  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
+  lives.slice(1).forEach(p => p.remove());
+  /* AND DRAWN EVEN IF A REPAINT OF THIS PAD TOOK THE PREVIEW (an Undo pressed by the other hand, a copy
+     repainted): a stored stroke that is not on the screen is the one Undo then takes off unseen. */
+  const live = lives[0] || padLivePath_(g, '');
+  live.removeAttribute('data-live');
+  live.setAttribute('d', padPath_(st));
   if (!pad) return;
   const all = padRead_(k); all.push(st);
   padSave_(pad, k, all);
+}
+/* ---------- T8: LEAVING, AND T0: A LIFT THAT NEVER CAME ------------------------------------------------
+   EVERYTHING THE PEN HOLDS FOR A GESTURE, PUT DOWN, AND NOTHING STORED: a change of person
+   (`padWhoChanged_`), the drawing turned to its box (`q-draw`), and a primary pointer going down -- the
+   platform saying no other touch is down, so any contact still here lost its lift. */
+function padDrop_() {
+  if (PAD_FRAME && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(PAD_FRAME);
+  PAD_FRAME = 0;
+  const g = PAD_GO;
+  PAD_ST = null; PAD_GO = null; PAD_HUSH = null; PAD_DUE = null;
+  PAD_TOUCH.clear(); PAD_TWO.clear();
+  if (g) padLiveOff_(g);
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.qpad-ink [data-live]').forEach(p => p.remove());
+  document.querySelectorAll('.qpad-aid').forEach(a => { if (a.firstChild) a.innerHTML = ''; });
+}
+/* THE PAGE GOING AWAY, OR THE WINDOW LOSING FOCUS, MID-STROKE: the cancel rule, and every contact forgotten
+   -- their lifts will not come here. */
+function padAway_(e) {
+  if (PAD_DUE) padDecide_();
+  if (PAD_ST && PAD_GO) {
+    const now = e && typeof e.timeStamp === 'number' ? e.timeStamp : PAD_GO.t0;
+    if (padTentative_(now)) padWithdraw_(); else padCommit_();
+  }
+  if (PAD_TOUCH.size || PAD_TWO.size || PAD_GO) padDrop_();
+}
+
+/* ---------- THE LISTENERS -----------------------------------------------------------------------------
+   ON `document`, so they run before the swipe engine's on `window` (overworld.js): T0's forgetting
+   happens before the grid's own `pointerdown`, and a finger is on the drawing before the grid asks.
+   EVERY CONTACT ON THE ARMED INK is the pen's -- `preventDefault` and the capture, rest or owner, so a
+   palm on the picture is never a press of anything. A touch OFF the ink gets neither: a tap on a tile
+   still works. */
+document.addEventListener('pointerdown', e => {
+  /* T0: A PRIMARY POINTER IS THE PLATFORM SAYING NO OTHER IS DOWN. jsdom's `undefined` never resets. */
+  if (e.isPrimary === true && (PAD_TOUCH.size || PAD_GO || PAD_TWO.size)) padDrop_();
+  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
+  const pad = ink && ink.closest('.qpad');
+  const k = pad ? pad.getAttribute('data-k') || '' : '';
+  if (!pad || !PAD_ON || k !== PAD_ON) {
+    if (PAD_ON && e.pointerType === 'touch') padLand_(e, null, '');
+    return;
+  }
+  e.preventDefault();
+  padLand_(e, ink, k);
+  try { ink.setPointerCapture(e.pointerId); } catch (err) {}
+});
+
+document.addEventListener('pointermove', e => {
+  if (!PAD_TOUCH.size) return;
+  const c = PAD_TOUCH.get(e.pointerId);
+  if (!c) return;
+  const s = padSizeOf_(e);
+  if (s > c.big) c.big = s;
+  if (PAD_SIZES) padSizesSay_(c, e);
+  const g = PAD_GO && PAD_GO.c === c ? PAD_GO : null;
+  /* THE OWNER'S SAMPLES ONLY FROM ITS OWN INK: a repaint that replaced it ends what this stroke can take,
+     and the lift stores what it has. A candidate's, from its own. */
+  const feed = !!g && !!e.target && !!e.target.closest && e.target.closest('.qpad-ink') === g.ink;
+  const keep = !feed && c.role === 'cand' && !!c.pts && !!c.ink && c.ink.isConnected;
+  const r = feed ? g.ink.getBoundingClientRect() : keep ? c.ink.getBoundingClientRect() : null;
+  padSamples_(e).forEach(p => {
+    const x = p.clientX, y = p.clientY;
+    padTrack_(c, x, y, p.timeStamp || e.timeStamp);
+    if (!r) return;
+    const at = padMap_(r, x, y);
+    if (!at) return;
+    if (feed) padStep_(g, at); else padKeep_(c.pts, at);
+  });
+  padRules_(c, e.timeStamp);
+  if (feed && PAD_GO === g) padLive_();
+});
+
+function padEnd_(e) {
+  const c = PAD_TOUCH.get(e ? e.pointerId : undefined);
+  if (PAD_DUE) padDecide_();
+  if (c) { padGone_(c, e ? e.timeStamp : 0, e && e.type === 'pointercancel' ? 'cancel' : 'up'); return; }
+  /* A LIFT THE PEN KEPT NO CONTACT FOR: another finger's, which is not the end of this stroke. */
 }
 
 /* ---------- A STROKE THE DEVICE REFUSED STAYS ON THE SCREEN, AND THE NOTE SAYS IT IS NOT SAVED -------
@@ -9133,6 +9574,16 @@ function padCopies_(k, pad, all) {
 }
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
+/* NO CALLOUT AND NO MENU FROM A FINGER HELD ON THE ARMED DRAWING -- the keypad's precedent (keypad.js). */
+document.addEventListener('contextmenu', e => {
+  const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
+  const pad = ink && ink.closest('.qpad');
+  if (pad && PAD_ON && pad.getAttribute('data-k') === PAD_ON) e.preventDefault();
+});
+/* THE PAGE HIDDEN OR LEFT, OR THE WINDOW LOSING FOCUS, MID-GESTURE: `padAway_`. */
+document.addEventListener('visibilitychange', e => { if (document.visibilityState === 'hidden') padAway_(e); });
+window.addEventListener('pagehide', padAway_);
+window.addEventListener('blur', padAway_);
 
 /* THE BAR'S TILES. `Lock it to draw` is a MODE and not an action, so it says which it is with
    `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
@@ -9159,7 +9610,18 @@ on('pad-draw', (el) => {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = want ? k : '';
   if (want) padArm_(pad, true);
+  /* AND EVERY CONTACT BUT THE ONE DRAWING IS FORGOTTEN, either way: a palm on the old pad is not a palm
+     on this one, and pressed off mid-stroke the stroke ends at its lift as it always did -- kept if it
+     was established, withdrawn if it was not (338, T8). */
+  padForgetOthers_();
 });
+function padForgetOthers_() {
+  const keep = PAD_GO ? PAD_GO.c : null;
+  PAD_TOUCH.forEach((c, id) => { if (c !== keep) PAD_TOUCH.delete(id); });
+  PAD_TWO.clear();
+  if (PAD_HUSH) PAD_HUSH.cand = null;
+  PAD_DUE = null;
+}
 
 /* ---------- PEN, RULER, COMPASS: CHOOSING ONE IS ALSO LOCKING THE CARD ------------------------------
    *"some questions require a compass or ruler. so should have a tile for these things."* Pressing one
@@ -9174,6 +9636,7 @@ on('pad-tool', (el) => {
   if (PAD_ON !== k) {
     [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
     PAD_ON = k;
+    padForgetOthers_();
   }
   padArm_(pad, true);
 });
@@ -9181,6 +9644,8 @@ on('pad-tool', (el) => {
 on('pad-undo', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
+  /* NOT UNDER A RESTING HAND -- `padRested_`. */
+  if (padRested_(k)) return;
   const all = padRead_(k);
   /* AN EMPTY PAD THAT CLEAR EMPTIED: the last thing done was the Clear, so it is what Undo undoes. */
   if (!all.length && PAD_CLEARED.has(k)) {
@@ -9216,6 +9681,7 @@ on('pad-undo', (el) => {
 on('pad-clear', (el) => {
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
+  if (padRested_(k)) return;
   const had = padRead_(k);
   if (!had.length) return;
   PAD_CLEARED.set(k, had);
@@ -9376,7 +9842,9 @@ function padHold_(id) {
    question's pad left on a stale column is disarmed here too, so none can take a stroke meanwhile. */
 function padWhoChanged_() {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
-  PAD_ON = ''; PAD_ST = null; PAD_GO = null;
+  PAD_ON = '';
+  /* THE STROKE, ITS PREVIEW AND EVERY CONTACT, PUT DOWN AND NOTHING STORED -- `padDrop_`. */
+  padDrop_();
   PAD_CLEARED.clear();
   PAD_CLEARED_MARK.clear();
   wbPaint_();
@@ -9876,7 +10344,7 @@ on('q-draw', el => {
   if (face === 'draw') {
     if (typeof KP_AT !== 'undefined' && KP_AT && KP_AT.getAttribute('data-k') === ansKey_(x)
         && typeof kpClose_ === 'function') kpClose_();
-  } else if (PAD_ON === k) { PAD_ON = ''; PAD_ST = null; PAD_GO = null; }
+  } else if (PAD_ON === k) { PAD_ON = ''; padDrop_(); }
   padFaceRedraw_(x);
 });
 /* ---------- AND THE SURFACE GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER ---------------------------------
