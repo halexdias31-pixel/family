@@ -211,8 +211,9 @@ journeys run again):
 **Run, on the final tree:** `check.js`, `check-const`, `check-css`, `check-doors`, `check-loading`, `check-drafts`,
 `check-profile` (44 card rules), `check-signin`, `check-handles`, `check-payload`, `check-post`, `check-library`,
 `check-settings`, `check-widgets`, `check-strings` — green; `check-dead` reports the same eight front-end and five
-backend names it did on the base commit and nothing new; `check-scope` is red on the base commit and here alike, on
-`states.real.js`, a file this change does not touch. **All 328 `check-flow` journeys** in four `FLOW_PART`s.
+backend names it did on the base commit and nothing new; `check-scope` is red on the base commit and here alike, and
+only on files outside the repository (`states.real.js` and its like, other work's scratch copies beside the
+worktree). **All 328 `check-flow` journeys** in four `FLOW_PART`s.
 `check/ui.js --screen=account`, `--screen=settings` and `--screen=tools`: nothing new (the library cards' and Manage
 your child's zoom at 320 print as known). `check/press.js --screen=account`, `settings` and `tools`: green — the
 first tools run failed four swipes on stuff, games and biz and one venues tap at a load average of 9, which passed
