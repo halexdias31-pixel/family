@@ -18698,6 +18698,10 @@ check('a chapter plays its animation on the Resources column: Pythagoras after G
   const first = R.stuffFirstResult_();
   t.goPage('res', first + at);
   await wait(450); await woken_();
+  /* THE WINDOW FILLED AS THE BUILDER WOULD FILL IT IN THE QUIET — the builder is held here (it is the arrival
+     this asks about), and since docs/history/341 a turn fills only the page in front, one either side and
+     what the glass shows; the drawings two pages on are the builder's. `all` is the whole window, now. */
+  R.fillStuffPages(true);
   const host = w.document.getElementById('s-res');
   /* THE PAGE IN FRONT, AS THE FINDER MARKS IT — `.on` on the page the column is placed at. */
   const cardEl = host.querySelector('.card.is-an17-pyth');

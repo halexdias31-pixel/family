@@ -188,8 +188,11 @@ function RECORDER() {
          `--only=centre`, found by the review. A phone answers before the slide lands; this machine
          does not, and the check must wait for the answer rather than report the gap. */
       const cam = typeof CAM_ASKING !== 'undefined' && !!CAM_ASKING;
+      /* AND THE BUILDER DONE (`aheadBusy_`, shell.js; docs/history/341): what it draws in the quiet — a stale
+         column, a widget slot, a finder's page — is drawing that could still be going on under a measurement. */
       const booked = !!PLACE_FRAME || !!AFTER_SLIDE || AFTER_SLIDE_JOBS.size > 0 || !!pics || cam
-        || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0);
+        || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0)
+        || (typeof aheadBusy_ === 'function' && aheadBusy_());
       /* AND THE CARD IN FRONT THE SAME HEIGHT TWICE RUNNING, WITH ITS COLUMN WHERE IT IS MEANT TO BE.
          Whatever else grows a card late — the next thing like the camera — is caught by its effect
          rather than by name: a height that changed since the last look, or a column whose placed shift
@@ -1975,8 +1978,15 @@ async function gesture(env, o) {
         /* BACK, BY THE WRITES: each one that is not a finger's against the one before it. */
         const back = [];
         let last = null;
+        /* A WRITE MADE AFTER THE WINDOW MOVED IS IN A DIFFERENT FRAME OF REFERENCE — the pages above the card in
+           front are not the pages they were, so its aim is not comparable with the one before. Since 341 the
+           window is re-centred in the quiet as well as slid in a release, and a quiet re-centring on the page
+           the run ended on is exactly such a pair: `colShiftNow_` moves the column with its layout, then the
+           placement aims at the same place in the new coordinates. What the eye would see of a window moved
+           wrongly is still caught, by the drawn rule below. */
         r.writes.forEach(w => {
           if (w.drag || w.shift) return;
+          if (last && last.lo !== w.lo) last = null;
           if (last && last.p === w.p && w.y - last.y > 40) back.push(`re-aimed ${Math.round(last.y)} → ${Math.round(w.y)}px on page ${w.p}`);
           last = w;
         });

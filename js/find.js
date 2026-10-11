@@ -4163,7 +4163,8 @@ function animIds_(html, n) {
 }
 
 /* ---------- ONLY THE ONE ON THE PAGE IN FRONT PLAYS, AND IT PLAYS FROM THE START ----------------------
-   FIND KEEPS ELEVEN PAGES FILLED (`STUFF_NEAR`), so a book with four drawings near the page you are on
+   FIND KEEPS ITS WHOLE WINDOW FILLED (`STUFF_WIN`, forty-one pages since docs/history/341), so a book with
+   four drawings near the page you are on
    would run four animations nobody can see — and the one you swipe to would already be half way through
    its story. So the stage on the page in front is `.is-on`, and arriving there puts its markup back
    (`innerHTML = innerHTML`), which starts every animation in it again; every other stage stands paused
@@ -14594,8 +14595,28 @@ on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; pa
 
    RE-CENTRED ONLY AT THE EDGES. Moving the window on every turn would mean recycling on every turn;
    waiting until you are within `STUFF_EDGE` of an end means most turns move nothing at all. */
-const STUFF_WIN = 15;
-const STUFF_EDGE = 4;
+/* ---------- FORTY-ONE, ALL OF THEM FILLED, AND MOVED IN THE QUIET (docs/history/341) -----------------------
+   THE OWNER, 11 Oct: *"If I scrol fast left right up or down it's still clunky … Increase loading scope.
+   Make it more massive so it's never really an issue."* Measured that day at 4x CPU: fifteen elements with
+   eleven filled was outrun by a run of flicks — the column's drawn position lags its target by up to eight
+   pages in a run (each release re-aims a slide that has not finished), and the late pass that filled the
+   far eight was one task of up to 551ms booked behind `afterSlide_`, which quick flicks starve by design.
+   SO THE WINDOW IS FORTY-ONE, AND EVERY PAGE IN IT IS FILLED — by the builder, one card per idle slice,
+   nearest first and on the side last travelled (`ahead_`, shell.js; the fill job below). Forty-one is the
+   lag (8), a fifteen-flick run (15), three glass rows (3) and slack, and it is what the what-if measured:
+   DOM up 250–1,150 elements, heap unchanged, no black glass. A filled card is bounded by the window, so
+   the most this holds is forty-one cards per finder, and NOTHING INSIDE THE WINDOW IS EVER EMPTIED: a
+   flick back up never rebuilds what it passed. Only a recycle releases a card.
+   WHERE THE WINDOW SITS. In the quiet it is re-centred so the page in front is `stuffBehind_()` from the
+   end it is leaving — thirteen behind and twenty-seven ahead going down (lag 8 + three glass rows + 2),
+   mirrored going up — so a fifteen-flick run from rest never reaches an unfilled page. Inside a release it
+   only slides, by `STUFF_STEP` (6) and only when fewer than `glassRows_() + 3` pages are left ahead: six
+   at a time rather than one per turn, because each move is a shift the column has to be corrected for
+   (`stuffKeepPlace_`, below), and the six it recycles are all thirty or more behind. */
+const STUFF_WIN = 41;
+const STUFF_STEP = 6;
+const STUFF_LAG = 8;
+function stuffBehind_() { return STUFF_LAG + (typeof glassRows_ === 'function' ? glassRows_() : 2) + 2; }
 
 /* A PAGE THAT NOW STANDS FOR A DIFFERENT RESULT MUST NOT KEEP THE OLD ONE'S MARKUP. The `filled`
    mark is what `fillStuffPages` reads, so taking it off is what asks for the redraw.
@@ -14612,19 +14633,30 @@ function stuffBlank_(el) {
    where it started last time. One function because TWO things build the window — `stuffWindow_`,
    recycling the elements already there, and `screen('stuff')`, drawing it from nothing — and two
    copies of this arithmetic would be two answers to which result is on which element. */
-function stuffLo_(want, keep, had) {
+/* `centre`: THE BUILDER'S RE-CENTRING, in the quiet — the page in front put `stuffBehind_()` from the end it
+   is leaving. Otherwise a turn: the window stays where it is unless fewer than `glassRows_() + 3` pages are
+   left ahead, and then slides `STUFF_STEP` that way; a page outside the window altogether (a jump, a
+   first draw) is centred as the quiet would centre it. */
+function stuffLo_(want, keep, had, mode) {
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
+  const fit = v => Math.max(0, Math.min(maxLo, v));
   /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
   const r = Math.max(0, (PAGE[FINDER.id] || 0) - keep);
-  let lo = Math.max(0, Math.min(maxLo, had || 0));
-  if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
-    lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
-  }
+  /* THE WAY THIS COLUMN WAS LAST TURNED (`goPage`), down when nobody has turned it yet. */
+  const dir = (typeof AHEAD !== 'undefined' && AHEAD.dir.y[FINDER.id]) || 1;
+  const behind = Math.min(stuffBehind_(), size - 1);
+  const centred = fit(dir < 0 ? r - (size - 1 - behind) : r - behind);
+  let lo = fit(had || 0);
+  if (mode === 'centre' || r < lo || r > lo + size - 1) return centred;
+  const need = (typeof glassRows_ === 'function' ? glassRows_() : 2) + 3;
+  const ahead = lo + size - 1 - r, back = r - lo;
+  if (dir > 0 && ahead < need) lo = fit(lo + Math.max(STUFF_STEP, need - ahead));
+  else if (dir < 0 && back < need) lo = fit(lo - Math.max(STUFF_STEP, need - back));
   return lo;
 }
 
-function stuffWindow_() {
+function stuffWindow_(mode) {
   const host = $('s-' + FINDER.id);
   if (!host) return;
   /* A WINDOW THAT MAY MOVE IS PAGES THAT MAY MOVE — the next placement walks them (`placePages_`). */
@@ -14638,7 +14670,7 @@ function stuffWindow_() {
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
   const had = Math.max(0, Math.min(maxLo, PAGE_LO[FINDER.id] || 0));
-  const lo = stuffLo_(want, keep, had);
+  const lo = stuffLo_(want, keep, had, mode);
 
   /* ---------- THE COUNT FIRST, AT THE TAIL --------------------------------------------------------
      Growing appends and shrinking removes from the END, which is the high-numbered end of the
@@ -15009,9 +15041,10 @@ function layout(which) {
   return { screen: id, overlaps, unfilled, rows };
 }
 
-/* HOW MANY PAGES EITHER SIDE OF THE ONE YOU ARE ON GET BUILT AHEAD. Raise it if a fast flick still
-   lands on a blank page; lower it if holding the markup ever starts to cost something. */
-const STUFF_NEAR = 5;
+/* `STUFF_NEAR` WAS HERE — five pages either side filled, and everything past them emptied again. It is gone
+   as a rule (docs/history/341): the whole window is filled, by the builder in the quiet, and nothing in it
+   is emptied; only a recycle releases a card (`STUFF_WIN`'s note). Its own advice — "raise it if a fast
+   flick still lands on a blank page" — was taken as far as it goes. */
 
 /* ---------- THE THREE UNDER YOUR THUMB NOW, THE OTHER EIGHT A FRAME LATER -------------------------
    REPORTED AS "it takes long to load when i click questions on phone", and measured at 20x CPU --
@@ -15033,7 +15066,13 @@ const STUFF_NEAR = 5;
    cancels the first, so a run of quick taps does the far work once at the end rather than per tap.
 
    KEYED ON NOTHING AND CANCELLED BY IDENTITY, because the only job is "finish the fill" and the
-   only thing that can invalidate it is another fill. */
+   only thing that can invalidate it is another fill.
+   ---------- AND THE REST ARE NOW THE BUILDER'S, ONE CARD PER IDLE SLICE (docs/history/341) -----------
+   "The next turn of the event loop" was one task of eight cards, measured at up to 551ms at 4x — and
+   booked behind `afterSlide_`, which a run of quick flicks starves, so it ran exactly when the run
+   stopped and the next flick began. The near three are still built in the tap, for the reason above;
+   everything else in the window is filled by `ahead_` (shell.js) in the quiet, one card at a time,
+   nearest first. `STUFF_LATE` is left only for measuring the cards a pass has just drawn. */
 let STUFF_LATE = 0;
 const STUFF_SOON = 1;
 
@@ -15436,6 +15475,123 @@ function stuffFillOne_(i, ctx) {
   return true;
 }
 
+/* ---------- THE RELEASE'S FLOOR: EVERY PAGE THE BAND WILL SHOW, FILLED BEFORE THE COLUMN MOVES -------------
+   The band (`placeGrid`, shell.js; docs/history/341) draws every page whose box meets the glass a turn is
+   aimed at, widened by a glass height either way, measured in pixels. So the fill a turn makes before its
+   slide is asked in the same units, or the band would uncover a page this left empty: from the page being
+   turned to, in the direction of the turn, every unfilled page until the far edge of that page's glass plus
+   one glass height — and never fewer than `glassRows_()` pages, the count this was before. POSITIONS ARE
+   READ BEFORE THE FIRST FILL, while the layout is the one the last frame drew, so a turn that finds
+   everything filled (which, after any rest, the builder has made every turn) forces no layout at all.
+   BOUNDED AT `glassRows_() + 3` FILLS IN ONE RELEASE: the band past the glass is the builder's to have
+   filled, and a release that fills a dozen cards because the builder has not had a quiet moment is the
+   stall this whole change exists to remove. The glass itself is always covered: a phone shows at most
+   five cards on it, an iPad six. */
+function stuffEdgeFill_(n, dir) {
+  const id = FINDER.id, host = $('s-' + id);
+  if (!host) return 0;
+  const pages = host.querySelectorAll(':scope > .page');
+  const cur = pages[domIndex_(id, n)];
+  if (!cur) return 0;
+  const rows = typeof glassRows_ === 'function' ? glassRows_() : 2;
+  const glassH = host.clientHeight || innerHeight;
+  const top = cur.offsetTop, h = cur.offsetHeight;
+  const gTop = top - Math.max(0, (glassH - h) / 2);
+  const reach = dir > 0 ? gTop + 2 * glassH : gTop - glassH;
+  let y = dir > 0 ? top + h : top;
+  let filled = 0;
+  for (let k = 1; k <= STUFF_WIN; k++) {
+    const i = n + dir * k;
+    const el = pages[domIndex_(id, i)];
+    if (!el || !el.classList.contains('is-res')) break;
+    if (k > rows && (dir > 0 ? y >= reach : y <= reach)) break;
+    if (el.dataset.filled !== '1' && stuffFillOne_(i)) filled++;
+    y += dir * el.offsetHeight;
+    if (filled >= rows + 3) break;
+  }
+  return filled;
+}
+
+/* ---------- THE BUILDER'S FINDER JOBS: THE WHOLE WINDOW FILLED, AND RE-CENTRED, IN THE QUIET --------------
+   `ahead_` in shell.js asks every kind for its jobs as they stand, on every slice, and takes the nearest.
+   For each finder there are two: FILL the nearest page in its window that has no card (or a card drawn
+   for another question), and CENTRE the window where the quiet wants it (`stuffLo_`'s `centre`). The
+   centre is offered at the column's own distance, so it goes before any fill — recycling first and then
+   filling, rather than filling pages the centring is about to throw away.
+   BOUND, BOTH OF THEM (docs/history/329). The jobs are worked out inside each finder's own binding, and
+   each runs inside it again, so a fill of the Resources window cannot touch Find's `STUFF`, memos or
+   window. The question asked is captured when the job is made and asked again when it runs: a different
+   question means the job is dropped, and the next slice makes the jobs of the new one.
+   NOT A COLUMN STILL STALE (its paint goes first, and draws a new window), nor one being typed in or drawn
+   on (the builder's own gate waits for those), nor the admin's column or any other a person cannot reach
+   (`TABS` is read again every slice). */
+function stuffAheadJobs_() {
+  const out = [];
+  Object.keys(FINDERS).forEach(fid => {
+    const F = FINDERS[fid];
+    if (!TABS.some(t => t.id === fid) || STALE[fid]) return;
+    const host = $('s-' + fid);
+    if (!host || !host.querySelector(':scope > .page.is-res')) return;
+    inFinder_(F, () => {
+      if (!$(fid + '-controls')) return;
+      const first = stuffFirstResult_();
+      const n = stuffPages_().length;
+      if (!n) return;
+      const want = stuffPageCount();
+      const size = Math.min(want, STUFF_WIN);
+      const had = PAGE_LO[fid] || 0;
+      const ask = stuffAsk_();
+      const at = PAGE[fid] || 0;
+      if (stuffLo_(want, first, had, 'centre') !== had) {
+        out.push({ key: 'centre:' + fid, kind: 'centre', d: aheadDist_(fid, at), run: () => stuffAheadCentre_(F, ask) });
+      }
+      const pages = host.querySelectorAll(':scope > .page');
+      let best = null;
+      for (let i = first + had; i < first + had + size && i < first + n; i++) {
+        const el = pages[domIndex_(fid, i)];
+        if (!el) continue;
+        if (el.dataset.filled === '1' && !(el.FIND_AT && el.FIND_AT.ask !== ask)) continue;
+        const d = aheadDist_(fid, i);
+        if (!best || d < best.d) best = { i: i, d: d };
+      }
+      if (best) {
+        const i = best.i;
+        out.push({ key: 'fill:' + fid + ':' + i, kind: 'fill', d: best.d, run: () => stuffAheadFill_(F, i, ask) });
+      }
+    });
+  });
+  return out;
+}
+/* ONE CARD, AND ITS PANE MEASURED NOW — `paneWatch_` measures the panes it has not seen, which is this one —
+   so nothing later measures the window; and a card drawn ABOVE the one in front moves the column back by
+   exactly what it grew, as the release's fill does (`stuffKeepPlace_`). */
+function stuffAheadFill_(F, i, ask) {
+  return inFinder_(F, () => {
+    if (stuffAsk_() !== ask) return;
+    const id = F.id, host = $('s-' + id);
+    if (!host) return;
+    const pages = host.querySelectorAll(':scope > .page');
+    const el = pages[domIndex_(id, i)];
+    if (!el || !el.classList.contains('is-res')) return;
+    if (el.dataset.filled === '1' && el.FIND_AT && el.FIND_AT.ask === ask) return;
+    if (el.dataset.filled === '1') stuffBlank_(el);
+    const at = PAGE[id] || 0;
+    const ref = i < at ? pages[domIndex_(id, at)] : null;
+    const top0 = ref ? ref.offsetTop : 0;
+    if (!stuffFillOne_(i)) return false;
+    if (typeof paneWatch_ === 'function') paneWatch_(host);
+    if (ref) stuffKeepPlace_(host, top0 - ref.offsetTop);
+  });
+}
+function stuffAheadCentre_(F, ask) {
+  return inFinder_(F, () => {
+    if (stuffAsk_() !== ask) return;
+    stuffWindow_('centre');
+    if (typeof placeOne_ === 'function') placeOne_(F.id);
+  });
+}
+AHEAD_KINDS.push(stuffAheadJobs_);
+
 /* ---------- AN EMPTIED PAGE KEEPS ITS HEIGHT -------------------------------------------------------
    PART OF THE OWNER'S *"if i scroll down quickly it does glitch out or clip fast or idk"* (8 Oct, a
    pupil's iPad). A page is emptied when you are more than `STUFF_NEAR` past it, and an empty pane is
@@ -15456,11 +15612,10 @@ function stuffPin_(el, pane) {
   if (el && h > 0) el.style.minHeight = h + 'px';
 }
 
-/* `all` IS THE LATE PASS SAYING "DO THE REST". Without it the deferred call is not a continuation
-   but a repeat: `at` has not moved, the near three are already filled so there is no work in them,
-   and the loop reaches the same far page and defers again. Measured before it existed -- the tall
-   pane stayed `overflow: hidden` for ever, because the measuring runs at the end of the pass that
-   has nothing left to build and no pass ever did. */
+/* `all` WAS THE LATE PASS SAYING "DO THE REST", and the late pass is gone (`STUFF_LATE`'s note). It is now
+   the whole window, filled in this task — for a caller that must see it filled before it reads anything
+   (the checks' states); the app never asks it, because the builder fills the window one card per idle
+   slice and a forty-one-card task is the stall this was rewritten to remove. */
 function fillStuffPages(all) {
   const host = $('s-' + FINDER.id);
   if (!host) return;
@@ -15469,114 +15624,46 @@ function fillStuffPages(all) {
   const at = PAGE[FINDER.id] || 0;
   const items = stuffFiltered();
   const first = stuffFirstResult_();
-  /* ---------- THE ELEVEN YOU ARE NEAR, NOT THE FIVE THOUSAND YOU ARE NOT -------------------------
+  /* ---------- THE THREE YOU ARE ON, NOT THE FIVE THOUSAND YOU ARE NOT --------------------------------
      THIS WALKED EVERY PAGE IN THE STRIP, calling `paneOf_` on each -- a DOM query per page, 5,227
      of them, on every repaint and every page turn. Measured at 8x CPU: 45 ms, for a function whose
      own note says it only ever touches eleven.
-
-     THE TWO JOBS ARE FILL AND EMPTY AND BOTH ARE BOUNDED. What to fill is the window round where
-     you are; what to empty is whatever is still MARKED filled and is no longer in it, and that mark
-     is a selector the browser can answer without this walking anything. Same behaviour, same
-     `changed` flag, same order -- and the cost stops depending on how big the library is. */
+     NOW IT TOUCHES THREE: the page in front and one either side (`STUFF_SOON`), built in this task
+     because a tap must land on its card. Everything else in the window is the builder's, one card per
+     idle slice (`ahead_` in shell.js, the fill job below), and NOTHING IS EMPTIED HERE ANY MORE: a page
+     the window still holds keeps its card, so turning back never rebuilds what it passed, and the
+     window itself bounds what is held (`STUFF_WIN`). A page filled for a different question than the one
+     asked now (`FIND_AT`) counts as empty, and is drawn again. */
   /* EVERY NUMBER HERE IS A PAGE NUMBER and every lookup goes through `domIndex_`, because the
      results are a window and the element standing for page 400 is not the four-hundredth child.
      See `stuffWindow_`. */
-  const seen = {};
-  const lo = Math.max(first, at - STUFF_NEAR);
-  /* THE PAGE COUNT, not the result count — a practical is four pages. See `stuffPages_`. */
-  const hi = Math.min(first + stuffPages_().length - 1, at + STUFF_NEAR);
-  const todo = [];
-  for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
-  [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
-    const i = logIndex_(FINDER.id, [].indexOf.call(pages, el));
-    if (i >= first && !seen[i]) todo.push(i);
-  });
-  /* THE ONES UNDER THE THUMB FIRST, and the emptying with them: a page being cleared is a page
-     whose markup is going away, which costs nothing to lay out and must not be left behind a
-     deferred pass or the strip holds cards it has been told to drop. See `STUFF_LATE`. */
-  todo.sort((a, b) => (Math.abs(a - at) <= STUFF_SOON ? 0 : 1) - (Math.abs(b - at) <= STUFF_SOON ? 0 : 1));
-  clearTimeout(STUFF_LATE);
-  let late = -1;
-  for (let n = 0; n < todo.length; n++) {
-    const i = todo[n];
-    /* PAST THE NEAR THREE AND THERE IS STILL SOMETHING TO BUILD -- stop here and finish after the
-       paint. A page that only needs EMPTYING is not a reason to stop, so the test is on the work
-       rather than on the distance. */
-    if (!all && Math.abs(i - at) > STUFF_SOON) {
-      const ahead = pages[domIndex_(FINDER.id, i)];
-      if (ahead && ahead.dataset.filled !== '1') { late = n; break; }
-    }
+  const last = first + stuffPages_().length - 1;
+  const winLo = first + (PAGE_LO[FINDER.id] || 0);
+  const lo = Math.max(first, all ? winLo : at - STUFF_SOON);
+  const hi = Math.min(last, all ? winLo + STUFF_WIN - 1 : at + STUFF_SOON);
+  const ask = stuffAsk_();
+  const drawn = [];
+  for (let i = lo; i <= hi; i++) {
     const el = pages[domIndex_(FINDER.id, i)];
     if (!el) continue;
-    /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
-       content — which is exactly what happened, for as long as these pages were built without a
-       pane to write into: the results were drawn onto the black while the question above them sat
-       on a card.
-       `paneOf_` used to hand back the page when there was no pane, so this could not tell the two
-       apart. It returns nothing now, and a page with nowhere to put its contents is skipped and
-       said out loud rather than filled wrongly. */
-    /* `paneOf_` makes one if the page has not got one, so there is nothing to check here. */
-    const pane = paneOf_(el);
-    /* FIVE EITHER SIDE. This was one, then two, and each widening was bought for the same reason:
-       a page built at the moment you turn to it is a page that stutters as you turn to it, and the
-       only screen filled lazily was the only screen whose swipe was not smooth.
-
-       TWO COVERED A SINGLE GESTURE and nothing more. A flick that carries three or four pages —
-       which is most of how anybody moves through a list of this length — outruns it and lands on
-       an empty page while the fill catches up.
-
-       WHAT IT COSTS IS MARKUP HELD, eleven pages instead of five, and nothing else: the widgets are
-       not started on the pages either side, only on the one being looked at, so nothing is running
-       out of sight. Pictures on those pages are `loading="lazy"` and the browser decides for itself
-       whether to fetch them.
-
-       ONE PLACE TO CHANGE IT, because the number appears in the test above and in the clearing
-       below, and two comparisons that are supposed to be the same number are two comparisons that
-       will eventually disagree. */
-    const near = Math.abs(i - at) <= STUFF_NEAR;
-    if (near && el.dataset.filled !== '1') {
-      /* THE CARD, ITS WIDGET DRAWN WITH IT — see `stuffFillOne_`, which the far edge of the glass in
-         `goPage` shares. */
-      if (stuffFillOne_(i, { pages: pages, first: first, items: items })) changed = true;
-    } else if (!near && el.dataset.filled === '1') {
-      /* AND THE SCROLL WITH IT. The pages are a window and their elements are recycled, so a pane
-         left scrolled down would hand the next card it stands for to somebody half way through it.
-         `paneReach_` puts the overflow back too, on the next fill.
-         ---------- ONLY A PANE THAT COULD HAVE SCROLLED, AND BEFORE ITS MARKUP GOES ------------------
-         `scrollTop = 0` IS A FORCED LAYOUT — the browser has to know how far the box can scroll
-         before it can be told where to — and it ran on EVERY page this loop emptied, straight after
-         the `innerHTML` a fill a line earlier had written, so the whole column was laid out again
-         inside the loop. Part of *"if i try to scroll quickly up or down its clunky and janky"* (6
-         October): a profile of rapid flicks down a paper on the Find screen put two seconds of a
-         thirteen-flick run inside this function at 4x CPU, in single tasks of up to 1.3s — the screen
-         frozen for a beat after a quick run of page turns.
-         Only a pane `paneReach_` made scrollable (`overflow-y: auto` inline) can have been scrolled:
-         every other pane clips, and `scrollHost_` in overworld.js scrolls only a box whose overflow
-         says it may. So the rest are not asked, and the few that are lose their scroll first. */
-      if (pane.style.overflowY) {
-        pane.scrollTop = 0;
-        pane.style.overflowY = '';
-      }
-      /* AT THE HEIGHT IT HAD, so the cards under it stay where they are — see `stuffPin_`. */
-      stuffPin_(el, pane);
-      pane.innerHTML = '';
-      delete el.dataset.filled;
+    if (el.dataset.filled === '1' && el.FIND_AT && el.FIND_AT.ask !== ask) stuffBlank_(el);
+    if (el.dataset.filled === '1') continue;
+    /* THE CARD, ITS WIDGET DRAWN WITH IT — see `stuffFillOne_`, which the far edge of the glass in
+       `goPage` and the builder share. */
+    if (stuffFillOne_(i, { pages: pages, first: first, items: items })) {
       changed = true;
+      drawn.push(el);
     }
   }
 
-  /* WHATEVER IS LEFT, AND THE MEASURING, ON THE NEXT TURN OF THE EVENT LOOP. `fillStuffPages` is
-     what a later tap calls anyway, so finishing IS calling it again and there is nothing to
-     remember about where it stopped; `paneReach_` runs at the end of whichever pass has no more
-     building to do, so a run of quick taps measures once rather than per tap. */
-  /* THE FINDER IS CAPTURED, because the timer fires outside every binding (`inFinder_`): a late fill
-     that ran unbound would finish Find's strip with the second finder's half-built one in front. */
-  const F = FINDER;
-  if (late >= 0) {
-    STUFF_LATE = setTimeout(() => inFinder_(F, () => fillStuffPages(true)), 0);
-  } else {
-    STUFF_LATE = setTimeout(() => paneReach_(
-      host.querySelectorAll(':scope > .page[data-filled="1"] > .pane')), 0);
+  /* AND THE CARDS THIS PASS DREW ARE MEASURED ON THE NEXT TURN OF THE EVENT LOOP — only those, never the
+     whole window: forty-one panes measured per tap would be the cost the window was bought to avoid.
+     Cancelled by the next pass, so a run of quick taps measures once. */
+  /* THE FINDER IS CAPTURED, because the timer fires outside every binding (`inFinder_`). */
+  clearTimeout(STUFF_LATE);
+  if (drawn.length) {
+    STUFF_LATE = setTimeout(() => paneReach_(drawn.filter(el => el.isConnected && el.dataset.filled === '1')
+      .map(el => el.querySelector(':scope > .pane')).filter(Boolean)), 0);
   }
 
   /* A TEXTBOOK'S ANIMATION ON THE PAGE IN FRONT PLAYS, AND ONLY THAT ONE — see `tbAnimWatch_`. Here,

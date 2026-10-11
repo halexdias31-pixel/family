@@ -3646,7 +3646,12 @@ function goPage(id, to, instant) {
      "turning a page still draws exactly one card"); everything past the edge is still the late
      pass's. ONLY FOR A TURN: a jump of more than the glass is the `bare` path's, which `STUFF_SOON`
      keeps cheap on purpose. */
-  const edge = !!F && n !== was && Math.abs(n - was) <= glassRows_() && typeof stuffFillOne_ === 'function';
+  /* ---------- AND NOW AS FAR AS THE BAND WILL SHOW, IN ITS OWN UNITS (docs/history/341) ------------------
+     The band draws every page whose box meets the turn's glass widened by a glass height, in pixels — so
+     "the far edge" is that, and `stuffEdgeFill_` (find.js) fills to it, bounded per release. After any
+     rest the builder has already filled the whole window, so in a run of turns this finds nothing to do;
+     it is the floor for a turn that beats the builder. */
+  const edge = !!F && n !== was && Math.abs(n - was) <= glassRows_() && typeof stuffEdgeFill_ === 'function';
   /* ---------- AND A CARD DRAWN ABOVE THE ONE IN FRONT DOES NOT MOVE IT ------------------------------
      GOING DOWN THE PAPER the edge is below the card in front and nothing it draws can move that card.
      GOING BACK UP it is above, and so is the page before a `bare` landing: a card arriving there is
@@ -3660,16 +3665,17 @@ function goPage(id, to, instant) {
   const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
   const top0 = ref ? ref.offsetTop : 0;
   if (bare) fillStuffPages();
-  if (edge) {
-    const dir = n > was ? 1 : -1;
-    for (let k = 1; k <= glassRows_(); k++) { try { stuffFillOne_(n + dir * k); } catch (e) {} }
-  }
+  if (edge) { try { stuffEdgeFill_(n, n > was ? 1 : -1); } catch (e) {} }
   if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - ref.offsetTop);
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_`
      in arcade.js. Before the placement, for the reason the fill above is: a card that grows after
      the column was placed is a card the placement never saw. */
   if (typeof widgetsNear_ === 'function') widgetsNear_(id);
   if (id === AT) placeCells('y', instant);
+  /* AFTER THE SLIDE, THE LANDING'S OWN WORK — the page in front and one either side if a jump left them
+     empty, its textbook animation and its running widget. Not the far pages any more: the late pass that
+     drew eight of them in one task of up to 551ms went with docs/history/341, and the builder fills the
+     window in the quiet. */
   if (F && !bare) afterSlide_(() => inFinder_(F, fillStuffPages), 'fill:' + id);
   /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN -------------------------------------
      THIS IS THE ONE PLACE `PAGE[id]` CHANGES, so it is the one place that can say a different reel
