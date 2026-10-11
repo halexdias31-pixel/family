@@ -3169,7 +3169,7 @@ const STATES = {
           video: 'https://example.org/videos/an-introduction-to-how-i-teach-maths-and-physics.mp4',
           photos_1: 'data/reels/archetest.jpg', photos_2: 'icon.png', photos_3: 'favicon.png',
           adjective_1: 'Conscientious', adjective_2: 'Encouraging', adjective_3: 'Methodical',
-          years_experience: '12', favourite_colour: 'Purple', age_min: '8', age_max: 'Adults',
+          years_experience: '12', favourite_colour: 'Purple', age_min: '8', age_max: 'Adults', min_hours: '1', max_hours: '2',
           qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_received: '2016', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
           qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_received: '2018', qual_2_teach: 'TRUE', qual_2_spec: 'FALSE',
           qual_3: 'DBS', qual_3_level: 'Enhanced', qual_3_received: '2025',
@@ -3206,9 +3206,25 @@ const STATES = {
           /* AT FULL SIZE, AND THE PANE SCROLLS TO ITS SAVE — `paneReach_` draws a card being edited at
              zoom 1 (it is taller than any pane even at the 0.70 floor), so its boxes keep their size. */
           && !(form.closest('.card-ed').style.zoom && form.closest('.card-ed').style.zoom !== '1')
-          && (pane => !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto'))(form.closest('.pane')) ? 1 : 0;
+          && (pane => !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto'))(form.closest('.pane'))
+          /* SAVE AND CANCEL IN REACH WITH THE FORM AT ITS TOP — the review of 330: the one Save sat under the
+             week, 1,952px down at 390. The row is stuck to the foot of the pane (`.ce-tiles`, style.css), so
+             with the pane scrolled to its top the Save tile is inside the pane's visible box. */
+          && (pane => {
+            if (!pane) return false;
+            const was = pane.scrollTop; pane.scrollTop = 0;
+            const r = pg.querySelector('.ce-tiles [data-do="card-save"]').getBoundingClientRect(), b = pane.getBoundingClientRect();
+            const ok = r.height > 0 && r.top >= b.top - 1 && r.bottom <= b.bottom + 1;
+            pane.scrollTop = was;
+            return ok;
+          })(form.closest('.pane'))
+          /* SIGN OUT STILL UNDER IT, and the photographs not waiting to be scrolled to ("these remain loading
+             untill i scroll to them"), and the session length boxes in At a glance. */
+          && pg.querySelectorAll('[data-do="signout"]').length === 1
+          && !form.querySelector('img[loading="lazy"]')
+          && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]') ? 1 : 0;
       },
-      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order, the picture chooser, three photographs, three qualifications, the map, all seven days of the week, and Save and Cancel as tiles' },
+      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order, the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
     /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN ---------------------------------------------------
        Decision 3 of the brief: `updateProfile` already lets an admin write another person's row, so an admin's
        Edit on the fixture tutor opens the same form — filled from `getProfile`, which the lab's backend cannot
@@ -3520,14 +3536,17 @@ const STATES = {
         if (at < 0) throw new Error('no pricing page on the settings column');
         goPage('settings', at, true);
       },
-      /* EXACTLY FOUR, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
+      /* EXACTLY SIX, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
          boxes would pass a bare count — and two is precisely what splitting the group back into
          `Group size` and `Your rate` produces. The whole point is that they are on ONE page, so the
-         number is the assertion. */
-      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 4
-                     && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 2
-                     ? 4 : 0),
-      wants: 'all four pricing boxes on one page, the students as one min – max row' },
+         number is the assertion. SIX SINCE docs/history/330: the four pricing boxes and the session
+         length (`SESSION_FIELDS`, constants.gs — on this page, not under its clock), which a tutor
+         with a card edits on the card and a tutor not yet listed edits here. Two ranges, four boxes. */
+      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 6
+                     && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 4
+                     && !!document.querySelector('#s-settings .page.on .f-row.is-range [data-me="min_hours"]')
+                     ? 6 : 0),
+      wants: 'all four pricing boxes and the session length on one page, the students and the hours each one min – max row' },
 
     /* ---------- YOUR JOURNEY, THE PLACEHOLDER ----------------------------------------------------
        For a student and an admin; the lab signs in as an admin. Found by asking the DOM, as the

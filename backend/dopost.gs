@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-10-h-pictures";
+const DOPOST_VERSION = "2026-10-10-i-session-length";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -1066,6 +1066,10 @@ function doPost(e) {
          inside — see `ageRefusal_` in people.gs. */
       const ageNo = ageRefusal_(r, priceAsked);
       if (ageNo) return jsonOut({ error: ageNo });
+      /* AND HOW LONG A SESSION IS — writable since docs/history/330, under the same two rules as the ages
+         (`hoursRefusal_` in people.gs), asked of the same wanted-only object before anything is written. */
+      const hoursNo = hoursRefusal_(r, priceAsked);
+      if (hoursNo) return jsonOut({ error: hoursNo });
       /* ---------- AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT ------------------------------------
          SO EMPTYING THE BOX IS A SIGN-OUT NOBODY CAN UNDO — `verifyLogin` and `forgotPin` both look
          the person up by it. And two rows on one address means `verifyLogin` refuses both, so a

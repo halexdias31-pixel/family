@@ -3871,6 +3871,10 @@ const FIELD_ROWS = [
      `validations` carries `AGE_OPTIONS` from constants.gs, four to eighteen and then `Adults` — and a
      placeholder on a select is its empty option, so each reads `youngest` / `oldest` until chosen. */
   { fields: ['age_min', 'age_max'], cap: 'ages you teach', ph: ['youngest', 'oldest'], dash: true },
+  /* AND HOW LONG A SESSION IS, THE THIRD RANGE — two selects off `SESSION_OPTIONS` (constants.gs), whole
+     hours, the same `[ ] – [ ]`. Writable since docs/history/330; on the card's At a glance, where the card
+     prints it as `1–2 hours`. */
+  { fields: ['min_hours', 'max_hours'], cap: 'session, in hours', ph: ['shortest', 'longest'], dash: true },
 ];
 const ROW_LABEL = {
   years_experience: 'years teaching',
@@ -4663,7 +4667,14 @@ function libraryShelf_(list, value) {
    rewrite the card uses, so what previews is what will be drawn. */
 const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
 const isPhotos_ = list => (list || []).some(isPhotoField_);
-/* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note). */
+/* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note).
+   AND THE THUMBNAILS ARE FETCHED AT ONCE, NOT `loading="lazy"`. The owner, 10 Oct: *"these remain loading
+   untill i scroll to them. i dont like this"*. The shelf is drawn on a tutor's card being edited now
+   (docs/history/330), a form about two thousand pixels tall in a pane that scrolls, so the three thumbs
+   sat a screen and a half below the fold and were not even asked for until scrolled to — an empty square
+   beside a link, which reads as a broken picture rather than one on its way (measured at 320x568: three
+   thumbs at y 898–997, no request in three seconds). There are at most eight, each beside the link it
+   checks; "is this link a picture" is the shelf's whole point, and it is answered before the scroll. */
 function photoShelf_(list, value, o) {
   const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
   return `<div class="lib-shelf ph-shelf">${shelfSlots_(nums,
@@ -4671,7 +4682,7 @@ function photoShelf_(list, value, o) {
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
       return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" loading="lazy">` : ''}</span>
+        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="">` : ''}</span>
         ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link', draft: (o || {}).draft,
           extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}
       </div>`;
@@ -5488,8 +5499,10 @@ on('pin-save', el => {
 
    THE CARD'S ORDER, NOT A FORM'S: the rate sits by the name and the photographs after the headline,
    because that is where they are on the card — editing in place means each section is edited where it
-   is read. Session length is not here: no role may write `min_hours`/`max_hours` (`PROFILE_EDITABLE`),
-   so the card says where it is kept instead (`cardHoursNote_`). The favourite colour and the video are
+   is read. SESSION LENGTH IS IN AT A GLANCE, where the card prints it (`1+ hour`): it was a sentence
+   here saying "kept on the sheet", because `min_hours`/`max_hours` were in no group and so nobody could
+   write them; the review of docs/history/330 asked for the box, and the backend now lists them on the rate
+   page (`SESSION_FIELDS` in constants.gs — no clock, refused by `hoursRefusal_`). The favourite colour and the video are
    not on the public card at all; they ride with the facts and the photographs, beside what they are
    paired with on Settings (`FIELD_ROWS`), so nothing that page held is left without a box. Where they
    tutor has no caption of its own: the map under the venues carries the card's `Tutors at` already. */
@@ -5500,7 +5513,7 @@ const CARD_SECTIONS = [
   { id: 'headline', fields: ['headline'] },
   { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
   { id: 'words', fields: ['adjective_1', 'adjective_2', 'adjective_3'] },
-  { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max'] },
+  { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
   { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },
   { id: 'where', fields: ['venues_ok', 'travel_km'] },
   { id: 'week', cap: 'Available', match: /^(m|tu|w|th|f|sa|su)\d\d$/ },
@@ -5552,26 +5565,39 @@ function cardSettingsGroups_(groups) {
    (`cardKeep_`). `base` is the copy of the row the form is drawn from — your own `USER.profile`, or for
    an admin the `getProfile` answer. */
 let CARD_EDIT = null;
-let CARD_EDIT_READ = false;
+/* WHOSE `familyCardEdit` WAS LAST READ — a person id, not a yes/no. It was a yes/no, read once a visit,
+   so a tutor who signed out in the middle of editing (Sign out is under the form — see `accountPages_`)
+   and back in on the same tab found their card shut, with the draft still waiting behind Edit; only a
+   reload opened it again. Read again whenever somebody else is signed in, so the same person signing
+   back in finds the card the way they left it, as a reload would. */
+let CARD_EDIT_READ = '';
 const CARD_EDIT_KEY = 'familyCardEdit';
 function cardEditFresh_(pid) {
   const me = String((USER && USER.personId) || '');
   return { who: me, pid: String(pid), own: !!me && String(pid) === me, base: null, asking: false, err: '' };
 }
 function cardEditNow_() {
-  if (typeof USER === 'undefined' || !USER) { CARD_EDIT = null; return null; }
-  if (CARD_EDIT && CARD_EDIT.who !== String(USER.personId || '')) CARD_EDIT = null;
-  if (!CARD_EDIT && !CARD_EDIT_READ) {
-    CARD_EDIT_READ = true;
+  if (typeof USER === 'undefined' || !USER) { CARD_EDIT = null; CARD_EDIT_READ = ''; return null; }
+  const me = String(USER.personId || '');
+  if (CARD_EDIT && CARD_EDIT.who !== me) CARD_EDIT = null;
+  if (!CARD_EDIT && CARD_EDIT_READ !== me) {
+    CARD_EDIT_READ = me;
     try {
       const k = JSON.parse(localStorage.getItem(CARD_EDIT_KEY) || 'null');
-      if (k && k.pid && k.who && k.who === String(USER.personId || '')) CARD_EDIT = cardEditFresh_(k.pid);
+      if (k && k.pid && k.who && k.who === me) {
+        CARD_EDIT = cardEditFresh_(k.pid);
+        if (typeof k.pic === 'string') CARD_EDIT.pic0 = k.pic;
+      }
     } catch (e) {}
   }
   return CARD_EDIT;
 }
+/* `pic` IS THE PICTURE THE CARD WAS OPENED WITH, remembered beside which card is open so a Cancel after a
+   reload can still put it back (`card-cancel`, below). */
 function cardRemember_(e) {
-  try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify({ who: e.who, pid: e.pid })); } catch (x) {}
+  const k = { who: e.who, pid: e.pid };
+  if (typeof e.pic0 === 'string') k.pic = e.pic0;
+  try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) {}
 }
 function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (x) {} }
 
@@ -5594,6 +5620,10 @@ function cardEditing_(t) {
 function cardEditTile_(x) {
   const t = (x && x.row) || {};
   if (!x || !x.account || !cardMayEdit_(t)) return '';
+  /* NOT ON THE CARD BEING EDITED. Your own card's row (Edit, Sign out, Send the link again) is drawn under
+     the form as well now, so Sign out is never taken away by editing — and Edit beside Save would be a
+     second door into the form it is already standing in. */
+  if (cardEditing_(t)) return '';
   const own = String(t.personId) === String(USER.personId || '');
   return tile_({ icon: 'edit', label: 'Edit', note: own ? 'your card' : 'their card', act: 'card-edit',
                  tone: own ? '' : 'admin', data: { pid: t.personId } });
@@ -5784,27 +5814,22 @@ function cardEditForm_(t, e, vals) {
       : fieldRows_(L, box);
     /* THE MAP REDRAWN FROM THE TICKS as they are ticked (the listener below), so the place a parent
        will see is the place being chosen. */
-    const more = s.id === 'where' ? `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>`
-      : s.id === 'glance' ? cardHoursNote_(t) : '';
+    const more = s.id === 'where' ? `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>` : '';
     return `<div class="ce-sec" data-sec="${esc(s.id)}">${s.cap ? `<div class="prof-cap">${esc(s.cap)}</div>` : ''}${body}${more}</div>`;
   }).join('');
 }
-/* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row. */
+/* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row.
+   THROUGH `personFace_` (links.js), AS EVERY FACE IS SINCE docs/history/324. This drew its own `<img>`
+   from `pic(t.image)`, which was right while the cell could only hold a link; it can hold `pfp:fox` or
+   `pfp:avatar` now, `pic()` passes a token through unchanged, and the admin's form showed a broken image
+   where the card beside it drew the fox (the review of docs/history/330, on the tree with fix-dp merged).
+   The same call `findCard` makes, so the form shows exactly the face the card does. */
 function cardFaceOnly_(t) {
   const first = String(t.title || '').trim().split(/\s+/)[0] || 'They';
-  return `<div class="ce-pic">${t.image ? `<img class="prof-pic" src="${esc(pic(t.image))}" alt="">`
-    : `<span class="prof-pic prof-none">${esc((String(t.title || '?')).slice(0, 1).toUpperCase())}</span>`}
+  return `<div class="ce-pic">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title,
+    personId: t.personId }, { cls: 'prof-pic', none: 'prof-none', size: 52, eager: true })}
     <p class="faint ce-note">Only ${esc(first)} can change this picture, from their own card.</p></div>`;
 }
-/* SESSION LENGTH IS ON THE CARD AND IN NO FORM: `min_hours`/`max_hours` are columns nobody may write
-   through `updateProfile` (they are in no group, so not in `PROFILE_EDITABLE`). Making them writable is a
-   backend change, and it was left for the owner to ask for rather than slipped in here — so the editor
-   says where the number lives instead of drawing a box the server would drop. */
-function cardHoursNote_(t) {
-  const hrs = profRange_(t.minHours, t.maxHours, 'hour', 'hours');
-  return hrs ? `<p class="faint ce-note">Session length (${esc(hrs)}) is kept on the sheet — @family. changes it for you.</p>` : '';
-}
-
 /* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED ------------------------------------------------------
    THE PAYLOAD IS THE LAST WORD AND IT IS SECONDS AWAY: `load()` follows every Save that wrote something,
    and it replaces `DATA` whole. Until it lands the card would be drawn from the row as it was, under a
@@ -5827,6 +5852,9 @@ function cardPatchRow_(pid, all, sent) {
   if (has('years_experience')) row.yrsExp = txt(all.years_experience);
   if (has('age_min')) row.ageMin = age(all.age_min);
   if (has('age_max')) row.ageMax = age(all.age_max);
+  /* `doGet`'s shapes: a blank shortest is one, a blank longest is no limit (0). */
+  if (has('min_hours')) row.minHours = Number(all.min_hours) || 1;
+  if (has('max_hours')) row.maxHours = Number(all.max_hours) || 0;
   if (has('video')) row.mediaUrl = txt(all.video);
   if (['adjective_1', 'adjective_2', 'adjective_3'].some(has)) {
     row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
@@ -5882,9 +5910,20 @@ on('card-edit', el => {
   if (openPid && openPid !== pid) { toast('Save or cancel the card you are editing first.'); return; }
   if (CARD_EDIT && CARD_EDIT.pid === pid) return;
   CARD_EDIT = cardEditFresh_(pid);
+  /* THE PICTURE IT OPENED WITH, so Cancel can put it back — see `card-cancel`. Your own card only: on
+     somebody else's the picture is shown and not offered (`cardFaceOnly_`). */
+  if (CARD_EDIT.own) CARD_EDIT.pic0 = cardPicNow_(t);
   cardRemember_(CARD_EDIT);
   cardRepaint_();
 });
+/* YOUR PICTURE AS THIS PHONE LAST KEPT IT — `USER.profile.photo`, which `pfpTake_` writes on every save,
+   else the sign-in reply's `USER.photo`, else your row's face. */
+function cardPicNow_(t) {
+  const p = (USER && USER.profile) || {};
+  const v = Object.prototype.hasOwnProperty.call(p, 'photo') ? p.photo
+    : (USER && USER.photo != null ? USER.photo : (t && t.image));
+  return String(v == null ? '' : v).trim();
+}
 
 /* ---------- SAVE: EVERY CHANGE, ONE REQUEST, THE EXISTING `updateProfile` ----------------------------------
    `send_` locks the whole page while it is on the wire — the form, and Cancel beside Save — and writes a
@@ -5925,15 +5964,48 @@ on('card-save', el => {
     .catch(() => { /* `send_` has written the refusal under the form, which is still open. */ });
 });
 
-/* ---------- CANCEL: WHAT WAS THERE COMES BACK ----------------------------------------------------------------
+/* ---------- CANCEL: WHAT WAS THERE COMES BACK — THE PICTURE TOO ----------------------------------------------
    The draft goes and the card is drawn from the row again. Not while a Save is on the wire — the page is
-   locked then anyway, and a Cancel that raced the reply would say "put back" over a row that changed. The
-   picture is the one exception: it saves the moment it is chosen (`savePhoto`), and its toast says so. */
+   locked then anyway, and a Cancel that raced the reply would say "put back" over a row that changed.
+
+   AND THE PICTURE, WHICH WAS THE ONE THING IT DID NOT PUT BACK. The chooser saves the moment a picture is
+   chosen (`savePhoto`, as on Settings — a photograph goes to Drive and the eleven are one tap), so Cancel
+   left the new face on the card and on the sheet under a tile whose note says "put it back" (the review of
+   docs/history/330: a photo chosen, Cancel, and the card, `USER.profile` and the sheet all held it). The
+   brief: Cancel *"puts back what was there"*. So the picture the card was opened with is remembered
+   (`pic0`, beside which card is open, so a reload does not lose it) and, if the face is not that any more,
+   it is written back — through `updateProfile`'s `photo`, because that one door takes all three things the
+   cell can hold (a link, nothing, one of the eleven tokens: `photoRefusal_` in core.gs), where `savePhoto`
+   takes a token or a file and could not put back a Drive link it once made. The page is locked while it
+   travels, as a Save locks it, and the Cancel tile wears `send_`'s ring — no sentence of its own (`loading_`'s
+   rule: a press already sent keeps the ring). Either way the card then closes, because Cancel was asked for: put back,
+   it says so; refused, the toast says that everything else is as it was and the picture is not, with the
+   server's own sentence, rather than claiming a put-back that did not happen. A picture still on its way
+   is waited for — a Cancel that overtook it would be put back over by it. */
 on('card-cancel', el => {
   const e = cardEditNow_();
   const pane = el.closest('.pane');
   if (!e || (pane && pane.classList.contains('is-sending'))) return;
-  cardClose_(e, pane);
+  if (pane && pane.querySelector('.card-ed .pfp.is-sending')) { toast('Your picture is still saving — Cancel once it has.'); return; }
+  const was = typeof e.pic0 === 'string' ? e.pic0 : null;
+  if (!e.own || was == null || !USER || cardPicNow_() === was) { cardClose_(e, pane); return; }
+  const form = pane && pane.querySelector('.card-ed .me-form');
+  const said = form && form.querySelector('.me-said');
+  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name,
+          targetId: e.pid, fields: { photo: was } },
+        { button: el, where: said, lock: pane })
+    .then(d => {
+      const got = (d && d.profile && d.profile.photo != null) ? String(d.profile.photo) : was;
+      if (d && d.profile) USER.profile = Object.assign({}, USER.profile || {}, d.profile);
+      pfpTake_(null, got);
+      cardClose_(e, pane);
+      toast('Put back as it was — your picture too');
+    })
+    .catch(() => {
+      const why = String((said && said.textContent) || '').trim();
+      cardClose_(e, pane);
+      toast('Everything else is put back, but not your picture' + (why ? ': ' + why : '.'));
+    });
 });
 
 /* ---------- EVERY BOX ON THE CARD: HELD, KEPT, AND THE MAP FOLLOWS THE TICKS ---------------------------------

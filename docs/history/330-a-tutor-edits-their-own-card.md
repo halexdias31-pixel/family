@@ -16,13 +16,13 @@ on the page the card was on — section by section in the order the card reads (
 
 | section | what is edited | drawn with |
 |---|---|---|
-| picture | the face | `photoPicker_` — photo, avatar, and whatever fix-dp adds; it saves itself (`savePhoto`), as on Settings |
+| picture | the face | `photoPicker_` — photo, figure and the ten pictures (fix-dp, merged); it saves itself (`savePhoto`), as on Settings, and Cancel puts it back (below) |
 | name | first and last name | `fieldRows_` (one row) |
 | rate and class size | rate, extra-seat share, fewest–most students | `fieldHtml`, the students as `[ ] – [ ]` |
 | headline | the headline | `fieldHtml` |
 | photographs | the video link and the eight extra photographs | `photoShelf_` |
 | three words | `adjective_1..3` | one captioned row |
-| at a glance | years teaching, favourite colour, youngest–oldest | `fieldRows_`; the session length is said, not offered (below) |
+| at a glance | years teaching, favourite colour, youngest–oldest, the session's shortest–longest | `fieldRows_` (the session length since the review, below) |
 | qualifications | the whole shelf: what they hold, Teach / Can teach | `qualShelf_` |
 | where they tutor | the venues they are happy at, how far they travel, and the map redrawn from the ticks as they are ticked | the several-of-a-list field, `profHeat_` |
 | the week | all seventy hours, all seven days | `availGrid_` |
@@ -75,7 +75,7 @@ cost every box, tick and tile 30% of its size — the open tick list's answer, f
 at the lab found the pane `overflow: hidden` with the zoom gone, so Save could not be reached; the pane now
 scrolls from its first pixel over, as an open list's does.
 
-### Settings: five pages go, and nothing on the server changed
+### Settings: five pages go, and the server's groups stay
 
 **FOR SOMEBODY WITH A CARD, About you, Photos, Your rate and group size, Qualifications and Availability
 are not drawn**, and Contact & address loses the venues and the distance, which the card's map now edits
@@ -91,7 +91,8 @@ through the real backend: taking the five groups out of `constants.gs` would hav
 ages, colour, the three words, video, the photographs, the four pricing fields, all seventy qualification
 boxes and all seventy hours from what anybody may write — only the names and the picture survive, through
 the parent and student groups. **So the groups stay exactly as they are and the phone stops drawing those
-pages.** No backend change, no version stamps moved.
+pages.** The one backend change this note records is the session length (below), which is a field gaining a
+group, not a page losing one.
 
 ### Decisions
 
@@ -103,13 +104,19 @@ pages.** No backend change, no version stamps moved.
   back. The picture is shown and not offered, with one line saying why: `savePhoto` writes the row the token
   resolves to, which would be the admin's own. An admin's Save is answered with no profile and no name, and
   touches neither of the admin's own (the trap the map found in `meSave_`).
-- **SESSION LENGTH IS NOT EDITABLE, AND THE CARD SAYS WHERE IT IS KEPT.** `min_hours`/`max_hours` are in no
-  group, so nobody may write them through `updateProfile`. The brief listed session length among the
-  pricing fields; it is not one (`PRICING_FIELDS` is the rate, the seat and the two class sizes). Making it
-  writable is a backend change — the fields into the rate group (not `PRICING_FIELDS`, so no cooldown), a
-  min-not-above-max refusal beside `ageRefusal_`, and all four stamps bumped — and it collides with fix-dp's
-  stamp bump, so it was left for the owner to ask for. `check-profile.js` holds the two halves together: if
-  it ever becomes writable, the card's sentence is out of date and the check says so.
+- **SESSION LENGTH IS EDITABLE — THE ONE BACKEND CHANGE, AND ALL FOUR STAMPS BUMPED.** The first build left it
+  read-only with a sentence ("kept on the sheet") because `min_hours`/`max_hours` were in no group, so nobody
+  could write them through `updateProfile`. The review asked for the box: the brief lists it with the pricing
+  fields, and decision 4 allows a backend change when permission requires one — and here it does, because
+  `PROFILE_GROUPS` is the allow-list. So `SESSION_FIELDS` joins the rate page (`PRICING_FIELDS.concat(...)`,
+  NOT `PRICING_FIELDS`, so a session length starts no month's clock — it is what a tutor offers, not the quote),
+  `SESSION_OPTIONS` is one to six whole hours sent through `FIELD_FIXED` as selects (the booking form books
+  whole hours, so a half hour would promise a session nobody can book), and `hoursRefusal_` (people.gs, beside
+  `ageRefusal_`, asked only when an end moved) refuses a length off the list and a shortest longer than the
+  longest, before anything is written. On the card it is in At a glance, where the card prints `1–2 hours`.
+  **All four stamps are `2026-10-10-i-session-length`**, after fix-dp's `h-pictures` (merged first, so they do
+  not collide, and `PFP_SINCE` still compares older). A tutor not yet listed sees the two boxes on Settings'
+  rate page, which `check/states.js` now counts as six boxes in two ranges.
 - **THE CARD'S ORDER, NOT THE BRIEF'S LIST.** The brief said both "in the order the card shows them" and a
   list with the rate after the headline and the photographs last. In place means each section is edited
   where it is read, so the card's order won: the rate by the name, the photographs after the headline.
@@ -127,14 +134,14 @@ pages.** No backend change, no version stamps moved.
 
 ### Step zero
 
-`fix-dp` and `fix-avail-days` both sat at a47d338 with no commits after it, so **neither was merged**. Both
-have work in progress elsewhere, and this kept clear of it: **cards.js is untouched** — the editor is drawn
-by `accountPages_` (find.js) in place of `meCard`/`findCard` for the one card being edited, so `profAvail_`
-and the card's picture markup did not move; the editor's week is `availGrid_`, not `profAvail_`; the picture
-is `photoPicker_(value)`, which fix-dp's new second argument leaves working; and the new journeys sit by the
-qualification journeys, not at the end of check-flow.js. **When fix-dp lands**: its `pfpTake_` repaints the
-You column, which redraws a clean card editor from `USER.profile` (already updated) and is declined by
-`settingsKeep_` for a dirty one, whose picker `pfpTake_` redraws itself.
+The first build found `fix-dp` and `fix-avail-days` at a47d338 and merged neither. **That was out of date** —
+fix-avail-days 7eb744e (20:24) and fix-dp 067aeb5 (21:18) were both committed before this branch's first
+commit (22:51). **Both are merged now** (f4e7c49, 96437c4), each with the same two text conflicts —
+`--css-version` (this branch's kept) and the README's order (324, 325, 330). And merging fix-dp broke this
+branch in one place, as the review predicted: `cardFaceOnly_`, the admin's view of somebody else's picture,
+drew its own `<img src="${pic(t.image)}">`, and since 324 the cell can hold `pfp:fox`, which `pic()` passes
+through — a broken image on the form beside a card drawing the fox. It is drawn through `personFace_` now,
+the same call `findCard` makes. The card journeys and check-profile were re-run on the merged tree.
 
 ### Checked
 
@@ -157,8 +164,8 @@ You column, which redraws a clean card editor from `USER.profile` (already updat
      to their row, the admin's own profile and name untouched before `myProfile` could put them back), and a
      tutor sees Edit on their own card only, a parent and a student on none.
 - **check-profile.js §18**, the phone's own `CARD_SECTIONS`, `cardSettingsGroups_` and `cardChanged_` cut
-  out of me.js and run over the real `PROFILE_GROUPS`: every field the card offers is writable, session
-  length is still not, every tutor field is on the card or on a page still drawn and none on both, the pages
+  out of me.js and run over the real `PROFILE_GROUPS`: every field the card offers is writable (the session
+  length too, since the review — writable and on the card, both asked), every tutor field is on the card or on a page still drawn and none on both, the pages
   that go are exactly the five; and through the real `doPost` a tutor's card save round-trips, an admin's
   save of a tutor's card reaches that row and not the admin's, a tutor saving somebody else's is refused,
   and `getProfile` is the admin's alone.
@@ -176,7 +183,7 @@ You column, which redraws a clean card editor from `USER.profile` (already updat
   remembered (journey 3); nobody holding a card (journey 4); every role's Settings filtered (journey 4:
   the parent and the student lose their names and picture); admins editing only their own (journey 5);
   everybody editing every card (journey 5); the admin's reply taken as their own (journey 5); the picture
-  chooser on somebody else's card (journey 5); session length on the card (check-profile); the photographs
+  chooser on somebody else's card (journey 5); session length on the card while unwritable (check-profile, the first build's rule); the photographs
   left off the card (check-profile, four lines); the card's listener keeping nothing and `fieldHtml`
   ignoring `draft: false` (check-drafts); the editor drawn smaller (check/ui.js, the state not reached at
   all five widths).
@@ -186,11 +193,69 @@ You column, which redraws a clean card editor from `USER.profile` (already updat
   `node check/cascade.js --screen=<id>` one screen and its states, as `check/ui.js` and `check/press.js`
   already take it (and a screen that is not there exits non-zero rather than measuring nothing).
 
+### The review, and what changed (11 Oct)
+
+Each finding reproduced first, fixed at the cause, held by a check that was red before and is green after.
+
+- **"THESE REMAIN LOADING UNTILL I SCROLL TO THEM. I DONT LIKE THIS."** — the owner's message that this run was
+  started under. **This branch is not the answer to it, and is not presented as one.** What the owner sees is
+  mostly the neighbouring columns on a wide screen holding their loaders until they are gone to (the review:
+  at 1280, Tools and Games still 10 and 12 `.loading` after four seconds on Settings) — that is task #79,
+  *widgets on the glass*, being built in its own worktree (`fix-widgets-visible`), and nothing here touches
+  it. **One part of it was this branch's own doing and is fixed here**: the editor's photograph thumbnails
+  were `loading="lazy"` in a form two thousand pixels tall in a pane that scrolls, so at 320x568 the three
+  thumbs (y 898–997) were not requested at all until scrolled to. `photoShelf_` draws them eagerly now (at most
+  eight, each the check on the link beside it); measured in Chromium they load with the form, unscrolled.
+  `check-flow` journey 1 and the edit state in `check/states.js` fail on any `img[loading=lazy]` in the form.
+  **Left for #79, by name**: the card's own extra photographs (`.prof-photos`, cards.js) and faces through
+  `personFace_` are still lazy, and on the You column's later pages are not fetched until paged to (the
+  review's Ben, page 3 at 390). Sixteen lazy images remain across cards.js, find.js, posts.js, me.js and
+  games.js; whether each should load ahead is #79's question, asked across the app at once.
+- **CANCEL PUTS THE PICTURE BACK** (was: Cancel left a newly chosen picture on the card and the sheet under a tile
+  saying "put it back"). The picture the card opened with (`pic0`) is remembered beside which card is open
+  (`familyCardEdit`), so a reload does not lose it; Cancel, finding the face changed, writes it back through
+  `updateProfile`'s `photo` — the one door that takes a link, nothing, or a token, where `savePhoto` could not
+  restore a Drive link it once made — with the page locked and `send_`'s ring, then closes. Refused, it still
+  closes and the toast says everything else is back and the picture is not, with the server's sentence. A
+  Cancel while the picture is still saving waits for it. Journey 2: Ada (face a photograph link) taps the fox,
+  the page is reloaded, Cancel sends exactly one `updateProfile` of `{ photo: <her link> }`, and the sheet, her
+  profile and her card hold the link again.
+- **SAVE AND CANCEL STAY IN REACH.** One Save, as decided, but the `.ce-tiles` row is `position: sticky` at the
+  foot of the pane — `bottom: -1rem` because a sticky box stops at the pane's padding edge and left the form
+  showing through a 1rem gap under it (measured: row foot 828 in a pane ending 844). In the card's own fill.
+  At rest at the end of the form it sits above Sign out. The edit state asserts the Save tile is inside the
+  pane with the pane at its top, at every width; made `static`, it fails at all five. Known: one pixel row of a
+  box's letters can show under the stuck row where the pane sits on a half pixel (written beside `.ce-tiles`).
+- **SIGN OUT IS UNDER THE FORM.** `editing_(myRow) ? cardEditHtml_(myRow) : meCard(...) + cardTiles_(...)` is
+  `a ? b : (c + d)`, so editing your own card dropped your row — Sign out and "Send the link again" — and
+  Settings has no Sign out of its own. Bracketed; `cardEditTile_` draws nothing on the card being edited, so the
+  row under the form is the star, Sign out and the resend. And `CARD_EDIT_READ` is a person id now, not a
+  once-a-visit flag: a tutor who signs out mid-edit and back in on the same tab finds the card open with what
+  they typed (only a reload did that before), and somebody else signing in on that phone sees neither. New
+  journey: Sign out once and no second Edit under the form, the draft kept, Pat sees no form and no Edit, Ada
+  back finds her typing and "Not saved yet".
+- **317 ON THE CARD HAS A CHECK.** Deleting the `from` guard in `cardValues_` kept every check green. New
+  journey (the review's probe F, through the real `doPost`): Ada types a headline and does not save, the admin
+  saves another for her, Ada reloads — the box holds the admin's. Red with the guard deleted.
+- **SESSION LENGTH** and **STEP ZERO** — above.
+
+### Checked, the second time
+
+Every check named in the brief, on the merged tree: `check.js`, `check-const`, `check-css`, `check-doors`,
+`check-drafts`, `check-profile` (card rules 20, session length through the real `doPost`), `check-backend`,
+`check-post`, `check-access`, `check-loading`, `check-payload`, `check-tabs`, `check-manifest`; **all 286
+check-flow journeys** in four `FLOW_SLICE` pieces; `check/ui.js --screen=account --shots` and
+`--screen=settings`, `check/press.js --screen=account`, `check/cascade.js --screen=account`. **Mutations, each
+red and the real files green after**: the brackets removed (Sign out journey, journey 1); Edit not hidden on the
+card being edited; `CARD_EDIT_READ` once a visit (Ada back finds it shut); Cancel never putting the picture back,
+and `pic0` not remembered across the reload (journey 2, five lines each); the thumbnails lazy again (journey 1);
+the old `cardFaceOnly_` (the admin journey: `<img src="pfp:fox">`); the `from` guard deleted (the 317 journey);
+the session fields out of the group (check-profile six lines, journey 1 five); `hoursRefusal_` emptied, and its
+call skipped (check-profile, three lines each); the row not sticky (check/ui.js, the edit state at all five widths).
+
 ### Not done, and worth knowing
 
-- **Session length** — above; one backend change away, when the owner wants it.
-- **The picture is not undone by Cancel**: it saves the moment it is chosen, as on Settings, and says so
-  with its own toast ("Picture saved") as it lands.
+- **The neighbouring columns' loaders and the rest of the lazy pictures** — #79's, above.
 - **Two tabs, one card**: a card draft written in another tab is not pushed into this tab's open form (the
   `storage` listener in data.js speaks to `[data-draft]` boxes, and the card's are not). The reload draws it.
 - **The Tools column's hours widget stays** — a second door to the week, unchanged, saving through

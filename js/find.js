@@ -12365,9 +12365,15 @@ function accountPages_() {
      tiles under it lost its four doors to that same column (see where `meTiles_` was in tiles.js). */
   const me = [
     /* YOUR OWN CARD, OR YOUR OWN CARD BEING EDITED — the form, then its Save and Cancel, in place. */
-    editing_(myRow) ? cardEditHtml_(myRow)
-      : (typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow))
-    /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js. */
+    (editing_(myRow) ? cardEditHtml_(myRow)
+      : (typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow)))
+    /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js.
+       AND UNDER THE FORM TOO, WHICH IS WHAT THE BRACKETS ABOVE ARE FOR. Without them `a ? b : c + d` is
+       `a ? b : (c + d)`, so while you edited your own card this row was not drawn at all: no Sign out, no
+       "Send the link again", and Settings has no Sign out of its own — the only ways off the form were Save
+       and Cancel, and Cancel throws the typing away (the review of docs/history/330). Settings never hid
+       Sign out; a sign-out keeps the card's draft under your own key, as it keeps a Settings card's.
+       `cardEditTile_` draws no Edit on the card being edited, so the row is Sign out and the resend. */
       + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
         : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is

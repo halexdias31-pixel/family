@@ -1072,8 +1072,11 @@ let cardRules = 0;
     const named = [].concat(...card.CARD_SECTIONS.map(s => s.fields || []));
     rule(named.every(f => editable.indexOf(f) !== -1), 'it names ' + named.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
     rule(onCard.every(f => editable.indexOf(f) !== -1), 'it draws ' + onCard.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
-    rule(editable.indexOf('min_hours') === -1 && editable.indexOf('max_hours') === -1 && onCard.indexOf('min_hours') === -1,
-      'session length is writable now, or on the card — `cardHoursNote_` says nobody may change it there; one of the two is out of date');
+    /* SESSION LENGTH IS ON THE CARD AND WRITABLE (the review of 330: the brief listed it with the pricing
+       fields, and nobody could write it). Both halves, because either alone is the bug: a box the server drops,
+       or a writable field with no box anywhere. */
+    rule(['min_hours', 'max_hours'].every(f => editable.indexOf(f) !== -1 && onCard.indexOf(f) !== -1),
+      'session length is ' + (editable.indexOf('min_hours') === -1 ? 'not writable through updateProfile' : 'not on the card') + ' — the card\'s At a glance prints it, and a tutor has to be able to change it there');
     const left = card.cardSettingsGroups_(groups);
     const kept = Object.keys(left).reduce((a, g) => a.concat(left[g]), []);
     const nowhere = all.filter(f => onCard.indexOf(f) === -1 && kept.indexOf(f) === -1);
@@ -1115,6 +1118,23 @@ let cardRules = 0;
            && /^true$/i.test(String(back.m09)) && back.photos_2 === 'https://example.org/third.jpg' && back.qual_1_grade === 'A*'
            && back.qual_2 === base.qual_2 && back.photos_1 === base.photos_1,
         'the tutor\'s card did not come back as saved: ' + JSON.stringify({ headline: back.headline, sa14: back.sa14, m09: back.m09, photos_2: back.photos_2, qual_1_grade: back.qual_1_grade, qual_2: back.qual_2 }));
+      /* HOW LONG A SESSION IS, FROM THE CARD: written; NOT under the month's clock, which is running — the
+         tutor moved the rate on a Settings page above, so a session length refused as "you changed what you
+         charge" would be the clock reaching a field that is not the quote; and `hoursRefusal_` refuses a range
+         nobody falls inside and a length off the list, writing nothing. */
+      const hrs = (ch) => b.post({ action: 'updateProfile', token: t1.token, name: t1.name, personId: 'P-T1', target: t1.name, targetId: 'P-T1',
+        fields: card.cardChanged_(profOf('P-T1'), form(profOf('P-T1'), ch)) });
+      const h1 = hrs({ min_hours: '2', max_hours: '3' });
+      rule(h1.success && String(b.row('P-T1').min_hours) === '2' && String(b.row('P-T1').max_hours) === '3',
+        'a tutor\'s session length from the card was not saved — ' + (h1.error || JSON.stringify([b.row('P-T1').min_hours, b.row('P-T1').max_hours])));
+      const h2 = hrs({ min_hours: '4', max_hours: '2' });
+      rule(!h2.success && /shortest session/.test(String(h2.error)) && String(b.row('P-T1').min_hours) === '2',
+        'a shortest session longer than the longest was not refused, or was written — ' + JSON.stringify(h2));
+      const h3 = hrs({ max_hours: '1.5' });
+      rule(!h3.success && /whole number of hours/.test(String(h3.error)) && String(b.row('P-T1').max_hours) === '3',
+        'a session length off the list was not refused, or was written — ' + JSON.stringify(h3));
+      const shown = (b.get({}).tutors || []).find(x => x.personId === 'P-T1') || {};
+      rule(shown.minHours === 2 && shown.maxHours === 3, 'doGet does not send the saved session length on the card: ' + JSON.stringify([shown.minHours, shown.maxHours]));
       /* AN ADMIN ON THE TUTOR'S CARD: their row, not the admin's, and no profile handed back. */
       const before = JSON.stringify(profOf('P-A1'));
       const e = b.post({ action: 'updateProfile', token: a1.token, name: a1.name, personId: 'P-A1', target: 'Ada Tutor', targetId: 'P-T1',
