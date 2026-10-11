@@ -1932,8 +1932,10 @@ console.log(`papers saying whether a calculator is allowed: ${saysCalc} of ${doc
    (`padSurface_` in find.js, cut out below by name so this count is the app's rule and not a copy of
    it). The surface says under it -- on the card, as the answer box's other face since 327 -- that it is
    not the paper's figure, which is the answer to the
-   old objection that a grid with no triangle T dresses one question up as another. The count below
-   says how many stand on each, so the backlog of real figures is still a number. */
+   old objection that a grid with no triangle T dresses one question up as another. (The paper's own
+   figure under a pen is the card's other face too since 337, credited as the paper's; its figure page
+   is a picture to look at.) The count below says how many stand on each, so the backlog of real
+   figures is still a number. */
 const preDiag_ = {};
 rows.forEach(r => {
   if (!r || r.kind !== 'preamble' || !r.diagram) return;
@@ -2149,7 +2151,7 @@ mixedSpell_.forEach(k => {
 console.log(`questions spelling their parts two ways (bi beside b(ii)): ${mixedSpell_.length}`);
 
 console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
-  + `   (the rest stand it in front of the ask, or after it for a pen question)`);
+  + `   (the rest stand it in front of the ask -- a pen question too since 337, its pen on the card)`);
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
 console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`
   + `   (the rest are known to a month only)`);

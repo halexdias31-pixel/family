@@ -12479,15 +12479,19 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const words = q('q-own-w', { answerType: 'explain', accept: '' });
   const shortW = q('q-own-s', { answerType: 'short', accept: 'egestion' });
   const pen = q('q:Q-OWN-P', { answerType: 'drawing' }, { figure: 'grid-blank' });
+  /* AND ONE DRAWN ON THE PAPER'S OWN FIGURE, whose pen is the card's other face too since 337. */
+  const paperPen = q('q:Q-OWN-F', { answerType: 'annotate', diagram: '<svg viewBox="0 0 340 120"><line class="axis" x1="10" y1="60" x2="330" y2="60"/></svg>' });
   const passage = q('q:Q-OWN-T', { answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' });
   const prac = w.stuffItems().find(x => x.kind === 'practical');
-  [maths, words, shortW, pen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
+  [maths, words, shortW, pen, paperPen, passage].forEach(x => { try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {} });
   const drawn = {
     'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
     'a short worded answer': host(w.questionCard_(shortW)), 'a drawing question\'s card': host(w.questionCard_(pen)),
     /* THE SAME CARD SWITCHED TO ITS DRAWING -- a made-up surface is the box's other face now (327), and
        the surface must open no keyboard: no field at all. */
     'a drawing question\'s pen page': (w.padFaceSet_(w.__t.padKey(pen), 'draw'), host(w.questionCard_(pen))),
+    'a paper figure question\'s card': host(w.questionCard_(paperPen)),
+    'a paper figure question switched to its figure': (w.padFaceSet_(w.__t.padKey(paperPen), 'draw'), host(w.questionCard_(paperPen))),
     'a passage to ring words in': host(w.questionCard_(passage)),
     'a practical\'s worksheet': prac ? host(w.stuffPart_(prac, 'work')) : null,
   };
@@ -12495,7 +12499,8 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const locked = b => b.matches('.kp-field > .kp-in.qp-ans-in[readonly][inputmode="none"][data-kp]') && b.readOnly
     && !!b.closest('label.qp-ans');
   const WANT = { 'a maths answer': 1, 'an explain answer': 1, 'a short worded answer': 1, 'a drawing question\'s card': 1,
-    'a drawing question\'s pen page': 0, 'a passage to ring words in': 1, 'a practical\'s worksheet': 3 };
+    'a drawing question\'s pen page': 0, 'a paper figure question\'s card': 1, 'a paper figure question switched to its figure': 0,
+    'a passage to ring words in': 1, 'a practical\'s worksheet': 3 };
   let boxes = 0;
   Object.keys(drawn).forEach(name => {
     const h = drawn[name];
@@ -12508,6 +12513,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   });
   /* NONE TO TYPE IN IS ONLY A PASS WHERE THE PEN IS ACTUALLY THERE. */
   if (!drawn['a drawing question\'s pen page'].querySelector('.qp-area.is-draw .qpad')) bad.push('the drawing question switched to its drawing drew no pen, so "no field" proved nothing');
+  if (!drawn['a paper figure question switched to its figure'].querySelector('.qp-area.is-draw .qpad .qpad-art > svg line.axis')) bad.push('the paper figure question switched to its figure drew no pen over its figure, so "no field" proved nothing');
   const pad = () => d.getElementById('kp');
   const key = v => pad() && pad().querySelector('.kp-key[data-v="' + v + '"]');
   const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + (pad() && pad().getAttribute('data-layer')) + ' face'); };
@@ -13665,9 +13671,10 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
        next page" exactly where the next page is a figure
      * every word once and in order, and the marker NEVER drawn -- not on a page, not in the search
        haystack
-     * the four placements without a marker: a lead (lead, figure, ask), none (figure, then the
-       card), a pen question (the card, then the figure to draw on), a marker at the very end (the
-       card, then the figure); a marker inside a paragraph stands after it rather than cutting it
+     * the placements without a marker: a lead (lead, figure, ask), none (figure, then the card), a
+       marker at the very end (the card, then the figure); a pen question exactly as any other since
+       its pen moved to the card (337) -- it was the card, then the figure to draw on; a marker inside
+       a paragraph stands after it rather than cutting it
      * the cut still works inside a side: eight paragraphs before the figure are cut into pages in
        front of it, and no page holds words from both sides
      * the strip (`stuffPages_`), Saved (`cardPages_`) and a swipe from the card all agree */
@@ -13754,7 +13761,8 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     row: row('Q-FIG-' + id), stems: [], diagram: svg('F'), html: '<p>Ask.</p>' }, extra);
   [[one('lead', { lead: '<p>Here is a grid.</p>' }), '["pre0","fig",null]', 'a lead and no marker: the lead, the figure, the ask'],
    [one('none', {}), '["fig",null]', 'no lead and no marker: the figure in front of the card'],
-   [one('pen', { answerType: 'drawing', lead: '<p>Here is a grid.</p>' }), '[null,"fig"]', 'a pen question and no marker: the card, then the figure to draw on'],
+   [one('pen', { answerType: 'drawing', lead: '<p>Here is a grid.</p>' }), '["pre0","fig",null]', 'a pen question with a lead and no marker: the lead, the figure, the ask, as any part -- its pen is on the card now (337), not on a figure page after it'],
+   [one('pen2', { answerType: 'annotate' }), '["fig",null]', 'a pen question with no lead and no marker: the figure in front of the card, as any part'],
    [one('end', { html: '<p>Ask.</p><!--fig-->' }), '[null,"fig"]', 'a marker at the very end: the card, then the figure'],
    [one('start', { html: '<!--fig--><p>Ask.</p>' }), '["fig",null]', 'a marker at the very start: the figure, then the card'],
    [one('nofig', { diagram: '', html: '<p>Before.</p><!--fig--><p>After.</p>' }), '[null]', 'a marker on a row with no figure: nothing to place, one card']
@@ -13852,6 +13860,12 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   w.padFaceForget_();
   const own = q('own', { answerType: 'drawing', diagram: svgDiag });
   if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || el(w.questionFigCard_(own)).querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
+  /* AND ITS PEN IS THE CARD'S OTHER FACE, OVER THAT PICTURE -- its figure page is a picture to look at (337). */
+  if (el(w.questionFigCard_(own)).querySelector('.qpad')) bad.push('a drawing question\'s own figure page still carries a pen -- the pen is the card\'s other face since 337');
+  w.padFaceSet_(w.__t.padKey(own), 'draw');
+  const ownFace = el(w.questionCard_(own)).querySelector('.qp-area.is-draw .qpad .qpad-art > svg:first-child');
+  if (!ownFace || ownFace.classList.contains('qsurf')) bad.push('a drawing question with its own picture, switched to its drawing, does not draw that picture under the pen');
+  w.padFaceForget_();
   const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
   if (!w.padSource_(stemmed) || w.padSource_(stemmed).from === 'surface') bad.push('a drawing question under a stem\'s picture had it replaced by a surface');
   if (w.padSource_(q('plain', { answerType: 'calculation' }))) bad.push('a calculation with no surface named was given something to draw on');
@@ -14024,9 +14038,11 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
        the drawing holds something; and the drawing comes back with the stroke on it, not armed
      * a reload opens on the face last left; on a device that never chose, a drawing with nothing typed
        opens on the drawing and a typed answer on the box; Sign out forgets the faces
-     * the paper's own figure under a pen keeps its page and has no Draw; a later part using an earlier
-       part's surface still gets its page in front with those marks, read from the same `pad:` key --
-       also a later part on the same kind of surface, whose Draw shows them fainter under its pen */
+     * the paper's own figure under a pen has the SAME Draw since 11 Oct (337, and its own journey below):
+       its page is the picture to look at, with no pen, and its Draw shows that figure, not a made-up
+       surface; a later part using an earlier part's surface still gets its page in front with those
+       marks, read from the same `pad:` key -- also a later part on the same kind of surface, whose Draw
+       shows them fainter under its pen */
 check('a question answered on a made-up surface is one card: its box, a Draw tile that turns it into the surface in place, both answers kept, the face remembered', async () => {
   const { w } = boot();
   await wait(300);
@@ -14201,11 +14217,29 @@ check('a question answered on a made-up surface is one card: its box, a Draw til
     picsFig.innerHTML = w.questionFigCard_(pics);
     if (!picsFig.querySelector('img') || picsFig.querySelector('.qpad, svg.qsurf')) bad.push('the photograph page of a surface question draws ' + (picsFig.querySelector('.qpad, svg.qsurf') ? 'the surface' : 'no photograph'));
 
-    /* ---------- THE PAPER'S OWN FIGURE KEEPS ITS PAGE ---------------------------------------------------------- */
-    if (JSON.stringify(w.pageParts_(paper)) !== '[null,"fig","ans"]') bad.push('a pen on the paper\'s own figure has pages ' + JSON.stringify(w.pageParts_(paper)) + ', wanted [null,"fig","ans"] -- the figure keeps its page');
-    if (!(() => { const h = d.createElement('div'); h.innerHTML = w.questionFigCard_(paper); return h.querySelector('.qcard.qfig .qpad'); })()) bad.push('the paper\'s own figure lost its pen from its page');
+    /* ---------- THE PAPER'S OWN FIGURE: ITS PAGE TO LOOK AT, AND THE SAME Draw (337) ----------------------------
+       It kept its page with the pen on it until the owner, 11 Oct: *"simplest and most uniform"*. The page
+       stays where any figure's stands -- in front, with no marker and no lead -- and draws the picture and
+       no pen; the card has the box and Draw, and Draw shows THAT figure, saying so, never a made-up one. */
+    if (JSON.stringify(w.pageParts_(paper)) !== '["fig",null,"ans"]') bad.push('a pen on the paper\'s own figure has pages ' + JSON.stringify(w.pageParts_(paper)) + ', wanted ["fig",null,"ans"] -- its figure where any part\'s stands, the pen on the card');
+    {
+      const h = d.createElement('div');
+      h.innerHTML = w.questionFigCard_(paper);
+      if (!h.querySelector('.qcard.qfig figure svg circle')) bad.push('the paper\'s own figure page does not draw the figure to look at');
+      if (h.querySelector('.qpad, .qpad-lock, [data-do^="pad-"]')) bad.push('the paper\'s own figure page still carries a pen -- the second place to answer');
+    }
+    w.padFaceForget_();
     card(paper);
-    if (tile() || area()) bad.push('a question drawn on the paper\'s own figure was given a Draw tile -- only a made-up surface is a face of the box');
+    if (!tile() || !area() || area().classList.contains('is-draw')) bad.push('a question drawn on the paper\'s own figure does not open on its box with a Draw tile under it');
+    else {
+      if (said() !== 'Draw · on the figure') bad.push('the paper figure\'s tile reads "' + said() + '", wanted "Draw · on the figure" -- not a blank space, the paper\'s own');
+      A['q-draw'](tile());
+      const fig = pad() && pad().querySelector('.qpad-art > svg:first-child');
+      if (!fig || fig.classList.contains('qsurf') || !fig.querySelector('circle')) bad.push('Draw on a paper figure question did not show the paper\'s figure under the pen');
+      if (pad() && pad().getAttribute('data-k') !== t.padKey(paper)) bad.push('the paper figure\'s pen is on ' + (pad() && pad().getAttribute('data-k')) + ', not ' + t.padKey(paper));
+      if (pad() && /not the paper.s own figure/i.test(pad().textContent)) bad.push('the paper\'s own figure is captioned "Not the paper\'s own figure."');
+      A['q-draw'](tile());
+    }
 
     /* ---------- "USE YOUR GRAPH" AFTER A SURFACE ---------------------------------------------------------------- */
     LS.setItem(t.padKey(axA), JSON.stringify([[20, 300, 300, 20]]));
@@ -14252,6 +14286,457 @@ check('a question answered on a made-up surface is one card: its box, a Draw til
   return bad;
 });
 
+/* ---------- THE PAPER'S OWN FIGURE IS THE ANSWER BOX'S OTHER FACE TOO, AND ITS PAGE IS A PICTURE TO LOOK AT --------
+   THE OWNER, 11 Oct, asked whether the 470 questions drawn on the paper's own figure (or a stem's) should
+   get the Draw switch the 62 made-up surfaces got the day before: *"You decide best for paper figure thing.
+   I just want simplest and most uniform"*. So the rule anyone can state now is one rule: a question you
+   answer by drawing has a Draw tile on its card; a picture the paper prints has its own page to look at.
+   Over REAL rows of data/questions.json -- June 2024 1F Q7 ("On the grid, draw a suitable diagram", its own
+   figure, the review's example) and the 1st Class Maths bearings sheet, whose Q2 opens with a map that
+   (a), (b) and (c) are each drawn on -- through the app's own builders, handlers and strip:
+     * EVERY page of every one of them, every face set to the box: no pen anywhere -- no `.qpad`, no lock,
+       no pen control. The figure page draws the figure, credited, and nothing to draw with
+     * a stem's parts have no figure page of their own: the stem's map is its page, once, in front of (a)
+     * the card opens on its box, with `Draw · on the figure` in the row under it
+     * a drawing made on the OLD figure page -- stored under the key that page used, `padKey_` -- is on the
+       card's drawing face, and the card opens on it (a drawing and nothing typed)
+     * that face is the paper's figure under the pen on that same `pad:` key, credited in a card's length --
+       "The paper's figure, redrawn.", the figure page keeping the whole sentence -- and never "Not the
+       paper's own figure"; a stroke there is stored under it; Type brings the box back and Draw the
+       drawing, both strokes on it
+     * each of the stem's parts has its own `Draw · on the figure` on its box, and draws on the map under its
+       OWN key: (a)'s stroke is not on (b)'s face, and (b)'s goes to (b)
+     * Saved's copy is the same: its pages carry no pen, Draw pressed on one copy turns every copy, and a
+       stroke, a Clear or an Undo on one copy is on the other (`padCopies_`, 337 after review)
+     * Draw in the real Find strip changes no page and no page count -- both faces are one page
+     * a drawing made signed out moves to the child who signs in and opens the card, and it opens on it */
+check('a question drawn on the paper\'s own figure is one card too: the box, Draw turning it into that figure under the pen on the same pad: key, and the figure\'s page a picture to look at', async () => {
+  const OWN = 'Q-1MA1-2406-1F-7', A2 = 'Q-1CM-bearings-2', B2 = 'Q-1CM-bearings-2b', C2 = 'Q-1CM-bearings-2c';
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const ownPaper = (lib.find(r => r.row_id === OWN) || {}).paper_id;
+  const rows = lib.filter(r => r.paper_id === 'W-1CM-bearings' || (ownPaper && r.paper_id === ownPaper));
+  const missing = [OWN, A2, B2, C2, 'S-Q-1CM-bearings-2'].filter(id => !rows.some(r => r.row_id === id));
+  if (missing.length) return [missing.join(', ') + ' not in data/questions.json under the papers looked for -- the paper figures were NOT checked'];
+  const { w } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), serve: url => (/data\/questions\.json/.test(url) ? rows : undefined) });
+  for (let i = 0; i < 80 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === OWN)); i++) await wait(50);
+  const d = w.document, t = w.__t, A = t.ACTIONS, LS = w.localStorage, bad = [];
+  const need = ['ansArea_', 'drawTile_', 'padFace_', 'padFaceForget_', 'padFaceSet_', 'questionFigCard_', 'stuffCard', 'stuffPart_',
+                'pageParts_', 'cardPages_', 'keptPages_', 'stuffPages_', 'stuffPageOf_', 'stuffFirstResult_', 'paintStuff'].filter(n => typeof w[n] !== 'function');
+  if (need.length || !A['q-draw'] || !A['pad-draw'] || !t.padKey) return [(need.join(', ') || 'q-draw / pad-draw / padKey_') + ' not reachable — the paper figures were NOT checked'];
+  const item = id => w.stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+  const own = item(OWN), a = item(A2), b = item(B2), c = item(C2);
+  if (!own || !a || !b || !c) return ['the library did not bring ' + [OWN, A2, B2, C2].filter(id => !item(id)).join(', ') + ' into Find — nothing was checked'];
+  const src = x => w.padSource_(x);
+  if (!src(own) || src(own).from !== 'part') return [OWN + ' is not drawn on its own figure any more (padSource_ says ' + JSON.stringify(src(own) && src(own).from) + ') — the case is gone'];
+  if ([a, b, c].some(x => !src(x) || typeof src(x).from !== 'object')) return ['the bearings parts are not drawn on their stem\'s map any more — the stem case is gone'];
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const draw = html => { host.innerHTML = '<div class="pane">' + html + '</div>'; return host; };
+  const area = x => [...host.querySelectorAll('.qp-area')].find(e => e.getAttribute('data-q') === x.key) || null;
+  const tile = x => [...host.querySelectorAll('.tile-row .q-drawt[data-do="q-draw"]')].find(e => e.getAttribute('data-key') === x.key) || null;
+  const said = x => (tile(x) && tile(x).getAttribute('aria-label')) || '';
+  const face = x => { const e = area(x); return e && e.classList.contains('is-draw') ? e.querySelector('.qpad') : null; };
+  const paths = p => (p ? p.querySelectorAll('.qpad-g path').length : -1);
+  const got = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const stroke = p => {
+    A['pad-draw'](p.querySelector('.qpad-lock'));
+    const ink = p.querySelector('.qpad-ink');
+    ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+    const Ev = w.PointerEvent || w.MouseEvent;
+    const fire = (type, x, y) => ink.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));
+    fire('pointerdown', 50, 50); fire('pointermove', 150, 90); fire('pointerup', 150, 90);
+    A['pad-draw'](p.querySelector('.qpad-lock'));
+  };
+  const all = [own, a, b, c];
+  const wipe = () => [null, ANS_ADA].forEach(u => { t.USER(u); all.forEach(x => { try { LS.removeItem(t.padKey(x)); LS.removeItem(t.ansKey(x)); } catch (e) {} }); });
+  try {
+    wipe();
+    t.USER(null);
+    w.padFaceForget_();
+
+    /* ---------- NO PEN ON ANY PAGE, AND THE FIGURE PAGE A PICTURE TO LOOK AT --------------------------------- */
+    all.forEach((x, i) => w.padFaceSet_(t.padKey(x), 'type'));
+    const walk = (x, prev) => w.pageParts_(x, prev).map(part => ({ part: part || 'card', html: part ? w.stuffPart_(x, part) : w.stuffCard(x, 0) }));
+    [[own, null], [a, null], [b, a], [c, b], [b, null]].forEach(([x, prev]) => walk(x, prev).forEach(pg => {
+      const h = draw(pg.html);
+      if (h.querySelector('.qpad, .qpad-lock, [data-do^="pad-"]')) bad.push(x.row.row_id + '#' + pg.part + (prev ? ' after ' + prev.row.row_id : '') + ' carries a pen while the card is on its box -- a second place to answer');
+    }));
+    const pOwn = w.pageParts_(own);
+    if (pOwn.indexOf('fig') < 0) bad.push(OWN + ' has no figure page (' + JSON.stringify(pOwn) + ') -- a picture the paper prints has its own page');
+    else {
+      const fig = draw(w.stuffPart_(own, 'fig'));
+      if (!fig.querySelector('.qcard.qfig figure svg[aria-label^="A grid of squares"]')) bad.push(OWN + '\'s figure page does not draw the paper\'s grid to look at');
+      if (!/drawn for @family/.test(fig.textContent)) bad.push(OWN + '\'s figure page lost its credit');
+    }
+    if (w.pageParts_(a).indexOf('fig') >= 0 || w.pageParts_(b, a).indexOf('fig') >= 0) bad.push('a stem\'s part still has a figure page of its own (' + JSON.stringify(w.pageParts_(a)) + ', ' + JSON.stringify(w.pageParts_(b, a)) + ') -- a second copy of the stem\'s map, there only for the pen');
+    if (w.pageParts_(a).filter(p => /^sfig/.test(p)).length !== 1 || w.pageParts_(b, a).some(p => /^sfig/.test(p))) bad.push('the stem\'s map is not its page once, in front of (a): ' + JSON.stringify(w.pageParts_(a)) + ' then ' + JSON.stringify(w.pageParts_(b, a)));
+
+    /* ---------- THE CARD ON ITS BOX, AND Draw ------------------------------------------------------------------ */
+    w.padFaceForget_();
+    draw(w.stuffCard(own, 0));
+    if (!area(own) || face(own)) bad.push(OWN + '\'s card does not open on its answer box');
+    if (!host.querySelector('.qp-area .qp-ans')) bad.push(OWN + '\'s card draws no answer box');
+    if (said(own) !== 'Draw · on the figure') bad.push(OWN + '\'s tile reads "' + said(own) + '", wanted "Draw · on the figure"');
+
+    /* ---------- A DRAWING MADE ON THE OLD FIGURE PAGE IS ON THE CARD, AND THE CARD OPENS ON IT -------------------- */
+    const kOwn = t.padKey(own);
+    LS.setItem(kOwn, JSON.stringify([[20, 300, 120, 200]]));
+    w.padFaceForget_();
+    draw(w.stuffCard(own, 0));
+    const p0 = face(own);
+    if (!p0) bad.push('a drawing made on ' + OWN + '\'s old figure page, under ' + kOwn + ', did not open its card on the drawing -- an empty box over the child\'s work');
+    else {
+      if (p0.getAttribute('data-k') !== kOwn) bad.push('the face draws on ' + p0.getAttribute('data-k') + ', not ' + kOwn + ' -- where every drawing on the old page is');
+      if (paths(p0) !== 1) bad.push('the drawing from the old figure page has ' + paths(p0) + ' strokes on the card, wanted its one');
+      const art = p0.querySelector('.qpad-art > svg:first-child');
+      if (!art || art.classList.contains('qsurf') || !/^A grid of squares/.test(art.getAttribute('aria-label') || '')) bad.push('the face is not the paper\'s own grid under the pen');
+      /* THE CARD'S LENGTH OF THE CREDIT, "The paper's figure, redrawn." (`FIG_CARD`): the figure page's whole
+         sentence was three lines of a 320 phone under the pen (337, after review), and that page still has it. */
+      const by = p0.querySelector(':scope > .fig-by');
+      if (!by || by.textContent.trim() !== 'The paper\u2019s figure, redrawn.') bad.push('the face\'s credit is ' + JSON.stringify(by && by.textContent.trim()) + ', wanted "The paper\u2019s figure, redrawn." -- one line, run on with the note');
+      if (/not the paper.s own figure/i.test(p0.textContent)) bad.push('the paper\'s own figure is captioned "Not the paper\'s own figure."');
+      if (said(own) !== 'Type · the answer box') bad.push('on the drawing the tile reads "' + said(own) + '", wanted "Type · the answer box"');
+      stroke(p0);
+      if (got(kOwn).length !== 2) bad.push('a stroke on the card\'s face was not stored under ' + kOwn + ': ' + JSON.stringify(got(kOwn)));
+      A['q-draw'](tile(own));
+      if (face(own) || !host.querySelector('.qp-area .qp-ans')) bad.push('Type did not bring ' + OWN + '\'s box back');
+      if (said(own) !== 'Draw · has a drawing') bad.push('after Type the tile reads "' + said(own) + '", wanted "Draw · has a drawing"');
+      A['q-draw'](tile(own));
+      if (paths(face(own)) !== 2) bad.push('back on the drawing, ' + paths(face(own)) + ' strokes, wanted both');
+    }
+
+    /* ---------- A STEM'S PARTS, EACH ON THE MAP UNDER ITS OWN KEY ------------------------------------------------- */
+    const ka = t.padKey(a), kb = t.padKey(b);
+    /* EACH OF THEM HAS ITS OWN Draw FIRST, on its box -- asked before the face is set by hand below, so a part
+       left without the tile is said in words rather than found by a throw further down (337, after review). */
+    [a, b, c].forEach(x => {
+      w.padFaceSet_(t.padKey(x), 'type');
+      draw(w.stuffCard(x, 0));
+      if (said(x) !== 'Draw · on the figure') bad.push(x.row.row_id + ', drawn on the stem\'s map, has ' + (tile(x) ? 'a tile reading "' + said(x) + '"' : 'no Draw tile') + ' on its box, wanted "Draw · on the figure"');
+    });
+    w.padFaceSet_(ka, 'draw');
+    draw(w.stuffCard(a, 0));
+    const pa = face(a);
+    if (!pa) bad.push('(a) set to its drawing drew no pen on its card');
+    else {
+      const art = pa.querySelector('.qpad-art > svg:first-child');
+      if (!art || !/^A map of an island/.test(art.getAttribute('aria-label') || '')) bad.push('(a)\'s face is not the stem\'s map under the pen');
+      if (pa.getAttribute('data-k') !== ka) bad.push('(a) draws on ' + pa.getAttribute('data-k') + ', not its own ' + ka);
+      if (((pa.querySelector(':scope > .fig-by') || {}).textContent || '').trim() !== 'The paper\u2019s figure, redrawn.') bad.push('(a)\'s face does not carry the stem figure\'s credit');
+      stroke(pa);
+    }
+    w.padFaceSet_(kb, 'draw');
+    draw(w.stuffCard(b, 0));
+    const pb = face(b);
+    if (!pb) bad.push('(b) set to its drawing drew no pen on its card');
+    else {
+      if (pb.getAttribute('data-k') !== kb || ka === kb) bad.push('(b) draws on ' + pb.getAttribute('data-k') + ' -- (a)\'s is ' + ka + '; each part answers under its own key');
+      if (paths(pb) !== 0) bad.push('(b)\'s map carries ' + paths(pb) + ' of (a)\'s strokes as its own');
+      stroke(pb);
+      if (got(kb).length !== 1 || got(ka).length !== 1) bad.push('a stroke on (b) went to ' + JSON.stringify({ a: got(ka).length, b: got(kb).length }) + ', wanted one each');
+    }
+
+    /* ---------- SAVED'S COPY ---------------------------------------------------------------------------------------- */
+    w.padFaceSet_(ka, 'type'); w.padFaceSet_(kb, 'type');
+    const kept = w.keptPages_([b, a], 0);
+    kept.forEach((h, i) => { if (draw(h).querySelector('.qpad, .qpad-lock')) bad.push('Saved\'s page ' + i + ' of the bearings parts carries a pen while the cards are on their boxes'); });
+    if (kept.filter(h => /class="qcard qfig/.test(h)).length !== 1) bad.push('Saved draws the stem\'s map ' + kept.filter(h => /class="qcard qfig/.test(h)).length + ' times for (a) and (b), wanted once');
+    host.innerHTML = '<div class="page"><div class="pane">' + w.stuffCard(a, 0) + '</div></div><div class="page"><div class="pane">' + kept.find(h => /data-q="/.test(h) && h.indexOf('data-q="' + a.key + '"') >= 0) + '</div></div>';
+    const copies = () => [...host.querySelectorAll('.qp-area')].filter(e => e.getAttribute('data-q') === a.key);
+    if (copies().length !== 2) bad.push('setup: Find\'s and Saved\'s copies of (a) are not both drawn (' + copies().length + '), so "every copy" was NOT checked');
+    else if (!host.querySelector('.page .q-drawt[data-key="' + a.key + '"]')) bad.push('Find\'s copy of (a) has no Draw tile, so "every copy" was NOT checked');
+    else {
+      A['q-draw'](host.querySelector('.page .q-drawt[data-key="' + a.key + '"]'));
+      if (!copies().every(e => e.classList.contains('is-draw') && e.querySelector('.qpad[data-k="' + ka + '"]'))) bad.push('Draw on Find\'s copy of (a) did not turn Saved\'s copy too');
+      /* AND A STROKE, AN UNDO AND A CLEAR ON ONE COPY ARE ON THE OTHER (`padCopies_`). Found in review with a
+         stroke on Saved's copy and Find's at 0 over a store holding 1 -- where Clear on Find's copy would wipe a
+         drawing the child could not see. */
+      const cp = () => copies().map(e => paths(e.querySelector('.qpad'))).join(',');
+      const was = got(ka).length;
+      stroke(copies()[1].querySelector('.qpad'));
+      if (cp() !== [was + 1, was + 1].join(',')) bad.push('a stroke on Saved\'s copy of (a) left the copies at ' + cp() + ' strokes over a store of ' + got(ka).length + ' -- Find\'s copy not repainted');
+      A['pad-clear'](copies()[0].querySelector('.qpad-clear'));
+      if (cp() !== '0,0') bad.push('Clear on Find\'s copy of (a) left the copies at ' + cp() + ' strokes -- Saved\'s still showing what is gone');
+      A['pad-undo'](copies()[1].querySelector('.qpad-undo'));
+      if (cp() !== [was + 1, was + 1].join(',') || got(ka).length !== was + 1) bad.push('Undo on Saved\'s copy after the Clear left the copies at ' + cp() + ' over a store of ' + got(ka).length + ', wanted ' + (was + 1) + ' on both');
+      A['pad-undo'](copies()[0].querySelector('.qpad-undo'));
+      if (cp() !== [was, was].join(',')) bad.push('Undo on Find\'s copy left the copies at ' + cp() + ', wanted ' + was + ' on both');
+      A['q-draw'](host.querySelector('.page .q-drawt[data-key="' + a.key + '"]'));
+    }
+
+    /* ---------- IN THE REAL STRIP: NO PAGE CHANGE ------------------------------------------------------------------ */
+    t.go('stuff', false, true);
+    await wait(50);
+    t.STUFF().filters = [{ field: 'paperId', value: own.row.paper_id }];
+    t.STUFF().q = '';
+    w.paintStuff();
+    w.padFaceSet_(kOwn, 'type');
+    const at = w.stuffFirstResult_() + w.stuffPageOf_(own);
+    t.goPage('stuff', at, true);
+    await wait(400);
+    const count = w.stuffPages_().length;
+    const live = () => [...d.querySelectorAll('#s-stuff .qp-area')].find(e => e.getAttribute('data-q') === own.key);
+    const liveTile = () => [...d.querySelectorAll('#s-stuff .q-drawt')].find(e => e.getAttribute('data-key') === own.key);
+    if (!live() || !liveTile()) bad.push(OWN + '\'s card is not drawn on its page of the real strip, so "no page change" was NOT checked');
+    else {
+      A['q-draw'](liveTile());
+      await wait(50);
+      if (!live() || !live().classList.contains('is-draw')) bad.push('Draw in the strip did not turn ' + OWN + '\'s card');
+      if (t.PAGE().stuff !== at) bad.push('Draw moved Find from page ' + at + ' to ' + t.PAGE().stuff + ' -- both faces are one page');
+      if (w.stuffPages_().length !== count) bad.push('Draw changed the strip from ' + count + ' pages to ' + w.stuffPages_().length);
+      if (d.querySelectorAll('#s-stuff .qpad').length !== 1 || !live().querySelector('.qpad')) bad.push('the strip draws ' + d.querySelectorAll('#s-stuff .qpad').length + ' pens with one card on its drawing, wanted that one');
+    }
+    t.STUFF().filters = [];
+    w.paintStuff();
+
+    /* ---------- DRAWN SIGNED OUT, MOVED TO THE CHILD WHO SIGNS IN AND OPENS IT -------------------------------------- */
+    t.USER(null);
+    const bare = t.padKey(c);
+    LS.setItem(bare, JSON.stringify([[30, 30, 90, 30]]));
+    t.USER(Object.assign({}, ANS_ADA));
+    w.padFaceForget_();
+    draw(w.stuffCard(c, 0));
+    const pc = face(c);
+    if (!pc) bad.push('(c), drawn on signed out, opened on an empty box for the child who signed in');
+    else if (paths(pc) !== 1 || pc.getAttribute('data-k') !== t.padKey(c)) bad.push('(c)\'s face shows ' + paths(pc) + ' strokes under ' + pc.getAttribute('data-k') + ', wanted the one drawn signed out, under ' + t.padKey(c));
+    if (LS.getItem(bare) !== null || got(t.padKey(c)).length !== 1) bad.push('opening (c) did not move the signed-out drawing to Ada: ' + JSON.stringify([LS.getItem(bare), LS.getItem(t.padKey(c))]));
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    t.padOn('');
+    wipe();
+    t.USER(null);
+    try { w.padFaceForget_(); } catch (e) {}
+    host.remove();
+  }
+  return bad;
+});
+
+/* ---------- A DRAWING THAT ARRIVES FROM THE ACCOUNT UNDER A CARD ON ITS BOX TURNS THE CARD, AND ITS TILE SAYS SO --
+   FOUND BY THE REVIEW OF 337. `ansRefresh_` (answers.js) puts back what a pull brings where it stands, and for
+   a drawing that meant repainting every pen on the screen. Until 11 Oct the paper's figures had their pen on
+   their figure page, a swipe from the card, and it was repainted at once; with every pen on its card, a card
+   on its BOX has no pen to repaint, so a drawing made on the tutor's iPad and pulled here was shown nowhere,
+   and the tile went on saying "Draw · on the figure" over it -- the empty box over the child's work that
+   327's note exists to prevent. (327's surfaces had the same hole from the day they moved.) Through the real
+   boot, a backend that keeps answers, the real Find strip and `answersPull_`, over June 2024 1F's real rows:
+     * Q7 (the paper's own grid) on its box, nothing typed: a pulled drawing turns the card to it where it
+       stands -- the stroke on it, the tile "Type · the answer box", the page unmoved
+     * Q7 on its drawing because the child pressed Draw: a typed answer pulled from the account leaves it on
+       the drawing (a face chosen is a face kept) and the tile says "Type · has an answer"
+     * Q11c (a made-up surface) on its box with the keypad up in it: a pulled drawing does NOT take the box
+       from under the finger typing in it, and the tile says "Draw · has a drawing"; with the keypad put
+       away, the next drawing pulled turns it */
+check('a drawing pulled from the account under a card on its box turns the card to it, and its tile says so -- never from under the keypad', async () => {
+  const OWN = 'Q-1MA1-2406-1F-7', SURF = 'Q-1MA1-2406-1F-11c';
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const paper = (lib.find(r => r.row_id === OWN) || {}).paper_id;
+  const rows = lib.filter(r => paper && r.paper_id === paper);
+  if (![OWN, SURF].every(id => rows.some(r => r.row_id === id))) return [OWN + ' and ' + SURF + ' are not one paper in data/questions.json any more -- a pull under a card was NOT checked'];
+  const server = {};
+  const { w } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server),
+    serve: url => (/data\/questions\.json/.test(url) ? rows : undefined),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } catch (e) {} } });
+  for (let i = 0; i < 120 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === OWN)); i++) await wait(50);
+  await wait(200);
+  const d = w.document, t = w.__t, A = t.ACTIONS, LS = w.localStorage, bad = [];
+  if (typeof w.answersPull_ !== 'function' || !A['q-draw'] || !t.padKey || !t.ansKey) return ['answersPull_ / q-draw / padKey_ / ansKey_ not reachable -- a pull under a card was NOT checked'];
+  if (!(t.whoami() && t.whoami().personId === 'P7')) return ['Ada is not signed in at boot -- a pull to her account was NOT checked'];
+  const item = id => w.stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+  const own = item(OWN), surf = item(SURF);
+  if (!own || !surf || !w.padSource_(own) || !w.padSource_(surf) || w.padSource_(surf).from !== 'surface') return ['Q7 is not drawn on its figure, or Q11c on a made-up surface, any more -- the case is gone'];
+  const area = x => [...d.querySelectorAll('#s-stuff .qp-area')].find(e => e.getAttribute('data-q') === x.key) || null;
+  const tile = x => [...d.querySelectorAll('#s-stuff .q-drawt')].find(e => e.getAttribute('data-key') === x.key) || null;
+  const said = x => (tile(x) && tile(x).getAttribute('aria-label')) || '(no tile)';
+  const onDraw = x => !!area(x) && area(x).classList.contains('is-draw');
+  const strokes = x => (onDraw(x) ? area(x).querySelectorAll('.qpad-g path').length : -1);
+  let stamp = Date.now();
+  const pull = async (k, v) => { stamp += 1000; server[k] = { v: v, at: stamp }; await w.answersPull_(true); await wait(80); };
+  const open = async x => {
+    t.go('stuff', false, true);
+    await wait(50);
+    t.STUFF().filters = [{ field: 'paperId', value: paper }];
+    t.STUFF().q = '';
+    w.paintStuff();
+    const at = w.stuffFirstResult_() + w.stuffPageOf_(x);
+    t.goPage('stuff', at, true);
+    await wait(400);
+    return at;
+  };
+  try {
+    w.padFaceForget_();
+    /* ---------- Q7 ON ITS BOX: THE PULLED DRAWING TURNS IT ---------------------------------------------- */
+    const at = await open(own);
+    if (!area(own) || onDraw(own) || said(own) !== 'Draw · on the figure') bad.push('setup: Q7 is not on its box with "Draw · on the figure" (' + said(own) + ') -- the pull was NOT checked');
+    else {
+      await pull('pad:' + own.key, JSON.stringify([[20, 300, 120, 200]]));
+      if (JSON.parse(LS.getItem(t.padKey(own)) || '[]').length !== 1) bad.push('setup: the pull did not store the drawing under ' + t.padKey(own));
+      if (!onDraw(own)) bad.push('a drawing pulled from the account under Q7\'s box left the card on its box, its tile reading "' + said(own) + '" -- the child\'s drawing shown nowhere');
+      else if (strokes(own) !== 1) bad.push('Q7 turned to its drawing with ' + strokes(own) + ' strokes, wanted the one pulled');
+      if (onDraw(own) && said(own) !== 'Type · the answer box') bad.push('on the drawing the pull brought, Q7\'s tile reads "' + said(own) + '", wanted "Type · the answer box"');
+      if (t.PAGE().stuff !== at) bad.push('the pull moved Find from page ' + at + ' to ' + t.PAGE().stuff);
+    }
+    /* ---------- Q7 ON ITS DRAWING, CHOSEN: A TYPED ANSWER LEAVES IT THERE AND THE TILE SAYS SO ------------- */
+    if (onDraw(own)) {
+      A['q-draw'](tile(own)); A['q-draw'](tile(own));
+      if (!onDraw(own)) bad.push('setup: Type then Draw did not leave Q7 on its drawing');
+      await pull('ans:' + own.key, '42');
+      if (!onDraw(own)) bad.push('a typed answer pulled from the account took Q7 off the drawing the child chose');
+      if (said(own) !== 'Type · has an answer') bad.push('with an answer pulled into the box behind it, Q7\'s tile reads "' + said(own) + '", wanted "Type · has an answer"');
+    }
+    /* ---------- Q11c ON ITS BOX WITH THE KEYPAD UP: NOT TAKEN FROM UNDER THE FINGER ---------------------- */
+    await open(surf);
+    const box = area(surf) && area(surf).querySelector('.kp-in');
+    if (!box || onDraw(surf)) bad.push('setup: Q11c is not on its box with a keypad box -- the keypad case was NOT checked');
+    else {
+      box.focus();
+      /* `KP_AT` is a `let` inside the app's eval and out of reach here; the pad up and the focus on this box is
+         what it records. */
+      if (!d.getElementById('kp') || d.getElementById('kp').hidden || d.activeElement !== box) bad.push('setup: focusing Q11c\'s box did not bring the keypad up on it');
+      await pull('pad:' + surf.key, JSON.stringify([[30, 30, 90, 90]]));
+      if (onDraw(surf)) bad.push('a drawing pulled with the keypad up in Q11c\'s box took the box from under the finger typing in it');
+      if (said(surf) !== 'Draw · has a drawing') bad.push('with a drawing pulled behind the box being typed in, Q11c\'s tile reads "' + said(surf) + '", wanted "Draw · has a drawing"');
+      box.blur();
+      if (typeof w.kpClose_ === 'function') w.kpClose_();
+      await pull('pad:' + surf.key, JSON.stringify([[30, 30, 90, 90], [40, 200, 200, 40]]));
+      if (!onDraw(surf) || strokes(surf) !== 2) bad.push('with the keypad away, a drawing pulled under Q11c\'s box left it ' + (onDraw(surf) ? 'on ' + strokes(surf) + ' strokes' : 'on its box, "' + said(surf) + '"') + ' -- a made-up surface is the same card');
+    }
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    try { w.padFaceForget_(); } catch (e) {}
+    t.STUFF().filters = [];
+  }
+  return bad;
+});
+
+/* ---------- A TYPED ANSWER PULLED UNDER A DRAWING WHOSE PEN IS ON LEAVES THE DRAWING AND THE PEN ALONE --------
+   FOUND BY THE SECOND REVIEW OF 337, and new in the first round's fix: the block `ansRefresh_` grew, to turn a
+   card when a pull changes which face `padFace_` chooses, held back from the keypad but not from the pen.
+   A card opened on its drawing by the DEFAULT rule (a drawing, nothing typed, no face remembered -- every
+   paper figure a child drew on before 11 Oct opens that way), the lock pressed, and a typed answer for it
+   pulled from the account: the card turned to its box under the pen, `PAD_ON` was left naming a pad no longer
+   on the screen -- the invisible mode `q-draw`'s note forbids -- and the next Draw brought the drawing back
+   ARMED, holding the card still. af08dee left the drawing and the pen alone on the pull; but the next REPAINT
+   (a payload landing) drew the card from `padFace_` and did the same, which is how 327's surfaces always
+   behaved and the 470 did from the day their pen moved onto the card -- so the rule is in `padFace_` (a pen
+   on over this drawing keeps it), and this asks the pull AND a repaint after it. Through the real boot, a
+   backend that keeps answers, the real Find strip and `answersPull_`, over June 2024 1F's real rows:
+     * Q7 (the paper's own grid) on its drawing by the default rule, the pen on with the real lock: a typed
+       answer pulled leaves it on its drawing, the pen still on that pad (armed, the ink holding the swipe),
+       the tile "Type · has an answer", the page unmoved -- and the same after a repaint of the column; Type
+       then brings the box with the pulled answer in it and turns the pen off, as it always did
+     * Q11c (a made-up surface) on its drawing by the same rule with the pen OFF: the same pull turns it to
+       its box, "Draw · has a drawing" -- 327's rule, so what holds the drawing is the pen and not every
+       drawing */
+check('a typed answer pulled under a drawing whose pen is on leaves the drawing and the pen alone -- with the pen off the card turns', async () => {
+  const OWN = 'Q-1MA1-2406-1F-7', SURF = 'Q-1MA1-2406-1F-11c';
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const paper = (lib.find(r => r.row_id === OWN) || {}).paper_id;
+  const rows = lib.filter(r => paper && r.paper_id === paper);
+  if (![OWN, SURF].every(id => rows.some(r => r.row_id === id))) return [OWN + ' and ' + SURF + ' are not one paper in data/questions.json any more -- a pull under a pen was NOT checked'];
+  const server = {};
+  const { w } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server),
+    serve: url => (/data\/questions\.json/.test(url) ? rows : undefined),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } catch (e) {} } });
+  for (let i = 0; i < 120 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === OWN)); i++) await wait(50);
+  await wait(200);
+  const d = w.document, t = w.__t, A = t.ACTIONS, LS = w.localStorage, bad = [];
+  if (typeof w.answersPull_ !== 'function' || !A['q-draw'] || !A['pad-draw'] || !t.padKey || !t.ansKey || !t.padNow) return ['answersPull_ / q-draw / pad-draw / padKey_ / ansKey_ / padNow not reachable -- a pull under a pen was NOT checked'];
+  if (!(t.whoami() && t.whoami().personId === 'P7')) return ['Ada is not signed in at boot -- a pull to her account was NOT checked'];
+  const item = id => w.stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+  const own = item(OWN), surf = item(SURF);
+  if (!own || !surf || !w.padSource_(own) || !w.padSource_(surf) || w.padSource_(surf).from !== 'surface') return ['Q7 is not drawn on its figure, or Q11c on a made-up surface, any more -- the case is gone'];
+  const area = x => [...d.querySelectorAll('#s-stuff .qp-area')].find(e => e.getAttribute('data-q') === x.key) || null;
+  const tile = x => [...d.querySelectorAll('#s-stuff .q-drawt')].find(e => e.getAttribute('data-key') === x.key) || null;
+  const said = x => (tile(x) && tile(x).getAttribute('aria-label')) || '(no tile)';
+  const onDraw = x => !!area(x) && area(x).classList.contains('is-draw');
+  const pad = x => (onDraw(x) ? area(x).querySelector('.qpad[data-k]') : null);
+  let stamp = Date.now();
+  const pull = async (k, v) => { stamp += 1000; server[k] = { v: v, at: stamp }; await w.answersPull_(true); await wait(80); };
+  const open = async x => {
+    t.go('stuff', false, true);
+    await wait(50);
+    t.STUFF().filters = [{ field: 'paperId', value: paper }];
+    t.STUFF().q = '';
+    w.paintStuff();
+    const at = w.stuffFirstResult_() + w.stuffPageOf_(x);
+    t.goPage('stuff', at, true);
+    await wait(400);
+    return at;
+  };
+  try {
+    w.padFaceForget_();
+    /* A DRAWING MADE BEFORE THE CARD WAS DRAWN AND NOTHING TYPED: it opens on it by the default rule. Q11c's
+       comes later, so while Q7's pen is on Q11c is a card with nothing on either face. */
+    LS.setItem(t.padKey(own), JSON.stringify([[20, 300, 120, 200]]));
+    /* ---------- Q7, THE PEN ON: A TYPED ANSWER PULLED LEAVES THE DRAWING AND THE PEN --------------------- */
+    const at = await open(own);
+    const lock = pad(own) && pad(own).querySelector('.qpad-lock');
+    if (!onDraw(own) || said(own) !== 'Type · the answer box' || !lock) bad.push('setup: Q7 did not open on its drawing by the default rule, with its lock (' + said(own) + ') -- the pen case was NOT checked');
+    else {
+      A['pad-draw'](lock);
+      if (t.padNow() !== t.padKey(own) || !pad(own).classList.contains('is-drawing')) bad.push('setup: Q7\'s lock did not switch its pen on (PAD_ON "' + t.padNow() + '") -- the pen case was NOT checked');
+      else {
+        await pull('ans:' + own.key, '(3, 4)');
+        if ((w.ansRead_(t.ansKey(own)) || '') !== '(3, 4)') bad.push('setup: the pull did not bring "(3, 4)" into Q7\'s box');
+        if (!onDraw(own)) bad.push('a typed answer pulled from the account turned Q7 to its box from under the pen switched on over its drawing' + (t.padNow() === t.padKey(own) ? ' -- PAD_ON left naming a pad no longer on the screen, and the next Draw brings it back armed' : ''));
+        else {
+          if (t.padNow() !== t.padKey(own)) bad.push('the pull switched Q7\'s pen off ("' + t.padNow() + '") while its drawing stayed');
+          if (!pad(own).classList.contains('is-drawing') || !pad(own).querySelector('.qpad-ink[data-noswipe]')) bad.push('the pull left Q7\'s pen named but its pad disarmed -- the frame and the ink disagree with PAD_ON');
+          if (pad(own).querySelectorAll('.qpad-g path').length !== 1) bad.push('the pull redrew Q7\'s drawing with ' + pad(own).querySelectorAll('.qpad-g path').length + ' strokes, wanted its one');
+        }
+        if (said(own) !== 'Type · has an answer') bad.push('with an answer pulled into the box behind the drawing being drawn on, Q7\'s tile reads "' + said(own) + '", wanted "Type · has an answer"');
+        if (t.PAGE().stuff !== at) bad.push('the pull moved Find from page ' + at + ' to ' + t.PAGE().stuff);
+        /* AND A REPAINT AFTER IT -- a payload landing, the inbox reply after every load -- draws the card from
+           `padFace_`, not from what was on the screen. Held only in `ansRefresh_`, the next repaint turned the
+           card to its box under the same pen: the fault put off by a few seconds, not fixed. */
+        if (onDraw(own)) {
+          t.repaint(true);
+          await wait(80);
+          if (!onDraw(own)) bad.push('a repaint after the pull turned Q7 to its box from under the pen still on over its drawing' + (t.padNow() === t.padKey(own) ? ' -- PAD_ON left naming a pad no longer on the screen' : ''));
+          else if (t.padNow() !== t.padKey(own) || !pad(own).classList.contains('is-drawing')) bad.push('a repaint after the pull left Q7\'s drawing with its pen ' + (t.padNow() === t.padKey(own) ? 'named but its pad disarmed' : 'off ("' + t.padNow() + '")'));
+          if (said(own) !== 'Type · has an answer') bad.push('after a repaint, Q7\'s tile over its drawing reads "' + said(own) + '", wanted "Type · has an answer"');
+          if (t.PAGE().stuff !== at) bad.push('the repaint moved Find from page ' + at + ' to ' + t.PAGE().stuff);
+          /* AND ONLY THIS CARD'S: the pen on Q7 holds Q7's drawing, and Q11c -- nothing drawn, nothing typed --
+             is drawn on its box as any card is. It is further along the paper, outside the strip the repaint
+             drew, so asked of the builders a card is drawn by (`ansArea_`, `drawTile_`). */
+          const sArea = w.ansArea_(surf), sTile = w.drawTile_(surf);
+          if (/qp-area[^"]*is-draw/.test(sArea) || !/Draw · a blank space/.test(sTile)) bad.push('with Q7\'s pen on, Q11c -- nothing on either face -- is drawn ' + (/is-draw/.test(sArea) ? 'on its drawing' : 'with a tile that does not say "Draw · a blank space"') + ': a pen holds its own card\'s drawing, not every card\'s');
+        }
+        /* AND THE BOX IS ONE PRESS AWAY, with the pulled answer in it and the pen off -- `q-draw`'s rule. */
+        if (onDraw(own) && tile(own)) {
+          A['q-draw'](tile(own));
+          const box = area(own) && area(own).querySelector('[data-do="qp-ans"]');
+          if (onDraw(own) || !box || box.value !== '(3, 4)') bad.push('Type on Q7 after the pull did not bring its box with "(3, 4)" in it (' + (box ? '"' + box.value + '"' : 'no box') + ')');
+          if (t.padNow()) bad.push('Type on Q7 left its pen on ("' + t.padNow() + '") over a pad no longer on the screen');
+        }
+      }
+    }
+    /* ---------- Q11c, THE PEN OFF: THE SAME PULL TURNS IT, 327'S RULE ------------------------------------
+       Every pen put down first, so this half answers for itself whatever the first half left behind; and its
+       drawing made now, before its card is drawn again. */
+    t.padOn('');
+    LS.setItem(t.padKey(surf), JSON.stringify([[30, 30, 90, 90]]));
+    const at2 = await open(surf);
+    if (!onDraw(surf) || said(surf) !== 'Type · the answer box') bad.push('setup: Q11c did not open on its drawing by the default rule (' + said(surf) + ') -- the pen-off case was NOT checked');
+    else if (t.padNow()) bad.push('setup: a pen is on ("' + t.padNow() + '") with Q11c open -- the pen-off case was NOT checked');
+    else {
+      await pull('ans:' + surf.key, '12');
+      if (onDraw(surf)) bad.push('a typed answer pulled under Q11c\'s drawing with the pen OFF left it on the drawing -- a drawing and something typed opens on the box (327), and only a pen switched on holds it');
+      if (said(surf) !== 'Draw · has a drawing') bad.push('Q11c turned by the pull says "' + said(surf) + '", wanted "Draw · has a drawing"');
+      if (t.PAGE().stuff !== at2) bad.push('the pull moved Find from page ' + at2 + ' to ' + t.PAGE().stuff);
+    }
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    t.padOn('');
+    try { w.padFaceForget_(); } catch (e) {}
+    t.STUFF().filters = [];
+  }
+  return bad;
+});
+
 /* ---------- "USE YOUR GRAPH" SHOWS YOUR GRAPH -----------------------------------------------------------
    Found by the multi-part audit, finding 5: June 2024 2F Q24(c) "Use your graph to find estimates..."
    had no picture, and the graph was the child's own, on (b)'s grid, two swipes back. A part's `uses`
@@ -14261,11 +14746,13 @@ check('a question answered on a made-up surface is one card: its box, a Draw til
        picture, headed with that picture's own name and no question number, the marks on it, no pen, no
        control, no box -- and a line naming the part the marks came from
      * whoever is signed in: another person sees their own (none), and is told so
-     * not when the page in front is already that picture (the earlier part with no answer page)
+     * straight after the earlier part's own figure page too: that page is the paper's picture with no
+       marks since the pen moved to the card (337), so the page in front is the only place they are
      * on Saved too (`cardPages_`), and the answer is still the one swipe after the card
-     * a part whose own figure IS that picture gets the marks UNDER its own pen instead -- no page --
-       and its Undo takes its own mark and never the earlier one; a part that only LOOKS at that picture
-       gets them on its copy, with no pen
+     * a part whose own figure IS that picture gets no page: its figure page shows the earlier marks, read
+       only and with no pen, and its card's drawing face carries them UNDER its own pen (337: the pen is
+       on the card) -- its Undo takes its own mark and never the earlier one; a part that only LOOKS at
+       that picture gets them on its copy, with no pen
      * a chain on one picture is one picture: (d) uses (c) uses (b) uses (a) shows all three's marks
      * a loop ends, and a part naming no such part draws exactly what it did
      * found in review, after the Figure tile and the "not drawn yet" page met this: the Figure tile on
@@ -14293,7 +14780,9 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
   const c = part(24, 'c', { uses: 'b', html: '<p>Use your graph to find estimates for the solutions of x&sup2; &minus; x = 4.</p>', answer: '<b>&minus;1.6, 2.6</b>', stems: [stem] });
   const cAlone = part(24, 'z', { uses: 'q', html: '<p>Names a part that is not there.</p>' });
   const i6 = part(6, '(i)', { answerType: 'annotate', diagram: SCALE, answer: '<b>&frac12;</b>' });
-  const ii6 = part(6, '(ii)', { answerType: 'annotate', diagram: SCALE, uses: 'i', answer: '<b>0</b>' });
+  /* CREDITED AS THE SITE'S REDRAWING, as every one of the 470 real ones is: the card's credit and the line about
+     the earlier marks are both on its drawing face, run on, and they ran together ("redrawn.The fainter"). */
+  const ii6 = part(6, '(ii)', { answerType: 'annotate', diagram: SCALE, uses: 'i', answer: '<b>0</b>', diagramBy: 'family' });
   const f3 = part(1, '3', { answerType: 'drawing', diagram: GRID, html: '<p>Complete Figure 2.</p>' });
   const f4 = part(1, '4', { answerType: 'explain', diagram: GRID, uses: '3', html: '<p>How does Figure 2 show it?</p>' });
   const sa = part(3, 'a', { answerType: 'drawing', diagram: SCALE });
@@ -14304,7 +14793,12 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
   const l2 = part(4, 'b', { answerType: 'drawing', diagram: GRID, uses: 'a' });
   const ax = part(25, 'a', { answerType: 'drawing', surface: 'coord', html: '<p>On the axes, draw the graph of y = 2x.</p>' });
   const axUse = part(25, 'b', { uses: 'a', html: '<p>Use the graph to find x when y = 6.</p>', answer: '<b>3</b>' });
-  const LIB = [b, c, cAlone, i6, ii6, f3, f4, sa, sb, sc, sd, l1, l2, ax, axUse];
+  /* TWO PARTS DRAWN ON ONE STEM'S GRID, the second using the first (June 2017 2H Q20: "use your graph", then
+     a tangent on the same curve) -- neither has a figure page of its own any more (337). */
+  const gStem = { id: 'S-USE-20', html: '<p>Here is the graph of y = x&sup2; &minus; 2x.</p>', diagram: GRID };
+  const g20a = part(20, 'a', { answerType: 'drawing', stems: [gStem], html: '<p>Draw a suitable straight line.</p>' });
+  const g20b = part(20, 'b', { answerType: 'drawing', stems: [gStem], uses: 'a', html: '<p>Draw a tangent at P.</p>' });
+  const LIB = [b, c, cAlone, i6, ii6, f3, f4, sa, sb, sc, sd, l1, l2, ax, axUse, g20a, g20b];
   const held = w.stuffItemsAll_, heldItems = w.stuffItems;
   w.stuffItemsAll_ = () => LIB;
   /* AND `stuffItems`, which `questionParts_` reads -- the Figure tile and "not drawn yet" ask it for a
@@ -14321,8 +14815,14 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     const pc = w.pageParts_(c);
     if (JSON.stringify(pc) !== '["stem0","use",null,"ans"]') bad.push('(c) alone has pages ' + JSON.stringify(pc) + ', wanted its opening, then the graph, then its words, then its answer');
     if (w.pageParts_(c, b).indexOf('use') < 0) bad.push('after (b) and (b)\'s answer page, (c) has no page with the graph');
-    const bNoAns = Object.assign({}, b, { answer: '' });
-    if (w.pageParts_(c, bNoAns).indexOf('use') >= 0) bad.push('straight after (b)\'s own figure page, (c) draws the same picture again');
+    /* (b) WITH ITS FIGURE AFTER ITS CARD AND NO ANSWER PAGE: its figure page is the page right before (c).
+       That page held (b)'s pen with the graph on it, and (c) skipped its own; it is the paper's grid with
+       nothing on it now (337), so (c)'s page in front is the only place before (c)'s words the graph is. */
+    const bEnd = Object.assign({}, b, { answer: '', html: b.html + '<!--fig-->' });
+    if (JSON.stringify(w.pageParts_(bEnd).slice(-1)) !== '["fig"]') bad.push('setup: (b) with its figure marked at the end and no answer ends ' + JSON.stringify(w.pageParts_(bEnd)) + ', so the page right after its figure was NOT checked');
+    else if (w.pageParts_(c, bEnd).indexOf('use') < 0) bad.push('straight after (b)\'s own figure page -- the paper\'s grid, no marks on it -- (c) has no page with (b)\'s graph');
+    const bEndFig = el(w.questionFigCard_(bEnd));
+    if (bEndFig.querySelector('.qpad, .qpad-g, .qseen')) bad.push('(b)\'s own figure page carries a pen or (b)\'s own marks -- they are on (b)\'s card, behind Draw');
     const page = el(w.stuffPart_(c, 'use')).querySelector('.qcard');
     if (!page) bad.push('the "use" page draws nothing');
     else {
@@ -14355,20 +14855,26 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     if (paths(benPage, '.qpad-was') !== 0) bad.push('Ben\'s (c) shows Ali\'s graph');
     if (!/Nothing drawn on Q24b yet/.test(benPage.textContent)) bad.push('with nothing drawn on (b), the "use" page does not say so');
     t.USER(ALI);
-    /* ---------- ONE PICTURE, DRAWN ON TWICE: UNDER THE PEN ---------------------------------------------- */
+    /* ---------- ONE PICTURE, DRAWN ON TWICE: UNDER THE PEN, ON THE CARD -------------------------------------
+       The pen is the card's drawing face for the paper's own figure too since 11 Oct (337), so a part's pen
+       is taken from its card switched to its drawing; its figure page is a picture with (i)'s marks on it. */
+    const penOf = x => { w.padFaceSet_(t.padKey(x), 'draw'); return el(w.questionCard_(x)).querySelector('.qp-area.is-draw .qpad'); };
     put(i6, [[170, 40, 170, 40]]);
     put(ii6, [[10, 40, 10, 40]]);
     if (w.pageParts_(ii6).indexOf('use') >= 0) bad.push('(ii), whose own figure is (i)\'s picture, also got a page in front');
-    const padII = el(w.questionFigCard_(ii6)).querySelector('.qpad');
+    const figII = el(w.questionFigCard_(ii6));
+    if (figII.querySelector('.qpad, .qpad-g') || paths(figII.querySelector('.qseen'), '.qpad-was') !== 1) bad.push('(ii)\'s figure page is not its scale with (i)\'s cross on it, read only, and no pen (' + paths(figII.querySelector('.qseen'), '.qpad-was') + ' of (i)\'s marks' + (figII.querySelector('.qpad') ? ', a pen' : '') + ')');
+    const padII = penOf(ii6);
     if (paths(padII, '.qpad-was') !== 1) bad.push('(ii)\'s scale does not carry (i)\'s cross (' + paths(padII, '.qpad-was') + ')');
     if (paths(padII, '.qpad-g') !== 1) bad.push('(ii)\'s own marks are ' + paths(padII, '.qpad-g') + ', wanted its one cross');
     if (!/fainter marks are yours from Q6\(i\)/.test(padII.textContent)) bad.push('(ii)\'s pad does not say the fainter cross is (i)\'s — an Undo that will not take it would look broken');
+    if (!/redrawn\.\s+The fainter marks/.test(padII.textContent)) bad.push('(ii)\'s small print runs the credit into the line about (i)\'s marks: ' + JSON.stringify(((padII.textContent.match(/.{0,24}The fainter marks/) || [''])[0]).replace(/\s+/g, ' ')) + ' -- inline on the card, two sentences need a space between them');
     A['pad-undo'](padII.querySelector('.qpad-undo'));
     if (paths(padII, '.qpad-was') !== 1 || paths(padII, '.qpad-g') !== 0) bad.push('Undo on (ii) did not take (ii)\'s cross alone: ' + paths(padII, '.qpad-was') + ' of (i)\'s left, ' + paths(padII, '.qpad-g') + ' of its own');
     if (JSON.parse(LS.getItem(t.padKey(i6)) || '[]').length !== 1) bad.push('Undo on (ii) changed what (i) stored');
-    if (paths(el(w.questionFigCard_(i6)).querySelector('.qpad'), '.qpad-was') !== 0) bad.push('(i) shows marks from a part that comes after it');
+    if (paths(penOf(i6), '.qpad-was') !== 0) bad.push('(i) shows marks from a part that comes after it');
     LS.removeItem(t.padKey(i6));
-    if (/fainter marks/.test(el(w.questionFigCard_(ii6)).textContent)) bad.push('with nothing on (i), (ii) still says the fainter marks are (i)\'s');
+    if (/fainter marks/.test((penOf(ii6) || {}).textContent || '')) bad.push('with nothing on (i), (ii) still says the fainter marks are (i)\'s');
     /* ---------- ONE PICTURE, LOOKED AT: ON ITS COPY, NO PEN --------------------------------------------- */
     put(f3, [[20, 20, 300, 300]]);
     const fig4 = el(w.questionFigCard_(f4));
@@ -14380,12 +14886,22 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     put(sa, [[10, 10, 10, 10], [20, 20, 20, 20]]);
     put(sb, [[5, 70, 330, 10]]);
     put(sc, [[40, 40, 40, 40]]);
-    if (paths(el(w.questionFigCard_(sb)).querySelector('.qpad'), '.qpad-was') !== 2) bad.push('(b)\'s scatter does not carry (a)\'s points under its pen');
-    if (paths(el(w.questionFigCard_(sc)).querySelector('.qpad'), '.qpad-was') !== 3) bad.push('(c)\'s scatter does not carry (a)\'s points and (b)\'s line under its pen');
+    if (paths(penOf(sb), '.qpad-was') !== 2) bad.push('(b)\'s scatter does not carry (a)\'s points under its pen');
+    if (paths(penOf(sc), '.qpad-was') !== 3) bad.push('(c)\'s scatter does not carry (a)\'s points and (b)\'s line under its pen');
+    if (paths(el(w.questionFigCard_(sc)).querySelector('.qseen'), '.qpad-was') !== 3) bad.push('(c)\'s figure page does not show (a)\'s points and (b)\'s line on it, read only');
     if (paths(el(w.stuffPart_(sd, 'use')).querySelector('.qseen'), '.qpad-was') !== 4) bad.push('(d)\'s page does not carry (a)\'s, (b)\'s and (c)\'s marks together');
+    /* ---------- A STEM'S PEN THAT USES THE PART BEFORE IT: THE PAGE IN FRONT, AND THE MARKS UNDER ITS PEN ------
+       Its pen was on its own copy of the stem's grid, a page after its card, with (a)'s marks under it, and so
+       it had no page in front. That copy went with the pen to the card (337); a card that opens on its box
+       would show the graph it is told to use nowhere -- so it gets the page, as a made-up surface does. */
+    put(g20a, [[20, 20, 300, 300]]);
+    if (w.pageParts_(g20b, g20a).indexOf('use') < 0 || w.pageParts_(g20b, g20a).indexOf('fig') >= 0) bad.push('Q20(b), drawn on the stem\'s grid that (a) drew on, has pages ' + JSON.stringify(w.pageParts_(g20b, g20a)) + ' -- wanted the page with (a)\'s line in front and no figure page of its own');
+    if (paths(el(w.stuffPart_(g20b, 'use')).querySelector('.qseen'), '.qpad-was') !== 1) bad.push('Q20(b)\'s page in front does not show (a)\'s line');
+    const pen20 = penOf(g20b);
+    if (paths(pen20, '.qpad-was') !== 1 || (pen20 && pen20.getAttribute('data-k')) !== t.padKey(g20b)) bad.push('Q20(b)\'s Draw does not show (a)\'s line fainter under its own pen, on its own key');
     /* ---------- A LOOP, AND A PART THAT IS NOT THERE ---------------------------------------------------- */
     put(l1, [[1, 1, 2, 2]]); put(l2, [[3, 3, 4, 4]]);
-    const loop = el(w.questionFigCard_(l1)).querySelector('.qpad');
+    const loop = penOf(l1);
     if (paths(loop, '.qpad-was') !== 1) bad.push('two parts naming each other drew ' + paths(loop, '.qpad-was') + ' earlier marks, wanted the other one\'s and no more');
     if (JSON.stringify(w.pageParts_(cAlone)) !== '[null]') bad.push('a part naming a part that is not there has pages ' + JSON.stringify(w.pageParts_(cAlone)));
   } catch (e) {
@@ -14394,6 +14910,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     w.stuffItemsAll_ = held;
     w.stuffItems = heldItems;
     [ALI, BEN].forEach(u => { t.USER(u); LIB.forEach(x => { try { LS.removeItem(t.padKey(x)); } catch (e) {} }); });
+    try { w.padFaceForget_(); } catch (e) {}
     t.USER(null);
   }
   return bad;
@@ -14601,17 +15118,26 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   }));
   drawAll('');
   /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. Q7's grid is its card's
-     other face now (327): drawn switched to, off and then on, with `Type` in the row under it. */
+     other face (327), and so is Q8's own figure since 11 Oct (337): each drawn switched to, off and then on,
+     with `Type` in the row under it -- Q8's Ruler and Compass are in its bar there now. The figure pages
+     the family drew above, Q8's among them, carry no pen at all (asked below). */
   const q7 = fam.find(f => f.key === 'q:Q-TILES-7');
-  w.padFaceSet_(w.__t.padKey(q7), 'draw');
-  pages.push({ at: q7.row.row_id + '#card, the drawing', html: w.stuffCard(q7, 0) });
-  ['q:Q-TILES-7', 'q:Q-TILES-8'].forEach(k => {
-    const x = fam.find(f => f.key === k);
-    t.padOn(w.__t.padKey ? w.__t.padKey(x) : 'pad:' + k);
-    pages.push({ at: x.row.row_id + (x === q7 ? '#card, pen on' : '#fig, pen on'), html: x === q7 ? w.stuffCard(x, 0) : w.stuffPart_(x, 'fig') });
+  const q8 = fam.find(f => f.key === 'q:Q-TILES-8');
+  [q7, q8].forEach(x => {
+    w.padFaceSet_(w.__t.padKey(x), 'draw');
+    pages.push({ at: x.row.row_id + '#card, the drawing', html: w.stuffCard(x, 0) });
+    t.padOn(w.__t.padKey(x));
+    pages.push({ at: x.row.row_id + '#card, pen on', html: w.stuffCard(x, 0) });
   });
   t.padOn('');
   w.padFaceForget_();
+  /* AND NO FIGURE PAGE CARRIES A PEN -- Q4(a)'s, the stem's and Q8's are pictures to look at (337). */
+  pages.filter(pg => /#(fig|sfig\d+)$/.test(pg.at)).forEach(pg => {
+    const h = w.document.createElement('div');
+    h.innerHTML = pg.html;
+    if (h.querySelector('.qpad, [data-do^="pad-"]')) bad.push(pg.at + ' carries a pen -- a figure page is a picture to look at, and the pen is on the card');
+  });
+  if (!pages.some(pg => pg.at === 'Q-TILES-8#fig')) bad.push('Q8 drew no figure page, so "its figure page carries no pen" was NOT asked');
   /* AND EVERY ANSWER PAGE, SHOWN, then put back. */
   fam.forEach(x => { w.ansShow_(x); pages.push({ at: x.row.row_id + '#ans-shown', html: w.questionAnsCard_(x) }); w.ansHide_(x); });
   const EXEMPT = [
@@ -15184,6 +15710,11 @@ const wdBank_ = () => [
   mpRow_('P-WD', 'Words', 9, '', { html: '<p>Work out <span class="frac"><span class="frac-n">1</span><span class="frac-d">3</span></span> &times; <span class="frac"><span class="frac-n">5</span><span class="frac-d">8</span></span>.</p>' }),
   mpRow_('P-WD', 'Words', 10, '', { html: '<p>Solve 2<sup><i>x</i></sup> = 8. Simplify <sup>72</sup>&frasl;<sub><i>n</i></sub>, <sup><i>t</i></sup>&frasl;<sub>2</sub> and <sup>7.902 &minus; 8</sup>&frasl;<sub><i>x</i></sub>.</p>' }),
   mpRow_('P-WD', 'Words', 11, '', { html: '<p>Is <i>x</i> &lt; 7 when ' + WD_SVG + '<i>x</i> = 3?</p>' }),
+  /* DRAWN ON THE PAPER'S OWN FIGURE, AND ON A STEM'S -- the pen is on the card now (337) and neither has a
+     page of its own pen, but the figure is still the paper's picture, which the email cannot draw. */
+  mpRow_('P-WD', 'Words', 12, '', { html: '<p>Complete the bar chart.</p>', answerType: 'drawing', diagram: WD_SVG }),
+  { id: 'S-WD-13', paper: 'P-WD', paper_id: 'P-WD', q: '13', kind: 'preamble', name: 'Words', html: '<p>Here is a map.</p>', diagram: WD_SVG },
+  mpRow_('P-WD', 'Words', 13, 'a', { html: '<p>Mark the point due North of A.</p>', answerType: 'annotate' }),
 ];
 const WD_ADA = { name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' };
 check('submission: a press carries the question’s own words — its stem above the part, a fraction as 3/4, a power as x², a picture said — and the name a parent reads', async () => {
@@ -15213,7 +15744,7 @@ check('submission: a press carries the question’s own words — its stem above
     if (!box || !btn) bad.push('Q5a was drawn with no answer box or no Check — the Check was NOT pressed');
     else { box.value = '3/8'; A['qp-check'](btn); }
     /* THE REST AS EVERY PRESS GOES — `subRecord_` is what every handler calls. */
-    ['Q5b', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11'].forEach(n => { const x = item(n); if (x) w.subRecord_(ansKey(x), 'an answer', 'sent'); else bad.push(n + ' did not reach the library'); });
+    ['Q5b', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12', 'Q13a'].forEach(n => { const x = item(n); if (x) w.subRecord_(ansKey(x), 'an answer', 'sent'); else bad.push(n + ' did not reach the library'); });
     await wait(150);
     const want = {
       Q5a: 'A bag holds 3 red and 5 blue counters.\n---\nWork out the probability of red.',
@@ -15224,6 +15755,8 @@ check('submission: a press carries the question’s own words — its stem above
       Q9: 'Work out 1/3 × 5/8.',
       Q10: 'Solve 2^x = 8. Simplify 72/n, t/2 and (7.902 − 8)/x.',
       Q11: 'Is x < 7 when x = 3?',
+      Q12: 'Complete the bar chart. (picture on the site)',
+      Q13a: 'Here is a map.\n---\nMark the point due North of A. (picture on the site)',
     };
     const why = {
       Q5a: 'a part under a stem, through a real Check: the scene, a `---` line, then the ask',
@@ -15234,6 +15767,8 @@ check('submission: a press carries the question’s own words — its stem above
       Q9: 'the stacked `.frac` span the library also stores: 1/3 × 5/8, not 13 × 58',
       Q10: 'an italic index and fractions with an italic half: 2^x, not 2x; 72/n, not ^72⁄n; t/2, not ^t/2; a two-term numerator bracketed',
       Q11: 'a less-than kept, and a drawing inside the sentence dropped',
+      Q12: 'drawn on its own figure, the pen on the card since 337: still "(picture on the site)", the figure is the paper\'s',
+      Q13a: 'drawn on its stem\'s map, which is the stem\'s page and no page of the part\'s own since 337: still "(picture on the site)"',
     };
     Object.keys(want).forEach(n => {
       const x = item(n), got = x && sentFor(x.key);
@@ -20268,9 +20803,10 @@ check('multipart: Saved and Spotlight draw a question\'s opening and its figure 
 /* FINDING 9, AFTER THE TILE WENT. The multi-part audit found the ↓ tile's note saying "next page" over a
    figure, and a drawing page with no way on from it. The owner, 8 Oct: *"there doesnt need to be a scroll
    down tile on questions"* -- so the answer is a swipe, and what has to be right is the strip itself: the
-   answer straight after the card, or after the drawing page where the child finishes, and no page of a
-   question carrying a tile that turns for you. */
-check('multipart: the answer is a swipe after the card -- after the drawing page where there is one -- and no page carries a tile to it', async () => {
+   answer straight after the card -- or after a figure the paper prints after the words; there is no
+   drawing page any more (327, 337: the drawing is the card's other face) -- and no page of a question
+   carrying a tile that turns for you. */
+check('multipart: the answer is a swipe after the card -- after a figure printed after it, where there is one -- and no page carries a tile to it', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
@@ -20288,7 +20824,10 @@ check('multipart: the answer is a swipe after the card -- after the drawing page
   [[plain, '[null,"ans"]', 'a card whose answer is the next page'],
    /* THE GRID IS THE CARD'S OTHER FACE NOW, NOT A PAGE BETWEEN IT AND ITS ANSWER (327). */
    [grid, '[null,"ans"]', 'a card answered on a grid, the grid on the card itself'],
-   [front, '["fig",null,"ans"]', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
+   [front, '["fig",null,"ans"]', 'a card whose figure stands in front of it'],
+   /* AND ONE DRAWN ON ITS OWN FIGURE: no drawing page between the card and its answer since 337 -- the
+      figure stands in front, as any part's, and the pen is the card's other face. */
+   [q('4', { answerType: 'drawing', diagram: MP_SVG }), '["fig",null,"ans"]', 'a card drawn on its own figure, the pen on the card itself']].forEach(([x, want, what]) => {
     const got = JSON.stringify(w.pageParts_(x));
     if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want + ' -- the answer the swipe after the last page the child works on');
     /* AND NOTHING ON ANY OF ITS PAGES TURNS FOR YOU. */

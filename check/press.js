@@ -151,7 +151,9 @@ const ACCEPTED_QUIET = {
                     + 'the paper and the screen rightly stays as it was — check-flow presses it with the paper showing.' },
   /* IT CAME OFF THIS LIST ONCE, WITH THE STATE THAT REACHED IT. The "carry on" block was deleted
      and nothing pressed `pad-clear` again, so the entry would have been a written reason with
-     nothing behind it. `stuff · a diagram you can draw on` reaches it again. */
+     nothing behind it. `stuff · a diagram you can draw on` reached it again; that state went when the pen
+     moved from the figure page to the card (docs/history/337), and the Find states still reach it -- the
+     run names the one it pressed it on. */
   'pad-clear': { why: 'nothing has been drawn on the pad, so this writes an empty list over an '
                     + 'empty list — the same refusal as an empty box, and the same right one.' },
 
@@ -1275,7 +1277,12 @@ for (const who of VISITORS) {
     {
       const PEN_PAPER = 'RS1786302107764-481';         // May 2017 Foundation, Q6(i): annotate a scale
       const PEN_ROW = 'Q-1MA1-1706-1F-6i';
-      const box = await page.evaluate(async a => {
+      /* ---------- ITS CARD, AND THE SCALE THROUGH THE CARD'S OWN `Draw`, TOUCHED -------------------------
+         THIS TURNED TO THE FIGURE PAGE, where the pen was. Since 11 Oct the pen is the card's other face for
+         the paper's own figures too (docs/history/337) and the figure page is a picture with no pen, so the
+         card is opened on its box and its `Draw` tile is touched as a finger touches it -- a real tap, for
+         `PRESS_MOVED`'s reason below -- and the five gestures are asked of the face that comes up. */
+      const draw = await page.evaluate(async a => {
         if (typeof stuffFiltered !== 'function') return null;
         go('stuff', false, true);
         STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: a.paper }];
@@ -1283,10 +1290,18 @@ for (const who of VISITORS) {
         await new Promise(r => setTimeout(r, 500));
         const hit = stuffFiltered().find(x => x.row && x.row.row_id === a.row);
         if (!hit) return null;
-        /* ITS FIGURE PAGE, the one after the question: the pen moved with the picture. */
-        goPage('stuff', stuffPageOf_(hit, 'fig') + stuffFirstResult_(), true);
-        window.__penSel = '#s-stuff .qfig .qpad[data-k="' + padKey_(hit) + '"]';
+        padFaceSet_(padKey_(hit), 'type');
+        goPage('stuff', stuffPageOf_(hit) + stuffFirstResult_(), true);
+        window.__penSel = '#s-stuff .qp-area.is-draw .qpad[data-k="' + padKey_(hit) + '"]';
+        window.__penKey = hit.key;
         await new Promise(r => setTimeout(r, 650));
+        const t = [...document.querySelectorAll('#s-stuff .page.on .q-drawt')].find(b => b.getAttribute('data-key') === hit.key);
+        if (!t) return null;
+        const r = t.getBoundingClientRect();
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+      }, { paper: PEN_PAPER, row: PEN_ROW });
+      if (draw) { await touch(draw.x, draw.y, 0, 0); await page.waitForTimeout(450); }
+      const box = !draw ? null : await page.evaluate(async () => {
         /* ---------- `.qpad-lock`, BECAUSE THE PICTURE CARRIES THE SAME ACTION NOW ------------
            THIS WAS `[data-do="pad-draw"]` AND IT STOPPED BEING UNAMBIGUOUS. `padWrap_` puts the
            action on `.qpad-art` while the pen is off — the second door, and the one a finger
@@ -1306,11 +1321,11 @@ for (const who of VISITORS) {
                  ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
                         w: Math.round(r.width), h: Math.round(r.height) },
                  btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
-      }, { paper: PEN_PAPER, row: PEN_ROW });
+      });
       if (!box || box.ink.w < 80) {
         swipes.push({ from: 'stuff · the pen on a diagram', dir: 'touch across', ok: false,
-                      got: box ? 'the pad was ' + box.ink.w + 'px wide' : 'no pad on that card',
-                      want: 'a question card carrying a pad' });
+                      got: box ? 'the pad was ' + box.ink.w + 'px wide' : (draw ? 'touching Draw brought no pen over the figure on that card' : 'no Draw tile on that card'),
+                      want: 'a question card whose Draw brings its figure under the pen' });
       } else {
         /* A TAP IS `touch(x, y, 0, 0)` AND NOT `el.click()`. The stroke below sets `PRESS_MOVED`,
            and a synthetic click cannot clear it because nothing sent a `pointerdown` first -- so
@@ -1335,6 +1350,21 @@ for (const who of VISITORS) {
             return 'a swipe beginning on the picture did not change column — it landed on ' + r2.at;
           await page.evaluate(x => go(x, false, true), 'stuff');
           await page.waitForTimeout(420);
+          /* AND MEASURED AGAIN, because coming back places the column afresh. The card grew when Draw
+             turned it to its drawing and the column is not re-placed for that (the card keeps its top,
+             so nothing under the finger jumps); arriving back at Find centres it for the height it has
+             now -- measured, the scale 31px higher than before the swipe at 390x844 -- and a stroke
+             aimed at the old box started below the ink, on the card, where a drag turns the column. */
+          const again = await page.evaluate(() => {
+            const pad = document.querySelector(window.__penSel);
+            const ink = pad && pad.querySelector('.qpad-ink'), btn = pad && pad.querySelector('.qpad-lock');
+            if (!ink || !btn) return null;
+            const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
+            return { ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), h: Math.round(r.height) },
+                     btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
+          });
+          if (!again) return 'coming back to Find, the card was no longer on its drawing';
+          box.ink = again.ink; box.btn = again.btn;
           return '';
         })();
         swipes.push({ from: 'stuff · a swipe beginning on the picture', dir: 'touch left',
@@ -1384,6 +1414,8 @@ for (const who of VISITORS) {
           }
         }
       }
+      /* THE CARD BACK ON ITS BOX FOR WHATEVER IS PRESSED NEXT, and nothing of this one left on the device. */
+      await page.evaluate(() => { try { padFaceForget_(); } catch (e) {} go('stuff', false, true); });
     }
 
     /* ==================================================================================================
@@ -1573,6 +1605,128 @@ for (const who of VISITORS) {
         swipes.push({ from: W_ + ', locked', dir: 'touch across', ok: a.at === 'tools' && a.page === b.page && a.strokes === 1,
                       got: a.at + ' page ' + a.page + ', ' + a.strokes + ' stroke(s) kept', want: 'tools page ' + b.page + ', 1 stroke(s) kept' });
         await tp.evaluate(k => { try { localStorage.removeItem(k); } catch (e) {} PAD_ON = ''; }, b.k);
+      }
+      await ctx.close();
+    }
+
+    /* ---------- AND A FIGURE UNDER THE PEN ON A PHONE ON ITS SIDE, WHERE IT WAS A FEW PIXELS WIDE --------------
+       FOUND BY THE REVIEW OF 337. Every pen is on its card since 11 Oct (docs/history/337), and `padFaceFit_`
+       had a rule to keep the picture, its bar and `Type` on the glass together, even past the picture's
+       180px floor. On a phone held upright it moved three cards a pixel; turned on its side the pane is
+       about 350px tall and the rule took the pictures down to nothing: the transformations stem 88px wide
+       at 844x390 (axis numbers 3.4px), June 2024 1F Q7's grid 82px at 568x320 and 4px at 568x240, and
+       327's made-up grid on 1F Q11c from 141px to 111 -- while every check passed, because every check here
+       measured a phone held upright. The rule is gone: a picture is never drawn under the floor (or under
+       the size the stylesheet gave it, a made-up grid's `44svh` cap), the card scrolls, and it opens with
+       the picture's top at the top of the pane rather than its foot, where four graphs under a pen would
+       be their bottom halves.
+       So, in a phone-shaped context at both sizes the board above is measured at: the tallest paper figure
+       (it has numbers in it), the paper's own blank grid and a made-up blank space, each opened on its box,
+       its `Draw` touched as a finger touches it, and then
+         the picture at least `PAD_FACE_FLOOR` wide, or the width the stylesheet gave it where that is less
+         the ink layer exactly over the picture, to the pixel -- found by the same review's sweep: at the made-up
+           grid's `44svh` cap its box stayed 300px wide round a 141px grid, so a mark made on its side was
+           stored against the wrong box (`.qpad-art:has(> svg.qsurf)` in style.css)
+         every tile of the pen's bar and the row under the card a 44px square -- nothing drawn smaller whole
+         the picture's top inside the pane as it opens
+         and the pane scrolled to its foot (the card scrolls when it does not fit): `Type` inside the pane,
+           a press at its centre landing on it, and a real tap on it bringing the box back
+       Proved by mutation: with the "glass" rule back, five of the six are under their floor; with the card
+       opened at its foot again, four have the picture's top above the pane; without the box held to the
+       capped grid, Q11c's ink is 152px off it at 568x320 and 128 at 844x390. */
+    for (const [sw, sh] of [[568, 320], [844, 390]]) {
+      const ctx = await browser.newContext({ viewport: { width: sw, height: sh }, hasTouch: true, isMobile: true });
+      const tp = await ctx.newPage();
+      tp.on('pageerror', e => raw.push('window: ' + String(e.message).slice(0, 140)));
+      await tp.addInitScript(u => { try { localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} }, VISITORS[0].user);
+      await tp.addInitScript(GUARDS);
+      await tp.route('**://script.google.com/**', r =>
+        r.fulfill({ status: 200, contentType: 'application/json', body: FIXTURE }));
+      await tp.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'domcontentloaded' });
+      /* THE LIBRARY IN, not a guess at when: the three rows are in `data/questions.json`, which lands after the
+         payload. */
+      await tp.waitForFunction(() => typeof LOADED !== 'undefined' && LOADED && typeof stuffItemsAll_ === 'function'
+        && stuffItemsAll_().some(x => x.row && x.row.row_id === 'Q-1CM-transformations-of-graphs-8'), null, { timeout: 60000 }).catch(() => {});
+      await tp.waitForTimeout(600);
+      const tc = await ctx.newCDPSession(tp);
+      const tap = async (x, y) => {
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        await tc.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await tp.waitForTimeout(520);
+      };
+      for (const id of ['Q-1CM-transformations-of-graphs-8', 'Q-1MA1-2406-1F-7', 'Q-1MA1-2406-1F-11c']) {
+        const W_ = 'stuff · ' + id + ' switched to its drawing at ' + sw + 'x' + sh;
+        /* ITS CARD, ON ITS BOX, AND ITS `Draw` WHERE A FINGER CAN SEE IT -- a box face too tall for a short pane
+           scrolls, and a child scrolls to the tile before pressing it. */
+        const t = await tp.evaluate(async id => {
+          const it = stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+          if (!it || !padSource_(it)) return { err: 'not in the library, or no pen' };
+          window.__side = it;
+          go('stuff', false, true);
+          padFaceSet_(padKey_(it), 'type');
+          STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: FACETS.find(f => f.field === 'paperId').of(it) }];
+          paintStuff(true);
+          goPage('stuff', stuffFirstResult_() + stuffPageOf_(it), true);
+          let tile = null;
+          for (let i = 0; i < 60 && !tile; i++) {
+            await new Promise(r => setTimeout(r, 100));
+            tile = [...document.querySelectorAll('#s-stuff .page.on .q-drawt')].find(b => b.getAttribute('data-key') === it.key) || null;
+          }
+          if (!tile) return { err: 'no Draw tile on its card' };
+          await new Promise(r => setTimeout(r, 400));
+          const pane = tile.closest('.pane');
+          const below = tile.getBoundingClientRect().bottom - pane.getBoundingClientRect().bottom;
+          if (below > 0) { pane.scrollTop += below + 8; await new Promise(r => setTimeout(r, 120)); }
+          const r = tile.getBoundingClientRect();
+          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+        }, id);
+        if (t.err) { swipes.push({ from: W_, dir: 'tap Draw', ok: false, got: t.err, want: 'its card with a Draw tile' }); continue; }
+        await tap(t.x, t.y);
+        await tp.waitForTimeout(300);
+        const m = await tp.evaluate(() => {
+          const it = window.__side;
+          const area = [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(a => a.getAttribute('data-q') === it.key);
+          if (!area || !area.classList.contains('is-draw')) return { err: 'touching Draw did not turn the card' };
+          const pane = area.closest('.pane');
+          const art = area.querySelector('.qpad-art > svg:first-child');
+          const tile = [...area.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+          const was = art.style.width; art.style.width = '';
+          const nat = art.getBoundingClientRect().width; art.style.width = was;
+          const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
+          const taps = [...area.querySelectorAll('.qpad-bar [data-do]')].concat(tile ? [tile] : []);
+          const pr = pane.getBoundingClientRect(), fr = art.getBoundingClientRect();
+          const ir = area.querySelector('.qpad-ink').getBoundingClientRect();
+          const out = { w: Math.round(fr.width), nat: Math.round(nat), small: Math.round(Math.min(...taps.map(side)) * 10) / 10,
+                        inkOff: Math.round(Math.max(Math.abs(ir.left - fr.left), Math.abs(ir.top - fr.top), Math.abs(ir.width - fr.width), Math.abs(ir.height - fr.height))),
+                        whole: [...pane.children].some(k => !!k.style.zoom), top: Math.round(fr.top - pr.top),
+                        topIn: fr.top >= pr.top - 0.5 && fr.top < pr.bottom,
+                        over: pane.scrollHeight - pane.clientHeight, scrolls: getComputedStyle(pane).overflowY === 'auto' };
+          /* AND THE FOOT: `Type` reached by scrolling, as a finger beside the picture would. */
+          pane.scrollTop = pane.scrollHeight;
+          const tr = tile ? tile.getBoundingClientRect() : null, pr2 = pane.getBoundingClientRect();
+          const hit = tr && document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height / 2);
+          out.typeIn = !!tr && tr.top >= pr2.top - 0.5 && tr.bottom <= pr2.bottom + 0.5 && !!hit && tile.contains(hit);
+          if (tr) { out.tx = Math.round(tr.left + tr.width / 2); out.ty = Math.round(tr.top + tr.height / 2); }
+          return out;
+        });
+        if (m.err) { swipes.push({ from: W_, dir: 'tap Draw', ok: false, got: m.err, want: 'the card on its drawing' }); continue; }
+        let back = false;
+        if (m.typeIn) {
+          await tap(m.tx, m.ty);
+          back = await tp.evaluate(() => {
+            const a = [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === window.__side.key);
+            return !!a && !a.classList.contains('is-draw') && !!a.querySelector('.qp-ans');
+          });
+        }
+        const floor = Math.min(180, m.nat);
+        swipes.push({ from: W_, dir: 'tap Draw, then Type', ok: m.w >= floor - 0.5 && m.inkOff <= 1 && m.small >= 43.5 && !m.whole && m.topIn
+                        && (m.over <= 2 || m.scrolls) && m.typeIn && back,
+                      got: 'the picture ' + m.w + 'px wide (its own ' + m.nat + 'px)' + (m.inkOff > 1 ? ', the ink ' + m.inkOff + 'px off it' : ', the ink over it') + ', the smallest tile ' + m.small + 'px'
+                           + (m.whole ? ', the card drawn smaller whole' : '') + ', its top ' + m.top + 'px into the pane'
+                           + (m.over > 2 ? ', the card ' + m.over + 'px over and ' + (m.scrolls ? 'scrolling' : 'NOT scrolling') : '')
+                           + (m.typeIn ? (back ? ', Type at the foot brought the box back' : ', Type at the foot did not bring the box back') : ', Type not reachable at the foot'),
+                      want: 'the picture at least ' + floor + 'px wide with the ink over it, every tile 44px, its top in the pane as it opens, and Type at the foot bringing the box back' });
+        await tp.evaluate(() => { try { padFaceForget_(); } catch (e) {} STUFF.filters = []; paintStuff(true); });
       }
       await ctx.close();
     }
