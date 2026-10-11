@@ -2244,7 +2244,9 @@ const CARD_ADA_ = { headline: 'Maths, mostly', rate_per_hour: 20, extra_seat_rat
   /* A PHOTOGRAPH LINK FOR A FACE — the one kind of picture `savePhoto` cannot write back, so Cancel putting
      it back is a real test of the door it uses (`card-cancel`, me.js). */
   photo: 'https://example.org/ada.jpg' };
-const cardWorld_ = () => {
+/* `more.people`: extra rows on the people tab, made by the same `P` — the review of 339 seats a parent who shares
+   a listed tutor's name beside her. */
+const cardWorld_ = (more) => {
   const real = require('./check-gas-load.js').backend();
   const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London' };
   const P = (id, first, last, role, email, more) => Object.assign({ person_id: id, first_name: first, last_name: last,
@@ -2257,7 +2259,7 @@ const cardWorld_ = () => {
     P('P-T2', 'Ben', 'Teacher', 'tutor', 'ben@example.org', { headline: 'Physics, mostly', rate_per_hour: 22, availability: 'sa10', photo: 'pfp:fox' }),
     P('P-C1', 'Pat', 'Parent', 'client', 'parent@example.org'),
     P('P-S1', 'Sam', 'Student', 'student', 'student@example.org'),
-  ]);
+  ].concat(((more && more.people) || []).map(a => P.apply(null, a))));
   real.seed('venues', [
     { name: 'Colliers Wood Library', postcode: 'SW19 2HR', lat: 51.418, lng: -0.178, tutors_happy_here: 'P-T1' },
     { name: 'Mitcham Library', postcode: 'CR4 2YR', lat: 51.402, lng: -0.166 },
@@ -3016,6 +3018,286 @@ check('your figure dressed on your own card\'s Edit is the figure your picture d
   return bad;
 });
 
+/* ---------- THE REVIEW OF docs/history/339: WHAT ONE FORM FOR THE HANDLE, THE FIGURE AND THE BOXES COST ------------------
+   Randomise, the wardrobe and the typed boxes were on three different Settings pages; on your own card's Edit they are
+   one form under one Save and one Cancel, and the review found five ways they trod on each other. Each journey below
+   was red on the build the review read, through the real `doPost` (check-gas-load.js), and each says what it found. */
+
+/* SAVE WHILE RANDOMISE IS OUT. `send_` locked the nearest `.me-form` — the whole card — and Save, under the form and
+   live, read it through `cardFormVals_`, which skips a disabled box: "Nothing had changed", the card shut, its draft
+   dropped, and the typed field never sent. Measured for a parent (her surname; her first name is the next journey's)
+   and a tutor (the headline). Randomise locks its own section now, and Save waits for it in words. */
+check('review 339: Save pressed while Randomise is on the wire waits in words and keeps the typing, and once it lands Save posts what was typed', async () => {
+  const bad = [];
+  for (const [who, pid, f, v] of [['parent@example.org', 'P-C1', 'last_name', 'Parenti'], ['tutor@example.org', 'P-T1', 'headline', 'Algebra, mostly']]) {
+    const W = cardWorld_();
+    let release = null;
+    const reply = b => (b.action === 'randomiseHandle' ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.reply(b));
+    const c = await cardOpen_(W, who, { reply });
+    if (c.err) { bad.push(who + ': ' + c.err); continue; }
+    const e = c.edit(pid);
+    if (!e) { bad.push(who + ' has no Edit on their own card — NOT checked'); continue; }
+    c.A('card-edit', e);
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    if (!c.box(f)) { bad.push(who + '\'s card form has no ' + f + ' box — NOT checked'); continue; }
+    c.type(c.box(f), v);
+    c.sent.length = 0;
+    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+    await wait(150);
+    if (!release) { bad.push(who + '\'s Randomise sent ' + JSON.stringify(c.sent.map(x => x.action)) + ' — NOT checked'); continue; }
+    if (c.box(f).disabled) bad.push(who + '\'s ' + f + ' box is locked while Randomise is out — only the handle section should be');
+    c.A('card-save', c.tile('card-save'));
+    await wait(300);
+    if (!c.form()) bad.push(who + '\'s Save shut the card while Randomise was out (toast ' + JSON.stringify(c.toast()) + ')');
+    if (c.posts().length) bad.push(who + '\'s Save posted while Randomise was out: ' + JSON.stringify(c.posts().map(x => x.fields)));
+    if (!/handle is still changing/.test(c.toast())) bad.push(who + '\'s Save said ' + JSON.stringify(c.toast()) + ', not that the handle is still changing');
+    if (!c.drafts().length) bad.push(who + '\'s card draft was dropped by a Save that saved nothing');
+    release();
+    for (let k = 0; k < 30 && String(W.real.row(pid).handle) === String(c.u.handle); k++) await wait(100);
+    await wait(200);
+    if (!c.form() || !c.box(f) || c.box(f).value !== v) { bad.push(who + '\'s typed ' + f + ' is not on the card after Randomise landed (' + JSON.stringify(c.box(f) && c.box(f).value) + ')'); continue; }
+    c.sent.length = 0;
+    c.A('card-save', c.tile('card-save'));
+    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+    const posts = c.posts();
+    if (posts.length !== 1 || JSON.stringify(posts[0].fields) !== JSON.stringify({ [f]: v })) bad.push(who + '\'s Save after Randomise posted ' + JSON.stringify(posts.map(x => x.fields)) + ', wanted one updateProfile with ' + f + ' alone');
+    if (String(W.real.row(pid)[f]) !== v) bad.push(who + '\'s sheet holds ' + f + ' ' + JSON.stringify(String(W.real.row(pid)[f])) + ', typed ' + JSON.stringify(v));
+  }
+  return bad;
+});
+
+/* RANDOMISE WITH A FIRST NAME TYPED AND NOT SAVED. The server makes the handle from the name on the sheet, so the new
+   handle was the OLD name's — `pat_humble98` for somebody now called Quinn. Refused before it is sent, on the line under
+   the tile; saved first, the next press is made from the new name. */
+check('review 339: Randomise waits for a first name typed and not saved, says why, and after Save makes the handle from the new name', async () => {
+  const W = cardWorld_();
+  const reply = b => (b.action === 'randomiseHandle' ? W.real.post(b) : W.reply(b));
+  const c = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  c.A('card-edit', c.edit('P-C1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  if (!c.box('first_name')) return ['Pat\'s card has no first name box — NOT checked'];
+  c.type(c.box('first_name'), 'Quinn');
+  c.sent.length = 0;
+  const tile = () => c.form().querySelector('[data-do="handle-shuffle"]');
+  c.A('handle-shuffle', tile());
+  await wait(300);
+  if (c.sent.some(x => x.action === 'randomiseHandle')) bad.push('Randomise posted with "Quinn" typed and Pat on the sheet — the handle would be made from the old name');
+  const line = String((c.form().querySelector('.handle-said') || {}).textContent || '');
+  if (!/Save your new first name first/.test(line)) bad.push('the line under Randomise says ' + JSON.stringify(line) + ', not to save the new name first');
+  if (c.box('first_name').value !== 'Quinn') bad.push('the typed first name went: ' + JSON.stringify(c.box('first_name').value));
+  /* SAVED, AND EDIT AGAIN: now Randomise posts, and the handle starts with the new name. */
+  c.A('card-save', c.tile('card-save'));
+  for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+  if (String(W.real.row('P-C1').first_name) !== 'Quinn') return bad.concat(['Save did not write Quinn (' + JSON.stringify(W.real.row('P-C1').first_name) + ') — the second half was NOT checked']);
+  c.A('card-edit', c.edit('P-C1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  c.sent.length = 0;
+  c.A('handle-shuffle', tile());
+  for (let k = 0; k < 30 && !/quinn/.test(String(W.real.row('P-C1').handle)); k++) await wait(100);
+  if (!/quinn/.test(String(W.real.row('P-C1').handle))) bad.push('after the name was saved, Randomise made ' + JSON.stringify(W.real.row('P-C1').handle) + ', not a handle from Quinn');
+  return bad;
+});
+
+/* A FIGURE NOBODY DRESSED IS DRAWN FROM THE HANDLE, so Randomise changed its skin and hair colour (it did on the
+   base commit too, on another page); and Cancel after a Randomise and a pick rebuilt the blank opening look under the
+   NEW handle — another face, under "Put back as it was". Asked of what is DRAWN (`avatarConfig` of the cell under
+   the handle), on the phone and on the sheet, because other phones draw this person from the sheet. */
+check('review 339: Randomise keeps the face of a figure nobody dressed, and Cancel after Randomise and a pick puts back the face the card opened with', async () => {
+  const bad = [];
+  /* EACH HALF ON A FRESH SHEET, so each opens on a look nobody chose — after the first half's Randomise the look is
+     written out, and a Cancel that put a blank look back under the wrong handle would no longer show. */
+  const half = async (who, pid, pick) => {
+    const W = cardWorld_();
+    const reply = b => (['randomiseHandle', 'saveAvatar'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+    const c = await cardOpen_(W, who, { reply });
+    if (c.err) { bad.push(who + ': ' + c.err); return; }
+    if (String(W.real.row(pid).avatar || '')) { bad.push(who + ' starts with a look of their own — NOT the case asked about'); return; }
+    const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
+    const me = () => c.t.whoami();
+    const face0 = drawn(me().avatar, me().handle || me().name);
+    const sheetFace = () => drawn(W.real.row(pid).avatar, W.real.row(pid).handle);
+    c.A('card-edit', c.edit(pid));
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    const was = String(W.real.row(pid).handle);
+    c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+    for (let k = 0; k < 30 && String(W.real.row(pid).handle) === was; k++) await wait(100);
+    await wait(400);
+    if (String(W.real.row(pid).handle) === was) { bad.push(who + '\'s Randomise wrote nothing — NOT checked'); return; }
+    if (!pick) {
+      if (drawn(me().avatar, me().handle) !== face0) bad.push(who + '\'s face on the phone changed with the handle: ' + face0 + ' → ' + drawn(me().avatar, me().handle));
+      if (sheetFace() !== face0) bad.push(who + '\'s face on the sheet changed with the handle (what everybody else draws): ' + face0 + ' → ' + sheetFace());
+    } else {
+      const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="3"]');
+      if (!sw) { bad.push(who + '\'s figure section has no shirt 3 — NOT checked'); return; }
+      c.A('av-colour', sw);
+      await wait(400);
+    }
+    /* CANCEL: after a Randomise alone, nothing to put back and nothing sent; after a pick, the face it opened with. */
+    c.sent.length = 0;
+    c.A('card-cancel', c.tile('card-cancel'));
+    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+    await wait(300);
+    if (!pick && c.sent.some(x => x.action === 'saveAvatar')) bad.push(who + '\'s Cancel after a Randomise alone sent a saveAvatar — the face had not changed');
+    if (drawn(me().avatar, me().handle) !== face0) bad.push(who + '\'s Cancel' + (pick ? ' after Randomise and a pick' : '') + ' left the phone drawing ' + drawn(me().avatar, me().handle) + ', opened with ' + face0);
+    if (sheetFace() !== face0) bad.push(who + '\'s Cancel' + (pick ? ' after Randomise and a pick' : '') + ' left the sheet drawing ' + sheetFace() + ', opened with ' + face0);
+    if (pick && !/figure too/.test(c.toast())) bad.push(who + '\'s Cancel said ' + JSON.stringify(c.toast()));
+  };
+  for (const [who, pid] of [['parent@example.org', 'P-C1'], ['tutor@example.org', 'P-T1']]) {
+    await half(who, pid, false);
+    await half(who, pid, true);
+  }
+  return bad;
+});
+
+/* CANCEL WHILE A PICK IS OUT. `saveAvatar` takes no lock, so the pick and Cancel's put-back were two writes of one cell
+   and the last to finish won: held so the pick finished last, the sheet wore the shirt Cancel said it took off. The
+   picture's guard, for the figure: Cancel waits, in words, and once the pick has landed puts the look back. */
+check('review 339: Cancel pressed while a wardrobe pick is on the wire waits for it in words, and then puts the look back', async () => {
+  const W = cardWorld_();
+  let release = null, n = 0;
+  const reply = b => (b.action === 'saveAvatar' ? (n++ === 0 ? new Promise(ok => { release = () => ok(W.real.post(b)); }) : W.real.post(b)) : W.reply(b));
+  const c = await cardOpen_(W, 'student@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
+  const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  c.A('card-edit', c.edit('P-S1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
+  if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
+  c.A('av-colour', sw);
+  await wait(100);
+  if (!release) return ['the pick sent no saveAvatar — NOT checked'];
+  c.sent.length = 0;
+  c.A('card-cancel', c.tile('card-cancel'));
+  await wait(300);
+  if (c.sent.some(x => x.action === 'saveAvatar')) bad.push('Cancel sent its put-back beside the pick still on the wire: ' + JSON.stringify(c.sent.filter(x => x.action === 'saveAvatar').map(x => x.avatar && x.avatar.shirt)));
+  if (!c.card()) bad.push('Cancel shut the card with a pick still on the wire');
+  if (!/figure is still saving/.test(c.toast())) bad.push('Cancel said ' + JSON.stringify(c.toast()) + ', not that the figure is still saving');
+  /* THE PICK FINISHES LAST, as it did in the review — and then Cancel, if the card is still open to press it on. */
+  release();
+  await wait(400);
+  if (c.tile('card-cancel')) {
+    c.sent.length = 0;
+    c.A('card-cancel', c.tile('card-cancel'));
+    for (let k = 0; k < 30 && c.card(); k++) await wait(100);
+    await wait(200);
+    const back = c.sent.filter(x => x.action === 'saveAvatar');
+    if (back.length !== 1 || Number(back[0].avatar && back[0].avatar.shirt) !== 0) bad.push('Cancel after the pick landed sent ' + JSON.stringify(back.map(x => x.avatar)) + ', wanted one put-back in shirt 0');
+  }
+  const sheet = drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle);
+  if (sheet !== open) bad.push('after Cancel the sheet draws ' + sheet + ', opened with ' + open);
+  if (drawn(c.t.whoami().avatar, c.t.whoami().handle) !== open) bad.push('after Cancel the phone draws ' + drawn(c.t.whoami().avatar, c.t.whoami().handle));
+  return bad;
+});
+
+/* SAVE WITH NOTHING TYPED, AFTER A SECTION SAVED ITSELF. "Nothing had changed" after a Randomise, a pick or a picture
+   read as if the press had been thrown away — and for a parent three of her four sections are those. */
+check('review 339: Save with nothing typed after a Randomise, a pick or a picture says what was saved, not "Nothing had changed"', async () => {
+  const W = cardWorld_();
+  const reply = b => (['randomiseHandle', 'saveAvatar', 'savePhoto'].indexOf(b.action) !== -1 ? W.real.post(b) : W.reply(b));
+  const c = await cardOpen_(W, 'parent@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  const open = async () => { c.A('card-edit', c.edit('P-C1')); for (let k = 0; k < 30 && !c.form(); k++) await wait(100); return !!c.form(); };
+  const save = async () => { c.A('card-save', c.tile('card-save')); for (let k = 0; k < 30 && c.card(); k++) await wait(100); return c.toast(); };
+  if (!(await open())) return ['Pat\'s card did not open — NOT checked'];
+  const was = String(W.real.row('P-C1').handle);
+  c.A('handle-shuffle', c.form().querySelector('[data-do="handle-shuffle"]'));
+  for (let k = 0; k < 30 && String(W.real.row('P-C1').handle) === was; k++) await wait(100);
+  await wait(300);
+  let said = await save();
+  if (/Nothing had changed/.test(said) || !/handle was saved/.test(said)) bad.push('Save after a Randomise said ' + JSON.stringify(said));
+  if (!(await open())) return bad.concat(['Pat\'s card did not open again — NOT checked']);
+  const sw = c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="5"]');
+  const fox = c.form().querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
+  if (!sw || !fox) return bad.concat(['no shirt 5 or no fox on Pat\'s form — NOT checked']);
+  c.A('av-colour', sw);
+  c.A('pfp-choose', fox);
+  for (let k = 0; k < 30 && String(W.real.row('P-C1').photo) !== 'pfp:fox'; k++) await wait(100);
+  await wait(300);
+  said = await save();
+  if (!/picture and figure were saved/.test(said)) bad.push('Save after a pick and a picture said ' + JSON.stringify(said));
+  if (!(await open())) return bad.concat(['Pat\'s card did not open a third time — NOT checked']);
+  said = await save();
+  if (!/Nothing had changed/.test(said)) bad.push('Save with nothing done at all said ' + JSON.stringify(said));
+  return bad;
+});
+
+/* THE LOOK AND THE CREDITS THE CARD OPENED WITH SURVIVE A RELOAD. The look did (`fig`), and no journey asked it: the
+   write or the read of it could go and the suite stayed green. The credits did not: a reload mid-edit lost the line
+   that says something bought is still yours. Played here as a phone that kept fewer credits than the card opened
+   with — what a purchase leaves — and a shirt to put back. */
+check('review 339: after a reload mid-edit, Cancel still puts the opening look back, and still says that anything bought is yours', async () => {
+  const W = cardWorld_();
+  const reply = b => (b.action === 'saveAvatar' ? W.real.post(b) : W.reply(b));
+  const c = await cardOpen_(W, 'student@example.org', { reply });
+  if (c.err) return [c.err];
+  const bad = [];
+  const drawn = (cell, handle) => JSON.stringify(c.w.avatarConfig(cell, handle));
+  c.t.whoami().credits = 50;
+  const open = drawn(c.t.whoami().avatar, c.t.whoami().handle);
+  c.A('card-edit', c.edit('P-S1'));
+  for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+  const sw = c.form() && c.form().querySelector('.ce-sec[data-sec="figure"] [data-do="av-colour"][data-field="shirt"][data-value="4"]');
+  if (!sw) return ['Sam\'s figure section has no shirt 4 — NOT checked'];
+  c.A('av-colour', sw);
+  /* THE PICK ANSWERED AND KEPT ON THE PHONE — what a reload starts from — not merely written on the sheet. */
+  const keptLook = () => { try { return String(JSON.parse(c.w.localStorage.getItem('familyUser')).avatar || ''); } catch (e) { return ''; } };
+  for (let k = 0; k < 50 && !(/shirt:4/.test(String(W.real.row('P-S1').avatar)) && /shirt:4/.test(keptLook())); k++) await wait(100);
+  if (!/shirt:4/.test(keptLook())) return ['the pick did not reach the sheet and the phone\'s kept copy — NOT checked'];
+  c.w.dispatchEvent(new c.w.Event('pagehide'));
+  const kept = keptStore_(c.w);
+  /* WHAT A PURCHASE LEAVES ON THE PHONE: fewer credits than the card was opened with. */
+  try { const u = JSON.parse(kept.familyUser); u.credits = 30; kept.familyUser = JSON.stringify(u); } catch (e) { return ['the kept sign-in could not be read — NOT checked']; }
+  const two = await cardOpen_(W, null, { before: fromStore_(kept), reply });
+  if (two.err) return bad.concat(['after the reload: ' + two.err]);
+  for (let k = 0; k < 30 && !two.form(); k++) await wait(100);
+  if (!two.form() || !two.tile('card-cancel')) return ['after the reload Sam\'s card is not open — NOT checked'];
+  two.sent.length = 0;
+  two.A('card-cancel', two.tile('card-cancel'));
+  for (let k = 0; k < 30 && two.card(); k++) await wait(100);
+  await wait(200);
+  const back = two.sent.filter(x => x.action === 'saveAvatar');
+  if (back.length !== 1) bad.push('Cancel after a reload sent ' + back.length + ' saveAvatar, wanted one putting the look back');
+  if (drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) !== open) bad.push('after Cancel the sheet draws ' + drawn(W.real.row('P-S1').avatar, W.real.row('P-S1').handle) + ', opened with ' + open);
+  if (!/figure too/.test(two.toast()) || !/Anything you bought is still yours/.test(two.toast())) bad.push('Cancel after a reload said ' + JSON.stringify(two.toast()) + ' — wanted the figure put back and the bought line');
+  return bad;
+});
+
+/* A PARENT WHO SHARES A LISTED TUTOR'S NAME. `mineIs_` matched by name when both rows carried ids, so she was handed
+   the tutor's row as her own card: no Edit (not her id), and Settings — asking the same question — took her name and
+   picture off its pages as well, and told her the tutor's rate and photographs were "on your card now". */
+check('review 339: a parent who shares a listed tutor\'s name has her own card with Edit, her own sections, and the tutor\'s card is still the tutor\'s', async () => {
+  const W = cardWorld_({ people: [['P-C9', 'Ada', 'Tutor', 'client', 'ada.parent@example.org', { handle: 'adaparent' }]] });
+  const c = await cardOpen_(W, 'ada.parent@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (c.t.whoami().personId !== 'P-C9') return ['signed in as ' + c.t.whoami().personId + ', not the parent — NOT checked'];
+  if (JSON.stringify(c.edits()) !== JSON.stringify(['P-C9'])) bad.push('the You column offers Edit on ' + JSON.stringify(c.edits()) + ', wanted her own card (P-C9) alone');
+  const own = c.pageOf('P-C9');
+  if (own && /Maths, mostly/.test(own.textContent)) bad.push('her own card is the tutor Ada Tutor\'s — the headline "Maths, mostly" is on it');
+  if (![...c.d.querySelectorAll('#s-account .page')].some(pg => pg !== own && /Maths, mostly/.test(pg.textContent))) bad.push('the tutor Ada Tutor is not on the parent\'s You column as somebody else');
+  const e = c.edit('P-C9');
+  if (e) {
+    c.A('card-edit', e);
+    for (let k = 0; k < 30 && !c.form(); k++) await wait(100);
+    const secs = c.form() ? [...c.form().querySelectorAll('.ce-sec')].map(x => x.dataset.sec) : [];
+    if (JSON.stringify(secs) !== JSON.stringify(['picture', 'figure', 'name', 'handle'])) bad.push('her own card offers ' + JSON.stringify(secs) + ', wanted picture, figure, name and handle');
+    if (c.box('first_name') && c.box('first_name').value !== 'Ada') bad.push('her own card\'s name box holds ' + JSON.stringify(c.box('first_name').value));
+    c.A('card-cancel', c.tile('card-cancel'));
+    await wait(200);
+  }
+  try { c.t.go('settings', false, true); c.w.paint('settings'); } catch (x) { bad.push('drawing Settings threw: ' + x.message); }
+  await wait(200);
+  const moved = String((c.d.querySelector('#s-settings .ce-moved') || {}).textContent || '');
+  if (/rate, photographs/.test(moved)) bad.push('her Settings tells her the tutor\'s pages moved to her card: ' + JSON.stringify(moved));
+  if (c.d.querySelector('#s-settings [data-me="rate_per_hour"], #s-settings [data-me="headline"]')) bad.push('her Settings draws a tutor\'s box');
+  return bad;
+});
+
 /* ---------- IMPOSTER: ONE PLAYER IS NOT TOLD, AND NOBODY SEES ANYBODY ELSE'S CARD -------------------
    THE GAME IS A SECRET KEPT BY A PHONE PASSED ROUND, and every way it can go wrong draws perfectly:
    two imposters, an imposter shown the word, a word left on the screen when the phone is handed on,
@@ -3701,7 +3983,7 @@ check('the contest placeholder comes straight after One more thing on the Games 
    IT ASKED FOR "THE LAST TOOL" WHILE IT WAS ONE, and the whiteboard was appended after it (310) --
    which is the same rule kept, not broken: what `PAGE.tools` needs is that nothing goes in ABOVE an
    existing tool. So this asks that it still sits straight after the calendar it was appended to, and
-   the whiteboard's journey asks that the newest tool is the last. */
+   the whiteboard's journey asks what was appended after that (the library cards last, docs/history/339). */
 check('the LEGO trade-in placeholder comes straight after the calendar on the Tools column, says so, and has nothing to press', async () => {
   const { w } = boot();
   await wait(300);
@@ -3725,7 +4007,7 @@ check('the LEGO trade-in placeholder comes straight after the calendar on the To
    question pages' pen on a blank sheet (`WB_ITEM` in find.js), so this walks it through the pen's own
    listeners and handlers on the Tools column, the way a finger does, and asks what is stored and what
    is drawn after each step:
-     * the newest tool is LAST, after `uploads` in the roster -- `PAGE.tools` keeps a page by its index
+     * it is after `uploads` in the roster, and only the library cards (339) after it -- `PAGE.tools` keeps a page by its index
      * the bar is the padlock, Undo and Clear, and nothing else -- bare bones, no tool tiles
      * unlocked, a drag draws nothing and the grid may have the gesture (`axisFree`); locked, the ink
        is `data-noswipe` and a drag is ONE stroke under the board's key, drawn as one path
@@ -3744,7 +4026,8 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
     return ['initWhiteboard, the pad-draw / pad-undo / pad-clear handlers, answersAdopt_ or axisFree are not reachable — the whiteboard was NOT checked'];
   }
   const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
-  if (tools.slice(-2).join(' ') !== 'uploads whiteboard') bad.push('the whiteboard is not appended last, after uploads: ' + tools.join(', '));
+  /* THE LIBRARY CARDS ARE APPENDED AFTER IT (docs/history/339, its review) — the same rule kept: nothing above. */
+  if (tools.slice(-3).join(' ') !== 'uploads whiteboard libcards') bad.push('the whiteboard is not appended after uploads, with only the library cards after it: ' + tools.join(', '));
   const wb = t.allWidgets().find(x => x.id === 'whiteboard');
   if (!wb || !wb.solid || wb.name !== 'Whiteboard') bad.push('the whiteboard is not a solid tool called Whiteboard');
 
@@ -3752,7 +4035,7 @@ check('the whiteboard locks, draws, undoes, survives a repaint and clears — an
   const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
   t.USER(sam);
   const roster = t.widgetsOf('tool').map(x => String(x.id));
-  if (roster[roster.length - 1] !== 'whiteboard') bad.push('the whiteboard is not the last page of a student\'s Tools column: ' + roster.join(', '));
+  if (roster.slice(-2).join(' ') !== 'whiteboard libcards') bad.push('the whiteboard is not the last page but the library cards of a student\'s Tools column: ' + roster.join(', '));
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   t.goPage('tools', roster.indexOf('whiteboard'), true);
@@ -8126,7 +8409,11 @@ check('Settings no longer draws the figure, the handle, the library cards or two
   return bad;
 });
 
-check('New PIN is on a parent\'s child and on an admin\'s people, asks first, and shows the slip once', async () => {
+/* A PARENT'S NEW PIN IS ON "MANAGE YOUR CHILD" AND NOWHERE ELSE (the review of docs/history/339): it was on the child's
+   card on the You column as well — two widgets for one job, and the two disagreed for a parent whose address was
+   unproved. The press itself, asked first and answered with the slip, is the Manage journey's; this one asks where
+   the tile is, and an admin's, which is on everybody else's card on their column as before. */
+check('New PIN is on a parent\'s "Manage your child" and not on the child\'s card on the You column, and on an admin\'s people; it asks first and shows the slip once', async () => {
   const FRESH = ['4', '8', '2', '9', '1', '3'].join('');
   const { w, sent } = boot({ reply: b => b.action === 'resetPin'
     ? { success: true, name: 'Kit Parent', first: 'Kit', handle: 'kit_kind41', pin: FRESH } : { success: true } });
@@ -8139,12 +8426,13 @@ check('New PIN is on a parent\'s child and on an admin\'s people, asks first, an
   D.family = [{ personId: 'P-K', title: 'Kit Parent', relation: 'child', handle: 'kit_kind41', image: '' }];
   D.familyFor = 'P-P';
   const kit = pageOf('Kit Parent');
-  if (!/data-do="kid-pin"[^>]*data-id="P-K"|data-id="P-K"[^>]*data-do="kid-pin"/.test(kit.replace(/\s+/g, ' ')))
-    bad.push('a parent\'s child card has no New PIN tile for that child');
-  try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the account column threw: ' + e.message); }
+  if (!kit) bad.push('a parent\'s child is not on the You column');
+  if (/data-do="kid-pin"/.test(kit)) bad.push('a parent\'s child card on the You column still carries New PIN — it is "Manage your child"\'s');
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
   await wait(150);
-  const tile = d.querySelector('#s-account [data-do="kid-pin"][data-id="P-K"]');
-  if (!tile) return bad.concat(['no New PIN tile on the screen to press']);
+  if (d.querySelector('#s-account [data-do="kid-pin"]')) bad.push('the You column draws a New PIN tile for a parent');
+  const tile = d.querySelector('#s-settings .kid-manage [data-do="kid-pin"][data-id="P-K"]');
+  if (!tile) return bad.concat(['no New PIN tile for Kit on "Manage your child" to press']);
   if (!tile.classList.contains('tile')) bad.push('New PIN is not a tile — a THING has tiles');
   sent.length = 0;
   t.ACTIONS['kid-pin'](tile);
@@ -11413,11 +11701,12 @@ check('the library cards on Tools still save the fifteen fields they always did,
 
 /* ---------- THE LIBRARY CARDS ARE A TOOL FOR EVERYBODY SIGNED IN, AND HOLD WHAT IS TYPED (docs/history/339) -----------
    THE OWNER, 11 Oct: *"move library card widget to the tools column."* Who saw the Settings page is who sees the
-   widget — everybody signed in (every role's map carries the group), nobody signed out — and it sits straight
-   after the hours, where a tutor's other own-record tool is. A card is not drafted (its PIN is on it), so what
+   widget — everybody signed in (every role's map carries the group), nobody signed out — and it is the last tool,
+   appended (it sat after the hours until the review of 339 found it moving pages on sign-in). A card is not
+   drafted (its PIN is on it), so what
    keeps typing is the hold: a form with typing in it is not redrawn by the payload landing on Tools, nor by the
    widget being started again, and `myProfile` landing redraws a clean one from the sheet's copy. */
-check('the library cards are on Tools for a parent, a student, a tutor and an admin and for nobody signed out, straight after the hours, held while typed into, and redrawn when myProfile lands', async () => {
+check('the library cards are on Tools for a parent, a student, a tutor and an admin and for nobody signed out, last, held while typed into without restarting the column, and redrawn when myProfile lands unless a box has the caret', async () => {
   const libs = LIB_FIELDS_;
   let mine = Object.assign({ phone_cc: '+44' }, LIB_PROFILE_);
   const { w } = boot({
@@ -11436,8 +11725,9 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
                                      profile: Object.assign({ phone_cc: '+44' }, LIB_PROFILE_) });
     const list = ids();
     if (!form) { bad.push('a ' + role + ' has no library cards on Tools (' + JSON.stringify(list) + ')'); continue; }
-    const after = list.indexOf('avail') !== -1 ? list.indexOf('avail') + 1 : list.indexOf('flyers') !== -1 ? 2 : 1;
-    if (list.indexOf('libcards') !== after) bad.push('a ' + role + '\'s library cards are tool ' + list.indexOf('libcards') + ' of ' + JSON.stringify(list) + ', wanted straight after the hours (or the calculator)');
+    /* LAST — appended, for `legotrade`'s reason (map.js): its gate is signing in, and above another tool it moved
+       that tool's page under somebody on Tools when they signed in (the review of 339). */
+    if (list[list.length - 1] !== 'libcards') bad.push('a ' + role + '\'s library cards are tool ' + list.indexOf('libcards') + ' of ' + JSON.stringify(list) + ', wanted the last');
     if (form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length !== 3) bad.push('a ' + role + '\'s library cards widget draws ' + form.querySelectorAll('.lib-card:not([hidden]) .lib-face').length + ' cards for three saved');
     try { w.paint('settings'); } catch (e) {}
     if (d.querySelector('#s-settings .lib-face, #s-settings [data-me^="lib1_"]')) bad.push('a ' + role + '\'s Settings still draws a library card');
@@ -11448,8 +11738,17 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   if (!form) return bad.concat(['the admin has no library cards on Tools, so the hold was NOT checked']);
   const box = form.querySelector('[data-me="lib1_name"]');
   draftType_(w, box, 'Merton, typed');
+  /* AND THE REST OF THE COLUMN IS NOT RESTARTED OVER ITS OWN MARKUP (`startScreen_`'s hold, shell.js) — a repaint
+     `paint` declined, so what runs on Tools is still running; a restart is a second `start` over the same markup,
+     the notepad's caret moved and every widget stopped and started in one task. Counted on the calculator, whose
+     `start` is looked up by name when it runs (the review of 339: no check could see this hold). */
+  const calc = w.initMiniCalc;
+  let restarts = 0;
+  w.initMiniCalc = function () { restarts++; return calc.apply(this, arguments); };
   try { t.repaint(true); } catch (e) { bad.push('the repaint threw: ' + e.message); }
   await wait(200);
+  w.initMiniCalc = calc;
+  if (restarts) bad.push('a repaint held for a library card\'s typing restarted the rest of Tools (the calculator started ' + restarts + ' time(s))');
   const now = d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]');
   if (now !== box || !now || now.value !== 'Merton, typed') bad.push('a repaint of Tools threw away what was typed on a library card (' + JSON.stringify(now && now.value) + ')');
   try { w.initLibCards_(); } catch (e) {}
@@ -11460,6 +11759,115 @@ check('the library cards are on Tools for a parent, a student, a tutor and an ad
   try { w.profileRefresh_(); } catch (e) { bad.push('profileRefresh_ threw: ' + e.message); }
   await wait(400);
   if ((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value !== 'Merton from the sheet') bad.push('myProfile landed and the library cards on Tools still show ' + JSON.stringify((d.querySelector('#s-tools #wgt-libcards [data-me="lib1_name"]') || {}).value));
+  /* BUT NOT UNDER THE CARET — a box focused and not yet typed into is not dirty, and redrawing it takes the caret
+     away (`libCardsRedraw_`). It keeps its element; it is drawn from the sheet the next time it starts. */
+  const focused = d.querySelector('#s-tools #wgt-libcards [data-me="lib2_name"]');
+  if (!focused) return bad.concat(['no second library card box to focus — the caret was NOT checked']);
+  focused.focus();
+  if (d.activeElement !== focused) return bad.concat(['the box could not be focused here — the caret was NOT checked']);
+  mine = Object.assign({}, mine, { lib2_name: 'Sutton from the sheet' });
+  try { w.profileRefresh_(); } catch (e) { bad.push('profileRefresh_ threw: ' + e.message); }
+  await wait(400);
+  if (d.querySelector('#s-tools #wgt-libcards [data-me="lib2_name"]') !== focused) bad.push('myProfile landed and redrew the library card a box of which had the caret');
+  return bad;
+});
+
+/* ---------- THE REVIEW OF docs/history/339: WHERE THE LIBRARY CARDS SIT, AND WHAT THEY SAY WITH NOTHING TO DRAW --------
+   `PAGE.tools` remembers a page by its index (the note over `legotrade` in map.js), so nothing may go in ABOVE an
+   existing tool — and the library cards went in straight after the hours with a gate that opens on signing in, so
+   somebody on the calendar who signed in was turned to Practice, and back on signing out. They are appended last;
+   this asks it the way a person meets it: on a tool, through the app's own sign-in and Sign out. */
+check('review 339: somebody on a Tools page keeps that tool when they sign in and when they sign out — the library cards come last', async () => {
+  const { w } = boot({ payload: Object.assign(payload(), { clientFields: { 'Library cards': LIB_FIELDS_ } }), reply: () => ({ success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (typeof w.signedIn_ !== 'function') return ['signedIn_ is not reachable — NOT checked'];
+  const front = () => { const p = d.querySelector('#s-tools > .page.on [id^="wgt-"]'); return p ? p.id : null; };
+  t.go('tools', false, true); t.repaint(true);
+  await wait(300);
+  const tools = t.allWidgets().filter(x => x.kind === 'tool').map(x => String(x.id));
+  if (tools[tools.length - 1] !== 'libcards') bad.push('the library cards are not the last tool: ' + tools.join(', '));
+  for (const id of ['calendar', 'whiteboard']) {
+    t.USER(null);
+    t.go('tools', false, true); t.repaint(true);
+    await wait(300);
+    const at = [...d.querySelectorAll('#s-tools > .page')].findIndex(p => p.querySelector('#wgt-' + id));
+    if (at < 0) { bad.push('no ' + id + ' on a visitor\'s Tools column — NOT checked'); continue; }
+    w.goPage('tools', at, true);
+    await wait(200);
+    if (front() !== 'wgt-' + id) { bad.push('could not stand on the ' + id + ' (' + front() + ') — NOT checked'); continue; }
+    try { w.signedIn_({ success: true, name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', handle: 'pat_kind20',
+                        profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } }, 'parent@example.org'); } catch (e) { bad.push('signedIn_ threw ' + e.message); }
+    await wait(400);
+    t.go('tools', false, true);
+    await wait(400);
+    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing in turned Tools to ' + front());
+    if (!d.querySelector('#s-tools #wgt-libcards')) bad.push('signed in, Tools has no library cards');
+    try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { bad.push('Sign out threw ' + e.message); }
+    await wait(400);
+    t.go('tools', false, true);
+    await wait(400);
+    if (front() !== 'wgt-' + id) bad.push('on the ' + id + ', signing out turned Tools to ' + front());
+  }
+  return bad;
+});
+
+/* A PAYLOAD WHOSE ROLE MAP HAS NO LIBRARY GROUP — an older server, or `GROUPS_OLD_` with no `profileFields` at all —
+   said "The library cards have not arrived from the server yet." under a payload that had arrived and never would
+   carry them. It says the older-server sentence the card editor says for the same case. */
+check('review 339: a server that sends no library group is said to be older, not "not arrived yet"', async () => {
+  const bad = [];
+  for (const [label, fields] of [['a role map with no Library cards', { 'About you': ['first_name', 'last_name', 'photo'], 'Where': ['borough', 'city'] }],
+                                 ['no profileFields at all', {}]]) {
+    const { w } = boot({ payload: Object.assign(payload(), { profileFields: fields }) });
+    await wait(300);
+    const t = w.__t, d = w.document;
+    t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', handle: 'testadmin',
+             profile: { first_name: 'Test', last_name: 'Admin', phone_cc: '+44' } });
+    try { t.go('tools', false, true); t.repaint(true); } catch (e) {}
+    let said = '';
+    for (let k = 0; k < 30; k++) {
+      said = String((d.querySelector('#s-tools #wgt-libcards #lib-box') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      if (said) break;
+      await wait(100);
+    }
+    if (!said) { bad.push(label + ': the library cards widget drew nothing — NOT checked'); continue; }
+    if (/yet/.test(said) || !/older than this site/.test(said)) bad.push(label + ': the library cards widget says ' + JSON.stringify(said));
+  }
+  return bad;
+});
+
+/* THREE SMALL BRANCHES NOTHING ASKED. "Manage your child" with the payload still coming draws the loader, not "No child
+   is linked" over a list a moment away; a parent whose role map leaves no group on Settings is told where things went
+   on Signing in, the next card there is. */
+check('review 339: "Manage your child" waits with the loader while the payload comes, and the moved line falls to Signing in when no group is left', async () => {
+  const W = cardWorld_();
+  W.holding = true;
+  const c = await cardOpen_(W, 'parent@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  const card = () => c.d.querySelector('#s-settings .kid-manage');
+  try { c.t.go('settings', false, true); c.w.paint('settings'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
+  await wait(200);
+  if (!(typeof c.w.awaiting_ === 'function' && c.w.awaiting_())) bad.push('the payload is not being waited for — the first half was NOT checked');
+  else if (!card() || /No child is linked/.test(card().textContent) || !card().querySelector('.kid-list [aria-busy="true"], .kid-list .loading')) {
+    bad.push('with the payload still coming "Manage your child" says ' + JSON.stringify(card() ? (card().querySelector('.kid-list') || {}).textContent : null) + ', not the loader');
+  }
+  W.holding = false;
+  W.release();
+  for (let k = 0; k < 30 && card() && !/No child is linked/.test(card().textContent); k++) { await wait(100); try { c.w.paint('settings'); } catch (e) {} }
+  if (!card() || !/No child is linked/.test(card().textContent)) bad.push('the payload landed and "Manage your child" does not say no child is linked');
+  /* A ROLE MAP WITH NOTHING LEFT FOR SETTINGS. */
+  const { w } = boot({ payload: Object.assign(payload(), { clientFields: { 'About you': ['first_name', 'last_name', 'photo'], 'Library cards': LIB_FIELDS_ } }) });
+  await wait(300);
+  w.__t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'client', roles: ['client'], token: 'tk', handle: 'pat_kind20',
+               profile: { first_name: 'Pat', last_name: 'Parent', phone_cc: '+44' } });
+  try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing Settings threw: ' + e.message); }
+  await wait(200);
+  const line = w.document.querySelector('#s-settings .ce-moved');
+  const home = line && line.closest('.card');
+  if (!line) bad.push('with no group left, Settings does not say where the name, picture and library cards went');
+  else if (!home || String((home.querySelector('h3') || {}).textContent).trim() !== 'Signing in') bad.push('with no group left, the moved line is on ' + JSON.stringify(home && (home.querySelector('h3') || {}).textContent) + ', not Signing in');
   return bad;
 });
 
@@ -24093,7 +24501,7 @@ function surnameWorld_() {
   }
   return { b, tk };
 }
-check('a child is her first name on every screen: no surname drawn for a visitor, her tutor, another parent, an admin, or herself outside her own Settings boxes', async () => {
+check('a child is her first name on every screen: no surname drawn for a visitor, her tutor, another parent, an admin, or herself outside her own boxes on Settings and her own card\'s Edit', async () => {
   let world;
   try { world = surnameWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was drawn — ' + e.message]; }
   const { b, tk } = world;
@@ -24118,8 +24526,10 @@ check('a child is her first name on every screen: no surname drawn for a visitor
     let sawJuno = false;
     const look = (where) => {
       const root = w.document.documentElement.cloneNode(true);
-      /* HER OWN SETTINGS BOXES, AND NOTHING ELSE, are where her surname belongs. */
-      if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea').forEach(el => el.remove());
+      /* HER OWN BOXES, AND NOTHING ELSE, are where her surname belongs — on Settings, and on her own card's Edit,
+         where her name is edited since docs/history/339 (its review: the walk never opened it, so a surname in the
+         editor's heading, its handle line or anywhere but the box itself would have passed). */
+      if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea, #s-account .card-ed[data-pid="P-KID"] input').forEach(el => el.remove());
       const html = root.outerHTML;
       const m = html.match(new RegExp('.{0,70}(?:' + SURS_.join('|') + ').{0,40}', 'i'));
       if (/Juno/.test(html)) sawJuno = true;
@@ -24130,6 +24540,21 @@ check('a child is her first name on every screen: no surname drawn for a visitor
       try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw on go(): ' + e.message); continue; }
       await wait(120); await woken_();
       look(id);
+      /* HER OWN CARD, BEING EDITED — the one screen where her surname is in a box of her own, and so the one where
+         it could leak just beside the box. Opened, looked at, and put back as a card. */
+      if (pid === 'P-KID' && id === 'account') {
+        const ed = w.document.querySelector('#s-account [data-do="card-edit"][data-pid="P-KID"]');
+        if (!ed) bad.push('herself: there is no Edit on her own card, so her card\'s editor was NOT looked at');
+        else {
+          t.ACTIONS['card-edit'](ed);
+          for (let k = 0; k < 40 && !w.document.querySelector('#s-account .card-ed .me-form'); k++) await wait(100);
+          const box = w.document.querySelector('#s-account .card-ed [data-me="last_name"]');
+          if (!box) bad.push('herself: her card\'s editor drew no surname box, so the walk past it was NOT a test');
+          look('account, her own card being edited');
+          const cancel = w.document.querySelector('#s-account [data-do="card-cancel"]');
+          if (cancel) { t.ACTIONS['card-cancel'](cancel); await wait(300); }
+        }
+      }
       /* A WINDOWED SCREEN HOLDS A FEW PAGES AT A TIME, so it is walked page by page. */
       let n = 0;
       try { n = t.pageCount(id) || 0; } catch (e) { n = 0; }

@@ -24,10 +24,8 @@ PIN is on the card.
   the page when the payload lands and move every Tools page behind it under somebody already on the column.
   While the payload is coming the widget shows the one loader; a payload with no library group (an older server)
   says so in words.
-- **Where: straight after the hours (`avail`).** These are the only two tools that edit your own record and save
-  it with the same tick; and the end of the roster is fifteen swipes away. A parent finds it second, after the
-  calculator; a tutor straight after their hours; an admin fourth (calculator, flyer, hours). The flyer stays page
-  1 for an admin, so `check/swipe.js`'s page is unchanged.
+- **Where: appended last, after the whiteboard** (after review — it went in straight after the hours, and its
+  sign-in gate then moved every tool below it a page under somebody on Tools; see *After review*, 12).
 - **Typing is held, because a library card has no draft to come back from.** `KEEP_FORMS_` marks the widget's form
   dirty on Tools and on Saved (a starred copy), `settingsKeep_` holds `tools` and `saved` while it is dirty or
   sending — the rule Settings has — and `startScreen_` does not restart a held widget column on a repaint (its
@@ -71,10 +69,12 @@ one card, in three sections, a hairline between them as the card editor draws it
 3. **Add your child** — the form, unchanged (`add-child-go` → `claimChild`); its foot line went into its sub-line.
 
 **WHAT MANAGING A CHILD ALREADY WAS, AND NOTHING MORE.** New PIN (`kid-pin` → `resetPin`, asked first in its sheet)
-is the one power a parent holds over a linked child's account; it is on the child's own card on the You column
-too, and here it is beside their name, where a parent who came to manage them looks. No new server power.
+is the one power a parent holds over a linked child's account; it is here, beside their name, where a parent who
+came to manage them looks — and since the review, only here (it was on the child's card on the You column too;
+*After review*, 11). No new server power.
 
-**THE CAPTIONS KEEP THEIR WORDS** because the server says them: the parent's confirmation email names Settings →
+**THE TWO FORMS' HEADINGS KEEP THEIR WORDS** (headings since the review — they were the card's 8px captions) because
+the server says them: the parent's confirmation email names Settings →
 "Make your child's account", and `makeChild`'s refusal tells a parent to use "Add your child". The two handlers read
 and lock **their own section** (`.kid-sec`), not the whole card, so asking does not freeze making.
 
@@ -231,8 +231,172 @@ your child with two children, with none and held, and every role's Settings.
 - **Credits are not refunded by Cancel** — decided, and said in the toast; a piece bought stays owned.
 - **A parent's own surname is in a box on her card's Edit**, as it was in her Settings box — behind her own Edit,
   on her own phone. A child's own surname likewise (333 kept "herself in her own boxes").
-- **The confirmation email still says Settings → "Make your child's account"**: the caption is on the card under
-  "Manage your child", so the words are findable; rewording the email is a backend change and four stamps, not
-  done here.
+- **The confirmation email still says Settings → "Make your child's account"**: those words head a section of
+  "Manage your child" (a heading since the review), so they are findable; rewording the email is a backend change
+  and four stamps, not done here.
+- **Typing on a library card holds the whole Tools column** (and Saved, starred) from being redrawn until the tick
+  is pressed — the rule Settings has had for every card, so the other widgets on Tools miss a payload that lands
+  meanwhile. Found by the review's roles reader; not changed.
+- **A tutor who is not listed edits their hours in two places**: the hours widget on Tools and Settings'
+  Availability page (their card has no week to edit in place). As it was before this note; not changed.
+- **On an older backend without `myProfile`, your own card's editor does not open** (note 330's rule), and since
+  this note a parent's and a student's name and picture have no Settings box to fall back on.
 - **README conflict at merge**: 337 and 338 are on parallel branches; this note is 339 and its README line goes
   after 336 here.
+
+### After review (11 Oct): twenty findings, each fixed or decided, each held by a check
+
+Three reviews read the branch at its fourth commit: **roles** — every role at 320x568, 390x844 and 1280x800 in a
+real browser against the real `doGet`/`doPost` in memory, nine invented people; **data** — what every press sends
+and what the server makes of it, beside the base commit; **coverage** — 47 mutations against the whole suite. Twenty
+findings. Every one is fixed or decided below, and every fix is held by a check that was **red on the reviewed
+commit** (the gaps: red under the mutation that the review found surviving) **and green after**, with the real files
+green again after each mutation. Nothing on the server changed, so still no stamps.
+
+#### Randomise, the wardrobe and the boxes on one form
+
+1. **Save while Randomise was on the wire threw the typing away** (must-fix, data). `send_`'s default lock is the
+   nearest `.me-form` — on Settings that was the Signing in card, on your card's Edit it is the whole card — and Save,
+   under the form and live, read it through `cardFormVals_`, which skips a disabled box: "Nothing had changed", the
+   card shut, the draft dropped. **Randomise locks its own section (`.ce-sec`)**, as the picture locks its `.pfp`, and
+   **Save waits, in words, while anything on the form is on the wire** (`HANDLE_ASKING`, a state and not a class, so
+   a payload redrawing the form under the press cannot lose it) — a disabled box is never read as an untouched one.
+2. **Randomise changed the face of everybody who never chose a look** (roles; on the base commit too, out of sight on
+   another page). A blank `avatar` cell is drawn from the handle (`avatarConfig`'s hash: skin, hair colour). **Decided:
+   the face is kept** — `avatarKeep_` writes the look the OLD handle drew through the existing `saveAvatar` the moment
+   a new handle lands, phone first so no frame shows the new colours, and only for a blank look (a chosen look names
+   its own colours). Why: `avatarConfig`'s own promise is a face that "never changes on its own"; it needs no new
+   server power; and the alternative the review offered — a line under Randomise saying the colours will change — keeps
+   a face that changes when you are renamed. A refused keep puts the cell back to blank and says so.
+3. **Cancel after Randomise put back another face under "Put back as it was"** (roles). It remembered the blank cell
+   and rebuilt it under the NEW handle. The card now remembers **the handle it opened under** (`h0`, kept in
+   `familyCardEdit` as `hd`, so a reload keeps it), rebuilds the look under that, and decides whether there is anything
+   to put back by comparing **what is drawn** (`lookKey_`: the whole look under its handle, keys in one order), never
+   the raw cells. A Randomise alone, then Cancel, sends nothing — the face did not change.
+4. **Cancel while a pick was on the wire** (data): two `saveAvatar`s side by side, the last to finish wins, and held so
+   the pick finished last the sheet wore the shirt Cancel said it took off. **`AV_WIRE` counts every look on the wire**
+   (`avatarPost_`, both ways out of `api()`; the pick, the keep), and Cancel waits for nought in words — the picture's
+   guard from note 330, for the figure.
+5. **Randomise ignored a first name typed on the same form** (roles): the server makes the handle from the name on the
+   sheet, so "Quinn", typed, got `pat_humble98`. **Refused before it is sent**, on the line under the tile: *"Save your
+   new first name first — Randomise makes the handle from the name that is saved."* The first name only — the surname
+   is not in a handle. (Not "Save first, then Randomise" in one press: that is two requests chained under one tile,
+   for a press a person makes once a year.)
+6. **Save said "Nothing had changed" after a Randomise, a pick or a picture** (roles, nit). With nothing typed it now
+   says what saved itself while the card was open — *"Your picture and figure were saved as you chose them."* —
+   worked out from what the card opened with (`pic0`, `fig0` under `h0`), so a reload gives the same answer.
+7. **The credits were not remembered across a reload** (data, nit): `cr0` is kept beside the look (`cr`), and Cancel
+   after a reload still says *"Anything you bought is still yours."* **And a look nobody chose comes back WRITTEN
+   OUT**, the face it drew, never blank again — decided and said here: `saveAvatar` re-checks a whole look and has no
+   way to be told "nothing", and a blank cell would hand the face back to whatever handle comes next, which is the
+   fault 2 closes. The same face, kept.
+
+#### Whose card is yours
+
+8. **A parent who shares a listed tutor's name could edit nothing of hers** (data). `mineIs_` answered "mine" on the
+   name rung though both rows carried ids, so she was handed the tutor's row as her card: no Edit (not her id), and
+   Settings — asking the same rungs whether she had a public card — took her name and picture off its pages and told
+   her the tutor's rate and photographs were "on your card now". **When the row and the session both carry an id, the
+   ids are the whole answer** (in `mineIs_` itself, so `myCardRow_`, `cardMine_`, the "not you twice" filters, the
+   score boards and the receipt agree); the handle and name rungs are for a row with no id. Her own card is built from
+   her sign-in, Edit is offered with her four sections, and the tutor is on her column as somebody else.
+
+#### Manage your child
+
+9. **Drawn smaller at 320, every control under 44px** (roles) — 70% with three children and the slip, 31px. The two
+   cards it replaced were full size. **Decided: full size, and the pane scrolls** — `paneReach_`'s rule for a card being
+   edited, now also `.kid-manage`: two forms are boxes to type in and buttons to press, not a card a little too tall,
+   and that is the case the zoom was never for. Why not the review's other option (the list, and two tiles that open
+   each form in place): an open/closed state that every repaint, draft and the slip must keep, and the two sections
+   the server's email sends a parent to find hidden behind a press. Measured after: 1.0 at every size, scrolling 122px
+   at 320x568 with two children, no control under 44px; not scrolling at 390 or 1280.
+10. **The two headings the server names were 8px captions** (roles, nit) — `.prof-cap`, 5.8px while shrunk. They are
+    `h4.kid-h` now, one step under the card's title: 12.15px at 320, 13.3px at 390, 13.95px at 1280.
+11. **New PIN was in two places, and the two disagreed** (roles, two nits): on the child's card on the You column as
+    well as here — side by side at 1280, *"one widget which is manage you child"* undone — and the You column's offered
+    it to a parent whose address was pending, which the server refuses. **Decided: here only.** The child's card on the
+    You column is the child; managing them is this card. That also ends the disagreement — this card already hides
+    New PIN from a pending parent. An admin's New PIN on everybody else's card is untouched.
+
+#### The library cards
+
+12. **Inserted above ten tools, with a gate that opens on signing in** (coverage): somebody on the calendar who
+    signed in was turned to Practice, and back on signing out — `PAGE.tools` keeps a page by its index, and the rule
+    over `legotrade` says nothing goes in above an existing tool. **Appended last**, after the whiteboard: signing in or
+    out lengthens only the end of the column, as `uploads` does for an admin. Still found by search. The whiteboard's
+    and the Tools journeys ask for the new order.
+13. **No library group said "have not arrived from the server yet"** (coverage, nit) under a payload that had arrived
+    and never would carry them. It says `OLD_SERVER_SAY_`, the card editor's sentence for the same case. Not hidden: a
+    widget that came and went with the payload would move every page after it.
+14. **Typing on the starred copy on Saved was held by nothing any check could see** (coverage): jsdom has no
+    `CSS.escape`, so `$('lib-box')` falls back to the first copy, the one on Tools, and check-flow cannot reach a starred
+    copy at all. **A state in `check/states.js` (`saved`)** stars the cards, types on the Saved copy, repaints, and wants
+    the same box with the same words — which the review measured failing ("Merton", the sheet's copy) with either half
+    of the hold taken away.
+15. **`startScreen_`'s hold for a held widget column had no case a check could see** (coverage). **Kept** — it is the
+    same rule as the two holds above it (`reconnectKeep_`, `padHold_`): a declined paint leaves the markup, and a restart
+    is a second `start` over it. The Tools journey now counts the calculator's `start` across a repaint held for a
+    library card's typing, and wants none.
+16. **`libCardsRedraw_` leaving a copy with the caret in it** had no check: the Tools journey focuses a box and has
+    `myProfile` land, and wants the same element.
+
+#### The checks that could not see
+
+17. **The look surviving a reload** (`fig0`) had no journey: one now picks, reloads from the kept store, Cancels, and
+    wants the opening face on the sheet, the bought line in the toast (7).
+18. **The child-surname walk never opened her own card's Edit**, where her surname box now is: it opens it, looks, and
+    exempts only her own boxes there (`#s-account .card-ed[data-pid="P-KID"] input`) beside Settings'.
+19. **Manage's loader while the payload comes, and the moved line falling to Signing in when no group is left** had no
+    journey; one asks both.
+20. **The wardrobe's tap-target exemption** (`ACCEPTED_TAP`, `check/ui.js`) matched its classes anywhere, and its
+    reason no longer said why. **Scoped to a card's editor** (`onCardEdit`, the collector records whether a target is in
+    `.card-ed`), and **kept small**, with the reason rewritten and measured: the owner asked for the wardrobe as one
+    block, *"make things smaller to fit on a screen if need be"*; the form scrolls now, so the pane is not what it must
+    fit, but the screen is — the figure section is 458px tall at 320x568, the whole wardrobe on the glass at once in a
+    pane of 532, where at 44px it would be three screens of one section to dress one figure.
+
+#### What holds each fix, and the proof
+
+**Red on the reviewed commit, green after** — the new and rewritten journeys run against an export of the reviewed
+commit with this `check-flow.js` dropped in: *Save pressed while Randomise is on the wire…* (1), *Randomise keeps
+the face…* (2, 3), *Cancel pressed while a wardrobe pick is on the wire…* (4), *Randomise waits for a first name…*
+(5), *Save with nothing typed…* (6), *after a reload mid-edit, Cancel still…* (7, 17), *a parent who shares a listed
+tutor's name…* (8), *New PIN is on a parent's "Manage your child"…* (11), *somebody on a Tools page keeps that
+tool…*, the whiteboard's and the Tools journeys (12), *a server that sends no library group…* (13): ten red, all
+green on this tree. The gaps the coverage review found (9, 10, 14–16, 18–20) are code that was already right or a
+check that did not exist, so they are proved by mutation alone.
+
+**Proved by mutation**, each on a copy, the named check red, the file put back and the real files green again:
+
+- Randomise locking the whole form again — *Save pressed while Randomise…* ("last_name box is locked").
+- Save's wait taken out — the same journey ("Save posted while Randomise was out").
+- `avatarKeep_` not called — *Randomise keeps the face…* (the face changed on the phone and the sheet).
+- The put-back rebuilt under the NEW handle — the same journey, once each half ran on a fresh sheet (the first draft
+  ran the second half after the first had written the look out, and this mutation passed it; found by the mutation,
+  fixed in the journey).
+- Cancel's `AV_WIRE` wait taken out — *Cancel pressed while a wardrobe pick…*.
+- The first-name refusal taken out — *Randomise waits for a first name…*.
+- `cardSelfSay_` taken out — *Save with nothing typed…*.
+- `cr` not kept; `fig` not read back — *after a reload mid-edit…*, both.
+- `mineIs_`'s id line taken out — *a parent who shares a listed tutor's name…*.
+- New PIN put back on the child's card on the You column — *New PIN is on a parent's "Manage your child"…*.
+- The library cards moved back above the tools — the whiteboard journey, the Tools journey and *somebody on a Tools
+  page…*.
+- The older-server sentence put back to "not arrived yet" — *a server that sends no library group…*.
+- `startScreen_`'s hold taken out — the Tools journey ("the calculator started 1 time").
+- `libCardsRedraw_` redrawing under the caret — the Tools journey.
+- Manage's loader taken out; the moved line not falling to Signing in — *"Manage your child" waits with the loader…*.
+- Her surname put into her own card's editing heading — the child-surname walk ("herself is shown her surname on
+  account, her own card being edited").
+- `.kid-manage` taken out of `paneReach_`'s forms — `check/ui.js --screen=settings --width=320`: both Manage states
+  NOT measured (zoomed).
+- The headings put back as captions — `check/ui.js --screen=settings --width=390`: the same two states.
+- Saved taken out of `KEEP_FORMS_` — `check/ui.js --screen=saved --width=390`: *the library cards starred, typed into,
+  and the column repainted* NOT measured.
+- The tap exemption's scope switched off (every target read as outside `.card-ed`) — `check/ui.js --screen=account
+  --width=320`: 23 wardrobe targets reported as TAP TARGET, not known.
+
+#### Noted, not changed
+
+The two hold-backs the roles reader found (the whole Tools column held while a library card holds typing; an unlisted
+tutor's hours in two places), and the older-backend case the builder flagged, are in *Not done* above.

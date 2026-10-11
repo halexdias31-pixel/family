@@ -4192,12 +4192,20 @@ const STATES = {
           && !!r.querySelector('.kid-face') && r.scrollWidth <= r.clientWidth + 1
           && r.querySelector('.tile').getBoundingClientRect().right <= r.getBoundingClientRect().right + 0.5);
         const none = /No child is linked to you yet/.test(card.textContent);
-        return rowsOk && (n ? !none : none)
+        /* NEVER DRAWN SMALLER (the review of docs/history/339): two forms and a New PIN per child are there to be
+           typed into and pressed, so the card is at full size and its pane scrolls — `paneReach_`'s card-editor
+           rule. At 320x568 it was drawn at 70-84%, every control under 44px. And the two forms are headed in a
+           readable size, because the server's email sends a parent to find those words. */
+        const pane = card.closest('.pane');
+        const zoomed = !!pane && [...pane.children].some(k => Number(k.style.zoom || 1) < 1);
+        const heads = [...card.querySelectorAll('.kid-sec > .kid-h')];
+        const headsOk = heads.length === 2 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
+        return rowsOk && (n ? !none : none) && !zoomed && headsOk
           && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add [data-kid]').length === 2
           && card.scrollWidth <= card.clientWidth + 1 ? Math.max(1, n) : 0;
       }) + ')(' + n + ');'),
-      wants: n ? '"Manage your child" listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then both forms'
-               : '"Manage your child" saying no child is linked yet, then both forms' })),
+      wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then both forms under headings of 12px or more'
+               : '"Manage your child" at full size, saying no child is linked yet, then both forms under headings of 12px or more' })),
     /* ---------- A NEW ADDRESS WAITING FOR ITS LINK, ON THE CONTACT CARD ----------------------------------
        Round three of the PR #130 review: a new address typed in Settings is not written until the account,
        signed in, opens the link sent to it (`authMove*_` in booking.gs). The box keeps the waiting address,
@@ -4934,6 +4942,48 @@ const STATES = {
       leave: () => {
         (window.__keptKeys || []).forEach(k => { if (isFav(k)) toggleFav(k); });
         paint('saved');
+      } },
+    /* ---------- THE LIBRARY CARDS STARRED ONTO SAVED, TYPED INTO, AND A REPAINT (the review of docs/history/339) --------
+       A library card has no draft (its PIN is on it), so what keeps typing on the starred copy is the hold: Saved's
+       `.widget-slot .me-form` in `KEEP_FORMS_` marks it dirty, `settingsKeep_('saved')` holds the column, and a
+       repaint leaves the box — the same element, the same words. Asked HERE, in a browser, because check-flow
+       cannot reach a starred copy: jsdom has no `CSS.escape`, so `$('lib-box')` falls back to the first copy, the
+       one on Tools. Measured in the review with either half of the hold taken away: the box was replaced and said
+       "Merton", the sheet's copy, over what was typed. Starred, typed into once the Saved copy is drawn, repainted,
+       and what the box is and holds written down for `expect`. */
+    { name: 'the library cards starred, typed into, and the column repainted',
+      only: () => typeof USER !== 'undefined' && !!USER && widgetsOf_('tool').some(w => w.id === 'libcards'),
+      enter: () => {
+        const w = widgetsOf_('tool').find(x => x.id === 'libcards');
+        if (!isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        window.__LIB_SAVED = null;
+        repaint(true);
+        const at = [...document.querySelectorAll('#s-saved > .page')].findIndex(pg => pg.querySelector('#wgt-libcards'));
+        if (at < 0) throw new Error('the starred library cards are not on the Saved column');
+        goPage('saved', at, true);
+        const t0 = performance.now();
+        const type = () => {
+          const box = document.querySelector('#s-saved #wgt-libcards [data-me="lib1_name"]');
+          if (!box) { if (performance.now() - t0 < 2000) setTimeout(type, 100); else window.__LIB_SAVED = { drawn: false }; return; }
+          box.value = 'Typed on Saved';
+          box.dispatchEvent(new Event('input', { bubbles: true }));
+          repaint(true);
+          setTimeout(() => {
+            const now = document.querySelector('#s-saved #wgt-libcards [data-me="lib1_name"]');
+            window.__LIB_SAVED = { drawn: true, same: now === box, val: now && now.value };
+          }, 500);
+        };
+        setTimeout(type, 150);
+      },
+      expect: () => !!window.__LIB_SAVED && window.__LIB_SAVED.same === true && window.__LIB_SAVED.val === 'Typed on Saved',
+      why: () => JSON.stringify(window.__LIB_SAVED),
+      wants: 'the starred library cards on Saved keeping what was typed through a repaint — the same box, the same words',
+      leave: () => {
+        const w = widgetsOf_('tool').find(x => x.id === 'libcards');
+        document.querySelectorAll('#s-saved .widget-slot .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        if (w && isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        delete window.__LIB_SAVED;
+        repaint(true);
       } },
   ],
 

@@ -1100,45 +1100,75 @@ function wardrobeBody_() {
    column and turned to it. The tile went on request; the wardrobe is a section of your own card's Edit
    now (docs/history/339), straight under the picture, so there is nothing to jump to. */
 
+/* A LOOK AS THE CELL HOLDS IT, `skin:2|shirt:4|…` — what `saveAvatar` answers with and `USER.avatar` keeps. */
+const packLook_ = cfg => Object.keys(cfg).map(k => k + ':' + cfg[k]).join('|');
+/* ---------- THE FIGURE AS IT IS DRAWN, NOT AS THE CELL SAYS IT (the review of docs/history/339) ------------------
+   MOST PEOPLE HAVE NEVER CHOSEN A LOOK: their `avatar` cell is blank, and the figure is worked out from their
+   handle (`avatarConfig`'s hash — skin and hair colour). So two cells can draw one face (blank, and the same look
+   written out) and one cell can draw two (blank, under two handles). Whether a figure CHANGED is asked of what is
+   drawn — the whole look, with the handle it was drawn under, keys in one order — never of the raw cell: Cancel
+   compared cells, and after a Randomise put back a blank look under the NEW handle, a different face from the one
+   the card opened with, under a toast saying "Put back as it was". */
+const lookKey_ = (packed, handle) => {
+  const c = avatarConfig(packed, handle);
+  return Object.keys(c).sort().map(k => k + ':' + c[k]).join('|');
+};
+/* ---------- HOW MANY LOOKS ARE ON THE WIRE ------------------------------------------------------------------
+   `AV_SEQ` decides which answer the PHONE believes; it cannot decide which request the SERVER finishes last.
+   `saveAvatar` takes no lock, so a pick and a Cancel's put-back sent side by side are two writes of one cell,
+   and the last to finish wins — measured in the review of docs/history/339: a shirt picked, Cancel at once, the
+   pick finishing last, and the sheet wore the shirt Cancel said it had taken off. The picture had this guard
+   already (`.pfp.is-sending`, note 330); the figure counts its requests here, both ways out of `api()`, and
+   `card-cancel` waits for nought. A count and not a class on the wardrobe, because a payload landing redraws
+   the form under a request and a class would go with the old element. */
+let AV_WIRE = 0;
+function avatarPost_(cfg) {
+  AV_WIRE++;
+  const done = () => { AV_WIRE = Math.max(0, AV_WIRE - 1); };
+  return api({ action: 'saveAvatar', name: USER.name, personId: USER.personId, avatar: cfg })
+    .then(d => { done(); return d; }, e => { done(); throw e; });
+}
+/* ---------- EVERY FIGURE ON THE COLUMN, NOT THE FIRST ONE `$()` FINDS ------------------------
+   THE WARDROBE WAS SEVEN PAGES AND EACH CARRIED THE FIGURE (it is one card now). As an id that was
+   four elements with one id and `$()` handing all of them the first — so picking a colour on page five moved the
+   figure on page one and the one under your thumb did not change. The `$('msg-text')` fault, on
+   the surface where the whole point is that you SEE the change. A class, and all of them. */
+/* ---------- THE WHOLE CARD FOLLOWS THE LOOK, NOT ONLY THE FIGURE --------------------------------
+   THIS REDREW `.av-figure` AND NOTHING ELSE, so the ring stayed on the colour you had left, a
+   bought item went on showing its price and lock, and the credits line kept the old balance —
+   measured, pressing skin 4 left the ring on skin 1 while the figure changed. The card's INSIDE is
+   rebuilt from `wardrobeBody_`, the one renderer, but the card ELEMENT is kept: `paneReach_` writes
+   its zoom inline on that element and `paneWatch_`'s observer is attached to it, and swapping it
+   would drop both. EVERY `.av-card`, because the wardrobe is a section of your own card's Edit now
+   (docs/history/339) and the You column is drawn — and counted by the pager — more than once. */
+/* ---------- AND THE PICTURE'S "YOUR FIGURE" WITH IT ------------------------------------------------
+   THE OWNER, 11 Oct: *"your figure should also be in your profile card editing."* The section above
+   this one on the same form is the picture chooser, whose first option is your figure (`photoPicker_`)
+   and whose preview is your figure when that is your picture — both drawn from `USER.avatar` when the
+   form was drawn. Left alone, a pick here dressed the wardrobe's figure and left the picker's in the
+   old clothes one section up: two drawings of one figure, disagreeing, on one form. So they are drawn
+   again from the same look, by the same `avatarFor` and `pfpFace_` that drew them. */
+/* LIFTED OUT OF `avatarSave` (the review of docs/history/339) — a Randomise that keeps the face and a refused
+   keep redraw with it too, and two copies of "every figure on the page" would be the fault this note is about. */
+function avatarDraw_() {
+  const cards = document.querySelectorAll('.av-card');
+  cards.forEach(card => { card.innerHTML = wardrobeBody_(); });
+  if (!cards.length) document.querySelectorAll('.av-figure').forEach(el => {
+    el.innerHTML = avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar);
+  });
+  document.querySelectorAll('.pfp-opt[data-pic="avatar"]').forEach(b => {
+    b.innerHTML = avatarFor(USER.handle || USER.name, 40, USER.avatar || '', { bust: true });
+  });
+  const pic = String((USER.profile && USER.profile.photo) || '').trim();
+  if (picKind_(pic) === 'avatar') document.querySelectorAll('.pfp .pfp-face').forEach(f => { f.innerHTML = pfpFace_(pic); });
+}
+
 /* A colour and an item go through the SAME request, because to the server they are the same
    thing: a whole look, re-checked piece by piece. Nothing here decides what anybody may wear. */
 let AV_SEQ = 0;
 function avatarSave(change) {
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   Object.assign(cfg, change);
-
-  /* ---------- EVERY FIGURE ON THE COLUMN, NOT THE FIRST ONE `$()` FINDS ------------------------
-     THE WARDROBE WAS SEVEN PAGES AND EACH CARRIED THE FIGURE (it is one card now). As an id that was
-     four elements with one id and `$()` handing all of them the first — so picking a colour on page five moved the
-     figure on page one and the one under your thumb did not change. The `$('msg-text')` fault, on
-     the surface where the whole point is that you SEE the change. A class, and all of them. */
-  /* ---------- THE WHOLE CARD FOLLOWS THE LOOK, NOT ONLY THE FIGURE --------------------------------
-     THIS REDREW `.av-figure` AND NOTHING ELSE, so the ring stayed on the colour you had left, a
-     bought item went on showing its price and lock, and the credits line kept the old balance —
-     measured, pressing skin 4 left the ring on skin 1 while the figure changed. The card's INSIDE is
-     rebuilt from `wardrobeBody_`, the one renderer, but the card ELEMENT is kept: `paneReach_` writes
-     its zoom inline on that element and `paneWatch_`'s observer is attached to it, and swapping it
-     would drop both. EVERY `.av-card`, because the wardrobe is a section of your own card's Edit now
-     (docs/history/339) and the You column is drawn — and counted by the pager — more than once. */
-  /* ---------- AND THE PICTURE'S "YOUR FIGURE" WITH IT ------------------------------------------------
-     THE OWNER, 11 Oct: *"your figure should also be in your profile card editing."* The section above
-     this one on the same form is the picture chooser, whose first option is your figure (`photoPicker_`)
-     and whose preview is your figure when that is your picture — both drawn from `USER.avatar` when the
-     form was drawn. Left alone, a pick here dressed the wardrobe's figure and left the picker's in the
-     old clothes one section up: two drawings of one figure, disagreeing, on one form. So they are drawn
-     again from the same look, by the same `avatarFor` and `pfpFace_` that drew them. */
-  const draw = () => {
-    const cards = document.querySelectorAll('.av-card');
-    cards.forEach(card => { card.innerHTML = wardrobeBody_(); });
-    if (!cards.length) document.querySelectorAll('.av-figure').forEach(el => {
-      el.innerHTML = avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar);
-    });
-    document.querySelectorAll('.pfp-opt[data-pic="avatar"]').forEach(b => {
-      b.innerHTML = avatarFor(USER.handle || USER.name, 40, USER.avatar || '', { bust: true });
-    });
-    const pic = String((USER.profile && USER.profile.photo) || '').trim();
-    if (picKind_(pic) === 'avatar') document.querySelectorAll('.pfp .pfp-face').forEach(f => { f.innerHTML = pfpFace_(pic); });
-  };
   /* ---------- AND ONLY THE LATEST TAP'S ANSWER COUNTS -----------------------------------------------
      Two quick taps are two requests, and they can come back in either order — measured, skin 2 then
      skin 5 left the phone wearing skin 2 when the first reply was the slower one. Each tap takes a
@@ -1149,11 +1179,10 @@ function avatarSave(change) {
   /* The figure redraws IMMEDIATELY, before the server answers — picking a colour and waiting a
      second to see it is the difference between a wardrobe and a form. Put back if refused. */
   const before = USER.avatar;
-  USER.avatar = Object.keys(cfg).map(k => k + ':' + cfg[k]).join('|');
-  draw();
+  USER.avatar = packLook_(cfg);
+  avatarDraw_();
 
-  api({ action: 'saveAvatar',
-    name: USER.name, personId: USER.personId, avatar: cfg })
+  avatarPost_(cfg)
     .then(d => {
       if (seq !== AV_SEQ) return;
       if (!d || d.error) throw new Error((d && d.error) || 'Could not save that');
@@ -1167,15 +1196,48 @@ function avatarSave(change) {
          `avatarSave`'s own comment above calls the difference between a wardrobe and a form. Only
          BUYING is worth a word, because that one spends credits. */
       if ((d.bought || []).length) toast('Bought ' + d.bought.join(', '));
-      draw();
+      avatarDraw_();
     })
     .catch(err => {
       if (seq !== AV_SEQ) return;
       USER.avatar = before;
-      draw();
+      avatarDraw_();
       /* A REFUSAL IS A TOAST. This app decided that once already — see the note on `why_` in
          shell.js — and the line it used to be written to is gone. */
       toast(String(err.message || err));
+    });
+}
+
+/* ---------- A NEW HANDLE KEEPS THE FACE IT HAD (the review of docs/history/339) ----------------------------------
+   A FIGURE NOBODY DRESSED IS WORKED OUT FROM THE HANDLE (`avatarConfig`: *"Seeded by their handle, so it is theirs
+   and never changes on its own"*) — so Randomise, which changes the handle, changed the skin and the hair colour of
+   everybody who had never chosen a look. It did on Settings' Signing in card before 339, out of sight of the
+   wardrobe; on your own card's Edit the wardrobe is two sections above Randomise, and pressing it visibly turned a
+   darker face with red hair into a pale one with brown (measured, every role). Nothing on the form said it would,
+   and Cancel could not undo it — the cell was still blank.
+   SO THE FACE IS WRITTEN DOWN THE MOMENT THE HANDLE CHANGES: the look the OLD handle drew, through the one door a
+   look has (`saveAvatar`), with nothing new on the server. A press on the handle never changes the face; the face
+   changes when somebody changes it in the wardrobe. Put on the phone first, so no frame draws the new handle's
+   colours; a refusal puts the cell back to blank and the figure follows the new handle, as the server's copy does,
+   and says so. Only for a blank look: a look somebody chose names its own colours and no handle moves it. */
+function avatarKeep_(seed) {
+  const cfg = avatarConfig('', seed);
+  const seq = ++AV_SEQ;
+  USER.avatar = packLook_(cfg);
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+  avatarPost_(cfg)
+    .then(d => {
+      if (seq !== AV_SEQ) return;
+      if (!d || d.error) throw new Error((d && d.error) || 'Could not keep your figure as it was');
+      USER.avatar = d.avatar;
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+    })
+    .catch(err => {
+      if (seq !== AV_SEQ) return;
+      USER.avatar = '';
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      avatarDraw_();
+      toast('Your figure\'s colours follow your new handle — ' + String(err.message || err));
     });
 }
 
@@ -2381,7 +2443,7 @@ function mayAddChild_() {
    accept…") said the sub-line's second sentence again, and went into it. */
 function kidAddSec_() {
   return `<div class="kid-sec kid-add">
-    <p class="prof-cap">Add your child</p>
+    <h4 class="kid-h">Add your child</h4>
     <p class="sub">Already has an account? Their name as it is on it. They say yes before anything is
       linked, and if they say no, nothing happens.</p>
     ${/* DRAFTS UNTIL ASKED (data.js; docs/history/317) — a card on the Settings column is redrawn by a
@@ -2452,15 +2514,18 @@ function pinSlip_(first, handle, pin) {
 }
 
 /* THE MAKE FORM, the middle section of "Manage your child" (`childManageCard_`, below). It was a card of
-   its own, "Make your child's account"; the caption keeps those words because the parent's confirmation
-   email names them (`register` in dopost.gs: *Settings → "Make your child's account"*). Its foot line
+   its own, "Make your child's account"; its heading keeps those words because the parent's confirmation
+   email names them (`register` in dopost.gs: *Settings → "Make your child's account"*). A HEADING AND NOT
+   A CAPTION (the review of docs/history/339): it was `.prof-cap`, the card's faint 8px label voice, which made
+   the words an email sends a parent to look for the smallest text on the card — 5.8px at 320 while the card
+   was still drawn smaller. Its foot line
    pointed at "the next card"; the add section is straight under it now and says the same in its own
    first words, so the line is the slip's alone. */
 function kidMakeSec_() {
   const mine = KID_MADE.pid && USER && KID_MADE.pid === String(USER.personId || '');
   const kidSurname = (USER && USER.profile && USER.profile.last_name) || '';
   return `<div class="kid-sec kid-make">
-    <p class="prof-cap">Make your child's account</p>
+    <h4 class="kid-h">Make your child's account</h4>
     <p class="sub">No email needed. They sign in with a handle we make for them and a PIN you
       choose.</p>
     ${/* THE NAMES ARE DRAFTS UNTIL THE ACCOUNT IS MADE (data.js; 317), the surname starting from the
@@ -2533,10 +2598,10 @@ function movingNote_(p) {
    OF BOTH FORMS — the add form would be refused for the same reason, and two sections saying one sentence
    is one too many. It was a card of its own drawn instead of the two child cards, ONE PAGE WHERE THERE
    WERE TWO, which moved every page after it on the link being opened; inside "Manage your child" it is one
-   page either way (docs/history/339). The caption is the make form's, for the confirmation email's words. */
+   page either way (docs/history/339). The heading is the make form's, for the confirmation email's words. */
 function kidHeldSec_() {
   return `<div class="kid-sec kid-held">
-    <p class="prof-cap">Make your child's account</p>
+    <h4 class="kid-h">Make your child's account</h4>
     <p class="sub">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
       first, then you can make your child's account or add them.</p>
     <div class="tile-row">${resendTile_()}</div>
@@ -2556,8 +2621,12 @@ function kidHeldSec_() {
      · MAKING AN ACCOUNT, then LINKING ONE THAT EXISTS — the two forms, unchanged, in the order the two
        cards were in: most children here have no account of their own.
    WHAT MANAGING A CHILD ALREADY IS, AND NOTHING MORE: "New PIN" (`kid-pin` → `resetPin`), the one power a
-   parent holds over a linked child's account. It is on the child's own card on the You column too; here
-   it is beside their name, the place a parent who came to manage them looks. Nothing new on the server.
+   parent holds over a linked child's account, beside their name, the place a parent who came to manage them
+   looks. Nothing new on the server. AND HERE ONLY (the review of docs/history/339): it was on the child's own
+   card on the You column as well, and at 1280 the two were side by side — two widgets doing one job, against
+   the owner's *"one widget which is manage you child"* — and they disagreed, because this one knew the
+   address rule below and that one did not, so a pending parent pressed it there and was refused. The child's
+   card on the You column is the child; managing them is this card.
    While the parent's address is unproved the forms are one sentence (`kidHeldSec_`) and the children are
    listed without New PIN, because `resetPin` refuses a pending parent (`confirmFirst_`) and a tile the
    server will refuse is a door painted on a wall. */
@@ -2650,8 +2719,9 @@ on('kid-make', el => {
 });
 
 /* ---------- A NEW PIN FOR YOUR CHILD, OR FOR ANYBODY IF YOU ARE AN ADMIN ----------------------------
-   THE TILE IS ON THE CHILD'S CARD — the parent's family column, the admin's everyone column — because
-   the PIN is about that person (a THING has tiles). PRESSING IT ASKS FIRST, in a sheet with its own
+   THE TILE IS BESIDE THE CHILD — on "Manage your child" for a parent (`kidListSec_`; it left the child's card
+   on the You column in the review of docs/history/339, one place for one job), on the admin's everyone
+   column for an admin — because the PIN is about that person (a THING has tiles). PRESSING IT ASKS FIRST, in a sheet with its own
    button (a FORM has buttons): the child's old PIN stops working and every phone they are signed in on
    is signed out, which is not a thing a thumb scrolling past should do. The answer is the same slip as
    above, in the same sheet, once. `resetPin` decides who may; this draws the tile for the two people
@@ -5322,8 +5392,12 @@ function libCardsDraw_(into) {
   if (!USER) { into.innerHTML = `<p class="note">Sign in and your library cards are kept here.</p>`; return; }
   const list = libFieldsOf_(myGroups_());
   if (!list.length && typeof awaiting_ === 'function' && awaiting_()) { into.innerHTML = loading_(); return; }
+  /* AN OLDER SERVER, SAID AS ONE — `OLD_SERVER_SAY_`, the card editor's sentence for the same case. It said "have
+     not arrived from the server yet", under a payload that had arrived and would never carry them: a promise
+     the page could not keep (the review of docs/history/339). Not hidden instead: a widget that comes and goes
+     with the payload would move every Tools page behind it, which is why it is appended last at all. */
   if (!list.length) {
-    into.innerHTML = `<p class="note">The library cards have not arrived from the server yet.</p>`;
+    into.innerHTML = `<p class="note">${esc(OLD_SERVER_SAY_)}</p>`;
     return;
   }
   const p = USER.profile || {};
@@ -5674,13 +5748,40 @@ function profileRefresh_(loud, onOld) {
    HANDLE AT ONCE, as `cardPatchRow_` puts a saved name on them: the card the form turns back into is drawn
    from your tutor row, and until the payload `load()` asks for lands it would print the old handle under
    your name beside a toast saying the new one. */
+/* ---------- AFTER REVIEW (docs/history/339) — THREE THINGS THE ONE FORM CHANGED --------------------------------
+   · IT LOCKS ITS OWN SECTION, NOT THE FORM. `send_`'s default lock is the nearest `.me-form`, which on Settings
+     was the Signing in card and on your card's Edit is the WHOLE CARD — every box disabled while the press was
+     out, and Save (under the form, so still live) read the form with `cardFormVals_`, which skips a disabled box:
+     nothing had changed, said the toast, and the card closed and dropped its draft. Measured: a first name typed,
+     Randomise, Save — "Nothing had changed", the sheet still Pat. The picture locks its own `.pfp` for the same
+     reason. And Save waits for it (`HANDLE_ASKING`, read by `card-save`).
+   · IT WAITS FOR A FIRST NAME TYPED AND NOT SAVED. The server makes the handle from the name ON THE SHEET
+     (`handleMake_(r, r.first_name, …)`), and the name boxes are the section above — so "change the name, then
+     Randomise" was the natural order and made `pat_humble98` for somebody now called Quinn, against the rule
+     that a handle is your first name and a virtue. Refused before it is sent, in words, on the line under it.
+   · IT KEEPS THE FACE (`avatarKeep_`, above) when nobody ever chose a look. */
+const HANDLE_NAME_FIRST_ = 'Save your new first name first — Randomise makes the handle from the name that is saved.';
+let HANDLE_ASKING = false;
 on('handle-shuffle', el => {
-  if (!USER) return;
+  if (!USER || HANDLE_ASKING) return;
   const card = el.closest('.card');
   const said = card && card.querySelector('.handle-said');
+  const form = el.closest('.card-ed .me-form');
+  const base = form && CARD_DRAWN.get(form.dataset.draw || '');
+  const first = form && form.querySelector('[data-me="first_name"]');
+  if (first && base && !cardSame_('first_name', first.value, base.first_name)) {
+    if (said) said.textContent = HANDLE_NAME_FIRST_;
+    toast(HANDLE_NAME_FIRST_);
+    return;
+  }
+  /* THE SEED THE FACE IS DRAWN FROM NOW, as `avatarSave` reads it — kept if the look is blank when the answer lands. */
+  const seed = USER.handle || USER.name;
+  HANDLE_ASKING = true;
   send_({ action: 'randomiseHandle', name: USER.name, personId: USER.personId || '' },
-        { button: el, busy: 'Choosing…', where: said || undefined })
+        { button: el, busy: 'Choosing…', where: said || undefined, lock: el.closest('.ce-sec') || undefined })
     .then(d => {
+      HANDLE_ASKING = false;
+      if (USER && !String(USER.avatar || '').trim()) avatarKeep_(seed);
       USER.handle = d.handle;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       ['tutors', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
@@ -5694,7 +5795,8 @@ on('handle-shuffle', el => {
       toast('You are @' + d.handle);
       try { load(); } catch (e) {}
     })
-    .catch(() => {});
+    /* `send_` has said why, on the line under the tile. */
+    .catch(() => { HANDLE_ASKING = false; });
 });
 
 on('pin-save', el => {
@@ -5943,6 +6045,8 @@ function cardEditNow_() {
         CARD_EDIT = cardEditFresh_(k.pid);
         if (typeof k.pic === 'string') CARD_EDIT.pic0 = k.pic;
         if (typeof k.fig === 'string') CARD_EDIT.fig0 = k.fig;
+        if (typeof k.hd === 'string') CARD_EDIT.h0 = k.hd;
+        if (typeof k.cr === 'number') CARD_EDIT.cr0 = k.cr;
       }
     } catch (e) {}
   }
@@ -5950,11 +6054,18 @@ function cardEditNow_() {
 }
 /* `pic` IS THE PICTURE THE CARD WAS OPENED WITH, remembered beside which card is open so a Cancel after a
    reload can still put it back (`card-cancel`, below) — and `fig` THE LOOK, for the same Cancel, since the
-   wardrobe is a section of your own card (docs/history/339) and saves itself as the picture does. */
+   wardrobe is a section of your own card (docs/history/339) and saves itself as the picture does.
+   AND `hd`, THE HANDLE IT WAS OPENED UNDER, AND `cr`, THE CREDITS (the review of 339). A look nobody chose is
+   drawn from the handle, so "the look it opened with" is the cell AND the handle that drew it — kept without the
+   handle, a Randomise and then Cancel rebuilt the blank look under the NEW handle, another face. The credits
+   are how Cancel knows something was bought; kept only in memory, a reload mid-edit lost the line that says
+   it is still yours. */
 function cardRemember_(e) {
   const k = { who: e.who, pid: e.pid };
   if (typeof e.pic0 === 'string') k.pic = e.pic0;
   if (typeof e.fig0 === 'string') k.fig = e.fig0;
+  if (typeof e.h0 === 'string') k.hd = e.h0;
+  if (typeof e.cr0 === 'number') k.cr = e.cr0;
   try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) {}
 }
 function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (x) {} }
@@ -6314,7 +6425,11 @@ on('card-edit', el => {
      somebody else's the picture is shown and not offered (`cardFaceOnly_`). */
   if (CARD_EDIT.own) CARD_EDIT.pic0 = cardPicNow_(t);
   /* AND THE LOOK IT OPENED WITH, for the same Cancel — the wardrobe is a section of your own card now. */
-  if (CARD_EDIT.own) { CARD_EDIT.fig0 = String(USER.avatar || ''); CARD_EDIT.cr0 = Number(USER.credits || 0); }
+  if (CARD_EDIT.own) {
+    CARD_EDIT.fig0 = String(USER.avatar || ''); CARD_EDIT.cr0 = Number(USER.credits || 0);
+    /* AND THE HANDLE IT IS DRAWN UNDER — see `cardRemember_`; the seed `avatarSave` reads. */
+    CARD_EDIT.h0 = String(USER.handle || USER.name || '');
+  }
   cardRemember_(CARD_EDIT);
   cardRepaint_();
 });
@@ -6325,6 +6440,27 @@ function cardPicNow_(t) {
   const v = Object.prototype.hasOwnProperty.call(p, 'photo') ? p.photo
     : (USER && USER.photo != null ? USER.photo : (t && t.image));
   return String(v == null ? '' : v).trim();
+}
+
+/* ---------- WHAT SAVED ITSELF WHILE THE CARD WAS OPEN (the review of docs/history/339) ----------------------------
+   Your picture, your figure and your handle are each saved the moment they are chosen, so the one Save never
+   carries them — and a Save with nothing typed has still something to say about them. Asked of what the card was
+   opened with (`pic0`, `fig0` under `h0`), which a reload keeps, so the answer does not depend on the visit. The
+   figure is compared as DRAWN (`lookKey_`): a Randomise that kept the face changed the cell and not the figure. */
+function cardSelfSaved_(e) {
+  if (!e || !e.own || !USER) return [];
+  const h0 = typeof e.h0 === 'string' ? e.h0 : String(USER.handle || USER.name || '');
+  const out = [];
+  if (typeof e.pic0 === 'string' && cardPicNow_() !== e.pic0) out.push('picture');
+  if (typeof e.fig0 === 'string' && lookKey_(USER.avatar, USER.handle || USER.name) !== lookKey_(e.fig0, h0)) out.push('figure');
+  if (typeof e.h0 === 'string' && String(USER.handle || USER.name || '') !== e.h0) out.push('handle');
+  return out;
+}
+function cardSelfSay_(e) {
+  const l = cardSelfSaved_(e);
+  if (!l.length) return '';
+  const list = l.length === 1 ? l[0] : l.slice(0, -1).join(', ') + ' and ' + l[l.length - 1];
+  return 'Your ' + list + (l.length === 1 ? ' was saved as you chose it.' : ' were saved as you chose them.');
 }
 
 /* ---------- SAVE: EVERY CHANGE, ONE REQUEST, THE EXISTING `updateProfile` ----------------------------------
@@ -6343,10 +6479,22 @@ on('card-save', el => {
   const said = form.querySelector('.me-said');
   const base = CARD_DRAWN.get(form.dataset.draw || '');
   if (!base) { cardRepaint_(); return; }
+  /* ---------- NOT WHILE A SECTION THAT SAVES ITSELF IS ON THE WIRE (the review of docs/history/339) ----------
+     A box a request has locked is disabled, `cardFormVals_` skips a disabled box, and a form read under a lock
+     reads as unchanged: Save said "Nothing had changed", shut the card and dropped its draft while Randomise was
+     out (measured — a typed first name, gone). Randomise locks only its own section now, but a disabled box must
+     never be read as an untouched one, so Save waits, in words, as Cancel waits for the picture. */
+  const busy = HANDLE_ASKING ? 'Your handle is still changing'
+    : form.querySelector('.pfp.is-sending') ? 'Your picture is still saving'
+    : form.querySelector('.is-sending') || form.classList.contains('is-sending') ? 'Part of your card is still saving' : '';
+  if (busy) { toast(busy + ' — Save once it has.'); if (said) said.textContent = busy + ' — Save once it has.'; return; }
   if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) said.textContent = QUAL_NAMELESS_SAY_; return; }
   if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) said.textContent = CARD_LEVELLESS_SAY_; return; }
   const fields = cardChanged_(base, cardFormVals_(form));
-  if (!Object.keys(fields).length) { toast('Nothing had changed'); cardClose_(e, pane); return; }
+  /* NOTHING TYPED — BUT A SECTION THAT SAVES ITSELF MAY HAVE BEEN (`cardSelfSaved_`): "Nothing had changed" after
+     a Randomise, a pick in the wardrobe or a new picture read as if the press had been thrown away, and for a
+     parent or a student three of the four sections are those. */
+  if (!Object.keys(fields).length) { toast(cardSelfSay_(e) || 'Nothing had changed'); cardClose_(e, pane); return; }
   const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
   send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
           target: e.own ? USER.name : (t.title || ''), targetId: e.pid, fields },
@@ -6393,10 +6541,15 @@ on('card-save', el => {
    spent on a piece stay spent and the piece stays yours to wear (`avatarItems`), which the toast says — Cancel
    puts the clothes back, not the shop. A tap still on the wire is overtaken (`AV_SEQ`), so its late answer
    cannot dress the figure again after this. Answers whether it was put back; a refusal is `send_`'s sentence
-   on the form's line, and the toast says the figure is the one thing not put back. */
-function figPutBack_(look, el, pane, said) {
+   on the form's line, and the toast says the figure is the one thing not put back.
+   THE LOOK IS REBUILT UNDER THE HANDLE IT WAS OPENED WITH (`h0`, the review of 339): a blank look under the new
+   handle after a Randomise is another face. And so a look nobody chose comes back WRITTEN OUT — the face it drew,
+   colours and all — never blank again: `saveAvatar` re-checks a whole look and has no way to be told "nothing",
+   and a blank cell would hand the face back to whatever handle comes next, which is the fault `avatarKeep_`
+   closes. The same face, kept. */
+function figPutBack_(look, seed, el, pane, said) {
   AV_SEQ++;
-  const cfg = avatarConfig(look, USER.handle || USER.name);
+  const cfg = avatarConfig(look, seed);
   return send_({ action: 'saveAvatar', name: USER.name, personId: USER.personId, avatar: cfg },
                { button: el, where: said || undefined, lock: pane || undefined })
     .then(d => {
@@ -6412,16 +6565,21 @@ on('card-cancel', el => {
   const pane = el.closest('.pane');
   if (!e || (pane && pane.classList.contains('is-sending'))) return;
   if (pane && pane.querySelector('.card-ed .pfp.is-sending')) { toast('Your picture is still saving — Cancel once it has.'); return; }
+  /* AND A LOOK STILL ON ITS WAY, for the picture's reason — see `AV_WIRE`. */
+  if (AV_WIRE > 0) { toast('Your figure is still saving — Cancel once it has.'); return; }
   const was = typeof e.pic0 === 'string' ? e.pic0 : null;
   const picBack = !!(e.own && was != null && USER && cardPicNow_() !== was);
-  const figBack = !!(e.own && typeof e.fig0 === 'string' && USER && String(USER.avatar || '') !== e.fig0);
+  /* THE FIGURE AS DRAWN, under the handle each was drawn with (`lookKey_`) — see `cardSelfSaved_`. */
+  const h0 = typeof e.h0 === 'string' ? e.h0 : String((USER && (USER.handle || USER.name)) || '');
+  const figBack = !!(e.own && typeof e.fig0 === 'string' && USER
+    && lookKey_(USER.avatar, USER.handle || USER.name) !== lookKey_(e.fig0, h0));
   if (!picBack && !figBack) { cardClose_(e, pane); return; }
   const form = pane && pane.querySelector('.card-ed .me-form');
   const said = form && form.querySelector('.me-said');
   const bought = typeof e.cr0 === 'number' && Number(USER.credits || 0) < e.cr0;
   /* THE LOOK FIRST, THEN THE PICTURE — one request at a time on one locked page, so the picture's own
      refusal path below is exactly what it was. */
-  (figBack ? figPutBack_(e.fig0, el, pane, said) : Promise.resolve(true)).then(figOk => {
+  (figBack ? figPutBack_(e.fig0, h0, el, pane, said) : Promise.resolve(true)).then(figOk => {
     const fig = !figBack ? '' : figOk ? (bought ? ' Anything you bought is still yours.' : '') : '';
     if (!picBack) {
       cardClose_(e, pane);

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-card-settings";
+  --css-version: "2026-10-11-card-settings-review";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6461,7 +6461,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    card's caption voice over each, because both are one card in sections and two looks for that would be two
    rules to keep in step. */
 .ce-sec + .ce-sec, .kid-sec + .kid-sec { margin-top: .75rem; padding-top: .6rem; border-top: 1px solid var(--line-soft); }
-.ce-sec > .prof-cap:first-child, .kid-sec > .prof-cap:first-child { margin-top: 0; }
+.ce-sec > .prof-cap:first-child { margin-top: 0; }
+/* ITS TWO FORMS ARE HEADED, NOT CAPTIONED (the review of docs/history/339). "Make your child's account" and "Add
+   your child" are the words the confirmation email and `makeChild`'s refusal send a parent to find, and as the
+   card editor's `.prof-cap` they were its smallest text — 8px, faint, upper case. A heading one step under the
+   card's own title (`.card > h3`, 1rem), in ink, so they read as what they are: the two things this card does. */
+.kid-sec > .kid-h { margin: 0 0 .45rem; font-size: .9rem; font-weight: 600; letter-spacing: -.005em; color: var(--ink); }
 .ce-note { margin: .35rem 0 0; line-height: 1.35; }
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: .7rem; align-items: center; }
