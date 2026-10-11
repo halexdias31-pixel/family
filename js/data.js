@@ -166,6 +166,38 @@ let LIBRARY_FAILED = '';
    ONE. A banner written by anything else is a real warning and has to survive. */
 let LOAD_SLOW = false;
 try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch {}
+/* ---------- A NAME PRINTED ABOVE ITS OWN HANDLE DOES NOT SAY THE HANDLE TOO ---------------------------------
+   When two children share a first name the server tells them apart in the name itself — `Wren (@wren_kind43)`
+   (`nameFor_`, people.gs; the owner, 10 Oct: *"dont show children's last name"*) — which is what a roster
+   or "who reacted" needs and what a card with `@wren_kind43` on its next line does not. Only a trailing
+   `(@<this handle>)` goes; any other name comes back as it was. For DRAWING: anything that compares names
+   keeps the whole string. */
+function nameBesideHandle_(name, handle) {
+  const n = String(name || ''), h = String(handle || '').replace(/^@/, '');
+  if (!h) return n;
+  const tail = ' (@' + h + ')';
+  return n.slice(-tail.length).toLowerCase() === tail.toLowerCase() ? n.slice(0, -tail.length) : n;
+}
+
+/* ---------- A CHILD SIGNED IN BEFORE 10 OCT IS CALLED BY HER FIRST NAME FROM THE FIRST FRAME ----------------
+   THE OWNER, 10 OCT: *"also side note dont show children's last name."* The server says a child's name as
+   her first name now (`nameFor_`, people.gs), and `myProfile` brings that over a session kept from before —
+   but a second after the first frame, and the first frame drew her whole name on her own You card. The
+   device has the first name already, in the Settings boxes the sign-in reply brought (`profile`), so it is
+   put in place here, before anything is drawn. `myProfile` then says the server's form, which carries her
+   handle as well when another child shares her first name. Only for a kid, and only over a name that is
+   that first name and more: anybody else's is theirs, and a name the server already shortened is left.
+   A KID AS THE SERVER DECIDES IT (`isChild_`, people.gs): `kid` among her roles and nothing grown-up in
+   effect — a Tutor tick still waiting (`tutorPending`) counts for nothing, so a child who ticked it in
+   her Settings is still a kid here, though `role` says `tutor`. */
+try {
+  const p = USER && USER.profile, first = String((p && p.first_name) || '').trim();
+  const rs = USER ? (Array.isArray(USER.roles) && USER.roles.length ? USER.roles : [USER.role]).map(String) : [];
+  const kid = rs.indexOf('kid') !== -1
+    && !rs.some(x => x === 'admin' || x === 'parent' || (x === 'tutor' && !USER.tutorPending));
+  if (USER && kid && first && String(USER.name || '').indexOf(first + ' ') === 0
+      && String(USER.name).indexOf('(@') === -1) USER.name = first;
+} catch (e) {}
 
 /* ==================================================================================================
    WHAT A PERSON HAS WRITTEN IS KEPT ON THE DEVICE AS THEY WRITE IT — AND A WRITE THE DEVICE REFUSED

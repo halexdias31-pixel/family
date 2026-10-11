@@ -221,6 +221,10 @@ const SUITE = [
      could not get an account, a PIN starting with 0 refused for ever and "Forgotten your PIN?"
      wiping whoever's handle was typed into it — under a green suite. Same backend, same harness. */
   { file: 'check-signin.js', what: 'a child with no email: made, registered, signed in by handle, a new PIN' },
+  /* *"also side note dont show children's last name."* — the owner, 10 Oct. ABSENT, NOT HIDDEN: through the
+     real backend, no payload, reply or email carries a child's surname for anybody — her own parent and an
+     admin included — and her own Settings still has it. */
+  { file: 'check-surnames.js', what: 'a child is her first name: no surname in any payload, reply or email, for anybody' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },

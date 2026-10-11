@@ -7547,23 +7547,25 @@ check('an admin sees everyone on the people column, and nobody else sees more th
   const all = () => w.__t.accountPages().join('');
   const count = n => w.__t.accountPages().filter(h => h.indexOf('>' + n + '<') !== -1).length;
   D.everyone = [
-    { personId: 'P-E1', title: 'Evie Everystudent', handle: 'evie_calm31', role: 'Student', image: '' },
+    /* `Evie` ALONE: a child reaches the admin by first name too (the owner, 10 Oct — `nameFor_`,
+       check-surnames.js), and this list is the shape `doGet` sends. */
+    { personId: 'P-E1', title: 'Evie', handle: 'evie_calm31', role: 'Student', image: '' },
     { personId: 'P-E2', title: 'Carl Everyclient', handle: 'carl_kind32', role: 'Client', image: '' },
     { personId: 'P-AD', title: 'Ada Admin', handle: 'ada_brave33', role: 'Client', image: '' },
   ];
   w.__t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'] });
-  if (/Evie Everystudent|Carl Everyclient/.test(all())) bad.push('a student was drawn the admin\'s `everyone` list');
+  if (/>Evie<|Carl Everyclient/.test(all())) bad.push('a student was drawn the admin\'s `everyone` list');
 
   w.__t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
-  if (count('Evie Everystudent') !== 1) bad.push('an admin\'s column drew the student ' + count('Evie Everystudent') + ' time(s), not once');
+  if (count('Evie') !== 1) bad.push('an admin\'s column drew the student ' + count('Evie') + ' time(s), not once');
   if (count('Carl Everyclient') !== 1) bad.push('an admin\'s column drew the client ' + count('Carl Everyclient') + ' time(s), not once');
   if (count('Ada Admin') !== 1) bad.push('the admin is on ' + count('Ada Admin') + ' pages of their own column, not 1');
-  const evie = w.__t.accountPages().find(h => h.indexOf('>Evie Everystudent<') !== -1) || '';
+  const evie = w.__t.accountPages().find(h => h.indexOf('>Evie<') !== -1) || '';
   if (!/data-do="msg-open"/.test(evie)) bad.push('a student on the admin\'s column has no Message tile');
   if (/data-do="set-listed"/.test(evie)) bad.push('a student on the admin\'s column carries the tutor-only Listed switch');
   if (/prof-nohours/.test(evie)) bad.push('a student on the admin\'s column is told they "haven\'t set their hours", a tutor\'s warning');
   delete D.everyone;
-  if (/Evie Everystudent/.test(all())) bad.push('with no `everyone` key the student was drawn anyway');
+  if (/>Evie</.test(all())) bad.push('with no `everyone` key the student was drawn anyway');
   w.__t.USER(null);
   return bad;
 });
@@ -20731,6 +20733,141 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   [3, 1, 2].forEach(tap);
   send();
   if (verdict() !== 'Not yet — have another go') bad.push('0.7 first was marked "' + verdict() + '" on a row with two right orders');
+  return bad;
+});
+
+/* ---------- A CHILD IS HER FIRST NAME ON EVERY SCREEN, FOR EVERYBODY -------------------------------
+   THE OWNER, 10 OCT: *"also side note dont show children's last name."* (docs/history/333).
+
+   THE PAYLOADS ARE THE REAL BACKEND'S, NOT A FIXTURE. A fixture written to say "Wren" would prove only
+   that the phone draws what it is given — and the whole risk is what it is given. So the people, her
+   post, her reactions, her booking with her whole name in the events and in `for_children`, her
+   message to the admin and her family link go into the in-memory sheet of `check-gas-load.js`, each
+   visitor signs in through the real `verifyLogin`, the phone boots on the real `doGet` for that
+   visitor's token, and every POST it makes is answered by the real `doPost`. Then every screen and
+   every page of it is drawn, and her surname must be nowhere in the document — text, attributes,
+   anything — for a visitor, her tutor, another parent and an admin.
+
+   AND FOR HERSELF, ON A PHONE SIGNED IN BEFORE 10 OCT: `familyUser` still holding her whole name, the
+   way thirty days of sessions do. The first open asks `myProfile`, which carries her name as the server
+   says it now (`profileRefresh_`), so her You card and her greeting are her first name too. The one
+   place it may be is her own Settings, in the box that edits it — so for her, those boxes are left out
+   of the search and nothing else is.
+
+   AND JUNO, WHO TICKED TUTOR IN HER OWN SETTINGS (the review of 10 Oct). The tick is a request the
+   business has not answered (`listed` PENDING), so she is a child still — but the first version of the
+   rule asked `mainRole`, which called her a tutor, and her whole name was drawn under her comment for
+   a visitor, on her tutor's roster and on everybody's score board. She books and comments here, and her
+   surname is hunted on every screen beside Wren's. */
+const SUR_ = 'Quorrington';
+const SURS_ = [SUR_, 'Vandersloot'];
+function surnameWorld_() {
+  const { backend } = require('./check-gas-load.js');
+  const b = backend({ MailApp: { sendEmail() {}, getRemainingDailyQuota: () => 100 } });
+  const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+  const dmy = d => d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0 };
+  const P = (id, role, first, last, email, handle, extra) => Object.assign({ person_id: id, role, first_name: first,
+    last_name: last, email, handle }, base, extra || {});
+  b.seed('people', [
+    P('P-ADM', 'admin', 'Hal', 'Admin', 'admin@example.org', 'hal_kind40'),
+    P('P-TUT', 'tutor', 'Tam', 'Tutor', 'tutor@example.org', 'tam_kind41', { availability: 'm16,m17,sa10,sa11,sa12',
+      rate_per_hour: 20, max_students: 4, min_students: 1, age_min: 8, age_max: 16, dbs_checked: true }),
+    P('P-PAR', 'client', 'Pip', 'Ashdown', 'pip@example.org', 'pip_kind42'),
+    P('P-KID', 'student', 'Wren', SUR_, '', 'wren_kind43', { date_of_birth: '14/03/2014', high_score_flappy: 31 }),
+    /* A SECOND WREN, so the server's name for her is `Wren (@wren_kind43)` — and the phone must take that
+       from `myProfile` rather than stop at the first name it can work out for itself. */
+    P('P-KD2', 'student', 'Wren', 'Ollerby', '', 'wren_bold44'),
+    P('P-STU', 'student', 'Ned', 'Pell', 'ned@example.org', 'ned_kind45'),
+    P('P-OTH', 'client', 'Ola', 'Brisk', 'ola@example.org', 'ola_kind46'),
+    P('P-PEN', 'student', 'Juno', 'Vandersloot', 'juno@example.org', 'juno_kind47', { high_score_flappy: 12 }),
+  ]);
+  b.seed('family', [{ link_id: 'L1', parent_id: 'P-PAR', child_id: 'P-KID', child_typed: 'Wren ' + SUR_, state: 'accepted' }]);
+  b.seed('config', [{ key: 'max_open_requests', value: 20 }]);
+  b.seed('posts', [{ post_id: 'PO-1', author: 'Wren ' + SUR_, posted_by: 'Wren ' + SUR_, image: 'https://example.org/w.jpg',
+    caption: 'Wren ' + SUR_ + ' and the volcano', approved: 'TRUE', active: 'TRUE', posted_on: dmy(day(-1)) }]);
+  b.seed('post_reactions', [{ reaction_id: 'R1', post_id: 'PO-1', person_id: 'P-KID', emoji: '👍', reacted_on: dmy(day(-1)) }]);
+  b.seed('post_comments', [{ comment_id: 'C1', post_id: 'PO-1', person_id: 'P-KID', body: 'thank you', said_on: dmy(day(-1)), active: 'TRUE' }]);
+  const tk = {};
+  [['admin@example.org', 'P-ADM'], ['tutor@example.org', 'P-TUT'], ['pip@example.org', 'P-PAR'], ['wren_kind43', 'P-KID'],
+   ['ned@example.org', 'P-STU'], ['ola@example.org', 'P-OTH'], ['juno@example.org', 'P-PEN']].forEach(([who, id]) => {
+    const d = b.post({ action: 'verifyLogin', email: who, name: who, pin: '0000' });
+    if (d && d.success) tk[id] = d;
+  });
+  const as = (pid, body) => b.post(Object.assign({ token: tk[pid].token, name: tk[pid].name, personId: pid }, body));
+  /* HER SEAT, BOOKED BY HER PARENT FOR HER AS AN OLD PHONE DID (her whole name ticked), AND HER OWN. */
+  if (tk['P-PAR']) as('P-PAR', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'English', level: 'GCSE', day: 'Saturday',
+    time: '11:00', slots: 'sa11', location: 'Online', dates: dmy(day(41)), hours: 1, price: 30, kids: 'Wren ' + SUR_ });
+  if (tk['P-KID']) as('P-KID', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
+    time: '10:00', slots: 'sa10', location: 'Online', dates: dmy(day(40)), hours: 1, price: 30 });
+  if (tk['P-KID']) as('P-KID', { action: 'sendMessage', to: 'Hal Admin', toId: 'P-ADM', body: 'Can we do fractions?' });
+  /* JUNO TICKS TUTOR, AND IS LEFT WAITING — then books her own session and says a word on Wren's post. */
+  if (tk['P-PEN']) {
+    const t1 = as('P-PEN', { action: 'setMyRoles', roles: ['student', 'tutor'] });
+    const t2 = as('P-PEN', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
+      time: '12:00', slots: 'sa12', location: 'Online', dates: dmy(day(42)), hours: 1, price: 30 });
+    const t3 = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
+    if (!(t1 && t1.tutorPending) || !(t2 && t2.success) || !(t3 && t3.success)) tk.junoFailed = JSON.stringify([t1, t2, t3]).slice(0, 300);
+  }
+  return { b, tk };
+}
+check('a child is her first name on every screen: no surname drawn for a visitor, her tutor, another parent, an admin, or herself outside her own Settings boxes', async () => {
+  let world;
+  try { world = surnameWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was drawn — ' + e.message]; }
+  const { b, tk } = world;
+  if (tk.junoFailed) return ['Juno could not tick Tutor, book and comment, so a pending tick was NOT asked — ' + tk.junoFailed];
+  if (Object.keys(tk).length < 7) return ['only ' + Object.keys(tk).join(', ') + ' could sign in, so most screens were NOT drawn — not a pass'];
+  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID']];
+  const bad = [];
+  for (const [who, pid] of VIEW) {
+    /* WHAT `familyUser` HOLDS: the real sign-in reply — and for her, that reply as a phone signed in
+       before 10 Oct kept it, her whole name in it. */
+    const user = pid ? JSON.parse(JSON.stringify(tk[pid])) : null;
+    if (pid === 'P-KID') user.name = 'Wren ' + SUR_;
+    const pay = b.get(pid ? { token: tk[pid].token } : {});
+    const { w, errs } = boot({ payload: pay, reply: body => b.post(body),
+      before: win => { if (user) win.localStorage.setItem('familyUser', JSON.stringify(user)); } });
+    for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+    const t = w.__t;
+    if (!t) { bad.push(who + ': the app did not finish loading'); continue; }
+    await wait(600); await woken_();
+    if (!!pid !== !!t.whoami()) { bad.push(who + ': the app reads this visitor as signed ' + (t.whoami() ? 'in' : 'out') + ' — NOT asked about'); continue; }
+    const seen = [];
+    let sawJuno = false;
+    const look = (where) => {
+      const root = w.document.documentElement.cloneNode(true);
+      /* HER OWN SETTINGS BOXES, AND NOTHING ELSE, are where her surname belongs. */
+      if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea').forEach(el => el.remove());
+      const html = root.outerHTML;
+      const m = html.match(new RegExp('.{0,70}(?:' + SURS_.join('|') + ').{0,40}', 'i'));
+      if (/Juno/.test(html)) sawJuno = true;
+      if (m) seen.push(where + ': …' + m[0].replace(/\s+/g, ' ') + '…');
+    };
+    let pages = 0;
+    for (const id of t.TABS.map(x => x.id)) {
+      try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw on go(): ' + e.message); continue; }
+      await wait(120); await woken_();
+      look(id);
+      /* A WINDOWED SCREEN HOLDS A FEW PAGES AT A TIME, so it is walked page by page. */
+      let n = 0;
+      try { n = t.pageCount(id) || 0; } catch (e) { n = 0; }
+      pages += Math.max(1, n);
+      if ((t.PAGE_KEEP || {})[id]) {
+        for (let p = 1; p < Math.min(n, 40); p++) { try { t.goPage(id, p, true); } catch (e) {} await wait(30); look(id + ' page ' + (p + 1)); }
+      }
+    }
+    if (pages < 12) bad.push(who + ': only ' + pages + ' pages were drawn — the walk did not reach the screens');
+    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown her surname on ' + x));
+    /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
+    const all = w.document.documentElement.outerHTML;
+    if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
+    if (!sawJuno) bad.push(who + ': "Juno" is nowhere on any screen, so the screens that name the child who ticked Tutor were NOT drawn — not a pass');
+    if (pid === 'P-KID' && String((t.whoami() || {}).name) !== String(tk['P-KID'].name)) {
+      bad.push('herself: the phone calls her ' + JSON.stringify((t.whoami() || {}).name) + ' after `myProfile`, and the server calls her '
+        + JSON.stringify(tk['P-KID'].name) + ' — a session from before 10 Oct keeps the name it was signed in with for thirty days');
+    }
+    if (errs.length) bad.push(who + ': errors: ' + errs.slice(0, 3).join(' | '));
+  }
   return bad;
 });
 

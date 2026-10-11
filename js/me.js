@@ -5401,12 +5401,24 @@ function profileRefresh_(loud, onOld) {
       /* `pendingEmail` RIDES WITH THE ROLE, for the role's reason: it decides which cards are drawn (the
          held make-child card, the line under your own card), and it goes stale the same way — the link
          opened on a laptop, the address proved by Google on another phone. */
-      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]);
+      /* ---------- AND THE NAMES, WHICH WENT STALE THE SAME WAY ---------------------------------------
+         THE OWNER, 10 OCT: *"also side note dont show children's last name."* The server calls a child by
+         their first name now (`nameFor_` in people.gs) — but a phone signed in before that kept the whole
+         name in `familyUser` for the thirty days a session lasts: a child's own name on their You card, a
+         parent's children in the booking form's "Which of your children?". `myProfile` carries the names
+         as the sign-in reply says them, so the first open after the deploy puts the first names over the
+         old ones; an older server sends none and this keeps what it had. A name that changed is a repaint,
+         like a role: it is on the card at the top of the column. */
+      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+        String(USER.name || ''), USER.children, USER.kids]);
       if (d.role) USER.role = d.role;
       if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
       if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
-      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]) !== roleWas;
+      if (d.name) USER.name = String(d.name);
+      ['children', 'kids', 'parents', 'siblings'].forEach(k => { if (Array.isArray(d[k])) USER[k] = d[k]; });
+      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+        String(USER.name || ''), USER.children, USER.kids]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: a
          select somebody has open, or a box they are in, is not rebuilt under them. Found by review on

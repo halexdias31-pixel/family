@@ -435,6 +435,11 @@ const SCHEMA = {
   people: [
     /* who they are */
     "person_id", "role", "first_name", "last_name", "handle", "handle_changed_at", "handle_was",
+    /* EVERY WHOLE NAME THEY HAVE HAD BEFORE, newest first — written by `updateProfile` when a name
+       changes, so a child whose surname was corrected after she booked is still recognised in what was
+       stored under the old one and called by her first name there too (`kidNamesIndex_`, people.gs; the
+       owner, 10 Oct: *"dont show children's last name"*). A safeguarding column, like `handle_was`. */
+    "name_was",
     /* how to reach them, and how they sign in */
     "email", "phone", "pin", "date_of_birth",
     /* A GROWN-UP'S ADDRESS, FOR A CHILD WHO HAS NONE — written by `register` when a child makes their
@@ -1887,6 +1892,14 @@ const RENAMEABLE = [
    _row = its sheet row number so writes know where to go. Cached per request: doGet touches
    seven tabs and would otherwise re-read them. */
 const _cache = {};
+/* ---------- AND WHAT THE PEOPLE TAB SAYS ABOUT CHILDREN, WORKED OUT ONCE PER REQUEST ------------------
+   `kidMemo_` in people.gs: which rows are children, how many share each first name, and the net's
+   pattern (`kidNamesIndex_`). Beside `_cache` because it is made from `_cache`'s people rows, and dropped
+   by any write to that tab (`kidMemoDrop_`) — a reply is built after its writes, and a child renamed
+   by this very request must be recognised under the name the reply is about to carry. */
+let KID_MEMO_ = null;
+/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS — `HANDLE_WAS_KEEP`'s number, for its reason. */
+const NAME_WAS_KEEP = 10;
 
 /* ---------- A WRITE THAT GOES NOWHERE -------------------------------------------------------------
    `setCell` returns false for a column that does not exist, and `addRow` drops a key it has no

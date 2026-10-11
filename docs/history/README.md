@@ -327,5 +327,6 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [A tutor's week is the days they work: the card leaves out a day with nothing ticked, the booking form does the same once a tutor is named, a day holding a tick stays, and a taught hour is hatched so the day kept for it is not a row of nothing](325-a-tutor-s-week-is-the-days-they-work.md)
 - [Films leave Find: no kind, no card, no answer and nothing in its search — Games → Videos is where a film is found; and a tutor's extra photographs stay squares, nothing to press](326-films-leave-find-and-tutor-photos-stay-squares.md)
 - [Each library card looks like one: a bank card's shape on paper, a fake barcode worked out from its number, and its three boxes still on it](332-each-library-card-looks-like-a-card.md)
+- [A child is called by their first name — to everybody, in everything the server says, and the sheet keeps the rest](333-a-child-is-called-by-their-first-name.md)
 - [The business records have a column of their own, the last one, for an admin only: no tab, no section and nothing in the page for anybody else, and it comes and goes with signing in and out](334-the-business-records-have-a-column.md)
 - [Rooms inside a venue: a blank cell is the venue's, an explicit 0 stays 0, and every reader that prices or caps a room asks one function](336-rooms-inside-venues.md)

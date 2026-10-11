@@ -826,8 +826,11 @@ function doGet(e) {
         /* AND THEIR CHILDREN, so the booking form can ask WHICH of them once a client is chosen.
            Names only — the same rule as the list itself, and for the same reason. */
         payload.clients.push({
-          name: personDisplayName(r),
-          children: childrenOf(S(r.person_id)).map(personDisplayName),
+          name: nameFor_(r),
+          /* BY FIRST NAME — the owner, 10 Oct: *"dont show children's last name"* (`nameFor_`, people.gs).
+             The ticklist these fill is what goes into `for_children`, so the booking keeps the name
+             the admin saw. */
+          children: childrenOf(S(r.person_id)).map(c => nameFor_(c)),
         });
       }
 
@@ -846,7 +849,7 @@ function doGet(e) {
           const parent = findPerson(S(f.parent_id));
           payload.claims.push({
             rowIndex: f._row,
-            from: parent ? personDisplayName(parent) : S(f.parent_id),
+            from: parent ? nameFor_(parent) : S(f.parent_id),
             asked: S(f.asked_on),
           });
         });
@@ -870,7 +873,9 @@ function doGet(e) {
         payload.everyone.push({
           /* THE HANDLE OR NOTHING, as on `tutors` — and an admin's card says "no handle yet" for a
              blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
-          personId: S(r.person_id), title: name, handle: S(r.handle),
+          /* A CHILD BY FIRST NAME (`nameFor_`) — the admin included, who reads the surname in the sheet.
+             The card prints the handle, so two children called Sam are told apart by it. */
+          personId: S(r.person_id), title: nameFor_(r, true), handle: S(r.handle),
           role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
           /* AND THE FIGURE WHEN IT IS THEIR PICTURE — an admin is already sent this person's face, so
              the face drawn as the figure tells them nothing they could not already see. `faceFig_`. */
@@ -888,7 +893,14 @@ function doGet(e) {
              score and the avatar). A person's OWN family arrives in `payload.family`, and their own
              friends on their own row, which is where each belongs. Not sent is not leaked. */
           avatar: S(r.avatar),
-          name: S(r.first_name) || name,
+          /* THE FIRST NAME, AS IT ALWAYS WAS — for everybody on the board, child or not: it said
+             `S(r.first_name) || name`. `kidFirst_` is that first name, or the handle where a row has none,
+             and never the lone surname such a row does have. `nameFor_(r, true)` stood here for a few
+             hours and was the WHOLE name for anybody holding `student` who is not a child — a parent
+             who is also learning, a student-tutor — and the board goes to every signed-in phone (the
+             review of 10 Oct: "Gus Hartwell" where it had always said "Gus"). `nameFor_` only for a row
+             with neither, so a grown-up with nothing else keeps the name they had here. */
+          name: kidFirst_(r) || nameFor_(r, true),
           handle: S(r.handle),
           xp: N(r.xp), credits: N(r.credits),
           highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
@@ -1232,12 +1244,14 @@ function doGet(e) {
            keeps the old line's answer too, which is no worse than before this change. */
         const face = S(pp.photo);
         const kidHid = !photoChoice_(face) && hasRole(pp, 'student') && !!S(pp.avatar);
+        /* KEYED BY THE WHOLE NAME, because that is what a post's `author` cell holds — and what goes
+           OUT is `nameFor_`'s: "who reacted" names a child by their first name (the owner, 10 Oct). */
         faces[key(nm)] = {
-          handle: S(pp.handle) || S(pp.first_name) || nm,
+          handle: S(pp.handle) || S(pp.first_name) || nameFor_(pp),
           avatar: kidHid ? '' : face,
           figure: faceFig_(pp).avatar,
         };
-        if (S(pp.person_id)) byId[S(pp.person_id)] = nm;
+        if (S(pp.person_id)) byId[S(pp.person_id)] = nameFor_(pp);
       });
       read(TAB.posts).rows.forEach(r => {
         if (!S(r.post_id)) return;
@@ -1279,7 +1293,14 @@ function doGet(e) {
 
         payload.posts.push({
           id: S(r.post_id),
-          author: S(r.author),
+          /* THE CELL HOLDS THE WHOLE NAME (the sheet keeps it); what goes out is `nameFor_`'s, so a
+             child's post is signed with their first name. The net in `jsonOut` would catch it too —
+             said here because a post's author is one of the places the owner meant. */
+          author: (function () {
+            const a = S(r.author);
+            const pp = a ? findPerson(a) : null;
+            return pp && key(personDisplayName(pp)) === key(a) ? nameFor_(pp) : a;
+          })(),
           handle: who.handle,
           avatar: who.avatar,
           /* THE FIGURE, ONLY WHEN THE AUTHOR'S FACE IS THEIR FIGURE — set on `faces` above. Read off the
@@ -1470,7 +1491,7 @@ function doGet(e) {
         const who = findPerson(S(r.person_id));
         payload.exams.push({
           id: S(r.exam_id), personId: S(r.person_id),
-          who: who ? personDisplayName(who) : '',
+          who: who ? nameFor_(who) : '',
           subject: S(r.subject), label: S(r.label),
           date: fmtDate(r.exam_date), kind: norm(r.kind) === 'mock' ? 'mock' : 'exam',
           board: S(r.board), rowIndex: r._row,
@@ -1496,7 +1517,7 @@ function doGet(e) {
           if (examOn[k]) return;
           examOn[k] = true;
           payload.exams.push({ id: S(r.person_id) + ':' + col, personId: S(r.person_id),
-            who: personDisplayName(r), subject: '', label: label, date: fmtDate(d), kind: kind,
+            who: nameFor_(r), subject: '', label: label, date: fmtDate(d), kind: kind,
             board: '', rowIndex: 0 });
         });
       });
@@ -1506,7 +1527,7 @@ function doGet(e) {
         if (!d) return;
         if (!maySee(r.person_id)) return;
         payload.birthdays.push({
-          name: personDisplayName(r),
+          name: nameFor_(r),
           day: d.getDate(), month: d.getMonth() + 1,
         });
       });
@@ -1524,7 +1545,7 @@ function doGet(e) {
         payload.orders.push({
           id: S(r.order_id), rowIndex: r._row,
           personId: S(r.person_id),
-          who: owner ? personDisplayName(owner) : '',
+          who: owner ? nameFor_(owner) : '',
           item: S(r.item), resource: S(r.resource),
           ticks: N(r.cost_ticks), pages: N(r.pages),
           cost: N(r.cost_pence) / 100,
@@ -2149,6 +2170,10 @@ function doGet(e) {
     /* BY NAME IN A LIST, not `payload.films` here: `check-payload.js` counts every `payload.<key>` as a
        key sent, and a line that takes a key OUT would answer for one that was never put in. */
     if (cacheKey) {
+      /* THROUGH THE NET BEFORE IT IS KEPT, because the kept body goes out by `jsonRaw_` and never meets
+         `jsonOut` (`kidNamesOff_`, people.gs — no child's surname leaves). The fresh half meets it in
+         `freshFor_`. */
+      try { kidNamesOff_(payload); } catch (err) {}
       const fresh = {};
       ['submissions', 'films', 'filmsSync'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
@@ -2169,7 +2194,7 @@ function familyOf_(me) {
   const out = { familyFor: '', family: [] };
   if (!me || !S(me.person_id)) return out;
   const famCard_ = (r, rel) => ({
-    personId: S(r.person_id), title: personDisplayName(r), relation: rel,
+    personId: S(r.person_id), title: nameFor_(r, true), relation: rel,
     handle: S(r.handle), image: S(r.photo) || '',
     /* THE FIGURE, ONLY WHEN IT IS THE FACE (`faceFig_`). Your family is already sent each other's
        picture, so a child who chose their figure is drawn as it on their parent's column and
@@ -2246,6 +2271,8 @@ function freshFor_(viewer) {
     try { out.films = filmsFor_(true); } catch (err) { out.films = []; }
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
   }
+  /* THE NET, for the half laid on a kept body — which goes out through `jsonRaw_`, not `jsonOut`. */
+  try { kidNamesOff_(out); } catch (err) {}
   return out;
 }
 function payloadWithFresh_(body, fresh, cached) {
