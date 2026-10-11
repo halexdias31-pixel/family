@@ -509,6 +509,22 @@
    "17",
    "18",
    "Adults"
+  ],
+  "min_hours": [
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6"
+  ],
+  "max_hours": [
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6"
   ]
  },
  "terms": [],
@@ -683,7 +699,9 @@
    "rate_per_hour",
    "extra_seat_rate",
    "max_students",
-   "min_students"
+   "min_students",
+   "min_hours",
+   "max_hours"
   ],
   "When I can teach": [
    "m09",

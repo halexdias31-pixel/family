@@ -2541,6 +2541,22 @@ const AGE_FIELDS = ['age_min', 'age_max'];
 const AGE_OPTIONS = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18',
                      'Adults'];
 
+/* ---------- HOW LONG A SESSION WITH THEM IS, SHORTEST TO LONGEST — WRITABLE SINCE docs/history/330 -------
+   THE OWNER, 10 Oct, of a tutor's own card: *"all of this stuff should be editable directly on the tutors
+   card for that respective tutor."* The card's At a glance says `1+ hour` from these two columns, and they
+   were in no group — so nobody could write them through `updateProfile`, and the card editor could only say
+   "kept on the sheet". The review of 330 asked for the box, and `PROFILE_GROUPS` is the allow-list as well
+   as the layout, so the box is these two names in a group. ON THE RATE PAGE, BUT NOT IN `PRICING_FIELDS`:
+   a session's length is part of what a tutor offers, not part of the quote, so changing it starts no
+   month's clock — the age range's argument, one page along.
+   WHOLE HOURS, ONE TO SIX, AS A LIST THE FORM AND THE RULE BOTH READ — `AGE_OPTIONS`' shape and reason. The
+   booking form books whole hours (a run of ticked hours IS the session, book.js), so a half hour here
+   would promise a session nobody can book; and `hoursRefusal_` in people.gs refuses anything off the list
+   and a shortest longer than the longest. Blank longest is no upper limit (`1+ hour`), blank shortest is
+   one (`doGet`'s `N(r.min_hours) || 1`). STRINGS, because `validations` lists are strings. */
+const SESSION_FIELDS = ['min_hours', 'max_hours'];
+const SESSION_OPTIONS = ['1', '2', '3', '4', '5', '6'];
+
 /* ---------- WHAT A TUTOR/CLIENT MAY EDIT -----------------------------------------------------
    One list per role drives the edit form AND the write allow-list, so the two cannot drift.
    Anything not named here is unreachable by updateProfile — pin, role, xp and credits included. */
@@ -2589,7 +2605,8 @@ const PROFILE_GROUPS = {
      and an `Add another` under it. A tutor's only — a parent and a student keep `photo` on About
      you, because nobody browses their card. */
   'Photos': ['photo','video'].concat(PHOTO_FIELDS),
-  'Your rate and group size': PRICING_FIELDS,
+  /* THE QUOTE, THEN HOW LONG A SESSION IS — `SESSION_FIELDS`' note says why they share a page and not a clock. */
+  'Your rate and group size': PRICING_FIELDS.concat(SESSION_FIELDS),
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
   /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH -------------------------------
@@ -2673,7 +2690,8 @@ const FIELD_OPTIONS = {
    A field here is drawn as a select from THIS list whatever the `options` tab says, because a rule on
    the server refuses anything else — see `AGE_OPTIONS`. `doGet` merges these over the tab's lists, so
    the phone reads one map and cannot tell the two sources apart, which is the point. */
-const FIELD_FIXED = { age_min: AGE_OPTIONS, age_max: AGE_OPTIONS };
+const FIELD_FIXED = { age_min: AGE_OPTIONS, age_max: AGE_OPTIONS,
+                      min_hours: SESSION_OPTIONS, max_hours: SESSION_OPTIONS };
 /* `RESOURCE_OPTIONS` WAS AN ALIAS FOR `FIELD_OPTIONS`, kept because the resource form read it
    under that name. There is no resource form. `FIELD_OPTIONS` itself stays — it fills the tutor
    profile, the venue editor and every booking dropdown, and its `subject` / `exam_board` / `tier`

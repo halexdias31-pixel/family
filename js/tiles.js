@@ -522,6 +522,10 @@ function tutorTiles_(x) {
     ${(USER && !isMe_(x)) ? tile_({ icon: 'chat', label: 'Message',
               note: 'a note to them', act: 'msg-open',
               data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
+    ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write
+          another person's row, so the card turns into its form for them as a tutor's own does
+          (`cardEditTile_` in me.js decides; it draws nothing for anybody else, or anywhere else). */''}
+    ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
     ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
               on: t.listed !== false, act: 'set-listed',
@@ -750,7 +754,14 @@ function cardActions_(x) {
   /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the
      row says why (`mailHeldNote_` in me.js, drawn by `accountPages_`). A thing about your account, so a
      tile in this row and not a button of its own. */
-  if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+  /* AND EDIT FIRST, on a tutor's own card — the owner, 10 Oct: *"all of this stuff should be editable
+     directly on the tutors card"*. A pencil, and the card becomes its own form (`cardEditTile_`, me.js,
+     which draws nothing on a card that is not a tutor's row). That is not the `Your settings` tile the
+     note over `fightTiles_` records the owner asking to go (*"remove edit tile as they can already edit
+     their profile on the column to the right"*): that was a door to another column; this edits the card
+     in place, and the Settings pages it would have led to are gone (docs/history/330). */
+  if (x.kind === 'me') return (typeof cardEditTile_ === 'function' ? cardEditTile_(x) : '')
+    + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. It held the

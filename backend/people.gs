@@ -671,6 +671,39 @@ function ageRefusal_(me, asked) {
 }
 
 
+/* ---------- HOW LONG A SESSION IS — `ageRefusal_`'S RULE FOR THE OTHER RANGE ON THE CARD ------------------
+   WRITABLE SINCE docs/history/330, when the tutor's card became where they edit it (`SESSION_FIELDS` in
+   constants.gs says why). ASKED ONLY WHEN AN END MOVED, for `ageRefusal_`'s reason: the card's Save posts only
+   what changed, but a Settings page posts every box, and a hand-typed `1.5` in the sheet must not refuse a
+   rate somebody else changed. What moved must be blank or on `SESSION_OPTIONS`, and the shortest may not be
+   longer than the longest. A blank shortest reads as one, which is what `doGet` sends (`N() || 1`); a blank
+   longest is no limit. An admin is not exempt — both rules are about whether the range means anything. */
+function hoursRank_(v) {
+  const s = S(v);
+  if (!s) return null;
+  return /^\d+(\.\d+)?$/.test(s) ? Number(s) : NaN;
+}
+function hoursRefusal_(me, asked) {
+  if (!me || !asked) return '';
+  const has = f => Object.prototype.hasOwnProperty.call(asked, f);
+  const moved = SESSION_FIELDS.filter(f => has(f) && S(asked[f]) !== S(me[f]));
+  if (!moved.length) return '';
+  const end = f => f === 'min_hours' ? 'shortest' : 'longest';
+  const off = moved.find(f => S(asked[f]) !== '' && SESSION_OPTIONS.indexOf(S(asked[f])) === -1);
+  if (off) {
+    return 'The ' + end(off) + ' session has to be a whole number of hours from ' + SESSION_OPTIONS[0] + ' to '
+         + SESSION_OPTIONS[SESSION_OPTIONS.length - 1] + '. Nothing was saved.';
+  }
+  const got = f => has(f) ? asked[f] : me[f];
+  const lo = hoursRank_(got('min_hours')), hi = hoursRank_(got('max_hours'));
+  const low = lo == null ? 1 : lo;
+  if (hi != null && !isNaN(low) && !isNaN(hi) && low > hi) {
+    return 'The shortest session (' + low + (low === 1 ? ' hour' : ' hours') + ') is longer than the longest ('
+         + hi + (hi === 1 ? ' hour' : ' hours') + '). Nothing was saved.';
+  }
+  return '';
+}
+
 /** Every row that answers to this name — so a collision can be SEEN rather than silently resolved. */
 function peopleNamed(name) {
   const want = key(name);

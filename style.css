@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-11-merge-fix-libcards";
+  --css-version: "2026-10-11-merge-cardedit";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -7200,6 +7200,51 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   text-transform: uppercase; color: var(--faint);
 }
 .prof-cap + .prof-tags { margin-top: 0; }
+/* ---------- A CARD BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) -------------------------
+   THE CARD'S OWN CLOTHES WITH ITS FORM INSIDE. The owner, 10 Oct: *"all of this stuff should be editable
+   directly on the tutors card for that respective tutor."* The boxes are Settings' own (`.field`,
+   `.f-row`, the shelf, the picker, the week), so nothing here restyles them. What is new is the seam
+   between one section and the next — a hairline in the card's soft line, so the form reads in the
+   card's own sections and in its order — and the word beside the role saying the card is being edited,
+   in gold, because a form that looked exactly like the public card would be read as the public card. */
+.card-ed .ce-what { color: var(--gold); }
+.ce-sec + .ce-sec { margin-top: .75rem; padding-top: .6rem; border-top: 1px solid var(--line-soft); }
+.ce-sec > .prof-cap:first-child { margin-top: 0; }
+.ce-note { margin: .35rem 0 0; line-height: 1.35; }
+/* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
+.ce-pic { display: flex; gap: .7rem; align-items: center; }
+.ce-pic .ce-note { margin: 0; }
+/* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
+.ce-heat:empty { display: none; }
+/* WHERE THE FIVE PAGES WENT, once, at the top of Settings for somebody with a card. */
+.ce-moved { margin: 0 0 .6rem; line-height: 1.35; }
+/* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE -----------------------
+   ONE SAVE FOR THE WHOLE CARD, AND IT WAS UNDER THE WEEK — the form is every section of the card, about two
+   thousand pixels at 320 and 390, so a tutor who changed their name scrolled past the photographs, the
+   qualifications, the venues, the map and the week to keep it (measured: Save 1,952px down at 390x844,
+   reachable only at scrollTop 1,185; Settings had a Save under each short card). Still ONE Save, as the
+   brief has it, but the row is `sticky` at the bottom of the pane that scrolls (`paneReach_`, find.js), so
+   Save and Cancel are under the thumb wherever the form is, and at the end of the form it rests in its own
+   place above Sign out. In the card's own fill (`--raised`, what `.card.is-widget` is drawn in), the width
+   of the card and flush under it, so it reads as the card's foot; a hairline above it says where the form
+   goes under.
+   `bottom: -1rem` AND `1rem` MORE PADDING UNDER THE TILES, because a sticky box stops at the pane's PADDING
+   edge, not its glass: stuck at `bottom: 0` the row floated 1rem (the pane's bottom padding, `.pane`) above
+   the glass with the form showing through the gap under it — measured at 390, the row's foot at 828 in a
+   pane ending at 844, a line of the headline cut in half beneath it. At rest at the end of the form the same
+   1rem is a gap between the form's two tiles and the account's own row (Sign out), which is the line between
+   them anyway. KNOWN, AND ONE PIXEL: where a pane sits on a half pixel (top 18.5 at 390x844 in the lab)
+   Chromium clips the stuck row on the exact edge and the form under it on the rounded-out one, so the last
+   pixel row inside the glass can show the tops of a box's letters. Tried and measured, none changed it: one
+   pixel more of row, `will-change`, `translateZ(0)`, a positioned input, `clip-path` on the pane. */
+/* `.tile-row.ce-tiles`, TWO CLASSES, because `.tile-row`'s own margin is declared further down this file and
+   would win a tie on order alone. */
+.tile-row.ce-tiles {
+  position: sticky; bottom: -1rem; z-index: 2;
+  margin-top: 0; padding: .45rem 0 calc(.45rem + 1rem);
+  background: var(--raised);
+  box-shadow: 0 -1px 0 var(--line-soft);
+}
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
