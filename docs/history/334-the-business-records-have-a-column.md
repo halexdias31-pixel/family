@@ -84,7 +84,7 @@ have had nothing to swipe to until a reload. It reads `TABS_BUILT` now; mutation
   in index.html, and something must make one (`columnsFor_` with its `createElement('section')`). Red on
   the section written into index.html; red with the section made as a `div`; red with `admin: true`
   taken off the entry (the ordinary "a tab with no section" fault).
-- **`check-flow.js`, three journeys, `business:`** — each serves the real columns.json and refuses to
+- **`check-flow.js`, four journeys, `business:`** — each serves the real columns.json and refuses to
   pass if it was not applied:
   1. *An admin has a Business column last, straight after Progress, holding the five records cards, and
      Save posts the card.* The swipe off Progress lands on it and one more stays; arriving asks
@@ -94,15 +94,19 @@ have had nothing to swipe to until a reload. It reads `TABS_BUILT` now; mutation
      `settingsPages_` builds none, the weekly email card is still there, and `PAGE.settings` at 999
      opens on the last real page.
   2. *A student, a parent, a tutor and a visitor have no Business column* — not in the row, Progress
-     last, a remembered `biz` not honoured, every column arrived at and a swipe past Progress staying
-     put, `go('biz')` reaching nothing, no `#s-biz`, nothing in the serialised page naming it, and no
-     `listRecords` asked.
+     last, a remembered `biz` opening them on `TAB_HOME` (the Feed, where a visitor with nothing
+     remembered opens — see the review below), every column arrived at and a swipe past Progress
+     staying put, `go('biz')` reaching nothing, no `#s-biz`, nothing in the serialised page naming it,
+     and no `listRecords` asked.
   3. *Signing in as an admin adds the column and signing out takes it away, without a reload and without
      moving anybody* — signed in through the sign-in card with the payload that sign-in asks for HELD,
      so the column has to come from signing in and not from the payload fifteen seconds later; back on
      Progress, Business beside it, a swipe reaching its five cards; signed out from Spotlight, the column
      and its section gone and the person still on Spotlight; and an admin on Business whose Save is
      answered `why: 'signed-out'` put on Progress, the column gone.
+  4. *An admin reloading on Business is put back on it* — `familyTab=biz` seeded with the admin, and the
+     boot opens on Business with its section in `#screen`, a page in front, the five cards drawn and
+     `listRecords` asked. Added after review (below).
   **Ten mutations, each red, each restored**: every viewer given the column (2 journeys red); `repaint`
   not asking (3); the typed-card mark scoped to Settings again (1); `settingsKeep_` for Settings only (1);
   the records left in `settingsPages_` (1); the column's last person sent to the front door (3);
@@ -142,6 +146,58 @@ have had nothing to swipe to until a reload. It reads `TABS_BUILT` now; mutation
 
 No stylesheet change (`.biz-*` was never scoped to Settings), so `--css-version` stands. No backend
 change: `listRecords` and `saveRecordsPage` are as they were.
+
+### Review: "not Business" is two answers, and the journey could only hear one
+
+**THE FINDING.** Delete the boot's `try { columnsFor_(); } catch (e) {}` from shell.js — the line over
+the `familyTab` read whose comment says *anybody else's remembered `biz` … is let go* — and all three
+`business:` journeys stayed green. What it broke was real: `TABS` still held `biz` when the remembered
+id was read, so a student's phone that had an admin's `familyTab=biz` in storage honoured it, and the
+next `columnsFor_` (the payload landing, the first repaint) took the column away and moved them one to
+the left. Every non-admin with that in storage opened on **Progress** instead of the Feed. Reproduced
+in jsdom and in Chromium at 390x844, signed out and as a student: `AT` was `progress` on the mutant and
+`feed` on the real files.
+
+**WHY NOTHING SAW IT.** The visitor journey asked `t.AT() !== 'biz'`. Both outcomes satisfy that — the
+front door, and the column left of Business reached by being moved off it — so the line could not
+tell the comment's promise from its failure. A check that names the one thing that
+must not happen passes on every other wrong thing.
+
+**FIXED IN THE CHECK, BECAUSE THE APP WAS RIGHT.** The boot line was already there and already did the
+job; nothing proved it. The hook in check-flow.js hands over `TAB_HOME` (a `const`, so a getter, for
+`AT`'s reason), and the visitor journey now asks that each of the four opens on `TAB_HOME` — where a
+visitor with nothing remembered opens — and says *moved left off a column they should never have been
+put on* when it is Progress. If `TAB_HOME` were ever Progress itself the two answers would be the same
+column again, so that case says NOT checked rather than passing.
+
+**AND THE ADMIN HALF HAD NO JOURNEY AT ALL.** *An admin reloading on Business is put back on it* —
+`familyTab=biz` seeded with the admin, the boot opening on Business, its section in `#screen`, a page
+in front, the five cards drawn and `listRecords` asked. Only the reviewer's Chromium driver had ever
+stood on that path. It is also the visitor journey's control: a harness that never read `familyTab`
+would open everybody on the Feed, and the visitor line would read OK for the wrong reason.
+
+**Mutations, each red, the real files green after:**
+- the boot's `columnsFor_()` deleted — the visitor journey red for all four (*opened them on progress,
+  wanted feed … moved left off a column they should never have been put on*); the other three green.
+- the remembered read refusing an admin column (`TABS.some(t => t.id === was && !t.admin)`) — the new
+  admin journey red (*opened on feed — the remembered column an admin IS given was let go*); the other
+  three green.
+
+**Checks after the fix**, at a load average of 13 to 23 on four cores: `check.js`, `check-const.js`,
+`check-css.js`, `check-doors.js`, `check-loading.js` green. `check-flow.js` whole: 274 of 276, all four
+`business:` journeys ok. The two red: *just a minute keeps its round through a repaint* passes alone
+twice — load. *A retry that succeeds does not rebuild the box somebody is typing in* failed alone too, so
+it was traced. The journey waits a fixed 300ms after `go('tools')` and `goPage`, then types into the
+notepad. Under load the Tools widget queue (`toolsStart_` → `widgetsWake_` → `initPad`) reaches the
+notepad after the typing and writes its stored `""` back. A setter on the box caught the stack, the
+write 31ms after the typing. It is red on the base commit as well (1 of 8 runs alone, against 4 of 11
+here, and the Business change touches no widget path). That is load against a fixed wait, and it is
+left for whoever next touches that journey: it should wait for `woken_()` before it types.
+`ui.js --screen=biz --shots`: 15 combinations, nothing to report, five loaders held and let go. Looked
+at 320 and 390: the same Insurance card, the seeded *Due soon* in gold, the dots while held.
+`--screen=settings`: 160 combinations, nothing new. `press.js --screen=biz`: one action pressed, 101
+swipes, 14 dropdown touches, all well. `swipe.js` 112 gestures OK, `cascade.js` 180 states with nothing
+decided by file order alone, `deploy.js` OK.
 
 ### Not done, and worth knowing
 

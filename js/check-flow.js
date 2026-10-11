@@ -469,6 +469,10 @@ function boot(opts) {
          built in the same evaluation can read it. The camera journey asks it to know that the load
          it is watching is the one that opens on the feed. */
       'AT: () => AT,' +
+      /* AND WHERE A VISITOR WITH NOTHING REMEMBERED OPENS — a `const`, so a getter for `AT`'s reason. The
+         Business journeys ask that a remembered column a viewer is not given sends them HERE, which
+         `AT !== 'biz'` cannot tell apart from being moved one column left by a later `columnsFor_`. */
+      'TAB_HOME: () => TAB_HOME,' +
       /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
          this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
       'STUFF: () => STUFF,' +
@@ -8426,8 +8430,16 @@ check('business: a student, a parent, a tutor and a visitor have no Business col
     if (!bizApplied_(ids)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
     if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
     if (ids[ids.length - 1] !== 'progress') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Progress');
-    /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: they open elsewhere. */
-    if (t.AT() === 'biz') bad.push(as + ': a remembered Business column was honoured');
+    /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: they open where a visitor
+       with nothing remembered opens, `TAB_HOME`. IT WAS `AT !== 'biz'`, and that held with the boot's own
+       `columnsFor_` deleted from shell.js: `biz` was still in `TABS` when the remembered id was read, so
+       it was honoured, and the next `columnsFor_` moved them one column left — every visitor with an
+       admin's tab in storage opened on Progress, and this line read OK. "Not Business" is two answers;
+       the front door is one. And if the front door were ever Progress itself, the two could not be told
+       apart, so that says so rather than passing. */
+    const home = typeof t.TAB_HOME === 'function' ? t.TAB_HOME() : '';
+    if (!home || home === 'progress') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
+    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'progress' ? ' — they were moved left off a column they should never have been put on' : ''));
     /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
     for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
     await wait(LEAVE_MS); await woken_();
@@ -8528,6 +8540,38 @@ check('business: signing in as an admin adds the column and signing out takes it
   if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
   if (t2.AT() !== 'progress') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Progress, the column left of it');
   if (!d2.querySelector('#s-progress > .page.on')) bad.push('the session ended on Business and Progress, where they were put, shows no page');
+  return bad;
+});
+
+/* ---------- AND A RELOAD ON BUSINESS PUTS AN ADMIN BACK ON IT -----------------------------------------
+   THE OTHER HALF OF THE BOOT'S `columnsFor_` (shell.js, over the `familyTab` read). The visitor journey
+   above asks that a remembered `biz` is let go for anybody else; this asks that it is KEPT for an admin —
+   `reload-build` reloads the page under somebody the moment a build lands, and an admin halfway through
+   the insurance card must not be put on the Feed by it. It is also what proves the visitor journey's
+   seeding reaches the app at all: a harness that never read `familyTab` would open everybody on the
+   front door, and "a visitor opens on the Feed" would read OK for the wrong reason. No journey stood on
+   this path; only a reviewer's Chromium driver had. */
+check('business: an admin reloading on Business is put back on it, its section in the page and its five cards drawn', async () => {
+  const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_));
+      win.localStorage.setItem('familyTab', 'biz'); win.localStorage.setItem('familyTabAt', String(Date.now())); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const bad = [];
+  const ids = t.TABS.map(x => x.id);
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — NOT checked'];
+  if (!bizApplied_(ids)) return ['columns.json was not applied — NOT checked: ' + ids.join(', ')];
+  if (t.AT() !== 'biz') return ['an admin reloading on Business opened on ' + t.AT() + ' — the remembered column an admin IS given was let go'];
+  const host = d.getElementById('s-biz');
+  if (!host || host.parentElement !== d.getElementById('screen')) return ['an admin reloading on Business is on it with no <section id="s-biz"> in #screen'];
+  for (let n = 0; n < 50 && (host.querySelector('.loading') || !host.querySelector('[data-biz-page]')); n++) await wait(100);
+  const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
+  if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('an admin reloading on Business sees ' + JSON.stringify(cards) + ', wanted the five records cards');
+  if (!host.querySelector(':scope > .page.on')) bad.push('an admin reloading on Business is on a column with no page in front');
+  if (!sent.some(b => b.action === 'listRecords')) bad.push('an admin reloading on Business never asked for the records');
   return bad;
 });
 
