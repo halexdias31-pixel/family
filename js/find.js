@@ -14177,6 +14177,10 @@ function paneReach_(panes) {
        The sheet scrolls inside anyway; so it is the sheet that gets shorter, and the card stays at
        full size. Only panes that hold one, so every other pane is measured exactly as before. */
     if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
+    /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the
+       one card whose height follows its width: the faces narrow, keeping their shape, until the page
+       fits or the band runs out, and only what is left is drawn smaller (docs/history/332). */
+    if (typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
     const pad = p => {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);

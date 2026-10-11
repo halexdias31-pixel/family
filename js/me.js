@@ -4696,6 +4696,51 @@ document.addEventListener('input', e => {
   if (bars) bars.outerHTML = libBars_(t.value);
 });
 
+/* ---------- AND A CARD GIVES UP ITS BLANK BAND BEFORE THE PAGE IS DRAWN SMALLER ----------------------
+   A FACE'S HEIGHT FOLLOWS ITS WIDTH, so the page is as tall as the column is wide, and the pane's fit
+   rule (`paneReach_`, find.js) answered every card past three by drawing the WHOLE page smaller —
+   boxes, tick and `Add another` with it. The review of 10 Oct measured it against 6758e2f, whose
+   two-row boxes drew five at full size at 390x844: four cards took the page to 81% there and five to
+   70% (the tick 36px, then 31px), and pressing `Add another` re-zoomed the page under the finger. At
+   1280x800 it was worse — a laptop's column is wide, so three cards were 81% and four scrolled at the
+   floor. Every one of those cards had the band between its name and its bars blank: 45px at 390,
+   68px at 1280.
+
+   SO THE CARDS GIVE THAT BAND BACK FIRST, as an essay's sheet gives its spare lines (`kpSheetFit_`):
+   called by `paneReach_` at zoom 1 before it measures, this narrows every face on the shelf by what
+   takes the page back inside its pane, never past where its blank band runs out. A NARROWER CARD AND
+   NOT A SHORTER ONE: `aspect-ratio` keeps the bank card's 85.6:54, so a face is shorter only by being
+   narrower, and its bars and name (in `cqw` of it) come down with it; it stays centred, and `Add
+   another` takes the cards' width (`--lib-w`, style.css). Whatever the bands cannot give is left to
+   the fit rule, as before — five cards at 390 are still drawn a little smaller, and 320x568 has
+   almost no band to give, so there the card still all but fills the width and the page is drawn at
+   the zoom 332 records. Nothing over: the property comes off and the card fills the column.
+
+   UP TO THREE PASSES, because the band grows as the card narrows — the bars are `15cqw` tall, so a
+   narrower card has shorter bars and a little more blank — and one pass sized from the full-width
+   band leaves some of it unspent. Each pass is one forced layout of this pane alone, and only a pane
+   holding a library card is asked. In a try: a shelf that cannot be measured keeps the column's width. */
+function libFit_(pane) {
+  try {
+    const first = pane.querySelector('.lib-face');
+    const shelf = first && first.closest('.lib-shelf');
+    if (!shelf) return;
+    shelf.style.removeProperty('--lib-w');
+    const faces = [...shelf.querySelectorAll('.lib-card:not([hidden]) > .lib-face')];
+    if (!faces.length || !(pane.clientHeight > 0)) return;
+    for (let pass = 0; pass < 3; pass++) {
+      const over = pane.scrollHeight - pane.clientHeight;
+      if (!(over > 2)) return;
+      const h = faces[0].getBoundingClientRect().height;
+      /* THE BLANK BAND IS THE FACE'S THIRD ROW, `minmax(0, 1fr)`; the computed track list is in px. */
+      const band = parseFloat(String(getComputedStyle(faces[0]).gridTemplateRows).split(/\s+/)[2]) || 0;
+      const give = Math.min(band, over / faces.length + 0.5);
+      if (!(h > 0) || !(give > 0.5)) return;
+      shelf.style.setProperty('--lib-w', ((h - give) * 85.6 / 54).toFixed(2) + 'px');
+    }
+  } catch (e) { /* the column's width stands */ }
+}
+
 /* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS ----------------------------
    ASKED FOR AS *"theres only 1 photo link slot it seems like. tutors should be able to add more
    pics."* The library shelf a third time, recognised by the SHAPE of the names as the other two are:

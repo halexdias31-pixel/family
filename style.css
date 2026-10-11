@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-library-cards";
+  --css-version: "2026-10-10-library-cards-fit";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1253,7 +1253,11 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    The button is the shelf's own last child, so it sits under the last card showing and goes when
    there is nothing left to reveal (`shelf-more` in me.js). A quiet `.btn`, because the Save under
    the card is the page's one action and this is not it — the correction `.reel-sound` records. */
-.lib-shelf .shelf-more { margin: .1rem 0 .6rem; }
+/* ON A LIBRARY SHELF IT IS AS WIDE AS THE CARDS OVER IT, and centred under them: `libFit_` (me.js) narrows
+   the faces to fit the pane and sets `--lib-w` on the shelf, so a full-width bar under narrower cards would
+   be the one thing on the shelf still the column's width. Every other shelf never sets it, so the
+   fallback is the column, and the photograph shelf's button is where it always was. */
+.lib-shelf .shelf-more { margin: .1rem 0 .6rem; width: min(100%, var(--lib-w, 100%)); align-self: center; }
 /* ---------- A LIBRARY CARD, DRAWN AS ONE — `libraryShelf_` in me.js; docs/history/332 ------------------
    THE OWNER, 10 Oct: *"make each look like a card. with fake barcode."* So each slot is a card at a bank
    card's proportions — 85.6 by 54, the ID-1 size a library card is printed at — on the PAPER palette,
@@ -1264,9 +1268,10 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 
    `aspect-ratio` IS THE PROPORTION, AND THE CONTENT MUST FIT INSIDE IT. A grid's automatic minimum lets
    the card grow past the ratio rather than spill, which is the right failure — but it is still a failure,
-   so the rows are budgeted for the narrowest card there is: at 320 the face measures 244 by 154, and its
+   so the rows are budgeted for the narrowest column there is: at 320 the face measures 244 by 154, and its
    padding, a 9px caption row, the name's 44px box, 33px of bars and the number's 44px box come to about
-   145 of it.
+   145 of it. A face drawn narrower than its column (`--lib-w`, below) is never narrower than that budget:
+   `libFit_` stops where the blank row runs out.
    The spare goes to the empty row above the bars, which is where a real card is blank too.
 
    THE BOXES ARE BORDERLESS AND IN THE CARD'S INK, because they are what is printed on it. What says a box
@@ -1289,14 +1294,25 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    WHAT IS PRINTED LARGE GROWS WITH THE CARD, AND NOTHING ELSE DOES. The face is a size container, so the
    name and the bars are in `cqw` of it — the first shots at 768 had 2.2rem of bars and a 1.3rem name on a
    card 400px wide, a third of it blank. Clamped both ways: the name never under the 16px a box needs (an
-   iPhone zooms the page into a smaller one) nor over 1.5rem, the bars never under 1.9rem nor over 4. */
+   iPhone zooms the page into a smaller one) nor over 1.5rem, the bars never under 1.9rem nor over 4.
+
+   AS WIDE AS THE COLUMN, OR AS WIDE AS LETS THE PAGE FIT, WHICHEVER IS NARROWER (`--lib-w`, set by `libFit_`
+   in me.js from `paneReach_`). A face's height follows its width, so the full column's width made the page
+   too tall past three cards at 390x844, and at a laptop's 1280x800 past two, and the fit rule then drew the
+   whole page smaller — the review of 10 Oct measured four cards at 81% at 390 and the tick 36px, five at
+   70% and 31px, and three at 81% at 1280. The blank row is the spare, so the faces give that first, by
+   narrowing: the shape is kept, they stay centred, and only what the blank rows cannot give is zoomed.
+   With nothing over, the property is not set and the face is the column's width, as at 320 almost always.
+   Measured after, and in docs/history/332: at 390x844 four at full size and five at 89%; at 1280x800 three
+   at full size, four at 92% and five at 82%, where four and five had scrolled at the floor; at 768 and 1920
+   all five at full size; at 320x568 three at 83% (from 78%) and four at the floor without the scroll. */
 .lib-shelf .lib-face {
   display: grid; min-width: 0; aspect-ratio: 85.6 / 54; container-type: inline-size;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   grid-template-areas: "cap pin" "name pin" ". ." "bars bars" "no no";
   column-gap: .7rem;
-  margin: 0 0 .6rem; padding: .65rem .85rem 0;
+  width: min(100%, var(--lib-w, 100%)); margin: 0 auto .6rem; padding: .65rem .85rem 0;
   background: var(--paper); color: var(--paper-ink);
   border: 1px solid var(--paper-rule); border-radius: .7rem;
 }
