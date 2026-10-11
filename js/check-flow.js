@@ -4399,6 +4399,50 @@ check('a fast line is drawn round and every stored stroke still draws: padPath_ 
   return bad;
 });
 
+/* ---------- `?pen=sizes`: THE READING INCREMENT 2 WAITS FOR, AND NOTHING ELSE (338) ------------------------------
+   No finger, thumb or palm width has ever been measured on an iPad here, so increment 1 records sizes and decides
+   nothing by them. With `?pen=sizes` in the address a fixed line lists the last eight contacts: the pointer's
+   kind, its width x height at the down, the largest during. Asked: it is there with the address and not without
+   it, it says what the platform reported, it keeps eight, it is hidden from a screen reader -- and a contact of
+   a palm's size still draws, because size decides nothing yet. */
+check('?pen=sizes lists the last eight contacts\' widths for one reading on a device, and size decides nothing yet', async () => {
+  const bad = [];
+  for (const url of ['https://example.org/?pen=sizes', 'https://example.org/']) {
+    const { w } = boot({ url });
+    await wait(300);
+    const t = w.__t, d = w.document;
+    if (!t || typeof t.padWrap !== 'function' || typeof t.padOn !== 'function' || typeof w.padDrop_ !== 'function') return ['padWrap_, padOn or padDrop_ not reachable — ?pen=sizes was NOT checked'];
+    const x = { kind: 'question', answerType: 'drawing', html: '<p>Draw it.</p>', key: 'q:Q-FINGER-4' };
+    const k = t.padKey(x);
+    try { w.localStorage.removeItem(k); } catch (e) {}
+    const host = d.createElement('div'); d.body.appendChild(host);
+    t.padOn(k);
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+    const ink = host.querySelector('.qpad-ink');
+    ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+    for (let i = 0; i < 10; i++) {
+      const o = { id: 1, prim: true, size: 30 + i * 5 };
+      penEv_(w, ink, 'pointerdown', Object.assign({ x: 20 + i * 30, y: 50, t: 1000 + 100 * i }, o));
+      penEv_(w, ink, 'pointermove', Object.assign({ x: 25 + i * 30, y: 80, t: 1040 + 100 * i }, o, { size: 60 + i * 5 }));
+      penEv_(w, ink, 'pointerup', Object.assign({ x: 25 + i * 30, y: 80, t: 1060 + 100 * i }, o, { size: 1 }));
+    }
+    const line = d.querySelector('.pad-sizes');
+    let st = []; try { st = JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) {}
+    if (st.length !== 10) bad.push(url + ': ten strokes by contacts 30 to 75px wide stored ' + st.length + ' — size must decide nothing until a device has been measured');
+    if (/pen=sizes/.test(url)) {
+      if (!line) bad.push('with ?pen=sizes in the address there is no .pad-sizes line');
+      else {
+        const rows = line.textContent.split('\n');
+        if (rows.length !== 8) bad.push('the sizes line lists ' + rows.length + ' contacts, wanted the last 8');
+        if (rows[rows.length - 1] !== 'touch 75x75 largest 105') bad.push('the last contact reads "' + rows[rows.length - 1] + '", wanted "touch 75x75 largest 105" — its kind, its size at the down and the largest during (the 1 of a lift is not a size)');
+        if (line.getAttribute('aria-hidden') !== 'true') bad.push('the sizes line is read out to a screen reader');
+      }
+    } else if (line) bad.push('without ?pen=sizes in the address the sizes line was drawn anyway');
+    w.padDrop_(); t.padOn(''); try { w.localStorage.removeItem(k); } catch (e) {} host.remove();
+  }
+  return bad;
+});
+
 /* ---------- VIDEOS: THE BAR ALONE, RESULTS AS YOU TYPE, A TAP PLAYS IN THEIR PLACE, FULL SCREEN -------
    ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
    type in. and there should be a full screen button." AND THEN, 10 Oct (note 321): *"make it look more

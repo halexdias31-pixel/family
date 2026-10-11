@@ -481,3 +481,54 @@ draws with the pad's own aspect, and the stored value is byte for byte what it w
 **Mutations, each red on its own and the real files green after:** `PAD_CORNER_DEG = 180`; `PAD_CURVE_MIN = 0`;
 smoothing off (every segment straight); the aspect ignored; the storage format changed (an object per stroke);
 the storage format changed (unrounded points).
+
+#### At full speed (1x CPU), the same sections against 4955c7c and the branch (load average 3.9–4.2)
+
+| | before | after |
+|---|---|---|
+| zigzag, distinct samples kept (390 / 820) | 754 / 762 of 1,201 (63%) | 1,201 / 1,201 (100%) |
+| handler p50 / p95 | 0.3 / 0.4–0.5ms | 0.1 / 0.2ms |
+| Q7, 120-sample drag (320 / 390) | 79 / 85 | 121 / 121 |
+| one turn in 200ms, board 390 / 820 | 3.4 / 4.7px off round | 0.46 / 0.71px |
+| one turn in 120ms, board 390 / 820 | 8.5 / 12.1px off round | 0.41 / 0.61px |
+| Q7 at 390, 200ms, with no coalesced events | 17 points, 7.1px off round | 19 points, 1.48px off round |
+
+#### The suite, on the last commit
+
+All run alone, with ports in this build's range (19864–19869), on a machine shared with other builds (load
+average 1.6–6.9 through it):
+
+- `check.js`, `check-const`, `check-css`, `check-doors` (233 handlers, 232 doors, as before), `check-loading`,
+  `check-drafts`, `check-scope`, `check-strings`, `check-widgets`, `check-library`, `check-funnel`: green.
+  `check-dead` (soft) prints the same report as on 4955c7c.
+- `check-flow` in four parts: 82 + 82 + 82 + 83 = **329 journeys, all green**; and the five pen journeys again
+  after the mutations, with the sizes journey added since.
+- `check/ui.js --screen=tools` (95 combinations), `--screen=stuff` (630), `--screen=saved` (20): nothing new.
+  Each prints a "not reachable" list; the same two screens on 4955c7c print the same lists word for word.
+- `check/press.js --screen=tools` and `--screen=stuff`: nothing threw, nothing was silently inert.
+- `check/swipe.js` in full: 112 gestures at 390 and 320, OK (and 110 on 1a, after the overworld line).
+- `check/cascade.js`: nothing decided by file order alone. `check/cards.js`: OK.
+- `check/pen.js`: OK, 115s.
+
+**Browser mutations, each red on its own, the real files green after** (the source compared byte for byte):
+smoothing off (the starved circle 6.2 and 8.6px off round); coalesced samples ignored (423 and 452 of 1,201
+kept); the box read per sample (14 and 10 reads in one event); the path written per event (446 and 488 writes
+inside events); a second contact always a rest (the two-finger tap's dot); no swap (the palm's stroke); a cancel
+always committed (the early cancel's line); no T0 (after a lost lift a real swipe could not turn the page); no
+off-ink tracking (the pinch off Q7's figure drew a line); no overworld guard (the drifting palm took the column);
+no selection rule. And for the sizes line: keeping every contact, and drawing it without the address.
+
+**Not run as one: `npm run check`.** Its browser members take fixed or OS-chosen ports outside this build's
+range; every member that touches the pen, the swipe engine or the stylesheet was run above, alone.
+
+#### Unsure, for the next builder
+
+- **The seam of a closed fast circle keeps one point** (§1c above). Declined in §9; a device screenshot decides.
+- **Undo on a board at its ceiling** repaints in 82–95ms median at 4x, its worst run 101–121ms (§1c). The
+  first change if it is ever seen to lag: `PAD_CURVE_MIN` raised for the board.
+- **Who-went-first decided one frame late** is this build's own addition (§3), measured on the folded pan; a
+  child's real two-finger timing on an iPad has not been seen (§10.3).
+- **R11, a palm on Undo**, did not reproduce in Chromium; the guard is built from the source, not from a red run.
+- **The time backstop** in `check/pen.js` (p95 3.0ms at 4x, judged only when no more than 8% of frames ran over
+  33ms) is set from this machine's spread, 1.6–2.6ms after against 3.3–3.4 before. A quieter machine could
+  tighten it; the counted budgets (one box read, no write inside an event) are the exact ones.

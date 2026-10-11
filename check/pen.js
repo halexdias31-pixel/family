@@ -77,6 +77,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
    backstop for a cost nobody counted, set where the old pen's p95 sat so noise does not cross it. */
 const PEN_P95_MS = Number(process.env.PEN_P95_MS || 3.0);
 const PAD_CHUNK_EXPECT = 130;
+/* THE CPU THROTTLE THE GESTURES RUN UNDER: 4x, a slow phone, unless PEN_RATE says otherwise -- `PEN_RATE=1` for
+   the numbers at full speed (338 prints both). Counts and geometry are judged at any rate. */
+const RATE = Number(process.env.PEN_RATE || 4);
 
 function serve() {
   return new Promise((ok, no) => {
@@ -311,7 +314,7 @@ const unmoved = (sec, where, r, b) => {
     if (!b) { fail('REACH', at, 'the board could not be armed with a real tap on its lock'); await env.ctx.close(); continue; }
     reached++;
     const k = b.k;
-    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
     const A = () => ({ x: b.ink.l + b.ink.w * 0.35, y: b.ink.t + b.ink.h * 0.3 });
     const B = () => ({ x: b.ink.l + b.ink.w * 0.65, y: b.ink.t + b.ink.h * 0.32 });
     const fresh = async () => { await reset(env, k); b = (await arm(env, b, board)) || b; };
@@ -562,8 +565,8 @@ const unmoved = (sec, where, r, b) => {
       /* JUDGED ONLY ON A MACHINE THAT KEPT UP: more than 8% of frames over 33ms says the processor was taken by
          something else, and then a time measures the neighbours -- printed, not judged (it passed re-run alone). */
       if (slow > m.gaps.length * 0.08) console.log(`  NOTE samples ${at}: ${slow} of ${m.gaps.length} frames over 33ms — the machine was busy, so the handler's ${p95}ms p95 is printed and not judged`);
-      else if (p95 > PEN_P95_MS) fail('samples', at, `the pen's pointermove p95 is ${p95}ms at 4x — over the ${PEN_P95_MS}ms backstop (it was 3.3-3.4 before 338)`);
-      const line = `zigzag ${at} 4x: ${m.moves} pen events, ${mid.points} of ${distinct} distinct samples kept (${Math.round(mid.points / distinct * 100)}%), ${mid.chunks} chunk(s) live; `
+      else if (p95 > PEN_P95_MS) fail('samples', at, `the pen's pointermove p95 is ${p95}ms at ${RATE}x — over the ${PEN_P95_MS}ms backstop (it was 3.3-3.4 before 338)`);
+      const line = `zigzag ${at} ${RATE}x: ${m.moves} pen events, ${mid.points} of ${distinct} distinct samples kept (${Math.round(mid.points / distinct * 100)}%), ${mid.chunks} chunk(s) live; `
         + `handler p50 ${q(m.dur, 0.5)} / p95 ${p95} / max ${q(m.dur, 1)}ms; event -> next path write p50 ${q(m.lat, 0.5)} / p95 ${q(m.lat, 0.95)}ms, `
         + `painted in the first frame after the event ${m.n ? Math.round(m.same / m.n * 100) : '-'}% of ${m.n}; `
         + `frames over 33ms ${m.gaps.filter(g => g > 33).length} of ${m.gaps.length}; stored ${m.stored[0] ? m.stored[0].length / 2 : 0} points, ${JSON.stringify(m.stored).length} chars`;
@@ -581,7 +584,7 @@ const unmoved = (sec, where, r, b) => {
         else {
           const cap = 1.5 * 2 * Math.PI * R / n;
           if (r.chord > cap) fail('round', at + ' ' + name, `the longest stored chord is ${r.chord}px — over ${cap.toFixed(1)}px, 1.5 x the circle's share of a sample (114px before 338)`);
-          console.log(`  ${name} ${at} board 4x: ${r.points} points stored, longest chord ${r.chord}px, ${r.worst}px off round between its ends${r.curves ? ', drawn with curves' : ''}`);
+          console.log(`  ${name} ${at} board ${RATE}x: ${r.points} points stored, longest chord ${r.chord}px, ${r.worst}px off round between its ends${r.curves ? ', drawn with curves' : ''}`);
         }
         if (W === 390 && name === 'circle200') await shot(env.page, `${at}-board-circle200`);
         await fresh();
@@ -663,7 +666,7 @@ const unmoved = (sec, where, r, b) => {
       say(`inv ${at} Q7 ${JSON.stringify(inv)}`);
     }
 
-    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await env.cdp.send('Emulation.setCPUThrottlingRate', { rate: RATE });
     if (want('samples') && W !== 820) {
       /* 120 SAMPLES AT 8ms ACROSS Q7's GRID: a question keeps every point, so the store says how many arrived. */
       const Lx = c.ink.l + c.ink.w * 0.1, Rx = c.ink.l + c.ink.w * 0.9, fr = [];
@@ -675,7 +678,7 @@ const unmoved = (sec, where, r, b) => {
       });
       const n = r.stored[0] ? r.stored[0].length / 2 : 0;
       if (n < 114) fail('samples', at + ' Q7', `a 120-sample drag kept ${n} points — wanted 114 or more (about 40 were kept before)`);
-      console.log(`  Q7 ${at} 4x: a 120-sample drag kept ${n} points`);
+      console.log(`  Q7 ${at} ${RATE}x: a 120-sample drag kept ${n} points`);
       await reset(env, k);
     }
     if (want('round') && W === 390) {
@@ -685,7 +688,7 @@ const unmoved = (sec, where, r, b) => {
       if (!r) fail('round', at + ' Q7', 'nothing was stored');
       else {
         if (!(r.worst <= 1.5)) fail('round', at + ' Q7', `a 200ms circle is drawn ${r.worst}px off round — wanted 1.5px`);
-        console.log(`  circle200 ${at} Q7 4x: ${r.points} points, longest chord ${r.chord}px, drawn ${r.worst}px off round${r.curves ? ', with curves' : ''}`);
+        console.log(`  circle200 ${at} Q7 ${RATE}x: ${r.points} points, longest chord ${r.chord}px, drawn ${r.worst}px off round${r.curves ? ', with curves' : ''}`);
       }
       await shot(env.page, `${at}-q7-circle200`);
       await reset(env, k);
@@ -704,7 +707,7 @@ const unmoved = (sec, where, r, b) => {
       await gesture(env, k, CARD, () => circle(env, cx, cy, R, 25, 8));
       r = await roundness(env, k, CARD, cx, cy, R);
       await env.page.evaluate(() => { PointerEvent.prototype.getCoalescedEvents = window.__gce; });
-      if (r) console.log(`  circle200 ${at} Q7 4x, no coalesced events: ${r.points} points, longest chord ${r.chord}px, drawn ${r.worst}px off round${r.curves ? ', with curves' : ''}`);
+      if (r) console.log(`  circle200 ${at} Q7 ${RATE}x, no coalesced events: ${r.points} points, longest chord ${r.chord}px, drawn ${r.worst}px off round${r.curves ? ', with curves' : ''}`);
       await reset(env, k);
     }
     if (want('pinchoff') && W === 320) {
