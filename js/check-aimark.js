@@ -16,12 +16,17 @@
      · A REFUSAL FROM GOOGLE DOES NOT CARRY GOOGLE'S WORDS, which for a bad key name the key's
        project, back to a student.
      · GOOGLE BEING FULL IS ASKED AGAIN (11 Oct, docs/history/344): *"Ai marking is not working right
-       now Gemini said 503."* A 503, 500, 429 or a fetch that threw is asked again, a little later,
+       now Gemini said 503."* A 429, any 5xx or a fetch that threw is asked again, a little later,
        up to three times; then the fallback model, whose name the reply carries; a 400 or 403 is
        never asked again; the waits are bounded and no ask starts past the budget; and the pupil
-       reads one sentence with no number in it.
+       reads one sentence with no number in it, whatever went wrong.
      · A PRESS THAT ENDS WITHOUT A MARK COSTS NO MARK, and two presses at the cap never give three
        marks -- the count is taken under the lock before Gemini is asked and given back after.
+     · AND WHAT THE REVIEW OF 11 OCT FOUND (note 344, "After review"): a slow first model still leaves
+       the fallback its turn; 502 and 504 are Google's too; no status code reaches a pupil, and a broken
+       fallback behind a busy first model is "busy"; a 429 that says when is believed; the reply's
+       `model` is the one Google says answered; no sampling setting is sent; and a config row still
+       exactly as it was seeded with the alias is brought up to date.
 
    THROUGH THE REAL `doPost`, gate and all, over `check-gas-load.js` — the harness `check-profile.js`
    wrote. Gemini is a stub that records what it was sent and answers what each case needs; nothing
@@ -38,8 +43,13 @@ let asked = 0;
    after it; `{ threw: true }` is a fetch that throws, as `UrlFetchApp` does when it gets no answer at
    all. `sent` is every request it received, with whether the script lock was held as it was sent and
    the time on `clock` when it was. `during` runs once, inside the next request -- a second press
-   arriving while the first is waiting on Google, which is the only way one thread can be two. */
-const gem = { reply: null, queue: [], sent: [], slept: [], during: null, clock: null, log: [] };
+   arriving while the first is waiting on Google, which is the only way one thread can be two.
+   `answer`, when set, answers by URL instead of by queue -- "the first model is full, the fallback is
+   not" -- for the cases where how many asks the first model gets is the thing being asked; and
+   `clock.per` may be a function of the URL, for a model that is slow and one that is not.
+   A reply may carry `version` (the response's `modelVersion`, the model Google says answered) and
+   `details` (the error's, where a 429's `RetryInfo` says when to come back). */
+const gem = { reply: null, queue: [], sent: [], slept: [], during: null, clock: null, log: [], answer: null };
 /* WHAT GOOGLE SAYS WITH EACH REFUSAL, as near its real words as a stub needs: the 400's names the key,
    which is why none of it may reach a pupil. */
 const GOOGLE_SAID = {
@@ -48,18 +58,23 @@ const GOOGLE_SAID = {
   404: 'models/that-model is not found for API version v1beta, or is not supported for generateContent.',
   429: 'Resource has been exhausted (e.g. check quota).',
   500: 'An internal error has occurred. Please retry.',
+  502: 'Bad Gateway.',
   503: 'The model is overloaded. Please try again later.',
+  504: 'Deadline exceeded.',
 };
 let lockDepth = 0;
 const fetchStub = (url, opts) => {
   gem.sent.push({ url: url, opts: opts, locked: lockDepth > 0, at: gem.clock ? gem.clock.now : 0 });
   if (gem.during) { const f = gem.during; gem.during = null; gem.inside = true; try { f(); } finally { gem.inside = false; } }
-  const r = gem.queue.length ? gem.queue.shift() : (gem.reply || { code: 200, body: { awarded: 1, feedback: 'Fine.' } });
-  if (gem.clock) gem.clock.now += gem.clock.per;
+  const r = gem.answer ? gem.answer(url)
+    : gem.queue.length ? gem.queue.shift() : (gem.reply || { code: 200, body: { awarded: 1, feedback: 'Fine.' } });
+  if (gem.clock) gem.clock.now += typeof gem.clock.per === 'function' ? gem.clock.per(url) : gem.clock.per;
   if (r.threw) throw new Error('Address unavailable: https://generativelanguage.googleapis.com');
   const text = r.code === 200
-    ? JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(r.body) }] } }] })
-    : JSON.stringify({ error: { code: r.code, message: GOOGLE_SAID[r.code] || GOOGLE_SAID[400] } });
+    ? JSON.stringify(Object.assign({ candidates: [{ content: { parts: [{ text: JSON.stringify(r.body) }] } }] },
+                                   r.version ? { modelVersion: r.version } : {}))
+    : JSON.stringify({ error: Object.assign({ code: r.code, message: GOOGLE_SAID[r.code] || GOOGLE_SAID[400] },
+                                            r.details ? { details: r.details } : {}) });
   return { getResponseCode: () => r.code, getContentText: () => text };
 };
 /* THE SCRIPT LOCK, COUNTED. It always grants, as the harness's always did -- what it adds is whether it
@@ -158,14 +173,21 @@ function world(config) {
     try { body = JSON.parse(s.opts.payload); } catch (e) { bad.push('the request body was not JSON'); }
     const gc = body.generationConfig || {};
     if (gc.responseMimeType !== 'application/json') bad.push('responseMimeType is ' + gc.responseMimeType + ' — wanted application/json');
+    /* NO SAMPLING SETTING (the review of 11 Oct): Google stopped honouring temperature, topP and topK with
+       3.6 Flash and 3.5 Flash-Lite and says later models will answer 400 to them -- and a 400 is neither
+       asked again nor handed to the fallback, so the line that did nothing would one day stop marking. */
+    const sampling = ['temperature', 'topP', 'topK', 'top_p', 'top_k'].filter(k => k in gc);
+    if (sampling.length) bad.push('generationConfig carries ' + sampling.join(', ') + ' — current models ignore it and later ones answer 400 to it (aiMarkAsk_)');
     const text = JSON.stringify(body.contents || []);
     if (!/<student_answer>\\n.*collide more often.*\\n<\/student_answer>/.test(text)) bad.push('the student’s answer is not fenced in <student_answer> — it can be read as an instruction');
     if (!/activation energy/.test(text)) bad.push('the mark scheme did not reach Gemini');
   }
-  /* A REFUSAL FROM GOOGLE: a number for the owner, never Google's sentence (which names the key). */
+  /* A REFUSAL FROM GOOGLE: the old sentence, without its number, and never Google's words (which name the
+     key). The number is the owner's, in the log beside the model; since the review of 11 Oct it is not
+     the pupil's either. */
   gem.reply = { code: 400 };
   const e = ask('s1@example.org');
-  if (e.success !== false || !/400/.test(String(e.message))) bad.push('a 400 from Gemini answered ' + JSON.stringify(e) + ' — wanted a sentence with the status');
+  if (e.success !== false || e.message !== 'AI marking is not working right now.') bad.push('a 400 from Gemini answered ' + JSON.stringify(e) + ' — wanted "AI marking is not working right now." with no number');
   if (JSON.stringify(e).includes(KEY) || /API key not valid/.test(JSON.stringify(e))) bad.push('Google’s own error text was passed back to the student');
   gem.reply = null;
 }
@@ -402,7 +424,7 @@ function world(config) {
     gem.reply = { code: code };
     const r = ask('s1@example.org');
     if (gem.sent.length !== 1 || gem.slept.length) bad.push('a ' + code + ' was asked ' + gem.sent.length + ' times, with waits ' + JSON.stringify(gem.slept) + ' — a bad key or a bad request is asked once, and never of the fallback');
-    if (r.success !== false || r.message !== 'AI marking is not working right now (Gemini said ' + code + ').') bad.push('a ' + code + ' answered ' + JSON.stringify(r).slice(0, 160) + ' — wanted the sentence the owner can look up');
+    if (r.success !== false || r.message !== 'AI marking is not working right now.') bad.push('a ' + code + ' answered ' + JSON.stringify(r).slice(0, 160) + ' — wanted "AI marking is not working right now.", the code in the log and not in the pupil\'s sentence');
     if (JSON.stringify(r).includes(KEY) || /API key not valid|Permission denied/.test(JSON.stringify(r))) bad.push('Google’s own words for a ' + code + ' reached the pupil');
     /* AND THE OWNER'S LOG HAS ALL OF IT: the code, the model, and Google's own words. */
     const line = gem.log.filter(x => /^aiMark: Gemini answered/.test(x)).pop() || '';
@@ -414,7 +436,7 @@ function world(config) {
 }
 {
   /* A RETIRED OR MISSPELT FIRST MODEL (404) GOES STRAIGHT TO THE FALLBACK -- not asked again, no wait;
-     and a 404 from both is the owner's sentence, with its number, and no mark spent. */
+     and a 404 from both is the owner's sentence, its number in the log, and no mark spent. */
   const { b, ask } = world({ gemini_model: 'gemini-gone-flash', ai_marks_per_day: 3 });
   b.props.GEMINI_API_KEY = KEY;
   const BACK = b.ev('AI_MODEL_FALLBACK');
@@ -425,7 +447,9 @@ function world(config) {
   gem.sent.length = 0;
   gem.reply = { code: 404 };
   r = ask('s1@example.org');
-  if (r.success !== false || r.message !== 'AI marking is not working right now (Gemini said 404).' || gem.sent.length !== 2) bad.push('a 404 from both models answered ' + JSON.stringify(r).slice(0, 160) + ' after ' + gem.sent.length + ' asks — wanted one ask of each and "Gemini said 404"');
+  if (r.success !== false || r.message !== 'AI marking is not working right now.' || gem.sent.length !== 2) bad.push('a 404 from both models answered ' + JSON.stringify(r).slice(0, 160) + ' after ' + gem.sent.length + ' asks — wanted one ask of each and "AI marking is not working right now."');
+  /* AND THE LOG SAYS WHICH CELL TO MEND -- the name is the owner's to change and the pupil cannot. */
+  if (!gem.log.some(x => /gemini-gone-flash/.test(x) && /404/.test(x) && /gemini_model\b/.test(x) && /config tab/.test(x))) bad.push('a 404 from the first model was not logged as a name to change in gemini_model on the config tab');
   gem.reply = null;
   r = ask('s1@example.org');
   if (!r.success || r.left !== 1) bad.push('one mark, a double 404, and the next mark left ' + r.left + ' of 3 — wanted 1');
@@ -530,6 +554,142 @@ function world(config) {
   const over = w2.ask('s1@example.org');
   if (failed.success !== false || !during || during.why !== 'ai-cap' || !after.success || after.left !== 0 || over.why !== 'ai-cap') bad.push('a failed press holding the last mark, a press during it, one after and one more answered '
     + JSON.stringify([failed.message, during && (during.why || during.success), after.success && after.left, over.why]) + ' — wanted busy, the cap, a mark with 0 left, the cap');
+}
+
+/* ---------- AFTER REVIEW (11 Oct, note 344): WHAT THE FIRST BUILD STILL GOT WRONG ---------------------
+   Each case here was red against the first build and is the reviewer's reproduction, run through the
+   real `doPost` instead of a probe beside it. */
+{
+  const { b, ask } = world({ ai_marks_per_day: 1000 });
+  b.props.GEMINI_API_KEY = KEY;
+  const FIRST = b.ev('AI_MODEL'), BACK = b.ev('AI_MODEL_FALLBACK'), BUSY = b.ev('AI_BUSY');
+  const BUDGET = b.ev('AI_BUDGET_MS');
+  const HANDOFF = b.ev('typeof AI_HANDOFF_MS === "number" ? AI_HANDOFF_MS : null');
+  const to = m => 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent';
+  const MARK = { code: 200, body: { awarded: 2, feedback: 'You named the faster particles.' } };
+  const fresh = () => { gem.sent.length = 0; gem.slept.length = 0; gem.queue.length = 0; gem.reply = null; gem.answer = null; gem.log.length = 0; };
+  const urls = () => gem.sent.map(x => x.url === to(FIRST) ? 'first' : x.url === to(BACK) ? 'back' : x.url).join();
+  const real = Date.now, base = real();
+  const timed = (per, answer) => {
+    fresh();
+    gem.answer = answer;
+    gem.clock = { now: 0, per: per };
+    Date.now = () => base + gem.clock.now;
+    try { return ask('s1@example.org'); } finally { Date.now = real; gem.answer = null; }
+  };
+
+  /* 1. A SLOW FIRST MODEL STILL LEAVES THE FALLBACK ITS TURN. The first build RETURNED when the next
+     retry's wait would cross the budget, so a first model refusing at 9 s an ask was asked twice and the
+     fallback -- the point of having one -- never; and at 7 s an ask the first model's three asks used
+     the whole 20 s on their own. */
+  if (HANDOFF == null || !(HANDOFF > 0 && HANDOFF < BUDGET)) bad.push('AI_HANDOFF_MS is ' + HANDOFF + ' — wanted a time inside the budget after which the first model is not asked again, so the fallback can still start');
+  [9000, 7000].forEach(per => {
+    const r = timed(per, url => url === to(BACK) ? MARK : { code: 503 });
+    const fb = gem.sent.filter(x => x.url === to(BACK));
+    if (!r.success || r.model !== BACK || !fb.length) bad.push('a first model answering 503 in ' + per / 1000 + ' s an ask, with the fallback ready, asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — wanted the fallback asked inside the budget and its mark');
+    if (fb.length && fb[0].at - gem.sent[0].at > BUDGET) bad.push('the fallback was first asked at ' + fb[0].at + ' ms — past the ' + BUDGET + ' ms budget');
+    const lateRetry = gem.sent.filter((x, i) => i > 0 && x.url === to(FIRST) && HANDOFF != null && x.at - gem.sent[0].at > HANDOFF);
+    if (lateRetry.length) bad.push('the first model was asked again at ' + lateRetry.map(x => x.at).join(', ') + ' ms — past AI_HANDOFF_MS, the fallback\'s turn');
+  });
+  gem.clock = null;
+
+  /* 2. THE BOUND THE NOTE STATES: no ask starts after the budget, and a press ends inside the budget plus
+     its last ask's own length. A first ask refused at 18.5 s and a fallback that hangs until UrlFetchApp
+     gives up (about a minute) ends near 80 s -- the honest worst case, which "about 21 s" was not. */
+  const r2 = timed(url => url === to(FIRST) ? 18500 : 60000, url => url === to(FIRST) ? { code: 503 } : { threw: true });
+  const starts = gem.sent.map(x => x.at - gem.sent[0].at);
+  if (starts.some(t => t > BUDGET)) bad.push('an ask started at ' + starts.join(', ') + ' ms — none may start past ' + BUDGET);
+  if (gem.clock.now > BUDGET + 60000) bad.push('a press ended at ' + gem.clock.now + ' ms — the bound is the budget plus one ask, ' + (BUDGET + 60000));
+  if (r2.message !== BUSY) bad.push('a busy first model and a fallback that hung answered ' + JSON.stringify(r2.message) + ' — wanted "' + BUSY + '": the first model was busy, and that will pass');
+  gem.clock = null;
+
+  /* 3. 502 AND 504 ARE GOOGLE'S, NOT THE OWNER'S. The first build took any 5xx but 500 and 503 for a bad
+     key: asked once, no fallback, and "Gemini said 504" to the pupil. A 504 is Google's deadline, which
+     the faster fallback may meet; a 502 is a gateway passing. */
+  fresh();
+  gem.queue.push({ code: 502 }, MARK);
+  let r = ask('s1@example.org');
+  if (!r.success || urls() !== 'first,first') bad.push('a 502 then a 200 asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — a 502 is asked again');
+  fresh();
+  gem.answer = url => url === to(BACK) ? MARK : { code: 504 };
+  r = ask('s1@example.org');
+  if (!r.success || r.model !== BACK || urls() !== 'first,first,first,back') bad.push('504s from the first model asked ' + urls() + ' and answered ' + JSON.stringify(r.message || r.model) + ' — wanted three asks, then the fallback\'s mark');
+  fresh();
+  gem.reply = { code: 504 };
+  r = ask('s1@example.org');
+  if (r.message !== BUSY) bad.push('504 from everything answered ' + JSON.stringify(r.message) + ' — wanted "' + BUSY + '"');
+
+  /* 4. NO STATUS CODE REACHES A PUPIL, and a broken fallback behind a busy first model is "busy": the
+     first model will be back, and "Gemini said 404" about a model the pupil never asked for is the
+     owner's news, told loudly in the log. */
+  fresh();
+  gem.answer = url => url === to(BACK) ? { code: 404 } : { code: 503 };
+  r = ask('s1@example.org');
+  if (r.message !== BUSY || urls() !== 'first,first,first,back') bad.push('a busy first model and a retired fallback asked ' + urls() + ' and answered ' + JSON.stringify(r.message) + ' — wanted "' + BUSY + '"');
+  if (!gem.log.some(x => x.indexOf(BACK) >= 0 && /404/.test(x) && /gemini_model_fallback/.test(x) && /config tab/.test(x))) bad.push('a retired fallback was not logged as a name to change in gemini_model_fallback on the config tab: ' + JSON.stringify(gem.log.slice(-2)));
+  [400, 403, 404, 401, 502, 503, 504, 429].forEach(code => {
+    fresh();
+    gem.reply = { code: code };
+    const x = ask('s1@example.org');
+    if (/\d/.test(String(x.message))) bad.push('a ' + code + ' from everything told the pupil "' + x.message + '" — a status code is the owner\'s, in the log');
+  });
+
+  /* 5. A 429 THAT SAYS WHEN IS BELIEVED. On the Gemini API a 429 is that model's quota -- a minute's or a
+     day's -- and its RetryInfo says when it comes back; a model that will not be back before its next ask
+     is not asked again, and the fallback, whose quota is its own, is asked at once. A 429 that says
+     nothing, or says sooner than the next ask, is asked again as before. */
+  const quota = d => ({ code: 429, details: [
+    { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: 'GenerateRequestsPerDayPerProjectPerModel-FreeTier' }] },
+    { '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: d }] });
+  fresh();
+  gem.answer = url => url === to(BACK) ? MARK : quota('39s');
+  r = ask('s1@example.org');
+  if (!r.success || r.model !== BACK || urls() !== 'first,back' || gem.slept.length) bad.push('a 429 saying "retry in 39s" asked ' + urls() + ' with waits ' + JSON.stringify(gem.slept) + ' — wanted the fallback at once: that model is not back before its next ask');
+  fresh();
+  gem.queue.push(quota('0.2s'), MARK);
+  r = ask('s1@example.org');
+  if (!r.success || urls() !== 'first,first') bad.push('a 429 saying "retry in 0.2s" asked ' + urls() + ' — wanted the first model again, after the usual wait');
+
+  /* 6. THE MODEL THAT ANSWERED, NOT THE NAME THAT WAS ASKED. Google now retires a name by routing it to a
+     newer model rather than refusing it (8 Oct: 3.7 Flash to 3.8 Flash), and a 200 shows only that the
+     name was accepted; `modelVersion` says who marked it. */
+  fresh();
+  gem.queue.push(Object.assign({ version: 'gemini-9.9-flash' }, MARK));
+  r = ask('s1@example.org');
+  if (!r.success || r.model !== 'gemini-9.9-flash') bad.push('a mark Google says gemini-9.9-flash gave came back as model ' + r.model + ' — wanted the model that answered');
+  if (!gem.log.some(x => x.indexOf(FIRST) >= 0 && x.indexOf('gemini-9.9-flash') >= 0)) bad.push('a name routed to another model was not logged with both names');
+  [FIRST, FIRST + '-001'].forEach(v => {
+    fresh();
+    gem.queue.push(Object.assign({ version: v }, MARK));
+    r = ask('s1@example.org');
+    if (r.model !== v || gem.log.some(x => /answered by/.test(x))) bad.push('a mark from ' + v + ', asked as ' + FIRST + ', answered model ' + r.model + ' and logged ' + JSON.stringify(gem.log) + ' — a numbered version of the same name is the same model');
+  });
+  fresh();
+  gem.queue.push(Object.assign({ version: FIRST + '-lite' }, MARK));
+  r = ask('s1@example.org');
+  if (!gem.log.some(x => /answered by/.test(x) && x.indexOf(FIRST + '-lite') >= 0)) bad.push('asked ' + FIRST + ' and answered by ' + FIRST + '-lite, nothing was logged — a longer name is another model');
+  gem.reply = null; gem.answer = null;
+}
+{
+  /* 7. A CONFIG ROW STILL EXACTLY AS IT WAS SEEDED IS BROUGHT UP TO DATE -- value and note -- so the sheet
+     says which model marks. `seedConfig` never rewrites a value somebody set; a row whose value AND note
+     are both the old seed's is one nobody set. A row whose note was changed, or whose value was, is left
+     as the owner left it. */
+  const OLD_NOTE = 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties';
+  const seeded = (value, note) => {
+    const { b } = world();
+    b.seed('config', [{ key: 'gemini_model', value: value, what_it_does: note }]);
+    b.ev('ensureSchema()');
+    const C = b.tabs.config, k = C[0].indexOf('key'), v = C[0].indexOf('value'), w = C[0].indexOf('what_it_does');
+    const row = C.find((x, i) => i > 0 && x[k] === 'gemini_model') || [];
+    return { value: row[v], note: String(row[w] || ''), b: b };
+  };
+  const old = seeded('gemini-flash-latest', OLD_NOTE);
+  if (old.value !== old.b.ev('AI_MODEL') || /Blank = gemini-flash-latest/.test(old.note)) bad.push('ensureSchema left the untouched old row as ' + JSON.stringify([old.value, old.note.slice(0, 60)]) + ' — wanted ' + old.b.ev('AI_MODEL') + ' and the note that goes with it');
+  const mine = seeded('gemini-flash-latest', 'I chose this.');
+  if (mine.value !== 'gemini-flash-latest' || mine.note !== 'I chose this.') bad.push('ensureSchema rewrote a row the owner had changed: ' + JSON.stringify([mine.value, mine.note]));
+  const typed = seeded('gemini-test-model', OLD_NOTE);
+  if (typed.value !== 'gemini-test-model') bad.push('ensureSchema rewrote a model name the owner typed: ' + JSON.stringify(typed.value));
 }
 
 console.log('');

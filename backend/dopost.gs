@@ -3436,7 +3436,10 @@ function doPost(e) {
       }
       if (got.error) return jsonOut({ success: false, message: got.error });
       /* THE SAME FOUR FIELDS THE PHONE HAS ALWAYS READ, and an essay's breakdown beside them for anything
-         that wants it as data rather than as the lines of `feedback`. */
+         that wants it as data rather than as the lines of `feedback`. `left` is as of the take: a press of
+         the same person's that fails while this one was with Gemini gives its count back afterwards, so
+         `left` can be one low. Nothing on the phone reads it; anything that starts to should read it as
+         "at least". */
       return jsonOut({ success: true, awarded: got.awarded, available: avail, feedback: got.feedback,
                        parts: got.parts || [], points: got.points || [],
                        model: got.model, left: Math.max(0, cap - took.used) });
@@ -5007,15 +5010,18 @@ function aiMarkAsk_(key, models, question, scheme, answer, avail, essay) {
   const sent = aiGemini_(key, models, JSON.stringify({
     systemInstruction: { parts: [{ text: rules }] },
     contents: [{ role: 'user', parts: [{ text: ask }] }],
+    /* NO `temperature`, `topP` OR `topK`. Google stopped honouring them with 3.6 Flash and 3.5 Flash-Lite
+       and says later models will answer 400 to them -- and a 400 is neither asked again nor handed to the
+       fallback, so `temperature: 0`, which did nothing on either pinned model, would one day have stopped
+       marking (the review of 11 Oct). The schema and the system instruction are what keep a mark steady. */
     generationConfig: {
-      temperature: 0,
       responseMimeType: 'application/json',
       responseSchema: shape,
     },
   }));
   if (sent.error) return sent;
   /* WHICH MODEL MARKED IT, on every answer -- `aiMarkEssay_`'s too -- so the reply's `model` is the one
-     that did the marking, not the one the config tab asked for first. */
+     that did the marking (Google's `modelVersion`, `aiServed_`), not the one the config tab asked for first. */
   const marked = aiMarkRead_(sent.body, avail, essay);
   if (!marked.error) marked.model = sent.model;
   return marked;
@@ -5076,30 +5082,41 @@ function aiMarkEssay_(out, avail, clamp) {
 
      each model in `models` -- the config tab's, then its fallback (`aiModels_`) --
        up to AI_TRIES asks, AI_WAITS apart, each wait moved by up to AI_JITTER either way
-       200                     the answer, and the name of the model that gave it
-       429, 500, 503, a throw  asked again; after the model's last try, the next model, at once
-       404                     not asked again -- a retired or misspelt name will not come back --
-                               but the next model at once, which is a different name
-       anything else           stop: the key, the request or the account, which no second ask mends
-     and no ask, first or again, started once AI_BUDGET_MS has gone since the first
+       200                       the answer, and the model Google says gave it (`aiServed_`)
+       429, any 5xx, a throw     asked again; after the model's last try, the next model, at once
+       a 429 that says "later"   not asked again -- its RetryInfo is past the next ask -- the next model
+       404                       not asked again -- a retired or misspelt name will not come back --
+                                 but the next model at once, which is a different name
+       anything else             stop: the key, the request or the account, which no second ask mends
+     and no ask at all started once AI_BUDGET_MS has gone since the first, and no model with another
+     behind it asked AGAIN once AI_HANDOFF_MS has, so the other still gets its turn
 
-   THE STATUS IS NAMED AND GOOGLE'S OWN MESSAGE IS NOT PASSED ON. A 400 for a bad key says so in a
-   sentence meant for the owner, and the person reading this is a student. So a fault that is the
-   owner's to mend gives the student a number the owner can look up, as it always did; a fault that is
-   Google's and passes gives AI_BUSY, which has no number in it, because "Gemini said 503" read to a
-   pupil as broken rather than busy; and the log keeps the rest -- every refused ask with its code, its
-   model and which try it was, so "it said busy" can be read back as which model was full and how often. */
+   WHEN A CLOCK RUNS OUT THE MODEL'S TURN ENDS, NOT THE PRESS. The first build `return`ed there: a
+   retry whose wait would cross 20 s gave up on the press, though the fallback's first ask has no wait
+   and could still start (the review of 11 Oct, with Gemini taking 9 s a refusal: asked twice, the
+   fallback never). Now it is a `break`, and the next model's first ask decides for itself.
+
+   GOOGLE'S OWN MESSAGE IS NOT PASSED ON, AND SINCE THE REVIEW OF 11 OCT NEITHER IS ITS NUMBER. A 400 for
+   a bad key says so in a sentence meant for the owner, and the person reading this is a student; "Gemini
+   said 503" read to a pupil as broken rather than busy, and "Gemini said 404" about a fallback they never
+   asked for is not theirs to act on at all. `aiGaveUp_` says one of three sentences, none with a digit,
+   and the log keeps the rest -- every refused ask with its code, its model and which try it was, and a
+   model that cannot be used named with the config cell to change. */
 function aiGemini_(key, models, payload) {
   const start = Date.now();
-  let last = 0;                                   // the last refusal: its code, or -1 for a fetch that threw
+  const ends = [];                                // how each model asked ended: { model, code }, -1 a throw
   for (let m = 0; m < models.length; m++) {
-    const model = models[m];
+    const model = models[m], another = m < models.length - 1;
+    let code = 0, hold = 0;
     for (let t = 0; t < AI_TRIES; t++) {
-      /* NO WAIT BEFORE A MODEL'S FIRST ASK, and none at all that would start an ask past the budget. */
+      /* NO WAIT BEFORE A MODEL'S FIRST ASK. A retry waits, and is not started past either clock, or when
+         Google has said this model is not back before it. */
       const wait = t ? Math.round(AI_WAITS[Math.min(t, AI_WAITS.length) - 1] * (1 + AI_JITTER * (2 * Math.random() - 1))) : 0;
-      if (Date.now() - start + wait > AI_BUDGET_MS) return aiGaveUp_(last, models);
+      const at = Date.now() - start + wait;
+      if (at > AI_BUDGET_MS || (t && another && at > AI_HANDOFF_MS) || hold > wait) break;
       if (wait) Utilities.sleep(wait);
-      let code = -1, said = '';
+      let said = '';
+      hold = 0;
       try {
         const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/'
           + encodeURIComponent(model) + ':generateContent', {
@@ -5107,30 +5124,71 @@ function aiGemini_(key, models, payload) {
           headers: { 'x-goog-api-key': key }, payload: payload,
         });
         code = res.getResponseCode();
-        if (code === 200) return { body: res.getContentText(), model: model };
-        said = String(res.getContentText()).slice(0, 500);
+        const text = String(res.getContentText());
+        if (code === 200) return { body: text, model: aiServed_(text, model) };
+        said = text.slice(0, 500);
+        if (code === 429) hold = aiRetryDelay_(text);
       } catch (err) {
         code = -1;
         said = String((err && err.message) || err).slice(0, 500);
       }
       console.log('aiMark: Gemini answered ' + (code < 0 ? 'nothing (the fetch threw)' : code) + ' for model '
         + model + ' (try ' + (t + 1) + ' of ' + AI_TRIES + '): ' + said);
-      last = code;
+      if (code < 0 || aiAgain_(code)) continue;
       if (code === 404) break;
-      if (code >= 0 && AI_AGAIN.indexOf(code) < 0) {
-        return { error: 'AI marking is not working right now (Gemini said ' + code + ').' };
-      }
+      ends.push({ model: model, code: code, cell: m ? 'gemini_model_fallback' : 'gemini_model' });
+      return aiGaveUp_(ends);
     }
+    if (code) ends.push({ model: model, code: code, cell: m ? 'gemini_model_fallback' : 'gemini_model' });
   }
-  return aiGaveUp_(last, models);
+  return aiGaveUp_(ends);
 }
-/* WHAT THE PUPIL IS TOLD WHEN THE ASKING RUNS OUT, by the last thing Google said. */
-function aiGaveUp_(last, models) {
-  console.log('aiMark: gave up on ' + models.join(', ') + ' -- the last answer was '
-    + (last < 0 ? 'a fetch that threw' : last));
-  if (last < 0) return { error: 'Could not reach Gemini just now — try again in a moment.' };
-  if (last && AI_AGAIN.indexOf(last) < 0) return { error: 'AI marking is not working right now (Gemini said ' + last + ').' };
-  return { error: AI_BUSY };
+/* GOOGLE'S SIDE, AND SO WORTH ASKING AGAIN: 429 and any 5xx. 502 and 504 were the owner's in the first
+   build -- asked once, no fallback, "Gemini said 504" to the pupil -- though a 504 is Google's deadline
+   (the faster fallback may meet it) and a 502 a gateway passing (the review of 11 Oct). */
+function aiAgain_(code) {
+  return code === 429 || (code >= 500 && code <= 599);
+}
+/* WHEN A 429 SAYS THE MODEL IS BACK, in ms -- 0 when it does not say. A Gemini API 429 is that model's
+   quota, a minute's or a day's, and carries `google.rpc.RetryInfo` with `retryDelay` as "39s"; asked
+   again 0.8 s later it is only refused again. Some 429s carry nothing (a spike in shared capacity), and
+   those are asked again on the schedule like a 503. */
+function aiRetryDelay_(text) {
+  try {
+    const info = (((JSON.parse(text) || {}).error || {}).details || [])
+      .filter(d => d && /google\.rpc\.RetryInfo$/.test(S(d['@type'])))[0];
+    const s = info && /^(\d+(?:\.\d+)?)s$/.exec(S(info.retryDelay));
+    return s ? Math.round(parseFloat(s[1]) * 1000) : 0;
+  } catch (e) { return 0; }
+}
+/* THE MODEL THAT ANSWERED, from the response's `modelVersion`, else the name asked for. Google now
+   retires a name by routing it to a newer model (8 Oct: 3.7 Flash to 3.8 Flash) and the 200 says nothing
+   else, so a pinned name that has quietly become another model shows here and in the log. A numbered
+   version of the same name (`gemini-3.8-flash-001`) is the same model and is not logged; a longer name
+   that merely starts with it (`gemini-3.8-flash-lite`) is another model, and is. */
+function aiServed_(text, model) {
+  let v = '';
+  try { v = S((JSON.parse(text) || {}).modelVersion).replace(/^models\//, '').slice(0, 80); } catch (e) { v = ''; }
+  const same = v === model || (v.indexOf(model + '-') === 0 && /^\d+$/.test(v.slice(model.length + 1)));
+  if (v && !same) console.log('aiMark: asked ' + model + ', answered by ' + v
+    + ' -- Google has routed that name to another model; the config tab still says ' + model);
+  return v || model;
+}
+/* WHAT THE PUPIL IS TOLD WHEN THE ASKING RUNS OUT -- by how every model asked ended, not by the last one.
+   Busy if anything was merely busy (the first model full and the fallback broken is busy: the first will
+   be back); "could not reach" if nothing answered at all; "not working" only when every model asked
+   refused for a reason that is the owner's. The owner's half goes to the log, loudly, with the cell. */
+function aiGaveUp_(ends) {
+  ends.forEach(e => {
+    if (e.code === 404) console.log('aiMark: MODEL ' + e.model + ' IS NOT SERVED (Gemini said 404) -- retired or misspelt; '
+      + 'put a current name in ' + e.cell + ' on the config tab');
+    else if (e.code > 0 && !aiAgain_(e.code)) console.log('aiMark: ' + e.model + ' REFUSED THE REQUEST (Gemini said ' + e.code
+      + ') -- the key in Script Properties, the request, or the account; Google’s words are in the line above');
+  });
+  console.log('aiMark: gave up -- ' + (ends.map(e => e.model + ' ' + (e.code < 0 ? 'threw' : e.code)).join(', ') || 'nothing asked'));
+  if (ends.some(e => aiAgain_(e.code))) return { error: AI_BUSY };
+  if (ends.some(e => e.code < 0)) return { error: 'Could not reach Gemini just now — try again in a moment.' };
+  return { error: 'AI marking is not working right now.' };
 }
 
 /* ---------- THE REPLY A SIGNED-IN PERSON GETS ------------------------------------------------------

@@ -1604,22 +1604,46 @@ const SCHEMA = {
    apps and prototypes" because it may point at a preview -- and on 21 Jan 2026 `gemini-flash-latest`
    did, at `gemini-3-flash-preview`, which is the kind of build that is full first. A pinned name is
    still retired one day, and a retired name answers 404 -- so a 404 from the first model is handed to
-   the second, where a 400 or a 403 (the key, the account) is not.
+   the second, where a 400 or a 403 (the key, the account) is not. Google has also begun retiring a name
+   by ROUTING it to a newer model (8 Oct: 3.7 Flash to 3.8 Flash), which answers 200, so the reply's
+   `model` is the response's own `modelVersion` -- the model that marked it, not the name that was asked.
+   THE FALLBACK THINKS LESS. 3.5 Flash-Lite defaults to Google's MINIMAL thinking level, meant for
+   classification and extraction; 3.8 Flash thinks more by default. A forty-mark essay marked by the
+   fallback is a lighter read than one marked by the first model. Nothing sets the level, deliberately: a
+   level a model refuses is a 400, and a 400 does not fall back.
+   AND ON A FREE-TIER KEY THE FIRST MODEL'S QUOTA IS SMALL. Google no longer publishes free-tier numbers;
+   third-party measurements put 3.5-and-newer Flash at about 20 requests a DAY for the whole key and
+   3.5 Flash-Lite at about 500 -- so on a free key most of a day's marks may come from the fallback. The
+   real numbers are on AI Studio's rate-limit page; billing on the key lifts them.
 
    THE WAITS. Up to AI_TRIES asks of each model; between them AI_WAITS -- about 0.8 s, then about 2 s --
    each moved up to AI_JITTER (30%) either way, so a hundred phones refused in the same second do not
    all come back in the same second too. The second model is asked at once: its capacity is its own.
-   So six asks at most and at most 7.3 s of waiting in all, and NO ASK IS STARTED once AI_BUDGET_MS
-   (20 s) has gone since the first -- a pupil is watching three dots, and "busy, try again in a minute"
-   at 20 s is kinder than a mark at 50. An ask already started runs as long as Gemini takes, as it always
-   did: a whole essay is marked in seconds to tens of seconds, and `UrlFetchApp` gives up at about a
-   minute on its own.
+   So six asks at most and at most 7.28 s of waiting in all.
+   TWO CLOCKS, BOTH FROM THE FIRST ASK. No ask at all is started once AI_BUDGET_MS (20 s) has gone; and
+   the first model is not asked AGAIN once AI_HANDOFF_MS (10 s) has gone, so the fallback's first ask
+   still has room. The first build had only the budget and RETURNED at it: a first model refusing in 9 s
+   an ask was asked twice and the fallback never, and at 7 s an ask its three asks used the whole budget
+   on their own (the review of 11 Oct).
+   WHAT THAT BOUNDS, HONESTLY. The clocks decide when an ask STARTS. An ask that has started runs as long
+   as Gemini takes -- a whole essay is marked in seconds to tens of seconds -- and `UrlFetchApp` has no
+   timeout to set; it gives up by itself at about a minute (not documented by Google). So a storm of quick
+   503s answers in about 8-12 s, and the worst a press can take is the budget plus one ask: about 80 s if
+   an ask started at 19.9 s hangs until UrlFetchApp gives up, against about 60 s when there was one ask.
+   A pupil watching three dots is told "busy" in seconds in the ordinary case, which is the case that
+   happened.
 
-   ONLY WHAT CAN GET BETTER IS ASKED AGAIN (`AI_AGAIN`): 429 (too many at once), 500 (Google's own
-   fault), 503 (full), and a fetch that threw (no answer at all). A 400 or 403 is the key, the request
-   or the account, and asking again is asking to be told again. AI_BUSY is what the pupil reads when
-   the asking runs out: one sentence and no number, because a status code is the owner's to read, in
-   the log, beside the model that gave it. */
+   WHAT IS ASKED AGAIN IS WHAT IS GOOGLE'S (`aiAgain_` in dopost.gs): 429, any 5xx -- 500 (its own fault),
+   502 (a gateway), 503 (full), 504 (its deadline, which the faster fallback may meet) -- and a fetch that
+   threw. A 400, 401 or 403 is the key, the request or the account, and asking again is asking to be told
+   again. A 429 on the Gemini API is that model's quota, a minute's or a day's: when its RetryInfo says
+   the model is not back before the next ask would be, it is not asked again and the fallback, whose
+   quota is its own, is asked at once.
+   NO STATUS CODE REACHES A PUPIL. AI_BUSY when anything asked was merely busy -- including a first model
+   that was full and a fallback that is broken, because the first will be back; "Could not reach Gemini"
+   when nothing answered at all; and "AI marking is not working right now." when every model asked
+   refused for a reason that is the owner's to mend. The number, the model and Google's own words go to
+   the log, with the config cell to change when it is a model name. */
 const AI_MODEL = 'gemini-3.8-flash';
 const AI_MODEL_FALLBACK = 'gemini-3.5-flash-lite';
 const AI_MODEL_OLD_SEED = 'gemini-flash-latest';
@@ -1627,7 +1651,7 @@ const AI_TRIES = 3;
 const AI_WAITS = [800, 2000];
 const AI_JITTER = 0.3;
 const AI_BUDGET_MS = 20000;
-const AI_AGAIN = [429, 500, 503];
+const AI_HANDOFF_MS = 10000;
 const AI_BUSY = 'Marking is busy right now — try again in a minute.';
 
 /* Every tunable, with a plain-English note and a starting value. ensureSchema() adds any that
@@ -1682,10 +1706,14 @@ const CONFIG_DEFAULTS = [
 
      A CELL STILL HOLDING THE OLD SEED IS READ AS BLANK. `seedConfig` never rewrites a value, so every
      sheet seeded before 11 Oct holds `gemini-flash-latest` as though somebody had chosen it -- and a
-     default that moved would have moved nowhere. `aiModels_` reads that one string as "the default";
-     any other name typed here is used as typed. */
+     default that moved would have moved nowhere. `aiModels_` reads that one string as "the default",
+     from the first request, with nothing for anybody to do; any other name typed here is used as typed.
+     THE ALIAS IS NOT OFFERED: typed on purpose it is still the default, because Google keeps it for
+     prototypes. AND THE SHEET IS TOLD, at the next `ensureSchema`: a row whose value AND note are both
+     still the old seed's is a row nobody set, and `CONFIG_RESEEDED` below brings it up to date, so the
+     config tab says which model marks instead of a note that stopped being true on 11 Oct. */
   ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
-  ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 503, 500, 429 or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
+  ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 429, 5xx or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
@@ -1775,6 +1803,17 @@ const CONFIG_DEFAULTS = [
      maths, in cells nothing reads, which had to be edited every time the maths changed — and by
      the end described a version of the formula that hadn't run for weeks. The pricing card shows
      the live formula, derived from the code that actually prices, so it can't fall behind. */
+];
+
+/* ---------- A SEED THAT MOVED: `[key, the old value, the old note]` -----------------------------------
+   `seedConfig` NEVER REWRITES A VALUE SOMEBODY SET, and that stays the rule. But a row whose value and
+   note are BOTH exactly what an old seed wrote is a row nobody set, and leaving it says something that
+   is no longer true: on 11 Oct `gemini_model` stopped defaulting to the `-latest` alias, and every sheet
+   seeded before that still read "gemini-flash-latest ... Blank = gemini-flash-latest" (the review of
+   11 Oct). Such a row is given the current default and note from CONFIG_DEFAULTS. Change either cell
+   and it is yours, and left alone. */
+const CONFIG_RESEEDED = [
+  ['gemini_model', AI_MODEL_OLD_SEED, 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
 ];
 
 /* ---------- THE CONFIG KEYS NO PHONE IS SENT ------------------------------------------------------
