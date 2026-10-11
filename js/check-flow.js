@@ -8073,6 +8073,197 @@ check('a poll vote redraws only the poll, as a reaction redraws only its faces: 
   return bad;
 });
 
+/* ---------- A POST WITH NO DATE: THE FIRST FACE AND THE LAST TAKEN BACK MOVE NOTHING -----------------
+   THE FIX ABOVE HELD FOR EVERY POST WITH A DATE AND FOR NO OTHER. A row typed into the posts tab by hand
+   without `creation_date`, `posted_on` or `uploaded_date` arrives as `at: 0, when: ''` — and the empty
+   feed asks for exactly that row. With no reactions yet it had no time line, so the first face had
+   nowhere to put its total: `postRedraw_` fell back to `repaint()` and the whole column was rebuilt as
+   before (a 16:9 card 428.5 → 689px at 390, a clip back at 0:00, the second tap of a double tap lost).
+   Taking the last face back removed the line, and the card shrank 36.6px under the thumb
+   (docs/history/335). Held here:
+     · THE LINE IS THERE BEFORE ANYBODY REACTS — empty, holding the place a total goes
+     · THE POST STAYS THE SAME ELEMENTS through the first face and the last taken back
+     · THE LINE STAYS when the last face goes, empty again */
+check('a post with no date: its first face and its last taken back keep the post and its time line', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [{ id: 'PO2', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
+    media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
+    caption: 'Typed into the sheet by hand', body: '', location: '', when: '', at: 0,
+    pinned: false, active: true, waiting: false, refused: false,
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }];
+  const { w, sent } = boot({ payload: p,
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document, bad = [];
+  if (!w.__t) return ['the app did not load, so the undated post was NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  const grab = () => {
+    const art = d.querySelector('#s-feed [data-post="PO2"]');
+    return { art, pane: art && art.closest('.pane'), line: art && art.querySelector('.post-when'),
+             media: art ? [...art.querySelectorAll('img.post-cell, img.post-pic, video')] : [] };
+  };
+  const face = e => d.querySelector(`#s-feed [data-post="PO2"] .react[data-emoji="${e}"]`);
+  const kept = grab();
+  if (!kept.art || !face('👍')) return ['the undated post drew no faces to press — nothing was pressed, not a pass'];
+  if (kept.media.length !== 2) bad.push(`drawn, the undated post holds ${kept.media.length} pictures and clips, not the two it was sent`);
+  if (!kept.line) bad.push('drawn, the undated post with no reactions has no time line — the first face has nowhere to put its total, and the column is rebuilt');
+  else if (kept.line.textContent.trim()) bad.push(`drawn, the undated post's line says ${JSON.stringify(kept.line.textContent.trim())} — nothing yet`);
+  const same = when => {
+    const now = grab();
+    if (now.art !== kept.art) bad.push(`${when}, the undated post is a new <article> — the press rebuilt the column`);
+    else if (now.pane !== kept.pane) bad.push(`${when}, the undated post's pane is a new element`);
+    if (now.media.length !== kept.media.length || now.media.some((m, i) => m !== kept.media[i])) {
+      bad.push(`${when}, the undated post's picture and clip are new elements — a clip back at 0:00, a picture blank`);
+    }
+    return now;
+  };
+
+  sent.length = 0;
+  face('👍').click(); await wait(120);
+  let now = same('after the first face');
+  const said = now.line ? now.line.textContent.replace(/\s+/g, ' ').trim() : '';
+  if (said !== '1 reaction') bad.push(`after the first face, the line says ${JSON.stringify(said)}, not "1 reaction"`);
+  if (!face('👍') || !face('👍').classList.contains('mine')) bad.push('after the first face, 👍 is not yours');
+
+  face('👍').click(); await wait(120);
+  now = same('after the last face taken back');
+  if (!now.line) bad.push('after the last face was taken back, the time line is gone — the card shrinks and the tile row jumps up');
+  else if (now.line.textContent.trim()) bad.push(`after the last face was taken back, the line still says ${JSON.stringify(now.line.textContent.trim())}`);
+  if (d.querySelector('#s-feed [data-post="PO2"] .react.mine')) bad.push('after taking it back, a face is still yours');
+  const n = sent.filter(b => b.action === 'reactPost').length;
+  if (n !== 2) bad.push(`two presses a second apart sent ${n} reactPost, not 2`);
+  return bad;
+});
+
+/* ---------- TWO QUICK TAPS: ONE SAVE AT A TIME, AND THE PAGE AND THE SERVER END THE SAME --------------
+   ONCE EVERY TAP LANDED, TWO OLD FAULTS WERE REACHABLE EVERY TIME (docs/history/335). The whole-column
+   rebuild used to swallow the second of two quick taps and hid them both:
+     · EACH TAP SENT ITS OWN SAVE AND EACH REFUSAL PUT BACK ITS OWN SNAPSHOT. 🎉 twice, both refused:
+       the second refusal put back the first tap's 🎉 — gold again 1.3s after it was taken back, and
+       "5 reactions" where there were 4. A poll ended ticked the same way.
+     · THE SERVER'S ACTION WAS A TOGGLE. The first save refused and the second accepted, and the server
+       held 😂 while the page showed nothing.
+   The server here is played TWICE from the same requests — as `dopost.gs` is now (`want` is set) and
+   as the deployed one may still be (a toggle on `emoji` / `choice`) — because the phone reaches the live
+   site a step before the Apps Script project does, and it must land right on both. Held:
+     · NO SECOND SAVE OF A POST GOES OUT WHILE THE FIRST IS UNANSWERED
+     · BOTH REFUSED → the page as the server holds it, the total right, the server's reason said
+     · FIRST REFUSED, SECOND ACCEPTED → the page and both servers the same
+     · BOTH ACCEPTED → the second save goes after the first, carrying `want: ''`
+     · TWO FACES QUICKLY → ends on the second, on the page and on both servers
+     · THE SAME FOR A POLL: a refused double vote ends unticked, two answers quickly end on the second */
+check('two quick taps on a post: one save at a time, a refusal puts back what the server holds, and the page and the server agree', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: '', media: [],
+    caption: 'Which paper next week?', body: '', location: '', when: '01/09/2026',
+    at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
+    poll: { options: ['Paper 1', 'Paper 2', 'Paper 3'], counts: [1, 1, 0], total: 2, yours: '' },
+    reactions: { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0], total: 4, yours: '',
+      by: [{ name: 'Ada Tutor', emoji: '👍' }] },
+    comments: { total: 0, list: [] } }];
+  const bad = [];
+  /* THE SERVER, TWICE: what Pat holds on each after the same requests. */
+  const held = { now: { react: '', vote: '' }, old: { react: '', vote: '' } };
+  const key = b => (b.action === 'reactPost' ? 'react' : 'vote');
+  const field = b => (b.action === 'reactPost' ? 'emoji' : 'choice');
+  const queue = [];
+  const { w } = boot({ payload: p,
+    reply: b => {
+      if (b.action !== 'reactPost' && b.action !== 'votePoll') return undefined;
+      if (queue.some(x => !x.done && x.b.action === b.action)) {
+        bad.push(`a second ${b.action} went out while the first was unanswered — two saves of one post at once`);
+      }
+      return new Promise(res => queue.push({ b, res, done: false }));
+    },
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document;
+  if (!w.__t) return ['the app did not load, so quick taps were NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  /* EACH REQUEST IN TURN, BY THE NEXT POLICY ('ok' or 'no'), until nothing has been asked for a while. */
+  const play = async policy => {
+    const got = [];
+    let idle = 0;
+    while (idle < 6 && got.length < 10) {
+      await wait(30);
+      const next = queue.find(x => !x.done);
+      if (!next) { idle++; continue; }
+      idle = 0; next.done = true;
+      const how = policy[got.length] || 'ok';
+      got.push(next.b);
+      if (how === 'no') { next.res({ error: next.b.action === 'reactPost' ? 'Sign in to react.' : 'The poll has closed.' }); continue; }
+      const k = key(next.b), v = next.b[field(next.b)];
+      held.now[k] = typeof next.b.want === 'string' ? next.b.want : (held.now[k] === v ? '' : v);
+      held.old[k] = held.old[k] === v ? '' : v;
+      next.res({ success: true, [field(next.b)]: held.now[k] });
+    }
+    return got;
+  };
+  const card = () => d.querySelector('#s-feed [data-post="PO1"]');
+  const face = e => card() && card().querySelector(`.react[data-emoji="${e}"]`);
+  const row = c => card() && card().querySelector(`.poll-row[data-choice="${c}"]`);
+  const mineFace = () => { const m = card() && card().querySelector('.react.mine'); return m ? m.dataset.emoji : ''; };
+  const mineVote = () => { const m = card() && card().querySelector('.poll-row.mine'); return m ? m.dataset.choice : ''; };
+  const total = () => { const b = card() && card().querySelector('.post-when .react-who'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  const votes = () => ((card() && card().querySelector('.poll-tot')) || {}).textContent || '';
+  const agree = (when, k, shown) => {
+    if (held.now[k] !== shown || held.old[k] !== shown) {
+      bad.push(`${when}: the page shows ${JSON.stringify(shown) || 'nothing'} as yours, the server holds ${JSON.stringify(held.now[k])} (and ${JSON.stringify(held.old[k])} on a backend from before \`want\`) — a reload would show something else`);
+    }
+  };
+  const twice = async (a, b2) => { a().click(); await wait(80); b2().click(); };
+
+  /* ---------- 🎉 TWICE, BOTH REFUSED ------------------------------------------------------------ */
+  await twice(() => face('🎉'), () => face('🎉'));
+  let got = await play(['no', 'no']);
+  if (mineFace()) bad.push(`🎉 twice, both refused: ${mineFace()} is still yours — the second refusal put back the first tap's reaction`);
+  if (total() !== '4 reactions') bad.push(`🎉 twice, both refused: the line says ${JSON.stringify(total())}, not "4 reactions"`);
+  if (!/Sign in to react/.test((d.getElementById('toast') || {}).textContent || '')) bad.push('🎉 twice, both refused: the server\'s reason was not said');
+  if (got.length !== 1) bad.push(`🎉 twice, both refused: ${got.length} saves went — the second tap only took back an unsaved one, so one`);
+  agree('🎉 twice, both refused', 'react', mineFace());
+
+  /* ---------- 😂 TWICE, THE FIRST REFUSED, THE SECOND ACCEPTED ----------------------------------- */
+  await twice(() => face('😂'), () => face('😂'));
+  got = await play(['no', 'ok']);
+  agree('😂 twice, the first save refused and the second accepted', 'react', mineFace());
+  if (total() !== '4 reactions') bad.push(`😂 twice, the first refused: the line says ${JSON.stringify(total())}, not "4 reactions"`);
+
+  /* ---------- 👏 TWICE, BOTH ACCEPTED ----------------------------------------------------------- */
+  await twice(() => face('👏'), () => face('👏'));
+  got = await play(['ok', 'ok']);
+  agree('👏 twice, both accepted', 'react', mineFace());
+  if (mineFace()) bad.push(`👏 twice, both accepted: ${mineFace()} is yours — the second tap took it back`);
+  if (got.length !== 2) bad.push(`👏 twice, both accepted: ${got.length} saves went, not 2`);
+  else if (got[1].want !== '' || got[1].emoji !== '👏') {
+    bad.push(`👏 twice: the second save went as ${JSON.stringify({ emoji: got[1].emoji, want: got[1].want })} — want '' (and 👏 for a backend that toggles)`);
+  }
+
+  /* ---------- 👍 THEN ❤️ QUICKLY --------------------------------------------------------------- */
+  await twice(() => face('👍'), () => face('❤️'));
+  got = await play([]);
+  if (mineFace() !== '❤️') bad.push(`👍 then ❤️ quickly: ${JSON.stringify(mineFace())} is yours, not ❤️`);
+  if (total() !== '5 reactions') bad.push(`👍 then ❤️ quickly: the line says ${JSON.stringify(total())}, not "5 reactions"`);
+  agree('👍 then ❤️ quickly', 'react', mineFace());
+
+  /* ---------- A POLL: PAPER 3 TWICE, BOTH REFUSED; THEN PAPER 1 AND PAPER 2 QUICKLY ------------------ */
+  await twice(() => row('Paper 3'), () => row('Paper 3'));
+  got = await play(['no', 'no']);
+  if (mineVote()) bad.push(`Paper 3 twice, both refused: ${mineVote()} is still ticked`);
+  if (!/^2 votes/.test(votes().trim())) bad.push(`Paper 3 twice, both refused: the poll says ${JSON.stringify(votes().trim())}, not "2 votes"`);
+  agree('Paper 3 twice, both refused', 'vote', mineVote());
+  await twice(() => row('Paper 1'), () => row('Paper 2'));
+  got = await play([]);
+  if (mineVote() !== 'Paper 2') bad.push(`Paper 1 then Paper 2 quickly: ${JSON.stringify(mineVote())} is ticked, not Paper 2`);
+  agree('Paper 1 then Paper 2 quickly', 'vote', mineVote());
+  return bad;
+});
+
 check('the friend search still works for a student', async () => {
   /* THE OTHER HALF OF GUARDING THE CHILDREN LIST. Restricting who receives it is only right if the
      people who need it still have it — and `friend-add` matches an EXACT handle, so a student with

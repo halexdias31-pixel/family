@@ -224,6 +224,10 @@ const SUITE = [
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
+  /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. A toggle per tap, each refused one undone on its own,
+     left the server holding a reaction the page had taken back (docs/history/335). `want` sent twice
+     is one row, a race's copies are cleared, the lock is taken, an old phone still toggles. */
+  { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
   /* EVERY ANSWER SENT IS AN EVENT. *"if they submit a correct answer then change it and submit an
      incorrect answer, that's 2 events. And it will leave the latest event up"* — the owner, 9 Oct. A
      learner's record: a row per press, a retried press once, the person from the token, the answer as

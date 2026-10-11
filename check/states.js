@@ -5822,6 +5822,113 @@ const STATES = {
         HOLD_AT = null;
         repaint(true);
       } },
+    /* ---------- A POST WITH NO DATE: THE FIRST FACE AND THE LAST TAKEN BACK, AND THE CARD DOES NOT MOVE --
+       THE STATE ABOVE PRESSES A DATED POST, and the fix it holds held for every dated post and no other.
+       A row typed into the posts tab by hand without a date column arrives as `at: 0, when: ''`; with no
+       reactions it drew no time line, so the first face fell back to rebuilding the column (a 16:9 card
+       428.5 → 689px at 390 and thrown off the glass for a frame or two) and taking the last face back
+       removed the line (the card 36.6px shorter, the tile row jumping up under the thumb). The line is
+       there now whenever a post has faces, empty until somebody reacts (`postWhen_`, docs/history/335).
+       THE SAME SQUARE PHOTOGRAPH AND THE SAME MEASURES as the state above, over TWO taps on 👍 a quarter
+       of a second apart — the first face, then the last taken back — each held against the card as it
+       was before the first: the same `<article>`, pane and `<img>`, the same height, zoom and top. */
+    { name: 'reactions an undated post keeps the card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to press a face on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        window.__RX_MEDIA = JSON.stringify({ image: p.image, media: p.media, at: p.at, when: p.when });
+        p.image = 'data/reels/archetest.jpg'; p.media = ['data/reels/archetest.jpg'];
+        p.at = 0; p.when = '';
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                        total: 0, yours: '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const me = { done: false, seen: [], taps: 0 };
+        window.__RX_TAP = me;
+        const card = () => document.querySelector('#s-feed [data-post="PO1"]');
+        const look = () => {
+          const c = card(), img = c && c.querySelector('img.post-pic');
+          return { c, pane: c && c.closest('.pane'), img, zoom: c ? c.style.zoom || '1' : '',
+                   h: c ? c.getBoundingClientRect().height : 0, top: c ? c.getBoundingClientRect().top : 0,
+                   line: !!(c && c.querySelector('.post-when')) };
+        };
+        const t0 = performance.now();
+        let last = '', still = 0, ts = 0;
+        const ready = () => {
+          if (window.__RX_TAP !== me) return;
+          const img = card() && card().querySelector('img.post-pic');
+          if (!img || !img.complete || !img.naturalWidth) {
+            if (performance.now() - t0 < 1200) { setTimeout(ready, 40); return; }
+            me.seen.push('the square photograph never arrived, so nothing was pressed'); me.done = true; return;
+          }
+          ts = performance.now(); settle();
+        };
+        /* STILL FIRST, for the reason the state above gives: `goPage` leaves the column gliding. */
+        const settle = () => {
+          if (window.__RX_TAP !== me) return;
+          const r = card() ? card().getBoundingClientRect() : { top: 0, height: 0 };
+          const k = Math.round(r.top * 2) + ',' + Math.round(r.height * 2);
+          still = k === last ? still + 1 : 0; last = k;
+          if (still >= 5) { run(true); return; }
+          if (performance.now() - ts > 1000) { run(false); return; }
+          requestAnimationFrame(settle);
+        };
+        const run = settled => {
+          const was = look();
+          if (!was.line) me.seen.push('before any face, the post has no time line — the first face has nowhere to put its total');
+          const say = (when, what) => { const s = when + ': ' + what; if (me.seen.indexOf(s) < 0 && me.seen.length < 12) me.seen.push(s); };
+          const check = when => {
+            const now = look();
+            if (now.c !== was.c) say(when, 'the post is a new <article>');
+            else if (now.pane !== was.pane) say(when, 'the pane is a new element');
+            if (now.img !== was.img) say(when, 'the picture is a new <img>');
+            if (!now.line) say(when, 'the time line is gone');
+            if (Math.abs(now.h - was.h) > 1) say(when, `the card is ${now.h.toFixed(1)}px tall, was ${was.h.toFixed(1)}`);
+            if (now.zoom !== was.zoom) say(when, `the card is drawn at zoom ${now.zoom}, was ${was.zoom}`);
+            if (settled && Math.abs(now.top - was.top) > 1) say(when, `the card's top is at ${now.top.toFixed(1)}, was ${was.top.toFixed(1)}`);
+          };
+          const press = what => {
+            const f = card() && card().querySelector('.react[data-emoji="👍"]');
+            if (!f) { say(what, 'there is no 👍 to press'); return; }
+            f.click(); me.taps++;
+            check(what);
+          };
+          press('the first face');
+          const t1 = performance.now();
+          let second = false;
+          const frame = () => {
+            if (window.__RX_TAP !== me) return;
+            const t = performance.now() - t1;
+            if (!second && t >= 250) { second = true; press('the last face taken back'); }
+            else check(second ? 'a frame after the last face went' : 'a frame after the first face');
+            if (t < 500) requestAnimationFrame(frame); else me.done = true;
+          };
+          requestAnimationFrame(frame);
+        };
+        ready();
+      },
+      expect: () => {
+        const t = window.__RX_TAP;
+        const el = document.querySelector('#s-feed [data-post="PO1"]');
+        return !!t && t.done && t.taps === 2 && !t.seen.length && !!el && !el.querySelector('.react.mine')
+          && !!el.querySelector('.post-when');
+      },
+      why: () => {
+        const t = window.__RX_TAP;
+        return !t ? 'the taps never started' : !t.done ? 'the half second of taps never finished'
+          : t.seen.join('; ') || (t.taps !== 2 ? `${t.taps} taps landed, not 2` : 'a face is still yours, or the line is gone');
+      },
+      wants: 'the first face on an undated post and the last taken back, with the card, its pane and its picture the same elements at the same height, zoom and top, and the time line there throughout',
+      leave: () => {
+        window.__RX_TAP = null;
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        if (p && window.__RX_MEDIA) Object.assign(p, JSON.parse(window.__RX_MEDIA));
+        HOLD_AT = null;                 // the hold the taps took — see the state above
+        repaint(true);
+      } },
   ],
 
   booking: [
