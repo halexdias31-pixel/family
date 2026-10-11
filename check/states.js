@@ -6059,7 +6059,8 @@ const STATES = {
        play. Like it will read it out for them." Every screen after Deal is past the one `go()` reaches,
        and two of them — the switch and Listen — exist only with Read aloud on, so none of it had ever
        been measured. Entered through the game's own handlers; then the LONGEST word and the LONGEST
-       category in `IMP_DECK` are put on the card, the Articulate states' rule, because the one worth
+       category in `IMP_DECK` are put on the card — with their pictures, read through the game's own
+       `impCards_` (note 343) — the Articulate states' rule, because the one worth
        measuring is the one that wraps — and the big line is meant to hold two lines without moving the
        button under it. A real Chromium has `speechSynthesis`, so the switch is drawn; a state that
        finds no switch fails, which is what it should do on a browser with no voice.
@@ -6088,8 +6089,9 @@ const STATES = {
       },
       expect: () => !!document.querySelector('#s-games #imp-card [data-do="imp-show"] .tile-i')
                  && !!document.querySelector('#s-games #imp-card .imp-foot')
-                 && /^Pass to Player 1/.test((document.querySelector('#s-games #imp-card') || {}).textContent.replace(/\s+/g, ' ').trim()),
-      wants: 'Pass to, Player 1, and Show with its eye — nothing secret, and room kept for Listen',
+                 && !!document.querySelector('#s-games #imp-card .imp-sym')
+                 && (document.querySelector('#s-games #imp-card') || {}).textContent.replace(/\s+/g, ' ').trim() === 'Player 1 Show',
+      wants: 'Player 1 and Show with its eye — nothing secret, no "Pass to", and room kept for the picture and Listen',
       leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
     { name: 'imposter a players card with listen',
       enter: () => {
@@ -6097,16 +6099,15 @@ const STATES = {
         { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
         impAloud_(true);
         ACTIONS['imp-start'](document.createElement('button'));
-        const all = [];
-        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push([c, w])));
-        const [c, w] = all.reduce((a, b) => (b[1].length > a[1].length ? b : a));
-        IMP.imp = 1; IMP.cat = c; IMP.word = w;
+        const [c, w, p] = impCards_().reduce((a, b) => (b[1].length > a[1].length ? b : a));
+        IMP.imp = 1; IMP.cat = c; IMP.word = w; IMP.sym = p;
         ACTIONS['imp-show'](document.createElement('button'));
       },
       expect: () => !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]')
                  && !!document.querySelector('#s-games #imp-card [data-do="imp-hide"] .tile-i')
-                 && (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === IMP.word,
-      wants: 'the longest word in the deck, Hide with its shut eye, and the Listen speaker',
+                 && (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === IMP.word
+                 && !!IMP.sym && (document.querySelector('#s-games #imp-card .imp-sym') || {}).textContent === IMP.sym,
+      wants: 'the longest word in the deck under its picture, Hide with its shut eye, and the Listen speaker',
       leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
     { name: 'imposter the imposters card',
       enter: () => {
@@ -6116,12 +6117,14 @@ const STATES = {
         ACTIONS['imp-start'](document.createElement('button'));
         IMP.imp = 0;
         IMP.cat = Object.keys(IMP_DECK).reduce((a, b) => (b.length > a.length ? b : a));
+        IMP.catSym = IMP_DECK[IMP.cat].sym;
         ACTIONS['imp-show'](document.createElement('button'));
       },
       expect: () => (document.querySelector('#s-games #imp-card .imp-big') || {}).textContent === 'Imposter'
-                 && (document.querySelector('#s-games #imp-card') || {}).textContent.indexOf('Hint: ' + IMP.cat) !== -1
+                 && (document.querySelector('#s-games #imp-card .imp-lab') || {}).textContent === IMP.cat
+                 && !!IMP.catSym && (document.querySelector('#s-games #imp-card .imp-sym') || {}).textContent === IMP.catSym
                  && !!document.querySelector('#s-games #imp-card [data-do="imp-listen"]'),
-      wants: 'Imposter, the longest category as the hint, Hide and Listen',
+      wants: 'the category\'s picture, Imposter, the longest category as the hint, Hide and Listen',
       leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
     { name: 'imposter play',
       enter: () => {
@@ -6134,12 +6137,13 @@ const STATES = {
           ACTIONS['imp-hide'](document.createElement('button'));
         }
         IMP.cat = Object.keys(IMP_DECK).reduce((a, b) => (b.length > a.length ? b : a));
+        IMP.catSym = IMP_DECK[IMP.cat].sym;
         impPaint();
       },
       expect: () => IMP.phase === 'play'
                  && !!document.querySelector('#s-games #imp-card [data-do="imp-reveal"]')
                  && / starts$/.test((document.querySelector('#s-games #imp-card .imp-big') || {}).textContent || ''),
-      wants: 'the category, who starts, and Reveal — no word',
+      wants: 'the category\'s picture, who starts, the category, and Reveal — no word',
       leave: () => { impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
     { name: 'imposter reveal',
       enter: () => {
@@ -6151,15 +6155,14 @@ const STATES = {
           ACTIONS['imp-hide'](document.createElement('button'));
         }
         ACTIONS['imp-reveal'](document.createElement('button'));
-        const all = [];
-        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push(w)));
-        IMP.word = all.reduce((a, b) => (b.length > a.length ? b : a));
+        const [, w, p] = impCards_().reduce((a, b) => (b[1].length > a[1].length ? b : a));
+        IMP.word = w; IMP.sym = p;
         impPaint();
       },
       expect: () => IMP.phase === 'reveal'
                  && !!document.querySelector('#s-games #imp-acts [data-do="imp-again"]')
                  && !!document.querySelector('#s-games #imp-acts [data-do="imp-players"]'),
-      wants: 'Imposter and the player, Word and the longest word, Play again and Players',
+      wants: 'Imposter and the player, the longest word under its picture, Deal and Players',
       leave: () => { ACTIONS['imp-players'](document.createElement('button')); } },
     /* THE BIG LINE AND THE BUTTON, MEASURED STAYING WHERE THEY ARE. "The gold one under the big word"
        has to be one place on every screen a child presses alone, and the first build broke it — Hide
@@ -6172,17 +6175,21 @@ const STATES = {
        of the gold button on the pass screen, a player's card holding the LONGEST word in the deck, the
        next pass, the imposter's card holding the LONGEST category, and play — every one read in the
        same tick, so nothing moves between them but the card itself. With Read aloud on, which is the
-       card with the speaker under it, and again with it off. Each top within 0.5px of the first. */
+       card with the speaker under it, and again with it off. Each top within 0.5px of the first.
+
+       AND THE PICTURE'S TOP AS WELL, since every card has one (the owner, 11 Oct: "Add symbols to
+       imposter"; note 343). The hand-over draws that slot EMPTY, so a slot that took its height from
+       its emoji would be 0px tall there and put the name and Show a picture's height higher than the
+       word and Hide that follow — the 36px fault again, from the other end of the card. */
     { name: 'imposter the big line and the button stay put',
       enter: () => {
         goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
         { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'imp'; ACTIONS['wg-pick'](sel); }
         window.__impStill = null;
         const b = () => document.createElement('button');
-        const words = [];
-        Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => words.push(w)));
-        const word = words.reduce((a, x) => (x.length > a.length ? x : a));
+        const [, word, wordSym] = impCards_().reduce((a, x) => (x[1].length > a[1].length ? x : a));
         const cat = Object.keys(IMP_DECK).reduce((a, x) => (x.length > a.length ? x : a));
+        const catSym = IMP_DECK[cat].sym;
         /* EACH TOP READ TWO FRAMES AFTER ITS PRESS, NOT IN THE SAME TICK. A card that changes height is
            put back in the middle of the pane by the `ResizeObserver` in find.js (`holdColumn_`), after
            layout and before paint — so a reading taken straight after the press is the card before it
@@ -6202,9 +6209,10 @@ const STATES = {
         };
         const at = where => {
           const q = sel => document.querySelector('#s-games #imp-card ' + sel);
-          const big = q('.imp-big'), go = q('.imp-go');
+          const big = q('.imp-big'), go = q('.imp-go'), pic = q('.imp-sym');
           return { where: where, big: big ? +big.getBoundingClientRect().top.toFixed(1) : NaN,
-                   go: go ? +go.getBoundingClientRect().top.toFixed(1) : NaN };
+                   go: go ? +go.getBoundingClientRect().top.toFixed(1) : NaN,
+                   pic: pic ? +pic.getBoundingClientRect().top.toFixed(1) : NaN };
         };
         const walk = async aloud => {
           const got = [];
@@ -6212,7 +6220,7 @@ const STATES = {
           impAloud_(aloud);
           ACTIONS['imp-players'](b());
           ACTIONS['imp-start'](b());
-          IMP.imp = 1; IMP.word = word; IMP.cat = cat;
+          IMP.imp = 1; IMP.word = word; IMP.cat = cat; IMP.sym = wordSym; IMP.catSym = catSym;
           impPaint();
           await look('pass to player 1');
           ACTIONS['imp-show'](b()); await look('player 1, ' + word);
@@ -6238,10 +6246,11 @@ const STATES = {
       expect: () => {
         const s = window.__impStill;
         const still = list => list.length === 5 && list.every(r => Number.isFinite(r.big) && Number.isFinite(r.go)
+          && Number.isFinite(r.pic) && Math.abs(r.pic - list[0].pic) < 0.5
           && Math.abs(r.big - list[0].big) < 0.5 && Math.abs(r.go - list[0].go) < 0.5);
         return !!s && still(s.on) && still(s.off);
       },
-      wants: 'the big line and the gold button at one height on pass, the longest word, the imposter\'s longest hint and play — Read aloud on and off',
+      wants: 'the picture, the big line and the gold button at one height on pass, the longest word, the imposter\'s longest hint and play — Read aloud on and off',
       leave: () => { window.__impStill = null; impAloud_(false); ACTIONS['imp-players'](document.createElement('button')); } },
 
     /* `an alibi case card` AND `an alibi interview` WERE HERE, and went with the game ("delete alibi

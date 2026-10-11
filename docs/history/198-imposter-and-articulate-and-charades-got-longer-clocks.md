@@ -1,5 +1,7 @@
 ## Imposter, and Articulate and Charades got longer clocks
 
+**Imposter's screens, deck and voice have changed twice since:** [300](300-imposter-says-less-and-knows-more-words.md) (8 Oct) and [343](343-imposter-has-a-picture-on-every-card-and-says-only-the-word.md) (11 Oct, a picture on every card and only the word spoken).
+
 **Asked for as "add one of those word imposter games to games column" and "for articulate give like
 90 seconds. for cherades give like 3 minutes."** `ROUND_GAMES` is 90 and 180 seconds now, drawn as
 `m:ss` by `roundClock_`, because "180s left" is a number somebody has to divide.
