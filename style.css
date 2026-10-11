@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-submissions-loader-notifications";
+  --css-version: "2026-10-11-videos-search-first";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -181,6 +181,11 @@
 
   --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* AND THE SIDES, which only a phone on its side has — the notch is on the left or the right then. Read
+     by the videos card's own full screen (note 321), the one surface here that reaches the glass's edge
+     when a phone is turned. */
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
 
   /* ---------- ONE FAMILY, AND IT IS SHIPPED RATHER THAN HOPED FOR --------------------------------
      One family, and it is the code one. A terminal that switches to a UI font for its headings is a
@@ -2688,7 +2693,6 @@ button.text-drop { color: var(--bad); }
    is not one of them: a letterbox is every video's, so it is `--letterbox` at `:root`.)
      --vid-scrim      the badge's plate: YouTube's black-at-80% behind its duration, so a word sits
                       on any picture, light or dark.
-     --vid-veil       the lighter wash over the picture of the row that is playing.
      --vid-frame      the poster: a flat neutral frame, YouTube's missing picture — about a tenth of the
                       ink over the card, where YouTube's is a tenth of white over its page.
      --vid-mark       the kind's mark in that frame, as quiet as the card's faint words.
@@ -2704,7 +2708,6 @@ button.text-drop { color: var(--bad); }
    watch page's "up next" list. */
 .vid-box { --vid-r: 8px;
            --vid-scrim: color-mix(in srgb, var(--bg) 80%, transparent);
-           --vid-veil: color-mix(in srgb, var(--bg) 72%, transparent);
            --vid-frame: color-mix(in srgb, var(--ink) 11%, var(--raised));
            --vid-mark: var(--faint); }
 
@@ -2731,10 +2734,11 @@ button.text-drop { color: var(--bad); }
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 3l8 8M11 3l-8 8'/%3E%3C/svg%3E") center / contain no-repeat; }
 .vid-search:focus-within .vid-q::-webkit-search-cancel-button { background: var(--gold); }
 
-/* THE WATCH PAGE, ONLY WHILE SOMETHING PLAYS. The player is 16:9 and states it, so the card does not
-   jump when a video is chosen and an iframe (whose own size, 300x150, is worth nothing) fills the
-   width it is given. Then the title — YouTube's is the boldest line on the page — and the dim line,
-   with the Full screen tile BESIDE them rather than under them: see `vidNow_` for the 40px it cost. */
+/* THE WATCH PAGE, ONLY WHILE SOMETHING PLAYS — and in place of the results, not over them (note 321).
+   The player is 16:9 and states it, so the card does not jump when a video is chosen and an iframe
+   (whose own size, 300x150, is worth nothing) fills the width it is given. Then the title — YouTube's
+   is the boldest line on the page — and the dim line, with the Full screen tile BESIDE them rather
+   than under them: see `vidNow_` for the 40px it cost. */
 .vid-watch { display: none; margin: 0 0 .6rem; }
 .vid-watch.on { display: block; }
 .vid-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--letterbox);
@@ -2748,10 +2752,52 @@ button.text-drop { color: var(--bad); }
              -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .vid-now-k { margin: .2rem 0 0; font-size: .74rem; line-height: 1.35; color: var(--dim); }
 /* `.vid-under` AND NOT `.vid-acts` ALONE: `.tile-row` sets its own margin far below this, and a single
-   class here would lose to it. */
-.vid-under .vid-acts { flex: none; margin: .4rem 0 0; }
+   class here would lose to it. A film from the folder has two tiles here, Full screen and Open in
+   Drive; they stay on one row (`flex: none`), and the title beside them wraps instead. */
+.vid-under .vid-acts { flex: none; margin: .4rem 0 0; flex-wrap: nowrap; }
 
-.vid-said { margin: .45rem 0 .3rem; font-size: .78rem; }
+/* ---------- THE APP'S OWN FULL SCREEN: THE PLAYER OVER THE WHOLE GLASS, BLACK ROUND IT --------------
+   *"you can click fullscreen to make it fullscreen"* (10 Oct, note 321) — on the phone that has no full
+   screen for a frame (Safari on an iPhone), the block holding the player is put in the TOP LAYER where it
+   stands (`vidFullOn_` in games.js says why that and nothing else: the panes' transforms and containment
+   make `fixed` mean "fixed to the card", and moving the frame would reload it). Every declaration the
+   browser gives a popover is answered here, so the block is the viewport and not a centred box with a
+   border: inset 0, no margin, no border, no scrolling of its own.
+   THE FILM IS AS LARGE AS THE GLASS ALLOWS AT 16:9, black round it — the letterbox token, as every
+   player's — and the safe areas are padding, so a notch or a home bar never sits on the picture. Upright,
+   the film is the width of the screen and the Exit tile sits under its right-hand corner; on its side
+   (where an iPhone has room to spare left and right) the tile sits beside it, so the film keeps the whole
+   height. 44px is the tile — a fingertip, so px — and the rest is rem. `dvh` with no `vh` before it: this
+   is only ever drawn where the top layer exists (Safari 17, Chrome 114), and every one of those has it.
+   The title and its line are not drawn here: the film is the page. */
+.vid-watch.on.is-fs {
+  position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none;
+  margin: 0; border: 0; overflow: hidden; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: var(--letterbox); color: var(--ink);
+}
+.vid-watch.is-fs::backdrop { background: var(--letterbox); }
+.vid-watch.is-fs .vid-stage {
+  flex: none; border-radius: 0;
+  width: min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - 44px - 1.5rem) * 16 / 9));
+}
+.vid-watch.is-fs .vid-under { flex: none; align-self: stretch; justify-content: flex-end; padding: 0 .5rem; }
+.vid-watch.is-fs .vid-now { display: none; }
+.vid-watch.is-fs .vid-under .vid-acts { margin: 0; }
+@media (orientation: landscape) {
+  .vid-watch.on.is-fs { flex-direction: row; }
+  .vid-watch.is-fs .vid-stage {
+    width: min(calc(100% - 44px - 1.5rem), calc((100dvh - var(--safe-top) - var(--safe-bottom)) * 16 / 9));
+  }
+  .vid-watch.is-fs .vid-under { align-self: center; padding: 0; }
+}
+/* THE ONE THING THE TOP LAYER DOES NOT SHED IS `zoom`. `paneReach_` (find.js) draws a card taller than its
+   pane smaller with CSS `zoom` on the pane's child, and a block in the top layer still inherits it from
+   the card it stands in — at 320x568 the Exit tile came out at 32px. So while the card's film is full
+   screen the card is drawn at its own size underneath, out of sight; `!important` because `paneReach_`
+   writes its zoom inline, and goes on writing it on a resize, which a phone turning sideways is. */
+.pane > :has(.vid-watch.is-fs) { zoom: 1 !important; }
 
 /* ---------- THE ROW: A PICTURE, A TITLE, A LINE ---------------------------------------------------
    COMPACT: the picture on the left at 42% of the row — YouTube's "up next" proportion — and the words
@@ -2776,10 +2822,6 @@ button.text-drop { color: var(--bad); }
 .vid-poster { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
               padding-bottom: 12%; background: var(--vid-frame); color: var(--vid-mark); }
 .vid-poster .tile-i { width: 20px; height: 20px; }
-/* THE ROW THAT IS PLAYING SAYS "PLAYING" IN THE MIDDLE OF ITS PICTURE, and the poster's mark is in the
-   middle too: under the veil it showed through and ran into the word. A picture covers the mark
-   anyway; a poster that is playing has nothing else to say. */
-.vid-row.on .vid-poster .tile-i { visibility: hidden; }
 .vid-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
 /* A PICTURE THAT FAILED, taken away by the listener in games.js, so the poster under it is what shows.
    Not left to the browser: Safari draws its broken-picture mark even with `alt=""`. */
@@ -2793,10 +2835,6 @@ button.text-drop { color: var(--bad); }
              color: var(--ink); font-size: .68rem; font-weight: 600; line-height: 1.35; }
 .vid-out { display: inline-flex; }
 .vid-badge .tile-i { width: 11px; height: 11px; }
-.vid-playing { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-               gap: .3rem; background: var(--vid-veil); color: var(--gold); font-size: .66rem;
-               font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.vid-playing .tile-i { width: 12px; height: 12px; fill: currentColor; }
 .vid-txt { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: .22rem; }
 /* TWO LINES OF TITLE AT MOST, then an ellipsis — YouTube's clamp, and the reason a long title no longer
    makes one row three times the height of the rest. `overflow-wrap: anywhere` still holds a title with
@@ -2809,12 +2847,14 @@ button.text-drop { color: var(--bad); }
    list keeps one pitch. */
 .vid-row .vid-k { font-size: .7rem; line-height: 1.35; color: var(--dim);
                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vid-row.on .vid-t { color: var(--gold); }
 /* A PRESS DIMS THE PICTURE for as long as the finger is on it — no movement, so nothing for
    `prefers-reduced-motion` to take away. */
 .vid-row:active .vid-th { opacity: .82; }
 .vid-row:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .vid-none { padding: .45rem 0; font-size: .85rem; }
+/* "4 MORE — KEEP TYPING TO NARROW": one faint line under the four, a count rather than a silence (note
+   321). Smaller than "Nothing matches that." — that line is the answer; this one is a footnote to it. */
+.vid-more { margin: .15rem 0 0; padding: .3rem 0 0; font-size: .78rem; }
 /* A FILM NOT IN THE DRIVE YET IS A ROW THAT OPENS NOTHING, and looks it: dimmed, no pointer. The row is
    still 44px — it is read, not pressed, but it sits in a list of things that are pressed. */
 .vid-row.is-off { cursor: default; }
@@ -2822,9 +2862,9 @@ button.text-drop { color: var(--bad); }
 .vid-row.is-off .vid-t { color: var(--dim); }
 
 /* THE ADMIN'S SYNC ROW: the silver tile and, beside it, when it last ran — the tile's note made visible,
-   since a 44px plate has no room for it. Drawn for an admin only; for anybody else `.vid-admin` is an
-   empty element and takes no room. */
-.vid-admin .tile-row { margin: 0 0 .5rem; }
+   since a 44px plate has no room for it. Drawn for an admin only, and only under a search's answer, at
+   the foot of the card (note 321); otherwise `.vid-admin` is an empty element and takes no room. */
+.vid-admin .tile-row { margin: .6rem 0 0; }
 .vid-synced { flex: 1 1 0; min-width: 0; font-size: .72rem; line-height: 1.3; color: var(--dim);
               overflow-wrap: anywhere; }
 

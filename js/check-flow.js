@@ -306,6 +306,11 @@ function boot(opts) {
       /* THE VIDEOS CARD'S FAILED PICTURES, a `const` Set — a Drive film's address in it is the film's
          file id, so a journey asks whether signing out empties it. A copy, not the Set. */
       'vidBroken: () => (typeof VID_BROKEN !== "undefined" ? [...VID_BROKEN] : null),' +
+      /* AND WHICH WATCH BLOCK IS THE APP'S OWN FULL SCREEN, if any — `VID_FS` is a `const` (note 321). */
+      'vidFs: () => (typeof VID_FS !== "undefined" ? VID_FS.watch : null),' +
+      /* AND WHICH COLUMN IS IN FRONT — a `let` in shell.js, so a second eval cannot read it; the videos
+         journey asks that an arrow key did not turn it under a full-screen film. */
+      'screenAt: () => AT,' +
       'impStack: (c, wd) => { IMP_PILE.push([c, wd]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
@@ -2967,18 +2972,52 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   return bad;
 });
 
-/* ---------- VIDEOS: TYPING NARROWS, A TAP PLAYS IN THE CARD, FULL SCREEN ASKS FOR FULL SCREEN -------
+/* ---------- VIDEOS: THE BAR ALONE, RESULTS AS YOU TYPE, A TAP PLAYS IN THEIR PLACE, FULL SCREEN -------
    ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
-   type in. and there should be a full screen button." Each half can fail while the card still draws
-   perfectly well: a box whose list does not change as you type, a row that is tapped and plays
-   nothing (or plays in the wrong element — a YouTube link in a `<video>` is a black box), a switched-
-   off row that shows anyway, and a Full screen tile that is pressed and asks nobody for anything.
-   And the `contest` rule again: the card is appended LAST, so no remembered page moves.
+   type in. and there should be a full screen button." AND THEN, 10 Oct (note 321): *"make it look more
+   like youtube, the widget, in the sense that at first all you see is a search bare, then you search
+   and you see relevant result underneath. max 4 results show. you click on one, then it shows video.
+   you can click fullscreen to make it fullscreen"*. Each half can fail while the card still draws
+   perfectly well: a card that opens on a list (or a count, or an empty player) over the bar, a box
+   whose results do not change as you type, a fifth row, a row that is tapped and plays nothing (or
+   plays UNDER the results, or in the wrong element — a YouTube link in a `<video>` is a black box), an
+   edit that leaves the old film talking, a switched-off row that shows anyway, and a Full screen tile
+   that is pressed and asks nobody for anything — or, on a phone with no full screen for a frame, says
+   "use the player's button" and does nothing. And the `contest` rule again: the card is appended LAST,
+   so no remembered page moves.
 
    THE LIST IS THE JOURNEY'S OWN, served where the app asks for `data/videos.json`, so the rows are
-   known here rather than whatever the owner has typed in by the time this runs. The built-in reels
-   ride along, which is the point — the box searches them too. */
-check('the videos widget is last on Games: typing narrows the list, a tap plays it in the card, full screen asks the player', async () => {
+   known here rather than whatever the owner has typed in by the time this runs. */
+/* WHAT IS ON THE CARD BESIDE THE BAR — nothing, when it is idle. Each thing found is named, so a failure
+   says what was drawn rather than that something was. jsdom has no layout, so "drawn" is "in the
+   markup": the watch block is there while it is idle, without its `on`, which the stylesheet hides. */
+const vidIdle_ = box => {
+  if (!box) return ['there is no card'];
+  const seen = [];
+  if (!box.querySelector('input.vid-q')) seen.push('no search box');
+  if (box.querySelector('.vid-row')) seen.push(box.querySelectorAll('.vid-row').length + ' result row(s)');
+  if (box.querySelector('.vid-watch.on') || box.querySelector('.vid-player')) seen.push('a player');
+  if (box.querySelector('[data-do="vid-full"], [data-do="vid-unfull"]')) seen.push('a Full screen tile');
+  const res = box.querySelector('.vid-results');
+  if (res && res.innerHTML.trim()) seen.push('the results area holding "' + res.textContent.trim().slice(0, 60) + '"');
+  const adm = box.querySelector('.vid-admin');
+  if (adm && adm.innerHTML.trim()) seen.push('the admin row');
+  if (box.querySelector('.vid-said')) seen.push('a count line');
+  if (box.querySelector('.loading')) seen.push('a loader');
+  const words = box.textContent.replace(/\s+/g, ' ').trim();
+  if (words) seen.push('the words "' + words.slice(0, 80) + '"');
+  return seen;
+};
+/* LET GO OF THE APP'S FULL SCREEN BY THE APP'S OWN DOOR, for a journey that goes on after a card that would
+   not leave it — so the next question is asked of the card, not of the fault the last one found. */
+const vidLetGo_ = w => { try { w.vidFullOff_(); } catch (e) {} };
+/* HOW MANY THE SEARCH FOUND: the rows drawn and the number on the line under them. */
+const vidFound_ = box => {
+  const rows = box ? box.querySelectorAll('.vid-results .vid-list .vid-row').length : 0;
+  const m = /^(\d+) more — keep typing to narrow$/.exec(((box && box.querySelector('.vid-results .vid-more')) || {}).textContent || '');
+  return rows + (m ? Number(m[1]) : 0);
+};
+check('the videos widget is last on Games: the bar alone, at most four results as you type, a tap plays in their place, an edit goes back, full screen fills the glass', async () => {
   const rows = [
     { title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
       tags: 'science earth', age: '7+', notes: '', active: true },
@@ -2995,6 +3034,7 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   ];
   let asked = 0;
   const full = [];
+  const pops = [];
   const { w } = boot({ before: win => {
     const f0 = win.fetch;
     win.fetch = (url, o) => {
@@ -3005,8 +3045,12 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
       }
       return f0(url, o);
     };
-    /* JSDOM HAS NO FULL SCREEN, so the journey stands in for it and writes down who asked. */
+    /* JSDOM HAS NO FULL SCREEN AND NO TOP LAYER, so the journey stands in for both and writes down who
+       asked. The real thing is measured in Chromium (`check/states.js`, "the videos card, its own full
+       screen", and note 321). */
     win.HTMLElement.prototype.requestFullscreen = function () { full.push(this.tagName.toLowerCase()); return Promise.resolve(); };
+    win.HTMLElement.prototype.showPopover = function () { pops.push('show:' + this.className); this.__open = true; };
+    win.HTMLElement.prototype.hidePopover = function () { pops.push('hide:' + this.className); this.__open = false; };
   } });
   await wait(300);
   const t = w.__t;
@@ -3022,26 +3066,47 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
      drawn and not yet started — no box, nothing asked — on the commit before this check changed as
      well as after it, one run in two. Bounded: a card that never starts still fails on what it asked. */
   for (let n = 0; n < 150 && !(asked && d.querySelector('#s-games #wgt-videos .vid-box .vid-q')); n++) await wait(100);
+  await wait(50);
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   if (!box) return bad.concat(['the videos card did not draw on the Games column']);
   if (!asked) bad.push('the card never asked for data/videos.json');
   const q = box.querySelector('input.vid-q');
   if (!q) return bad.concat(['there is no search box on the videos card']);
-  const titles = () => [...box.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
-  const before = titles();
-  if (before.indexOf('How volcanoes erupt') === -1 || before.indexOf('Fractions in two minutes') === -1)
-    bad.push('the listed videos are not in the list: ' + before.join(' | '));
-  if (before.indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
+  const titles = () => [...box.querySelectorAll('.vid-results .vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  /* A PRESS ON WHAT IS THERE, OR A NAMED FAULT WHERE IT IS NOT — so a broken card says what was missing
+     rather than throwing on the next line. */
+  const press = (act, sel, what) => {
+    const el = box.querySelector(sel);
+    if (!el) { bad.push('there is no ' + what + ' to press'); return false; }
+    t.ACTIONS[act](el);
+    return true;
+  };
+  const play = () => press('vid-play', '.vid-results .vid-row[data-do="vid-play"]', 'result that plays');
+
+  /* ---------- IDLE: *"at first all you see is a search bare"* ------------------------------------------ */
+  const idle = vidIdle_(box);
+  if (idle.length) bad.push('the card opens on more than the search bar: ' + idle.join('; '));
+
+  /* ---------- RESULTS AS YOU TYPE, RANKED, AT MOST FOUR -------------------------------------------------
+     "clip" is every row's kind, so every listed row narrows to it — and two have it in their TITLE, which
+     ranks them first: the one that plays here before the one that opens Drive, then the two found only
+     by their kind, A to Z. The switched-off row is never among them. */
+  type('clip');
+  const want = ['A clip taken down since', 'A clip kept in Drive', 'Fractions in two minutes', 'How volcanoes erupt'];
+  if (titles().join('|') !== want.join('|')) bad.push('typing "clip" found ' + (titles().join(' | ') || 'nothing') + ' — wanted, in this order, ' + want.join(' | '));
+  if (titles().indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
+  if (box.querySelector('.vid-more')) bad.push('four results drew a "more" line with nothing more to find');
   /* AND NOT THE REELS: *"the video widget shouldn't acknowledge reels."* They were a third list here. */
-  if (before.some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + before.join(' | '));
+  if (titles().some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + titles().join(' | '));
+  if (d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
 
   /* ---------- AND IT LOOKS LIKE YOUTUBE (note 311): A PICTURE ON EVERY ROW, AND A POSTER UNDER IT --------
-     *"Can you also make the video serger widget look more like YouTube."* Each half below draws a
-     perfectly good card when it is wrong: a YouTube row whose picture asks the tracking host (or the
-     wrong id) looks like any other thumbnail, a row with no picture that is a grey hole looks like a
-     picture still loading, and a picture that failed and was left in place is a broken-image mark on a
-     phone. Nothing plays yet, so there is no player and no Full screen tile — YouTube shows the list. */
-  const rowOf = title => [...box.querySelectorAll('.vid-list .vid-row')]
+     Each half below draws a perfectly good card when it is wrong: a YouTube row whose picture asks the
+     tracking host (or the wrong id) looks like any other thumbnail, a row with no picture that is a grey
+     hole looks like a picture still loading, and a picture that failed and was left in place is a
+     broken-image mark on a phone. */
+  const rowOf = title => [...box.querySelectorAll('.vid-results .vid-row')]
     .find(r => (r.querySelector('.vid-t') || {}).textContent === title);
   const yt = rowOf('How volcanoes erupt');
   const ytImg = yt && yt.querySelector('.vid-th img.vid-img');
@@ -3055,6 +3120,9 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
      where YouTube puts something that differs per row (review of 9 Oct). */
   if (!yt || yt.querySelector('.vid-badge'))
     bad.push('a plain clip\'s picture carries a badge — the same word on every row a student is shown: ' + (yt ? yt.querySelector('.vid-badge').textContent : 'no row'));
+  /* AND THE WORDS COME FIRST IN THE MARKUP, so a screen reader hears the title before the picture's labels. */
+  if (yt && !(yt.firstElementChild && yt.firstElementChild.classList.contains('vid-txt')))
+    bad.push('a row\'s picture comes before its title in the markup, so its labels are read before what it is called');
   /* THE POSTER IS A FLAT FRAME AND THE KIND'S MARK — NO LETTER. A letter in gold read as a contacts list,
      and forty rows of one title's pattern drew a column of the same letter (review of 9 Oct). */
   const mp4 = rowOf('Fractions in two minutes');
@@ -3062,32 +3130,34 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
     bad.push('an .mp4 row has no picture to show and is not drawn a poster with the play mark: ' + (mp4 ? mp4.innerHTML.slice(0, 200) : 'no row'));
   if (box.querySelector('.vid-poster b') || /\S/.test([...box.querySelectorAll('.vid-poster')].map(p => p.textContent).join('')))
     bad.push('a poster carries a letter or a word, where YouTube\'s missing picture is a plain frame');
-  /* A DRIVE ADDRESS IN THE OWNER'S LIST ASKS DRIVE FOR NOTHING. Only the films list — which reaches an
-     admin alone — may: `drive.google.com` carries Google's cookies, and the owner's list reaches every
-     child (review of 9 Oct). It is a door, so its badge is the out-arrow, named for a screen reader,
-     and the line beside it no longer says "opens in a new tab" a second time. */
+  /* A DRIVE ADDRESS IN THE OWNER'S LIST ASKS DRIVE FOR NOTHING AND STAYS A LINK. Only the films list —
+     which reaches an admin alone — may ask Drive for a picture or a player: `drive.google.com` carries
+     Google's cookies, and the owner's list reaches every child (review of 9 Oct; note 321 kept it so). It
+     is a door, so its badge is the out-arrow, named for a screen reader, and the line beside it does not
+     say "opens in a new tab" a second time. */
   const kept = rowOf('A clip kept in Drive');
   if (!kept) bad.push('the owner\'s Drive clip is not listed');
   else {
     if (kept.querySelector('img') || /drive\.google\.com\/thumbnail/.test(box.innerHTML))
       bad.push('an owner\'s Drive clip asks Drive for a picture on a phone that never asked for a film: ' + kept.innerHTML.slice(0, 200));
+    if (!kept.matches('a.vid-row.is-out') || kept.getAttribute('data-do'))
+      bad.push('an owner\'s Drive clip is not the link out it always was: ' + kept.outerHTML.slice(0, 160));
     if (!kept.querySelector('.vid-badge .vid-out[role="img"][aria-label="opens in a new tab"]'))
       bad.push('a row that opens in a new tab has no named out-arrow on its picture');
     if (/opens in a new tab/.test(kept.textContent)) bad.push('a row\'s line says "opens in a new tab" beside the arrow that says it');
   }
   if (box.querySelector('.vid-watch.on') || box.querySelector('.vid-stage .vid-player') || box.querySelector('[data-do="vid-full"]'))
     bad.push('with nothing playing the card draws a player or a Full screen tile — YouTube shows the list');
-  if (box.querySelector('.vid-hint')) bad.push('the empty stage still says "Tap a video to play it here."');
   /* A PICTURE THAT FAILS IS TAKEN AWAY and the poster under it is what shows — through the one listener
      (`error` does not bubble, so it has to be the capture phase), and the next paint does not ask again. */
   if (ytImg) {
     ytImg.dispatchEvent(new w.Event('error'));
     if (!ytImg.classList.contains('is-gone')) bad.push('a picture that failed to load was left in place over its poster');
-    q.value = 'volc'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    type('volc');
     const again = rowOf('How volcanoes erupt');
     if (!again || again.querySelector('img.vid-img') || !again.querySelector('.vid-poster'))
       bad.push('after its picture failed, the next paint asked for it again instead of drawing the poster');
-    q.value = ''; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    type('clip');
   }
   /* AND A YOUTUBE PICTURE THAT LOADED AS YOUTUBE'S GREY STAND-IN — 404 with a 120x90 picture, which a
      browser draws and calls loaded, so `error` never fires. A real `mqdefault` is 320 wide and stays.
@@ -3106,62 +3176,195 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
     if (!goneImg.classList.contains('is-gone')) bad.push('YouTube\'s grey 120x90 stand-in for a removed video was left over the poster');
   }
 
-  const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  /* ---------- NARROWING, NOTHING, AND BACK TO THE BAR ---------------------------------------------------- */
   type('volc');
-  const narrowed = titles();
-  if (narrowed.length !== 1 || narrowed[0] !== 'How volcanoes erupt')
-    bad.push('typing "volc" did not narrow to the one volcano: ' + narrowed.join(' | '));
-  if (!/1 of \d+ videos/.test(box.querySelector('.vid-said').textContent))
-    bad.push('the count does not say how many of how many: ' + box.querySelector('.vid-said').textContent);
-  if (d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
+  if (titles().join() !== 'How volcanoes erupt') bad.push('typing "volc" did not narrow to the one volcano: ' + titles().join(' | '));
   type('maths two');
   if (titles().join() !== 'Fractions in two minutes') bad.push('two words did not narrow to the row holding both: ' + titles().join(' | '));
   type('zzzz');
-  if (titles().length || !/Nothing matches/.test(box.textContent)) bad.push('a search that matches nothing does not say so');
+  const none = (box.querySelector('.vid-results .vid-none') || {}).textContent || '';
+  if (titles().length || none !== 'Nothing matches that.') bad.push('a search that matches nothing says "' + none + '" over ' + titles().length + ' row(s) — wanted "Nothing matches that."');
+  type('   ');
+  const spaces = vidIdle_(box);
+  if (spaces.length) bad.push('a box holding only spaces is not the bar alone: ' + spaces.join('; '));
+  type('');
+  const cleared = vidIdle_(box);
+  if (cleared.length) bad.push('an emptied box is not the bar alone: ' + cleared.join('; '));
 
-  /* A TAP ON A YOUTUBE ROW: the nocookie embed, of that id, in the card. */
+  /* ---------- A TAP PLAYS IT IN THE CARD, IN PLACE OF THE RESULTS ----------------------------------------
+     *"you click on one, then it shows video."* The nocookie embed, of that id; its title and line under
+     it; the bar still holding what was typed; and NO results left under the player. */
   type('volc');
-  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  /* AND THE PHONE'S KEYBOARD GOES: the box lets go of the focus when a result is tapped, or the keyboard
+     stays up over the player it just asked for. */
+  q.focus();
+  play();
+  if (d.activeElement === q) bad.push('tapping a result left the focus in the search box — a phone keeps its keyboard up over the player');
   const fr = box.querySelector('.vid-stage iframe.vid-player');
   if (!fr || !/^https:\/\/www\.youtube-nocookie\.com\/embed\/abcdefghijk\b/.test(fr.getAttribute('src') || ''))
     bad.push('tapping the YouTube row did not put its nocookie embed in the card: ' + (fr ? fr.getAttribute('src') : 'no iframe'));
-  /* THE WATCH PAGE: its title under the player, then its line — and the row it came from says Playing. */
   const nowT = box.querySelector('.vid-watch.on .vid-now .vid-now-t');
   if (!nowT || nowT.textContent !== 'How volcanoes erupt') bad.push('the title under the player is "' + (nowT ? nowT.textContent : 'not there') + '"');
   const nowK = box.querySelector('.vid-watch.on .vid-now .vid-now-k');
   if (!nowK || nowK.textContent !== 'Clip · 7+') bad.push('the line under the title is "' + (nowK ? nowK.textContent : 'not there') + '" — wanted the kind and the age');
-  const onRow = box.querySelector('.vid-list .vid-row.on');
-  if (!onRow || !onRow.querySelector('.vid-th .vid-playing')) bad.push('the row that is playing carries no Playing mark on its picture');
-  /* AND A SCREEN READER HEARS THE TITLE FIRST: the words come before the picture in the markup, and the
-     picture's "Playing" is hidden from it — `aria-current` says that, once (review of 9 Oct). */
-  else {
-    if (onRow.getAttribute('aria-current') !== 'true') bad.push('the row that is playing is not aria-current');
-    if (onRow.querySelector('.vid-playing').getAttribute('aria-hidden') !== 'true') bad.push('"Playing" on the picture is read aloud as well as aria-current');
-    if (!(onRow.firstElementChild && onRow.firstElementChild.classList.contains('vid-txt')))
-      bad.push('a row\'s picture comes before its title in the markup, so its labels are read before what it is called');
-  }
-  /* AND A KEYSTROKE DOES NOT REBUILD THE PLAYER — the video would restart under somebody searching. */
-  type('volcanoes');
-  if (fr && box.querySelector('.vid-stage iframe.vid-player') !== fr) bad.push('typing rebuilt the player, which restarts the video that is playing');
+  if (box.querySelector('.vid-results .vid-row') || (box.querySelector('.vid-results') || {}).innerHTML)
+    bad.push('the results are still drawn under the player — the watch view replaces them');
+  if (q.value !== 'volc' || d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('the bar did not keep what was typed over the player: ' + JSON.stringify(q.value));
+  if (!box.querySelector('.vid-acts .tile[data-do="vid-full"]')) bad.push('there is no Full screen tile beside the title');
+
+  /* ---------- ANY EDIT GOES BACK TO THE RESULTS, AND THE FILM STOPS -------------------------------------
+     An iframe cannot be paused from outside, so emptied is the only stopped: no player left talking under
+     the results for the new words. And clearing the box is the bar alone. */
+  type('volca');
+  if (box.querySelector('.vid-stage .vid-player') || box.querySelector('.vid-watch.on'))
+    bad.push('an edit of the box left the player in the card — the film goes on under the results');
+  if (titles().join() !== 'How volcanoes erupt') bad.push('after an edit the results for the new words are ' + (titles().join(' | ') || 'not drawn'));
+  play();
+  type('');
+  const back = vidIdle_(box);
+  if (back.length) bad.push('clearing the box over a film did not leave the bar alone: ' + back.join('; '));
+
   /* AN MP4 ROW: a `<video>`, inline, on that file. */
   type('fractions');
-  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  play();
   const v = box.querySelector('.vid-stage video.vid-player');
   if (!v || v.getAttribute('src') !== 'data/reels/fractions.mp4' || !v.hasAttribute('playsinline'))
     bad.push('tapping the mp4 row did not put an inline <video> of it in the card');
   if (box.querySelector('.vid-stage iframe')) bad.push('the old player was left in the card beside the new one');
 
-  /* FULL SCREEN IS A TILE, and pressing it asks the PLAYER, not the card. */
+  /* ---------- FULL SCREEN: THE BROWSER'S, WHERE THERE IS ONE ---------------------------------------------
+     A tile, and pressing it asks the PLAYER, not the card. */
   const tile = box.querySelector('.vid-acts .tile[data-do="vid-full"]');
   if (!tile) bad.push('there is no Full screen tile under the player');
   else {
     t.ACTIONS['vid-full'](tile);
     if (full.join() !== 'video') bad.push('Full screen asked ' + (full.join() || 'nobody') + ' rather than the video');
+    if (t.vidFs() || pops.length) bad.push('with the browser\'s full screen there, the app drew its own as well');
   }
-  /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at. */
+
+  /* ---------- AND THE APP'S OWN WHERE THERE IS NONE — Safari on an iPhone, with a frame ------------------
+     The Fullscreen API taken away: the tile must fill the glass itself rather than toast. The block that
+     holds the player goes into the top layer (`showPopover`) WHERE IT IS — the frame is the same element
+     before, during and after, because moving it would reload the film — marked so a swipe on the black
+     does not turn the column, with Exit in place of Full screen; the arrow keys do not reach the grid, and
+     Escape and the Exit tile each give the screen back. */
+  delete w.HTMLElement.prototype.requestFullscreen;
+  const toasts = [];
+  const realToast = w.toast;
+  w.toast = m => { toasts.push(String(m)); };
+  type('volc');
+  play();
+  const frame = box.querySelector('.vid-stage iframe.vid-player');
+  const watch = box.querySelector('.vid-watch');
+  const on = () => {
+    pops.length = 0;
+    const ft = box.querySelector('.vid-acts .tile[data-do="vid-full"]');
+    if (!ft) { bad.push('there is no Full screen tile over the YouTube clip'); return false; }
+    t.ACTIONS['vid-full'](ft);
+    return true;
+  };
+  if (frame && watch && on()) {
+    if (toasts.length) bad.push('with no full screen for a frame the tile toasted "' + toasts.join(' / ') + '" instead of filling the screen');
+    if (pops.join() !== 'show:vid-watch on is-fs') bad.push('the app\'s full screen did not put the player\'s block in the top layer: ' + (pops.join(', ') || 'nothing shown'));
+    if (t.vidFs() !== watch) bad.push('the app\'s full screen is not on for the card\'s own watch block');
+    if (!watch.classList.contains('is-fs') || watch.getAttribute('popover') !== 'manual') bad.push('the watch block is not marked full screen: ' + watch.outerHTML.slice(0, 160));
+    if (!watch.hasAttribute('data-noswipe')) bad.push('a swipe on the black round the film would turn the column — no data-noswipe');
+    if (watch.getAttribute('role') !== 'dialog' || watch.getAttribute('aria-modal') !== 'true') bad.push('a screen reader is not told the film covers everything (role dialog, aria-modal)');
+    const exit = box.querySelector('.vid-acts .tile[data-do="vid-unfull"]');
+    if (!exit || box.querySelector('.vid-acts [data-do="vid-full"]')) bad.push('full screen did not swap Full screen for an Exit full screen tile');
+    if (box.querySelector('.vid-stage iframe.vid-player') !== frame) bad.push('going full screen rebuilt the player — the film restarts');
+    /* THE ARROWS DO NOT TURN THE GRID UNDER THE FILM. */
+    const before = JSON.stringify([t.screenAt(), t.PAGE.games]);
+    d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    if (JSON.stringify([t.screenAt(), t.PAGE.games]) !== before) bad.push('an arrow key turned the column under the full-screen film');
+    /* ESCAPE GIVES THE SCREEN BACK. */
+    pops.length = 0;
+    d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    if (t.vidFs()) bad.push('Escape did not leave the app\'s full screen');
+    if (pops.join() !== 'hide:vid-watch on is-fs') bad.push('leaving full screen did not take the block out of the top layer: ' + (pops.join(', ') || 'nothing hidden'));
+    if (watch.classList.contains('is-fs') || watch.hasAttribute('popover') || watch.hasAttribute('data-noswipe') || watch.hasAttribute('role'))
+      bad.push('the watch block is still marked full screen after Escape: ' + watch.outerHTML.slice(0, 160));
+    if (!box.querySelector('.vid-acts .tile[data-do="vid-full"]') || box.querySelector('[data-do="vid-unfull"]')) bad.push('after Escape the Full screen tile did not come back');
+    if (box.querySelector('.vid-stage iframe.vid-player') !== frame) bad.push('leaving full screen rebuilt the player — the film restarts');
+    /* AND THE EXIT TILE DOES THE SAME. */
+    if (t.vidFs()) vidLetGo_(w);
+    if (on()) {
+      if (!t.vidFs()) bad.push('the second press of Full screen did not fill the screen again');
+      else if (press('vid-unfull', '.vid-acts .tile[data-do="vid-unfull"]', 'Exit full screen tile')) {
+        if (t.vidFs() || watch.classList.contains('is-fs')) bad.push('the Exit full screen tile did not leave the app\'s full screen');
+      }
+    }
+    if (t.vidFs()) vidLetGo_(w);
+    /* AND WHERE THERE IS NO TOP LAYER EITHER (Safari before 17) the one case left still says something. */
+    const sp = w.HTMLElement.prototype.showPopover;
+    delete w.HTMLElement.prototype.showPopover;
+    toasts.length = 0;
+    if (press('vid-full', '.vid-acts .tile[data-do="vid-full"]', 'Full screen tile over the clip'))
+      if (t.vidFs() || !/full screen button in the player/.test(toasts.join())) bad.push('with no top layer either the tile said "' + toasts.join(' / ') + '"');
+    w.HTMLElement.prototype.showPopover = sp;
+    /* AND LEAVING THE COLUMN WHILE IT IS ON ENDS IT, with the film. */
+    on();
+  }
+  w.toast = realToast;
+  /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at, and no full screen. */
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
+  if (t.vidFs() || d.querySelector('#s-games .vid-watch.is-fs')) bad.push('leaving the Games column left the app\'s full screen on');
+  return bad;
+});
+
+/* ---------- AND THE BEST FOUR, IN THE ORDER A PERSON WOULD WANT THEM ------------------------------------
+   *"max 4 results show"* — so which four, and in what order, is the whole of the search. Every row
+   below has "sun" somewhere, at a different depth: the whole title, the start of it, the start of a
+   word in it, inside a word, and only in the tags or the notes. Ties go to a row that plays here before
+   a door, then A to Z. The list is invented, and longer than four, so the line under it has a number. */
+check('the videos card ranks what it finds — the title first, a row that plays before a door, then A to Z — shows four and says how many more', async () => {
+  const yt = id => 'https://www.youtube.com/watch?v=' + id;
+  const rows = [
+    { title: 'Weather report', url: yt('weatherrep1'), kind: 'clip', tags: 'sun rain', active: true },
+    { title: 'Tsunami waves', url: yt('tsunamiwave'), kind: 'clip', tags: '', active: true },
+    { title: 'The sun and moon', url: 'data/reels/sun-and-moon.mp4', kind: 'clip', tags: '', active: true },
+    { title: 'Sunflowers grow', url: 'https://example.org/sunflowers', kind: 'clip', tags: '', active: true },
+    { title: 'Our sunny garden', url: yt('sunnygarden'), kind: 'clip', tags: '', active: true },
+    { title: 'Moon landing', url: yt('moonlanding'), kind: 'clip', tags: '', notes: 'sun', active: true },
+    { title: 'Sunsets explained', url: yt('sunsets0001'), kind: 'clip', tags: '', active: true },
+    { title: 'Sun', url: yt('sunsunsun01'), kind: 'clip', tags: '', active: true },
+  ];
+  const { w } = boot({ serve: u => (/data\/videos\.json/.test(u) ? rows : undefined) });
+  const { box, type, titles } = await vidCard_(w);
+  if (!box) return ['the videos card did not draw on the Games column'];
+  for (let n = 0; n < 50 && box.querySelector('.loading'); n++) await wait(50);
+  const bad = [];
+  const more = () => ((box.querySelector('.vid-results .vid-more') || {}).textContent || '');
+  const want = (q, list, line) => {
+    type(q);
+    if (titles().join('|') !== list.join('|')) bad.push('"' + q + '" found ' + (titles().join(' | ') || 'nothing') + ' — wanted ' + list.join(' | '));
+    if (more() !== line) bad.push('"' + q + '" drew "' + more() + '" under its results — wanted "' + line + '"');
+  };
+  /* 0 the title; 1 its start (plays, then the door); 2 a word's start (A to Z); and four more below:
+     3 inside a word, 4 the tags and the notes. */
+  want('sun', ['Sun', 'Sunsets explained', 'Sunflowers grow', 'Our sunny garden'], '4 more — keep typing to narrow');
+  want('SUN ', ['Sun', 'Sunsets explained', 'Sunflowers grow', 'Our sunny garden'], '4 more — keep typing to narrow');
+  /* THE WHOLE TITLE BEATS A TITLE THAT ONLY STARTS WITH IT, whatever the door. */
+  want('sunflowers grow', ['Sunflowers grow'], '');
+  /* EVERY WORD STARTING A WORD OF THE TITLE BEATS A WORD FOUND IN THE NOTES. */
+  want('moon sun', ['The sun and moon', 'Moon landing'], '');
+  /* A PLURAL FINDS ITS SINGULAR, and ranks by it. */
+  want('gardens', ['Our sunny garden'], '');
+  /* AND THE WHOLE ORDER, PAST THE FOUR DRAWN — inside a word beats the tags and the notes, and those two
+     go A to Z. Asked of `videosFound_` itself, since the card draws only the first four. */
+  const order = (w.videosFound_('sun') || []).map(r => r.title);
+  const full = ['Sun', 'Sunsets explained', 'Sunflowers grow', 'Our sunny garden', 'The sun and moon',
+                'Tsunami waves', 'Moon landing', 'Weather report'];
+  if (order.join('|') !== full.join('|')) bad.push('everything "sun" finds, in order, is ' + order.join(' | ') + ' — wanted ' + full.join(' | '));
+  type('nami');
+  if (titles().join() !== 'Tsunami waves') bad.push('"nami" found ' + (titles().join(' | ') || 'nothing') + ' — wanted the word it is inside');
+  /* AND EXACTLY FOUR IS FOUR, WITH NO LINE. */
+  type('su');
+  if (titles().length !== 4 || !/^\d+ more — keep typing to narrow$/.test(more())) bad.push('"su" drew ' + titles().length + ' rows and "' + more() + '"');
+  if (vidFound_(box) !== rows.length) bad.push('"su" says it found ' + vidFound_(box) + ' of the ' + rows.length + ' rows holding it');
   return bad;
 });
 
@@ -3173,10 +3376,11 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
 
    THREE WAITS, each held where it really waits and then let go: the Videos card while
    `data/videos.json` is out, a column's widgets before they are started, and the business records'
-   boxes while `listRecords` is out — all three the loader OVER markup already drawn (`aria-busy`,
-   shell.js), which is the kind that holds the card's size. Each time: exactly one loader, the contract on it, none of
-   the old words beside it — and once released, the content where it stood and no loader anywhere in
-   that card. */
+   boxes while `listRecords` is out. The last two are the loader OVER markup already drawn (`aria-busy`,
+   shell.js), which is the kind that holds the card's size; the Videos card's is IN PLACE of its results,
+   under a search bar that is never veiled (note 321). Each time: exactly one loader, the contract on it,
+   none of the old words beside it — and once released, the content where it stood and no loader
+   anywhere in that card. */
 check('a widget waiting on its fetch shows the one loader and nothing else, and its content replaces it', async () => {
   const bad = [];
   const one = (card, where) => {
@@ -3193,7 +3397,11 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
     return l;
   };
 
-  /* ---------- 1. THE VIDEOS CARD, WHILE ITS FILE IS OUT ---------------------------------------------- */
+  /* ---------- 1. THE VIDEOS CARD, WHILE ITS FILE IS OUT: THE BAR IS USABLE, AND A WORD WAITS UNDER IT ---
+     Note 321: the card is a search bar first, so it is NEVER veiled — it was, whole, under the loader,
+     while it was a list; a bar nobody can type into for the first seconds is the one thing this card
+     must not be. Somebody who types before the list lands sees the one loader WHERE THE RESULTS WILL
+     BE, and then the results. */
   const rows = [{ title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
                   tags: 'science', age: '', notes: '', active: true }];
   let release = null;
@@ -3209,25 +3417,32 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   const vn = a.w.__t.widgetsOf('game').findIndex(x => String(x.id) === 'videos');
   a.w.__t.goPage('games', vn, true);
   /* AND THE CARD ITSELF WAITED FOR, the videos journey's rule above: under four of these runs at once
-     beside `check/ui.js` (9 Oct) the card was still drawn and not started 150ms after the turn — read
-     as "veiled as unstarted" and "not over the card it will fill", which is the queue being late and
-     not the loader being wrong. Bounded: a card that never starts still fails on what it shows. */
+     beside `check/ui.js` (9 Oct) the card was still drawn and not started 150ms after the turn. Bounded:
+     a card that never starts still fails on what it shows. */
   for (let n = 0; n < 150 && !a.w.document.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
   await wait(50);
   const vid = a.w.document.querySelector('#s-games #wgt-videos');
   if (!vid) return ['the videos card did not draw on the Games column'];
-  const l1 = one(vid, 'the videos card with its file held');
   const vbox = vid.querySelector('.vid-box');
-  if (l1 && (!vbox || l1.parentElement !== vbox || vbox.getAttribute('aria-busy') !== 'true')) bad.push('the videos card\'s loader is not over the card it will fill (`.vid-box[aria-busy]`)');
-  if (vbox && !vbox.querySelector('input.vid-q')) bad.push('the search box is not drawn under the loader, so the card cannot hold its size');
-  if (vid.getAttribute('aria-busy')) bad.push('the videos card is still veiled as unstarted — it started, and only its list is waiting');
+  const vq = vbox && vbox.querySelector('input.vid-q');
+  if (!vq) return ['the videos card has no search box while its file is out — nothing to type into'];
+  if (vid.querySelector('.loading') || vbox.getAttribute('aria-busy') || vid.getAttribute('aria-busy'))
+    bad.push('with its file out and nothing typed, the videos card is veiled — the bar is for typing into from the first paint');
+  const vIdle = vidIdle_(vbox);
+  if (vIdle.length) bad.push('with its file out the videos card is more than the bar: ' + vIdle.join('; '));
+  vq.value = 'volc';
+  vq.dispatchEvent(new a.w.Event('input', { bubbles: true }));
+  const l1 = one(vid, 'the videos card with its file held and a word typed');
+  if (l1 && l1.parentElement !== vbox.querySelector('.vid-results'))
+    bad.push('the videos card\'s loader is not where the results will be (`.vid-results`) but in ' + (l1.parentElement && l1.parentElement.className));
+  if (vbox.getAttribute('aria-busy')) bad.push('a word typed while the file is out veiled the card, bar and all');
   release();
   /* POLLED, BOUNDED — the same 120ms that is always enough alone was not under four runs at once. A
      loader left on for good still fails here, five seconds later. */
-  for (let n = 0; n < 50 && (vid.querySelector('.loading') || !vid.querySelector('.vid-list .vid-row')); n++) await wait(100);
-  if (vid.querySelector('.loading') || (vbox && vbox.getAttribute('aria-busy'))) bad.push('the videos file landed and the card still shows its loader');
-  const got = [...vid.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
-  if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the list reads ' + JSON.stringify(got) + ', not its one row');
+  for (let n = 0; n < 50 && (vid.querySelector('.loading') || !vid.querySelector('.vid-results .vid-row')); n++) await wait(100);
+  if (vid.querySelector('.loading')) bad.push('the videos file landed and the card still shows its loader');
+  const got = [...vid.querySelectorAll('.vid-results .vid-row .vid-t')].map(e => e.textContent.trim());
+  if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the results read ' + JSON.stringify(got) + ', not the one row "volc" finds');
 
   /* ---------- 2. OVER THE MARKUP: A COLUMN'S WIDGETS BEFORE THEY ARE STARTED ---------------------------
      The Tools column is drawn beside Games and not started — exactly the widgets the owner was
@@ -3313,22 +3528,26 @@ const vidCard_ = async (w, who) => {
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   const q = box && box.querySelector('input.vid-q');
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
-  const titles = () => [...box.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  const titles = () => [...box.querySelectorAll('.vid-results .vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
   return { t, d, box, q, type, titles };
 };
 const vidAdmin_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin' };
 
-check('the videos card finds an admin’s films by title, year, kids, series and documentaries, and a placeholder says so', async () => {
+check('the videos card finds an admin’s films by title, year, kids, series and documentaries, plays a film in Drive’s player after a tap, and a placeholder says so', async () => {
   const data = payload();
   data.films = FILMS_;
   data.filmsSync = { at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
                      found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } };
   const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
-  const { box, type, titles } = await vidCard_(w, vidAdmin_);
+  const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
   if (!box) return ['the videos card did not draw on the Games column'];
   const bad = [];
-  const all = titles();
-  if (all.length !== FILMS_.length) bad.push('the card lists ' + all.length + ' of the admin’s ' + FILMS_.length + ' films: ' + all.join(' | '));
+  /* THE ADMIN TOO OPENS ON THE BAR ALONE (note 321): no list of every film, and no Sync row. */
+  const idle = vidIdle_(box);
+  if (idle.length) bad.push('an admin’s card opens on more than the search bar: ' + idle.join('; '));
+  type('film');
+  if (vidFound_(box) !== FILMS_.length) bad.push('"film" finds ' + vidFound_(box) + ' of the admin’s ' + FILMS_.length + ' films');
+  if (titles().length !== 4) bad.push('"film" draws ' + titles().length + ' rows — at most four are shown');
   const want = (q, list) => {
     type(q);
     const got = titles();
@@ -3341,44 +3560,80 @@ check('the videos card finds an admin’s films by title, year, kids, series and
   want('series', ['Example Flat Show']);
   want('documentaries', ['Pretend Science Hour']);
   want('ferry unfinished', ['Night Ferry']);
-  /* A FILM IS A DOOR TO DRIVE, never a player in the card. */
+  /* AND THE TIE ON A DOOR: four films only by their tags — the two that play here A to Z, then the series
+     that opens its folder, then the one not in the Drive yet. */
+  want('adults', ['Night Ferry', 'Paper Moon Rising', 'Example Flat Show', 'Wanted By Name']);
+  /* ---------- A FILM PLAYS IN THE CARD NOW, IN DRIVE'S OWN PLAYER — AFTER A TAP AND NOT BEFORE ----------
+     It was a door to Drive (note 068: a 3 GB .mkv plays in no browser); the owner asked for every result
+     to play here (10 Oct, note 321), so a films-list row whose address is a Drive FILE is a play button,
+     and nothing is asked of Drive's player until it is pressed. */
   type('paper moon');
-  const a = box.querySelector('.vid-list a.vid-row.is-out');
-  if (!a || a.getAttribute('href') !== FILMS_[0].url || a.getAttribute('target') !== '_blank') bad.push('a film is not a link out to its Drive address: ' + (a ? a.outerHTML.slice(0, 120) : 'no link'));
-  if (box.querySelector('.vid-list [data-do="vid-play"]')) bad.push('a film row is a play button — a 3 GB .mkv plays in no browser (note 068)');
-  /* A FILM'S PICTURE IS DRIVE'S OWN, its file id read from the Drive address the row carries (`drive_id`
+  const row = box.querySelector('.vid-results .vid-row');
+  if (!row || !row.matches('button[data-do="vid-play"]')) bad.push('a film from the folder is not a row that plays here: ' + (row ? row.outerHTML.slice(0, 140) : 'no row'));
+  if (box.querySelector('iframe') || /\/preview/.test(w.document.body.innerHTML)) bad.push('Drive\'s player was in the page before anybody tapped a film');
+  /* ITS PICTURE IS STILL DRIVE'S OWN, its file id read from the Drive address the row carries (`drive_id`
      itself is never sent) — and a picture that fails leaves the poster drawn under it. */
-  const im = box.querySelector('.vid-list a.vid-row.is-out .vid-th img.vid-img');
+  const im = box.querySelector('.vid-results .vid-row .vid-th img.vid-img');
   if (!im || im.getAttribute('src') !== 'https://drive.google.com/thumbnail?id=example-f-001&sz=w320')
     bad.push('a Drive film\'s picture is not Drive\'s thumbnail of its file: ' + (im ? im.getAttribute('src') : 'no <img>'));
-  if (!box.querySelector('.vid-list a.vid-row.is-out .vid-th .vid-poster')) bad.push('a Drive film has no poster under its picture');
-  if (!/^Film$/.test(((box.querySelector('.vid-list a.vid-row.is-out .vid-badge') || {}).textContent || '').trim())
-      || !box.querySelector('.vid-list a.vid-row.is-out .vid-badge .vid-out[aria-label="opens in a new tab"]'))
-    bad.push('a film\'s badge is not "Film" with a named out-arrow');
-  if ((box.querySelector('.vid-list a.vid-row.is-out .vid-k') || {}).textContent !== '1993')
-    bad.push('a film\'s line is "' + (box.querySelector('.vid-list a.vid-row.is-out .vid-k') || {}).textContent + '" — wanted its year, and the arrow saying where it opens');
-  /* WHAT EACH ROW SAYS IT IS — in YouTube's duration spot now, the badge on the picture. It was the first
-     word of the dim line (`.vid-k`) until note 311 moved the kind onto the picture; the line keeps the rest. */
+  if (!box.querySelector('.vid-results .vid-row .vid-th .vid-poster')) bad.push('a Drive film has no poster under its picture');
+  const badge = box.querySelector('.vid-results .vid-row .vid-badge');
+  if (!badge || badge.textContent.trim() !== 'Film' || badge.querySelector('.vid-out'))
+    bad.push('a film that plays here is badged "' + (badge && badge.textContent.trim()) + '"' + (badge && badge.querySelector('.vid-out') ? ' with an out-arrow, though it does not leave' : ''));
+  if ((box.querySelector('.vid-results .vid-row .vid-k') || {}).textContent !== '1993')
+    bad.push('a film\'s line is "' + (box.querySelector('.vid-results .vid-row .vid-k') || {}).textContent + '" — wanted its year');
+  if (row && row.matches('[data-do="vid-play"]')) {
+    t.ACTIONS['vid-play'](row);
+    const fr = box.querySelector('.vid-stage iframe.vid-player');
+    if (!fr || fr.getAttribute('src') !== 'https://drive.google.com/file/d/example-f-001/preview')
+      bad.push('tapping the film did not put Drive\'s player of its file in the card: ' + (fr ? fr.getAttribute('src') : 'no iframe'));
+    else {
+      const allow = fr.getAttribute('allow') || '';
+      if (!/\bautoplay\b/.test(allow) || !/\bfullscreen\b/.test(allow) || !fr.hasAttribute('allowfullscreen'))
+        bad.push('Drive\'s player is not allowed autoplay and full screen: allow="' + allow + '"' + (fr.hasAttribute('allowfullscreen') ? '' : ', no allowfullscreen'));
+    }
+    if (box.querySelector('.vid-results .vid-row')) bad.push('the results are still drawn under the film');
+    /* AND THE DOOR IS BESIDE FULL SCREEN, for the file Drive will not play in a frame. */
+    const door = box.querySelector('.vid-acts a.tile[href]');
+    if (!box.querySelector('.vid-acts .tile[data-do="vid-full"]')) bad.push('a playing film has no Full screen tile');
+    if (!door || door.getAttribute('href') !== FILMS_[0].url || door.getAttribute('target') !== '_blank' || !/Open in Drive/.test(door.getAttribute('aria-label') || ''))
+      bad.push('a playing film has no Open in Drive tile to its own file: ' + (door ? door.outerHTML.slice(0, 160) : 'none'));
+    /* THE ADMIN'S ROW IS NOT UNDER A PLAYER. */
+    if ((box.querySelector('.vid-admin') || {}).innerHTML) bad.push('the admin\'s Sync row is drawn under the film');
+  }
+  /* A SERIES IS ITS FOLDER: it stays a link out, with its seasons said and no picture asked for. */
   type('example flat');
-  const k = box.querySelector('.vid-list .vid-badge');
-  if (!k || !/^Series$/.test(k.textContent.trim())) bad.push('a series is labelled "' + (k && k.textContent.trim()) + '" — every film row used to say Film');
-  if (box.querySelector('.vid-list .vid-th img')) bad.push('a series is a FOLDER and Drive has no picture of one, but its row asks for a thumbnail');
-  if (!/3 seasons/.test((box.querySelector('.vid-list .vid-k') || {}).textContent || '')) bad.push('a series\' line does not say how many seasons');
+  const ser = box.querySelector('.vid-results .vid-row');
+  if (!ser || !ser.matches('a.vid-row.is-out') || ser.getAttribute('href') !== FILMS_[3].url || ser.getAttribute('target') !== '_blank')
+    bad.push('a series is not a link out to its folder: ' + (ser ? ser.outerHTML.slice(0, 140) : 'no row'));
+  const k = box.querySelector('.vid-results .vid-badge');
+  if (!k || !/^Series$/.test(k.textContent.trim()) || !k.querySelector('.vid-out[aria-label="opens in a new tab"]'))
+    bad.push('a series is badged "' + (k && k.textContent.trim()) + '" — wanted Series and the named out-arrow');
+  if (box.querySelector('.vid-results .vid-th img')) bad.push('a series is a FOLDER and Drive has no picture of one, but its row asks for a thumbnail');
+  if (!/3 seasons/.test((box.querySelector('.vid-results .vid-k') || {}).textContent || '')) bad.push('a series\' line does not say how many seasons');
+  if (box.querySelector('iframe')) bad.push('a series put a player in the card');
   type('science hour');
-  const k2 = box.querySelector('.vid-list .vid-badge');
+  const k2 = box.querySelector('.vid-results .vid-badge');
   if (!k2 || !/^Documentary$/.test(k2.textContent.trim())) bad.push('a documentary is labelled "' + (k2 && k2.textContent.trim()) + '"');
+  if (!box.querySelector('.vid-results button.vid-row[data-do="vid-play"]')) bad.push('a documentary in a Drive file is not a row that plays here');
   /* THE PLACEHOLDER: listed, says so, opens nothing. */
   type('wanted');
-  const ph = box.querySelector('.vid-list .vid-row');
+  const ph = box.querySelector('.vid-results .vid-row');
   if (!ph) bad.push('a film not in the Drive yet is not listed — the card said "Nothing matches that." where Find says "Not in the drive yet"');
   else {
     if (!ph.classList.contains('is-off') || ph.matches('a, button') || !/not in the Drive yet/.test(ph.textContent)) bad.push('the placeholder row is ' + ph.outerHTML.slice(0, 160));
   }
-  /* THE ADMIN'S ROW: a silver Sync from Drive tile and when it last ran. */
+  /* THE ADMIN'S ROW: a silver Sync from Drive tile and when it last ran — at the FOOT of the card, under a
+     search's answer: results, or "Nothing matches that.". */
   const tile = box.querySelector('.vid-admin .tile.is-admin[data-do="vid-sync"]');
-  if (!tile) bad.push('an admin has no silver Sync from Drive tile on the videos card');
+  if (!tile) bad.push('an admin has no silver Sync from Drive tile under the results');
   const said = (box.querySelector('.vid-admin .vid-synced') || {}).textContent || '';
   if (!/synced from Drive 2 hours ago/.test(said) || !/7 in the folder|6 in the folder/.test(said)) bad.push('the line beside the tile says "' + said + '" — wanted when it last synced and how many are in the folder');
+  if (box.lastElementChild !== box.querySelector('.vid-admin')) bad.push('the admin\'s row is not at the foot of the card');
+  type('zzzz');
+  if (!box.querySelector('.vid-admin [data-do="vid-sync"]') || !/Nothing matches that\./.test(box.textContent)) bad.push('under "Nothing matches that." the admin has no Sync row');
+  type('');
+  if ((box.querySelector('.vid-admin') || {}).innerHTML) bad.push('the admin\'s Sync row is drawn in the idle bar');
   /* A STAMP TWO HOURS OLD ASKS FOR NOTHING. */
   if (sent.some(b => b.action === 'filmsSync')) bad.push('the card synced on its own with a stamp two hours old');
   return bad;
@@ -3407,7 +3662,7 @@ check('the videos card syncs an admin’s films from Drive on its own when never
       return { success: true, done: true, films: FILMS_.slice(0, 1), sync: { at: now(), more: false, folder: 'Notflix' } };
     },
   });
-  const { t, box, titles } = await vidCard_(w, vidAdmin_);
+  const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
   if (!box) return ['the videos card did not draw on the Games column'];
   const bad = [];
   for (let n = 0; n < 40 && calls < 2; n++) await wait(50);
@@ -3415,7 +3670,12 @@ check('the videos card syncs an admin’s films from Drive on its own when never
   const asks = sent.filter(b => b.action === 'filmsSync');
   if (asks.length !== 2) bad.push('opening the card for an admin who has never synced posted filmsSync ' + asks.length + ' time(s) — wanted once, and once more for the part-way pass');
   if (asks.some(b => b.token !== 'tk-admin')) bad.push('filmsSync went without the admin’s token');
-  if (titles().join('|') !== FILMS_.slice(0, 4).map(f => f.title).join('|')) bad.push('after the sync the card lists ' + titles().join(' | ') + ' — wanted the four the reply carried');
+  /* WHAT THE CARD HOLDS IS ASKED BY A SEARCH: it opens on the bar alone (note 321). Every film's kind is
+     "film", so the word finds every one the reply carried — the order is the ranking's, so the names are
+     compared as a set. */
+  type('film');
+  const four = FILMS_.slice(0, 4).map(f => f.title).sort().join('|');
+  if (vidFound_(box) !== 4 || titles().slice().sort().join('|') !== four) bad.push('after the sync "film" finds ' + titles().join(' | ') + ' — wanted the four the reply carried');
   if (!/synced from Drive just now/.test((box.querySelector('.vid-synced') || {}).textContent || '')) bad.push('the line beside the tile says "' + ((box.querySelector('.vid-synced') || {}).textContent || '') + '" after a sync');
   /* AND FIND IS TOLD: its lists are kept against `DATA` by identity, and the sync changed `DATA` in place. */
   try {
@@ -3439,7 +3699,8 @@ check('the videos card syncs an admin’s films from Drive on its own when never
   if (calls !== 3) bad.push('pressing the tile twice while it was busy posted ' + (calls - 2) + ' syncs');
   if (hold) hold();
   await wait(80);
-  if (titles().length !== FILMS_.length) bad.push('after Sync from Drive the card lists ' + titles().length + ' — wanted all ' + FILMS_.length + ' the reply carried');
+  if (vidFound_(box) !== FILMS_.length) bad.push('after Sync from Drive "film" finds ' + vidFound_(box) + ' — wanted all ' + FILMS_.length + ' the reply carried');
+  if (titles().length !== 4) bad.push('after Sync from Drive the card draws ' + titles().length + ' rows — at most four');
   const after = box.querySelector('.vid-admin [data-do="vid-sync"]');
   if (!after || after.disabled) bad.push('the tile stayed busy after the sync answered');
   /* A REPLY FOR SOMEBODY WHO HAS GONE IS DROPPED — through the real Sign out, which takes the films with
@@ -3461,10 +3722,13 @@ check('the videos card says a failed sync in the admin’s line and does not ask
   data.filmsSync = { at: '', more: false, folder: '', found: null };
   const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
     reply: b => (b.action === 'filmsSync' ? { error: 'No folder named Notflix is visible to this script.' } : undefined) });
-  const { t, box } = await vidCard_(w, vidAdmin_);
+  const { t, box, type } = await vidCard_(w, vidAdmin_);
   if (!box) return ['the videos card did not draw on the Games column'];
   const bad = [];
   await wait(120);
+  /* THE ADMIN'S ROW IS UNDER A SEARCH'S ANSWER (note 321) — "No videos listed yet.", with no film and no
+     clip — so a word is typed for the line to be drawn. */
+  type('notflix');
   const line = () => (box.querySelector('.vid-admin .vid-synced') || {}).textContent || '';
   if (sent.filter(b => b.action === 'filmsSync').length !== 1) bad.push('a never-synced admin’s card posted filmsSync ' + sent.filter(b => b.action === 'filmsSync').length + ' time(s), wanted once');
   if (!/Not synced — No folder named Notflix/.test(line())) bad.push('the refusal is not said beside the tile: "' + line() + '"');
@@ -3482,10 +3746,18 @@ check('a student’s and a stranger’s videos card has no film, no Sync tile an
   const bad = [];
   const look = (who, box) => {
     if (!box) { bad.push(who + ': the videos card did not draw'); return; }
+    const idle = vidIdle_(box);
+    if (idle.length) bad.push(who + '’s card opens on more than the search bar: ' + idle.join('; '));
+    /* AND UNDER A SEARCH'S ANSWER, which is where an admin's Sync row is drawn (note 321) — so the card is
+       asked there, and not only in the idle bar where nobody's row is drawn. */
+    const q = box.querySelector('input.vid-q');
+    if (q) { q.value = 'film'; q.dispatchEvent(new w.Event('input', { bubbles: true })); }
+    if (!/No videos listed yet\./.test(box.textContent)) bad.push(who + '’s search over an empty list says "' + box.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) + '"');
     if (box.querySelector('[data-do="vid-sync"]')) bad.push(who + ' is drawn the Sync from Drive tile');
     const adm = box.querySelector('.vid-admin');
     if (adm && adm.innerHTML.trim()) bad.push(who + '’s card has something in the admin row: ' + adm.innerHTML.slice(0, 100));
     if (/film|drive|notflix|sync/i.test(box.textContent)) bad.push(who + '’s card says "' + box.textContent.replace(/\s+/g, ' ').trim().slice(0, 120) + '" — a word that says films exist');
+    if (q) { q.value = ''; q.dispatchEvent(new w.Event('input', { bubbles: true })); }
   };
   const { t, box } = await vidCard_(w, { name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' });
   look('a student', box);
@@ -3529,10 +3801,11 @@ check('signing out takes an admin’s films off the device, and a student signin
   {
     const { w } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
                          serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
-    const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
+    const { t, box, type } = await vidCard_(w, vidAdmin_);
     if (!box) return ['the videos card did not draw on the Games column'];
-    if (titles().length !== FILMS_.length || filmsIn(w) !== FILMS_.length)
-      return ['the setup: the admin’s card lists ' + titles().length + ' and Find ' + filmsIn(w) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
+    type('film');
+    if (vidFound_(box) !== FILMS_.length || filmsIn(w) !== FILMS_.length)
+      return ['the setup: the admin’s card finds ' + vidFound_(box) + ' and Find ' + filmsIn(w) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
     type('paper moon');
     /* A FILM'S PICTURE THAT FAILED is remembered by its address, and that address is the film's file id. */
     const pic = box.querySelector('.vid-list img.vid-img');
@@ -3552,14 +3825,25 @@ check('signing out takes an admin’s films off the device, and a student signin
     if ('filmsSync' in t.DATA()) bad.push('DATA.filmsSync — the folder’s name and its counts — outlived Sign out');
     const q = w.document.querySelector('#s-games #wgt-videos .vid-q');
     if (q && q.value) bad.push('what the admin typed is still in the videos box: ' + JSON.stringify(q.value));
+    /* AND A SEARCH AFTER IT FINDS NONE OF THEM — the card opens on the bar alone, so "no rows" above is
+       true of an idle card whatever the device still holds; this asks the list itself. */
+    if (q) {
+      q.value = 'film';
+      q.dispatchEvent(new w.Event('input', { bubbles: true }));
+      const left = w.document.querySelectorAll('#s-games #wgt-videos .vid-results .vid-row').length;
+      if (left) bad.push('after Sign out, "film" still finds ' + left + ' row(s) on the device');
+      q.value = '';
+      q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    }
   }
   /* ---- A STUDENT SIGNS IN AFTER AN ADMIN, AND THEIR PAYLOAD IS STILL ON ITS WAY ---- */
   {
     let hold = false;
     const { w } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
                          serve: u => (/data\/videos\.json/.test(u) ? [] : hold ? new Promise(() => {}) : undefined) });
-    const { t, box, titles } = await vidCard_(w, vidAdmin_);
-    if (!box || titles().length !== FILMS_.length) return bad.concat(['the setup: the admin’s card did not list the films, so the hand-over was NOT checked']);
+    const { t, box, type } = await vidCard_(w, vidAdmin_);
+    if (box) type('film');
+    if (!box || vidFound_(box) !== FILMS_.length) return bad.concat(['the setup: the admin’s card did not find the films, so the hand-over was NOT checked']);
     if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the hand-over was NOT checked']);
     hold = true;   // the student's payload never lands: what is on the screen is what the device held
     w.signedIn_({ success: true, name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' }, 'sam');
@@ -3583,6 +3867,12 @@ check('signing out takes an admin’s films off the device, and a student signin
         : b.personId === 'P001' ? new Promise(r => { releaseA = () => r(done(FILMS_)); })
         : new Promise(r => { releaseB = () => r(done(FILMS_.slice(0, 1))); })) });
     const { t, box } = await vidCard_(w, vidAdmin_);
+    /* THE SYNC ROW IS UNDER A SEARCH'S ANSWER (note 321), so each admin types before looking for it. */
+    const typeIn = v => {
+      const q = w.document.querySelector('#s-games #wgt-videos .vid-q');
+      if (q) { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); }
+    };
+    typeIn('film');
     const tile = () => w.document.querySelector('#s-games #wgt-videos .vid-admin [data-do="vid-sync"]');
     if (!box || !tile()) return bad.concat(['the setup: the first admin has no Sync tile, so a sync in flight was NOT checked']);
     t.ACTIONS['vid-sync'](tile());
@@ -3592,6 +3882,7 @@ check('signing out takes an admin’s films off the device, and a student signin
     hold = true;
     w.signedIn_({ success: true, name: 'Bea Admin', personId: 'P002', role: 'admin', roles: ['admin'], token: 'tk-admin2' }, 'bea');
     await away(t);
+    typeIn('film');
     if (!tile()) bad.push('the second admin has no Sync tile');
     else {
       if (tile().disabled) bad.push('the second admin’s Sync tile is busy with the first admin’s sync, which they never pressed');
@@ -3624,15 +3915,17 @@ check('the videos card syncs an admin’s films on its own once the last whole p
     const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
       reply: b => (b.action === 'filmsSync' ? { success: true, done: true, more: false, films: FILMS_,
         sync: { at: new Date().toISOString(), more: false, folder: 'Notflix', found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } } } : undefined) });
-    const { box, titles } = await vidCard_(w, vidAdmin_);
+    const { box, type } = await vidCard_(w, vidAdmin_);
     if (!box) { bad.push('the videos card did not draw on the Games column'); return null; }
     for (let n = 0; n < 20 && !sent.some(b => b.action === 'filmsSync'); n++) await wait(25);
     await wait(80);
-    return { asked: sent.filter(b => b.action === 'filmsSync').length, listed: titles().length };
+    /* ASKED BY A SEARCH — the card opens on the bar alone (note 321); every film's kind is "film". */
+    type('film');
+    return { asked: sent.filter(b => b.action === 'filmsSync').length, listed: vidFound_(box) };
   };
   const old = await visit(2 * 24 * 3600e3);
   if (old && old.asked !== 1) bad.push('a card whose last whole pass is two days old posted filmsSync ' + old.asked + ' time(s) — wanted once');
-  if (old && old.listed !== FILMS_.length) bad.push('after the day-old card synced it lists ' + old.listed + ' — wanted the ' + FILMS_.length + ' the reply carried');
+  if (old && old.listed !== FILMS_.length) bad.push('after the day-old card synced "film" finds ' + old.listed + ' — wanted the ' + FILMS_.length + ' the reply carried');
   const fresh = await visit(3600e3);
   if (fresh && fresh.asked !== 0) bad.push('a card synced an hour ago posted filmsSync ' + fresh.asked + ' time(s) — wanted none');
   return bad;

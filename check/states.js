@@ -5244,14 +5244,63 @@ const STATES = {
       wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
       leave: () => { initConnect4(); } },
 
-    /* ---------- THE VIDEOS CARD, SEARCHED AND PLAYING ---------------------------------------------
-       THE WIDGET OPENS ON A BOX AND A LIST, which is the one state `go()` reaches — the player, the
-       Full screen tile and a narrowed count only exist after somebody types and taps. Seeded through
-       the card's own list (`VIDEOS_LIST`, what `data/videos.json` would have filled) with the
-       LONGEST title a row is likely to carry, because a title is the one thing on this card that
-       can take it sideways at 320. The video is the repository's own reel, so the lab plays a real
+    /* ---------- THE VIDEOS CARD: THE BAR, FOUR RESULTS, A FILM PLAYING, AND THE GLASS FILLED -----------
+       *"at first all you see is a search bare, then you search and you see relevant result underneath.
+       max 4 results show. you click on one, then it shows video. you can click fullscreen to make it
+       fullscreen"* — the owner, 10 Oct (note 321). FOUR STATES FOR FOUR THINGS THE CARD IS, because
+       `go()` reaches only the first: the bar alone; four results with the line under them (and, for an
+       admin, the Sync row at the foot); a result playing in their place; and the app's own full screen.
+       Seeded through the card's own list (`VIDEOS_LIST`, what `data/videos.json` would have filled)
+       with the LONGEST title a row is likely to carry, because a title is the one thing on this card
+       that can take it sideways at 320. The video is the repository's own reel, so the lab plays a real
        file and never reaches for YouTube. */
-    { name: 'a video search, narrowed, one playing',
+    { name: 'the videos card, idle',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        VID.q = ''; VID.at = '';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        return !!box && !!box.querySelector('input.vid-q') && !box.querySelector('.vid-row, .vid-player, .vid-watch.on, .loading')
+          && !(box.querySelector('.vid-results') || {}).innerHTML && !(box.querySelector('.vid-admin') || {}).innerHTML;
+      },
+      wants: 'the search bar and nothing else — no count, no list, no admin row, no player' },
+    { name: 'a video search, four and how many more',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        window.__seedVid = VIDEOS_LIST;
+        VIDEOS_LIST = [
+          { title: 'Photosynthesis explained: how a leaf turns light, water and carbon dioxide into sugar',
+            url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science biology plants', age: '9+', active: true },
+          { title: 'Photosynthesis, the short one', url: 'data/reels/archetest.mp4?b', kind: 'clip', tags: 'science', age: '', active: true },
+          { title: 'Photographs of leaves', url: 'https://example.org/leaves', kind: 'clip', tags: 'art', age: '', active: true },
+          { title: 'The photon and the leaf', url: 'data/reels/archetest.mp4?d', kind: 'clip', tags: 'physics', age: '', active: true },
+          { title: 'Sunlight and plants', url: 'data/reels/archetest.mp4?e', kind: 'clip', tags: 'photo science', age: '', active: true },
+          { title: 'Why leaves are green', url: 'data/reels/archetest.mp4?f', kind: 'clip', tags: 'photosynthesis', age: '', active: true },
+          { title: 'Fractions in two minutes', url: 'data/reels/archetest.mp4?c', kind: 'clip', tags: 'maths', age: '', active: true },
+        ];
+        VID.q = 'photo'; VID.at = '';
+        /* PAINTED, THEN TURNED TO, so the pager settles on a card that already has its height. */
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        if (!box || box.querySelectorAll('.vid-results .vid-list .vid-row').length !== 4) return false;
+        if (!/^2 more — keep typing to narrow$/.test(((box.querySelector('.vid-results .vid-more') || {}).textContent || ''))) return false;
+        /* AN ADMIN'S SYNC ROW AT THE FOOT, UNDER THE RESULTS; NOBODY ELSE'S. */
+        const adm = box.querySelector('.vid-admin');
+        const mine = typeof isAdmin === 'function' && isAdmin();
+        return mine ? !!(adm && adm.querySelector('.tile.is-admin[data-do="vid-sync"]')) && box.lastElementChild === adm
+                    : !(adm && adm.innerHTML);
+      },
+      wants: 'four results and "2 more — keep typing to narrow" under them, and an admin\'s Sync row at the foot',
+      leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
+    { name: 'a video search, one playing',
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
@@ -5261,23 +5310,111 @@ const STATES = {
             url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science biology plants', age: '9+', active: true },
           { title: 'Photosynthesis, the short one', url: 'data/reels/archetest.mp4?b', kind: 'clip',
             tags: 'science', age: '', active: true },
-          { title: 'Fractions in two minutes', url: 'data/reels/archetest.mp4?c', kind: 'clip',
-            tags: 'maths', age: '', active: true },
         ];
         VID.q = 'photo';
         VID.at = 'v0';
-        /* PAINTED, THEN TURNED TO. The card shrinks from the whole list to two rows here, and a
-           page that changes height while the pager is still settling on it was measured mid-slide
-           once, 70px off the screen. */
         vidPaint_();
         goPage('games', n, true);
       },
       expect: () => !!document.querySelector('#s-games .vid-stage.on video.vid-player')
                  && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]:not([disabled])')
-                 && document.querySelectorAll('#s-games .vid-list .vid-row').length === 2
-                 && /^2 of \d+ videos$/.test((document.querySelector('#s-games .vid-said') || {}).textContent || ''),
-      wants: 'the player holding the chosen clip, a Full screen tile under it, and two of the list left',
+                 && !document.querySelector('#s-games .vid-results .vid-row')
+                 && !(document.querySelector('#s-games .vid-admin') || {}).innerHTML
+                 && (document.querySelector('#s-games .vid-q') || {}).value === 'photo',
+      wants: 'the player holding the chosen clip in place of the results, the Full screen tile beside its title, and the bar still holding "photo"',
       leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
+    /* ---------- A FILM FROM THE FOLDER, PLAYING IN DRIVE'S PLAYER, WITH THE DOOR BESIDE IT --------------
+       The one watch view with TWO tiles beside its title — Full screen and Open in Drive — which is the
+       narrowest the title gets at 320. The film is invented and added to the admin's films for this
+       state alone; its frame asks Drive for a file that does not exist, which this lab cannot reach
+       anyway — what is measured is the card round it. */
+    { name: 'a film from the folder playing, with Open in Drive',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        window.__seedFilms = DATA.films;
+        DATA.films = (DATA.films || []).concat([{ id: 'FXD01', title: 'An Invented Film Kept In Drive For Measuring', year: '1999',
+          kind: 'film', audience: 'kids', seasons: '', url: 'https://drive.google.com/file/d/example-fx-drive-001/view', placeholder: false, notes: '' }]);
+        VID.q = 'invented film kept';
+        VID.at = 'fFXD01';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => /^https:\/\/drive\.google\.com\/file\/d\/example-fx-drive-001\/preview$/.test(
+                     (document.querySelector('#s-games .vid-stage iframe.vid-player') || {}).src || '')
+                 && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]')
+                 && !!document.querySelector('#s-games .vid-acts a.tile[href*="example-fx-drive-001"]'),
+      wants: 'Drive\'s player of the film, and Full screen and Open in Drive beside its title',
+      leave: () => { DATA.films = window.__seedFilms || []; VID.q = ''; VID.at = ''; vidPaint_(); } },
+    /* ---------- AND THE APP'S OWN FULL SCREEN, WHERE THE BROWSER HAS NONE --------------------------------
+       Safari on an iPhone has no full screen for anything but a `<video>`'s own player; this lab is
+       Chromium, so the Fullscreen API is TAKEN AWAY for the state — and the `<video>` here has no
+       `webkitEnterFullscreen` in Chromium either, so the tile reaches the app's own, as an iframe on an
+       iPhone does. Pressed through the tile, after the card is placed. What is measured is the block in
+       the top layer over the whole glass: the Exit tile's 44px, nothing sideways, and the pane under it
+       where it was. Put back on `leave`, API and all. */
+    { name: 'the videos card, its own full screen',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        window.__seedVid = VIDEOS_LIST;
+        window.__fsApi = { r: Element.prototype.requestFullscreen, w: Element.prototype.webkitRequestFullscreen };
+        delete Element.prototype.requestFullscreen;
+        delete Element.prototype.webkitRequestFullscreen;
+        VIDEOS_LIST = [{ title: 'Photosynthesis explained: how a leaf turns light, water and carbon dioxide into sugar',
+                         url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science', age: '9+', active: true }];
+        VID.q = 'photo';
+        VID.at = 'v0';
+        vidPaint_();
+        goPage('games', n, true);
+        setTimeout(() => {
+          const t = document.querySelector('#s-games #wgt-videos .vid-acts [data-do="vid-full"]');
+          if (t) ACTIONS['vid-full'](t);
+        }, 150);
+      },
+      /* AND WHAT "FULL SCREEN" MEANS, ASKED IN PIXELS AT EVERY WIDTH: the block is the viewport, a point
+         in each corner and the middle of the glass lands inside it (nothing of the app is above it or
+         reachable through it), the film is 16:9, wholly on the glass and as large as the room allows —
+         the width of the glass, its height, or the width less the Exit tile beside it — and the Exit
+         tile is on the glass and off the picture. A rule that put the block in a corner, or a film the size of the card,
+         arrives here as a state that did not arrive. */
+      expect: () => {
+        const w = document.querySelector('#s-games #wgt-videos .vid-watch.is-fs');
+        let open = false;
+        try { open = !!w && w.matches(':popover-open'); } catch (e) { open = false; }
+        const x = w && w.querySelector('.vid-acts .tile[data-do="vid-unfull"]');
+        const v = w && w.querySelector('.vid-stage video.vid-player');
+        if (!open || !x || !v) return false;
+        const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+        const r = w.getBoundingClientRect(), st = w.querySelector('.vid-stage').getBoundingClientRect(), xr = x.getBoundingClientRect();
+        const whole = Math.abs(r.left) < 1 && Math.abs(r.top) < 1 && Math.abs(r.width - vw) < 1 && Math.abs(r.height - vh) < 1;
+        const over = [[2, 2], [vw - 3, 2], [2, vh - 3], [vw - 3, vh - 3], [vw / 2, vh / 2]]
+          .every(([px, py]) => { const e = document.elementFromPoint(px, py); return !!e && w.contains(e); });
+        /* AS LARGE AS THE ROOM ALLOWS: on its side the whole height, or the width less the Exit tile and
+           its 1.5rem beside it; upright the whole width, or the height less the tile under it. */
+        const g = 44 + 1.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const room = vw > vh ? Math.min(vw - g, vh * 16 / 9) : Math.min(vw, (vh - g) * 16 / 9);
+        const wide = Math.abs(st.width / st.height - 16 / 9) < 0.02 && st.width >= room - 2
+          && st.left >= -1 && st.top >= -1 && st.right <= vw + 1 && st.bottom <= vh + 1;
+        const clear = xr.width >= 44 && xr.height >= 44 && xr.left >= 0 && xr.top >= 0 && xr.right <= vw && xr.bottom <= vh
+          && (xr.right <= st.left || xr.left >= st.right || xr.bottom <= st.top || xr.top >= st.bottom);
+        return whole && over && wide && clear;
+      },
+      wants: 'the player\'s block in the top layer over the whole screen — the viewport, a 16:9 film as large as the room allows, and an Exit full screen tile of 44px beside it, off the picture',
+      leave: () => {
+        try { vidFullOff_(); } catch (e) {}
+        /* AND THE CARD LET GO OF, AS A FINGER LEAVING IT WOULD. Going full screen hands the focus to the Exit
+           tile and coming back hands it to Full screen, and a focus on the card in front HOLDS its top
+           (`HOLD_AT`, shell.js) — right for somebody using it, and here it outlived the state: every later
+           state on this page then grew and shrank the card downward from a held top, and the column ended
+           the run 94-143px off the line `check/ui.js` holds every column to. */
+        try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); HOLD_AT = null; } catch (e) {}
+        const a = window.__fsApi;
+        if (a) { if (a.r) Element.prototype.requestFullscreen = a.r; if (a.w) Element.prototype.webkitRequestFullscreen = a.w; }
+        delete window.__fsApi;
+        VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_();
+      } },
 
     /* ---------- THE FILMS IN THE VIDEOS CARD — THE ADMIN'S, AND NOBODY ELSE'S ------------------------
        *"Let admin be able to search up films which are in the notflix folder on gdrive."* Two states for
@@ -5285,49 +5422,52 @@ const STATES = {
        admin is served the fixture's three invented films and a sync stamp, and the signed-out visitor
        what `doGet` sends a stranger — no film and no stamp (`FIXTURE_ANON` in ui.js). The admin's card
        carries a row nobody else's has — the silver Sync from Drive tile and the line beside it — and a
-       film not in the Drive yet, dimmed; both are new widths to fit at 320. */
+       film not in the Drive yet, dimmed; both are new widths to fit at 320. Since note 321 both are a
+       SEARCH ("film"), because an idle card shows neither. */
     { name: 'the films in the videos card, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
-        VID.q = ''; VID.at = '';
+        VID.q = 'film'; VID.at = '';
         vidPaint_();
         goPage('games', n, true);
       },
       expect: () => !!document.querySelector('#s-games .vid-admin .tile.is-admin[data-do="vid-sync"]')
                  && !!document.querySelector('#s-games .vid-admin .vid-synced')
-                 && document.querySelectorAll('#s-games .vid-list .vid-row').length >= 3
-                 && !!document.querySelector('#s-games .vid-list .vid-row.is-off'),
-      wants: 'the silver Sync from Drive tile and when it last ran, the films, and the one not in the Drive yet dimmed' },
+                 && document.querySelectorAll('#s-games .vid-results .vid-row').length >= 3
+                 && !!document.querySelector('#s-games .vid-results .vid-row.is-off'),
+      wants: 'the films "film" finds, the one not in the Drive yet dimmed, and the silver Sync from Drive tile and when it last ran under them',
+      leave: () => { VID.q = ''; VID.at = ''; vidPaint_(); } },
     { name: 'the videos card, nobody’s films',
       only: () => !(typeof isAdmin === 'function' && isAdmin()),
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
-        VID.q = ''; VID.at = '';
+        VID.q = 'film'; VID.at = '';
         vidPaint_();
         goPage('games', n, true);
       },
       expect: () => !document.querySelector('#s-games .vid-admin *')
                  && !document.querySelector('#s-games [data-do="vid-sync"]')
+                 && !!document.querySelector('#s-games .vid-results .vid-none')
                  && !/film|drive|sync/i.test((document.querySelector('#s-games .vid-box') || {}).textContent || 'film'),
-      wants: 'no Sync tile, nothing in the admin row, and no word on the card that says films exist' },
+      wants: 'a search for "film" answered without a film, no Sync tile, nothing in the admin row, and no word on the card that says films exist',
+      leave: () => { VID.q = ''; VID.at = ''; vidPaint_(); } },
 
-    /* ---------- AND WHILE ITS LIST IS ON ITS WAY: THE ONE LOADER OVER THE CARD -----------------------
+    /* ---------- AND WHILE ITS LIST IS ON ITS WAY: THE BAR, AND THE ONE LOADER WHERE THE RESULTS GO --------
        One of three widgets held on a real request — see `the business records still coming` for the
        whole note. `data/videos.json` is asked for by the card's own `initVideos` and its answer kept
        back; here the payload is in, so an admin's card already has its films and is not waiting, and
        this is the stranger's.
-       IT RELEASES INTO THREE REAL ROWS. It used to hand back the repository's own file, whose one row is
-       a switched-off placeholder — so what landed was "No videos listed yet.", one line in place of the
-       one line the count held, and "the card did not move" could not fail (review, 10 Oct). A list's
-       length is not known until it lands, so the card GROWS by the rows (`grows`, read by `check/ui.js`):
-       what is asked is that the veiled part kept its room — the card never shrinks — and that the three
-       rows arrive. */
+       THE BAR IS NOT VEILED (note 321): it is the first thing on the card and it can be typed into
+       before the list lands. A word is typed here, so the one loader stands where the results will be
+       — and the state releases into three real rows the word finds. A list's length is not known until
+       it lands, so the card GROWS by the rows (`grows`, read by `check/ui.js`): what is asked is that
+       the loader's room was not more than came, and that the three rows arrive. */
     { name: 'the videos still coming',
       only: () => !(typeof isAdmin === 'function' && isAdmin()),
-      grows: 'the list of videos — how many rows are coming is not known until they come (see `vidPaint_`)',
+      grows: 'the results — how many rows are coming is not known until they come (see `vidPaint_`)',
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
@@ -5341,22 +5481,21 @@ const STATES = {
           ? new Promise(r => { held.go = () => r(new Response(JSON.stringify(rows),
               { status: 200, headers: { 'Content-Type': 'application/json' } })); })
           : real(url, o));
-        VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = ''; VID.at = '';
+        VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = 'held'; VID.at = '';
         goPage('games', n, true);
         initVideos();
       },
       expect: () => {
         const box = document.querySelector('#s-games #wgt-videos .vid-box');
-        return !!box && box.getAttribute('aria-busy') === 'true' && !!box.querySelector(':scope > .loading')
+        return !!box && !box.getAttribute('aria-busy') && !!box.querySelector('.vid-results > .loading')
           && document.querySelectorAll('#s-games #wgt-videos .loading').length === 1 && !!box.querySelector('input.vid-q');
       },
-      wants: 'the videos card drawn whole and under the one loader while data/videos.json is held',
+      wants: 'the bar, usable, and the one loader where the results will be while data/videos.json is held',
       release: () => { const h = window.__vidHeld; if (h) { window.fetch = h.fetch; if (h.go) { h.go(); h.go = null; } } },
       landed: () => {
         const box = document.querySelector('#s-games #wgt-videos .vid-box');
-        return !!box && !box.querySelector('.loading') && !box.getAttribute('aria-busy')
-          && box.querySelectorAll('.vid-list .vid-row').length === 3
-          && /^3 videos$/.test(((box.querySelector('.vid-said') || {}).textContent || '').trim());
+        return !!box && !box.querySelector('.loading')
+          && box.querySelectorAll('.vid-results .vid-row').length === 3;
       },
       /* THE LIST IT HELD IS PUT BACK WHETHER OR NOT IT WAS RELEASED: released, `VIDEOS_LIST` is the three
          rows above, and the next state would be measuring a card with videos the repository never had. */
@@ -5364,6 +5503,7 @@ const STATES = {
         const h = window.__vidHeld;
         if (h) { window.fetch = h.fetch; VIDEOS_LIST = h.list; VIDEOS_ASKED = null; }
         delete window.__vidHeld;
+        VID.q = ''; VID.at = '';
         vidPaint_();
         /* AND IF NOTHING WAS THERE BEFORE EITHER, asked again on the real wire, as the records' state does. */
         if (VIDEOS_LIST === null) videosAsk_().then(() => vidPaint_());

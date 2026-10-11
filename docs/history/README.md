@@ -322,3 +322,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [Signing in keeps your place in Find: the same chips, the same card, the same page, and the answer moves to you](318-signing-in-keeps-your-place-in-find.md)
 - [A YouTube Short is a reel the app can drive: poster first, one muted player under a veil, tap and Sound by message, a door when it cannot play — and the grey was the words' scrim on reels with no words](319-a-youtube-short-is-a-reel-the-app-can-drive.md)
 - [A Progress column at the end of the row, waiting to be built — and columns.json is the list of columns, not only their order](320-a-progress-column-waiting-to-be-built.md)
+- [The videos card is a search first: the bar alone, four results ranked as you type, a tap plays in their place, an admin's films in Drive's own player, and Full screen in the top layer where an iPhone has none for a frame](321-the-videos-card-is-a-search-first.md)

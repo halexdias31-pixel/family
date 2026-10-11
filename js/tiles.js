@@ -157,6 +157,11 @@ const TILE_ICONS = {
      the set as one more outline. */
   full:  '<path d="M2.5 6.5v-4h4"/><path d="M11.5 2.5h4v4"/>'
        + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
+  /* EXIT FULL SCREEN: the same four corners turned inward, the mark every video player puts on the
+     button that gives the screen back — the videos card's own full screen, where a phone has none for a
+     frame (note 321). The mirror of `full`, so the pair read as one switch. */
+  unfull: '<path d="M6.5 2.5v4h-4"/><path d="M11.5 2.5v4h4"/>'
+        + '<path d="M15.5 11.5h-4v4"/><path d="M2.5 11.5h4v4"/>',
   /* SYNC: two arrows chasing each other round a circle, the mark every phone puts on "fetch it again
      from where it really lives" — the videos card's Sync from Drive, which refills the films from the
      Notflix folder. Open paths at the set's 1.4, so it is one more outline beside Full screen. */
