@@ -13314,6 +13314,37 @@ check('a tutor\'s card draws only the days they work, and ticks outside the span
   /* A DAY WHOSE ONLY TICKED HOUR IS ALREADY TAUGHT IS STILL A DAY THEY WORK — greyed, not gone. */
   const taught = card({ tu10: 'TRUE', th16: 'TRUE' }, { th16: 'Maths' });
   if (days(taught) !== 'Tue Thu') bad.push('a Thursday whose ticked hour is already taught is drawn as [' + days(taught) + '], wanted [Tue Thu]');
+  /* ---------- AND THAT DAY IS NOT A ROW OF NOTHING -------------------------------------------------
+     FOUND IN REVIEW: the taught hour was `hr shut`, the same dark cell as an hour never ticked, so
+     the Thursday kept for it was ten identical empty cells — the row the owner asked to drop — and
+     the difference was in a `title` no phone shows. Asked here of the markup and the stylesheet's
+     rule; `check/states.js` ("a tutor's hours on their card") asks a real browser that the two
+     cells COMPUTE differently, which jsdom cannot be trusted to say (it applies rules in sheet
+     order, not by weight, and drops values it cannot parse). */
+  const th16 = taught.querySelector('.prof-week .hr[data-code="th16"]');
+  const th09 = taught.querySelector('.prof-week .hr[data-code="th09"]');
+  if (!th16 || !th16.classList.contains('is-busy') || !th16.classList.contains('shut') || th16.classList.contains('on')) {
+    bad.push('the taught Thursday 16:00 is not drawn as taught (`hr shut is-busy`): ' + (th16 ? th16.className : 'no cell'));
+  }
+  if (!th09 || th09.classList.contains('is-busy')) bad.push('an hour never ticked is marked taught too, so the two still look the same: ' + (th09 ? th09.className : 'no cell'));
+  const key = taught.querySelector('.prof-week .prof-key');
+  if (!key || !/already teaching/i.test(key.textContent) || !key.querySelector('.hr.is-busy')) {
+    bad.push('a week with a taught hour has no key saying what the taught cell means' + (key ? ': "' + key.textContent.trim() + '"' : ''));
+  }
+  if (two.querySelector('.prof-key')) bad.push('a week with nothing taught still draws the "already teaching" key');
+  const taughtSaid = (taught.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '';
+  if (!/^Available Tuesday 10:00\. Already teaching Thursday 16:00$/.test(taughtSaid)) {
+    bad.push('a week with Thursday 16:00 taught reads "' + taughtSaid + '" to a screen reader — the day drawn for that hour is silent');
+  }
+  /* THE RULE THAT MAKES IT LOOK DIFFERENT, read out of style.css with the comments taken off. It must
+     undo `.hr.shut`'s fade and paint something of its own; a rule that only restated the cursor would
+     pass the markup half above and look exactly as it did. */
+  const sheet = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const busyRule = (sheet.match(/(^|\})\s*([^{}]*\.prof-week\s+\.hr\.is-busy(?![\w-])[^{}]*)\{([^}]*)\}/) || [])[3] || '';
+  if (!busyRule) bad.push('style.css has no `.prof-week .hr.is-busy` rule, so a taught hour is the same cell as one never ticked');
+  else if (!/opacity:\s*1\b/.test(busyRule) || !/background/.test(busyRule)) {
+    bad.push('`.prof-week .hr.is-busy` does not undo the shut fade and paint its own face: {' + busyRule.trim().replace(/\s+/g, ' ') + '}');
+  }
   /* TICKED, BUT ONLY AT 19:00 — a tick from when the Settings grid ran to seven. */
   const late = card({ tu19: 'TRUE' });
   if (late.querySelector('.prof-week')) bad.push('a tutor ticked only at 19:00, outside the bookable span, is drawn with a week (' + days(late) + ')');
@@ -13365,6 +13396,25 @@ check('the booking week shows all seven days with no tutor, and only the chosen 
   if (!th) bad.push('Tia\'s Thursday, fully taught, left the week — a day she works with nothing free is not a day she does not work');
   else if (!th.shut) bad.push('Tia\'s Thursday, fully taught, is drawn as a full row with nothing on it to press');
   tia.busy = {};
+  /* ---------- AND A DAY SHE WORKS AT A VENUE SHUT THAT DAY STAYS TOO --------------------------------
+     THE RULE HAS TWO HALVES — "every hour already taken, OR THE VENUE IS SHUT" — and this journey
+     proved only the first: it ran with no venue chosen, so a `works` test that also asked the venue
+     (`tAvail[h.code] && (!haveV || vAvail[h.code])`) stayed green while dropping the Thursday a family
+     might move to another hall for. Found in review. A hall of our own, open every hour of every day
+     but Thursday, with a rate so it is not read as the client's house (`isHome`). */
+  const hall = { title: 'Thursday Shut Hall', bestRate: 12, minCapacity: 1, maxCapacity: 8, minHours: 1, maxHours: 4,
+                 avail: Object.assign({}, blank) };
+  ['m', 'tu', 'w', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) hall.avail[p + String(h).padStart(2, '0')] = 'TRUE'; });
+  const venuesWas = D.venues;
+  D.venues = (venuesWas || []).concat([hall]);
+  B.loc = hall.title;
+  const thV = week().find(x => x.day === 'Thursday');
+  const tuV = week().find(x => x.day === 'Tuesday');
+  if (named() !== 'Tuesday Thursday') bad.push('with Tia chosen at a hall shut on Thursdays the week draws [' + named() + '], wanted [Tuesday Thursday] — a worked day the venue shuts is still a day she works');
+  if (thV && !thV.shut) bad.push('Tia\'s Thursday at a hall shut on Thursdays is drawn as a full row with nothing on it to press');
+  if (!tuV || tuV.shut) bad.push('Tia\'s Tuesday at a hall open on Tuesdays is ' + (tuV ? 'collapsed' : 'missing') + ' — the venue test is not reading the hall');
+  B.loc = '';
+  D.venues = venuesWas;
   /* A TICK MADE BEFORE SHE WAS CHOSEN, on a day she does not work: kept, drawn, greyed, counted. */
   B.tutor = 'No preference';
   B.slots = ['m10'];

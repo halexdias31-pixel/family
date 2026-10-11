@@ -3055,7 +3055,13 @@ const STATES = {
        already teaching Mon 17. So eight hours lit, Mon 17 greyed, and the three days nothing is
        ticked on (Thu, Fri, Sun) NOT DRAWN — they were thin collapsed rows until the owner, 10 Oct:
        *"no need to display monday if they dont have any hours on monday."* Measured at every width
-       because it is the last thing on a card that is already near its pane's height. */
+       because it is the last thing on a card that is already near its pane's height.
+
+       AND MONDAY 17 MUST NOT LOOK LIKE MONDAY 9. A taught hour was `hr shut`, the same dark cell as an
+       hour never ticked, with the difference in a `title` no phone shows — so a day kept only for a
+       taught hour was a row of nothing (found in review). Asked of the browser's COMPUTED style, not
+       the class: a class with no rule behind it is the fault itself. And the key that says what the
+       hatching means is under the week, because Ada is teaching one of her hours. */
     { name: 'a tutor\'s hours on their card',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -3072,13 +3078,17 @@ const STATES = {
         const rows = [...wk.querySelectorAll('.slot-row:not(.slot-head)')];
         const days = rows.map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
         const busy = wk.querySelector('.hr[data-code="m17"]');
+        const never = wk.querySelector('.hr[data-code="m09"]');
+        const look = el => { const s = getComputedStyle(el); return [s.opacity, s.backgroundImage, s.borderTopColor].join(' | '); };
         return cap && cap.textContent.trim() === 'Available'
           && wk.querySelectorAll('.hr.on').length === 8
           && !!busy && !busy.classList.contains('on') && busy.classList.contains('shut')
+          && !!never && !never.classList.contains('on') && look(busy) !== look(never)
+          && /already teaching/i.test((wk.querySelector('.prof-key') || {}).textContent || '')
           && days === 'Mon Tue Wed Sat' && !wk.querySelector('.is-shut')
           && !wk.querySelector('button, input, label') ? 1 : 0;
       },
-      wants: 'an Available caption over Mon, Tue, Wed and Sat only, eight hours lit and Monday 17 greyed as taught',
+      wants: 'an Available caption over Mon, Tue, Wed and Sat only, eight hours lit, Monday 17 drawn as taught (computed unlike unticked Monday 9) and the "already teaching" key',
       leave: () => { paint('account'); } },
     /* ---------- YOUR FAMILY, A CARD EACH ------------------------------------------------------------
        ASKED FOR AS *"students should be able to see their parents and likewise"*. `DATA.family` is a

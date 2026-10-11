@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-tutor-week-days-they-work";
+  --css-version: "2026-10-10-tutor-week-taught-hour";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -12890,7 +12890,7 @@ button.scr-sq { cursor: pointer; }
    already near its pane's height. A day nobody works is not drawn at all — the owner, 10 Oct: *"no
    need to display monday if they dont have any hours on monday"* — so the two `is-shut` rules that
    made it a thin rule have gone. A busy hour is `shut` like an hour they do not work — both are
-   hours that cannot be booked — and says which in its title. */
+   hours that cannot be booked — and has a look of its own on top (`is-busy`, below). */
 .prof-week .slot-grid { gap: 2px; margin: .1rem 0 .3rem; }
 .prof-week .slot-day { flex-basis: 1.9rem; font-size: .62rem; text-transform: none; letter-spacing: 0; color: var(--dim); }
 .prof-week .hr { min-height: 12px; border-radius: 2px; }
@@ -12900,3 +12900,31 @@ button.scr-sq { cursor: pointer; }
    default at a weight `.hr.shut` cannot reach. */
 .prof-week .hr:not(.shut), .prof-week .hr.shut { cursor: default; }
 .prof-week .hr:active { transform: none; }
+/* ---------- A TAUGHT HOUR LOOKS TAUGHT, BECAUSE A WHOLE DAY CAN BE KEPT FOR IT --------------------
+   IT WAS THE SAME DARK CELL AS AN HOUR NEVER TICKED, and the difference lived in the `title` — which
+   a phone never shows. That cost nothing while every day was drawn. Since the owner, 10 Oct, *"no
+   need to display monday if they dont have any hours on monday"*, a day is drawn BECAUSE it has a
+   ticked hour, and a Thursday whose only ticked hour is already taught came out as ten identical
+   empty cells: exactly the row of nothing the owner asked to drop, kept on purpose and saying so to
+   nobody. Found in the review's screenshot of a tutor ticked Thu 16 and Fri 10, teaching Thu 16.
+
+   SO IT IS THE HOUR, STRUCK THROUGH. A gold edge says "one of their hours" — the same gold as a lit
+   one — and the hatching across it says "and gone", which is the convention for a slot that is
+   taken. Full opacity rather than `.hr.shut`'s .28, or the hatch is too faint to read at 12px tall.
+   ONE KEY UNDER THE WEEK says it in words (`.prof-key`), drawn only when a taught hour is, because a
+   pattern nobody has been told about is only a different kind of guess.
+
+   ON THE CARD AND NOWHERE ELSE. The booking form greys a taught hour too, but there it sits in a
+   week that draws every hour of every worked day and says why in its own sentence; this is the one
+   week where a day exists only to show an hour. Three classes deep, so it beats `.hr.shut` by
+   weight and not by being written later — `check/cascade.js` names a tie won by order. */
+.prof-week .hr.is-busy {
+  opacity: 1; border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+  background: repeating-linear-gradient(135deg, transparent 0 2px,
+                color-mix(in srgb, var(--gold) 45%, transparent) 2px 3.5px), var(--sunk);
+}
+.prof-key { display: flex; align-items: center; gap: .35rem; margin: 0 0 .3rem;
+            font-size: .62rem; line-height: 1.2; color: var(--dim); }
+/* THE SWATCH IS A CELL, so it is the cell's look by construction and cannot drift from it. `.hr` is
+   `flex: 1 1 0` to share a row with nine others; alone in the key it would take the whole line. */
+.prof-week .prof-key .hr { flex: 0 0 1.6rem; }

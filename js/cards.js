@@ -463,9 +463,10 @@ function profHeat_(names) {
    cell is the receipt's look — lit or `shut` — on a `<span>`, because a card is read, not answered
    (see the note over the markup for what a disabled button cost).
 
-   A BUSY HOUR IS GREYED, NOT GOLD. It is an hour they said they can teach and somebody already has,
+   A BUSY HOUR IS NOT LIT GOLD. It is an hour they said they can teach and somebody already has,
    so offering it as open is the promise the booking grid would then break; `slotGrid` greys it for
-   the same reason. Its `title` says why, which is what the booking grid's cells do too.
+   the same reason. Its `title` says why, which is what the booking grid's cells do too — and on the
+   card it is also hatched, for the reason given at the end of this note.
 
    A DAY WITH NOTHING TICKED IS NOT DRAWN, and A TUTOR WITH NOTHING TICKED GETS NO WEEK — the sentence
    under the caption instead (see below). Seventy-seven grey cells read as "never available", which
@@ -481,9 +482,21 @@ function profHeat_(names) {
    tutor who works three days was three-sevenths of the week spent saying no.
 
    SO A DAY IS DRAWN WHEN IT HAS AN HOUR THEY TICKED INSIDE THE BOOKABLE SPAN, LIT OR ALREADY TAUGHT.
-   A taught hour keeps its day: it is still a day they work, and the grey says the hour is gone, which
-   is the thing a parent comparing two tutors wants to know. Days keep the week's order (`SLOT_DAYS`),
-   and the hour ruler rides on whichever day is first. See docs/history/325. */
+   A taught hour keeps its day: it is still a day they work, which is the thing a parent comparing two
+   tutors wants to know. Days keep the week's order (`SLOT_DAYS`), and the hour ruler rides on
+   whichever day is first. See docs/history/325.
+
+   ---------- AND A TAUGHT HOUR HAS TO LOOK TAUGHT, OR ITS DAY IS A ROW OF NOTHING ------------------
+   THE FIRST CUT OF THIS SAID "the grey says the hour is gone", AND THERE WAS NO GREY. A taught hour
+   was `hr shut` — the same dark cell as an hour never ticked — with the difference in its `title`,
+   which a phone never shows. While every day was drawn that was a detail; once a day is drawn
+   BECAUSE of its ticked hours, a Thursday whose one ticked hour is taught came out as ten identical
+   empty cells, the very row the owner asked to drop. Found in the review's screenshot (ticked Thu 16
+   and Fri 10, teaching Thu 16). So the cell keeps `shut` — it cannot be booked — and `is-busy` gives
+   it its own look (`.prof-week .hr.is-busy`: a gold edge, hatched across), and ONE KEY under the
+   week says what the hatching means, drawn only when there is a taught hour to explain. The
+   sentence read aloud says it too, after the free hours: the week is `role="img"`, so the key's
+   words are not read and the label has to carry them. */
 function profAvail_(t) {
   if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
   /* ---------- NO `avail` KEY AT ALL IS NOT A TUTOR -----------------------------------------------
@@ -549,16 +562,22 @@ function profAvail_(t) {
      one; it keeps `.hr`'s look and is a `<span>`. A screen reader is given ONE sentence for the whole
      week instead of 77 cells — "Monday 16:00, 18:00; Tuesday 10:00…" — which is what a parent asking
      "when are they free" wants read out. */
-  const said = days.map(d => {
-    const hs = d.hours.filter(c => c.lit).map(c => c.h + ':00');
+  const hoursOn = which => days.map(d => {
+    const hs = d.hours.filter(which).map(c => c.h + ':00');
     return hs.length ? d.label + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
+  const said = hoursOn(c => c.lit);
+  /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. A day drawn only
+     for a taught hour was silent to a screen reader while it took a row on screen. */
+  const taught = hoursOn(c => c.busy);
   return `<div class="prof-cap">Available</div>
     <div class="prof-week" data-avail="${ticked.length}" role="img"
-      aria-label="${esc(said ? 'Available ' + said : 'No free hours this week')}">${weekGrid_(days, (c, d) =>
+      aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
+        + (taught ? '. Already teaching ' + taught : ''))}">${weekGrid_(days, (c, d) =>
       `<span class="hr${c.lit ? ' on' : ' shut'}${c.busy ? ' is-busy' : ''}" data-code="${esc(c.code)}"
         title="${esc(d.label + ' ' + c.h + ':00' + (c.busy ? ' — already teaching' : ''))}"></span>`,
-      { chars: 3 })}</div>`;
+      { chars: 3 })}${taught
+        ? '<p class="prof-key"><span class="hr shut is-busy"></span>already teaching</p>' : ''}</div>`;
 }
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so
