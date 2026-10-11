@@ -254,7 +254,8 @@ at once; now the tile went on saying "Draw · on the figure" over a drawing made
 (327's surfaces had the same hole from the day they moved). `ansRefresh_` now asks `padFace_` again for each
 card on the screen with a Draw tile whose drawing or typed answer just landed: a face that changed turns
 where it stands (`padFaceRedraw_`, every copy, no repaint), and one that did not has its tile's note said
-again. Never from under the keypad: a box being typed into stays, its tile saying "has a drawing".
+again. Never from under the keypad: a box being typed into stays, its tile saying "has a drawing". (Nor from
+under the pen, which this round missed: see "After the second review", below.)
 **Checked:** a new journey through the real boot, a backend that keeps answers and `answersPull_` — Q7 on its
 box turns to the pulled drawing on the same page; Q7 on a drawing the child chose stays there when a typed
 answer arrives and says "Type · has an answer"; Q11c with the keypad up in its box is not turned and says
@@ -341,3 +342,83 @@ parts of `check-flow`, `ui.js --screen=stuff` at all five widths, `press.js --sc
 | `padCopies_` doing nothing | the paper-figure journey: the copies at 1 and 2 strokes after the stroke on Saved's, 0 and 2 after Clear on Find's |
 | `ansRefresh_` not asking the faces again | the pull journey: Q7 left on its box reading "Draw · on the figure"; Q11c "Draw · a blank space" with and without the keypad |
 | no Draw on a stem's parts | the paper-figure journey, in words, for each of bearings (a), (b), (c): "has no Draw tile on its box" |
+
+### After the second review (11 October)
+
+The three reviews ran again over the round above. The child's walk and the coverage sweep found nothing new
+(the coverage sweep's three uncaught mutations were this round's own findings, and are caught now). The state
+and data lens found one thing, and it was new in the round above.
+
+**The drawing taken from under a pen switched on — should-fix, fixed, and at the rule rather than where it
+was found.** The block the round above added to `ansRefresh_` asks `padFace_` again for every card on the
+screen whose drawing or typed answer a pull brought, and turns a card whose face changed. It stood back for a
+box the keypad was typing into, but not for a drawing whose pen was on. The steps: a card opens on its
+drawing by the default rule (a drawing, nothing typed, no face remembered — every paper figure a child drew
+on before 11 Oct opens that way); the child presses the lock; a typed answer for the same question arrives
+from the tutor's iPad or another tab. "A drawing and nothing typed" is no longer true, so the card turned to
+its box under the pen. That left `PAD_ON` naming a pad no longer on the screen — the invisible mode `q-draw`'s
+own note forbids — and the next `Draw` brought the drawing back armed, holding the card still, with nobody
+having asked. Reproduced on 7e5c615 in Chromium, with real touch on the lock, at 390x844 signed in, on June
+2024 1F Q7:
+
+| | the pull lands | Draw pressed after |
+|---|---|---|
+| 7e5c615 | on its box, `PAD_ON` still this pad, the pad gone, "Draw · has a drawing" | the drawing back armed, the ink holding the swipe |
+| af08dee (1F Q11c, a made-up surface, as the reviewer ran it) | the drawing, armed | — |
+
+The reviewer's fix was the keypad's guard copied for the pen, inside `ansRefresh_`. It was built first and
+went green, and then a repaint was added after the pull — a payload landing, or the inbox reply after every
+load. The repaint drew the card from `padFace_`, which still said "type", and did the same thing a few
+seconds later: on its box, `PAD_ON` still this pad, the pad disarmed. That path is older. On af08dee, 1F Q11c,
+pen on, typed answer pulled, then `repaint(true)` gives `{draw:false, PAD_ON:'this pad', armedPad:false}` —
+327's 62 surfaces have always done it. The 470 started doing it the day their pen moved onto the card: on the
+old figure page there was no box to turn to, and a repaint drew that pen armed. A guard at one caller
+(`ansRefresh_`) was the instance; the rule is the face's.
+
+So **`padFace_` asks the pen first: a pen switched on over this question's drawing (`PAD_ON` is its key)
+keeps the drawing**, whatever the rest of the rule would say. Everything that draws a face asks `padFace_` —
+the card (`ansArea_`), the tile (`drawTile_`), `ansRefresh_`, `padFaceRedraw_`, every copy in Find, Saved and
+Spotlight — so the pull and the repaint both find "draw" where "draw" is shown, and only the tile is said
+again: **"Type · has an answer"**. `Type` is still the way off the drawing, and it puts the pen down before it
+redraws (`q-draw`), so "type" is what `padFace_` then says. `ansRefresh_` keeps its keypad guard and points at
+`padFace_` for the pen. A pen on one card holds only that card: the rule compares the key.
+
+Measured after, in Chromium (the same script, real touch on the lock, 390x844, signed in):
+
+| | opened | lock pressed | typed answer pulled | repaint |
+|---|---|---|---|---|
+| June 2024 1F Q7 (the paper's grid) | drawing, "Type · the answer box" | armed | drawing, armed, "Type · has an answer", page 16 | the same |
+| 1F Q11c (a made-up surface) | drawing | armed | drawing, armed, "Type · has an answer", page 39 | the same — 327's repaint hole closed with it |
+
+The reviewer's own script (`Draw` pressed after the pull) now reads `Type`, and pressing it brings the box
+with the pen off.
+
+**Checked:** a new check-flow journey next to the pull journey. It goes through the real boot, a backend that
+keeps answers, the real Find strip and `answersPull_`, over June 2024 1F's real rows:
+- Q7 opens on its drawing by the default rule, and the real lock action switches the pen on. A typed answer
+  is pulled. Q7 stays on its drawing with one stroke, `PAD_ON` still its key, the pad armed and the ink
+  `data-noswipe`, the tile "Type · has an answer", and the page unmoved.
+- After a `repaint`, all of that is still true, and Q11c (nothing drawn, nothing typed) is still drawn on its
+  box with "Draw · a blank space", so the pen holds only its own card.
+- `Type` then brings the box with the pulled "(3, 4)" in it, and the pen is off.
+- Q11c opens on its drawing the same way with the pen off. The same pull turns it to its box, "Draw · has a
+  drawing" — 327's rule — so what holds the drawing is the pen, not every drawing.
+
+**Mutations, each alone on a fresh copy of the tree, each red; the real files green after:**
+
+| mutation | went red |
+|---|---|
+| the pen rule taken out of `padFace_` (the finding as found) | "turned Q7 to its box from under the pen … PAD_ON left naming a pad no longer on the screen"; the tile "Draw · has a drawing" |
+| the reviewer's fix alone: no rule in `padFace_`, the keypad's guard copied for the pen in `ansRefresh_` | "a repaint after the pull turned Q7 to its box from under the pen still on over its drawing" |
+| too broad: `ansRefresh_` never turns a card away from its drawing | Q11c with the pen off left on its drawing, "Type · has an answer" |
+| too broad: `padFace_` holds every drawing face while any pen is on | "with Q7's pen on, Q11c — nothing on either face — is drawn on its drawing" |
+| `Type` leaving the pen on (`q-draw`'s rule, which the last step leans on) | "Type on Q7 … left its pen on over a pad no longer on the screen" |
+
+**Re-run after, on the real files (after the mutations, which ran on copies):** `check.js`, `check-const`,
+`check-css`, `check-doors`, `check-loading`, `check-drafts`, `check-library`, `check-funnel`,
+`check-marking`, `check-practicals` and `check-payload` all pass. `check-flow` passes in four parts
+(81, 81, 81 and 82 journeys, 325 in all). `ui.js --screen=stuff` (all five widths, both visitors),
+`--screen=saved` and `--screen=spotlight` each report nothing new; stuff's six unreachable states are the
+same six as the round above. `press.js --screen=stuff` pressed 50 actions, and all 109 swipes landed.
+`cards.js`, `diagrams.js` and `cascade.js` pass. style.css is unchanged, so `--css-version` stays
+`2026-10-11-fig-draw-2`.

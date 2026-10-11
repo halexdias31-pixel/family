@@ -14610,6 +14610,133 @@ check('a drawing pulled from the account under a card on its box turns the card 
   return bad;
 });
 
+/* ---------- A TYPED ANSWER PULLED UNDER A DRAWING WHOSE PEN IS ON LEAVES THE DRAWING AND THE PEN ALONE --------
+   FOUND BY THE SECOND REVIEW OF 337, and new in the first round's fix: the block `ansRefresh_` grew, to turn a
+   card when a pull changes which face `padFace_` chooses, held back from the keypad but not from the pen.
+   A card opened on its drawing by the DEFAULT rule (a drawing, nothing typed, no face remembered -- every
+   paper figure a child drew on before 11 Oct opens that way), the lock pressed, and a typed answer for it
+   pulled from the account: the card turned to its box under the pen, `PAD_ON` was left naming a pad no longer
+   on the screen -- the invisible mode `q-draw`'s note forbids -- and the next Draw brought the drawing back
+   ARMED, holding the card still. af08dee left the drawing and the pen alone on the pull; but the next REPAINT
+   (a payload landing) drew the card from `padFace_` and did the same, which is how 327's surfaces always
+   behaved and the 470 did from the day their pen moved onto the card -- so the rule is in `padFace_` (a pen
+   on over this drawing keeps it), and this asks the pull AND a repaint after it. Through the real boot, a
+   backend that keeps answers, the real Find strip and `answersPull_`, over June 2024 1F's real rows:
+     * Q7 (the paper's own grid) on its drawing by the default rule, the pen on with the real lock: a typed
+       answer pulled leaves it on its drawing, the pen still on that pad (armed, the ink holding the swipe),
+       the tile "Type · has an answer", the page unmoved -- and the same after a repaint of the column; Type
+       then brings the box with the pulled answer in it and turns the pen off, as it always did
+     * Q11c (a made-up surface) on its drawing by the same rule with the pen OFF: the same pull turns it to
+       its box, "Draw · has a drawing" -- 327's rule, so what holds the drawing is the pen and not every
+       drawing */
+check('a typed answer pulled under a drawing whose pen is on leaves the drawing and the pen alone -- with the pen off the card turns', async () => {
+  const OWN = 'Q-1MA1-2406-1F-7', SURF = 'Q-1MA1-2406-1F-11c';
+  const lib = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'questions.json'), 'utf8'));
+  const paper = (lib.find(r => r.row_id === OWN) || {}).paper_id;
+  const rows = lib.filter(r => paper && r.paper_id === paper);
+  if (![OWN, SURF].every(id => rows.some(r => r.row_id === id))) return [OWN + ' and ' + SURF + ' are not one paper in data/questions.json any more -- a pull under a pen was NOT checked'];
+  const server = {};
+  const { w } = boot({ payload: Object.assign(payload(), { features: ANS_FEATURES }), reply: ansBackend_(server),
+    serve: url => (/data\/questions\.json/.test(url) ? rows : undefined),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(ANS_ADA)); } catch (e) {} } });
+  for (let i = 0; i < 120 && !(typeof w.stuffItemsAll_ === 'function' && w.stuffItemsAll_().some(x => x.row && x.row.row_id === OWN)); i++) await wait(50);
+  await wait(200);
+  const d = w.document, t = w.__t, A = t.ACTIONS, LS = w.localStorage, bad = [];
+  if (typeof w.answersPull_ !== 'function' || !A['q-draw'] || !A['pad-draw'] || !t.padKey || !t.ansKey || !t.padNow) return ['answersPull_ / q-draw / pad-draw / padKey_ / ansKey_ / padNow not reachable -- a pull under a pen was NOT checked'];
+  if (!(t.whoami() && t.whoami().personId === 'P7')) return ['Ada is not signed in at boot -- a pull to her account was NOT checked'];
+  const item = id => w.stuffItemsAll_().find(x => x.row && x.row.row_id === id);
+  const own = item(OWN), surf = item(SURF);
+  if (!own || !surf || !w.padSource_(own) || !w.padSource_(surf) || w.padSource_(surf).from !== 'surface') return ['Q7 is not drawn on its figure, or Q11c on a made-up surface, any more -- the case is gone'];
+  const area = x => [...d.querySelectorAll('#s-stuff .qp-area')].find(e => e.getAttribute('data-q') === x.key) || null;
+  const tile = x => [...d.querySelectorAll('#s-stuff .q-drawt')].find(e => e.getAttribute('data-key') === x.key) || null;
+  const said = x => (tile(x) && tile(x).getAttribute('aria-label')) || '(no tile)';
+  const onDraw = x => !!area(x) && area(x).classList.contains('is-draw');
+  const pad = x => (onDraw(x) ? area(x).querySelector('.qpad[data-k]') : null);
+  let stamp = Date.now();
+  const pull = async (k, v) => { stamp += 1000; server[k] = { v: v, at: stamp }; await w.answersPull_(true); await wait(80); };
+  const open = async x => {
+    t.go('stuff', false, true);
+    await wait(50);
+    t.STUFF().filters = [{ field: 'paperId', value: paper }];
+    t.STUFF().q = '';
+    w.paintStuff();
+    const at = w.stuffFirstResult_() + w.stuffPageOf_(x);
+    t.goPage('stuff', at, true);
+    await wait(400);
+    return at;
+  };
+  try {
+    w.padFaceForget_();
+    /* A DRAWING MADE BEFORE THE CARD WAS DRAWN AND NOTHING TYPED: it opens on it by the default rule. Q11c's
+       comes later, so while Q7's pen is on Q11c is a card with nothing on either face. */
+    LS.setItem(t.padKey(own), JSON.stringify([[20, 300, 120, 200]]));
+    /* ---------- Q7, THE PEN ON: A TYPED ANSWER PULLED LEAVES THE DRAWING AND THE PEN --------------------- */
+    const at = await open(own);
+    const lock = pad(own) && pad(own).querySelector('.qpad-lock');
+    if (!onDraw(own) || said(own) !== 'Type · the answer box' || !lock) bad.push('setup: Q7 did not open on its drawing by the default rule, with its lock (' + said(own) + ') -- the pen case was NOT checked');
+    else {
+      A['pad-draw'](lock);
+      if (t.padNow() !== t.padKey(own) || !pad(own).classList.contains('is-drawing')) bad.push('setup: Q7\'s lock did not switch its pen on (PAD_ON "' + t.padNow() + '") -- the pen case was NOT checked');
+      else {
+        await pull('ans:' + own.key, '(3, 4)');
+        if ((w.ansRead_(t.ansKey(own)) || '') !== '(3, 4)') bad.push('setup: the pull did not bring "(3, 4)" into Q7\'s box');
+        if (!onDraw(own)) bad.push('a typed answer pulled from the account turned Q7 to its box from under the pen switched on over its drawing' + (t.padNow() === t.padKey(own) ? ' -- PAD_ON left naming a pad no longer on the screen, and the next Draw brings it back armed' : ''));
+        else {
+          if (t.padNow() !== t.padKey(own)) bad.push('the pull switched Q7\'s pen off ("' + t.padNow() + '") while its drawing stayed');
+          if (!pad(own).classList.contains('is-drawing') || !pad(own).querySelector('.qpad-ink[data-noswipe]')) bad.push('the pull left Q7\'s pen named but its pad disarmed -- the frame and the ink disagree with PAD_ON');
+          if (pad(own).querySelectorAll('.qpad-g path').length !== 1) bad.push('the pull redrew Q7\'s drawing with ' + pad(own).querySelectorAll('.qpad-g path').length + ' strokes, wanted its one');
+        }
+        if (said(own) !== 'Type · has an answer') bad.push('with an answer pulled into the box behind the drawing being drawn on, Q7\'s tile reads "' + said(own) + '", wanted "Type · has an answer"');
+        if (t.PAGE().stuff !== at) bad.push('the pull moved Find from page ' + at + ' to ' + t.PAGE().stuff);
+        /* AND A REPAINT AFTER IT -- a payload landing, the inbox reply after every load -- draws the card from
+           `padFace_`, not from what was on the screen. Held only in `ansRefresh_`, the next repaint turned the
+           card to its box under the same pen: the fault put off by a few seconds, not fixed. */
+        if (onDraw(own)) {
+          t.repaint(true);
+          await wait(80);
+          if (!onDraw(own)) bad.push('a repaint after the pull turned Q7 to its box from under the pen still on over its drawing' + (t.padNow() === t.padKey(own) ? ' -- PAD_ON left naming a pad no longer on the screen' : ''));
+          else if (t.padNow() !== t.padKey(own) || !pad(own).classList.contains('is-drawing')) bad.push('a repaint after the pull left Q7\'s drawing with its pen ' + (t.padNow() === t.padKey(own) ? 'named but its pad disarmed' : 'off ("' + t.padNow() + '")'));
+          if (said(own) !== 'Type · has an answer') bad.push('after a repaint, Q7\'s tile over its drawing reads "' + said(own) + '", wanted "Type · has an answer"');
+          if (t.PAGE().stuff !== at) bad.push('the repaint moved Find from page ' + at + ' to ' + t.PAGE().stuff);
+          /* AND ONLY THIS CARD'S: the pen on Q7 holds Q7's drawing, and Q11c -- nothing drawn, nothing typed --
+             is drawn on its box as any card is. It is further along the paper, outside the strip the repaint
+             drew, so asked of the builders a card is drawn by (`ansArea_`, `drawTile_`). */
+          const sArea = w.ansArea_(surf), sTile = w.drawTile_(surf);
+          if (/qp-area[^"]*is-draw/.test(sArea) || !/Draw · a blank space/.test(sTile)) bad.push('with Q7\'s pen on, Q11c -- nothing on either face -- is drawn ' + (/is-draw/.test(sArea) ? 'on its drawing' : 'with a tile that does not say "Draw · a blank space"') + ': a pen holds its own card\'s drawing, not every card\'s');
+        }
+        /* AND THE BOX IS ONE PRESS AWAY, with the pulled answer in it and the pen off -- `q-draw`'s rule. */
+        if (onDraw(own) && tile(own)) {
+          A['q-draw'](tile(own));
+          const box = area(own) && area(own).querySelector('[data-do="qp-ans"]');
+          if (onDraw(own) || !box || box.value !== '(3, 4)') bad.push('Type on Q7 after the pull did not bring its box with "(3, 4)" in it (' + (box ? '"' + box.value + '"' : 'no box') + ')');
+          if (t.padNow()) bad.push('Type on Q7 left its pen on ("' + t.padNow() + '") over a pad no longer on the screen');
+        }
+      }
+    }
+    /* ---------- Q11c, THE PEN OFF: THE SAME PULL TURNS IT, 327'S RULE ------------------------------------
+       Every pen put down first, so this half answers for itself whatever the first half left behind; and its
+       drawing made now, before its card is drawn again. */
+    t.padOn('');
+    LS.setItem(t.padKey(surf), JSON.stringify([[30, 30, 90, 90]]));
+    const at2 = await open(surf);
+    if (!onDraw(surf) || said(surf) !== 'Type · the answer box') bad.push('setup: Q11c did not open on its drawing by the default rule (' + said(surf) + ') -- the pen-off case was NOT checked');
+    else if (t.padNow()) bad.push('setup: a pen is on ("' + t.padNow() + '") with Q11c open -- the pen-off case was NOT checked');
+    else {
+      await pull('ans:' + surf.key, '12');
+      if (onDraw(surf)) bad.push('a typed answer pulled under Q11c\'s drawing with the pen OFF left it on the drawing -- a drawing and something typed opens on the box (327), and only a pen switched on holds it');
+      if (said(surf) !== 'Draw · has a drawing') bad.push('Q11c turned by the pull says "' + said(surf) + '", wanted "Draw · has a drawing"');
+      if (t.PAGE().stuff !== at2) bad.push('the pull moved Find from page ' + at2 + ' to ' + t.PAGE().stuff);
+    }
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    t.padOn('');
+    try { w.padFaceForget_(); } catch (e) {}
+    t.STUFF().filters = [];
+  }
+  return bad;
+});
+
 /* ---------- "USE YOUR GRAPH" SHOWS YOUR GRAPH -----------------------------------------------------------
    Found by the multi-part audit, finding 5: June 2024 2F Q24(c) "Use your graph to find estimates..."
    had no picture, and the graph was the child's own, on (b)'s grid, two swipes back. A part's `uses`

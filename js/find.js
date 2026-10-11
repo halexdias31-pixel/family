@@ -9755,10 +9755,23 @@ const ansTyped_ = x => !!String(ansRead_(ansKey_(x)) || '').trim();
        work is a picture and reads an empty box as their work gone -- a drawing made on the old surface
        page or the old figure page (337: every paper figure a child drew on before 11 Oct opens on its
        drawing, which is this rule working), on another device, or after `Type` was last pressed here
-       (`padFaceOf_`, above). */
+       (`padFaceOf_`, above).
+   AND BEFORE ALL OF THEM, THE PEN: a pen switched on over this question's drawing (`PAD_ON` is its key)
+   keeps the drawing, whatever the rest would say. FOUND BY THE SECOND REVIEW OF 337: a card opened on its
+   drawing by the last rule, the lock pressed, and a typed answer for it arriving from the account (the
+   tutor's iPad, another tab) -- "a drawing and nothing typed" stopped being true under the pen, the
+   first round's `ansRefresh_` turned the card to its box, and `PAD_ON` was left naming a pad no longer on
+   the screen: the invisible mode `q-draw`'s note forbids, the next Draw bringing the drawing back ARMED.
+   Held there alone, the next repaint (a payload landing, the inbox reply after every load) drew the card
+   from this rule and did the same a few seconds later -- which is how 327's 62 surfaces had always
+   behaved, and how the 470 came to, the day their pen moved onto the card (af08dee kept theirs on the
+   figure page, which a repaint draws armed). So it is a rule of the face, asked by everything that draws
+   one -- the card, the tile, `ansRefresh_`, every copy -- and not a guard at one caller. `Type` is the way
+   off the drawing, and it puts the pen down first (`q-draw`). */
 function padFace_(x) {
   const k = padKey_(x);
   padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
+  if (PAD_ON && PAD_ON === k) return 'draw';
   const held = ansTyped_(x);
   const said = padFaceOf_(k);
   if (said && said.face === 'draw') return 'draw';

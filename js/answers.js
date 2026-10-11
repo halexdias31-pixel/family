@@ -623,7 +623,12 @@ function ansRefresh_(keys) {
        older drawing gives way to a newer one -- and a face that changed is turned where it stands, every
        copy, no repaint (`padFaceRedraw_`); one that did not has its tile say again what the face you cannot
        see holds. NEVER UNDER THE KEYPAD: a box being typed into is not taken away from the finger typing in
-       it; its tile still says "has a drawing". */
+       it; its tile still says "has a drawing".
+       NOR FROM UNDER THE PEN, and that one is not decided here: a pen switched on over the card's drawing
+       holds the drawing in `padFace_` itself (find.js), so this asks it, finds "draw" where "draw" is shown,
+       and only says the tile again -- "Type · has an answer". The second review of 337 found this block
+       turning such a card to its box from under the pen; a guard here alone left the next repaint to do
+       the same, and the rule is the face's, which every repaint asks. */
     if (typeof padFace_ === 'function' && typeof stuffItemsAll_ === 'function') {
       const on = new Set();
       document.querySelectorAll('.q-drawt[data-key]').forEach(b => on.add(b.getAttribute('data-key')));
