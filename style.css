@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-boxers-look-like-themselves";
+  --css-version: "2026-10-11-boxers-claim-nothing";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -10063,15 +10063,18 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    forehead.
 
    THE STAGE LIGHT IS THE GOLD AT 16%, from the top — the one flourish on the card, behind the
-   placeholder, because it is the arena the fighter is standing in.
+   placeholder's initials, the name on the corner banner. IT IS SPENT ABOVE THE TOP ROPE (44% tall,
+   gone by 30% of the frame, the fight card's square crop included): until 10 Oct's review it reached
+   the fighter's head, and there it was a warm brown the deepest skin and black hair sank into. The
+   ring draws the dark behind him itself (`bf-stage`, find.js), so this light can only ever be above.
 
    THE RING AND THE FIGHTER ARE DRESSED BELOW, after `.boxer-ini`, in colours of their own — they no
    longer share the splash's `--bx-mat` or its `.bx-*` rules. */
 .boxer-pic { margin: 0; }
 .boxer-frame { position: relative; display: block; overflow: hidden; aspect-ratio: 4 / 5;
                border: 1px solid var(--line); border-radius: var(--r);
-               background: radial-gradient(120% 85% at 50% 0%, color-mix(in srgb, var(--gold) 16%, transparent),
-                                           transparent 70%), var(--raised); }
+               background: radial-gradient(120% 44% at 50% 0%, color-mix(in srgb, var(--gold) 16%, transparent),
+                                           transparent 68%), var(--raised); }
 .boxer-ring, .boxer-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .boxer-img { object-fit: cover; object-position: 50% 30%; background: var(--raised); }
 /* THE FOOT OF A PHOTO SINKS INTO THE PAGE. A hard bottom edge on a bright photograph against the
@@ -10093,30 +10096,52 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    maroon trunks is no other component's colour), so they are defined on `.boxer-ring`, the chess
    board's rule, rather than offered to the whole stylesheet from `:root`; and none is a paper colour.
    `boxerFigure_` (find.js) points each part at one through a custom property on the fighter's group —
-   `--bf-skin: var(--bf-s4)` — and every rule below falls back to what the old stand-in wore when the
-   property is not set: paper skin, grey hair (gold in the blue corner), the corner's trunks, an ink
-   waistband. A fighter nobody has described is the figure every card had before 10 Oct.
+   `--bf-skin: var(--bf-s4)` — and every rule below says what a part is when the property is not set.
+
+   A PART NOBODY RECORDED CLAIMS NOTHING (the review of 10 Oct; find.js has the whole account). Until
+   then a blank was the old stand-in's part — paper skin, grey or gold hair, gold or blue trunks with
+   an ink waistband — and beside a described man every one of those read as a claim: a pale blond
+   Cleveland Williams, a gold-and-white pair of trunks on 80 profiles that nobody had recorded. So:
+     `--bf-ghost`         skin and hair of a fighter with no row: ONE shadow tone, a silhouette. It is
+                          neither a skin nor a hair colour, and it clears 2:1 against the stage and
+                          against the muted trunks it mostly stands in.
+     `--bf-unsaid-l/-r`   trunks with no word on file: the corner's gold or blue MUTED to a dusky
+                          ochre or slate that no trunks word uses (check/states.js holds each at
+                          least 50 away, in RGB, from every `--bf-tk-*`; the vocabulary's gold and sky
+                          are nowhere near), with a waistband one shade darker in the same colour and NO side
+                          stripe — a waistband, not a trim. `--bf-corner` is the one the group's side
+                          takes. Her top (`bf-top`) is the trunks' colour, so it follows them.
 
    THE SKIN TONES ARE SIX STEPS FROM LIGHT TO DEEP, chosen by eye to read as six on the black card and
-   nothing more; the deepest two are lifted a little from true so a face does not sink into the
-   background. BLACK IS NOT #000 FOR THE SAME REASON: black hair and black trunks are a charcoal one
-   step off the card, or Tyson would be a face and a pair of legs. A beard's colour is the hair's.
+   nothing more. EVERY COLOUR OF THE FIGURE CLEARS 2:1 AGAINST `--bf-stage`, the dark he stands in —
+   check/states.js measures each skin, hair colour, trunks colour and fallback, in the colours a
+   browser paints. Measured at 4x before 10 Oct's review, black hair (#2e2925) was 1.29:1 and black
+   trunks (#2b2b30) 1.40:1: Tyson was a face and a pair of legs, Lennox Lewis's dreads a smudge. So
+   BLACK, DARK BROWN, NAVY AND MAROON ARE LIFTED to just over 2:1, and the skins are NOT lightened —
+   the deepest clears 2:1 because the stage light no longer reaches his head (see `.boxer-frame`).
+   ON THE FACE, BLACK IS BLACK AGAIN (`--bf-fh-black`): a beard sits against skin, not the stage, and
+   the lifted charcoal on the deepest skin was 1.07:1 — Joshua's beard was not there. The deep black
+   clears 2:1 on every skin.
 
    `.bf-seen` IS A FIGHTER WE CAN DESCRIBE, and on him a hair colour nobody stated is his own skin
-   mixed halfway to the black — a shape with no colour claimed. The old stand-in's grey (or gold, in
-   the blue corner) is kept for the fighter with no look at all; on a described man it read as grey
-   or blond hair, which no source said. */
+   mixed halfway to the black — a shape with no colour claimed. A beard with no colour on file is the
+   same shadow. */
 .boxer-ring {
   --bf-mat: color-mix(in srgb, var(--paper) 14%, var(--bg));
+  --bf-stage: var(--raised);
+  --bf-ghost: color-mix(in srgb, var(--dim) 42%, var(--raised));
+  --bf-unsaid-l: #887c50; --bf-unsaid-r: #56789a;
   --bf-s1: #f6dcc8; --bf-s2: #e7bf9b; --bf-s3: #cf9a6c; --bf-s4: #ad7448; --bf-s5: #855433; --bf-s6: #643d25;
-  --bf-hc-black: #2e2925; --bf-hc-dark-brown: #4b3122; --bf-hc-brown: #6f4a2d; --bf-hc-light-brown: #9b7249;
+  --bf-hc-black: #4e4944; --bf-hc-dark-brown: #5e402c; --bf-hc-brown: #6f4a2d; --bf-hc-light-brown: #9b7249;
   --bf-hc-blond: #dcb866; --bf-hc-red: #b45a2c; --bf-hc-grey: #9d9b97; --bf-hc-white: #ecebe6;
-  --bf-tk-black: #2b2b30; --bf-tk-white: #f5f5f2; --bf-tk-red: #d9302c; --bf-tk-maroon: #7d2230;
-  --bf-tk-blue: #2f6fe0; --bf-tk-navy: #22346e; --bf-tk-sky: #8cc8f0; --bf-tk-green: #23914f;
+  --bf-fh-black: #100e0c;
+  --bf-tk-black: #4e4944; --bf-tk-white: #f5f5f2; --bf-tk-red: #d9302c; --bf-tk-maroon: #86283a;
+  --bf-tk-blue: #2f6fe0; --bf-tk-navy: #2c4290; --bf-tk-sky: #8cc8f0; --bf-tk-green: #23914f;
   --bf-tk-gold: #e4ae30; --bf-tk-yellow: #f3d935; --bf-tk-orange: #f07f24; --bf-tk-purple: #7440ad;
   --bf-tk-pink: #f08cbc; --bf-tk-silver: #c7cbcf; --bf-tk-grey: #8b8d91; --bf-tk-tan: #c9a67a;
   --bf-tk-leopard: #d8a24a; --bf-tk-leopard-spot: #3d2614;
 }
+.boxer-ring .bf-stage { fill: var(--bf-stage); }
 .boxer-ring .bf-post { fill: var(--dim); }
 .boxer-ring .bf-rope { fill: var(--paper); }
 .boxer-ring .bf-rope-mid { fill: var(--coral); }
@@ -10126,20 +10151,20 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .boxer-ring .bf-mat-edge { fill: var(--dim); }
 .boxer-ring .bf-apron { fill: var(--raised); }
 .boxer-ring .bf-apron-band { fill: var(--gold); }
-.boxer-ring .bf-skin { fill: var(--bf-skin, var(--paper)); }
-.boxer-ring .bf-hair { fill: var(--bf-hair, var(--dim)); }
-.boxer-ring .bf-r .bf-hair { fill: var(--bf-hair, var(--gold)); }
-/* `.bf.bf-seen`, ONE CLASS HEAVIER THAN `.bf-r` ABOVE, so a described fighter in the blue corner gets
-   his shadow by specificity rather than by which rule happens to come later (check/cascade.js). */
-.boxer-ring .bf.bf-seen .bf-hair, .boxer-ring .bf-face {
-  fill: var(--bf-hair, color-mix(in srgb, var(--bf-skin, var(--paper)) 50%, var(--bg))); }
+.boxer-ring .bf-l { --bf-corner: var(--bf-unsaid-l); }
+.boxer-ring .bf-r { --bf-corner: var(--bf-unsaid-r); }
+.boxer-ring .bf-skin { fill: var(--bf-skin, var(--bf-ghost)); }
+.boxer-ring .bf-hair { fill: var(--bf-hair, var(--bf-ghost)); }
+.boxer-ring .bf-seen .bf-hair, .boxer-ring .bf-face {
+  fill: var(--bf-hair, color-mix(in srgb, var(--bf-skin, var(--bf-ghost)) 50%, var(--bg))); }
+.boxer-ring .bf-hc-black .bf-face { fill: var(--bf-fh-black); }
 /* STUBBLE IS THE BEARD'S PIXELS AT A SHADOW'S STRENGTH — whole pixels still, only fainter. */
 .boxer-ring .bf-stubble { opacity: .45; }
 .boxer-ring .bf-eye { fill: var(--bg); }
 .boxer-ring .bf-glove { fill: var(--coral); }
-.boxer-ring .bf-band, .boxer-ring .bf-stripe { fill: var(--bf-trim, var(--ink)); }
-.boxer-ring .bf-trunks { fill: var(--bf-main, var(--gold)); }
-.boxer-ring .bf-r .bf-trunks { fill: var(--bf-main, var(--tag-level)); }
+.boxer-ring .bf-band { fill: var(--bf-trim, color-mix(in srgb, var(--bf-corner) 60%, var(--bg))); }
+.boxer-ring .bf-stripe { fill: var(--bf-trim); }
+.boxer-ring .bf-trunks, .boxer-ring .bf-top { fill: var(--bf-main, var(--bf-corner)); }
 .boxer-ring .bf-spot { fill: var(--bf-tk-leopard-spot); }
 .boxer-ring .bf-boot { fill: var(--dim); }
 /* THE CREDIT IS SMALL AND IT IS NEVER HIDDEN. The licence makes naming the author and the licence

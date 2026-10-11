@@ -980,7 +980,15 @@ EXTRA_FILES.forEach(name => {
    EVERY FILLED CELL HAS A SOURCE IN ITS ROW — `look_source` on a boxer, `trunks_source` on a fight —
    because a likeness is a claim about a real man and the owner has to be able to check any of them.
    A look column the figure does not read (`look_skn`) is refused too: a misspelt column is a look
-   nobody will ever draw. */
+   nobody will ever draw.
+
+   AND THE SOURCE MAY NOT CLAIM MORE THAN IT SAW. The first research labelled every skin, hair and
+   beard "medium" in the same sentence that said they were judged from memory and no photograph was
+   opened, and this check took that sentence as the source it asks for. The brief was skin chosen
+   from photographs of the man, by eye. So each filled look cell must be labelled in `look_source`'s
+   "Confidence:" clause — `skin unverified`, `hair high` — and HIGH OR MEDIUM ON SKIN, HAIR, HAIR
+   COLOUR OR FACIAL HAIR NEEDS THE PHOTOGRAPH IT WAS CHECKED AGAINST, written `photo checked: <url>`;
+   a source that says "from memory" can label them nothing but unverified. */
 {
   const findSrc = (() => { try { return fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8'); } catch (e) { return ''; } })();
   const cut = require('./check-marks-load.js').cutFrom(findSrc, 'BOXER_LOOK');
@@ -994,10 +1002,10 @@ EXTRA_FILES.forEach(name => {
     fail.push('data/boxers.json or data/fights.json could not be read — the looks and trunks were NOT checked');
   } else {
     /* ---------- AND EVERY WORD HAS SOMETHING TO DRAW ---------------------------------------------------
-       A WORD IN THE LIST WITH NO SHAPE OR NO COLOUR passes the rule below and draws the stand-in's part
+       A WORD IN THE LIST WITH NO SHAPE OR NO COLOUR passes the rule below and draws a blank's part
        all the same: a hair style missing from `BOXER_HAIR` throws nothing, and a trunks colour with no
        `--bf-tk-*` on `.boxer-ring` leaves the custom property pointing at nothing, which the stylesheet
-       then paints as the corner's colour. So the list is held against the shapes in find.js and the
+       then paints as the corner's muted colour. So the list is held against the shapes in find.js and the
        colours in style.css, word for word. */
     const shapes = n => { try { const c = require('./check-marks-load.js').cutFrom(findSrc, n); return c ? eval('(' + c.replace(/^const \w+ =/, '') + ')') : null; } catch (e) { return null; } };
     const HAIR = shapes('BOXER_HAIR'), FACE = shapes('BOXER_FACE');
@@ -1031,7 +1039,7 @@ EXTRA_FILES.forEach(name => {
     const LOOK = { look_skin: 'skin', look_hair: 'hair', look_hair_colour: 'hair_colour', look_facial: 'facial' };
     const KNOWN_B = Object.keys(LOOK).concat(['trunks_usual', 'look_source']);
     const KNOWN_F = ['trunks_a', 'trunks_b', 'trunks_source'];
-    const n = { looks: 0, cells: 0, usual: 0, corners: 0, fights: 0 };
+    const n = { looks: 0, cells: 0, usual: 0, corners: 0, fights: 0, unverified: 0 };
     boxers.forEach(b => {
       if (!b || typeof b !== 'object') return;
       const who = 'data/boxers.json ' + (b.boxer_id || '?') + ' ' + (b.name || '');
@@ -1048,6 +1056,14 @@ EXTRA_FILES.forEach(name => {
       if (t) { filled++; n.usual++; const why = trunksBad(t); if (why) fail.push(who + ' trunks_usual "' + t + '" ' + why); }
       if (filled) { n.looks++; n.cells += filled; }
       if (filled && !String(b.look_source || '').trim()) fail.push(who + ' has a look and no look_source — say where each value came from');
+      const src = String(b.look_source || ''), seen = /photo checked:\s*https?:\/\//i.test(src), memory = /from memory/i.test(src);
+      Object.keys(LOOK).forEach(col => {
+        if (!String(b[col] == null ? '' : b[col])) return;
+        const m = new RegExp('(^|[\\s,:])' + LOOK[col] + ' (high|medium|unverified)\\b').exec(src);
+        if (!m) { fail.push(who + ' ' + col + ' is filled and look_source does not label it (`' + LOOK[col] + ' unverified`, or high/medium with the photo)'); return; }
+        if (m[2] === 'unverified') { n.unverified++; return; }
+        if (!seen || memory) fail.push(who + ' ' + col + ' is labelled ' + m[2] + ' and ' + (memory ? 'its source says it was judged from memory' : 'no photograph is named (`photo checked: <url>`)') + ' — label it unverified until a photo is checked');
+      });
     });
     fights.forEach(f => {
       if (!f || typeof f !== 'object') return;
@@ -1066,7 +1082,8 @@ EXTRA_FILES.forEach(name => {
       if (filled && !String(f.trunks_source || '').trim()) fail.push(who + ' names trunks and has no trunks_source — say where they came from');
     });
     /* A COUNT, NOT A SILENCE: a vocabulary check over files with no looks in them is not a pass. */
-    console.log('boxers with a look: ' + n.looks + ' of ' + boxers.length + ' (' + n.cells + ' cells, ' + n.usual
+    console.log('boxers with a look: ' + n.looks + ' of ' + boxers.length + ' (' + n.cells + ' cells, ' + n.unverified
+      + ' of them unverified against a photo, ' + n.usual
       + ' with their usual trunks)   fights with trunks: ' + n.fights + ' of ' + fights.length
       + ' (' + n.corners + ' of ' + (2 * fights.length) + ' corners)   — every word one the figure draws');
     if (!n.looks || !n.corners) fail.push('no boxer has a look or no fight has trunks — the vocabulary rule had nothing to check, NOT a pass');

@@ -3347,9 +3347,10 @@ function fightCard_(x) {
      it gets both — small, side by side, the winner's frame in gold. Each is `boxerPic_`'s corner:
      the photo where the boxer's row has one WITH its credit, and the ring placeholder otherwise —
      his eight-bit likeness in the trunks he wore THAT NIGHT where a source names them, and the
-     corner's colour, gold or blue, where none does; the blue corner faces left. An opponent with no
-     row at all (52 corners) gets the old stand-in with his initials, still in that night's trunks
-     when they are known, which is what he is: somebody this library has no picture of.
+     corner's colour, muted, where none does; the blue corner faces left. An opponent with no row at
+     all (53 corners) is a silhouette with his initials — no skin and no hair colour claimed — still
+     in that night's trunks when they are known, which is what he is: somebody this library has no
+     picture of.
 
      LIFTED OVER THE TITLE BY `order`, like the boxer's photo, and hidden from a screen reader: the
      names are the title already, and two pictures announced as the same two names is the title
@@ -3357,7 +3358,13 @@ function fightCard_(x) {
 
      ONE CREDIT LINE FOR BOTH, each part carrying the address it credits, so a face that fails to
      load takes its own credit with it and leaves the other's — see `boxerPicFail_`. */
-  const bxA = boxerOf_(f.aId, f.a) || { name: f.a }, bxB = boxerOf_(f.bId, f.b) || { name: f.b };
+  /* A CORNER WITH NO ROW IS A WOMAN WHEN THE OTHER CORNER IS ONE. Five of the women's opponents have
+     no row (Gogarty, Frazier-Lyde, Persoon, McCaskill, Marshall), and drawn without a `sex` they were
+     the men's figure, bare-chested, beside a woman in her top. A bout is between two women or two
+     men, so the other corner's row says it; nothing else about her is claimed. */
+  const rowA = boxerOf_(f.aId, f.a), rowB = boxerOf_(f.bId, f.b);
+  const women = [rowA, rowB].some(r => r && String(r.sex || '').trim().toUpperCase() === 'F');
+  const bxA = rowA || { name: f.a, sex: women ? 'F' : '' }, bxB = rowB || { name: f.b, sex: women ? 'F' : '' };
   /* EACH CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE where one can be named — `boxerCredit_`, the
      profile's rule, so the two cards cannot credit the same picture two ways. */
   const credits = [bxA, bxB].filter(bx => boxerPicSrc_(bx)).map(bx =>
@@ -5009,7 +5016,7 @@ function boxerInitials_(name) {
 
 /* ---------- THE BOXER IN A BOUT'S CORNER ----------------------------------------------------------
    BY ID, THEN BY NAME, which is `fightCard_`'s order and for its reason: an id beats a name because
-   a name is a cell somebody can edit, and the name is still the fallback because 52 corners have no
+   a name is a cell somebody can edit, and the name is still the fallback because 53 corners have no
    id yet — the opponents nobody has written a row for. */
 function boxerOf_(id, name) {
   const all = (DATA && DATA.boxers) || [];
@@ -5093,15 +5100,31 @@ function boxerSplit_(parts) {
    NIGHT on a fight card, the trim as the waistband and a side stripe — drawn at eight bits, which is
    enough to tell Ali's white-and-black from Frazier's green-and-gold and not enough to pretend to be
    a portrait. Every filled cell has its source beside it in the file (`look_source`,
-   `trunks_source`), and only high- and medium-confidence research was written in.
+   `trunks_source`). A fight's trunks are written only where the source names THAT bout. The looks are
+   labelled UNVERIFIED in `look_source`: they were judged from memory of published photographs, and no
+   photograph was opened — the first thing to check, row by row, against a picture.
 
-   A BLANK IS DRAWN AS THE OLD STAND-IN DREW THAT PART, and blanks are where nobody can say: a fight
-   on black-and-white film, a fighter who changed trunks every night, a hairline no source describes.
-   Paper skin, his short grey hair (gold in the blue corner), the corner's trunks and an ink
-   waistband — so a fighter nobody has described is still exactly the figure every card had before,
-   and a bout nobody photographed in colour is still gold against blue. Nothing is guessed to fill it.
-   One part is the exception, and `boxerFigure_` says why: a hair colour nobody stated, on a fighter
-   whose skin or hair IS on file, is his own skin a shade darker rather than the stand-in's grey.
+   A BLANK CLAIMS NOTHING, and blanks are where nobody can say: a fight on black-and-white film, a
+   fighter who changed trunks every night, a hairline no source describes. That rule was paid for in
+   the review of 10 Oct, which found the old stand-in's parts making claims once they stood beside a
+   described man: its PAPER SKIN AND GOLD HAIR made Cleveland Williams, Trevor Berbick and Andy Ruiz a
+   pale blond man in their own trunks next to Ali, Tyson and Joshua, and its GOLD TRUNKS WITH AN INK
+   WAISTBAND read as a researched gold-and-white pair on 80 profiles. So:
+
+     no row at all        a SILHOUETTE — skin and hair in one shadow tone (`--bf-ghost`), neither a
+                          skin colour nor a hair colour; still in that night's trunks where a source
+                          names them, because that much IS known.
+     no trunks on file    the corner's colour MUTED (`--bf-unsaid-l` / `-r`), a dusky ochre or slate
+                          that no trunks word uses, with a waistband one shade darker in the same
+                          colour and no side stripe — trunks, plainly unrecorded, not a pair of gold
+                          ones with a white trim.
+     no hair colour       on a described fighter, his own skin a shade darker (`boxerFigure_` says why).
+
+   A WOMAN IS DRAWN AS A WOMAN. Nine rows are `sex` F, and the guard pose is a bare torso; until the
+   review she was that torso in her own skin — Taylor's ponytail, Martin's pink trunks, topless. She
+   wears a top now (`BOXER_BODY.top`, in her trunks' colour), and a woman with no hair on file is not
+   given the men's short cap but hair drawn back from the face (`BOXER_HAIR_UNSAID`). A corner with no
+   row is a woman when the other corner is one: a bout is fought between two women or two men.
 
    IT NO LONGER MIRRORS THE SPLASH. The figure began as `tools/boxing.py`'s guard pose, painted by
    the loading screen's `.bx-*` rules; that splash teaches nothing and is being retired, and the card
@@ -5145,6 +5168,9 @@ const BOXER_BODY = {
   stripe: '14:5 15:5 16:5',
   spots: '14:5,9 15:7 16:5,10',
   boot: '20:2-4,11-13 21:2-4,11-14',
+  /* HER TOP: the chest from the shoulders to the ribs, the back arm (x 3) and the midriff (row 12)
+     left bare, so it reads as a crop top over the trunks and not as a long-sleeved shirt. */
+  top: '8:5-8 9:4-9 10:4-7 11:4-7',
 };
 /* EACH HAIR STYLE IS ITS OWN SHAPE, and has to read as that style at this size or it is not worth a
    word of its own: BALD AND SHAVED ARE THE HEAD ALONE (no hair drawn at all); SHORT is the old
@@ -5169,6 +5195,11 @@ const BOXER_HAIR = {
   cornrows: '1:6-9 2:5,10 3:5-6 4:5 5:5',
   dreads: '1:6-9 2:3-10 3:3,5-6 4:3,5 5:3,5 6:3,5 7:3',
 };
+/* HAIR NOBODY DESCRIBED, AND NOT A WORD OF THE VOCABULARY: what the figure draws when `look_hair` is
+   blank. A man keeps the old stand-in's short cap. A WOMAN DOES NOT — the cap read as a man's haircut
+   on Laila Ali, Shields, Holm and the others with no hair on file — so hers is drawn back from the
+   face to a knot at the nape, which is how hair is worn in a ring and claims no style beyond that. */
+const BOXER_HAIR_UNSAID = { M: BOXER_HAIR.short, F: '1:6-9 2:5-10 3:4-6 4:4-5 5:5' };
 /* FACIAL HAIR, OVER THE FACE, in his hair colour. The moustache is the upper lip; a goatee is that
    and the chin; a beard is the jaw from the ear to the chin with the mouth left clear; stubble is the
    beard's pixels at a shadow's strength (`.bf-stubble`); sideburns run down in front of the ear. */
@@ -5209,24 +5240,28 @@ function boxerTrunks_(v) {
 
    THE COLOURS ARE NOT HERE. Each part is a class — `bf-skin`, `bf-hair`, `bf-trunks` — and the
    group says which of the figure's own colours it takes through a custom property, `--bf-skin:
-   var(--bf-s4)`; style.css names those colours on `.boxer-ring` and falls back to the old
-   stand-in's for any property not set. The group also carries the words as classes — `bf-sk-s4`,
-   `bf-hs-short`, `bf-tk-white`, `bf-tt-black` — which style nothing and say, to `check-flow` and
-   to anybody reading the markup, what was drawn. A beard is drawn in the hair colour.
+   var(--bf-s4)`; style.css names those colours on `.boxer-ring` and says, for any property not set,
+   what a part nobody recorded is — a colour that claims nothing (the silhouette, the muted corner).
+   The group also carries the words as classes — `bf-sk-s4`, `bf-hs-short`, `bf-tk-white`,
+   `bf-tt-black` — which style nothing and say, to `check-flow` and
+   to anybody reading the markup, what was drawn. A beard is drawn in the hair colour — black a
+   deeper black on the face than on the head (style.css says why). `bf-f` is a woman: `sex` F.
 
    A HAIR COLOUR NOBODY STATED, ON A MAN WE CAN OTHERWISE DESCRIBE, IS HIS OWN SKIN A SHADE DARKER
    (`.bf-seen` in style.css) — a shape without a colour. The old stand-in's grey on Deontay Wilder's
    skin read as a grey-haired man, and its gold in the blue corner as a blond one: both claims, made
    by a fallback. The shadow claims only that there is hair there, and it is the same for a beard
    under a shaved head (Hagler, Hopkins), whose colour no cell holds either. A fighter with no look at
-   all is not `.bf-seen` and keeps the old stand-in whole. */
-function boxerFigure_(look, trunks, blue) {
+   all is not `.bf-seen`: he is the silhouette. */
+function boxerFigure_(look, trunks, blue, sex) {
   const L = look || {};
+  const woman = String(sex || '').trim().toUpperCase() === 'F';
   const word = (k, v) => { const w = String(v || '').trim().toLowerCase(); return BOXER_LOOK[k].indexOf(w) >= 0 ? w : ''; };
   const skin = word('skin', L.skin), hair = word('hair', L.hair),
         hc = word('hair_colour', L.hairColour), face = word('facial', L.facial);
   const t = boxerTrunks_(trunks);
   const cls = ['bf', blue ? 'bf-r' : 'bf-l'], vars = [];
+  if (woman) cls.push('bf-f');
   if (skin || hair || hc || face) cls.push('bf-seen');
   if (skin) { cls.push('bf-sk-' + skin); vars.push('--bf-skin:var(--bf-' + skin + ')'); }
   if (hair) cls.push('bf-hs-' + hair);
@@ -5241,9 +5276,12 @@ function boxerFigure_(look, trunks, blue) {
   return `<g class="${cls.join(' ')}" transform="${blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)'}"${
       vars.length ? ` style="${vars.join(';')}"` : ''}>`
     + p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body)
-    + p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR.short)
+    + p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M'])
     + p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face])
     + p('bf-eye', BOXER_BODY.eye)
+    /* HER TOP IS IN HER TRUNKS' COLOUR — a fighter's kit — and in the same muted corner colour as
+       the trunks when those are not on file; painted before the gloves, which are held over it. */
+    + (woman ? p('bf-top', BOXER_BODY.top) : '')
     + p('bf-glove', BOXER_BODY.glove)
     + p('bf-band', BOXER_BODY.band)
     + p('bf-trunks', BOXER_BODY.trunks)
@@ -5263,18 +5301,27 @@ function boxerFigure_(look, trunks, blue) {
    keeps every pixel square at any size. The fighter stands on whole pixels — a half-pixel offset is
    a blurred boxer. THE MIDDLE ROPE IS RED AND HAS ITS OWN CLASS, not `bf-rope` with a variant laid
    over it: two rules of one weight on one element, separated only by which comes later in the file,
-   is the contest check/cascade.js exists to refuse. */
-function boxerRing_(name, blue, look, trunks) {
+   is the contest check/cascade.js exists to refuse.
+
+   THE FIGHTER STANDS IN THE DARK, NOT IN THE STAGE LIGHT. `bf-stage` is the arena behind the ring
+   from just above his head to the mat, in `--bf-stage`: the colour every one of his own colours is
+   chosen to show against, by at least 2:1 (check/states.js measures it). The gold light behind the
+   initials now stops above the top rope; until 10 Oct's review it reached his head, and there it sank
+   the deepest skin (Joshua, Foreman, Liston) and black hair into a warm brown murk. Raising the backdrop
+   instead was the other way out, and it does not work here: the middle skin tones and the grey and
+   silver trunks are the backdrop's own brightness then, and would vanish the way black did. */
+function boxerRing_(name, blue, look, trunks, sex) {
   const ropes = [23, 29, 35].map((y, i) =>
     `<rect class="${i === 1 ? 'bf-rope-mid' : 'bf-rope'}" x="3" y="${y}" width="34" height="1"/>`
     + `<rect class="bf-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
     + `<rect class="bf-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
   return `<svg class="boxer-ring" viewBox="0 0 40 50" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">`
+    + `<rect class="bf-stage" x="0" y="17" width="40" height="26"/>`
     + `<rect class="bf-post" x="1" y="18" width="2" height="25"/><rect class="bf-post" x="37" y="18" width="2" height="25"/>`
     + ropes
     + `<rect class="bf-mat" x="0" y="43" width="40" height="2"/><rect class="bf-mat-edge" x="0" y="43" width="40" height="1"/>`
     + `<rect class="bf-apron" x="0" y="45" width="40" height="5"/><rect class="bf-apron-band" x="0" y="46" width="40" height="1"/>`
-    + boxerFigure_(look, trunks, blue)
+    + boxerFigure_(look, trunks, blue, sex)
     + `<text class="boxer-ini" x="20" y="15" font-size="10" text-anchor="middle">${esc(boxerInitials_(name))}</text></svg>`;
 }
 
@@ -5297,11 +5344,12 @@ function boxerPicSrc_(b) {
 
    WHICH TRUNKS: on his profile, the pair he usually wore (`trunks_usual`); in a fight's corner, the
    pair from THAT fight (`trunks_a` / `trunks_b`), passed in as `trunks` — and a fight with no word on
-   them is the corner's colour, NOT his usual pair, because "he usually wore white" is not a source for
-   what he wore that night. The look is his row's either way; an opponent with no row has none. */
+   them is the corner's colour, muted, NOT his usual pair, because "he usually wore white" is not a
+   source for what he wore that night. The look and the sex are his row's either way; an opponent with
+   no row has no look, and the sex `fightCard_` gives him. */
 function boxerPic_(b, corner, won, trunks) {
   const src = boxerPicSrc_(b);
-  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks)}${src
+  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)}${src
     ? `<img class="boxer-img" src="${esc(src)}" alt="${esc(b.name)}" loading="lazy" decoding="async">` : ''}</span>`;
   if (corner) return `<span class="boxer-pic is-small${src ? '' : ' is-none'}${won ? ' won' : ''}">${frame}</span>`;
   /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S

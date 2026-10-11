@@ -583,7 +583,8 @@ function libraryExtras_(d, extra) {
      `look` AND `trunks` ARE THE EIGHT-BIT FIGHTER'S (`boxerFigure_` in find.js): his skin, hair,
      hair colour and facial hair, and the trunks he usually wore. Folded to lower case and trimmed,
      as a cell typed by hand may not be; a word outside the vocabulary is still passed through and the
-     figure draws that part as the old stand-in did — `check-library.js` is what refuses the cell.
+     figure draws that part as though it were blank, claiming nothing — `check-library.js` is what
+     refuses the cell. `sex` (above) is read by the figure too: a woman wears a top.
      `look_source` is NOT mapped: it is for the owner checking a cell in the file, and every phone
      carrying 103 paragraphs of citations for a drawing it never prints would be weight for nobody. */
   const libLook = v => libS(v).trim().toLowerCase();
