@@ -202,9 +202,10 @@ every pair of answers from the two models. Every finding below was reproduced as
    of the same name (`…-001`) is not.
 10. **The fallback thinks less** (nit), now said here and over `AI_MODEL`: 3.5 Flash-Lite defaults to
     Google's minimal thinking level, recommended for classification and extraction; 3.8 Flash thinks more
-    by default (medium, per the review — not re-found in this round's searches). An essay the fallback
-    marks is a lighter read. No `thinkingConfig` is set, deliberately: a level a model refuses is a 400,
-    and a 400 does not fall back. If the owner wants essays held to one depth, set it for the fallback
+    by default — medium, of low, medium and high, by Google Cloud's developer guide to 3.8 Flash, which
+    also says it refuses `minimal` with an error. An essay the fallback marks is a lighter read. No
+    `thinkingConfig` is set, deliberately: a level a model refuses is a 400 — `minimal` on the first
+    model is exactly one — and a 400 does not fall back. If the owner wants essays held to one depth, set it for the fallback
     only, after testing that name.
 11. **Three claims in this note were corrected** (above): the alias's current target is unconfirmed, not
     "3.8 Flash per a third-party report"; 3.5 Flash-Lite is *positioned as* the replacement for 3.1
@@ -227,6 +228,7 @@ the count not given back, a code number in the child's message.
 - Gemini 3.5 Flash-Lite: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite
 - Gemini API, Troubleshooting (503: retry with backoff, or switch model): https://ai.google.dev/gemini-api/docs/troubleshooting
 - Google Cloud, Gemini 3.5 Flash-Lite (retirement on Google Cloud; default thinking level): https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash-lite
+- Google Cloud, Developer's guide to Gemini 3.8 Flash (thinking levels low, medium and high, medium by default; `minimal` refused): https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/guides/gemini-3-8-flash
 - Firebase AI Logic, models (advises against the `-latest` aliases, per the review): https://firebase.google.com/docs/ai-logic/models
 - What's new in Gemini 3.6 Flash and 3.5 Flash-Lite (sampling settings ignored; minimal thinking by default): https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.6
 - Gemini API, Rate limits (429 is per model; where the key's real limits are shown): https://ai.google.dev/gemini-api/docs/rate-limits
