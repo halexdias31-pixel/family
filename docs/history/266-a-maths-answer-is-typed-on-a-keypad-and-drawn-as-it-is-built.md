@@ -68,6 +68,12 @@ script lock, against the `person_id` the gate resolved from the token — never 
 `gemini_model` (blank → `gemini-flash-latest`, Google's alias for the current Flash). Both are seeded
 by `CONFIG_DEFAULTS`. Nothing is written to the sheet: the verdict is advice on practice work.
 
+> **Since 11 Oct — note 344.** A 503 from Gemini was the pupil's answer and cost them a mark. Now a 429,
+> 500, 503 or thrown fetch is asked again (three asks, ~0.8 s and ~2 s apart, jittered) and then the
+> fallback `gemini_model_fallback`; the default models are pinned stable names, not the `-latest` alias
+> (an old `gemini-flash-latest` cell is read as the default); and the day's count is taken before the
+> ask and given back when no mark comes, so the cap counts marks given.
+
 ### Checks
 
 - `check-marking.js` — 15 keypad cases (`(3)/(4)` vs `0.75`, `x^(2)`, `2√(11)`, `12π`/`12pi`, and

@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-11-m-merged";
+const BACKEND_VERSION = "2026-10-11-o-ai-retry";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1584,6 +1584,52 @@ const SCHEMA = {
   ],
 };
 
+/* ---------- WHICH GEMINI MARKS, AND WHAT "MARK WITH AI" DOES WHEN GOOGLE IS FULL ---------------------
+   `aiGemini_` in dopost.gs reads all of these, and `gemini_model` / `gemini_model_fallback` in
+   CONFIG_DEFAULTS name the first two as their defaults -- WHICH IS WHY THEY ARE UP HERE and not beside
+   `AI_ANSWER_MAX`: the backend is one scope, and a `const` read above its own line throws "Cannot access
+   before initialization" as the script loads, which takes every request down with it, not just this one.
+
+   THE OWNER, 11 Oct: *"Ai marking is not working right now Gemini said 503."* -- a pupil's press on a
+   2024 June Foundation maths question, asked of Gemini ONCE. A 503 is UNAVAILABLE, "the model is
+   overloaded": Google's capacity for that one model, not the key and not the quota, and gone again in
+   seconds as often as not. Google's troubleshooting page gives both answers used here -- retry with a
+   growing wait, or move to another model -- and a pupil got neither. AND THE PRESS COST THEM ONE OF THE
+   DAY'S MARKS, because the count was taken before Gemini was asked; see `aiMarkCount_`.
+
+   THE MODELS, checked against Google's own pages on 11 Oct 2026 (sources in docs/history/344):
+     AI_MODEL           gemini-3.8-flash       stable (GA 2 Sep 2026), no shutdown date announced
+     AI_MODEL_FALLBACK  gemini-3.5-flash-lite  stable (GA 21 Jul 2026), the newest Flash-Lite, no shutdown date
+   PINNED NAMES, NEVER A `-latest` ALIAS. Google's models page keeps the alias for "exploratory testing
+   apps and prototypes" because it may point at a preview -- and on 21 Jan 2026 `gemini-flash-latest`
+   did, at `gemini-3-flash-preview`, which is the kind of build that is full first. A pinned name is
+   still retired one day, and a retired name answers 404 -- so a 404 from the first model is handed to
+   the second, where a 400 or a 403 (the key, the account) is not.
+
+   THE WAITS. Up to AI_TRIES asks of each model; between them AI_WAITS -- about 0.8 s, then about 2 s --
+   each moved up to AI_JITTER (30%) either way, so a hundred phones refused in the same second do not
+   all come back in the same second too. The second model is asked at once: its capacity is its own.
+   So six asks at most and at most 7.3 s of waiting in all, and NO ASK IS STARTED once AI_BUDGET_MS
+   (20 s) has gone since the first -- a pupil is watching three dots, and "busy, try again in a minute"
+   at 20 s is kinder than a mark at 50. An ask already started runs as long as Gemini takes, as it always
+   did: a whole essay is marked in seconds to tens of seconds, and `UrlFetchApp` gives up at about a
+   minute on its own.
+
+   ONLY WHAT CAN GET BETTER IS ASKED AGAIN (`AI_AGAIN`): 429 (too many at once), 500 (Google's own
+   fault), 503 (full), and a fetch that threw (no answer at all). A 400 or 403 is the key, the request
+   or the account, and asking again is asking to be told again. AI_BUSY is what the pupil reads when
+   the asking runs out: one sentence and no number, because a status code is the owner's to read, in
+   the log, beside the model that gave it. */
+const AI_MODEL = 'gemini-3.8-flash';
+const AI_MODEL_FALLBACK = 'gemini-3.5-flash-lite';
+const AI_MODEL_OLD_SEED = 'gemini-flash-latest';
+const AI_TRIES = 3;
+const AI_WAITS = [800, 2000];
+const AI_JITTER = 0.3;
+const AI_BUDGET_MS = 20000;
+const AI_AGAIN = [429, 500, 503];
+const AI_BUSY = 'Marking is busy right now — try again in a minute.';
+
 /* Every tunable, with a plain-English note and a starting value. ensureSchema() adds any that
    are missing to the `config` tab and never touches one that's already there — so a value you've
    changed is safe, and a NEW knob arrives documented instead of as a bare key you have to guess
@@ -1629,8 +1675,17 @@ const CONFIG_DEFAULTS = [
      different string, this app has never needed one, and it must never be put in this sheet. */
   /* ---------- AI MARKING ---------------------------------------------------------------------------
      THE KEY IS NOT HERE AND MUST NEVER BE: this tab goes to every phone. It is `GEMINI_API_KEY` in
-     Project Settings → Script Properties. These two are the parts that are safe to show. */
-  ['gemini_model', 'gemini-flash-latest', 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
+     Project Settings → Script Properties. These three are the parts that are safe to show.
+
+     TWO MODELS, BECAUSE ONE WAS A 503 (11 Oct): the first asked up to three times, then the second, on
+     capacity of its own -- the note over `AI_MODEL` above, and docs/history/344.
+
+     A CELL STILL HOLDING THE OLD SEED IS READ AS BLANK. `seedConfig` never rewrites a value, so every
+     sheet seeded before 11 Oct holds `gemini-flash-latest` as though somebody had chosen it -- and a
+     default that moved would have moved nowhere. `aiModels_` reads that one string as "the default";
+     any other name typed here is used as typed. */
+  ['gemini_model', AI_MODEL, 'the Gemini model that marks worded answers. Blank (or the old gemini-flash-latest) = ' + AI_MODEL + '. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
+  ['gemini_model_fallback', AI_MODEL_FALLBACK, 'the model asked when the first one is full, out of reach or retired (Gemini 503, 500, 429 or 404). Blank = ' + AI_MODEL_FALLBACK + '. none = no second model'],
   ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
