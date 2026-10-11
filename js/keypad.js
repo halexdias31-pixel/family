@@ -1764,6 +1764,11 @@ on('qp-ai', (el) => {
       + aiCount_(sent.length) + ', so it was not sent';
     return;
   }
+  /* THE SOUND IS WOKEN NOW, INSIDE THE TAP, because the verdict lands after the network and an iPad lets a
+     page start sound only from a tap (`markHear_`, js/submit.js, note 340). AND WHERE THE CHILD IS, so a
+     verdict that lands after they have swiped on is drawn in its slot and not heard over the next question. */
+  if (typeof markHear_ === 'function') markHear_();
+  const here = typeof markWhere_ === 'function' ? markWhere_() : null;
   el.disabled = true;
   /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: a disabled
      tile loses its plate, which says "nothing to press" -- the wrong sentence for "pressed, marking". */
@@ -1805,9 +1810,12 @@ on('qp-ai', (el) => {
          for were the one kind never recorded. Recorded with the words that were MARKED (`sent`), so an
          essay typed on while Gemini read it is a press about the earlier words, as its kept mark is. */
       const a = Number(d.awarded), m = Number(d.available);
+      /* HEARD ONLY WHERE IT WAS ASKED FOR: the same column and page as the press, with the app in sight --
+         `'late'`, through the context the press woke; anywhere else, `'none'`. */
       if (typeof subRecord_ === 'function') {
         subRecord_(inp.getAttribute('data-k'), sent,
-          Number.isInteger(a) && Number.isInteger(m) && a >= 0 && m >= 1 && a <= m && m < 1000 ? 'ai:' + a + '/' + m : 'sent');
+          Number.isInteger(a) && Number.isInteger(m) && a >= 0 && m >= 1 && a <= m && m < 1000 ? 'ai:' + a + '/' + m : 'sent',
+          here && typeof markWhere_ === 'function' && markWhere_() === here ? 'late' : 'none');
       }
       /* AND THEN THE ESSAY'S LINE, FROM WHAT IS KEPT — after the record, so the verdict line and the
          submission it now reads agree (`subVerdictPaint_` asks both). */

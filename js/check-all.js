@@ -373,6 +373,14 @@ const SUITE = [
      green with the Exit tile at 31px. This asks all four in Chromium. No port to collide on: unset,
      `VIDEOS_PORT` is 0 and the OS picks a free one. */
   { file: 'check/videos.js',  what: 'the videos card: the bar held as you type, Search lets go, one player, full screen either way up', slow: true },
+  /* ---------- AND THE MARKING SOUNDS, HEARD IN A BROWSER -------------------------------------------------
+     *"Make it make a nice noise when they get a question right and a buzzer when wrong."* (note 340).
+     `check-flow.js` proves when a sound is asked for, against a recording AudioContext with an iPad's
+     rules; jsdom has no Web Audio, so what the two sounds ARE is asked here: rendered from the app's own
+     `markTone_`, short, under the Timer's level, the chime rising, and silent at both ends with no step a
+     click would make -- and one real tap on Send is one sound, started inside the tap. About ten
+     seconds. No port to collide on: unset, `SOUNDS_PORT` is 0 and the OS picks a free one. */
+  { file: 'check/sounds.js',  what: 'the chime and the buzzer: short, quiet, no click, and one real tap is one sound', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
      `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
      visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own
