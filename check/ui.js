@@ -1427,6 +1427,8 @@ function inspect(opts) {
   /* AND HOW MANY CONTROLS THE EDGE RULE (4, in `inspect`) MEASURED, per subject, for the same reason: a
      keypad that never came up and a keypad whose every key passed print the same nothing. */
   const edgesMeasured = {};
+  /* AND THE REELS' SOUND TILES, counted for the same reason — see the measurement over `sound`. */
+  let soundMeasured = 0, soundHit = 0;
   const rows = [];
 
   /* ---------- ASK THE APP WHICH COLUMNS IT HAS, ONCE, BEFORE MEASURING ANY OF THEM ---------------
@@ -1766,6 +1768,126 @@ function inspect(opts) {
         }, id);
         if (tinted.length) rows.push({ width, id: label, as: who.as, tinted });
 
+        /* ---------- THE REELS' SOUND TILE, MEASURED ON THE PICTURE IT SITS ON ----------------------
+           THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* A tile on a
+           card is measured by the rules above like every other control; this one sits on a MOVING
+           PICTURE, which none of them can see. Rule 3 composites a colour down the chain of elements
+           behind it and a video's frame is not in that chain, so a mark in `--dim` on a white wall
+           measures as grey on the app's black and passes. So, per reel on the screen (note 323):
+             - it is `tile_`'s: `.tile` with one mark, no words drawn on it;
+             - at least MIN_TAP square, and wholly inside its slide;
+             - READABLE OVER ANY PICTURE: its plate composited over a white frame AND a black one,
+               the mark against each at 3:1 (WCAG 1.4.11, a graphic) — the frame is whatever the clip
+               is showing, so both ends are asked rather than the one that happens to be up;
+             - CLEAR OF THE REEL'S OTHER OVERLAYS: the ▶ disc a held reel draws (a pseudo-element, so
+               the slide is held for one synchronous read and let go), and any words on the slide;
+             - ON TOP, WHERE A FINGER LANDS: `elementFromPoint` at its centre is the tile or something
+               inside it. REVIEW, 10 OCT: every line above is a box and a colour, and none asks what is
+               PAINTED there — `.reel-sound { z-index: -1 }` put the tile under the clip, invisible and
+               impossible to press, and this printed "30 measured, nothing to report" over a shot with
+               no tile in it. A box is a layout position; only a hit test says it is the top thing.
+               ONLY ON THE CARD IN FRONT, AND ONLY WHERE IT CAN BE SEEN. `placeGrid` gives every page but
+               the focused one `pointer-events: none` inline, on purpose (shell.js, "the card in front,
+               not every column's current card"), so the next reel peeking up from below takes no press
+               by design and its first run here reported it as covered by `.screen`. And a pane clips
+               (the star at the foot of a widget, press.js), so a centre outside the viewport or any
+               ancestor that clips is not asked either. The page's INLINE style is read, not the tile's
+               computed one, so a tile that refuses presses itself is still asked. None asked on the
+               column is a finding: the reel in front always has its tile in view.
+           A dead Short hides its tile on purpose (`.reel:has(.feed-art.is-dead) .reel-sound`), so
+           one not drawn there is not a finding; one not drawn anywhere else is. NONE MEASURED ON THE
+           REELS COLUMN IS A FINDING TOO: it always has its clips. */
+        const sound = await page.evaluate(({ sid, minTap }) => {
+          const host = document.getElementById('s-' + sid);
+          const out = [];
+          let n = 0, hitN = 0;
+          if (!host || sid !== 'reel') return { out, n, hitN };
+          const rgba = s => {
+            const m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[\/,]\s*([\d.]+))?/.exec(s || '');
+            return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] == null ? 1 : +m[4] } : null;
+          };
+          const over = (f, g) => ({ r: f.r * f.a + g.r * (1 - f.a), g: f.g * f.a + g.g * (1 - f.a),
+                                    b: f.b * f.a + g.b * (1 - f.a), a: 1 });
+          const lum = c => {
+            const ch = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+            return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
+          };
+          const ratio = (p, q) => { const a = lum(p), b = lum(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+          const hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+          host.querySelectorAll('.reel').forEach(reel => {
+            const art = reel.querySelector('.feed-art');
+            const ar = (art || reel).getBoundingClientRect();
+            if (!ar.width || !ar.height) return;
+            const at = 'reel ' + reel.dataset.reel;
+            const el = reel.querySelector('[data-do="reel-sound"]');
+            const dead = !!(art && art.classList.contains('is-dead'));
+            if (!el) { out.push(`${at} has no Sound control`); return; }
+            const st = getComputedStyle(el);
+            if (st.display === 'none' || st.visibility === 'hidden') {
+              if (!dead) out.push(`${at}: the Sound tile is not drawn on a clip that can play`);
+              return;
+            }
+            n++;
+            if (!el.classList.contains('tile') || el.querySelectorAll('svg.tile-i').length !== 1 || el.textContent.trim())
+              out.push(`${at}: the Sound control is not a tile with one mark — <${el.tagName.toLowerCase()} class="${el.className}"> "${el.textContent.trim()}"`);
+            const r = el.getBoundingClientRect();
+            if (r.width < minTap || r.height < minTap) out.push(`${at}: the Sound tile is ${r.width.toFixed(1)}x${r.height.toFixed(1)}, under ${minTap}px`);
+            if (r.left < ar.left - 0.5 || r.right > ar.right + 0.5 || r.top < ar.top - 0.5 || r.bottom > ar.bottom + 0.5)
+              out.push(`${at}: the Sound tile spills out of its slide — ${[r.left, r.top, r.right, r.bottom].map(Math.round).join(',')} in ${[ar.left, ar.top, ar.right, ar.bottom].map(Math.round).join(',')}`);
+            /* ON TOP: what is painted at the tile's centre, asked only where it can be painted at all. */
+            let seen = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
+            for (let up = el.parentElement; up && up !== document.documentElement; up = up.parentElement) {
+              const us = getComputedStyle(up);
+              if (us.overflowX === 'visible' && us.overflowY === 'visible') continue;
+              const ur = up.getBoundingClientRect();
+              seen = { left: Math.max(seen.left, ur.left), top: Math.max(seen.top, ur.top),
+                       right: Math.min(seen.right, ur.right), bottom: Math.min(seen.bottom, ur.bottom) };
+            }
+            const mx = r.left + r.width / 2, my = r.top + r.height / 2;
+            const pg = el.closest('.page');
+            const front = !pg || pg.style.pointerEvents !== 'none';
+            if (front && mx > seen.left && mx < seen.right && my > seen.top && my < seen.bottom) {
+              hitN++;
+              const h = document.elementFromPoint(mx, my);
+              if (!h || !el.contains(h)) {
+                const nm = h ? '<' + h.tagName.toLowerCase() + (h.className && typeof h.className === 'string'
+                  ? ' class="' + h.className.trim().split(/\s+/).slice(0, 2).join(' ') + '"' : '') + '>' : 'nothing';
+                out.push(`${at}: the Sound tile is not the top thing at its own centre — ${nm} is, so a finger lands there and not on the tile `
+                         + (st.pointerEvents === 'none' ? '(the tile refuses presses: pointer-events none)' : '(the tile is drawn under it)'));
+              }
+            }
+            const plate = rgba(st.backgroundColor) || { r: 0, g: 0, b: 0, a: 0 };
+            const ink = rgba(st.color);
+            [['a white frame', { r: 255, g: 255, b: 255, a: 1 }], ['a black frame', { r: 0, g: 0, b: 0, a: 1 }]].forEach(([nm, g]) => {
+              const ground = over(plate, g);
+              const k = ink ? ratio(over(ink, ground), ground) : 0;
+              if (k < 3) out.push(`${at}: the Sound tile's mark is ${k.toFixed(2)}:1 on ${nm} (needs 3) — ink ${st.color} on plate ${st.backgroundColor}`);
+            });
+            /* THE ▶ OF A HELD REEL: held for one read, and let go before anything can paint. */
+            const was = reel.classList.contains('is-held');
+            if (!was) reel.classList.add('is-held');
+            const ps = getComputedStyle(reel, '::after');
+            const rr = reel.getBoundingClientRect();
+            const pw = parseFloat(ps.width) || 0, ph = parseFloat(ps.height) || 0;
+            if (!was) reel.classList.remove('is-held');
+            const cx = rr.left + rr.width / 2, cy = rr.top + rr.height / 2;
+            if (pw && hit(r, { left: cx - pw / 2, right: cx + pw / 2, top: cy - ph / 2, bottom: cy + ph / 2 }))
+              out.push(`${at}: the Sound tile overlaps the ▶ a held reel draws`);
+            reel.querySelectorAll('.feed-text, .feed-credit, .feed-yt-out').forEach(o => {
+              const os = getComputedStyle(o);
+              const orc = o.getBoundingClientRect();
+              if (os.display === 'none' || !orc.width || !orc.height || !o.textContent.trim()) return;
+              if (hit(r, orc)) out.push(`${at}: the Sound tile overlaps .${o.className.split(/\s+/)[0]} "${o.textContent.trim().slice(0, 24)}"`);
+            });
+          });
+          if (!n) out.push('the reel column drew no Sound tile to measure');
+          else if (!hitN) out.push('no Sound tile on the reel column was in view to hit-test — the reel in front always has one');
+          return { out, n, hitN };
+        }, { sid: id, minTap: MIN_TAP });
+        soundMeasured += sound.n;
+        soundHit += sound.hitN || 0;
+        if (sound.out.length) rows.push({ width, id: label, as: who.as, sound: sound.out });
+
         /* EVERY SQUARE OF EVERY BOARD ONE SIZE — see `BOARDS`. `getBoundingClientRect` and not
            `offsetWidth`, because a cell 24.72px wide and one 24.7px wide are one size and integer
            rounding would call them two; a translate (Connect 4's falling counter) moves a box
@@ -2047,6 +2169,7 @@ function inspect(opts) {
     (r.tinted || []).forEach(f => add('PICTURE NOT AS TAKEN', f, at));
     (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
     (r.loaders || []).forEach(f => add('A WAIT THAT IS NOT THE ONE LOADER, OR MOVES ITS CARD', f, at));
+    (r.sound || []).forEach(f => add('THE REELS\' SOUND TILE ON ITS PICTURE', f, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
@@ -2109,6 +2232,8 @@ function inspect(opts) {
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
+  console.log(`reel Sound tiles measured on their picture (a tile, ${MIN_TAP}px, inside the slide, 3:1 on white and on black, clear of the ▶): ${soundMeasured}, `
+              + `${soundHit} of them in view and hit-tested at their centre (the top thing there is the tile)\n`);
   /* ONE DOT SIZE AND ONE GAP PER WIDTH, across every loader the run met. */
   Object.keys(loaderSizes).forEach(wd => {
     const kinds = [...new Set(loaderSizes[wd].map(x => x.dot + ' gap ' + x.gap))];
