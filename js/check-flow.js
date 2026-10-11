@@ -11500,6 +11500,8 @@ check('a question answered on a made-up surface is one card: its box, a Draw til
   const box = () => host.querySelector('.qp-area .qp-ans-in');
   const pad = () => host.querySelector('.qp-area.is-draw .qpad');
   const faces = () => { try { return JSON.parse(LS.getItem('surfaceFace') || '{}'); } catch (e) { return { unreadable: true }; } };
+  /* THE FACE WORD ALONE: a `type` is kept with the drawing it was chosen over (`type:<sig>`, `padFaceOf_`). */
+  const faceOf = k => String(faces()[k] || '').split(':')[0];
   const kpUp = () => { const k = d.getElementById('kp'); return !!(k && !k.hidden); };
   const pk = 'pad:' + hex.key, ak = 'ans:' + hex.key;
   try {
@@ -11543,7 +11545,7 @@ check('a question answered on a made-up surface is one card: its box, a Draw til
     if (host.querySelector('.qp-area .qp-ans')) bad.push('the box is still drawn beside the surface');
     if (kpUp()) bad.push('the keypad stayed up over the surface, typing into a box that is gone');
     if (said() !== 'Type · has an answer') bad.push('after Draw the tile reads "' + said() + '", wanted "Type · has an answer"');
-    if (faces()[pk] !== 'draw') bad.push('the face was not kept on the device: ' + JSON.stringify(faces()));
+    if (faceOf(pk) !== 'draw') bad.push('the face was not kept on the device: ' + JSON.stringify(faces()));
 
     /* ---------- A STROKE, KEPT WHERE IT ALWAYS WAS ------------------------------------------------------------ */
     if (pad()) {
@@ -11565,7 +11567,7 @@ check('a question answered on a made-up surface is one card: its box, a Draw til
     if (host.querySelector('.qpad')) bad.push('the surface is still drawn after Type');
     if (t.padNow() === pk) bad.push('the pen stayed on, on a pad no longer on the screen -- the drawing would come back holding the card still');
     if (said() !== 'Draw · has a drawing') bad.push('after Type the tile reads "' + said() + '", wanted "Draw · has a drawing"');
-    if (faces()[pk] !== 'type') bad.push('Type was not kept on the device: ' + JSON.stringify(faces()));
+    if (faceOf(pk) !== 'type') bad.push('Type was not kept on the device: ' + JSON.stringify(faces()));
     A['q-draw'](tile());
     if (!pad() || pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('back on the drawing, the stroke is not on it');
     else if (pad().classList.contains('is-drawing')) bad.push('the drawing came back armed');
@@ -11607,6 +11609,28 @@ check('a question answered on a made-up surface is one card: its box, a Draw til
     LS.setItem(ak, '6');
     card(hex);
     if (area().classList.contains('is-draw')) bad.push('with a typed answer and a drawing, on a device that never chose, the card did not open on its box');
+
+    /* ---------- A `Type` CHOSEN OVER ONE DRAWING DOES NOT HIDE THE NEXT ------------------------------------------
+       Found in review: Type pressed here once, over nothing, and a drawing made afterwards on the tutor's iPad
+       (`answersPull_` writes it under the same `pad:` key) -- the card opened on an empty box, the drawing's
+       only sign a "has a drawing" in an `aria-label` nobody sees. A remembered `type` holds over the drawing it
+       was chosen over and no other; pressed over THIS drawing, with nothing typed, it still holds. */
+    w.padFaceForget_();
+    LS.removeItem(pk); LS.removeItem(ak);
+    card(hex);
+    A['q-draw'](tile());
+    A['q-draw'](tile());
+    if (faceOf(pk) !== 'type') bad.push('setup: Draw then Type with nothing drawn did not leave "type" on the device, so a Type over nothing was NOT checked: ' + JSON.stringify(faces()));
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200], [20, 20, 40, 60]]));
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('Type was pressed here once over nothing, then a drawing arrived from the account with nothing typed, and the card opened on an empty box over it');
+    A['q-draw'](tile());
+    card(hex);
+    if (area().classList.contains('is-draw')) bad.push('Type pressed over a drawing with nothing typed did not hold: the card opened on that same drawing again');
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200], [20, 20, 40, 60], [300, 20, 300, 300]]));
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('the drawing grew on another device after Type was pressed over it here, and the card opened on an empty box over the new marks');
+    LS.removeItem(pk);
 
     /* ---------- A SURFACE QUESTION WITH PHOTOGRAPHS: THEY ARE A FIGURE, IN FRONT, AS ANY PART'S ------------------
        The pen-figure rule (the card, then the figure to draw on) was for a picture under the pen; a made-up

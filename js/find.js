@@ -9211,11 +9211,31 @@ function padFaces_() {
   } catch (e) {}
   return PAD_FACE;
 }
+/* ---------- AND WHICH DRAWING `Type` WAS CHOSEN OVER --------------------------------------------------
+   FOUND IN REVIEW, AND IT WAS THE OWNER'S RULE BROKEN BY THE REMEMBERING: Type pressed once on this device,
+   with nothing drawn, and a drawing made afterwards on the tutor's iPad (`answersPull_` brings it here) --
+   the card opened on an empty box, because a stored "type" was asked before "a drawing and nothing typed",
+   and the only sign of the child's work was a pen icon whose "has a drawing" lives in its `aria-label`,
+   which nobody sees on a touch screen. Putting the drawing rule first is not the answer either: then
+   pressing `Type` over an untyped drawing would do nothing a reload could see, which is a choice the
+   device was asked to remember and did not.
+   SO A "type" HOLDS ONLY OVER THE DRAWING IT WAS CHOSEN OVER. It is stored with that drawing's fingerprint
+   -- how many strokes and how long their stored list is, `padSig_` -- as `type:<sig>` (`type` alone over no
+   drawing), and `padFace_` lets "a drawing and nothing typed" win the moment the drawing on the device is
+   not that one. One short string a question, as before. `draw` needs none: it shows the drawing anyway. */
+const padSig_ = marks => (marks && marks.length ? marks.length + '.' + JSON.stringify(marks).length : '');
+function padFaceOf_(k) {
+  const v = String(padFaces_()[k] || '');
+  const at = v.indexOf(':');
+  const face = at < 0 ? v : v.slice(0, at);
+  return face === 'draw' || face === 'type' ? { face: face, over: at < 0 ? '' : v.slice(at + 1) } : null;
+}
 /* THE LATEST LAST, so the oldest are the ones that fall off past the cap. */
 function padFaceSet_(k, face) {
   const all = padFaces_();
   delete all[k];
-  all[k] = face;
+  const sig = face === 'type' ? padSig_(padRead_(k)) : '';
+  all[k] = sig ? face + ':' + sig : face;
   const keys = Object.keys(all);
   keys.slice(0, Math.max(0, keys.length - PAD_FACE_MAX)).forEach(o => { delete all[o]; });
   try { localStorage.setItem(PAD_FACE_STORE, JSON.stringify(all)); } catch (e) {}
@@ -9230,18 +9250,22 @@ const ansTyped_ = x => !!String(ansRead_(ansKey_(x)) || '').trim();
 
 /* ---------- WHICH FACE SHOWS FIRST ---------------------------------------------------------------
    THE BOX, AS ON EVERY OTHER QUESTION -- *"just leave it as an answer box like before"* -- unless:
-     this device last left this question on one face or the other: that face, either way. A child who
-       drew, swiped on and came back is on the drawing; one who pressed `Type` is on the box.
-     nothing was chosen here, and there is a drawing and no typed answer: the drawing, so nobody opens
-       a card whose only work is a picture and reads an empty box as their work gone -- a drawing made
-       on the old surface page, or on another device, before there was a face to remember. */
+     this device last left this question on the drawing: the drawing. A child who drew, swiped on and
+       came back is on the drawing.
+     this device last left it on the box, over THIS drawing: the box. A child who drew, pressed `Type`
+       and came back is on the box -- the drawing they turned from is the one still there.
+     otherwise, there is a drawing and no typed answer: the drawing, so nobody opens a card whose only
+       work is a picture and reads an empty box as their work gone -- a drawing made on the old surface
+       page, on another device, or after `Type` was last pressed here (`padFaceOf_`, above). */
 function padFace_(x) {
   const k = padKey_(x);
   padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
   const held = ansTyped_(x);
-  const said = padFaces_()[k];
-  if (said === 'draw' || said === 'type') return said;
-  return padRead_(k).length && !held ? 'draw' : 'type';
+  const said = padFaceOf_(k);
+  if (said && said.face === 'draw') return 'draw';
+  const marks = padRead_(k);
+  if (said && said.face === 'type' && (held || said.over === padSig_(marks))) return 'type';
+  return marks.length && !held ? 'draw' : 'type';
 }
 
 /* ---------- THE TILE, AND WHAT ITS NOTE SAYS -------------------------------------------------------
@@ -9269,13 +9293,16 @@ function drawTile_(x) {
    `data-q` names the question (its item key) for the tile's handler to find every copy -- Find and Saved
    can both be holding the card. The surface still says what it is not, its page's line cut to fit a
    card: the `figCredit_` argument -- a generated grid passing as the exam board's figure would be the
-   site speaking in the board's voice. */
+   site speaking in the board's voice. CUT AGAIN IN REVIEW to the claim alone, "Not the paper's own
+   figure.", and run on one line with "Saved to Ada's account" (style.css, `.qp-area.is-draw`): two notes
+   under a pen's bar were two lines of a 568px phone the grid needed, and "somewhere to work" is what the
+   surface under it already says by being there. */
 function ansArea_(x) {
   const surf = surfaceOf_(x);
   if (!surf || !x.key) return ansBox_(x);
   const draw = padFace_(x) === 'draw';
   return `<div class="qp-area${draw ? ' is-draw' : ''}" data-q="${esc(x.key)}">${draw
-    ? padWrap_(x, surf.svg, '<p class="fig-by">Not the paper&rsquo;s own figure &mdash; somewhere to work.</p>')
+    ? padWrap_(x, surf.svg, '<p class="fig-by">Not the paper&rsquo;s own figure.</p>')
     : ansBox_(x)}</div>`;
 }
 
@@ -9320,23 +9347,56 @@ on('q-draw', el => {
    that card at about three quarters: three rows of tags, two sentences, the grid, the pen's bar on two
    lines and two notes, every word smaller and every tile under 44px -- to keep a grid at a size nobody
    had asked for. So the GRID is what gets shorter, down to `PAD_FACE_FLOOR` (a square a finger can
-   still draw a reflection in), and only past that is the card drawn smaller. Square, so its width is
-   its height; the ink layer follows the picture's box (`padWrap_`), so a mark lands where it was drawn
-   at any size. Measured at zoom 1 every time -- `paneReach_` resets before it calls this. */
+   still draw a reflection in). Square, so its width is its height; the ink layer follows the picture's
+   box (`padWrap_`), so a mark lands where it was drawn at any size. Measured at zoom 1 every time --
+   `paneReach_` resets before it calls this.
+
+   AND THEN THE WORDS, AND NEVER THE TILES. The review measured what was left after the grid: at 320x568,
+   27 of the 62 surface cards still passed their pane with the grid at its floor, and `paneReach_` drew
+   each of them smaller WHOLE -- the pen's lock, Undo and Clear and the `Type` tile at 31 to 42px, the
+   grid at 126 to 170. The dice-table cards (5-a-day 24 and 30 Oct) went to the 0.7 floor and still did
+   not fit, and since 9px over is inside `PANE_REACH` the pane neither fitted nor scrolled: the `Type`
+   tile was cut in half by the pane's edge, the one way back to the box half there. A tap target is the
+   one size here that must not scale (CLAUDE.md: tap targets in px), and on this face the targets are
+   the point -- the child is drawing. What can give is what was already read: the face was turned to
+   from the box, with the same words over it at full size. So the card's words (its tags and its sheet)
+   are drawn smaller, to `PANE_ZOOM_MIN` like any card's, and the surface, the pen's bar and the row
+   under the card stay the size the stylesheet gave them. A card that still does not fit after that is
+   NOT drawn smaller whole: `paneReach_` scrolls its pane from the first pixel over (`drawn`), so nothing
+   is ever cut off with no way to reach it.
+
+   RESET ON EITHER FACE, so the words come back to full size the moment `Type` turns the card back to its
+   box: `paneReach_` calls this for every pane holding a `.qp-area`, and a zoom left on a box's words by
+   the drawing it replaced would be the card drawn smaller for no reason. `data-face-zoom` marks what this
+   wrote, so only that is undone. */
 const PAD_FACE_FLOOR = 180;
 function padFaceFit_(pane) {
   try {
-    const svg = pane.querySelector('.qp-area.is-draw .qpad-art > svg:first-child');
+    pane.querySelectorAll('[data-face-zoom]').forEach(e => { e.style.zoom = ''; e.removeAttribute('data-face-zoom'); });
+    const area = pane.querySelector('.qp-area.is-draw');
+    const svg = area && area.querySelector('.qpad-art > svg:first-child');
     if (!svg) return;
     svg.style.width = '';
-    const cs = getComputedStyle(pane);
-    const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-    const over = (pane.scrollHeight - pad) - (pane.clientHeight - pad);
+    const over = () => pane.scrollHeight - pane.clientHeight;
+    let by = over();
+    if (!(by > 2)) return;
     const w = svg.getBoundingClientRect().width;
-    if (!(over > 2) || !(w > 0)) return;
-    const fit = Math.max(PAD_FACE_FLOOR, Math.floor(w - over - 4));
-    if (fit < w) svg.style.width = fit + 'px';
-  } catch (e) { /* the stylesheet's cap stands */ }
+    if (w > 0) {
+      const fit = Math.max(PAD_FACE_FLOOR, Math.floor(w - by - 4));
+      if (fit < w) svg.style.width = fit + 'px';
+      by = over();
+      if (!(by > 2)) return;
+    }
+    /* THE CARD'S OWN CHILDREN THAT ARE NOT THE ANSWER: `qPage_`'s tags and the `.qsheet`. Their heights at
+       zoom 1, and the zoom that takes `by` (and the four pixels `paneReach_` keeps for a border and a line
+       box) off them -- which fits or overshoots, never undershoots, because words drawn smaller wrap less. */
+    const card = area.closest('.qcard');
+    const words = card ? [].filter.call(card.children, e => e !== area && !e.contains(area)) : [];
+    const h = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
+    if (!(h > 0)) return;
+    const z = Math.max(PANE_ZOOM_MIN, Math.floor((h - by - 4) / h * 1000) / 1000);
+    if (z < 1) words.forEach(e => { e.style.zoom = String(z); e.setAttribute('data-face-zoom', ''); });
+  } catch (e) { /* the stylesheet's cap stands, and `paneReach_` scrolls what is left */ }
 }
 function padFaceRedraw_(x) {
   if (typeof document === 'undefined' || !x) return;
@@ -14403,8 +14463,17 @@ function paneReach_(panes) {
        full size. Only panes that hold one, so every other pane is measured exactly as before. */
     if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
     /* AND A SURFACE SWITCHED TO ON ITS CARD GIVES WAY THE SAME WAY -- `padFaceFit_`, the sheet's answer one
-       face along (327): the grid gets smaller before the words and the pen's 44px tiles do. */
-    list.forEach(p => { if (p.querySelector('.qp-area.is-draw')) padFaceFit_(p); });
+       face along (327): the grid gets smaller, then the words, and the pen's 44px tiles and the row with
+       `Type` in it never do. Every pane holding a `.qp-area`, either face, so a card turned back to its box
+       has its words put back to full size. */
+    list.forEach(p => { if (p.querySelector('.qp-area')) padFaceFit_(p); });
+    /* ---------- AND A CARD SWITCHED TO ITS DRAWING IS NEVER DRAWN SMALLER WHOLE -------------------------------
+       The open list's answer below, for the same reason: what is on it is there to be pressed and drawn on,
+       at a fingertip's size. `padFaceFit_` has already taken what can give (the grid to its floor, the words
+       to the zoom floor); what is still over scrolls from its first pixel, so the row under the card -- the
+       one way back to the box -- is never cut off by the pane with no scroll to reach it. Found in review:
+       the 5-a-day dice tables at 320x568, drawn whole at 0.7 and still 9px over, `Type` cut in half. */
+    const drawn = list.map(p => !!p.querySelector('.qp-area.is-draw'));
     const pad = p => {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
@@ -14424,7 +14493,7 @@ function paneReach_(panes) {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
-      if (ticks[i]) return 1;
+      if (ticks[i] || drawn[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
       const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
@@ -14493,14 +14562,23 @@ function paneReach_(panes) {
     /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: drawn at full size
        instead of fitted, the little it is over is the card's own foot — the Send tile — and 24px of that
        clipped with no scroll is a tile half there. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i]) && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > (ticks[i] ? 2 : PANE_REACH));
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || drawn[i]) && want[i] === 1))
+      && p.scrollHeight - p.clientHeight > (ticks[i] || drawn[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */
     list.forEach((p, i) => {
       const to = over[i] ? 'auto' : '';
-      if (p.style.overflowY !== to) p.style.overflowY = to;
+      if (p.style.overflowY !== to) {
+        p.style.overflowY = to;
+        /* A CARD ON ITS DRAWING THAT HAS TO SCROLL OPENS SCROLLED TO ITS FOOT: the surface, the pen's bar and
+           the row with `Type` in it -- the one way back to the box -- on the glass, and the words, read on
+           the box a moment ago, the part a finger scrolls back to. Opened at its top, the 5-a-day dice
+           tables at 320x568 put `Type` 50 to 100px under the fold of a pane with no scrollbar: a switch you
+           can turn on and then cannot see to turn off. Once, as the pane starts to scroll; never again
+           while it does, so a child who scrolled up to read is left where they are. */
+        if (to && drawn[i]) p.scrollTop = p.scrollHeight;
+      }
     });
   } catch (e) {}
 }

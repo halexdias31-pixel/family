@@ -843,6 +843,110 @@ const STATES = {
         if (it) { it.surface = window.__faceHad || ''; CHUNK_MEMO.delete(it); }
         padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
+    /* ---------- A TALL QUESTION SWITCHED TO ITS DRAWING: EVERY TILE A FINGERTIP, AND `Type` ON THE GLASS -----------
+       FOUND IN REVIEW OF 327, at 320x568: with the grid at its floor, 27 of the 62 surface cards still passed
+       their pane and `paneReach_` drew each of them smaller WHOLE -- the pen's lock, Undo and Clear and the
+       `Type` tile at 31 to 42px. This card was the worst: 5-a-day 24 October Q4a, a 7x7 dice table above
+       the grid, drawn at the 0.7 floor and still 9px over, so the pane neither fitted nor scrolled and `Type`
+       -- the one way back to the box -- was cut in half by its edge. Now the grid gives way, then the words,
+       never the tiles, and a card still over scrolls to its foot (`padFaceFit_`, `paneReach_`).
+       THE `expect` IS THE RULE, because nothing else here can see it: `check/ui.js` judges a control at the
+       size the stylesheet gave it (a whole card drawn at 0.7 has 44px tiles as far as it knows), and a pane
+       9px over is inside `PANE_REACH`'s tolerance. So this asks the glass: every pen tile and `Type` at 44px
+       on the screen, no card drawn smaller whole, and `Type` inside its pane and hit at 90% of its height --
+       the reviewer's own test, which missed it at 85% and 95%. Every width; it was red at 320. */
+    { name: 'a tall question switched to the drawing, its tiles a fingertip and Type on the glass',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-5AD-F-1024-5');
+        if (!it) throw new Error('Q-CBM-5AD-F-1024-5 (5-a-day 24 October, the dice table) is not in the library');
+        if (typeof surfaceOf_ !== 'function' || !surfaceOf_(it)) throw new Error('Q-CBM-5AD-F-1024-5 is not answered on a surface any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* THE TILE `drawTile_` DRAWS, pressed through its own handler, as the hexagon's state does: the page is
+           filled a frame after `goPage`, and the handler rewrites every copy on the screen and keeps the face. */
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-CBM-5AD-F-1024-5 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        if (!a || !a.classList.contains('is-draw')) return false;
+        const pane = a.closest('.pane');
+        const tile = [...a.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        if (!pane || !tile) return false;
+        const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
+        const taps = [...a.querySelectorAll('.qpad-bar [data-do]')].concat([tile]);
+        const pr = pane.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+        const hit = document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height * 0.9);
+        /* AND THE PANE SCROLLS ONLY ONCE THE WORDS HAVE GIVEN ALL THEY CAN: a card that scrolls with its words
+           at full size is the owner's "I don't like scrolling" for nothing. */
+        const words = a.closest('.qcard').querySelector(':scope > .qsheet');
+        const gave = words && Math.abs(parseFloat(words.style.zoom || '1') - PANE_ZOOM_MIN) < 0.001;
+        return taps.length >= 4 && taps.every(e => side(e) >= 43.5)
+               && [...pane.children].every(k => !k.style.zoom)
+               && tr.top >= pr.top - 0.5 && tr.bottom <= pr.bottom + 0.5
+               && !!hit && tile.contains(hit)
+               && (pane.style.overflowY !== 'auto' || !!gave);
+      },
+      wants: 'the dice-table card on its drawing with the lock, Undo, Clear and Type at 44px on the glass, nothing drawn smaller whole, Type inside its pane where a press lands on it, and no scroll before its words have given way',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND THE PEN'S TOAST OVER THE ROW TAKES NO PRESS ------------------------------------------------
+       FOUND IN REVIEW OF 327: on the drawing, the row under the card sits at the foot of the column, which is
+       where `toast()` speaks -- "Cleared. Undo puts it back.", "Nothing to undo" -- and for 2.6 seconds a tap
+       on `Type` landed on the toast and nothing switched; at 320x568 the hit test at the tile's centre
+       returned the toast. The toast is words with nothing to press, so it passes every press through
+       (`#toast`, style.css). Cleared through the pen's own handler, on the owner's hexagon with a stroke on
+       it; the toast's own timer stopped so it is still up when this is measured, and taken down on leave.
+       Asked at the toast's centre (a press there reaches what is under it, at every width) and at `Type`'s
+       (a press on the tile is the tile's, whether or not the toast is over it at this width). */
+    { name: 'a question switched to the drawing and Cleared, the toast over its row taking no press',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-2d-shapes-2');
+        if (!it) throw new Error('Q-CBM-2d-shapes-2 ("How many sides has a hexagon?") is not in the library');
+        window.__faceItem = it;
+        try { localStorage.setItem(padKey_(it), JSON.stringify([[60, 60, 200, 60, 200, 200]])); } catch (e) {}
+        padFaceSet_(padKey_(it), 'draw');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* PRESSED ONCE THE PAGE IS FILLED -- a frame or two after `goPage`, longer on a busy machine -- and
+           `expect` waits for the toast it says. */
+        const press = n => {
+          const a = [...document.querySelectorAll('#s-stuff .page.on .qp-area.is-draw')].find(e => e.getAttribute('data-q') === it.key);
+          const clear = a && a.querySelector('.qpad-clear');
+          if (clear) { ACTIONS['pad-clear'](clear); clearTimeout(toastTimer); }
+          else if (n > 0) setTimeout(() => press(n - 1), 100);
+        };
+        press(25);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const t = document.getElementById('toast');
+        if (!t || !/Cleared/.test(t.textContent)) return false;
+        const page = document.querySelector('#s-stuff .page.on');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        if (!tile) return false;
+        const r = t.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const on = document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height / 2);
+        return !!at && !t.contains(at) && !!on && tile.contains(on);
+      },
+      wants: 'the hexagon on its drawing just Cleared, the toast up over the foot of the column, and a press at the toast or at Type reaching what is under it',
+      leave: () => {
+        const it = window.__faceItem;
+        try { localStorage.removeItem(padKey_(it)); } catch (e) {}
+        try { PAD_CLEARED.delete(padKey_(it)); } catch (e) {}
+        const t = document.getElementById('toast');
+        if (t) t.remove();
+        padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- "USE YOUR GRAPH", WITH THE GRAPH IN FRONT OF IT --------------------------------------------
        The multi-part audit's finding 5, on the row it named: June 2024 Foundation Paper 2, Q24(c) "Use your
        graph to find estimates for the solutions of x^2 - x = 4", whose `uses` is (b). The curve (b) asks

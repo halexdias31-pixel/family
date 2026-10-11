@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-10-draw-is-a-switch";
+  --css-version: "2026-10-10-draw-is-a-switch-2";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1514,8 +1514,17 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 /* ---------- THE TOAST ---------------------------------------------------------------------------
    Above the bar, never over it. A message covering the way out traps somebody inside whatever went
    wrong.
---------------------------------------------------------------------------------------------- */
+
+   AND IT TAKES NO PRESSES, so it can never cover a way out at all. It is words and nothing else --
+   `toast()` sets `textContent`, there is no button in it to press and nothing listens to it -- yet for
+   2.6 seconds it was a box over the foot of the column, and the foot of the column is where a card's row
+   of tiles sits. Found in review of 327: on a question switched to its drawing, Clear said "Cleared. Undo
+   puts it back." exactly over the `Type` tile, and a tap on Type 0.4s later landed on the toast and
+   nothing switched; at 320x568 the hit test at the tile's centre returned the toast. `#reconnect` already
+   takes none for the same reason ("a line that swallowed the tap beneath it would be a fault of its
+   own"); this is that rule for the other line that speaks over the column. */
 #toast {
+  pointer-events: none;
   bottom: calc(var(--bar) + var(--safe-bottom) + .85rem); z-index: 50;
   width: auto; max-width: calc(var(--app) - 2.5rem);
   padding: .62rem 1rem; border-radius: 2px;
@@ -12450,6 +12459,19 @@ button.scr-sq { cursor: pointer; }
    made smaller again by `padFaceFit_` (find.js) before the card itself is drawn smaller. */
 .qp-area.is-draw > .qpad { margin: .9rem 0 .2rem; }
 .qp-area.is-draw .qpad-art > svg:first-child { width: min(100%, 20rem, 44svh); }
+/* ONE LINE OF SMALL PRINT UNDER THE BAR, NOT TWO. "Not the paper's own figure." and "Saved to Ada's
+   account" are both footnotes in one voice (`.qpad > .fig-by` takes `.qpad-note`'s), and stacked they
+   were two lines of a 568px phone that the grid and the row with `Type` needed -- the review counted 27
+   of the 62 surface cards at 320x568 drawn smaller whole to keep them. Run on, they are one sentence
+   after another; the note is still its own element, so `ansSavedPaint_` rewrites it to "Not saved" in
+   place exactly as before. The bar keeps the gap the first note's margin used to give. AND THE PAD TAKES
+   THE NOTES' OWN SIZE, because run-in text sits on its block's line, and `.qpad`'s line was the card's
+   body text: the first look had the two notes wrapped onto a second line a whole body-line further
+   down, a gap wider than the line saved. Everything else in `.qpad` sizes itself -- the tiles in px,
+   the picture at `line-height: 0`. */
+.qp-area.is-draw > .qpad { font: 400 .62rem/1.4 var(--font); }
+.qp-area.is-draw .qpad-bar { margin-bottom: .35rem; }
+.qp-area.is-draw .qpad > .fig-by, .qp-area.is-draw .qpad > .qpad-note { display: inline; margin: 0; }
 .qpad-ink {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; touch-action: auto; overflow: visible;
