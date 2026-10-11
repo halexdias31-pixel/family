@@ -1147,6 +1147,17 @@ function doPost(e) {
       if (renamed) {
         full = (S(fields.first_name !== undefined ? fields.first_name : r.first_name) + ' ' +
                 S(fields.last_name  !== undefined ? fields.last_name  : r.last_name)).trim();
+        /* ---------- AND THE NAME THEY HAD GOES ONTO `name_was` ---------------------------------------
+           THE REVIEW OF 10 OCT, "Brackenridge": a child booked, then corrected her surname — and the
+           events stored under her old whole name were nobody's any more, so the net that calls a child
+           by her first name (`kidNamesOff_`, people.gs) did not know them, and the old surname went to a
+           signed-out stranger in her seat. `kidNamesIndex_` reads this column too. Only when the whole
+           name really moves, and only where the column is: a missing one is `ensureSchema`'s to add on
+           the first request after the deploy, and a rename must not fail for want of it. */
+        const before = personDisplayName(r);
+        if (t.headers.indexOf('name_was') !== -1 && key(before) && key(before) !== key(full)) {
+          put.name_was = nameWasWith_(r.name_was, before);
+        }
       }
 
       /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: a cell already holding what is asked
@@ -3974,7 +3985,13 @@ function doPost(e) {
         /* AND WHICH CHILDREN IT IS FOR. Different from the split: those are other FAMILIES sharing
            the cost, these are the people in the chairs. A tutor needs the second one and has never
            been told it. */
-        for_children: S(body.kids),
+        /* A CHILD WHO IS ONLY WORDS IN THE BOOKER'S OWN `children` CELL GOES IN BY HER FIRST WORD, as
+           `childNamesOf` offers her now (`kidsForJob_`) — a phone signed in before that, or a request
+           built by hand, could still send the cell's whole words, and nothing on the people tab would
+           know them on the way out to the tutor. Every other name as the phone sent it: a child with a
+           row is the net's to say. */
+        for_children: kidsForJob_(S(body.kids), (asker && hasRole(asker, 'admin') && S(body.clientName))
+          ? findPerson(S(body.clientName)) : asker),
         /* TRUE only where they said so. `TRUE_` reads the word; anything else — blank, absent, an
            older booking — is a no. */
         open_to_others: TRUE_(body.openToOthers) ? 'TRUE' : 'FALSE',

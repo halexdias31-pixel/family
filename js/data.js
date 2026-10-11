@@ -186,10 +186,16 @@ function nameBesideHandle_(name, handle) {
    device has the first name already, in the Settings boxes the sign-in reply brought (`profile`), so it is
    put in place here, before anything is drawn. `myProfile` then says the server's form, which carries her
    handle as well when another child shares her first name. Only for a kid, and only over a name that is
-   that first name and more: anybody else's is theirs, and a name the server already shortened is left. */
+   that first name and more: anybody else's is theirs, and a name the server already shortened is left.
+   A KID AS THE SERVER DECIDES IT (`isChild_`, people.gs): `kid` among her roles and nothing grown-up in
+   effect — a Tutor tick still waiting (`tutorPending`) counts for nothing, so a child who ticked it in
+   her Settings is still a kid here, though `role` says `tutor`. */
 try {
   const p = USER && USER.profile, first = String((p && p.first_name) || '').trim();
-  if (USER && String(USER.role || '') === 'kid' && first && String(USER.name || '').indexOf(first + ' ') === 0
+  const rs = USER ? (Array.isArray(USER.roles) && USER.roles.length ? USER.roles : [USER.role]).map(String) : [];
+  const kid = rs.indexOf('kid') !== -1
+    && !rs.some(x => x === 'admin' || x === 'parent' || (x === 'tutor' && !USER.tutorPending));
+  if (USER && kid && first && String(USER.name || '').indexOf(first + ' ') === 0
       && String(USER.name).indexOf('(@') === -1) USER.name = first;
 } catch (e) {}
 

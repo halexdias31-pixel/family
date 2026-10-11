@@ -178,10 +178,25 @@ function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
   const c = t.headers.indexOf(field);
   if (c < 0) { missedWrite_(t, field); return false; }
+  value = kidNamesKept_(row[field], value, field);
   t.sheet.getRange(row._row, c + 1).setValue(cellSafe_(value));
   row[field] = value;              // read-after-write within this request now sees the truth
   POST_WROTE = true;               // the stored payload no longer matches the sheet
+  kidMemoDrop_(t);                 // a name on the people tab may just have changed
   return true;
+}
+
+/* ---------- WHAT THE NET SHORTENED ON THE WAY OUT IS NOT WRITTEN BACK SHORT ------------------------
+   THE OWNER, 10 OCT: *"dont show children's last name"* — so every reply goes through `kidNamesOff_`
+   (people.gs), and a caption, a notepad or a Settings box reaches the phone with a child's surname
+   taken out. Saved back as drawn, that text would go over the sheet's, and the surname would be gone
+   from the one place that keeps it (the review of 10 Oct: the admin pinned a post and its caption lost
+   the name; a parent added a line to her notepad and every line above it lost it). Here because these
+   two are the only functions that change a cell, as `jsonOut` is the only door out — a route written
+   next year cannot forget. A failure keeps what was sent: this must never cost the write. */
+function kidNamesKept_(have, want, field) {
+  if (typeof have !== 'string' || typeof want !== 'string' || !have || have === want) return want;
+  try { return kidNamesBack_(have, want, field); } catch (err) { return want; }
 }
 
 /* ---------- A STRING THAT STARTS LIKE A FORMULA IS WRITTEN AS TEXT --------------------------------
@@ -230,8 +245,11 @@ function setCells(t, row, values) {
   Object.keys(values || {}).forEach(f => {
     const c = t.headers.indexOf(f);
     if (c < 0) { missedWrite_(t, f); return; }
-    if (sameCell_(row[f], values[f])) return;
-    cells.push({ c: c, f: f, v: values[f] });
+    /* THE NET'S SHORTENING UNDONE FIRST (`kidNamesKept_`), so a box sent back as it was drawn is a box
+       that did not change, and is skipped like one. */
+    const v = kidNamesKept_(row[f], values[f], f);
+    if (sameCell_(row[f], v)) return;
+    cells.push({ c: c, f: f, v: v });
   });
   if (!cells.length) return [];
   cells.sort((a, b) => a.c - b.c);
@@ -245,6 +263,7 @@ function setCells(t, row, values) {
   });
   cells.forEach(x => { row[x.f] = x.v; });   // read-after-write within this request sees the truth
   POST_WROTE = true;                          // the stored payload no longer matches the sheet
+  kidMemoDrop_(t);                            // a name on the people tab may just have changed
   return cells.map(x => x.f);
 }
 
@@ -276,6 +295,7 @@ function addRow(t, obj) {
   POST_WROTE = true;               // the stored payload no longer matches the sheet
   const row = Object.assign({ _row: t.sheet.getLastRow() }, obj);
   t.rows.push(row);
+  kidMemoDrop_(t);
   return row;
 }
 
@@ -314,6 +334,7 @@ function delRow(t, row) {
     if (i >= 0) t.rows.splice(i, 1);
     t.rows.forEach(r => { if (r && r._row > at) r._row -= 1; });
   }
+  kidMemoDrop_(t);
   return true;
 }
 

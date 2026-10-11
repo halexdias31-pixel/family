@@ -885,9 +885,14 @@ function doGet(e) {
              score and the avatar). A person's OWN family arrives in `payload.family`, and their own
              friends on their own row, which is where each belongs. Not sent is not leaked. */
           avatar: S(r.avatar),
-          /* THE FIRST NAME, as it always was — through `nameFor_` now, so a row with no first name
-             falls back to its handle and never to the surname it does have. */
-          name: nameFor_(r, true),
+          /* THE FIRST NAME, AS IT ALWAYS WAS — for everybody on the board, child or not: it said
+             `S(r.first_name) || name`. `kidFirst_` is that first name, or the handle where a row has none,
+             and never the lone surname such a row does have. `nameFor_(r, true)` stood here for a few
+             hours and was the WHOLE name for anybody holding `student` who is not a child — a parent
+             who is also learning, a student-tutor — and the board goes to every signed-in phone (the
+             review of 10 Oct: "Gus Hartwell" where it had always said "Gus"). `nameFor_` only for a row
+             with neither, so a grown-up with nothing else keeps the name they had here. */
+          name: kidFirst_(r) || nameFor_(r, true),
           handle: S(r.handle),
           xp: N(r.xp), credits: N(r.credits),
           highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
