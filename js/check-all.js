@@ -377,10 +377,12 @@ const SUITE = [
      *"Make it make a nice noise when they get a question right and a buzzer when wrong."* (note 340).
      `check-flow.js` proves when a sound is asked for, against a recording AudioContext with an iPad's
      rules; jsdom has no Web Audio, so what the two sounds ARE is asked here: rendered from the app's own
-     `markTone_`, short, under the Timer's level, the chime rising, and silent at both ends with no step a
-     click would make -- and one real tap on Send is one sound, started inside the tap. About ten
-     seconds. No port to collide on: unset, `SOUNDS_PORT` is 0 and the OS picks a free one. */
-  { file: 'check/sounds.js',  what: 'the chime and the buzzer: short, quiet, no click, and one real tap is one sound', slow: true },
+     `markTone_`, short, under the Timer's level, the chime rising, silent at both ends with no step a
+     click would make, and the buzzer as loud as the chime TO AN EAR (A-weighted, and through a phone's
+     speaker) -- and one real tap on Send is one sound, the context made and woken inside the tap, and at
+     rest when nothing plays. About fifteen seconds. No port to collide on: unset, `SOUNDS_PORT` is 0 and
+     the OS picks a free one. */
+  { file: 'check/sounds.js',  what: 'the chime and the buzzer: short, quiet, as loud as each other to an ear, no click, one real tap one sound, at rest when nothing plays', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
      `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
      visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own
