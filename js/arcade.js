@@ -302,7 +302,6 @@ function savedCards_() {
 /* STARTED AND STOPPED LIKE THE OTHER TWO COLUMNS. A starred timer is a running timer, and a canvas
    loop behind a screen nobody is looking at is the flat battery `toolsStop_` already exists for. */
 function savedStart_(arriving) {
-  toolsStop_();
   widgetsWake_(savedWidgets_(), 'saved', arriving);
 }
 
@@ -316,12 +315,87 @@ function savedStart_(arriving) {
    because somebody scrolled past a timer is worse than the battery it saves.
 
    `stop` IS STILL CALLED WHEN THE COLUMN LEAVES — see `toolsStop_`. A canvas loop running behind a
-   screen nobody is looking at is a flat battery for nothing, and that argument has not changed. */
+   screen nobody is looking at is a flat battery for nothing, and that argument has not changed.
+   "LEAVES" MEANS LEAVES THE GLASS NOW, not "stops being the column in front" — see `widgetsGlass_`
+   below, and docs/history/331. */
+/* ONE ENTRY PER WIDGET, NOT ONE PER COPY: `{ w, col, slot, who }` — the widget, the column it was
+   started on, the slot it was started in and whom it was started for. A starred widget is drawn on its
+   own column and on Saved, and it is one widget with one set of state behind it (a timer's clock, a
+   board's game), so it is started once and drives one copy; `slot` is how anything here tells which,
+   and how a paint that threw the markup away is noticed (`isConnected`). `who` is `widgetWho_()`. */
 let TOOLS_ON = [];
 
+/* WHOM A WIDGET WAS STARTED FOR — the person signed in, or nobody. A widget's state can be a person's
+   (the notepad's words, the whiteboard's strokes), and the next person to pick up the shared iPad is not
+   them: what was started for somebody else is neither carried through a paint nor kept running beside
+   the column in front (`widgetsHeld_`, `widgetsGlass_`). */
+function widgetWho_() {
+  try { return typeof USER !== 'undefined' && USER ? String(USER.personId || USER.name || '') : ''; }
+  catch (e) { return ''; }
+}
+
+/* ---------- A PAINT DOES NOT THROW AWAY THE SLOT A WIDGET IS RUNNING IN ----------------------------------
+   FOUND BY THE REVIEW OF 331, on the owner's own path: open the app on Settings at ~1194, and the
+   calculator on Tools beside it is drawn and running. About two seconds in the inbox lands and `repaint`
+   marks every column but Settings `STALE` — Tools keeps its markup, because a column is redrawn when it
+   is arrived at and not before. So the first arrival at Tools redrew it under the running calculator:
+   the slot it ran in was thrown away, the new one was drawn under the loader, and 240–690ms later the
+   calculator was started again in it, from nothing. Drawn, three dots, drawn — on the column the owner
+   had complained about — and a sum typed into it beside Settings came back as 0. A press on its "7"
+   beside Settings (which is a press that takes you there) lost the 7 the same way.
+   SO `paint` HANDS BACK EVERY SLOT A WIDGET IS RUNNING IN ON THE COLUMN IT IS DRAWING: `widgetsHeld_`
+   before the new markup goes in, and `widgetsBack_` after, which puts each running slot where the new
+   markup drew that widget's — the card, its star and every other widget are the new markup, and the
+   widget is the one that was running, as it was. The arrival then finds it running in a slot still in
+   the document and leaves it (`widgetsWake_`). A widget the new markup no longer draws (signed out of
+   the role that showed it) has nowhere to go, and is stopped like any widget whose slot has gone.
+   NOT ACROSS A CHANGE OF PERSON (`who`), because then what the slot holds is the last person's. And NOT
+   FOR A REPAINT OF THE COLUMN IN FRONT, which draws it from nothing and starts its widgets again at once
+   (`paint(AT, true)`, `startScreen_`): a repaint is the facts changing under the column you are on, and
+   that has always been a restart. */
+function widgetsHeld_(col) {
+  const who = widgetWho_();
+  return TOOLS_ON.filter(e => e.col === col && e.slot && e.slot.isConnected && e.who === who);
+}
+function widgetsBack_(col, held) {
+  held.forEach(e => {
+    const fresh = slotOn_(col, String(e.w.id));
+    if (fresh && fresh !== e.slot) fresh.replaceWith(e.slot);
+  });
+}
+
 function toolsStart_(kind, arriving) {
-  toolsStop_();
   widgetsWake_(widgetsOf_(kind), kind === 'tool' ? 'tools' : kind === 'game' ? 'games' : kind, arriving);
+}
+
+/* WHICH WIDGETS A COLUMN HOLDS, by its id — the lists `toolsStart_` and `savedStart_` start from,
+   asked by `widgetsGlass_` of a column beside the one in front. Every column that draws widgets with
+   `widgetOnColumn_`, and no other: Find's widget card is `startWidget_`'s, one at a time, and is not
+   this file's to start. */
+const WIDGET_COLS = ['shop', 'tools', 'games', 'saved'];
+function widgetsOn_(col) {
+  if (col === 'saved') return savedWidgets_();
+  if (col === 'tools') return widgetsOf_('tool');
+  if (col === 'games') return widgetsOf_('game');
+  if (col === 'shop') return widgetsOf_('shop');
+  return [];
+}
+
+/* THE SLOT ON THAT COLUMN, NOT `$()`'s — the note on `widgetUp_` says why. BY ITS ID, SCOPED TO THE
+   COLUMN, because a browser answers `#id` from its own map of ids even inside an element and even when
+   the id is on the page twice. The first version walked every `.widget-slot` under the column — the
+   whole Games column, the Scrabble board's 225 squares and the chess board's 64 — for each widget, twice
+   per comparison of the queue's sort, in the steps that run between a swipe and the next. Measured with
+   check/press.js's chained flick on Games at 390, repeated: 14 of 48 second flicks dropped against 8 of
+   48 on the base commit at the same load; with this, 12 of 48 against 12. That probe is noisy at a load
+   average of thirty and the walk may not have been the whole of it, but it was work done for nothing.
+   The walk is kept for a browser with no `CSS.escape` (jsdom), where it is the only way. */
+function slotOn_(col, id) {
+  const host = col && document.getElementById('s-' + col);
+  if (!host) return null;
+  const want = 'wgt-' + id;
+  try { return host.querySelector('#' + CSS.escape(want)); }
+  catch (e) { return [...host.querySelectorAll('.widget-slot')].find(el => el.id === want) || null; }
 }
 
 /* ---------- ALL OF THEM STILL, BUT NOT ALL IN ONE TASK WHEN A COLUMN IS ARRIVED AT ----------------
@@ -342,7 +416,9 @@ function toolsStart_(kind, arriving) {
 
    A REPAINT IS NOT AN ARRIVAL and keeps the old shape — everything, now, in one go. It has just
    replaced every widget's markup, and `check-flow` reads a widget straight after `repaint()`. */
-let TOOLS_WAIT = [];      // { w, col } still to start, on the column TOOLS_ON belongs to
+/* `{ w, col }` still to start — on the column in front, or on a column beside it whose card is on the
+   glass (`widgetsGlass_`). */
+let TOOLS_WAIT = [];
 let TOOLS_WAKE = 0;       // the booked step
 
 /* ONE WAY A WIDGET STARTS, WHICHEVER OF THE THREE ASKS — this was written out three times, here, in
@@ -353,41 +429,94 @@ let TOOLS_WAKE = 0;       // the booked step
    a failure, the one thing `loading_`'s note says it must never be.
    THE SLOT ON THE COLUMN BEING STARTED, NOT `$()`'s. A starred widget is drawn on Tools and on Saved,
    every screen is in the document at once, and `$('wgt-…')` hands back whichever comes first — the
-   note over `cartPaint_` records what that cost once. Started from Saved, it is Saved's that stops
-   waiting; the copy on Tools waits until Tools is arrived at and starts it. */
+   note over `cartPaint_` records what that cost once. Started from Saved, it is Saved's copy that it
+   draws into: `WIDGET_HOME` (data.js) tells `$` which copy is this widget's while the screen in front
+   has none of its own, which is the case a widget started BESIDE the column in front is in.
+   AND EVERY OTHER COPY ON THE GLASS STOPS WAITING TOO. It was "the copy on Tools waits until Tools is
+   arrived at and starts it" — true while only the column in front ran anything, and on a wide window
+   it left a copy on the glass under the loader for a widget that had started: the owner's picture of
+   10 Oct. One widget drives one copy (see `TOOLS_ON`); a second copy on the glass shows its own
+   markup, drawn, until its column comes in front and the widget is started there instead. The loader
+   is for a widget that has not started, and this one has. A copy OFF the glass keeps its veil — on a
+   phone that is every copy but the one in front, and a swipe towards Saved shows the loader it always
+   showed — and `widgetsGlass_` takes it off if the copy comes onto the glass while the widget runs. */
 function widgetUp_(w, col) {
-  TOOLS_ON.push(w);
+  const id = String(w.id);
+  const slot = col ? slotOn_(col, id) : $('wgt-' + id);
+  TOOLS_ON.push({ w, col, slot, who: widgetWho_() });
+  if (slot && col) WIDGET_HOME[slot.id] = col;
   try { w.start && w.start(); }
   catch (e) { console.warn('[widget]', w.id, e); }
   finally {
-    const host = col && $('s-' + col);
-    const slot = host ? [...host.querySelectorAll('.widget-slot')].find(el => el.id === 'wgt-' + w.id)
-                      : $('wgt-' + w.id);
-    if (typeof loaded_ === 'function') loaded_(slot);
+    if (typeof loaded_ === 'function') {
+      loaded_(slot);
+      widgetCopies_(id).forEach(el => { if (el !== slot && widgetLit_(el)) loaded_(el); });
+    }
   }
 }
 
+/* EVERY SLOT OF ONE WIDGET IN THE DOCUMENT — its own column's and Saved's — and whether the last
+   placement left a slot's card on the glass (`GLASS.pages`, shell.js). */
+function widgetCopies_(id) {
+  return WIDGET_COLS.map(c => slotOn_(c, id)).filter(Boolean);
+}
+function widgetLit_(el) {
+  try { return typeof GLASS !== 'undefined' && GLASS.pages.indexOf(el.closest('.page')) !== -1; } catch (e) { return false; }
+}
+
+/* AND STOPPED, the one way — its own `stop`, and `$` told the copy is nobody's now. */
+function widgetDown_(e) {
+  try { e.w.stop && e.w.stop(); } catch (err) {}
+  if (e.slot && WIDGET_HOME[e.slot.id] === e.col) delete WIDGET_HOME[e.slot.id];
+}
+
+/* ---------- THE COLUMN IN FRONT: WHAT IT HOLDS IS STARTED, AND WHAT IS ALREADY RUNNING IS LEFT ------
+   ON AN ARRIVAL, A WIDGET ALREADY RUNNING ON THIS COLUMN'S OWN COPY IS LEFT AS IT IS. That only happens
+   now that a column beside the one in front runs its widgets on a wide window: Tools beside Settings
+   has its calculator going, and arriving at Tools used to stop it and start it again 300ms later —
+   which is what dealt a Connect 4 game in progress a fresh board, the fault the note over
+   `startScreen_`'s booking in `go` was written about. A widget running on ANOTHER column's copy (a
+   starred one, running on Saved beside) is stopped and started here, because the copy in front is the
+   one a press can reach. A widget whose slot was replaced (`STALE`, painted on the way in) is started
+   again, because what it was running in has gone.
+   A REPAINT RESTARTS THE COLUMN'S OWN, ALL OF THEM, NOW — its markup has just been replaced. Widgets
+   running on the columns beside it are not touched: their markup was not. */
 function widgetsWake_(list, col, arriving) {
-  const start = w => widgetUp_(w, col);
-  if (!arriving) { list.forEach(start); return; }
-  const far = list.filter(w => widgetDistance_(w, col) > 1);
-  list.filter(w => far.indexOf(w) === -1).forEach(start);
-  TOOLS_WAIT = far.map(w => ({ w, col }));
+  const ids = new Set(list.map(w => String(w.id)));
+  const keep = e => !ids.has(String(e.w.id)) || (arriving && e.col === col && e.slot && e.slot.isConnected);
+  toolsStop_(keep, q => !ids.has(String(q.w.id)));
+  const up = list.filter(w => !TOOLS_ON.some(e => String(e.w.id) === String(w.id)));
+  if (!arriving) { up.forEach(w => widgetUp_(w, col)); return; }
+  const far = up.filter(w => widgetDistance_(w, col) > 1);
+  up.filter(w => far.indexOf(w) === -1).forEach(w => widgetUp_(w, col));
+  far.forEach(w => TOOLS_WAIT.push({ w, col }));
   if (TOOLS_WAIT.length) widgetsLater_();
 }
 
-/* HOW MANY PAGES FROM THE ONE IN FRONT a widget's slot sits — read off the page that holds
-   `#wgt-<id>`, which is what `widgetOnColumn_` writes, so it holds on Saved where the order is
-   whatever was starred. A slot it cannot find counts as near: starting one too early is the
-   behaviour before this existed. */
+/* HOW MANY PAGES FROM ITS COLUMN'S OWN PAGE IN FRONT a widget's slot sits — read off the page that
+   holds `#wgt-<id>` ON THAT COLUMN, which is what `widgetOnColumn_` writes, so it holds on Saved
+   where the order is whatever was starred. It was `$('wgt-…')`, which for a starred widget is the
+   first copy in the document — Tools' — measured against Saved's pages. A slot it cannot find counts
+   as near: starting one too early is the behaviour before this existed. */
 function widgetDistance_(w, col) {
   try {
-    const slot = $('wgt-' + w.id), host = $('s-' + col);
+    const slot = slotOn_(col, String(w.id)), host = $('s-' + col);
     const pg = slot && slot.closest('.page');
     if (!pg || !host) return 0;
     const i = [...host.querySelectorAll(':scope > .page')].indexOf(pg);
     return i < 0 ? 0 : Math.abs(i - domIndex_(col, PAGE[col] || 0));
   } catch (e) { return 0; }
+}
+
+/* ON THE GLASS FIRST, THEN NEAREST ITS COLUMN'S PAGE IN FRONT — what is being looked at before what a
+   swipe would bring. `GLASS.pages` is placeGrid's answer to which cards are on the glass. */
+function widgetRank_(q) {
+  let lit = false;
+  try {
+    const slot = slotOn_(q.col, String(q.w.id));
+    lit = !!(slot && typeof GLASS !== 'undefined' && GLASS.pages.indexOf(slot.closest('.page')) !== -1);
+  } catch (e) {}
+  return (lit ? 0 : 1000) + widgetDistance_(q.w, q.col);
 }
 
 let TOOLS_BUSY_SINCE = 0;   // when `widgetsLater_` first found a finger down, for its cap
@@ -401,9 +530,15 @@ function widgetsLater_() {
        still a swipe, and a widget's start landing in them is a stall under a thumb that has just
        touched. AND A TAPPED PAGE TURN STILL GLIDING (`SLIDE_UNTIL`), which `SETTLE_ON` — a release's
        own curve — never covered. Both from the review of 5 October. */
+    /* AND A COLUMN CHANGE NOT YET PLACED (`GLASS.at`). `go` moves `AT` at once and the grid a frame
+       later, and it is that placement which says what is on the glass and stops and forgets what has
+       left it (`widgetsGlass_`). This used to be `toolsStop_()` inside `go`, synchronous; asked from
+       the placement instead, a step in between would start a widget for a column already left, in the
+       very frame its slide begins. */
     const busy = (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && now < SETTLE_ON.until)
               || (typeof SWIPE !== 'undefined' && SWIPE.live)
-              || (typeof SLIDE_UNTIL !== 'undefined' && now < SLIDE_UNTIL);
+              || (typeof SLIDE_UNTIL !== 'undefined' && now < SLIDE_UNTIL)
+              || (typeof GLASS !== 'undefined' && GLASS.at !== AT);
     /* BUT NOT FOR EVER. A finger resting on the glass — or a `pointerup` the browser never sent — is
        `SWIPE.live` with nothing moving, and a column of widgets that never starts is worse than one
        that starts under a still thumb. A second and a half of waiting, then on regardless. */
@@ -412,9 +547,20 @@ function widgetsLater_() {
       TOOLS_WAKE = setTimeout(step, 60); return;
     }
     if (!busy) TOOLS_BUSY_SINCE = 0;
-    TOOLS_WAIT.sort((a, b) => widgetDistance_(a.w, a.col) - widgetDistance_(b.w, b.col));
+    /* EACH ASKED ONCE, NOT ONCE PER COMPARISON — a rank reads the column's pages. */
+    const rank = new Map(TOOLS_WAIT.map(q => [q, widgetRank_(q)]));
+    TOOLS_WAIT.sort((a, b) => rank.get(a) - rank.get(b));
     const next = TOOLS_WAIT.shift();
-    widgetUp_(next.w, next.col);
+    /* ALREADY RUNNING — started meanwhile by `widgetsNear_` or an arrival — is left alone: one widget,
+       one start, whichever of the three asked first. */
+    if (!TOOLS_ON.some(e => String(e.w.id) === String(next.w.id))) {
+      widgetUp_(next.w, next.col);
+      /* A WIDGET BESIDE THE COLUMN IN FRONT GROWS ITS CARD AS IT DRAWS, and nothing re-centres a column
+         that is not in front (`startScreen_` places the one in front after its own starts) — so its
+         card would sit off the line every other card is centred on, which `check/ui.js`'s COLUMNS OUT
+         OF LINE measures. One booked placement, instant, coalesced with anything else this frame. */
+      if (next.col !== AT && typeof placeCells === 'function') placeCells('y', true);
+    }
     /* A GAP, NOT NOUGHT: `setTimeout(…, 0)` would queue the next start ahead of a touch that is
        already waiting to be delivered on a busy phone. One frame's worth is enough for it to land. */
     if (TOOLS_WAIT.length) TOOLS_WAKE = setTimeout(step, 16);
@@ -430,17 +576,150 @@ function widgetsNear_(col) {
   const now = TOOLS_WAIT.filter(q => q.col === col && widgetDistance_(q.w, col) <= 1);
   if (!now.length) return;
   TOOLS_WAIT = TOOLS_WAIT.filter(q => now.indexOf(q) === -1);
-  now.forEach(q => widgetUp_(q.w, q.col));
+  now.forEach(q => { if (!TOOLS_ON.some(e => String(e.w.id) === String(q.w.id))) widgetUp_(q.w, q.col); });
 }
 
-function toolsStop_() {
-  /* WHAT IS STILL WAITING IS FORGOTTEN WITH WHAT IS RUNNING — a widget queued for a column that has
-     been left must not start behind the column you are on now. */
-  TOOLS_WAIT = [];
-  if (TOOLS_WAKE) { clearTimeout(TOOLS_WAKE); TOOLS_WAKE = 0; }
-  TOOLS_ON.forEach(w => { try { w.stop && w.stop(); } catch (e) {} });
-  TOOLS_ON = [];
+/* STOPS EVERY RUNNING WIDGET `keep` DOES NOT KEEP, AND FORGETS EVERY WAITING ONE `wait` DOES NOT —
+   with neither, everything, which is what this always did. WHAT IS STILL WAITING IS FORGOTTEN WITH
+   WHAT IS RUNNING: a widget queued for a column that has left the glass must not start behind the
+   column you are on now. Out of the list BEFORE its `stop` runs, so a `stop` that repaints finds
+   nothing here still claiming the widget. */
+/* AND A QUEUE EMPTIED HERE FORGETS WHEN IT FIRST FOUND A FINGER DOWN. `TOOLS_BUSY_SINCE` was only ever
+   cleared by a step that found nothing busy, so a queue emptied in the middle of a swipe kept the old
+   moment, and the next queue's first busy step was already "a second and a half" past it — and started
+   its widget under the finger. That cap is also all that would let a step past an unplaced column change
+   (`GLASS.at`), so the stale moment would have let a widget start for a column already left. */
+function toolsStop_(keep, wait) {
+  TOOLS_WAIT = wait ? TOOLS_WAIT.filter(wait) : [];
+  if (!TOOLS_WAIT.length) {
+    if (TOOLS_WAKE) { clearTimeout(TOOLS_WAKE); TOOLS_WAKE = 0; }
+    TOOLS_BUSY_SINCE = 0;
+  }
+  const off = keep ? TOOLS_ON.filter(e => !keep(e)) : TOOLS_ON;
+  TOOLS_ON = keep ? TOOLS_ON.filter(keep) : [];
+  off.forEach(widgetDown_);
 }
+
+/* ==================================================================================================
+   A WIDGET WHOSE CARD IS ON THE GLASS IS STARTED, WHICHEVER COLUMN IT IS IN
+
+   THE OWNER, 10 Oct, with a screenshot of a 1194px window — Settings in front, About you on it, and the
+   column beside it two widget cards with nothing in them but the gold dots and a star: *"these remain
+   loading untill i scroll to them. i dont like this"*.
+
+   WHAT HE WAS LOOKING AT. Only the column in front ever started its widgets (`startScreen_` → the two
+   functions above), and leaving it stopped them all (`toolsStop_`, called from `go`). On a phone that
+   is the whole of what can be seen; on a wide window it is not — from 700px the columns either side
+   are whole cards (THE GRID SHOWS MORE OF ITSELF, shell.js), three across at 1194 and five at 1920.
+   Settings sits beside Tools, so at 1194 the calculator sat under the loader for as long as Settings
+   was in front, and at 1920 four widgets on two columns did. Each loader was right that the widget had
+   not started; nothing was ever going to start it but going there.
+
+   SO THE QUESTION IS WHAT IS ON THE GLASS, AND `placeGrid` ALREADY KNOWS. It places every column and
+   every page, so it is where "which cards can be seen" is answered — `GLASS` in shell.js: the column in
+   front, every column beside it showing more of its card than the edge the layout leaves on purpose
+   (`WIDE_EDGE`), and down each the pages whose cards are inside the window. No IntersectionObserver:
+   the reel column had one over a scroller of its own and it went for exactly this reason ("a ratio
+   measuring a thing the app had already decided", the note in `goPage`). Asked after every placement
+   that is not a finger's drag — a column change, a page turn, a resize, a repaint — and cheap when
+   nothing has changed: a walk of a short list.
+
+   WHAT IT DOES WITH THE ANSWER:
+     · A WIDGET ON THE GLASS BESIDE THE COLUMN IN FRONT IS QUEUED, and started by the same queue as a
+       far widget of the column in front — one per task, never while a finger is on the glass or a
+       slide is settling (`widgetsLater_`), ahead of anything off the glass. Within a moment of being
+       on the glass it is drawn, and a swipe never waits behind it.
+     · A WIDGET THAT HAS LEFT THE GLASS IS STOPPED, as leaving a column always stopped it — swiped
+       away, or the window narrowed until its column is a phone's edge again — once the slide that took
+       it away has settled (`widgetsSettle_`). A canvas loop or a clock behind a screen nobody can see
+       is still the flat battery this file has always refused; a third of a second of one is not.
+     · THE COLUMN IN FRONT IS LEFT TO `startScreen_`: all of its widgets run, the near ones at once
+       and the rest one per task, as before; this only keeps from stopping them.
+     · ONE WIDGET, ONE START. A starred widget on Tools and on Saved, both on the glass, is started
+       once, on the copy nearest the column in front; it is not stopped while that copy is on the
+       glass, and when that copy leaves and the other is still there it is started on the other.
+     · A SLOT A PAINT REPLACED IS A NEW SLOT. What ran in the old one is stopped (`isConnected`), and
+       the new one is on the glass and not running, so it is queued like any other — and keeps its
+       veil until it is started. (It was unveiled at once because the widget "was running", and sat
+       there as markup nobody had started until the slide settled.) A paint that only redraws a column no longer replaces a
+       running slot at all (`widgetsHeld_`); what is left is the first payload, which empties every
+       column before it draws them, and a widget a column stopped drawing. That is how a widget
+       beside you that started before the payload — and drew the one loader over its own part that
+       waits for it: the calendar's month, the flyer's rooms, a score board — is drawn when the payload
+       lands without anybody going to it: the first payload empties every column and draws it again
+       (`load`'s landing), and this restarts what was on the glass in the new markup. A later payload
+       repaints only the column in front and marks the rest `STALE`, and by then `awaiting_()` has no
+       wait left to draw. (A `widgetsAgain_` that restarted every waiting widget beside you on every
+       repaint was written for that case and taken out again: no wait in the app reached it, and its
+       journey stayed green with it deleted.)
+     · A WIDGET BESIDE YOU RUNS FOR WHOEVER IS SIGNED IN. A sign-out on Settings marks Tools `STALE`
+       and leaves its markup, so the admin's flyer maker and the last person's notepad went on running
+       on the glass beside the next person until somebody went there. The column in front is restarted
+       by the repaint a change of person makes; a widget beside it started for somebody else is now
+       stopped once the slide has settled, and started again if its column still draws it for the
+       person here now — in the slot it was in, which is still that widget's markup.
+   ON A PHONE `GLASS` is the column in front and nothing else — a neighbour there is a 23px edge, which
+   shows no widget — so this does what `go`'s `toolsStop_()` did: everything not in front stops.
+================================================================================================== */
+function widgetsGlass_(settled) {
+  if (typeof GLASS === 'undefined' || !GLASS || GLASS.at !== AT) return;
+  const lit = new Set(GLASS.pages);
+  const glassy = (col, slot) => col !== AT && !!slot && slot.isConnected && lit.has(slot.closest('.page'));
+  const front = new Set(WIDGET_COLS.indexOf(AT) !== -1 ? widgetsOn_(AT).map(w => String(w.id)) : []);
+  /* THE COPIES ON THE GLASS BESIDE THE COLUMN IN FRONT, nearest it first — the order a starred
+     widget's copy is chosen in. A widget with no `start` never waits and is not this file's to start. */
+  const ti = TABS.findIndex(t => t.id === AT);
+  const far = c => Math.abs(TABS.findIndex(t => t.id === c) - ti);
+  const beside = new Map();
+  GLASS.cols.filter(c => c !== AT && WIDGET_COLS.indexOf(c) !== -1)
+    .sort((a, b) => far(a) - far(b) || TABS.findIndex(t => t.id === a) - TABS.findIndex(t => t.id === b))
+    .forEach(col => widgetsOn_(col).forEach(w => {
+      const id = String(w.id);
+      if (typeof w.start !== 'function') return;
+      const slot = slotOn_(col, id);
+      if (!glassy(col, slot)) return;
+      if (!beside.has(id)) beside.set(id, []);
+      beside.get(id).push({ w, col });
+    }));
+  /* STOP WHAT HAS LEFT THE GLASS and forget what was waiting for it. A widget of the column in front
+     stays while that column holds it; one beside it stays while its own copy is on the glass. */
+  /* A SLOT THAT IS GONE is markup a paint replaced, and what ran in it is stopped; a widget the column
+     in front started with no slot of its own at all (`savedStart_` signed out) is left as it was. */
+  /* AND ONE BESIDE IT ONLY FOR WHOEVER IS SIGNED IN NOW — see the last point of the note above. */
+  const who = widgetWho_();
+  const keep = e => (e.col === AT ? front.has(String(e.w.id)) && (!e.slot || e.slot.isConnected)
+                                  : glassy(e.col, e.slot) && e.who === who);
+  const wait = q => (q.col === AT ? front.has(String(q.w.id)) : glassy(q.col, slotOn_(q.col, String(q.w.id))));
+  /* THE WAITING ONES ARE FORGOTTEN NOW AND THE RUNNING ONES STOPPED AFTER THE SLIDE. Forgetting is a
+     filter; a `stop` is the widget's own code, and some of them repaint their card — measured at 390
+     with the CPU at a quarter, one took 41ms, and from here it would have been the first frame of the
+     slide the release just began. `go`'s `toolsStop_()` paid that before the slide too, but a move
+     between two columns of widgets used to stop the old one from `startScreen_`, after it, and that is
+     where every stop goes now: `afterSlide_`, which waits out the settle and a finger. A column that
+     comes back before then is simply not stopped. */
+  if (!settled && TOOLS_ON.some(e => !keep(e))) afterSlide_(widgetsSettle_, 'glass');
+  toolsStop_(settled ? keep : () => true, wait);
+  /* AND QUEUE WHAT IS ON IT AND NOT RUNNING. Not one the column in front holds: `startScreen_` starts
+     those, on the copy a press can reach, and starting it here first would be the second start. One
+     that IS running, on another copy, has started — so a copy of it that has just come onto the glass
+     is not left under the loader for it (`widgetUp_`'s note). RUNNING MEANS KEPT: one about to be
+     stopped — its markup gone, its copy off the glass, started for somebody else — has not started for
+     anybody looking, and the copy on the glass keeps the loader until the settle has stopped that one
+     and the queue has started this. */
+  beside.forEach((copies, id) => {
+    if (front.has(id)) return;
+    if (TOOLS_ON.some(e => String(e.w.id) === id && keep(e))) {
+      copies.forEach(c => { const sl = slotOn_(c.col, id); if (sl && sl.getAttribute('aria-busy') && typeof loaded_ === 'function') loaded_(sl); });
+      return;
+    }
+    if (TOOLS_WAIT.some(q => String(q.w.id) === id)) return;
+    TOOLS_WAIT.push({ w: copies[0].w, col: copies[0].col });
+  });
+  if (TOOLS_WAIT.length) widgetsLater_();
+}
+/* THE SAME QUESTION ASKED AGAIN ONCE THE SLIDE HAS SETTLED, and this time what has left is stopped — and
+   a starred widget whose copy left while its other copy stayed is queued on the one still there. */
+function widgetsSettle_() { widgetsGlass_(true); }
 
 
 /* ---------- A WIDGET IS A SCREEN, NOT AN ITEM IN A LIST -------------------------------------------

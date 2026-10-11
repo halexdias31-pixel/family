@@ -169,6 +169,39 @@ const TABS = [
      `<nav id="tabs">` in index.html), so like every icon here it is carried for `applyColumns_`
      and for whatever names a column next. */
   { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
+  /* ---------- THE SECOND FINDER: RESOURCES, RIGHT OF FIND --------------------------------------------
+     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+     column to the right of the current finder. this new column is "finder 2". it carries resources.
+     like text books, boxing stuff books. ect."* The textbooks, the boxers, the fights and the Bible
+     were answers to Find's `What kind` question; they are a column of their own now, with the same
+     funnel, cards and swipe, in `screen('res')` (find.js, `FINDERS`). Called Resources wherever a
+     column is named — the word the funnel already used for them — and "the second finder" in code.
+
+     APPENDED, because this table is append-only (see `progress` above); `TAB_ORDER` and the row in
+     `data/settings/columns.json` are what put it immediately right of Find. 📚 rather than a plain
+     shape, as 📈 was: no plain shape means a shelf of books, and 📚 is Unicode 6.0, in every emoji
+     font this app is opened in. */
+  { id: 'res',     icon: '📚', label: 'Resources', title: 'Resources' },
+  /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE -------------------
+     ASKED FOR AS "the business checklist stuff should go in their own column at the end." (10 Oct)
+     They were five pages at the foot of an admin's Settings (docs/history/207) — insurance, tax, legal
+     and data, safeguarding, money and company — drawn by `bizPages_` in records.js, which is what this
+     column draws now, unchanged.
+
+     A PLACE, by this table's test: nobody narrows "is the insurance due" down by answering a question,
+     and it is not about YOU, which is what the rest of Settings is.
+
+     `admin: true` IS THE ONE COLUMN THAT IS NOT EVERYBODY'S, and the rule that leaves it out is
+     `columnsFor_` below: for anybody else there is no entry in `TABS`, so no swipe stops on it, nothing
+     counts it, and no `<section>` names it — the section is made by code for an admin rather than
+     written into index.html, which every visitor's phone parses. A card is not a permission
+     (`listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS`); this is about a column a
+     non-admin should not have to swipe past, or find in the page.
+
+     APPENDED, because this table is append-only. `TAB_ORDER` and the last row of
+     `data/settings/columns.json` put it last. 📋 a clipboard, which is a checklist — the emoji half
+     of the row, like 📈 above; nothing draws it today. */
+  { id: 'biz', icon: '📋', label: 'Business', title: 'Business', admin: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -184,11 +217,82 @@ const TABS = [
      camera · post · booking · reel · DM · search · profile · tools · games
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
-const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
+const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'res', 'account', 'tools', 'games', 'saved',
                    'spotlight',
                    'settings',
-                   'progress'];
+                   'progress',
+                   'biz'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+
+/* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN ------------------------------
+   `TABS` WAS ONE LIST WITH TWO JOBS: what the app has, and what is in front of this person. With every
+   column everybody's those were the same list. `biz` is an admin's (above), so they are three now:
+
+     TABS_BUILT  every column this build can draw, in the code's order. Never changes after this line.
+     COLUMNS     the row the sheet asks for (`applyColumns_`), or the code's row until it has asked.
+     TABS        COLUMNS, less a column this viewer is not given. What everything else reads.
+
+   `TABS` STAYS THE ONE EVERYTHING READS, and stays the same array — the axis counts it, `go` searches
+   it, the neighbours are drawn from it — so nothing that reads it had to learn there is a viewer. */
+const TABS_BUILT = TABS.slice();
+const COLUMNS = TABS.slice();
+
+/* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT ----------------
+   A COLUMN MARKED `admin` IS IN `TABS` ONLY WHILE AN ADMIN IS SIGNED IN, and its section is in the
+   document only then. Asked at boot, when the sheet's row lands, and at the head of every `repaint` —
+   which is what signing in, signing out, a session the server ended and a role changed in the sheet
+   all end in — so the column comes and goes without a reload.
+
+   NOBODY IS MOVED BY IT. Where you are is remembered by id (`AT`), not by index, so a column added or
+   taken away beside you leaves you on the column you were on; `repaint` places the row again after.
+   The one person it moves is the one standing ON the column that went — an admin whose session ended
+   under the records — and they go to the column on its left, where a swipe back would have taken
+   them, rather than to the front door: they are still holding the phone, and the toast tells them to
+   sign in again.
+
+   THE SECTION IS MADE HERE, NOT WRITTEN IN index.html. Every visitor's phone parses that file, and a
+   section parsed for everybody and taken away for most would still be in their document for the
+   moment between — and in its source for good. Empty when made, so `paintNeighbours` draws it the
+   way it draws any column it finds empty; taken out of the document whole when it goes.
+
+   A hoisted FUNCTION, because `repaint` (a const far below) and `applyColumns_` both call it. It
+   touches `AT` only once `AT` exists: the first call is after `let AT` below. */
+function columnsFor_() {
+  let admin = false;
+  try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) { admin = false; }
+  const want = COLUMNS.filter(t => !t.admin || admin);
+  const changed = want.length !== TABS.length || want.some((t, i) => TABS[i] !== t);
+  if (changed) {
+    /* WHERE YOU ARE, IF IT IS THE COLUMN GOING — the nearest column left of it that stays. */
+    let at = null;
+    try { at = AT; } catch (e) { at = null; }
+    if (at && !want.some(t => t.id === at) && COLUMNS.some(t => t.id === at)) {
+      const i = COLUMNS.findIndex(t => t.id === at);
+      const left = COLUMNS.slice(0, i).reverse().find(t => want.indexOf(t) !== -1);
+      AT = (left || want.find(t => t.id === TAB_HOME) || want[0]).id;
+    }
+    TABS.length = 0;
+    want.forEach(t => TABS.push(t));
+  }
+  /* AND THE SECTIONS, every time — cheap, and it puts the document right even where `TABS` did not
+     change (the first call, when index.html has just been parsed). */
+  const host = typeof document !== 'undefined' && document.getElementById('screen');
+  if (!host) return changed;
+  TABS_BUILT.forEach(t => {
+    if (!t.admin) return;
+    const el = document.getElementById('s-' + t.id);
+    const mine = TABS.indexOf(t) !== -1;
+    if (mine && !el) {
+      const s = document.createElement('section');
+      s.className = 'screen hidden';
+      s.id = 's-' + t.id;
+      host.appendChild(s);
+    } else if (!mine && el) {
+      el.remove();
+    }
+  });
+  return changed;
+}
 
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
    THE TABLE ABOVE IS NOW THE FALLBACK. `columns` in the Widget Settings sheet says which columns the
@@ -205,13 +309,19 @@ TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
    able to make the app unusable by being blank.
 
    `TABS` IS MUTATED RATHER THAN REPLACED, because everything else in this file holds a reference to
-   it — the axis counts it, `go` searches it, the neighbours are drawn from it. */
+   it — the axis counts it, `go` searches it, the neighbours are drawn from it.
+
+   AND IT IS WRITTEN THROUGH `COLUMNS` NOW, not straight into `TABS`: the sheet decides the row, and
+   `columnsFor_` decides which of it this viewer is given. `known` is every column the BUILD has
+   (`TABS_BUILT`) rather than what `TABS` holds — it was `TABS`, and `TABS` for a non-admin has no
+   `biz`, so the first payload a visitor's phone applied would have dropped the column from the row
+   for good, and an admin signing in on that phone afterwards would have been given nothing. */
 function applyColumns_() {
   const rows = (DATA && DATA.columns) || [];
   if (!rows.length) return;
 
   const known = {};
-  TABS.forEach(t => { known[t.id] = t; });
+  TABS_BUILT.forEach(t => { known[t.id] = t; });
 
   const want = rows.map(r => known[String(r.screen || '').trim()])
                    .filter(Boolean);
@@ -227,8 +337,9 @@ function applyColumns_() {
     if (String(r.icon  || '').trim()) t.icon  = String(r.icon).trim();
   });
 
-  TABS.length = 0;
-  want.forEach(t => TABS.push(t));
+  COLUMNS.length = 0;
+  want.forEach(t => COLUMNS.push(t));
+  columnsFor_();
 
   /* WHERE `AT` IS NOW. Somebody remembered on a column the sheet has just switched off would be on a
      screen that no longer exists, and `go` would silently send them home without saying why. */
@@ -302,6 +413,9 @@ let AT = TAB_HOME;
    SUSPENDED rather than closed — see the note over `watchBuild_` — so a window left open for three
    days still counts as one session and the flag would never expire. A stamp is a fact about time
    and does not care how the window got here. */
+/* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
+   Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
+try { columnsFor_(); } catch (e) {}
 try {
   const was = localStorage.getItem('familyTab');
   const when = Number(localStorage.getItem('familyTabAt') || 0);
@@ -418,8 +532,12 @@ function go(id, remember, instant) {
   /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves.
      Markup first, `start` second — an id cannot be found before the markup carrying it is in the
      document, which is why this is here and not inside the screen's own draw. */
-  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games' && AT !== 'saved'
-      && AT !== 'shop') toolsStop_();
+  /* `toolsStop_()` WAS HERE, for any column that was not one of the four — and it stopped every
+     widget in the app, including the ones on the column beside you that a wide window shows whole.
+     That is the loader the owner sent on 10 Oct (docs/history/331). Leaving is now asked of the
+     glass rather than of `AT`: the placement `placeCells('x')` above asks for says what is on it, and
+     `widgetsGlass_` (arcade.js) stops what has left — on a phone, everything not in front, exactly as
+     this line did, once the slide has settled rather than before it begins. */
   /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
@@ -458,9 +576,15 @@ function go(id, remember, instant) {
      that it should not exist: nothing that was running was stopped, so nothing needs starting. */
   if (was !== AT || painted) afterSlide_(() => startScreen_(AT, true), 'start');
 
-  if (AT === 'stuff') {
-    const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
-    if (instant || !drawn) fillStuffPages(); else afterSlide_(fillStuffPages);
+  /* EITHER FINDER (find.js, `FINDERS`): each fills in its own binding, and a fill booked for later is
+     booked under the finder's name — `afterSlide_` keys by function otherwise, and both finders'
+     fills would be one job that filled whichever was unbound. */
+  const finder = typeof finderOf_ === 'function' ? finderOf_(AT) : null;
+  if (finder) {
+    const host = $('s-' + finder.id);
+    const drawn = host && host.querySelector('.page[data-filled]');
+    if (instant || !drawn) inFinder_(finder, fillStuffPages);
+    else afterSlide_(() => inFinder_(finder, fillStuffPages), 'fill:' + finder.id);
   }
   /* After wake, because a page holding a canvas has to exist and be sized before it is moved.
      INSTANT, because this is arriving rather than travelling: the tab remembers which widget you
@@ -562,9 +686,10 @@ function startScreen_(id, arriving) {
   /* AND A TEXTBOOK'S ANIMATION PLAYS ONLY ON FIND, ONLY ON THE PAGE IN FRONT — for EVERY screen, because
      arriving anywhere else is what pauses the one on Find. See `tbAnimWatch_` in find.js. */
   if (typeof tbAnimWatch_ === 'function') tbAnimWatch_();
-  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR THE FIRST TIME THE SETTINGS COLUMN IS REACHED — a
-     POST, once, and never the payload (see js/records.js). */
-  if (id === 'settings' && typeof bizStart_ === 'function') bizStart_();
+  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR — a POST, once, and never the payload (see
+     js/records.js). Usually already asked: the column asks when it is first drawn, so it is not left
+     under the loader beside Progress; this is the second door, and `bizStart_` is a no-op after one. */
+  if (id === 'biz' && typeof bizStart_ === 'function') bizStart_();
   /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on
      a thread is last month — so something has to say otherwise, once the markup exists. */
   if (id === 'dm' && typeof dmFoot_ === 'function') dmFoot_();
@@ -632,7 +757,9 @@ function paintNeighbours() {
    old markup until you swipe to it. A sliver of a sentence, corrected by arriving. */
 let STALE = {};
 
-function paint(id) {
+/* `fresh`: DRAWN FROM NOTHING, because the caller starts again whatever runs in it — `repaint`, for the
+   column in front. Without it, a widget running on the column keeps its slot (see below). */
+function paint(id, fresh) {
   /* ---------- A SETTINGS CARD WITH SOMETHING TYPED INTO IT IS NOT REDRAWN UNDER THE TYPING ---------
      REPORTED AS "some things arent updating when i click save", and part of it was this: a Save on
      one card called `load()`, and when the payload landed — and again when the inbox landed — every
@@ -690,9 +817,19 @@ function paint(id) {
       </div></div>`;
     return;
   }
+  /* ---------- AND A WIDGET RUNNING ON THIS COLUMN KEEPS THE SLOT IT IS RUNNING IN ---------------------
+     The arrival at a `STALE` column is a `paint` of it — and on a wide window a column beside the one in
+     front has its widgets running (docs/history/331). Its first arrival after any repaint threw the
+     running calculator's slot away and drew the loader in its place, then started it again from
+     nothing. `widgetsHeld_` / `widgetsBack_` (arcade.js) put each running slot back where the new markup
+     draws that widget; the rest is the new markup. NOT FOR `repaint`'s own column (`fresh`), which it
+     starts again at once and always has: a box there is new markup, and `landRepaint_`'s and
+     `reconnectKeep_`'s notes are written about exactly that. */
+  const held = !fresh && typeof widgetsHeld_ === 'function' ? widgetsHeld_(id) : [];
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
+  if (held.length) widgetsBack_(id, held);
 
   /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN ------------------------------------
      WHILE EVERY CARD HUNG FROM ONE TOP LINE, a column redrawn with a taller or shorter card needed
@@ -832,8 +969,11 @@ function nothingHere(whenEmpty, needsLibrary) {
    A REAL ERROR OR AN EMPTY RESULT IS NOT LOADING. "Nothing found", "did not arrive — Try again" keep
    their words; this is only ever drawn while something is actually on its way.
 
-   NOT THE SPLASH. `#splash` in index.html is the loading SCREEN, deliberately animated and a thing
-   of its own; this is what a card shows once the app is up.
+   AND THE SPLASH, WITH NOTHING KEPT. `#splash` in index.html draws one of the textbooks' animations
+   when the device has kept them; a first visit has none, and waits as a card does — the name, still,
+   and THIS loader under it (docs/history/322). That copy is written out in index.html, because the
+   page parses it before this file exists and so cannot call this; `js/check-loading.js` holds it to
+   what this returns, byte for byte. Change one and change both.
 
    `role="status"` with the word for a screen reader, because three dots say nothing out loud. In
    shell.js, which loads before every file that draws a card — `check.js` names anything read before
@@ -912,10 +1052,13 @@ function awaiting_() {
    part of it, and those cases now stand out as exceptions rather than looking like the norm.
 ================================================================================================== */
 const repaint = (instant) => {
+  /* 00. WHICH COLUMNS THERE ARE, for whoever is signed in now — every sign-in and sign-out ends here, so
+         an admin's column comes and goes with them, without a reload. See `columnsFor_`. */
+  try { columnsFor_(); } catch (e) {}
   /* 0. EVERY OTHER SCREEN IS NOW OUT OF DATE — see the note on `STALE`. Marked before painting, so
         the two that are about to be drawn for real clear their own mark on the way through. */
   TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
-  paint(AT);                       // 1. the screen you are on
+  paint(AT, true);                 // 1. the screen you are on, drawn from nothing (it is restarted below)
   /* 1b. AND WHATEVER THAT SCREEN HAS RUNNING, because `paint` has just replaced the markup it was
          running in. Without this, a repaint while the camera column is open leaves a `<video>` with
          no stream in it — the card looks live and shows black. Same list `go` uses; see
@@ -1867,6 +2010,84 @@ function dragFast_(drag) {
    either side and the glass showed three, and an empty card sat on the glass of the owner's iPad. */
 const glassRows_ = () => (WIDE ? 3 : 2);
 
+/* ---------- WHICH CARDS ARE ON THE GLASS, SAID ONCE PER PLACEMENT -----------------------------------
+   ASKED FOR BY WHAT RUNS IN THEM. The owner, 10 Oct, on a 1194px window: *"these remain loading untill
+   i scroll to them. i dont like this"* — two widget cards on the column beside Settings, each the
+   loader and a star, because only the column in front ever started its widgets. `widgetsGlass_`
+   (arcade.js) starts what is on the glass and stops what has left it, and this is where "on the glass"
+   comes from, because this function is the one that put everything where it is.
+
+     · `cols` — the column in front, and on a wide window every column showing MORE of its card than
+       `WIDE_EDGE`, the edge the layout leaves past the last whole card on purpose: at 1194, 1280 and
+       1920 that edge is 8px of card, which shows no widget, and at 768 or 1700 it is 144–146px, which
+       shows a third of one. On a phone the neighbour is the 6% peek — a band of card edge — and is
+       not counted, so a phone runs what it always ran: the column in front.
+     · `pages` — down each of those columns, the pages whose WIDGET is on the glass where this
+       placement leaves it: more than `WIDE_EDGE` of its slot inside the window both ways (the column's
+       shift, the page's own top, the slot's place in the page; and across, as much of the card as
+       shows past the window's edge less the slot's inset). A page with no widget is asked the same of
+       the whole page. Out to `glassRows_` either side, the furthest this function draws.
+       IT WAS ANY PIXEL OF THE PAGE, and the review of 331 measured what that started: at 1194 on
+       Settings the flyer maker's page reached 75px into the window and its slot began 13px below the
+       bottom edge — nothing of it showed but its star, and it was running. 24px is the same line
+       `check/ui.js` draws for "on the glass", so what is started here is what that check counts.
+   READ IN THE PASS THAT IS ALREADY READING — after `columnShift_`'s layout and before a single write —
+   so it forces no layout of its own (the slot's offsets are as clean as the page's); never during a
+   drag, when nothing is created or stopped and the answer would be thrown away sixty times a second.
+   `at` says which column in front it was worked out for, so a column change asked for and not yet
+   placed is not mistaken for it (`widgetsLater_`). */
+let GLASS = { at: null, cols: [], pages: [] };
+
+function glassNow_(hosts, ti, stepX) {
+  const out = { at: AT, cols: [], pages: [] };
+  const W = appWidth_();
+  const card = WIDE ? stepX - CELL_GAP : 0;
+  hosts.forEach(h => {
+    const dx = h.i - ti;
+    /* HOW MUCH OF THIS COLUMN'S CARD IS INSIDE THE WINDOW, ACROSS — all of it for the column in front. */
+    const across = dx ? W / 2 + card / 2 - Math.abs(dx) * stepX : Infinity;
+    if (dx && !(WIDE && across > WIDE_EDGE)) return;
+    out.cols.push(h.id);
+    const H = h.host.clientHeight || innerHeight;
+    const at = PAGE[h.id] || 0;
+    h.host.querySelectorAll(':scope > .page').forEach((el, pos) => {
+      if (Math.abs(logIndex_(h.id, pos) - at) > glassRows_()) return;
+      if (glassShows_(el, h.shift + el.offsetTop, H, across)) out.pages.push(el);
+    });
+  });
+  return out;
+}
+
+/* IS A PAGE'S WIDGET ON THE GLASS — its slot, or the page when it has none, showing more than `WIDE_EDGE`
+   of itself inside a window `H` tall, with the page's top at `top` and `across` of the card showing
+   sideways. A box with no height has not been laid out (jsdom, which `check-flow` runs in, lays nothing
+   out: every page is 0px at the column's middle) and is counted by where it sits, as it always was. */
+function glassShows_(el, top, H, across) {
+  const sl = el.querySelector('.widget-slot');
+  const at = sl && glassOffset_(sl, el);
+  const y = at ? top + at.top : top;
+  const tall = at ? sl.offsetHeight : el.offsetHeight;
+  if (!tall) return y > 0 && y < H;
+  const down = Math.min(y + tall, H) - Math.max(y, 0);
+  const side = Math.min((at ? sl.offsetWidth : el.offsetWidth) || Infinity, across - (at ? at.left : 0));
+  return down > WIDE_EDGE && side > WIDE_EDGE;
+}
+
+/* WHERE A SLOT SITS INSIDE ITS PAGE, by offsets — the same untransformed layout the page's own
+   `offsetTop` is, so it agrees with where this placement puts the page rather than with where a slide
+   has it this frame. Summed up the chain to the page, or to the page's own offset parent and less the
+   page's offset from it (a page is `position: static`), and less any scroll between the two. Null when
+   the chain never reaches either — a slot not laid out — and the page is asked instead. */
+function glassOffset_(sl, page) {
+  let top = 0, left = 0, n = sl;
+  const base = page.offsetParent;
+  while (n && n !== page && n !== base) { top += n.offsetTop; left += n.offsetLeft; n = n.offsetParent; }
+  if (!n) return null;
+  if (n !== page) { top -= page.offsetTop; left -= page.offsetLeft; }
+  for (let p = sl.parentNode; p && p !== page; p = p.parentNode) top -= p.scrollTop || 0;
+  return { top, left };
+}
+
 function placeGrid(instant, drag) {
   if (drag && dragFast_(drag)) return;
   DRAG_PLAN = null;
@@ -1932,6 +2153,8 @@ function placeGrid(instant, drag) {
   hosts.forEach(h => {
     h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0)) + (h.id === AT ? dyPx : 0);
   });
+  /* AND WHICH CARDS THAT LEAVES ON THE GLASS — see `GLASS`. Still in the reading pass. */
+  if (!drag) GLASS = glassNow_(hosts, ti, stepX);
   /* THE SETTLE, if this placement is the one a release asked for. The distance is the column that
      moves furthest along the swipe's axis, read off where the last placement put it — the drag's last
      position, written inline, so nothing is forced to lay out — against the one it is about to get. */
@@ -2193,6 +2416,14 @@ function placeNow_(which, instant, dragPx, id) {
      run when the drag ends, which is when the answer can have changed. */
   if (dragPx) return;
 
+  /* ---------- AND WHAT RUNS IN THE CARDS THIS LEFT ON THE GLASS ------------------------------------
+     A third sweep with the same reason to wait for the release: a widget on the glass is started and
+     one that has left it is stopped (`widgetsGlass_`, arcade.js, from `GLASS` above), and a finger
+     dragging a column across is neither — it may yet let go where it began. Starting is only ever
+     QUEUED from here, one per task behind the settle, and stopping is booked for after the slide, so
+     this placement's frame pays for a walk of a short list and nothing else. */
+  if (typeof widgetsGlass_ === 'function') widgetsGlass_();
+
   /* ---------- AND WHICH CARDS ARE TOO TALL FOR THE PANE THEY ARE IN ------------------------------
      `paneReach_` GIVES AN OVERFLOWING PANE `overflow-y: auto` so `scrollHost_` can scroll it from
      the app's own drag and hand over to the grid at its end. It was called from `fillStuffPages`
@@ -2366,6 +2597,10 @@ const PAGER = {
      the placeholder — and counted anyway rather than written as 1: the day it is built it will be
      a page per something, and a count kept here by hand is the fault every entry above records. */
   progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
+  /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an
+     admin. Nought for anybody else, and that is not the "column you cannot be on" the entries above
+     guard against: for anybody else there is no column (`columnsFor_`), so nothing asks. */
+  biz: () => (typeof bizPages_ === 'function' ? bizPages_().length : 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -2473,7 +2708,10 @@ const PAGER = {
      reached, and both invisible because the two groups are empty on the fixture.
      `frontPages_` is asked rather than its halves added up, for the reason every other entry here
      gives: a pager that counts for itself is a pager that can disagree with its own screen. */
-  stuff:  () => 1 + frontPages_().length + stuffPageCount(),
+  stuff:  () => finderPageCount_('stuff'),
+  /* THE SECOND FINDER, counted by the same engine in its own binding (`finderPageCount_` in find.js)
+     — the question, then its results; it has no pages in front of the question. */
+  res:    () => finderPageCount_('res'),
 };
 
 /** The page names for a screen, whether they are a list or worked out each time. */
@@ -2613,7 +2851,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0 };
+               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0, res: 0, biz: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.
@@ -2836,6 +3074,11 @@ function paintPager(id, instant) {
 
 function goPage(id, to, instant) {
   if (!PAGER[id]) return;
+  /* A FINDER IS TURNED IN ITS OWN BINDING — Find, or the second finder (find.js, `inFinder_`) — so
+     its window, its fills and its kept place below are its own and never the other's. Bound once,
+     here; inside, `F` is the bound finder and the call goes straight through. */
+  const F = typeof finderOf_ === 'function' ? finderOf_(id) : null;
+  if (F && F !== FINDER) return inFinder_(F, () => goPage(id, to, instant));
   const n = Math.max(0, Math.min(pageCount(id) - 1, to));
   const was = PAGE[id] || 0;
   if (n === was && !instant) return;
@@ -2856,10 +3099,10 @@ function goPage(id, to, instant) {
      `columnShift_` and `stepY_` read the page you are going TO, and on the Find screen that page is
      an element only once the window covers it. So the window is moved before anything looks. Every
      other screen has no window and this is one guarded call that returns immediately. */
-  if (id === 'stuff' && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) {} }
-  const bare = id === 'stuff' && n > 0 && (() => {
-    const host = $('s-stuff');
-    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', n)];
+  if (F && typeof stuffWindow_ === 'function') { try { stuffWindow_(); } catch (e) {} }
+  const bare = !!F && n > 0 && (() => {
+    const host = $('s-' + id);
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_(id, n)];
     return !el || el.dataset.filled !== '1';
   })();
   /* ---------- AND THE FAR EDGE OF THE GLASS, ONE CARD PER TURN ---------------------------------------
@@ -2882,7 +3125,7 @@ function goPage(id, to, instant) {
      "turning a page still draws exactly one card"); everything past the edge is still the late
      pass's. ONLY FOR A TURN: a jump of more than the glass is the `bare` path's, which `STUFF_SOON`
      keeps cheap on purpose. */
-  const edge = id === 'stuff' && n !== was && Math.abs(n - was) <= glassRows_() && typeof stuffFillOne_ === 'function';
+  const edge = !!F && n !== was && Math.abs(n - was) <= glassRows_() && typeof stuffFillOne_ === 'function';
   /* ---------- AND A CARD DRAWN ABOVE THE ONE IN FRONT DOES NOT MOVE IT ------------------------------
      GOING DOWN THE PAPER the edge is below the card in front and nothing it draws can move that card.
      GOING BACK UP it is above, and so is the page before a `bare` landing: a card arriving there is
@@ -2892,21 +3135,21 @@ function goPage(id, to, instant) {
      So the page being turned to is measured either side of those fills and the column moved by the
      difference, from where it is drawn (`stuffKeepPlace_`, the window's own correction in find.js).
      Asked only when something CAN land above, so a turn down the paper forces no layout here. */
-  const above = id === 'stuff' && (bare || (edge && n < was));
-  const ref = above && $('s-stuff') ? $('s-stuff').querySelectorAll(':scope > .page')[domIndex_('stuff', n)] : null;
+  const above = !!F && (bare || (edge && n < was));
+  const ref = above && $('s-' + id) ? $('s-' + id).querySelectorAll(':scope > .page')[domIndex_(id, n)] : null;
   const top0 = ref ? ref.offsetTop : 0;
   if (bare) fillStuffPages();
   if (edge) {
     const dir = n > was ? 1 : -1;
     for (let k = 1; k <= glassRows_(); k++) { try { stuffFillOne_(n + dir * k); } catch (e) {} }
   }
-  if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-stuff'), top0 - ref.offsetTop);
+  if (ref && typeof stuffKeepPlace_ === 'function') stuffKeepPlace_($('s-' + id), top0 - ref.offsetTop);
   /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_`
      in arcade.js. Before the placement, for the reason the fill above is: a card that grows after
      the column was placed is a card the placement never saw. */
   if (typeof widgetsNear_ === 'function') widgetsNear_(id);
   if (id === AT) placeCells('y', instant);
-  if (id === 'stuff' && !bare) afterSlide_(fillStuffPages);
+  if (F && !bare) afterSlide_(() => inFinder_(F, fillStuffPages), 'fill:' + id);
   /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN -------------------------------------
      THIS IS THE ONE PLACE `PAGE[id]` CHANGES, so it is the one place that can say a different reel
      is on the screen. The column used to answer that question with an IntersectionObserver over a
@@ -2918,7 +3161,7 @@ function goPage(id, to, instant) {
      every call and would undo exactly that. */
   if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
   /* AND THE TEXTBOOK'S ANIMATION ON THE PAGE TURNED TO, by name for the reason `reelsWatch_` is. */
-  if (id === 'stuff' && typeof tbAnimWatch_ === 'function') afterSlide_(tbAnimWatch_);
+  if (F && typeof tbAnimWatch_ === 'function') afterSlide_(tbAnimWatch_);
   /* AND THE CAMERA, WHICH IS A PAGE OF THE FEED — started when its page arrives and let go when the
      page turns away, booked under its own name for the reason `reelsWatch_` is: a run of quick
      flicks is one decision at the end rather than a camera started and stopped per swipe. */
@@ -4767,8 +5010,8 @@ function splashWaitWatch_() {
    A drawing is written again only when its hash moved, so a load where nothing changed writes one
    small index. The index goes LAST and names only what was written, so a load cut off half way leaves
    either the old index or none — never one that names a record that is not there; and the picker
-   checks every record's hash against the index before it draws, so a damaged one costs an inline
-   splash and a full rewrite next time, never a garbled screen.
+   checks every record's hash against the index before it draws, so a damaged one costs the still
+   splash (the name and the loader) and a full rewrite next time, never a garbled screen.
    A FAILED FETCH LEAVES THE COPY ALONE, for the reason a failed splashes file leaves `splashOff`.
    OUT OF STORAGE, THE WHOLE COPY GOES (`splashGiveWay_`). This said "out of storage on one drawing
    leaves that one out, and nothing else is touched … a child's saved answers and drawings cannot be
@@ -4780,8 +5023,8 @@ function splashWaitWatch_() {
    room for the 27 but not for the index after them, all 27 were written, the index failed, and the
    27 stayed behind with nothing naming them — never drawn, rewritten whole on every load, the index
    failing again each time. A decoration has no claim on the last of the room. So: any write here that
-   throws takes the index and every `splashAnim:` key with it, and the splash falls back to the inline
-   ones, as on a first visit; the next load tries again from nothing. And a child's write that throws
+   throws takes the index and every `splashAnim:` key with it, and the splash is the still name and
+   the loader, as on a first visit; the next load tries again from nothing. And a child's write that throws
    (`ansLocalPut_`, answers.js) takes the copy away and tries once more, so a copy that fitted
    yesterday cannot hold space a child needs today. WHAT IS GUARANTEED, then: this never removes
    anything but its own keys, never keeps a part-copy after a refusal, and never stands between an
@@ -4858,15 +5101,17 @@ function splashOff_() {
   /* AND OUT OF THE DOCUMENT ONCE IT HAS FADED. `done` hides it, and a hidden splash still runs its
      endless animations — one kept eight of them restyling on every frame, drags included. Half a
      second is past the fade; `splashOn_` puts it back. */
-  /* AND A DRAWING THE PICKER PUT ON IT FROM THE BOOKS' COPY GOES WITH IT, back to the tag — so a
-     Try again (`splashOn_`) shows a splash rather than an empty black screen whose class names a root
-     that is no longer there. The drawing's `<style>` stays: a chapter page may be using it. */
+  /* AND A DRAWING THE PICKER PUT ON IT FROM THE BOOKS' COPY GOES WITH IT, back to the still name and
+     the loader — so a Try again (`splashOn_`) shows the app waiting rather than an empty black screen
+     whose class names a root that is no longer there. It went back to the tag until the tag was
+     deleted (docs/history/322); the loader is the truer answer anyway, because a Try again IS a wait.
+     The drawing's `<style>` stays: a chapter page may be using it. */
   if (el) setTimeout(() => {
     if (!el.classList.contains('done')) return;
     el.style.display = 'none';
     const root = el.querySelector(':scope > [class|="an"]');
     if (root) root.remove();
-    if (el.classList.contains('is-an')) { el.classList.remove('is-an'); el.classList.add('is-tag'); }
+    if (el.classList.contains('is-an')) { el.classList.remove('is-an'); el.classList.add('is-still'); }
   }, 500);
 }
 function splashOn_()  { const el = $('splash'); if (el) { el.style.display = ''; el.classList.remove('done'); } }

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-10-g-schema-grid";
+const DOGET_VERSION = "2026-10-11-m-merged";
 
 
 function doGet(e) {
@@ -718,6 +718,11 @@ function doGet(e) {
           title: name, handle: S(r.handle),
           subtitle: S(r.city) || 'London',
           image: S(r.photo), mediaUrl: S(r.video),
+          /* THE FIGURE, ONLY WHEN THE FACE IS THE FIGURE (`pfp:avatar`) — `faceFig_` in core.gs. Every
+             other row sends no `avatar` key at all, which `JSON.stringify` drops as `undefined`: a
+             tutor who chose a photograph or a fox shows exactly what they showed before, and the one
+             who chose their figure is drawn as it, wherever their picture appears. */
+          avatar: faceFig_(r).avatar,
           /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. An older phone
              ignores the key, and a row that has none sends `[]` rather than a missing key, so the
              card can tell "none" from "a backend that does not know about them". */
@@ -821,8 +826,11 @@ function doGet(e) {
         /* AND THEIR CHILDREN, so the booking form can ask WHICH of them once a client is chosen.
            Names only — the same rule as the list itself, and for the same reason. */
         payload.clients.push({
-          name: personDisplayName(r),
-          children: childrenOf(S(r.person_id)).map(personDisplayName),
+          name: nameFor_(r),
+          /* BY FIRST NAME — the owner, 10 Oct: *"dont show children's last name"* (`nameFor_`, people.gs).
+             The ticklist these fill is what goes into `for_children`, so the booking keeps the name
+             the admin saw. */
+          children: childrenOf(S(r.person_id)).map(c => nameFor_(c)),
         });
       }
 
@@ -841,7 +849,7 @@ function doGet(e) {
           const parent = findPerson(S(f.parent_id));
           payload.claims.push({
             rowIndex: f._row,
-            from: parent ? personDisplayName(parent) : S(f.parent_id),
+            from: parent ? nameFor_(parent) : S(f.parent_id),
             asked: S(f.asked_on),
           });
         });
@@ -865,8 +873,13 @@ function doGet(e) {
         payload.everyone.push({
           /* THE HANDLE OR NOTHING, as on `tutors` — and an admin's card says "no handle yet" for a
              blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
-          personId: S(r.person_id), title: name, handle: S(r.handle),
+          /* A CHILD BY FIRST NAME (`nameFor_`) — the admin included, who reads the surname in the sheet.
+             The card prints the handle, so two children called Sam are told apart by it. */
+          personId: S(r.person_id), title: nameFor_(r, true), handle: S(r.handle),
           role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
+          /* AND THE FIGURE WHEN IT IS THEIR PICTURE — an admin is already sent this person's face, so
+             the face drawn as the figure tells them nothing they could not already see. `faceFig_`. */
+          avatar: faceFig_(r).avatar,
         });
       }
 
@@ -880,7 +893,14 @@ function doGet(e) {
              score and the avatar). A person's OWN family arrives in `payload.family`, and their own
              friends on their own row, which is where each belongs. Not sent is not leaked. */
           avatar: S(r.avatar),
-          name: S(r.first_name) || name,
+          /* THE FIRST NAME, AS IT ALWAYS WAS — for everybody on the board, child or not: it said
+             `S(r.first_name) || name`. `kidFirst_` is that first name, or the handle where a row has none,
+             and never the lone surname such a row does have. `nameFor_(r, true)` stood here for a few
+             hours and was the WHOLE name for anybody holding `student` who is not a child — a parent
+             who is also learning, a student-tutor — and the board goes to every signed-in phone (the
+             review of 10 Oct: "Gus Hartwell" where it had always said "Gus"). `nameFor_` only for a row
+             with neither, so a grown-up with nothing else keeps the name they had here. */
+          name: kidFirst_(r) || nameFor_(r, true),
           handle: S(r.handle),
           xp: N(r.xp), credits: N(r.credits),
           highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
@@ -945,19 +965,30 @@ function doGet(e) {
         comfort: S(r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
         // The rooms in this building, each with its own price and capacity. Empty for a venue
         // that's just one space, which is most of them.
+        /* EACH BLANK CELL IS THE VENUE'S, decided in `roomTerms_` (booking.gs) — the same call
+           `capacityFor`, `priceLooksWrong` and `waitlistPrice` make, so the room the phone prices
+           and the room the server checks are one answer. A blank rate used to arrive here as 0,
+           which this site reads as FREE; see the note over `roomTerms_`. */
         rooms: read(TAB.rooms).rows
           .filter(x => key(x.venue) === key(r.name) && ON_(x.active))
-          .map(x => ({
-            rowIndex: x._row, name: S(x.name),
-            rate: N(x.rate_per_hour), concession: N(x.concession_rate),
-            min: N(x.min_capacity) || 1, max: N(x.max_capacity), notes: S(x.notes),
-            /* A room's own opening hours. The building may be open all day while the large room
-               is booked out every morning — availability describes the SPACE you hire, not the
-               address. Blank falls back to the venue's, so a room nobody has set hours for is as
-               available as the building. */
-            avail: S(x.availability) ? availGridOut(x.availability) : null,
-            fields: ROOM_EDITABLE.reduce((a, f) => { a[f] = S(x[f]); return a; }, {})
-          })),
+          .map(x => {
+            const t = roomTerms_(x, r);
+            return {
+              rowIndex: x._row, name: S(x.name),
+              rate: t.rate, concession: t.concession,
+              min: t.min, max: t.max, notes: S(x.notes),
+              /* A room's own opening hours. The building may be open all day while the large room
+                 is booked out every morning — availability describes the SPACE you hire, not the
+                 address. Blank falls back to the venue's, so a room nobody has set hours for is as
+                 available as the building.
+                 THE FALLING BACK IS DONE HERE NOW, NOT ON THE PHONE. This sent `null` and left the
+                 venue's hours to `slotGrid`, which looks the venue up by the booking's location —
+                 and for a room that is "Venue — Room", which is no venue's title. So a room with no
+                 hours of its own was offered every hour of the week, closed building or not. */
+              avail: availGridOut(t.availability),
+              fields: ROOM_EDITABLE.reduce((a, f) => { a[f] = S(x[f]); return a; }, {})
+            };
+          }),
         fields: flat(VENUE_GROUPS).reduce((a, f) => { a[f] = S(r[f]); return a; }, {}),
         avail: availGridOut(r.availability)
       });
@@ -1187,11 +1218,40 @@ function doGet(e) {
       read(TAB.people).rows.forEach(pp => {
         const nm = personDisplayName(pp);
         if (!nm) return;
+        /* ---------- THE FACE IS THE `photo` CELL, AND THE FIGURE ONLY WHEN IT IS THE FACE ----------
+           THIS WAS `S(pp.avatar) || S(pp.photo)` — the WEARABLE string first, which is
+           "hair:crop|legs:jeans" and not a picture, so anybody who had dressed their figure posted
+           under a broken image: the fault the sign-in reply's own note names ("a broken image in any
+           <img> that gets it"). The face is `photo` — a link, nothing, or one of the eleven tokens
+           (the owner, 10 Oct: *"…which allow you to use your avatar as a dp."*) — and the figure
+           rides as `figure` only when the face is `pfp:avatar` (`faceFig_`), which is no more than
+           this line already sent for everybody who had dressed one.
+           A CHILD'S PHOTOGRAPH IS NOT PUT ON THE FEED BY THIS FIX. The feed goes to every visitor,
+           and under the old line a child who had dressed their figure sent the wearable string in
+           place of their photograph — broken, but private. Sending the photograph now would be
+           something new about a child to people who could not see their picture before, which the
+           owner ruled out. So for a child a LINK is sent only where it was sent before — no figure
+           dressed — and the eleven tokens always, because a fox or the figure the old line already
+           sent tells nobody anything about the child.
+           A CHILD IS ANYBODY WHO HOLDS `student`, ASKED WITH `hasRole` — the test the privacy-gated
+           `students` list above already uses. IT WAS `toAppRole(mainRole(pp)) === 'kid'`, and
+           `mainRole` ranks tutor and client above student, so a child with a second role was not a
+           child here. Found by review on 10 Oct: a child ticks Tutor in their own Settings
+           (`setMyRoles` is self-serve and holds the role PENDING, so they are never listed), the cell
+           becomes "tutor, student", and their photograph went out as their post face to every
+           visitor — where the old line had sent their wearable string. Asking "does this person hold
+           student" errs the private way: an adult who also takes lessons and has dressed a figure
+           keeps the old line's answer too, which is no worse than before this change. */
+        const face = S(pp.photo);
+        const kidHid = !photoChoice_(face) && hasRole(pp, 'student') && !!S(pp.avatar);
+        /* KEYED BY THE WHOLE NAME, because that is what a post's `author` cell holds — and what goes
+           OUT is `nameFor_`'s: "who reacted" names a child by their first name (the owner, 10 Oct). */
         faces[key(nm)] = {
-          handle: S(pp.handle) || S(pp.first_name) || nm,
-          avatar: S(pp.avatar) || S(pp.photo),
+          handle: S(pp.handle) || S(pp.first_name) || nameFor_(pp),
+          avatar: kidHid ? '' : face,
+          figure: faceFig_(pp).avatar,
         };
-        if (S(pp.person_id)) byId[S(pp.person_id)] = nm;
+        if (S(pp.person_id)) byId[S(pp.person_id)] = nameFor_(pp);
       });
       read(TAB.posts).rows.forEach(r => {
         if (!S(r.post_id)) return;
@@ -1233,9 +1293,20 @@ function doGet(e) {
 
         payload.posts.push({
           id: S(r.post_id),
-          author: S(r.author),
+          /* THE CELL HOLDS THE WHOLE NAME (the sheet keeps it); what goes out is `nameFor_`'s, so a
+             child's post is signed with their first name. The net in `jsonOut` would catch it too —
+             said here because a post's author is one of the places the owner meant. */
+          author: (function () {
+            const a = S(r.author);
+            const pp = a ? findPerson(a) : null;
+            return pp && key(personDisplayName(pp)) === key(a) ? nameFor_(pp) : a;
+          })(),
           handle: who.handle,
           avatar: who.avatar,
+          /* THE FIGURE, ONLY WHEN THE AUTHOR'S FACE IS THEIR FIGURE — set on `faces` above. Read off the
+             lookup rather than off `who`, which `check-columns.js` reads as a sheet row: `figure` is a
+             field of this payload, not a column of any tab. */
+          figure: (faces[key(S(r.author))] || {}).figure,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
           /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than
              stitching `image` onto the front itself — which would be a second place for the order
@@ -1420,7 +1491,7 @@ function doGet(e) {
         const who = findPerson(S(r.person_id));
         payload.exams.push({
           id: S(r.exam_id), personId: S(r.person_id),
-          who: who ? personDisplayName(who) : '',
+          who: who ? nameFor_(who) : '',
           subject: S(r.subject), label: S(r.label),
           date: fmtDate(r.exam_date), kind: norm(r.kind) === 'mock' ? 'mock' : 'exam',
           board: S(r.board), rowIndex: r._row,
@@ -1446,7 +1517,7 @@ function doGet(e) {
           if (examOn[k]) return;
           examOn[k] = true;
           payload.exams.push({ id: S(r.person_id) + ':' + col, personId: S(r.person_id),
-            who: personDisplayName(r), subject: '', label: label, date: fmtDate(d), kind: kind,
+            who: nameFor_(r), subject: '', label: label, date: fmtDate(d), kind: kind,
             board: '', rowIndex: 0 });
         });
       });
@@ -1456,7 +1527,7 @@ function doGet(e) {
         if (!d) return;
         if (!maySee(r.person_id)) return;
         payload.birthdays.push({
-          name: personDisplayName(r),
+          name: nameFor_(r),
           day: d.getDate(), month: d.getMonth() + 1,
         });
       });
@@ -1474,7 +1545,7 @@ function doGet(e) {
         payload.orders.push({
           id: S(r.order_id), rowIndex: r._row,
           personId: S(r.person_id),
-          who: owner ? personDisplayName(owner) : '',
+          who: owner ? nameFor_(owner) : '',
           item: S(r.item), resource: S(r.resource),
           ticks: N(r.cost_ticks), pages: N(r.pages),
           cost: N(r.cost_pence) / 100,
@@ -1521,14 +1592,26 @@ function doGet(e) {
        SO THE ANSWER TRAVELS, NOT THE INGREDIENTS. One figure per venue, from `waitlistPrice` —
        the same function `joinWaitlist` charges against, so the card and the receipt cannot
        disagree. Null where a venue has no rate set, which the card reads as "not priceable yet". */
+    /* AND ONE PER ROOM, UNDER THE LABEL THE PHONE LOOKS IT UP BY. `waitPrice_` reads
+       `waitlistSeat[BOOKING.loc]`, and once a venue has rooms the form offers only its rooms —
+       "Colliers Wood Library — Small room 1", built by `bookableSpaces` as title, space, em dash,
+       space, room. Keyed by the building alone, a list in any room had no price on the phone and was
+       refused on the server, so entering a venue's rooms switched off its waiting lists. */
     try {
       payload.waitlistSeat = {};
       read(TAB.venues).rows.forEach(v => {
-        const w = waitlistPrice(S(v.name));
-        if (w) payload.waitlistSeat[S(v.name)] = {
-          perHour: w.perSeatHour, perSession: w.perSeatSession,
-          seats: w.seats, hours: w.hours,
-        };
+        const at = S(v.name);
+        if (!at) return;
+        const labels = [at].concat(read(TAB.rooms).rows
+          .filter(x => key(x.venue) === key(at) && ON_(x.active) && S(x.name))
+          .map(x => at + ' \u2014 ' + S(x.name)));
+        labels.forEach(label => {
+          const w = waitlistPrice(label);
+          if (w) payload.waitlistSeat[label] = {
+            perHour: w.perSeatHour, perSession: w.perSeatSession,
+            seats: w.seats, hours: w.hours,
+          };
+        });
       });
     } catch (err) { payload.waitlistSeat = {}; }
 
@@ -2087,6 +2170,10 @@ function doGet(e) {
     /* BY NAME IN A LIST, not `payload.films` here: `check-payload.js` counts every `payload.<key>` as a
        key sent, and a line that takes a key OUT would answer for one that was never put in. */
     if (cacheKey) {
+      /* THROUGH THE NET BEFORE IT IS KEPT, because the kept body goes out by `jsonRaw_` and never meets
+         `jsonOut` (`kidNamesOff_`, people.gs — no child's surname leaves). The fresh half meets it in
+         `freshFor_`. */
+      try { kidNamesOff_(payload); } catch (err) {}
       const fresh = {};
       ['submissions', 'films', 'filmsSync'].forEach(k => { fresh[k] = payload[k]; delete payload[k]; });
       const body = JSON.stringify(payload);
@@ -2107,8 +2194,12 @@ function familyOf_(me) {
   const out = { familyFor: '', family: [] };
   if (!me || !S(me.person_id)) return out;
   const famCard_ = (r, rel) => ({
-    personId: S(r.person_id), title: personDisplayName(r), relation: rel,
+    personId: S(r.person_id), title: nameFor_(r, true), relation: rel,
     handle: S(r.handle), image: S(r.photo) || '',
+    /* THE FIGURE, ONLY WHEN IT IS THE FACE (`faceFig_`). Your family is already sent each other's
+       picture, so a child who chose their figure is drawn as it on their parent's column and
+       nothing about them reaches anybody who could not already see their face. */
+    avatar: faceFig_(r).avatar,
   });
   /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
      otherwise draw your own card a second time under "Your child". */
@@ -2180,6 +2271,8 @@ function freshFor_(viewer) {
     try { out.films = filmsFor_(true); } catch (err) { out.films = []; }
     try { out.filmsSync = filmsSyncSays_(); } catch (err) { out.filmsSync = { at: '', more: false }; }
   }
+  /* THE NET, for the half laid on a kept body — which goes out through `jsonRaw_`, not `jsonOut`. */
+  try { kidNamesOff_(out); } catch (err) {}
   return out;
 }
 function payloadWithFresh_(body, fresh, cached) {

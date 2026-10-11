@@ -166,8 +166,18 @@ function postCard_(p, i) {
     const media = postMedia_(p);
     /* The author's face, or the brand's mark when the post is the business speaking. A column of
        blank circles is the thing that makes a feed look unfinished. */
-    const face = pic(p.avatar || brand('logo_square') || brand('logo_circle'));
     const who = p.handle || p.author || brand('name', '@family.');
+    /* ---------- THROUGH `personFace_`, THE ONE FUNCTION EVERY FACE GOES THROUGH -----------------------
+       `p.avatar` IS THE AUTHOR'S `photo` CELL — a link, nothing, or one of the eleven tokens (the
+       owner, 10 Oct: *"…which allow you to use your avatar as a dp."*) — and `p.figure` is their
+       wardrobe string, sent only when that cell is `pfp:avatar` (`faceFig_` in core.gs). AN OLDER
+       BACKEND PUT THE WEARABLE STRING ITSELF IN `avatar`, ahead of the photograph, and this drew it as
+       an `<img>` — a broken square on every post by anybody who had dressed their figure. `picKind_`
+       reads that string as no picture at all, so it falls to the brand's mark as an empty face always
+       has, on either backend. */
+    const faceHtml = personFace_({ pic: picKind_(p.avatar) ? p.avatar : (brand('logo_square') || brand('logo_circle')),
+                                   avatar: p.figure, handle: p.handle, name: who },
+                                 { cls: 'post-face', none: 'none', size: 30 });
 
     /* ---------- THE FACES' SLOT, BUILT ONCE BECAUSE IT GOES IN ONE OF TWO PLACES ---------------
        Under the picture when there is one, after the words when there is not — see the two places
@@ -201,9 +211,7 @@ function postCard_(p, i) {
        is the only part you may not read. */
     return `<article class="post" data-post="${esc(p.id)}">
       <header class="post-by">
-        ${face
-          ? `<img class="post-face" src="${esc(face)}" alt="">`
-          : `<span class="post-face none">${esc(initial(who))}</span>`}
+        ${faceHtml}
         <span class="post-nm">
           ${/* No "· deleted" any more: a deleted post is not drawn at all, so nothing reaching
                  here can be one. */''}
@@ -1504,39 +1512,110 @@ function camStop_(keepShown) {
    same columns. See docs/history/307.
 --------------------------------------------------------------------------------------------- */
 /* ONE PAINT'S WORTH OF "THE FACE YOU JUST PRESSED". The press itself is `:active` and `.is-pressed`
-   (style.css, the chips' pair) and lasts while the finger is down; the repaint after the tap
-   replaces the button, so nothing on the OLD button can say the reaction landed. This marks the NEW
-   one. Set by on('react') round its repaint and cleared straight after, so the `.catch` repaint and
-   every later one draw no animation — a face that lands once, not one that bounces whenever anything
-   else redraws the feed. `var`, because it is reassigned (`check-const.js`). */
+   (style.css, the chips' pair) and lasts while the finger is down; the redraw after the tap
+   replaces the button — the row, not the post (`postRedraw_` below) — so nothing on the OLD button
+   can say the reaction landed. This marks the NEW one. Set by on('react') round its redraw and
+   cleared straight after, so the `.catch` redraw and every later one draw no animation — a face that
+   lands once, not one that bounces whenever anything else redraws the feed. `var`, because it is
+   reassigned (`check-const.js`). */
 var REACT_POP_ = '';
 
-/* ---------- THE FOCUS STAYS ON THE FACE THAT WAS PRESSED ------------------------------------------
-   `repaint` REPLACES EVERY BUTTON ON THE SCREEN, and focus on a removed element falls to `<body>`.
-   Measured at 390x844: a face focused and Enter pressed — the same click a screen reader's
-   double-tap or a switch sends — and the reaction landed, but `document.activeElement` was BODY
-   afterwards, and the next Tab went to "Write a post" on a page parked off-screen. So the
-   `aria-pressed` that exists to say which face is yours was never heard at the moment it changed,
-   and a VoiceOver or TalkBack user lost their place in the feed with every reaction.
+/* ---------- A PRESS ON ONE POST REDRAWS THAT POST'S OWN PARTS, WHERE THEY STAND — NEVER THE COLUMN --
+   THE OWNER, 10 Oct: *"The post section is a bit buggy. When I click a reaction it bugs out a bit. On
+   only some of them."* A face, and a poll vote, both called `repaint()` — and `repaint` is
+   `paint(AT)`: the feed's whole `innerHTML`, every card on the column thrown away and drawn again to
+   change one row of pills. So every `<img>`, `<video>` and pane on the column was a NEW element, and
+   a new element has none of what the old one had already worked out:
 
-   ONLY WHEN A FACE HELD THE FOCUS, and it is handed to that same face's replacement — the house rule
-   from `ansSet_` (find.js) and `qualRedraw_` (me.js): a redraw must not pull focus off whatever else
-   somebody is in. Matched on `data-id` + `data-emoji` by comparing `dataset`, not by building a
-   selector, so an emoji or a post id never has to be escaped into one. Searched in the SCREEN the face
-   was on (the `<section>` survives `paint`, only its markup is replaced), and NOT filtered by
-   `.page.on`, which `placeCells` applies at a deferred placement after this returns.
-   `preventScroll`, because the pages are parked side by side with transforms (CLAUDE.md) and a
-   focus that scrolled would slide the strip. A tap gives focus too in most browsers, and a focus
-   set by script after a pointer press draws no `:focus-visible` ring, so a finger sees nothing new. */
-function reactRepaint_() {
+     · A PICTURE HAS NEITHER ITS PIXELS NOR ITS SIZE. It is `decoding="async"`, `loading="lazy"` from
+       the third post on, and `.page .post-pic { aspect-ratio: auto 4 / 5 }` holds a 4:5 box until the
+       file is read again. Measured in Chromium with the picture not handed straight back (the cache
+       off, which is a phone that has let a Drive thumbnail go): the photograph blank for 0.3–0.9s, a
+       16:9 card grown to 4:5 and back (+183px at 390x844), and a card taller than its pane zoomed by
+       `paneReach_` for the 4:5 stand-in and then drawn at that zoom over the real picture — a 9:16
+       portrait 0.782 → 0.947 → 0.782 at 390, its comments and composer clipped — until `paneWatch_`
+       measured it again a frame or two later.
+     · A CLIP STOPPED AND WENT BACK TO 0:00, cache or no cache. It sat as a grey 4:5 box until its
+       metadata came again, and the card went 773 → 669 → 841 → 773px tall around it (a 9:16 clip at
+       390x844): the faces jumped 122px up from under the finger, then 50 down, then back.
+     · A PANE SCROLLED PAST `PANE_ZOOM_MIN` WAS A NEW PANE AT `scrollTop` 0, so a long post jumped back
+       to its top and the face somebody had scrolled down to press left the screen — 388px at 320x568.
+
+   WHICH IS WHY IT WAS "ONLY SOME OF THEM". A text post or a poll has nothing to rebuild but its
+   avatar; a photograph that is already 4:5 only blinks, because the stand-in is its own shape; grid
+   cells are fixed squares and only blink. A clip, a single photograph of any other shape, and a post
+   taller than its pane bugged out. Which face, and whether it was added, moved or taken back, made
+   no difference — the post decided it.
+
+   SO A PRESS NAMES THE PARTS IT CHANGED, and every copy of this post on the page has those parts
+   replaced and nothing else: `[selector, drawer]` pairs, each drawer the same function `postCard_`
+   builds the part with, so the redrawn part cannot drift from the card's. The picture, its zoom, a
+   playing clip and a scrolled pane are never touched. A part that now draws nothing is taken out. A
+   card without a part that now draws something falls back to the whole `repaint`, which is what every
+   press did before — and that is how a post with NO DATE kept the fault after this fix: it had no time
+   line for its first total to go on until `postWhen_` held the line for every post with faces. So no
+   press reaches the fallback now. `repaint` stays for a payload landing, where anything on any card
+   may have changed; it is never for a press on one post.
+   NO PLACEMENT AND NO STALE MARK, because nothing moved and no other screen draws these parts. The
+   row is a fixed grid and the time line is 44px either way (docs/history/307), so a face never
+   changes the card's height; a poll whose bars appear may, and a card whose height changes is the
+   one the `ResizeObserver` from `paneWatch_` (find.js) already re-asks its pane about. See
+   docs/history/335.
+
+   ---------- AND THE FOCUS STAYS ON THE CONTROL THAT WAS PRESSED --------------------------------------
+   A REPLACED BUTTON TAKES THE FOCUS WITH IT, and focus on a removed element falls to `<body>`.
+   Measured at 390x844 when every press repainted: a face focused and Enter pressed — the same click a
+   screen reader's double-tap or a switch sends — and the reaction landed, but `document.activeElement`
+   was BODY afterwards, and the next Tab went to "Write a post" on a page parked off-screen. So the
+   `aria-pressed` that exists to say which face is yours was never heard at the moment it changed, and
+   a VoiceOver or TalkBack user lost their place in the feed with every reaction. A vote's row is the
+   same button in the same position, which is why this lives here and not in the reaction's handler.
+
+   ONLY WHEN THE CONTROL THAT HELD THE FOCUS WAS REPLACED, and it is handed to that control's
+   replacement — the house rule from `ansSet_` (find.js) and `qualRedraw_` (me.js): a redraw must not
+   pull focus off whatever else somebody is in. A control the redraw did not reach still has it, and
+   is left alone. Matched on every `data-` attribute (`data-do`, `data-id`, and the `data-emoji` or
+   `data-choice`), compared as strings rather than built into a selector, so an emoji or a post id
+   never has to be escaped into one. Searched in the SCREEN it was on (the `<section>` survives
+   `paint`, only its markup is replaced), and NOT filtered by `.page.on`, which `placeCells` applies at
+   a deferred placement after a repaint returns. `preventScroll`, because the pages are parked side by
+   side with transforms (CLAUDE.md) and a focus that scrolled would slide the strip. A tap gives focus
+   too in most browsers, and a focus set by script after a pointer press draws no `:focus-visible`
+   ring, so a finger sees nothing new. */
+function postRedraw_(id, parts) {
+  const data = el => [].filter.call(el.attributes, x => x.name.indexOf('data-') === 0)
+    .map(x => x.name + '=' + x.value).sort().join('\n');
   const a = document.activeElement;
-  const held = a && a.dataset && a.dataset.do === 'react'
-    ? { id: a.dataset.id, emoji: a.dataset.emoji, host: a.closest('section.screen') } : null;
-  repaint();
-  if (!held || !held.host) return;
-  const again = [...held.host.querySelectorAll('[data-do="react"]')]
-    .find(b => b.dataset.id === held.id && b.dataset.emoji === held.emoji);
+  const held = a && a.dataset && a.dataset.do && a.closest
+    ? { el: a, data: data(a), host: a.closest('section.screen') } : null;
+
+  const p = (DATA.posts || []).find(x => x.id === id);
+  const cards = p ? [].filter.call(document.querySelectorAll('article.post[data-post]'),
+                                   x => x.dataset.post === id) : [];
+  /* NO COPY OF THE POST ON THE PAGE, NOTHING TO REDRAW. `DATA` already holds the change and the next
+     draw of the post reads it. This was a `repaint()` too, reached by a save that fails after a
+     payload landing has taken the post off the page (deleted, or a waiting post after a sign-out):
+     the column somebody is reading was rebuilt to undo a face on a post that is not on it. */
+  if (!cards.length) return;
+  const drawn = parts.map(([, draw]) => (p ? draw(p) || '' : ''));
+  /* A CARD WITHOUT A PART THAT NOW DRAWS SOMETHING is the one case left for the whole repaint, and no
+     press reaches it: a post with faces always has its time line (`postWhen_`) and a poll its `.poll`.
+     `check-flow.js` presses a post with no date for exactly this. */
+  const fits = cards.every(c => parts.every(([sel], i) => !!c.querySelector(sel) || !drawn[i]));
+  if (!fits) repaint();
+  else cards.forEach(c => parts.forEach(([sel], i) => {
+    const old = c.querySelector(sel);
+    if (!old) return;
+    if (drawn[i]) old.outerHTML = drawn[i]; else old.remove();
+  }));
+
+  if (!held || !held.host || held.el.isConnected) return;
+  const again = [].find.call(held.host.querySelectorAll('[data-do]'), b => data(b) === held.data);
   if (again) { try { again.focus({ preventScroll: true }); } catch (e) {} }
+}
+/* A REACTION CHANGES TWO PARTS: the row of faces, and the total on the time line. */
+function reactRepaint_(id) {
+  postRedraw_(id, [['.reacts', reacts], ['.post-when', postWhen_]]);
 }
 
 /* A COUNT IS AT MOST THREE CHARACTERS, so a pill never grows for its number: 999, then 1k…999k.
@@ -1598,12 +1677,30 @@ function reactWho_(p) {
 /* WHEN, AND HOW MANY. Time first, so a total appearing never moves it; 44px tall either way, so the
    first reaction on a post moves nothing below it — the tile row stays where your thumb left it.
    INLINE AFTER THE TIME, NOT PUSHED TO THE RIGHT EDGE: at 820 the faces stop at about 349px of a
-   410px card, and a total out at the far edge was a number belonging to nothing beside it. */
+   410px card, and a total out at the far edge was a number belonging to nothing beside it.
+
+   ---------- AND THE LINE IS THERE WHENEVER A TOTAL COULD BE, EVEN WITH NOTHING ON IT YET -------------
+   "44px tall either way" WAS TRUE OF EVERY POST WITH A DATE AND OF NO OTHER. A row typed into the posts
+   tab by hand without `creation_date`, `posted_on` or `uploaded_date` arrives as `at: 0, when: ''` —
+   and the empty feed asks for exactly that row ("an image link and a caption"). With no reactions
+   either, this returned nothing, so the card had no line at all and then:
+     · THE FIRST FACE HAD NOWHERE TO PUT ITS TOTAL. `postRedraw_` found no `.post-when` to replace,
+       fell back to `repaint()`, and the whole column was rebuilt exactly as every press was before
+       docs/history/335 — measured on such a post with a 16:9 photograph at 390x844: a new article,
+       pane and `<img>`, the card 428.5 → 689px and thrown off the glass for a frame or two, a clip
+       back at 0:00, and the second tap of a quick double tap lost in the jump.
+     · THE LAST FACE TAKEN BACK REMOVED THE LINE, so the card shrank 36.6px and the tile row jumped
+       up under the thumb that had just pressed.
+   So a post with faces always has its line, empty until somebody reacts: the place a total goes is
+   held before there is one, which is the whole of what 307 promised. A post with neither a date nor
+   faces still has none — nothing could ever be drawn there. See docs/history/335. */
 function postWhen_(p) {
   const at = p.at || p.when;
   const when = at ? `<span>${esc(ago(at))}</span>` : '';
   const who = reactWho_(p);
-  if (!when && !who) return '';
+  const r = p.reactions;
+  const faces = !!(r && Array.isArray(r.emoji) && r.emoji.length);   // `reacts()` draws a row
+  if (!when && !who && !faces) return '';
   return `<p class="faint post-when">${when}${when && who ? '<span aria-hidden="true">·</span>' : ''}${who}</p>`;
 }
 
@@ -1673,56 +1770,134 @@ on('react', el => {
      deliberately, because a whole payload per tap is what the optimistic update exists to avoid —
      and `by` stayed wrong for the rest of the session.
 
-     SO IT MOVES WITH THE COUNTS, in the same three lines, which is the only version that cannot
-     drift: a fifth field would have to be forgotten in one place rather than in one of two.
-     `before` carries it too, because the `.catch` below puts everything back and a restore that
-     misses one field is this same bug with a network failure in front of it.
+     SO IT MOVES WITH THE COUNTS, in one function (`reactMove_`, below), which is the only version
+     that cannot drift: a fifth field would have to be forgotten in one place rather than in one of
+     two. The undo after a refused save is that same move, because a restore that misses one field is
+     this same bug with a network failure in front of it.
 
      BY NAME, because that is what `by` holds — `doget.gs` sends names rather than ids on purpose
      ("a reaction is a public thing and an id is not"). So this is the one comparison in the app
      that is SUPPOSED to be on a display name: it is matching the entry the server will write for
      you against the one you are looking at, and both sides are the same string from the same
      source. */
-  const before = { yours: r.yours, counts: r.counts.slice(), total: r.total,
-                   by: (r.by || []).slice() };
-  const at = e => r.emoji.indexOf(e);
-  if (at(emoji) < 0) return;
+  if (r.emoji.indexOf(emoji) < 0) return;
 
-  /* Moved before the server answers. The whole row is redrawn rather than one face, because
-     changing your reaction moves two counts at once. */
-  if (r.yours) { r.counts[at(r.yours)]--; r.total--; }
-  /* MINE OUT OF THE LIST FIRST, whichever face it was on. Dropping it unconditionally and adding it
-     back below is what makes changing your face one move rather than two that have to agree.
-     `by` IS CAPPED AT FORTY by the backend, so on a very popular post you may not be in the list at
-     all — removing an entry that is not there is a no-op, and adding one takes the list to 41 for
-     this session only. Both are better than the count and the names disagreeing. */
-  r.by = (r.by || []).filter(x => !x || norm(x.name) !== norm(USER.name));
-  if (r.yours === emoji) { r.yours = ''; }
-  else {
-    r.yours = emoji; r.counts[at(emoji)]++; r.total++;
-    r.by.push({ name: USER.name, emoji: emoji });
-  }
-  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `repaint` is
-     synchronous (shell.js), so clearing it on the next line is safe and nothing later replays it.
-     `reactRepaint_`, not `repaint`, so a keyboard or screen reader stays on the face it pressed. */
+  /* WHAT THE SERVER HOLDS, read before the move — unless a save of this post is already on its way,
+     when `choiceSave_` keeps the one it was given at the start (see there). */
+  const had = r.yours || '';
+  /* Moved before the server answers: the same tap takes yours back, any other face moves it. */
+  reactMove_(r, r.yours === emoji ? '' : emoji);
+  /* THE FACE THAT JUST LANDED IS MARKED FOR THIS ONE PAINT — see `REACT_POP_`. `postRedraw_` is
+     synchronous, and so is the `repaint` it falls back to, so clearing it on the next line is safe and
+     nothing later replays it. `reactRepaint_`, NOT `repaint`: this post's faces and total and nothing
+     else, so its picture, its clip and its pane are the ones that were there (the owner, 10 Oct: *"When
+     I click a reaction it bugs out a bit. On only some of them."*), and a keyboard or screen reader
+     stays on the face it pressed. See `postRedraw_`. */
   REACT_POP_ = r.yours === emoji ? id + ' ' + emoji : '';   // added or moved: it lands; taken back: quiet
-  reactRepaint_();
+  reactRepaint_(id);
   REACT_POP_ = '';
 
   /* `personId` AS WELL AS `name`. The handler resolves the person with
      `findPerson(S(body.name), S(body.personId))`, which prefers the id and falls back to matching
      the name — and a name is an editable cell. Sent only the name, a reaction lands on whichever
      row happens to hold that name first, and stops finding anybody at all the moment somebody
-     renames themselves. `check-post.js` now fails on any action that leaves it out. */
-  send({ action: 'reactPost', name: USER.name, personId: (USER && USER.personId) || '',
-         postId: id, emoji })
-    .catch(err => {
-      r.yours = before.yours; r.counts = before.counts; r.total = before.total;
-      r.by = before.by;             // the fourth field, or the sheet disagrees after a failed save
-      reactRepaint_();              // whichever face holds the focus NOW keeps it through the undo
-      toast(String(err.message || 'Could not save that'));
-    });
+     renames themselves. `check-post.js` now fails on any action that leaves it out.
+     `want` IS THE FACE TO END ON, '' for none, and `emoji` the face that gets there by a toggle from
+     what the server holds — see `choiceSave_` for why both. */
+  const yours = () => { const q = (DATA.posts || []).find(x => x.id === id);
+                        return q && q.reactions ? q.reactions.yours || '' : null; };
+  choiceSave_('react ' + id, had, {
+    mine: yours,
+    send: (want, held) => send({ action: 'reactPost', name: USER.name,
+      personId: (USER && USER.personId) || '', postId: id, emoji: want || held, want }),
+    put: held => {
+      const q = (DATA.posts || []).find(x => x.id === id);
+      if (!q || !q.reactions) return;
+      reactMove_(q.reactions, held);
+      reactRepaint_(id);          // in place again, and whichever face holds the focus NOW keeps it
+    },
+    or: 'Could not save that',
+  });
 });
+
+/* YOURS MOVES TO `to` ('' for none), AND ALL FOUR FIELDS MOVE WITH IT — `yours`, the two counts, the
+   total and `by` (see the note above on the one that was left behind). ONE FUNCTION FOR THE TAP AND FOR
+   THE UNDO, which is what the four-field restore was trying to be: the undo was a SNAPSHOT of the four
+   taken before its own tap, and putting a snapshot back is only an undo when nothing happened after it.
+   Two quick taps on one face, both refused, and the second refusal put back the state from after the
+   first tap — the face lit itself up 1.3s after it was taken back, with one reaction too many on the
+   line (docs/history/335). A move to what the server holds cannot be wrong about what came between.
+   `by` IS CAPPED AT FORTY by the backend, so on a very popular post you may not be in the list at all —
+   removing an entry that is not there is a no-op, and adding one takes the list to 41 for this session
+   only. Both are better than the count and the names disagreeing. */
+function reactMove_(r, to) {
+  const at = e => r.emoji.indexOf(e);
+  const me = USER ? norm(USER.name) : '';
+  if (r.yours && at(r.yours) >= 0) { r.counts[at(r.yours)]--; r.total--; }
+  /* MINE OUT OF THE LIST FIRST, whichever face it was on, and back in under the new one: changing your
+     face is one move rather than two that have to agree. */
+  if (me) r.by = (r.by || []).filter(x => !x || norm(x.name) !== me);
+  r.yours = to && at(to) >= 0 ? to : '';
+  if (r.yours) {
+    r.counts[at(r.yours)]++; r.total++;
+    if (me) r.by.push({ name: USER.name, emoji: r.yours });
+  }
+}
+
+/* ---------- ONE CHOICE PER PERSON PER POST, SAVED ONE REQUEST AT A TIME, AND A REFUSAL PUTS BACK WHAT
+   THE SERVER HOLDS ------------------------------------------------------------------------------------
+   A FACE AND A POLL VOTE ARE THE SAME KIND OF THING — one choice among a few, held by a person, changed
+   or taken back by the same press — and they went wrong in the same two ways once two taps were quick
+   enough to overlap (measured at 320, 390 and 1280 on every kind of post, docs/history/335):
+
+     · EACH TAP SENT ITS OWN REQUEST, AND EACH REFUSAL PUT BACK ITS OWN SNAPSHOT. 🎉 tapped twice 80ms
+       apart, both saves refused: the first refusal put back "no 🎉", the second put back the state
+       from after the first tap — 🎉 gold again, about 1.3s after it was taken back, "5 reactions"
+       where there were 4, a reaction the page showed and nobody had saved. A poll ended ticked.
+     · THE SERVER'S ACTION IS A TOGGLE ("the same one again takes it back") and a phone that sent one
+       toggle per tap could not undo one: the first tap's save refused, the second's accepted, and the
+       server held 😂 while the page showed nothing. A reload brought back a reaction the person had
+       taken back.
+
+   The whole-column rebuild used to swallow the second tap (18 of 84 double taps lost one), which hid
+   both. With every tap landing, both were reachable every time.
+
+   SO A POST HAS AT MOST ONE SAVE IN FLIGHT, and it carries the END STATE. Every tap moves the page at
+   once, as before; `choicePump_` then sends what the page shows now (`mine()`) if it differs from what
+   the server holds (`saved`), and nothing while a save is out. When that save comes back, it sends
+   again only if more taps moved the page since — so ten taps during one slow save are two requests,
+   the second carrying where the person stopped, and a tap that only took back an unsaved tap sends
+   nothing at all. A REFUSAL MOVES THE PAGE TO `saved` — what the server holds, not what came before
+   this tap — which is right however many taps came in between, and says why once.
+
+   `want` IS THE END STATE ('' for none) and the server sets it (dopost.gs), so a request repeated or
+   arriving late changes nothing. THE OLD FIELD STILL GOES — `emoji` or `choice` — as the toggle that
+   gets from `saved` to `want`, because the Apps Script project reaches the live site by a separate
+   step (CLAUDE.md, "Deploying") and a backend that has not been updated yet toggles on it and lands in
+   the same place. A save the server answered with a refusal changed nothing there, so `saved` stands.
+   A save lost on the wire may have landed; the page shows `saved` and the next press sends `want`,
+   which the server sets whatever it held.
+
+   `o.mine()` reads the post from `DATA` every time, because a payload landing replaces it; `null` (the
+   post gone) ends the save. `o.put(choice)` moves yours there and redraws. The key is the action and
+   the post, so a face and a vote never share a queue. */
+const CHOICE_SAVE_ = {};
+function choiceSave_(key, saved, o) {
+  const s = CHOICE_SAVE_[key] || (CHOICE_SAVE_[key] = { saved: saved, busy: false });
+  s.o = o;
+  choicePump_(key);
+}
+function choicePump_(key) {
+  const s = CHOICE_SAVE_[key];
+  if (!s || s.busy) return;
+  const want = s.o.mine();
+  if (want === null || want === s.saved) { delete CHOICE_SAVE_[key]; return; }
+  s.busy = true;
+  Promise.resolve().then(() => s.o.send(want, s.saved))
+    .then(() => { s.saved = want; },
+          err => { s.o.put(s.saved); toast(String((err && err.message) || s.o.or)); })
+    .then(() => { s.busy = false; choicePump_(key); });
+}
 
 /* ---------- A POLL ------------------------------------------------------------------------------
    The counts are HIDDEN until you have voted. Not to be coy — seeing that eleven people said Yes
@@ -1765,25 +1940,43 @@ on('vote', el => {
   if (!post || !post.poll) return;
 
   const q = post.poll;
-  const before = { yours: q.yours, counts: q.counts.slice(), total: q.total };
+  if (q.options.indexOf(choice) < 0) return;
+  const had = q.yours || '';             // what the server holds — see the same line in on('react')
 
-  /* Moved on screen before the server answers, the same as a like — and the whole poll is redrawn
-     rather than one row, because a vote changes every percentage on it. */
-  const at = i => q.options.indexOf(i);
-  if (q.yours) { q.counts[at(q.yours)]--; q.total--; }
-  if (q.yours === choice) { q.yours = ''; }
-  else { q.yours = choice; q.counts[at(choice)]++; q.total++; }
-  repaint();
+  /* Moved on screen before the server answers, the same as a face — and the whole poll is redrawn
+     rather than one row, because a vote changes every percentage on it.
+     THE POLL, NOT THE COLUMN. This was `repaint()`, the same whole-feed rebuild a face was, and it
+     replaced the post and every picture and clip on the feed to move one bar — see `postRedraw_`. */
+  voteMove_(q, q.yours === choice ? '' : choice);
+  postRedraw_(id, [['.poll', poll]]);
 
-  api({ action: 'votePoll',
-    name: USER.name, personId: (USER && USER.personId) || '', postId: id, choice })
-    .then(d => { if (d && d.error) throw new Error(d.error); })
-    .catch(err => {
-      q.yours = before.yours; q.counts = before.counts; q.total = before.total;
-      repaint();
-      toast(String(err.message || 'Could not save that vote'));
-    });
+  /* ONE SAVE AT A TIME, CARRYING WHERE THE PERSON STOPPED, and a refusal puts back what the server
+     holds — `choiceSave_`. A quick double vote, both refused, ended TICKED: each refusal put back the
+     snapshot from before its own tap, and the second one's was the first tap's vote. */
+  choiceSave_('vote ' + id, had, {
+    mine: () => { const x = (DATA.posts || []).find(y => y.id === id);
+                  return x && x.poll ? x.poll.yours || '' : null; },
+    send: (want, held) => api({ action: 'votePoll', name: USER.name,
+      personId: (USER && USER.personId) || '', postId: id, choice: want || held, want })
+      .then(d => { if (d && d.error) throw new Error(d.error); }),
+    put: held => {
+      const x = (DATA.posts || []).find(y => y.id === id);
+      if (!x || !x.poll) return;
+      voteMove_(x.poll, held);
+      postRedraw_(id, [['.poll', poll]]);
+    },
+    or: 'Could not save that vote',
+  });
 });
+
+/* YOUR VOTE MOVES TO `to` ('' for none), its count and the total with it — the tap and the undo both,
+   for the reason `reactMove_` gives. */
+function voteMove_(q, to) {
+  const at = c => q.options.indexOf(c);
+  if (q.yours && at(q.yours) >= 0) { q.counts[at(q.yours)]--; q.total--; }
+  q.yours = to && at(to) >= 0 ? to : '';
+  if (q.yours) { q.counts[at(q.yours)]++; q.total++; }
+}
 
 /* SHARING. A post needs an address of its own or there is nothing to send — so each one gets
    `?post=` and the app opens on it. Without that, sharing sends somebody to the top of a feed to
@@ -2495,9 +2688,11 @@ function reelCards_(count) {
   for (let i = 0; i < count; i++) {
     const it = reelItem_(REEL_SHOWN);
     if (!it) break;
-    /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. The sound button
+    /* THE WHOLE SLIDE IS THE PAUSE, which is what a video is everywhere else. The Sound tile
        sits inside it and carries its own `data-do`, and the dispatcher takes the NEAREST one —
-       so reaching for the sound never stops the clip by accident.
+       so reaching for the sound never stops the clip by accident. Drawn muted, always: a slide
+       built or rebuilt here holds a new `<video>` (or a Short with no player yet), and both start
+       silent — see `reelSoundTile_`.
 
        `is-held` IS DRAWN FROM THE STATE RATHER THAN LEFT ON THE ELEMENT, and the measurement is
        why: a repaint rebuilds this markup, so the class the tap added went with it while `REEL_HELD`
@@ -2508,7 +2703,7 @@ function reelCards_(count) {
     out.push(`<div class="card is-widget"><div class="widget-slot">
       <div class="reel${REEL_SHOWN === REEL_HELD ? ' is-held' : ''}"
            data-reel="${REEL_SHOWN}" data-do="reel-tap">${feedSlide(it)}` +
-      `<button class="btn tiny reel-sound" data-do="reel-sound">Sound off</button></div>
+      `${reelSoundTile_(false)}</div>
     </div></div>`);
     REEL_SHOWN++;
   }
@@ -2671,7 +2866,7 @@ function reelPlay_(v) {
     v.src = src;
   }
   /* A BLOCKED AUTOPLAY IS A REJECTED PROMISE AND NOT AN ERROR. Every browser refuses to start an
-     unmuted video nobody has tapped, and one that has been unmuted by the button below and then
+     unmuted video nobody has tapped, and one that has been unmuted by the Sound tile below and then
      scrolled back to is exactly that case. Caught and dropped: the slide is on screen with its
      first frame showing, which is what a paused reel looks like. */
   const p = v.play();
@@ -2690,7 +2885,7 @@ function reelPlay_(v) {
      arriving        the poster is already there (`feedSlide`); THIS builds the player, muted, and it
                      starts itself — the one kind of start every browser allows
      tap             `pauseVideo` / `playVideo`, and `is-held` draws the ▶, exactly as for a video
-     Sound           `unMute` / `mute`, the same button and the same words
+     Sound           `unMute` / `mute`, the same tile and the same words
      leaving         `pauseVideo`; a page further and the player is taken down (`reelYtDrop_`)
      cannot load     the poster stays, and one link says "Watch on YouTube" (`reelYtDead_`)
 
@@ -2790,7 +2985,7 @@ function reelYtBuild_(box) {
   f.className = 'feed-yt-frame';
   f.dataset.n = String(++YT_SEQ);
   f.title = 'YouTube video';
-  /* `autoplay` IN `allow` IS WHAT LETS THE SOUND BUTTON WORK: a tap on this page is the gesture, and
+  /* `autoplay` IN `allow` IS WHAT LETS THE SOUND TILE WORK: a tap on this page is the gesture, and
      this is the page delegating it to the frame. `referrerpolicy` is the Videos card's, for its
      reason — YouTube refuses (error 153) a page that sends no referrer at all. `tabindex=-1`: the
      slide is the control and YouTube's buttons are not, so a keyboard does not stop inside them. */
@@ -2855,8 +3050,8 @@ function reelYtPause_(box) {
    Short one clip in three, never more than one or two — decided by the page you are on, the number
    the app already knows, rather than by a clock that would need a timer per slide and still guess.
 
-   A PLAYER BUILT AGAIN STARTS MUTED, as every autoplaying thing must, and the button is put back to
-   say so — a label reading "Sound on" over a player that has just started silent is the invisible
+   A PLAYER BUILT AGAIN STARTS MUTED, as every autoplaying thing must, and the tile is put back to
+   say so — a speaker with its waves over a player that has just started silent is the invisible
    mode `is-held` exists to prevent. */
 function reelYtDrop_(box) {
   if (!box) return;
@@ -2867,8 +3062,7 @@ function reelYtDrop_(box) {
   if (f) f.remove();
   if (box.dataset.sound) {
     delete box.dataset.sound;
-    const b = box.closest('.reel') && box.closest('.reel').querySelector('.reel-sound');
-    if (b) b.textContent = 'Sound off';
+    reelSoundSay_(box.closest('.reel') && box.closest('.reel').querySelector('.reel-sound'), false);
   }
 }
 
@@ -2987,7 +3181,7 @@ addEventListener('message', e => {
 
 /* SOUND IS OFF UNTIL IT IS ASKED FOR, because a column that starts talking the moment it opens is a
    column nobody opens twice — and because a muted video is the only kind a browser will start by
-   itself. The button says the state it is IN, not the state it would move to: "Sound off" on a
+   itself. The tile says the state it is IN, not the state it would move to: "Sound off" on a
    muted clip is what everything else in this app does with a switch. */
 /* ---------- A REEL YOU CANNOT STOP ----------------------------------------------------------------
    THERE WAS NO PAUSE. The column autoplays whatever page you are on, which is right, and the only
@@ -3034,9 +3228,37 @@ on('reel-tap', (el, e) => {
   }
 });
 
+/* ---------- THE SOUND IS A TILE, LIKE EVERYTHING ELSE ---------------------------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* It was a `.btn
+   tiny` with "Sound off" written in it — the last control on a reel drawn by hand rather than by
+   `tile_`, the one renderer, so its tap target, its press and its mark were its own (note 323).
+
+   ONE FUNCTION DRAWS IT AND ONE SAYS ITS STATE, because three places change it — the first paint,
+   the press, and a Short's player taken down a page away — and each rewrote `textContent` on its
+   own. Three writers of one fact is three chances to disagree; now the label, the mark and
+   `aria-pressed` move together or not at all (`tileSet_` is the star's own way of doing that).
+
+   THE LABEL SAYS THE STATE IT IS IN, exactly as the button's words did: "Sound off" on a muted clip,
+   "Sound on" on one playing aloud — and the mark says the same thing in a picture, the crossed
+   speaker every phone draws over a silent clip. `aria-pressed` is the third copy, for a screen
+   reader, which cannot see which mark is drawn.
+
+   ITS OWN TONE, `over`, because it is not on a card: it sits on a moving picture, where the plate
+   every other tile wears (3% white) is invisible on a white wall. `--over-wash` is the wash the ▶ and
+   the Short's door already use over the same picture — see `.tile.is-over` in style.css. `cls` keeps
+   `.reel-sound`, the name the stylesheet places it by and a dead Short hides it by. */
+function reelSoundTile_(on) {
+  return tile_({ icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off',
+                 tone: 'over', cls: 'reel-sound', act: 'reel-sound', pressed: !!on });
+}
+function reelSoundSay_(el, on) {
+  if (!el) return;
+  tileSet_(el, { icon: on ? 'sound' : 'mute', label: on ? 'Sound on' : 'Sound off', pressed: !!on });
+}
+
 on('reel-sound', (el) => {
   const slide = el.closest('.reel');
-  /* THE SAME BUTTON AND THE SAME WORDS FOR A SHORT, said to the player instead of set on an element.
+  /* THE SAME TILE AND THE SAME WORDS FOR A SHORT, said to the player instead of set on an element.
      A held Short is not started by it: sound on a stopped reel is a choice for when it next plays. */
   const yt = slide && slide.querySelector('.feed-yt');
   if (yt) {
@@ -3045,13 +3267,13 @@ on('reel-sound', (el) => {
     if (on_) yt.dataset.sound = 'on'; else delete yt.dataset.sound;
     reelYtSay_(yt, on_ ? 'unMute' : 'mute');
     if (on_ && yt.dataset.want === 'play') reelYtSay_(yt, 'playVideo');
-    el.textContent = on_ ? 'Sound on' : 'Sound off';
+    reelSoundSay_(el, on_);
     return;
   }
   const v = slide && slide.querySelector('video.feed-vid');
   if (!v) return;
   v.muted = !v.muted;
-  el.textContent = v.muted ? 'Sound off' : 'Sound on';
+  reelSoundSay_(el, !v.muted);
   if (!v.muted) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
 });
 
@@ -3241,16 +3463,32 @@ document.addEventListener('visibilitychange', () => {
    row is sent with a name and an avatar and nothing else, so a conversation with a student keeps the
    initial — which is the fallback for every case this cannot place, and the reason a failed image
    quietly becomes one rather than a broken-picture icon. */
+/* ---------- AND IT IS `personFace_`, LIKE EVERY OTHER FACE -------------------------------------------
+   One of the ten pictures, or the figure when the row carries it (the owner, 10 Oct: *"…which allow
+   you to use your avatar as a dp."*), draws in the disc exactly as it does on the card. Your FAMILY's
+   rows and an ADMIN's everyone are looked in too, after the tutors and under the same two locks the
+   account column puts on them — the list stamped for you, and admin — because the server already sent
+   their faces to you for that column; a conversation with your own child had a letter at its head
+   while the child's picture was one swipe away. A PHOTOGRAPH keeps its `onerror`: a Drive file that
+   is not shared becomes the letter rather than a broken square. */
 function dmFace_(t) {
   const letter = initial(t.name);   // letters and digits only, so it is safe inside the onerror below
-  const rows = (DATA && DATA.tutors) || [];
+  const famMine = !!(USER && USER.personId && DATA && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
+  const rows = ((DATA && DATA.tutors) || [])
+    .concat(famMine && Array.isArray(DATA.family) ? DATA.family : [])
+    .concat(typeof isAdmin === 'function' && isAdmin() && DATA && Array.isArray(DATA.everyone) ? DATA.everyone : []);
   const id = String(t.id || '');
   const who = (id && rows.find(r => r && String(r.personId || '') === id))
     || rows.find(r => r && t.name && norm(r.title || '') === norm(t.name));
-  const src = who && who.image ? pic(who.image) : '';
-  if (!src) return `<span class="dm-av" aria-hidden="true">${letter}</span>`;
-  return `<span class="dm-av has-pic" aria-hidden="true"><img src="${esc(src)}" alt="" loading="lazy"
-    onerror="this.parentNode.classList.remove('has-pic');this.parentNode.textContent='${letter}'"></span>`;
+  if (!who) return `<span class="dm-av" aria-hidden="true">${letter}</span>`;
+  const face = personFace_({ pic: who.image, avatar: who.avatar, handle: who.handle, name: t.name || who.title,
+                             personId: who.personId }, { cls: 'dm-pic', size: 32 });
+  if (picKind_(who.image) === 'photo') {
+    return `<span class="dm-av has-pic" aria-hidden="true">${face.replace('<img ', `<img onerror="this.parentNode.classList.remove('has-pic');this.parentNode.textContent='${letter}'" `)}</span>`;
+  }
+  return /^<span class="dm-pic face-pic"/.test(face)
+    ? `<span class="dm-av has-pic" aria-hidden="true">${face}</span>`
+    : `<span class="dm-av" aria-hidden="true">${letter}</span>`;
 }
 
 function dmPages_() {

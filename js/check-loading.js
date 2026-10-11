@@ -34,11 +34,16 @@
         dots; its block colours only through tokens, sizes only in `rem` (nothing in it is pressed),
         and stills it under `prefers-reduced-motion`. And it is CALLED — a count is printed, because a
         loader nothing draws passes every rule above.
+     5. THE LOADING SCREEN'S LOADER IS THIS ONE, WRITTEN OUT. A first visit has none of the books'
+        drawings kept, and its splash is the name, still, with the loader under it (docs/history/322).
+        index.html parses that before shell.js exists, so it cannot call `loading_()` and carries the
+        markup by hand — the one hand-written copy allowed, and so the one held: it must be exactly
+        what `loading_()` returns, inside `#splash-still`, and the only `class="loading"` in the page.
 
    WHAT IS NOT A WAIT AND IS NOT READ HERE: a press already sent (`send_`'s ring and its "Saving…",
-   "Sending…" — docs/history/094, the busy ring on a button or a tile); the splash in index.html,
-   which is the loading SCREEN and deliberately its own thing; and an error or an empty result,
-   which keep their words.
+   "Sending…" — docs/history/094, the busy ring on a button or a tile); a book's animation drawn on
+   the splash, which is teaching and not a wait; and an error or an empty result, which keep their
+   words.
 
      node js/check-loading.js
 ================================================================================================== */
@@ -123,10 +128,12 @@ const LOADER_CLASS = 'loading';
    happens to share a word — and printed on every run with the reason, so the list is read rather
    than grown. */
 const WAIT_KEYFRAME = /(^|-)(sk|skeleton|shimmer|spin\w*|load\w*|wait\w*|pulse\w*|busy\w*)($|-)/;
+/* `mb-spin` WAS THE SECOND — the coin turning over in the blocks splash — and went with it on 10 Oct
+   (docs/history/322). An acceptance whose keyframe has gone is a pass written in advance for whatever
+   is next given that name, so one that is not in style.css any more fails below. */
 const ACCEPTED_KEYFRAMES = {
   'btn-spin': 'the busy ring on a pressed button or tile (`.btn.is-busy`, `.tile.is-busy`) — an action in flight, '
             + 'not content on its way: docs/history/094. The loader is dots so the two can never be mistaken.',
-  'mb-spin': 'a coin turning over in the Mario-blocks splash — the loading SCREEN in index.html, which stays as it is.',
 };
 const BLOCK_START = '---------- WAITING: ONE LOADER';
 
@@ -138,6 +145,7 @@ const note = [];
    read as the code it is. Each token carries its offset; the line is worked out from it. */
 const lineOf = (src, at) => src.slice(0, at).split('\n').length;
 let strings = 0, calls = 0, loadedCalls = 0;
+let loaderSrc = '';
 const callers = new Set();
 
 for (const f of appFiles_()) {
@@ -163,6 +171,7 @@ for (const f of appFiles_()) {
     const fn = own.find(o => o[2] === 'loading_');
     if (fn) {
       const body = src.slice(fn[0], fn[1]);
+      loaderSrc = body;
       if (!/role="status"/.test(body)) bad.push('loading_() does not say role="status" — a screen reader hears nothing while it waits');
       if (!/aria-label="Loading"/.test(body)) bad.push('loading_() has no aria-label="Loading" — three dots say nothing out loud');
       if ((body.match(/<span><\/span>/g) || []).length !== 3) bad.push('loading_() does not draw three dots');
@@ -269,12 +278,54 @@ if (bStart >= 0 && bEnd > 0) {
   }
 }
 
+/* AN ACCEPTANCE FOR A KEYFRAME THAT IS GONE. */
+const kfNames = new Set([...bare.matchAll(/@keyframes\s+([\w-]+)/g)].map(m => m[1]));
+Object.keys(ACCEPTED_KEYFRAMES).filter(k => !kfNames.has(k)).forEach(k =>
+  bad.push(`check-loading.js: ACCEPTED_KEYFRAMES lets "${k}" through and style.css has no @keyframes ${k} — an acceptance for nothing, waiting for the next wait given that name`));
+
+/* ---------- 5. THE LOADING SCREEN'S LOADER IS `loading_()`'s, WRITTEN OUT ----------------------------
+   "the app's one loader under it (the same markup and classes loading_() writes)" — what a first visit
+   is shown since the splashes that taught nothing went (docs/history/322). Run, not read: the function
+   is taken out of shell.js as acorn found it and called, so the comparison is with what the app draws
+   in a card, not with what somebody thinks it draws. Byte for byte, because the copy is the markup and
+   there is nothing in between to forgive a difference — a dropped `role="status"` here is a first visit
+   a screen reader hears nothing on. */
+let splashLoader = '';
+{
+  let page = '';
+  try { page = fs.readFileSync(path.join(root, 'index.html'), 'utf8'); } catch (e) {}
+  let want = '';
+  try { want = loaderSrc ? String(new Function(loaderSrc + '\nreturn loading_();')()) : ''; }
+  catch (e) { bad.push('loading_() could not be run on its own (' + e.message + ') — the splash\'s copy was NOT compared'); }
+  const html = page.replace(/<!--[\s\S]*?-->/g, '');
+  const a = html.indexOf('<div id="splash-still"');
+  let still = '';
+  if (a >= 0) {
+    let depth = 0;
+    for (const m of html.slice(a).matchAll(/<(\/?)div\b[^>]*>/g)) {
+      depth += m[1] ? -1 : 1;
+      if (!depth) { still = html.slice(a, a + m.index + m[0].length); break; }
+    }
+  }
+  const hand = (html.match(/\bclass\s*=\s*["']?loading\b/g) || []).length;
+  if (!page) bad.push('index.html is not readable — the loading screen\'s loader was NOT compared');
+  else if (!want) bad.push('no `loading_()` to run — the loading screen\'s loader was NOT compared');
+  else if (!still) bad.push('index.html: no `#splash-still` — a first visit has no loader on its loading screen');
+  else if (still.indexOf(want) < 0) {
+    const got = (still.match(/<div class="loading"[\s\S]*?<\/div>/) || ['(none)'])[0];
+    bad.push('index.html: the loading screen\'s loader is not `loading_()`\'s — it has ' + JSON.stringify(got.slice(0, 120))
+      + ' and loading_() returns ' + JSON.stringify(want) + '. Change both, or neither.');
+  } else splashLoader = want;
+  if (page && hand !== 1) bad.push('index.html: `class="loading"` written ' + hand + ' times — once, in `#splash-still`, is the one copy allowed');
+}
+
 /* ---------- THE REPORT --------------------------------------------------------------------------- */
 console.log('\nWAITS DRAWN ANOTHER WAY  (' + bad.length + ')');
 bad.forEach(b => console.log('  ' + b));
 if (!bad.length) console.log('  none');
 console.log('\nACCEPTED, EACH WITH ITS REASON  (' + note.length + ')');
 note.forEach(n => console.log('  ' + n));
+console.log(`\nthe loading screen's loader: ${splashLoader ? 'loading_()\'s own markup, once, in #splash-still' : 'NOT the one loader'}`);
 console.log(`\nstrings read: ${strings} · keyframes read: ${keyframes} · loader rules, all in the one block: ${loaderRules}`
   + ` · loading_() called ${calls} times in ${callers.size} files (${[...callers].join(', ')}) · loaded_() ${loadedCalls}`);
 /* A LOADER NOTHING DRAWS PASSES EVERY RULE ABOVE — so a handful of callers is a floor. Twenty-four

@@ -79,8 +79,10 @@ const STATES = {
         /* EVERY MEMO, AND `DATA` IS WHAT THEY ARE KEYED ON. `stuffItems` and `stuffFiltered` both
            hold `from: DATA` by object identity, so emptying its arrays leaves all three handing
            back the 5,587 items they built when the payload was whole -- which is a state the app
-           is never in and would have measured the wrong screen. */
-        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+           is never in and would have measured the wrong screen.
+           `stuffForget_` RATHER THAN THE THREE BY NAME: there are two finders now (docs/history/329), and
+           the names are the bound one's; the app's own forgetting empties every finder's. */
+        stuffForget_();
         STUFF.filters = []; STUFF.q = '';
         paintStuff();
       },
@@ -88,7 +90,7 @@ const STATES = {
         const held = window.__LIB_HELD || { rows: null, data: {} };
         Object.keys(held.data).forEach(k => { DATA[k] = held.data[k]; });
         LIBRARY_ROWS = held.rows;
-        ITEM_MEMO = {}; ALL_MEMO = {}; FIND_MEMO = {};
+        stuffForget_();
         paintStuff();
       },
       /* THE ONE LOADER NOW, NOT A SENTENCE OF ITS OWN — the owner, 9 Oct: *"They should all have a
@@ -470,118 +472,6 @@ const STATES = {
       },
       wants: 'a coursework on its Stages page — the card flagged Coursework with its board, and the stages numbered',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
-       "the @family textbook should be bare bones for now and the textbooks will be in the resources
-       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
-       shelf — and then the Measures of spread chapter, because it is the one with everything a
-       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
-       stacked fractions under a root are the widest thing on any page of the book. The chapters
-       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
-       ratio and a sideways scroll. */
-    { name: 'a textbook chapter',
-      enter: () => {
-        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
-           and the first one on it, or a chapter numbered like this one in another book, is not the
-           page this state was written about. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = typeof stuffPages_ === 'function'
-          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
-      },
-      expect: () => {
-        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
-           either side of this one, and the card is nine pages back. The card has a journey of its
-           own in check-flow; this state is about the widest page. */
-        const ch = [...document.querySelectorAll('#s-stuff .card.tb.prac-part')]
-          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
-        return !!ch && !!ch.querySelector('.tb-words li b')
-               && !!ch.querySelector('.tb-math .frac .frac-d')
-               && !!ch.querySelector('.tb-points li')
-               && !!ch.querySelector('li .tb-h')
-               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
-               && !document.querySelector('#s-stuff .card:not(.tb) .boxer-rec');
-      },
-      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
-       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
-       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
-       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
-       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
-       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
-       by its page; the pages either side are in the DOM beside it and are measured too. */
-    { name: 'a textbook animation: Pythagoras',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
-        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an17-pyth');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
-        return !!stage && !!stage.querySelector('.an-pyth')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="pyth"]');
-      },
-      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'a textbook animation: Bayes',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
-        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an15-bayes');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
-        return !!stage && !!stage.querySelector('.an-bayes')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="bayes"]');
-      },
-      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'a textbook animation: standard form',
-      enter: () => {
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
-        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
-                         { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
-        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
-        goPage('stuff', stuffFirstResult_() + at);
-      },
-      expect: () => {
-        const card = document.querySelector('#s-stuff .card.tb-an.is-an2-sf');
-        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
-        return !!stage && !!stage.querySelector('.an-sf')
-               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
-               && !!card.querySelector('.tb-about li')
-               && !!document.head.querySelector('style[data-anim="sf"]');
-      },
-      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
        THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
        want a pen and 26 carry the picture to put one over — and every one of them is inside the
@@ -600,8 +490,11 @@ const STATES = {
        before it is paged, so `stuffItemsAll_()`'s first is not the card the screen shows. */
     { name: 'a diagram you can draw on',
       enter: () => {
+        /* THE PAPER'S OWN PICTURE UNDER THE PEN, NOT A MADE-UP SURFACE: a surface is the answer box's other
+           face on the card now (`ansArea_`, docs/history/327), with no figure page to turn to -- its states
+           are below. */
         const pen = stuffItemsAll_().find(it => it.kind === 'question'
-          && typeof padSource_ === 'function' && padSource_(it));
+          && typeof padSource_ === 'function' && padSource_(it) && padSource_(it).from !== 'surface');
         if (!pen) throw new Error('no question in the list carries a pen');
         /* THE VALUE THE FACET ITSELF WOULD READ, not a field name written out here. `paperId`'s
            `of` is `x.row.paper_id` and the item carries no `paperId` of its own — so a state that
@@ -708,32 +601,242 @@ const STATES = {
       },
       wants: 'the Venn diagram on its own page, tagged Figure first, with no question number, no marks and no box',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A DRAWING QUESTION WITH NO PICTURE: A SQUARED GRID UNDER THE PEN ----------------------
-       *"some questions require answers on diagram. So should have a diagram for them to draw on"*. The
-       first question in the library that `padSource_` gives a SURFACE rather than a figure, and whose
-       surface is squared paper -- found by the app's own rule, not named, so the state follows the
-       data as the data workflow redraws the real figures. On its own page, after the ask, headed
-       "Squared grid", saying it is not the paper's figure. */
-    { name: 'a drawing question\'s squared grid, under the pen',
+    /* ---------- A QUESTION ANSWERED ON A MADE-UP SURFACE: ONE CARD, THE BOX, AND `Draw` -----------------
+       THE OWNER, 10 Oct, over this very card: *"this is confusing. theres an answer box and draw box? in
+       questions which require a drawing, just leave it as an answer box like before but theres an option
+       to switch to drawing box."* KS1 "How many sides has a hexagon?" -- a one-word answer whose row gives
+       it a blank space to count on -- was the box, "Space to draw on the next page", and a page after it
+       headed "Space to draw". Now it is ONE card: the box as on any question, no line pointing on, and a
+       `Draw` tile in the row under the card; and no surface page anywhere in the strip. Named, because it
+       is the owner's own screenshot. The face is set to the box first, as a device that never chose. */
+    { name: 'a question answered on a surface, on its answer box with a Draw tile',
       enter: () => {
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && typeof padSource_ === 'function'
-          && (padSource_(x) || {}).from === 'surface' && padSurface_(x) === 'grid');
-        if (!it) throw new Error('no question in the library stands on a squared-grid surface');
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-2d-shapes-2');
+        if (!it) throw new Error('Q-CBM-2d-shapes-2 ("How many sides has a hexagon?") is not in the library');
+        if (typeof surfaceOf_ !== 'function' || !surfaceOf_(it)) throw new Error('Q-CBM-2d-shapes-2 is not answered on a surface any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        window.__surfRow = it.row.row_id;
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
       },
       expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
-        return !!c && c.getAttribute('data-of') === window.__surfRow
-               && !!c.querySelector('.qpad .qpad-art > svg.qsurf.is-grid')
-               && ((c.querySelector('.qcard-tags [data-tag="kind"]') || {}).textContent || '') === 'Squared grid'
-               && /not the paper.s own figure/i.test(c.textContent);
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const page = a && a.closest('.page');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        return !!tile && !a.classList.contains('is-draw') && !!a.querySelector('.qp-ans .kp-in') && !a.querySelector('.qpad')
+               && /^Draw\b/.test(tile.getAttribute('aria-label') || '') && !page.querySelector('.qsheet-figref')
+               && !stuffPages_().some(pg => pg.x === it && pg.part === 'fig');
       },
-      wants: 'a squared grid on its own page after its question, under the pen, tagged "Squared grid" and saying it is not the paper\'s figure',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the hexagon question as one card: its answer box, no "on the next page" line, a Draw tile in the row under it, and no surface page in the strip',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE SAME CARD, SWITCHED TO THE DRAWING ------------------------------------------------------
+       `Draw` pressed through its own handler, as a finger does: the box gives way IN PLACE to the blank
+       space under the pen -- lock, Undo, Clear, the line saying it is not the paper's own figure -- and the
+       tile reads `Type`. The page does not change: both faces are one page. */
+    { name: 'a question answered on a surface, switched to the drawing',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-2d-shapes-2');
+        if (!it) throw new Error('Q-CBM-2d-shapes-2 ("How many sides has a hexagon?") is not in the library');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__facePage = (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it);
+        goPage('stuff', window.__facePage, true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-CBM-2d-shapes-2 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const page = a && a.closest('.page');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        return !!tile && a.classList.contains('is-draw') && !a.querySelector('.qp-ans')
+               && !!a.querySelector('.qpad .qpad-art > svg.qsurf.is-blank') && !!a.querySelector('.qpad-lock')
+               && !!a.querySelector('.qpad-undo') && !!a.querySelector('.qpad-clear')
+               && /not the paper.s own figure/i.test(a.textContent) && /^Type\b/.test(tile.getAttribute('aria-label') || '')
+               && PAGE.stuff === window.__facePage;
+      },
+      wants: 'the hexagon card with a blank space under the pen where its box was, lock, Undo and Clear under it, saying it is not the paper\'s figure, the tile reading Type, on the same page',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A SQUARED GRID, SWITCHED TO ------------------------------------------------------------------
+       *"some questions require answers on diagram. So should have a diagram for them to draw on"* -- the
+       first question in the library on a squared-grid SURFACE, found by the app's own rule so the state
+       follows the data as the paper's own figures are redrawn. Switched to through `Draw`; the grid under
+       the pen with every tool its question asks for (`padTools_`: KS2 "Draw the reflection... Use a ruler"
+       brings the Ruler), and nothing of it on a page of its own. */
+    { name: 'a question answered on a squared grid, switched to the drawing',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && typeof surfaceOf_ === 'function'
+          && surfaceOf_(x) && padSurface_(x) === 'grid');
+        if (!it) throw new Error('no question in the library stands on a squared-grid surface');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error(it.row.row_id + ' has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        const tools = a ? [...a.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' ') : '';
+        const want = padToolsOf_(it).length > 1 ? padToolsOf_(it).join(' ') : '';
+        return !!a && a.classList.contains('is-draw') && !!a.querySelector('.qpad .qpad-art > svg.qsurf.is-grid')
+               && !a.querySelector('.qp-ans') && tools === want
+               && !stuffPages_().some(pg => pg.x === it && pg.part === 'fig');
+      },
+      wants: 'a squared grid under the pen on the question card, in the box\'s place, with the tools its question asks for, and no page of its own',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AXES, SWITCHED TO ----------------------------------------------------------------------------
+       NO ROW IN THE LIBRARY IS ON AXES TODAY (every coordinate grid the papers print has been drawn), so,
+       as the passage state does for `text`, this gives a real squared-grid row `surface: "coord"` for the
+       length of the state -- the value a row would carry -- through the app's own memo, and switches to it. */
+    { name: 'a question answered on axes, switched to the drawing',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && typeof surfaceOf_ === 'function'
+          && surfaceOf_(x) && padSurface_(x) === 'grid');
+        if (!it) throw new Error('no question in the library stands on a squared-grid surface to put axes on');
+        window.__faceItem = it;
+        window.__faceHad = it.surface;
+        it.surface = 'coord';
+        CHUNK_MEMO.delete(it);
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error(it.row.row_id + ' has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        return !!a && a.classList.contains('is-draw') && !!a.querySelector('.qpad .qpad-art > svg.qsurf.is-coord line.axis')
+               && !a.querySelector('.qp-ans');
+      },
+      wants: 'axes on a grid under the pen on the question card, in the box\'s place',
+      leave: () => {
+        const it = window.__faceItem;
+        if (it) { it.surface = window.__faceHad || ''; CHUNK_MEMO.delete(it); }
+        padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- A TALL QUESTION SWITCHED TO ITS DRAWING: EVERY TILE A FINGERTIP, AND `Type` ON THE GLASS -----------
+       FOUND IN REVIEW OF 327, at 320x568: with the grid at its floor, 27 of the 62 surface cards still passed
+       their pane and `paneReach_` drew each of them smaller WHOLE -- the pen's lock, Undo and Clear and the
+       `Type` tile at 31 to 42px. This card was the worst: 5-a-day 24 October Q4a, a 7x7 dice table above
+       the grid, drawn at the 0.7 floor and still 9px over, so the pane neither fitted nor scrolled and `Type`
+       -- the one way back to the box -- was cut in half by its edge. Now the grid gives way, then the words,
+       never the tiles, and a card still over scrolls to its foot (`padFaceFit_`, `paneReach_`).
+       THE `expect` IS THE RULE, because nothing else here can see it: `check/ui.js` judges a control at the
+       size the stylesheet gave it (a whole card drawn at 0.7 has 44px tiles as far as it knows), and a pane
+       9px over is inside `PANE_REACH`'s tolerance. So this asks the glass: every pen tile and `Type` at 44px
+       on the screen, no card drawn smaller whole, and `Type` inside its pane and hit at 90% of its height --
+       the reviewer's own test, which missed it at 85% and 95%. Every width; it was red at 320. */
+    { name: 'a tall question switched to the drawing, its tiles a fingertip and Type on the glass',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-5AD-F-1024-5');
+        if (!it) throw new Error('Q-CBM-5AD-F-1024-5 (5-a-day 24 October, the dice table) is not in the library');
+        if (typeof surfaceOf_ !== 'function' || !surfaceOf_(it)) throw new Error('Q-CBM-5AD-F-1024-5 is not answered on a surface any more');
+        window.__faceItem = it;
+        padFaceSet_(padKey_(it), 'type');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* THE TILE `drawTile_` DRAWS, pressed through its own handler, as the hexagon's state does: the page is
+           filled a frame after `goPage`, and the handler rewrites every copy on the screen and keeps the face. */
+        const h = document.createElement('div');
+        h.innerHTML = drawTile_(it);
+        if (!h.firstElementChild) throw new Error('Q-CBM-5AD-F-1024-5 has no Draw tile');
+        ACTIONS['q-draw'](h.firstElementChild);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const a = it && [...document.querySelectorAll('#s-stuff .page.on .qp-area')].find(e => e.getAttribute('data-q') === it.key);
+        if (!a || !a.classList.contains('is-draw')) return false;
+        const pane = a.closest('.pane');
+        const tile = [...a.closest('.page').querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        if (!pane || !tile) return false;
+        const side = e => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); };
+        const taps = [...a.querySelectorAll('.qpad-bar [data-do]')].concat([tile]);
+        const pr = pane.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+        const hit = document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height * 0.9);
+        /* AND THE PANE SCROLLS ONLY ONCE THE WORDS HAVE GIVEN ALL THEY CAN: a card that scrolls with its words
+           at full size is the owner's "I don't like scrolling" for nothing. */
+        const words = a.closest('.qcard').querySelector(':scope > .qsheet');
+        const gave = words && Math.abs(parseFloat(words.style.zoom || '1') - PANE_ZOOM_MIN) < 0.001;
+        return taps.length >= 4 && taps.every(e => side(e) >= 43.5)
+               && [...pane.children].every(k => !k.style.zoom)
+               && tr.top >= pr.top - 0.5 && tr.bottom <= pr.bottom + 0.5
+               && !!hit && tile.contains(hit)
+               && (pane.style.overflowY !== 'auto' || !!gave);
+      },
+      wants: 'the dice-table card on its drawing with the lock, Undo, Clear and Type at 44px on the glass, nothing drawn smaller whole, Type inside its pane where a press lands on it, and no scroll before its words have given way',
+      leave: () => { padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND THE PEN'S TOAST OVER THE ROW TAKES NO PRESS ------------------------------------------------
+       FOUND IN REVIEW OF 327: on the drawing, the row under the card sits at the foot of the column, which is
+       where `toast()` speaks -- "Cleared. Undo puts it back.", "Nothing to undo" -- and for 2.6 seconds a tap
+       on `Type` landed on the toast and nothing switched; at 320x568 the hit test at the tile's centre
+       returned the toast. The toast is words with nothing to press, so it passes every press through
+       (`#toast`, style.css). Cleared through the pen's own handler, on the owner's hexagon with a stroke on
+       it; the toast's own timer stopped so it is still up when this is measured, and taken down on leave.
+       Asked at the toast's centre (a press there reaches what is under it, at every width) and at `Type`'s
+       (a press on the tile is the tile's, whether or not the toast is over it at this width). */
+    { name: 'a question switched to the drawing and Cleared, the toast over its row taking no press',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-CBM-2d-shapes-2');
+        if (!it) throw new Error('Q-CBM-2d-shapes-2 ("How many sides has a hexagon?") is not in the library');
+        window.__faceItem = it;
+        try { localStorage.setItem(padKey_(it), JSON.stringify([[60, 60, 200, 60, 200, 200]])); } catch (e) {}
+        padFaceSet_(padKey_(it), 'draw');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* PRESSED ONCE THE PAGE IS FILLED -- a frame or two after `goPage`, longer on a busy machine -- and
+           `expect` waits for the toast it says. */
+        const press = n => {
+          const a = [...document.querySelectorAll('#s-stuff .page.on .qp-area.is-draw')].find(e => e.getAttribute('data-q') === it.key);
+          const clear = a && a.querySelector('.qpad-clear');
+          if (clear) { ACTIONS['pad-clear'](clear); clearTimeout(toastTimer); }
+          else if (n > 0) setTimeout(() => press(n - 1), 100);
+        };
+        press(25);
+      },
+      expect: () => {
+        const it = window.__faceItem;
+        const t = document.getElementById('toast');
+        if (!t || !/Cleared/.test(t.textContent)) return false;
+        const page = document.querySelector('#s-stuff .page.on');
+        const tile = page && [...page.querySelectorAll('.q-drawt')].find(b => b.getAttribute('data-key') === it.key);
+        if (!tile) return false;
+        const r = t.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const on = document.elementFromPoint(tr.left + tr.width / 2, tr.top + tr.height / 2);
+        return !!at && !t.contains(at) && !!on && tile.contains(on);
+      },
+      wants: 'the hexagon on its drawing just Cleared, the toast up over the foot of the column, and a press at the toast or at Type reaching what is under it',
+      leave: () => {
+        const it = window.__faceItem;
+        try { localStorage.removeItem(padKey_(it)); } catch (e) {}
+        try { PAD_CLEARED.delete(padKey_(it)); } catch (e) {}
+        const t = document.getElementById('toast');
+        if (t) t.remove();
+        padFaceForget_(); STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- "USE YOUR GRAPH", WITH THE GRAPH IN FRONT OF IT --------------------------------------------
        The multi-part audit's finding 5, on the row it named: June 2024 Foundation Paper 2, Q24(c) "Use your
        graph to find estimates for the solutions of x^2 - x = 4", whose `uses` is (b). The curve (b) asks
@@ -2136,299 +2239,47 @@ const STATES = {
         try { localStorage.removeItem(window.__svKey); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
-    /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
+    /* ---------- THE FILMS, WHICH ONLY ONE VISITOR IS SENT — AND WHICH FIND DOES NOT HAVE ----------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
-       `if (viewerIsAdmin)` and sends `[]` to everybody else, so a signed-out visitor has no rows,
-       no funnel answer and nothing to measure. Asking them to reach it would report a fault about
-       the check rather than about the app, which is what `only` is for.
+       `if (viewerIsAdmin)` and sends `[]` to everybody else, so a signed-out visitor has no rows and
+       their Find has no films whatever the code does. Asking them would pass with the fault in place.
 
-       THE FIXTURE'S THREE ROWS ARE INVENTED. That file is committed to a public repository and
-       holds nothing real — see the note on them. What they are for is the SHAPE: a very long
-       title against the flag, a series with no year, and a placeholder with no link, which are the
-       three ways this card can be drawn. */
-    { name: 'the films',
+       THIS STATE OPENED `Learning → Films` AND MEASURED THE FILM CARDS — the fixture's long title, its
+       series and its placeholder, and the Watch tile in the row under the card. THE OWNER, 10 Oct:
+       *"films should not appear in the finder it cannot be found there"*. So it is the admin's first
+       question in Find now, drawn WITH the fixture's three films in the payload: it measures the page an
+       admin is shown, and it arrives only if nothing on it, nothing What kind could answer over Find's
+       whole list, and nothing a film's title finds in Find's search, is a film. A film is measured where
+       it is found — "the films in the videos card, an admin’s", on Games.
+       NOT `Learning`'s What kind ANY MORE, which is what the films branch asked for: the second finder
+       took the textbooks to the Resources column (docs/history/329), and over the fixture Learning in Find
+       then holds one kind, so What kind is skipped and the page drew Year. A state that wants a second
+       What kind answer on Find cannot arrive, whatever the films do — so this asks What kind's answers of
+       the facet over the whole list instead, which is the same question without the funnel's skip. */
+    { name: 'no films in Find, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Films' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* AND ONE ROW OF TILES. The Watch tile was a `.tile-row` drawn INSIDE the card, above the
-         notes, with the star's row under the card — two rows on one film, where a fight has one.
-         It is `filmTiles_`'s now, so a row inside a film card is that shape coming back. */
-      expect: () => {
-        const films = [...document.querySelectorAll('#s-stuff .card.film')];
-        const live = films.find(c => !c.classList.contains('is-off'));
-        const row = live && live.parentElement && live.parentElement.nextElementSibling;
-        return films.length >= 2 && !films.some(c => c.querySelector('.tile-row'))
-               && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
-      },
-      wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
-    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
-       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
-       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
-       asking a stranger to reach it would report a fault about the check (check-flow proves the
-       absence; this measures the presence).
-
-       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
-       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
-       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
-       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
-       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
-       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
-       either side of it.
-       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
-       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
-       so the cards after it are drawn from memory as a second visit would draw them. */
-    { name: 'the Bible, the KJV question',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-        bibleLoad_(1);
-        bibleLoad_(17);
-        bibleLoad_(19);
-      },
-      expect: () => {
-        const a = [...document.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
-        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
-               && !!document.querySelector('#s-stuff .card.bible[data-bb="card"]');
-      },
-      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
-    { name: 'the Bible, Psalms\'s chapters',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }];
+        STUFF.filters = [];
         paintStuff();
         goPage('stuff', stuffQuestionPage_(), true);
       },
-      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
-      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
-    { name: 'the Bible, Psalm 119\'s verses',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
-                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
-        paintStuff();
-        goPage('stuff', stuffQuestionPage_(), true);
-      },
-      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
-      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
-    { name: 'the Bible, Genesis 1:3',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
-                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
-                         { field: 'bibleVerse', value: '3' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
       expect: () => {
-        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
-        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
-               && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+        const films = (DATA.films || []).filter(f => f && f.title);
+        const isFilm = x => x && (x.kind === 'film' || films.some(f => f.title === x.name));
+        const kl = facetList().find(f => f.field === 'kindLabel');
+        const kinds = kl ? facetValues(stuffItems(), kl).map(v => String(v.value)) : [];
+        const was = STUFF.q;
+        let found = 0;
+        try { films.forEach(f => { STUFF.q = f.title; found += stuffFiltered().filter(isFilm).length; }); }
+        finally { STUFF.q = was; }
+        return films.length >= 2 && kinds.length >= 1 && kinds.indexOf('Films') === -1 && !found
+               && !!document.querySelector('#stuff-groups [data-do="facet-pick"]')
+               && !stuffItemsAll_().some(isFilm)
+               && !document.querySelector('#s-stuff .card.film');
       },
-      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
-    { name: 'the Bible, Esther 8:9',
-      only: () => typeof isAdmin === 'function' && isAdmin(),
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
-                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
-                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
-                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
-                         { field: 'bibleVerse', value: '9' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
-      expect: () => {
-        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
-        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
-      },
-      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ==============================================================================================
-       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
-
-       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
-       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
-       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
-       paragraph of names, and nothing measured either, because no state reached Resources ›
-       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
-       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
-       now has), and the numbers on the gold meta line.
-
-       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
-       browser as source one at a time and cannot see each other — the note at the top of the file.
-    ============================================================================================== */
-    { name: 'the boxers, on the shared head',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
-         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
-         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
-         beside the name — so this asks what only a browser can answer about that: the picture box is
-         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
-         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
-         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
-         stay: one title size, the flag above the title. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)')
-               || document.querySelector('#s-stuff .card.fc.boxer:not(.is-fights)');
-        if (!c || c.querySelector('.thing')) return false;
-        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
-        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
-        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
-        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
-                                 : /No fight record on file/.test(rec.textContent);
-        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
-        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= t.top + .5
-               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
-               && f.right <= t.left + .5
-               && c.scrollWidth <= c.clientWidth + 1;
-      },
-      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
-       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
-       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
-       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
-       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
-       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
-       the picture and across the card rather than in the photo's column, and its words at least
-       `.62rem` — the size the review measured the old `.56` against and found unreadable.
-
-       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
-       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
-       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
-       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
-       the card draws when the photo loads. */
-    { name: 'a boxer photo\'s credit, a link a finger can hit',
-      enter: () => {
-        STUFF.q = 'Muhammad Ali';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Boxers' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
-        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
-        const box = c && c.querySelector('.boxer-pic');
-        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
-        let line = c.querySelector('.boxer-credit');
-        if (!line) {
-          BOXER_PIC_DEAD.delete(pic(b.image));
-          line = document.createElement('p');
-          line.className = 'boxer-credit';
-          line.innerHTML = boxerCredit_(b, b.imageCredit);
-          box.after(line);
-          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
-             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
-             the rest of this file reported 42px below the fold that no real phone ever has. */
-          try { paneReach_([c.closest('.pane')]); } catch (e) {}
-        }
-        const a = line.querySelector('a.boxer-src');
-        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
-        let z = 1;
-        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
-        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        return r.height / z >= 43.5 && r.width / z >= 43.5
-               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
-               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
-      },
-      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
-      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'the fights, on the shared head',
-      enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
-                         { field: 'boxKind', value: 'Fights' }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
-         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
-         every other meta line rather than in capitals. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.fight')
-               || document.querySelector('#s-stuff .card.fc.fight');
-        if (!c || c.querySelector('p.note')) return false;
-        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
-        const how = c.querySelector('.fc-meta');
-        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
-           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
-        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
-        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
-               && getComputedStyle(how).textTransform === 'none'
-               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
-                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
-      },
-      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
-       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
-       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
-       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
-       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
-       indent against the width of its widest number, set in the list's own font. */
-    { name: "the textbook's contents, every number inside the card",
-      enter: () => {
-        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
-           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
-        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
-        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf },
-                         { field: 'book', value: x.name }];
-        paintStuff();
-        goPage('stuff', stuffFirstResult_(), true);
-      },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .card.tb:not(.prac-part)');
-        const ol = c && c.querySelector('.tb-toc ol.fc-list');
-        const li = ol && ol.children;
-        if (!li || li.length < 10) return false;
-        const probe = document.createElement('span');
-        probe.textContent = li.length + '. ';
-        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
-        li[li.length - 1].appendChild(probe);
-        const need = probe.getBoundingClientRect().width;
-        probe.remove();
-        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
-      },
-      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the admin’s first question in Find drawn with the films in the payload, no Films answer What kind could give, no film found by its title, and no film anywhere in Find' },
     /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION ------------------------------------
        NEITHER WAS A STATE. `Nothing matches` is what a search for nothing says, and "Nothing left to
        narrow" is the last line under the chips when every question is answered — an inline
@@ -2439,6 +2290,33 @@ const STATES = {
       expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
       wants: 'the funnel saying Nothing matches',
       leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
+    /* AND A SEARCH THAT MATCHES NOTHING HERE BUT SOMETHING ONE COLUMN OVER — the review of the second
+       finder, finding 1 (docs/history/329): a boxer's name typed into Find said "Try fewer words." with
+       him one swipe away in Resources. It says how many and where now, with an Open tile under it, and a
+       tile is a tap target and a line of faint words is a contrast ratio, which only a browser measures. */
+    { name: 'a search only Resources answers',
+      enter: () => { STUFF.filters = []; STUFF.q = 'Olivares'; paintStuff(); goPage('stuff', stuffQuestionPage_(), true); },
+      expect: () => {
+        const g = document.querySelector('#stuff-groups');
+        const t = g && g.querySelector('.tile-row [data-do="finder-words"][data-to="res"]');
+        return !!t && /\bin Resources\b/.test(g.textContent) && !/Try fewer words/.test(g.textContent);
+      },
+      wants: 'Find\'s empty search saying how many are in Resources, with an Open tile under it',
+      /* AND RESOURCES PUT BACK TOO. `check/press.js` presses the Open tile, which is the point of it:
+         it carries "Olivares" into Resources' words and box and turns that column to his card. Left
+         there, every `res` state after it — which set chips and not words — entered a column searching
+         for a boxer, and the textbook chapter and the three animations "did not arrive". */
+      leave: () => {
+        STUFF.q = ''; paintStuff(); goPage('stuff', 0);
+        inFinder_(finderOf_('res'), () => {
+          STUFF.q = ''; STUFF.filters = [];
+          const box = document.getElementById('res-q');
+          if (box) box.value = '';
+          paintStuff(); goPage('res', 0);
+        });
+        /* AND FIND IN FRONT AGAIN — the tile went to Resources, and the states after this one are Find's. */
+        if (AT !== 'stuff') go('stuff', false, true);
+      } },
     { name: 'nothing left to narrow',
       /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
          so it runs out of questions in two or three answers whatever the data says next week. */
@@ -2555,6 +2433,621 @@ const STATES = {
       },
       wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+  ],
+  /* ================================================================================================
+     THE SECOND FINDER: RESOURCES, RIGHT OF FIND (docs/history/329)
+
+     THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+     column to the right of the current finder. this new column is "finder 2". it carries resources."*
+     The textbooks, the Bible, the boxers and the fights left Find for this column, and every state that
+     measured them moved with them, word for word, but for three things: each runs in the second
+     finder's binding (`inFinder_`, find.js — inside it `STUFF` IS this column's state, so the code reads
+     as it did), each turns `goPage('res', …)` and looks in `#s-res`, and none sets a `What for` or
+     `What kind` chip, because over the resources both have one answer and the funnel skips them — a
+     chip nobody could have pressed is not a state anybody is in.
+  ================================================================================================ */
+  res: [
+    { name: 'the question' },
+    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
+       "the @family textbook should be bare bones for now and the textbooks will be in the resources
+       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
+       shelf — and then the Measures of spread chapter, because it is the one with everything a
+       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
+       stacked fractions under a root are the widest thing on any page of the book. The chapters
+       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
+       ratio and a sideways scroll. */
+    { name: 'a textbook chapter',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        /* GCSE STATISTICS BY NAME, and its own `Book` chip: the shelf holds a book for every GCSE now,
+           and the first one on it, or a chapter numbered like this one in another book, is not the
+           page this state was written about. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
+        goPage('res', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      }),
+      expect: () => {
+        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
+           either side of this one, and the card is nine pages back. The card has a journey of its
+           own in check-flow; this state is about the widest page. */
+        const ch = [...document.querySelectorAll('#s-res .card.tb.prac-part')]
+          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
+        return !!ch && !!ch.querySelector('.tb-words li b')
+               && !!ch.querySelector('.tb-math .frac .frac-d')
+               && !!ch.querySelector('.tb-points li')
+               && !!ch.querySelector('li .tb-h')
+               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
+               && !document.querySelector('#s-res .card:not(.tb) .boxer-rec');
+      },
+      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- A TEXTBOOK ANIMATION, ON ITS PAGE AFTER ITS CHAPTER ---------------------------------
+       "Add the animations from loading to respective subject text books." — the owner, 8 Oct. Three of
+       the twenty-seven, chosen for what they stress in a card: Pythagoras is the TALLEST drawing,
+       Bayes the WIDEST (a 20rem root that came out at 288px in a 244px card at 320 before its size
+       stopped at the box), and standard form the one that SCROLLED SIDEWAYS — its point hops past the
+       row of digits it stands on. Each is reached the owner's way, by the book's chips, and turned to
+       by its page; the pages either side are in the DOM beside it and are measured too. */
+    { name: 'a textbook animation: Pythagoras',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an17-pyth');
+        if (at < 0) throw new Error('GCSE Maths has no an17-pyth page — the pyth row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an17-pyth');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="pyth"]');
+        return !!stage && !!stage.querySelector('.an-pyth')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="pyth"]');
+      },
+      wants: 'Pythagoras after Maths chapter 17: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a textbook animation: Bayes',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an15-bayes');
+        if (at < 0) throw new Error('GCSE Statistics has no an15-bayes page — the bayes row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an15-bayes');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="bayes"]');
+        return !!stage && !!stage.querySelector('.an-bayes')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="bayes"]');
+      },
+      wants: 'Bayes after Statistics chapter 15: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a textbook animation: standard form',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Maths');
+        if (!x) throw new Error('no GCSE Maths textbook in the list — data/textbooks.json did not load');
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.part === 'an2-sf');
+        if (at < 0) throw new Error('GCSE Maths has no an2-sf page — the sf row is not under its chapter');
+        goPage('res', stuffFirstResult_() + at);
+      }),
+      expect: () => {
+        const card = document.querySelector('#s-res .card.tb-an.is-an2-sf');
+        const stage = card && card.querySelector('.tb-an-stage[data-anim="sf"]');
+        return !!stage && !!stage.querySelector('.an-sf')
+               && !!card.querySelector('.tile-row [data-do="tb-an-again"]')
+               && !!card.querySelector('.tb-about li')
+               && !!document.head.querySelector('style[data-anim="sf"]');
+      },
+      wants: 'Standard form after Maths chapter 2: the drawing from its row, Play again, and the chapter\'s own lines about it',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
+       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
+       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
+       asking a stranger to reach it would report a fault about the check (check-flow proves the
+       absence; this measures the presence).
+
+       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
+       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
+       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
+       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
+       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
+       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
+       either side of it.
+       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
+       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
+       so the cards after it are drawn from memory as a second visit would draw them. */
+    { name: 'the Bible, the KJV question',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+        bibleLoad_(1);
+        bibleLoad_(17);
+        bibleLoad_(19);
+      }),
+      expect: () => {
+        const a = [...document.querySelectorAll('#res-groups [data-do="facet-pick"]')];
+        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
+               && !!document.querySelector('#s-res .card.bible[data-bb="card"]');
+      },
+      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+    { name: 'the Bible, Psalms\'s chapters',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+      }),
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
+      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
+    { name: 'the Bible, Psalm 119\'s verses',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
+        paintStuff();
+        goPage('res', stuffQuestionPage_(), true);
+      }),
+      expect: () => document.querySelectorAll('#res-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
+      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
+    { name: 'the Bible, Genesis 1:3',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
+                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
+                         { field: 'bibleVerse', value: '3' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        /* `.bb-v` IS ONLY DRAWN ONCE THE BOOK IS IN — waiting, the card holds the one loader instead. */
+        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && /Let there be light/.test(v.textContent)
+               && !!document.querySelector('#s-res [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+      },
+      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
+    { name: 'the Bible, Esther 8:9',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
+                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
+                         { field: 'bibleVerse', value: '9' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
+      expect: () => {
+        const v = document.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
+        return !!v && !v.closest('.bb-verse').querySelector('.loading') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
+      },
+      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ==============================================================================================
+       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
+
+       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
+       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
+       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
+       paragraph of names, and nothing measured either, because no state reached Resources ›
+       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
+       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
+       now has), and the numbers on the gold meta line.
+
+       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
+       browser as source one at a time and cannot see each other — the note at the top of the file.
+    ============================================================================================== */
+    { name: 'the boxers, on the shared head',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
+         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
+         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
+         beside the name — so this asks what only a browser can answer about that: the picture box is
+         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
+         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
+         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
+         stay: one title size, the flag above the title. */
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)')
+               || document.querySelector('#s-res .card.fc.boxer:not(.is-fights)');
+        if (!c || c.querySelector('.thing')) return false;
+        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
+        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
+        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
+        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
+                                 : /No fight record on file/.test(rec.textContent);
+        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= t.top + .5
+               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && f.right <= t.left + .5
+               && c.scrollWidth <= c.clientWidth + 1;
+      },
+      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
+       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
+       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
+       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
+       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
+       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
+       the picture and across the card rather than in the photo's column, and its words at least
+       `.62rem` — the size the review measured the old `.56` against and found unreadable.
+
+       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
+       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
+       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
+       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
+       the card draws when the photo loads. */
+    { name: 'a boxer photo\'s credit, a link a finger can hit',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = 'Muhammad Ali';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
+        const box = c && c.querySelector('.boxer-pic');
+        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
+        let line = c.querySelector('.boxer-credit');
+        if (!line) {
+          BOXER_PIC_DEAD.delete(pic(b.image));
+          line = document.createElement('p');
+          line.className = 'boxer-credit';
+          line.innerHTML = boxerCredit_(b, b.imageCredit);
+          box.after(line);
+          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
+             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
+             the rest of this file reported 42px below the fold that no real phone ever has. */
+          try { paneReach_([c.closest('.pane')]); } catch (e) {}
+        }
+        const a = line.querySelector('a.boxer-src');
+        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
+        let z = 1;
+        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
+        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return r.height / z >= 43.5 && r.width / z >= 43.5
+               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
+               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
+      },
+      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'the fights, on the shared head',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
+         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
+         every other meta line rather than in capitals. */
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.fight')
+               || document.querySelector('#s-res .card.fc.fight');
+        if (!c || c.querySelector('p.note')) return false;
+        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
+        const how = c.querySelector('.fc-meta');
+        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
+           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
+        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && getComputedStyle(how).textTransform === 'none'
+               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
+                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
+      },
+      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE FIGHTER IN THE RING LOOKS LIKE HIM, IN THE COLOURS A BROWSER ACTUALLY PAINTS -------
+       THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
+       shorts in the fight."* `check-flow` asks which words each figure was drawn with; only a browser
+       can say what colour comes out after the custom properties, their fallbacks and `.boxer-ring`'s
+       own palette have all been resolved — a token renamed on one side of that chain paints the
+       corner's colour and says nothing. So these ask for the computed `fill` of each part, against the
+       palette entry the row's word names, at every width, as two visitors:
+
+         a profile   Lennox Lewis — his dreads (hair drawn OUTSIDE the old head, and still inside the
+                     frame), his goatee (in the face's deeper black), his skin and his usual white
+                     trunks, none of them the gold stand-in's colours, the picture box still the 4:5 it
+                     was told to be.
+         a fight     Ali v Frazier, 1971: red trunks trimmed white in the red corner, green trimmed gold
+                     in the blue, the blue corner mirrored to face left — and a corner with no trunks
+                     on file, drawn beside them for the asking, painted the corner's MUTED colour by
+                     the stylesheet's fallbacks, its waistband the same colour darker, no stripe.
+         a stranger  Tyson v Berbick, 1986: Berbick has no row, so beside Tyson in his own skin he is
+                     the silhouette — skin and hair one shadow tone, NOT the old stand-in's paper and
+                     gold, which made him a pale blond man in his own black trunks.
+         the dark    every skin, hair colour, trunks colour, the silhouette and both unrecorded trunks,
+                     drawn for the asking, each clearing 2:1 against the stage he stands in; a black
+                     beard 2:1 on every skin; and the unrecorded trunks well away from every trunks word.
+
+       `rgb` IS WRITTEN OUT IN EACH, not shared, for the reason `fcHead` is: these functions are passed
+       to the browser as source one at a time and cannot see each other. */
+    { name: 'a boxer who looks like himself',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = 'Lennox Lewis';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        const row = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Lennox Lewis');
+        if (!c || !row || !row.look || !/Lennox Lewis/.test((c.querySelector('h3') || {}).textContent || '')) return false;
+        const frame = c.querySelector('.boxer-pic .boxer-frame'), ring = frame && frame.querySelector('svg.boxer-ring');
+        const g = ring && ring.querySelector('g.bf.bf-l');
+        if (!g || g.classList.contains('bf-r')) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = n => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = sel => { const el = g.querySelector(sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const L = row.look, t = String(row.trunks || '').split('/');
+        if (L.hair !== 'dreads' || !L.hairColour || !L.skin || !L.facial || L.facial === 'none' || !t[0]) return false;
+        const gold = getComputedStyle(document.documentElement).getPropertyValue('--gold').trim();
+        const f = frame.getBoundingClientRect(), hb = g.querySelector('.bf-hair').getBoundingClientRect(),
+              px = f.width / 40;
+        return g.classList.contains('bf-hs-dreads') && g.classList.contains('bf-fh-' + L.facial)
+               && fill('.bf-skin') === tok('--bf-' + L.skin)
+               && fill('.bf-hair') === tok('--bf-hc-' + L.hairColour)
+               /* A BLACK BEARD IS THE DEEPER BLACK — it sits on the face, not the stage (style.css). */
+               && fill('.bf-face') === tok(L.hairColour === 'black' ? '--bf-fh-black' : '--bf-hc-' + L.hairColour)
+               && fill('.bf-trunks') === tok('--bf-tk-' + t[0])
+               && fill('.bf-band') === tok('--bf-tk-' + (t[1] || t[0]))
+               && fill('.bf-trunks') !== rgb(gold)
+               && getComputedStyle(ring).shapeRendering === 'crispedges'
+               /* THE LOCKS HANG BELOW WHERE THE OLD CAP ENDED — seven game pixels of hair, not its five —
+                  and still inside the frame. */
+               && hb.height >= 6.5 * px && hb.left >= f.left && hb.bottom <= f.bottom
+               && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && c.scrollWidth <= c.clientWidth + 1;
+      },
+      wants: 'Lennox Lewis drawn as himself — dreads behind the head and inside the frame, goatee, his skin and his white trunks in the figure\'s own colours, never the gold stand-in\'s',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    { name: 'a fight in that night\'s trunks',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0033' && !pg.part);
+        if (at < 0) throw new Error('FT0033, the Fight of the Century, is not in the Fights list');
+        goPage('res', stuffFirstResult_() + at, true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.fight');
+        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0033');
+        if (!c || !fr || fr.trunksA !== 'red/white' || fr.trunksB !== 'green/gold') return false;
+        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
+        if (rings.length !== 2) return false;
+        const rgb = h => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h).trim());
+                           return m ? 'rgb(' + [m[1], m[2], m[3]].map(x => parseInt(x, 16)).join(', ') + ')' : 'none'; };
+        const tok = (ring, n) => rgb(getComputedStyle(ring).getPropertyValue(n));
+        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
+        if (!ga || !gb) return false;
+        /* FACING EACH OTHER: the red corner's gloves to the right of his head, the blue corner's to the left. */
+        const faces = (g, right) => { const gl = g.querySelector('.bf-glove').getBoundingClientRect(), sk = g.querySelector('.bf-skin').getBoundingClientRect();
+                                      return right ? gl.right > sk.right : gl.left < sk.left; };
+        /* AND A CORNER NOBODY RESEARCHED, drawn by the card's own renderer for the asking: the
+           stylesheet's fallbacks are what paint it, and nothing else on this screen would show them. */
+        const probe = document.createElement('span');
+        probe.className = 'boxer-frame';
+        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
+        probe.innerHTML = boxerRing_('X Y', false, null, '') + boxerRing_('X Y', true, null, '');
+        document.body.appendChild(probe);
+        const blanks = [...probe.querySelectorAll('svg.boxer-ring g.bf .bf-trunks')].map(el => getComputedStyle(el).fill);
+        const blankStripes = probe.querySelectorAll('svg.boxer-ring g.bf .bf-stripe').length;
+        probe.remove();
+        const root = getComputedStyle(document.documentElement);
+        /* THE BLANKS ARE THE CORNER'S COLOUR MUTED, NOT THE CORNER'S COLOUR: the old gold and blue with
+           an ink waistband read as a researched gold-and-white pair (the review of 10 Oct). */
+        return fill(ra, '.bf-trunks') === tok(ra, '--bf-tk-red') && fill(ra, '.bf-band') === tok(ra, '--bf-tk-white')
+               && fill(ra, '.bf-stripe') === tok(ra, '--bf-tk-white')
+               && fill(rb, '.bf-trunks') === tok(rb, '--bf-tk-green') && fill(rb, '.bf-band') === tok(rb, '--bf-tk-gold')
+               && fill(rb, '.bf-stripe') === tok(rb, '--bf-tk-gold')
+               && ga.classList.contains('bf-l') && gb.classList.contains('bf-r')
+               && faces(ga, true) && faces(gb, false)
+               && blanks.length === 2 && blanks[0] === tok(ra, '--bf-unsaid-l') && blanks[1] === tok(ra, '--bf-unsaid-r')
+               && blanks[0] !== rgb(root.getPropertyValue('--gold')) && blanks[1] !== rgb(root.getPropertyValue('--tag-level'))
+               && blankStripes === 0;
+      },
+      wants: 'Ali v Frazier 1971 in that night\'s trunks — red trimmed white facing right, green trimmed gold facing left — and a corner with no trunks on file painted the corner\'s muted colour with no stripe',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- A FIGHTER WITH NO ROW IS A SILHOUETTE, NOT A PALE BLOND MAN ------------------------------
+       THE REVIEW OF 10 OCT: the 53 corners with no boxer row kept the old stand-in's paper skin and, in
+       the blue corner, its gold hair — while being dressed in their real trunks beside an opponent in
+       his real skin. Trevor Berbick, Cleveland Williams, Andy Ruiz and Benny Paret were drawn as a pale
+       blond man. A corner with no row claims no skin and no hair colour: both are ONE shadow tone.
+       `paint` asks the browser what a token resolves to on a scrap element in the same ring, because a
+       `color-mix` token reads back as its formula, not as a colour. */
+    { name: 'a fighter with no row is a silhouette',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        const at = stuffPages_().findIndex(pg => pg.x && pg.x.row && pg.x.row.id === 'FT0060' && !pg.part);
+        if (at < 0) throw new Error('FT0060, Tyson v Berbick, is not in the Fights list');
+        goPage('res', stuffFirstResult_() + at, true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.fight');
+        const fr = ((typeof DATA !== 'undefined' && DATA.fights) || []).find(r => r.id === 'FT0060');
+        if (!c || !fr || fr.bId || fr.trunksB !== 'black') return false;
+        const rings = [...c.querySelectorAll('.fight-faces .boxer-pic svg.boxer-ring')];
+        if (rings.length !== 2) return false;
+        const [ra, rb] = rings, ga = ra.querySelector('g.bf'), gb = rb.querySelector('g.bf');
+        if (!ga || !gb) return false;
+        const paint = (ring, v) => { const e = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                                     e.style.fill = v; ring.appendChild(e); const f = getComputedStyle(e).fill; e.remove(); return f; };
+        const fill = (ring, sel) => { const el = ring.querySelector('g.bf ' + sel); return el ? getComputedStyle(el).fill : 'missing'; };
+        const sk = ([...ga.classList].find(k => /^bf-sk-/.test(k)) || '').slice(6);
+        const ghost = paint(rb, 'var(--bf-ghost)');
+        const skins = ['s1', 's2', 's3', 's4', 's5', 's6'].map(t => paint(rb, 'var(--bf-' + t + ')'));
+        return !!sk && ga.classList.contains('bf-seen') && fill(ra, '.bf-skin') === paint(ra, 'var(--bf-' + sk + ')')
+               && !gb.classList.contains('bf-seen') && !/--bf-(skin|hair):/.test(gb.getAttribute('style') || '')
+               && fill(rb, '.bf-skin') === ghost && fill(rb, '.bf-hair') === ghost
+               && ghost !== paint(rb, 'var(--paper)') && ghost !== paint(rb, 'var(--gold)') && skins.indexOf(ghost) < 0
+               && fill(rb, '.bf-trunks') === paint(rb, 'var(--bf-tk-black)');
+      },
+      wants: 'Tyson v Berbick 1986 — Tyson in his own skin, Berbick (no row) a silhouette in one shadow tone, neither paper nor gold nor any skin, still in his black trunks',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- EVERY COLOUR OF THE FIGURE SHOWS AGAINST THE DARK HE STANDS IN --------------------------
+       THE REVIEW OF 10 OCT measured the 4x shots: black hair 1.29:1 against the stage, black trunks
+       1.40:1, the deepest skin 1.97:1, a black beard on it 1.53:1. Tyson was a face and a pair of legs
+       and Joshua's head a dark hood. So every colour the figure can wear is drawn here, for the asking,
+       by the card's own renderer, and its computed fill is held to 2:1 against the computed fill of
+       `bf-stage`, the dark behind him: six skins, eight hair colours, seventeen trunks, the silhouette
+       and both unrecorded pairs. A black beard is held to 2:1 against each skin, because it sits on the
+       face. The unrecorded pairs are held at least 50 apart (RGB) from every trunks word — the old
+       blue fallback and the vocabulary's sky were the same light blue twice. And Mike Tyson's own
+       profile is measured as drawn: his hair and trunks against his ring's stage, and the stage
+       reaching above his hair, so the gold light behind the initials cannot creep back over his head.
+       A failure is left on `window.__bfDark` for whoever opens the page. */
+    { name: 'every colour of the eight-bit fighter shows against the stage',
+      enter: () => inFinder_(finderOf_('res'), () => {
+        STUFF.q = 'Mike Tyson';
+        STUFF.filters = [{ field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .page.on .card.fc.boxer:not(.is-fights)');
+        if (!c || !/Mike Tyson/.test((c.querySelector('h3') || {}).textContent || '')) return false;
+        const col = v => {
+          let m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(v);
+          if (m) return [+m[1], +m[2], +m[3]];
+          m = /^color\(srgb\s+([-\d.e]+)\s+([-\d.e]+)\s+([-\d.e]+)/.exec(v);
+          return m ? [m[1] * 255, m[2] * 255, m[3] * 255] : null;
+        };
+        const lum = v => { const k = col(v); if (!k) return NaN;
+          const [r, g, b] = k.map(x => { x /= 255; return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        const ratio = (p, q) => { const a = lum(p), b = lum(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+        const far = (p, q) => { const a = col(p), b = col(q); return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) : 0; };
+        const bad = [];
+        /* HIS OWN RING, AS DRAWN. */
+        const ring = c.querySelector('.boxer-pic .boxer-frame svg.boxer-ring'), g = ring && ring.querySelector('g.bf');
+        const stageEl = ring && ring.querySelector('.bf-stage');
+        if (!g || !stageEl || !g.classList.contains('bf-hc-black') || !g.classList.contains('bf-tk-black')) return false;
+        const stage = getComputedStyle(stageEl).fill;
+        ['.bf-hair', '.bf-trunks'].forEach(sel => { const r = ratio(getComputedStyle(g.querySelector(sel)).fill, stage);
+          if (!(r >= 2)) bad.push('Tyson ' + sel + ' ' + r.toFixed(2) + ':1'); });
+        if (stageEl.getBoundingClientRect().top > g.querySelector('.bf-hair').getBoundingClientRect().top + 0.5) bad.push('the stage does not reach above his hair');
+        /* EVERY WORD, DRAWN FOR THE ASKING. */
+        const probe = document.createElement('span');
+        probe.className = 'boxer-frame';
+        probe.style.cssText = 'position:fixed;left:-999px;top:0;width:80px';
+        const cases = [];
+        BOXER_LOOK.skin.forEach(t => cases.push(['skin ' + t, '.bf-skin', boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black' }, 'white')]));
+        BOXER_LOOK.hair_colour.forEach(t => cases.push(['hair ' + t, '.bf-hair', boxerRing_('X Y', false, { skin: 's3', hair: 'short', hairColour: t }, 'white')]));
+        BOXER_LOOK.trunks.forEach(t => cases.push(['trunks ' + t, '.bf-trunks', boxerRing_('X Y', false, { skin: 's3' }, t)]));
+        cases.push(['the silhouette', '.bf-skin', boxerRing_('X Y', false, null, '')],
+                   ['unrecorded trunks, red corner', '.bf-trunks', boxerRing_('X Y', false, null, '')],
+                   ['unrecorded trunks, blue corner', '.bf-trunks', boxerRing_('X Y', true, null, '')]);
+        probe.innerHTML = cases.map(k => k[2]).join('');
+        document.body.appendChild(probe);
+        const svgs = [...probe.querySelectorAll('svg.boxer-ring')];
+        const fills = {};
+        cases.forEach(([name, sel], i) => {
+          const s = svgs[i], f = getComputedStyle(s.querySelector('g.bf ' + sel)).fill, st = getComputedStyle(s.querySelector('.bf-stage')).fill;
+          fills[name] = f;
+          const r = ratio(f, st);
+          if (!(r >= 2)) bad.push(name + ' ' + r.toFixed(2) + ':1 against the stage');
+        });
+        /* A BLACK BEARD ON EVERY SKIN. */
+        probe.innerHTML = BOXER_LOOK.skin.map(t => boxerRing_('X Y', false, { skin: t, hair: 'short', hairColour: 'black', facial: 'beard' }, 'white')).join('');
+        [...probe.querySelectorAll('svg.boxer-ring')].forEach((s, i) => {
+          const r = ratio(getComputedStyle(s.querySelector('.bf-face')).fill, getComputedStyle(s.querySelector('.bf-skin')).fill);
+          if (!(r >= 2)) bad.push('a black beard on ' + BOXER_LOOK.skin[i] + ' ' + r.toFixed(2) + ':1');
+        });
+        probe.remove();
+        ['unrecorded trunks, red corner', 'unrecorded trunks, blue corner'].forEach(u => BOXER_LOOK.trunks.forEach(t => {
+          const d = far(fills[u], fills['trunks ' + t]);
+          if (!(d >= 50)) bad.push(u + ' is ' + Math.round(d) + ' from ' + t);
+        }));
+        window.__bfDark = bad;
+        return bad.length === 0 && Object.keys(fills).length === cases.length;
+      },
+      wants: 'every skin, hair colour, trunks colour, the silhouette and the unrecorded trunks at 2:1 or more against the stage, a black beard 2:1 on every skin, Tyson\'s own hair and trunks too, and the unrecorded trunks 50 or more from every trunks word',
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
+    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
+       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
+       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
+       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
+       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
+       indent against the width of its widest number, set in the list's own font. */
+    { name: "the textbook's contents, every number inside the card",
+      enter: () => inFinder_(finderOf_('res'), () => {
+        /* THE SIXTEEN-CHAPTER BOOK BY NAME — the widest list of numbers on the shelf, `10.` to `16.` —
+           and its own `Book` chip, so the card measured is that one and not whichever book is first. */
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook' && it.name === 'GCSE Statistics');
+        if (!x) throw new Error('no GCSE Statistics textbook in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'shelf', value: x.shelf },
+                         { field: 'book', value: x.name }];
+        paintStuff();
+        goPage('res', stuffFirstResult_(), true);
+      }),
+      expect: () => {
+        const c = document.querySelector('#s-res .card.tb:not(.prac-part)');
+        const ol = c && c.querySelector('.tb-toc ol.fc-list');
+        const li = ol && ol.children;
+        if (!li || li.length < 10) return false;
+        const probe = document.createElement('span');
+        probe.textContent = li.length + '. ';
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+        li[li.length - 1].appendChild(probe);
+        const need = probe.getBoundingClientRect().width;
+        probe.remove();
+        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
+      },
+      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
+      leave: () => inFinder_(finderOf_('res'), () => { STUFF.filters = []; paintStuff(); goPage('res', 0); }) },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------
@@ -2852,13 +3345,13 @@ const STATES = {
         if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
         paint('account');
       } },
-    /* ---------- A TUTOR'S OTHER PHOTOGRAPHS, AND ONE OF THEM OPENED -----------------------------
-       ASKED FOR AS *"tutors should be able to add more pics"*. The grid is four squares to a row and
-       a tap opens one across the row, in place — so the state that matters is the OPENED one: a
-       picture at its own proportions is the tallest thing this card can hold, and it is exactly the
-       height `paneWatch_` has to hear about. `check/fixture.json`'s tutor carries three local
-       pictures so the squares have something real in them. */
-    { name: "a tutor's photographs, one opened",
+    /* ---------- A TUTOR'S OTHER PHOTOGRAPHS, FOUR SQUARES TO A ROW, AND NONE OF THEM OPENS ---------
+       ASKED FOR AS *"tutors should be able to add more pics"*. This state opened one across the row,
+       until the owner, 10 Oct: *"i dont like how you made it so people can enlarge a photo of tutor.
+       the extra ones"*. So it now presses one and asks that nothing happened — the squares are still
+       squares, none is a button, and nothing says it can be made bigger. `check/fixture.json`'s tutor
+       carries three local pictures so the squares have something real in them. */
+    { name: "a tutor's photographs, pressed and staying squares",
       only: () => typeof USER !== 'undefined' && !!USER
                   && (DATA.tutors || []).some(t => t && Array.isArray(t.photos) && t.photos.length),
       enter: () => {
@@ -2874,11 +3367,13 @@ const STATES = {
       expect: () => {
         const grid = document.querySelector('#s-account .page.on .prof-photos');
         const shots = grid ? [...grid.querySelectorAll('.prof-shot')] : [];
-        const big = shots.filter(b => b.classList.contains('is-big'));
-        return shots.length >= 2 && big.length === 1 && big[0] === shots[1]
-          && big[0].getAttribute('aria-pressed') === 'true' ? shots.length : 0;
+        /* SQUARE, STILL: every one as wide as it is tall after the press, none a control, none told
+           it can grow. */
+        const square = b => { const r = b.getBoundingClientRect(); return r.width > 0 && Math.abs(r.width - r.height) < 1.5; };
+        return shots.length >= 2 && shots.every(square)
+          && !grid.querySelector('button, [data-do], [aria-pressed], .is-big') ? shots.length : 0;
       },
-      wants: "a tutor's photographs as squares, with the one tapped opened across the row",
+      wants: "a tutor's photographs as squares, still squares after one is pressed, and none of them a button",
       leave: () => { paint('account'); } },
     /* ---------- WHAT THEY TEACH: ONE CHIP A SUBJECT, ITS LEVELS RAISED — see `teachGroups_` ------
        *"Subject ^level, level, level … no brackets."* The fixture's tutor teaches one level of two
@@ -3053,8 +3548,15 @@ const STATES = {
        *"tutors availability should appear on their card."* The fixture's tutor sends what `doGet`
        sends — 77 codes, nine of them 'TRUE' (Mon 16-18, Tue 10-11, Wed 16, Sat 10-12) — and is
        already teaching Mon 17. So eight hours lit, Mon 17 greyed, and the three days nothing is
-       ticked on (Thu, Fri, Sun) collapsed rather than drawn as thumb-sized rows of grey. Measured at
-       every width because it is the last thing on a card that is already near its pane's height. */
+       ticked on (Thu, Fri, Sun) NOT DRAWN — they were thin collapsed rows until the owner, 10 Oct:
+       *"no need to display monday if they dont have any hours on monday."* Measured at every width
+       because it is the last thing on a card that is already near its pane's height.
+
+       AND MONDAY 17 MUST NOT LOOK LIKE MONDAY 9. A taught hour was `hr shut`, the same dark cell as an
+       hour never ticked, with the difference in a `title` no phone shows — so a day kept only for a
+       taught hour was a row of nothing (found in review). Asked of the browser's COMPUTED style, not
+       the class: a class with no rule behind it is the fault itself. And the key that says what the
+       hatching means is under the week, because Ada is teaching one of her hours. */
     { name: 'a tutor\'s hours on their card',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -3069,14 +3571,19 @@ const STATES = {
         const wk = pg.querySelector('.prof-week');
         const cap = wk.previousElementSibling;
         const rows = [...wk.querySelectorAll('.slot-row:not(.slot-head)')];
+        const days = rows.map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
         const busy = wk.querySelector('.hr[data-code="m17"]');
+        const never = wk.querySelector('.hr[data-code="m09"]');
+        const look = el => { const s = getComputedStyle(el); return [s.opacity, s.backgroundImage, s.borderTopColor].join(' | '); };
         return cap && cap.textContent.trim() === 'Available'
           && wk.querySelectorAll('.hr.on').length === 8
           && !!busy && !busy.classList.contains('on') && busy.classList.contains('shut')
-          && rows.length === 7 && rows.filter(r => r.classList.contains('is-shut')).length === 3
+          && !!never && !never.classList.contains('on') && look(busy) !== look(never)
+          && /already teaching/i.test((wk.querySelector('.prof-key') || {}).textContent || '')
+          && days === 'Mon Tue Wed Sat' && !wk.querySelector('.is-shut')
           && !wk.querySelector('button, input, label') ? 1 : 0;
       },
-      wants: 'an Available caption over a week with eight hours lit, Monday 17 greyed as taught, and Thu, Fri and Sun collapsed',
+      wants: 'an Available caption over Mon, Tue, Wed and Sat only, eight hours lit, Monday 17 drawn as taught (computed unlike unticked Monday 9) and the "already teaching" key',
       leave: () => { paint('account'); } },
     /* ---------- YOUR FAMILY, A CARD EACH ------------------------------------------------------------
        ASKED FOR AS *"students should be able to see their parents and likewise"*. `DATA.family` is a
@@ -3143,6 +3650,123 @@ const STATES = {
       },
       wants: 'the line under your own card naming the address, whole and not running off it, and one "Send the link again"',
       leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); } },
+    /* ---------- YOUR OWN CARD, BEING EDITED — `cardEditHtml_` in me.js (docs/history/330) ----------------------
+       The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that
+       respective tutor."* The visitor is the fixture's admin, who has no tutor row, so one is put in the
+       payload under their id — a copy of the fixture tutor's — and their `USER.profile` is filled the way
+       `myProfile` fills it, the WIDEST case rather than the tidiest: the longest headline and words a card
+       holds, three qualifications, three photographs, three venues and a week with hours on four days. The
+       form is every section of the card at once, so it is the tallest thing on the column and is measured at
+       every width — the boxes, the shelf, the picker and the week each in a card narrower than Settings'. */
+    { name: 'your own card, being edited',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const ada = (DATA.tutors || []).find(t => t && t.personId) || {};
+        window.__CE_HELD = { tutors: DATA.tutors, profile: USER.profile };
+        DATA.tutors = [Object.assign({}, ada, { personId: USER.personId, title: 'Test Admin', handle: USER.handle || 'testadmin' })]
+          .concat(DATA.tutors || []);
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          phone_cc: '+44', first_name: 'Test', last_name: 'Administrator-Longsurname',
+          headline: 'Ten years of GCSE and A-Level maths, physics and further maths — patient, clear, and on time.',
+          rate_per_hour: '32.50', extra_seat_rate: '0.5', min_students: '1', max_students: '4',
+          video: 'https://example.org/videos/an-introduction-to-how-i-teach-maths-and-physics.mp4',
+          photos_1: 'data/reels/archetest.jpg', photos_2: 'icon.png', photos_3: 'favicon.png',
+          adjective_1: 'Conscientious', adjective_2: 'Encouraging', adjective_3: 'Methodical',
+          years_experience: '12', favourite_colour: 'Purple', age_min: '8', age_max: 'Adults', min_hours: '1', max_hours: '2',
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_received: '2016', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_received: '2018', qual_2_teach: 'TRUE', qual_2_spec: 'FALSE',
+          qual_3: 'DBS', qual_3_level: 'Enhanced', qual_3_received: '2025',
+          venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '15',
+          m16: 'TRUE', m17: 'TRUE', tu10: 'TRUE', tu11: 'TRUE', w16: 'TRUE', sa10: 'TRUE', sa11: 'TRUE', sa12: 'TRUE' });
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
+        if (at < 0) throw new Error('no card on the account column is open for editing');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        DATA.tutors = window.__CE_HELD.tutors; USER.profile = window.__CE_HELD.profile; delete window.__CE_HELD;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const form = pg && pg.querySelector('.card-ed .me-form');
+        if (!form) return 0;
+        const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
+        return secs === 'picture,name,rate,headline,photos,words,glance,quals,where,week'
+          && !!form.querySelector('.pfp [data-do="pfp-pick"]')
+          && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
+          && form.querySelectorAll('.me-week .hr input[data-me]').length === 70
+          && form.querySelectorAll('[data-me^="qual_"]').length === 70
+          && form.querySelectorAll('.q-list .q-line').length === 3
+          && form.querySelectorAll('.ph-shelf .ph-thumb img').length === 3
+          && !!form.querySelector('.ce-heat .prof-heat')
+          && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2
+          && !pg.querySelector('[data-do="card-edit"]')
+          /* AT FULL SIZE, AND THE PANE SCROLLS TO ITS SAVE — `paneReach_` draws a card being edited at
+             zoom 1 (it is taller than any pane even at the 0.70 floor), so its boxes keep their size. */
+          && !(form.closest('.card-ed').style.zoom && form.closest('.card-ed').style.zoom !== '1')
+          && (pane => !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto'))(form.closest('.pane'))
+          /* SAVE AND CANCEL IN REACH WITH THE FORM AT ITS TOP — the review of 330: the one Save sat under the
+             week, 1,952px down at 390. The row is stuck to the foot of the pane (`.ce-tiles`, style.css), so
+             with the pane scrolled to its top the Save tile is inside the pane's visible box. */
+          && (pane => {
+            if (!pane) return false;
+            const was = pane.scrollTop; pane.scrollTop = 0;
+            const r = pg.querySelector('.ce-tiles [data-do="card-save"]').getBoundingClientRect(), b = pane.getBoundingClientRect();
+            const ok = r.height > 0 && r.top >= b.top - 1 && r.bottom <= b.bottom + 1;
+            pane.scrollTop = was;
+            return ok;
+          })(form.closest('.pane'))
+          /* SIGN OUT STILL UNDER IT, and the photographs not waiting to be scrolled to ("these remain loading
+             untill i scroll to them"), and the session length boxes in At a glance. */
+          && pg.querySelectorAll('[data-do="signout"]').length === 1
+          && !form.querySelector('img[loading="lazy"]')
+          && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]') ? 1 : 0;
+      },
+      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order, the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
+    /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN ---------------------------------------------------
+       Decision 3 of the brief: `updateProfile` already lets an admin write another person's row, so an admin's
+       Edit on the fixture tutor opens the same form — filled from `getProfile`, which the lab's backend cannot
+       answer, so the copy it would have returned is put where the answer goes. The picture is shown and not
+       offered (`savePhoto` writes the admin's own row), with one line saying why. */
+    { name: 'another tutor\'s card, being edited by an admin',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const ada = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) !== String(USER.personId));
+        if (!ada) throw new Error('the fixture has no tutor other than the visitor');
+        CARD_EDIT = cardEditFresh_(ada.personId);
+        CARD_EDIT.base = { phone_cc: '+44', first_name: 'Ada', last_name: 'Tutor',
+          headline: 'Ten years of GCSE and A-Level maths.', rate_per_hour: '30', extra_seat_rate: '0.5',
+          min_students: '1', max_students: '3', adjective_1: 'Patient', adjective_2: 'Clear', adjective_3: 'Encouraging',
+          years_experience: '10', favourite_colour: 'Blue', age_min: '11', age_max: '18',
+          qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'A*', qual_1_received: '2014', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          venues_ok: 'Colliers Wood Library, Sutton Library, Online', travel_km: '8', m16: 'TRUE', m17: 'TRUE', m18: 'TRUE' };
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
+        if (at < 0) throw new Error('the fixture tutor\'s card did not open for editing');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const form = pg && pg.querySelector('.card-ed .me-form');
+        if (!form) return 0;
+        return !!form.querySelector('.ce-pic') && !form.querySelector('.pfp')
+          && /Only Ada can change this picture/.test(form.textContent)
+          && (form.querySelector('[data-me="headline"]') || {}).value === 'Ten years of GCSE and A-Level maths.'
+          && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
+          && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2 ? 1 : 0;
+      },
+      wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the whole week, Save and Cancel' },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
@@ -3280,6 +3904,105 @@ const STATES = {
           && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
       },
       wants: 'the picture picker and the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+    /* ---------- THREE, FOUR AND FIVE LIBRARY CARDS, DRAWN AS CARDS — `libraryShelf_` in me.js; docs/history/332 -----
+       THE OWNER, 10 Oct: *"make each look like a card. with fake barcode."* Seeded with invented libraries (the
+       longest name the shelf has ever been measured with among the first three, because the name is the box
+       that gives), the rest of the five slots empty. Asked of each card, at every width: its three boxes are ON
+       it; it is a bank card's shape (85.6:54, within 3%) and nothing inside it spills past that shape; the ink
+       of every box is 4.5:1 or better on the card's own paper, which `check/ui.js`'s text rule cannot ask
+       because a box's value is not a text node; and the bars are decoration (`aria-hidden`) and different on
+       every card. `Add another` is on the page while a slot is left to reveal, and not once all five show.
+
+       FOUR AND FIVE AS WELL AS THREE, BECAUSE THE CARD'S SHAPE IS WHAT MAKES THE PAGE TALL. A face's height
+       follows its width, so at the column's full width three cards were the most a 390x844 phone drew at full
+       size: the fit rule took four to 81% and five to its 70% floor there, and at 1280x800 three to 81% —
+       every card with a blank band between its name and its bars. The review of 10 Oct found this file seeded
+       three, so `check/ui.js` had never once drawn the page where it cost most. Now it draws all three counts.
+       And the cards give that band back first (`libFit_` in me.js, called by `paneReach_`): they narrow,
+       keeping the shape, until the page fits or the band runs out, and only the rest is drawn smaller. Asked
+       of every count, at every width: A PAGE DRAWN SMALLER HAS NO BLANK BAND LEFT ON ITS CARDS (3px of
+       slack for the last pass's rounding) — red before `libFit_`, when four cards at 390 were at 81% with
+       45px of blank on each and three at 1280 at 81% with 68; and the fit rule's own promise, that the page
+       is no smaller than the app's `PANE_ZOOM_MIN` and the tick is on the glass or the pane scrolls to it.
+       The cost that is left prints as `CARD DRAWN SMALLER TO FIT` with its percentage, beside every other
+       card that pays it.
+
+       WHY `new Function`: every state is carried into the page as its source and run there (the
+       notifications states below say so at length), so a closure over `n` would arrive empty. Each state is
+       the one source below with its count written in as a literal. */
+    ...(() => {
+      const enter = n => {
+        window.STATE_LIB_WAS = USER.profile;
+        const seed = [['Merton', '2000000000000'], ['Sutton Central', '2000000000001'],
+                      ['Wandsworth Town and Putney', '2000000000002'], ['Larkbridge', '2000000000003'],
+                      ['Fennmoor Green', '2000000000004']];
+        const cards = {};
+        for (let i = 1; i <= 5; i++) {
+          const s = i <= n ? seed[i - 1] : ['', ''];
+          cards['lib' + i + '_name'] = s[0]; cards['lib' + i + '_no'] = s[1]; cards['lib' + i + '_pin'] = i <= n ? '0000' : '';
+        }
+        USER.profile = Object.assign({}, USER.profile || {}, cards);
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.lib-face'));
+        if (at < 0) throw new Error('no library cards page on the settings column');
+        goPage('settings', at, true);
+      };
+      const expect = n => {
+        const pg = document.querySelector('#s-settings .page.on');
+        if (!pg) return 0;
+        const slots = pg.querySelectorAll('.lib-card').length;
+        const faces = [...pg.querySelectorAll('.lib-card:not([hidden]) > .lib-face')];
+        if (faces.length !== n || pg.querySelectorAll('[data-do="shelf-more"]').length !== (n < slots ? 1 : 0)) return 0;
+        const rgb = s => (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+        const lum = c => c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
+          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const ratio = (p, q) => { const a = lum(rgb(p)), b = lum(rgb(q)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+        const bars = new Set();
+        const ok = faces.every(f => {
+          const r = f.getBoundingClientRect();
+          const paper = getComputedStyle(f).backgroundColor;
+          const boxes = [...f.querySelectorAll('input[data-me]')];
+          const svg = f.querySelector('svg.lib-bars');
+          if (svg) bars.add(svg.innerHTML);
+          return boxes.length === 3
+            && ['name', 'no', 'pin'].every(k => f.querySelector('input[data-me$="_' + k + '"]'))
+            && Math.abs(r.width / r.height - 85.6 / 54) < 0.03 * (85.6 / 54)
+            && f.scrollHeight <= f.clientHeight + 1 && f.scrollWidth <= f.clientWidth + 1
+            && boxes.every(b => ratio(getComputedStyle(b).color, paper) >= 4.5)
+            && !!svg && svg.getAttribute('aria-hidden') === 'true';
+        });
+        if (!ok || bars.size !== n) return 0;
+        /* THE FIT RULE'S PROMISE, read off the page rather than restated: no smaller than its floor, and the
+           tick on the glass or one scroll of the pane away. */
+        const pane = faces[0].closest('.pane'), tick = pg.querySelector('[data-do="me-save"]');
+        if (!pane || !tick || typeof PANE_ZOOM_MIN !== 'number') return 0;
+        const zoom = Math.min(1, ...[...pane.children].map(k => Number(k.style.zoom || 1)));
+        if (zoom < PANE_ZOOM_MIN - 0.001) return 0;
+        /* THE CARDS GAVE THEIR BLANK BAND BEFORE THE PAGE WAS DRAWN SMALLER — the face's third row. */
+        const band = parseFloat(String(getComputedStyle(faces[0]).gridTemplateRows).split(/\s+/)[2]) || 0;
+        if (zoom < 1 && band > 3) return 0;
+        const p = pane.getBoundingClientRect(), t = tick.getBoundingClientRect();
+        const seen = t.top >= p.top - 1 && t.bottom <= p.bottom + 1 && t.bottom <= innerHeight + 1;
+        const scrolls = pane.style.overflowY === 'auto' && pane.scrollHeight - pane.clientHeight > 2;
+        return seen || scrolls ? n : 0;
+      };
+      const word = { 3: 'three', 4: 'four', 5: 'five' };
+      return [3, 4, 5].map(n => ({
+        name: word[n] + ' library cards',
+        only: () => typeof USER !== 'undefined' && !!USER,
+        enter: new Function('return (' + String(enter) + ')(' + n + ');'),
+        leave: () => {
+          USER.profile = window.STATE_LIB_WAS; delete window.STATE_LIB_WAS;
+          document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+          paint('settings');
+        },
+        expect: new Function('return (' + String(expect) + ')(' + n + ');'),
+        wants: word[n] + ' library cards at a bank card\'s proportions, each with its name, PIN and number boxes on it in ink '
+          + '4.5:1 on its paper, different bars on each, ' + (n < 5 ? 'one Add another' : 'no Add another')
+          + ', no blank band left on a card if the page is drawn smaller, no smaller than PANE_ZOOM_MIN, and the tick '
+          + 'on the glass or one scroll away' }));
+    })(),
     /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
        *"everyone should have a profile picture selector widget in account settings"*. Seeded with a
        picture already kept, so the preview is a photograph rather than the initial and `Remove` is
@@ -3315,6 +4038,88 @@ const STATES = {
           && !pg.querySelector('[data-me="photo"]') ? 1 : 0;
       },
       wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
+    /* ---------- YOUR PICTURE, ONE OF ELEVEN — AT REST, AND WITH THE FOX CHOSEN ---------------------
+       THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like
+       xbox dp selector, which allow you to use your avatar as a dp."* The grid under the preview: your
+       figure first, then the ten, every one a 44px target or more, in one block that fits the card —
+       FOUR TO A ROW where the picker is under 294px wide (three rows) and SIX where it is not (two
+       rows), the line under the grid rather than beside the tiles. At rest nothing is ringed and the
+       preview is your initial; with the fox chosen the preview IS the fox, the gold ring is on it and
+       only it, and Remove is live because there is a picture to remove. Measured by `check/ui.js` at
+       every width for the tap targets, the contrast and the sideways scroll; asserted here for the
+       shape, because a grid of eleven that wraps 5-5-1 or runs off the card measures as eleven fine
+       buttons. */
+    { name: 'your picture, the eleven at rest',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: '' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
+        if (at < 0) throw new Error('no picture picker on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const opts = [...box.querySelectorAll('.pfp-grid .pfp-opt')];
+        const b = box.getBoundingClientRect();
+        const grid = box.querySelector('.pfp-grid').getBoundingClientRect();
+        const said = box.querySelector('.pfp-said').getBoundingClientRect();
+        /* ZOOM: `paneReach_` may draw a tall card smaller to fit its pane, so a size is read in the
+           card's own pixels — the box's layout width over its drawn width. */
+        const z = box.offsetWidth ? b.width / box.offsetWidth : 1;
+        /* HOW MANY ON EACH ROW, not merely how many rows: 5, 5, 1 is three rows too, and it is the
+           orphan this layout exists to avoid. */
+        const tops = opts.map(o => Math.round(o.getBoundingClientRect().top / z));
+        const rows = [...new Set(tops)].map(t => tops.filter(x => x === t).length).join(',');
+        const big = opts.every(o => { const r = o.getBoundingClientRect(); return r.width / z >= 43.5 && r.height / z >= 43.5; });
+        return opts.length === 11 && opts[0].dataset.pic === 'avatar' && !!opts[0].querySelector('svg.avatar.is-bust')
+          && opts.slice(1).every(o => o.querySelector('svg.pfp-art'))
+          && !box.querySelector('.pfp-opt.on') && !!box.querySelector('.pfp-face .pfp-none')
+          && big && grid.right <= b.right + 0.5 && grid.left >= b.left - 0.5
+          && rows === (box.offsetWidth >= 294 ? '6,5' : '4,4,3')
+          && said.top >= grid.bottom - 1
+          && !!box.querySelector('.tile[data-do="pfp-remove"]') && box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 11 : 0;
+      },
+      wants: 'your figure then the ten pictures, each 44px or more, none ringed, the initial in the preview, 4/4/3 under 294px and 6/5 from it, the line under the grid, and Remove off' },
+    { name: 'your picture, the fox chosen',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'pfp:fox' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
+        if (at < 0) throw new Error('no picture picker on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const on = [...box.querySelectorAll('.pfp-opt.on')];
+        const face = box.querySelector('.pfp-face');
+        const r = face.getBoundingClientRect();
+        const art = face.querySelector('svg.pfp-art');
+        const ring = on[0] && getComputedStyle(on[0]).boxShadow;
+        return on.length === 1 && on[0].dataset.pic === 'fox' && on[0].getAttribute('aria-pressed') === 'true'
+          && !!ring && ring !== 'none'
+          && !!art && Math.abs(art.getBoundingClientRect().width - r.width) < 3
+          && /fox is your picture/i.test(box.querySelector('.pfp-said').textContent)
+          && !box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 1 : 0;
+      },
+      wants: 'the fox in the preview, filling it; the gold ring on the fox and nowhere else, pressed; the line saying the fox is your picture; Remove live' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only
@@ -3333,14 +4138,17 @@ const STATES = {
         if (at < 0) throw new Error('no pricing page on the settings column');
         goPage('settings', at, true);
       },
-      /* EXACTLY FOUR, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
+      /* EXACTLY SIX, NOT MERELY SOME. `expect` is read as a truthy value, so a page holding two
          boxes would pass a bare count — and two is precisely what splitting the group back into
          `Group size` and `Your rate` produces. The whole point is that they are on ONE page, so the
-         number is the assertion. */
-      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 4
-                     && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 2
-                     ? 4 : 0),
-      wants: 'all four pricing boxes on one page, the students as one min – max row' },
+         number is the assertion. SIX SINCE docs/history/330: the four pricing boxes and the session
+         length (`SESSION_FIELDS`, constants.gs — on this page, not under its clock), which a tutor
+         with a card edits on the card and a tutor not yet listed edits here. Two ranges, four boxes. */
+      expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 6
+                     && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 4
+                     && !!document.querySelector('#s-settings .page.on .f-row.is-range [data-me="min_hours"]')
+                     ? 6 : 0),
+      wants: 'all four pricing boxes and the session length on one page, the students and the hours each one min – max row' },
 
     /* ---------- YOUR JOURNEY, THE PLACEHOLDER ----------------------------------------------------
        For a student and an admin; the lab signs in as an admin. Found by asking the DOM, as the
@@ -3484,118 +4292,6 @@ const STATES = {
       expect: () => document.querySelector('#s-settings .page.on #cut-val')
         && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
       wants: 'the share box and its worked example' },
-
-    /* THE BUSINESS RECORDS, AN ADMIN'S PAGES OF THIS COLUMN — they were a widget on Tools. `only:`
-       for the flyer's reason: nobody else is drawn one, so asking a stranger to reach it would be a
-       finding about the check. SEEDED THROUGH `BIZ.list`, which is what `listRecords` writes — the
-       fixture answers every POST with the payload, so without a seed the page is measured with every
-       box empty and no flag, which is half of what the card can draw. One item due in ten days, so
-       the Due soon flag is on the screen and measured. */
-    { name: 'the business records (insurance)',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        const d = new Date(); d.setDate(d.getDate() + 10);
-        const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
-          + String(d.getDate()).padStart(2, '0');
-        window.__bizWas = BIZ.list;
-        BIZ.list = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
-          provider: 'Example Insure', reference: 'PL-000000', due_on: iso }];
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
-        if (at < 0) throw new Error('no business-records page on the settings column');
-        goPage('settings', at, true);
-      },
-      leave: () => { BIZ.list = window.__bizWas || null; delete window.__bizWas;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings'); },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        return pg && pg.querySelectorAll('.biz-item').length === 3
-          && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
-          && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
-          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000'
-          /* AND EACH ROW'S TWO BOXES ARE ONE WIDTH. The row is `.lib-row.q-row`, a class pair borrowed
-             from the qualification editor — and when that editor was redrawn, its `.lib-row.q-row` rule
-             went with it and these rows fell back to `.lib-row`'s wide box beside a 7rem one, with
-             nothing here to notice. The rule is back, and this is what says so. */
-          && [...pg.querySelectorAll('.biz-item .lib-row')].every(r => {
-            const w = [...r.children].map(c => c.getBoundingClientRect().width);
-            return w.length === 2 && w[0] > 0 && Math.abs(w[0] - w[1]) <= 1;
-          });
-      },
-      wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
-
-    /* ==============================================================================================
-       THREE WIDGETS WAITING ON A REAL REQUEST, HELD, AND THEN LET GO
-
-       THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
-       simple loading thing while it's info or whatever is loading."* `loading_()` (shell.js) is that
-       thing now, and these are the states that put it on the screen where `check/ui.js` can measure
-       it: the business records (`listRecords`, a POST), the Videos card (`data/videos.json`, a file)
-       and the camera (`getUserMedia`, the device). Each is HELD — the request is made by the app's
-       own code and its answer kept back — so what is measured is the wait the app really draws,
-       not a picture of one.
-
-       `release` LETS IT GO, and `landed` says the content has arrived. `check/ui.js` measures the
-       loader while it is held (one box, the same size on every card, centred), takes the card's
-       height, releases, waits for `landed`, and takes it again: a loader that holds its room leaves
-       the card the height it was. `leave` puts back what was there before and DROPS the held answer
-       rather than delivering it — `check/press.js` never releases, and an answer arriving after the
-       state has gone would land in the middle of the next one.
-
-       THESE ARE THE KIND THAT HOLDS THE CARD — the loader drawn OVER what is already there, which is
-       the only kind that can: a verse or a list whose length is not known until it lands is drawn
-       where it lands, and the card is the size of what came. */
-    { name: 'the business records still coming',
-      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
-      enter: () => {
-        const held = window.__bizHeld = { list: BIZ.list, fetch: window.fetch, go: null };
-        const real = held.fetch;
-        window.fetch = (url, o) => {
-          let act = '';
-          try { act = JSON.parse((o && o.body) || '{}').action; } catch (e) {}
-          if (act !== 'listRecords') return real(url, o);
-          return new Promise(r => {
-            held.go = () => r(new Response(JSON.stringify({ success: true, records: [{
-              id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
-              provider: 'Example Insure', reference: 'PL-000000', due_on: '2031-01-01' }] }),
-              { status: 200, headers: { 'Content-Type': 'application/json' } }));
-          });
-        };
-        BIZ.list = null; BIZ.error = ''; BIZ.asking = false;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
-        if (at < 0) throw new Error('no business-records page on the settings column');
-        goPage('settings', at, true);
-        bizStart_();
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        const body = pg && pg.querySelector('.biz-body[aria-busy="true"]');
-        return !!body && pg.querySelectorAll('.loading').length === 1 && !!body.querySelector(':scope > .loading')
-          && !!body.querySelector('input[data-biz="pub_liability"][data-k="reference"]');
-      },
-      wants: 'the Insurance card\'s boxes drawn and under the one loader while listRecords is held',
-      release: () => { const h = window.__bizHeld; if (h && h.go) { h.go(); h.go = null; } },
-      landed: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        return !!pg && !pg.querySelector('.loading')
-          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
-      },
-      leave: () => {
-        const h = window.__bizHeld;
-        if (h) { window.fetch = h.fetch; BIZ.list = h.list; BIZ.asking = false; }
-        delete window.__bizHeld;
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        /* NOTHING WAS THERE BEFORE EITHER: ask again, on the real wire, rather than leave five cards
-           drawn waiting with nothing on its way to end it. */
-        if (!BIZ.list) bizStart_();
-      } },
 
     /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
        The infrastructure for *"something which triggers every sunday"* and emails parents — built and
@@ -4218,6 +4914,146 @@ const STATES = {
          column would never be measured again on this run and Saved would be measured with a
          payload key nothing else expects. */
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
+  ],
+
+  /* ---------- THE BUSINESS RECORDS, A COLUMN OF THEIR OWN AND ONLY AN ADMIN'S ------------------------
+     They were pages of an admin's Settings, measured there by the two states below; *"the business
+     checklist stuff should go in their own column at the end"* (the owner, 10 Oct) moved them, and the
+     states moved with them (docs/history/334). EVERY STATE HERE IS `only:` AN ADMIN, the unnamed one
+     included — for anybody else the column is not in `TABS`, `go('biz')` lands on the front door, and
+     measuring that as this column would be a finding about the check. `check/ui.js` and
+     `check/press.js` skip a column a visitor is not given as well, so a state that forgot its `only`
+     still measures nothing in the stranger's name.
+
+     THE UNNAMED STATE ASKS WHAT IT IS LOOKING AT, for Progress's reason: the column a person lands on,
+     the five cards in order, each with its Save — and ANSWERED, no loader left on it. Arriving asks
+     `listRecords` (`bizStart_`), and the first run measured 390 with the dots still over the boxes
+     because a loaded machine answered late; the wait is `the business records still coming`, below,
+     held on purpose, and this one is the column once the answer is in. */
+  biz: [
+    { name: '',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      expect: () => {
+        const h = document.getElementById('s-biz');
+        if (!h || typeof AT === 'undefined' || AT !== 'biz' || h.querySelector('.loading')) return 0;
+        const cards = [...h.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')];
+        return cards.map(c => c.dataset.bizPage).join('|') === 'Insurance|Tax|Legal and data|Safeguarding|Money and company'
+          && cards.every(c => c.querySelector('.tile[data-do="biz-save"]')) ? 1 : 0;
+      },
+      wants: 'the Business column: Insurance, Tax, Legal and data, Safeguarding, Money and company, each with its Save' },
+
+    /* THE INSURANCE CARD WITH SOMETHING RECORDED. `only:` for the flyer's reason: nobody else is drawn
+       one, so asking a stranger to reach it would be a finding about the check. SEEDED THROUGH
+       `BIZ.list`, which is what `listRecords` writes — the fixture answers every POST with the payload,
+       so without a seed the page is measured with every box empty and no flag, which is half of what
+       the card can draw. One item due in ten days, so the Due soon flag is on the screen and measured. */
+    { name: 'the business records (insurance)',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const d = new Date(); d.setDate(d.getDate() + 10);
+        const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
+          + String(d.getDate()).padStart(2, '0');
+        window.__bizWas = BIZ.list;
+        BIZ.list = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+          provider: 'Example Insure', reference: 'PL-000000', due_on: iso }];
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz');
+        const at = [...document.querySelectorAll('#s-biz .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the Business column');
+        goPage('biz', at, true);
+      },
+      leave: () => { BIZ.list = window.__bizWas || null; delete window.__bizWas;
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz'); },
+      expect: () => {
+        const pg = document.querySelector('#s-biz .page.on');
+        return pg && pg.querySelectorAll('.biz-item').length === 3
+          && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
+          && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000'
+          /* AND EACH ROW'S TWO BOXES ARE ONE WIDTH. The row is `.lib-row.q-row`, a class pair borrowed
+             from the qualification editor — and when that editor was redrawn, its `.lib-row.q-row` rule
+             went with it and these rows fell back to `.lib-row`'s wide box beside a 7rem one, with
+             nothing here to notice. The rule is back, and this is what says so. */
+          && [...pg.querySelectorAll('.biz-item .lib-row')].every(r => {
+            const w = [...r.children].map(c => c.getBoundingClientRect().width);
+            return w.length === 2 && w[0] > 0 && Math.abs(w[0] - w[1]) <= 1;
+          });
+      },
+      wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
+
+    /* ==============================================================================================
+       THREE WIDGETS WAITING ON A REAL REQUEST, HELD, AND THEN LET GO — this one, and the Videos card
+       and the camera, which are declared with their own columns
+
+       THE OWNER, 9 Oct: *"Every widget has unique loading look. They should all have a simplistic
+       simple loading thing while it's info or whatever is loading."* `loading_()` (shell.js) is that
+       thing now, and these are the states that put it on the screen where `check/ui.js` can measure
+       it: the business records (`listRecords`, a POST), the Videos card (`data/videos.json`, a file)
+       and the camera (`getUserMedia`, the device). Each is HELD — the request is made by the app's
+       own code and its answer kept back — so what is measured is the wait the app really draws,
+       not a picture of one.
+
+       `release` LETS IT GO, and `landed` says the content has arrived. `check/ui.js` measures the
+       loader while it is held (one box, the same size on every card, centred), takes the card's
+       height, releases, waits for `landed`, and takes it again: a loader that holds its room leaves
+       the card the height it was. `leave` puts back what was there before and DROPS the held answer
+       rather than delivering it — `check/press.js` never releases, and an answer arriving after the
+       state has gone would land in the middle of the next one.
+
+       THESE ARE THE KIND THAT HOLDS THE CARD — the loader drawn OVER what is already there, which is
+       the only kind that can: a verse or a list whose length is not known until it lands is drawn
+       where it lands, and the card is the size of what came. */
+    { name: 'the business records still coming',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const held = window.__bizHeld = { list: BIZ.list, fetch: window.fetch, go: null };
+        const real = held.fetch;
+        window.fetch = (url, o) => {
+          let act = '';
+          try { act = JSON.parse((o && o.body) || '{}').action; } catch (e) {}
+          if (act !== 'listRecords') return real(url, o);
+          return new Promise(r => {
+            held.go = () => r(new Response(JSON.stringify({ success: true, records: [{
+              id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+              provider: 'Example Insure', reference: 'PL-000000', due_on: '2031-01-01' }] }),
+              { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          });
+        };
+        BIZ.list = null; BIZ.error = ''; BIZ.asking = false;
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz');
+        const at = [...document.querySelectorAll('#s-biz .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the Business column');
+        goPage('biz', at, true);
+        bizStart_();
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-biz .page.on');
+        const body = pg && pg.querySelector('.biz-body[aria-busy="true"]');
+        return !!body && pg.querySelectorAll('.loading').length === 1 && !!body.querySelector(':scope > .loading')
+          && !!body.querySelector('input[data-biz="pub_liability"][data-k="reference"]');
+      },
+      wants: 'the Insurance card\'s boxes drawn and under the one loader while listRecords is held',
+      release: () => { const h = window.__bizHeld; if (h && h.go) { h.go(); h.go = null; } },
+      landed: () => {
+        const pg = document.querySelector('#s-biz .page.on');
+        return !!pg && !pg.querySelector('.loading')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+      },
+      leave: () => {
+        const h = window.__bizHeld;
+        if (h) { window.fetch = h.fetch; BIZ.list = h.list; BIZ.asking = false; }
+        delete window.__bizHeld;
+        document.querySelectorAll('#s-biz .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('biz');
+        /* NOTHING WAS THERE BEFORE EITHER: ask again, on the real wire, rather than leave five cards
+           drawn waiting with nothing on its way to end it. */
+        if (!BIZ.list) bizStart_();
+      } },
+
   ],
 
   /* ---------- PROGRESS, WHICH HAS ONE STATE UNTIL IT IS BUILT, AND IT IS ASSERTED ------------------
@@ -5244,14 +6080,63 @@ const STATES = {
       wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
       leave: () => { initConnect4(); } },
 
-    /* ---------- THE VIDEOS CARD, SEARCHED AND PLAYING ---------------------------------------------
-       THE WIDGET OPENS ON A BOX AND A LIST, which is the one state `go()` reaches — the player, the
-       Full screen tile and a narrowed count only exist after somebody types and taps. Seeded through
-       the card's own list (`VIDEOS_LIST`, what `data/videos.json` would have filled) with the
-       LONGEST title a row is likely to carry, because a title is the one thing on this card that
-       can take it sideways at 320. The video is the repository's own reel, so the lab plays a real
+    /* ---------- THE VIDEOS CARD: THE BAR, FOUR RESULTS, A FILM PLAYING, AND THE GLASS FILLED -----------
+       *"at first all you see is a search bare, then you search and you see relevant result underneath.
+       max 4 results show. you click on one, then it shows video. you can click fullscreen to make it
+       fullscreen"* — the owner, 10 Oct (note 321). FOUR STATES FOR FOUR THINGS THE CARD IS, because
+       `go()` reaches only the first: the bar alone; four results with the line under them (and, for an
+       admin, the Sync row at the foot); a result playing in their place; and the app's own full screen.
+       Seeded through the card's own list (`VIDEOS_LIST`, what `data/videos.json` would have filled)
+       with the LONGEST title a row is likely to carry, because a title is the one thing on this card
+       that can take it sideways at 320. The video is the repository's own reel, so the lab plays a real
        file and never reaches for YouTube. */
-    { name: 'a video search, narrowed, one playing',
+    { name: 'the videos card, idle',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        VID.q = ''; VID.at = '';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        return !!box && !!box.querySelector('input.vid-q') && !box.querySelector('.vid-row, .vid-player, .vid-watch.on, .loading')
+          && !(box.querySelector('.vid-results') || {}).innerHTML && !(box.querySelector('.vid-admin') || {}).innerHTML;
+      },
+      wants: 'the search bar and nothing else — no count, no list, no admin row, no player' },
+    { name: 'a video search, four and how many more',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        window.__seedVid = VIDEOS_LIST;
+        VIDEOS_LIST = [
+          { title: 'Photosynthesis explained: how a leaf turns light, water and carbon dioxide into sugar',
+            url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science biology plants', age: '9+', active: true },
+          { title: 'Photosynthesis, the short one', url: 'data/reels/archetest.mp4?b', kind: 'clip', tags: 'science', age: '', active: true },
+          { title: 'Photographs of leaves', url: 'https://example.org/leaves', kind: 'clip', tags: 'art', age: '', active: true },
+          { title: 'The photon and the leaf', url: 'data/reels/archetest.mp4?d', kind: 'clip', tags: 'physics', age: '', active: true },
+          { title: 'Sunlight and plants', url: 'data/reels/archetest.mp4?e', kind: 'clip', tags: 'photo science', age: '', active: true },
+          { title: 'Why leaves are green', url: 'data/reels/archetest.mp4?f', kind: 'clip', tags: 'photosynthesis', age: '', active: true },
+          { title: 'Fractions in two minutes', url: 'data/reels/archetest.mp4?c', kind: 'clip', tags: 'maths', age: '', active: true },
+        ];
+        VID.q = 'photo'; VID.at = '';
+        /* PAINTED, THEN TURNED TO, so the pager settles on a card that already has its height. */
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => {
+        const box = document.querySelector('#s-games #wgt-videos .vid-box');
+        if (!box || box.querySelectorAll('.vid-results .vid-list .vid-row').length !== 4) return false;
+        if (!/^2 more — keep typing to narrow$/.test(((box.querySelector('.vid-results .vid-more') || {}).textContent || ''))) return false;
+        /* AN ADMIN'S SYNC ROW AT THE FOOT, UNDER THE RESULTS; NOBODY ELSE'S. */
+        const adm = box.querySelector('.vid-admin');
+        const mine = typeof isAdmin === 'function' && isAdmin();
+        return mine ? !!(adm && adm.querySelector('.tile.is-admin[data-do="vid-sync"]')) && box.lastElementChild === adm
+                    : !(adm && adm.innerHTML);
+      },
+      wants: 'four results and "2 more — keep typing to narrow" under them, and an admin\'s Sync row at the foot',
+      leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
+    { name: 'a video search, one playing',
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
@@ -5261,23 +6146,111 @@ const STATES = {
             url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science biology plants', age: '9+', active: true },
           { title: 'Photosynthesis, the short one', url: 'data/reels/archetest.mp4?b', kind: 'clip',
             tags: 'science', age: '', active: true },
-          { title: 'Fractions in two minutes', url: 'data/reels/archetest.mp4?c', kind: 'clip',
-            tags: 'maths', age: '', active: true },
         ];
         VID.q = 'photo';
         VID.at = 'v0';
-        /* PAINTED, THEN TURNED TO. The card shrinks from the whole list to two rows here, and a
-           page that changes height while the pager is still settling on it was measured mid-slide
-           once, 70px off the screen. */
         vidPaint_();
         goPage('games', n, true);
       },
       expect: () => !!document.querySelector('#s-games .vid-stage.on video.vid-player')
                  && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]:not([disabled])')
-                 && document.querySelectorAll('#s-games .vid-list .vid-row').length === 2
-                 && /^2 of \d+ videos$/.test((document.querySelector('#s-games .vid-said') || {}).textContent || ''),
-      wants: 'the player holding the chosen clip, a Full screen tile under it, and two of the list left',
+                 && !document.querySelector('#s-games .vid-results .vid-row')
+                 && !(document.querySelector('#s-games .vid-admin') || {}).innerHTML
+                 && (document.querySelector('#s-games .vid-q') || {}).value === 'photo',
+      wants: 'the player holding the chosen clip in place of the results, the Full screen tile beside its title, and the bar still holding "photo"',
       leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
+    /* ---------- A FILM FROM THE FOLDER, PLAYING IN DRIVE'S PLAYER, WITH THE DOOR BESIDE IT --------------
+       The one watch view with TWO tiles beside its title — Full screen and Open in Drive — which is the
+       narrowest the title gets at 320. The film is invented and added to the admin's films for this
+       state alone; its frame asks Drive for a file that does not exist, which this lab cannot reach
+       anyway — what is measured is the card round it. */
+    { name: 'a film from the folder playing, with Open in Drive',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        window.__seedFilms = DATA.films;
+        DATA.films = (DATA.films || []).concat([{ id: 'FXD01', title: 'An Invented Film Kept In Drive For Measuring', year: '1999',
+          kind: 'film', audience: 'kids', seasons: '', url: 'https://drive.google.com/file/d/example-fx-drive-001/view', placeholder: false, notes: '' }]);
+        VID.q = 'invented film kept';
+        VID.at = 'fFXD01';
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => /^https:\/\/drive\.google\.com\/file\/d\/example-fx-drive-001\/preview$/.test(
+                     (document.querySelector('#s-games .vid-stage iframe.vid-player') || {}).src || '')
+                 && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]')
+                 && !!document.querySelector('#s-games .vid-acts a.tile[href*="example-fx-drive-001"]'),
+      wants: 'Drive\'s player of the film, and Full screen and Open in Drive beside its title',
+      leave: () => { DATA.films = window.__seedFilms || []; VID.q = ''; VID.at = ''; vidPaint_(); } },
+    /* ---------- AND THE APP'S OWN FULL SCREEN, WHERE THE BROWSER HAS NONE --------------------------------
+       Safari on an iPhone has no full screen for anything but a `<video>`'s own player; this lab is
+       Chromium, so the Fullscreen API is TAKEN AWAY for the state — and the `<video>` here has no
+       `webkitEnterFullscreen` in Chromium either, so the tile reaches the app's own, as an iframe on an
+       iPhone does. Pressed through the tile, after the card is placed. What is measured is the block in
+       the top layer over the whole glass: the Exit tile's 44px, nothing sideways, and the pane under it
+       where it was. Put back on `leave`, API and all. */
+    { name: 'the videos card, its own full screen',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        window.__seedVid = VIDEOS_LIST;
+        window.__fsApi = { r: Element.prototype.requestFullscreen, w: Element.prototype.webkitRequestFullscreen };
+        delete Element.prototype.requestFullscreen;
+        delete Element.prototype.webkitRequestFullscreen;
+        VIDEOS_LIST = [{ title: 'Photosynthesis explained: how a leaf turns light, water and carbon dioxide into sugar',
+                         url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science', age: '9+', active: true }];
+        VID.q = 'photo';
+        VID.at = 'v0';
+        vidPaint_();
+        goPage('games', n, true);
+        setTimeout(() => {
+          const t = document.querySelector('#s-games #wgt-videos .vid-acts [data-do="vid-full"]');
+          if (t) ACTIONS['vid-full'](t);
+        }, 150);
+      },
+      /* AND WHAT "FULL SCREEN" MEANS, ASKED IN PIXELS AT EVERY WIDTH: the block is the viewport, a point
+         in each corner and the middle of the glass lands inside it (nothing of the app is above it or
+         reachable through it), the film is 16:9, wholly on the glass and as large as the room allows —
+         the width of the glass, its height, or the width less the Exit tile beside it — and the Exit
+         tile is on the glass and off the picture. A rule that put the block in a corner, or a film the size of the card,
+         arrives here as a state that did not arrive. */
+      expect: () => {
+        const w = document.querySelector('#s-games #wgt-videos .vid-watch.is-fs');
+        let open = false;
+        try { open = !!w && w.matches(':popover-open'); } catch (e) { open = false; }
+        const x = w && w.querySelector('.vid-acts .tile[data-do="vid-unfull"]');
+        const v = w && w.querySelector('.vid-stage video.vid-player');
+        if (!open || !x || !v) return false;
+        const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+        const r = w.getBoundingClientRect(), st = w.querySelector('.vid-stage').getBoundingClientRect(), xr = x.getBoundingClientRect();
+        const whole = Math.abs(r.left) < 1 && Math.abs(r.top) < 1 && Math.abs(r.width - vw) < 1 && Math.abs(r.height - vh) < 1;
+        const over = [[2, 2], [vw - 3, 2], [2, vh - 3], [vw - 3, vh - 3], [vw / 2, vh / 2]]
+          .every(([px, py]) => { const e = document.elementFromPoint(px, py); return !!e && w.contains(e); });
+        /* AS LARGE AS THE ROOM ALLOWS: on its side the whole height, or the width less the Exit tile and
+           its 1.5rem beside it; upright the whole width, or the height less the tile under it. */
+        const g = 44 + 1.5 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const room = vw > vh ? Math.min(vw - g, vh * 16 / 9) : Math.min(vw, (vh - g) * 16 / 9);
+        const wide = Math.abs(st.width / st.height - 16 / 9) < 0.02 && st.width >= room - 2
+          && st.left >= -1 && st.top >= -1 && st.right <= vw + 1 && st.bottom <= vh + 1;
+        const clear = xr.width >= 44 && xr.height >= 44 && xr.left >= 0 && xr.top >= 0 && xr.right <= vw && xr.bottom <= vh
+          && (xr.right <= st.left || xr.left >= st.right || xr.bottom <= st.top || xr.top >= st.bottom);
+        return whole && over && wide && clear;
+      },
+      wants: 'the player\'s block in the top layer over the whole screen — the viewport, a 16:9 film as large as the room allows, and an Exit full screen tile of 44px beside it, off the picture',
+      leave: () => {
+        try { vidFullOff_(); } catch (e) {}
+        /* AND THE CARD LET GO OF, AS A FINGER LEAVING IT WOULD. Going full screen hands the focus to the Exit
+           tile and coming back hands it to Full screen, and a focus on the card in front HOLDS its top
+           (`HOLD_AT`, shell.js) — right for somebody using it, and here it outlived the state: every later
+           state on this page then grew and shrank the card downward from a held top, and the column ended
+           the run 94-143px off the line `check/ui.js` holds every column to. */
+        try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); HOLD_AT = null; } catch (e) {}
+        const a = window.__fsApi;
+        if (a) { if (a.r) Element.prototype.requestFullscreen = a.r; if (a.w) Element.prototype.webkitRequestFullscreen = a.w; }
+        delete window.__fsApi;
+        VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_();
+      } },
 
     /* ---------- THE FILMS IN THE VIDEOS CARD — THE ADMIN'S, AND NOBODY ELSE'S ------------------------
        *"Let admin be able to search up films which are in the notflix folder on gdrive."* Two states for
@@ -5285,49 +6258,52 @@ const STATES = {
        admin is served the fixture's three invented films and a sync stamp, and the signed-out visitor
        what `doGet` sends a stranger — no film and no stamp (`FIXTURE_ANON` in ui.js). The admin's card
        carries a row nobody else's has — the silver Sync from Drive tile and the line beside it — and a
-       film not in the Drive yet, dimmed; both are new widths to fit at 320. */
+       film not in the Drive yet, dimmed; both are new widths to fit at 320. Since note 321 both are a
+       SEARCH ("film"), because an idle card shows neither. */
     { name: 'the films in the videos card, an admin’s',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
-        VID.q = ''; VID.at = '';
+        VID.q = 'film'; VID.at = '';
         vidPaint_();
         goPage('games', n, true);
       },
       expect: () => !!document.querySelector('#s-games .vid-admin .tile.is-admin[data-do="vid-sync"]')
                  && !!document.querySelector('#s-games .vid-admin .vid-synced')
-                 && document.querySelectorAll('#s-games .vid-list .vid-row').length >= 3
-                 && !!document.querySelector('#s-games .vid-list .vid-row.is-off'),
-      wants: 'the silver Sync from Drive tile and when it last ran, the films, and the one not in the Drive yet dimmed' },
+                 && document.querySelectorAll('#s-games .vid-results .vid-row').length >= 3
+                 && !!document.querySelector('#s-games .vid-results .vid-row.is-off'),
+      wants: 'the films "film" finds, the one not in the Drive yet dimmed, and the silver Sync from Drive tile and when it last ran under them',
+      leave: () => { VID.q = ''; VID.at = ''; vidPaint_(); } },
     { name: 'the videos card, nobody’s films',
       only: () => !(typeof isAdmin === 'function' && isAdmin()),
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
-        VID.q = ''; VID.at = '';
+        VID.q = 'film'; VID.at = '';
         vidPaint_();
         goPage('games', n, true);
       },
       expect: () => !document.querySelector('#s-games .vid-admin *')
                  && !document.querySelector('#s-games [data-do="vid-sync"]')
+                 && !!document.querySelector('#s-games .vid-results .vid-none')
                  && !/film|drive|sync/i.test((document.querySelector('#s-games .vid-box') || {}).textContent || 'film'),
-      wants: 'no Sync tile, nothing in the admin row, and no word on the card that says films exist' },
+      wants: 'a search for "film" answered without a film, no Sync tile, nothing in the admin row, and no word on the card that says films exist',
+      leave: () => { VID.q = ''; VID.at = ''; vidPaint_(); } },
 
-    /* ---------- AND WHILE ITS LIST IS ON ITS WAY: THE ONE LOADER OVER THE CARD -----------------------
+    /* ---------- AND WHILE ITS LIST IS ON ITS WAY: THE BAR, AND THE ONE LOADER WHERE THE RESULTS GO --------
        One of three widgets held on a real request — see `the business records still coming` for the
        whole note. `data/videos.json` is asked for by the card's own `initVideos` and its answer kept
        back; here the payload is in, so an admin's card already has its films and is not waiting, and
        this is the stranger's.
-       IT RELEASES INTO THREE REAL ROWS. It used to hand back the repository's own file, whose one row is
-       a switched-off placeholder — so what landed was "No videos listed yet.", one line in place of the
-       one line the count held, and "the card did not move" could not fail (review, 10 Oct). A list's
-       length is not known until it lands, so the card GROWS by the rows (`grows`, read by `check/ui.js`):
-       what is asked is that the veiled part kept its room — the card never shrinks — and that the three
-       rows arrive. */
+       THE BAR IS NOT VEILED (note 321): it is the first thing on the card and it can be typed into
+       before the list lands. A word is typed here, so the one loader stands where the results will be
+       — and the state releases into three real rows the word finds. A list's length is not known until
+       it lands, so the card GROWS by the rows (`grows`, read by `check/ui.js`): what is asked is that
+       the loader's room was not more than came, and that the three rows arrive. */
     { name: 'the videos still coming',
       only: () => !(typeof isAdmin === 'function' && isAdmin()),
-      grows: 'the list of videos — how many rows are coming is not known until they come (see `vidPaint_`)',
+      grows: 'the results — how many rows are coming is not known until they come (see `vidPaint_`)',
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
@@ -5341,22 +6317,21 @@ const STATES = {
           ? new Promise(r => { held.go = () => r(new Response(JSON.stringify(rows),
               { status: 200, headers: { 'Content-Type': 'application/json' } })); })
           : real(url, o));
-        VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = ''; VID.at = '';
+        VIDEOS_LIST = null; VIDEOS_ASKED = null; VID.q = 'held'; VID.at = '';
         goPage('games', n, true);
         initVideos();
       },
       expect: () => {
         const box = document.querySelector('#s-games #wgt-videos .vid-box');
-        return !!box && box.getAttribute('aria-busy') === 'true' && !!box.querySelector(':scope > .loading')
+        return !!box && !box.getAttribute('aria-busy') && !!box.querySelector('.vid-results > .loading')
           && document.querySelectorAll('#s-games #wgt-videos .loading').length === 1 && !!box.querySelector('input.vid-q');
       },
-      wants: 'the videos card drawn whole and under the one loader while data/videos.json is held',
+      wants: 'the bar, usable, and the one loader where the results will be while data/videos.json is held',
       release: () => { const h = window.__vidHeld; if (h) { window.fetch = h.fetch; if (h.go) { h.go(); h.go = null; } } },
       landed: () => {
         const box = document.querySelector('#s-games #wgt-videos .vid-box');
-        return !!box && !box.querySelector('.loading') && !box.getAttribute('aria-busy')
-          && box.querySelectorAll('.vid-list .vid-row').length === 3
-          && /^3 videos$/.test(((box.querySelector('.vid-said') || {}).textContent || '').trim());
+        return !!box && !box.querySelector('.loading')
+          && box.querySelectorAll('.vid-results .vid-row').length === 3;
       },
       /* THE LIST IT HELD IS PUT BACK WHETHER OR NOT IT WAS RELEASED: released, `VIDEOS_LIST` is the three
          rows above, and the next state would be measuring a card with videos the repository never had. */
@@ -5364,6 +6339,7 @@ const STATES = {
         const h = window.__vidHeld;
         if (h) { window.fetch = h.fetch; VIDEOS_LIST = h.list; VIDEOS_ASKED = null; }
         delete window.__vidHeld;
+        VID.q = ''; VID.at = '';
         vidPaint_();
         /* AND IF NOTHING WAS THERE BEFORE EITHER, asked again on the real wire, as the records' state does. */
         if (VIDEOS_LIST === null) videosAsk_().then(() => vidPaint_());
@@ -5453,7 +6429,7 @@ const STATES = {
       wants: 'the still on the card with Post it under it',
       leave: () => { if (typeof camAgain_ === 'function') camAgain_(); } },
     /* ---------- AND THE MOMENT BEFORE THE FIRST FRAME: THE ONE LOADER IN THE VIEWFINDER ----------------
-       One of three widgets held on a real request — see `the business records still coming` (settings)
+       One of three widgets held on a real request — see `the business records still coming` (biz)
        for the whole note. The ask is the camera's own (`camStart_`) and the browser's answer is kept
        back, which is what a permission prompt left open does; released, it is handed a stream drawn
        from a canvas, which is a real `MediaStream` a container without a camera can make. The loader
@@ -5573,8 +6549,8 @@ const STATES = {
         p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
                         total: 4, yours: '',
                         by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '👍' },
-                             { name: 'Carl Everyclient', emoji: '👍' },
-                             { name: 'Evie Everystudent-Longername', emoji: '❤️' }] };
+                             { name: 'Carl Everyclient-Longername', emoji: '👍' },
+                             { name: 'Evie', emoji: '❤️' }] };
         repaint(true);
         goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
       },
@@ -5673,8 +6649,8 @@ const STATES = {
         p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [2, 1, 3, 0, 0, 0],
                         total: 6, yours: signed ? '😂' : '',
                         by: [{ name: 'Ada Tutor', emoji: '👍' }, { name: 'Priya Parent', emoji: '😂' },
-                             { name: 'Evie Everystudent-Longername', emoji: '😂' },
-                             { name: 'Carl Everyclient', emoji: '❤️' }]
+                             { name: 'Evie', emoji: '😂' },
+                             { name: 'Carl Everyclient-Longername', emoji: '❤️' }]
                              .concat(signed ? [{ name: USER.name, emoji: '😂' }] : []) };
         repaint(true);
         goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
@@ -5692,6 +6668,239 @@ const STATES = {
         closeSheet();
         const p = (DATA.posts || []).find(x => x.id === 'PO1');
         if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        repaint(true);
+      } },
+    /* ---------- A TAP ON A FACE, AND THE CARD IT IS ON DOES NOT MOVE ---------------------------------
+       THE OWNER, 10 Oct: *"The post section is a bit buggy. When I click a reaction it bugs out a bit.
+       On only some of them."* Every state above draws the row and looks at it; none of them pressed it,
+       so none could see what a press did to the card around it. A face called `repaint()`, which
+       rebuilt the whole column — so the post's picture was a new `<img>` with no pixels and no size,
+       held at the 4:5 stand-in until it was read again (`.page .post-pic { aspect-ratio: auto 4 / 5 }`),
+       and the card changed height and zoom under the finger, then changed back (docs/history/335).
+       THIS LAB STANDS IN FOR THE PHONE THAT CANNOT HAND THE PICTURE STRAIGHT BACK: `page.route` turns
+       the browser's cache off, so a rebuilt picture is fetched again here every time.
+
+       A SINGLE SQUARE PHOTOGRAPH, because that is a post the fault reached and the fixture's PO1 is a
+       grid, whose cells are fixed squares and only blinked. Square is not 4:5, so a rebuilt picture
+       is a taller card for as long as it waits. Signed in only: signed out, a face goes to sign in.
+
+       WHAT IS HELD, from the frame before the tap, in the tap's own task and on every frame for half a
+       second after it: the same `<article>`, the same pane, the same `<img>`, and the card's height,
+       zoom and top and the picture's height to within a pixel. Measured inside the page because the
+       fault lasts a few frames and `check/ui.js` looks once; the result is read by `expect`, and `why`
+       says what moved. A TOKEN, so a `leave` that comes first (cascade.js does not wait for `expect`)
+       stops the tap rather than letting it land on the post `leave` just put back. */
+    { name: 'reactions a tap keeps the card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to press a face on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        window.__RX_MEDIA = JSON.stringify({ image: p.image, media: p.media });
+        p.image = 'data/reels/archetest.jpg'; p.media = ['data/reels/archetest.jpg'];
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0],
+                        total: 4, yours: '', by: [{ name: 'Ada Tutor', emoji: '👍' }] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const me = { done: false, seen: [], tapped: false };
+        window.__RX_TAP = me;
+        const card = () => document.querySelector('#s-feed [data-post="PO1"]');
+        const look = () => {
+          const c = card(), img = c && c.querySelector('img.post-pic');
+          return { c, pane: c && c.closest('.pane'), img, zoom: c ? c.style.zoom || '1' : '',
+                   h: c ? c.getBoundingClientRect().height : 0, top: c ? c.getBoundingClientRect().top : 0,
+                   ih: img ? img.getBoundingClientRect().height : 0 };
+        };
+        const t0 = performance.now();
+        const ready = () => {
+          if (window.__RX_TAP !== me) return;
+          const c = card(), img = c && c.querySelector('img.post-pic');
+          if (!img || !img.complete || !img.naturalWidth) {
+            if (performance.now() - t0 < 1500) { setTimeout(ready, 40); return; }
+            me.seen.push('the square photograph never arrived, so nothing was pressed'); me.done = true; return;
+          }
+          ts = performance.now(); settle();
+        };
+        /* AND THE CARD STILL BEFORE THE TAP. `repaint(true)` and `goPage` above leave the column gliding
+           onto its line for a few hundred milliseconds at 768 and wider — measured with the tap taken
+           out, the card's top went 58 → 103.5 at 1920 with nothing pressed — and a tap in the middle
+           of that would charge the glide to the tap. So five frames running with the same top and
+           height first; if the column never stops within 1.2s the tap goes ahead and the top is not
+           compared, rather than failing on a movement that is not the tap's. Every wait here is
+           bounded to fit inside the 3s `check/ui.js` and `check/press.js` give `expect`. */
+        let last = '', still = 0, ts = 0;
+        const settle = () => {
+          if (window.__RX_TAP !== me) return;
+          const r = card() ? card().getBoundingClientRect() : { top: 0, height: 0 };
+          const k = Math.round(r.top * 2) + ',' + Math.round(r.height * 2);
+          still = k === last ? still + 1 : 0; last = k;
+          if (still >= 5) { tap(true); return; }
+          if (performance.now() - ts > 1200) { tap(false); return; }
+          requestAnimationFrame(settle);
+        };
+        const tap = settled => {
+          {
+            const was = look();
+            me.settled = settled;
+            const face = was.c.querySelector('.react[data-emoji="😂"]');
+            if (!face) { me.seen.push('no 😂 on the post to press'); me.done = true; return; }
+            const say = (when, what) => { const s = when + ': ' + what; if (me.seen.indexOf(s) < 0 && me.seen.length < 12) me.seen.push(s); };
+            const check = when => {
+              const now = look();
+              if (now.c !== was.c) say(when, 'the post is a new <article>');
+              else if (now.pane !== was.pane) say(when, 'the pane is a new element');
+              if (now.img !== was.img) say(when, 'the picture is a new <img>');
+              if (Math.abs(now.h - was.h) > 1) say(when, `the card is ${now.h.toFixed(1)}px tall, was ${was.h.toFixed(1)}`);
+              if (now.zoom !== was.zoom) say(when, `the card is drawn at zoom ${now.zoom}, was ${was.zoom}`);
+              if (Math.abs(now.ih - was.ih) > 1) say(when, `the picture is ${now.ih.toFixed(1)}px tall, was ${was.ih.toFixed(1)}`);
+              if (settled && Math.abs(now.top - was.top) > 1) say(when, `the card's top is at ${now.top.toFixed(1)}, was ${was.top.toFixed(1)}`);
+            };
+            face.click();                 // the app's own one click handler, as a finger's tap reaches it
+            me.tapped = true;
+            check('in the tap');
+            const t1 = performance.now();
+            const frame = () => {
+              if (window.__RX_TAP !== me) return;
+              check('a frame later');
+              if (performance.now() - t1 < 500) requestAnimationFrame(frame);
+              else me.done = true;
+            };
+            requestAnimationFrame(frame);
+          }
+        };
+        ready();
+      },
+      expect: () => {
+        const t = window.__RX_TAP;
+        const el = document.querySelector('#s-feed [data-post="PO1"]');
+        const mine = el && el.querySelector('.react.mine');
+        return !!t && t.done && t.tapped && !t.seen.length && !!mine && mine.dataset.emoji === '😂';
+      },
+      why: () => {
+        const t = window.__RX_TAP;
+        return !t ? 'the tap never started' : !t.done ? 'the half second after the tap never finished'
+          : t.seen.join('; ') || 'nothing moved, and 😂 is not yours';
+      },
+      wants: 'a tap on 😂 landing on a square photograph\'s post with the card, its pane and its picture the same elements, at the same height, zoom and top',
+      leave: () => {
+        window.__RX_TAP = null;
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        if (p && window.__RX_MEDIA) Object.assign(p, JSON.parse(window.__RX_MEDIA));
+        /* AND THE HOLD THE TAP TOOK IS LET GO. A press on the card in front holds its top where it is
+           (`HOLD_AT`, shell.js) so a card that changes under a finger grows downward — right for a
+           person, and wrong here, where the lab is swapping the post's square photograph back for
+           the fixture's grid, 90px taller at 1920. Held, the grid hung 43.8px below the middle and
+           the columns-in-line rule named it after every screen had been visited. Nobody is using
+           the card once the state is over, which is what arriving anywhere else would say too. */
+        HOLD_AT = null;
+        repaint(true);
+      } },
+    /* ---------- A POST WITH NO DATE: THE FIRST FACE AND THE LAST TAKEN BACK, AND THE CARD DOES NOT MOVE --
+       THE STATE ABOVE PRESSES A DATED POST, and the fix it holds held for every dated post and no other.
+       A row typed into the posts tab by hand without a date column arrives as `at: 0, when: ''`; with no
+       reactions it drew no time line, so the first face fell back to rebuilding the column (a 16:9 card
+       428.5 → 689px at 390 and thrown off the glass for a frame or two) and taking the last face back
+       removed the line (the card 36.6px shorter, the tile row jumping up under the thumb). The line is
+       there now whenever a post has faces, empty until somebody reacts (`postWhen_`, docs/history/335).
+       THE SAME SQUARE PHOTOGRAPH AND THE SAME MEASURES as the state above, over TWO taps on 👍 a quarter
+       of a second apart — the first face, then the last taken back — each held against the card as it
+       was before the first: the same `<article>`, pane and `<img>`, the same height, zoom and top. */
+    { name: 'reactions an undated post keeps the card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (!p) throw new Error('the fixture has no PO1 to press a face on');
+        window.__RX_HELD = JSON.stringify(p.reactions);
+        window.__RX_MEDIA = JSON.stringify({ image: p.image, media: p.media, at: p.at, when: p.when });
+        p.image = 'data/reels/archetest.jpg'; p.media = ['data/reels/archetest.jpg'];
+        p.at = 0; p.when = '';
+        p.reactions = { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [0, 0, 0, 0, 0, 0],
+                        total: 0, yours: '', by: [] };
+        repaint(true);
+        goPage('feed', feedCamAt_() + 1 + feedPosts().findIndex(x => x.id === 'PO1'), true);
+        const me = { done: false, seen: [], taps: 0 };
+        window.__RX_TAP = me;
+        const card = () => document.querySelector('#s-feed [data-post="PO1"]');
+        const look = () => {
+          const c = card(), img = c && c.querySelector('img.post-pic');
+          return { c, pane: c && c.closest('.pane'), img, zoom: c ? c.style.zoom || '1' : '',
+                   h: c ? c.getBoundingClientRect().height : 0, top: c ? c.getBoundingClientRect().top : 0,
+                   line: !!(c && c.querySelector('.post-when')) };
+        };
+        const t0 = performance.now();
+        let last = '', still = 0, ts = 0;
+        const ready = () => {
+          if (window.__RX_TAP !== me) return;
+          const img = card() && card().querySelector('img.post-pic');
+          if (!img || !img.complete || !img.naturalWidth) {
+            if (performance.now() - t0 < 1200) { setTimeout(ready, 40); return; }
+            me.seen.push('the square photograph never arrived, so nothing was pressed'); me.done = true; return;
+          }
+          ts = performance.now(); settle();
+        };
+        /* STILL FIRST, for the reason the state above gives: `goPage` leaves the column gliding. */
+        const settle = () => {
+          if (window.__RX_TAP !== me) return;
+          const r = card() ? card().getBoundingClientRect() : { top: 0, height: 0 };
+          const k = Math.round(r.top * 2) + ',' + Math.round(r.height * 2);
+          still = k === last ? still + 1 : 0; last = k;
+          if (still >= 5) { run(true); return; }
+          if (performance.now() - ts > 1000) { run(false); return; }
+          requestAnimationFrame(settle);
+        };
+        const run = settled => {
+          const was = look();
+          if (!was.line) me.seen.push('before any face, the post has no time line — the first face has nowhere to put its total');
+          const say = (when, what) => { const s = when + ': ' + what; if (me.seen.indexOf(s) < 0 && me.seen.length < 12) me.seen.push(s); };
+          const check = when => {
+            const now = look();
+            if (now.c !== was.c) say(when, 'the post is a new <article>');
+            else if (now.pane !== was.pane) say(when, 'the pane is a new element');
+            if (now.img !== was.img) say(when, 'the picture is a new <img>');
+            if (!now.line) say(when, 'the time line is gone');
+            if (Math.abs(now.h - was.h) > 1) say(when, `the card is ${now.h.toFixed(1)}px tall, was ${was.h.toFixed(1)}`);
+            if (now.zoom !== was.zoom) say(when, `the card is drawn at zoom ${now.zoom}, was ${was.zoom}`);
+            if (settled && Math.abs(now.top - was.top) > 1) say(when, `the card's top is at ${now.top.toFixed(1)}, was ${was.top.toFixed(1)}`);
+          };
+          const press = what => {
+            const f = card() && card().querySelector('.react[data-emoji="👍"]');
+            if (!f) { say(what, 'there is no 👍 to press'); return; }
+            f.click(); me.taps++;
+            check(what);
+          };
+          press('the first face');
+          const t1 = performance.now();
+          let second = false;
+          const frame = () => {
+            if (window.__RX_TAP !== me) return;
+            const t = performance.now() - t1;
+            if (!second && t >= 250) { second = true; press('the last face taken back'); }
+            else check(second ? 'a frame after the last face went' : 'a frame after the first face');
+            if (t < 500) requestAnimationFrame(frame); else me.done = true;
+          };
+          requestAnimationFrame(frame);
+        };
+        ready();
+      },
+      expect: () => {
+        const t = window.__RX_TAP;
+        const el = document.querySelector('#s-feed [data-post="PO1"]');
+        return !!t && t.done && t.taps === 2 && !t.seen.length && !!el && !el.querySelector('.react.mine')
+          && !!el.querySelector('.post-when');
+      },
+      why: () => {
+        const t = window.__RX_TAP;
+        return !t ? 'the taps never started' : !t.done ? 'the half second of taps never finished'
+          : t.seen.join('; ') || (t.taps !== 2 ? `${t.taps} taps landed, not 2` : 'a face is still yours, or the line is gone');
+      },
+      wants: 'the first face on an undated post and the last taken back, with the card, its pane and its picture the same elements at the same height, zoom and top, and the time line there throughout',
+      leave: () => {
+        window.__RX_TAP = null;
+        const p = (DATA.posts || []).find(x => x.id === 'PO1');
+        if (p && window.__RX_HELD) p.reactions = JSON.parse(window.__RX_HELD);
+        if (p && window.__RX_MEDIA) Object.assign(p, JSON.parse(window.__RX_MEDIA));
+        HOLD_AT = null;                 // the hold the taps took — see the state above
         repaint(true);
       } },
   ],
@@ -5830,6 +7039,74 @@ const STATES = {
       wants: 'a booking row answered through its own select, the answer in BOOKING, and no list of the app\'s own',
       leave: () => { delete window.STATE_SEL_WAS;
         if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+
+    /* ---------- A ROOM CHOSEN, AND THE ROW SAYING WHICH ------------------------------------------------
+       *"colliers would library has 3 rooms within it"* — the owner, 10 Oct (docs/history/336). Once a
+       venue has rooms the Venue row's answers are one string until the last word, and a select cannot
+       wrap: review chose each of the fixture's three rooms at 390 and every one read "Colliers …", on the
+       form and in the picture the Share tile makes. The row draws its answer as words now (`wrap` on the
+       `loc` step, `stepSelect_`), with the select laid over them.
+
+       THE LARGE ROOM, CHOSEN THROUGH THE SELECT'S OWN `change`, because it is the one whose words differ
+       from a small room's only at the end. What arrives is asked in the real cascade, at every width:
+       the words on the row are the chosen option's whole text and none of them is cut off, and the
+       select still covers them — so the words are the answer and a tap on them is a tap on the control.
+       `check/share.js` takes this state's `enter` for its picture of the form with a room on it. */
+    { name: 'a room chosen, named whole on its row',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const sel = document.querySelector('#bookr select.bk-sel[data-step="loc"]');
+        if (!sel) throw new Error('the booking form draws no Venue select');
+        const rooms = [...sel.options].filter(o => / — /.test(o.value));
+        const to = rooms.find(o => /large/i.test(o.value)) || rooms[rooms.length - 1];
+        if (!to) throw new Error('the fixture offers no room on the Venue row — check/fixture.json lost its rooms');
+        window.STATE_ROOM = to.value;
+        sel.value = to.value;
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      },
+      expect: () => {
+        const want = window.STATE_ROOM;
+        const sel = document.querySelector('#bookr select.bk-sel[data-step="loc"]');
+        const face = sel && sel.closest('.bk-face');
+        const said = face && face.querySelector('.bk-said');
+        if (!want || !sel || sel.value !== want || BOOKING.loc !== want || !said) return 0;
+        const o = sel.options[sel.selectedIndex];
+        const a = said.getBoundingClientRect(), b = sel.getBoundingClientRect();
+        return said.textContent === (o && o.text) && said.textContent.indexOf(want) === 0
+          && said.scrollWidth <= said.clientWidth + 1
+          && Math.abs(a.top - b.top) <= 1 && Math.abs(a.bottom - b.bottom) <= 1
+          && Math.abs(a.left - b.left) <= 1 && Math.abs(a.right - b.right) <= 1 ? 1 : 0;
+      },
+      wants: 'the Venue row naming the whole room chosen, uncut, with its select laid over the words',
+      leave: () => { delete window.STATE_ROOM;
+        if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
+    /* ---------- A TUTOR CHOSEN: THE WEEK IS THE DAYS THEY WORK — see `days` in `slotGrid` ---------------
+       THE OWNER, 10 Oct: *"availability of tutors should just show the days they have an availibility
+       up. no need to display monday if they dont have any hours on monday."* The form the lab has
+       always measured names nobody, so it draws seven days — and the week with a tutor named is a
+       different HEIGHT of card, three rows shorter here, which nothing measured. The fixture's Ada
+       ticks Monday, Tuesday, Wednesday and Saturday (Monday 17 already taught), so those four and no
+       other — and no `Thursday —` put back by the spine, which is the second half of the change. Two
+       hours ticked on her Tuesday, so a lit run is on the card the lab looks at. */
+    { name: 'a tutor chosen, and only their days',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        if (!(DATA.tutors || []).some(t => t.title === 'Ada Tutor')) throw new Error('the fixture has no Ada Tutor to choose');
+        BOOKING.tutor = 'Ada Tutor';
+        BOOKING.slots = ['tu10', 'tu11'];
+        drawBooker();
+      },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#s-booking #bookr .bk-row.bk-wk')];
+        const days = rows.map(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim()).join(' ');
+        const dash = [...document.querySelectorAll('#s-booking #bookr .bk-row.is-blank .bk-k')]
+          .some(k => SLOT_DAYS.some(d => d[1] === k.textContent.trim()));
+        return days === 'Monday Tuesday Wednesday Saturday' && !dash
+          && document.querySelectorAll('#s-booking #bookr [data-do="book-slot"].on').length === 2 ? 1 : 0;
+      },
+      wants: 'Ada\'s four days (Mon, Tue, Wed, Sat) and no other, with her Tuesday 10 and 11 ticked',
+      leave: () => { if (typeof resetBooking_ === 'function') resetBooking_(); drawBooker(); } },
 
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,

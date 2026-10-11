@@ -220,7 +220,9 @@ function digestPlan_(week, subRows, peopleRows, parentsOf, look) {
     L.fresh.sort(order); L.again.sort(order);
     L.count = L.fresh.length + L.again.length;
     const me = byId[pid];
-    L.name = me ? personDisplayName(me) : '';
+    /* `nameFor_` — the admin's Preview names a child by first name like everything else (the owner,
+       10 Oct: *"dont show children's last name"*); the email itself only ever said `L.first`. */
+    L.name = me ? nameFor_(me) : '';
     /* THE CHILD'S FIRST NAME GOES IN THE SUBJECT LINE, and it is a cell the child can edit. A name
        that is a link, an address or a sentence is "Your child" instead. */
     L.first = me && digestSafe_(me.first_name) && S(me.first_name).length <= 30 ? S(me.first_name) : '';
@@ -656,7 +658,7 @@ function digestMail_(emails, o) {
     if (claim.previewed) { out.previewed++; return; }
     if (claim.held) { out.held++; return; }
     try {
-      MailApp.sendEmail({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, name: o.brand || BRAND_NAME });
+      mailOut_({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, name: o.brand || BRAND_NAME });
     } catch (err) {
       try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) {}
       out.failed++;

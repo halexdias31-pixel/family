@@ -53,7 +53,105 @@
 /* `whose` IS ONLY EVER SET WHILE NOBODY IS SIGNED IN: the person whose session died under them with this
    question on Find (`ended` in `signedOut_`), so that only they, signing in again, are handed it back.
    Empty otherwise — signed in, the question is `USER`'s; signed out, it is the holder's. */
-const STUFF = { q: '', filters: [], whose: '' };
+/* A `let` SINCE THE SECOND FINDER (below): `STUFF` is the state of whichever finder is being drawn,
+   and Find's whenever none is being drawn. The object itself is never replaced — Find's is this one
+   for the life of the page — only which finder's object the name stands for. */
+let STUFF = { q: '', filters: [], whose: '' };
+
+/* ---------- TWO FINDERS, ONE ENGINE ---------------------------------------------------------------
+   THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+   column to the right of the current finder. this new column is "finder 2". it carries resources.
+   like text books, boxing stuff books. ect."* So there are two finders: Find (`stuff`) and the second
+   finder (`res`, called Resources wherever a column is named), immediately right of it. The second
+   one is a finder like the first in every way a finger can tell — the search box, the questions as
+   chips, the cards and their pages, the swipe, the loader, the star — and it carries only the kinds
+   whose label is Resources: the textbooks, the boxers and their fights, the Bible.
+
+   ONE ENGINE, NOT A COPY. The funnel is this file, and it reads `STUFF` and its memos by name at
+   about a hundred places. A copy is two engines that drift; a scope threaded through every function
+   is forty signatures, several of which the checks call. So the engine is untouched and what moves is
+   WHOSE its globals are: `inFinder_(F, fn)` parks the bound finder's state on its record (`STUFF`,
+   `ITEM_MEMO`, `FIND_MEMO`, `STUFF_PAGES`, `CHIP_SHOW`, its two timers and its kept-place flag), puts
+   F's in their place, runs fn, and puts everything back in a `finally` — so a throw cannot leave one
+   finder holding the other's chips. The bound finder's state lives in the globals; every other
+   finder's lives on its record. That is the whole invariant.
+
+   OUTSIDE A BINDING IT IS FIND. Every other file that writes `STUFF.filters` — the booking doors in
+   receipt.js and cards.js, sign-out in me.js — means Find and gets Find, and so does every check that
+   pokes `STUFF` from outside. Only find.js binds, at the places a finder is drawn, pressed, filled or
+   typed into: the screen draw, the funnel's handlers, the fill and the search box. So the two finders'
+   chips, words, page and place cannot reach each other.
+
+   WORK THAT RUNS LATER RUNS OUTSIDE THE BINDING, which is the one rule this adds. A timer, a
+   microtask, an `afterSlide_` job or a promise captures its F and binds again — the late fill
+   (`STUFF_LATE`), the draw's microtask, the search box's debounce, the `fill:` keys in shell.js and the
+   Bible's index landing are all written that way. `afterSlide_` dedupes by key, and by function when
+   there is none, so a finder's fill is booked under `'fill:' + id` or two finders' fills become one.
+
+   WHICH KIND IS A RESOURCE is the kinds table's answer, the live sheet first (`kindOf_` merges
+   `DATA.kinds`), so a kind relabelled in the sheet changes column with no deploy. See docs/history/329. */
+const RES_ST = { q: '', filters: [], whose: '' };
+function resKind_(x) { return !!x && (x.kindLabel || kindOf_(x).label) === 'Resources'; }
+/* A FINDER'S RECORD: who it is, what it carries, and — while it is not the bound one — its parked
+   state. `place` is the surface its kept place is filed under (`draftKeep_`); `widgets` is whether the
+   Tools tail of the fill runs (Find's alone — the second finder holds no widget to start or stop);
+   `front` the pages between the question and the results (the booking form, the posts, the bundles:
+   all Find's); `empty` what an empty database says. */
+const finder_ = o => Object.assign({
+  items: { key: null, from: null, items: null },
+  found: { key: null, from: null, items: null, total: 0 },
+  pages: { from: null, pages: [] },
+  chips: { key: null, from: null, out: {} },
+  late: 0, typing: null, tried: false,
+}, o);
+const FINDERS = {
+  stuff: finder_({ id: 'stuff', st: STUFF, place: 'find', widgets: true,
+                   has: x => !resKind_(x),
+                   front: () => [].concat(bookingPages_(), feedPages_(), bundlePages_()),
+                   empty: 'Nothing in the shop or the library yet.' }),
+  res:   finder_({ id: 'res', st: RES_ST, place: 'res', widgets: false,
+                   has: resKind_,
+                   front: () => [],
+                   empty: 'No resources yet.' }),
+};
+let FINDER = FINDERS.stuff;
+function finderPark_(F) {
+  F.st = STUFF; F.items = ITEM_MEMO; F.found = FIND_MEMO; F.pages = STUFF_PAGES; F.chips = CHIP_SHOW;
+  F.late = STUFF_LATE; F.typing = stuffTimer; F.tried = FIND_PLACE_TRIED;
+}
+function finderUnpark_(F) {
+  STUFF = F.st; ITEM_MEMO = F.items; FIND_MEMO = F.found; STUFF_PAGES = F.pages; CHIP_SHOW = F.chips;
+  STUFF_LATE = F.late; stuffTimer = F.typing; FIND_PLACE_TRIED = F.tried;
+}
+function inFinder_(F, fn) {
+  if (!F || F === FINDER) return fn();
+  const was = FINDER;
+  finderPark_(was); finderUnpark_(F); FINDER = F;
+  try { return fn(); }
+  finally { finderPark_(F); finderUnpark_(was); FINDER = was; }
+}
+/* By screen id; by the screen an element is drawn in, falling back to the column in front and then
+   Find — a handler pressed from a detached button (the checks do that) still acts on a finder; and by
+   the item, for a link into a resource from anywhere else. */
+function finderOf_(id) { return Object.prototype.hasOwnProperty.call(FINDERS, id) ? FINDERS[id] : null; }
+function finderAt_(el) {
+  const s = el && el.closest ? el.closest('.screen') : null;
+  return (s && finderOf_(String(s.id).replace(/^s-/, ''))) || finderOf_(typeof AT === 'string' ? AT : '') || FINDERS.stuff;
+}
+function finderOfItem_(x) {
+  const id = Object.keys(FINDERS).find(k => FINDERS[k].has(x));
+  return id ? FINDERS[id] : FINDERS.stuff;
+}
+function finderEach_(fn) { Object.keys(FINDERS).forEach(id => inFinder_(FINDERS[id], () => fn(FINDERS[id]))); }
+/* A finder's state from outside, for the files that load before this one (me.js) and the checks. */
+function finderStates_() { return Object.keys(FINDERS).map(id => FINDERS[id].st); }
+function paintFinder_(id, keep) { const F = finderOf_(id); if (F) inFinder_(F, () => paintStuff(keep)); }
+/* `PAGER.stuff` and `PAGER.res` in shell.js: the question, the pages in front, then the results — each
+   counted in its own binding, so asking for Find's count from inside the second finder's draw cannot
+   count the wrong list. */
+function finderPageCount_(id) {
+  return inFinder_(finderOf_(id) || FINDERS.stuff, () => 1 + frontPages_().length + stuffPageCount());
+}
 
 /* The fields a filter can be ON, what each is called, and where its values come from. One table,
    so adding a way to filter is a row here and nothing else — the picker, the matching and the
@@ -318,18 +416,20 @@ const KINDS = {
      FOUND THE SAME WAY, which is the half that is like a practical: the topic, the subject, the
      level. Mapper, card, pages; nothing in the engine. */
   project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
-  /* ---------- THE FILMS, AND THEY ARE ABSENT RATHER THAN HIDDEN --------------------------------
-     THERE IS NO `admin` TEST ANYWHERE ON THIS KIND, DELIBERATELY. `doGet` builds `payload.films`
-     inside `if (viewerIsAdmin)` and sends `[]` to everybody else — see the note there — so a
-     parent's phone has no rows to map and this kind produces no items, no funnel answer and no
-     card, by construction. A `.filter(isAdmin())` here would be the same behaviour resting on the
-     renderer instead of on the server, and a filter is something a person can read past with the
-     network tab open.
+  /* ---------- `film` WAS A KIND HERE, AND THE FILMS ARE OFF FIND ----------------------------------
+     THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"*. It was a
+     kind of its own, `Films`, one item per row of `DATA.films` — an admin's only, because `doGet`
+     sends nobody else a row — with a card of its own (`filmCard_`) and a Watch tile (`filmTiles_` in
+     tiles.js). A FILM IS FOUND IN GAMES → VIDEOS, which searches the same rows by title, year, kids,
+     series and documentary and opens Drive from the row; Find was a second, worse door to the same
+     list, and the one the owner did not want.
 
-     `Films` RATHER THAN `Resources`. That word is taken — it is what `boxer` and `fight` wear, 260
-     rows of boxing — and putting a third meaning on it is the two-cupboards fault this file argues
-     itself out of two entries above. */
-  film: { group: 'Learning', label: 'Films', card: x => filmCard_(x) },
+     ALL OF IT WENT TOGETHER: this entry, the mapper in `stuffItemsRaw_`, `Films` in `KIND_BUCKET`,
+     the card, the tile and `.fc-note p` (the card was its only producer). `DATA.films` AND THE SYNC
+     STAY EXACTLY AS THEY WERE — the videos card reads them, and `filmsAdopt_` still calls
+     `stuffForget_`, which is now a harmless rebuild. `check-flow` proves the absence for an admin with
+     films in the payload: no film by title, no `Films` under What kind, and the videos card still
+     finds it. See docs/history/326. */
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
@@ -348,8 +448,8 @@ const KINDS = {
      So it wears `Resources` like the textbook beside it, on a shelf of its own (`Books`), and its
      item exists only for an admin — `bibleItems_` and the long note above `bibleFor_` say why that
      gate is on the phone and why it is the one exception to Find being built the same for every
-     role. NOT THE ONLY ADMIN-ONLY KIND: `film` above is an admin's too, but by the payload — `doGet`
-     sends nobody else a row — so this is the only kind with a role test on the phone.
+     role. THE ONLY ADMIN-ONLY KIND NOW: `film` was an admin's too, by the payload, until the films
+     left Find (see where it was, above) — and it was never a role test on the phone.
      ONE KIND, TWO CARDS: the cover on Find's own list, and each of the 31,102 verses once the Bible is
      open (*"each verse is a widget"*) — `bibleCard_` tells them apart. */
   bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
@@ -886,7 +986,7 @@ function bucketTable_(pairs) {
   return of;
 }
 
-/* WHAT YOU ARE HERE TO DO WITH IT. The eight kinds are three errands, and which errand somebody is
+/* WHAT YOU ARE HERE TO DO WITH IT. The six kinds are three errands, and which errand somebody is
    on is the thing they know before they know anything else. */
 /* `People & places` (Tutors, Venues) WAS A THIRD ROW, and nothing could answer it: a tutor is
    `Booking` alone and a venue is again, so `FUNNEL_NOT_FOR` keeps both out of every list this
@@ -902,10 +1002,29 @@ function bucketTable_(pairs) {
    screen. */
 /* `Bundles` IS AN ERRAND OF ITS OWN — printed papers, ordered — so it is placed beside the other two
    rather than filed under working through something; see `bundlesView_`. */
+/* ---------- `Films` LEFT `Read or watch it`, AND THE ROW STAYS, HOLDING `Resources` ALONE -------------
+   THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"* — see where
+   `film` was in `KINDS`. Three ways to handle the row it leaves, decided by the rules above:
+
+     DELETE IT    and `Resources` is unplaced. A written-out table must place every answer the library
+                  gives (`check-funnel.js`), and one unplaced value is the stand-down this table's own
+                  note warns about. Not an option.
+     FOLD IT      into `Work through it`, and a boxer and a bout are filed as something you work
+                  through, which they are not — the two-cupboards fault the other way round.
+     KEEP IT      with one kind in it. `Order it` already holds one (`Bundles`), and the one-answer rule
+                  that argued against a bucket of one (`Make something`, above) bites only when the
+                  bucket is DRAWN in place of its answers. Since 6 Oct nothing is (`bucketValues_`), so
+                  What kind draws `Resources` itself, the owner's own word for that tag.
+
+   KEPT, AND UNDER THE SAME NAME, because the name is still true: a bout carries a Watch tile and a
+   boxer his Highlights (`fightTiles_`, `boxerTiles_` in tiles.js), the textbook and the Bible are read.
+   The row's one effect on screen is ORDER (`within`, for `orderOf` on What kind), and that is
+   unchanged: Questions · Answers · Practicals · Projects · Bundles · Resources, with Films no longer
+   between the last two. */
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
   ['Order it',         ['Bundles']],
-  ['Read or watch it', ['Films', 'Resources']],
+  ['Read or watch it', ['Resources']],
 ]);
 
 /* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
@@ -3346,9 +3465,11 @@ function fightCard_(x) {
      ASKED FOR WITH THE BOXER'S PHOTO ("maybe add image of each boxer"), and a bout is two boxers, so
      it gets both — small, side by side, the winner's frame in gold. Each is `boxerPic_`'s corner:
      the photo where the boxer's row has one WITH its credit, and the ring placeholder otherwise —
-     mirrored in the blue corner's colours on the right, as the splash draws its second fighter. An
-     opponent with no row at all (52 corners) gets the placeholder with his initials, which is what
-     he is: somebody this library has no picture of.
+     his eight-bit likeness in the trunks he wore THAT NIGHT where a source names them, and the
+     corner's colour, muted, where none does; the blue corner faces left. An opponent with no row at
+     all (53 corners) is a silhouette with his initials — no skin and no hair colour claimed — still
+     in that night's trunks when they are known, which is what he is: somebody this library has no
+     picture of.
 
      LIFTED OVER THE TITLE BY `order`, like the boxer's photo, and hidden from a screen reader: the
      names are the title already, and two pictures announced as the same two names is the title
@@ -3356,7 +3477,13 @@ function fightCard_(x) {
 
      ONE CREDIT LINE FOR BOTH, each part carrying the address it credits, so a face that fails to
      load takes its own credit with it and leaves the other's — see `boxerPicFail_`. */
-  const bxA = boxerOf_(f.aId, f.a) || { name: f.a }, bxB = boxerOf_(f.bId, f.b) || { name: f.b };
+  /* A CORNER WITH NO ROW IS A WOMAN WHEN THE OTHER CORNER IS ONE. Five of the women's opponents have
+     no row (Gogarty, Frazier-Lyde, Persoon, McCaskill, Marshall), and drawn without a `sex` they were
+     the men's figure, bare-chested, beside a woman in her top. A bout is between two women or two
+     men, so the other corner's row says it; nothing else about her is claimed. */
+  const rowA = boxerOf_(f.aId, f.a), rowB = boxerOf_(f.bId, f.b);
+  const women = [rowA, rowB].some(r => r && String(r.sex || '').trim().toUpperCase() === 'F');
+  const bxA = rowA || { name: f.a, sex: women ? 'F' : '' }, bxB = rowB || { name: f.b, sex: women ? 'F' : '' };
   /* EACH CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE where one can be named — `boxerCredit_`, the
      profile's rule, so the two cards cannot credit the same picture two ways. */
   const credits = [bxA, bxB].filter(bx => boxerPicSrc_(bx)).map(bx =>
@@ -3371,8 +3498,8 @@ function fightCard_(x) {
           ISO one is a database's, not a poster's. `boxerDate_` leaves a cell that is not a date as
           typed, so "c. 1900" still reads. */''}
     <p class="sub">${esc([boxerDate_(f.date), f.division, bout].filter(Boolean).join(' · '))}</p>
-    <div class="fight-faces" aria-hidden="true">${boxerPic_(bxA, 'a', wonA)}<span class="fight-v">v</span>${
-      boxerPic_(bxB, 'b', wonB)}</div>
+    <div class="fight-faces" aria-hidden="true">${boxerPic_(bxA, 'a', wonA, f.trunksA)}<span class="fight-v">v</span>${
+      boxerPic_(bxB, 'b', wonB, f.trunksB)}</div>
     ${credits.length ? `<p class="fight-credit">${credits.join(' ')}</p>` : ''}
     ${how ? `<p class="fc-meta">${esc(how)}</p>` : ''}
     ${f.notes ? `<p class="fc-lede">${esc(f.notes)}</p>` : ''}
@@ -4042,13 +4169,21 @@ function animIds_(html, n) {
    (`innerHTML = innerHTML`), which starts every animation in it again; every other stage stands paused
    by `.tb-an-stage:not(.is-on)` in style.css. Off the Find screen, nothing plays.
    BOOKED BY NAME through `afterSlide_` from `goPage`, so a run of quick flicks is one decision at the
-   end, and called when a screen arrives and at the end of a fill. */
+   end, and called when a screen arrives and at the end of a fill.
+   EVERY FINDER'S COLUMN, not a parameter: the chapters moved to the second finder with the textbooks
+   (docs/history/329), and asking each column costs two `querySelectorAll`s — far less than remembering
+   to pass the right one from four callers, one of which (`startScreen_`) knows no finder at all. */
 function tbAnimWatch_() {
-  const host = $('s-stuff');
-  if (!host) return;
-  const stages = host.querySelectorAll('.tb-an-stage');
-  if (!stages.length) return;
-  const here = AT === 'stuff' ? host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)] : null;
+  Object.keys(FINDERS).forEach(id => {
+    const host = $('s-' + id);
+    if (!host) return;
+    const stages = host.querySelectorAll('.tb-an-stage');
+    if (!stages.length) return;
+    const here = AT === id ? host.querySelectorAll(':scope > .page')[domIndex_(id, PAGE[id] || 0)] : null;
+    tbAnimSet_(stages, here);
+  });
+}
+function tbAnimSet_(stages, here) {
   stages.forEach(st => {
     const on = !!here && here.contains(st);
     if (on && !st.classList.contains('is-on')) {
@@ -4131,6 +4266,8 @@ function textbookText_(b) {
    names nobody can read, and a run of numbers is read by its position, not word by word.
 
    ---------- GATED ON THE PHONE, NOT ON THE SERVER, AND THAT IS NOT THE FILMS' MISTAKE REPEATED -----
+   (The films are in Games → Videos and not in Find since 10 Oct; the argument about where a gate
+   belongs is unchanged, and it is still why `doGet` alone decides who is sent them.)
    THE ONE EXCEPTION THE PHONE MAKES TO "Find shows the same thing to everyone" (*"No distinction
    between tutor and student on the finder. All the same."*), made in ONE place (`bibleFor_`). The
    films are a list the owner wants nobody to see, so `doGet` never sends them to anybody else — a
@@ -4208,13 +4345,18 @@ function bibleIndex_() {
          built. The cached search and the pages are told to forget (`me.js`'s move for the friends
          list): a `psalms` typed while the index was on its way would otherwise go on answering from
          the list that did not have it, and the Books shelf would go on showing its loader over a
-         question it can now ask. */
-      if (ok) {
-        FIND_MEMO.key = null;
-        STUFF_PAGES = { from: null, pages: [] };
-      }
-      bibleRedraw_();
-      if ($('stuff-controls')) paintStuff(true);
+         question it can now ask.
+         IN THE FINDER THAT HOLDS THE BIBLE, which is the second one (docs/history/329) — and bound
+         again by hand, because a promise lands outside whatever binding asked for it. */
+      const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
+      inFinder_(F, () => {
+        if (ok) {
+          FIND_MEMO.key = null;
+          STUFF_PAGES = { from: null, pages: [] };
+        }
+        bibleRedraw_();
+        if ($(F.id + '-controls')) paintStuff(true);
+      });
       /* A STARRED VERSE IS NAMED FROM THE INDEX, so Saved could not draw one until now. */
       if (AT === 'saved') repaint(true); else STALE.saved = 1;
       return BIBLE.index;
@@ -4641,25 +4783,30 @@ function bibleRedraw_(n) {
    chapter is the strip, so the verses either side are a swipe away), or on the question for the cover.
    From Saved this is how a kept verse is read in its chapter; from Find it is how a verse found by a
    search or a Verse answer is. The search box is cleared, because words would narrow the chapter. */
+/* INTO THE SECOND FINDER NOW, wherever the tap was — Find, Saved, the Spotlight — because the Bible is
+   a resource and the resources moved (docs/history/329). `What for` and `What kind` are no longer
+   chips it sets: over the second finder's list each has one answer, so the funnel skips both and a
+   chip for them would be a chip nobody could have pressed. */
 on('bible-go', el => {
   if (!bibleFor_() || !BIBLE.index || !BIBLE.item) return;
   const k = el && el.getAttribute('data-key');
   const x = k ? bibleByKey_(k) : null;
   if (k && !x) return;
-  const kind = kindOf_(BIBLE.item);
-  STUFF.q = '';
-  const box = $('stuff-q');
-  if (box) box.value = '';
-  const f = [{ field: 'forLabel', value: asList_(kind.group)[0] }, { field: 'kindLabel', value: kind.label },
-             { field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
+  const F = finderOfItem_(BIBLE.item);
+  const f = [{ field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
   if (x) {
     f.push({ field: 'bibleTestament', value: x.bb.testament }, { field: 'bibleGroup', value: x.bb.group },
            { field: 'bibleBook', value: x.bb.book }, { field: 'bibleChapter', value: x.ch });
   }
-  STUFF.filters = f;
-  paintStuff();
-  if (AT !== 'stuff') go('stuff');
-  goPage('stuff', x ? stuffFirstResult_() + stuffPageOf_(x) : stuffQuestionPage_());
+  inFinder_(F, () => {
+    STUFF.q = '';
+    const box = $(F.id + '-q');
+    if (box) box.value = '';
+    STUFF.filters = f;
+    paintStuff();
+    if (AT !== F.id) go(F.id);
+    goPage(F.id, x ? stuffFirstResult_() + stuffPageOf_(x) : stuffQuestionPage_());
+  });
 });
 /* AGAIN, AFTER A FAILURE: a book (`data-n`), which redrawing its cards fetches; or the list of books. */
 on('bible-retry', el => {
@@ -4669,7 +4816,146 @@ on('bible-retry', el => {
   BIBLE.failed = false;
   bibleIndex_();
   bibleRedraw_();
-  if ($('stuff-controls')) paintStuff(true);
+  const F = finderOfItem_(BIBLE.item || { kind: 'bible' });
+  inFinder_(F, () => { if ($(F.id + '-controls')) paintStuff(true); });
+});
+
+/* ---------- A RESOURCE MET ANYWHERE ELSE OPENS IN THE SECOND FINDER ---------------------------------
+   THE RESOURCES LIVE IN THEIR OWN COLUMN NOW (docs/history/329), so a textbook, a boxer or a fight met
+   anywhere else — kept on Saved, put in the Spotlight — is opened THERE, on its own card, with the rest
+   of it a swipe up. Saved draws the card alone (`cardPages_` keeps only a question's parts), so before
+   this a kept book listed its fourteen chapters and nothing on the column could open one.
+   THE CHIPS A FINGER WOULD HAVE PRESSED, found by walking the funnel for it: the engine's own next
+   question each time (`nextFacet`), answered with this item's own answer, or "Doesn't matter" where
+   it has none — until the list is down to it or there is nothing left to ask. Never a chip that would
+   lose it: that answer is taken back and the walk stops where the thing is still on the list. `bible-go`
+   does the same for a verse by hand, because a verse is not an item on any list. */
+function finderWalk_(x) {
+  const out = [];
+  for (let guard = 0; guard < 16; guard++) {
+    STUFF.filters = out.slice();
+    const items = stuffFiltered();
+    if (items.length <= 1) break;
+    const facet = nextFacet(items);
+    if (!facet) break;
+    const own = (() => { try { return facetOwn_(facet, x); } catch (e) { return []; } })();
+    out.push(own.length ? { field: facet.field, value: String(own[0]) } : { field: facet.field, any: true });
+    STUFF.filters = out.slice();
+    if (stuffFiltered().indexOf(x) < 0) { out.pop(); break; }
+  }
+  return out;
+}
+function finderOpen_(x, part) {
+  const F = finderOfItem_(x);
+  inFinder_(F, () => {
+    STUFF.q = '';
+    const box = $(F.id + '-q');
+    if (box) box.value = '';
+    STUFF.filters = finderWalk_(x);
+    paintStuff();
+    if (AT !== F.id) go(F.id);
+    const i = stuffPages_().findIndex(pg => pg.x === x && (pg.part || null) === (part || null));
+    goPage(F.id, i >= 0 ? stuffFirstResult_() + i : stuffQuestionPage_());
+  });
+}
+/* THE TILE, under a resource's card wherever it is drawn outside its own finder — which is exactly
+   when the bound finder (Find, outside every binding: Saved, the Spotlight) does not carry it. Inside
+   the second finder the card is already open, and no tile is drawn. The Bible has its own way in
+   (`bibleTiles_`'s Open). `Open` and the column's name, from `TABS` so a renamed column says so. */
+function finderOpenTile_(x) {
+  if (!x || !x.key || x.kind === 'bible' || FINDER.has(x)) return '';
+  const F = finderOfItem_(x);
+  const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === F.id);
+  return tile_({ icon: 'open', label: 'Open', note: 'in ' + (t ? t.label : F.id), act: 'find-open', data: { key: x.key } });
+}
+on('find-open', el => {
+  const k = el && el.getAttribute('data-key');
+  const x = k ? stuffItemsAll_().find(i => i && i.key === k) : null;
+  if (x) finderOpen_(x);
+});
+
+/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS --------------------------------------------
+   THE REVIEW OF 329, FINDING 1. Find's search stopped carrying the resources, which is the owner's
+   split — and its empty answer went on saying "Try fewer words." for a boxer one swipe away. Measured
+   at 390 as an admin: "Olivares" on Find drew "Nothing matches. / Try fewer words."; on the commit
+   before the move the same words found Ruben Olivares's card. Typing a name into Find WAS the way to a
+   boxer, a book of the Bible or a textbook's chapter, and the owner's list of links into a resource
+   names "a search hit". Fewer words would never have found him: the advice was wrong, not just weak.
+   SO AN EMPTY SEARCH ASKS THE OTHER FINDER the same words, in that finder's own binding and through
+   its own `stuffFiltered` — so its kinds, its role rules and the Bible's `holds` all answer as they
+   would there — and when anything answers, says how many and where (the column's name from `TABS`),
+   with one Open tile that carries the words across. Both ways: Resources points to Find. A word
+   nobody has keeps "Try fewer words.", and no tile.
+   UNDER THE OTHER FINDER'S OWN CHIPS FIRST, because those are what it will show; if they hide every
+   hit, under none, and the tile takes them off (`clear`) — landing on "Nothing matches" over there,
+   under a shelf somebody chose an hour ago, would be the same dead end one column further on.
+   THE OTHER FINDER IS LEFT AS IT WAS: its words, chips and memo are put back in a `finally`, so asking
+   costs it nothing it had, and a throw cannot leave it holding these words. */
+function finderWordsCount_(q) {
+  const was = { q: STUFF.q, filters: STUFF.filters, memo: FIND_MEMO };
+  try {
+    STUFF.q = q;
+    let n = stuffFiltered().length;
+    if (n || !(was.filters || []).length) return { n: n, clear: false };
+    STUFF.filters = [];
+    FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+    n = stuffFiltered().length;
+    return { n: n, clear: n > 0 };
+  } catch (e) {
+    return { n: 0, clear: false };
+  } finally {
+    STUFF.q = was.q; STUFF.filters = was.filters; FIND_MEMO = was.memo;
+  }
+}
+function finderElsewhere_() {
+  const q = String(STUFF.q || '');
+  if (!q.trim()) return null;
+  const here = FINDER;
+  for (const id of Object.keys(FINDERS)) {
+    const G = FINDERS[id];
+    if (G === here) continue;
+    const got = inFinder_(G, () => finderWordsCount_(q));
+    if (got.n) return { id: G.id, n: got.n, clear: got.clear };
+  }
+  return null;
+}
+/* THE ONE EMPTY ANSWER, for the question page and a results page alike — they were two copies of the
+   same three sentences, and the tile would otherwise have been one more thing for them to disagree on. */
+function stuffNoneHtml_() {
+  if (!FIND_MEMO.total) return nothingHere(FINDER.empty, true);
+  const there = STUFF.q ? finderElsewhere_() : null;
+  if (there) {
+    const t = (typeof TABS !== 'undefined' ? TABS : []).find(r => r.id === there.id);
+    const name = t ? t.label : there.id;
+    return `<p class="empty">Nothing matches.<br><span class="faint">${esc(there.n.toLocaleString('en-GB') + ' in ' + name)}.</span></p>`
+      + `<div class="tile-row is-elsewhere">${tile_({ icon: 'open', label: 'Open', note: 'in ' + name, act: 'finder-words',
+                                         data: { to: there.id, q: STUFF.q } })}</div>`;
+  }
+  const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
+            : STUFF.q                          ? 'Try fewer words.'
+            : STUFF.filters.length             ? 'Nothing matches all of those together.'
+            : '';
+  return `<p class="empty">Nothing matches.${why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
+}
+/* THE WORDS, CARRIED ACROSS — into the other finder's own words and its own box, so they are seen
+   narrowing where they now narrow — and on to the card when the words found one thing, as Find's own
+   "Swipe up for the one" would have; on the question when they found several, for the funnel to ask.
+   The finder the tile was pressed in keeps its words: going back finds it as it was left. */
+on('finder-words', el => {
+  const G = finderOf_(el && el.getAttribute('data-to'));
+  const q = String((el && el.getAttribute('data-q')) || '');
+  if (!G || !q.trim()) return;
+  inFinder_(G, () => {
+    const c = finderWordsCount_(q);
+    STUFF.q = q;
+    if (c.clear) STUFF.filters = [];
+    const box = $(G.id + '-q');
+    if (box) box.value = q;
+    paintStuff();
+    if (AT !== G.id) go(G.id);
+    const one = stuffFiltered().length === 1 && stuffPages_().length;
+    goPage(G.id, one ? stuffFirstResult_() : stuffQuestionPage_());
+  });
 });
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
@@ -4846,47 +5132,10 @@ function stuffPart_(x, part) {
    already holds the row it is drawing. */
 
 
-/* ==================================================================================================
-   `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
-
-   IT OPENS DRIVE AND DOES NOT EMBED. A `<video>` pointed at Drive was a ladder of three addresses
-   and an iframe fallback that the Reels column spent forty lines on and then removed as embedded
-   reels nobody wanted. A three-gigabyte
-   `.mkv` is not: no browser plays Matroska, the file is somebody's whole evening of bandwidth, and
-   Drive's own player already does the job. So the tile is a door rather than a screen.
-
-   A SERIES LINKS TO ITS FOLDER, which is why `file_kind` is a column: Drive's folder view is the
-   season picker, and rebuilding one here would be sixty-two rows in a funnel nobody searches that
-   way.
-================================================================================================== */
-function filmCard_(x) {
-  const f = x.row;
-  const strip = [f.year, f.audience === 'kids' ? 'kids' : '',
-                 f.kind === 'series' ? (f.seasons ? f.seasons + ' seasons' : 'series') : '',
-                 f.sizeGb ? f.sizeGb + ' GB' : ''].filter(Boolean).join(' \u00b7 ');
-  return `<div class="card fc film${f.placeholder ? ' is-off' : ''}">
-    <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag${f.placeholder ? ' is-no' : ' is-type'}">${
-        f.placeholder ? 'Not uploaded' : f.kind === 'documentary' ? 'Documentary'
-        : f.kind === 'series' ? 'Series' : 'Film'}</span></span>
-    </div>
-    ${(f.director || f.lead) ? `<p class="sub">${
-      esc([f.director ? 'dir. ' + f.director : '', f.lead].filter(Boolean).join(' \u00b7 '))}</p>` : ''}
-    ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
-    ${/* A ROW ASKED FOR BY NAME WHOSE FILE IS NOT THERE SAYS SO, and says it where the link would
-          be. The library's `placeholder` column, one table along: a card that states the gap beats
-          a link that opens nothing, and it is the reason a film asked for by name is a row at all. */''}
-    ${f.placeholder
-      ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>` : ''}
-    ${/* ---------- THE WATCH TILE IS IN THE CARD'S ONE ROW NOW, see `filmTiles_` --------------------
-          IT WAS A `.tile-row` OF ITS OWN INSIDE THE CARD, so a film had two rows of tiles — Watch
-          above the notes, the star below the card — where a fight, the same kind of thing with the
-          same one action, has one. The tile and the reason it has no `act` moved with it. */''}
-    ${(f.notes && !f.placeholder)
-      ? `<div class="fc-note"><p>${esc(f.notes)}</p></div>` : ''}
-  </div>`;
-}
+/* `filmCard_` WAS HERE — a film's card in Find, a title, its flags and a link out to Drive. It went
+   with the films (the owner, 10 Oct: *"films should not appear in the finder it cannot be found
+   there"* — see where `film` was in `KINDS`). What it argued is the videos card's to carry now, and
+   it does: a film opens Drive and is never played in the app, and a series opens its folder. */
 
 /* ==================================================================================================
    THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT.
@@ -5008,7 +5257,7 @@ function boxerInitials_(name) {
 
 /* ---------- THE BOXER IN A BOUT'S CORNER ----------------------------------------------------------
    BY ID, THEN BY NAME, which is `fightCard_`'s order and for its reason: an id beats a name because
-   a name is a cell somebody can edit, and the name is still the fallback because 52 corners have no
+   a name is a cell somebody can edit, and the name is still the fallback because 53 corners have no
    id yet — the opponents nobody has written a row for. */
 function boxerOf_(id, name) {
   const all = (DATA && DATA.boxers) || [];
@@ -5071,7 +5320,7 @@ function boxerSplit_(parts) {
   });
 }
 
-/* ---------- THE PHOTO, OR A RING WITH NOBODY'S BOXER IN IT ----------------------------------------
+/* ---------- THE PHOTO, OR A RING WITH THE BOXER IN IT, AT EIGHT BITS ------------------------------
    A FREE PHOTOGRAPH IS FREE ON A CONDITION: its author and licence are named wherever it is shown.
    So a photo is drawn only WITH its credit, and a row with an address and no credit gets the
    placeholder — the card cannot be made to show a Commons picture unattributed, whatever the sheet
@@ -5082,41 +5331,238 @@ function boxerSplit_(parts) {
    box shows, so nothing jumps and nothing sits grey; if the photo never arrives, `boxerPicFail_`
    takes the `<img>` out and it is all that is left. Never a broken-picture icon.
 
-   THE BOXER IN IT IS THE SPLASH'S GOLD FIGHTER IN HIS GUARD — `tools/boxing.py`'s `guard` pose,
-   the same paths, painted by the same `.bx-*` rules — so the loading screen and the placeholder are
-   one drawing in one set of colours. NOBODY'S LIKENESS, which is the point that file makes and the
-   one that matters most here: a stand-in that looked like a person would be a picture of the wrong
-   man. His initials beside it say whose page it is. If the splash is regenerated, paste its new
-   guard paths over these. */
-const BOXER_GUARD = '<path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/>'
-  + '<path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM7 7h2v1h-2zM4 8h6v1h-6zM3 9h8v1h-8zM3 10h5v1h-5zM11 10h1v1h-1zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/>'
-  + '<path class="bx-eye" d="M10 4h1v1h-1z"/>'
-  + '<path class="bx-glove" d="M11 6h3v1h-3zM10 7h5v1h-5zM10 8h5v1h-5zM11 9h3v1h-3zM8 10h3v1h-3zM8 11h4v1h-4zM9 12h3v1h-3z"/>'
-  + '<path class="bx-band" d="M4 13h7v1h-7z"/>'
-  + '<path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/>'
-  + '<path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/>';
+   THE BOXER IN IT LOOKS LIKE HIM NOW, AS FAR AS ANYBODY CAN SAY. Until 10 Oct he was nobody: the
+   loading screen's gold fighter, the same paths for all 103, and this comment argued that a stand-in
+   that looked like a person would be a picture of the wrong man. The owner, 10 Oct: *"make the
+   boxers retro avatar actually look more like the boxers and their shorts in the fight."* The answer
+   to the old worry is that a likeness here is only what sources show — his skin, from six tones; his
+   hair, as one of thirteen small pixel shapes in one of eight colours; a moustache, goatee or beard
+   over the face; and his TRUNKS, the colours he usually wore on his profile and the colours of THAT
+   NIGHT on a fight card, the trim as the waistband and a side stripe — drawn at eight bits, which is
+   enough to tell Ali's white-and-black from Frazier's green-and-gold and not enough to pretend to be
+   a portrait. Every filled cell has its source beside it in the file (`look_source`,
+   `trunks_source`). A fight's trunks are written only where the source names THAT bout. The looks are
+   labelled UNVERIFIED in `look_source`: they were judged from memory of published photographs, and no
+   photograph was opened — the first thing to check, row by row, against a picture.
 
-/* THE RING, SIDE ON: two posts, three ropes (the middle one red, as the splash's), the pads in each
-   corner's colour, the mat and the apron, and his initials over the top rope like the name on a
-   corner banner. 40 by 50 game pixels, which is the portrait frame's own 4:5, so the drawing fills
-   it without letterboxing; the fight card's square corner crops five pixels off the top and the
-   bottom, which is sky and apron. `crispEdges` keeps every pixel square at any size. The fighter
-   stands on whole pixels — a half-pixel offset is a blurred boxer. */
-function boxerRing_(name, blue) {
+   A BLANK CLAIMS NOTHING, and blanks are where nobody can say: a fight on black-and-white film, a
+   fighter who changed trunks every night, a hairline no source describes. That rule was paid for in
+   the review of 10 Oct, which found the old stand-in's parts making claims once they stood beside a
+   described man: its PAPER SKIN AND GOLD HAIR made Cleveland Williams, Trevor Berbick and Andy Ruiz a
+   pale blond man in their own trunks next to Ali, Tyson and Joshua, and its GOLD TRUNKS WITH AN INK
+   WAISTBAND read as a researched gold-and-white pair on 80 profiles. So:
+
+     no row at all        a SILHOUETTE — skin and hair in one shadow tone (`--bf-ghost`), neither a
+                          skin colour nor a hair colour; still in that night's trunks where a source
+                          names them, because that much IS known.
+     no trunks on file    the corner's colour MUTED (`--bf-unsaid-l` / `-r`), a dusky ochre or slate
+                          that no trunks word uses, with a waistband one shade darker in the same
+                          colour and no side stripe — trunks, plainly unrecorded, not a pair of gold
+                          ones with a white trim.
+     no hair colour       on a described fighter, his own skin a shade darker (`boxerFigure_` says why).
+
+   A WOMAN IS DRAWN AS A WOMAN. Nine rows are `sex` F, and the guard pose is a bare torso; until the
+   review she was that torso in her own skin — Taylor's ponytail, Martin's pink trunks, topless. She
+   wears a top now (`BOXER_BODY.top`, in her trunks' colour), and a woman with no hair on file is not
+   given the men's short cap but hair drawn back from the face (`BOXER_HAIR_UNSAID`). A corner with no
+   row is a woman when the other corner is one: a bout is fought between two women or two men.
+
+   IT NO LONGER MIRRORS THE SPLASH. The figure began as `tools/boxing.py`'s guard pose, painted by
+   the loading screen's `.bx-*` rules; that splash taught nothing and went on 10 Oct (docs/history/322),
+   and the card did not lose its fighter with it — the last `.bx-*` rules went with the merge. So the ring, the figure and every colour they use are the
+   card's own — `bf-*` here, and under `.boxer-ring` in style.css — and nothing the loading screen
+   does can change them. His initials over the ropes still say whose page it is. */
+
+/* ---------- THE WORDS A LOOK MAY USE, AND THE ONLY ONES -------------------------------------------
+   ONE LIST, READ TWICE. The figure draws exactly these, and `check-library.js` cuts this constant out
+   of this file to refuse any cell in data/boxers.json or data/fights.json that is not one of them —
+   because a misspelt colour would otherwise draw the corner's colour, silently, which looks exactly
+   like a fight nobody researched. A trunks cell is `<main>` or `<main>/<trim>`: "white/black" is
+   white trunks with a black waistband and stripe, "gold" is gold all over. */
+const BOXER_LOOK = {
+  skin: ['s1', 's2', 's3', 's4', 's5', 's6'],
+  hair: ['bald', 'shaved', 'short', 'crop-top', 'flat-top', 'afro', 'curly', 'wavy', 'slicked', 'long',
+         'ponytail', 'cornrows', 'dreads'],
+  hair_colour: ['black', 'dark-brown', 'brown', 'light-brown', 'blond', 'red', 'grey', 'white'],
+  facial: ['none', 'moustache', 'goatee', 'beard', 'stubble', 'sideburns'],
+  trunks: ['black', 'white', 'red', 'maroon', 'blue', 'navy', 'sky', 'green', 'gold', 'yellow', 'orange',
+           'purple', 'pink', 'silver', 'grey', 'tan', 'leopard'],
+};
+
+/* ---------- THE GUARD POSE, AS ROWS OF GAME PIXELS ------------------------------------------------
+   `y:x0-x1,x2` — row y, pixels x0 to x1 and x2 — on the grid the old guard paths were drawn on, so
+   the fighter stands exactly where and how he did: facing right, the head at x 5–11 over rows 1–6
+   (the face is x 7–11, the eye at 10,4, the chin's front at 9,6), the waistband row 13, the trunks
+   14–16. THE SIDE STRIPE RUNS DOWN THE NEAR LEG, x 5: drawn down the middle, as it was first, it met
+   the gap between the legs and read as the gap reaching up, not as a stripe. Written as runs rather than as path strings because a hair style is a SET of pixels laid
+   over the head, and a set of runs is something a person can read and edit; `boxerRuns_` turns them
+   into the same `M x y h w v1 h-w z` the old paths were. Painted in order, each over the last — the
+   whole head in skin first, then the hair over it — so a style that leaves a pixel out (a faded
+   side, a cornrow's parting) shows the scalp there without any subtraction. */
+const BOXER_BODY = {
+  head: '1:6-9 2:5-10 3:5-11 4:5-11 5:5-11 6:6-9',
+  body: '7:7-8 8:4-9 9:3-10 10:3-7,11 11:3-7 12:4-8 17:4-5,10-11 18:3-4,11-12 19:3-4,11-12',
+  eye: '4:10',
+  glove: '6:11-13 7:10-14 8:10-14 9:11-13 10:8-10 11:8-11 12:9-11',
+  band: '13:4-10',
+  trunks: '14:4-10 15:4-10 16:4-6,9-11',
+  stripe: '14:5 15:5 16:5',
+  spots: '14:5,9 15:7 16:5,10',
+  boot: '20:2-4,11-13 21:2-4,11-14',
+  /* HER TOP: the chest from the shoulders to the ribs, the back arm (x 3) and the midriff (row 12)
+     left bare, so it reads as a crop top over the trunks and not as a long-sleeved shirt. */
+  top: '8:5-8 9:4-9 10:4-7 11:4-7',
+};
+/* EACH HAIR STYLE IS ITS OWN SHAPE, and has to read as that style at this size or it is not worth a
+   word of its own: BALD AND SHAVED ARE THE HEAD ALONE (no hair drawn at all); SHORT is the old
+   stand-in's cap; CROP-TOP is a cap on top with the back faded to skin; FLAT-TOP is squared off two
+   rows above the head; the AFRO is taller and wider all round; CURLY bumps along its top; WAVY has
+   a forelock over the brow and falls to the collar; SLICKED lies flat and sweeps back past the
+   crown; LONG falls to the shoulders; a PONYTAIL hangs off the back; CORNROWS show the scalp
+   between two rows; DREADS hang as separate locks with the background between them. Rows above 1
+   are above the old head — `-2` is two pixels higher — which the ring has room for under the
+   initials. */
+const BOXER_HAIR = {
+  bald: '', shaved: '',
+  short: '1:6-9 2:5-10 3:5-6 4:5 5:5',
+  'crop-top': '1:6-9 2:6-10',
+  'flat-top': '-1:6-10 0:5-10 1:5-10 2:5-10 3:5-6 4:5',
+  afro: '-2:6-9 -1:5-10 0:4-11 1:4-11 2:4-10 3:4-6 4:4-5 5:4-5 6:5',
+  curly: '0:6-7,9-10 1:5-10 2:5-11 3:4-6 4:4-5 5:5',
+  wavy: '0:7-9 1:5-10 2:5-11 3:4-6 4:4-5 5:4-5 6:5',
+  slicked: '1:6-10 2:5-10 3:4-6 4:5',
+  long: '1:6-9 2:5-10 3:4-6 4:4-5 5:4-5 6:4-5 7:4-5',
+  ponytail: '1:6-9 2:5-10 3:3-6 4:2-3,5 5:2,5 6:2 7:2',
+  cornrows: '1:6-9 2:5,10 3:5-6 4:5 5:5',
+  dreads: '1:6-9 2:3-10 3:3,5-6 4:3,5 5:3,5 6:3,5 7:3',
+};
+/* HAIR NOBODY DESCRIBED, AND NOT A WORD OF THE VOCABULARY: what the figure draws when `look_hair` is
+   blank. A man keeps the old stand-in's short cap. A WOMAN DOES NOT — the cap read as a man's haircut
+   on Laila Ali, Shields, Holm and the others with no hair on file — so hers is drawn back from the
+   face to a knot at the nape, which is how hair is worn in a ring and claims no style beyond that. */
+const BOXER_HAIR_UNSAID = { M: BOXER_HAIR.short, F: '1:6-9 2:5-10 3:4-6 4:4-5 5:5' };
+/* FACIAL HAIR, OVER THE FACE, in his hair colour. The moustache is the upper lip; a goatee is that
+   and the chin; a beard is the jaw from the ear to the chin with the mouth left clear; stubble is the
+   beard's pixels at a shadow's strength (`.bf-stubble`); sideburns run down in front of the ear. */
+const BOXER_FACE = {
+  none: '',
+  moustache: '5:10-11',
+  goatee: '5:10-11 6:8-9',
+  beard: '4:6 5:6-9,11 6:6-9',
+  stubble: '4:6 5:6-9,11 6:6-9',
+  sideburns: '3:6 4:6 5:6',
+};
+function boxerRuns_(spec) {
+  return String(spec || '').split(/\s+/).filter(Boolean).map(row => {
+    const at = row.indexOf(':'), y = row.slice(0, at);
+    return row.slice(at + 1).split(',').map(r => {
+      const ab = r.split('-').map(Number), w = (ab.length > 1 ? ab[1] : ab[0]) - ab[0] + 1;
+      return `M${ab[0]} ${y}h${w}v1h-${w}z`;
+    }).join('');
+  }).join('');
+}
+
+/* ---------- A TRUNKS CELL, READ: `{ main, trim }`, OR NOTHING --------------------------------------
+   A WORD OUTSIDE THE LIST IS NOTHING, NOT HALF A PAIR. "whte/black" does not draw black-trimmed gold
+   trunks; it draws the corner's colour, the same as a blank, and `check-library.js` is what says the
+   cell is wrong. A trim the same as the main colour is not a trim. Folded to lower case, as a cell
+   typed by hand may not be. */
+function boxerTrunks_(v) {
+  const parts = String(v || '').trim().toLowerCase().split('/');
+  const ok = c => BOXER_LOOK.trunks.indexOf(c) >= 0;
+  if (parts.length > 2 || !parts.every(ok) || (parts.length === 2 && parts[0] === parts[1])) return null;
+  return { main: parts[0], trim: parts[1] || '' };
+}
+
+/* ---------- THE FIGHTER: ONE RENDERER, FROM A LOOK AND A PAIR OF TRUNKS ----------------------------
+   `look` is the mapper's `{ skin, hair, hairColour, facial }` (js/library.js) and `trunks` a cell as
+   above; either may be blank or missing, part by part. The blue corner is the same drawing mirrored
+   about the middle of the ring, so he faces his opponent.
+
+   THE COLOURS ARE NOT HERE. Each part is a class — `bf-skin`, `bf-hair`, `bf-trunks` — and the
+   group says which of the figure's own colours it takes through a custom property, `--bf-skin:
+   var(--bf-s4)`; style.css names those colours on `.boxer-ring` and says, for any property not set,
+   what a part nobody recorded is — a colour that claims nothing (the silhouette, the muted corner).
+   The group also carries the words as classes — `bf-sk-s4`, `bf-hs-short`, `bf-tk-white`,
+   `bf-tt-black` — which style nothing and say, to `check-flow` and
+   to anybody reading the markup, what was drawn. A beard is drawn in the hair colour — black a
+   deeper black on the face than on the head (style.css says why). `bf-f` is a woman: `sex` F.
+
+   A HAIR COLOUR NOBODY STATED, ON A MAN WE CAN OTHERWISE DESCRIBE, IS HIS OWN SKIN A SHADE DARKER
+   (`.bf-seen` in style.css) — a shape without a colour. The old stand-in's grey on Deontay Wilder's
+   skin read as a grey-haired man, and its gold in the blue corner as a blond one: both claims, made
+   by a fallback. The shadow claims only that there is hair there, and it is the same for a beard
+   under a shaved head (Hagler, Hopkins), whose colour no cell holds either. A fighter with no look at
+   all is not `.bf-seen`: he is the silhouette. */
+function boxerFigure_(look, trunks, blue, sex) {
+  const L = look || {};
+  const woman = String(sex || '').trim().toUpperCase() === 'F';
+  const word = (k, v) => { const w = String(v || '').trim().toLowerCase(); return BOXER_LOOK[k].indexOf(w) >= 0 ? w : ''; };
+  const skin = word('skin', L.skin), hair = word('hair', L.hair),
+        hc = word('hair_colour', L.hairColour), face = word('facial', L.facial);
+  const t = boxerTrunks_(trunks);
+  const cls = ['bf', blue ? 'bf-r' : 'bf-l'], vars = [];
+  if (woman) cls.push('bf-f');
+  if (skin || hair || hc || face) cls.push('bf-seen');
+  if (skin) { cls.push('bf-sk-' + skin); vars.push('--bf-skin:var(--bf-' + skin + ')'); }
+  if (hair) cls.push('bf-hs-' + hair);
+  if (hc) { cls.push('bf-hc-' + hc); vars.push('--bf-hair:var(--bf-hc-' + hc + ')'); }
+  if (face && face !== 'none') cls.push('bf-fh-' + face);
+  if (t) {
+    cls.push('bf-tk-' + t.main);
+    if (t.trim) cls.push('bf-tt-' + t.trim);
+    vars.push('--bf-main:var(--bf-tk-' + t.main + ')', '--bf-trim:var(--bf-tk-' + (t.trim || t.main) + ')');
+  }
+  const p = (c, spec) => (spec ? `<path class="${c}" d="${boxerRuns_(spec)}"/>` : '');
+  return `<g class="${cls.join(' ')}" transform="${blue ? 'translate(29 21) scale(-1 1)' : 'translate(11 21)'}"${
+      vars.length ? ` style="${vars.join(';')}"` : ''}>`
+    + p('bf-skin', BOXER_BODY.head + ' ' + BOXER_BODY.body)
+    + p('bf-hair', hair ? BOXER_HAIR[hair] : BOXER_HAIR_UNSAID[woman ? 'F' : 'M'])
+    + p('bf-face' + (face === 'stubble' ? ' bf-stubble' : ''), BOXER_FACE[face])
+    + p('bf-eye', BOXER_BODY.eye)
+    /* HER TOP IS IN HER TRUNKS' COLOUR — a fighter's kit — and in the same muted corner colour as
+       the trunks when those are not on file; painted before the gloves, which are held over it. */
+    + (woman ? p('bf-top', BOXER_BODY.top) : '')
+    + p('bf-glove', BOXER_BODY.glove)
+    + p('bf-band', BOXER_BODY.band)
+    + p('bf-trunks', BOXER_BODY.trunks)
+    /* LEOPARD IS TWO TONES, the spots painted over the trunks — or over the waistband, when it is
+       the trim — in the figure's own dark brown. */
+    + (t && t.main === 'leopard' ? p('bf-spot', BOXER_BODY.spots) : '')
+    + (t && t.trim === 'leopard' ? p('bf-spot', '13:5,8') : '')
+    + (t && t.trim ? p('bf-stripe', BOXER_BODY.stripe) : '')
+    + p('bf-boot', BOXER_BODY.boot)
+    + '</g>';
+}
+
+/* THE RING, SIDE ON: two posts, three ropes, the pads in each corner's colour, the mat and the apron,
+   and his initials over the top rope like the name on a corner banner. 40 by 50 game pixels, which
+   is the portrait frame's own 4:5, so the drawing fills it without letterboxing; the fight card's
+   square corner crops five pixels off the top and the bottom, which is sky and apron. `crispEdges`
+   keeps every pixel square at any size. The fighter stands on whole pixels — a half-pixel offset is
+   a blurred boxer. THE MIDDLE ROPE IS RED AND HAS ITS OWN CLASS, not `bf-rope` with a variant laid
+   over it: two rules of one weight on one element, separated only by which comes later in the file,
+   is the contest check/cascade.js exists to refuse.
+
+   THE FIGHTER STANDS IN THE DARK, NOT IN THE STAGE LIGHT. `bf-stage` is the arena behind the ring
+   from just above his head to the mat, in `--bf-stage`: the colour every one of his own colours is
+   chosen to show against, by at least 2:1 (check/states.js measures it). The gold light behind the
+   initials now stops above the top rope; until 10 Oct's review it reached his head, and there it sank
+   the deepest skin (Joshua, Foreman, Liston) and black hair into a warm brown murk. Raising the backdrop
+   instead was the other way out, and it does not work here: the middle skin tones and the grey and
+   silver trunks are the backdrop's own brightness then, and would vanish the way black did. */
+function boxerRing_(name, blue, look, trunks, sex) {
   const ropes = [23, 29, 35].map((y, i) =>
-    `<rect class="bx-rope${i === 1 ? ' bx-rope-mid' : ''}" x="3" y="${y}" width="34" height="1"/>`
-    + `<rect class="bx-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
-    + `<rect class="bx-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
-  /* THE BLUE CORNER IS THE GOLD ONE MIRRORED about the middle of the ring — `.bx-r` gives him the
-     splash's blue trunks and gold hair, exactly as the splash draws its second fighter. */
-  const who = blue ? `<g class="bx-r" transform="translate(29 21) scale(-1 1)">${BOXER_GUARD}</g>`
-                   : `<g class="bx-l" transform="translate(11 21)">${BOXER_GUARD}</g>`;
+    `<rect class="${i === 1 ? 'bf-rope-mid' : 'bf-rope'}" x="3" y="${y}" width="34" height="1"/>`
+    + `<rect class="bf-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
+    + `<rect class="bf-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
   return `<svg class="boxer-ring" viewBox="0 0 40 50" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">`
-    + `<rect class="bx-post" x="1" y="18" width="2" height="25"/><rect class="bx-post" x="37" y="18" width="2" height="25"/>`
+    + `<rect class="bf-stage" x="0" y="17" width="40" height="26"/>`
+    + `<rect class="bf-post" x="1" y="18" width="2" height="25"/><rect class="bf-post" x="37" y="18" width="2" height="25"/>`
     + ropes
-    + `<rect class="bx-mat" x="0" y="43" width="40" height="2"/><rect class="bx-mat-edge" x="0" y="43" width="40" height="1"/>`
-    + `<rect class="bx-apron" x="0" y="45" width="40" height="5"/><rect class="bx-apron-band" x="0" y="46" width="40" height="1"/>`
-    + who
+    + `<rect class="bf-mat" x="0" y="43" width="40" height="2"/><rect class="bf-mat-edge" x="0" y="43" width="40" height="1"/>`
+    + `<rect class="bf-apron" x="0" y="45" width="40" height="5"/><rect class="bf-apron-band" x="0" y="46" width="40" height="1"/>`
+    + boxerFigure_(look, trunks, blue, sex)
     + `<text class="boxer-ini" x="20" y="15" font-size="10" text-anchor="middle">${esc(boxerInitials_(name))}</text></svg>`;
 }
 
@@ -5135,11 +5581,16 @@ function boxerPicSrc_(b) {
 
 /* `corner` IS THE FIGHT CARD'S: 'a' or 'b', the same frame and the same placeholder, square and
    small, with no caption of its own — the fight card gathers its credits into one line under both
-   faces. The blue corner's stand-in faces left, as the splash's second fighter does, and the
-   winner's frame is gold. */
-function boxerPic_(b, corner, won) {
+   faces. The blue corner's fighter faces left, toward his opponent, and the winner's frame is gold.
+
+   WHICH TRUNKS: on his profile, the pair he usually wore (`trunks_usual`); in a fight's corner, the
+   pair from THAT fight (`trunks_a` / `trunks_b`), passed in as `trunks` — and a fight with no word on
+   them is the corner's colour, muted, NOT his usual pair, because "he usually wore white" is not a
+   source for what he wore that night. The look and the sex are his row's either way; an opponent with
+   no row has no look, and the sex `fightCard_` gives him. */
+function boxerPic_(b, corner, won, trunks) {
   const src = boxerPicSrc_(b);
-  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b')}${src
+  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b', b.look, corner ? trunks : b.trunks, b.sex)}${src
     ? `<img class="boxer-img" src="${esc(src)}" alt="${esc(b.name)}" loading="lazy" decoding="async">` : ''}</span>`;
   if (corner) return `<span class="boxer-pic is-small${src ? '' : ' is-none'}${won ? ' won' : ''}">${frame}</span>`;
   /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S
@@ -6907,7 +7358,9 @@ function doneWords_(k, index) {
     let ask = cap([it.lead, it.html].map(doneWordsPlain_).filter(Boolean).join('\n'), DONE_WORDS_ASK);
     /* THE SITE'S OWN TEST FOR A PICTURE (`questionHasFig_`, `stemHasFig_`), never the `figure` cell: that
        is a transcriber's one-word tag — "table", "boxes" — and 622 questions with it draw no picture,
-       so a parent would be sent to look for one that is not there. */
+       so a parent would be sent to look for one that is not there. A MADE-UP SURFACE IS NOT ONE SINCE 327:
+       a blank grid to draw on is not the paper's picture, and "(picture on the site)" over it sent a parent
+       to look for the triangle the question names, which the grid does not have. */
     const pic = questionHasFig_(it) || stems.some(stemHasFig_);
     if (pic) ask += (ask ? ' ' : '') + '(picture on the site)';
     return stem ? stem + '\n---\n' + ask : ask;
@@ -9028,12 +9481,17 @@ const usesHead_ = name => (!name || name === 'Figure' ? 'Your drawing' : name + 
 
 /* DOES THIS PART GET THE PAGE IN FRONT -- see the note above. `prev` is the result before it in the
    strip, as `pageParts_` is told. */
+/* A PART WHOSE OWN PEN IS ON THAT VERY PICTURE carries the marks under its pen and needs no page -- but
+   NOT WHEN ITS OWN IS A MADE-UP SURFACE (327): that surface is the box's other face now, behind `Draw`,
+   and a part that opens on its box would show the graph it is told to use nowhere. Two grid surfaces
+   are the same markup, so this is the case of "draw the line y = 3 on the grid" after (a) drew a curve
+   on one: the page in front shows (a)'s marks, and (b)'s Draw shows them again, fainter, under its pen. */
 function usesPage_(x, prev) {
   const y = usesOf_(x);
   const p = y && padSource_(y);
   if (!p) return false;
   const own = padSource_(x);
-  if ((own && own.svg === p.svg) || (x.diagram && x.diagram === p.svg)) return false;
+  if ((own && own.from !== 'surface' && own.svg === p.svg) || (x.diagram && x.diagram === p.svg)) return false;
   if (prev && prev.key === y.key && pageParts_(prev).slice(-1)[0] === 'fig') return false;
   return true;
 }
@@ -9075,9 +9533,11 @@ function questionUsesCard_(x) {
    enlarge triangle T" over squared paper with no triangle T is a question you cannot fully answer.
    What changed is who decides: the owner, teaching from it, wants somewhere to work -- a square grid
    to sketch the enlargement on, axes to plot the graph on -- over a word box that cannot hold a line
-   at all. So the surface is honest about what it is (its own name in the header, never "Figure", and
-   a line under it saying it is not the paper's), and where the data workflow redraws the paper's own
-   figure, that figure takes the pen and the surface is never drawn.
+   at all. So the surface is honest about what it is (never "Figure", and a line under it saying it is
+   not the paper's), and where the data workflow redraws the paper's own figure, that figure takes the
+   pen and the surface is never drawn. AND IT IS NOT A PAGE OF ITS OWN ANY MORE: it is the answer box's
+   other face, on the card, behind `Draw` -- *"just leave it as an answer box like before but theres an
+   option to switch to drawing box"* (the owner, 10 Oct; `ansArea_`, 327).
 
    WHICH SURFACE, in this order:
      `surface`   the row says: "grid", "coord", "blank" or "text" (`check-library.js` holds the
@@ -9104,8 +9564,10 @@ function padSurface_(x) {
   if (/grid/.test(f) && !/isometric/.test(f)) return 'grid';
   return 'blank';
 }
-/* WHAT EACH IS CALLED in the figure page's header, where a paper figure is called "Figure": a name
-   that says what is on the page, and does not claim to be the paper's. */
+/* WHAT EACH IS CALLED, where a paper figure is called "Figure": a name that says what is drawn and does
+   not claim to be the paper's. It headed the surface's own page until that page went (327); it still
+   names the surface to a screen reader (`surfaceSvg_`) and heads the page in front of a part that uses
+   one ("Axes · your drawing", `questionUsesCard_`). */
 const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw' };
 
 /* ---------- THE SURFACE ITSELF -------------------------------------------------------------------
@@ -9142,6 +9604,268 @@ function surfaceSvg_(kind) {
     out.push(`<rect class="axis" x="${A}" y="${A}" width="${B - A}" height="${B - A}" rx="8" fill="none" stroke-dasharray="6 6"/>`);
   }
   return `<svg class="qsurf is-${kind}" viewBox="0 0 340 340" role="img" aria-label="${SURFACE_NAME[kind] || 'Space to draw'}">${out.join('')}</svg>`;
+}
+
+/* ==================================================================================================
+   THE SURFACE IS THE ANSWER BOX'S OTHER FACE, ON THE CARD, BEHIND ONE TILE.
+
+   THE OWNER, 10 Oct, with a screenshot of a KS1 card -- "How many sides has a hexagon?", a "Type your
+   answer" box, "Space to draw on the next page" -- and the page after it, headed "Space to draw", a
+   dashed square under the pen: *"this is confusing. theres an answer box and draw box? in questions
+   which require a drawing, just leave it as an answer box like before but theres an option to switch
+   to drawing box. this makes more sense and is more uniform."*
+
+   TWO PLACES TO ANSWER ONE QUESTION, A SWIPE APART, and nothing saying which one counted. 270 gave every
+   question answered by drawing a surface (*"some questions require answers on diagram. So should have a
+   diagram for them to draw on"*) and stood it where a figure stands, the page after the card -- so every
+   grid, every blank space and every set of axes sat behind a card that ALSO had a box. The KS1 hexagon,
+   a one-word answer whose row gives it somewhere to count the sides, is the case that showed it.
+
+   SO THE CARD DRAWS ONE OF THE TWO, IN ONE PLACE: the answer box exactly as any other question's (typed,
+   the maths pad, the options -- `ansBox_`, untouched), or the surface under the pen with its own tiles
+   (`padWrap_`, untouched: lock, Undo, Clear, and Ruler and Compass where `padTools_` gives them), and a
+   `Draw` tile in the card's row swaps them in place. Pressed, it reads `Type` and swaps back. A tile
+   because everything on a question's pages is one (*"it should all be tiles"*); in the row under the
+   card because it acts on the card, and a switch inside the face it swaps away would move as it went.
+
+   BOTH ANSWERS ARE KEPT, EACH WHERE IT ALWAYS WAS. The typed one under `ans:` (`ansKey_`), the drawing
+   under `pad:` (`padKey_`) -- the same keys, so every drawing already made is still there, still goes up
+   to the account (308: drawings ride the answers tab) and every rule about whose it is (317, 318:
+   `padAdopt_`, `ansMayMove_`, the claim, Undo putting back whose it was) is the code it was. Check marks
+   the typed answer; a drawing is not marked; showing a face sends nothing.
+
+   ONLY THE MADE-UP SURFACES MOVED. The paper's own figure under a pen (`from: 'part'`, or a stem's) keeps
+   its page where the paper prints it: it is a picture first and somewhere to draw second.
+
+   OPENING THE CARD IS OPENING BOTH, so the phone's old marks and a signed-out answer move to whoever is
+   signed in when the card is drawn, whichever face shows (`padAdopt_`, `ansRead_` -- as the surface's
+   page did when IT was drawn). A drawing that moved only when somebody pressed `Draw` would leave
+   `padFace_` below reading an empty pad and opening on an empty box over the child's own work. */
+const surfaceOf_ = x => { const p = padSource_(x); return p && p.from === 'surface' ? p : null; };
+
+/* ---------- WHICH FACE THIS DEVICE LAST LEFT EACH QUESTION ON ----------------------------------------
+   BY `padKey_`, so it is per person exactly as the drawing is (`pad:u:P7:q:X`), and dropped at sign-out
+   with the rest of the person's device state (`padFaceForget_`, called by `signedOut_` in me.js). Small:
+   one short word a question, the latest `PAD_FACE_MAX`. In `localStorage` with the house's try round
+   every touch, and in `PAD_FACE` for the visit, so a store that throws still remembers until the page
+   goes. A preference about how a card opens, NOT an answer: it never reaches answers.js or the account,
+   and its key (`surfaceFace`) is not a `pad:` or `ans:` one that anything sweeping those would read. */
+const PAD_FACE_STORE = 'surfaceFace';
+const PAD_FACE_MAX = 200;
+let PAD_FACE = null;
+function padFaces_() {
+  if (PAD_FACE) return PAD_FACE;
+  PAD_FACE = {};
+  try {
+    const v = JSON.parse(localStorage.getItem(PAD_FACE_STORE) || '{}');
+    if (v && typeof v === 'object' && !Array.isArray(v)) PAD_FACE = v;
+  } catch (e) {}
+  return PAD_FACE;
+}
+/* ---------- AND WHICH DRAWING `Type` WAS CHOSEN OVER --------------------------------------------------
+   FOUND IN REVIEW, AND IT WAS THE OWNER'S RULE BROKEN BY THE REMEMBERING: Type pressed once on this device,
+   with nothing drawn, and a drawing made afterwards on the tutor's iPad (`answersPull_` brings it here) --
+   the card opened on an empty box, because a stored "type" was asked before "a drawing and nothing typed",
+   and the only sign of the child's work was a pen icon whose "has a drawing" lives in its `aria-label`,
+   which nobody sees on a touch screen. Putting the drawing rule first is not the answer either: then
+   pressing `Type` over an untyped drawing would do nothing a reload could see, which is a choice the
+   device was asked to remember and did not.
+   SO A "type" HOLDS ONLY OVER THE DRAWING IT WAS CHOSEN OVER. It is stored with that drawing's fingerprint
+   -- how many strokes and how long their stored list is, `padSig_` -- as `type:<sig>` (`type` alone over no
+   drawing), and `padFace_` lets "a drawing and nothing typed" win the moment the drawing on the device is
+   not that one. One short string a question, as before. `draw` needs none: it shows the drawing anyway. */
+const padSig_ = marks => (marks && marks.length ? marks.length + '.' + JSON.stringify(marks).length : '');
+function padFaceOf_(k) {
+  const v = String(padFaces_()[k] || '');
+  const at = v.indexOf(':');
+  const face = at < 0 ? v : v.slice(0, at);
+  return face === 'draw' || face === 'type' ? { face: face, over: at < 0 ? '' : v.slice(at + 1) } : null;
+}
+/* THE LATEST LAST, so the oldest are the ones that fall off past the cap. */
+function padFaceSet_(k, face) {
+  const all = padFaces_();
+  delete all[k];
+  const sig = face === 'type' ? padSig_(padRead_(k)) : '';
+  all[k] = sig ? face + ':' + sig : face;
+  const keys = Object.keys(all);
+  keys.slice(0, Math.max(0, keys.length - PAD_FACE_MAX)).forEach(o => { delete all[o]; });
+  try { localStorage.setItem(PAD_FACE_STORE, JSON.stringify(all)); } catch (e) {}
+}
+function padFaceForget_() {
+  PAD_FACE = {};
+  try { localStorage.removeItem(PAD_FACE_STORE); } catch (e) {}
+}
+
+/* THE BOX HOLDS SOMETHING: typed, picked or ordered -- whatever `ansRead_` would draw back into it. */
+const ansTyped_ = x => !!String(ansRead_(ansKey_(x)) || '').trim();
+
+/* ---------- WHICH FACE SHOWS FIRST ---------------------------------------------------------------
+   THE BOX, AS ON EVERY OTHER QUESTION -- *"just leave it as an answer box like before"* -- unless:
+     this device last left this question on the drawing: the drawing. A child who drew, swiped on and
+       came back is on the drawing.
+     this device last left it on the box, over THIS drawing: the box. A child who drew, pressed `Type`
+       and came back is on the box -- the drawing they turned from is the one still there.
+     otherwise, there is a drawing and no typed answer: the drawing, so nobody opens a card whose only
+       work is a picture and reads an empty box as their work gone -- a drawing made on the old surface
+       page, on another device, or after `Type` was last pressed here (`padFaceOf_`, above). */
+function padFace_(x) {
+  const k = padKey_(x);
+  padAdopt_(k, padPrefix_(x) + ':' + padItemKey_(x));
+  const held = ansTyped_(x);
+  const said = padFaceOf_(k);
+  if (said && said.face === 'draw') return 'draw';
+  const marks = padRead_(k);
+  if (said && said.face === 'type' && (held || said.over === padSig_(marks))) return 'type';
+  return marks.length && !held ? 'draw' : 'type';
+}
+
+/* ---------- THE TILE, AND WHAT ITS NOTE SAYS -------------------------------------------------------
+   ONE TILE, TWO FACES, the pen's lock's arrangement (`padLockFace_`): the face is one object handed to
+   `tile_` to draw and to `tileSet_` to rewrite in place, so the two cannot drift. Over the box it is
+   `Draw` (the pen); over the drawing it is `Type` (the keys).
+
+   THE NOTE SAYS WHAT THE FACE YOU CANNOT SEE HOLDS, in three words at most: "has a drawing", "has an
+   answer", or what is there to start on. An empty-looking box over a drawing, or a grid over a typed
+   answer, is the two-places confusion again unless something says the other one is not empty. */
+const PAD_FACE_EMPTY = { grid: 'on squared paper', coord: 'on axes', blank: 'a blank space' };
+function padFaceTile_(x, face) {
+  if (face === 'draw') return { icon: 'type', label: 'Type', note: ansTyped_(x) ? 'has an answer' : 'the answer box' };
+  const surf = surfaceOf_(x);
+  return { icon: 'pen', label: 'Draw',
+           note: padRead_(padKey_(x)).length ? 'has a drawing' : (PAD_FACE_EMPTY[surf && surf.surface] || 'a blank space') };
+}
+function drawTile_(x) {
+  if (!x || !x.key || !surfaceOf_(x)) return '';
+  return tile_(Object.assign({ act: 'q-draw', cls: 'q-drawt', data: { key: x.key } }, padFaceTile_(x, padFace_(x))));
+}
+
+/* ---------- THE ANSWER AREA ---------------------------------------------------------------------
+   `.qp-area` ONLY ROUND A SURFACE QUESTION'S, so every other card's box is the markup it always was.
+   `data-q` names the question (its item key) for the tile's handler to find every copy -- Find and Saved
+   can both be holding the card. The surface still says what it is not, its page's line cut to fit a
+   card: the `figCredit_` argument -- a generated grid passing as the exam board's figure would be the
+   site speaking in the board's voice. CUT AGAIN IN REVIEW to the claim alone, "Not the paper's own
+   figure.", and run on one line with "Saved to Ada's account" (style.css, `.qp-area.is-draw`): two notes
+   under a pen's bar were two lines of a 568px phone the grid needed, and "somewhere to work" is what the
+   surface under it already says by being there. */
+function ansArea_(x) {
+  const surf = surfaceOf_(x);
+  if (!surf || !x.key) return ansBox_(x);
+  const draw = padFace_(x) === 'draw';
+  return `<div class="qp-area${draw ? ' is-draw' : ''}" data-q="${esc(x.key)}">${draw
+    ? padWrap_(x, surf.svg, '<p class="fig-by">Not the paper&rsquo;s own figure.</p>')
+    : ansBox_(x)}</div>`;
+}
+
+/* ---------- THE SWAP, IN PLACE --------------------------------------------------------------------
+   REWRITTEN WHERE IT STANDS, NOT REPAINTED -- `choiceRedraw_`'s way. Both faces are the same page, so the
+   page count does not change and `PAGE.stuff` and the strip stay exactly where they were (318 keeps your
+   place across a sign-in by that index); a repaint would rebuild eleven pages to change one card. Every
+   copy, because Find and Saved can both be holding it, and the panes measured again (`paneReach_`): a
+   grid is taller than a box.
+
+   LEAVING THE BOX PUTS THE KEYPAD AWAY if it was typing into this box -- a pad over a grid types into
+   nothing (`kpLive_` would close it at the next key; this is that key not having to be pressed). LEAVING
+   THE DRAWING TURNS THE PEN OFF if it was on this pad: `PAD_ON` naming a pad that is not on the screen is
+   the invisible mode `padArm_` exists to prevent, and the drawing would come back armed, holding the
+   card still, with nobody having asked. */
+on('q-draw', el => {
+  const key = el.getAttribute('data-key') || '';
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === key) || null; } catch (e) { x = null; }
+  if (!x || !surfaceOf_(x)) return;
+  const k = padKey_(x);
+  /* THE FACE ON THE SCREEN IS THE ONE TURNED FROM, not the one `padFace_` would choose now: a drawing that
+     reached this device after the card was drawn (`answersPull_`, from the account) makes "a drawing and
+     nothing typed" true under a card still showing its box -- and `Draw` pressed there read the rule, found
+     "draw", turned to "type", and the press did nothing a child could see. Asked of the card the tile is
+     under (its page), and only where there is none of the rule. */
+  const near = [].slice.call(((el.closest && el.closest('.page')) || document).querySelectorAll('.qp-area'))
+    .find(a => a.getAttribute('data-q') === key);
+  const shown = near ? (near.classList.contains('is-draw') ? 'draw' : 'type') : padFace_(x);
+  const face = shown === 'draw' ? 'type' : 'draw';
+  padFaceSet_(k, face);
+  if (face === 'draw') {
+    if (typeof KP_AT !== 'undefined' && KP_AT && KP_AT.getAttribute('data-k') === ansKey_(x)
+        && typeof kpClose_ === 'function') kpClose_();
+  } else if (PAD_ON === k) { PAD_ON = ''; PAD_ST = null; PAD_GO = null; }
+  padFaceRedraw_(x);
+});
+/* ---------- AND THE SURFACE GIVES WAY BEFORE ITS CARD IS DRAWN SMALLER ---------------------------------
+   `kpSheetFit_`'s answer for the essay's sheet, one face along. A card taller than its pane is drawn
+   smaller whole (`paneReach_`, *"I don't like scrolling. If you need to leave things more compact or
+   smaller font"*), and the first look at a KS2 grid question switched to its drawing at 320x568 was
+   that card at about three quarters: three rows of tags, two sentences, the grid, the pen's bar on two
+   lines and two notes, every word smaller and every tile under 44px -- to keep a grid at a size nobody
+   had asked for. So the GRID is what gets shorter, down to `PAD_FACE_FLOOR` (a square a finger can
+   still draw a reflection in). Square, so its width is its height; the ink layer follows the picture's
+   box (`padWrap_`), so a mark lands where it was drawn at any size. Measured at zoom 1 every time --
+   `paneReach_` resets before it calls this.
+
+   AND THEN THE WORDS, AND NEVER THE TILES. The review measured what was left after the grid: at 320x568,
+   27 of the 62 surface cards still passed their pane with the grid at its floor, and `paneReach_` drew
+   each of them smaller WHOLE -- the pen's lock, Undo and Clear and the `Type` tile at 31 to 42px, the
+   grid at 126 to 170. The dice-table cards (5-a-day 24 and 30 Oct) went to the 0.7 floor and still did
+   not fit, and since 9px over is inside `PANE_REACH` the pane neither fitted nor scrolled: the `Type`
+   tile was cut in half by the pane's edge, the one way back to the box half there. A tap target is the
+   one size here that must not scale (CLAUDE.md: tap targets in px), and on this face the targets are
+   the point -- the child is drawing. What can give is what was already read: the face was turned to
+   from the box, with the same words over it at full size. So the card's words (its tags and its sheet)
+   are drawn smaller, to `PANE_ZOOM_MIN` like any card's, and the surface, the pen's bar and the row
+   under the card stay the size the stylesheet gave them. A card that still does not fit after that is
+   NOT drawn smaller whole: `paneReach_` scrolls its pane from the first pixel over (`drawn`), so nothing
+   is ever cut off with no way to reach it.
+
+   RESET ON EITHER FACE, so the words come back to full size the moment `Type` turns the card back to its
+   box: `paneReach_` calls this for every pane holding a `.qp-area`, and a zoom left on a box's words by
+   the drawing it replaced would be the card drawn smaller for no reason. `data-face-zoom` marks what this
+   wrote, so only that is undone. */
+const PAD_FACE_FLOOR = 180;
+function padFaceFit_(pane) {
+  try {
+    pane.querySelectorAll('[data-face-zoom]').forEach(e => { e.style.zoom = ''; e.removeAttribute('data-face-zoom'); });
+    const area = pane.querySelector('.qp-area.is-draw');
+    const svg = area && area.querySelector('.qpad-art > svg:first-child');
+    if (!svg) return;
+    svg.style.width = '';
+    const over = () => pane.scrollHeight - pane.clientHeight;
+    let by = over();
+    if (!(by > 2)) return;
+    const w = svg.getBoundingClientRect().width;
+    if (w > 0) {
+      const fit = Math.max(PAD_FACE_FLOOR, Math.floor(w - by - 4));
+      if (fit < w) svg.style.width = fit + 'px';
+      by = over();
+      if (!(by > 2)) return;
+    }
+    /* THE CARD'S OWN CHILDREN THAT ARE NOT THE ANSWER: `qPage_`'s tags and the `.qsheet`. Their heights at
+       zoom 1, and the zoom that takes `by` (and the four pixels `paneReach_` keeps for a border and a line
+       box) off them -- which fits or overshoots, never undershoots, because words drawn smaller wrap less. */
+    const card = area.closest('.qcard');
+    const words = card ? [].filter.call(card.children, e => e !== area && !e.contains(area)) : [];
+    const h = words.reduce((n, e) => n + e.getBoundingClientRect().height, 0);
+    if (!(h > 0)) return;
+    const z = Math.max(PANE_ZOOM_MIN, Math.floor((h - by - 4) / h * 1000) / 1000);
+    if (z < 1) words.forEach(e => { e.style.zoom = String(z); e.setAttribute('data-face-zoom', ''); });
+  } catch (e) { /* the stylesheet's cap stands, and `paneReach_` scrolls what is left */ }
+}
+function padFaceRedraw_(x) {
+  if (typeof document === 'undefined' || !x) return;
+  const key = x.key || '';
+  const panes = new Set();
+  document.querySelectorAll('.qp-area').forEach(a => {
+    if (a.getAttribute('data-q') !== key) return;
+    const t = document.createElement('div');
+    t.innerHTML = ansArea_(x);
+    const next = t.firstElementChild;
+    if (!next) return;
+    const pane = a.closest('.pane');
+    if (pane) panes.add(pane);
+    a.replaceWith(next);
+  });
+  const face = padFaceTile_(x, padFace_(x));
+  document.querySelectorAll('.q-drawt').forEach(b => { if (b.getAttribute('data-key') === key) tileSet_(b, face); });
+  if (panes.size && typeof paneReach_ === 'function') { try { paneReach_([...panes]); } catch (e) {} }
 }
 
 /* ---------- AND A PASSAGE YOU MARK BY TAPPING ITS WORDS ----------------------------------------------
@@ -9531,7 +10255,8 @@ function questionCard_(x) {
             question and its box are on one screen. `chunkHtml_` draws the lead and the part in the
             wrappers they always had, so a part that fits is the markup it always was.
             NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
-            — see `questionFigCard_`. The answer box stays on this card, under the words. */''}
+            — see `questionFigCard_`. The answer box stays on this card, under the words -- and a
+            made-up surface to draw on is the box's other face, here, not a page (`ansArea_`). */''}
       ${chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x))}
       ${/* AND THE WORDS SAY WHERE IT WENT -- when it went AFTER them. "The angle marked y", with no
             angle on the card, reads as a question that failed to load; one quiet line, a label rather
@@ -9539,13 +10264,15 @@ function questionCard_(x) {
             `partPlan_` that `pageParts_` lays out, so the line and the page that it names cannot
             disagree. A figure standing in front of the card was the page you just turned past, and
             pointing forward at it would send you the wrong way. */''}${
-        partPlan_(x).figAt >= partChunks_(x).length ? `<p class="qsheet-figref">${figWhat_(x)} on the next page &rarr;</p>` : ''}
+        partPlan_(x).figAt >= partChunks_(x).length ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. It is the page after -- see
           `questionAnsCard_` -- and the order is still the whole point: an answer you can see before
           you have written one is not a question, and now it is not even on the same page. What
-          stays here is ANSWERING, which is a form: the box, Check, the options to tap. */''}
-    ${ansBox_(x)}
+          stays here is ANSWERING, which is a form: the box, Check, the options to tap.
+          AND, ON A QUESTION ANSWERED ON A MADE-UP SURFACE, THE SURFACE IN ITS PLACE when `Draw` is
+          pressed -- the box and the drawing are two faces of one answer (`ansArea_`, 327). */''}
+    ${ansArea_(x)}
   </div>`;
 }
 
@@ -9600,7 +10327,7 @@ function questionPreCard_(x, j) {
     ${qPage_(x, 'Question', qNumSay_(x.name, j, chunks.length), false)}
     <div class="qsheet">
       ${chunkHtml_(chunks[j], circOf_(x))}
-      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? figWhat_(x) : 'Continued'} on the next page &rarr;</p>
+      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? 'Figure' : 'Continued'} on the next page &rarr;</p>
     </div>
   </div>`;
 }
@@ -9745,7 +10472,9 @@ function stemChunks_(p) {
                      A marker at the very end (every word before the figure): the card, then the figure.
      NO MARKER,      the figure is the ANSWER SURFACE (a pen, `padSource_`): the card, then
      A PEN           the figure to draw on -- you read what to draw before the thing you draw it on,
-                     and the words with the box are the ask. Whether or not there is a lead.
+                     and the words with the box are the ask. Whether or not there is a lead. ONLY THE
+                     PAPER'S OWN PICTURE: a made-up surface is on the card now, behind `Draw` (327),
+                     so a surface question with photographs lays them out as any other part's.
      NO MARKER,      lead  ->  FIGURE  ->  the html with the box: the lead is the part's own sentence of
      A LEAD          setting ("Here is a grid."), and the ask is what follows the picture.
      NO MARKER,      the figure IN FRONT OF THE QUESTION CARD -- straight before the page with the ask,
@@ -9777,7 +10506,7 @@ function partPlan_(x) {
   };
   if (!questionHasFig_(x)) plan = { chunks: packBlocks_(lead.concat(pb), CHUNK_PAGE, PART_LAST), figAt: -1 };
   else if (fb.at >= 0) plan = split(lead.concat(pb.slice(0, fb.at)), pb.slice(fb.at));
-  else if (padSource_(x)) plan = split(lead.concat(pb), []);
+  else if (padSource_(x) && padSource_(x).from !== 'surface') plan = split(lead.concat(pb), []);
   else if (lead.length) plan = split(lead, pb);
   else {
     const c = packBlocks_(pb, CHUNK_PAGE, PART_LAST);
@@ -9825,10 +10554,10 @@ function circOf_(x) {
   }
   return { k: k, on: circRead_(k) };
 }
-/* WHAT THE NEXT PAGE IS CALLED, in the words its own header uses: "Figure", or a surface's name -- a
-   pointer saying "Figure" at a page headed "Squared grid" that says it is not the paper's figure would
-   be the two pages disagreeing. */
-const figWhat_ = x => { const p = padSource_(x); return (p && p.from === 'surface' && SURFACE_NAME[p.surface]) || 'Figure'; };
+/* `figWhat_` WAS HERE: what the next page is called, "Figure" or a surface's name ("Squared grid on the
+   next page"), so a pointer and the page it named could not disagree. A surface is never a page now --
+   it is the answer's other face, on the card (327) -- so the page a pointer names is always a figure,
+   and the pointer says "Figure". */
 
 /* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
    No question number -- see `figLabel_`. `data-of` is the stem's id, because the figure is the
@@ -9903,26 +10632,30 @@ const figImgs_ = v => (Array.isArray(v) ? v : topicAtoms_(v));
 /* THE PART'S OWN FIGURE, and only its own: the stems' pictures are the stems' pages now (see
    `pageParts_`). With one exception that is not a picture but a surface -- a part asked to draw on
    its stem's diagram ("complete the Venn diagram above") gets that diagram again here, under the pen,
-   because its marks are keyed to the part (`padKey_`) and the stem's page belongs to every part. */
+   because its marks are keyed to the part (`padKey_`) and the stem's page belongs to every part.
+   ---------- AND A MADE-UP SURFACE IS NOT A FIGURE ANY MORE, AND HAS NO PAGE ----------------------------
+   THE OWNER, 10 Oct, over a KS1 card reading "How many sides has a hexagon?" with a box under it and
+   "Space to draw on the next page", and the page after it a dashed square: *"this is confusing. theres
+   an answer box and draw box? in questions which require a drawing, just leave it as an answer box like
+   before but theres an option to switch to drawing box. this makes more sense and is more uniform."* So
+   a squared grid, axes or a blank space (`from: 'surface'`) is the answer box's other face now, on the
+   card behind a `Draw` tile (`ansArea_`), and never a page of its own. The paper's own figure under a
+   pen, and a stem's, still is: that is a picture the paper prints, and it stands where the paper prints
+   it. See docs/history/327. */
 function questionHasFig_(x) {
   if (!x || x.kind !== 'question') return false;
   if (x.diagram || figImgs_(x.images).length) return true;
   const pad = padSource_(x);
-  return !!(pad && pad.from !== 'part');
+  return !!(pad && pad.from !== 'part' && pad.from !== 'surface');
 }
 function questionFigCard_(x) {
   const pad = padSource_(x);
   const out = [];
   const stemNames = (x.stems || []).filter(stemHasFig_).map(p => figLabel_(p.html));
   let label = figLabel_(String(x.lead || '') + ' ' + String(x.html || ''), stemNames);
-  if (pad && pad.from === 'surface') {
-    /* A SURFACE IS NAMED FOR WHAT IT IS AND SAYS IT IS NOT THE PAPER'S -- the `figCredit_` argument:
-       a page that let a generated grid pass as the exam board's figure would be the site speaking in
-       the board's voice. */
-    out.push(padWrap_(x, pad.svg, `<p class="fig-by">Not the paper&rsquo;s own figure &mdash; somewhere to
-      work your answer.</p>`));
-    label = SURFACE_NAME[pad.surface] || 'Space to draw';
-  } else if (pad && pad.from !== 'part') {
+  /* A SURFACE IS NOT DRAWN HERE ANY MORE -- it is the answer's other face, on the card (`ansArea_`).
+     This page draws a surface question's photographs if it has any, and nothing else. */
+  if (pad && pad.from !== 'part' && pad.from !== 'surface') {
     out.push(padWrap_(x, pad.svg));
     label = figLabel_(pad.from.html);
   }
@@ -9954,7 +10687,7 @@ function questionFigCard_(x) {
    grow. A PART QUALIFIES when its own words name a figure (`FIG_NAMED`: "Figure 3", "the graph", "the
    diagram", "the grid", "the table below"…) and NOTHING in its question is one -- not its own, not
    an opening's, not another part's -- and it is not answered on a surface (a grid or a passage to
-   ring is somewhere to answer, and is its own page). Words that carry their own `<svg>`, `<img>` or
+   ring is somewhere to answer, on the card). Words that carry their own `<svg>`, `<img>` or
    `<table>` already hold what they name. */
 const FIG_NAMED = /\b(?:figure\s*\d+[a-z]?|the\s+(?:graphs?|diagrams?|grid|chart|bar\s+chart|pie\s+chart|scatter\s+(?:graph|diagram)|map)\b|the\s+table\s+below)/i;
 function figWanted_(words, figured) {
@@ -10152,8 +10885,11 @@ function questionTiles_(x) {
   /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
      its own end (`ansBox_`), where the keypad cannot cover it. */
   const fig = Array.isArray(x.choices) && x.choices.length >= 2 ? figTile_(x) : '';
+  /* AND `Draw` / `Type` ON A QUESTION ANSWERED ON A MADE-UP SURFACE, first after the star: the one
+     switch between the answer's two faces (`ansArea_`, 327). For everybody, signed in or not -- the
+     surface was a page anybody could swipe to. */
   /* NO WAY TO THE ANSWER IN THIS ROW ANY MORE -- see where `To the answer` was, above. */
-  return fig + (whoIs_() ? subSlot_(x) : '');
+  return drawTile_(x) + fig + (whoIs_() ? subSlot_(x) : '');
 }
 
 /* ==================================================================================================
@@ -10171,15 +10907,15 @@ function questionTiles_(x) {
    PART WHOSE QUESTION HAS A FIGURE IN FRONT OF IT: the opening's (`stems`), an earlier part's own
    (2H Q14b's graph lives on Q14a), or its own where it stands in front of the card. All of them, in
    the paper's order, because which one a part means is in its words and not in the data -- and a
-   question almost always has one. A drawing surface is not a figure (it is somewhere to answer, and
-   it is the part's own page).
+   question almost always has one. A drawing surface is not a figure (it is somewhere to answer, the
+   card's other face -- `ansArea_`).
 
    A PICTURE AN EARLIER PART DREW ON CARRIES THOSE MARKS, read only (`usesSeen_`), as the paper in front
    of the child would. Found in review: 2F Q24c "Use your graph..." -- the page before it showed the
    child's graph (`use`), and its Figure tile opened (b)'s grid EMPTY, the one place in the app that
    said the graph was not there. Whoever is signed in, as everywhere (`usesMine_`); every earlier part
    whose pen is on that very picture (same markup), so (ii) sees (i)'s cross and (d) the whole chain.
-   Not this part's own marks: they are on its own page, where its pen is.
+   Not this part's own marks: they are where its pen is, on its own page or its card's other face.
 
    The earlier parts are the funnel's own items (`questionParts_`), so Saved, a search and a paper all
    see the same figures. */
@@ -10418,11 +11154,11 @@ let ITEM_MEMO = { key: null, from: null, items: null };
 let ALL_MEMO = { key: null, from: null, items: null };
 
 /* WHO IS SIGNED IN, AND NOT WHETHER THEY ARE AN ADMIN. `isAdmin()` was half of this key, and nothing
-   the items are built from asks it: what an admin is sent that others are not (the films, an unlisted
-   tutor) arrives in the payload, and a new payload is a new `DATA`, which both memos already test by
-   identity. A key naming the role read as though Find drew a different library for one -- *"No
-   distinction between tutor and student on the finder. All the same."* -- and it does not. The person
-   stays: a starred thing and the `me` card are theirs.
+   the items are built from asks it: what an admin is sent that others are not (an unlisted tutor; the
+   films too, though Find no longer reads them) arrives in the payload, and a new payload is a new
+   `DATA`, which both memos already test by identity. A key naming the role read as though Find drew
+   a different library for one -- *"No distinction between tutor and student on the finder. All the
+   same."* -- and it does not. The person stays: a starred thing and the `me` card are theirs.
    ---------- AND THE BIBLE PUTS ONE ROLE BACK, AND ONLY IT ---------------------------------------
    `bibleItems_` IS THE ONE BUILDER THAT ASKS `isAdmin()`, by the owner's request — see `bibleFor_`.
    A role normally changes with a new payload or a new person, both of which this key or `DATA`
@@ -10455,14 +11191,20 @@ function stuffItemsAll_() {
 }
 
 /* ---------- FORGET EVERY LIST BUILT FROM `DATA`, FOR A WRITE THAT CHANGED `DATA` IN PLACE ----------------
-   The three memos test `DATA` by identity, which a new payload changes and an edit in place does not —
-   and the films sync from the videos card (`filmsAdopt_` in games.js) is an edit in place: a reply that
-   carries the films, written over `DATA.films` so the admin has them without a reload. Without this,
-   Find would go on drawing the films from before the sync until the next payload. */
+   The three memos test `DATA` by identity, which a new payload changes and an edit in place does not.
+   WRITTEN FOR THE FILMS SYNC (`filmsAdopt_` in games.js), which writes a reply's films over `DATA.films`
+   in place — and Find drew the films, so without this it went on drawing the list from before the sync.
+   FIND HAS NO FILMS NOW (10 Oct, see where `film` was in `KINDS`), so that call rebuilds lists that
+   could not have changed: harmless, and left in games.js rather than edited from here. Sign-out
+   (`signedOut_` in me.js) still needs it — it empties the stars and the per-person keys in place. */
 function stuffForget_() {
-  ITEM_MEMO = { key: null, from: null, items: null };
   ALL_MEMO = { key: null, from: null, items: null };
-  FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+  /* EVERY FINDER'S, not the bound one's: a sign-out that forgot Find's list and left the second
+     finder's would hand the next child the last one's Books shelf. */
+  finderEach_(() => {
+    ITEM_MEMO = { key: null, from: null, items: null };
+    FIND_MEMO = { key: null, from: null, items: null, total: 0 };
+  });
 }
 
 /* ---------- WHERE YOU WERE IN FIND, KEPT FOR A RELOAD --------------------------------------------------
@@ -10476,45 +11218,85 @@ function stuffForget_() {
    number, because a page number means a different question once the library changes.
 
    THE SEARCH BOX COMES BACK WITH IT, AND ONLY WITH IT: it is half of where you were, and a search
-   restored on its own would be a list narrowed by words nobody can see being typed. The films' search
-   (`VID.q`) is not kept — retyped in a second, and it may be a title (me.js clears it on sign-out).
+   restored on its own would be a list narrowed by words nobody can see being typed. The videos card's
+   search (`VID.q`) is not kept — retyped in a second, and it may be a title (me.js clears it on sign-out).
 
    THE SAME CLOCK AS THE COLUMN: a reload within `AWAY_AGAIN` of leaving, on Find, for the same person
    (a draft is the signed-in person's, so an admin's shelf is never somebody else's place), and only if
    nothing has been asked of Find since the page opened. Tomorrow's visit opens where it always did. */
-function findPlaceKeep_() {
+function findPlaceKeep_(F) {
+  if (!F || !F.id) { Object.keys(FINDERS).forEach(id => findPlaceKeep_(FINDERS[id])); return; }
   try {
-    if (typeof AT === 'undefined' || AT !== 'stuff' || typeof draftKeep_ !== 'function') return;
-    const at = (PAGE.stuff || 0) - stuffFirstResult_();
-    const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
-    const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
-    /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
-    draftKeep_('find', 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
-      key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
+    if (typeof AT === 'undefined' || AT !== F.id || typeof draftKeep_ !== 'function') return;
+    inFinder_(F, () => {
+      const at = (PAGE[F.id] || 0) - stuffFirstResult_();
+      const pg = at >= 0 ? (stuffPages_()[at] || null) : null;
+      const key = pg && pg.x ? String(pg.x.key || pg.x.name || '') : '';
+      /* QUIET (`keepPut_`): a place is a convenience, so it never asks the browser to hold the page. */
+      draftKeep_(F.place, 'place', JSON.stringify({ f: STUFF.filters || [], q: STUFF.q || '',
+        key: key, part: key ? (pg.part || null) : null, at: Date.now() }), true);
+    });
   } catch (e) {}
 }
-window.addEventListener('pagehide', findPlaceKeep_);
+/* EACH FINDER UNDER ITS OWN NAME — Find's `find:place` as it always was, the second finder's
+   `res:place` — and only the one in front, which is the only one a reload comes back to (`familyTab`).
+   Wrapped, because a listener hands its event to the function and an event is not a finder. */
+window.addEventListener('pagehide', () => findPlaceKeep_());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') findPlaceKeep_(); });
 let FIND_PLACE_TRIED = false;
-function findPlaceBack_() {
-  if (FIND_PLACE_TRIED || typeof draftRead_ !== 'function') return;
-  FIND_PLACE_TRIED = true;
-  try {
-    const raw = draftRead_('find', 'place');
-    if (raw === null) return;
-    const p = JSON.parse(raw);
-    if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
-    if (AT !== 'stuff' || (STUFF.filters || []).length || STUFF.q) return;
-    STUFF.filters = (Array.isArray(p.f) ? p.f : []).filter(f => f && typeof f === 'object' && typeof f.field === 'string');
-    STUFF.q = typeof p.q === 'string' ? p.q : '';
-    const box = $('stuff-q');
-    if (box) box.value = STUFF.q;
-    paintStuff();
-    if (!p.key) return;
-    const i = stuffPages_().findIndex(pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key
-      && (pg.part || null) === (p.part || null));
-    if (i >= 0) goPage('stuff', stuffFirstResult_() + i, true);
-  } catch (e) {}
+function findPlaceBack_(F) {
+  if (!F || !F.id) { Object.keys(FINDERS).forEach(id => findPlaceBack_(FINDERS[id])); return; }
+  if (typeof draftRead_ !== 'function') return;
+  inFinder_(F, () => {
+    if (FIND_PLACE_TRIED) return;
+    FIND_PLACE_TRIED = true;
+    try {
+      const raw = draftRead_(F.place, 'place');
+      if (raw === null) return;
+      const p = JSON.parse(raw);
+      if (!p || typeof p !== 'object' || !(Date.now() - (Number(p.at) || 0) < AWAY_AGAIN)) return;
+      if (AT !== F.id || (STUFF.filters || []).length || STUFF.q) return;
+      STUFF.filters = (Array.isArray(p.f) ? p.f : [])
+        .filter(f => f && typeof f === 'object' && typeof f.field === 'string')
+        .filter(f => !finderForeign_(f));
+      STUFF.q = typeof p.q === 'string' ? p.q : '';
+      const box = $(F.id + '-q');
+      if (box) box.value = STUFF.q;
+      paintStuff();
+      if (!p.key) return;
+      const i = stuffPages_().findIndex(pg => pg && pg.x && String(pg.x.key || pg.x.name || '') === p.key
+        && (pg.part || null) === (p.part || null));
+      if (i >= 0) goPage(F.id, stuffFirstResult_() + i, true);
+    } catch (e) {}
+  });
+}
+/* ---------- A CHIP THAT BELONGS TO THE OTHER FINDER ---------------------------------------------------
+   A PLACE KEPT BEFORE THE RESOURCES MOVED can hold their chips — `Resources`, `Shelf · Boxing`, a
+   Bible book — and restoring those on Find would put it on "Nothing matches" under chips nobody set.
+   So a chip is dropped when something outside the bound finder answers it and nothing inside does.
+   Both halves, because before the library lands nothing answers a paper's chip anywhere, and a chip
+   that matches nothing yet is not foreign — it is early, and dropping it would lose the place it
+   exists to keep. Written for the move and for whatever kind changes column next.
+   EXCEPT THE BIBLE'S OWN CHIPS, which no list answers (the review of 329, finding 3). A Book, a
+   Chapter, a Verse — and the Testament and Group above them — are answered only by the verses, and
+   the verses are a list of their own (`bibleVerses_`), not items. So `Genesis` was never "answered
+   outside": it read as early, stayed on Find, and Find came back from a reload INSIDE the Bible, an
+   admin's, saying "Nothing matches" under a Book chip on a column that has no Bible. A Bible chip
+   belongs to whichever finder holds the Bible (`finderOfItem_`, the kinds table's answer) and is
+   foreign everywhere else, whether or not anything on the list answers it yet. */
+function finderForeign_(f) {
+  if (f && BIBLE_FIELDS[f.field]) return finderOfItem_({ kind: 'bible' }) !== FINDER;
+  const facet = facetBy(f.field);
+  if (!facet) return false;
+  const hit = f.any
+    ? x => { try { return facetOwn_(facet, x).length > 0; } catch (e) { return false; } }
+    : x => { try { return filterHit(x, f); } catch (e) { return false; } };
+  let inside = false, outside = false;
+  stuffItemsAll_().forEach(x => {
+    if (inside || !hit(x)) return;
+    if (FINDER.has(x)) inside = true; else outside = true;
+  });
+  return outside && !inside;
 }
 
 function stuffItems() {
@@ -10583,7 +11365,12 @@ function stuffItemsBuild_() {
        array form has been supported since a tutor was two things, and a filter that ignored it
        would silently drop a kind from a group it belongs in. */
     const g = asList_(x.groups || kindOf_(x).group);
-    return !(g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0));
+    if (g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0)) return false;
+    /* AND ONLY WHAT THIS FINDER CARRIES — Find everything but the resources, the second finder the
+       resources (`FINDERS`). Filtered here and not in the mappers: `stuffItemsAll_` still holds every
+       kind for Saved, the Spotlight and the answer lookups, and check-bible.js requires the Bible's
+       spread to stay in `stuffItemsRaw_`. Each finder's list is memoised on its own record. */
+    return FINDER.has(x);
   });
 }
 
@@ -10899,37 +11686,20 @@ function stuffItemsRaw_() {
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE ---------------------------------------
        ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where code on the phone
-       asks who you are — asked for by name, see the note above `bibleFor_`. (The films below differ
-       by role too, but because the payload does, not because anything here asks.) THE COVER ONLY:
+       asks who you are — asked for by name, see the note above `bibleFor_`. (The films differed by role
+       too, because the payload does, until they left Find — see below.) THE COVER ONLY:
        its 31,102 verses are a list of their own (`bibleVerses_`), read instead of this one while a
        Bible chip is on, and fetched a book at a time; nothing about it is in the payload. */
     ...bibleItems_(),
 
-    /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
-       EMPTY FOR EVERYBODY BUT AN ADMIN, because the payload is — see the `film` entry in `KINDS`.
-       `|| []` is the ordinary fallback and here it is also the whole gate.
-
-       `audience` IS WHICH FOLDER IT CAME OUT OF and it is mapped onto its own field rather than
-       into `subject`: a Subject question offering `adults` beside `Maths` is the `boxKind` mistake
-       this file already records, where a weight division was written into `subject` and the funnel
-       then offered Heavyweight as a subject. */
-    ...(DATA.films || []).filter(f => f.title).map(f => ({
-      kind: 'film', name: f.title, key: 'fm:' + (f.id || f.title),
-      sub: [f.year, f.kind === 'series' ? 'Series' : f.kind === 'documentary' ? 'Documentary' : '',
-            f.director || f.lead].filter(Boolean).join(' \u00b7 '),
-      image: '',
-      year: f.year,
-      /* THE TWO FACETS IT BRINGS, both read straight off the row by `facetFromSheet_` if the sheet
-         ever invents a question over them. Nothing in code declares a facet for either: the funnel
-         narrows by `What kind` to Films and then by the search box, which is enough for 22 rows
-         and is one fewer thing to keep in step if the tab grows. */
-      audience: f.audience, filmKind: f.kind,
-      /* EVERY WORD SOMEBODY MIGHT TYPE. The lesson one commit old: a thing whose own words are not
-         in the haystack is findable by its title and by nothing else, so a director's surname,
-         a lead's and `documentary` have to be in here or they find nothing. */
-      text: [f.director, f.lead, f.kind, f.audience, f.notes, f.seasons].filter(Boolean).join(' '),
-      row: f,
-    })),
+    /* ---------- `DATA.films` WAS MAPPED HERE, ONE ITEM PER FILM OR SERIES, AND IS NOT ANY MORE --------
+       THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"*. So
+       nothing on this list reads `DATA.films`: no item, so no card, no `Films` under What kind and no
+       title, director or lead in Find's search. The rows still arrive in an admin's payload, and
+       Games → Videos is where they are found. One lesson of the mapper is worth keeping for whatever
+       comes next: it put `audience` on a field of its own rather than in `subject`, because a Subject
+       question offering `adults` beside `Maths` is the `boxKind` mistake this file records. See where
+       `film` was in `KINDS`. */
 
     ...questionItems(),
   ];
@@ -11867,8 +12637,8 @@ const stuffPageId_ = pg => (pg && pg.x ? String(pg.x.key || pg.x.name || '') + '
 const stuffAsk_ = () => JSON.stringify([S_(STUFF.q), STUFF.filters || []]);
 function stuffHeld_() {
   try {
-    const host = $('s-stuff');
-    const el = host && host.querySelectorAll(':scope > .page')[domIndex_('stuff', PAGE.stuff || 0)];
+    const host = $('s-' + FINDER.id);
+    const el = host && host.querySelectorAll(':scope > .page')[domIndex_(FINDER.id, PAGE[FINDER.id] || 0)];
     const at = el && el.dataset.filled === '1' && el.FIND_AT;
     return at && at.ask === stuffAsk_() ? at.id : '';
   } catch (e) { return ''; }
@@ -11878,9 +12648,9 @@ function stuffBackTo_(id, keep) {
   const pages = stuffPages_();
   /* STILL WHERE IT WAS — the commonest case by far (a star, the same list again), and one comparison
      rather than a walk over a list that can be thousands of pages long. */
-  if (stuffPageId_(pages[(PAGE.stuff || 0) - keep]) === id) return;
+  if (stuffPageId_(pages[(PAGE[FINDER.id] || 0) - keep]) === id) return;
   const i = pages.findIndex(pg => stuffPageId_(pg) === id);
-  if (i >= 0) PAGE.stuff = keep + i;
+  if (i >= 0) PAGE[FINDER.id] = keep + i;
 }
 
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST ---------------------------
@@ -12271,10 +13041,21 @@ function accountPages_() {
      returned. That is not a second renderer: it is a second SOURCE for the same renderer, which is
      the distinction the note above is about. */
   const myRow = (DATA.tutors || []).filter(mineIs_)[0] || {
-    title: USER.name || 'Signed in',
+    /* ---------- THE HANDLE IS PRINTED UNDER THE NAME, SO IT IS NOT SAID IN IT TOO --------------------
+       A child is called by her first name (the owner, 10 Oct: *"dont show children's last name"*), and
+       when another child shares it the server says `Wren (@wren_kind43)` (`nameFor_`) — which is right
+       for a roster and wrong here, where `@wren_kind43` is the next line. Measured: the card read
+       "Wren (@wren_kind43) / @wren_kind43". `nameBesideHandle_` (data.js) takes only that suffix, and only
+       when it is this card's own handle; `USER.name` itself is untouched — it is what "is this mine?"
+       compares. */
+    title: nameBesideHandle_(USER.name, USER.handle) || 'Signed in',
     role:  roleOf(USER.role || 'student'),
     handle: USER.handle,
-    image: USER.image || USER.photo || '',
+    /* YOUR PICTURE AS THE PICKER LAST KEPT IT (`USER.profile.photo`, written by `pfpTake_`), else the
+       sign-in reply's. With your figure beside it, so `personFace_` can draw `pfp:avatar` — though on
+       your own row it draws `USER.avatar` live anyway. */
+    image: (USER.profile && typeof USER.profile.photo === 'string') ? USER.profile.photo : (USER.image || USER.photo || ''),
+    avatar: USER.avatar || '',
     rate:  USER.rate,
     teaches: [],
     personId: USER.personId,
@@ -12324,12 +13105,20 @@ function accountPages_() {
      own card carried a Message tile addressed to yourself. One kind, two repairs.
 
      OTHERS ARE UNCHANGED: `withTiles_` asks for no kind and gets `tutor`, which is what they are. */
+  /* `account: true` IS WHERE A CARD CAN BE EDITED — this column, and nowhere else the same tutor is drawn
+     (a star puts them on Saved too). `cardEditTile_` (me.js) draws Edit only for an item carrying it. */
   const asItem_ = (t, kind) => ({
     kind: kind || 'tutor', name: t.title, key: t.title, sub: t.subtitle || '', image: t.image,
-    cost: priced_(t.rate), off: t.listed === false, row: t,
+    cost: priced_(t.rate), off: t.listed === false, row: t, account: true,
   });
 
-  const withTiles_ = t => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
+  /* ---------- A CARD OPEN FOR EDITING IS ITS OWN FORM, IN ITS OWN PLACE ------------------------------
+     The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that
+     respective tutor."* `cardEditHtml_` (me.js) is drawn where the card and its tiles were — the form
+     and its Save and Cancel — for the one card being edited; every other card is drawn as before. */
+  const editing_ = t => typeof cardEditing_ === 'function' && cardEditing_(t);
+  const withTiles_ = t => editing_(t) ? cardEditHtml_(t)
+    : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: t }) : '')
     + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(t)) : '');
 
   /* ---------- AND THE PRIVATE HALF WENT DARK WHEN BOOKING LEFT THE FUNNEL -----------------------
@@ -12352,10 +13141,18 @@ function accountPages_() {
      note at the top of `meCard`. What this column shows of you is your public card, and the row of
      tiles under it lost its four doors to that same column (see where `meTiles_` was in tiles.js). */
   const me = [
-    typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
-    /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js. */
-    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
-      : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`,
+    /* YOUR OWN CARD, OR YOUR OWN CARD BEING EDITED — the form, then its Save and Cancel, in place. */
+    (editing_(myRow) ? cardEditHtml_(myRow)
+      : (typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow)))
+    /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js.
+       AND UNDER THE FORM TOO, WHICH IS WHAT THE BRACKETS ABOVE ARE FOR. Without them `a ? b : c + d` is
+       `a ? b : (c + d)`, so while you edited your own card this row was not drawn at all: no Sign out, no
+       "Send the link again", and Settings has no Sign out of its own — the only ways off the form were Save
+       and Cancel, and Cancel throws the typing away (the review of docs/history/330). Settings never hid
+       Sign out; a sign-out keeps the card's draft under your own key, as it keeps a Settings card's.
+       `cardEditTile_` draws no Edit on the card being edited, so the row is Sign out and the resend. */
+      + (typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
+        : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`),
     /* "WE WILL EMAIL YOU ONCE YOU OPEN THE LINK" — one line under the row while your own address is
        unproved, because `notify` sends it nothing until then and a booking with no email after it is
        otherwise silence nobody can explain (the PR #130 review). On this page, not a page of its own,
@@ -12426,6 +13223,10 @@ function accountPages_() {
     const row = Object.assign({}, asTutor || {}, {
       title: f.title, handle: f.handle || (asTutor || {}).handle, personId: f.personId,
       image: f.image || (asTutor || {}).image || '',
+      /* AND THE FIGURE THAT CAME WITH THE FACE — `doGet` sends `avatar` on a family card only when the
+         face is `pfp:avatar` (`faceFig_`), and this row was rebuilt without it, so a child who chose
+         their figure was an initial on their parent's column. Whichever row the face came from. */
+      avatar: f.image ? f.avatar : (asTutor || {}).avatar,
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
     /* ---------- YOUR CHILD'S CARD CARRIES "NEW PIN" ----------------------------------------------
@@ -12551,8 +13352,10 @@ screen('account', () => pages('account',
 /* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. It is asked here and nowhere else, so
    `PAGER.stuff`, `stuffFirstResult_`, `paintStuff` and `screen('stuff')` all count it by asking the
    one function that draws it, which is the rule every one of those already follows. */
+/* THE BOUND FINDER'S, since there are two (`FINDERS`): Find's are the three above, and the second
+   finder has none — no booking form, no posts and no paper to bundle is a resource. */
 function frontPages_() {
-  return [].concat(bookingPages_(), feedPages_(), bundlePages_());
+  return FINDER.front();
 }
 
 /* ==================================================================================================
@@ -13113,7 +13916,7 @@ function bundlesBySitting_() {
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
    star, so this is asked rather than assumed — off the id on the page itself. */
 function stuffQuestionPage_() {
-  const el = $('stuff-controls');
+  const el = $(FINDER.id + '-controls');
   const page = el && el.closest('.page');
   if (!page || !page.parentNode) return 0;
   return [].indexOf.call(page.parentNode.children, page);
@@ -13167,16 +13970,8 @@ function stuffPageHtml(n) {
   const items = stuffFiltered();
   const credits = USER ? (USER.credits || 0) : 0;
 
-  if (!items.length) {
-    const why = STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
-              : STUFF.q                          ? 'Try fewer words.'
-              : STUFF.filters.length             ? 'Nothing matches all of those together.'
-              : '';
-    return (!FIND_MEMO.total)
-      ? nothingHere('Nothing in the shop or the library yet.', true)
-      : `<p class="empty">Nothing matches.${
-          why ? `<br><span class="faint">${esc(why)}</span>` : ''}</p>`;
-  }
+  /* `stuffNoneHtml_`: the same empty answer as the question's, and the way to the other finder. */
+  if (!items.length) return stuffNoneHtml_();
 
   /* Cards, in order, and nothing between them. The continuation-heading logic went with the
      headings — repeating a group name at the top of a page that carries on from the last one was
@@ -13351,7 +14146,9 @@ on('fav', el => {
      timer would put it back to 25:00. */
   TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
   if (AT === 'saved') { repaint(true); return; }
-  if (AT === 'stuff' && $('s-stuff')) paintStuff(true);
+  /* EITHER FINDER, whichever is in front — a star on a boxer is pressed in the second one. */
+  const F = finderOf_(AT);
+  if (F && $('s-' + F.id)) paintFinder_(F.id, true);
 });
 
 function stuffCard(x, credits) {
@@ -13403,7 +14200,7 @@ function stuffCard(x, credits) {
    and the shortest form of one paper on its own is `Paper 1` whatever the year, which would hide the
    year again when nothing above says it. Memoised on the chip list, the search and the payload,
    because the chips are redrawn on every tap. */
-const CHIP_SHOW = { key: null, from: null, out: {} };
+let CHIP_SHOW = { key: null, from: null, out: {} };   /* a `let`: one per finder, see `inFinder_` */
 function chipShow_(f, i) {
   const facet = facetBy(f.field);
   if (!facet || !facet.showOf) return f.value;
@@ -13568,23 +14365,25 @@ function filterClear_() {
    it. Both set exactly the filter `facet-pick` sets, which is the whole argument for deleting
    them: the funnel now ASKS which paper once there are few enough to list, so opening one is
    answering a question, through the one handler that has always done that. */
-on('facet-pick', el => {
+/* EACH ON THE FINDER IT WAS PRESSED IN (`finderAt_`): an answer in the second finder is a chip there,
+   and never one on Find. */
+on('facet-pick', el => inFinder_(finderAt_(el), () => {
   /* A BUCKET IS HALF AN ANSWER — see `bucketValues_`. The flag rides on the chip so `filterHit`
      knows to test membership and `nextFacet` knows the question is not finished with. */
   const f = { field: el.dataset.field, value: el.dataset.value };
   if (el.dataset.bucket) f.bucket = true;
   STUFF.filters.push(f);
   paintStuff();
-});
+}));
 /* ---------- AND NOT ANSWERING IT IS ALSO AN ANSWER ----------------------------------------------
    Same push, same repaint, no value. See the `any` note in `stuffFind` for what that entry does and
    does not do. */
-on('facet-skip', el => {
+on('facet-skip', el => inFinder_(finderAt_(el), () => {
   STUFF.filters.push({ field: el.dataset.field, any: true });
   paintStuff();
-});
-on('filter-drop', el => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuff(); });
-on('filter-clear', () => { STUFF.filters = []; paintStuff(); });
+}));
+on('filter-drop', el => inFinder_(finderAt_(el), () => { STUFF.filters.splice(Number(el.dataset.i), 1); paintStuff(); }));
+on('filter-clear', el => inFinder_(finderAt_(el), () => { STUFF.filters = []; paintStuff(); }));
 
 /**
  * REDRAW THE RESULTS AND NOTHING ELSE.
@@ -13660,7 +14459,7 @@ function stuffLo_(want, keep, had) {
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
   /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
-  const r = Math.max(0, (PAGE.stuff || 0) - keep);
+  const r = Math.max(0, (PAGE[FINDER.id] || 0) - keep);
   let lo = Math.max(0, Math.min(maxLo, had || 0));
   if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
     lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
@@ -13669,17 +14468,17 @@ function stuffLo_(want, keep, had) {
 }
 
 function stuffWindow_() {
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return;
   /* ASKED OF THE DOM, because a star adds a page in front of the question and the number of pages
      before the results is exactly what this has to be right about. */
   const keep = stuffFirstResult_();
   const want = stuffPageCount();
-  PAGE_KEEP.stuff = keep;
+  PAGE_KEEP[FINDER.id] = keep;
 
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
-  const had = Math.max(0, Math.min(maxLo, PAGE_LO.stuff || 0));
+  const had = Math.max(0, Math.min(maxLo, PAGE_LO[FINDER.id] || 0));
   const lo = stuffLo_(want, keep, had);
 
   /* ---------- THE COUNT FIRST, AT THE TAIL --------------------------------------------------------
@@ -13694,7 +14493,7 @@ function stuffWindow_() {
       '<section class="page is-res"><div class="pane"></div></section>'.repeat(size - res.length));
   }
 
-  PAGE_LO.stuff = lo;
+  PAGE_LO[FINDER.id] = lo;
   const k = lo - had;
   if (!k) return;
   res = [].slice.call(host.querySelectorAll(':scope > .page.is-res'));
@@ -13740,12 +14539,12 @@ function stuffKeepPlace_(host, d) {
 }
 
 function paintStuff(keepPage) {
-  const chips = $('stuff-chips');
+  const chips = $(FINDER.id + '-chips');
   if (chips) chips.innerHTML = filterChips();
   /* THE BIN BESIDE THE BOX, in its own slot so the box itself is never rewritten — see `filterClear_`. */
-  const clear = $('stuff-clear');
+  const clear = $(FINDER.id + '-clear');
   if (clear) clear.innerHTML = filterClear_();
-  const groups = $('stuff-groups');
+  const groups = $(FINDER.id + '-groups');
   if (groups) groups.innerHTML = stuffQuestion();
   /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE ------------------------------------------
      FOUND BY THE REVIEW, ON THE BIBLE'S GRIDS. Psalms's 150 chapters are taller than the question's pane
@@ -13769,16 +14568,16 @@ function paintStuff(keepPage) {
     if (qp && qp.scrollTop) qp.scrollTop = 0;
   }
 
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return;
   /* THE QUESTION PAGE, BY ITS ID. `:scope > .page` was "the first one", which is a saved thing now
      — so this kept a favourite and deleted the search box. */
-  const ctrl = $('stuff-controls');
+  const ctrl = $(FINDER.id + '-controls');
   const first = ctrl && ctrl.closest('.page');
   if (!first) return;
   /* WHERE WE WERE, AND WHERE THE QUESTION WAS, both read before anything is rebuilt — the second is
      what says how much the pages in front moved by. */
-  const was = PAGE.stuff || 0;
+  const was = PAGE[FINDER.id] || 0;
   /* AND WHICH CARD THAT IS, off the page itself before it is replaced — see `stuffHeld_`. */
   const held = keepPage ? stuffHeld_() : '';
   /* ---------- WHAT MOVED IS THE FIRST RESULT, NOT THE QUESTION ---------------------------------
@@ -13898,7 +14697,7 @@ function paintStuff(keepPage) {
      be left describing a strip that no longer exists. A new filter is a new list of results, so
      every page in the window is standing for something different anyway. */
   [].slice.call(host.querySelectorAll(':scope > .page.is-res')).forEach(el => el.remove());
-  PAGE_LO.stuff = 0;
+  PAGE_LO[FINDER.id] = 0;
 
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
@@ -13917,9 +14716,9 @@ function paintStuff(keepPage) {
      before the strip was windowed and is about sixteen now — so a star, a repaint of a card or a
      booking dropdown on result forty put you on page fifteen: a different card, under your thumb.
      Measured, not reasoned: the same probe that found the repaint fault above. */
-  PAGE.stuff = keepPage
+  PAGE[FINDER.id] = keepPage
     ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
-                           pageCount('stuff') - 1))
+                           pageCount(FINDER.id) - 1))
     : stuffQuestionPage_();
   /* THE SHIFT ABOVE IS WHAT MOVED IN FRONT OF THE RESULTS; THIS IS WHAT MOVED AMONG THEM — the card
      looked up by name in the list as it is now (`stuffBackTo_`), when the list has changed under it. */
@@ -13930,7 +14729,7 @@ function paintStuff(keepPage) {
   stuffWindow_();
 
   fillStuffPages();
-  paintPager('stuff', true);
+  paintPager(FINDER.id, true);
 }
 
 /**
@@ -14177,6 +14976,22 @@ function paneReach_(panes) {
        The sheet scrolls inside anyway; so it is the sheet that gets shorter, and the card stays at
        full size. Only panes that hold one, so every other pane is measured exactly as before. */
     if (typeof kpSheetFit_ === 'function') list.forEach(p => { if (p.querySelector('.qp-essay')) kpSheetFit_(p); });
+    /* AND A LIBRARY CARD GIVES UP ITS BLANK BAND FIRST — `libFit_` in me.js, the sheet's rule for the
+       one card whose height follows its width: the faces narrow, keeping their shape, until the page
+       fits or the band runs out, and only what is left is drawn smaller (docs/history/332). */
+    if (typeof libFit_ === 'function') list.forEach(p => { if (p.querySelector('.lib-face')) libFit_(p); });
+    /* AND A SURFACE SWITCHED TO ON ITS CARD GIVES WAY THE SAME WAY -- `padFaceFit_`, the sheet's answer one
+       face along (327): the grid gets smaller, then the words, and the pen's 44px tiles and the row with
+       `Type` in it never do. Every pane holding a `.qp-area`, either face, so a card turned back to its box
+       has its words put back to full size. */
+    list.forEach(p => { if (p.querySelector('.qp-area')) padFaceFit_(p); });
+    /* ---------- AND A CARD SWITCHED TO ITS DRAWING IS NEVER DRAWN SMALLER WHOLE -------------------------------
+       The open list's answer below, for the same reason: what is on it is there to be pressed and drawn on,
+       at a fingertip's size. `padFaceFit_` has already taken what can give (the grid to its floor, the words
+       to the zoom floor); what is still over scrolls from its first pixel, so the row under the card -- the
+       one way back to the box -- is never cut off by the pane with no scroll to reach it. Found in review:
+       the 5-a-day dice tables at 320x568, drawn whole at 0.7 and still 9px over, `Type` cut in half. */
+    const drawn = list.map(p => !!p.querySelector('.qp-area.is-draw'));
     const pad = p => {
       const cs = getComputedStyle(p);
       return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
@@ -14192,11 +15007,18 @@ function paneReach_(panes) {
        goes back to fitting the moment the list is shut. `tickListShow_` (book.js) brings the opened
        list into the pane, for the booking form and the settings column alike. */
     const ticks = list.map(p => !!p.querySelector('.bk-many-list, details.many-d[open]'));
+    /* ---------- AND NEITHER IS A CARD BEING EDITED (`cardEditHtml_`, me.js; docs/history/330) ---------------
+       It is every section of a tutor's card as one form, and measured with the widest profile the lab
+       holds it is 2051px tall at 320x568 and 2143px at 390x844, in panes of 532 and 805. At the 0.70
+       floor it is still 1502 and 1570 — it scrolls either way — so drawing it smaller buys no fit and
+       costs every box, tick and tile on it 30% of its size, under a thumb that is there to press them.
+       The tick list's answer above, for the tick list's reason: full size, and the pane scrolls. */
+    const forms = list.map(p => !!p.querySelector('.card-ed .me-form'));
     const want = list.map((p, i) => {
       const room = p.clientHeight - pad(p);
       const used = p.scrollHeight - pad(p);
       if (room <= 0 || used - room <= 2) return 1;
-      if (ticks[i]) return 1;
+      if (ticks[i] || forms[i] || drawn[i]) return 1;
       /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
          measured, a card zoomed to exactly room / used ended 4px past its pane. */
       const z = Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
@@ -14265,14 +15087,24 @@ function paneReach_(panes) {
     /* AN OPEN LIST SCROLLS FROM ITS FIRST PIXEL OVER, not from `PANE_REACH`'s 24: drawn at full size
        instead of fitted, the little it is over is the card's own foot — the Send tile — and 24px of that
        clipped with no scroll is a tile half there. */
-    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i]) && want[i] === 1))
-      && p.scrollHeight - p.clientHeight > (ticks[i] ? 2 : PANE_REACH));
+    /* A CARD BEING EDITED THE SAME: its Save and Cancel are its foot, and the pane has to reach them. */
+    const over = list.map((p, i) => (want[i] <= PANE_ZOOM_MIN || ((essay[i] || ticks[i] || forms[i] || drawn[i]) && want[i] === 1))
+      && p.scrollHeight - p.clientHeight > (ticks[i] || forms[i] || drawn[i] ? 2 : PANE_REACH));
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */
     list.forEach((p, i) => {
       const to = over[i] ? 'auto' : '';
-      if (p.style.overflowY !== to) p.style.overflowY = to;
+      if (p.style.overflowY !== to) {
+        p.style.overflowY = to;
+        /* A CARD ON ITS DRAWING THAT HAS TO SCROLL OPENS SCROLLED TO ITS FOOT: the surface, the pen's bar and
+           the row with `Type` in it -- the one way back to the box -- on the glass, and the words, read on
+           the box a moment ago, the part a finger scrolls back to. Opened at its top, the 5-a-day dice
+           tables at 320x568 put `Type` 50 to 100px under the fold of a pane with no scrollbar: a switch you
+           can turn on and then cannot see to turn off. Once, as the pane starts to scroll; never again
+           while it does, so a child who scrolled up to read is left where they are. */
+        if (to && drawn[i]) p.scrollTop = p.scrollHeight;
+      }
     });
   } catch (e) {}
 }
@@ -14401,14 +15233,14 @@ function paneWatch_(host) {
    `ctx` is the loop's own `pages`, `first` and `items`, handed in so a walk over eleven does not ask
    for them eleven times; a single caller leaves it out. */
 function stuffFillOne_(i, ctx) {
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return false;
   const c = ctx || {};
   const first = c.first != null ? c.first : stuffFirstResult_();
   /* THE PAGE COUNT, not the result count — a practical is four pages. See `stuffPages_`. */
   if (i < first || i > first + stuffPages_().length - 1) return false;
   const pages = c.pages || host.querySelectorAll(':scope > .page');
-  const el = pages[domIndex_('stuff', i)];
+  const el = pages[domIndex_(FINDER.id, i)];
   if (!el || el.dataset.filled === '1') return false;
   /* INTO THE PANE, not over it — see the note in `fillStuffPages`. `paneOf_` makes one if the page
      has not got one. */
@@ -14457,11 +15289,11 @@ function stuffPin_(el, pane) {
    pane stayed `overflow: hidden` for ever, because the measuring runs at the end of the pass that
    has nothing left to build and no pass ever did. */
 function fillStuffPages(all) {
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (!host) return;
   let changed = false;
   const pages = host.querySelectorAll(':scope > .page');
-  const at = PAGE.stuff || 0;
+  const at = PAGE[FINDER.id] || 0;
   const items = stuffFiltered();
   const first = stuffFirstResult_();
   /* ---------- THE ELEVEN YOU ARE NEAR, NOT THE FIVE THOUSAND YOU ARE NOT -------------------------
@@ -14483,7 +15315,7 @@ function fillStuffPages(all) {
   const todo = [];
   for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
   [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {
-    const i = logIndex_('stuff', [].indexOf.call(pages, el));
+    const i = logIndex_(FINDER.id, [].indexOf.call(pages, el));
     if (i >= first && !seen[i]) todo.push(i);
   });
   /* THE ONES UNDER THE THUMB FIRST, and the emptying with them: a page being cleared is a page
@@ -14498,10 +15330,10 @@ function fillStuffPages(all) {
        paint. A page that only needs EMPTYING is not a reason to stop, so the test is on the work
        rather than on the distance. */
     if (!all && Math.abs(i - at) > STUFF_SOON) {
-      const ahead = pages[domIndex_('stuff', i)];
+      const ahead = pages[domIndex_(FINDER.id, i)];
       if (ahead && ahead.dataset.filled !== '1') { late = n; break; }
     }
-    const el = pages[domIndex_('stuff', i)];
+    const el = pages[domIndex_(FINDER.id, i)];
     if (!el) continue;
     /* INTO THE PANE, not over it. Writing to the page itself replaces the glass wrapper with bare
        content — which is exactly what happened, for as long as these pages were built without a
@@ -14564,8 +15396,11 @@ function fillStuffPages(all) {
      what a later tap calls anyway, so finishing IS calling it again and there is nothing to
      remember about where it stopped; `paneReach_` runs at the end of whichever pass has no more
      building to do, so a run of quick taps measures once rather than per tap. */
+  /* THE FINDER IS CAPTURED, because the timer fires outside every binding (`inFinder_`): a late fill
+     that ran unbound would finish Find's strip with the second finder's half-built one in front. */
+  const F = FINDER;
   if (late >= 0) {
-    STUFF_LATE = setTimeout(() => fillStuffPages(true), 0);
+    STUFF_LATE = setTimeout(() => inFinder_(F, () => fillStuffPages(true)), 0);
   } else {
     STUFF_LATE = setTimeout(() => paneReach_(
       host.querySelectorAll(':scope > .page[data-filled="1"] > .pane')), 0);
@@ -14583,7 +15418,10 @@ function fillStuffPages(all) {
      build ahead.
      Started again on every fill rather than once. They are idempotent — a board redraws from the
      position it already holds, a clock from the time it already has — and remembering which have
-     been started is a second thing to keep true. */
+     been started is a second thing to keep true.
+     FIND'S ALONE (`widgets`): the second finder holds no widget, so its fill leaves `WIDGET_ON` to
+     Find, whose own fills start and stop it as they always did. */
+  if (!FINDER.widgets) { settle_(changed); return; }
   if (!showingWidgets()) { stopWidget_(); settle_(changed); return; }
   const wgt = items[at - first] && items[at - first].row;
   if (!wgt) { stopWidget_(); settle_(changed); return; }
@@ -14620,9 +15458,9 @@ function fillStuffPages(all) {
    still to come — it says so, and the placement is asked for as before. */
 function settle_(changed) {
   if (!changed) return;
-  const host = $('s-stuff');
+  const host = $('s-' + FINDER.id);
   if (host && typeof paneWatch_ === 'function') paneWatch_(host);
-  if (!holdColumn_('stuff')) placeCells('y', true, 0, 'stuff');
+  if (!holdColumn_(FINDER.id)) placeCells('y', true, 0, FINDER.id);
 }
 
 /**
@@ -14805,14 +15643,8 @@ function stuffQuestion() {
      nothing LEFT is a filter that has excluded everything, and the way out of the second is to take
      a chip off — which is on this page, one row up. `stuffPageHtml` already draws exactly that
      distinction for the results; this is the same two sentences at the point they are first true. */
-  if (!items.length) {
-    return FIND_MEMO.total
-      ? `<p class="empty">Nothing matches.<br><span class="faint">${
-           STUFF.q && STUFF.filters.length ? 'Try fewer words, or take a filter off.'
-         : STUFF.q                          ? 'Try fewer words.'
-         :                                    'Nothing matches all of those together.'}</span></p>`
-      : nothingHere('Nothing in the shop or the library yet.', true);
-  }
+  /* AND WHEN THE WORDS ARE IN THE OTHER FINDER, SAYS SO — `stuffNoneHtml_`, one copy for both. */
+  if (!items.length) return stuffNoneHtml_();
 
   /* ---------- THE ORDINARY QUESTION FIRST, AND THE LAST RESORT BEHIND IT -------------------------
      `const over = … > FACET_MAX_ANSWERS` WAS HERE and it was the flag the row list trimmed itself
@@ -14946,7 +15778,7 @@ function stuffQuestion() {
   /* ---------- AND WHILE THE PAYLOAD IS ON ITS WAY, MORE ANSWERS ARE COMING --------------------------
      The library is a file of its own, and the splash lifts at fifteen seconds once it is in whether
      the payload is or not — so on a slow line the first question is asked without the answers only
-     the payload brings (the bundles, the films). Measured on 9 Oct with the payload held: a question
+     the payload brings (the bundles). Measured on 9 Oct with the payload held: a question
      that looked finished and was not, and grew when the payload came. So under the answers, until then, the one loader
      (`loading_`, shell.js) — the answers already here stay pressable, and the room under them says
      more are on their way. */
@@ -14991,7 +15823,13 @@ function stuffQuestion() {
    the thing `check-dead.js` would name next time anyway. */
 
 
-screen('stuff', () => {
+/* ---------- ONE DRAW FOR BOTH FINDERS -----------------------------------------------------------------
+   `screen('stuff')` WAS THIS FUNCTION, and it is now the draw of whichever finder is bound — Find's
+   and the second finder's are registered under it, below, each in its own binding. The ids are the
+   finder's (`stuff-q`, `res-q` …) so a press finds its own column; everything else on this page is
+   the same page in both, which is the point (docs/history/329). */
+function finderScreen_() {
+  const F = FINDER;
   const credits = USER ? (USER.credits || 0) : 0;
   /* The control must SAY what it is doing. Without this the box snapped back to its first option
      every time the screen was redrawn, so the list and the dropdown above it disagreed — and the
@@ -15014,8 +15852,8 @@ screen('stuff', () => {
      screen, which is where a balance goes. */
   /* THE BOX AND THE BIN ARE ONE ROW — see `filterClear_`. `#stuff-clear` is the slot `paintStuff`
      rewrites; the input is never rewritten, which is what keeps its focus across a press. */
-  const controls = `<div id="stuff-controls">`
-    + `<div class="find-search"><input class="search" id="stuff-q" placeholder="Search…" value="${esc(STUFF.q)}"><span id="stuff-clear">${filterClear_()}</span></div>
+  const controls = `<div id="${F.id}-controls">`
+    + `<div class="find-search"><input class="search" id="${F.id}-q" placeholder="Search…" value="${esc(STUFF.q)}"><span id="${F.id}-clear">${filterClear_()}</span></div>
     ${/* THE SORT WAS HERE — a dropdown offering A–Z and, when anything had a price, cheapest first.
 
           Gone with the grouping dropdown that went before it, and for the same reason: this screen
@@ -15026,11 +15864,11 @@ screen('stuff', () => {
           The one real use was price, on a library where four hundred of four hundred are free. If
           things are ever priced enough for the order to matter, sorting belongs beside the prices
           rather than above the search. */''}
-    <div id="stuff-chips">${filterChips()}</div>
+    <div id="${F.id}-chips">${filterChips()}</div>
     ${/* THE COUNT LINE WAS HERE — "565 of 565 · 27 pages". It said nothing anybody needed: before
           you narrow anything it is the size of the library, which is not a fact about your search,
           and after you narrow it the results are right there to be looked at. */''}
-    <div id="stuff-groups">${stuffQuestion()}</div>
+    <div id="${F.id}-groups">${stuffQuestion()}</div>
     ${/* SAVED IS NOT ON THIS PAGE AT ALL. It is the pages BEFORE this one — see `savedPages_`. */''}
   </div>`;
 
@@ -15106,18 +15944,24 @@ screen('stuff', () => {
   const keep = 1 + front.length;
   const want = stuffPageCount();
   stuffBackTo_(held, keep);
-  PAGE_KEEP.stuff = keep;
-  PAGE_LO.stuff = stuffLo_(want, keep, PAGE_LO.stuff);
+  PAGE_KEEP[F.id] = keep;
+  PAGE_LO[F.id] = stuffLo_(want, keep, PAGE_LO[F.id]);
   /* AND THE WINDOW IS FILLED A MOMENT LATER, because a page cannot be filled until it is in the
      document and `paint` writes the markup after this returns. A microtask rather than a timer:
      it runs before the browser draws, so the page you are on is never seen empty — and
      `fillStuffPages` settles the column itself once the cards have their heights. */
+  /* `F` CAPTURED: the microtask runs after this binding has ended (`inFinder_`). */
   if (typeof queueMicrotask === 'function') {
-    queueMicrotask(() => { try { if ($('stuff-controls')) fillStuffPages(); } catch (e) {} });
+    queueMicrotask(() => { try { inFinder_(F, () => { if ($(F.id + '-controls')) fillStuffPages(); }); } catch (e) {} });
   }
-  return pages('stuff', [controls].concat(front))
+  /* `is-res` IS "A PAGE OF RESULTS", as it always was — older than the second finder's `res` id, and
+     nothing to do with it: `#s-res .page.is-res` is a result page of the Resources column. */
+  return pages(F.id, [controls].concat(front))
     + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
-}, () => '');
+}
+screen('stuff', () => inFinder_(FINDERS.stuff, finderScreen_));
+/* THE SECOND FINDER — the owner's *"finder 2"*, the column right of Find, carrying the resources. */
+screen('res', () => inFinder_(FINDERS.res, finderScreen_));
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere
    already visible. */
@@ -15125,12 +15969,18 @@ screen('stuff', () => {
 /* Typed into rather than pressed, so it cannot go through the click handler. Debounced, because
    redrawing four hundred cards on every keystroke is how a search box feels broken. Nothing needs
    putting back afterwards now — the box itself is no longer part of what gets redrawn. */
+/* EACH FINDER'S BOX TYPES INTO ITS OWN WORDS, with its own debounce (`stuffTimer` is parked per
+   finder), and the repaint the timer books is bound again — it fires after this binding has ended. */
 let stuffTimer = null;
 document.addEventListener('input', e => {
-  if (e.target.id !== 'stuff-q') return;
-  STUFF.q = e.target.value;
-  clearTimeout(stuffTimer);
-  stuffTimer = setTimeout(paintStuff, 180);
+  const m = /^([a-z]+)-q$/.exec(String((e.target && e.target.id) || ''));
+  const F = m && finderOf_(m[1]);
+  if (!F) return;
+  inFinder_(F, () => {
+    STUFF.q = e.target.value;
+    clearTimeout(stuffTimer);
+    stuffTimer = setTimeout(() => inFinder_(F, paintStuff), 180);
+  });
 });
 
 /* `on('stuff-set')` WAS HERE, and the dropdown that sent it went when the funnel replaced the

@@ -1,5 +1,7 @@
 ## The Bible (King James Version) is a book in Resources, and only an admin is shown it
 
+**Since 10 Oct the Bible is on the Resources column**, the second finder right of Find ([329](329-the-second-finder-carries-the-resources.md)) — the Books shelf, the gate and every tile that opens it (`bible-go`) go there.
+
 **Superseded by [292](292-the-bible-is-asked-like-everything-else.md)** — the reader below (the cover, the three lists of books, the chapter grids and the measured pages) was replaced on 6 Oct by six funnel questions and a card a verse. The gate, the split and the reasons for both still stand.
 
 **Asked for as "i want to add the bible to resources as a book. but only admin can see the bible."**

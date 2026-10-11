@@ -1795,7 +1795,11 @@ async function gesture(env, o) {
         const host = t && document.getElementById('s-' + t.id);
         const pg = host && host.querySelectorAll(':scope > .page')[domIndex_(t.id, PAGE[t.id] || 0)];
         if (!pg) continue;
-        const el = [...pg.querySelectorAll('button[data-do], .tile[data-do]')].find(x => {
+        /* ANY CONTROL, NOT ONLY A BUTTON. The card right of Find was You's sign-in card, all buttons; it is
+           the Resources column's question since the second finder (docs/history/329), whose controls are
+           the funnel's answers — `div[data-do="facet-pick"]` — and a press that went through one would
+           be the same fault. */
+        const el = [...pg.querySelectorAll('button[data-do], .tile[data-do], [data-do="facet-pick"]')].find(x => {
           const r = x.getBoundingClientRect();
           return r.width > 0 && r.left > 0 && r.right < innerWidth && r.top > 0 && r.bottom < innerHeight;
         });

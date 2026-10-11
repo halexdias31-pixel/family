@@ -306,9 +306,16 @@ function boot(opts) {
       /* THE VIDEOS CARD'S FAILED PICTURES, a `const` Set — a Drive film's address in it is the film's
          file id, so a journey asks whether signing out empties it. A copy, not the Set. */
       'vidBroken: () => (typeof VID_BROKEN !== "undefined" ? [...VID_BROKEN] : null),' +
+      /* AND WHICH WATCH BLOCK IS THE APP'S OWN FULL SCREEN, if any — `VID_FS` is a `const` (note 321). */
+      'vidFs: () => (typeof VID_FS !== "undefined" ? VID_FS.watch : null),' +
+      /* AND WHICH COLUMN IS IN FRONT — a `let` in shell.js, so a second eval cannot read it; the videos
+         journey asks that an arrow key did not turn it under a full-screen film. */
+      'screenAt: () => AT,' +
       'impStack: (c, wd) => { IMP_PILE.push([c, wd]); },' +
       /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
       'accountPages: () => accountPages_(),' +
+      /* THE TEN PICTURES' NAMES, IN THE GRID'S ORDER — a `const`, so only a getter reaches it. */
+      'pfpNames: () => (typeof PFP_ART !== "undefined" ? Object.keys(PFP_ART) : []),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
       + 'STUFF_WIN: typeof STUFF_WIN === "number" ? STUFF_WIN : 0,'
       /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
@@ -359,6 +366,9 @@ function boot(opts) {
          as the press path. Without it only `padArm_` could be checked — and a `padWrap_` that got
          the armed case wrong would put the fault straight back on the next repaint. */
       'padOn: v => { PAD_ON = v; },' +
+      /* AND READ BACK, so a journey can ask whether leaving a surface's drawing for its box turned the pen
+         off (327) -- a `let`, which a second eval cannot reach. */
+      'padNow: () => PAD_ON,' +
       /* AND THE PAD'S KEY, a `const` arrow, so a journey can arm a pad by the key its marks are kept
          under -- and read those marks back -- without writing the key's format out a second time. */
       'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
@@ -433,6 +443,14 @@ function boot(opts) {
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
       'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
       'star: k => FAVS.add(String(k)),' +
+      /* WHICH WIDGETS ARE RUNNING AND ON WHICH COLUMN'S COPY, WHICH ARE WAITING THEIR TURN, AND WHAT
+         THE LAST PLACEMENT SAID IS ON THE GLASS — three `let`s in arcade.js and shell.js, so only
+         functions built in this evaluation can read them (docs/history/331). */
+      'running: () => TOOLS_ON.map(e => ({ id: String(e.w.id), col: e.col, who: e.who, slot: e.slot })),' +
+      /* AND WHICH COLUMNS A REPAINT LEFT TO BE DRAWN ON ARRIVAL — a `let` in shell.js. */
+      'stale: id => !!STALE[id],' +
+      'waiting: () => TOOLS_WAIT.map(q => ({ id: String(q.w.id), col: q.col })),' +
+      'glass: () => ({ at: GLASS.at, cols: GLASS.cols.slice(), pages: GLASS.pages.slice() }),' +
       /* WHAT THE FIND SCREEN OFFERS AGAINST WHAT THE APP HOLDS, and the Saved column that reads the
          second. Two lists on purpose: a kind taken off Find must leave the first and stay in the
          second, or a starred thing vanishes from the one list whose job is to keep it. `doors` is
@@ -469,9 +487,24 @@ function boot(opts) {
          built in the same evaluation can read it. The camera journey asks it to know that the load
          it is watching is the one that opens on the feed. */
       'AT: () => AT,' +
+      /* THE MARKS AS THE APP DRAWS THEM, so a switch tile's picture is read against the entry its
+         class names rather than trusted by the name (`soundTileSays_`). The object itself — a
+         `const`, so handed over from inside this evaluation. */
+      'ICONS: TILE_ICONS,' +
+      /* AND WHERE A VISITOR WITH NOTHING REMEMBERED OPENS — a `const`, so a getter for `AT`'s reason. The
+         Business journeys ask that a remembered column a viewer is not given sends them HERE, which
+         `AT !== 'biz'` cannot tell apart from being moved one column left by a later `columnsFor_`. */
+      'TAB_HOME: () => TAB_HOME,' +
       /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
          this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
       'STUFF: () => STUFF,' +
+      /* THE EIGHT-BIT FIGHTER'S WORDS AND SHAPES — `const`s, so a getter built here, like `STUFF`. The
+         boxer journey asks the figure for exactly the pixels these say, rather than a copy of them. */
+      'BOXER: () => (typeof BOXER_LOOK !== "undefined" ? { LOOK: BOXER_LOOK, HAIR: BOXER_HAIR, FACE: BOXER_FACE, BODY: BOXER_BODY, UNSAID: BOXER_HAIR_UNSAID } : null),' +
+      /* AND THE SECOND FINDER'S — the Resources column's own words and chips (docs/history/329). The
+         object itself, never parked or replaced; `STUFF` outside a binding is Find's, so the two
+         getters name the two finders. */
+      'RES: () => (typeof RES_ST !== "undefined" ? RES_ST : null),' +
       /* THE BIBLE READER'S STATE — a `const`, so a getter built here (see `STUFF`): which book is open,
          whether the index landed, which book failed. The Bible journey asks it rather than the DOM
          where the DOM cannot say, such as whether a failure changed the open book. */
@@ -514,9 +547,20 @@ function boot(opts) {
    written as questions somebody would actually ask of the app, not as assertions about internals. */
 const checks = [];
 /* `FLOW_ONLY=words node js/check-flow.js` runs the journeys whose names contain those words — for
-   working on one; the suite always runs the lot, and says how many it ran. */
+   working on one; the suite always runs the lot, and says how many it ran.
+   `FLOW_RE='one|two'` is the same as a regular expression, for several journeys that share no words —
+   the review of the second finder ran six that way, and without it `FLOW_RE` was silently ignored and
+   all of them ran, which looks exactly like a slow selection. */
+/* `FLOW_SLICE=1/3` RUNS EVERY THIRD JOURNEY, starting from the second — the suite in pieces, for a machine
+   too busy to run all of it inside one ten-minute window. The pieces together are the suite; each says
+   how many it ran. (`FLOW_PART=2/4`, at the foot of the roster, is the same in four runs of neighbours.) */
+const FLOW_RE_ = process.env.FLOW_RE ? new RegExp(process.env.FLOW_RE) : null;
+const FLOW_SLICE = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_SLICE || '');
+let flowSeen = 0;
 const check = (name, fn) => {
-  if (!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) checks.push({ name, fn });
+  const n = flowSeen++;
+  if (FLOW_SLICE && n % Number(FLOW_SLICE[2]) !== Number(FLOW_SLICE[1])) return;
+  if ((!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) && (!FLOW_RE_ || FLOW_RE_.test(name))) checks.push({ name, fn });
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -527,6 +571,182 @@ check('the app loads and draws without throwing', async () => {
   if (errs.length) bad.push('errors at load: ' + errs.join(' | '));
   if (!w.__t) return ['nothing was exported — the app did not finish loading'];
   if (typeof w.__t.go !== 'function') bad.push('go() is not a function');
+  return bad;
+});
+
+/* ---------- THE REELS' SOUND IS A TILE, READ THE THREE WAYS IT SAYS ITS STATE ------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* A tile has no word
+   on it, so the state is said three times and each is read here: the NAME (`aria-label` and `title`,
+   "Sound off" on a muted clip, "Sound on" playing aloud — the state it is IN, as the button's words
+   were), the MARK (the crossed speaker or the one with its waves), and `aria-pressed` for a screen
+   reader. Any one drifting from the other two is a tile that says two things, which is worse than the
+   button it replaced. Drawn by `tile_` and nothing else: `.tile`, `.is-over` (the wash it wears over
+   a picture) and `.reel-sound` (where it sits, and what a dead Short hides). Shared by both journeys,
+   and by Imposter's Read aloud, the app's other sound switch and the same tile since 10 Oct (`o`).
+
+   THE MARK IS READ AS A DRAWING, NOT AS A CLASS NAME. Review, 10 Oct: this asked only for
+   `tile-i-mute` / `tile-i-sound`, and with `mute: TILE_CONE_ + TILE_WAVES_` in tiles.js — the muted
+   mark drawn as the playing one — both journeys said OK. With no word on the tile the picture is the
+   only thing the eye has, so a pair that is two names for one picture is a switch that looks the same
+   both ways. So the drawing on the tile must be, shape for shape, the `TILE_ICONS` entry its class
+   names (`__t.ICONS`, the app's own object), and the pair itself must differ BOTH ways and share the
+   cone (`soundPairSays_`): the slash the playing mark lacks, the waves the muted one lacks — the
+   padlock's argument in tiles.js, checked rather than trusted. */
+const SVG_NS_ = 'http://www.w3.org/2000/svg';
+/* EVERY SHAPE IN A MARK AS ONE LINE — its tag and its attributes, sorted — and the lines sorted, so
+   two drawings are the same picture exactly when the two lists are equal, whatever order a hand wrote
+   the attributes in. */
+const markShapes_ = node => [...node.querySelectorAll('*')].map(n => n.localName + ' ' + [...n.attributes]
+  .map(a => a.name + '="' + String(a.value).replace(/\s+/g, ' ').trim() + '"').sort().join(' ')).sort();
+const iconShapes_ = (doc, name) => {
+  const icons = ((doc.defaultView || {}).__t || {}).ICONS;
+  if (!icons || typeof icons[name] !== 'string') return null;
+  const s = doc.createElementNS(SVG_NS_, 'svg');
+  s.innerHTML = icons[name];
+  return markShapes_(s);
+};
+/* ONCE PER WINDOW: a pair drawn wrong is one fault, not one per press. */
+const PAIR_ASKED_ = new WeakSet();
+const soundPairSays_ = doc => {
+  if (PAIR_ASKED_.has(doc)) return [];
+  PAIR_ASKED_.add(doc);
+  const on = iconShapes_(doc, 'sound'), off = iconShapes_(doc, 'mute');
+  if (!on || !off) return ['TILE_ICONS has no ' + [!on && 'sound', !off && 'mute'].filter(Boolean).join(' and no ')
+                           + ' — a sound switch needs both marks (or `__t.ICONS` is not handed over)'];
+  const only = (a, b) => a.filter(x => b.indexOf(x) === -1);
+  const bad = [];
+  if (!only(off, on).length) bad.push('TILE_ICONS.mute draws nothing TILE_ICONS.sound does not — '
+    + (only(on, off).length ? 'the waves taken away and no slash put in' : 'the muted mark is the same picture as the playing one')
+    + ', so a silent clip and one playing aloud look alike');
+  if (!only(on, off).length) bad.push('TILE_ICONS.sound draws nothing TILE_ICONS.mute does not — the playing mark has no waves of its own');
+  if (!on.some(x => off.indexOf(x) !== -1)) bad.push('TILE_ICONS.sound and .mute share no shape — not one cone with what leaves it changed, two unrelated pictures to learn');
+  return bad;
+};
+const switchTileSays_ = (el, on, where, o) => {
+  if (!el) return ['there is no ' + o.what + ' control on ' + where];
+  const bad = [];
+  const want = on ? o.names[1] : o.names[0];
+  const name = on ? 'sound' : 'mute';
+  const mark = 'tile-i-' + name;
+  if (el.tagName !== 'BUTTON' || !o.cls.every(c => el.classList.contains(c)))
+    bad.push(`the ${o.what} control on ${where} is not ${o.kind} — <${el.tagName.toLowerCase()} class="${el.className}">`);
+  if (el.dataset.do !== o.act) bad.push(`the ${o.what} tile on ${where} carries data-do="${el.dataset.do}", not its own ${o.act}`);
+  if (el.getAttribute('aria-label') !== want || el.getAttribute('title') !== want)
+    bad.push(`the ${o.what} tile on ${where} is named "${el.getAttribute('aria-label')}" / "${el.getAttribute('title')}", wanted "${want}"`);
+  if (el.getAttribute('aria-pressed') !== String(on))
+    bad.push(`the ${o.what} tile on ${where} says aria-pressed="${el.getAttribute('aria-pressed')}", wanted "${on}"`);
+  if (o.lit && el.classList.contains('on') !== on)
+    bad.push(`the ${o.what} tile on ${where} is ${el.classList.contains('on') ? '' : 'not '}lit (\`.on\`) while ${on ? 'on' : 'off'}`);
+  const marks = [...el.querySelectorAll('svg.tile-i')];
+  if (marks.length !== 1 || !marks[0].classList.contains(mark) || !marks[0].querySelector('path'))
+    bad.push(`the ${o.what} tile on ${where} draws ${marks.map(m => m.getAttribute('class')).join(' + ') || 'no mark'}`
+             + `, wanted the one ${mark} (TILE_ICONS needs both sound and mute)`);
+  else {
+    const doc = el.ownerDocument;
+    soundPairSays_(doc).forEach(x => bad.push(x));
+    const want_ = iconShapes_(doc, name), drawn = markShapes_(marks[0]);
+    if (want_ && drawn.join('\n') !== want_.join('\n'))
+      bad.push(`the ${o.what} tile on ${where} is classed ${mark} but draws another picture: [${drawn.join('; ')}], `
+               + `where TILE_ICONS.${name} is [${want_.join('; ')}]`);
+  }
+  if (el.textContent.trim()) bad.push(`the ${o.what} tile on ${where} has words drawn on it: "${el.textContent.trim()}"`);
+  return bad;
+};
+const soundTileSays_ = (el, on, where) => switchTileSays_(el, on, where, {
+  what: 'Sound', kind: 'the over-picture tile', act: 'reel-sound', names: ['Sound off', 'Sound on'],
+  cls: ['tile', 'is-over', 'reel-sound'] });
+/* IMPOSTER'S READ ALOUD, THE SAME PAIR ON A CARD rather than a picture: the plate lit (`.on`) while it
+   reads aloud, the switch-tile's way, and `.imp-aloud`, the name `check/states.js` finds it by. */
+const readAloudSays_ = (el, on, where) => switchTileSays_(el, on, where, {
+  what: 'Read aloud', kind: 'a tile', act: 'imp-aloud', names: ['Read aloud off', 'Read aloud on'],
+  cls: ['tile', 'imp-aloud'], lit: true });
+
+/* ---------- A <VIDEO> REEL'S SOUND, PRESSED WHERE A FINGER PRESSES IT --------------------------------
+   THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* What has to survive
+   the button becoming a tile, each a perfectly good-looking slide when it is wrong:
+     - every reel drawn carries ONE Sound tile and no `.btn`, drawn muted, because every clip starts so;
+     - a press on the tile's MARK — where a fingertip lands, an `<svg>` inside the button — reaches
+       `reel-sound` through the real dispatcher and never `reel-tap`: the nearest `data-do` wins, so
+       reaching for the sound must not stop the clip (a held reel would draw the ▶);
+     - turned on, the `<video>` is unmuted AND asked to play, since a clip a browser refused to start
+       aloud would otherwise stay silent and still under a tile saying "Sound on";
+     - and the name, the mark and `aria-pressed` follow it both ways (`soundTileSays_`).
+   JSDOM PLAYS NOTHING, so the one `<video>` is given a `play`, a `pause` and a `paused` that keep
+   count — the same stand-in move the Short's journey makes for YouTube's player. */
+check('the reels\' Sound is a tile: one per reel, drawn muted, a press on its mark turns a <video> aloud and back through the dispatcher, the name, mark and aria-pressed follow, and it never pauses the clip', async () => {
+  const { w } = boot();
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  const t = w.__t;
+  if (!t) return ['the app did not finish loading'];
+  const d = w.document;
+  const bad = [];
+  const at = () => ((typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {}).reel || 0;
+  const turn = async n => { t.goPage('reel', n, true); await wait(LEAVE_MS); await woken_(); };
+  t.go('reel', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const host = d.querySelector('#s-reel');
+  if (!host) return ['the Reels column did not draw'];
+  const reels = [...host.querySelectorAll('.reel')];
+  if (!reels.length) return ['the Reels column drew no reel to press'];
+  reels.forEach(r => {
+    const s = r.querySelectorAll('[data-do="reel-sound"]');
+    if (s.length !== 1) bad.push('reel ' + r.dataset.reel + ' carries ' + s.length + ' Sound controls, not one');
+    else soundTileSays_(s[0], false, 'reel ' + r.dataset.reel + ' as drawn').forEach(x => bad.push(x));
+  });
+  const btns = host.querySelectorAll('.reel .btn');
+  if (btns.length) bad.push(btns.length + ' `.btn` still drawn on the reels: ' + btns[0].outerHTML.slice(0, 100));
+
+  /* THE <VIDEO> REEL IN FRONT — turned to if the page in front is the Short. */
+  let reel = reels.find(r => r.querySelector('video.feed-vid') && Number(r.dataset.reel) === at());
+  if (!reel) {
+    const next = reels.find(r => r.querySelector('video.feed-vid'));
+    if (!next) return bad.concat(['no reel in the column is a <video> — this journey pressed nothing']);
+    await turn(Number(next.dataset.reel));
+    reel = host.querySelector('.reel[data-reel="' + next.dataset.reel + '"]');
+  }
+  const v = reel && reel.querySelector('video.feed-vid');
+  if (!v) return bad.concat(['the <video> reel was not on its page after turning to it']);
+  let paused = false, plays = 0;
+  v.play = () => { plays++; paused = false; return Promise.resolve(); };
+  v.pause = () => { paused = true; };
+  Object.defineProperty(v, 'paused', { configurable: true, get: () => paused });
+  v.muted = true;
+  const snd = () => reel.querySelector('[data-do="reel-sound"]');
+  /* A TAP ON THE MARK, which bubbles to the button and then to the slide's own `reel-tap` — the real
+     dispatcher decides which of the two it is. */
+  const press = () => {
+    const el = snd();
+    const target = (el && el.querySelector('svg')) || el;
+    if (target) target.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+  };
+
+  /* AND THE PICTURE ITSELF CHANGES WITH EACH PRESS — the markup inside the mark, not its class name;
+     review drew `mute` as `sound` and every class-name check passed (`soundTileSays_`). */
+  const drawn = () => ((snd() && snd().querySelector('svg.tile-i')) || {}).innerHTML;
+  const looked = [drawn()];
+  plays = 0;
+  press();
+  looked.push(drawn());
+  if (v.muted) bad.push('a press on the Sound tile\'s mark left the <video> muted');
+  if (!plays) bad.push('turned aloud, the <video> was not asked to play — a clip refused a start would stay silent and still');
+  if (paused || reel.classList.contains('is-held'))
+    bad.push('a press on the Sound tile paused the clip — the tap reached reel-tap, not the tile\'s own reel-sound');
+  soundTileSays_(snd(), true, 'a <video> reel turned aloud').forEach(x => bad.push(x));
+
+  press();
+  looked.push(drawn());
+  if (looked[1] === looked[0]) bad.push('turning the <video> aloud left the same picture on the Sound tile');
+  if (looked[2] === looked[1]) bad.push('turning the <video> back to silent left the same picture on the Sound tile');
+  if (looked[2] !== looked[0]) bad.push('silent again, the Sound tile does not draw the picture it was drawn with');
+  if (!v.muted) bad.push('a second press on the Sound tile left the <video> playing aloud');
+  if (paused || reel.classList.contains('is-held'))
+    bad.push('turning the sound off paused the clip — the tap reached reel-tap, not the tile\'s own reel-sound');
+  soundTileSays_(snd(), false, 'a <video> reel turned back to silent').forEach(x => bad.push(x));
+
+  /* AND THE SLIDE ITSELF IS STILL THE PAUSE — a tap beside the tile holds the clip, which is what makes
+     the two presses above a test of which handler was nearest rather than of a slide that does nothing. */
+  reel.querySelector('.feed-art').dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+  if (!paused || !reel.classList.contains('is-held')) bad.push('a tap on the picture beside the Sound tile did not hold the clip');
   return bad;
 });
 
@@ -622,12 +842,23 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   if (funcs().join() !== 'playVideo') bad.push('a second tap said ' + (funcs().join(', ') || 'nothing') + ', not playVideo');
   if (reel.classList.contains('is-held')) bad.push('the ▶ stayed after the Short was started again');
 
-  /* THE APP'S OWN SOUND BUTTON, THE SAME WORDS. */
+  /* THE APP'S OWN SOUND TILE, THE SAME WORDS — BOTH WAYS, AND THEN ON AGAIN so the player taken down
+     below has a sound to forget (note 323). Pressed through its handler, which is the one a tap on
+     the tile reaches; the `<video>` journey below presses the real dispatcher. */
+  const snd = reel.querySelector('[data-do="reel-sound"]');
+  soundTileSays_(snd, false, 'a Short not yet pressed').forEach(x => bad.push(x));
+  if (!snd) return bad;
   said.length = 0;
-  const snd = reel.querySelector('.reel-sound');
   t.ACTIONS['reel-sound'](snd);
   if (funcs().indexOf('unMute') === -1) bad.push('Sound on a Short said ' + (funcs().join(', ') || 'nothing') + ', not unMute');
-  if (snd.textContent !== 'Sound on') bad.push('the Sound button reads "' + snd.textContent + '" after turning the sound on');
+  soundTileSays_(snd, true, 'a Short turned aloud').forEach(x => bad.push(x));
+  said.length = 0;
+  t.ACTIONS['reel-sound'](snd);
+  if (funcs().indexOf('mute') === -1 || funcs().indexOf('unMute') !== -1)
+    bad.push('Sound off on a Short said ' + (funcs().join(', ') || 'nothing') + ', not mute');
+  soundTileSays_(snd, false, 'a Short turned back to silent').forEach(x => bad.push(x));
+  t.ACTIONS['reel-sound'](snd);
+  soundTileSays_(snd, true, 'a Short turned aloud a second time').forEach(x => bad.push(x));
 
   /* LEAVING PAUSES IT; A PAGE FURTHER TAKES IT DOWN, AND THE BUTTON IS PUT BACK. */
   said.length = 0;
@@ -636,7 +867,8 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   if (frames().length !== 1) bad.push('the page next door lost its player — a flick back would reload it');
   await turn(n + 2);
   if (frames().length) bad.push('a player two pages away is still in the column');
-  if (snd.textContent !== 'Sound off') bad.push('a player taken down left its button reading "' + snd.textContent + '"');
+  soundTileSays_(snd, false, 'a Short whose player was taken down (it starts silent when built again)')
+    .forEach(x => bad.push(x));
 
   /* LEAVING THE COLUMN TAKES IT DOWN TOO. */
   await turn(n);
@@ -661,6 +893,16 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
       bad.push('a Short that cannot play has no "Watch on YouTube" door to it: ' + (out ? out.outerHTML.slice(0, 120) : 'none'));
     t.ACTIONS['reel-tap'](reel);
     if (reel.classList.contains('is-held')) bad.push('a tap on a Short that cannot play drew a ▶ over it');
+    /* AND ITS SOUND TILE IS A CONTROL FOR NOTHING: hidden by the stylesheet (jsdom cannot compute
+       `:has`, so the rule is read), and a press that arrives anyway says nothing to a player that is
+       gone and leaves the tile as it was. */
+    if (!/\.reel:has\(\.feed-art\.is-dead\)\s+\.reel-sound\s*\{[^}]*display:\s*none/.test(css))
+      bad.push('nothing in style.css hides the Sound tile on a Short that cannot play');
+    if (!snd.classList.contains('reel-sound')) bad.push('the Sound tile lost `.reel-sound`, the name a dead Short hides it by');
+    const before = snd.outerHTML;
+    said.length = 0;
+    t.ACTIONS['reel-sound'](snd);
+    if (snd.outerHTML !== before) bad.push('a press on a dead Short\'s Sound tile changed it, over a player that is gone');
   }
 
   /* THE GREY: NO WASH WHERE THERE ARE NO WORDS. A clip slide draws no words, and the stylesheet's
@@ -1981,6 +2223,579 @@ check('removing a qualification: the bin saves at once, and only that one goes',
   return bad;
 });
 
+/* ---------- A TUTOR EDITS THEIR OWN CARD, ON THE CARD (docs/history/330) ------------------------------------
+   THE OWNER, 10 OCT, with a screenshot of the Settings card "About you" beside their own card: *"all of
+   this stuff should be editable directly on the tutors card for that respective tutor. this centralises
+   things so less widgets are required."* So a tutor's own card has an Edit tile, the card becomes its own
+   form in place, one Save posts every changed field through the existing `updateProfile`, Cancel puts back
+   what was there, the boxes survive a reload as every box does (317), and the five Settings pages that
+   held those fields are gone for anybody with a card.
+
+   PRESSED AGAINST THE REAL BACKEND (check-gas-load.js), as the Notifications journeys are: the payload the
+   app boots on is the real `doGet`'s (its tutors, venues and `profileFields`, laid over this file's
+   fixture), every `updateProfile`, `myProfile` and `getProfile` goes to the real `doPost`, and "the sheet
+   holds them" is read off the real tab after the Save — so what is checked is what the server made of the
+   request, not what a reply typed here says. Invented people, example.org, PIN 0000. */
+const CARD_ADA_ = { headline: 'Maths, mostly', rate_per_hour: 20, extra_seat_rate: 0.5, min_students: 1, max_students: 4,
+  years_experience: 5, age_min: 8, age_max: 16, adjective_1: 'calm', adjective_2: 'clear', adjective_3: 'kind',
+  favourite_colour: 'Blue', travel_km: 5, photos: 'https://example.org/one.jpg', availability: 'm16,m17',
+  /* A PHOTOGRAPH LINK FOR A FACE — the one kind of picture `savePhoto` cannot write back, so Cancel putting
+     it back is a real test of the door it uses (`card-cancel`, me.js). */
+  photo: 'https://example.org/ada.jpg' };
+const cardWorld_ = () => {
+  const real = require('./check-gas-load.js').backend();
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London' };
+  const P = (id, first, last, role, email, more) => Object.assign({ person_id: id, first_name: first, last_name: last,
+    handle: (first + last).toLowerCase(), email: email, role: role }, base, more || {});
+  real.seed('people', [
+    P('P-A1', 'Hal', 'Admin', 'admin', 'admin@example.org', { rate_per_hour: 30, headline: 'Runs the place' }),
+    P('P-T1', 'Ada', 'Tutor', 'tutor', 'tutor@example.org', CARD_ADA_),
+    /* BEN'S FACE IS ONE OF THE TEN (docs/history/324) — a token, not a link, so an admin's form showing it
+       through anything but `personFace_` draws a broken image. */
+    P('P-T2', 'Ben', 'Teacher', 'tutor', 'ben@example.org', { headline: 'Physics, mostly', rate_per_hour: 22, availability: 'sa10', photo: 'pfp:fox' }),
+    P('P-C1', 'Pat', 'Parent', 'client', 'parent@example.org'),
+    P('P-S1', 'Sam', 'Student', 'student', 'student@example.org'),
+  ]);
+  real.seed('venues', [
+    { name: 'Colliers Wood Library', postcode: 'SW19 2HR', lat: 51.418, lng: -0.178, tutors_happy_here: 'P-T1' },
+    { name: 'Mitcham Library', postcode: 'CR4 2YR', lat: 51.402, lng: -0.166 },
+    { name: 'Online' },
+  ]);
+  real.seed('qualifications', [
+    { person_id: 'P-T1', subject: 'Maths', level: 'GCSE', grade: '9', completed: '2016', teach: 'TRUE', can_teach: 'FALSE' },
+  ]);
+  const user = who => {
+    const d = real.post({ action: 'verifyLogin', email: who, pin: '0000' });
+    return d && d.success ? { name: d.name, personId: d.personId, role: d.role, roles: d.roles, token: d.token,
+      handle: d.handle, profile: d.profile } : null;
+  };
+  /* THE THREE PROFILE ACTIONS GO TO THE REAL `doPost`, AND `savePhoto` — a tap in the picture grid is a
+     token and needs no Drive, so the real door answers it; the app's other polls are answered plainly. */
+  const reply = b => (['updateProfile', 'myProfile', 'getProfile', 'savePhoto'].indexOf(b.action) !== -1)
+    ? real.post(b) : { success: true, messages: [] };
+  /* THE PAYLOAD IS THE REAL `doGet`'S, asked again on every load — so the card a Save redraws is drawn from
+     what the server now sends, qualifications included. */
+  const GET = () => {
+    const g = real.get({});
+    return Object.assign(payload(), { features: ['setNotify'], tutors: g.tutors, venues: g.venues,
+      profileFields: g.profileFields, studentFields: g.studentFields, clientFields: g.clientFields,
+      validations: g.validations, profileReadonly: g.profileReadonly, phoneCodes: g.phoneCodes });
+  };
+  /* AND A PAYLOAD THAT CAN BE HELD — the live one takes seconds, and "the card says it at once" is a
+     question about the seconds before it lands, which an instant stub would answer for it. */
+  let held = null;
+  const W = { real, user, reply, GET, holding: false,
+    release: () => { const h = held; held = null; if (h) h(); },
+    serve: u => (!/script\.google\.com/.test(u) ? undefined
+      : !W.holding ? GET() : new Promise(ok => { held = () => ok(GET()); })),
+    sheet: js => { real.ev('clearCache()'); return JSON.parse(real.ev('JSON.stringify(' + js + ')')); } };
+  return W;
+};
+const cardOpen_ = async (W, who, more) => {
+  more = more || {};
+  const u = who ? W.user(who) : null;
+  if (who && !u) return { err: who + ' could not sign in to the real backend' };
+  const b = boot({ payload: W.GET(), reply: W.reply, serve: W.serve, before: more.before || (u ? signedInAs_(u) : undefined) });
+  for (let k = 0; k < 80 && !b.w.__t; k++) await wait(100);
+  if (!b.w.__t) return { err: 'the app did not finish loading' };
+  await wait(600);
+  const t = b.w.__t, d = b.w.document;
+  try { t.go('account', false, true); b.w.paint('account'); } catch (e) { return { err: 'drawing the You column threw: ' + e.message }; }
+  await wait(250);
+  const c = {
+    b, w: b.w, t, d, u, sent: b.sent, gets: b.gets,
+    A: (act, el) => t.ACTIONS[act](el),
+    edit: pid => d.querySelector('#s-account [data-do="card-edit"][data-pid="' + pid + '"]'),
+    edits: () => [...d.querySelectorAll('#s-account [data-do="card-edit"]')].map(x => x.dataset.pid),
+    card: () => d.querySelector('#s-account .card-ed'),
+    form: () => d.querySelector('#s-account .card-ed .me-form'),
+    box: f => c.form() && c.form().querySelector('[data-me="' + f + '"]'),
+    tile: act => { const k = c.card(); const pane = k && k.closest('.pane'); return pane && pane.querySelector('[data-do="' + act + '"]'); },
+    /* A BOX TYPED INTO AND LEFT, the way a person does it: `input`, then `change`, both bubbling. */
+    type: (el, v) => { el.value = v; el.dispatchEvent(new b.w.Event('input', { bubbles: true }));
+                       el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
+    tick: (el, on) => { el.checked = on; el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
+    posts: () => b.sent.filter(x => x.action === 'updateProfile'),
+    said: () => String((c.form() && (c.form().querySelector('.me-said') || {}).textContent) || ''),
+    toast: () => toastOf_(d),
+    drafts: () => Object.keys(keptStore_(b.w)).filter(k => /:card:/.test(k)),
+    pageOf: pid => [...d.querySelectorAll('#s-account .page')].find(pg => pg.querySelector('[data-do="card-edit"][data-pid="' + pid + '"], .card-ed[data-pid="' + pid + '"]')),
+  };
+  return c;
+};
+const CARD_ORDER_ = ['picture', 'name', 'rate', 'headline', 'photos', 'words', 'glance', 'quals', 'where', 'week'];
+/* WHAT THE CARD'S FIVE SECTIONS ARE CHANGED TO, one field or more in each, and the qualification's grade. */
+const cardEditEverything_ = async c => {
+  const f = c.form();
+  c.type(c.box('first_name'), 'Adah');
+  c.type(c.box('rate_per_hour'), '24');
+  c.type(c.box('headline'), 'Maths and physics, mostly');
+  const more = f.querySelector('.ph-shelf [data-do="shelf-more"]');
+  if (more) c.A('shelf-more', more);
+  c.type(c.box('photos_2'), 'https://example.org/two.jpg');
+  c.type(c.box('adjective_2'), 'patient');
+  c.type(c.box('years_experience'), '6');
+  c.type(c.box('favourite_colour'), 'Green');
+  c.type(c.box('age_max'), '18');
+  /* HOW LONG A SESSION IS — writable since the review of 330, in At a glance where the card prints it. */
+  const hours = !!(c.box('min_hours') && c.box('max_hours'));
+  if (hours) { c.type(c.box('min_hours'), '2'); c.type(c.box('max_hours'), '3'); }
+  const line = f.querySelector('.q-slot[data-slot="1"] > .q-line');
+  if (line) c.A('qual-open', line);
+  await wait(50);
+  c.type(c.box('qual_1_grade'), '8');
+  await wait(50);
+  const mitcham = f.querySelector('input[data-many-of="venues_ok"][value="Mitcham Library"]');
+  if (mitcham) c.tick(mitcham, true);
+  c.type(c.box('travel_km'), '8');
+  const tu10 = f.querySelector('.hr input[data-me="tu10"]');
+  if (tu10) c.tick(tu10, true);
+  await wait(50);
+  return { more: !!more, line: !!line, mitcham: !!mitcham, tu10: !!tu10, 'session length': hours };
+};
+const CARD_PLAIN_ = { first_name: 'Adah', rate_per_hour: '24', headline: 'Maths and physics, mostly', adjective_2: 'patient',
+  years_experience: '6', favourite_colour: 'Green', age_max: '18', min_hours: '2', max_hours: '3',
+  venues_ok: 'Colliers Wood Library, Mitcham Library', travel_km: '8' };
+const CARD_WHOLE_RE_ = /^photos_\d+$|^qual_\d+(_\w+)?$|^(m|tu|w|th|f|sa|su)\d\d$/;
+
+check('a tutor edits every section of their own card in place: one updateProfile with exactly what changed, the sheet holds it, and the card redraws with it', async () => {
+  const W = cardWorld_();
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  const edit = c.edit('P-T1');
+  if (!edit) return ['Ada\'s own card has no Edit tile — offered ' + JSON.stringify(c.edits())];
+  if (!edit.classList.contains('tile') || (edit.getAttribute('aria-label') || '').indexOf('Edit') !== 0) bad.push('Edit is not a tile named Edit');
+  if (c.card()) bad.push('the card arrived already open for editing');
+  c.A('card-edit', edit);
+  await wait(250);
+  const card = c.card(), form = c.form();
+  if (!card || !form) return bad.concat(['pressing Edit did not turn the card into a form']);
+  if (card.dataset.pid !== 'P-T1' || !card.classList.contains('is-prof')) bad.push('the form is not Ada\'s card in the card\'s own clothes');
+  if (!c.pageOf('P-T1') || !c.pageOf('P-T1').contains(card)) bad.push('the form is not on the page the card was on');
+  /* THE CARD'S ORDER, EVERY SECTION. */
+  const order = [...form.querySelectorAll('.ce-sec')].map(s => s.dataset.sec);
+  if (JSON.stringify(order) !== JSON.stringify(CARD_ORDER_)) bad.push('the sections read ' + JSON.stringify(order) + ', not the card\'s order ' + JSON.stringify(CARD_ORDER_));
+  /* EVERY FIELD A TUTOR'S FIVE PAGES HELD HAS A BOX HERE (the picture is the picker). */
+  const groups = c.t.DATA().profileFields || {};
+  const five = Object.keys(groups).filter(g => !/contact|library/i.test(g)).reduce((a, g) => a.concat(groups[g]), []);
+  const missing = five.filter(f => f !== 'photo' && !c.box(f));
+  if (!five.length) bad.push('the payload sent no profileFields, so the boxes were NOT checked');
+  if (missing.length) bad.push('the form has no box for ' + missing.slice(0, 8).join(', ') + (missing.length > 8 ? ' (+' + (missing.length - 8) + ')' : ''));
+  ['venues_ok', 'travel_km'].forEach(f => { if (!c.box(f)) bad.push('the form has no ' + f + ' — where they tutor is not editable on the card'); });
+  if (!form.querySelector('.pfp [data-do="pfp-pick"]')) bad.push('Ada\'s own card does not offer the picture chooser');
+  /* THE WEEK: ALL SEVEN DAYS, whatever the card shows. */
+  const days = form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length;
+  const hrs = form.querySelectorAll('.me-week .hr input[type="checkbox"][data-me]').length;
+  if (days !== 7 || hrs !== 70) bad.push('the week offers ' + days + ' days and ' + hrs + ' hours, not all seven days and seventy hours');
+  /* EDIT, SAVE AND CANCEL ARE TILES; the boxes are the form's. */
+  const save = c.tile('card-save'), cancel = c.tile('card-cancel');
+  if (!save || !cancel || !save.classList.contains('tile') || !cancel.classList.contains('tile')) bad.push('Save and Cancel are not tiles under the form');
+  if (c.edit('P-T1')) bad.push('Edit is still offered on a card already being edited');
+  /* SIGN OUT STAYS UNDER THE FORM — the review of 330: `a ? b : c + d` dropped the row, so a tutor editing
+     their card had no way off it but Save and Cancel, and Settings has no Sign out of its own. */
+  if (!c.pageOf('P-T1') || !c.pageOf('P-T1').querySelector('[data-do="signout"]')) bad.push('Sign out is not under Ada\'s card while she edits it');
+  /* THE EDITOR'S PHOTOGRAPHS ARE FETCHED AT ONCE — the owner, 10 Oct: "these remain loading untill i scroll to
+     them". The form is two thousand pixels in a pane that scrolls, so a lazy thumb is not asked for until it
+     is scrolled to. */
+  const lazy = [...form.querySelectorAll('img')].filter(i => i.getAttribute('loading') === 'lazy');
+  if (!form.querySelector('.ph-shelf .ph-thumb img')) bad.push('the editor drew no photograph thumbnail, so whether they wait to be scrolled to was NOT checked');
+  if (lazy.length) bad.push(lazy.length + ' picture(s) on the card being edited are loading="lazy" (' + lazy.map(i => i.closest('[class]').className).join(', ') + ') — not fetched until scrolled to');
+  const did = await cardEditEverything_(c);
+  Object.keys(did).forEach(k => { if (!did[k]) bad.push('the form has no ' + k + ' to press, so that section was NOT edited'); });
+  const heat = form.querySelector('.ce-heat .prof-heat');
+  if (!heat || heat.getAttribute('data-dots') !== '2') bad.push('ticking Mitcham did not redraw the map with two venues (dots ' + (heat && heat.getAttribute('data-dots')) + ')');
+  c.sent.length = 0;
+  W.holding = true;
+  const g0 = c.gets.length;
+  c.A('card-save', save);
+  await wait(500);
+  const posts = c.posts();
+  if (posts.length !== 1) return bad.concat(['Save posted ' + posts.length + ' updateProfile requests, not one: ' + JSON.stringify(c.sent.map(x => x.action))]);
+  const p = posts[0], f = p.fields || {};
+  if (p.targetId !== 'P-T1') bad.push('the Save was addressed to ' + JSON.stringify(p.targetId) + ', not Ada');
+  /* EXACTLY WHAT CHANGED — and the three packed cells whole, because the server rebuilds each from what arrives. */
+  const keys = Object.keys(f);
+  const extra = keys.filter(k => !CARD_WHOLE_RE_.test(k) && !(k in CARD_PLAIN_));
+  const absent = Object.keys(CARD_PLAIN_).filter(k => !(k in f));
+  if (extra.length) bad.push('the Save sent fields nobody changed: ' + extra.join(', '));
+  if (absent.length) bad.push('the Save left out fields that changed: ' + absent.join(', '));
+  Object.keys(CARD_PLAIN_).forEach(k => { if (k in f && String(f[k]) !== CARD_PLAIN_[k]) bad.push(k + ' was sent as ' + JSON.stringify(f[k]) + ', typed ' + JSON.stringify(CARD_PLAIN_[k])); });
+  const count = re => keys.filter(k => re.test(k)).length;
+  if (count(/^photos_\d+$/) !== 8) bad.push('one photograph changed and ' + count(/^photos_\d+$/) + ' photograph boxes were sent, not all eight');
+  if (count(/^qual_\d+/) !== 70) bad.push('one grade changed and ' + count(/^qual_\d+/) + ' qualification boxes were sent, not all seventy');
+  if (count(/^(m|tu|w|th|f|sa|su)\d\d$/) !== 70) bad.push('one hour ticked and ' + count(/^(m|tu|w|th|f|sa|su)\d\d$/) + ' hour codes were sent, not all seventy — the week would be one hour');
+  /* THE SHEET HOLDS IT. */
+  const row = W.real.row('P-T1');
+  const want = { first_name: 'Adah', rate_per_hour: 24, headline: 'Maths and physics, mostly', adjective_2: 'patient',
+                 years_experience: 6, favourite_colour: 'Green', age_max: 18, min_hours: 2, max_hours: 3, travel_km: 8, last_name: 'Tutor', extra_seat_rate: 0.5, adjective_1: 'calm' };
+  Object.keys(want).forEach(k => { if (String(row[k]) !== String(want[k])) bad.push('the sheet\'s ' + k + ' is ' + JSON.stringify(row[k]) + ', wanted ' + JSON.stringify(want[k])); });
+  if (String(row.photos) !== 'https://example.org/one.jpg | https://example.org/two.jpg') bad.push('the sheet\'s photographs are ' + JSON.stringify(row.photos));
+  if (String(row.availability) !== 'm16,m17,tu10') bad.push('the sheet\'s week is ' + JSON.stringify(row.availability) + ', wanted m16,m17,tu10');
+  const venues = W.sheet('read(TAB.venues).rows.map(r => [S(r.name), S(r.tutors_happy_here)])');
+  if (!venues.some(v => v[0] === 'Mitcham Library' && /P-T1/.test(v[1])) || !venues.some(v => v[0] === 'Colliers Wood Library' && /P-T1/.test(v[1]))) bad.push('the venues tab does not have Ada at both libraries: ' + JSON.stringify(venues));
+  const quals = W.sheet('read(TAB.qualifications).rows.filter(r => S(r.person_id) === "P-T1").map(r => [S(r.subject), S(r.level), S(r.grade)])');
+  if (JSON.stringify(quals) !== JSON.stringify([['Maths', 'GCSE', '8']])) bad.push('the qualifications tab holds ' + JSON.stringify(quals) + ', wanted Maths GCSE 8 alone');
+  /* THE CARD IS A CARD AGAIN, AND SAYS IT AT ONCE — the payload that follows the Save is held here. */
+  if (c.card()) bad.push('after Save the card is still a form');
+  if (!/Saved/.test(c.toast())) bad.push('the toast says "' + c.toast() + '", not Saved');
+  if (c.drafts().length) bad.push('the card\'s draft is still on the device after Save: ' + c.drafts().join(', '));
+  const pg = () => c.pageOf('P-T1');
+  const text = () => String((pg() && pg().textContent) || '');
+  if (!/Adah Tutor/.test(text())) bad.push('the card does not say Adah Tutor straight after Save');
+  if (!/£24\.00/.test(text())) bad.push('the card does not say £24.00 straight after Save');
+  if (!/Maths and physics, mostly/.test(text())) bad.push('the card does not carry the new headline straight after Save');
+  if (!/patient/i.test(text())) bad.push('the card does not carry the new word straight after Save');
+  if (!/2–3 hours/.test(text())) bad.push('the card does not say the new session length, 2–3 hours, straight after Save');
+  const lit = () => pg() && pg().querySelector('.prof-week .hr[data-code="tu10"]');
+  if (!lit() || !lit().classList.contains('on')) bad.push('Tuesday 10:00 is not lit on the card straight after Save');
+  /* AND THE PAYLOAD THAT FOLLOWS — the server's — draws the qualification as saved. */
+  if (!c.gets.slice(g0).some(g => /script\.google\.com/.test(g))) bad.push('the Save asked for no payload after it, so the card was NOT seen redrawn from the server\'s');
+  W.holding = false;
+  W.release();
+  for (let k = 0; k < 30; k++) {
+    const r = (c.t.DATA().tutors || []).find(x => x.personId === 'P-T1');
+    if (r && (r.qualsParts || []).some(q => String(q.grade) === '8')) break;
+    await wait(100);
+  }
+  const sub = pg() && [...pg().querySelectorAll('.prof-iso sub')].map(s => s.textContent);
+  if (!sub || sub.indexOf('8') === -1) bad.push('after the payload landed the card\'s Maths GCSE grade reads ' + JSON.stringify(sub) + ', not 8');
+  if (String(c.t.whoami().name) !== 'Adah Tutor') bad.push('the session is still named ' + JSON.stringify(c.t.whoami().name) + ' after a rename');
+  return bad;
+});
+
+check('Cancel puts the card back as it was and sends nothing; a refused Save keeps the form open, says why, and writes nothing', async () => {
+  const W = cardWorld_();
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(250);
+  if (!c.form()) return ['pressing Edit did not turn the card into a form'];
+  /* A QUALIFICATION BEING ADDED WITH A SUBJECT AND NO LEVEL IS NOT SENT — Settings never saves one either. */
+  const add = c.form().querySelector('.q-shelf [data-do="qual-add"]');
+  if (!add) bad.push('the card\'s shelf has no + to add a qualification, so a half-added one was NOT checked');
+  else {
+    c.A('qual-add', add);
+    await wait(50);
+    const fresh = c.form().querySelector('.q-list .q-slot[data-new]');
+    if (!fresh) bad.push('+ on the card\'s shelf did not start a line');
+    else {
+      c.type(fresh.querySelector('select.q-name'), 'Physics');
+      c.sent.length = 0;
+      c.A('card-save', c.tile('card-save'));
+      await wait(300);
+      if (c.posts().length) bad.push('the card posted a qualification with a subject and no level');
+      if (!/Choose a level/.test(c.said())) bad.push('a half-added qualification is refused with "' + c.said() + '"');
+      const again = c.form() && c.form().querySelector('.q-list .q-slot[data-new]');
+      if (again) { c.A('qual-drop', again.querySelector('[data-do="qual-drop"]')); await wait(50); }
+    }
+  }
+  if (!c.form()) return bad.concat(['the half-added qualification\'s Save closed the form, so the rest was NOT checked']);
+  /* REFUSED: a youngest older than the oldest. `ageRefusal_` refuses before anything is written. */
+  c.type(c.box('age_min'), '17');
+  c.type(c.box('age_max'), '9');
+  c.type(c.box('headline'), 'Typed, and refused with the ages');
+  c.sent.length = 0;
+  c.A('card-save', c.tile('card-save'));
+  await wait(500);
+  if (c.posts().length !== 1) bad.push('the refused Save posted ' + c.posts().length + ' requests');
+  if (!c.form()) bad.push('a refused Save closed the form, and what was typed with it');
+  else {
+    if (!/youngest age/i.test(c.said()) || !/Nothing was saved/i.test(c.said())) bad.push('the line under the form says "' + c.said() + '", not the server\'s refusal');
+    if (c.box('headline').value !== 'Typed, and refused with the ages') bad.push('the refused Save emptied the headline box');
+  }
+  const row = W.real.row('P-T1');
+  if (String(row.headline) !== 'Maths, mostly' || String(row.age_min) !== '8') bad.push('a refused Save wrote to the sheet: headline ' + JSON.stringify(row.headline) + ', age_min ' + JSON.stringify(row.age_min));
+  /* CANCEL: nothing sent, the card back, no draft. */
+  const mitcham = c.form() && c.form().querySelector('input[data-many-of="venues_ok"][value="Mitcham Library"]');
+  if (mitcham) c.tick(mitcham, true);
+  if (!c.tile('card-cancel')) return bad.concat(['there is no Cancel under the card to press, so Cancel was NOT checked']);
+  c.sent.length = 0;
+  c.A('card-cancel', c.tile('card-cancel'));
+  await wait(300);
+  if (c.posts().length) bad.push('Cancel posted ' + c.posts().length + ' updateProfile requests');
+  if (c.card()) bad.push('Cancel left the card as a form');
+  const text = String((c.pageOf('P-T1') || {}).textContent || '');
+  if (!/Maths, mostly/.test(text) || /Typed, and refused/.test(text)) bad.push('after Cancel the card does not carry the headline it had');
+  if (c.drafts().length) bad.push('Cancel left the card\'s draft on the device: ' + c.drafts().join(', '));
+  /* AND EDIT AGAIN OPENS ON THE SAVED VALUES, saying nothing is waiting. */
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(250);
+  if (!c.form()) bad.push('Edit after Cancel did not open the form');
+  else {
+    if (c.box('headline').value !== 'Maths, mostly') bad.push('Edit after Cancel opened on ' + JSON.stringify(c.box('headline').value) + ', not the saved headline');
+    if (c.box('venues_ok').value !== 'Colliers Wood Library') bad.push('Edit after Cancel opened with venues ' + JSON.stringify(c.box('venues_ok').value));
+    if (c.said()) bad.push('Edit after Cancel says "' + c.said() + '" under the form');
+  }
+  /* ---------- AND CANCEL PUTS THE PICTURE BACK TOO — the review of 330 -----------------------------------
+     The chooser saves the moment a picture is chosen, so Cancel used to leave the new face on the card and the
+     sheet under a tile that says "put it back". Ada's face is a photograph LINK, which `savePhoto` cannot write
+     back; she taps the fox, the page is RELOADED (the picture she opened with has to survive that), and Cancel
+     must send one `updateProfile` carrying only `photo`, the link — and the sheet, her profile and her card
+     must hold the link again. */
+  if (!c.form()) return bad.concat(['no form open to choose a picture on, so Cancel putting the picture back was NOT checked']);
+  const fox = c.form().querySelector('.pfp [data-do="pfp-choose"][data-pic="fox"]');
+  if (!fox) return bad.concat(['the card\'s picture chooser has no fox to tap, so Cancel putting the picture back was NOT checked']);
+  c.sent.length = 0;
+  c.A('pfp-choose', fox);
+  for (let k = 0; k < 20 && String(W.real.row('P-T1').photo) !== 'pfp:fox'; k++) await wait(100);
+  if (String(W.real.row('P-T1').photo) !== 'pfp:fox') return bad.concat(['tapping the fox on the card did not save it (sheet: ' + JSON.stringify(W.real.row('P-T1').photo) + '), so Cancel putting it back was NOT checked']);
+  c.w.dispatchEvent(new c.w.Event('pagehide'));
+  const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)) });
+  if (two.err) return bad.concat(['after the reload: ' + two.err]);
+  for (let k = 0; k < 20 && !two.form(); k++) await wait(100);
+  if (!two.form() || !two.tile('card-cancel')) return bad.concat(['after the reload Ada\'s card is not open for editing, so Cancel after a reload was NOT checked']);
+  two.sent.length = 0;
+  two.A('card-cancel', two.tile('card-cancel'));
+  for (let k = 0; k < 20 && two.card(); k++) await wait(100);
+  const back = two.posts();
+  if (back.length !== 1 || JSON.stringify(back[0].fields) !== JSON.stringify({ photo: 'https://example.org/ada.jpg' }) || back[0].targetId !== 'P-T1') {
+    bad.push('Cancel after a picture was chosen sent ' + JSON.stringify(back.map(x => x.fields)) + ', not one updateProfile putting back the link she opened with');
+  }
+  if (two.sent.some(x => x.action === 'savePhoto')) bad.push('Cancel sent a savePhoto');
+  if (String(W.real.row('P-T1').photo) !== 'https://example.org/ada.jpg') bad.push('after Cancel the sheet\'s picture is ' + JSON.stringify(W.real.row('P-T1').photo) + ', not the link Ada opened the card with');
+  if (String((two.t.whoami().profile || {}).photo) !== 'https://example.org/ada.jpg') bad.push('after Cancel Ada\'s own profile says her picture is ' + JSON.stringify((two.t.whoami().profile || {}).photo));
+  if (two.card()) bad.push('Cancel with a picture to put back left the card as a form');
+  const face = two.pageOf('P-T1') && two.pageOf('P-T1').querySelector('.prof-top .prof-pic');
+  if (!face || face.tagName !== 'IMG' || face.getAttribute('src') !== 'https://example.org/ada.jpg') bad.push('after Cancel Ada\'s card shows ' + (face ? face.outerHTML.slice(0, 80) : 'no face') + ', not her photograph');
+  if (!/your picture too/.test(two.toast())) bad.push('after Cancel the toast says "' + two.toast() + '", not that the picture was put back as well');
+  if (two.drafts().length) bad.push('Cancel with a picture left the card\'s draft on the device: ' + two.drafts().join(', '));
+  return bad;
+});
+
+check('a reload in the middle of editing the card keeps it open with every typed value, says they are not saved, and Save sends them', async () => {
+  const W = cardWorld_();
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
+  c.A('card-edit', c.edit('P-T1'));
+  await wait(250);
+  if (!c.form()) return ['pressing Edit did not turn the card into a form'];
+  const did = await cardEditEverything_(c);
+  if (Object.keys(did).some(k => !did[k])) bad.push('not every section could be edited before the reload: ' + JSON.stringify(did));
+  if (c.posts().length) bad.push('editing the card posted ' + c.posts().length + ' updateProfile requests before Save — the shelf saved as it went');
+  c.w.dispatchEvent(new c.w.Event('pagehide'));
+  const kept = keptStore_(c.w);
+  const two = await cardOpen_(W, null, { before: fromStore_(kept) });
+  if (two.err) return bad.concat(['after the reload: ' + two.err]);
+  for (let k = 0; k < 20 && !two.form(); k++) await wait(100);
+  if (!two.form()) return bad.concat(['after the reload Ada\'s card is a card again — what was typed is on the device and nothing on the screen says so']);
+  Object.keys(CARD_PLAIN_).forEach(f => {
+    const b = two.box(f);
+    if (!b || String(b.value) !== CARD_PLAIN_[f]) bad.push('after the reload ' + f + ' holds ' + JSON.stringify(b && b.value) + ', typed ' + JSON.stringify(CARD_PLAIN_[f]));
+  });
+  if (!two.box('photos_2') || two.box('photos_2').value !== 'https://example.org/two.jpg') bad.push('after the reload the second photograph is gone');
+  if (!two.box('qual_1_grade') || two.box('qual_1_grade').value !== '8') bad.push('after the reload the qualification\'s grade is ' + JSON.stringify(two.box('qual_1_grade') && two.box('qual_1_grade').value));
+  const tu10 = two.form().querySelector('.hr input[data-me="tu10"]');
+  if (!tu10 || !tu10.checked) bad.push('after the reload Tuesday 10:00 is not ticked');
+  if (!/Not saved yet/.test(two.said())) bad.push('after the reload the line under the form says "' + two.said() + '", not that what is in the boxes is not saved');
+  two.sent.length = 0;
+  two.A('card-save', two.tile('card-save'));
+  await wait(500);
+  const p = two.posts();
+  if (p.length !== 1) bad.push('Save after the reload posted ' + p.length + ' requests');
+  else Object.keys(CARD_PLAIN_).forEach(f => { if (String((p[0].fields || {})[f]) !== CARD_PLAIN_[f]) bad.push('Save after the reload sent ' + f + ' as ' + JSON.stringify((p[0].fields || {})[f])); });
+  const row = W.real.row('P-T1');
+  if (String(row.headline) !== CARD_PLAIN_.headline || String(row.availability) !== 'm16,m17,tu10') bad.push('the sheet after the reload\'s Save holds headline ' + JSON.stringify(row.headline) + ' and week ' + JSON.stringify(row.availability));
+  if (two.card()) bad.push('after the Save the card is still a form');
+  return bad;
+});
+
+/* ---------- 317'S RULE ON THE CARD: A NEWER SAVE BEATS AN OLDER DRAFT ------------------------------------------
+   Each box of the card's draft keeps the saved value it was typed over (`from`), and `cardValues_` draws the
+   newer saved value when the row has moved since — "Samtown over Newtown", one card along. Nothing held that:
+   the review of 330 deleted the `from` guard and every check stayed green. So: Ada types a headline and does
+   not save; the admin saves a different headline for her through the real `doPost`; Ada reloads. The box must
+   hold the admin's headline, not her older typing. */
+check('a card draft typed over a value saved elsewhere since does not win after a reload — the newer save is drawn (317 on the card)', async () => {
+  const W = cardWorld_();
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
+  c.A('card-edit', c.edit('P-T1'));
+  for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
+  if (!c.box('headline')) return ['pressing Edit did not draw the headline box'];
+  c.type(c.box('headline'), 'Mine, typed and not saved');
+  await wait(50);
+  if (!c.drafts().length) return ['typing on the card kept no draft, so a newer save beating it was NOT checked'];
+  const a = W.real.post({ action: 'verifyLogin', email: 'admin@example.org', pin: '0000' });
+  const r = W.real.post({ action: 'updateProfile', token: a.token, name: a.name, personId: 'P-A1', target: 'Ada Tutor',
+    targetId: 'P-T1', fields: { headline: 'Saved by the admin since' } });
+  if (!r.success) return ['the admin\'s save was refused: ' + r.error];
+  c.w.dispatchEvent(new c.w.Event('pagehide'));
+  const two = await cardOpen_(W, null, { before: fromStore_(keptStore_(c.w)) });
+  if (two.err) return ['after the reload: ' + two.err];
+  /* THE REMEMBERED SIGN-IN STILL HOLDS THE OLD HEADLINE; `myProfile` brings the new one and redraws the card. */
+  for (let k = 0; k < 40; k++) {
+    const v = two.box('headline') && two.box('headline').value;
+    if (v === 'Saved by the admin since') break;
+    await wait(100);
+  }
+  const v = two.box('headline') && two.box('headline').value;
+  if (!two.form()) return ['after the reload Ada\'s card is not open for editing'];
+  return v === 'Saved by the admin since' ? []
+    : ['after the reload the headline box holds ' + JSON.stringify(v) + ' — the older card draft won over a save made since'];
+});
+
+/* ---------- SIGN OUT IS UNDER THE FORM, AND KEEPS WHAT WAS TYPED FOR THE SAME PERSON ---------------------------
+   The review of 330: while Ada edited her own card her row of tiles was not drawn (`a ? b : c + d`), so Sign out
+   and "Send the link again" went, and Settings has no Sign out of its own. Settings never hid it, and a
+   Settings sign-out keeps the person's drafts under their own key. So: Sign out is there, once, with no second
+   Edit; pressing it keeps the card's draft; somebody else signing in on that phone sees no form and no draft;
+   Ada signing back in, same tab, finds her card open with what she typed. */
+check('Sign out stays under a tutor\'s card while they edit it, keeps the typing for them, and shows it to nobody else on the phone', async () => {
+  const W = cardWorld_();
+  const c = await cardOpen_(W, 'tutor@example.org');
+  if (c.err) return [c.err];
+  const bad = [];
+  if (!c.edit('P-T1')) return ['Ada\'s own card has no Edit tile'];
+  c.A('card-edit', c.edit('P-T1'));
+  for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
+  if (!c.form()) return ['pressing Edit did not turn the card into a form'];
+  const pg = c.pageOf('P-T1');
+  const outs = pg ? pg.querySelectorAll('[data-do="signout"]') : [];
+  if (outs.length !== 1) return ['while Ada edits her card the page holds ' + outs.length + ' Sign out tiles, not one'];
+  if (pg.querySelector('[data-do="card-edit"]')) bad.push('Edit is drawn again under the card being edited');
+  const rows = [...pg.querySelectorAll('.tile-row')];
+  if (rows.indexOf(outs[0].closest('.tile-row')) < rows.indexOf(c.tile('card-save').closest('.tile-row'))) bad.push('Sign out is drawn above Save and Cancel');
+  c.type(c.box('headline'), 'Typed, then signed out');
+  await wait(50);
+  c.A('signout', outs[0]);
+  await wait(400);
+  try { c.w.paint('account'); } catch (e) {}
+  await wait(100);
+  if (c.card()) bad.push('the form is still drawn after Sign out');
+  if (!c.drafts().length) bad.push('Sign out threw away what Ada typed on her card');
+  /* SOMEBODY ELSE ON THE SAME PHONE: no form, no Edit on Ada's card. */
+  const pat = W.real.post({ action: 'verifyLogin', email: 'parent@example.org', pin: '0000' });
+  try { c.w.signedIn_(pat, 'parent@example.org'); } catch (e) { return bad.concat(['signing Pat in threw: ' + e.message]); }
+  await wait(300);
+  try { c.t.go('account', false, true); c.w.paint('account'); } catch (e) {}
+  await wait(150);
+  if (c.card()) bad.push('Pat, signed in on the same phone, sees Ada\'s card open for editing');
+  if (c.edits().length) bad.push('Pat is offered Edit on ' + JSON.stringify(c.edits()));
+  c.A('signout', c.d.createElement('button'));
+  await wait(300);
+  /* ADA BACK, SAME TAB: her card open, what she typed in its box, said as not saved. */
+  const ada = W.real.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
+  try { c.w.signedIn_(ada, 'tutor@example.org'); } catch (e) { return bad.concat(['signing Ada back in threw: ' + e.message]); }
+  await wait(300);
+  try { c.t.go('account', false, true); c.w.paint('account'); } catch (e) {}
+  for (let k = 0; k < 20 && !c.form(); k++) await wait(100);
+  if (!c.form()) bad.push('Ada signed back in on the same tab finds her card shut — what she typed waits behind Edit with nothing saying so');
+  else {
+    if (c.box('headline').value !== 'Typed, then signed out') bad.push('Ada signed back in finds the headline ' + JSON.stringify(c.box('headline').value));
+    if (!/Not saved yet/.test(c.said())) bad.push('Ada signed back in is not told her typing is not saved: "' + c.said() + '"');
+  }
+  return bad;
+});
+
+check('a tutor\'s Settings has no About you, Photos, rate, Qualifications or week — Contact & address, Library cards and Notifications stay — and a parent\'s and a student\'s are what they were', async () => {
+  const W = cardWorld_();
+  const bad = [];
+  const titles = d => [...d.querySelectorAll('#s-settings .card > h3, #s-settings .me-form > h3')].map(h => h.textContent.trim());
+  const settingsOf = async who => {
+    const c = await cardOpen_(W, who);
+    if (c.err) return c;
+    try { c.t.go('settings', false, true); c.w.paint('settings'); } catch (e) { return { err: 'drawing settings threw: ' + e.message }; }
+    await wait(300);
+    return c;
+  };
+  for (const who of ['tutor@example.org', 'admin@example.org']) {
+    const c = await settingsOf(who);
+    if (c.err) { bad.push(who + ': ' + c.err); continue; }
+    const t = titles(c.d);
+    const gone = ['About you', 'Photos', 'Your rate and group size', 'Qualifications', 'Availability'].filter(x => t.indexOf(x) !== -1);
+    if (gone.length) bad.push(who + '\'s Settings still draws ' + gone.join(', '));
+    ['Contact & address', 'Library cards'].forEach(x => { if (t.indexOf(x) === -1) bad.push(who + '\'s Settings lost ' + x + ' (pages: ' + JSON.stringify(t) + ')'); });
+    if (!c.d.querySelector('#s-settings .notify-card')) bad.push(who + '\'s Settings lost its Notifications card');
+    const on = ['headline', 'rate_per_hour', 'photos_1', 'qual_1', 'm09', 'venues_ok', 'travel_km', 'first_name', 'adjective_1'].filter(f => c.d.querySelector('#s-settings [data-me="' + f + '"]'));
+    if (on.length) bad.push(who + '\'s Settings still has boxes the card edits: ' + on.join(', '));
+    if (!c.d.querySelector('#s-settings [data-me="email"]') || !c.d.querySelector('#s-settings [data-me="lib1_name"]')) bad.push(who + '\'s Settings lost the email or the library boxes');
+    if (!/on your card now/.test(String((c.d.querySelector('#s-settings .ce-moved') || {}).textContent || ''))) bad.push(who + '\'s Settings does not say where the pages went');
+  }
+  /* A PARENT AND A STUDENT: their own groups, every page, every box, and no word about a card. */
+  for (const [who, key] of [['parent@example.org', 'clientFields'], ['student@example.org', 'studentFields']]) {
+    const c = await settingsOf(who);
+    if (c.err) { bad.push(who + ': ' + c.err); continue; }
+    const groups = c.t.DATA()[key] || {};
+    const t = titles(c.d);
+    const want = Object.keys(groups);
+    if (!want.length) { bad.push(who + ': the payload sent no ' + key + ', so their Settings was NOT checked'); continue; }
+    if (JSON.stringify(t.slice(0, want.length)) !== JSON.stringify(want)) bad.push(who + '\'s Settings pages are ' + JSON.stringify(t) + ', wanted ' + JSON.stringify(want) + ' first');
+    const lost = [].concat(...want.map(g => groups[g])).filter(f => !/^(phone|date_of_birth|photo)$/.test(f) && !/^lib\d+_/.test(f))
+      .filter(f => !c.d.querySelector('#s-settings [data-me="' + f + '"]'));
+    if (lost.length) bad.push(who + '\'s Settings lost ' + lost.join(', '));
+    if (!c.d.querySelector('#s-settings .pfp')) bad.push(who + '\'s Settings lost the picture chooser');
+    if (c.d.querySelector('#s-settings .ce-moved')) bad.push(who + '\'s Settings says pages moved to a card they do not have');
+    if (c.edits().length) bad.push(who + ' is offered Edit on ' + JSON.stringify(c.edits()));
+  }
+  return bad;
+});
+
+check('an admin edits another tutor\'s card the same way — filled from getProfile, no picture chooser, one updateProfile to their row — and nobody else sees Edit on somebody else\'s card', async () => {
+  const W = cardWorld_();
+  const bad = [];
+  const c = await cardOpen_(W, 'admin@example.org');
+  if (c.err) return [c.err];
+  const mine = c.t.whoami();
+  const was = JSON.stringify(mine.profile);
+  if (!c.edit('P-A1')) bad.push('the admin\'s own card has no Edit');
+  const ben = c.edit('P-T2');
+  if (!ben) return bad.concat(['the admin is offered no Edit on Ben\'s card — offered ' + JSON.stringify(c.edits())]);
+  if (!ben.classList.contains('is-admin')) bad.push('Edit on somebody else\'s card is not the admin\'s silver tile');
+  c.sent.length = 0;
+  c.A('card-edit', ben);
+  await wait(500);
+  const ask = c.sent.find(x => x.action === 'getProfile');
+  if (!ask || ask.target !== 'P-T2') bad.push('Ben\'s form was not filled from getProfile by his id: ' + JSON.stringify(c.sent.map(x => x.action + ':' + (x.target || ''))));
+  if (!c.form() || c.card().dataset.pid !== 'P-T2') return bad.concat(['Edit on Ben\'s card did not open Ben\'s card as a form']);
+  if (c.box('headline').value !== 'Physics, mostly') bad.push('Ben\'s form opened with the headline ' + JSON.stringify(c.box('headline').value));
+  if (c.form().querySelector('.pfp, [data-do="pfp-pick"]')) bad.push('Ben\'s form offers the picture chooser, which would change the admin\'s own picture');
+  if (!/Only Ben can change this picture/.test(c.form().textContent)) bad.push('Ben\'s form does not say why his picture is not offered');
+  /* HIS FACE AS THE CARD DRAWS IT — `pfp:fox` is a token, and anything but `personFace_` draws it as a broken
+     `<img src="pfp:fox">` (the review of 330, on the tree with fix-dp merged). */
+  const bf = c.form().querySelector('.ce-pic .prof-pic');
+  if (!bf || bf.tagName === 'IMG' || !bf.querySelector('svg.pfp-art')) bad.push('Ben\'s face on the admin\'s form is ' + (bf ? bf.outerHTML.slice(0, 90) : 'missing') + ', not the fox his card draws');
+  c.type(c.box('headline'), 'Physics and chemistry');
+  const sa11 = c.form().querySelector('.hr input[data-me="sa11"]');
+  if (sa11) c.tick(sa11, true);
+  c.sent.length = 0;
+  /* THE PAYLOAD HELD, so what is asked of the admin's own copy below is asked before `myProfile` — which
+     follows the payload — could put it back. */
+  W.holding = true;
+  c.A('card-save', c.tile('card-save'));
+  await wait(500);
+  const after = c.t.whoami();
+  if (JSON.stringify(after.profile) !== was || after.name !== 'Hal Admin') bad.push('saving Ben\'s card changed the admin\'s own profile or name (' + after.name + ', headline ' + JSON.stringify((after.profile || {}).headline) + ')');
+  W.holding = false;
+  W.release();
+  await wait(200);
+  const p = c.posts();
+  if (p.length !== 1) return bad.concat(['the admin\'s Save posted ' + p.length + ' updateProfile requests']);
+  if (p[0].targetId !== 'P-T2') bad.push('the admin\'s Save was addressed to ' + JSON.stringify(p[0].targetId));
+  const extra = Object.keys(p[0].fields || {}).filter(k => k !== 'headline' && !/^(m|tu|w|th|f|sa|su)\d\d$/.test(k));
+  if (extra.length) bad.push('the admin\'s Save sent fields nobody changed: ' + extra.join(', '));
+  const rowB = W.real.row('P-T2'), rowA = W.real.row('P-A1');
+  if (String(rowB.headline) !== 'Physics and chemistry' || String(rowB.availability) !== 'sa10,sa11') bad.push('Ben\'s row holds headline ' + JSON.stringify(rowB.headline) + ' and week ' + JSON.stringify(rowB.availability));
+  if (String(rowA.headline) !== 'Runs the place') bad.push('the admin\'s own row changed: headline ' + JSON.stringify(rowA.headline));
+  if (c.card()) bad.push('after the admin\'s Save Ben\'s card is still a form');
+  /* NOBODY ELSE: a tutor has Edit on their own card only; a parent and a student on nothing. */
+  const ada = await cardOpen_(W, 'tutor@example.org');
+  if (ada.err) bad.push(ada.err);
+  else if (JSON.stringify(ada.edits()) !== '["P-T1"]') bad.push('Ada is offered Edit on ' + JSON.stringify(ada.edits()) + ', wanted her own card alone');
+  for (const who of ['parent@example.org', 'student@example.org']) {
+    const o = await cardOpen_(W, who);
+    if (o.err) { bad.push(o.err); continue; }
+    if (o.edits().length) bad.push(who + ' is offered Edit on ' + JSON.stringify(o.edits()));
+    if (!o.d.querySelector('#s-account .card.is-prof')) bad.push(who + ' sees no card on the You column, so Edit was NOT checked');
+  }
+  return bad;
+});
+
 /* ---------- IMPOSTER: ONE PLAYER IS NOT TOLD, AND NOBODY SEES ANYBODY ELSE'S CARD -------------------
    THE GAME IS A SECRET KEPT BY A PHONE PASSED ROUND, and every way it can go wrong draws perfectly:
    two imposters, an imposter shown the word, a word left on the screen when the phone is handed on,
@@ -2190,6 +3005,8 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   /* ---- OFF, WHICH IS HOW IT ARRIVES: a switch to turn it on, and not one word out of the phone. ---- */
   if (!sw()) return bad.concat(['with a voice on the device there is no Read aloud switch on the setup screen']);
   if (sw().getAttribute('aria-pressed') !== 'false') bad.push('Read aloud is not off until somebody turns it on');
+  /* A TILE, THE REELS' PAIR (note 323): the crossed speaker while it is off, drawn as TILE_ICONS draws it. */
+  readAloudSays_(sw(), false, 'the setup screen as it arrives').forEach(x => bad.push(x));
   press('imp-start');
   for (let i = 0; i < N; i++) {
     press('imp-show');
@@ -2208,9 +3025,11 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   try { kept = w.localStorage.getItem('imp-aloud'); } catch (e) {}
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('pressing Read aloud did not turn it on');
   if (kept !== '1') bad.push('Read aloud is not remembered on the device (imp-aloud is ' + JSON.stringify(kept) + ')');
+  readAloudSays_(sw(), true, 'the setup screen once pressed').forEach(x => bad.push(x));
   t.repaint(true);
   await wait(50);
   if (!sw() || sw().getAttribute('aria-pressed') !== 'true') bad.push('a repaint turned Read aloud off');
+  readAloudSays_(sw(), true, 'the setup screen after a repaint').forEach(x => bad.push(x));
 
   /* ---- A ROUND WITH THE SWITCH ON, two of them, with known words on top of the pile ---- */
   const passes = [];
@@ -2310,6 +3129,22 @@ check('imposter read aloud says whose turn it is, and the word only to the one w
   const back = since();
   if (!back.length || !back[0].cancel) bad.push('Players did not stop the voice (next: ' + JSON.stringify(back[0]) + ')');
   if (says(back).length) bad.push('Players said: ' + JSON.stringify(says(back).map(x => x.say)));
+
+  /* ---- AND OFF AGAIN, BY A FINGER ON THE TILE'S MARK — the real dispatcher, as the reels' journey
+     presses its Sound tile — so the pair is seen both ways and the device forgets it. ---- */
+  if (!sw()) bad.push('Players did not bring back the setup screen and its Read aloud tile');
+  else {
+    const drawnOn = (sw().querySelector('svg.tile-i') || {}).innerHTML;
+    mark('imp-aloud (a finger on the tile)');
+    (sw().querySelector('svg') || sw()).dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+    let forgot = null;
+    try { forgot = w.localStorage.getItem('imp-aloud'); } catch (e) {}
+    if (forgot !== '0') bad.push('a press on the Read aloud tile did not turn it off on the device (imp-aloud is ' + JSON.stringify(forgot) + ')');
+    readAloudSays_(sw(), false, 'the setup screen turned off by a press on the tile').forEach(x => bad.push(x));
+    if (sw() && (sw().querySelector('svg.tile-i') || {}).innerHTML === drawnOn)
+      bad.push('turning Read aloud off left the same picture on its tile');
+    if (says(since()).length) bad.push('turning Read aloud off said: ' + JSON.stringify(says(since()).map(x => x.say)));
+  }
 
   /* THE PASS SCREEN SAYS THE SAME SENTENCE TO EVERYBODY, bar the number, in both rounds — which is
      the proof that nothing dealt is in it, the imposter's own hand-over included. */
@@ -2967,18 +3802,52 @@ check('the whiteboard keeps one finger to a stroke, is not cut by a repaint, put
   return bad;
 });
 
-/* ---------- VIDEOS: TYPING NARROWS, A TAP PLAYS IN THE CARD, FULL SCREEN ASKS FOR FULL SCREEN -------
+/* ---------- VIDEOS: THE BAR ALONE, RESULTS AS YOU TYPE, A TAP PLAYS IN THEIR PLACE, FULL SCREEN -------
    ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
-   type in. and there should be a full screen button." Each half can fail while the card still draws
-   perfectly well: a box whose list does not change as you type, a row that is tapped and plays
-   nothing (or plays in the wrong element — a YouTube link in a `<video>` is a black box), a switched-
-   off row that shows anyway, and a Full screen tile that is pressed and asks nobody for anything.
-   And the `contest` rule again: the card is appended LAST, so no remembered page moves.
+   type in. and there should be a full screen button." AND THEN, 10 Oct (note 321): *"make it look more
+   like youtube, the widget, in the sense that at first all you see is a search bare, then you search
+   and you see relevant result underneath. max 4 results show. you click on one, then it shows video.
+   you can click fullscreen to make it fullscreen"*. Each half can fail while the card still draws
+   perfectly well: a card that opens on a list (or a count, or an empty player) over the bar, a box
+   whose results do not change as you type, a fifth row, a row that is tapped and plays nothing (or
+   plays UNDER the results, or in the wrong element — a YouTube link in a `<video>` is a black box), an
+   edit that leaves the old film talking, a switched-off row that shows anyway, and a Full screen tile
+   that is pressed and asks nobody for anything — or, on a phone with no full screen for a frame, says
+   "use the player's button" and does nothing. And the `contest` rule again: the card is appended LAST,
+   so no remembered page moves.
 
    THE LIST IS THE JOURNEY'S OWN, served where the app asks for `data/videos.json`, so the rows are
-   known here rather than whatever the owner has typed in by the time this runs. The built-in reels
-   ride along, which is the point — the box searches them too. */
-check('the videos widget is last on Games: typing narrows the list, a tap plays it in the card, full screen asks the player', async () => {
+   known here rather than whatever the owner has typed in by the time this runs. */
+/* WHAT IS ON THE CARD BESIDE THE BAR — nothing, when it is idle. Each thing found is named, so a failure
+   says what was drawn rather than that something was. jsdom has no layout, so "drawn" is "in the
+   markup": the watch block is there while it is idle, without its `on`, which the stylesheet hides. */
+const vidIdle_ = box => {
+  if (!box) return ['there is no card'];
+  const seen = [];
+  if (!box.querySelector('input.vid-q')) seen.push('no search box');
+  if (box.querySelector('.vid-row')) seen.push(box.querySelectorAll('.vid-row').length + ' result row(s)');
+  if (box.querySelector('.vid-watch.on') || box.querySelector('.vid-player')) seen.push('a player');
+  if (box.querySelector('[data-do="vid-full"], [data-do="vid-unfull"]')) seen.push('a Full screen tile');
+  const res = box.querySelector('.vid-results');
+  if (res && res.innerHTML.trim()) seen.push('the results area holding "' + res.textContent.trim().slice(0, 60) + '"');
+  const adm = box.querySelector('.vid-admin');
+  if (adm && adm.innerHTML.trim()) seen.push('the admin row');
+  if (box.querySelector('.vid-said')) seen.push('a count line');
+  if (box.querySelector('.loading')) seen.push('a loader');
+  const words = box.textContent.replace(/\s+/g, ' ').trim();
+  if (words) seen.push('the words "' + words.slice(0, 80) + '"');
+  return seen;
+};
+/* LET GO OF THE APP'S FULL SCREEN BY THE APP'S OWN DOOR, for a journey that goes on after a card that would
+   not leave it — so the next question is asked of the card, not of the fault the last one found. */
+const vidLetGo_ = w => { try { w.vidFullOff_(); } catch (e) {} };
+/* HOW MANY THE SEARCH FOUND: the rows drawn and the number on the line under them. */
+const vidFound_ = box => {
+  const rows = box ? box.querySelectorAll('.vid-results .vid-list .vid-row').length : 0;
+  const m = /^(\d+) more — keep typing to narrow$/.exec(((box && box.querySelector('.vid-results .vid-more')) || {}).textContent || '');
+  return rows + (m ? Number(m[1]) : 0);
+};
+check('the videos widget is last on Games: the bar alone, at most four results as you type, a tap plays in their place, an edit goes back, full screen fills the glass', async () => {
   const rows = [
     { title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
       tags: 'science earth', age: '7+', notes: '', active: true },
@@ -2995,6 +3864,7 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   ];
   let asked = 0;
   const full = [];
+  const pops = [];
   const { w } = boot({ before: win => {
     const f0 = win.fetch;
     win.fetch = (url, o) => {
@@ -3005,8 +3875,12 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
       }
       return f0(url, o);
     };
-    /* JSDOM HAS NO FULL SCREEN, so the journey stands in for it and writes down who asked. */
+    /* JSDOM HAS NO FULL SCREEN AND NO TOP LAYER, so the journey stands in for both and writes down who
+       asked. The real thing is measured in Chromium (`check/states.js`, "the videos card, its own full
+       screen", and note 321). */
     win.HTMLElement.prototype.requestFullscreen = function () { full.push(this.tagName.toLowerCase()); return Promise.resolve(); };
+    win.HTMLElement.prototype.showPopover = function () { pops.push('show:' + this.className); this.__open = true; };
+    win.HTMLElement.prototype.hidePopover = function () { pops.push('hide:' + this.className); this.__open = false; };
   } });
   await wait(300);
   const t = w.__t;
@@ -3022,26 +3896,47 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
      drawn and not yet started — no box, nothing asked — on the commit before this check changed as
      well as after it, one run in two. Bounded: a card that never starts still fails on what it asked. */
   for (let n = 0; n < 150 && !(asked && d.querySelector('#s-games #wgt-videos .vid-box .vid-q')); n++) await wait(100);
+  await wait(50);
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   if (!box) return bad.concat(['the videos card did not draw on the Games column']);
   if (!asked) bad.push('the card never asked for data/videos.json');
   const q = box.querySelector('input.vid-q');
   if (!q) return bad.concat(['there is no search box on the videos card']);
-  const titles = () => [...box.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
-  const before = titles();
-  if (before.indexOf('How volcanoes erupt') === -1 || before.indexOf('Fractions in two minutes') === -1)
-    bad.push('the listed videos are not in the list: ' + before.join(' | '));
-  if (before.indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
+  const titles = () => [...box.querySelectorAll('.vid-results .vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  /* A PRESS ON WHAT IS THERE, OR A NAMED FAULT WHERE IT IS NOT — so a broken card says what was missing
+     rather than throwing on the next line. */
+  const press = (act, sel, what) => {
+    const el = box.querySelector(sel);
+    if (!el) { bad.push('there is no ' + what + ' to press'); return false; }
+    t.ACTIONS[act](el);
+    return true;
+  };
+  const play = () => press('vid-play', '.vid-results .vid-row[data-do="vid-play"]', 'result that plays');
+
+  /* ---------- IDLE: *"at first all you see is a search bare"* ------------------------------------------ */
+  const idle = vidIdle_(box);
+  if (idle.length) bad.push('the card opens on more than the search bar: ' + idle.join('; '));
+
+  /* ---------- RESULTS AS YOU TYPE, RANKED, AT MOST FOUR -------------------------------------------------
+     "clip" is every row's kind, so every listed row narrows to it — and two have it in their TITLE, which
+     ranks them first: the one that plays here before the one that opens Drive, then the two found only
+     by their kind, A to Z. The switched-off row is never among them. */
+  type('clip');
+  const want = ['A clip taken down since', 'A clip kept in Drive', 'Fractions in two minutes', 'How volcanoes erupt'];
+  if (titles().join('|') !== want.join('|')) bad.push('typing "clip" found ' + (titles().join(' | ') || 'nothing') + ' — wanted, in this order, ' + want.join(' | '));
+  if (titles().indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
+  if (box.querySelector('.vid-more')) bad.push('four results drew a "more" line with nothing more to find');
   /* AND NOT THE REELS: *"the video widget shouldn't acknowledge reels."* They were a third list here. */
-  if (before.some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + before.join(' | '));
+  if (titles().some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + titles().join(' | '));
+  if (d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
 
   /* ---------- AND IT LOOKS LIKE YOUTUBE (note 311): A PICTURE ON EVERY ROW, AND A POSTER UNDER IT --------
-     *"Can you also make the video serger widget look more like YouTube."* Each half below draws a
-     perfectly good card when it is wrong: a YouTube row whose picture asks the tracking host (or the
-     wrong id) looks like any other thumbnail, a row with no picture that is a grey hole looks like a
-     picture still loading, and a picture that failed and was left in place is a broken-image mark on a
-     phone. Nothing plays yet, so there is no player and no Full screen tile — YouTube shows the list. */
-  const rowOf = title => [...box.querySelectorAll('.vid-list .vid-row')]
+     Each half below draws a perfectly good card when it is wrong: a YouTube row whose picture asks the
+     tracking host (or the wrong id) looks like any other thumbnail, a row with no picture that is a grey
+     hole looks like a picture still loading, and a picture that failed and was left in place is a
+     broken-image mark on a phone. */
+  const rowOf = title => [...box.querySelectorAll('.vid-results .vid-row')]
     .find(r => (r.querySelector('.vid-t') || {}).textContent === title);
   const yt = rowOf('How volcanoes erupt');
   const ytImg = yt && yt.querySelector('.vid-th img.vid-img');
@@ -3055,6 +3950,9 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
      where YouTube puts something that differs per row (review of 9 Oct). */
   if (!yt || yt.querySelector('.vid-badge'))
     bad.push('a plain clip\'s picture carries a badge — the same word on every row a student is shown: ' + (yt ? yt.querySelector('.vid-badge').textContent : 'no row'));
+  /* AND THE WORDS COME FIRST IN THE MARKUP, so a screen reader hears the title before the picture's labels. */
+  if (yt && !(yt.firstElementChild && yt.firstElementChild.classList.contains('vid-txt')))
+    bad.push('a row\'s picture comes before its title in the markup, so its labels are read before what it is called');
   /* THE POSTER IS A FLAT FRAME AND THE KIND'S MARK — NO LETTER. A letter in gold read as a contacts list,
      and forty rows of one title's pattern drew a column of the same letter (review of 9 Oct). */
   const mp4 = rowOf('Fractions in two minutes');
@@ -3062,32 +3960,34 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
     bad.push('an .mp4 row has no picture to show and is not drawn a poster with the play mark: ' + (mp4 ? mp4.innerHTML.slice(0, 200) : 'no row'));
   if (box.querySelector('.vid-poster b') || /\S/.test([...box.querySelectorAll('.vid-poster')].map(p => p.textContent).join('')))
     bad.push('a poster carries a letter or a word, where YouTube\'s missing picture is a plain frame');
-  /* A DRIVE ADDRESS IN THE OWNER'S LIST ASKS DRIVE FOR NOTHING. Only the films list — which reaches an
-     admin alone — may: `drive.google.com` carries Google's cookies, and the owner's list reaches every
-     child (review of 9 Oct). It is a door, so its badge is the out-arrow, named for a screen reader,
-     and the line beside it no longer says "opens in a new tab" a second time. */
+  /* A DRIVE ADDRESS IN THE OWNER'S LIST ASKS DRIVE FOR NOTHING AND STAYS A LINK. Only the films list —
+     which reaches an admin alone — may ask Drive for a picture or a player: `drive.google.com` carries
+     Google's cookies, and the owner's list reaches every child (review of 9 Oct; note 321 kept it so). It
+     is a door, so its badge is the out-arrow, named for a screen reader, and the line beside it does not
+     say "opens in a new tab" a second time. */
   const kept = rowOf('A clip kept in Drive');
   if (!kept) bad.push('the owner\'s Drive clip is not listed');
   else {
     if (kept.querySelector('img') || /drive\.google\.com\/thumbnail/.test(box.innerHTML))
       bad.push('an owner\'s Drive clip asks Drive for a picture on a phone that never asked for a film: ' + kept.innerHTML.slice(0, 200));
+    if (!kept.matches('a.vid-row.is-out') || kept.getAttribute('data-do'))
+      bad.push('an owner\'s Drive clip is not the link out it always was: ' + kept.outerHTML.slice(0, 160));
     if (!kept.querySelector('.vid-badge .vid-out[role="img"][aria-label="opens in a new tab"]'))
       bad.push('a row that opens in a new tab has no named out-arrow on its picture');
     if (/opens in a new tab/.test(kept.textContent)) bad.push('a row\'s line says "opens in a new tab" beside the arrow that says it');
   }
   if (box.querySelector('.vid-watch.on') || box.querySelector('.vid-stage .vid-player') || box.querySelector('[data-do="vid-full"]'))
     bad.push('with nothing playing the card draws a player or a Full screen tile — YouTube shows the list');
-  if (box.querySelector('.vid-hint')) bad.push('the empty stage still says "Tap a video to play it here."');
   /* A PICTURE THAT FAILS IS TAKEN AWAY and the poster under it is what shows — through the one listener
      (`error` does not bubble, so it has to be the capture phase), and the next paint does not ask again. */
   if (ytImg) {
     ytImg.dispatchEvent(new w.Event('error'));
     if (!ytImg.classList.contains('is-gone')) bad.push('a picture that failed to load was left in place over its poster');
-    q.value = 'volc'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    type('volc');
     const again = rowOf('How volcanoes erupt');
     if (!again || again.querySelector('img.vid-img') || !again.querySelector('.vid-poster'))
       bad.push('after its picture failed, the next paint asked for it again instead of drawing the poster');
-    q.value = ''; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    type('clip');
   }
   /* AND A YOUTUBE PICTURE THAT LOADED AS YOUTUBE'S GREY STAND-IN — 404 with a 120x90 picture, which a
      browser draws and calls loaded, so `error` never fires. A real `mqdefault` is 320 wide and stays.
@@ -3106,62 +4006,283 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
     if (!goneImg.classList.contains('is-gone')) bad.push('YouTube\'s grey 120x90 stand-in for a removed video was left over the poster');
   }
 
-  const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  /* ---------- NARROWING, NOTHING, AND BACK TO THE BAR ---------------------------------------------------- */
   type('volc');
-  const narrowed = titles();
-  if (narrowed.length !== 1 || narrowed[0] !== 'How volcanoes erupt')
-    bad.push('typing "volc" did not narrow to the one volcano: ' + narrowed.join(' | '));
-  if (!/1 of \d+ videos/.test(box.querySelector('.vid-said').textContent))
-    bad.push('the count does not say how many of how many: ' + box.querySelector('.vid-said').textContent);
-  if (d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
+  if (titles().join() !== 'How volcanoes erupt') bad.push('typing "volc" did not narrow to the one volcano: ' + titles().join(' | '));
   type('maths two');
   if (titles().join() !== 'Fractions in two minutes') bad.push('two words did not narrow to the row holding both: ' + titles().join(' | '));
+  /* ---------- THE KEYBOARD'S SEARCH KEY PUTS THE KEYBOARD AWAY AND LEAVES THE RESULTS (review of 10 Oct) ---
+     The box says `enterkeyhint="search"`, so a phone shows a Search key — and nothing answered it: the
+     focus stayed in the box and the keyboard stayed up over the four results. jsdom has no keyboard, so
+     the focus leaving the box is what says it went; the four rows and the words stay as they were. */
+  type('clip');
+  q.focus();
+  q.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  if (d.activeElement === q) bad.push('Enter in the box left the focus in it — a phone keeps its keyboard up over the results');
+  if (titles().length !== 4 || q.value !== 'clip' || box.querySelector('.vid-watch.on'))
+    bad.push('Enter in the box changed what the card shows: ' + (titles().join(' | ') || 'no rows') + ' for ' + JSON.stringify(q.value));
   type('zzzz');
-  if (titles().length || !/Nothing matches/.test(box.textContent)) bad.push('a search that matches nothing does not say so');
+  const none = (box.querySelector('.vid-results .vid-none') || {}).textContent || '';
+  if (titles().length || none !== 'Nothing matches that.') bad.push('a search that matches nothing says "' + none + '" over ' + titles().length + ' row(s) — wanted "Nothing matches that."');
+  type('   ');
+  const spaces = vidIdle_(box);
+  if (spaces.length) bad.push('a box holding only spaces is not the bar alone: ' + spaces.join('; '));
+  type('');
+  const cleared = vidIdle_(box);
+  if (cleared.length) bad.push('an emptied box is not the bar alone: ' + cleared.join('; '));
 
-  /* A TAP ON A YOUTUBE ROW: the nocookie embed, of that id, in the card. */
+  /* ---------- A TAP PLAYS IT IN THE CARD, IN PLACE OF THE RESULTS ----------------------------------------
+     *"you click on one, then it shows video."* The nocookie embed, of that id; its title and line under
+     it; the bar still holding what was typed; and NO results left under the player. */
   type('volc');
-  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  /* AND THE PHONE'S KEYBOARD GOES: the box lets go of the focus when a result is tapped, or the keyboard
+     stays up over the player it just asked for. */
+  q.focus();
+  play();
+  if (d.activeElement === q) bad.push('tapping a result left the focus in the search box — a phone keeps its keyboard up over the player');
   const fr = box.querySelector('.vid-stage iframe.vid-player');
   if (!fr || !/^https:\/\/www\.youtube-nocookie\.com\/embed\/abcdefghijk\b/.test(fr.getAttribute('src') || ''))
     bad.push('tapping the YouTube row did not put its nocookie embed in the card: ' + (fr ? fr.getAttribute('src') : 'no iframe'));
-  /* THE WATCH PAGE: its title under the player, then its line — and the row it came from says Playing. */
   const nowT = box.querySelector('.vid-watch.on .vid-now .vid-now-t');
   if (!nowT || nowT.textContent !== 'How volcanoes erupt') bad.push('the title under the player is "' + (nowT ? nowT.textContent : 'not there') + '"');
   const nowK = box.querySelector('.vid-watch.on .vid-now .vid-now-k');
   if (!nowK || nowK.textContent !== 'Clip · 7+') bad.push('the line under the title is "' + (nowK ? nowK.textContent : 'not there') + '" — wanted the kind and the age');
-  const onRow = box.querySelector('.vid-list .vid-row.on');
-  if (!onRow || !onRow.querySelector('.vid-th .vid-playing')) bad.push('the row that is playing carries no Playing mark on its picture');
-  /* AND A SCREEN READER HEARS THE TITLE FIRST: the words come before the picture in the markup, and the
-     picture's "Playing" is hidden from it — `aria-current` says that, once (review of 9 Oct). */
-  else {
-    if (onRow.getAttribute('aria-current') !== 'true') bad.push('the row that is playing is not aria-current');
-    if (onRow.querySelector('.vid-playing').getAttribute('aria-hidden') !== 'true') bad.push('"Playing" on the picture is read aloud as well as aria-current');
-    if (!(onRow.firstElementChild && onRow.firstElementChild.classList.contains('vid-txt')))
-      bad.push('a row\'s picture comes before its title in the markup, so its labels are read before what it is called');
-  }
-  /* AND A KEYSTROKE DOES NOT REBUILD THE PLAYER — the video would restart under somebody searching. */
-  type('volcanoes');
-  if (fr && box.querySelector('.vid-stage iframe.vid-player') !== fr) bad.push('typing rebuilt the player, which restarts the video that is playing');
+  if (box.querySelector('.vid-results .vid-row') || (box.querySelector('.vid-results') || {}).innerHTML)
+    bad.push('the results are still drawn under the player — the watch view replaces them');
+  if (q.value !== 'volc' || d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('the bar did not keep what was typed over the player: ' + JSON.stringify(q.value));
+  if (!box.querySelector('.vid-acts .tile[data-do="vid-full"]')) bad.push('there is no Full screen tile beside the title');
+
+  /* ---------- ANY EDIT GOES BACK TO THE RESULTS, AND THE FILM STOPS -------------------------------------
+     An iframe cannot be paused from outside, so emptied is the only stopped: no player left talking under
+     the results for the new words. And clearing the box is the bar alone. */
+  type('volca');
+  if (box.querySelector('.vid-stage .vid-player') || box.querySelector('.vid-watch.on'))
+    bad.push('an edit of the box left the player in the card — the film goes on under the results');
+  if (titles().join() !== 'How volcanoes erupt') bad.push('after an edit the results for the new words are ' + (titles().join(' | ') || 'not drawn'));
+  play();
+  type('');
+  const back = vidIdle_(box);
+  if (back.length) bad.push('clearing the box over a film did not leave the bar alone: ' + back.join('; '));
+
   /* AN MP4 ROW: a `<video>`, inline, on that file. */
   type('fractions');
-  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  play();
   const v = box.querySelector('.vid-stage video.vid-player');
   if (!v || v.getAttribute('src') !== 'data/reels/fractions.mp4' || !v.hasAttribute('playsinline'))
     bad.push('tapping the mp4 row did not put an inline <video> of it in the card');
   if (box.querySelector('.vid-stage iframe')) bad.push('the old player was left in the card beside the new one');
 
-  /* FULL SCREEN IS A TILE, and pressing it asks the PLAYER, not the card. */
+  /* ---------- FULL SCREEN: THE BROWSER'S, WHERE THERE IS ONE ---------------------------------------------
+     A tile, and pressing it asks the PLAYER, not the card. */
   const tile = box.querySelector('.vid-acts .tile[data-do="vid-full"]');
   if (!tile) bad.push('there is no Full screen tile under the player');
   else {
     t.ACTIONS['vid-full'](tile);
     if (full.join() !== 'video') bad.push('Full screen asked ' + (full.join() || 'nobody') + ' rather than the video');
+    if (t.vidFs() || pops.length) bad.push('with the browser\'s full screen there, the app drew its own as well');
   }
-  /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at. */
+
+  /* ---------- AND THE APP'S OWN WHERE THERE IS NONE — Safari on an iPhone, with a frame ------------------
+     The Fullscreen API taken away: the tile must fill the glass itself rather than toast. The block that
+     holds the player goes into the top layer (`showPopover`) WHERE IT IS — the frame is the same element
+     before, during and after, because moving it would reload the film — marked so a swipe on the black
+     does not turn the column, with Exit in place of Full screen; the arrow keys do not reach the grid, and
+     Escape and the Exit tile each give the screen back. */
+  delete w.HTMLElement.prototype.requestFullscreen;
+  const toasts = [];
+  const realToast = w.toast;
+  w.toast = m => { toasts.push(String(m)); };
+  type('volc');
+  play();
+  const frame = box.querySelector('.vid-stage iframe.vid-player');
+  const watch = box.querySelector('.vid-watch');
+  const on = () => {
+    pops.length = 0;
+    const ft = box.querySelector('.vid-acts .tile[data-do="vid-full"]');
+    if (!ft) { bad.push('there is no Full screen tile over the YouTube clip'); return false; }
+    t.ACTIONS['vid-full'](ft);
+    return true;
+  };
+  if (frame && watch && on()) {
+    if (toasts.length) bad.push('with no full screen for a frame the tile toasted "' + toasts.join(' / ') + '" instead of filling the screen');
+    if (pops.join() !== 'show:vid-watch on is-fs') bad.push('the app\'s full screen did not put the player\'s block in the top layer: ' + (pops.join(', ') || 'nothing shown'));
+    if (t.vidFs() !== watch) bad.push('the app\'s full screen is not on for the card\'s own watch block');
+    if (!watch.classList.contains('is-fs') || watch.getAttribute('popover') !== 'manual') bad.push('the watch block is not marked full screen: ' + watch.outerHTML.slice(0, 160));
+    if (!watch.hasAttribute('data-noswipe')) bad.push('a swipe on the black round the film would turn the column — no data-noswipe');
+    if (watch.getAttribute('role') !== 'dialog' || watch.getAttribute('aria-modal') !== 'true') bad.push('a screen reader is not told the film covers everything (role dialog, aria-modal)');
+    const exit = box.querySelector('.vid-acts .tile[data-do="vid-unfull"]');
+    if (!exit || box.querySelector('.vid-acts [data-do="vid-full"]')) bad.push('full screen did not swap Full screen for an Exit full screen tile');
+    if (box.querySelector('.vid-stage iframe.vid-player') !== frame) bad.push('going full screen rebuilt the player — the film restarts');
+    /* THE ARROWS DO NOT TURN THE GRID UNDER THE FILM. */
+    const before = JSON.stringify([t.screenAt(), t.PAGE.games]);
+    d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    if (JSON.stringify([t.screenAt(), t.PAGE.games]) !== before) bad.push('an arrow key turned the column under the full-screen film');
+    /* ESCAPE GIVES THE SCREEN BACK. */
+    pops.length = 0;
+    d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    if (t.vidFs()) bad.push('Escape did not leave the app\'s full screen');
+    if (pops.join() !== 'hide:vid-watch on is-fs') bad.push('leaving full screen did not take the block out of the top layer: ' + (pops.join(', ') || 'nothing hidden'));
+    if (watch.classList.contains('is-fs') || watch.hasAttribute('popover') || watch.hasAttribute('data-noswipe') || watch.hasAttribute('role'))
+      bad.push('the watch block is still marked full screen after Escape: ' + watch.outerHTML.slice(0, 160));
+    if (!box.querySelector('.vid-acts .tile[data-do="vid-full"]') || box.querySelector('[data-do="vid-unfull"]')) bad.push('after Escape the Full screen tile did not come back');
+    if (box.querySelector('.vid-stage iframe.vid-player') !== frame) bad.push('leaving full screen rebuilt the player — the film restarts');
+    /* AND THE EXIT TILE DOES THE SAME. */
+    if (t.vidFs()) vidLetGo_(w);
+    if (on()) {
+      if (!t.vidFs()) bad.push('the second press of Full screen did not fill the screen again');
+      else if (press('vid-unfull', '.vid-acts .tile[data-do="vid-unfull"]', 'Exit full screen tile')) {
+        if (t.vidFs() || watch.classList.contains('is-fs')) bad.push('the Exit full screen tile did not leave the app\'s full screen');
+      }
+    }
+    if (t.vidFs()) vidLetGo_(w);
+    /* AND WHERE THERE IS NO TOP LAYER EITHER (Safari before 17) the one case left still says something. */
+    const sp = w.HTMLElement.prototype.showPopover;
+    delete w.HTMLElement.prototype.showPopover;
+    toasts.length = 0;
+    if (press('vid-full', '.vid-acts .tile[data-do="vid-full"]', 'Full screen tile over the clip'))
+      if (t.vidFs() || !/full screen button in the player/.test(toasts.join())) bad.push('with no top layer either the tile said "' + toasts.join(' / ') + '"');
+    w.HTMLElement.prototype.showPopover = sp;
+    /* AND LEAVING THE COLUMN WHILE IT IS ON ENDS IT, with the film. */
+    on();
+  }
+  w.toast = realToast;
+  /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at, and no full screen. */
   t.go('tools', false, true);
   await wait(LEAVE_MS); await woken_();
   if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
+  if (t.vidFs() || d.querySelector('#s-games .vid-watch.is-fs')) bad.push('leaving the Games column left the app\'s full screen on');
+  return bad;
+});
+
+/* ---------- ONE TAP IS ONE PLAYER, WHEN THE CARD IS ALSO ON THE SAVED COLUMN ---------------------------
+   The Saved column draws a starred card again and `vidPaint_` writes every copy (`.vid-box` is a class
+   for that reason). Every copy used to build the player as well, so one tap was an `autoplay` embed in
+   the copy in front and another in the copy parked off the glass — two films talking at once wherever a
+   browser lets one play with sound (review of 10 Oct; `check/videos.js` asks the same with a real click
+   and counts the requests). So: the tapped copy plays, every other copy shows the results for what was
+   typed with an empty stage, and a tap in the other copy moves the one player there. */
+check('the videos card starred into Saved: one tap is one player, in the copy that was tapped', async () => {
+  const rows = [
+    { title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip', tags: 'science', age: '', notes: '', active: true },
+    { title: 'Volcano islands', url: 'https://www.youtube.com/watch?v=volcanoisle', kind: 'clip', tags: 'science', age: '', notes: '', active: true },
+  ];
+  let asked = 0;
+  const { w } = boot({ before: win => {
+    const f0 = win.fetch;
+    win.fetch = (url, o) => {
+      if (/data\/videos\.json/.test(String(url))) {
+        asked++;
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(rows),
+                                 text: () => Promise.resolve(JSON.stringify(rows)) });
+      }
+      return f0(url, o);
+    };
+  } });
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  if (!t.star) return ['the favourites are not exported'];
+  /* SIGNED IN — a signed-out Saved column is one sentence, not the things kept (`savedCards_`). */
+  t.USER({ name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] });
+  t.star('w:videos');
+  /* AND EVERY COLUMN DRAWN AGAIN FOR THE PERSON NOW SIGNED IN, as a sign-in draws them. */
+  t.repaint(true);
+  await wait(50);
+  t.go('games', false, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let n = 0; n < 150 && !(asked && d.querySelector('#s-games #wgt-videos .vid-box .vid-q')); n++) await wait(100);
+  t.go('saved', false, true);
+  await wait(LEAVE_MS); await woken_();
+  for (let n = 0; n < 150 && !d.querySelector('#s-saved .vid-box .vid-q'); n++) await wait(100);
+  const games = d.querySelector('#s-games #wgt-videos .vid-box');
+  const saved = d.querySelector('#s-saved .vid-box');
+  if (!games) return ['the videos card did not draw on the Games column'];
+  if (!saved) return ['the starred videos card did not draw on the Saved column, so this asks nothing'];
+  const bad = [];
+  const q = saved.querySelector('input.vid-q');
+  q.value = 'volc';
+  q.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const players = () => [...d.querySelectorAll('.vid-player')].map(p => (p.closest('.screen') || {}).id || '?');
+  const rowsIn = box => box.querySelectorAll('.vid-results .vid-row').length;
+  if (rowsIn(saved) !== 2 || rowsIn(games) !== 2) bad.push('"volc" drew ' + rowsIn(saved) + ' result(s) on Saved and ' + rowsIn(games) + ' on Games — wanted both rows in both copies');
+  const tap = box => {
+    const r = box.querySelector('.vid-results .vid-row[data-do="vid-play"]');
+    if (!r) { bad.push('there is no result to tap in the ' + (box === saved ? 'Saved' : 'Games') + ' copy'); return false; }
+    t.ACTIONS['vid-play'](r);
+    return true;
+  };
+  const watching = (box, other, said) => {
+    const p = players();
+    if (p.length !== 1 || p[0] !== (box === saved ? 's-saved' : 's-games'))
+      bad.push(said + ' built ' + p.length + ' player(s), in ' + (p.join(', ') || 'none') + ' — wanted one, in the copy tapped');
+    if (!box.querySelector('.vid-watch.on .vid-stage iframe.vid-player') || !box.querySelector('.vid-acts [data-do="vid-full"]'))
+      bad.push(said + ': the copy tapped is not the watch view with its Full screen tile');
+    if (other.querySelector('.vid-watch.on') || other.querySelector('.vid-stage').innerHTML.trim() || other.querySelector('[data-do="vid-full"]'))
+      bad.push(said + ': the copy NOT tapped still draws a player, a stage or a Full screen tile');
+    if (rowsIn(other) !== 2) bad.push(said + ': the copy not tapped shows ' + rowsIn(other) + ' result(s) — wanted the results for "volc"');
+  };
+  if (tap(saved)) watching(saved, games, 'a tap in the Saved copy');
+  /* AND A TAP IN THE OTHER COPY MOVES THE ONE PLAYER THERE. */
+  if (tap(games)) watching(games, saved, 'then a tap in the Games copy');
+  /* AN EDIT IN EITHER COPY STOPS IT EVERYWHERE — an edit is an edit of the one search. */
+  q.value = 'volca';
+  q.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (players().length) bad.push('an edit in the Saved copy left ' + players().join(', ') + ' playing');
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- AND THE BEST FOUR, IN THE ORDER A PERSON WOULD WANT THEM ------------------------------------
+   *"max 4 results show"* — so which four, and in what order, is the whole of the search. Every row
+   below has "sun" somewhere, at a different depth: the whole title, the start of it, the start of a
+   word in it, inside a word, and only in the tags or the notes. Ties go to a row that plays here before
+   a door, then A to Z. The list is invented, and longer than four, so the line under it has a number. */
+check('the videos card ranks what it finds — the title first, a row that plays before a door, then A to Z — shows four and says how many more', async () => {
+  const yt = id => 'https://www.youtube.com/watch?v=' + id;
+  const rows = [
+    { title: 'Weather report', url: yt('weatherrep1'), kind: 'clip', tags: 'sun rain', active: true },
+    { title: 'Tsunami waves', url: yt('tsunamiwave'), kind: 'clip', tags: '', active: true },
+    { title: 'The sun and moon', url: 'data/reels/sun-and-moon.mp4', kind: 'clip', tags: '', active: true },
+    { title: 'Sunflowers grow', url: 'https://example.org/sunflowers', kind: 'clip', tags: '', active: true },
+    { title: 'Our sunny garden', url: yt('sunnygarden'), kind: 'clip', tags: '', active: true },
+    { title: 'Moon landing', url: yt('moonlanding'), kind: 'clip', tags: '', notes: 'sun', active: true },
+    { title: 'Sunsets explained', url: yt('sunsets0001'), kind: 'clip', tags: '', active: true },
+    { title: 'Sun', url: yt('sunsunsun01'), kind: 'clip', tags: '', active: true },
+  ];
+  const { w } = boot({ serve: u => (/data\/videos\.json/.test(u) ? rows : undefined) });
+  const { box, type, titles } = await vidCard_(w);
+  if (!box) return ['the videos card did not draw on the Games column'];
+  for (let n = 0; n < 50 && box.querySelector('.loading'); n++) await wait(50);
+  const bad = [];
+  const more = () => ((box.querySelector('.vid-results .vid-more') || {}).textContent || '');
+  const want = (q, list, line) => {
+    type(q);
+    if (titles().join('|') !== list.join('|')) bad.push('"' + q + '" found ' + (titles().join(' | ') || 'nothing') + ' — wanted ' + list.join(' | '));
+    if (more() !== line) bad.push('"' + q + '" drew "' + more() + '" under its results — wanted "' + line + '"');
+  };
+  /* 0 the title; 1 its start (plays, then the door); 2 a word's start (A to Z); and four more below:
+     3 inside a word, 4 the tags and the notes. */
+  want('sun', ['Sun', 'Sunsets explained', 'Sunflowers grow', 'Our sunny garden'], '4 more — keep typing to narrow');
+  want('SUN ', ['Sun', 'Sunsets explained', 'Sunflowers grow', 'Our sunny garden'], '4 more — keep typing to narrow');
+  /* THE WHOLE TITLE BEATS A TITLE THAT ONLY STARTS WITH IT, whatever the door. */
+  want('sunflowers grow', ['Sunflowers grow'], '');
+  /* EVERY WORD STARTING A WORD OF THE TITLE BEATS A WORD FOUND IN THE NOTES. */
+  want('moon sun', ['The sun and moon', 'Moon landing'], '');
+  /* A PLURAL FINDS ITS SINGULAR, and ranks by it. */
+  want('gardens', ['Our sunny garden'], '');
+  /* AND THE WHOLE ORDER, PAST THE FOUR DRAWN — inside a word beats the tags and the notes, and those two
+     go A to Z. Asked of `videosFound_` itself, since the card draws only the first four. */
+  const order = (w.videosFound_('sun') || []).map(r => r.title);
+  const full = ['Sun', 'Sunsets explained', 'Sunflowers grow', 'Our sunny garden', 'The sun and moon',
+                'Tsunami waves', 'Moon landing', 'Weather report'];
+  if (order.join('|') !== full.join('|')) bad.push('everything "sun" finds, in order, is ' + order.join(' | ') + ' — wanted ' + full.join(' | '));
+  type('nami');
+  if (titles().join() !== 'Tsunami waves') bad.push('"nami" found ' + (titles().join(' | ') || 'nothing') + ' — wanted the word it is inside');
+  /* AND EXACTLY FOUR IS FOUR, WITH NO LINE. */
+  type('su');
+  if (titles().length !== 4 || !/^\d+ more — keep typing to narrow$/.test(more())) bad.push('"su" drew ' + titles().length + ' rows and "' + more() + '"');
+  if (vidFound_(box) !== rows.length) bad.push('"su" says it found ' + vidFound_(box) + ' of the ' + rows.length + ' rows holding it');
   return bad;
 });
 
@@ -3173,10 +4294,11 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
 
    THREE WAITS, each held where it really waits and then let go: the Videos card while
    `data/videos.json` is out, a column's widgets before they are started, and the business records'
-   boxes while `listRecords` is out — all three the loader OVER markup already drawn (`aria-busy`,
-   shell.js), which is the kind that holds the card's size. Each time: exactly one loader, the contract on it, none of
-   the old words beside it — and once released, the content where it stood and no loader anywhere in
-   that card. */
+   boxes while `listRecords` is out. The last two are the loader OVER markup already drawn (`aria-busy`,
+   shell.js), which is the kind that holds the card's size; the Videos card's is IN PLACE of its results,
+   under a search bar that is never veiled (note 321). Each time: exactly one loader, the contract on it,
+   none of the old words beside it — and once released, the content where it stood and no loader
+   anywhere in that card. */
 check('a widget waiting on its fetch shows the one loader and nothing else, and its content replaces it', async () => {
   const bad = [];
   const one = (card, where) => {
@@ -3193,7 +4315,11 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
     return l;
   };
 
-  /* ---------- 1. THE VIDEOS CARD, WHILE ITS FILE IS OUT ---------------------------------------------- */
+  /* ---------- 1. THE VIDEOS CARD, WHILE ITS FILE IS OUT: THE BAR IS USABLE, AND A WORD WAITS UNDER IT ---
+     Note 321: the card is a search bar first, so it is NEVER veiled — it was, whole, under the loader,
+     while it was a list; a bar nobody can type into for the first seconds is the one thing this card
+     must not be. Somebody who types before the list lands sees the one loader WHERE THE RESULTS WILL
+     BE, and then the results. */
   const rows = [{ title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
                   tags: 'science', age: '', notes: '', active: true }];
   let release = null;
@@ -3209,29 +4335,39 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   const vn = a.w.__t.widgetsOf('game').findIndex(x => String(x.id) === 'videos');
   a.w.__t.goPage('games', vn, true);
   /* AND THE CARD ITSELF WAITED FOR, the videos journey's rule above: under four of these runs at once
-     beside `check/ui.js` (9 Oct) the card was still drawn and not started 150ms after the turn — read
-     as "veiled as unstarted" and "not over the card it will fill", which is the queue being late and
-     not the loader being wrong. Bounded: a card that never starts still fails on what it shows. */
+     beside `check/ui.js` (9 Oct) the card was still drawn and not started 150ms after the turn. Bounded:
+     a card that never starts still fails on what it shows. */
   for (let n = 0; n < 150 && !a.w.document.querySelector('#s-games #wgt-videos .vid-box .vid-q'); n++) await wait(100);
   await wait(50);
   const vid = a.w.document.querySelector('#s-games #wgt-videos');
   if (!vid) return ['the videos card did not draw on the Games column'];
-  const l1 = one(vid, 'the videos card with its file held');
   const vbox = vid.querySelector('.vid-box');
-  if (l1 && (!vbox || l1.parentElement !== vbox || vbox.getAttribute('aria-busy') !== 'true')) bad.push('the videos card\'s loader is not over the card it will fill (`.vid-box[aria-busy]`)');
-  if (vbox && !vbox.querySelector('input.vid-q')) bad.push('the search box is not drawn under the loader, so the card cannot hold its size');
-  if (vid.getAttribute('aria-busy')) bad.push('the videos card is still veiled as unstarted — it started, and only its list is waiting');
+  const vq = vbox && vbox.querySelector('input.vid-q');
+  if (!vq) return ['the videos card has no search box while its file is out — nothing to type into'];
+  if (vid.querySelector('.loading') || vbox.getAttribute('aria-busy') || vid.getAttribute('aria-busy'))
+    bad.push('with its file out and nothing typed, the videos card is veiled — the bar is for typing into from the first paint');
+  const vIdle = vidIdle_(vbox);
+  if (vIdle.length) bad.push('with its file out the videos card is more than the bar: ' + vIdle.join('; '));
+  vq.value = 'volc';
+  vq.dispatchEvent(new a.w.Event('input', { bubbles: true }));
+  const l1 = one(vid, 'the videos card with its file held and a word typed');
+  if (l1 && l1.parentElement !== vbox.querySelector('.vid-results'))
+    bad.push('the videos card\'s loader is not where the results will be (`.vid-results`) but in ' + (l1.parentElement && l1.parentElement.className));
+  if (vbox.getAttribute('aria-busy')) bad.push('a word typed while the file is out veiled the card, bar and all');
   release();
   /* POLLED, BOUNDED — the same 120ms that is always enough alone was not under four runs at once. A
      loader left on for good still fails here, five seconds later. */
-  for (let n = 0; n < 50 && (vid.querySelector('.loading') || !vid.querySelector('.vid-list .vid-row')); n++) await wait(100);
-  if (vid.querySelector('.loading') || (vbox && vbox.getAttribute('aria-busy'))) bad.push('the videos file landed and the card still shows its loader');
-  const got = [...vid.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
-  if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the list reads ' + JSON.stringify(got) + ', not its one row');
+  for (let n = 0; n < 50 && (vid.querySelector('.loading') || !vid.querySelector('.vid-results .vid-row')); n++) await wait(100);
+  if (vid.querySelector('.loading')) bad.push('the videos file landed and the card still shows its loader');
+  const got = [...vid.querySelectorAll('.vid-results .vid-row .vid-t')].map(e => e.textContent.trim());
+  if (got.join() !== 'How volcanoes erupt') bad.push('the videos file landed and the results read ' + JSON.stringify(got) + ', not the one row "volc" finds');
 
   /* ---------- 2. OVER THE MARKUP: A COLUMN'S WIDGETS BEFORE THEY ARE STARTED ---------------------------
      The Tools column is drawn beside Games and not started — exactly the widgets the owner was
-     looking at. Each one with a `start` is veiled; arriving starts them and takes every veil off. */
+     looking at. Each one with a `start` is veiled; arriving starts them and takes every veil off.
+     ON A PHONE, which is what this harness is unless a journey says otherwise: there the column beside
+     is a 23px edge and nothing on it is started. On a wide window it is whole and its widgets on the
+     glass ARE started (docs/history/331) — the journeys after this one ask that. */
   const tools = a.w.document.getElementById('s-tools');
   const waiting = tools ? [...tools.querySelectorAll('.widget-slot[aria-busy="true"]')] : [];
   if (!waiting.length) bad.push('the Tools column, drawn and not started, has no widget waiting under the loader');
@@ -3258,10 +4394,12 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   const b = boot({ before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} },
                    reply: body => (body.action === 'listRecords' ? held : undefined) });
   await wait(300);
-  b.w.__t.go('settings', false, true);
+  /* ON THEIR OWN COLUMN NOW, the last one (docs/history/334) — `bizStart_` fires on arriving there. */
+  b.w.__t.go('biz', false, true);
   await wait(LEAVE_MS); await woken_();
-  const card = b.w.document.querySelector('#s-settings .me-form[data-biz-page="Insurance"]');
-  if (!card) return bad.concat(['an admin\'s Settings has no Insurance card']);
+  if (b.w.__t.AT() !== 'biz') return bad.concat(['go("biz") left an admin on ' + b.w.__t.AT() + ' — the records\' loader was NOT checked']);
+  const card = b.w.document.querySelector('#s-biz .me-form[data-biz-page="Insurance"]');
+  if (!card) return bad.concat(['an admin\'s Business column has no Insurance card']);
   const l3 = one(card, 'the Insurance card with listRecords held');
   const body = card.querySelector('.biz-body');
   if (l3 && (!body || l3.parentElement !== body || body.getAttribute('aria-busy') !== 'true')) bad.push('the records\' loader is not over the boxes (`.biz-body[aria-busy]`)');
@@ -3273,6 +4411,438 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   if (card.querySelector('.loading') || (body && body.getAttribute('aria-busy'))) bad.push('the records came back and the Insurance card is still under the loader');
   const ref = card.querySelector('[data-biz="pub_liability"][data-k="reference"]');
   if (!ref || ref.value !== 'PL-000000') bad.push('the records came back and the box under the loader reads ' + JSON.stringify(ref && ref.value) + ', not PL-000000');
+  return bad;
+});
+
+/* ==================================================================================================
+   A WIDGET ON THE GLASS IS DRAWN, WHICHEVER COLUMN IT IS IN (docs/history/331)
+
+   THE OWNER, 10 Oct, with a screenshot at about 1194px — Settings in front, About you on it, and the
+   column beside it two widget cards that were the gold dots and a star: *"these remain loading untill
+   i scroll to them. i dont like this"*. Only the column in front ever started its widgets, and on a
+   wide window the columns beside it are whole cards (THE GRID SHOWS MORE OF ITSELF, shell.js).
+
+   THIS HARNESS IS A PHONE unless a journey makes it otherwise — `matchMedia` answers no to everything
+   and there is no layout — so these make it a 1194x827 window the way a browser is one: `innerWidth`
+   and `innerHeight` say so, `matchMedia('(min-width: 700px)')` answers from them, and a resize event
+   is what a window dragged narrower sends. With no layout every page is 0px tall at the column's
+   middle, so the glass is the column in front, every column beside it showing more than `WIDE_EDGE`
+   of its card, and down each the pages out to `glassRows_` (three) either side — which is still a
+   real question: page 4 of Tools and beyond is off it. `CSS.escape` is given to it as well, because
+   `$`'s "the copy on the screen in front" is written with it and jsdom has none, so a starred widget's
+   two copies could not otherwise be told apart.
+   AND THE COLUMNS IN THE ORDER THE SHEET GIVES THEM (`data/settings/columns.json`), the order the
+   owner's screenshot was in: Settings between You and Tools. The written fallback puts Settings at
+   the far end, beside nothing that runs. */
+const COLUMNS_ = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+const wideBoot_ = (opts) => {
+  opts = opts || {};
+  return boot(Object.assign({}, opts, {
+    payload: opts.payload || Object.assign(payload(), { columns: COLUMNS_ }),
+    before: win => {
+      let iw = 1194;
+      Object.defineProperty(win, 'innerWidth', { configurable: true, get: () => iw });
+      Object.defineProperty(win, 'innerHeight', { configurable: true, get: () => 827 });
+      win.__width = v => { iw = v; win.dispatchEvent(new win.Event('resize')); };
+      win.matchMedia = q => {
+        const m = /min-width:\s*(\d+)px/.exec(String(q));
+        return { matches: !!m && iw >= Number(m[1]), media: String(q), addEventListener() {}, removeEventListener() {} };
+      };
+      win.CSS = Object.assign({}, win.CSS, { escape: s => String(s).replace(/[^\w-]/g, c => '\\' + c) });
+      /* AND THE CALCULATOR'S PARTS FOUND IN TREE ORDER, as a browser finds them. jsdom's `getElementById`
+         hands back the copy of a duplicated id that was put in the document FIRST, not the one that
+         comes first in it — so after a column is drawn again its copy of a starred widget stops being
+         "the first one", and the journey below passed with the copy-finding half of `$` taken out
+         (tried: it drew into the right copy by the luck of which column had been redrawn). Only the
+         calculator's ids (`mc-…`, the widget it stars): a `querySelector` for every lookup made the whole
+         app so slow under jsdom that an arrival's `afterSlide_` outlived the journey's wait. */
+      const byId = win.document.getElementById.bind(win.document);
+      win.document.getElementById = id => {
+        if (!/^mc-/.test(String(id))) return byId(id);
+        try { return win.document.querySelector('#' + win.CSS.escape(String(id))); } catch (e) { return byId(id); }
+      };
+      if (typeof opts.before === 'function') opts.before(win);
+    },
+  }));
+};
+/* WHAT IS ON TOOLS: each widget's slot, whether its page is one the last placement put on the glass,
+   whether it still holds the loader that stands for "not started", and whether it is running there. */
+const toolsSlots_ = (w) => {
+  const t = w.__t, g = t.glass(), run = t.running();
+  return [...w.document.querySelectorAll('#s-tools .widget-slot')].map(sl => ({
+    id: sl.id.slice(4),
+    lit: g.pages.indexOf(sl.closest('.page')) !== -1,
+    veiled: sl.getAttribute('aria-busy') === 'true' || !!sl.querySelector(':scope > .loading'),
+    on: run.some(r => r.id === sl.id.slice(4) && r.col === 'tools'),
+  }));
+};
+const settle_ = async () => { await wait(LEAVE_MS); await woken_(); };
+/* AND WHAT A STEP IS ABOUT TO ASK, WAITED FOR — bounded, so a state that never comes still fails on what
+   was asked. At a load average of thirty-seven an arrival's `afterSlide_` outlived `woken_`'s eight
+   seconds once (measured here, 10 Oct): a late start, not a missing one. */
+const until_ = async (fn, ms) => { for (let k = 0; k < (ms || 15000) / 100; k++) { let ok = false; try { ok = fn(); } catch (e) {} if (ok) return; await wait(100); } };
+
+check('a wide window starts the widgets on the glass beside the column in front, and stops them when they leave it', async () => {
+  const { w } = wideBoot_();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
+  if (!calc) return ['there is no calculator on Tools to ask about'];
+  let stops = 0;
+  const realStop = calc.stop;
+  calc.stop = function () { stops++; return realStop ? realStop.apply(this, arguments) : undefined; };
+  t.go('settings', false, true);
+  await settle_();
+  await until_(() => toolsSlots_(w).filter(x => x.lit).every(x => x.on && !x.veiled));
+  const bad = [];
+  const g = t.glass();
+  if (t.AT() !== 'settings') return ['Settings did not come in front, so nothing was asked'];
+  if (g.cols.indexOf('tools') === -1) return ['at 1194 with Settings in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
+  let s = toolsSlots_(w);
+  const lit = s.filter(x => x.lit), dark = s.filter(x => !x.lit);
+  if (!lit.length) return ['no Tools card is on the glass beside Settings, so nothing was asked'];
+  lit.filter(x => x.veiled).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Settings and still holds the loader — it was never started'));
+  lit.filter(x => !x.on).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Settings and is not running on Tools'));
+  /* AND ONLY THOSE. A column beside you is not a column you arrived at; what is off the glass on it waits. */
+  if (!dark.length) bad.push('every Tools card counted as on the glass, so whether it starts ONLY what is on it was not asked');
+  dark.filter(x => x.on).forEach(x => bad.push('#wgt-' + x.id + ' is off the glass on a column beside Settings and was started anyway'));
+  if (!lit.some(x => x.id === 'calculator')) bad.push('the calculator — the first Tools card — is not among the cards on the glass');
+  if (t.AT() !== 'settings') bad.push('the column in front moved to ' + t.AT() + ' — nobody went to Tools');
+  /* NARROWED TO A PHONE: the column beside is a 23px edge again, and what ran on it stops. */
+  const before = stops;
+  w.__width(390);
+  await wait(400); await woken_();
+  await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
+  const g2 = t.glass();
+  if (g2.cols.join() !== 'settings') bad.push('narrowed to 390 the glass is still ' + JSON.stringify(g2.cols) + ' — only Settings is on a phone\'s');
+  const still = t.running().filter(r => r.col === 'tools').map(r => r.id);
+  if (still.length) bad.push('narrowed to 390, ' + still.join(', ') + ' went on running on Tools, which is no longer on the glass');
+  if (stops === before) bad.push('narrowed to 390, the calculator\'s stop was never called');
+  /* AND WIDENED AGAIN, it is back on the glass and started again. */
+  w.__width(1194);
+  await wait(400); await woken_();
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
+  s = toolsSlots_(w);
+  if (!s.some(x => x.id === 'calculator' && x.on)) bad.push('widened back to 1194, the calculator beside Settings is not running again');
+  /* SWIPED OFF THE GLASS: You in front puts Tools two columns away, an 8px edge at 1194. */
+  const before2 = stops;
+  t.go('account', false, true);
+  await settle_();
+  await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
+  const still2 = t.running().filter(r => r.col === 'tools').map(r => r.id);
+  if (t.glass().cols.indexOf('tools') !== -1) bad.push('with You in front, Tools still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
+  if (still2.length) bad.push('with You in front, ' + still2.join(', ') + ' went on running on Tools, two columns away and off the glass');
+  if (stops === before2) bad.push('going to You, the calculator\'s stop was never called');
+  return bad;
+});
+
+check('a starred widget on Tools and Saved is one widget: started once, and never stopped while a copy of it is on the glass', async () => {
+  const kid = { name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' };
+  const { w } = wideBoot_({ before: win => {
+    try { win.localStorage.setItem('familyUser', JSON.stringify(kid)); win.localStorage.setItem('favs', JSON.stringify(['w:calculator'])); } catch (e) {}
+  } });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  const d = w.document;
+  const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
+  if (!calc) return ['there is no calculator on Tools to ask about'];
+  /* FIND IS FAR FROM ALL THREE, so nothing of the calculator is running when the journey begins. */
+  t.go('stuff', false, true);
+  await settle_();
+  if (!d.querySelector('#s-saved #wgt-calculator')) return ['the starred calculator is not drawn on the Saved column, so nothing was asked'];
+  let starts = 0, stops = 0, most = 0;
+  const realStart = calc.start, realStop = calc.stop;
+  calc.start = function () { starts++; return realStart.apply(this, arguments); };
+  calc.stop = function () { stops++; return realStop ? realStop.apply(this, arguments) : undefined; };
+  const copies = () => { const n = t.running().filter(r => r.id === 'calculator'); most = Math.max(most, n.length); return n; };
+  const drawn = col => !!d.querySelector('#s-' + col + ' #wgt-calculator #mc-display .mc-caret');
+  const bad = [];
+  if (t.running().some(r => r.id === 'calculator')) return ['the calculator was already running with Find in front, so nothing was asked'];
+  /* GAMES IN FRONT: Tools on one side and Saved on the other, both whole, both with the calculator on the glass. */
+  t.go('games', false, true);
+  await settle_();
+  await until_(() => t.running().some(r => r.id === 'calculator'));
+  const g = t.glass();
+  if (g.cols.indexOf('tools') === -1 || g.cols.indexOf('saved') === -1) return ['with Games in front at 1194 the glass is ' + JSON.stringify(g.cols) + ' — Tools and Saved are not both on it, so nothing was asked'];
+  let on = copies();
+  if (starts !== 1) bad.push('with both of its copies on the glass the calculator was started ' + starts + ' time(s), not once');
+  if (on.length !== 1) bad.push('the calculator is running ' + on.length + ' time(s) at once: ' + JSON.stringify(on));
+  const veiled = [...d.querySelectorAll('.widget-slot')].filter(sl => sl.id === 'wgt-calculator' && sl.getAttribute('aria-busy') === 'true')
+    .map(sl => sl.closest('.screen').id);
+  if (veiled.length) bad.push('the calculator has started and its copy on ' + veiled.join(', ') + ' still holds the loader');
+  if (on[0] && !drawn(on[0].col)) bad.push('the calculator is running on ' + on[0].col + '\'s copy and that copy\'s display was never drawn');
+  /* TO TOOLS: the copy in front is the one it is running on, so nothing starts again — unless the column
+     was `STALE` and drawn again on the way in (a signed-in visitor's second reply repaints, and marks
+     every other column so), in which case what it ran in has gone and it is started once more, once. */
+  const startsAtTools = starts;
+  const slotWas = d.querySelector('#s-tools #wgt-calculator');
+  t.go('tools', false, true);
+  await settle_();
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
+  on = copies();
+  const redrawn = d.querySelector('#s-tools #wgt-calculator') !== slotWas;
+  if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs on ' + JSON.stringify(on) + ', not once on Tools');
+  if (!redrawn && starts !== startsAtTools) bad.push('arriving at Tools started the calculator again although it was already running on Tools\' copy, which was not redrawn');
+  if (redrawn && starts !== startsAtTools + 1) bad.push('arriving at Tools redrew its copy and started the calculator ' + (starts - startsAtTools) + ' time(s), not once');
+  /* TO SPOTLIGHT: Tools is three columns away, Saved beside — the copy that ran has left the glass and
+     the other is still on it, so it is started there, once. */
+  const s0 = starts, x0 = stops;
+  t.go('spotlight', false, true);
+  await settle_();
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'saved'));
+  on = copies();
+  if (on.length !== 1 || on[0].col !== 'saved') bad.push('with Spotlight in front (Saved beside, Tools off the glass) the calculator runs on ' + JSON.stringify(on) + ', not on Saved');
+  if (starts - s0 !== 1 || stops - x0 !== 1) bad.push('moving to Spotlight stopped it ' + (stops - x0) + ' and started it ' + (starts - s0) + ' time(s) — once each, from the copy that left to the copy still there');
+  if (!drawn('saved')) bad.push('the calculator started on Saved\'s copy and that copy\'s display was never drawn — it drew into another copy');
+  /* BACK TO GAMES: Saved is still beside, so the copy it is running on never left — nothing stops. */
+  const s1 = starts, x1 = stops;
+  t.go('games', false, true);
+  await settle_();
+  on = copies();
+  if (stops !== x1) bad.push('back at Games the calculator was stopped although its copy on Saved never left the glass');
+  if (starts !== s1) bad.push('back at Games the calculator was started again although it was running on a copy still on the glass');
+  if (most > 1) bad.push('at one point the calculator was running ' + most + ' times at once');
+  calc.start = realStart; calc.stop = realStop;
+  return bad;
+});
+
+check('arriving at a column on a wide window leaves what already runs on it, and starts the rest one per task', async () => {
+  const { w } = wideBoot_();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('settings', false, true);
+  await settle_();
+  const bad = [];
+  const ws = t.widgetsOf('tool').filter(x => typeof x.start === 'function');
+  const runningBefore = new Set(t.running().filter(r => r.col === 'tools').map(r => r.id));
+  if (!runningBefore.size) return ['nothing was running on Tools beside Settings, so nothing was asked'];
+  /* THE SLOTS AS THEY ARE, because a column marked `STALE` is drawn again on the way in and what ran in
+     the old markup is rightly started again; only a widget whose slot is the same element must not be. */
+  const slotWas = {};
+  runningBefore.forEach(id => { slotWas[id] = w.document.querySelector('#s-tools #wgt-' + id); });
+  let n = 0, most = 0, booked = false;
+  const seen = {};
+  const real = new Map();
+  ws.forEach(x => {
+    const f = x.start;
+    real.set(x, f);
+    x.start = function () {
+      seen[x.id] = (seen[x.id] || 0) + 1; n++;
+      if (!booked) { booked = true; setTimeout(() => { most = Math.max(most, n); n = 0; booked = false; }, 0); }
+      return f.apply(this, arguments);
+    };
+  });
+  t.go('tools', false, true);
+  for (let k = 0; k < 150 && !(t.quiet() && ws.every(x => t.running().some(r => r.id === String(x.id)))); k++) await wait(100);
+  await wait(50);
+  const kept = [...runningBefore].filter(id => w.document.querySelector('#s-tools #wgt-' + id) === slotWas[id]);
+  if (!kept.length) bad.push('Tools was drawn again on the way in, so leaving what already ran was not asked');
+  kept.filter(id => seen[id]).forEach(id => bad.push('#wgt-' + id + ' was running beside Settings and arriving at Tools started it again (' + seen[id] + 'x) in the same slot'));
+  const never = ws.filter(x => !t.running().some(r => r.id === String(x.id) && r.col === 'tools')).map(x => x.id);
+  if (never.length) bad.push('arriving at Tools left ' + never.join(', ') + ' never started');
+  if (most > 3) bad.push(most + ' widgets started in one task on arrival — a swipe would wait behind every one');
+  const far = ws.filter(x => !runningBefore.has(String(x.id)));
+  if (!far.length) bad.push('every Tools widget was already running, so the far ones starting one per task was not asked');
+  ws.forEach(x => { x.start = real.get(x); });
+  return bad;
+});
+
+/* THE PAYLOAD'S LANDING EMPTIES EVERY COLUMN AND DRAWS IT AGAIN (`load`), so a widget that started beside
+   the column in front before it landed — drawing the one loader over the part of it that waits for the
+   payload — is running in markup that has just been thrown away. What was on the glass has to start
+   again in the new markup, or the new copy sits under the "not started" veil and the old one, drawn,
+   is gone: the owner's picture again, one payload later. */
+check('a widget beside the column in front that waits for the payload is drawn when it lands, without going there', async () => {
+  let release = null;
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
+  /* THE WRITTEN COLUMN ORDER, NOT THE SHEET'S: the payload is what carries the sheet's, and it is held. In
+     the written order Tools sits beside You. */
+  const { w } = wideBoot_({ payload: payload(),
+    serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(payload()); })),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('account', false, true);
+  await settle_();
+  const bad = [];
+  if (!release) return ['the payload was never asked for, so nothing was held'];
+  if (t.glass().cols.indexOf('tools') === -1) return ['with You in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
+  const card = () => w.document.querySelector('#s-tools #wgt-flyers');
+  if (!card()) return ['an admin\'s Tools has no flyer maker, so nothing was asked'];
+  await until_(() => t.running().some(r => r.id === 'flyers' && r.col === 'tools'));
+  if (!t.running().some(r => r.id === 'flyers' && r.col === 'tools')) return ['the flyer maker beside You was never started, so its wait for the payload was not asked'];
+  if (!card().querySelector('.loading')) return ['the flyer maker beside You shows no loader with the payload held, so nothing was waiting'];
+  if (card().getAttribute('aria-busy') === 'true') bad.push('the flyer maker still holds the "not started" veil after it started');
+  const was = card();
+  /* AND NEVER BARE ON THE WAY. A new slot with its veil off and nothing running in it is markup nobody
+     started — and that is what the new flyer maker was, from the landing until the slide settled, while
+     the old one, running in markup the landing had thrown away, still counted as "running" and its copy
+     on the glass was unveiled for it (review of 331). Asked after every change to the column. */
+  let bare = 0;
+  const look = () => { const sl = card(); if (sl && sl !== was && !sl.getAttribute('aria-busy') && !t.running().some(r => r.slot === sl)) bare++; };
+  const mo = new w.MutationObserver(look);
+  mo.observe(w.document.getElementById('s-tools'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
+  release();
+  /* WAITED FOR UNTIL IT IS DRAWN, NOT UNTIL `quiet()`: the after-slide jobs run one per task from a
+     list `afterSlide_` has already emptied, so `quiet()` says yes while the restart is still in it. */
+  await until_(() => card() && card() !== was && !!card().querySelector('#fm-wrap .widget-squeeze'));
+  await woken_();
+  mo.disconnect();
+  if (bare) bad.push('the payload landed and the new flyer maker beside You was shown without its veil and with nothing running in it, ' + bare + ' time(s) — markup nobody had started, unveiled because the one in the thrown-away markup still counted as running');
+  if (card() === was) bad.push('the payload landed and Tools was not drawn again, so starting the new markup was not asked');
+  if (card() && card().getAttribute('aria-busy') === 'true') bad.push('the payload landed, Tools was drawn again beside You, and the new flyer maker sits under the "not started" veil — only going to Tools would have started it');
+  else if (card() && card().querySelector('.loading')) bad.push('the payload landed and the flyer maker beside You still shows the loader');
+  /* AND DRAWN, NOT ONLY UNVEILED: a copy of a widget running elsewhere has its veil taken off too (one
+     widget, one start), so a missing veil alone would pass a flyer still running in the markup that was
+     thrown away. Its controls are drawn by its `start` and by nothing else. */
+  if (card() && !card().querySelector('#fm-wrap .widget-squeeze')) bad.push('the payload landed and the new flyer maker beside You was never started — its box is the empty markup');
+  if (t.running().filter(r => r.id === 'flyers').length !== 1) bad.push('after the payload the flyer maker is running ' + t.running().filter(r => r.id === 'flyers').length + ' time(s), not once');
+  if (t.AT() !== 'account') bad.push('the column in front moved to ' + t.AT());
+  return bad;
+});
+
+/* ---------- A REPAINT AND THEN AN ARRIVAL KEEP THE WIDGET RUNNING BESIDE YOU ---------------------------
+   FOUND BY THE REVIEW OF 331, on the owner's own path. Every signed-in load lands twice (the payload, then
+   the inbox), and the second `repaint` marks every column but the one in front `STALE`; a column is drawn
+   again when it is next arrived at. So at 1194 with Settings in front, the calculator on Tools beside it
+   ran in markup that was due to be thrown away — and the first arrival at Tools threw it away: a new slot
+   under the loader for 240–690ms, then the calculator started again from nothing, a sum typed into it
+   gone. `paint` now hands the running slot back into the new markup (`widgetsHeld_`, arcade.js). The
+   column itself IS drawn again — its star is a new element — and the widget is the one that was running. */
+check('a repaint and then an arrival keep the widget running beside the column in front: the same slot, never the loader, the sum still in it', async () => {
+  const { w } = wideBoot_();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('settings', false, true);
+  await settle_();
+  const d = w.document;
+  const slot = () => d.querySelector('#s-tools #wgt-calculator');
+  const shown = () => { const el = d.querySelector('#s-tools #wgt-calculator #mc-display'); return el ? el.textContent : null; };
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools') && slot() && !slot().getAttribute('aria-busy'));
+  if (!t.running().some(r => r.id === 'calculator' && r.col === 'tools')) return ['the calculator beside Settings never started, so nothing was asked'];
+  if (typeof w._mcClick !== 'function') return ['the calculator set no `_mcClick`, so nothing could be typed into it'];
+  ['7', '+', '5'].forEach(k => w._mcClick(k));
+  if (shown() !== '7+5') return ['typed 7+5 into the calculator beside Settings and it reads ' + JSON.stringify(shown()) + ', so nothing was asked'];
+  const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
+  let starts = 0;
+  const realStart = calc.start;
+  calc.start = function () { starts++; return realStart.apply(this, arguments); };
+  const was = slot();
+  const star = () => { const sl = slot(); const c = sl && sl.closest('.card'); return c && c.querySelector('.wgt-keep'); };
+  const starWas = star();
+  /* EVERY CHANGE TO THE COLUMN, ASKED: is the calculator's slot there and without the loader? */
+  let veiled = 0;
+  const look = () => { const sl = slot(); if (!sl || sl.getAttribute('aria-busy') === 'true' || sl.querySelector(':scope > .loading')) veiled++; };
+  const mo = new w.MutationObserver(look);
+  mo.observe(d.getElementById('s-tools'), { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-busy'] });
+  const bad = [];
+  t.repaint();
+  if (!t.stale('tools')) bad.push('the repaint did not leave Tools stale, so its first arrival did not draw it again and nothing was asked');
+  await wait(300);
+  t.go('tools', false, true);
+  await settle_();
+  await until_(() => t.AT() === 'tools' && t.quiet());
+  look();
+  mo.disconnect();
+  calc.start = realStart;
+  if (t.stale('tools')) bad.push('Tools is still stale after arriving at it — the column was not drawn again, so keeping the slot through a paint was not asked');
+  else if (star() === starWas) bad.push('the calculator\'s star is the element it was before the arrival — the column was not drawn again, so keeping the slot through a paint was not asked');
+  if (slot() !== was) bad.push('arriving at Tools after a repaint threw away the slot the calculator was running in and drew a new one');
+  if (veiled) bad.push('between the repaint and arriving at Tools the calculator\'s slot was gone or held the loader ' + veiled + ' time(s): drawn, the dots, drawn');
+  if (shown() !== '7+5') bad.push('the sum typed beside Settings reads ' + JSON.stringify(shown()) + ' once Tools is in front — the calculator was started again from nothing');
+  if (starts) bad.push('arriving at Tools started the calculator ' + starts + ' time(s) more, though it was running on Tools\' own copy');
+  const on = t.running().filter(r => r.id === 'calculator');
+  if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs ' + JSON.stringify(on.map(r => r.col)) + ', not once on Tools');
+  return bad;
+});
+
+/* ---------- AND NOT FOR THE PERSON WHO HAS GONE -------------------------------------------------------
+   A widget beside the column in front runs in markup a repaint leaves `STALE`, so a sign-out on Settings
+   at 1194 left Tools beside it running as it was: the admin's flyer maker, which a signed-out Tools does
+   not draw, and the calculator started for the admin. The column in front is started again by the
+   repaint a change of person makes; a widget beside it started for somebody else is now stopped, and
+   started again if its column still draws it for whoever is here (`widgetsGlass_`). And a paint never
+   carries a slot started for somebody else into the new markup (`widgetsHeld_`): what is in it is theirs. */
+check('a sign-out stops what its column no longer draws beside the column in front, and nothing runs on for the last person', async () => {
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't-ann' };
+  const { w } = wideBoot_({ before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('settings', false, true);
+  await settle_();
+  const runs = id => t.running().find(r => r.id === id && r.col === 'tools');
+  await until_(() => runs('calculator') && runs('flyers'));
+  if (!runs('flyers') || !runs('calculator')) return ['with the admin signed in, the calculator and the flyer maker are not both running beside Settings (' + JSON.stringify(t.running().map(r => r.id + '@' + r.col)) + '), so nothing was asked'];
+  if (runs('calculator').who !== 'P001') return ['the calculator beside Settings says it was started for ' + JSON.stringify(runs('calculator').who) + ', not for the admin, so nothing was asked'];
+  const bad = [];
+  if (typeof w.signedOut_ !== 'function' || typeof w.signedIn_ !== 'function') return ['signedOut_ / signedIn_ are not globals, so a change of person was NOT asked'];
+  /* SIGNED OUT WITH SETTINGS IN FRONT, and nobody goes anywhere. */
+  try { w.signedOut_(); } catch (e) { return ['signedOut_ threw: ' + e.message]; }
+  await settle_();
+  await until_(() => !runs('flyers') && runs('calculator') && runs('calculator').who === '');
+  if (!t.stale('tools')) bad.push('the sign-out did not leave Tools stale, so nothing beside Settings was running in markup it would not draw now');
+  if (runs('flyers')) bad.push('signed out with Settings in front, the admin\'s flyer maker went on running on Tools beside it — a signed-out Tools does not draw it');
+  if (!runs('calculator')) bad.push('signed out with Settings in front, the calculator on Tools beside it stopped and was not started again');
+  else if (runs('calculator').who !== '') bad.push('signed out with Settings in front, the calculator beside it is still the one started for ' + JSON.stringify(runs('calculator').who));
+  /* SIGNED IN AGAIN, then out and STRAIGHT to Tools — before anything beside Settings has been started
+     again — so the arrival's paint meets a slot started for the admin. It must not carry it. */
+  try { w.signedIn_(Object.assign({}, admin)); } catch (e) { return bad.concat(['signedIn_ threw: ' + e.message]); }
+  await settle_();
+  await until_(() => runs('calculator') && runs('calculator').who === 'P001');
+  if (!runs('calculator') || runs('calculator').who !== 'P001') return bad.concat(['signed in again, the calculator beside Settings was not started for the admin (' + JSON.stringify(runs('calculator') && runs('calculator').who) + '), so carrying a slot across a change of person was not asked']);
+  const adminSlot = runs('calculator').slot;
+  try { w.signedOut_(); t.go('tools', false, true); } catch (e) { return bad.concat(['signing out and going to Tools threw: ' + e.message]); }
+  const now = w.document.querySelector('#s-tools #wgt-calculator');
+  if (now === adminSlot) bad.push('signed out and straight to Tools, the new Tools markup holds the calculator slot that was started for the admin — carried across a change of person');
+  await settle_();
+  await until_(() => t.AT() === 'tools' && runs('calculator') && runs('calculator').who === '' && t.quiet());
+  if (!runs('calculator')) bad.push('signed out and at Tools, the calculator is not running');
+  else if (runs('calculator').who !== '') bad.push('signed out and at Tools, the calculator in front is the one started for ' + JSON.stringify(runs('calculator').who) + ' — nothing started it again for nobody');
+  if (runs('flyers')) bad.push('signed out and at Tools, the admin\'s flyer maker is running');
+  return bad;
+});
+
+/* A COLUMN LEFT BEFORE ITS PLACEMENT HAS HAPPENED STARTS NOTHING MORE BEHIND IT. `go` moves `AT` at once and
+   the grid a frame later, and it is that placement which says what is on the glass and forgets what was
+   queued for a column that has left it (`widgetsGlass_`). Until 10 Oct `go` stopped everything itself,
+   synchronously; from the placement instead, a step of the queue landing in between would start a far
+   widget of the column just left, in the frame its slide begins. So the queue waits for the placement
+   (`GLASS.at`). Here the frame is held — `requestAnimationFrame` answers nothing — so the gap is as long
+   as the journey wants, and a phone, where the column left is off the glass the moment it is left. */
+check('a column left before its placement has happened starts nothing more of its widgets', async () => {
+  const { w } = boot();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('tools', false, true);
+  await until_(() => t.waiting().filter(q => q.col === 'tools').length >= 3, 8000);
+  const queued = t.waiting().filter(q => q.col === 'tools').length;
+  if (queued < 3) return ['arriving at Tools left ' + queued + ' widget(s) queued, so a queue running behind a column change was not asked'];
+  const raf = w.requestAnimationFrame;
+  w.requestAnimationFrame = () => 0;
+  /* A FRAME ALREADY BOOKED STILL RUNS — let it, on Tools, before the column changes. */
+  await wait(60);
+  const before = t.running().filter(r => r.col === 'tools').length;
+  const left = t.waiting().filter(q => q.col === 'tools').length;
+  t.go('settings', false, true);
+  await wait(600);
+  const after = t.running().filter(r => r.col === 'tools').length;
+  const bad = [];
+  if (t.glass().at === 'settings') bad.push('Settings was placed although no frame could run, so the gap before the placement was not made and nothing was asked');
+  else if (!left) bad.push('nothing was left in the queue when Tools was left, so nothing was asked');
+  else if (after > before) bad.push((after - before) + ' Tools widget(s) were started after Tools was left and before its placement — the queue ran behind a column change');
+  w.requestAnimationFrame = raf;
+  w.placeCells('x');
+  await settle_();
+  await until_(() => !t.running().some(r => r.col === 'tools') && !t.waiting().some(q => q.col === 'tools'), 5000);
+  if (t.running().some(r => r.col === 'tools')) bad.push('once placed, Settings in front still has Tools widgets running: ' + t.running().filter(r => r.col === 'tools').map(r => r.id).join(', '));
+  if (t.waiting().some(q => q.col === 'tools')) bad.push('once placed, Settings in front still has Tools widgets queued to start');
   return bad;
 });
 
@@ -3313,22 +4883,26 @@ const vidCard_ = async (w, who) => {
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   const q = box && box.querySelector('input.vid-q');
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
-  const titles = () => [...box.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  const titles = () => [...box.querySelectorAll('.vid-results .vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
   return { t, d, box, q, type, titles };
 };
 const vidAdmin_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin' };
 
-check('the videos card finds an admin’s films by title, year, kids, series and documentaries, and a placeholder says so', async () => {
+check('the videos card finds an admin’s films by title, year, kids, series and documentaries, plays a film in Drive’s player after a tap, and a placeholder says so', async () => {
   const data = payload();
   data.films = FILMS_;
   data.filmsSync = { at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
                      found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } };
   const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
-  const { box, type, titles } = await vidCard_(w, vidAdmin_);
+  const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
   if (!box) return ['the videos card did not draw on the Games column'];
   const bad = [];
-  const all = titles();
-  if (all.length !== FILMS_.length) bad.push('the card lists ' + all.length + ' of the admin’s ' + FILMS_.length + ' films: ' + all.join(' | '));
+  /* THE ADMIN TOO OPENS ON THE BAR ALONE (note 321): no list of every film, and no Sync row. */
+  const idle = vidIdle_(box);
+  if (idle.length) bad.push('an admin’s card opens on more than the search bar: ' + idle.join('; '));
+  type('film');
+  if (vidFound_(box) !== FILMS_.length) bad.push('"film" finds ' + vidFound_(box) + ' of the admin’s ' + FILMS_.length + ' films');
+  if (titles().length !== 4) bad.push('"film" draws ' + titles().length + ' rows — at most four are shown');
   const want = (q, list) => {
     type(q);
     const got = titles();
@@ -3341,44 +4915,80 @@ check('the videos card finds an admin’s films by title, year, kids, series and
   want('series', ['Example Flat Show']);
   want('documentaries', ['Pretend Science Hour']);
   want('ferry unfinished', ['Night Ferry']);
-  /* A FILM IS A DOOR TO DRIVE, never a player in the card. */
+  /* AND THE TIE ON A DOOR: four films only by their tags — the two that play here A to Z, then the series
+     that opens its folder, then the one not in the Drive yet. */
+  want('adults', ['Night Ferry', 'Paper Moon Rising', 'Example Flat Show', 'Wanted By Name']);
+  /* ---------- A FILM PLAYS IN THE CARD NOW, IN DRIVE'S OWN PLAYER — AFTER A TAP AND NOT BEFORE ----------
+     It was a door to Drive (note 068: a 3 GB .mkv plays in no browser); the owner asked for every result
+     to play here (10 Oct, note 321), so a films-list row whose address is a Drive FILE is a play button,
+     and nothing is asked of Drive's player until it is pressed. */
   type('paper moon');
-  const a = box.querySelector('.vid-list a.vid-row.is-out');
-  if (!a || a.getAttribute('href') !== FILMS_[0].url || a.getAttribute('target') !== '_blank') bad.push('a film is not a link out to its Drive address: ' + (a ? a.outerHTML.slice(0, 120) : 'no link'));
-  if (box.querySelector('.vid-list [data-do="vid-play"]')) bad.push('a film row is a play button — a 3 GB .mkv plays in no browser (note 068)');
-  /* A FILM'S PICTURE IS DRIVE'S OWN, its file id read from the Drive address the row carries (`drive_id`
+  const row = box.querySelector('.vid-results .vid-row');
+  if (!row || !row.matches('button[data-do="vid-play"]')) bad.push('a film from the folder is not a row that plays here: ' + (row ? row.outerHTML.slice(0, 140) : 'no row'));
+  if (box.querySelector('iframe') || /\/preview/.test(w.document.body.innerHTML)) bad.push('Drive\'s player was in the page before anybody tapped a film');
+  /* ITS PICTURE IS STILL DRIVE'S OWN, its file id read from the Drive address the row carries (`drive_id`
      itself is never sent) — and a picture that fails leaves the poster drawn under it. */
-  const im = box.querySelector('.vid-list a.vid-row.is-out .vid-th img.vid-img');
+  const im = box.querySelector('.vid-results .vid-row .vid-th img.vid-img');
   if (!im || im.getAttribute('src') !== 'https://drive.google.com/thumbnail?id=example-f-001&sz=w320')
     bad.push('a Drive film\'s picture is not Drive\'s thumbnail of its file: ' + (im ? im.getAttribute('src') : 'no <img>'));
-  if (!box.querySelector('.vid-list a.vid-row.is-out .vid-th .vid-poster')) bad.push('a Drive film has no poster under its picture');
-  if (!/^Film$/.test(((box.querySelector('.vid-list a.vid-row.is-out .vid-badge') || {}).textContent || '').trim())
-      || !box.querySelector('.vid-list a.vid-row.is-out .vid-badge .vid-out[aria-label="opens in a new tab"]'))
-    bad.push('a film\'s badge is not "Film" with a named out-arrow');
-  if ((box.querySelector('.vid-list a.vid-row.is-out .vid-k') || {}).textContent !== '1993')
-    bad.push('a film\'s line is "' + (box.querySelector('.vid-list a.vid-row.is-out .vid-k') || {}).textContent + '" — wanted its year, and the arrow saying where it opens');
-  /* WHAT EACH ROW SAYS IT IS — in YouTube's duration spot now, the badge on the picture. It was the first
-     word of the dim line (`.vid-k`) until note 311 moved the kind onto the picture; the line keeps the rest. */
+  if (!box.querySelector('.vid-results .vid-row .vid-th .vid-poster')) bad.push('a Drive film has no poster under its picture');
+  const badge = box.querySelector('.vid-results .vid-row .vid-badge');
+  if (!badge || badge.textContent.trim() !== 'Film' || badge.querySelector('.vid-out'))
+    bad.push('a film that plays here is badged "' + (badge && badge.textContent.trim()) + '"' + (badge && badge.querySelector('.vid-out') ? ' with an out-arrow, though it does not leave' : ''));
+  if ((box.querySelector('.vid-results .vid-row .vid-k') || {}).textContent !== '1993')
+    bad.push('a film\'s line is "' + (box.querySelector('.vid-results .vid-row .vid-k') || {}).textContent + '" — wanted its year');
+  if (row && row.matches('[data-do="vid-play"]')) {
+    t.ACTIONS['vid-play'](row);
+    const fr = box.querySelector('.vid-stage iframe.vid-player');
+    if (!fr || fr.getAttribute('src') !== 'https://drive.google.com/file/d/example-f-001/preview')
+      bad.push('tapping the film did not put Drive\'s player of its file in the card: ' + (fr ? fr.getAttribute('src') : 'no iframe'));
+    else {
+      const allow = fr.getAttribute('allow') || '';
+      if (!/\bautoplay\b/.test(allow) || !/\bfullscreen\b/.test(allow) || !fr.hasAttribute('allowfullscreen'))
+        bad.push('Drive\'s player is not allowed autoplay and full screen: allow="' + allow + '"' + (fr.hasAttribute('allowfullscreen') ? '' : ', no allowfullscreen'));
+    }
+    if (box.querySelector('.vid-results .vid-row')) bad.push('the results are still drawn under the film');
+    /* AND THE DOOR IS BESIDE FULL SCREEN, for the file Drive will not play in a frame. */
+    const door = box.querySelector('.vid-acts a.tile[href]');
+    if (!box.querySelector('.vid-acts .tile[data-do="vid-full"]')) bad.push('a playing film has no Full screen tile');
+    if (!door || door.getAttribute('href') !== FILMS_[0].url || door.getAttribute('target') !== '_blank' || !/Open in Drive/.test(door.getAttribute('aria-label') || ''))
+      bad.push('a playing film has no Open in Drive tile to its own file: ' + (door ? door.outerHTML.slice(0, 160) : 'none'));
+    /* THE ADMIN'S ROW IS NOT UNDER A PLAYER. */
+    if ((box.querySelector('.vid-admin') || {}).innerHTML) bad.push('the admin\'s Sync row is drawn under the film');
+  }
+  /* A SERIES IS ITS FOLDER: it stays a link out, with its seasons said and no picture asked for. */
   type('example flat');
-  const k = box.querySelector('.vid-list .vid-badge');
-  if (!k || !/^Series$/.test(k.textContent.trim())) bad.push('a series is labelled "' + (k && k.textContent.trim()) + '" — every film row used to say Film');
-  if (box.querySelector('.vid-list .vid-th img')) bad.push('a series is a FOLDER and Drive has no picture of one, but its row asks for a thumbnail');
-  if (!/3 seasons/.test((box.querySelector('.vid-list .vid-k') || {}).textContent || '')) bad.push('a series\' line does not say how many seasons');
+  const ser = box.querySelector('.vid-results .vid-row');
+  if (!ser || !ser.matches('a.vid-row.is-out') || ser.getAttribute('href') !== FILMS_[3].url || ser.getAttribute('target') !== '_blank')
+    bad.push('a series is not a link out to its folder: ' + (ser ? ser.outerHTML.slice(0, 140) : 'no row'));
+  const k = box.querySelector('.vid-results .vid-badge');
+  if (!k || !/^Series$/.test(k.textContent.trim()) || !k.querySelector('.vid-out[aria-label="opens in a new tab"]'))
+    bad.push('a series is badged "' + (k && k.textContent.trim()) + '" — wanted Series and the named out-arrow');
+  if (box.querySelector('.vid-results .vid-th img')) bad.push('a series is a FOLDER and Drive has no picture of one, but its row asks for a thumbnail');
+  if (!/3 seasons/.test((box.querySelector('.vid-results .vid-k') || {}).textContent || '')) bad.push('a series\' line does not say how many seasons');
+  if (box.querySelector('iframe')) bad.push('a series put a player in the card');
   type('science hour');
-  const k2 = box.querySelector('.vid-list .vid-badge');
+  const k2 = box.querySelector('.vid-results .vid-badge');
   if (!k2 || !/^Documentary$/.test(k2.textContent.trim())) bad.push('a documentary is labelled "' + (k2 && k2.textContent.trim()) + '"');
+  if (!box.querySelector('.vid-results button.vid-row[data-do="vid-play"]')) bad.push('a documentary in a Drive file is not a row that plays here');
   /* THE PLACEHOLDER: listed, says so, opens nothing. */
   type('wanted');
-  const ph = box.querySelector('.vid-list .vid-row');
+  const ph = box.querySelector('.vid-results .vid-row');
   if (!ph) bad.push('a film not in the Drive yet is not listed — the card said "Nothing matches that." where Find says "Not in the drive yet"');
   else {
     if (!ph.classList.contains('is-off') || ph.matches('a, button') || !/not in the Drive yet/.test(ph.textContent)) bad.push('the placeholder row is ' + ph.outerHTML.slice(0, 160));
   }
-  /* THE ADMIN'S ROW: a silver Sync from Drive tile and when it last ran. */
+  /* THE ADMIN'S ROW: a silver Sync from Drive tile and when it last ran — at the FOOT of the card, under a
+     search's answer: results, or "Nothing matches that.". */
   const tile = box.querySelector('.vid-admin .tile.is-admin[data-do="vid-sync"]');
-  if (!tile) bad.push('an admin has no silver Sync from Drive tile on the videos card');
+  if (!tile) bad.push('an admin has no silver Sync from Drive tile under the results');
   const said = (box.querySelector('.vid-admin .vid-synced') || {}).textContent || '';
   if (!/synced from Drive 2 hours ago/.test(said) || !/7 in the folder|6 in the folder/.test(said)) bad.push('the line beside the tile says "' + said + '" — wanted when it last synced and how many are in the folder');
+  if (box.lastElementChild !== box.querySelector('.vid-admin')) bad.push('the admin\'s row is not at the foot of the card');
+  type('zzzz');
+  if (!box.querySelector('.vid-admin [data-do="vid-sync"]') || !/Nothing matches that\./.test(box.textContent)) bad.push('under "Nothing matches that." the admin has no Sync row');
+  type('');
+  if ((box.querySelector('.vid-admin') || {}).innerHTML) bad.push('the admin\'s Sync row is drawn in the idle bar');
   /* A STAMP TWO HOURS OLD ASKS FOR NOTHING. */
   if (sent.some(b => b.action === 'filmsSync')) bad.push('the card synced on its own with a stamp two hours old');
   return bad;
@@ -3407,7 +5017,7 @@ check('the videos card syncs an admin’s films from Drive on its own when never
       return { success: true, done: true, films: FILMS_.slice(0, 1), sync: { at: now(), more: false, folder: 'Notflix' } };
     },
   });
-  const { t, box, titles } = await vidCard_(w, vidAdmin_);
+  const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
   if (!box) return ['the videos card did not draw on the Games column'];
   const bad = [];
   for (let n = 0; n < 40 && calls < 2; n++) await wait(50);
@@ -3415,13 +5025,20 @@ check('the videos card syncs an admin’s films from Drive on its own when never
   const asks = sent.filter(b => b.action === 'filmsSync');
   if (asks.length !== 2) bad.push('opening the card for an admin who has never synced posted filmsSync ' + asks.length + ' time(s) — wanted once, and once more for the part-way pass');
   if (asks.some(b => b.token !== 'tk-admin')) bad.push('filmsSync went without the admin’s token');
-  if (titles().join('|') !== FILMS_.slice(0, 4).map(f => f.title).join('|')) bad.push('after the sync the card lists ' + titles().join(' | ') + ' — wanted the four the reply carried');
+  /* WHAT THE CARD HOLDS IS ASKED BY A SEARCH: it opens on the bar alone (note 321). Every film's kind is
+     "film", so the word finds every one the reply carried — the order is the ranking's, so the names are
+     compared as a set. */
+  type('film');
+  const four = FILMS_.slice(0, 4).map(f => f.title).sort().join('|');
+  if (vidFound_(box) !== 4 || titles().slice().sort().join('|') !== four) bad.push('after the sync "film" finds ' + titles().join(' | ') + ' — wanted the four the reply carried');
   if (!/synced from Drive just now/.test((box.querySelector('.vid-synced') || {}).textContent || '')) bad.push('the line beside the tile says "' + ((box.querySelector('.vid-synced') || {}).textContent || '') + '" after a sync');
-  /* AND FIND IS TOLD: its lists are kept against `DATA` by identity, and the sync changed `DATA` in place. */
+  /* AND FIND STILL HAS NONE. This asked for the four, to prove `filmsAdopt_` dropped Find's memo; the
+     films left Find on 10 Oct (*"films should not appear in the finder it cannot be found there"*), so a
+     sync that put one there would be them coming back by the side door. */
   try {
-    const n = w.stuffItemsAll_().filter(x => x.kind === 'film').length;
-    if (n !== 4) bad.push('Find has ' + n + ' films after the sync — wanted the four the reply carried (its memo was not dropped)');
-  } catch (e) { bad.push('could not ask Find for its films: ' + e.message); }
+    const n = w.stuffItemsAll_().filter(x => x.kind === 'film' || /^fm:/.test(String(x.key || ''))).length;
+    if (n) bad.push('Find has ' + n + ' film(s) after the sync — films are found in Games → Videos and nowhere in Find');
+  } catch (e) { bad.push('could not ask Find for its items: ' + e.message); }
   /* ONCE A VISIT: a repaint of the column does not sync again. */
   t.go('tools', false, true); await wait(LEAVE_MS); await woken_();
   t.go('games', false, true); await wait(LEAVE_MS); await woken_();
@@ -3439,7 +5056,8 @@ check('the videos card syncs an admin’s films from Drive on its own when never
   if (calls !== 3) bad.push('pressing the tile twice while it was busy posted ' + (calls - 2) + ' syncs');
   if (hold) hold();
   await wait(80);
-  if (titles().length !== FILMS_.length) bad.push('after Sync from Drive the card lists ' + titles().length + ' — wanted all ' + FILMS_.length + ' the reply carried');
+  if (vidFound_(box) !== FILMS_.length) bad.push('after Sync from Drive "film" finds ' + vidFound_(box) + ' — wanted all ' + FILMS_.length + ' the reply carried');
+  if (titles().length !== 4) bad.push('after Sync from Drive the card draws ' + titles().length + ' rows — at most four');
   const after = box.querySelector('.vid-admin [data-do="vid-sync"]');
   if (!after || after.disabled) bad.push('the tile stayed busy after the sync answered');
   /* A REPLY FOR SOMEBODY WHO HAS GONE IS DROPPED — through the real Sign out, which takes the films with
@@ -3461,10 +5079,13 @@ check('the videos card says a failed sync in the admin’s line and does not ask
   data.filmsSync = { at: '', more: false, folder: '', found: null };
   const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
     reply: b => (b.action === 'filmsSync' ? { error: 'No folder named Notflix is visible to this script.' } : undefined) });
-  const { t, box } = await vidCard_(w, vidAdmin_);
+  const { t, box, type } = await vidCard_(w, vidAdmin_);
   if (!box) return ['the videos card did not draw on the Games column'];
   const bad = [];
   await wait(120);
+  /* THE ADMIN'S ROW IS UNDER A SEARCH'S ANSWER (note 321) — "No videos listed yet.", with no film and no
+     clip — so a word is typed for the line to be drawn. */
+  type('notflix');
   const line = () => (box.querySelector('.vid-admin .vid-synced') || {}).textContent || '';
   if (sent.filter(b => b.action === 'filmsSync').length !== 1) bad.push('a never-synced admin’s card posted filmsSync ' + sent.filter(b => b.action === 'filmsSync').length + ' time(s), wanted once');
   if (!/Not synced — No folder named Notflix/.test(line())) bad.push('the refusal is not said beside the tile: "' + line() + '"');
@@ -3482,10 +5103,18 @@ check('a student’s and a stranger’s videos card has no film, no Sync tile an
   const bad = [];
   const look = (who, box) => {
     if (!box) { bad.push(who + ': the videos card did not draw'); return; }
+    const idle = vidIdle_(box);
+    if (idle.length) bad.push(who + '’s card opens on more than the search bar: ' + idle.join('; '));
+    /* AND UNDER A SEARCH'S ANSWER, which is where an admin's Sync row is drawn (note 321) — so the card is
+       asked there, and not only in the idle bar where nobody's row is drawn. */
+    const q = box.querySelector('input.vid-q');
+    if (q) { q.value = 'film'; q.dispatchEvent(new w.Event('input', { bubbles: true })); }
+    if (!/No videos listed yet\./.test(box.textContent)) bad.push(who + '’s search over an empty list says "' + box.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) + '"');
     if (box.querySelector('[data-do="vid-sync"]')) bad.push(who + ' is drawn the Sync from Drive tile');
     const adm = box.querySelector('.vid-admin');
     if (adm && adm.innerHTML.trim()) bad.push(who + '’s card has something in the admin row: ' + adm.innerHTML.slice(0, 100));
     if (/film|drive|notflix|sync/i.test(box.textContent)) bad.push(who + '’s card says "' + box.textContent.replace(/\s+/g, ' ').trim().slice(0, 120) + '" — a word that says films exist');
+    if (q) { q.value = ''; q.dispatchEvent(new w.Event('input', { bubbles: true })); }
   };
   const { t, box } = await vidCard_(w, { name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' });
   look('a student', box);
@@ -3508,7 +5137,10 @@ check('a student’s and a stranger’s videos card has no film, no Sync tile an
    on the family's iPad left every film in Games → Videos and in Find for whoever picked it up next, and a
    child signing in after them saw the list until their own payload landed (review of 9 Oct, through the
    real `signout`). Both doors: the Sign out tile, and `signedIn_` for somebody else while their payload is
-   still on its way — the one way in that every sign-in door goes through. */
+   still on its way — the one way in that every sign-in door goes through.
+   FIND'S HALF WENT WITH THE FILMS (10 Oct): this asked that Find held all seven before Sign out and none
+   after. Find holds none at any point now, which is the journey below this one's business — so here the
+   card and `DATA` are what is asked, and Find is asked only that it never had one. */
 check('signing out takes an admin’s films off the device, and a student signing in after an admin sees none before their payload lands', async () => {
   const stamp = () => ({ at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
                          found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } });
@@ -3529,10 +5161,12 @@ check('signing out takes an admin’s films off the device, and a student signin
   {
     const { w } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
                          serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
-    const { t, box, type, titles } = await vidCard_(w, vidAdmin_);
+    const { t, box, type } = await vidCard_(w, vidAdmin_);
     if (!box) return ['the videos card did not draw on the Games column'];
-    if (titles().length !== FILMS_.length || filmsIn(w) !== FILMS_.length)
-      return ['the setup: the admin’s card lists ' + titles().length + ' and Find ' + filmsIn(w) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
+    type('film');
+    if (vidFound_(box) !== FILMS_.length)
+      return ['the setup: the admin’s card finds ' + vidFound_(box) + ' of ' + FILMS_.length + ' films, so Sign out was NOT checked'];
+    if (filmsIn(w) !== 0) bad.push('before Sign out the admin’s Find has ' + filmsIn(w) + ' film(s) — films are not in Find for anybody');
     type('paper moon');
     /* A FILM'S PICTURE THAT FAILED is remembered by its address, and that address is the film's file id. */
     const pic = box.querySelector('.vid-list img.vid-img');
@@ -3552,14 +5186,25 @@ check('signing out takes an admin’s films off the device, and a student signin
     if ('filmsSync' in t.DATA()) bad.push('DATA.filmsSync — the folder’s name and its counts — outlived Sign out');
     const q = w.document.querySelector('#s-games #wgt-videos .vid-q');
     if (q && q.value) bad.push('what the admin typed is still in the videos box: ' + JSON.stringify(q.value));
+    /* AND A SEARCH AFTER IT FINDS NONE OF THEM — the card opens on the bar alone, so "no rows" above is
+       true of an idle card whatever the device still holds; this asks the list itself. */
+    if (q) {
+      q.value = 'film';
+      q.dispatchEvent(new w.Event('input', { bubbles: true }));
+      const left = w.document.querySelectorAll('#s-games #wgt-videos .vid-results .vid-row').length;
+      if (left) bad.push('after Sign out, "film" still finds ' + left + ' row(s) on the device');
+      q.value = '';
+      q.dispatchEvent(new w.Event('input', { bubbles: true }));
+    }
   }
   /* ---- A STUDENT SIGNS IN AFTER AN ADMIN, AND THEIR PAYLOAD IS STILL ON ITS WAY ---- */
   {
     let hold = false;
     const { w } = boot({ payload: Object.assign(payload(), { films: FILMS_, filmsSync: stamp() }),
                          serve: u => (/data\/videos\.json/.test(u) ? [] : hold ? new Promise(() => {}) : undefined) });
-    const { t, box, titles } = await vidCard_(w, vidAdmin_);
-    if (!box || titles().length !== FILMS_.length) return bad.concat(['the setup: the admin’s card did not list the films, so the hand-over was NOT checked']);
+    const { t, box, type } = await vidCard_(w, vidAdmin_);
+    if (box) type('film');
+    if (!box || vidFound_(box) !== FILMS_.length) return bad.concat(['the setup: the admin’s card did not find the films, so the hand-over was NOT checked']);
     if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the hand-over was NOT checked']);
     hold = true;   // the student's payload never lands: what is on the screen is what the device held
     w.signedIn_({ success: true, name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' }, 'sam');
@@ -3583,6 +5228,12 @@ check('signing out takes an admin’s films off the device, and a student signin
         : b.personId === 'P001' ? new Promise(r => { releaseA = () => r(done(FILMS_)); })
         : new Promise(r => { releaseB = () => r(done(FILMS_.slice(0, 1))); })) });
     const { t, box } = await vidCard_(w, vidAdmin_);
+    /* THE SYNC ROW IS UNDER A SEARCH'S ANSWER (note 321), so each admin types before looking for it. */
+    const typeIn = v => {
+      const q = w.document.querySelector('#s-games #wgt-videos .vid-q');
+      if (q) { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); }
+    };
+    typeIn('film');
     const tile = () => w.document.querySelector('#s-games #wgt-videos .vid-admin [data-do="vid-sync"]');
     if (!box || !tile()) return bad.concat(['the setup: the first admin has no Sync tile, so a sync in flight was NOT checked']);
     t.ACTIONS['vid-sync'](tile());
@@ -3592,6 +5243,7 @@ check('signing out takes an admin’s films off the device, and a student signin
     hold = true;
     w.signedIn_({ success: true, name: 'Bea Admin', personId: 'P002', role: 'admin', roles: ['admin'], token: 'tk-admin2' }, 'bea');
     await away(t);
+    typeIn('film');
     if (!tile()) bad.push('the second admin has no Sync tile');
     else {
       if (tile().disabled) bad.push('the second admin’s Sync tile is busy with the first admin’s sync, which they never pressed');
@@ -3624,15 +5276,17 @@ check('the videos card syncs an admin’s films on its own once the last whole p
     const { w, sent } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined),
       reply: b => (b.action === 'filmsSync' ? { success: true, done: true, more: false, films: FILMS_,
         sync: { at: new Date().toISOString(), more: false, folder: 'Notflix', found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } } } : undefined) });
-    const { box, titles } = await vidCard_(w, vidAdmin_);
+    const { box, type } = await vidCard_(w, vidAdmin_);
     if (!box) { bad.push('the videos card did not draw on the Games column'); return null; }
     for (let n = 0; n < 20 && !sent.some(b => b.action === 'filmsSync'); n++) await wait(25);
     await wait(80);
-    return { asked: sent.filter(b => b.action === 'filmsSync').length, listed: titles().length };
+    /* ASKED BY A SEARCH — the card opens on the bar alone (note 321); every film's kind is "film". */
+    type('film');
+    return { asked: sent.filter(b => b.action === 'filmsSync').length, listed: vidFound_(box) };
   };
   const old = await visit(2 * 24 * 3600e3);
   if (old && old.asked !== 1) bad.push('a card whose last whole pass is two days old posted filmsSync ' + old.asked + ' time(s) — wanted once');
-  if (old && old.listed !== FILMS_.length) bad.push('after the day-old card synced it lists ' + old.listed + ' — wanted the ' + FILMS_.length + ' the reply carried');
+  if (old && old.listed !== FILMS_.length) bad.push('after the day-old card synced "film" finds ' + old.listed + ' — wanted the ' + FILMS_.length + ' the reply carried');
   const fresh = await visit(3600e3);
   if (fresh && fresh.asked !== 0) bad.push('a card synced an hour ago posted filmsSync ' + fresh.asked + ' time(s) — wanted none');
   return bad;
@@ -6529,6 +8183,139 @@ check('a session at the client\'s own home cannot be booked for one', async () =
   return bad;
 });
 
+check('a venue with rooms offers each room: the large one allows ten and a small one four, one booking still offers four seats, a blank rate is the venue\'s, the row names the room, and the card draws a line a room', async () => {
+  /* ---------- *"colliers would library has 3 rooms within it. 2 are same size and one is large. And 2
+     have capacity for 4 kids and large one has capacity for 10 kids."* — the owner, 10 Oct ------------
+     THE VENUE IS `check/fixture.json`'s, NOT ONE WRITTEN HERE. Its rooms are what the real doGet sends
+     for their cells — `check-rooms.js` rebuilds them and fails on any difference — so this asks the
+     phone about rows the backend really produces: two small rooms with no rate typed, which arrive at
+     the venue's 12 (`roomTerms_`), and a large one at its own 20. A blank rate used to arrive as 0, and
+     every surface below read that as FREE.
+
+     THE HOUSE CAP IS TAKEN OFF FIRST, so the room is what decides `seatLimits`' ceiling — the bound
+     a seat count is refused against. It is not what the seats list offers: that is four options from
+     the floor in every room, asked below. `max_students_per_job` is 4 in this payload — and 4 on the
+     live config tab, which is why the large room's ten is asked again with the cap on at the end: the
+     business's own limit still wins, and says so. */
+  const fx = JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'fixture.json'), 'utf8'));
+  const fv = (fx.venues || []).find(v => (v.rooms || []).length >= 3);
+  if (!fv) return ['check/fixture.json has no venue with three rooms, so nothing here can ask about rooms'];
+  const big = fv.rooms.find(r => Number(r.max) === 10), smalls = fv.rooms.filter(r => Number(r.max) === 4);
+  const blank = smalls.find(r => r.fields && r.fields.rate_per_hour === '');
+  if (!big || smalls.length !== 2 || !blank) {
+    return ['the fixture venue\'s rooms are not two of 4 (one with no rate typed) and one of 10: '
+      + JSON.stringify(fv.rooms.map(r => [r.name, r.max, r.fields && r.fields.rate_per_hour]))];
+  }
+  const p = payload();
+  p.venues = p.venues.filter(v => v.title !== fv.title).concat([fv]);
+  p.waitlistSeat = fx.waitlistSeat || {};
+  p.constants = { vars: Object.assign({}, p.constants.vars, { max_students_per_job: 0 }) };
+  const { w } = boot({ payload: p });
+  await wait(300);
+  if (!w.__t.STEPS || !w.__t.spaceFor || !w.__t.seatLimits) return ['the booking steps, spaceFor or seatLimits are not exported'];
+  const bad = [];
+  const B = w.__t.BOOKING;
+  const step = id => w.__t.STEPS.filter(x => x.id === id)[0];
+  const lab = r => fv.title + ' — ' + r.name;
+
+  /* THE THREE SPACES, AND NOT THE BUILDING. A venue with rooms is hired by the room. */
+  const offered = step('loc').options();
+  fv.rooms.forEach(r => { if (offered.indexOf(lab(r)) === -1) bad.push('"Where?" does not offer ' + JSON.stringify(lab(r)) + ': ' + JSON.stringify(offered)); });
+  if (offered.indexOf(fv.title) !== -1) bad.push('"Where?" still offers the bare building ' + JSON.stringify(fv.title) + ' beside its rooms');
+
+  /* EACH ROOM'S OWN CAPACITY, from the one function that bounds a seat count. */
+  const lim = r => w.__t.seatLimits(w.__t.spaceFor(lab(r)), null, lab(r));
+  if (lim(big).max !== 10) bad.push(lab(big) + ' allows ' + lim(big).max + ' seats, not 10');
+  smalls.forEach(r => { if (lim(r).max !== 4) bad.push(lab(r) + ' allows ' + lim(r).max + ' seats, not 4'); });
+  const n = step('n');
+  B.loc = lab(big);
+  if (n.why('10')) bad.push('ten seats in ' + lab(big) + ' are refused: ' + n.why('10'));
+  if (!n.why('11')) bad.push('eleven seats in ' + lab(big) + ', which holds ten, are not refused');
+  /* ---------- AND ONE BOOKING IS STILL FOUR SEATS, IN ANY ROOM -----------------------------------
+     THIS JOURNEY WAS TITLED "THE LARGE ONE SEATS TEN" AND ONLY EVER ASKED `why('10')` — the refusal,
+     which is silent on ten. The LIST was never asked, and the list is four options from the floor
+     (`BOOK_STEPS` `n`: *"change this to be extra seats, then options are 0,1,2,3"*), so a family can
+     choose 1, 2, 3 or 4 chairs in the large room exactly as in a small one, whatever the room or
+     `max_students_per_job` says. docs/history/336 said raising that cell would let a booking take
+     ten, and review drove the form and found it could not: the room's ten is how many a CLASS there
+     can grow to (`capacityFor` on a join, the waiting list's seats), not what one family books. Asked
+     here so the note and the form cannot part again — the window is the owner's to widen. */
+  if (JSON.stringify(n.options()) !== JSON.stringify(['1', '2', '3', '4'])) {
+    bad.push('the seats list in ' + lab(big) + ' offers ' + JSON.stringify(n.options())
+      + ' — one booking is four options from the floor; docs/history/336 says so, and must change with it');
+  }
+  B.loc = lab(smalls[0]);
+  if (JSON.stringify(n.options()) !== JSON.stringify(['1', '2', '3', '4'])) {
+    bad.push('the seats list in ' + lab(smalls[0]) + ', which holds four, offers ' + JSON.stringify(n.options()));
+  }
+  B.loc = lab(big);
+  B.loc = lab(blank);
+  if (n.why('4')) bad.push('four seats in ' + lab(blank) + ' are refused: ' + n.why('4'));
+  if (!n.why('5')) bad.push('five seats in ' + lab(blank) + ', which holds four, are not refused');
+  /* AND THE ROOM SAYS SO WHEN THE SEATS WERE CHOSEN FIRST — "Where?" is asked after them. */
+  B.n = '6';
+  if (!/holds 4/.test(String(step('loc').why(lab(blank)) || ''))) bad.push('six seats then ' + lab(blank) + ' says ' + JSON.stringify(step('loc').why(lab(blank))) + ', not that it holds 4');
+  if (step('loc').why(lab(big))) bad.push('six seats then ' + lab(big) + ' is refused: ' + step('loc').why(lab(big)));
+
+  /* THE PRICE. A room with no rate typed costs what its venue costs — never nothing, never a house. */
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = 'A session of your own'; B.level = 'GCSE'; B.subjects = ['Maths']; B.n = '1';
+  B.hosting = 'No — we book the room'; B.slots = ['m16']; B.interval = ['Autumn 1'];
+  const rateAt = r => { B.loc = lab(r); const L = w.__t.price(); return L ? L.venueRate : null; };
+  if (rateAt(blank) !== fv.bestRate) bad.push(lab(blank) + ' has no rate typed and is priced at ' + rateAt(blank) + ' an hour, not the venue\'s ' + fv.bestRate);
+  if (rateAt(big) !== big.rate || big.rate === fv.bestRate) bad.push(lab(big) + ' is priced at ' + rateAt(big) + ' an hour, not its own ' + big.rate);
+  if (w.isHome(lab(blank))) bad.push(lab(blank) + ' is read as somebody\'s home — a room with no rate typed was taken for a free one');
+  B.loc = lab(blank);
+  if (JSON.stringify(step('hosting').options()) !== JSON.stringify(['No', 'Yes'])) {
+    bad.push('"Are you providing the space?" at ' + lab(blank) + ' offers ' + JSON.stringify(step('hosting').options()) + ' — locked to Yes is a free room');
+  }
+  /* A WAITING LIST IN A ROOM IS PRICED: the seat price doGet sends under each room's label. */
+  fv.rooms.forEach(r => { B.loc = lab(r); if (!w.waitPrice_()) bad.push('a waiting list in ' + lab(r) + ' has no seat price on the phone'); });
+
+  /* ---------- THE ROW SAYS WHICH ROOM -------------------------------------------------------------
+     A SELECT CANNOT WRAP, and the three rooms are one string until the last word — at 390 review saw
+     "Colliers …" on the Venue row for every one, on the form and in the shared picture. So the row
+     draws the chosen option's whole text as words (`wrap` on the `loc` step), with the select laid
+     over them; jsdom has no layout, so this asks the markup — the words are there, they are the
+     option's own, and the select is still the control inside the same box. Whether they fit uncut is
+     `check/ui.js`'s state "a room chosen, named whole on its row", in the real cascade. */
+  /* SIGNED IN, because the form is drawn for somebody who can send it — the visitor `check/ui.js` and
+     `check/share.js` use. */
+  w.__t.USER({ name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], token: 'tk' });
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { bad.push('opening booking threw: ' + e.message); }
+  await wait(120);
+  fv.rooms.forEach(r => {
+    B.loc = lab(r);
+    w.drawBooker();
+    const sel = w.document.querySelector('#bookr select.bk-sel[data-step="loc"]');
+    if (!sel) { bad.push('the booking form drew no Venue select with ' + lab(r) + ' chosen'); return; }
+    const face = sel.closest('.bk-face'), said = face && face.querySelector('.bk-said');
+    const o = sel.options[sel.selectedIndex];
+    if (!said) bad.push('the Venue row with ' + lab(r) + ' chosen is a bare select — a select cannot wrap, so it reads "Colliers …" like the other two rooms');
+    else if (said.textContent !== lab(r) || !o || o.text !== lab(r)) {
+      bad.push('the Venue row with ' + lab(r) + ' chosen says ' + JSON.stringify(said.textContent) + ' over an option reading ' + JSON.stringify(o && o.text));
+    }
+  });
+
+  /* THE CARD: ONE LINE A ROOM, how many fit and what an hour costs. */
+  const box = w.document.createElement('div');
+  box.innerHTML = String(w.findCard({ kind: 'venue', row: fv }) || '');
+  const lines = [...box.querySelectorAll('.row')].map(x => [((x.querySelector('.k') || {}).textContent || '').trim(), ((x.querySelector('.v') || {}).textContent || '').trim()]);
+  fv.rooms.forEach(r => {
+    const line = lines.find(l => l[0] === r.name);
+    const want = 'up to ' + r.max + ' · £' + Number(r.rate).toFixed(2) + '/h';
+    if (!line) bad.push('the venue card has no line for ' + r.name + ': ' + JSON.stringify(lines));
+    else if (line[1] !== want) bad.push('the venue card says ' + JSON.stringify(line[1]) + ' for ' + r.name + ', not ' + JSON.stringify(want));
+  });
+  if (/free/i.test(box.textContent)) bad.push('the venue card says "free" for a room priced at its venue\'s rate');
+
+  /* AND WITH THE LIVE HOUSE CAP OF FOUR, THE BUSINESS'S LIMIT STILL WINS, AND SAYS WHOSE IT IS. */
+  w.__t.DATA().constants.vars.max_students_per_job = 4;
+  const capped = lim(big);
+  if (capped.max !== 4 || capped.why.max !== 'your limit') bad.push('with max_students_per_job at 4, ' + lab(big) + ' allows ' + capped.max + ' (' + capped.why.max + ')');
+  return bad;
+});
+
 check('a receipt lights every day its booking runs on', async () => {
   /* ---------- THE WEEK WAS COMPARED TO ONE DAY NAME --------------------------------------------
      `jobGrid_` DID `norm(label) === norm(j.weekday)`, and `weekday` holds what `bookSpec` sent:
@@ -7178,23 +8965,25 @@ check('an admin sees everyone on the people column, and nobody else sees more th
   const all = () => w.__t.accountPages().join('');
   const count = n => w.__t.accountPages().filter(h => h.indexOf('>' + n + '<') !== -1).length;
   D.everyone = [
-    { personId: 'P-E1', title: 'Evie Everystudent', handle: 'evie_calm31', role: 'Student', image: '' },
+    /* `Evie` ALONE: a child reaches the admin by first name too (the owner, 10 Oct — `nameFor_`,
+       check-surnames.js), and this list is the shape `doGet` sends. */
+    { personId: 'P-E1', title: 'Evie', handle: 'evie_calm31', role: 'Student', image: '' },
     { personId: 'P-E2', title: 'Carl Everyclient', handle: 'carl_kind32', role: 'Client', image: '' },
     { personId: 'P-AD', title: 'Ada Admin', handle: 'ada_brave33', role: 'Client', image: '' },
   ];
   w.__t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'] });
-  if (/Evie Everystudent|Carl Everyclient/.test(all())) bad.push('a student was drawn the admin\'s `everyone` list');
+  if (/>Evie<|Carl Everyclient/.test(all())) bad.push('a student was drawn the admin\'s `everyone` list');
 
   w.__t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
-  if (count('Evie Everystudent') !== 1) bad.push('an admin\'s column drew the student ' + count('Evie Everystudent') + ' time(s), not once');
+  if (count('Evie') !== 1) bad.push('an admin\'s column drew the student ' + count('Evie') + ' time(s), not once');
   if (count('Carl Everyclient') !== 1) bad.push('an admin\'s column drew the client ' + count('Carl Everyclient') + ' time(s), not once');
   if (count('Ada Admin') !== 1) bad.push('the admin is on ' + count('Ada Admin') + ' pages of their own column, not 1');
-  const evie = w.__t.accountPages().find(h => h.indexOf('>Evie Everystudent<') !== -1) || '';
+  const evie = w.__t.accountPages().find(h => h.indexOf('>Evie<') !== -1) || '';
   if (!/data-do="msg-open"/.test(evie)) bad.push('a student on the admin\'s column has no Message tile');
   if (/data-do="set-listed"/.test(evie)) bad.push('a student on the admin\'s column carries the tutor-only Listed switch');
   if (/prof-nohours/.test(evie)) bad.push('a student on the admin\'s column is told they "haven\'t set their hours", a tutor\'s warning');
   delete D.everyone;
-  if (/Evie Everystudent/.test(all())) bad.push('with no `everyone` key the student was drawn anyway');
+  if (/>Evie</.test(all())) bad.push('with no `everyone` key the student was drawn anyway');
   w.__t.USER(null);
   return bad;
 });
@@ -7792,14 +9581,25 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
        and a face pressed while focus was elsewhere does not take it. `repaint` replaces every button,
        and focus on a removed one falls to <body>: measured at 390, Enter on a focused face landed the
        reaction and left `activeElement` BODY, so a screen reader never heard the new `aria-pressed`
-       and the next Tab went to a page parked off-screen (`reactRepaint_` in posts.js). */
+       and the next Tab went to a page parked off-screen (`reactRepaint_` in posts.js).
+     · THE POST IS NOT REBUILT — the same `<article>`, the same pane, the same picture and the same
+       clip after the add, the take-back and a failed save's undo. The owner, 10 Oct: *"When I click a
+       reaction it bugs out a bit. On only some of them."* A face repainted the whole column, so every
+       picture and clip on it was a new element: a clip stopped and went back to 0:00 behind a grey 4:5
+       box, a picture the browser could not hand straight back blanked and held 4:5 until it was read
+       again (a 16:9 card +183px at 390), a card taller than its pane was zoomed for the wrong height,
+       and a scrolled pane went back to its top. Only the posts with something to rebuild showed it,
+       which is "only some of them" (docs/history/335). So PO1 carries a picture AND a clip here, and
+       the elements are held by identity: a press that goes back to `repaint()` fails on all three. */
 check('a post\'s faces: a tap adds yours, the same tap takes it back, the total opens who reacted', async () => {
   const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const FACES = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
   const seed = () => {
     const p = payload();
     p.festive = [];
-    p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: '', media: [],
+    /* A PICTURE AND A CLIP, the two things a rebuilt post loses — see the last point above. */
+    p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
+      media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
       caption: 'A Tuesday at the library', body: '', location: '', when: '01/09/2026',
       at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
       reactions: { emoji: FACES.slice(), counts: [2, 1, 0, 0, 0, 0], total: 3, yours: '',
@@ -7836,6 +9636,26 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (count('😂')) bad.push(`drawn, 😂 with nobody behind it shows ${JSON.stringify(count('😂'))} — a 0 is drawn as nothing`);
   if (d.querySelector('#s-feed .react.mine')) bad.push('drawn, a face is `.mine` before anybody signed in here pressed one');
 
+  /* ---------- THE POST ITSELF, HELD BY IDENTITY THROUGH EVERY PRESS BELOW ---------------------------
+     The card, the pane it sits in, and its picture and clip. Compared as ELEMENTS, not as markup: a
+     rebuilt picture has the same `src` and none of its pixels, and a rebuilt clip the same `src` and
+     none of its playing — which is the whole fault, and invisible to anything that reads the HTML. */
+  const held0 = () => {
+    const art = d.querySelector('#s-feed [data-post="PO1"]');
+    return { art, pane: art && art.closest('.pane'),
+             media: art ? [...art.querySelectorAll('img.post-cell, img.post-pic, video')] : [] };
+  };
+  let kept = held0();
+  if (kept.media.length !== 2) bad.push(`drawn, PO1 holds ${kept.media.length} pictures and clips, not the picture and the clip it was sent`);
+  const same = when => {
+    const now = held0();
+    if (now.art !== kept.art) bad.push(`${when}, PO1 is a new <article> — a press on one face rebuilt the post, when only its faces and total changed`);
+    else if (now.pane !== kept.pane) bad.push(`${when}, PO1's pane is a new element — a scrolled pane would be back at its top`);
+    if (now.media.length !== kept.media.length || now.media.some((m, i) => m !== kept.media[i])) {
+      bad.push(`${when}, PO1's picture and clip are new elements — a playing clip stops at 0:00 and a picture blanks and holds 4:5 until it is read again`);
+    }
+  };
+
   /* ---------- A TAP ADDS YOURS ------------------------------------------------------------------- */
   sent.length = 0;
   /* FOCUSED FIRST, as a keyboard, a switch or a screen reader's cursor has it when it presses. */
@@ -7854,6 +9674,7 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (count('😂') !== '1') bad.push(`after a tap, 😂 counts ${JSON.stringify(count('😂'))}, not "1"`);
   if (total() !== '4 reactions') bad.push(`after a tap, the time line says ${JSON.stringify(total())}, not "4 reactions"`);
   if (!f.classList.contains('is-pop')) bad.push('after a tap, the face that landed is not marked to land (`is-pop`)');
+  same('after a tap');
   const r1 = sent.find(b => b.action === 'reactPost');
   if (!r1) bad.push(`a tap on a face posted ${JSON.stringify(sent.map(b => b.action))}, not reactPost`);
   else if (r1.postId !== 'PO1' || r1.emoji !== '😂' || r1.personId !== 'P1')
@@ -7863,6 +9684,9 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   w.__t.repaint(); await wait(50);
   if (face('😂') && face('😂').classList.contains('is-pop')) bad.push('a later repaint landed 😂 again — `REACT_POP_` was not cleared');
   if (!face('😂') || !face('😂').classList.contains('mine')) bad.push('a later repaint lost yours');
+  /* THAT REPAINT STANDS FOR A PAYLOAD LANDING, which does rebuild the post — so the elements held from
+     here on are the ones it drew. */
+  kept = held0();
 
   /* ---------- THE SAME TAP TAKES IT BACK --------------------------------------------------------- */
   sent.length = 0;
@@ -7878,6 +9702,7 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (total() !== '3 reactions') bad.push(`after taking it back, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
   if (!sent.some(b => b.action === 'reactPost' && b.emoji === '😂')) bad.push('taking it back sent no reactPost');
   if (face('😂') && d.activeElement !== face('😂')) bad.push(`after taking 😂 back, the focus is on ${held()} — not on 😂`);
+  same('after taking it back');
   await wait(150);
 
   /* ---------- A SAVE THAT FAILS IS PUT BACK, AND THE FOCUS STAYS THROUGH THE UNDO ------------------ */
@@ -7887,6 +9712,7 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
   if (d.querySelector('#s-feed .react.mine')) bad.push('a failed save left a face `.mine` — the undo did not put it back');
   if (total() !== '3 reactions') bad.push(`after a failed save, the time line says ${JSON.stringify(total())}, not "3 reactions"`);
   if (face('👏') && d.activeElement !== face('👏')) bad.push(`after a failed save's undo, the focus is on ${held()} — not on 👏`);
+  same('after a failed save\'s undo');
 
   /* ---------- THE TOTAL OPENS WHO REACTED -------------------------------------------------------- */
   /* AND A FACE PRESSED WHILE THE FOCUS WAS ELSEWHERE DOES NOT TAKE IT: a redraw must not pull focus
@@ -7955,6 +9781,275 @@ check('a post\'s faces: a tap adds yours, the same tap takes it back, the total 
       }
     }
   }
+  return bad;
+});
+
+/* ---------- A POLL VOTE REDRAWS THE POLL, NOT THE COLUMN ---------------------------------------------
+   THE SAME FAULT AS THE FACES, ONE HANDLER DOWN. `on('vote')` called `repaint()` to move one bar, so a
+   vote replaced the post and every picture and clip on the feed, exactly as a face did before the
+   owner's *"When I click a reaction it bugs out a bit. On only some of them."* (10 Oct,
+   docs/history/335). Fixed at the rule — a press on one post redraws that post's changed parts
+   (`postRedraw_`, posts.js) — so it is held here for the vote too:
+     · THE POST STAYS THE SAME ELEMENTS: its `<article>`, its pane, its picture and its clip, after a
+       vote and after a refused vote's undo
+     · THE POLL MOVES: yours ticked, "4 votes", `votePoll` with the `personId`
+     · A REFUSAL PUTS IT BACK — your first answer still yours, "4 votes" — and says why
+     · THE FOCUS STAYS ON THE ROW PRESSED, through the vote and through the undo: the poll's rows are
+       replaced as a face is, and focus on a removed button falls to <body> */
+check('a poll vote redraws only the poll, as a reaction redraws only its faces: the post, its picture and its clip stay', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
+    media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
+    caption: 'Which day suits the club?', body: '', location: '', when: '01/09/2026',
+    at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
+    poll: { options: ['Tuesday', 'Thursday'], counts: [2, 1], total: 3, yours: '' },
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }];
+  let refuse = false;
+  const { w, sent } = boot({ payload: p,
+    reply: b => (b.action === 'votePoll' && refuse ? { error: 'The poll has closed.' } : undefined),
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document, bad = [];
+  if (!w.__t) return ['the app did not load, so the poll was NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  const row = c => d.querySelector(`#s-feed [data-post="PO1"] .poll-row[data-choice="${c}"]`);
+  const tot = () => ((d.querySelector('#s-feed [data-post="PO1"] .poll-tot') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const grab = () => {
+    const art = d.querySelector('#s-feed [data-post="PO1"]');
+    return { art, pane: art && art.closest('.pane'),
+             media: art ? [...art.querySelectorAll('img.post-cell, img.post-pic, video')] : [] };
+  };
+  const kept = grab();
+  if (!kept.art || !row('Tuesday')) return ['the poll post drew no poll to vote in — nothing was pressed, not a pass'];
+  if (kept.media.length !== 2) bad.push(`drawn, the poll post holds ${kept.media.length} pictures and clips, not the two it was sent`);
+  const same = when => {
+    const now = grab();
+    if (now.art !== kept.art) bad.push(`${when}, the post is a new <article> — a vote rebuilt the post, when only its poll changed`);
+    else if (now.pane !== kept.pane) bad.push(`${when}, the post's pane is a new element`);
+    if (now.media.length !== kept.media.length || now.media.some((m, i) => m !== kept.media[i])) {
+      bad.push(`${when}, the post's picture and clip are new elements — a playing clip stops and a picture blanks`);
+    }
+  };
+  const on_ = () => { const a = d.activeElement; return a && a.dataset && a.dataset.do === 'vote' ? a.dataset.choice : (a && a.tagName) || 'nothing'; };
+
+  /* ---------- A VOTE ---------------------------------------------------------------------------- */
+  sent.length = 0;
+  row('Tuesday').focus();
+  row('Tuesday').click(); await wait(80);
+  same('after a vote');
+  if (!row('Tuesday') || !row('Tuesday').classList.contains('mine')) bad.push('after a vote, Tuesday is not ticked as yours');
+  if (!/^4 votes/.test(tot())) bad.push(`after a vote, the poll says ${JSON.stringify(tot())}, not "4 votes…"`);
+  const v = sent.find(b => b.action === 'votePoll');
+  if (!v) bad.push(`a vote posted ${JSON.stringify(sent.map(b => b.action))}, not votePoll`);
+  else if (v.postId !== 'PO1' || v.choice !== 'Tuesday' || v.personId !== 'P1')
+    bad.push('votePoll went out as ' + JSON.stringify({ postId: v.postId, choice: v.choice, personId: v.personId }));
+  if (row('Tuesday') && d.activeElement !== row('Tuesday')) bad.push(`after a vote, the focus is on ${on_()} — not on Tuesday`);
+
+  /* ---------- A REFUSED VOTE IS PUT BACK, IN PLACE --------------------------------------------------- */
+  refuse = true;
+  row('Thursday').focus();
+  row('Thursday').click(); await wait(200);
+  same('after a refused vote\'s undo');
+  if (!row('Tuesday') || !row('Tuesday').classList.contains('mine')) bad.push('after a refused vote, Tuesday is no longer yours — the undo did not put it back');
+  if (row('Thursday') && row('Thursday').classList.contains('mine')) bad.push('after a refused vote, Thursday is still ticked');
+  if (!/^4 votes/.test(tot())) bad.push(`after a refused vote, the poll says ${JSON.stringify(tot())}, not "4 votes…"`);
+  const said = (d.getElementById('toast') || {}).textContent || '';
+  if (!/closed/.test(said)) bad.push(`a refused vote said ${JSON.stringify(said)}, not the server's reason`);
+  if (row('Thursday') && d.activeElement !== row('Thursday')) bad.push(`after a refused vote's undo, the focus is on ${on_()} — not on Thursday`);
+  return bad;
+});
+
+/* ---------- A POST WITH NO DATE: THE FIRST FACE AND THE LAST TAKEN BACK MOVE NOTHING -----------------
+   THE FIX ABOVE HELD FOR EVERY POST WITH A DATE AND FOR NO OTHER. A row typed into the posts tab by hand
+   without `creation_date`, `posted_on` or `uploaded_date` arrives as `at: 0, when: ''` — and the empty
+   feed asks for exactly that row. With no reactions yet it had no time line, so the first face had
+   nowhere to put its total: `postRedraw_` fell back to `repaint()` and the whole column was rebuilt as
+   before (a 16:9 card 428.5 → 689px at 390, a clip back at 0:00, the second tap of a double tap lost).
+   Taking the last face back removed the line, and the card shrank 36.6px under the thumb
+   (docs/history/335). Held here:
+     · THE LINE IS THERE BEFORE ANYBODY REACTS — empty, holding the place a total goes
+     · THE POST STAYS THE SAME ELEMENTS through the first face and the last taken back
+     · THE LINE STAYS when the last face goes, empty again */
+check('a post with no date: its first face and its last taken back keep the post and its time line', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [{ id: 'PO2', author: '@family.', handle: '@family.', avatar: '', image: 'data/reels/archetest.jpg',
+    media: ['data/reels/archetest.jpg', 'data/reels/archetest.mp4'],
+    caption: 'Typed into the sheet by hand', body: '', location: '', when: '', at: 0,
+    pinned: false, active: true, waiting: false, refused: false,
+    reactions: NO_REACTIONS_(), comments: { total: 0, list: [] } }];
+  const { w, sent } = boot({ payload: p,
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document, bad = [];
+  if (!w.__t) return ['the app did not load, so the undated post was NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  const grab = () => {
+    const art = d.querySelector('#s-feed [data-post="PO2"]');
+    return { art, pane: art && art.closest('.pane'), line: art && art.querySelector('.post-when'),
+             media: art ? [...art.querySelectorAll('img.post-cell, img.post-pic, video')] : [] };
+  };
+  const face = e => d.querySelector(`#s-feed [data-post="PO2"] .react[data-emoji="${e}"]`);
+  const kept = grab();
+  if (!kept.art || !face('👍')) return ['the undated post drew no faces to press — nothing was pressed, not a pass'];
+  if (kept.media.length !== 2) bad.push(`drawn, the undated post holds ${kept.media.length} pictures and clips, not the two it was sent`);
+  if (!kept.line) bad.push('drawn, the undated post with no reactions has no time line — the first face has nowhere to put its total, and the column is rebuilt');
+  else if (kept.line.textContent.trim()) bad.push(`drawn, the undated post's line says ${JSON.stringify(kept.line.textContent.trim())} — nothing yet`);
+  const same = when => {
+    const now = grab();
+    if (now.art !== kept.art) bad.push(`${when}, the undated post is a new <article> — the press rebuilt the column`);
+    else if (now.pane !== kept.pane) bad.push(`${when}, the undated post's pane is a new element`);
+    if (now.media.length !== kept.media.length || now.media.some((m, i) => m !== kept.media[i])) {
+      bad.push(`${when}, the undated post's picture and clip are new elements — a clip back at 0:00, a picture blank`);
+    }
+    return now;
+  };
+
+  sent.length = 0;
+  face('👍').click(); await wait(120);
+  let now = same('after the first face');
+  const said = now.line ? now.line.textContent.replace(/\s+/g, ' ').trim() : '';
+  if (said !== '1 reaction') bad.push(`after the first face, the line says ${JSON.stringify(said)}, not "1 reaction"`);
+  if (!face('👍') || !face('👍').classList.contains('mine')) bad.push('after the first face, 👍 is not yours');
+
+  face('👍').click(); await wait(120);
+  now = same('after the last face taken back');
+  if (!now.line) bad.push('after the last face was taken back, the time line is gone — the card shrinks and the tile row jumps up');
+  else if (now.line.textContent.trim()) bad.push(`after the last face was taken back, the line still says ${JSON.stringify(now.line.textContent.trim())}`);
+  if (d.querySelector('#s-feed [data-post="PO2"] .react.mine')) bad.push('after taking it back, a face is still yours');
+  const n = sent.filter(b => b.action === 'reactPost').length;
+  if (n !== 2) bad.push(`two presses a second apart sent ${n} reactPost, not 2`);
+  return bad;
+});
+
+/* ---------- TWO QUICK TAPS: ONE SAVE AT A TIME, AND THE PAGE AND THE SERVER END THE SAME --------------
+   ONCE EVERY TAP LANDED, TWO OLD FAULTS WERE REACHABLE EVERY TIME (docs/history/335). The whole-column
+   rebuild used to swallow the second of two quick taps and hid them both:
+     · EACH TAP SENT ITS OWN SAVE AND EACH REFUSAL PUT BACK ITS OWN SNAPSHOT. 🎉 twice, both refused:
+       the second refusal put back the first tap's 🎉 — gold again 1.3s after it was taken back, and
+       "5 reactions" where there were 4. A poll ended ticked the same way.
+     · THE SERVER'S ACTION WAS A TOGGLE. The first save refused and the second accepted, and the server
+       held 😂 while the page showed nothing.
+   The server here is played TWICE from the same requests — as `dopost.gs` is now (`want` is set) and
+   as the deployed one may still be (a toggle on `emoji` / `choice`) — because the phone reaches the live
+   site a step before the Apps Script project does, and it must land right on both. Held:
+     · NO SECOND SAVE OF A POST GOES OUT WHILE THE FIRST IS UNANSWERED
+     · BOTH REFUSED → the page as the server holds it, the total right, the server's reason said
+     · FIRST REFUSED, SECOND ACCEPTED → the page and both servers the same
+     · BOTH ACCEPTED → the second save goes after the first, carrying `want: ''`
+     · TWO FACES QUICKLY → ends on the second, on the page and on both servers
+     · THE SAME FOR A POLL: a refused double vote ends unticked, two answers quickly end on the second */
+check('two quick taps on a post: one save at a time, a refusal puts back what the server holds, and the page and the server agree', async () => {
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [{ id: 'PO1', author: '@family.', handle: '@family.', avatar: '', image: '', media: [],
+    caption: 'Which paper next week?', body: '', location: '', when: '01/09/2026',
+    at: Date.UTC(2026, 8, 1), pinned: false, active: true, waiting: false, refused: false,
+    poll: { options: ['Paper 1', 'Paper 2', 'Paper 3'], counts: [1, 1, 0], total: 2, yours: '' },
+    reactions: { emoji: ['👍', '❤️', '😂', '😮', '👏', '🎉'], counts: [3, 1, 0, 0, 0, 0], total: 4, yours: '',
+      by: [{ name: 'Ada Tutor', emoji: '👍' }] },
+    comments: { total: 0, list: [] } }];
+  const bad = [];
+  /* THE SERVER, TWICE: what Pat holds on each after the same requests. */
+  const held = { now: { react: '', vote: '' }, old: { react: '', vote: '' } };
+  const key = b => (b.action === 'reactPost' ? 'react' : 'vote');
+  const field = b => (b.action === 'reactPost' ? 'emoji' : 'choice');
+  const queue = [];
+  const { w } = boot({ payload: p,
+    reply: b => {
+      if (b.action !== 'reactPost' && b.action !== 'votePoll') return undefined;
+      if (queue.some(x => !x.done && x.b.action === b.action)) {
+        bad.push(`a second ${b.action} went out while the first was unanswered — two saves of one post at once`);
+      }
+      return new Promise(res => queue.push({ b, res, done: false }));
+    },
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document;
+  if (!w.__t) return ['the app did not load, so quick taps were NOT checked — not a pass'];
+  w.__t.go('feed'); await wait(700); await woken_();
+
+  /* EACH REQUEST IN TURN, BY THE NEXT POLICY ('ok' or 'no'), until nothing has been asked for a while. */
+  const play = async policy => {
+    const got = [];
+    let idle = 0;
+    while (idle < 6 && got.length < 10) {
+      await wait(30);
+      const next = queue.find(x => !x.done);
+      if (!next) { idle++; continue; }
+      idle = 0; next.done = true;
+      const how = policy[got.length] || 'ok';
+      got.push(next.b);
+      if (how === 'no') { next.res({ error: next.b.action === 'reactPost' ? 'Sign in to react.' : 'The poll has closed.' }); continue; }
+      const k = key(next.b), v = next.b[field(next.b)];
+      held.now[k] = typeof next.b.want === 'string' ? next.b.want : (held.now[k] === v ? '' : v);
+      held.old[k] = held.old[k] === v ? '' : v;
+      next.res({ success: true, [field(next.b)]: held.now[k] });
+    }
+    return got;
+  };
+  const card = () => d.querySelector('#s-feed [data-post="PO1"]');
+  const face = e => card() && card().querySelector(`.react[data-emoji="${e}"]`);
+  const row = c => card() && card().querySelector(`.poll-row[data-choice="${c}"]`);
+  const mineFace = () => { const m = card() && card().querySelector('.react.mine'); return m ? m.dataset.emoji : ''; };
+  const mineVote = () => { const m = card() && card().querySelector('.poll-row.mine'); return m ? m.dataset.choice : ''; };
+  const total = () => { const b = card() && card().querySelector('.post-when .react-who'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  const votes = () => ((card() && card().querySelector('.poll-tot')) || {}).textContent || '';
+  const agree = (when, k, shown) => {
+    if (held.now[k] !== shown || held.old[k] !== shown) {
+      bad.push(`${when}: the page shows ${JSON.stringify(shown) || 'nothing'} as yours, the server holds ${JSON.stringify(held.now[k])} (and ${JSON.stringify(held.old[k])} on a backend from before \`want\`) — a reload would show something else`);
+    }
+  };
+  const twice = async (a, b2) => { a().click(); await wait(80); b2().click(); };
+
+  /* ---------- 🎉 TWICE, BOTH REFUSED ------------------------------------------------------------ */
+  await twice(() => face('🎉'), () => face('🎉'));
+  let got = await play(['no', 'no']);
+  if (mineFace()) bad.push(`🎉 twice, both refused: ${mineFace()} is still yours — the second refusal put back the first tap's reaction`);
+  if (total() !== '4 reactions') bad.push(`🎉 twice, both refused: the line says ${JSON.stringify(total())}, not "4 reactions"`);
+  if (!/Sign in to react/.test((d.getElementById('toast') || {}).textContent || '')) bad.push('🎉 twice, both refused: the server\'s reason was not said');
+  if (got.length !== 1) bad.push(`🎉 twice, both refused: ${got.length} saves went — the second tap only took back an unsaved one, so one`);
+  agree('🎉 twice, both refused', 'react', mineFace());
+
+  /* ---------- 😂 TWICE, THE FIRST REFUSED, THE SECOND ACCEPTED ----------------------------------- */
+  await twice(() => face('😂'), () => face('😂'));
+  got = await play(['no', 'ok']);
+  agree('😂 twice, the first save refused and the second accepted', 'react', mineFace());
+  if (total() !== '4 reactions') bad.push(`😂 twice, the first refused: the line says ${JSON.stringify(total())}, not "4 reactions"`);
+
+  /* ---------- 👏 TWICE, BOTH ACCEPTED ----------------------------------------------------------- */
+  await twice(() => face('👏'), () => face('👏'));
+  got = await play(['ok', 'ok']);
+  agree('👏 twice, both accepted', 'react', mineFace());
+  if (mineFace()) bad.push(`👏 twice, both accepted: ${mineFace()} is yours — the second tap took it back`);
+  if (got.length !== 2) bad.push(`👏 twice, both accepted: ${got.length} saves went, not 2`);
+  else if (got[1].want !== '' || got[1].emoji !== '👏') {
+    bad.push(`👏 twice: the second save went as ${JSON.stringify({ emoji: got[1].emoji, want: got[1].want })} — want '' (and 👏 for a backend that toggles)`);
+  }
+
+  /* ---------- 👍 THEN ❤️ QUICKLY --------------------------------------------------------------- */
+  await twice(() => face('👍'), () => face('❤️'));
+  got = await play([]);
+  if (mineFace() !== '❤️') bad.push(`👍 then ❤️ quickly: ${JSON.stringify(mineFace())} is yours, not ❤️`);
+  if (total() !== '5 reactions') bad.push(`👍 then ❤️ quickly: the line says ${JSON.stringify(total())}, not "5 reactions"`);
+  agree('👍 then ❤️ quickly', 'react', mineFace());
+
+  /* ---------- A POLL: PAPER 3 TWICE, BOTH REFUSED; THEN PAPER 1 AND PAPER 2 QUICKLY ------------------ */
+  await twice(() => row('Paper 3'), () => row('Paper 3'));
+  got = await play(['no', 'no']);
+  if (mineVote()) bad.push(`Paper 3 twice, both refused: ${mineVote()} is still ticked`);
+  if (!/^2 votes/.test(votes().trim())) bad.push(`Paper 3 twice, both refused: the poll says ${JSON.stringify(votes().trim())}, not "2 votes"`);
+  agree('Paper 3 twice, both refused', 'vote', mineVote());
+  await twice(() => row('Paper 1'), () => row('Paper 2'));
+  got = await play([]);
+  if (mineVote() !== 'Paper 2') bad.push(`Paper 1 then Paper 2 quickly: ${JSON.stringify(mineVote())} is ticked, not Paper 2`);
+  agree('Paper 1 then Paper 2 quickly', 'vote', mineVote());
   return bad;
 });
 
@@ -8210,7 +10305,9 @@ check('each column opens on the page worth reading', async () => {
    before there is anything behind it — and a third a column has and a widget does not: can a person
    get there.
 
-   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served.
+   LAST IN THE ORDER A PHONE GETS, which is `data/settings/columns.json`, so the real file is served —
+   last for everybody but an admin, whose row has Business after it (the `business:` journeys below;
+   docs/history/334). This one boots signed out, so its row is everybody else's.
    Without it this stub answers that file with the payload, `settingsInto_` skips a thing with no
    `length`, and the app runs on `TAB_ORDER` — where Settings is last and Spotlight's neighbour is
    Settings. A journey asking about the code's order would be asking about an order no phone has.
@@ -8280,6 +10377,301 @@ check('progress is the last column, one card that says it is not built yet with 
     if (outside.length) bad.push(as + ': the column has ' + outside.length + ' control(s) outside its card: ' + outside.map(e => e.outerHTML.slice(0, 60)).join(' | '));
   }
   t.USER(null);
+  return bad;
+});
+
+/* ---------- THE BUSINESS RECORDS: A COLUMN OF THEIR OWN, LAST, AND ONLY AN ADMIN'S ------------------------
+   THE OWNER, 10 Oct: *"the business checklist stuff should go in their own column at the end."* They were
+   five cards at the foot of an admin's Settings (docs/history/207); they are `screen('biz')` now, the last
+   column, for an admin and for nobody else (docs/history/334). Every way that can go wrong draws a
+   perfectly good app: the column a swipe before Progress rather than after it; the five cards still on
+   Settings as well; a Save that posts nothing; the column in a child's row of columns, or its section in
+   a child's document with nothing in it; an admin who signs in and has to reload to see it, or signs out
+   and keeps it; and the person on it when it goes left on a column that is not there.
+
+   THE REAL columns.json IS SERVED, for the Progress journey's reason: the stub otherwise answers that
+   file with the payload and the app runs on `TAB_ORDER`, an order no phone has. Each journey refuses to
+   pass if the file was not applied — Settings straight after You is the file's order and not the code's. */
+const BIZ_COLS_ = () => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+const BIZ_SERVE_ = cols => u => (/(^|\/)data\/settings\/columns\.json(\?|$)/.test(u) ? cols : undefined);
+const BIZ_TITLES_ = ['Insurance', 'Tax', 'Legal and data', 'Safeguarding', 'Money and company'];
+const BIZ_ADMIN_ = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-admin', handle: 'annadmin' };
+const BIZ_HELD_ = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+                     provider: 'Example Insure', reference: 'PL-000000', due_on: '2030-01-01' }];
+/* WHAT NAMES THE COLUMN IN A PAGE: its section, the cards' own attributes and classes. Asked of the whole
+   serialised document, so a comment, a hidden copy or a stray attribute is found as well as an element. */
+const BIZ_NAMED_ = /\bs-biz\b|data-biz|\bbiz-(body|item|cap|when|flag|said|save)\b|class="card biz"/;
+const bizNamed_ = d => { const m = d.documentElement.outerHTML.match(new RegExp('.{0,50}(' + BIZ_NAMED_.source + ').{0,30}'));
+  return m ? m[0].replace(/\s+/g, ' ') : ''; };
+const bizSwipe_ = async (w, from) => {
+  const d = w.document;
+  const at = d.querySelector('#s-' + from + ' .page .pane') || d.getElementById('s-' + from);
+  at.dispatchEvent(new w.WheelEvent('wheel', { deltaX: 120, deltaY: 0, bubbles: true, cancelable: true }));
+  await wait(LEAVE_MS); await woken_();
+};
+const bizApplied_ = ids => ids.indexOf('settings') === ids.indexOf('account') + 1;
+
+check('business: an admin has a Business column last, straight after Progress, holding the five records cards, and Save posts the card', async () => {
+  const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
+      : body.action === 'saveRecordsPage' ? { success: true, records: body.records } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const bad = [];
+  const ids = () => t.TABS.map(x => x.id);
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — nothing was checked'];
+  if (!bizApplied_(ids())) return ['columns.json was not applied (Settings is not straight after You) — the order a phone gets was NOT checked: ' + ids().join(', ')];
+  if (ids()[ids().length - 1] !== 'biz') bad.push('Business is not the last column for an admin — the order reads ' + ids().join(', '));
+  if (ids().indexOf('biz') !== ids().indexOf('progress') + 1) bad.push('Business is not straight after Progress — the order reads ' + ids().join(', '));
+  const host = d.getElementById('s-biz');
+  if (!host || host.parentElement !== d.getElementById('screen') || host.tagName !== 'SECTION') return bad.concat(['an admin has no <section id="s-biz"> in #screen to draw the column into']);
+
+  /* THE RECORDS ARE ASKED BEFORE ANYBODY GOES THERE. The column is drawn for an admin at boot, and on a
+     wide screen it is on the glass beside Progress; asked only on arrival, its first card sat under the
+     loader until somebody swiped to it (*"these remain loading untill i scroll to them"*, 10 Oct). */
+  for (let n = 0; n < 40 && !sent.some(b => b.action === 'listRecords'); n++) await wait(100);
+  if (t.AT() === 'biz') return bad.concat(['the admin booted onto Business, so asking before arrival was NOT checked']);
+  if (!sent.some(b => b.action === 'listRecords')) bad.push('the records were not asked until somebody went to the Business column — the card beside Progress stays under the loader');
+  else if (host.querySelector('.me-form[data-biz-page="Insurance"] .loading')) {
+    for (let n = 0; n < 30 && host.querySelector('.me-form[data-biz-page="Insurance"] .loading'); n++) await wait(100);
+    if (host.querySelector('.me-form[data-biz-page="Insurance"] .loading')) bad.push('the records were asked and answered, and the Insurance card is still under the loader without anybody going there');
+  }
+
+  /* A SWIPE OFF PROGRESS, as a trackpad sends it, lands on Business; one more stays — the last column. */
+  t.go('progress', false, true);
+  await wait(LEAVE_MS); await woken_();
+  if (t.AT() !== 'progress') return bad.concat(['go("progress") left the app on ' + t.AT() + ' — the swipe was NOT checked']);
+  await bizSwipe_(w, 'progress');
+  if (t.AT() !== 'biz') return bad.concat(['a sideways swipe off Progress landed on ' + t.AT() + ', wanted Business']);
+  await bizSwipe_(w, 'biz');
+  if (t.AT() !== 'biz') bad.push('a sideways swipe past the last column moved off Business, to ' + t.AT());
+
+  /* THE RECORDS WERE ASKED ONCE IN ALL — drawing asked, arriving found it asked — and the five cards are the
+     column's pages, in order, the pager agreeing. */
+  for (let n = 0; n < 50 && host.querySelector('.loading'); n++) await wait(100);
+  const asked = sent.filter(b => b.action === 'listRecords').length;
+  if (asked !== 1) bad.push('arriving on Business asked listRecords ' + asked + ' time(s), wanted once');
+  const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
+  if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('the Business column holds ' + JSON.stringify(cards) + ', wanted the five records cards ' + JSON.stringify(BIZ_TITLES_));
+  const n = host.querySelectorAll(':scope > .page').length;
+  if (n !== 5 || t.pageCount('biz') !== n) bad.push('the column draws ' + n + ' pages and the pager counts ' + t.pageCount('biz') + ' — wanted five and five');
+  const ins = host.querySelector('.me-form[data-biz-page="Insurance"]');
+  if (!ins) return bad.concat(['there is no Insurance card on the Business column']);
+  if (ins.querySelector('.loading')) bad.push('the records came back and the Insurance card is still under the loader');
+  const ref = ins.querySelector('[data-biz="pub_liability"][data-k="reference"]');
+  if (!ref || ref.value !== 'PL-000000') bad.push('the records came back and the policy box reads ' + JSON.stringify(ref && ref.value) + ', not PL-000000');
+
+  /* SAVE: a box typed into marks its card (so the column is not redrawn under the typing), and the
+     card's Save posts that card's three items with what was typed. */
+  const prov = ins.querySelector('[data-biz="prof_indemnity"][data-k="provider"]');
+  if (!prov) return bad.concat(['the Insurance card has no provider box for professional indemnity']);
+  prov.value = 'Pretend Mutual';
+  prov.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (ins.dataset.dirty !== '1') bad.push('typing into a Business card did not mark it as typed into — a payload landing would redraw it under the typing');
+  if (!w.settingsKeep_('biz')) bad.push('`settingsKeep_` lets the Business column be redrawn while a card on it holds unsaved typing');
+  const save = ins.querySelector('.tile[data-do="biz-save"]');
+  if (!save) return bad.concat(['the Insurance card has no Save tile']);
+  const before = sent.length;
+  try { t.ACTIONS['biz-save'](save); } catch (e) { return bad.concat(['biz-save threw: ' + e.message]); }
+  for (let k = 0; k < 30 && !sent.slice(before).some(b => b.action === 'saveRecordsPage'); k++) await wait(100);
+  await wait(300);
+  const post = sent.slice(before).find(b => b.action === 'saveRecordsPage');
+  if (!post) bad.push('pressing Save on the Insurance card posted no saveRecordsPage');
+  else {
+    const got = post.records || [];
+    if (got.map(r => r.id).join() !== 'pub_liability,prof_indemnity,employers_liability') bad.push('Save posted ' + JSON.stringify(got.map(r => r.id)) + ', not the Insurance card\'s three items');
+    if (!got.every(r => r.category === 'Insurance')) bad.push('Save posted items not filed under Insurance');
+    if ((got.find(r => r.id === 'prof_indemnity') || {}).provider !== 'Pretend Mutual') bad.push('Save did not post the provider that was typed');
+    if ((got.find(r => r.id === 'pub_liability') || {}).reference !== 'PL-000000') bad.push('Save did not post the policy number the records brought');
+  }
+  const said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/Saved/.test(said)) bad.push('the save answered and the toast says ' + JSON.stringify(said) + ', not Saved');
+  if (ins.dataset.dirty) bad.push('the card is still marked as typed into after it was saved');
+
+  /* SETTINGS HOLDS NONE OF THEM, and an admin who had been on a page past its new end opens on a real one. */
+  t.go('settings', false, true);
+  await wait(LEAVE_MS); await woken_();
+  w.paint('settings');
+  const set = d.getElementById('s-settings');
+  if (!set || !set.querySelector('.page')) return bad.concat(['Settings did not draw for an admin — it was NOT checked for records']);
+  if (set.querySelector('[data-biz-page], [data-biz], .card.biz')) bad.push('an admin\'s Settings still holds a business-records card');
+  if (/data-biz/.test(w.settingsPages_().join(''))) bad.push('`settingsPages_` still builds a business-records card');
+  if (!set.querySelector('.card.digest')) bad.push('the weekly parent email card is gone from an admin\'s Settings — it was to stay');
+  t.PAGE().settings = 999;
+  t.go('feed', false, true); await wait(200);
+  t.go('settings', false, true);
+  await wait(LEAVE_MS); await woken_();
+  const last = t.pageCount('settings') - 1;
+  if (t.PAGE().settings !== last) bad.push('an admin coming back to Settings past its last page is on page ' + t.PAGE().settings + ' of ' + (last + 1));
+  const on = set.querySelectorAll(':scope > .page')[t.PAGE().settings];
+  if (!on || !on.querySelector('.pane .card')) bad.push('an admin coming back to Settings past its last page is on a page with no card');
+  return bad;
+});
+
+check('business: a student, a parent, a tutor and a visitor have no Business column — no tab, no swipe stop, no section, nothing in the page naming it', async () => {
+  const cols = BIZ_COLS_();
+  const who = [['signed out', null],
+    ['a student', { name: 'Test Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' }],
+    ['a parent', { name: 'Test Parent', personId: 'P8', role: 'parent', roles: ['parent'], token: 'tk' }],
+    ['a tutor', { name: 'Test Tutor', personId: 'P7', role: 'tutor', roles: ['tutor'], token: 'tk' }]];
+  const bad = [];
+  for (const [as, u] of who) {
+    const { w, sent } = boot({ serve: BIZ_SERVE_(cols),
+      before: win => { try { if (u) win.localStorage.setItem('familyUser', JSON.stringify(u)); win.localStorage.setItem('familyTab', 'biz'); win.localStorage.setItem('familyTabAt', String(Date.now())); } catch (e) {} } });
+    for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+    await wait(600);
+    const t = w.__t, d = w.document;
+    if (!t) { bad.push(as + ': the app did not finish loading'); continue; }
+    if (u && (!t.whoami() || t.whoami().role !== u.role)) { bad.push(as + ': the visitor seeded before boot is not signed in — NOT checked'); continue; }
+    const ids = t.TABS.map(x => x.id);
+    if (!bizApplied_(ids)) { bad.push(as + ': columns.json was not applied — NOT checked: ' + ids.join(', ')); continue; }
+    if (ids.indexOf('biz') !== -1) bad.push(as + ': the row of columns has Business in it: ' + ids.join(', '));
+    if (ids[ids.length - 1] !== 'progress') bad.push(as + ': the last column is ' + ids[ids.length - 1] + ', wanted Progress');
+    /* A REMEMBERED `biz` (an admin's, on a shared phone) IS NOT A PLACE FOR THEM: they open where a visitor
+       with nothing remembered opens, `TAB_HOME`. IT WAS `AT !== 'biz'`, and that held with the boot's own
+       `columnsFor_` deleted from shell.js: `biz` was still in `TABS` when the remembered id was read, so
+       it was honoured, and the next `columnsFor_` moved them one column left — every visitor with an
+       admin's tab in storage opened on Progress, and this line read OK. "Not Business" is two answers;
+       the front door is one. And if the front door were ever Progress itself, the two could not be told
+       apart, so that says so rather than passing. */
+    const home = typeof t.TAB_HOME === 'function' ? t.TAB_HOME() : '';
+    if (!home || home === 'progress') bad.push(as + ': TAB_HOME is ' + JSON.stringify(home) + ' — the front door cannot be told from the column left of Business, NOT checked');
+    else if (t.AT() !== home) bad.push(as + ': a remembered Business column opened them on ' + t.AT() + ', wanted ' + home + ', where a visitor with nothing remembered opens' + (t.AT() === 'progress' ? ' — they were moved left off a column they should never have been put on' : ''));
+    /* EVERY COLUMN ARRIVED AT, so every neighbour has been painted, and the page asked after. */
+    for (const id of ids) { try { t.go(id, false, true); } catch (e) { bad.push(as + ': ' + id + ' threw: ' + e.message); } }
+    await wait(LEAVE_MS); await woken_();
+    t.go('progress', false, true);
+    await wait(LEAVE_MS); await woken_();
+    await bizSwipe_(w, 'progress');
+    if (t.AT() !== 'progress') bad.push(as + ': a swipe past Progress moved to ' + t.AT() + ' — wanted to stay on the last column');
+    t.go('biz', false, true);
+    await wait(300);
+    if (t.AT() === 'biz') bad.push(as + ': go("biz") reached a Business column');
+    if (d.getElementById('s-biz')) bad.push(as + ': there is a <section id="s-biz"> in the page');
+    const named = bizNamed_(d);
+    if (named) bad.push(as + ': the page names the column: "…' + named + '…"');
+    if (sent.some(b => b.action === 'listRecords')) bad.push(as + ': the records were asked for');
+  }
+  return bad;
+});
+
+/* THE PAYLOAD THAT SIGNING IN ASKS FOR IS HELD, so the column has to come from signing in itself and not
+   from `applyColumns_` when that payload lands — which on this backend is fifteen seconds later. */
+check('business: signing in as an admin adds the column and signing out takes it away, without a reload and without moving anybody', async () => {
+  const cols = BIZ_COLS_();
+  let hold = false;
+  const { w, gets } = boot({ serve: u => (hold && /script\.google\.com/.test(u) ? new Promise(() => {}) : BIZ_SERVE_(cols)(u)),
+    reply: body => (body.action === 'verifyLogin' ? Object.assign({ success: true }, BIZ_ADMIN_)
+      : body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const bad = [];
+  const ids = () => t.TABS.map(x => x.id);
+  if (t.whoami()) return ['the journey meant to start signed out and somebody is signed in — NOT checked'];
+  if (!bizApplied_(ids())) return ['columns.json was not applied — NOT checked: ' + ids().join(', ')];
+  if (ids().indexOf('biz') !== -1 || d.getElementById('s-biz')) return ['signed out, the Business column is already there — the sign-in was NOT checked'];
+  const doc = d.documentElement;
+
+  /* IN, THROUGH THE SIGN-IN CARD, from Progress by way of You — and back on Progress afterwards
+     (`signedIn_` returns you to the column you came from), with Business beside it. */
+  t.go('progress', false, true); await wait(LEAVE_MS); await woken_();
+  t.go('account', false, true); await wait(LEAVE_MS); await woken_();
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  const btn = d.querySelector('[data-do="do-signin"]');
+  if (!name || !pin || !btn) return ['the sign-in card is not on the account column — NOT checked'];
+  name.value = 'annadmin'; pin.value = '4826';
+  const asked = () => gets.filter(u => /script\.google\.com/.test(u)).length;
+  const askedBefore = asked();
+  hold = true;
+  try { t.ACTIONS['do-signin'](btn); } catch (e) { return ['do-signin threw: ' + e.message]; }
+  for (let n = 0; n < 50 && !(t.whoami() && t.whoami().role === 'admin'); n++) await wait(100);
+  await wait(LEAVE_MS); await woken_();
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin did not sign in — NOT checked'];
+  if (d.documentElement !== doc) bad.push('the page was reloaded');
+  if (ids()[ids().length - 1] !== 'biz') bad.push('signed in as an admin, the last column is ' + ids()[ids().length - 1] + ', wanted Business, without a reload');
+  if (!d.getElementById('s-biz')) bad.push('signed in as an admin, there is no <section id="s-biz"> to swipe to');
+  if (t.AT() !== 'progress') bad.push('signing in moved the admin to ' + t.AT() + ' — they came to You from Progress and go back there');
+  await bizSwipe_(w, 'progress');
+  if (t.AT() !== 'biz') bad.push('signed in, a swipe off Progress landed on ' + t.AT() + ', wanted Business');
+  else {
+    for (let n = 0; n < 50 && d.querySelector('#s-biz .loading'); n++) await wait(100);
+    const cards = [...d.querySelectorAll('#s-biz .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
+    if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('signed in, the Business column holds ' + JSON.stringify(cards));
+  }
+  /* AND THE INSTRUMENT CAN SEE WHAT IT IS ASKED ABOUT — signed in, the page does name the column. */
+  if (!bizNamed_(d)) bad.push('signed in as an admin, nothing in the page names the column — `bizNamed_` cannot see its subject');
+  if (asked() <= askedBefore) bad.push('signing in asked for no payload — the hold proved nothing');
+
+  /* OUT, FROM SPOTLIGHT: the column goes, and the admin stays where they are. */
+  t.go('spotlight', false, true); await wait(LEAVE_MS); await woken_();
+  try { t.ACTIONS['signout'](d.createElement('button')); } catch (e) { return bad.concat(['signout threw: ' + e.message]); }
+  await wait(LEAVE_MS); await woken_();
+  if (t.whoami()) return bad.concat(['Sign out did not sign the admin out — NOT checked']);
+  if (d.documentElement !== doc) bad.push('the page was reloaded');
+  if (ids().indexOf('biz') !== -1) bad.push('signed out, the row still has Business in it: ' + ids().join(', '));
+  if (d.getElementById('s-biz')) bad.push('signed out, the <section id="s-biz"> is still in the page');
+  const named = bizNamed_(d);
+  if (named) bad.push('signed out, the page still names the column: "…' + named + '…"');
+  if (t.AT() !== 'spotlight') bad.push('signing out moved the person from Spotlight to ' + t.AT());
+
+  /* AND THE ONE PERSON IT MOVES: an admin ON Business whose session the server ended (a Save refused with
+     `why: 'signed-out'`). The column goes from under them and they land on the column left of it. */
+  const ended = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_)); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ }
+      : body.action === 'saveRecordsPage' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
+  const w2 = ended.w;
+  for (let n = 0; n < 80 && !w2.__t; n++) await wait(100);
+  await wait(600);
+  const t2 = w2.__t, d2 = w2.document;
+  t2.go('biz', false, true); await wait(LEAVE_MS); await woken_();
+  for (let n = 0; n < 50 && d2.querySelector('#s-biz .loading'); n++) await wait(100);
+  const save = d2.querySelector('#s-biz .me-form[data-biz-page="Tax"] .tile[data-do="biz-save"]');
+  if (t2.AT() !== 'biz' || !save) return bad.concat(['the admin could not be put on Business with a Save to press — the ended session was NOT checked']);
+  try { t2.ACTIONS['biz-save'](save); } catch (e) { return bad.concat(['biz-save threw: ' + e.message]); }
+  for (let n = 0; n < 50 && t2.whoami(); n++) await wait(100);
+  await wait(LEAVE_MS); await woken_();
+  if (t2.whoami()) return bad.concat(['a Save refused as signed-out did not end the session — NOT checked']);
+  if (d2.getElementById('s-biz')) bad.push('the session ended on Business and its section is still in the page');
+  if (t2.AT() !== 'progress') bad.push('the session ended on Business and the person was put on ' + t2.AT() + ', wanted Progress, the column left of it');
+  if (!d2.querySelector('#s-progress > .page.on')) bad.push('the session ended on Business and Progress, where they were put, shows no page');
+  return bad;
+});
+
+/* ---------- AND A RELOAD ON BUSINESS PUTS AN ADMIN BACK ON IT -----------------------------------------
+   THE OTHER HALF OF THE BOOT'S `columnsFor_` (shell.js, over the `familyTab` read). The visitor journey
+   above asks that a remembered `biz` is let go for anybody else; this asks that it is KEPT for an admin —
+   `reload-build` reloads the page under somebody the moment a build lands, and an admin halfway through
+   the insurance card must not be put on the Feed by it. It is also what proves the visitor journey's
+   seeding reaches the app at all: a harness that never read `familyTab` would open everybody on the
+   front door, and "a visitor opens on the Feed" would read OK for the wrong reason. No journey stood on
+   this path; only a reviewer's Chromium driver had. */
+check('business: an admin reloading on Business is put back on it, its section in the page and its five cards drawn', async () => {
+  const { w, sent } = boot({ serve: BIZ_SERVE_(BIZ_COLS_()),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(BIZ_ADMIN_));
+      win.localStorage.setItem('familyTab', 'biz'); win.localStorage.setItem('familyTabAt', String(Date.now())); } catch (e) {} },
+    reply: body => (body.action === 'listRecords' ? { success: true, records: BIZ_HELD_ } : undefined) });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  await wait(600);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const bad = [];
+  const ids = t.TABS.map(x => x.id);
+  if (!t.whoami() || t.whoami().role !== 'admin') return ['the admin seeded before boot is not signed in — NOT checked'];
+  if (!bizApplied_(ids)) return ['columns.json was not applied — NOT checked: ' + ids.join(', ')];
+  if (t.AT() !== 'biz') return ['an admin reloading on Business opened on ' + t.AT() + ' — the remembered column an admin IS given was let go'];
+  const host = d.getElementById('s-biz');
+  if (!host || host.parentElement !== d.getElementById('screen')) return ['an admin reloading on Business is on it with no <section id="s-biz"> in #screen'];
+  for (let n = 0; n < 50 && (host.querySelector('.loading') || !host.querySelector('[data-biz-page]')); n++) await wait(100);
+  const cards = [...host.querySelectorAll(':scope > .page > .pane .me-form[data-biz-page]')].map(f => f.dataset.bizPage);
+  if (cards.join('|') !== BIZ_TITLES_.join('|')) bad.push('an admin reloading on Business sees ' + JSON.stringify(cards) + ', wanted the five records cards');
+  if (!host.querySelector(':scope > .page.on')) bad.push('an admin reloading on Business is on a column with no page in front');
+  if (!sent.some(b => b.action === 'listRecords')) bad.push('an admin reloading on Business never asked for the records');
   return bad;
 });
 
@@ -8480,6 +10872,166 @@ check('the library cards draw no note box, even from a backend that still lists 
   const stray = [...form.querySelectorAll('[data-me]')].map(e => e.getAttribute('data-me')).filter(f => !/^lib\d+_(name|no|pin)$/.test(f));
   if (stray.length) bad.push('the library card page draws boxes that are not a card: ' + stray.join(', '));
   if (/note/i.test(form.textContent)) bad.push('the library card page still says "note" somewhere');
+  return bad;
+});
+
+/* ---------- EACH LIBRARY CARD IS DRAWN AS A CARD, AND ITS BARS ARE ITS NUMBER'S (docs/history/332) ---------
+   THE OWNER, 10 Oct, with a screenshot of this page: *"make each look like a card. with fake barcode."* So a
+   slot is a card face holding its own three boxes, with an `aria-hidden` barcode worked out from the number
+   (`libBars_` in me.js), and nothing about what it saves changed. Three journeys, each a question the
+   change could have broken: is each entry one card with its boxes ON it; do the bars follow the number
+   and only the number; and does the page still save the fifteen fields, reveal the next card, and treat a
+   reload as it did — every other box on the column kept as a draft, no box of a library card ever one,
+   because the PIN is on it (`setDraftOk_`). Invented libraries, numbers and PINs only: the repository is
+   public, and `0000` is the only PIN it holds. */
+const LIB_FIELDS_ = (() => { const o = []; for (let i = 1; i <= 5; i++) ['_name', '_no', '_pin'].forEach(k => o.push('lib' + i + k)); return o; })();
+const LIB_PROFILE_ = { first_name: 'Test', last_name: 'Admin', phone_cc: '+44', headline: 'Saved headline',
+  lib1_name: 'Merton', lib1_no: '2000000000000', lib1_pin: '0000',
+  lib2_name: 'Sutton Central', lib2_no: '2000000000001', lib2_pin: '0000',
+  lib3_name: 'Wandsworth Town and Putney', lib3_no: '2000000000002', lib3_pin: '0000' };
+const LIB_USER_ = () => ({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+  profile: Object.assign({}, LIB_PROFILE_) });
+const libBoot_ = (more) => {
+  const sent = [];
+  const b = boot(Object.assign({
+    payload: Object.assign(payload(), { profileFields: { 'About you': ['headline'], 'Library cards': LIB_FIELDS_ } }),
+    reply: q => { sent.push(q); return q.action === 'updateProfile' ? { success: true, profile: Object.assign({}, LIB_PROFILE_, q.fields) } : { success: true }; },
+  }, more || {}));
+  return Object.assign(b, { posts: sent });
+};
+const libDraw_ = async w => {
+  w.__t.USER(LIB_USER_());
+  try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { return null; }
+  await wait(300);
+  return [...w.document.querySelectorAll('#s-settings .me-form')].find(f => f.querySelector('[data-me="lib1_name"]')) || null;
+};
+const libD_ = face => { const p = face && face.querySelector('svg.lib-bars path'); return p ? p.getAttribute('d') : null; };
+
+check('each library card is drawn as a card: one face per entry, its three boxes on it, a name for each, the bars decoration', async () => {
+  const { w } = libBoot_();
+  await wait(300);
+  const form = await libDraw_(w);
+  if (!form) return ['the settings column drew no library cards page — nothing was checked'];
+  const bad = [];
+  const slots = [...form.querySelectorAll('.lib-shelf > .lib-card')];
+  if (slots.length !== 5) bad.push('the shelf holds ' + slots.length + ' slots, wanted five (`LIBRARY_CARDS`), each drawn whether shown or not');
+  const shown = slots.filter(s => !s.hidden);
+  if (shown.length !== 3) bad.push(shown.length + ' cards are shown for three filled libraries, wanted three');
+  slots.forEach((s, at) => {
+    const n = at + 1, faces = s.querySelectorAll('.lib-face');
+    if (faces.length !== 1) { bad.push('slot ' + n + ' holds ' + faces.length + ' card faces, wanted one'); return; }
+    const f = faces[0];
+    const names = [...s.querySelectorAll('[data-me]')].map(e => e.getAttribute('data-me')).sort();
+    const want = ['lib' + n + '_name', 'lib' + n + '_no', 'lib' + n + '_pin'].sort();
+    if (JSON.stringify(names) !== JSON.stringify(want)) bad.push('slot ' + n + ' holds the boxes ' + JSON.stringify(names) + ', wanted ' + JSON.stringify(want));
+    const off = [...s.querySelectorAll('[data-me]')].filter(e => !f.contains(e)).map(e => e.getAttribute('data-me'));
+    if (off.length) bad.push('card ' + n + ' has boxes beside it rather than on it: ' + off.join(', '));
+    if (f.getAttribute('role') !== 'group' || !/^Library card\b/.test(f.getAttribute('aria-label') || '')) bad.push('card ' + n + ' is not a group named "Library card …" for a screen reader');
+    const cap = f.querySelector('.lib-cap');
+    if (!cap || !/library card/i.test(cap.textContent) || cap.getAttribute('aria-hidden') !== 'true') bad.push('card ' + n + ' has no hidden "Library card" caption at its top');
+    const nm = f.querySelector('[data-me$="_name"]'), no = f.querySelector('[data-me$="_no"]'), pin = f.querySelector('[data-me$="_pin"]');
+    if (nm && nm.getAttribute('aria-label') !== 'Library name') bad.push('card ' + n + '\'s name box is not labelled "Library name" for a screen reader');
+    if (no && no.getAttribute('aria-label') !== 'Card number') bad.push('card ' + n + '\'s number box is not labelled "Card number" for a screen reader');
+    const pinCap = pin && pin.closest('label') && pin.closest('label').querySelector('span');
+    if (!pinCap || pinCap.textContent.trim() !== 'PIN') bad.push('card ' + n + '\'s PIN box has no visible "PIN" caption in its label');
+    const svg = f.querySelector('svg.lib-bars');
+    if (!svg) bad.push('card ' + n + ' has no barcode');
+    else {
+      if (svg.getAttribute('aria-hidden') !== 'true') bad.push('card ' + n + '\'s barcode is not aria-hidden — it is decoration, not a code anything can read');
+      if (!libD_(f)) bad.push('card ' + n + '\'s barcode draws no bars');
+      if (no && svg.compareDocumentPosition(no) & w.Node.DOCUMENT_POSITION_PRECEDING) bad.push('card ' + n + '\'s number comes before its bars — it is printed under them');
+    }
+    /* THE DRAFT RULE DID NOT MOVE: no box of a library card is a draft, because the PIN is on it. */
+    const drafted = [...f.querySelectorAll('[data-draft]')].map(e => e.getAttribute('data-me'));
+    if (drafted.length) bad.push('card ' + n + ' carries drafts now: ' + drafted.join(', ') + ' — a library card was never drafted (its PIN is on it)');
+  });
+  const ds = shown.map(s => libD_(s.querySelector('.lib-face')));
+  if (new Set(ds).size !== ds.length) bad.push('three different numbers drew ' + new Set(ds).size + ' different barcodes — every card should look like its own');
+  /* NAME FIRST IN THE ORDER A KEYBOARD AND A READER MEET THEM, whatever the grid puts where. */
+  const order = [...shown[0].querySelectorAll('input[data-me]')].map(e => e.getAttribute('data-me'));
+  if (JSON.stringify(order) !== '["lib1_name","lib1_pin","lib1_no"]') bad.push('a card\'s boxes come in the order ' + JSON.stringify(order) + ', wanted the name, the PIN, then the number');
+  return bad;
+});
+
+check('typing a library card number redraws its bars; the same number always draws the same bars; no number draws the even stand-in', async () => {
+  const { w } = libBoot_();
+  await wait(300);
+  const form = await libDraw_(w);
+  if (!form) return ['the settings column drew no library cards page — nothing was checked'];
+  if (typeof w.libBarsOf_ !== 'function') return ['libBarsOf_ is not reachable — the bars were NOT checked'];
+  const bad = [];
+  const face = n => form.querySelector('[data-me="lib' + n + '_no"]').closest('.lib-face');
+  const box = n => form.querySelector('[data-me="lib' + n + '_no"]');
+  const d1 = libD_(face(1));
+  draftType_(w, box(1), '2000000000005');
+  if (libD_(face(1)) === d1) bad.push('typing a different number left the bars as they were');
+  if (box(1).value !== '2000000000005') bad.push('the number printed under the bars reads ' + JSON.stringify(box(1).value) + ' after typing 2000000000005');
+  draftType_(w, box(1), '2000000000000');
+  if (libD_(face(1)) !== d1) bad.push('typing the first number back did not draw the first bars back — the bars are not the number\'s');
+  draftType_(w, box(2), '2000000000000');
+  if (libD_(face(2)) !== d1) bad.push('the same number on another card drew different bars');
+  if (JSON.stringify(w.libBarsOf_('2000000000000')) !== JSON.stringify(w.libBarsOf_('2000000000000'))) bad.push('libBarsOf_ gave two answers for one number');
+  if (JSON.stringify(w.libBarsOf_('2000000000000')) === JSON.stringify(w.libBarsOf_('2000000000001'))) bad.push('two numbers one digit apart drew the same bars');
+  /* NO NUMBER: the even stand-in, marked so the stylesheet draws it faint. */
+  draftType_(w, box(3), '');
+  const blank = face(3).querySelector('svg.lib-bars');
+  if (!blank || !blank.classList.contains('is-blank')) bad.push('an empty number\'s bars are not marked is-blank');
+  const runs = [...String(libD_(face(3)) || '').matchAll(/M(\d+) 0h(\d+)/g)].map(m => [Number(m[1]), Number(m[2])]);
+  const widths = new Set(runs.map(r => r[1])), steps = new Set(runs.slice(1).map((r, i) => r[0] - runs[i][0]));
+  if (runs.length < 10 || widths.size !== 1 || steps.size !== 1) bad.push('an empty number drew ' + runs.length + ' bars of ' + widths.size + ' widths at ' + steps.size + ' spacings — wanted an even pattern');
+  draftType_(w, box(3), '2000000000002');
+  if (face(3).querySelector('svg.lib-bars.is-blank')) bad.push('a number typed into an empty card left its bars marked blank');
+  return bad;
+});
+
+check('the library cards still save the fifteen fields they always did, Add another reveals the next card, and a reload keeps drafts but never a library card\'s', async () => {
+  const one = libBoot_();
+  await wait(300);
+  const form1 = await libDraw_(one.w);
+  if (!form1) return ['the settings column drew no library cards page — nothing was checked'];
+  const bad = [];
+  const head = one.w.document.querySelector('#s-settings [data-me="headline"]');
+  if (!head) return ['no headline box on the settings column — the reload was NOT checked'];
+  draftType_(one.w, head, 'Typed, never saved');
+  draftType_(one.w, form1.querySelector('[data-me="lib2_name"]'), 'Typed on a card, never saved');
+  draftType_(one.w, form1.querySelector('[data-me="lib2_pin"]'), '0000 typed');
+  one.w.dispatchEvent(new one.w.Event('pagehide'));
+  const kept = keptStore_(one.w);
+  const leaked = Object.keys(kept).filter(k => /^draft:/.test(k) && /lib\d|pin/i.test(k));
+  if (leaked.length) bad.push('a library card box was kept on the device as a draft: ' + leaked.join(', '));
+  if (Object.keys(kept).some(k => /^draft:/.test(k) && /0000 typed/.test(kept[k]))) bad.push('a PIN typed on a card was written to the device');
+  /* THE RELOAD: a second boot from exactly what the first left. */
+  const two = libBoot_({ before: fromStore_(kept) });
+  await wait(300);
+  const form = await libDraw_(two.w);
+  if (!form) return bad.concat(['after the reload the settings column drew no library cards page']);
+  const t = two.w.__t, d = two.w.document;
+  const head2 = d.querySelector('#s-settings [data-me="headline"]');
+  if (!head2 || head2.value !== 'Typed, never saved') bad.push('after a reload the headline box holds ' + JSON.stringify(head2 && head2.value) + ' — the column\'s drafts were lost');
+  const lib2 = form.querySelector('[data-me="lib2_name"]');
+  if (lib2.value !== 'Sutton Central') bad.push('after a reload card 2 holds ' + JSON.stringify(lib2.value) + ', wanted its saved name: no box of a library card is a draft');
+  const savedD = (String(two.w.libBars_('2000000000001')).match(/ d="([^"]+)"/) || [])[1];
+  if (!savedD || libD_(lib2.closest('.lib-face')) !== savedD) bad.push('after a reload card 2\'s bars are not its saved number\'s');
+  /* ADD ANOTHER, STILL: the fourth card shown, its name box focused, and the button still there for the fifth. */
+  try { t.ACTIONS['shelf-more'](form.querySelector('[data-do="shelf-more"]')); } catch (e) { bad.push('Add another threw: ' + e.message); }
+  const four = form.querySelector('[data-me="lib4_name"]').closest('.lib-card');
+  if (four.hidden) bad.push('Add another did not reveal the fourth card');
+  if (d.activeElement !== form.querySelector('[data-me="lib4_name"]')) bad.push('Add another focused ' + JSON.stringify(d.activeElement && d.activeElement.getAttribute('data-me')) + ', wanted the new card\'s name');
+  if (!form.querySelector('[data-do="shelf-more"]')) bad.push('Add another went after the fourth card, with a fifth still to come');
+  draftType_(two.w, form.querySelector('[data-me="lib4_name"]'), 'Mitcham');
+  draftType_(two.w, form.querySelector('[data-me="lib4_no"]'), ' 2000000000003 ');
+  draftType_(two.w, form.querySelector('[data-me="lib4_pin"]'), '0000');
+  draftType_(two.w, form.querySelector('[data-me="lib1_name"]'), 'Merton Park');
+  two.posts.length = 0;
+  try { t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]')); } catch (e) { bad.push('Save threw: ' + e.message); }
+  await wait(400);
+  const post = two.posts.find(b => b.action === 'updateProfile');
+  if (!post) return bad.concat(['Save posted ' + JSON.stringify(two.posts.map(b => b.action)) + ' and no updateProfile']);
+  const keys = Object.keys(post.fields || {}).sort();
+  if (JSON.stringify(keys) !== JSON.stringify(LIB_FIELDS_.slice().sort())) bad.push('Save posted ' + JSON.stringify(keys) + ' — wanted exactly the fifteen library fields, as before');
+  const want = { lib1_name: 'Merton Park', lib1_no: '2000000000000', lib1_pin: '0000', lib2_name: 'Sutton Central',
+                 lib3_name: 'Wandsworth Town and Putney', lib4_name: 'Mitcham', lib4_no: '2000000000003', lib4_pin: '0000', lib5_name: '', lib5_no: '' };
+  Object.keys(want).forEach(k => { if ((post.fields || {})[k] !== want[k]) bad.push('Save posted ' + k + ' as ' + JSON.stringify((post.fields || {})[k]) + ', wanted ' + JSON.stringify(want[k])); });
   return bad;
 });
 
@@ -8957,6 +11509,17 @@ check('a retry that succeeds does not rebuild the box somebody is typing in, and
   if (at < 0) return ['the Tools column has no notepad to type in, so nothing was tested'];
   b.w.goPage('tools', at, true);
   await wait(300);
+  /* AND NOTHING IS TYPED UNTIL THE NOTEPAD HAS STARTED — its veil off, which `widgetUp_` does after its
+     `start`. The `start` writes the account's notes back into the box, and this journey writes its words
+     with `.value`, which no `input` event follows, so a start landing after them put back "". It did once
+     in ten on the commit before 10 Oct (docs/history/306 recorded it: "the notepad's start landing after
+     the journey had written into it") and four times in nine on the branch for note 331, with the
+     arrival's start landing at any moment in a two-second window: `quiet()` says yes while the
+     after-slide jobs are still running from the list `afterSlide_` has already emptied, so `woken_` was
+     no guard. A person cannot type into a box whose widget has not started — the veil is over it — so the
+     journey waits for exactly that. */
+  await woken_();
+  await until_(() => { const sl = d.querySelector('#s-tools #wgt-notepad'); return !!sl && !sl.getAttribute('aria-busy'); }, 8000);
   const box = d.getElementById('notepad');
   box.focus();
   box.value = 'half a thought';
@@ -9900,7 +12463,7 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const { w, errs } = boot({ payload: Object.assign(payload(), { practicals: made.practicals || [] }) });
   await wait(300);
   const d = w.document, A = w.__t.ACTIONS, bad = [];
-  const need = ['kpField_', 'questionCard_', 'questionFigCard_', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
+  const need = ['kpField_', 'questionCard_', 'padFaceSet_', 'stuffPart_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
   if (!A['kp-key'] || need.length) return ['the keypad or the cards are not reachable (' + need.join(', ') + ') — nothing was checked'];
   /* EVERY attribute change to `readonly` or `inputmode` anywhere, from here to the end. */
   const touched = [];
@@ -9922,7 +12485,10 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
   const drawn = {
     'a maths answer': host(w.questionCard_(maths)), 'an explain answer': host(w.questionCard_(words)),
     'a short worded answer': host(w.questionCard_(shortW)), 'a drawing question\'s card': host(w.questionCard_(pen)),
-    'a drawing question\'s pen page': host(w.questionFigCard_(pen)), 'a passage to ring words in': host(w.questionCard_(passage)),
+    /* THE SAME CARD SWITCHED TO ITS DRAWING -- a made-up surface is the box's other face now (327), and
+       the surface must open no keyboard: no field at all. */
+    'a drawing question\'s pen page': (w.padFaceSet_(w.__t.padKey(pen), 'draw'), host(w.questionCard_(pen))),
+    'a passage to ring words in': host(w.questionCard_(passage)),
     'a practical\'s worksheet': prac ? host(w.stuffPart_(prac, 'work')) : null,
   };
   if (!prac) bad.push('no practical in the fixture — its worksheet boxes were NOT checked');
@@ -9940,6 +12506,8 @@ check('no answer box on a question\'s pages can bring up the phone\'s keyboard �
     if (fields.length !== WANT[name]) bad.push(name + ' draws ' + fields.length + ' text field(s), wanted ' + WANT[name]);
     boxes += fields.length;
   });
+  /* NONE TO TYPE IN IS ONLY A PASS WHERE THE PEN IS ACTUALLY THERE. */
+  if (!drawn['a drawing question\'s pen page'].querySelector('.qp-area.is-draw .qpad')) bad.push('the drawing question switched to its drawing drew no pen, so "no field" proved nothing');
   const pad = () => d.getElementById('kp');
   const key = v => pad() && pad().querySelector('.kp-key[data-v="' + v + '"]');
   const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + JSON.stringify(v) + ' on the ' + (pad() && pad().getAttribute('data-layer')) + ' face'); };
@@ -11217,10 +13785,11 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
    ASKED FOR AS *"some questions require answers on diagram. So should have a diagram for them to draw
    on to do it or whatever."* 234 of the 301 drawing and annotating questions had no picture under the
    pen. Through the app's own builders and handlers:
-     * a drawing question with no picture gets a figure page AFTER its card (the ask first, then the
-       thing to draw on), with the pen over a squared grid, headed "Squared grid" -- never "Figure",
-       never a question number -- and a line saying it is not the paper's figure; marks stored under
-       `padKey_` come back on it
+     * a drawing question with no picture gets a squared grid under the pen -- ON ITS CARD, as the
+       answer box's other face (`ansArea_`), and NOT on a figure page of its own: the owner, 10 Oct,
+       *"just leave it as an answer box like before but theres an option to switch to drawing box"*
+       (327; the face itself has its own journey). One page, no "on the next page" line, a line saying
+       it is not the paper's figure; marks stored under `padKey_` come back on it
      * which surface: `figure` naming a coordinate grid is axes; any other grid is squared; nothing
        is a blank space; an isometric label is blank; `surface` on the row wins, even on a question
        not answered by drawing; a question's own diagram, or its stem's one diagram, wins over all of
@@ -11245,13 +13814,14 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   const q = (id, extra, rowExtra) => Object.assign({ kind: 'question', name: 'Q8', qNumber: '8', marks: 2, key: 'q:Q-SURF-' + id,
     row: row('Q-SURF-' + id, rowExtra), stems: [], html: '<p>Draw the graph of y = 2x + 1.</p>' }, extra || {});
 
-  /* ---------- THE FALLBACK GRID ------------------------------------------------------------------ */
+  /* ---------- THE FALLBACK GRID, ON THE CARD ------------------------------------------------------ */
   const grid = q('grid', { answerType: 'drawing' }, { figure: 'grid-blank' });
-  if (JSON.stringify(w.pageParts_(grid)) !== '[null,"fig"]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null,"fig"] -- the ask, then the surface');
+  if (JSON.stringify(w.pageParts_(grid)) !== '[null]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null] -- the card, its grid the box\'s other face and no page of its own');
   try { w.localStorage.setItem('pad:' + grid.key, JSON.stringify([[20, 20, 200, 200]])); } catch (e) {}
-  const gp = el(w.questionFigCard_(grid));
-  const pad = gp.querySelector('.qcard.qfig .qpad');
-  if (!pad) bad.push('the surface page has no pen');
+  /* A DRAWING AND NO TYPED ANSWER OPENS ON THE DRAWING (`padFace_`), so the card is the grid here. */
+  const gp = el(w.questionCard_(grid));
+  const pad = gp.querySelector('.qcard .qp-area.is-draw .qpad');
+  if (!pad) bad.push('the card of a drawing question with a mark on it and nothing typed shows no pen');
   else {
     if (!pad.querySelector('.qpad-art > svg.qsurf.is-grid')) bad.push('the pen is not over a squared grid: ' + (pad.querySelector('.qpad-art svg') || {}).outerHTML);
     if (pad.querySelectorAll('svg.qsurf line.grid').length < 30) bad.push('the grid has ' + pad.querySelectorAll('svg.qsurf line.grid').length + ' lines -- that is not squared paper');
@@ -11259,12 +13829,9 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (!pad.querySelector('.qpad-g path')) bad.push('a mark stored under the pen\'s key is not drawn back on the surface');
     if (!/not the paper.s own figure/i.test(pad.textContent)) bad.push('the surface does not say it is not the paper\'s figure');
   }
-  const gHead = pageHead(gp);
-  if (gHead !== 'Squared grid') bad.push('the surface page is tagged "' + gHead + '", wanted "Squared grid"');
-  if (/\bQ\d|Figure/.test(gHead)) bad.push('the surface page claims a number or a figure: ' + gHead);
+  if (gp.querySelector('.qsheet-figref') || /on the next page/i.test(gp.textContent)) bad.push('the card still points at a page after it: "' + ((gp.querySelector('.qsheet-figref') || {}).textContent || '').trim() + '"');
+  if (/svg[^>]*qsurf/.test(w.questionFigCard_(grid))) bad.push('a surface is still drawn on a figure page');
   try { w.localStorage.removeItem('pad:' + grid.key); } catch (e) {}
-  const ref = (el(w.questionCard_(grid)).querySelector('.qsheet-figref') || {}).textContent || '';
-  if (!/^Squared grid on the next page/.test(ref.trim())) bad.push('the card does not say the squared grid is on the next page, in the words the page is headed with: "' + ref.trim() + '"');
 
   /* ---------- WHICH SURFACE ----------------------------------------------------------------------- */
   const svgDiag = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
@@ -11278,8 +13845,11 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     const got = w.padSurface_(x);
     if (got !== want) bad.push(x.row.row_id + ' gets surface "' + got + '", wanted "' + want + '"');
   });
-  const coordP = el(w.questionFigCard_(q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' })));
-  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || pageHead(coordP) !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, tagged Axes');
+  const coord2 = q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' });
+  w.padFaceSet_(w.__t.padKey(coord2), 'draw');
+  const coordP = el(w.questionCard_(coord2));
+  if (!coordP.querySelector('.qp-area.is-draw svg.qsurf.is-coord line.axis')) bad.push('a coordinate-grid question is not given axes on a grid, on its card');
+  w.padFaceForget_();
   const own = q('own', { answerType: 'drawing', diagram: svgDiag });
   if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || el(w.questionFigCard_(own)).querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
   const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
@@ -11353,8 +13923,8 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   const t = w.__t;
   const A = t.ACTIONS;
   const bad = [];
-  if (typeof w.questionFigCard_ !== 'function' || typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
-    return ['questionFigCard_, questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
+  if (typeof w.padFaceSet_ !== 'function' || typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
+    return ['padFaceSet_, questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
   }
   const LS = w.localStorage;
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
@@ -11366,7 +13936,9 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   const BEN = { name: 'Ben', personId: 'P22', role: 'student', roles: ['student'] };
   const CY = { name: 'Cy', personId: 'P23', role: 'student', roles: ['student'] };
   const got = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
-  const pad = () => el(w.questionFigCard_(x)).querySelector('.qpad');
+  /* ON ITS CARD, SWITCHED TO THE DRAWING for whoever is signed in -- a made-up surface is the answer box's
+     other face now, not a page (327); the face is remembered by the pad's own per-person key. */
+  const pad = () => { w.padFaceSet_(t.padKey(x), 'draw'); return el(w.questionCard_(x)).querySelector('.qp-area.is-draw .qpad'); };
   const lines = p => (p ? p.querySelectorAll('.qpad-g path').length : -1);
 
   /* SIGNED OUT: THE PHONE'S KEY, AND A LINE LEFT ON IT FROM BEFORE TODAY. */
@@ -11432,6 +14004,251 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
   if (JSON.stringify(got(kAw)) !== JSON.stringify([tall])) bad.push('Ben\'s tap changed Ali\'s rings: ' + JSON.stringify(got(kAw)));
   t.USER(null);
   [OLD, kA, kB, 'pad:u:P23:q:Q-WHO-8c', OLDW, kAw, 'pad:u:P22:q:Q-WHO-9:words'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });
+  return bad;
+});
+
+/* ---------- A MADE-UP SURFACE IS THE ANSWER BOX'S OTHER FACE, ON ITS CARD ----------------------------------
+   THE OWNER, 10 Oct, with a screenshot of KS1 "How many sides has a hexagon?" -- a box, "Space to draw on
+   the next page", and the page after it headed "Space to draw": *"this is confusing. theres an answer box
+   and draw box? in questions which require a drawing, just leave it as an answer box like before but
+   theres an option to switch to drawing box. this makes more sense and is more uniform."* Through the
+   app's own builders and handlers, on a library stood in by `stuffItemsAll_`:
+     * a question on a made-up surface is ONE card: its answer box and Check as any question's, no line
+       pointing on, a `Draw` tile in the row under the card -- and no surface page in the strip or on
+       Saved: a page fewer than it had, as many as the same question with no surface
+     * `Draw` turns the box into the surface IN PLACE: the blank space the row names, the pen's own tiles,
+       the line saying it is not the paper's figure; the keypad typing into the box is put away; the tile
+       reads `Type` and its note says the box holds an answer; the face is kept on the device
+     * a stroke on it is kept under the pad's own key, `pad:<question>`, where the old page kept it
+     * `Type` turns it back, the typed answer still in the box; the pen that was on is off; the note says
+       the drawing holds something; and the drawing comes back with the stroke on it, not armed
+     * a reload opens on the face last left; on a device that never chose, a drawing with nothing typed
+       opens on the drawing and a typed answer on the box; Sign out forgets the faces
+     * the paper's own figure under a pen keeps its page and has no Draw; a later part using an earlier
+       part's surface still gets its page in front with those marks, read from the same `pad:` key --
+       also a later part on the same kind of surface, whose Draw shows them fainter under its pen */
+check('a question answered on a made-up surface is one card: its box, a Draw tile that turns it into the surface in place, both answers kept, the face remembered', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, t = w.__t, A = t.ACTIONS, LS = w.localStorage;
+  const bad = [];
+  const need = ['ansArea_', 'drawTile_', 'padFace_', 'padFaces_', 'padFaceSet_', 'padFaceForget_', 'questionCard_', 'questionFigCard_',
+                'stuffCard', 'pageParts_', 'stuffPages_', 'cardPages_', 'stuffPart_'].filter(n => typeof w[n] !== 'function');
+  if (need.length || !A['q-draw'] || !A['signout'] || !t.padKey || !t.ansKey || !t.padNow) {
+    return [(need.join(', ') || 'q-draw, signout, padKey_, ansKey_ or PAD_ON') + ' not reachable — renamed? The surface\'s two faces were NOT checked'];
+  }
+  const row = (id, extra) => Object.assign({ row_id: id, paper_id: 'P-FACE', subject: 'Maths', name: 'Faces' }, extra || {});
+  const q = (id, extra) => Object.assign({ kind: 'question', name: 'Q' + id, qNumber: id.replace(/\D.*$/, ''), marks: 1,
+    key: 'q:Q-FACE-' + id, row: row('Q-FACE-' + id), stems: [], html: '<p>How many sides has a hexagon?</p>', answer: '<b>6</b>' }, extra || {});
+  const hex = q('1', { answerType: 'short', surface: 'blank', accept: '6' });
+  const plain = q('2', { answerType: 'short', accept: '6' });
+  const grid = q('3', { answerType: 'drawing', html: '<p>Draw the line y = 2x.</p>', row: row('Q-FACE-3', { figure: 'grid-blank' }) });
+  const paper = q('4', { answerType: 'drawing', diagram: '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>', html: '<p>Complete the diagram.</p>' });
+  const axA = q('5a', { qPart: 'a', answerType: 'drawing', surface: 'coord', html: '<p>On the axes, draw y = 2x.</p>', answer: '' });
+  const axB = q('5b', { qPart: 'b', uses: 'a', html: '<p>Use your graph to find x when y = 6.</p>', answer: '<b>3</b>' });
+  const axC = q('5c', { qPart: 'c', uses: 'a', answerType: 'drawing', surface: 'coord', html: '<p>On the same axes, draw y = 6.</p>', answer: '' });
+  const LIB = [hex, plain, grid, paper, axA, axB, axC];
+  const heldAll = w.stuffItemsAll_, heldItems = w.stuffItems, heldF = w.stuffFiltered;
+  w.stuffItemsAll_ = () => LIB;
+  w.stuffItems = () => LIB;
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const card = x => { host.innerHTML = '<div class="pane">' + w.stuffCard(x, 0) + '</div>'; return host; };
+  const area = () => host.querySelector('.qp-area');
+  const tile = () => host.querySelector('.tile-row .q-drawt[data-do="q-draw"]');
+  const said = () => (tile() && tile().getAttribute('aria-label')) || '';
+  const box = () => host.querySelector('.qp-area .qp-ans-in');
+  const pad = () => host.querySelector('.qp-area.is-draw .qpad');
+  const faces = () => { try { return JSON.parse(LS.getItem('surfaceFace') || '{}'); } catch (e) { return { unreadable: true }; } };
+  /* THE FACE WORD ALONE: a `type` is kept with the drawing it was chosen over (`type:<sig>`, `padFaceOf_`). */
+  const faceOf = k => String(faces()[k] || '').split(':')[0];
+  const kpUp = () => { const k = d.getElementById('kp'); return !!(k && !k.hidden); };
+  const pk = 'pad:' + hex.key, ak = 'ans:' + hex.key;
+  try {
+    t.USER(null);
+    LIB.forEach(x => { try { LS.removeItem(t.padKey(x)); LS.removeItem(t.ansKey(x)); } catch (e) {} });
+    w.padFaceForget_();
+
+    /* ---------- ONE CARD, A PAGE FEWER ------------------------------------------------------------------ */
+    if (JSON.stringify(w.pageParts_(hex)) !== '[null,"ans"]') bad.push('the hexagon has pages ' + JSON.stringify(w.pageParts_(hex)) + ', wanted [null,"ans"] -- its card and its answer, no "Space to draw" page');
+    if (w.pageParts_(hex).length !== w.pageParts_(plain).length) bad.push('a question on a surface has ' + w.pageParts_(hex).length + ' pages and the same question with none ' + w.pageParts_(plain).length + ' -- the surface is still a page');
+    if (JSON.stringify(w.pageParts_(grid)) !== '[null,"ans"]') bad.push('a question on a squared grid has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null,"ans"]');
+    w.stuffFiltered = () => [hex, grid];
+    let strip = '';
+    try { strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' '); } finally { w.stuffFiltered = heldF; }
+    if (strip !== 'Q1:card Q1:ans Q3:card Q3:ans') bad.push('the strip reads "' + strip + '", wanted "Q1:card Q1:ans Q3:card Q3:ans" -- four pages and no surface page');
+    const saved = w.cardPages_(hex, 0);
+    if (saved.length !== 2 || saved.some(h => /qcard qfig/.test(h))) bad.push('on Saved the hexagon is ' + saved.length + ' pages' + (saved.some(h => /qcard qfig/.test(h)) ? ', one of them a figure page' : ''));
+
+    /* ---------- THE BOX, AND `Draw` IN THE ROW UNDER THE CARD -------------------------------------------- */
+    card(hex);
+    if (!area() || area().classList.contains('is-draw')) bad.push('the hexagon\'s card does not open on its answer box');
+    if (!box() || !host.querySelector('.qp-area .qp-check')) bad.push('the card does not draw the answer box and its Check as any question does');
+    if (host.querySelector('.qpad')) bad.push('the card draws a pen beside the box -- two places to answer again');
+    if (host.querySelector('.qsheet-figref') || /next page/i.test(host.textContent)) bad.push('the card still points at a page after it');
+    if (!tile()) return bad.concat(['no Draw tile in the row under the card -- nothing below could be pressed']);
+    if (said() !== 'Draw · a blank space') bad.push('the tile reads "' + said() + '", wanted "Draw · a blank space"');
+    if (tile().closest('.qcard')) bad.push('the Draw tile is inside the card, not in the row under it');
+    box().focus();
+    ansType_(w, box(), '6');
+    if (!kpUp()) bad.push('setup: focusing the box did not lift the keypad, so putting it away was NOT checked');
+
+    /* ---------- `Draw` -------------------------------------------------------------------------------------- */
+    A['q-draw'](tile());
+    if (!pad()) bad.push('Draw did not turn the box into the surface');
+    else {
+      if (pad().getAttribute('data-k') !== pk) bad.push('the surface keeps its marks under ' + pad().getAttribute('data-k') + ', not ' + pk + ' -- where every drawing already made is kept');
+      if (!pad().querySelector('.qpad-art > svg.qsurf.is-blank')) bad.push('the surface is not the blank space the row names');
+      ['qpad-lock', 'qpad-undo', 'qpad-clear'].forEach(c => { if (!pad().querySelector('.tile.' + c)) bad.push('the surface has no ' + c + ' tile'); });
+      if (!/not the paper.s own figure/i.test(pad().textContent)) bad.push('the surface does not say it is not the paper\'s figure');
+    }
+    if (host.querySelector('.qp-area .qp-ans')) bad.push('the box is still drawn beside the surface');
+    if (kpUp()) bad.push('the keypad stayed up over the surface, typing into a box that is gone');
+    if (said() !== 'Type · has an answer') bad.push('after Draw the tile reads "' + said() + '", wanted "Type · has an answer"');
+    if (faceOf(pk) !== 'draw') bad.push('the face was not kept on the device: ' + JSON.stringify(faces()));
+
+    /* ---------- A STROKE, KEPT WHERE IT ALWAYS WAS ------------------------------------------------------------ */
+    if (pad()) {
+      A['pad-draw'](pad().querySelector('.qpad-lock'));
+      const ink = pad().querySelector('.qpad-ink');
+      ink.getBoundingClientRect = () => ({ left: 0, top: 0, width: 340, height: 340, right: 340, bottom: 340, x: 0, y: 0 });
+      const Ev = w.PointerEvent || w.MouseEvent;
+      const fire = (type, x, y) => ink.dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));
+      fire('pointerdown', 40, 40); fire('pointermove', 120, 40); fire('pointermove', 160, 120); fire('pointerup', 160, 120);
+      let st = [];
+      try { st = JSON.parse(LS.getItem(pk) || '[]'); } catch (e) {}
+      if (st.length !== 1) bad.push('a stroke on the card\'s surface was stored under ' + pk + ' as ' + JSON.stringify(st));
+      if (t.padNow() !== pk) bad.push('setup: the pen is not on, so turning it off was NOT checked');
+    }
+
+    /* ---------- `Type` -------------------------------------------------------------------------------------- */
+    A['q-draw'](tile());
+    if (!box() || box().value !== '6') bad.push('Type did not bring the box back with "6" in it: ' + (box() ? JSON.stringify(box().value) : 'no box'));
+    if (host.querySelector('.qpad')) bad.push('the surface is still drawn after Type');
+    if (t.padNow() === pk) bad.push('the pen stayed on, on a pad no longer on the screen -- the drawing would come back holding the card still');
+    if (said() !== 'Draw · has a drawing') bad.push('after Type the tile reads "' + said() + '", wanted "Draw · has a drawing"');
+    if (faceOf(pk) !== 'type') bad.push('Type was not kept on the device: ' + JSON.stringify(faces()));
+    A['q-draw'](tile());
+    if (!pad() || pad().querySelectorAll('.qpad-g path').length !== 1) bad.push('back on the drawing, the stroke is not on it');
+    else if (pad().classList.contains('is-drawing')) bad.push('the drawing came back armed');
+
+    /* ---------- A DRAWING THAT ARRIVES UNDER A CARD SHOWING ITS BOX ------------------------------------------------
+       From the account, a moment after the card was drawn (`answersPull_`): "a drawing and nothing typed"
+       is true now under a card still on its box, and `Draw` must still turn THAT card to the drawing. */
+    w.padFaceForget_();
+    LS.removeItem(pk); LS.removeItem(ak);
+    card(hex);
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200]]));
+    A['q-draw'](tile());
+    if (!pad()) bad.push('a drawing arrived under a card showing its box, and Draw then did nothing -- it read the rule ("a drawing and nothing typed") instead of the card in front of it');
+    A['q-draw'](tile());
+    LS.setItem(pk, JSON.stringify([[40, 40, 120, 40, 160, 120]]));
+    LS.setItem(ak, '6');
+    A['q-draw'](tile());
+
+    /* ---------- A RELOAD OPENS ON THE FACE LEFT ------------------------------------------------------------- */
+    const keep = { surfaceFace: LS.getItem('surfaceFace') };
+    keep[pk] = LS.getItem(pk);
+    keep[ak] = LS.getItem(ak);
+    const two = boot({ before: w2 => Object.keys(keep).forEach(k => { try { if (keep[k] !== null) w2.localStorage.setItem(k, keep[k]); } catch (e) {} }) });
+    await wait(300);
+    two.w.stuffItemsAll_ = () => LIB;
+    two.w.stuffItems = () => LIB;
+    const reopened = two.w.document.createElement('div');
+    reopened.innerHTML = two.w.stuffCard(hex, 0);
+    if (!reopened.querySelector('.qp-area.is-draw .qpad')) bad.push('after a reload the hexagon opened on its box, though this device left it on the drawing');
+    else if (reopened.querySelectorAll('.qpad-g path').length !== 1) bad.push('after a reload the drawing has ' + reopened.querySelectorAll('.qpad-g path').length + ' strokes, wanted its one');
+    if (!/^Type · has an answer$/.test((reopened.querySelector('.q-drawt') || { getAttribute: () => '' }).getAttribute('aria-label'))) bad.push('after a reload the tile does not say the box holds an answer');
+
+    /* ---------- A DEVICE THAT NEVER CHOSE --------------------------------------------------------------------- */
+    w.padFaceForget_();
+    LS.removeItem(ak);
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('with a drawing and nothing typed, on a device that never chose, the card opened on an empty box over the child\'s work');
+    w.padFaceForget_();
+    LS.setItem(ak, '6');
+    card(hex);
+    if (area().classList.contains('is-draw')) bad.push('with a typed answer and a drawing, on a device that never chose, the card did not open on its box');
+
+    /* ---------- A `Type` CHOSEN OVER ONE DRAWING DOES NOT HIDE THE NEXT ------------------------------------------
+       Found in review: Type pressed here once, over nothing, and a drawing made afterwards on the tutor's iPad
+       (`answersPull_` writes it under the same `pad:` key) -- the card opened on an empty box, the drawing's
+       only sign a "has a drawing" in an `aria-label` nobody sees. A remembered `type` holds over the drawing it
+       was chosen over and no other; pressed over THIS drawing, with nothing typed, it still holds. */
+    w.padFaceForget_();
+    LS.removeItem(pk); LS.removeItem(ak);
+    card(hex);
+    A['q-draw'](tile());
+    A['q-draw'](tile());
+    if (faceOf(pk) !== 'type') bad.push('setup: Draw then Type with nothing drawn did not leave "type" on the device, so a Type over nothing was NOT checked: ' + JSON.stringify(faces()));
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200], [20, 20, 40, 60]]));
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('Type was pressed here once over nothing, then a drawing arrived from the account with nothing typed, and the card opened on an empty box over it');
+    A['q-draw'](tile());
+    card(hex);
+    if (area().classList.contains('is-draw')) bad.push('Type pressed over a drawing with nothing typed did not hold: the card opened on that same drawing again');
+    LS.setItem(pk, JSON.stringify([[60, 60, 200, 200], [20, 20, 40, 60], [300, 20, 300, 300]]));
+    card(hex);
+    if (!area().classList.contains('is-draw')) bad.push('the drawing grew on another device after Type was pressed over it here, and the card opened on an empty box over the new marks');
+    LS.removeItem(pk);
+
+    /* ---------- A SURFACE QUESTION WITH PHOTOGRAPHS: THEY ARE A FIGURE, IN FRONT, AS ANY PART'S ------------------
+       The pen-figure rule (the card, then the figure to draw on) was for a picture under the pen; a made-up
+       surface is on the card now, so its question's photographs stand where any part's figure does. */
+    const pics = q('6', { answerType: 'drawing', surface: 'grid', images: ['data/none.png'], html: '<p>Draw the next pattern.</p>' });
+    if (JSON.stringify(w.pageParts_(pics)) !== '["fig",null,"ans"]') bad.push('a surface question with a photograph has pages ' + JSON.stringify(w.pageParts_(pics)) + ', wanted ["fig",null,"ans"] -- the photograph in front, the surface on the card');
+    const picsFig = d.createElement('div');
+    picsFig.innerHTML = w.questionFigCard_(pics);
+    if (!picsFig.querySelector('img') || picsFig.querySelector('.qpad, svg.qsurf')) bad.push('the photograph page of a surface question draws ' + (picsFig.querySelector('.qpad, svg.qsurf') ? 'the surface' : 'no photograph'));
+
+    /* ---------- THE PAPER'S OWN FIGURE KEEPS ITS PAGE ---------------------------------------------------------- */
+    if (JSON.stringify(w.pageParts_(paper)) !== '[null,"fig","ans"]') bad.push('a pen on the paper\'s own figure has pages ' + JSON.stringify(w.pageParts_(paper)) + ', wanted [null,"fig","ans"] -- the figure keeps its page');
+    if (!(() => { const h = d.createElement('div'); h.innerHTML = w.questionFigCard_(paper); return h.querySelector('.qcard.qfig .qpad'); })()) bad.push('the paper\'s own figure lost its pen from its page');
+    card(paper);
+    if (tile() || area()) bad.push('a question drawn on the paper\'s own figure was given a Draw tile -- only a made-up surface is a face of the box');
+
+    /* ---------- "USE YOUR GRAPH" AFTER A SURFACE ---------------------------------------------------------------- */
+    LS.setItem(t.padKey(axA), JSON.stringify([[20, 300, 300, 20]]));
+    if (w.pageParts_(axB).indexOf('use') < 0) bad.push('a part using an earlier part\'s axes has no page with them: ' + JSON.stringify(w.pageParts_(axB)));
+    if (w.pageParts_(axB, axA).indexOf('use') < 0) bad.push('straight after (a), whose axes are on its card now and not a page, (b) has no page with them');
+    const useB = d.createElement('div');
+    useB.innerHTML = w.stuffPart_(axB, 'use');
+    if ((useB.querySelector('.qcard.qfig-uses') || {}).getAttribute && useB.querySelector('.qcard.qfig-uses').getAttribute('data-uses') !== 'Q-FACE-5a') bad.push('(b)\'s page in front does not name (a) as where its marks came from');
+    if (useB.querySelectorAll('.qpad-was path').length !== 1) bad.push('(b)\'s page in front shows ' + useB.querySelectorAll('.qpad-was path').length + ' of (a)\'s one mark -- not read from (a)\'s pad: key');
+    if (w.pageParts_(axC).indexOf('use') < 0) bad.push('(c), on axes of its own that are behind Draw now, has no page in front with (a)\'s graph: ' + JSON.stringify(w.pageParts_(axC)));
+    w.padFaceSet_(t.padKey(axC), 'draw');
+    card(axC);
+    if (!pad() || pad().querySelectorAll('.qpad-was path').length !== 1) bad.push('(c)\'s Draw does not show (a)\'s graph fainter under its pen');
+
+    /* ---------- OPENING THE CARD IS OPENING THE DRAWING -----------------------------------------------------------
+       The phone's old marks move to the first person signed in who opens them (`padAdopt_`, 317) -- and the
+       card is where they are opened now, whichever face it shows. A drawing that moved only when somebody
+       pressed Draw would be read as no drawing, and Ada's card would open on an empty box over it. */
+    t.USER(null);
+    LS.setItem('pad:' + grid.key, JSON.stringify([[10, 10, 100, 100]]));
+    t.USER(Object.assign({}, ANS_ADA));
+    w.padFaceForget_();
+    card(grid);
+    if (!area() || !area().classList.contains('is-draw')) bad.push('Ada opened a card whose drawing the phone kept from before she signed in, and it opened on an empty box');
+    if (LS.getItem('pad:' + grid.key) !== null || !LS.getItem(t.padKey(grid))) bad.push('opening the card did not move the phone\'s drawing to Ada: ' + JSON.stringify([LS.getItem('pad:' + grid.key), LS.getItem(t.padKey(grid))]));
+
+    /* ---------- SIGN OUT FORGETS THE FACES ---------------------------------------------------------------------- */
+    t.USER(Object.assign({}, ANS_ADA));
+    w.padFaceSet_(t.padKey(hex), 'draw');
+    if (!Object.keys(faces()).some(k => /^pad:u:P7:/.test(k))) bad.push('setup: Ada\'s face was not kept under her own key, so Sign out was NOT checked');
+    A['signout'](d.createElement('button'));
+    await wait(80);
+    if (t.whoami()) bad.push('setup: Sign out left somebody signed in');
+    if (LS.getItem('surfaceFace') !== null || Object.keys(w.padFaces_()).length) bad.push('Sign out left the faces on the device: ' + LS.getItem('surfaceFace'));
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    w.stuffItemsAll_ = heldAll;
+    w.stuffItems = heldItems;
+    w.stuffFiltered = heldF;
+    t.padOn('');
+    t.USER(null);
+  }
   return bad;
 });
 
@@ -11605,7 +14422,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
    the line under a box and the pen's note say "on this device", or which account (js/answers.js) —
    which is whether somebody is signed in, never which role they hold.
    Anything else that differs is a role showing through, and the first difference is printed. */
-check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
+check('Find and Resources draw the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -11636,8 +14453,11 @@ check('Find draws the same question family, practical, project and textbook for 
     { kind: 'question', name: 'Q12', qNumber: '12', marks: 1, key: 'q:Q-SAME-12', row: row('Q-SAME-12'), stems: [],
       answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
   ];
-  const real = ['practical', 'project', 'textbook'].map(k => w.stuffItems().find(x => x.kind === k));
-  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached Find, so it was NOT compared'); });
+  /* EACH FROM THE FINDER THAT CARRIES IT — the textbook from the Resources column since the resources
+     moved (docs/history/329), the practical and the project from Find. */
+  const R = resView_(w);
+  const real = [['practical', w], ['project', w], ['textbook', R]].map(([k, V]) => V.stuffItems().find(x => x.kind === k));
+  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached ' + (i === 2 ? 'Resources' : 'Find') + ', so it was NOT compared'); });
   const items = fam.concat(real.filter(Boolean));
   /* A PERSON'S, NOT A ROLE'S -- see the note above. */
   const norm = html => {
@@ -11695,11 +14515,13 @@ check('Find draws the same question family, practical, project and textbook for 
      BUT ONE, BY NAME. *"i want to add the bible to resources as a book. but only admin can see the
      bible."* is the owner asking for exactly one difference, so this expects it exactly: an admin's
      list is everybody else's plus `bible:kjv`, and nobody else's has it. Anything else that differs
-     is still a role showing through. ONE PAYLOAD FOR EVERY ROLE HERE, deliberately: the films are an
-     admin's too, but `doGet` decides that by leaving them out of everybody else's payload, so with
-     the payload held still the only difference left is one the phone made — which is what this asks. */
+     is still a role showing through. ONE PAYLOAD FOR EVERY ROLE HERE, deliberately: the films were an
+     admin's too, decided by `doGet` leaving them out of everybody else's payload (and they are not in
+     Find for anybody since 10 Oct), so with the payload held still the only difference left is one the
+     phone made — which is what this asks. */
   const BIBLE_KEY = 'bible:kjv';
-  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
+  /* OVER BOTH FINDERS: the Bible is on the Resources column now, and the rule is about everything offered. */
+  const offered = u => { t.USER(u); const ks = w.stuffItems().concat(R.stuffItems()).filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
   const out0 = offered(null);
   if (out0.indexOf(BIBLE_KEY) >= 0) bad.push('somebody signed out is offered the Bible — it is for admins only');
   who.slice(1).forEach(([what, u]) => {
@@ -11778,13 +14600,18 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
     pages.push({ at: x.row.row_id + '#' + (part || 'card') + when, html: part ? w.stuffPart_(x, part) : w.stuffCard(x, 0) });
   }));
   drawAll('');
-  /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. */
+  /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. Q7's grid is its card's
+     other face now (327): drawn switched to, off and then on, with `Type` in the row under it. */
+  const q7 = fam.find(f => f.key === 'q:Q-TILES-7');
+  w.padFaceSet_(w.__t.padKey(q7), 'draw');
+  pages.push({ at: q7.row.row_id + '#card, the drawing', html: w.stuffCard(q7, 0) });
   ['q:Q-TILES-7', 'q:Q-TILES-8'].forEach(k => {
     const x = fam.find(f => f.key === k);
     t.padOn(w.__t.padKey ? w.__t.padKey(x) : 'pad:' + k);
-    pages.push({ at: x.row.row_id + '#fig, pen on', html: w.stuffPart_(x, 'fig') });
+    pages.push({ at: x.row.row_id + (x === q7 ? '#card, pen on' : '#fig, pen on'), html: x === q7 ? w.stuffCard(x, 0) : w.stuffPart_(x, 'fig') });
   });
   t.padOn('');
+  w.padFaceForget_();
   /* AND EVERY ANSWER PAGE, SHOWN, then put back. */
   fam.forEach(x => { w.ansShow_(x); pages.push({ at: x.row.row_id + '#ans-shown', html: w.questionAnsCard_(x) }); w.ansHide_(x); });
   const EXEMPT = [
@@ -11815,7 +14642,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
    ['pad-clear', 'Clear'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
    ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
-   ['fav', 'the star']].forEach(([act, what]) => {
+   ['fav', 'the star'], ['q-draw', 'Draw / Type']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
   });
   ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
@@ -13265,9 +16092,11 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none say
   if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('a cell of the card\'s week is a control, so it can be pressed and is counted as a tap target');
   if (!/Monday 16:00/.test(((box.querySelector('.prof-week') || {}).getAttribute || (() => ''))
       .call(box.querySelector('.prof-week'), 'aria-label') || '')) bad.push('the card\'s week does not say its hours to a screen reader');
+  /* ONLY THE DAYS THEY WORK — the owner, 10 Oct: *"no need to display monday if they dont have any
+     hours on monday."* Tuesday to Friday were four thin `is-shut` rows; they are not drawn now. */
   const rows = [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')];
-  const shut = rows.filter(r => r.classList.contains('is-shut')).length;
-  if (rows.length !== 7 || shut !== 4) bad.push(`${rows.length} days drawn with ${shut} collapsed, wanted 7 with 4 (Tue to Fri) collapsed`);
+  const names = rows.map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
+  if (names !== 'Mon Sat Sun' || box.querySelector('.prof-week .is-shut')) bad.push(`the card's week draws [${names}]${box.querySelector('.prof-week .is-shut') ? ' with a collapsed day' : ''}, wanted [Mon Sat Sun] and nothing collapsed`);
   const none = d.createElement('div');
   none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su18: '' }) }) }) || '');
   if (none.querySelector('.prof-week')) bad.push('a tutor with no hours ticked is drawn with a week anyway');
@@ -13275,6 +16104,165 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none say
      nothing at all, which left the greyed name in the booking form unexplained. */
   if (!/hasn.t set their hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
     bad.push('a tutor with no hours ticked does not say "hasn\'t set their hours yet" on their card');
+  }
+  return bad;
+});
+
+/* ---------- A TUTOR'S WEEK IS THE DAYS THEY WORK — ON THEIR CARD ------------------------------------
+   THE OWNER, 10 Oct: *"availability of tutors should just show the days they have an availibility up.
+   no need to display monday if they dont have any hours on monday."* Asked of `findCard` over the
+   shape `doGet` sends (70 codes, 'TRUE' or ''). Three tutors: Tuesday and Thursday hours draw exactly
+   those two rows, in the week's order, and nothing collapsed; a Thursday whose one ticked hour is
+   already taught still counts as a day they work; and a tutor whose only tick is 19:00 — outside the
+   bookable span, which `AVAIL_HOURS` used to reach — gets the "no free hours" sentence and no week,
+   rather than a caption over a header row with no day under it. */
+check('a tutor\'s card draws only the days they work, and ticks outside the span say no free hours', async () => {
+  const { w } = boot();
+  const d = w.document;
+  await wait(300);
+  if (typeof w.findCard !== 'function') return ['findCard is not reachable, so the card\'s days were NOT checked — not a pass'];
+  const blank = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) blank[p + String(h).padStart(2, '0')] = ''; });
+  const card = (avail, busy) => {
+    const box = d.createElement('div');
+    box.innerHTML = String(w.findCard({ kind: 'tutor', row: { title: 'Tia Tutor', handle: 'tia', rate: 30, teaches: [],
+      listed: true, personId: 'P-t', avail: Object.assign({}, blank, avail), busy: busy || {} } }) || '');
+    return box;
+  };
+  const days = box => [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')]
+    .map(r => ((r.querySelector('.slot-day') || {}).textContent || '').trim()).join(' ');
+  const bad = [];
+  const two = card({ tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' });
+  if (days(two) !== 'Tue Thu') bad.push('a tutor with Tuesday and Thursday hours draws [' + days(two) + '], wanted exactly [Tue Thu]');
+  if (two.querySelector('.prof-week .is-shut')) bad.push('a day nobody works is still drawn on the card as a collapsed row');
+  if (!/^Available Tuesday 10:00, 11:00; Thursday 16:00$/.test((two.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '')) {
+    bad.push('the card\'s week reads "' + ((two.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label')) + '" to a screen reader');
+  }
+  /* A DAY WHOSE ONLY TICKED HOUR IS ALREADY TAUGHT IS STILL A DAY THEY WORK — greyed, not gone. */
+  const taught = card({ tu10: 'TRUE', th16: 'TRUE' }, { th16: 'Maths' });
+  if (days(taught) !== 'Tue Thu') bad.push('a Thursday whose ticked hour is already taught is drawn as [' + days(taught) + '], wanted [Tue Thu]');
+  /* ---------- AND THAT DAY IS NOT A ROW OF NOTHING -------------------------------------------------
+     FOUND IN REVIEW: the taught hour was `hr shut`, the same dark cell as an hour never ticked, so
+     the Thursday kept for it was ten identical empty cells — the row the owner asked to drop — and
+     the difference was in a `title` no phone shows. Asked here of the markup and the stylesheet's
+     rule; `check/states.js` ("a tutor's hours on their card") asks a real browser that the two
+     cells COMPUTE differently, which jsdom cannot be trusted to say (it applies rules in sheet
+     order, not by weight, and drops values it cannot parse). */
+  const th16 = taught.querySelector('.prof-week .hr[data-code="th16"]');
+  const th09 = taught.querySelector('.prof-week .hr[data-code="th09"]');
+  if (!th16 || !th16.classList.contains('is-busy') || !th16.classList.contains('shut') || th16.classList.contains('on')) {
+    bad.push('the taught Thursday 16:00 is not drawn as taught (`hr shut is-busy`): ' + (th16 ? th16.className : 'no cell'));
+  }
+  if (!th09 || th09.classList.contains('is-busy')) bad.push('an hour never ticked is marked taught too, so the two still look the same: ' + (th09 ? th09.className : 'no cell'));
+  const key = taught.querySelector('.prof-week .prof-key');
+  if (!key || !/already teaching/i.test(key.textContent) || !key.querySelector('.hr.is-busy')) {
+    bad.push('a week with a taught hour has no key saying what the taught cell means' + (key ? ': "' + key.textContent.trim() + '"' : ''));
+  }
+  if (two.querySelector('.prof-key')) bad.push('a week with nothing taught still draws the "already teaching" key');
+  const taughtSaid = (taught.querySelector('.prof-week') || { getAttribute: () => '' }).getAttribute('aria-label') || '';
+  if (!/^Available Tuesday 10:00\. Already teaching Thursday 16:00$/.test(taughtSaid)) {
+    bad.push('a week with Thursday 16:00 taught reads "' + taughtSaid + '" to a screen reader — the day drawn for that hour is silent');
+  }
+  /* THE RULE THAT MAKES IT LOOK DIFFERENT, read out of style.css with the comments taken off. It must
+     undo `.hr.shut`'s fade and paint something of its own; a rule that only restated the cursor would
+     pass the markup half above and look exactly as it did. */
+  const sheet = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const busyRule = (sheet.match(/(^|\})\s*([^{}]*\.prof-week\s+\.hr\.is-busy(?![\w-])[^{}]*)\{([^}]*)\}/) || [])[3] || '';
+  if (!busyRule) bad.push('style.css has no `.prof-week .hr.is-busy` rule, so a taught hour is the same cell as one never ticked');
+  else if (!/opacity:\s*1\b/.test(busyRule) || !/background/.test(busyRule)) {
+    bad.push('`.prof-week .hr.is-busy` does not undo the shut fade and paint its own face: {' + busyRule.trim().replace(/\s+/g, ' ') + '}');
+  }
+  /* TICKED, BUT ONLY AT 19:00 — a tick from when the Settings grid ran to seven. */
+  const late = card({ tu19: 'TRUE' });
+  if (late.querySelector('.prof-week')) bad.push('a tutor ticked only at 19:00, outside the bookable span, is drawn with a week (' + days(late) + ')');
+  if (!/No free hours/.test((late.querySelector('.prof-nofree') || {}).textContent || '')) bad.push('a tutor ticked only at 19:00 does not say "No free hours" on their card');
+  if (late.querySelector('.prof-nohours')) bad.push('a tutor ticked only at 19:00 is told they "haven\'t set their hours", which is untrue');
+  return bad;
+});
+
+/* ---------- A TUTOR'S WEEK IS THE DAYS THEY WORK — ON THE BOOKING FORM ---------------------------------
+   THE SAME SENTENCE, ASKED OF THE PAPER AS DRAWN (`bookBreakdown`). Nobody chosen: all seven days —
+   nobody's week is being shown. Tia chosen (Tuesday and Thursday): exactly those two day rows, and no
+   `Monday —` invented by the spine for the days the week left out. Her Thursday fully taught: it stays,
+   collapsed, because a day she works with nothing free is a different fact from a day she does not
+   work. And a Monday hour ticked BEFORE choosing her is the form's old rule for an hour that stops
+   being bookable: kept, its day still drawn, the cell lit and greyed, and still counted. */
+check('the booking week shows all seven days with no tutor, and only the chosen tutor\'s days once one is named', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.paper || typeof w.slotGrid !== 'function') return ['the paper / slotGrid are not reachable, so the booking week was NOT checked — not a pass'];
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const D = t.DATA();
+  const blank = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) blank[p + String(h).padStart(2, '0')] = ''; });
+  const tia = { title: 'Tia Tutor', rate: 14, teaches: ['Maths (GCSE)'], listed: true,
+                avail: Object.assign({}, blank, { tu10: 'TRUE', tu11: 'TRUE', th16: 'TRUE' }), busy: {} };
+  D.tutors = [tia];
+  const B = t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = ((t.STEPS.find(s => s.id === 'how') || { options: () => [] }).options().find(k => !/wait/i.test(k))) || '';
+  const doc = () => new w.DOMParser().parseFromString('<div>' + String(t.paper() || '') + '</div>', 'text/html');
+  const week = () => [...doc().querySelectorAll('.bk-row.bk-wk')].map(r => ({
+    day: ((r.querySelector('.bk-k') || {}).textContent || '').trim(), shut: r.classList.contains('is-shut'), row: r }));
+  const named = () => week().map(x => x.day).join(' ');
+  const dashed = () => [...doc().querySelectorAll('.bk-row.is-blank .bk-k')].map(k => k.textContent.trim())
+    .filter(k => t.days().indexOf(k) !== -1);
+  const bad = [];
+  const seven = t.days().join(' ');
+  if (named() !== seven) bad.push('with no tutor chosen the week draws [' + named() + '], wanted all seven');
+  B.tutor = 'No preference';
+  if (named() !== seven) bad.push('with No preference the week draws [' + named() + '], wanted all seven');
+  B.tutor = 'Tia Tutor';
+  if (named() !== 'Tuesday Thursday') bad.push('with Tia (Tuesday and Thursday) chosen the week draws [' + named() + '], wanted [Tuesday Thursday]');
+  if (dashed().length) bad.push('the spine put back the days the week left out, as dashes: [' + dashed().join(' ') + ']');
+  if (week().some(x => x.shut)) bad.push('a day Tia works with hours free is drawn collapsed');
+  /* A DAY SHE WORKS WITH EVERY HOUR TAKEN STAYS, collapsed. */
+  tia.busy = { th16: 'Maths' };
+  const th = week().find(x => x.day === 'Thursday');
+  if (!th) bad.push('Tia\'s Thursday, fully taught, left the week — a day she works with nothing free is not a day she does not work');
+  else if (!th.shut) bad.push('Tia\'s Thursday, fully taught, is drawn as a full row with nothing on it to press');
+  tia.busy = {};
+  /* ---------- AND A DAY SHE WORKS AT A VENUE SHUT THAT DAY STAYS TOO --------------------------------
+     THE RULE HAS TWO HALVES — "every hour already taken, OR THE VENUE IS SHUT" — and this journey
+     proved only the first: it ran with no venue chosen, so a `works` test that also asked the venue
+     (`tAvail[h.code] && (!haveV || vAvail[h.code])`) stayed green while dropping the Thursday a family
+     might move to another hall for. Found in review. A hall of our own, open every hour of every day
+     but Thursday, with a rate so it is not read as the client's house (`isHome`). */
+  const hall = { title: 'Thursday Shut Hall', bestRate: 12, minCapacity: 1, maxCapacity: 8, minHours: 1, maxHours: 4,
+                 avail: Object.assign({}, blank) };
+  ['m', 'tu', 'w', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) hall.avail[p + String(h).padStart(2, '0')] = 'TRUE'; });
+  const venuesWas = D.venues;
+  D.venues = (venuesWas || []).concat([hall]);
+  B.loc = hall.title;
+  const thV = week().find(x => x.day === 'Thursday');
+  const tuV = week().find(x => x.day === 'Tuesday');
+  if (named() !== 'Tuesday Thursday') bad.push('with Tia chosen at a hall shut on Thursdays the week draws [' + named() + '], wanted [Tuesday Thursday] — a worked day the venue shuts is still a day she works');
+  if (thV && !thV.shut) bad.push('Tia\'s Thursday at a hall shut on Thursdays is drawn as a full row with nothing on it to press');
+  if (!tuV || tuV.shut) bad.push('Tia\'s Tuesday at a hall open on Tuesdays is ' + (tuV ? 'collapsed' : 'missing') + ' — the venue test is not reading the hall');
+  B.loc = '';
+  D.venues = venuesWas;
+  /* A TICK MADE BEFORE SHE WAS CHOSEN, on a day she does not work: kept, drawn, greyed, counted. */
+  B.tutor = 'No preference';
+  B.slots = ['m10'];
+  B.tutor = 'Tia Tutor';
+  const mon = week().find(x => x.day === 'Monday');
+  if (named() !== 'Monday Tuesday Thursday') bad.push('a Monday tick made before choosing Tia leaves the week as [' + named() + '], wanted [Monday Tuesday Thursday] — the tick would be priced and not seen');
+  const cell = mon && mon.row.querySelector('[data-code="m10"]');
+  if (mon && (!cell || !cell.classList.contains('on') || !cell.classList.contains('shut') || !cell.hasAttribute('disabled'))) {
+    bad.push('the kept Monday 10:00 tick is not drawn lit and greyed: ' + (cell ? cell.className : 'no cell'));
+  }
+  if ((B.slots || []).join(',') !== 'm10') bad.push('choosing a tutor changed the ticked hours to [' + (B.slots || []).join(',') + ']');
+  /* A NAMED TUTOR WITH NO DAY TO DRAW KEEPS ALL SEVEN, so the week can still say why it is shut —
+     `weekRows_` puts the sentence under the last row, and an empty week has none. */
+  B.slots = [];
+  D.tutors = [tia, { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, blank) }];
+  B.tutor = 'Nia Nohours';
+  /* THE WEEK'S OWN SENTENCE — `weekRows_` writes it `warn: false` — not the Tutor row's refusal
+     (`.bk-say.is-warn`) nor Nia's option, which both carry the same words. */
+  const why = [...doc().querySelectorAll('.bk-say:not(.is-warn)')].map(p => p.textContent).join(' ');
+  if (named() !== seven || !/hasn.t set their hours yet/.test(why)) {
+    bad.push('a named tutor with no hours draws [' + named() + ']' + (/hasn.t set their hours yet/.test(why) ? '' : ' and loses the sentence under the week saying why') + ', wanted all seven, greyed, with the reason');
   }
   return bad;
 });
@@ -13333,6 +16321,229 @@ check('a picture chosen in Settings posts savePhoto and the preview shows it', a
     if (!sent.some(b => b.action === 'savePhoto' && b.remove === true)) bad.push('Remove posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto remove');
     if (!box() || box().querySelector('.pfp-face img') || (t.whoami().profile || {}).photo !== '') bad.push('after Remove the picture is still drawn or still on USER.profile');
   }
+  return bad;
+});
+
+/* ---------- YOUR PICTURE, ONE OF ELEVEN — FOR EVERY ROLE, SEEN BY YOU AND BY SOMEBODY ELSE -----------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox dp
+   selector, which allow you to use your avatar as a dp."* One journey per role — student, parent, tutor,
+   admin — through the page's own grid and tiles: the eleven drawn in order (your figure first, then the
+   ten), no ring until one is yours, and then FOUR SAVES IN A ROW: your figure, a picture, a photograph,
+   Remove. After each, the request that left (`savePhoto` with `choice`, `data` or `remove`, your id),
+   the ring and the line under the grid, `USER.profile`, YOUR OWN CARD on the You column as the app
+   repainted it — and ONE OTHER SURFACE WHERE SOMEBODY ELSE SEES YOU, drawn as that other person from the
+   row `doGet` sends them (`faceFig_`: the figure beside the face only when the face is the figure;
+   `check-profile.js` proves the server half): your parent's column for a student, your child's message
+   head for a parent, a visitor's people column for a tutor, the feed for an admin.
+   YOUR FIGURE IS LIVE: dressed differently after it was chosen, your own card wears the new shirt. */
+const PFP_ROLES = {
+  student: { name: 'Sam Pupil', personId: 'P-S9', role: 'kid', roles: ['student'], handle: 'sam_glad09',
+             avatar: 'skin:3|shirt:5|hair:curls', basic: 'fox', other: 'family' },
+  parent:  { name: 'Pat Mum', personId: 'P-C9', role: 'parent', roles: ['parent'], handle: 'pat_kind09',
+             avatar: 'skin:1|shirt:6|hair:long', basic: 'cat', other: 'dm' },
+  tutor:   { name: 'Tia Tutor', personId: 'P-T9', role: 'tutor', roles: ['tutor'], handle: 'tia_calm09',
+             avatar: 'skin:4|shirt:3|hair:crop', basic: 'robot', other: 'people' },
+  admin:   { name: 'Ari Admin', personId: 'P-A9', role: 'admin', roles: ['admin'], handle: 'ari_wise09',
+             avatar: 'skin:0|shirt:7|hair:fringe', basic: 'rocket', other: 'feed' },
+};
+const AV_SKIN_T = ['#f3c9a0', '#e0a878', '#c58a5b', '#8d5a3b', '#5f3a25', '#ffd9b3'];
+const AV_SHIRT_T = ['#f4f4f2', '#2f6b3f', '#1f5f8a', '#8a3a3a', '#6b4d8a', '#c07a1f', '#3d4b57', '#2f6b6b'];
+async function pfpRoleJourney(key) {
+  const P = PFP_ROLES[key];
+  const URL_ = 'https://drive.google.com/file/d/FILEpfp' + key + 'abcdefghijklmnopq/view';
+  const staff = key === 'tutor' || key === 'admin';
+  const mineRow = () => ({ title: P.name, handle: P.handle, personId: P.personId, role: key === 'admin' ? 'Admin' : 'Tutor',
+                           rate: 20, teaches: [], dbs: true, listed: true, avail: {}, image: '' });
+  const data = payload();
+  if (staff) data.tutors = data.tutors.concat([mineRow()]);
+  const { w, sent } = boot({ payload: data, reply: b => b.action === 'savePhoto'
+    ? (b.remove ? { success: true, photo: '' }
+      : b.choice ? Object.assign({ success: true, photo: b.choice }, b.choice === 'pfp:avatar' ? { avatar: P.avatar } : {})
+      : { success: true, photo: URL_ })
+    : { success: true } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  await wait(200);
+  const t = w.__t, d = w.document;
+  if (!t) return ['the app did not finish loading'];
+  const first = P.name.split(' ')[0];
+  t.USER({ name: P.name, personId: P.personId, role: P.role, roles: P.roles, token: 'tk', handle: P.handle,
+           avatar: P.avatar, photo: '', profile: { first_name: first, last_name: P.name.split(' ')[1], photo: '' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  const box = () => d.querySelector('#s-settings .pfp');
+  if (!box()) return ['a ' + key + '\'s Settings has no picture picker'];
+  const opts = () => [...box().querySelectorAll('.pfp-grid button.pfp-opt[data-do="pfp-choose"]')];
+  const names = opts().map(b => b.dataset.pic);
+  const ten = t.pfpNames();
+  if (JSON.stringify(names) !== JSON.stringify(['avatar'].concat(ten)) || ten.length !== 10) {
+    bad.push('the grid offers ' + JSON.stringify(names) + ' — wanted your figure, then the ten pictures');
+  }
+  if (opts().some(b => b.classList.contains('on'))) bad.push('a ring is on a picture before any is yours');
+  const fig0 = opts()[0] && opts()[0].querySelector('svg.avatar.is-bust');
+  if (!fig0 || fig0.outerHTML.indexOf(AV_SHIRT_T[Number(/shirt:(\d)/.exec(P.avatar)[1])]) === -1) bad.push('the first choice is not your own figure in your own shirt');
+  if (!box().querySelector('[data-do="pfp-pick"]') || !box().querySelector('[data-do="pfp-remove"]')) bad.push('Choose photo or Remove has gone from the card');
+  const ground = n => (/<circle cx="24" cy="24" r="24" fill="(#[0-9a-f]{6})"/.exec(w.pfpArt_(n, 40)) || [])[1];
+  /* WHAT A FACE IS, ASKED OF THE ELEMENT THE SURFACE DREW. */
+  const faceIs = (el, want) => {
+    if (!el) return 'no face at all';
+    const html = el.outerHTML;
+    if (want.kind === 'avatar') {
+      const svg = el.querySelector('svg.avatar.is-bust');
+      if (!svg) return 'not a figure: ' + html.slice(0, 90);
+      const skin = AV_SKIN_T[Number(/skin:(\d)/.exec(want.fig)[1])], shirt = AV_SHIRT_T[Number(/shirt:(\d)/.exec(want.fig)[1])];
+      return html.indexOf(skin) !== -1 && html.indexOf(shirt) !== -1 ? '' : 'a figure, but not this person\'s (' + skin + ', ' + shirt + ')';
+    }
+    if (want.kind === 'basic') return el.querySelector('svg.pfp-art') && html.indexOf('fill="' + ground(want.name) + '"') !== -1 ? '' : 'not the ' + want.name + ': ' + html.slice(0, 90);
+    if (want.kind === 'photo') return el.tagName === 'IMG' && /lh3\.googleusercontent\.com\/d\/FILEpfp/.test(el.getAttribute('src') || '') ? '' : 'not the photograph: ' + html.slice(0, 90);
+    return !el.querySelector('svg, img') && el.tagName !== 'IMG' && el.textContent.trim() === want.letter ? '' : 'not the initial ' + want.letter + ': ' + html.slice(0, 90);
+  };
+  /* YOUR OWN CARD, AS THE APP REPAINTED THE YOU COLUMN AFTER THE SAVE. */
+  const myCard = () => [...d.querySelectorAll('#s-account .card.is-prof')]
+    .find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+  /* AND AS SOMEBODY ELSE, FROM WHAT `doGet` SENDS THEM. Drawn, then put back. */
+  const asOther = (stored, figure) => {
+    const me = t.whoami(), D = t.DATA();
+    const keep = { tutors: D.tutors, family: D.family, familyFor: D.familyFor, posts: D.posts };
+    const face = Object.assign({ image: stored }, picFig(stored, figure));
+    let el = null;
+    try {
+      if (P.other === 'family') {            // the student's parent, on their own column
+        t.USER({ name: 'Mo Parent', personId: 'P-M9', role: 'parent', roles: ['parent'], token: 'tk2', profile: {} });
+        D.family = [Object.assign({ personId: P.personId, title: P.name, relation: 'child', handle: P.handle }, face)];
+        D.familyFor = 'P-M9';
+        w.paint('account');
+        el = [...d.querySelectorAll('#s-account .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+        el = el && el.querySelector('.prof-pic');
+      } else if (P.other === 'dm') {         // the parent's child, at the head of their conversation
+        t.USER({ name: 'Kit Child', personId: 'P-K9', role: 'kid', roles: ['student'], token: 'tk2', profile: {} });
+        D.family = [Object.assign({ personId: P.personId, title: P.name, relation: 'parent', handle: P.handle }, face)];
+        D.familyFor = 'P-K9';
+        const host = d.createElement('div');
+        host.innerHTML = w.dmFace_({ name: P.name, id: P.personId });
+        el = host.querySelector('.dm-av');
+        el = el && (el.querySelector('img, .face-pic') || el);
+      } else if (P.other === 'people') {     // a visitor's people column
+        t.USER({ name: 'Vi Visitor', personId: 'P-V9', role: 'parent', roles: ['parent'], token: 'tk2', profile: {} });
+        D.tutors = keep.tutors.filter(r => r.personId !== P.personId).concat([Object.assign(mineRow(), face)]);
+        w.paint('account');
+        el = [...d.querySelectorAll('#s-account .card.is-prof')].find(c => (c.querySelector('.prof-name') || {}).textContent === P.name);
+        el = el && el.querySelector('.prof-pic');
+      } else {                               // the feed, which every visitor is sent
+        t.USER(null);
+        D.posts = [{ id: 'PO-PFP', author: P.name, handle: P.handle, avatar: stored, figure: picFig(stored, figure).avatar,
+                     image: 'data/reels/archetest.jpg', media: ['data/reels/archetest.jpg'], caption: 'A trip', body: '',
+                     location: '', when: '', at: 0, pinned: false, active: true, waiting: false, refused: false,
+                     approvedBy: '', poll: null, reactions: { emoji: ['👍'], counts: [0], total: 0, yours: '', by: [] },
+                     comments: { total: 0, list: [] }, rowIndex: 2 }];
+        w.paint('feed');
+        el = d.querySelector('#s-feed article[data-post="PO-PFP"] .post-face');
+      }
+    } catch (e) { el = null; bad.push('drawing ' + key + ' as somebody else sees them threw: ' + e.message); }
+    const out = el ? el.cloneNode(true) : null;
+    t.USER(me); Object.assign(D, keep);
+    return out;
+  };
+  /* THE ROW `doGet` SENDS: the figure only when the face is the figure (`faceFig_`, core.gs). */
+  const picFig = (stored, figure) => stored === 'pfp:avatar' ? { avatar: figure } : {};
+  const step = async (label, press, wantSent, want) => {
+    sent.length = 0;
+    await press();
+    await wait(300);
+    const post = sent.find(b => b.action === 'savePhoto');
+    if (!post) { bad.push(label + ': posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto'); return; }
+    if (post.personId !== P.personId) bad.push(label + ': savePhoto did not name ' + P.personId);
+    const miss = Object.keys(wantSent).filter(k => post[k] !== wantSent[k]);
+    if (miss.length) bad.push(label + ': savePhoto carried ' + JSON.stringify(miss.map(k => [k, post[k]])) + ', wanted ' + JSON.stringify(wantSent));
+    const stored = String((t.whoami().profile || {}).photo);
+    if (stored !== want.stored) bad.push(label + ': USER.profile.photo is "' + stored + '", wanted "' + want.stored + '"');
+    const ring = opts().filter(b => b.classList.contains('on')).map(b => b.dataset.pic);
+    const ringWant = want.kind === 'avatar' ? ['avatar'] : want.kind === 'basic' ? [want.name] : [];
+    if (JSON.stringify(ring) !== JSON.stringify(ringWant)) bad.push(label + ': the gold ring is on ' + JSON.stringify(ring) + ', wanted ' + JSON.stringify(ringWant));
+    if (opts().some(b => (b.getAttribute('aria-pressed') === 'true') !== b.classList.contains('on'))) bad.push(label + ': aria-pressed does not follow the ring');
+    const said = (box().querySelector('.pfp-said') || {}).textContent || '';
+    if (!want.said.test(said)) bad.push(label + ': the line under the grid says "' + said + '"');
+    const prev = faceIs(box().querySelector('.pfp-face > *'), Object.assign({ letter: first[0] }, want));
+    if (prev) bad.push(label + ': the preview is ' + prev);
+    const mine = myCard();
+    if (!mine) bad.push(label + ': your own card is not on the You column');
+    else { const why = faceIs(mine.querySelector('.prof-pic'), Object.assign({ letter: P.name[0] }, want)); if (why) bad.push(label + ': your own card shows ' + why); }
+    const other = faceIs(asOther(want.stored, P.avatar), Object.assign({ letter: P.name[0] }, want));
+    if (other) bad.push(label + ': as somebody else sees you (' + P.other + '), your face is ' + other);
+  };
+  const choose = n => () => { const b = opts().find(x => x.dataset.pic === n); if (!b) throw new Error('no ' + n + ' in the grid'); t.ACTIONS['pfp-choose'](b); };
+  try {
+    await step('your figure', choose('avatar'), { choice: 'pfp:avatar' },
+      { kind: 'avatar', fig: P.avatar, stored: 'pfp:avatar', said: /Saved\. Your figure is your picture/ });
+    /* LIVE: dressed in another shirt after it was chosen, your own card follows without a save of the picture. */
+    const was = t.whoami().avatar;
+    t.whoami().avatar = was.replace(/shirt:\d/, 'shirt:2');
+    w.paint('account');
+    const live = faceIs(myCard() && myCard().querySelector('.prof-pic'), { kind: 'avatar', fig: t.whoami().avatar });
+    if (live) bad.push('your figure is not live on your own card after a change of shirt: ' + live);
+    t.whoami().avatar = was;
+    w.paint('account');
+    /* A TAP ON THE ONE ALREADY IN USE SENDS NOTHING. */
+    sent.length = 0;
+    choose('avatar')();
+    await wait(100);
+    if (sent.some(b => b.action === 'savePhoto')) bad.push('a tap on the figure already in use posted savePhoto again');
+    await step('the ' + P.basic, choose(P.basic), { choice: 'pfp:' + P.basic },
+      { kind: 'basic', name: P.basic, stored: 'pfp:' + P.basic, said: new RegExp('Saved\\. The ' + P.basic + ' is your picture') });
+    await step('a photograph', async () => {
+      w.pfpPrepare_ = () => Promise.resolve('data:image/jpeg;base64,' + Buffer.from('square').toString('base64'));
+      const inp = box().querySelector('input.pfp-in[type="file"]');
+      Object.defineProperty(inp, 'files', { value: [new w.File(['x'], 'me.png', { type: 'image/png' })], configurable: true });
+      inp.dispatchEvent(new w.Event('change', { bubbles: true }));
+    }, {}, { kind: 'photo', stored: URL_, said: /Saved\. Your photo is your picture/ });
+    if (!(sent.find(b => b.action === 'savePhoto') || {}).data) bad.push('the photograph was not posted as data');
+    await step('Remove', () => { t.ACTIONS['pfp-remove'](box().querySelector('[data-do="pfp-remove"]')); }, { remove: true },
+      { kind: 'none', stored: '', said: /Removed\. No picture yet/ });
+  } catch (e) { bad.push('the journey threw: ' + e.message); }
+  return bad;
+}
+check('a student chooses their figure, the fox, a photo and Remove — each saved, on their card and on their parent\'s', () => pfpRoleJourney('student'));
+check('a parent chooses their figure, the cat, a photo and Remove — each saved, on their card and in their child\'s messages', () => pfpRoleJourney('parent'));
+check('a tutor chooses their figure, the robot, a photo and Remove — each saved, on their card and on a visitor\'s people column', () => pfpRoleJourney('tutor'));
+check('an admin chooses their figure, the rocket, a photo and Remove — each saved, on their card and on the feed', () => pfpRoleJourney('admin'));
+
+/* ---------- AND UNTIL THE BACKEND IS PULLED, A TAP FAILS OUT LOUD -------------------------------------
+   A server from before the pictures answers `choice` with its own door's refusal — "That is not a
+   picture. Choose a photo from your phone." — and writes nothing. The line under the grid says that,
+   says the picture is unchanged and why (the server is older than the pictures, by its stamp), the old
+   photograph is back in the preview, no ring is left on the fox, and `USER.profile` still holds the
+   photograph. Never silently, and never as though it had been kept. */
+check('before the backend is pulled, tapping a picture says the server\'s refusal and keeps the old picture', async () => {
+  const URL_ = 'https://drive.google.com/file/d/FILEoldabcdefghijklmnopqrs/view';
+  const data = Object.assign(payload(), { version: '2026-10-10-g-schema-grid' });
+  const { w, sent } = boot({ payload: data, reply: b => b.action === 'savePhoto'
+    ? (b.data || b.remove ? { success: true, photo: '' } : { error: 'That is not a picture. Choose a photo from your phone.' })
+    : { success: true } });
+  for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+  await wait(200);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Pat Mum', personId: 'P-C9', role: 'parent', roles: ['parent'], token: 'tk', handle: 'pat_kind09',
+           avatar: '', photo: URL_, profile: { first_name: 'Pat', last_name: 'Mum', photo: URL_ } });
+  t.go('settings', false, true); w.paint('settings');
+  await wait(300);
+  const bad = [];
+  const box = () => d.querySelector('#s-settings .pfp');
+  if (!box()) return ['no picture picker'];
+  const fox = box().querySelector('.pfp-opt[data-pic="fox"]');
+  sent.length = 0;
+  t.ACTIONS['pfp-choose'](fox);
+  await wait(300);
+  const post = sent.find(b => b.action === 'savePhoto');
+  if (!post || post.choice !== 'pfp:fox') bad.push('the tap posted ' + JSON.stringify(post) + ', wanted savePhoto choice pfp:fox');
+  const said = (box().querySelector('.pfp-said') || {}).textContent || '';
+  if (!/That is not a picture/.test(said)) bad.push('the line does not say the server\'s refusal: "' + said + '"');
+  if (!/Your picture is unchanged/.test(said)) bad.push('the line does not say the picture is unchanged: "' + said + '"');
+  if (!/server has not been updated for the pictures/.test(said)) bad.push('the line does not say the server is older than the pictures: "' + said + '"');
+  if ((t.whoami().profile || {}).photo !== URL_) bad.push('USER.profile.photo became "' + (t.whoami().profile || {}).photo + '" after a refusal');
+  const img = box().querySelector('.pfp-face img');
+  if (!img || !/FILEold/.test(img.getAttribute('src') || '')) bad.push('the old photograph is not back in the preview');
+  if (box().querySelector('.pfp-opt.on')) bad.push('a ring was left on ' + box().querySelector('.pfp-opt.on').dataset.pic + ' after the refusal');
+  if (box().querySelector('.pfp-opt:disabled')) bad.push('the grid is still locked after the refusal');
   return bad;
 });
 
@@ -14086,7 +17297,9 @@ check('Coursework is a type of project: Projects asks Project or coursework, whi
    chapter page has its key words, its formulas STACKED by `typeset_`, its worked lines and the
    Higher mark; typing a word that is only inside a chapter finds it; and the star keeps it on
    Saved. */
-check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
+/* MOVED TO THE SECOND FINDER WITH THE BOOK (docs/history/329): the route is the Resources column's now —
+   `What for` and `What kind` have one answer there and are skipped, so the shelf is its first question. */
+check('the @family. textbook, on the Resources column: @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -14103,7 +17316,8 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   const { w } = boot({ payload: p });
   await wait(300);
   const t = w.__t;
-  if (!t.STUFF) return ['Find\'s state is not exported to the journey'];
+  if (!t.RES || !t.RES()) return ['the Resources column\'s state is not exported to the journey'];
+  const R = resView_(w);
   const bad = [];
   const book = books.find(b => b.name === 'GCSE Statistics');
   if (!book) return ['data/textbooks.json has no book called GCSE Statistics — names: ' + books.map(b => b.name).join(', ')];
@@ -14111,9 +17325,11 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   /* THE ROUTE, ONE PRESS AT A TIME, on whatever the question page draws. A grouped question may
      draw the BUCKET first (`Read or watch it`), and pressing it is the same route one tap longer,
      so a bucket that holds the next word on the route is pressed and the question asked again. */
-  t.go('stuff');
-  t.STUFF().filters.length = 0; t.STUFF().q = '';
-  w.paintStuff();
+  t.go('res');
+  t.RES().filters.length = 0; t.RES().q = '';
+  w.paintFinder_('res');
+  /* AND FIND DOES NOT HOLD IT ANY MORE. */
+  if (w.stuffItems().some(i => i.kind === 'textbook')) bad.push('Find still holds the textbooks');
   /* AND `Subject` AFTER THE SHELF, now that the shelf holds a book for every GCSE: the book is found
      by its subject's group and then its subject — Maths, then Statistics — before `Book`, which is
      only asked if two books are left. With one book on the shelf the rung has one answer and is
@@ -14127,13 +17343,13 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   const rungs = ['forLabel', 'kindLabel', 'shelf', 'subject'];
   const pressed = [];
   for (let guard = 0; route.length && guard < 10; guard++) {
-    const btns = [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+    const btns = [...w.document.querySelectorAll('#s-res [data-do="facet-pick"]')];
     let el = btns.find(b => b.dataset.value === route[0]);
     /* A RUNG EVERYTHING LEFT ALREADY ANSWERS IS SKIPPED BY THE ONE-ANSWER RULE, and that is the
        route working rather than failing: the fixture has nothing under `What for` but Learning. The
        question is only allowed to be absent when its one answer IS the next word on the route. */
     const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
-    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
     if (!el && only.length === 1 && only[0] === route[0]) {
       pressed.push('(' + route.shift() + ')');
       continue;
@@ -14155,9 +17371,10 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   /* THE SHELF HAS TO HAVE BEEN PRESSED, not skipped: one answer there would mean the boxing was
      not beside it, and the door this journey is about was never on screen. Same for Resources. */
   if (pressed.indexOf('@family. textbooks') < 0) bad.push('the shelf was never a question — ' + pressed.join(' → '));
-  if (pressed.indexOf('Resources') < 0) bad.push('Resources was never pressed — ' + pressed.join(' → '));
+  /* AND `What kind` IS NOT A QUESTION HERE: every thing on the column is a resource. */
+  if (pressed.indexOf('(Resources)') < 0) bad.push('What kind was asked on the Resources column, or not skipped — ' + pressed.join(' → '));
   /* THE SHELF QUESTION OFFERED BOXING BESIDE IT, or it was not a door — it was the only answer. */
-  const left = w.stuffFiltered();
+  const left = R.stuffFiltered();
   if (left.length !== 1 || left[0].kind !== 'textbook' || left[0].name !== 'GCSE Statistics') {
     bad.push('after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
       + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the book');
@@ -14166,14 +17383,14 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
      Boxing, so a boxer with no shelf would vanish from the route that used to reach him — the door
      would have cost the boxing what it gave the book. */
   const shelfFacet = w.facetList().find(f => f.field === 'shelf');
-  const resources = w.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
-  const unshelved = resources.filter(i => !w.facetValues([i], shelfFacet).length);
+  const resources = R.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
+  const unshelved = resources.filter(i => !R.facetValues([i], shelfFacet).length);
   if (unshelved.length) {
     bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf ('
       + [...new Set(unshelved.map(i => i.kind))].join(', ') + ') — pressing a shelf hides them');
   }
-  const x = left.find(i => i.kind === 'textbook') || w.stuffItems().find(i => i.kind === 'textbook');
-  if (!x) return bad.concat(['Find offers no textbook at all']);
+  const x = left.find(i => i.kind === 'textbook') || R.stuffItems().find(i => i.kind === 'textbook');
+  if (!x) return bad.concat(['Resources offers no textbook at all']);
 
   /* CARD, THEN A PAGE PER CHAPTER IN ORDER — AND AFTER EACH CHAPTER ITS ANIMATIONS. "Add the animations
      from loading to respective subject text books" (the owner, 8 Oct): Statistics teaches the mean, Bayes,
@@ -14205,9 +17422,9 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   if (hc && !box(w.stuffPart_(x, 'ch' + hc.n)).querySelector('h3 .tb-h')) bad.push('chapter ' + hc.n + ' is Higher all through and its heading does not say so');
 
   /* SEARCHABLE BY ITS WORDS — one that is only inside a chapter, never in the title. */
-  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
-  if (!w.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" does not find the book — the chapters are not in its haystack');
-  t.STUFF().q = '';
+  t.RES().filters.length = 0; t.RES().q = 'frequency density';
+  if (!R.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" on Resources does not find the book — the chapters are not in its haystack');
+  t.RES().q = '';
 
   /* STARRABLE, by the card's own Save tile, and kept on Saved. */
   t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
@@ -14217,6 +17434,605 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
     t.ACTIONS.fav(fav);
     if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
   }
+  return bad;
+});
+
+/* ==================================================================================================
+   THE SECOND FINDER: RESOURCES, IMMEDIATELY RIGHT OF FIND (docs/history/329)
+   THE OWNER, 10 Oct: *"i want to move everything which is in "resources" tag. i want to create a new
+   column to the right of the current finder. this new column is "finder 2". it carries resources.
+   like text books, boxing stuff books. ect."* One journey per rule of the build: the column is there
+   and where it was asked for; it carries the resources and Find none; the two share no state; each
+   keeps its own place across a reload and a sign-in; a link into a resource from elsewhere — Find, Saved
+   — opens it in the Resources column. The resources are the real files mapped by the app's own
+   `libraryExtras_`, so the shelves and questions are the ones a phone is asked.
+================================================================================================== */
+const RES_MADE_ = { v: null };
+const resPayload_ = async () => {
+  if (!RES_MADE_.v) {
+    const one = boot();
+    for (let i = 0; i < 80 && typeof one.w.libraryExtras_ !== 'function'; i++) await wait(25);
+    if (typeof one.w.libraryExtras_ !== 'function') return null;
+    const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+    RES_MADE_.v = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+      { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
+  }
+  const m = RES_MADE_.v;
+  /* THE PROJECTS TOO, so Find has a `What kind` of its own to ask while the resources are away. */
+  return Object.assign(payload(), { textbooks: m.textbooks || [], boxers: m.boxers || [], fights: m.fights || [], projects: m.projects || [] });
+};
+/* A call made as the second finder: `inFinder_` is the app's own binding (find.js). */
+const inRes_ = (w, fn) => w.inFinder_(w.finderOf_('res'), fn);
+/* THE APP'S OWN FUNCTIONS, EACH CALLED AS THE SECOND FINDER — `R.stuffFiltered()` is Resources' list,
+   `R.nextFacet(l)` its next question, `R.paintStuff()` its repaint. A journey that moved from Find to
+   Resources reads exactly as it did, with `w.` become `R.` where the finder is asked. */
+const resView_ = w => new Proxy({}, { get: (_, k) => (...a) => inRes_(w, () => w[k](...a)) });
+const resBoot_ = async (opts) => {
+  const p = await resPayload_();
+  if (!p) return null;
+  const b = boot(Object.assign({ payload: p }, opts || {}));
+  for (let i = 0; i < 80 && !b.w.__t; i++) await wait(25);
+  await wait(250);
+  return b.w.__t ? b : null;
+};
+/* THE PAGE TABLE ITSELF. `__t.PAGE` is a getter (`PAGE: () => PAGE`, which overrides the bare `PAGE`
+   earlier in the same literal), so `pg_(t).res` is undefined and a comparison of two of them passes
+   whatever the app did. Asked through this, so a page check can fail. */
+const pg_ = t => (typeof t.PAGE === 'function' ? t.PAGE() : t.PAGE) || {};
+const resIs_ = (w, x) => !!x && (x.kindLabel || w.kindOf_(x).label) === 'Resources';
+const resPick_ = (w, id, v) => [...w.document.querySelectorAll('#s-' + id + ' #' + id + '-groups [data-do="facet-pick"]')]
+  .find(b => b.dataset.value === v);
+const resType_ = (w, id, v) => {
+  const el = w.document.getElementById(id + '-q');
+  if (!el) return false;
+  el.value = v;
+  el.dispatchEvent(new w.Event('input', { bubbles: true }));
+  return true;
+};
+
+check('the second finder: a column called Resources immediately right of Find — the tab row, data/settings/columns.json, one swipe from Find, and its own search box and first question', async () => {
+  const file = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+  /* THE REAL FILE, SERVED, so the order a phone is given is the one checked — `applyColumns_` keeps only
+     the columns it names, in its order. */
+  const b = await resBoot_({ serve: url => (/data\/settings\/columns\.json/.test(url) ? file : undefined) });
+  if (!b) return ['the app or libraryExtras_ did not load — the second finder was NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, bad = [];
+  for (let i = 0; i < 80 && !(t.DATA().columns || []).length; i++) await wait(25);
+  if (!(t.DATA().columns || []).length) bad.push('data/settings/columns.json never reached DATA.columns — the file\'s order was NOT checked');
+  const ids = t.TABS.map(x => x.id);
+  const i = ids.indexOf('stuff'), j = ids.indexOf('res');
+  if (j < 0) return bad.concat(['there is no `res` column on the phone: ' + ids.join(' ')]);
+  if (j !== i + 1) bad.push('Resources is column ' + j + ' and Find ' + i + ' — wanted immediately right of Find: ' + ids.join(' '));
+  if (t.TABS[j].label !== 'Resources') bad.push('the column is labelled ' + JSON.stringify(t.TABS[j].label) + ', not Resources');
+  const row = file.find(r => r.screen === 'res');
+  if (!row) bad.push('data/settings/columns.json has no `res` row, so the column is on no phone');
+  /* AND IN THE CODE'S OWN ORDER, which is the order whenever the file is not read (`TAB_ORDER`). */
+  const bare = boot();
+  for (let k = 0; k < 80 && !bare.w.__t; k++) await wait(25);
+  if (bare.w.__t) {
+    const ids0 = bare.w.__t.TABS.map(x => x.id);
+    if (ids0.indexOf('res') !== ids0.indexOf('stuff') + 1) bad.push('without the file, TAB_ORDER puts Resources at ' + ids0.indexOf('res') + ' and Find at ' + ids0.indexOf('stuff') + ': ' + ids0.join(' '));
+  } else bad.push('the second boot did not load, so TAB_ORDER was NOT checked');
+  /* ONE SWIPE FROM FIND, AND ITS OWN PAGE: a search box, chips and the question, under its own ids. */
+  t.go('stuff', false, true);
+  await wait(60);
+  const next = t.TABS[t.TABS.findIndex(x => x.id === t.AT()) + 1];
+  if (!next || next.id !== 'res') bad.push('the column one swipe right of Find is ' + (next ? next.id : 'nothing'));
+  t.go('res', false, true);
+  await wait(120); await woken_();
+  const host = d.getElementById('s-res');
+  if (!host) return bad.concat(['index.html has no <section id="s-res">']);
+  if (!host.querySelector('#res-q.search')) bad.push('the Resources column has no search box of its own (#res-q)');
+  if (!host.querySelector('#res-chips') || !host.querySelector('#res-groups')) bad.push('the Resources column has no chips row or question (#res-chips, #res-groups)');
+  if (host.querySelector('#stuff-q') || d.getElementById('s-stuff').querySelector('#res-q')) bad.push('a finder drew the other finder\'s search box');
+  /* ITS FIRST QUESTION, BY THE FUNNEL'S OWN RULES: Shelf. What for and What kind have one answer each
+     over the resources, so both are skipped. */
+  const answers = [...host.querySelectorAll('#res-groups [data-do="facet-pick"]')].map(el => el.dataset.field + ':' + el.dataset.value);
+  if (!answers.length || !answers.every(a => a.indexOf('shelf:') === 0)) bad.push('the first question on Resources is not Shelf: ' + (answers.join(' | ') || 'no answers'));
+  ['@family. textbooks', 'Boxing'].forEach(v => { if (answers.indexOf('shelf:' + v) < 0) bad.push('Shelf does not offer ' + v + ': ' + answers.join(' | ')); });
+  if (host.querySelector('#res-groups [data-field="forLabel"], #res-groups [data-field="kindLabel"]')) bad.push('Resources asks What for or What kind, which each have one answer there');
+  return bad;
+});
+
+check('the second finder carries every resource kind and nothing else, and Find carries none — not in its list, its What kind or its search', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  const find = w.stuffItems();
+  const res = inRes_(w, () => w.stuffItems());
+  const kinds = l => [...new Set(l.map(x => x.kind))].sort().join(', ') || 'nothing';
+  if (!res.length) return ['the Resources column holds nothing — NOT checked'];
+  ['textbook', 'boxer', 'fight'].forEach(k => {
+    if (!res.some(x => x.kind === k)) bad.push('Resources holds no ' + k);
+    if (find.some(x => x.kind === k)) bad.push('Find still holds ' + find.filter(x => x.kind === k).length + ' ' + k + '(s)');
+  });
+  if (find.some(x => resIs_(w, x))) bad.push('Find still holds Resources: ' + kinds(find.filter(x => resIs_(w, x))));
+  if (!res.every(x => resIs_(w, x))) bad.push('Resources holds things that are not Resources: ' + kinds(res.filter(x => !resIs_(w, x))));
+  if (!find.some(x => x.kind === 'project')) bad.push('Find lost its projects — NOT a split, a loss');
+  /* AND SAVED STILL SEES BOTH: the whole list is untouched (`stuffItemsAll_`). */
+  const all = w.stuffItemsAll_();
+  if (!all.some(x => x.kind === 'textbook') || !all.some(x => x.kind === 'project')) bad.push('the whole list (Saved, Spotlight, answer lookups) lost a kind: ' + kinds(all));
+  /* WHAT KIND ON FIND: no Resources answer, bucketed or not. */
+  const kl = w.facetList().find(f => f.field === 'kindLabel');
+  const said = w.facetValues(find, kl).map(v => String(v.value));
+  if (said.indexOf('Resources') >= 0) bad.push('Find\'s What kind still offers Resources: ' + said.join(', '));
+  if (find.some(x => [].concat(kl.of(x)).indexOf('Resources') >= 0)) bad.push('an item on Find still answers What kind with Resources');
+  /* SEARCH: words that are only inside a textbook's chapters. */
+  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
+  const fHits = w.stuffFiltered();
+  if (fHits.some(x => resIs_(w, x))) bad.push('typing "frequency density" on Find finds ' + kinds(fHits.filter(x => resIs_(w, x))));
+  t.STUFF().q = '';
+  t.RES().filters.length = 0; t.RES().q = 'frequency density';
+  const rHits = inRes_(w, () => w.stuffFiltered());
+  if (!rHits.some(x => x.kind === 'textbook')) bad.push('typing "frequency density" on Resources does not find the textbook');
+  t.RES().q = '';
+  /* THE BIBLE IS A RESOURCE — the item that holds it decides the column. */
+  if (w.finderOfItem_({ kind: 'bible' }).id !== 'res') bad.push('the Bible would open in ' + w.finderOfItem_({ kind: 'bible' }).id + ', not Resources');
+  /* ANYTHING ELSE WHOSE LABEL IS RESOURCES — the live kinds tab decides, with no deploy. Relabel the
+     boxers in the sheet and they change column; put the label back and they come home. */
+  const was = t.DATA().kinds;
+  t.DATA().kinds = [{ kind: 'boxer', group: 'Learning', label: 'Fighters', active: true }];
+  w.stuffForget_();
+  const fMoved = w.stuffItems().filter(x => x.kind === 'boxer').length;
+  const rMoved = inRes_(w, () => w.stuffItems()).filter(x => x.kind === 'boxer').length;
+  if (!fMoved || rMoved) bad.push('the kinds tab relabelled the boxers and they did not move to Find (Find ' + fMoved + ', Resources ' + rMoved + ')');
+  t.DATA().kinds = was;
+  w.stuffForget_();
+  if (inRes_(w, () => w.stuffItems()).filter(x => x.kind === 'boxer').length !== res.filter(x => x.kind === 'boxer').length) bad.push('the boxers did not come back to Resources when the label did');
+  return bad;
+});
+
+check('two finders, no shared state: a chip, a search word or a page turned in one never reaches the other — whichever column a press comes from', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const F = () => JSON.stringify([t.STUFF().filters, t.STUFF().q]);
+  const R = () => JSON.stringify([t.RES().filters, t.RES().q]);
+  t.go('stuff', false, true); await wait(60);
+  t.go('res', false, true); await wait(120); await woken_();
+  /* A CHIP PRESSED ON RESOURCES IS RESOURCES' ALONE. */
+  const shelf = resPick_(w, 'res', 'Boxing');
+  if (!shelf) return ['Resources does not offer Shelf · Boxing to press — NOT checked'];
+  const f0 = F();
+  A['facet-pick'](shelf);
+  if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('pressing Boxing on Resources left its chips ' + JSON.stringify(t.RES().filters));
+  if (F() !== f0) bad.push('a chip pressed on Resources reached Find: ' + F());
+  if (!/Boxing/.test(d.getElementById('res-chips').textContent)) bad.push('the Resources chips row does not show Boxing');
+  if (/Boxing/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('Find\'s chips row shows Boxing');
+  /* A WORD TYPED IN RESOURCES' BOX IS RESOURCES' ALONE. */
+  resType_(w, 'res', 'ali');
+  await wait(260);
+  if (t.RES().q !== 'ali') bad.push('typing in #res-q left Resources\' words ' + JSON.stringify(t.RES().q));
+  if (t.STUFF().q) bad.push('typing in #res-q put ' + JSON.stringify(t.STUFF().q) + ' into Find\'s words');
+  /* A PAGE TURNED IN RESOURCES IS RESOURCES' ALONE. */
+  const p0 = pg_(t).stuff;
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  const n = inRes_(w, () => w.stuffPages_().length);
+  if (!n) bad.push('Shelf · Boxing and "ali" left nothing to turn to on Resources — the page rule was NOT checked');
+  else {
+    t.goPage('res', first + Math.min(1, n - 1), true);
+    await wait(80);
+    if (pg_(t).res !== first + Math.min(1, n - 1)) bad.push('Resources did not turn to page ' + (first + 1) + ' (it is on ' + pg_(t).res + ')');
+    if (pg_(t).stuff !== p0) bad.push('turning a page on Resources moved Find from page ' + p0 + ' to ' + pg_(t).stuff);
+  }
+  /* AND BACK ON FIND, EVERYTHING THE OTHER WAY ROUND. */
+  t.go('stuff', false, true); await wait(120); await woken_();
+  const r0 = R(), pr = pg_(t).res;
+  const pick = d.querySelector('#s-stuff #stuff-groups [data-do="facet-pick"]');
+  if (!pick) bad.push('Find drew no answer to press — the reverse was NOT checked');
+  else {
+    A['facet-pick'](pick);
+    if (!t.STUFF().filters.length) bad.push('pressing an answer on Find left no chip on Find');
+    if (R() !== r0) bad.push('a chip pressed on Find changed Resources: ' + R());
+  }
+  resType_(w, 'stuff', 'fractions');
+  await wait(260);
+  if (t.STUFF().q !== 'fractions') bad.push('typing in #stuff-q left Find\'s words ' + JSON.stringify(t.STUFF().q));
+  if (t.RES().q !== 'ali') bad.push('typing in #stuff-q changed Resources\' words to ' + JSON.stringify(t.RES().q));
+  t.goPage('stuff', 0, true);
+  if (pg_(t).res !== pr) bad.push('turning a page on Find moved Resources from ' + pr + ' to ' + pg_(t).res);
+  /* A PRESS FROM NOWHERE — a detached button, as the checks press — acts on the column in front. */
+  A['filter-clear'](d.createElement('button'));
+  if (t.STUFF().filters.length) bad.push('Clear pressed with Find in front left Find\'s chips');
+  if (R() !== r0) bad.push('Clear pressed with Find in front cleared Resources too: ' + R());
+  /* AND RESOURCES' OWN CLEAR TILE CLEARS RESOURCES ONLY. */
+  t.go('res', false, true); await wait(120);
+  const clear = d.querySelector('#res-clear [data-do="filter-clear"]');
+  if (!clear) bad.push('Resources has no Clear tile beside its box while it holds a chip');
+  else {
+    t.STUFF().filters.push({ field: 'kindLabel', value: 'Projects' });
+    A['filter-clear'](clear);
+    if (t.RES().filters.length) bad.push('Resources\' Clear left ' + JSON.stringify(t.RES().filters));
+    if (JSON.stringify(t.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('Resources\' Clear reached Find: ' + JSON.stringify(t.STUFF().filters));
+  }
+  return bad;
+});
+
+check('the second finder keeps its own place across a reload — the column, its chips and the chapter in front — and Find keeps its own', async () => {
+  const ADA = ANS_ADA;
+  const one = await resBoot_({ before: signedInAs_(ADA) });
+  if (!one) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const W = one.w, T = W.__t, bad = [];
+  /* REMEMBERED, as a finger's swipe is (`familyTab`): the column is half of where you were. */
+  T.go('res');
+  await wait(80);
+  const chips = [{ field: 'shelf', value: '@family. textbooks' }, { field: 'subject', value: 'Statistics' }];
+  T.RES().filters = chips.map(f => Object.assign({}, f));
+  W.paintFinder_('res');
+  const pages = inRes_(W, () => W.stuffPages_());
+  const at = pages.findIndex(pg => pg.x && pg.x.kind === 'textbook' && pg.part === 'ch3');
+  if (at < 0) return ['Shelf · @family. textbooks, Subject · Statistics has no chapter 3 page — nothing was reloaded'];
+  T.goPage('res', inRes_(W, () => W.stuffFirstResult_()) + at, true);
+  await wait(150);
+  const want = pg_(T).res;
+  /* FIND HAS A PLACE OF ITS OWN, which is not in front and so is not the one a reload comes back to. */
+  T.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  W.paintStuff();
+  W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const kept = keptStore_(W);
+  const resKey = Object.keys(kept).find(k => /^draft:u:P7:res:place$/.test(k));
+  if (!resKey) return bad.concat(['nothing was kept under draft:u:P7:res:place: ' + Object.keys(kept).filter(k => /place/.test(k)).join(', ')]);
+  if (Object.keys(kept).some(k => /:find:place$/.test(k) && /textbooks/.test(kept[k]))) bad.push('Resources\' chips were kept under Find\'s place');
+  const two = await resBoot_({ before: fromStore_(kept) });
+  if (!two) return bad.concat(['the reload did not load — NOT checked']);
+  const w = two.w, t = w.__t;
+  for (let i = 0; i < 100 && !(t.RES().filters || []).length; i++) await wait(50);
+  await wait(200);
+  if (t.AT() !== 'res') bad.push('the reload opened on ' + t.AT() + ', not Resources');
+  if (JSON.stringify(t.RES().filters) !== JSON.stringify(chips)) bad.push('the reload brought Resources back with the chips ' + JSON.stringify(t.RES().filters));
+  if (pg_(t).res !== want) bad.push('the reload put Resources on page ' + pg_(t).res + ', not chapter 3\'s ' + want);
+  const shown = w.document.querySelector('#s-res .card.is-ch3');
+  if (!shown) bad.push('after the reload no chapter 3 card is drawn on Resources');
+  if ((t.STUFF().filters || []).length) bad.push('the reload put Resources\' place on Find: ' + JSON.stringify(t.STUFF().filters));
+  /* AND FIND'S OWN, FROM FIND: kept under its own name and brought back to Find, Resources untouched. */
+  const t2 = two.w;
+  t.go('stuff');
+  await wait(60);
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  t2.paintStuff();
+  t2.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  t2.dispatchEvent(new t2.Event('pagehide'));
+  const kept2 = keptStore_(t2);
+  const three = await resBoot_({ before: fromStore_(kept2) });
+  if (!three) return bad.concat(['the second reload did not load — NOT checked']);
+  const t3 = three.w.__t;
+  for (let i = 0; i < 100 && !(t3.STUFF().filters || []).length; i++) await wait(50);
+  if (t3.AT() !== 'stuff') bad.push('the reload from Find opened on ' + t3.AT());
+  if (JSON.stringify(t3.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('the reload from Find brought Find back with ' + JSON.stringify(t3.STUFF().filters));
+  if ((t3.RES().filters || []).length) bad.push('the reload from Find put chips on Resources: ' + JSON.stringify(t3.RES().filters));
+  /* A PLACE KEPT BEFORE THE RESOURCES MOVED: Find's own, holding a resource chip, comes back without it. */
+  const stale = Object.assign({}, kept2);
+  Object.keys(stale).filter(k => /^draft:u:P7:find:place$/.test(k)).forEach(k => {
+    const dd = JSON.parse(stale[k]); const p = JSON.parse(dd.v);
+    /* AND THE BIBLE'S CHIPS (the review, finding 3): nothing on any list answers a Bible book, so the
+       rule that drops a chip only the other finder answers read it as early and kept it. */
+    p.f = [{ field: 'kindLabel', value: 'Projects' }, { field: 'shelf', value: 'Boxing' },
+           { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }];
+    dd.v = JSON.stringify(p); stale[k] = JSON.stringify(dd);
+  });
+  const four = await resBoot_({ before: fromStore_(stale) });
+  if (four) {
+    const t4 = four.w.__t;
+    for (let i = 0; i < 100 && !(t4.STUFF().filters || []).length; i++) await wait(50);
+    if (JSON.stringify(t4.STUFF().filters) !== JSON.stringify([{ field: 'kindLabel', value: 'Projects' }])) bad.push('a place kept before the move, holding Shelf · Boxing and a Bible book, came back to Find as ' + JSON.stringify(t4.STUFF().filters) + ' — wanted the resource chip dropped and the rest kept');
+  }
+  return bad;
+});
+
+check('the second finder across a sign-in: kept from signed out, kept for the child whose session ended, cleared when an admin signs out or another child signs in', async () => {
+  const bad = [];
+  const where = t => JSON.stringify([t.RES().filters, t.RES().q, pg_(t).res]);
+  /* ---- SIGNED OUT, ON A CHAPTER, THEN SIGNED IN ---- */
+  {
+    const b = await resBoot_();
+    if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+    const { w } = b, t = w.__t;
+    if (t.whoami()) return ['the app opened signed in — signing in from signed OUT was NOT checked'];
+    t.go('res', false, true); await wait(100);
+    const btn = resPick_(w, 'res', '@family. textbooks');
+    if (!btn) return ['Resources does not offer the textbooks shelf — NOT checked'];
+    t.ACTIONS['facet-pick'](btn);
+    resType_(w, 'res', 'probability');
+    await wait(260);
+    const n = inRes_(w, () => w.stuffPages_().length);
+    if (n < 3) return ['the textbooks searched for "probability" left ' + n + ' page(s) — the page was NOT checked'];
+    t.goPage('res', inRes_(w, () => w.stuffFirstResult_()) + 2, true);
+    await wait(80);
+    const before = where(t);
+    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
+    await wait(80);
+    if ((t.whoami() || {}).personId !== 'P12') return ['the child did not sign in: ' + JSON.stringify(t.whoami())];
+    if (where(t) !== before) bad.push('signing in from signed out changed Resources from ' + before + ' to ' + where(t));
+  }
+  /* ---- AN ADMIN, ON THE BOOKS SHELF (which lives in Resources now), SIGNS OUT ---- */
+  {
+    const b = await resBoot_({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
+    if (!b) return bad.concat(['the admin boot did not load — NOT checked']);
+    const { w } = b, t = w.__t, d = w.document;
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().q = 'genesis';
+    w.paintFinder_('res');
+    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin\'s Resources chips do not name the Books shelf, so its going was NOT checked');
+    t.ACTIONS.signout(d.createElement('button'));
+    await wait(60);
+    if (t.whoami()) bad.push('Sign out left somebody signed in');
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    t.go('res', false, true); await wait(60);
+    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, the Resources chips still name the Books shelf');
+  }
+  /* ---- A CHILD'S SESSION ENDS ON RESOURCES: kept for them, not for the next child ---- */
+  {
+    const b = await resBoot_({ before: signedInAs_(KEEP_SOL_) });
+    if (!b) return bad.concat(['the child boot did not load — NOT checked']);
+    const { w } = b, t = w.__t;
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+    w.paintFinder_('res');
+    w.signedOut_({ ended: true, quiet: true });
+    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('a session ending under the child emptied Resources: ' + JSON.stringify(t.RES().filters));
+    if (t.RES().whose !== 'P12') bad.push('the kept Resources does not say whose it is: ' + JSON.stringify(t.RES().whose));
+    w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
+    if (JSON.stringify(t.RES().filters) !== JSON.stringify([{ field: 'shelf', value: 'Boxing' }])) bad.push('the same child signing in again lost Resources\' chips');
+    if (t.RES().whose) bad.push('signed in, RES.whose still names ' + JSON.stringify(t.RES().whose));
+    w.signedOut_({ ended: true, quiet: true });
+    w.signedIn_(Object.assign({ success: true }, KEEP_KIT_), 'kit');
+    if (t.RES().filters.length) bad.push('the next child signing in over a dead session is handed the last child\'s Resources: ' + JSON.stringify(t.RES().filters));
+  }
+  return bad;
+});
+
+check('a link into a resource from elsewhere opens it in Resources: pressed on Find, and Saved\'s Open under a kept textbook — on its card, the chapters a swipe up', async () => {
+  const b = await resBoot_({ before: signedInAs_(ANS_ADA) });
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const book = w.stuffItemsAll_().find(x => x.kind === 'textbook' && x.name === 'GCSE Statistics');
+  const boxer = w.stuffItemsAll_().find(x => x.kind === 'boxer');
+  if (!book || !boxer) return ['no GCSE Statistics or no boxer in the whole list — NOT checked'];
+  const onCard = (x, when) => {
+    if (t.AT() !== 'res') bad.push(when + ': the column in front is ' + t.AT() + ', not Resources');
+    const pg = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_()]);
+    if (!pg || pg.x !== x || pg.part) bad.push(when + ': Resources is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not ' + x.name + '\'s card');
+    const next = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_() + 1]);
+    if (x.kind === 'textbook' && !(next && next.x === x && next.part === 'ch1')) bad.push(when + ': the page after the card is not chapter 1');
+  };
+  /* ---- FROM FIND: the tile a link into a textbook draws, pressed while Find is in front ---- */
+  t.go('stuff', false, true); await wait(60);
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Projects' }];
+  w.paintStuff();
+  const f0 = JSON.stringify(t.STUFF().filters), p0 = pg_(t).stuff;
+  const host = d.createElement('div');
+  d.getElementById('s-stuff').querySelector('.pane').appendChild(host);
+  host.innerHTML = w.finderOpenTile_(book);
+  const link = host.querySelector('[data-do="find-open"]');
+  if (!link) return bad.concat(['a textbook drawn on Find has no Open tile into Resources']);
+  if (!/Resources/.test(link.getAttribute('aria-label') || '')) bad.push('the Open tile does not say where it goes: ' + JSON.stringify(link.getAttribute('aria-label')));
+  A['find-open'](link);
+  await wait(120);
+  onCard(book, 'a textbook opened from Find');
+  if (JSON.stringify(t.STUFF().filters) !== f0 || pg_(t).stuff !== p0) bad.push('opening a textbook from Find changed Find\'s own chips or page');
+  if (!t.RES().filters.some(f => f.field === 'shelf' && f.value === '@family. textbooks')) bad.push('Resources opened the book without the shelf a finger would have pressed: ' + JSON.stringify(t.RES().filters));
+  host.remove();
+  /* INSIDE RESOURCES THE CARD IS ALREADY OPEN: no tile. */
+  const inside = inRes_(w, () => w.finderOpenTile_(book));
+  if (inside) bad.push('a textbook drawn on Resources carries an Open tile to where it already is');
+  /* ---- FROM SAVED: star the book and a boxer, open each from its Open tile ---- */
+  t.RES().filters = []; t.RES().q = '';
+  [book, boxer].forEach(x => { const el = d.createElement('div'); el.innerHTML = w.stuffCard(x); const fav = el.querySelector('[data-do="fav"]'); if (fav) A.fav(fav); });
+  t.go('saved', false, true); await wait(150); await woken_();
+  const saved = d.getElementById('s-saved');
+  const opens = [...saved.querySelectorAll('[data-do="find-open"]')];
+  const forBook = opens.find(el => el.getAttribute('data-key') === book.key);
+  const forBoxer = opens.find(el => el.getAttribute('data-key') === boxer.key);
+  if (!forBook) return bad.concat(['the textbook kept on Saved has no Open tile — its chapters cannot be reached from there']);
+  A['find-open'](forBook);
+  await wait(150);
+  onCard(book, 'a textbook opened from Saved');
+  if (!forBoxer) bad.push('the boxer kept on Saved has no Open tile');
+  else {
+    t.go('saved', false, true); await wait(120);
+    const again = [...d.getElementById('s-saved').querySelectorAll('[data-do="find-open"]')].find(el => el.getAttribute('data-key') === boxer.key);
+    A['find-open'](again || forBoxer);
+    await wait(150);
+    onCard(boxer, 'a boxer opened from Saved');
+  }
+  /* A QUESTION KEPT ON SAVED IS FIND'S, and is not given a way into Resources. */
+  const q = w.stuffItemsAll_().find(x => x.kind === 'project');
+  if (q && w.finderOpenTile_(q)) bad.push('a project kept on Saved was given an Open tile into Resources');
+  return bad;
+});
+
+/* ==================================================================================================
+   THE REVIEW OF THE SECOND FINDER (docs/history/329, "the review"). Each journey below was a probe of
+   the reviewer's first — reproduced on this branch before anything was changed, red — and is held here
+   so the rule it found stays found.
+================================================================================================== */
+
+/* ---------- A SEARCH ONE COLUMN SHORT SAYS WHERE THE THING IS ----------------------------------------------
+   FINDING 1. Find's search stopped carrying the resources, which is the owner's split — and its empty
+   answer still said "Try fewer words." for a boxer that is one swipe away. Before the move, typing a
+   boxer's name, a verse's book or a textbook's word into Find was the way to reach it by name; the
+   owner's list of links into a resource names "a search hit". So an empty search counts what the same
+   words find in the other finder and, if anything, says how many and where, with one Open tile that
+   carries the words there — and the other way round, Resources pointing to Find. A word nobody has
+   still says "Try fewer words." with no tile, and a chip on the other finder that would hide every hit
+   is taken off by the tile rather than landing on "Nothing matches" over there. */
+check('a search one finder cannot answer and the other can says where: Find\'s "Olivares" offers Resources and lands on his card there; a project\'s word on Resources offers Find', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  const olivares = w.stuffItemsAll_().find(x => x.kind === 'boxer' && /Olivares/.test(x.name));
+  if (!olivares) return ['no Ruben Olivares among the boxers — NOT checked'];
+  /* RESOURCES HOLDS A CHIP UNDER WHICH HE IS NOT ON THE LIST: the tile must not land there blind. */
+  t.RES().filters = [{ field: 'shelf', value: '@family. textbooks' }];
+  t.go('stuff', false, true); await wait(80); await woken_();
+  if (!resType_(w, 'stuff', 'Olivares')) return ['Find has no search box — NOT checked'];
+  await wait(260); await woken_();
+  if (t.STUFF().q !== 'Olivares') return ['typing into #stuff-q did not reach Find\'s words — NOT checked'];
+  if (w.stuffFiltered().length) return ['the setup: Find itself finds ' + w.stuffFiltered().length + ' thing(s) for "Olivares", so the empty answer was NOT checked'];
+  const groups = d.getElementById('stuff-groups');
+  const said = (groups.textContent || '').replace(/\s+/g, ' ').trim();
+  if (/Try fewer words/.test(said)) bad.push('Find says "Try fewer words." for a boxer one swipe away in Resources: "' + said + '"');
+  if (!/\b1 in Resources\b/.test(said)) bad.push('Find\'s empty search does not say "1 in Resources": "' + said + '"');
+  const tile = groups.querySelector('.tile-row [data-do="finder-words"]');
+  if (!tile) return bad.concat(['no Open tile under Find\'s empty search, so nothing carries the words to Resources']);
+  if (tile.getAttribute('data-to') !== 'res') bad.push('the tile goes to ' + JSON.stringify(tile.getAttribute('data-to')) + ', not res');
+  if (!/Resources/.test(tile.getAttribute('aria-label') || '')) bad.push('the tile does not say where it goes: ' + JSON.stringify(tile.getAttribute('aria-label')));
+  const f0 = JSON.stringify([t.STUFF().filters, t.STUFF().q]), p0 = pg_(t).stuff;
+  A['finder-words'](tile);
+  await wait(150); await woken_();
+  if (t.AT() !== 'res') bad.push('the Open tile landed on ' + t.AT() + ', not Resources');
+  if (t.RES().q !== 'Olivares') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q) + ', not "Olivares"');
+  if ((d.getElementById('res-q') || {}).value !== 'Olivares') bad.push('Resources\' box reads ' + JSON.stringify((d.getElementById('res-q') || {}).value) + ' — the words are not shown where they now narrow');
+  if (t.RES().filters.length) bad.push('the tile left Resources\' chip that hides him: ' + JSON.stringify(t.RES().filters));
+  const pg = inRes_(w, () => w.stuffPages_()[pg_(t).res - w.stuffFirstResult_()]);
+  if (!pg || pg.x !== olivares || pg.part) bad.push('Resources is on ' + (pg ? (pg.x && pg.x.name) + ':' + (pg.part || 'card') : 'no result') + ', not Ruben Olivares\'s card');
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('the page in front of Resources is not drawn after the tile');
+  if (JSON.stringify([t.STUFF().filters, t.STUFF().q]) !== f0 || pg_(t).stuff !== p0) bad.push('the tile changed Find\'s own words, chips or page');
+  /* ---- THE OTHER WAY: a project's word, typed on Resources ---- */
+  const proj = w.stuffItems().filter(x => x.kind === 'project');
+  let word = '';
+  for (const x of proj) {
+    for (const v of String(x.name || '').split(/[^A-Za-z]+/).filter(s => s.length >= 5)) {
+      const inRes = inRes_(w, () => { const was = w.__t.STUFF().q; w.__t.STUFF().q = v; try { return w.stuffFiltered().length; } finally { w.__t.STUFF().q = was; } });
+      if (!inRes) { word = v; break; }
+    }
+    if (word) break;
+  }
+  if (!word) return bad.concat(['no project word that Resources does not answer — the reverse was NOT checked']);
+  t.RES().filters = []; 
+  resType_(w, 'res', word);
+  await wait(260); await woken_();
+  const rsaid = (d.getElementById('res-groups').textContent || '').replace(/\s+/g, ' ').trim();
+  if (!/\b\d+ in Find\b/.test(rsaid)) bad.push('Resources\' empty search for "' + word + '" does not say how many are in Find: "' + rsaid + '"');
+  const back = d.querySelector('#res-groups .tile-row [data-do="finder-words"]');
+  if (!back) bad.push('no Open tile under Resources\' empty search for "' + word + '"');
+  else {
+    if (back.getAttribute('data-to') !== 'stuff') bad.push('Resources\' tile goes to ' + back.getAttribute('data-to'));
+    A['finder-words'](back);
+    await wait(150); await woken_();
+    if (t.AT() !== 'stuff') bad.push('Resources\' Open landed on ' + t.AT() + ', not Find');
+    if (t.STUFF().q !== word) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q) + ', not ' + JSON.stringify(word));
+    if (!w.stuffFiltered().length) bad.push('Find finds nothing for "' + word + '" after the tile');
+  }
+  /* ---- A WORD NOBODY HAS: the old sentence, and no tile ---- */
+  t.go('stuff', false, true);
+  resType_(w, 'stuff', 'zqxjv');
+  await wait(260); await woken_();
+  const none = (d.getElementById('stuff-groups').textContent || '').replace(/\s+/g, ' ');
+  if (!/Try fewer words/.test(none)) bad.push('a word nobody has no longer says "Try fewer words.": "' + none.trim() + '"');
+  if (d.querySelector('#stuff-groups [data-do="finder-words"]')) bad.push('a word nobody has drew an Open tile to the other finder');
+  return bad;
+});
+
+/* ---------- A FIND PLACE KEPT BEFORE THE MOVE, INSIDE THE BIBLE, AN ADMIN'S ------------------------------
+   FINDING 3. `finderForeign_` drops a chip that only the other finder answers — and nothing on any list
+   answers a Bible book, a chapter or a verse (the verses are a list of their own, `bibleVerses_`), so
+   `Genesis` read as EARLY rather than foreign, stayed on Find, and Find came back inside the Bible
+   saying "Nothing matches". Only an admin could have had the Bible on Find, so this is an admin's. */
+check('a Find place kept before the move inside the Bible (an admin\'s) comes back to Find without any Bible chip', async () => {
+  const ADMIN = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' };
+  /* THE REAL BIBLE FILES, SERVED, so the Bible is on the admin's list as it is on the site — without its
+     index there is no Bible item, and the chips would be measured against a list that has no Bible. */
+  const bibleDir = path.join(dir, '..', 'data', 'bible');
+  const serve = url => {
+    const m = /(?:^|\/)data\/bible\/([a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    const p = path.join(bibleDir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const one = await resBoot_({ serve, before: signedInAs_(ADMIN) });
+  if (!one) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const W = one.w, T = W.__t, bad = [];
+  for (let i = 0; i < 80 && !(T.BIBLE() && T.BIBLE().index); i++) await wait(25);
+  if (!(T.BIBLE() && T.BIBLE().index)) return ['the Bible\'s index never loaded for the admin — NOT checked'];
+  T.go('stuff'); await wait(80);
+  T.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' },
+    { field: 'bibleTranslation', value: 'KJV' }, { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' }];
+  W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
+  W.dispatchEvent(new W.Event('pagehide'));
+  const kept = keptStore_(W);
+  if (!Object.keys(kept).some(x => /^draft:u:P001:find:place$/.test(x))) return ['nothing was kept under draft:u:P001:find:place — NOT checked'];
+  const two = await resBoot_({ serve, before: fromStore_(kept) });
+  if (!two) return ['the reload did not load — NOT checked'];
+  const w = two.w, t = w.__t;
+  for (let i = 0; i < 100 && !(t.STUFF().filters || []).length; i++) await wait(50);
+  for (let i = 0; i < 80 && !(t.BIBLE() && t.BIBLE().index); i++) await wait(25);
+  await wait(200);
+  if (t.AT() !== 'stuff') bad.push('the reload opened on ' + t.AT() + ', not Find — the place was NOT brought back');
+  const fl = t.STUFF().filters || [];
+  if (JSON.stringify(fl) !== JSON.stringify([{ field: 'forLabel', value: 'Learning' }])) bad.push('Find came back with ' + JSON.stringify(fl) + ' — wanted Learning and every resource and Bible chip dropped');
+  if (w.bibleInside_()) bad.push('Find is inside the Bible after the reload');
+  if (/Nothing matches/.test((w.document.getElementById('s-stuff') || {}).textContent || '')) bad.push('Find says "Nothing matches" after the reload');
+  /* AND THE SAME CHIPS ARE RESOURCES' OWN: a place kept there keeps them. */
+  if (w.inFinder_(w.finderOf_('res'), () => w.finderForeign_({ field: 'bibleBook', value: 'Genesis' }))) bad.push('Resources would drop its own Bible book chip from a kept place');
+  return bad;
+});
+
+/* ---------- WORK THAT RUNS LATER, BOUND TO ITS FINDER ----------------------------------------------------
+   FINDING 4. The build listed the delayed work it re-binds — the search box's debounce, the draw's
+   microtask, `goPage` — and none of the six journeys above failed when any one of them was undone,
+   while the Resources column visibly broke: it never updated as you typed, a landing repaint left the
+   page in front blank, and a swipe turned to blank pages until the after-slide fill. One journey each,
+   asked of what is on the screen. */
+check('Resources\' search box repaints Resources after its debounce, even with an answer pressed on Find inside the 180ms', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, d = w.document, A = t.ACTIONS, bad = [];
+  t.go('res', false, true); await wait(120); await woken_();
+  const resQ0 = d.getElementById('res-groups').innerHTML;
+  resType_(w, 'res', 'frequency density');
+  t.go('stuff', false, true);
+  const pick = d.querySelector('#s-stuff #stuff-groups [data-do="facet-pick"]');
+  if (pick) A['facet-pick'](pick); else bad.push('Find drew no answer to press inside the debounce');
+  const findGroups = d.getElementById('stuff-groups').innerHTML;
+  const findF = JSON.stringify(t.STUFF().filters);
+  await wait(400); await woken_();
+  if (t.RES().q !== 'frequency density') bad.push('Resources\' words are ' + JSON.stringify(t.RES().q));
+  if (t.STUFF().q) bad.push('Find\'s words are ' + JSON.stringify(t.STUFF().q));
+  /* NORMALISED THROUGH AN ELEMENT, as the screen's own markup is once the browser has parsed it. */
+  const tmp = d.createElement('div'); tmp.innerHTML = inRes_(w, () => w.stuffQuestion());
+  const want = tmp.innerHTML;
+  if (want === resQ0) return bad.concat(['the setup: "frequency density" does not change Resources\' question, so its repaint was NOT checked']);
+  if (d.getElementById('res-groups').innerHTML !== want) bad.push('Resources\' question on screen is not what its own state draws after the debounce (unchanged since before typing: ' + (d.getElementById('res-groups').innerHTML === resQ0) + ')');
+  if (d.getElementById('stuff-groups').innerHTML !== findGroups) bad.push('Find\'s question was repainted by Resources\' debounce');
+  if (JSON.stringify(t.STUFF().filters) !== findF) bad.push('Find\'s chips changed under Resources\' debounce');
+  return bad;
+});
+
+check('a landing repaint on a Resources result leaves the page in front drawn (the draw\'s microtask fills in Resources\' binding)', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  t.go('res', false, true); await wait(80);
+  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('res');
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  t.goPage('res', first + 7, true); await wait(200); await woken_();
+  if (!inRes_(w, () => w.stuffHeld_())) return ['the setup: the page in front of Resources was not filled before the repaint — NOT checked'];
+  w.landRepaint_();
+  await wait(300); await woken_();
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('after a landing repaint the page in front of Resources is empty (PAGE.res ' + pg_(t).res + ')');
+  if (!w.document.querySelectorAll('#s-res > .page.is-res[data-filled="1"]').length) bad.push('no result page of Resources is filled after a landing repaint');
+  return bad;
+});
+
+check('a page turn on Resources from outside any binding (a swipe) has the page in front drawn at once, near and far', async () => {
+  const b = await resBoot_();
+  if (!b) return ['the app or libraryExtras_ did not load — NOT checked'];
+  const { w } = b, t = w.__t, bad = [];
+  t.go('res', false, true); await wait(80);
+  t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+  w.paintFinder_('res');
+  await wait(200); await woken_();
+  const first = inRes_(w, () => w.stuffFirstResult_());
+  if (inRes_(w, () => w.stuffPages_().length) < 45) return ['the setup: Shelf · Boxing has too few pages to jump 40 — NOT checked'];
+  /* EACH READ SYNCHRONOUSLY, BEFORE ANY TIMER — the after-slide fill would hide a page drawn late. */
+  t.goPage('res', first + 40, true);
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('jumped to result 40: the page in front is not drawn synchronously');
+  t.goPage('res', first + 41);
+  if (!inRes_(w, () => w.stuffHeld_())) bad.push('turned one page: the page in front is not drawn synchronously');
   return bad;
 });
 
@@ -14237,7 +18053,7 @@ const pickEvery_ = (w, src, n) => {
   const sp = w.document.getElementById('splash');
   const was = w.Math.random, out = [];
   const reset = () => {
-    sp.className = 'is-tag';
+    sp.className = 'is-still';
     [...sp.querySelectorAll(':scope > [class|="an"]')].forEach(e => e.remove());
     [...w.document.head.querySelectorAll('style[data-anim]')].forEach(e => e.remove());
   };
@@ -14305,7 +18121,8 @@ check('a retired splash stays retired: the file\'s list reaches the device, and 
    when the page turns; its stylesheet is in the page once and is the row's; the drawing is the row's
    markup with its ids made its own; no id inside any drawing on the page is shared; the chapter's
    formula under it is typeset; the book's search words hold no markup; and Play again starts it over. */
-check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
+/* ON THE RESOURCES COLUMN, where the textbooks are (docs/history/329). */
+check('a chapter plays its animation on the Resources column: Pythagoras after GCSE Maths chapter 17, drawn from its row', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -14320,20 +18137,21 @@ check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, dr
   const bad = [];
   const row = rows.find(r => r.anim === 'pyth');
   if (!row) return ['data/textbooks.json has no pyth row — NOT checked'];
-  t.go('stuff');
-  const S = t.STUFF();
+  const R = resView_(w);
+  t.go('res');
+  const S = t.RES();
   S.q = ''; S.filters.length = 0;
-  S.filters.push({ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
-  w.paintStuff();
-  const pages = w.stuffPages_();
+  S.filters.push({ field: 'shelf', value: '@family. textbooks' }, { field: 'book', value: 'GCSE Maths' });
+  w.paintFinder_('res');
+  const pages = R.stuffPages_();
   const at = pages.findIndex(pg => pg.part === 'an17-pyth');
   if (at < 0) return ['GCSE Maths has no an17-pyth page: ' + pages.map(pg => pg.part || 'card').slice(0, 30).join(' ')];
   if (!pages[at - 1] || pages[at - 1].part !== 'ch17') bad.push('Pythagoras is not the page straight after chapter 17 (it follows ' + (pages[at - 1] && pages[at - 1].part) + ')');
-  const first = w.stuffFirstResult_();
-  t.goPage('stuff', first + at);
+  const first = R.stuffFirstResult_();
+  t.goPage('res', first + at);
   await wait(450); await woken_();
-  const host = w.document.getElementById('s-stuff');
-  /* THE PAGE IN FRONT, AS FIND MARKS IT — `.on` on the page the column is placed at. */
+  const host = w.document.getElementById('s-res');
+  /* THE PAGE IN FRONT, AS THE FINDER MARKS IT — `.on` on the page the column is placed at. */
   const cardEl = host.querySelector('.card.is-an17-pyth');
   const here = cardEl && cardEl.closest('.page');
   const stage = here && here.querySelector('.tb-an-stage[data-anim="pyth"]');
@@ -14389,7 +18207,7 @@ check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, dr
     if (stage.innerHTML !== box.innerHTML) bad.push('Play again changed the drawing');
   }
   /* AND IT STOPS WHEN THE PAGE TURNS. */
-  t.goPage('stuff', first + at + 1);
+  t.goPage('res', first + at + 1);
   await wait(450); await woken_();
   if (stage.isConnected && stage.classList.contains('is-on')) bad.push('turned to the next page, and Pythagoras is still `.is-on` — playing out of sight');
   return bad;
@@ -14400,7 +18218,8 @@ check('a chapter plays its animation: Pythagoras after GCSE Maths chapter 17, dr
    owner. Boot 1 is a real load that reads the real books and keeps the copy. Boot 2 is the next visit
    on the same device: its storage carried over, Pythagoras the one the coin can land on, the real
    picker run as index.html runs it. The drawing on the splash is the chapter's drawing; and when the
-   load finishes, it is taken off and the splash goes back to the tag for any Try again. */
+   load finishes, it is taken off and the splash goes back to the still name and the loader for any
+   Try again. */
 check('the splash is drawn from the textbooks\' copy: a load keeps it, the next one draws it, and it comes off with the splash', async () => {
   const books = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'textbooks.json'), 'utf8'));
   const sheet = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'splashes.json'), 'utf8'));
@@ -14416,14 +18235,15 @@ check('the splash is drawn from the textbooks\' copy: a load keeps it, the next 
   if (idx.ids.join() !== want.join()) bad.push('the first load kept ' + idx.ids.length + ' animations, not the books\' ' + want.length + ' in order');
   const src = pickerSrc_();
   if (!src) return bad.concat(['index.html has no <script id="pick-splash"> — NOT checked']);
-  const inline = ((/var kinds = \[([^\]]*)\]/.exec(src.replace(/\/\*[\s\S]*?\*\//g, '')) || [])[1] || '').match(/'([a-z0-9]+)'/g).map(x => x.slice(1, -1));
+  /* EVERY OTHER DRAWING RETIRED, so the coin can only land on Pythagoras. The books' copy is the whole
+     pool: the inline splashes it was once mixed with are gone (docs/history/322). */
   const two = boot({ serve, before: w2 => {
     Object.keys(kept).forEach(k => w2.localStorage.setItem(k, kept[k]));
-    w2.localStorage.setItem('splashOff', JSON.stringify(inline.concat(idx.ids).filter(k => k !== 'pyth').map(k => 'is-' + k)));
+    w2.localStorage.setItem('splashOff', JSON.stringify(idx.ids.filter(k => k !== 'pyth').map(k => 'is-' + k)));
   } });
   const w = two.w;
   const sp = w.document.getElementById('splash');
-  sp.className = 'is-tag';
+  sp.className = 'is-still';
   w.eval(src);
   const root = sp.querySelector(':scope > .an-pyth');
   if (sp.className !== 'is-an' || !root) return bad.concat(['the next visit drew "' + sp.className + '", not Pythagoras from the kept copy']);
@@ -14444,7 +18264,10 @@ check('the splash is drawn from the textbooks\' copy: a load keeps it, the next 
   w.splashOff_();
   await wait(650);
   if (sp.querySelector(':scope > [class|="an"]')) bad.push('half a second after the splash came off, its drawing is still in it');
-  if (sp.className.split(/\s+/).indexOf('is-tag') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash');
+  /* BACK TO THE STILL NAME AND THE LOADER, which is what a Try again is: a wait. It went back to the tag
+     until the tag was deleted with the other splashes that taught nothing. */
+  if (sp.className.split(/\s+/).indexOf('is-still') < 0) bad.push('after the splash came off it is "' + sp.className + '" — a Try again would show an empty splash, not the name and the loader');
+  else if (!sp.querySelector('#splash-still .loading[role="status"]') || !/@family\./.test((sp.querySelector('#splash-still') || {}).textContent || '')) bad.push('after the splash came off, the still one it went back to has no name or no loader in it');
   return bad;
 });
 
@@ -14477,6 +18300,10 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
    words, presses the Bible's answers and its tiles as forged buttons — and the list of everything
    fetched is read: not one URL under `data/bible/`.
 
+   ON THE RESOURCES COLUMN SINCE THE RESOURCES MOVED (docs/history/329): `What for` and `What kind` have
+   one answer each there and are skipped, so the walk is Books first, and the Chapter tile — from a verse
+   found here or kept on Saved — lands on that column.
+
    AN ADMIN, BY REAL PRESSES. Learning → Resources → Books → KJV → Old Testament → Torah → Genesis → 1 →
    3, reading what each question offers and in what order; every verse of Genesis 1 drawn from the
    file, italics and pilcrows as printed; the Chapter tile; Psalms's 150 chapters and Psalm 119's 176
@@ -14484,7 +18311,7 @@ check('the books and the settings files are fetched with the deploy stamp', asyn
    forged, a citation typed; every chapter of every book walked; a book that does not come and comes on
    the second try; the late index; the library held back; stars; a demotion; and signing out. On every
    Bible list, what the funnel TALLIED is read as well as what it asked. */
-check('the Bible: Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
+check('the Bible, on the Resources column: Books → KJV → testament → group → book → chapter → verse, a card each; nobody else is shown it or fetches a byte of it', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
   await wait(300);
@@ -14520,25 +18347,26 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     const b = boot({ payload: base(), serve, before: u ? seed(u) : undefined });
     await wait(300);
     const w = b.w, t = w.__t;
+    const R = resView_(w);
     if (!t || !t.STUFF) { bad.push(what + ': the app did not load, so it was NOT checked'); continue; }
     if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
-    t.go('stuff');
-    t.STUFF().q = '';
-    t.STUFF().filters = [{ field: 'kindLabel', value: 'Resources' }];
-    w.paintStuff();
+    t.go('res');
+    t.RES().q = '';
+    t.RES().filters = [{ field: 'kindLabel', value: 'Resources' }];
+    w.paintFinder_('res');
     await wait(30);
     const shelf = w.facetList().find(f => f.field === 'shelf');
-    const shelves = shelf ? w.facetValues(w.stuffFiltered(), shelf).map(v => String(v.value)) : [];
+    const shelves = shelf ? R.facetValues(R.stuffFiltered(), shelf).map(v => String(v.value)) : [];
     if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
     if (shelves.indexOf('@family. textbooks') < 0) bad.push(what + ' was not offered the textbooks shelf — the walk did not reach Resources, so the absence proves nothing');
     if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
     for (const q of ['bible', 'genesis', 'king james', 'kjv', 'psalms']) {
-      t.STUFF().filters = []; t.STUFF().q = q;
-      if (w.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
+      t.RES().filters = []; t.RES().q = q;
+      if (R.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
     }
-    t.STUFF().q = '';
-    t.STUFF().filters = [];
-    w.paintStuff();
+    t.RES().q = '';
+    t.RES().filters = [];
+    w.paintFinder_('res');
     if (w.document.querySelector('.card.bible, [data-do^="bible-"]')) bad.push(what + ' has a Bible card or button drawn');
     /* AND THE BIBLE'S ANSWERS, PRESSED ANYWAY — forged, because nothing draws them for this visitor. */
     for (const [field, value] of [['bibleTranslation', 'KJV'], ['bibleBook', 'Genesis']]) {
@@ -14547,18 +18375,18 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       try { t.ACTIONS['facet-pick'](fake); } catch (e) { bad.push(what + ': pressing a forged ' + field + ' threw ' + e.message); }
     }
     await wait(60);
-    if (w.stuffFiltered().length) bad.push(what + ' pressed a forged KJV and Genesis and was shown ' + w.stuffFiltered().length + ' thing(s)');
-    if (w.bibleInside_()) bad.push(what + ' holding forged Bible chips is "inside the Bible" — the verses would be read for them');
+    if (R.stuffFiltered().length) bad.push(what + ' pressed a forged KJV and Genesis and was shown ' + R.stuffFiltered().length + ' thing(s)');
+    if (R.bibleInside_()) bad.push(what + ' holding forged Bible chips is "inside the Bible" — the verses would be read for them');
     if (w.document.querySelector('.card.bb-verse')) bad.push(what + ' has a verse card drawn');
     /* AND ITS TILES, PRESSED ANYWAY: the chips must not move and nothing may be fetched. */
-    const was = JSON.stringify(t.STUFF().filters);
+    const was = JSON.stringify(t.RES().filters);
     for (const [act, attrs] of [['bible-go', { 'data-key': 'bible:kjv:1:1:3' }], ['bible-go', {}], ['bible-retry', { 'data-n': '1' }], ['bible-retry', {}]]) {
       const fake = w.document.createElement('button');
       Object.keys(attrs).forEach(k => fake.setAttribute(k, attrs[k]));
       try { t.ACTIONS[act](fake); } catch (e) { bad.push(what + ': pressing a forged ' + act + ' threw ' + e.message); }
     }
     await wait(60);
-    if (JSON.stringify(t.STUFF().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Find\'s chips changed to ' + JSON.stringify(t.STUFF().filters));
+    if (JSON.stringify(t.RES().filters) !== was) bad.push(what + ' pressed a forged Bible tile and Resources\' chips changed to ' + JSON.stringify(t.RES().filters));
     const got = ofBible(b.gets);
     if (got.length) bad.push(what + ' fetched ' + got.length + ' file(s) of the Bible: ' + got.slice(0, 3).join(', '));
     if (!b.gets.length) bad.push(what + ': no fetch was recorded at all, so "nothing of the Bible" proves nothing');
@@ -14568,22 +18396,26 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] };
   const a = boot({ payload: base(), serve, before: seed(admin) });
   const w = a.w, t = w.__t, d = w.document;
+  /* THE BIBLE IS A RESOURCE, so every question below is asked of the Resources column (docs/history/329). */
+  const R = resView_(w);
   for (let i = 0; i < 40 && !(t && t.BIBLE && t.BIBLE() && t.BIBLE().index); i++) await wait(25);
   if (!t || !t.BIBLE || !t.BIBLE()) return bad.concat(['the Bible\'s state is not exported to the journey']);
   if (!t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — fetched: ' + ofBible(a.gets).join(', ')]);
   if (ofBible(a.gets).length !== 1 || !/index\.json/.test(ofBible(a.gets)[0])) bad.push('an admin\'s boot fetched ' + JSON.stringify(ofBible(a.gets)) + ' — the index and no book is the right answer');
-  if (w.stuffItemsAll_().some(i => i.bb)) bad.push('a verse is on Find\'s own list — the 31,102 are a list of their own, read only while the Bible is open');
+  if (w.stuffItemsAll_().some(i => i.bb)) bad.push('a verse is on the app\'s own list — the 31,102 are a list of their own, read only while the Bible is open');
+  if (w.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is on Find\'s list for an admin — it is a resource, and lives on the Resources column');
+  if (!R.stuffItems().some(i => i.kind === 'bible')) bad.push('the Bible\'s cover is not on the Resources column\'s list for an admin');
   /* EVERY TOAST, COUNTED: a book that does not come must be said once, not once per card waiting on it. */
   const toasts = [];
   const realToast = w.toast;
   w.toast = msg => { toasts.push(String(msg)); return realToast(msg); };
   const box = html => { const e = d.createElement('div'); e.innerHTML = html; return e; };
-  const answersOn = () => [...d.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
+  const answersOn = () => [...d.querySelectorAll('#res-groups [data-do="facet-pick"]')];
   const asked = () => {
     const a2 = answersOn();
     return { field: a2.length ? a2[0].dataset.field : '', vals: a2.map(b => b.dataset.value),
-             grid: !!d.querySelector('#stuff-groups .answers.is-grid'),
-             end: ((d.querySelector('#stuff-groups .find-end') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
+             grid: !!d.querySelector('#res-groups .answers.is-grid'),
+             end: ((d.querySelector('#res-groups .find-end') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
   };
   const pick = async (field, value) => {
     const el = answersOn().find(b => b.dataset.field === field && b.dataset.value === value);
@@ -14593,24 +18425,26 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     return true;
   };
   const skip = async field => {
-    const el = d.querySelector('#stuff-groups [data-do="facet-skip"][data-field="' + field + '"]');
+    const el = d.querySelector('#res-groups [data-do="facet-skip"][data-field="' + field + '"]');
     if (!el) { bad.push('no "Doesn\'t matter" under ' + field + ' to press'); return false; }
     t.ACTIONS['facet-skip'](el);
     await wait(60);
     return true;
   };
-  const DOORS = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+  /* THE ONE DOOR LEFT: on the Resources column `What for` and `What kind` have one answer each and are
+     skipped, so the Books shelf is the only chip in front of the Bible's own (docs/history/329). */
+  const DOORS = [{ field: 'shelf', value: 'Books' }];
   const KJV = { field: 'bibleTranslation', value: 'KJV' };
-  const setTo = list => { t.STUFF().q = ''; t.STUFF().filters = list.map(f => Object.assign({}, f)); w.paintStuff(); };
+  const setTo = list => { t.RES().q = ''; t.RES().filters = list.map(f => Object.assign({}, f)); w.paintFinder_('res'); };
   const same = (got, want, say) => { if (got.join('|') !== want.join('|')) bad.push(say + ' offers ' + (got.slice(0, 8).join(', ') || 'nothing') + (got.length > 8 ? '… (' + got.length + ')' : '') + ' — not ' + want.slice(0, 8).join(', ') + (want.length > 8 ? '… (' + want.length + ')' : '')); };
   const run = n => Array.from({ length: n }, (_, i) => String(i + 1));
   /* WHAT THE FUNNEL TALLIED, not only what it asked: on a fresh copy of the list, `nextFacet` may tally
      one Bible question — or none, once nothing is left — and nothing that is not the Bible's. */
   const tallies = say => {
-    const list = w.stuffFiltered();
+    const list = R.stuffFiltered();
     if (!list.length || !list[0].bb) return;
     const copy = list.slice();
-    const nf = w.nextFacet(copy);
+    const nf = R.nextFacet(copy);
     const keys = Object.keys(t.FACET_TALLY().get(copy) || {}).map(k => k.split('|')[0]);
     if (keys.some(k => !/^bible/.test(k)) || keys.length > 1 || (nf && keys.length !== 1)) {
       bad.push(say + ': a fresh nextFacet over the verses tallied ' + (keys.join(', ') || 'nothing')
@@ -14618,9 +18452,9 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     }
   };
 
-  t.go('stuff');
-  t.STUFF().filters.length = 0; t.STUFF().q = '';
-  w.paintStuff();
+  t.go('res');
+  t.RES().filters.length = 0; t.RES().q = '';
+  w.paintFinder_('res');
   const route = ['Learning', 'Resources', 'Books'];
   const rungs = ['forLabel', 'kindLabel', 'shelf'];
   const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
@@ -14629,7 +18463,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     const btns = answersOn();
     let el = btns.find(b => b.dataset.value === route[0]);
     const rung = w.facetList().find(f => f.field === rungs[rungs.length - route.length]);
-    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    const only = rung ? R.facetValues(R.stuffFiltered(), rung).map(v => String(v.value)) : [];
     if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
     if (!el) {
       const grp = (() => { try { return rung.bucketOf(route[0]); } catch (e) { return ''; } })();
@@ -14648,14 +18482,14 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (pressed.indexOf('Books') < 0) bad.push('the Books shelf was never a question for an admin — ' + pressed.join(' → '));
 
   /* ---------- 1. BOOKS: THE COVER, AND ONE QUESTION WITH ONE ANSWER --------------------------------- */
-  const left = w.stuffFiltered();
+  const left = R.stuffFiltered();
   const x = left[0];
   if (left.length !== 1 || !x || x.kind !== 'bible' || x.bb) return bad.concat(['after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
     + left.slice(0, 4).map(i => i.kind + ' ' + i.name).join(', ') + ' — not the Bible\'s cover']);
   let q = asked();
   if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('on the Books shelf the question is ' + (q.field || 'nothing') + ' ' + JSON.stringify(q.vals) + ' — it should be Translation, with KJV its one answer (a folder is asked with one)');
   if (ofBible(a.gets).length !== 1) bad.push('a book was fetched before KJV was pressed: ' + ofBible(a.gets).join(', '));
-  const coverBox = box(w.stuffCard(x));
+  const coverBox = box(R.stuffCard(x));
   const cover = coverBox.querySelector('.favwrap > .card') || coverBox.firstElementChild;
   if (!cover || !cover.classList.contains('bible') || !cover.classList.contains('fc')) bad.push('the cover is not a `.card.fc.bible`');
   else {
@@ -14672,7 +18506,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   /* ---------- 2. KJV: EVERY VERSE, AND THE TESTAMENTS IN THEIR ORDER -------------------------------- */
   if (!(await pick('bibleTranslation', 'KJV'))) return bad;
   await wait(150);
-  const verses = w.stuffFiltered();
+  const verses = R.stuffFiltered();
   if (verses.length !== index.totals.verses) bad.push('KJV leaves ' + verses.length + ' verses, not ' + index.totals.verses);
   if (verses !== w.bibleVerses_()) bad.push('KJV\'s list is not the verse list itself — every verse answers KJV, so nothing should have been copied');
   if (!verses[0] || verses[0].key !== 'bible:kjv:1:1:1' || verses[verses.length - 1].key !== 'bible:kjv:66:22:21') {
@@ -14684,7 +18518,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   tallies('KJV');
   const gen = () => ofBible(a.gets).filter(u => /01-genesis\.json/.test(u)).length;
   if (gen() !== 1) bad.push('drawing the first verses fetched Genesis ' + gen() + ' times — once, when its first card is drawn');
-  const c11 = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:1"] .bb-v');
+  const c11 = d.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:1:1:1"] .bb-v');
   if (!c11) bad.push('the first verse card was not drawn after KJV');
   /* `.loading` IN THE CARD, NOT `.bb-v.is-wait`: a verse waiting for its book is the one loader now
      (`loading_`, shell.js — the owner, 9 Oct, *"they should all have a simplistic simple loading
@@ -14725,7 +18559,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   same(q.vals, run(31), 'Genesis 1\'s Verse question');
   tallies('Genesis 1');
   const genesis = JSON.parse(fs.readFileSync(path.join(bibleDir, '01-genesis.json'), 'utf8'));
-  const ch1 = w.stuffFiltered();
+  const ch1 = R.stuffFiltered();
   same(ch1.map(i => i.key), run(31).map(v => 'bible:kjv:1:1:' + v), 'Genesis 1\'s results');
   /* THE FILE'S VERSE AS A CARD MUST PRINT IT, WRITTEN OUT HERE AND NOT ASKED OF `bibleV_`. This compared
      each card with `bibleV_` of the same verse — the function that drew it, so it was comparing the card
@@ -14736,7 +18570,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const printed = raw => '<p class="bb-v">' + (/^#/.test(raw) ? '<span class="bb-para" aria-hidden="true">¶</span> ' : '')
     + escH(raw.replace(/^#\s*/, '')).replace(/\[([^\[\]]*)\]/g, '<i>$1</i>') + '</p>';
   ch1.forEach((v, i) => {
-    const html = w.stuffCard(v);
+    const html = R.stuffCard(v);
     const card = box(html);
     const p = card.querySelector('.card.bb-verse .bb-v');
     const text = p ? p.textContent : '';
@@ -14746,34 +18580,34 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
     if (i === 0 && tags.join('|') !== 'Verse|Genesis 1:1|KJV|Old Testament|Torah') bad.push('Genesis 1:1\'s tags are ' + tags.join(', '));
   });
-  const v2 = box(w.stuffCard(ch1[1])).querySelector('.bb-v');
+  const v2 = box(R.stuffCard(ch1[1])).querySelector('.bb-v');
   if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
-  if (!box(w.stuffCard(ch1[5])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:6 starts a paragraph in the 1611 text and carries no pilcrow');
+  if (!box(R.stuffCard(ch1[5])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:6 starts a paragraph in the 1611 text and carries no pilcrow');
   /* AND ITS WORDS, BY EYE: the first verse under a pilcrow is the one a slip there blanks. */
-  const v6 = box(w.stuffCard(ch1[5])).querySelector('.bb-v');
+  const v6 = box(R.stuffCard(ch1[5])).querySelector('.bb-v');
   if (!v6 || v6.textContent.indexOf('Let there be a firmament in the midst of the waters') < 0) bad.push('Genesis 1:6 reads "' + (v6 ? v6.textContent.trim().slice(0, 60) : 'nothing') + '" — not "And God said, Let there be a firmament in the midst of the waters"');
-  if (box(w.stuffCard(ch1[0])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:1 carries a pilcrow it does not have');
+  if (box(R.stuffCard(ch1[0])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:1 carries a pilcrow it does not have');
 
   /* ---------- 5. VERSE 3: ONE CARD, THE LINE THAT SAYS SO, AND ITS CHAPTER TILE ----------------------- */
   if (!(await pick('bibleVerse', '3'))) return bad;
-  const v3 = w.stuffFiltered();
+  const v3 = R.stuffFiltered();
   if (v3.length !== 1 || v3[0].key !== 'bible:kjv:1:1:3') bad.push('Genesis 1:3 leaves ' + v3.map(i => i.name).join(', '));
   q = asked();
   if (q.vals.length) bad.push('after the verse the funnel still asks ' + q.field);
   if (q.end !== 'Genesis 1:3. Swipe up for it.') bad.push('the line under the chips says "' + q.end + '", not "Genesis 1:3. Swipe up for it."');
   tallies('Genesis 1:3');
-  const v3card = box(w.stuffCard(v3[0]));
+  const v3card = box(R.stuffCard(v3[0]));
   if (!/And God said, Let there be light: and there was light\./.test((v3card.querySelector('.bb-v') || {}).textContent || '')) bad.push('Genesis 1:3 does not read "And God said, Let there be light: and there was light."');
   if (gen() !== 1) bad.push('Genesis was fetched ' + gen() + ' times by the end of chapter 1');
-  const go3 = d.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
+  const go3 = d.querySelector('#s-res [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
   if (!go3) bad.push('Genesis 1:3 found alone has no Chapter tile drawn under it');
   else {
     t.ACTIONS['bible-go'](go3);
     await wait(80);
-    const f = t.STUFF().filters, last = f[f.length - 1] || {};
+    const f = t.RES().filters, last = f[f.length - 1] || {};
     if (last.field !== 'bibleChapter' || last.value !== '1' || f.some(c => c.field === 'bibleVerse')) bad.push('the Chapter tile set the chips to ' + JSON.stringify(f));
-    if (w.stuffFiltered().length !== 31) bad.push('the Chapter tile left ' + w.stuffFiltered().length + ' verses, not Genesis 1\'s 31');
-    if (t.PAGE().stuff !== w.stuffFirstResult_() + 2) bad.push('the Chapter tile turned to page ' + t.PAGE().stuff + ', not Genesis 1:3 (' + (w.stuffFirstResult_() + 2) + ')');
+    if (R.stuffFiltered().length !== 31) bad.push('the Chapter tile left ' + R.stuffFiltered().length + ' verses, not Genesis 1\'s 31');
+    if (t.PAGE().res !== R.stuffFirstResult_() + 2) bad.push('the Chapter tile turned to page ' + t.PAGE().res + ', not Genesis 1:3 (' + (R.stuffFirstResult_() + 2) + ')');
   }
 
   /* ---------- 6. THE LONGEST RUNS: PSALMS'S 150 CHAPTERS AND PSALM 119'S 176 VERSES ------------------- */
@@ -14782,19 +18616,19 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   q = asked();
   same(q.vals, run(150), 'Psalms\'s Chapter question');
   if (!q.grid) bad.push('Psalms\'s 150 chapters are not drawn as a grid');
-  const nfPs = w.nextFacet(w.stuffFiltered());
+  const nfPs = R.nextFacet(R.stuffFiltered());
   if (!nfPs || nfPs.field !== 'bibleChapter') bad.push('nextFacet asks ' + (nfPs ? nfPs.field : 'nothing') + ' of Psalms — a grid is exempt from the answer cap, so it should be Chapter, not left to overFacet_');
   if (!(await pick('bibleChapter', '119'))) return bad;
   q = asked();
   same(q.vals, run(176), 'Psalm 119\'s Verse question');
-  const nf119 = w.nextFacet(w.stuffFiltered());
+  const nf119 = R.nextFacet(R.stuffFiltered());
   if (!nf119 || nf119.field !== 'bibleVerse') bad.push('nextFacet asks ' + (nf119 ? nf119.field : 'nothing') + ' of Psalm 119 — Verse, its 176 as a grid');
   tallies('Psalm 119');
   if (!(await pick('bibleVerse', '105'))) return bad;
   let lamp = null;
   for (let i = 0; i < 40 && !(lamp && !lamp.closest('.bb-verse').querySelector('.loading')); i++) {
     await wait(25);
-    lamp = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:19:119:105"] .bb-v');
+    lamp = d.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:19:119:105"] .bb-v');
   }
   if (!lamp || lamp.innerHTML.indexOf('Thy word <i>is</i> a lamp unto my feet, and a light unto my path.') < 0) {
     bad.push('Psalm 119:105 reads "' + (lamp ? lamp.textContent.trim() : 'nothing') + '"');
@@ -14814,11 +18648,11 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   /* ---------- 8. EVERY RUNG SKIPPED: BOOK BEFORE CHAPTER, DRAWN WHOLE; THEN THE LONGEST RUNS ---------- */
   setTo(DOORS.concat([KJV]));
   if (await skip('bibleTestament') && await skip('bibleGroup')) {
-    const list = w.stuffFiltered();
+    const list = R.stuffFiltered();
     q = asked();
     if (q.field !== 'bibleBook' || q.vals.length !== index.books.length) bad.push('with Testament and Group skipped the question is ' + q.field + ' with ' + q.vals.length + ' answers — Book, all 66, before any chapter');
     else same(q.vals, index.books.map(b => b.book), 'Book over the whole Bible');
-    if (w.nextFacet(list)) bad.push('nextFacet asks ' + w.nextFacet(list).field + ' with Testament and Group skipped — Book is over the cap, and nothing else may go before it');
+    if (R.nextFacet(list)) bad.push('nextFacet asks ' + R.nextFacet(list).field + ' with Testament and Group skipped — Book is over the cap, and nothing else may go before it');
     tallies('Testament and Group skipped');
     if (await skip('bibleBook')) {
       q = asked();
@@ -14832,20 +18666,20 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
 
   /* ---------- 9. A CHIP DROPPED, A CHIP FORGED, A CITATION TYPED --------------------------------------- */
   setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' }]));
-  const kjvChip = d.querySelector('#stuff-chips [data-do="filter-drop"][data-i="3"]');
+  const kjvChip = d.querySelector('#res-chips [data-do="filter-drop"][data-i="1"]');
   if (!kjvChip) bad.push('there is no ✕ on the KJV chip to press');
   else {
     t.ACTIONS['filter-drop'](kjvChip);
     q = asked();
     if (q.field !== 'bibleTranslation' || q.vals.join('|') !== 'KJV') bad.push('KJV dropped with the other rungs on asks ' + q.field + ' ' + JSON.stringify(q.vals) + ' — Translation again, like any dropped chip');
-    if (w.stuffFiltered().length !== 5852) bad.push('KJV dropped leaves ' + w.stuffFiltered().length + ' verses, not the Torah\'s 5,852');
+    if (R.stuffFiltered().length !== 5852) bad.push('KJV dropped leaves ' + R.stuffFiltered().length + ' verses, not the Torah\'s 5,852');
   }
   setTo(DOORS.concat([{ field: 'subject', value: 'Maths' }, KJV]));
-  if (w.stuffFiltered().length) bad.push('a forged Subject: Maths chip beside KJV leaves ' + w.stuffFiltered().length + ' verses — the cover answers the chips that are not the Bible\'s, and it is not Maths');
+  if (R.stuffFiltered().length) bad.push('a forged Subject: Maths chip beside KJV leaves ' + R.stuffFiltered().length + ' verses — the cover answers the chips that are not the Bible\'s, and it is not Maths');
   setTo(DOORS.concat([KJV]));
-  t.STUFF().q = 'john 3:16';
-  same(w.stuffFiltered().slice(0, 3).map(i => i.name), ['John 3:16', 'John 13:16', '1 John 3:16'], '"john 3:16" typed inside the Bible');
-  t.STUFF().q = '';
+  t.RES().q = 'john 3:16';
+  same(R.stuffFiltered().slice(0, 3).map(i => i.name), ['John 3:16', 'John 13:16', '1 John 3:16'], '"john 3:16" typed inside the Bible');
+  t.RES().q = '';
 
   /* ---------- 9b. A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE ---------------------------
      FOUND BY THE REVIEW: `testaments`, `old and new testaments` and `poetry and wisdom` typed on the
@@ -14863,7 +18697,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     .concat([...new Set(index.books.map(b => b.group))].map(g => g.toLowerCase()), index.books.map(b => b.book.toLowerCase()));
   /* ASKED OF THE LIST, NOT DRAWN: a drawn verse fetches its book, and Leviticus has to be still to come
      for step 11's refusal to mean anything. */
-  const asking = (list, q2) => { t.STUFF().filters = list.map(f => Object.assign({}, f)); t.STUFF().q = q2; return w.stuffFiltered(); };
+  const asking = (list, q2) => { t.RES().filters = list.map(f => Object.assign({}, f)); t.RES().q = q2; return R.stuffFiltered(); };
   const crossBad = [];
   let crossKept = 0;
   crossWords.forEach(q2 => {
@@ -14877,13 +18711,13 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   if (crossBad.length) bad.push('a search on the Books shelf and the same search inside the Bible disagree: ' + crossBad.join(' | '));
   if (crossKept < index.books.length) bad.push('only ' + crossKept + ' of ' + crossWords.length + ' searches kept the cover — the comparison above was NOT reached for the books, so it is not a pass');
   /* AND ONE OF THEM BY THE SCREEN: a citation typed on the shelf, Translation asked, KJV pressed. */
-  setTo(DOORS); t.STUFF().q = 'psalm 23'; w.paintStuff();
+  setTo(DOORS); t.RES().q = 'psalm 23'; w.paintFinder_('res');
   q = asked();
   if (q.field !== 'bibleTranslation') bad.push('"psalm 23" typed on the Books shelf asks ' + (q.field || 'nothing') + ' — the cover, and Translation, because Psalm 23 is a verse of it');
   else if (await pick('bibleTranslation', 'KJV')) {
-    if (!w.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" with KJV pressed does not hold Psalm 23:1 — it leaves ' + w.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
+    if (!R.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" with KJV pressed does not hold Psalm 23:1 — it leaves ' + R.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
   }
-  t.STUFF().q = '';
+  t.RES().q = '';
 
   /* ---------- 10. EVERY BOOK AND EVERY CHAPTER, WALKED -------------------------------------------------
      THROUGH THE FUNNEL'S OWN NARROWING AND ITS OWN QUESTION, chip by chip as a finger would set them, but
@@ -14895,19 +18729,19 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   index.books.forEach(b => {
     const head = DOORS.concat([KJV, { field: 'bibleTestament', value: b.testament === 'NT' ? 'New Testament' : 'Old Testament' },
                                { field: 'bibleGroup', value: b.group }, { field: 'bibleBook', value: b.book }]);
-    t.STUFF().filters = head.map(f => Object.assign({}, f));
+    t.RES().filters = head.map(f => Object.assign({}, f));
     const list = w.stuffNarrow_(all, [{ field: 'bibleBook', value: b.book }], [], 0);
-    const nf = w.nextFacet(list);
-    const vals = nf ? w.facetValues(list, nf).map(v => String(v.value)) : [];
+    const nf = R.nextFacet(list);
+    const vals = nf ? R.facetValues(list, nf).map(v => String(v.value)) : [];
     if (!nf || nf.field !== 'bibleChapter' || vals.join('|') !== run(b.chapters).join('|')) {
       if (walkBad.length < 4) walkBad.push(b.book + ' asks ' + (nf ? nf.field : 'nothing') + ' with ' + vals.length + ' answers');
       return;
     }
     b.chapterVerses.forEach((n, ci) => {
-      t.STUFF().filters = head.concat([{ field: 'bibleChapter', value: String(ci + 1) }]).map(f => Object.assign({}, f));
+      t.RES().filters = head.concat([{ field: 'bibleChapter', value: String(ci + 1) }]).map(f => Object.assign({}, f));
       const cl = w.stuffNarrow_(list, [{ field: 'bibleChapter', value: String(ci + 1) }], [], 0);
-      const vf = w.nextFacet(cl);
-      const vv = vf ? w.facetValues(cl, vf).map(v => String(v.value)) : [];
+      const vf = R.nextFacet(cl);
+      const vv = vf ? R.facetValues(cl, vf).map(v => String(v.value)) : [];
       const keys = cl.map(i => i.key).join('|');
       const want = run(n).map(v => 'bible:kjv:' + b.n + ':' + (ci + 1) + ':' + v).join('|');
       if (!vf || vf.field !== 'bibleVerse' || vv.join('|') !== run(n).join('|') || keys !== want) {
@@ -14915,7 +18749,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       } else walked++;
     });
   });
-  t.STUFF().filters = [];
+  t.RES().filters = [];
   if (walkBad.length) bad.push('walking every chapter, ' + walkBad.join(' | '));
   if (walked !== index.totals.chapters) bad.push('the walk reached ' + walked + ' of ' + index.totals.chapters + ' chapters whole');
 
@@ -14929,20 +18763,20 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
     t.ACTIONS['facet-pick'](levBtn);
     /* AND THREE MORE CARDS OF IT DRAWN WHILE IT IS ON ITS WAY — as Saved, or the pages filled a beat
        later, would draw them. Every one of them is waiting on the same fetch, and the failure is one. */
-    w.stuffFiltered().slice(1, 4).forEach(v => w.stuffCard(v));
+    R.stuffFiltered().slice(1, 4).forEach(v => R.stuffCard(v));
     await wait(150);
-    const miss = d.querySelector('#s-stuff .card.bb-verse[data-bn="3"] .bb-miss');
+    const miss = d.querySelector('#s-res .card.bb-verse[data-bn="3"] .bb-miss');
     if (!miss || !/Leviticus/.test(miss.textContent)) bad.push('Leviticus did not arrive and its cards do not say so');
     const said = toasts.filter(m => /Leviticus/.test(m)).length;
     if (said !== 1) bad.push('Leviticus did not arrive and ' + said + ' toasts said so — one, however many cards were waiting on it');
-    const again = d.querySelector('#s-stuff [data-do="bible-retry"][data-n="3"]');
+    const again = d.querySelector('#s-res [data-do="bible-retry"][data-n="3"]');
     if (!again) bad.push('a verse of Leviticus, which did not arrive, has no Try again tile');
     else {
       refuse.delete('03-leviticus.json');
       t.ACTIONS['bible-retry'](again);
       await wait(150);
       const lev = JSON.parse(fs.readFileSync(path.join(bibleDir, '03-leviticus.json'), 'utf8'));
-      const back = d.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:3:1:1"] .bb-v');
+      const back = d.querySelector('#s-res .card.bb-verse[data-key="bible:kjv:3:1:1"] .bb-v');
       if (!back || back.closest('.bb-verse').querySelector('.loading') || back.textContent.trim() !== lev.chapters[0][0].replace(/^#\s*/, '').replace(/[\[\]]/g, '')) {
         bad.push('Try again did not draw Leviticus 1:1 — it reads "' + (back ? back.textContent.trim().slice(0, 60) : 'nothing') + '"');
       }
@@ -14961,31 +18795,31 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
                       serve: url => (/data\/bible\/index\.json/.test(url) ? late.then(() => serve(url)) : serve(url)) });
   await wait(300);
   const st = slow.w.__t, sd = slow.w.document;
-  st.go('stuff');
-  st.STUFF().q = '';
-  st.STUFF().filters = DOORS.map(f => Object.assign({}, f));
-  slow.w.paintStuff();
-  const said = () => ((sd.getElementById('stuff-groups') || {}).textContent || '').replace(/\s+/g, ' ');
+  st.go('res');
+  st.RES().q = '';
+  st.RES().filters = DOORS.map(f => Object.assign({}, f));
+  slow.w.paintFinder_('res');
+  const said = () => ((sd.getElementById('res-groups') || {}).textContent || '').replace(/\s+/g, ' ');
   /* THE ONE LOADER WHERE THE QUESTION WILL BE, and no sentence of its own: it said "The list of the
      Bible's books is on its way" until 9 Oct, and `check-loading.js` now fails on those words. */
-  const waitingAt = () => sd.querySelectorAll('#stuff-groups .loading[role="status"]').length;
+  const waitingAt = () => sd.querySelectorAll('#res-groups .loading[role="status"]').length;
   if (waitingAt() !== 1) bad.push('the Books shelf with the index still coming shows ' + waitingAt() + ' loaders under the question, not one — it says "' + said().trim().slice(0, 80) + '"');
-  st.STUFF().q = 'psalms';
-  const early = slow.w.stuffFiltered().some(i => i.kind === 'bible');
-  slow.w.paintStuff();
+  st.RES().q = 'psalms';
+  const early = resView_(slow.w).stuffFiltered().some(i => i.kind === 'bible');
+  slow.w.paintFinder_('res');
   release();
   await wait(80);
   if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
-  else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
-  if (!sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
+  else if (!resView_(slow.w).stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
+  if (!sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"][data-value="KJV"]')) bad.push('when the index landed the Books shelf was not drawn again — it does not ask Translation until something else repaints it');
   if (waitingAt()) bad.push('the index landed and the Books shelf still shows its loader');
-  const kjvLate = sd.querySelector('#stuff-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
+  const kjvLate = sd.querySelector('#res-groups [data-do="facet-pick"][data-field="bibleTranslation"]');
   if (kjvLate) {
     st.ACTIONS['facet-pick'](kjvLate);
-    const n = slow.w.stuffFiltered().length;
+    const n = resView_(slow.w).stuffFiltered().length;
     if (n !== 2461) bad.push('KJV with "psalms" typed leaves ' + n + ' verses, not the Psalms\' 2,461');
   }
-  st.STUFF().q = '';
+  st.RES().q = '';
 
   /* ---------- 13. NOT BEFORE THE LIBRARY ----------------------------------------------------------------
      With `data/questions.json` still on its way an admin's Find has to say the questions are still
@@ -14994,21 +18828,21 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const held = boot({ payload: base(), before: seed(admin),
                       serve: url => (/data\/questions\.json/.test(url) ? new Promise(() => {}) : serve(url)) });
   await wait(300);
-  held.w.__t.go('stuff');
-  held.w.__t.STUFF().filters = []; held.w.__t.STUFF().q = '';
-  held.w.paintStuff();
+  held.w.__t.go('res');
+  held.w.__t.RES().filters = []; held.w.__t.RES().q = '';
+  held.w.paintFinder_('res');
   if (held.w.stuffItemsAll_().some(i => i.kind === 'bible')) bad.push('an admin is offered the Bible before the library has landed');
   /* THE ONE LOADER, not "The questions are still coming" — the words went on 9 Oct (`nothingHere`). */
-  if (!held.w.document.querySelector('#s-stuff .loading[role="status"]')
-      || /Nothing in the shop or the library/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
+  if (!held.w.document.querySelector('#s-res .loading[role="status"]')
+      || /Nothing in the shop or the library/.test((held.w.document.getElementById('s-res') || {}).textContent || '')) {
     bad.push('an admin\'s Find with the library still on its way does not show the loader — or calls it empty');
   }
 
   /* ---------- 14. KEPT: A STARRED VERSE ON SAVED, THE OLD STAR ON THE COVER, AND BACK INTO ITS CHAPTER --- */
   const x13 = w.bibleByKey_('bible:kjv:1:1:3');
-  const fav13 = x13 && box(w.stuffCard(x13)).querySelector('[data-do="fav"]');
-  const coverItem = w.stuffItems().find(i => i.kind === 'bible');
-  const favCover = coverItem && box(w.stuffCard(coverItem)).querySelector('[data-do="fav"]');
+  const fav13 = x13 && box(R.stuffCard(x13)).querySelector('[data-do="fav"]');
+  const coverItem = R.stuffItems().find(i => i.kind === 'bible');
+  const favCover = coverItem && box(R.stuffCard(coverItem)).querySelector('[data-do="fav"]');
   if (!fav13 || !favCover) bad.push('a verse or the cover has no Save tile');
   else {
     t.ACTIONS.fav(fav13);
@@ -15027,18 +18861,18 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
       await wait(60);
       t.ACTIONS['bible-go'](back);
       await wait(80);
-      if (t.AT() !== 'stuff') bad.push('the Chapter tile on Saved left the app on ' + t.AT() + ', not Find');
-      const f = t.STUFF().filters;
+      if (t.AT() !== 'res') bad.push('the Chapter tile on Saved left the app on ' + t.AT() + ', not Resources');
+      const f = t.RES().filters;
       if (!f.some(c => c.field === 'bibleChapter' && c.value === '1') || !f.some(c => c.field === 'bibleBook' && c.value === 'Genesis')) bad.push('the Chapter tile on Saved set the chips to ' + JSON.stringify(f));
-      if (t.PAGE().stuff !== w.stuffFirstResult_() + 2) bad.push('the Chapter tile on Saved turned to page ' + t.PAGE().stuff + ', not Genesis 1:3');
+      if (t.PAGE().res !== R.stuffFirstResult_() + 2) bad.push('the Chapter tile on Saved turned to page ' + t.PAGE().res + ', not Genesis 1:3');
     }
   }
 
   /* ---------- 15. MADE A TUTOR WITHOUT SIGNING OUT: THE VERSES GO AT THE NEXT LOOK -------------------- */
   setTo(DOORS.concat([KJV]));
-  const inside = w.stuffFiltered().length;
+  const inside = R.stuffFiltered().length;
   t.USER(Object.assign({}, admin, { role: 'tutor', roles: ['tutor'] }));
-  const after = w.stuffFiltered().length;
+  const after = R.stuffFiltered().length;
   t.USER(admin);
   if (!inside) bad.push('the Bible was not open before the demotion, so the demotion was NOT checked');
   else if (after) bad.push('an admin made a tutor inside the Bible is still handed ' + after + ' verses — the memo held the list the role no longer has');
@@ -15047,33 +18881,33 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
      FOUND BY THE FIRST REVIEW: an admin signed out on the Books shelf left "WHAT KIND Resources ✕ SHELF
      Books ✕" on the signed-out Find. Signed out from Genesis, with a word typed too — and then the
      Bible's tiles pressed by whoever picks the phone up, with its index still in memory. */
-  t.go('stuff');
+  t.go('res');
   setTo(DOORS.concat([KJV, { field: 'bibleTestament', value: 'Old Testament' }]));
-  t.STUFF().q = 'genesis';
-  const qBox = d.getElementById('stuff-q');
-  if (!qBox) bad.push('there is no search box on Find, so whether its word is left behind was NOT checked');
+  t.RES().q = 'genesis';
+  const qBox = d.getElementById('res-q');
+  if (!qBox) bad.push('there is no search box on Resources, so whether its word is left behind was NOT checked');
   else qBox.value = 'genesis';
   if (!t.ACTIONS.signout) bad.push('there is no signout action to press, so signing out from the Bible was NOT checked');
   else {
     t.ACTIONS.signout(d.createElement('button'));
     await wait(60);
-    t.go('stuff');
+    t.go('res');
     await wait(30);
     if (t.whoami()) bad.push('pressing sign out left somebody signed in, so what it leaves behind was NOT checked');
-    const f = t.STUFF().filters, said2 = (d.getElementById('s-stuff') || {}).textContent || '';
-    if (f.length || t.STUFF().q) bad.push('signed out, Find still holds the admin\'s question: ' + JSON.stringify(f) + (t.STUFF().q ? ' and "' + t.STUFF().q + '"' : ''));
-    if (/\bBooks\b/.test(said2)) bad.push('signed out, Find still names the Books shelf: …' + said2.slice(Math.max(0, said2.indexOf('Books') - 60), said2.indexOf('Books') + 20).replace(/\s+/g, ' '));
-    if (d.querySelector('#s-stuff .card.bible')) bad.push('signed out, a Bible card is still drawn on Find');
-    if (d.getElementById('stuff-q') && d.getElementById('stuff-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('stuff-q').value + '"');
+    const f = t.RES().filters, said2 = (d.getElementById('s-res') || {}).textContent || '';
+    if (f.length || t.RES().q) bad.push('signed out, Resources still holds the admin\'s question: ' + JSON.stringify(f) + (t.RES().q ? ' and "' + t.RES().q + '"' : ''));
+    if (/\bBooks\b/.test(said2)) bad.push('signed out, Resources still names the Books shelf: …' + said2.slice(Math.max(0, said2.indexOf('Books') - 60), said2.indexOf('Books') + 20).replace(/\s+/g, ' '));
+    if (d.querySelector('#s-res .card.bible')) bad.push('signed out, a Bible card is still drawn on Resources');
+    if (d.getElementById('res-q') && d.getElementById('res-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('res-q').value + '"');
     if (/bible/i.test(t.savedPages().join(''))) bad.push('signed out, Saved still draws something of the Bible');
-    const was = JSON.stringify(t.STUFF().filters), fetched = ofBible(a.gets).length;
+    const was = JSON.stringify(t.RES().filters), fetched = ofBible(a.gets).length;
     for (const [act, attrs] of [['bible-go', { 'data-key': 'bible:kjv:1:1:3' }], ['bible-go', {}], ['bible-retry', { 'data-n': '1' }], ['bible-retry', {}]]) {
       const fake = d.createElement('button');
       Object.keys(attrs).forEach(k => fake.setAttribute(k, attrs[k]));
       t.ACTIONS[act](fake);
     }
     await wait(60);
-    if (JSON.stringify(t.STUFF().filters) !== was) bad.push('signed out, a Bible tile pressed anyway set Find\'s chips to ' + JSON.stringify(t.STUFF().filters) + ' — the index was still in memory and the handler did not ask who is looking');
+    if (JSON.stringify(t.RES().filters) !== was) bad.push('signed out, a Bible tile pressed anyway set Resources\' chips to ' + JSON.stringify(t.RES().filters) + ' — the index was still in memory and the handler did not ask who is looking');
     if (ofBible(a.gets).length !== fetched) bad.push('signed out, a Bible tile pressed anyway fetched ' + (ofBible(a.gets).length - fetched) + ' file(s)');
   }
   w.toast = realToast;
@@ -15100,53 +18934,61 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
   const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
   const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
                ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }]];
+  /* BOTH FINDERS (docs/history/329): the Books shelf moved to the Resources column with the rest of the
+     resources, so its four starts are walked there, and Find's six on Find — where the Bible must now cost
+     nothing at all, not even the shelf. */
   const STARTS = [
-    ['the top', []],
-    ['Learning', [['forLabel', 'Learning']]],
-    ['Learning → Questions', [['forLabel', 'Learning'], ['kindLabel', 'Questions']]],
-    ['Learning → Resources', [['forLabel', 'Learning'], ['kindLabel', 'Resources']]],
-    ['→ Boxing', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', 'Boxing']]],
-    ['→ @family. textbooks', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], ['shelf', '@family. textbooks']]],
-    ['Learning → skip', [['forLabel', 'Learning'], 'skip']],
-    ['Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip']],
-    ['Learning → Resources → skip', [['forLabel', 'Learning'], ['kindLabel', 'Resources'], 'skip']],
-    ['Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']]],
+    ['Find, the top', [], 'stuff'],
+    ['Find, Learning', [['forLabel', 'Learning']], 'stuff'],
+    ['Find, Learning → Questions', [['forLabel', 'Learning'], ['kindLabel', 'Questions']], 'stuff'],
+    ['Find, Learning → skip', [['forLabel', 'Learning'], 'skip'], 'stuff'],
+    ['Find, Learning → skip → skip', [['forLabel', 'Learning'], 'skip', 'skip'], 'stuff'],
+    ['Find, Learning → Practicals', [['forLabel', 'Learning'], ['kindLabel', 'Practicals']], 'stuff'],
+    ['Resources, the top', [], 'res'],
+    ['Resources → Boxing', [['shelf', 'Boxing']], 'res'],
+    ['Resources → @family. textbooks', [['shelf', '@family. textbooks']], 'res'],
+    ['Resources → skip', ['skip'], 'res'],
   ];
   const bad = [];
   const traces = [];
   for (const [what, u] of who) {
     const b = boot({ serve: serveAll, before: seed(u) });
     const w = b.w, t = w.__t;
-    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && w.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
+    const R = resView_(w);
+    for (let i = 0; i < 120 && !(t && t.STUFF && w.stuffItems().length > 1000 && (u.role !== 'admin' || (t.BIBLE().index && R.stuffItems().some(x => x.kind === 'bible')))); i++) await wait(50);
     if (!t || w.stuffItems().length < 1000) { bad.push(what + ': the library did not load, so the walk was NOT checked'); return bad; }
-    if (u.role === 'admin' && !w.stuffItems().some(x => x.kind === 'bible')) { bad.push('the admin holds no Bible cover, so the walk proves nothing about it'); return bad; }
-    t.go('stuff');
+    if (u.role === 'admin' && !R.stuffItems().some(x => x.kind === 'bible')) { bad.push('the admin\'s Resources holds no Bible cover, so the walk proves nothing about it'); return bad; }
+    if (w.stuffItems().some(x => x.kind === 'bible')) bad.push(what + ': the Bible is on Find\'s list — it is a resource');
     const trace = {};
-    STARTS.forEach(([say, steps]) => {
-      t.STUFF().q = '';
-      t.STUFF().filters = [];
+    STARTS.forEach(([say, steps, fid]) => {
+      const V = fid === 'res' ? R : w;
+      const S = fid === 'res' ? t.RES() : t.STUFF();
+      t.go(fid);
+      S.q = '';
+      S.filters = [];
       const out = [];
       steps.forEach(s => {
         if (s === 'skip') {
-          const f = w.nextFacet(w.stuffFiltered()) || w.overFacet_(w.stuffFiltered());
+          const f = V.nextFacet(V.stuffFiltered()) || V.overFacet_(V.stuffFiltered());
           out.push('skip ' + (f ? f.field : 'nothing'));
-          if (f) t.STUFF().filters.push({ field: f.field, any: true });
-        } else t.STUFF().filters.push({ field: s[0], value: s[1] });
+          if (f) S.filters.push({ field: f.field, any: true });
+        } else S.filters.push({ field: s[0], value: s[1] });
       });
       for (let step = 0; step < 8; step++) {
-        const list = w.stuffFiltered();
+        const list = V.stuffFiltered();
         if (!list.length) { out.push('(empty)'); break; }
-        const f = w.nextFacet(list) || w.overFacet_(list);
+        const f = V.nextFacet(list) || V.overFacet_(list);
         if (!f) { out.push('(end, ' + list.length + ')'); break; }
-        const vals = w.facetValues(list, f);
+        const vals = V.facetValues(list, f);
         out.push({ field: f.field, vals: vals.map(v => String(v.value)) });
+        if (fid === 'stuff' && f.field === 'shelf') bad.push(what + ' is asked Shelf on Find, from ' + say + ' — the shelves are the Resources column\'s');
         let best = vals[0];
         vals.forEach(v => { if (v.n > best.n) best = v; });
-        t.STUFF().filters.push({ field: f.field, value: best.value });
+        S.filters.push({ field: f.field, value: best.value });
       }
       trace[say] = out;
+      S.filters = [];
     });
-    t.STUFF().filters = [];
     traces.push(trace);
   }
   const [parent, admin] = traces;
@@ -15183,6 +19025,10 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
    `.fc-meta`, `.fc-sec`, `.fc-list` — and every kind moved onto it: the boxer off the shop's `.thing`
    row, the fight off a bare paragraph of names, the film's Watch
    tile out of a second tile row inside the card.
+   THE FILM IS NOT ONE OF THEM ANY MORE: it left Find on 10 Oct (*"films should not appear in the finder
+   it cannot be found there"*), and its card and Watch tile with it. The fixture's films are still put in
+   this admin-shaped payload, and the list below asks that none of them reached Find — `film` was the one
+   kind here whose rows only an admin is sent, so this is where a mapper coming back would show first.
 
    ASKED OF THE MARKUP, OVER THE REAL FILES THROUGH THE REAL MAPPER, so a kind added tomorrow with a
    card of its own shape is named here by kind. What it LOOKS like is `check/states.js`'s question
@@ -15206,8 +19052,9 @@ check('every Find kind that is not a question is made of the shared parts: head,
   const p = payload();
   ['textbooks', 'boxers', 'fights', 'projects', 'practicals'].forEach(k => { p[k] = made[k] || []; });
   /* THE FILMS ARE THE FIXTURE'S THREE INVENTED ROWS, shaped as `doGet` sends an admin them — a long
-     title, a series, and a placeholder with no file, the three ways the card is drawn. */
+     title, a series, and a placeholder with no file. Sent so their absence from Find is asked, below. */
   p.films = JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'fixture.json'), 'utf8')).films || [];
+  if (!p.films.length) return ['check/fixture.json has no films, so their absence from Find was NOT checked'];
   const { w } = boot({ payload: p });
   await wait(300);
   const bad = [];
@@ -15222,7 +19069,9 @@ check('every Find kind that is not a question is made of the shared parts: head,
      question — custom properties and its own `animation-name`, nothing else — so its stage is a
      drawing here, as an `<svg>` is. */
   const onCard = el => !el.closest('svg, figure, .tb-an-stage');
-  const KINDS_HERE =['practical', 'project', 'textbook', 'film', 'boxer', 'fight'];
+  const strayFilms = all.filter(x => x.kind === 'film' || p.films.some(f => f.title === x.name));
+  if (strayFilms.length) bad.push(strayFilms.length + ' of the payload\'s films reached Find (' + strayFilms.map(x => x.name).join(', ') + ') — films are found in Games → Videos, not in Find');
+  const KINDS_HERE =['practical', 'project', 'textbook', 'boxer', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);
     if (!xs.length) { bad.push('no ' + kind + ' reached Find, so its card was NOT checked'); return; }
@@ -15254,10 +19103,6 @@ check('every Find kind that is not a question is made of the shared parts: head,
           if (!ol.classList.contains('fc-list')) bad.push(name + ' has a numbered list that is not an `.fc-list`');
         });
       });
-      if (kind === 'film' && !x.row.placeholder) {
-        const row = host.querySelector(':scope > .tile-row');
-        if (!row || !row.querySelector('a.tile[href]')) bad.push(name + '\'s Watch tile is not in the row under the card');
-      }
     });
   });
   return bad.length > 12 ? bad.slice(0, 12).concat(['… and ' + (bad.length - 12) + ' more']) : bad;
@@ -15402,7 +19247,7 @@ check('a boxer without a photo: the ring and his initials, no <img>; no credit m
   else {
     const ini = ring.querySelector('.boxer-ini');
     if (!ini || ini.textContent.trim() !== 'JL') bad.push('the placeholder\'s initials are "' + (ini ? ini.textContent : '') + '", not JL');
-    if (!ring.querySelector('.bx-l .bx-glove')) bad.push('the placeholder has no fighter in it');
+    if (!ring.querySelector('.bf-l .bf-glove')) bad.push('the placeholder has no fighter in it');
   }
   /* A `Jr.` IS NOT A SURNAME — the placeholder for Floyd Mayweather Jr. says FM. */
   const fm = a.item('Floyd Mayweather Jr.');
@@ -15541,7 +19386,7 @@ check('a boxer\'s fights: every bout they are in, newest first, from their side 
     else {
       if (!faces[0].classList.contains('won') || faces[1].classList.contains('won')) bad.push('the winner\'s face is not the one framed');
       if (!faces[0].querySelector('img')) bad.push('Ali\'s photo is not on the fight card');
-      if (faces[1].querySelector('img') || !faces[1].querySelector('.bx-r')) bad.push('Frazier, who has no photo, is not the blue-corner placeholder');
+      if (faces[1].querySelector('img') || !faces[1].querySelector('.bf-r')) bad.push('Frazier, who has no photo, is not the blue-corner placeholder');
     }
     const cr = fc && fc.querySelector('.fight-credit');
     if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
@@ -15552,6 +19397,143 @@ check('a boxer\'s fights: every bout they are in, newest first, from their side 
   }
   if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
   return bad;
+});
+
+/* ---------- THE EIGHT-BIT FIGHTER WEARS WHAT HIS ROW SAYS, AND A FIGHT WHAT THAT NIGHT'S ROW SAYS -------
+   THE OWNER, 10 Oct: *"make the boxers retro avatar actually look more like the boxers and their
+   shorts in the fight."* The figure is drawn from `look_*` and `trunks_usual` on the boxer and from
+   `trunks_a` / `trunks_b` on the fight, through the real mapper, so each claim is asked of the real
+   files and the markup the app draws from them:
+
+     every profile   all 103: the figure's group carries exactly the words the row holds — skin, hair,
+                     hair colour, facial hair, usual trunks — and NO word for a blank cell; the hair is
+                     that style's own pixels (none at all for bald and shaved); the beard is its own;
+                     the trunks' colour and trim are the custom properties the stylesheet paints from;
+                     a side stripe only when there is a trim; a profile is never mirrored. EVERY
+                     WOMAN (`sex` F, nine rows) is `bf-f` and wears the top, and a woman with no hair
+                     on file is drawn with hair drawn back, NEVER the men's short cap; no man wears a
+                     top. Before 10 Oct's review nothing read `sex`, and all nine were the bare torso.
+     a known fight   Ali v Frazier, 8 March 1971: red/white in the red corner, green/gold in the blue,
+                     each man's skin and hair from his own row, the blue corner mirrored to face left —
+                     and NOT Ali's usual white/black, because the card dresses a corner in that night's
+                     pair or in nothing.
+     a blank fight   Johnson v Jeffries, 1910: no trunks word and no colour property in either corner,
+                     so the stylesheet's fallbacks paint them the corner's colour, muted — and those
+                     fallbacks are asked of style.css as well, because a renamed rule would leave the
+                     property unset and the trunks the colour of nothing. Jeffries has no row: a
+                     silhouette, no look claimed.
+     a stranger      Cleveland Williams has no row and a known pair: the silhouette, in black trunks.
+     a woman's bout  Laila Ali v Jacqui Frazier-Lyde, 2001: Frazier-Lyde has no row, and is a woman
+                     because Ali is — both corners in a top.
+     a misspelt cell Joe Louis given "whte/black" and "s7" IN THE COPY: no half-look — the corner's
+                     colour and the silhouette's skin, the rest of his look as the row says.
+   What the colours come out as in a real browser is `check/states.js`'s question; this is what was
+   drawn and from which cell. */
+check('the eight-bit fighter: every profile wears its row, a fight wears that night\'s trunks, a woman wears a top, a blank claims nothing', async () => {
+  const a = await boxerApp_(raw => {
+    const jl = raw.boxers.find(b => b.name === 'Joe Louis');
+    if (jl) { jl.trunks_usual = 'whte/black'; jl.look_skin = 's7'; }
+  });
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const K = a.w.__t.BOXER && a.w.__t.BOXER();
+  if (!K || !K.LOOK) return ['the figure\'s vocabulary (BOXER_LOOK) is not reachable — NOT checked'];
+  const runs = s => a.w.boxerRuns_(s);
+  const groupIn = el => el && el.querySelector('svg.boxer-ring g.bf');
+  const ok = (k, v) => (K.LOOK[k].indexOf(v) >= 0 ? v : '');
+  /* ONE QUESTION, ASKED OF EVERY FIGURE: does `g` carry exactly this look and these trunks? */
+  const wears = (g, who, look, trunks, blue, sex) => {
+    if (!g) { bad.push(who + ': no fighter drawn in the ring'); return; }
+    const cls = [...g.classList], style = g.getAttribute('style') || '';
+    const woman = String(sex || '').trim().toUpperCase() === 'F';
+    if (g.classList.contains('bf-f') !== woman) bad.push(who + (woman ? ' is a woman and is not drawn as one (no `bf-f`)' : ' is drawn as a woman'));
+    const top = g.querySelector('.bf-top');
+    if (woman ? (!top || top.getAttribute('d') !== runs(K.BODY.top)) : top) bad.push(who + (woman ? ' is a woman and wears no top — a bare torso' : ' is a man and wears a top'));
+    if (!g.classList.contains(blue ? 'bf-r' : 'bf-l')) bad.push(who + ' is not drawn in the ' + (blue ? 'blue' : 'red') + ' corner');
+    if (/scale\(-1 1\)/.test(g.getAttribute('transform') || '') !== !!blue) bad.push(who + (blue ? ' does not face left' : ' is mirrored'));
+    const skin = ok('skin', look.skin), hair = ok('hair', look.hair), hc = ok('hair_colour', look.hairColour);
+    const face = ok('facial', look.facial) === 'none' ? '' : ok('facial', look.facial);
+    [['bf-sk-', skin], ['bf-hs-', hair], ['bf-hc-', hc], ['bf-fh-', face]].forEach(([pre, v]) => {
+      const got = cls.filter(c => c.indexOf(pre) === 0);
+      if (v ? (got.length !== 1 || got[0] !== pre + v) : got.length) bad.push(who + ' wears ' + (got.join(' ') || 'nothing') + ' for ' + pre + '*, the row says "' + v + '"');
+    });
+    if (skin && style.indexOf('--bf-skin:var(--bf-' + skin + ')') < 0) bad.push(who + '\'s skin is not painted from --bf-' + skin);
+    if (hc && style.indexOf('--bf-hair:var(--bf-hc-' + hc + ')') < 0) bad.push(who + '\'s hair is not painted from --bf-hc-' + hc);
+    if (g.classList.contains('bf-seen') !== !!(skin || hair || hc || face)) bad.push(who + (skin || hair || hc || face ? ' has a look and is not `.bf-seen`' : ' has no look and is `.bf-seen`'));
+    const hp = g.querySelector('.bf-hair');
+    if (hair === 'bald' || hair === 'shaved') { if (hp) bad.push(who + ' is ' + hair + ' and has hair drawn'); }
+    else if (!hp || hp.getAttribute('d') !== runs(hair ? K.HAIR[hair] : K.UNSAID[woman ? 'F' : 'M'])) bad.push(who + '\'s hair is not the ' + (hair || (woman ? 'unsaid woman\'s' : 'unsaid man\'s')) + ' shape');
+    else if (woman && !hair && hp.getAttribute('d') === runs(K.HAIR.short)) bad.push(who + ' has no hair on file and is given the men\'s short cap');
+    const fp = g.querySelector('.bf-face');
+    if (face ? (!fp || fp.getAttribute('d') !== runs(K.FACE[face])) : fp) bad.push(who + '\'s face hair is not the ' + (face || 'none') + ' shape');
+    const parts = String(trunks || '').split('/').filter(Boolean);
+    const t = parts.length && parts.every(c => K.LOOK.trunks.indexOf(c) >= 0) && parts.length <= 2 ? parts : [];
+    const tk = cls.filter(c => /^bf-t[kt]-/.test(c)).sort().join(' ');
+    const wantTk = t.length ? ['bf-tk-' + t[0]].concat(t[1] ? ['bf-tt-' + t[1]] : []).sort().join(' ') : '';
+    if (tk !== wantTk) bad.push(who + ' wears "' + tk + '" for trunks "' + (trunks || '') + '", not "' + wantTk + '"');
+    if (t.length) {
+      if (style.indexOf('--bf-main:var(--bf-tk-' + t[0] + ')') < 0 || style.indexOf('--bf-trim:var(--bf-tk-' + (t[1] || t[0]) + ')') < 0) bad.push(who + '\'s trunks are not painted ' + t.join(' with a ') + ' trim');
+    } else if (/--bf-(main|trim):/.test(style)) bad.push(who + ' has no trunks on file and is given a trunks colour: ' + style);
+    if (!!g.querySelector('.bf-stripe') !== !!t[1]) bad.push(who + (t[1] ? ' has a trim and no side stripe' : ' has a side stripe and no trim'));
+    if (!!g.querySelector('.bf-spot') !== t.indexOf('leopard') >= 0) bad.push(who + '\'s leopard spots do not match "' + (trunks || '') + '"');
+  };
+  const lookOf = r => (r ? { skin: r.look_skin, hair: r.look_hair, hairColour: r.look_hair_colour, facial: r.look_facial } : {});
+  let profiles = 0, words = 0, women = 0;
+  a.raw.boxers.forEach(row => {
+    const x = a.item(row.name);
+    if (!x) { bad.push(row.name + ' is not in Find'); return; }
+    const g = groupIn(a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer .boxer-pic'));
+    wears(g, row.name + '\'s profile', lookOf(row), row.trunks_usual, false, row.sex);
+    profiles++;
+    if (String(row.sex).trim().toUpperCase() === 'F') women++;
+    words += ['look_skin', 'look_hair', 'look_hair_colour', 'look_facial', 'trunks_usual'].filter(k => row[k]).length;
+  });
+  console.log('          profiles asked: ' + profiles + ' (' + women + ' women, each in a top) · look and trunks words drawn from the file: ' + words);
+  if (words < 100) bad.push('only ' + words + ' look words in data/boxers.json — the profiles barely tested anything, NOT a pass');
+  if (!women) bad.push('no row in data/boxers.json is sex F — the women\'s top was NOT tested');
+  /* THE MISSPELT COPY: the unknown words drew nothing of their own. */
+  const jl = a.item('Joe Louis');
+  const jg = jl && groupIn(a.draw(a.w.stuffCard(jl)).querySelector('.boxer-pic'));
+  if (!jg || [...jg.classList].some(c => /^bf-(sk|tk|tt)-/.test(c)) || /--bf-(skin|main):/.test(jg.getAttribute('style') || '')) bad.push('a misspelt skin or trunks word drew something of its own on Joe Louis: ' + (jg ? jg.outerHTML.slice(0, 160) : 'no figure'));
+  /* THE FIGHTS. */
+  const fight = id => a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.id === id);
+  const rowOf = id => a.raw.boxers.find(b => b.boxer_id === id);
+  const corners = (id, need) => {
+    const f = a.raw.fights.find(r => r.fight_id === id), x = fight(id);
+    if (!f || !x) { bad.push(id + ' is not in data/fights.json or not in Find'); return null; }
+    if (need && !need(f)) { bad.push(id + ' no longer has the trunks this journey is about — pick another bout'); return null; }
+    const faces = [...a.draw(a.w.stuffCard(x)).querySelectorAll('.card.fc.fight .fight-faces .boxer-pic')];
+    if (faces.length !== 2) { bad.push(id + ' draws ' + faces.length + ' faces'); return null; }
+    /* A CORNER WITH NO ROW TAKES THE OTHER CORNER'S SEX — `fightCard_`'s rule, asked rather than copied. */
+    const ra = rowOf(f.boxer_a_id), rb = rowOf(f.boxer_b_id);
+    const sexOf = r => (r ? r.sex : [ra, rb].some(o => o && String(o.sex).trim().toUpperCase() === 'F') ? 'F' : '');
+    wears(groupIn(faces[0]), id + ' red corner (' + f.boxer_a + ')', lookOf(ra), f.trunks_a, false, sexOf(ra));
+    wears(groupIn(faces[1]), id + ' blue corner (' + f.boxer_b + ')', lookOf(rb), f.trunks_b, true, sexOf(rb));
+    return { f, g: faces.map(groupIn) };
+  };
+  const fotc = corners('FT0033', f => f.trunks_a === 'red/white' && f.trunks_b === 'green/gold');
+  if (fotc) {
+    const ali = rowOf(fotc.f.boxer_a_id);
+    if (!ali || !ali.trunks_usual || ali.trunks_usual === fotc.f.trunks_a) bad.push('Ali\'s usual trunks are not different from the Fight of the Century\'s, so "that night\'s pair, not his usual" was NOT tested');
+    else if (fotc.g[0].classList.contains('bf-tk-' + ali.trunks_usual.split('/')[0]) && ali.trunks_usual.split('/')[0] !== 'red') bad.push('the Fight of the Century dresses Ali in his usual trunks');
+    if (!fotc.g[0].classList.contains('bf-sk-' + ali.look_skin) || !fotc.g[1].classList.contains('bf-hs-' + rowOf(fotc.f.boxer_b_id).look_hair)) bad.push('the Fight of the Century corners do not carry their own skin and hair');
+  }
+  const blank = corners('FT0001', f => !f.trunks_a && !f.trunks_b && !f.boxer_b_id);
+  if (blank && blank.g[1] && blank.g[1].classList.contains('bf-seen')) bad.push('Jeffries has no row and his figure claims a look');
+  corners('FT0031', f => !f.boxer_b_id && f.trunks_b === 'black');
+  const lyde = corners('FT0085', f => !f.boxer_b_id && rowOf(f.boxer_a_id) && rowOf(f.boxer_a_id).sex === 'F');
+  if (lyde && lyde.g[1] && lyde.g[1].classList.contains('bf-seen')) bad.push('Frazier-Lyde has no row and her figure claims a look');
+  /* THE FALLBACKS THE BLANK CORNERS LEAN ON, read off the stylesheet itself: the silhouette's one
+     shadow tone for skin and hair, and the corner's muted colour for trunks, top and waistband. */
+  const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8');
+  [['.boxer-ring .bf-skin', 'fill', 'var(--bf-skin, var(--bf-ghost))'], ['.boxer-ring .bf-hair', 'fill', 'var(--bf-hair, var(--bf-ghost))'],
+   ['.boxer-ring .bf-trunks, .boxer-ring .bf-top', 'fill', 'var(--bf-main, var(--bf-corner))'],
+   ['.boxer-ring .bf-l', '--bf-corner', 'var(--bf-unsaid-l)'], ['.boxer-ring .bf-r', '--bf-corner', 'var(--bf-unsaid-r)']].forEach(([sel, prop, val]) => {
+    const re = new RegExp('(^|\\n)' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{\\s*' + prop + ':\\s*' + val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ';');
+    if (!re.test(css)) bad.push('style.css has lost `' + sel + ' { ' + prop + ': ' + val + '; }` — a blank corner would be painted the colour of nothing');
+  });
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad.length > 14 ? bad.slice(0, 14).concat(['… and ' + (bad.length - 14) + ' more']) : bad;
 });
 
 /* ---------- WHAT A BOXER READS ON EVERY FIGHTER'S CARD, ALL 103 OF THEM -----------------------------
@@ -16304,7 +20286,8 @@ check('multipart: the answer is a swipe after the card -- after the drawing page
   const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
   const front = q('3', { diagram: MP_SVG });
   [[plain, '[null,"ans"]', 'a card whose answer is the next page'],
-   [grid, '[null,"fig","ans"]', 'a card with the grid to draw on between it and its answer'],
+   /* THE GRID IS THE CARD'S OTHER FACE NOW, NOT A PAGE BETWEEN IT AND ITS ANSWER (327). */
+   [grid, '[null,"ans"]', 'a card answered on a grid, the grid on the card itself'],
    [front, '["fig",null,"ans"]', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
     const got = JSON.stringify(w.pageParts_(x));
     if (got !== want) bad.push(what + ' has pages ' + got + ', wanted ' + want + ' -- the answer the swipe after the last page the child works on');
@@ -16550,7 +20533,10 @@ check('multipart: with Questions chosen, no page of a two-part paper is an answe
    MEASURED ON 8 OCT: the first question Find asks offered `Answers | Bundles | Films | Practicals | Projects
    | Questions | Resources` -- the alphabet -- so Answers was the first chip, top left where a thumb lands,
    and one tap on it opens every answer at once. In `KIND_BUCKET`'s order now (`orderOf`): Questions, then
-   Answers, its pair. Asked of the facet's own order and of the chips it draws over a real list. */
+   Answers, its pair. Asked of the facet's own order and of the chips it draws over a real list.
+   AND `Films` IS NOT IN THE ORDER AT ALL since 10 Oct (*"films should not appear in the finder it cannot be
+   found there"*): the table no longer places it, so `orderOf` answers -1 for it, and the order of the six
+   left is the one it was with Films taken out from between Bundles and Resources. */
 check('multipart: What kind offers Questions first and Answers next to it, not the alphabet', async () => {
   const { w } = boot();
   await wait(300);
@@ -16558,15 +20544,112 @@ check('multipart: What kind offers Questions first and Answers next to it, not t
   const kind = w.facetList().find(f => f.field === 'kindLabel');
   if (!kind || typeof w.facetValues !== 'function') return ['the What kind facet or facetValues is not reachable — the order was NOT checked'];
   if (typeof kind.orderOf !== 'function') return ['What kind has no `orderOf`, so its chips fall back to the alphabet -- Answers first'];
-  const all = ['Resources', 'Answers', 'Films', 'Bundles', 'Projects', 'Practicals', 'Questions'];
+  const all = ['Resources', 'Answers', 'Bundles', 'Projects', 'Practicals', 'Questions'];
   const o = v => { const i = kind.orderOf(v); return i < 0 ? 1e6 : i; };
   const got = all.slice().sort((a, b) => o(a) - o(b)).join(' ');
-  if (got !== 'Questions Answers Practicals Projects Bundles Films Resources') bad.push('What kind orders its answers "' + got + '"');
+  if (got !== 'Questions Answers Practicals Projects Bundles Resources') bad.push('What kind orders its answers "' + got + '"');
+  if (kind.orderOf('Films') >= 0) bad.push('What kind still has a place for "Films" in its order (' + kind.orderOf('Films') + ') — films are not in Find');
   const lib = mpLibrary_(w, mpBank_());
   try {
     const chips = w.facetValues(lib.items, kind).map(v => String(v.show || v.value));
     if (chips[0] !== 'Questions' || chips[1] !== 'Answers') bad.push('over a paper\'s questions the What kind chips read "' + chips.join(' | ') + '", wanted Questions then Answers');
   } finally { lib.put(); }
+  return bad;
+});
+
+/* ---------- FILMS ARE NOT IN FIND, FOR ANYBODY — AN ADMIN WITH THE FILMS IN HAND INCLUDED ---------------------
+   THE OWNER, 10 Oct: *"films should not appear in the finder it cannot be found there"*. Find had a `Films`
+   kind, a card and a Watch tile over `DATA.films`; a film is found in Games → Videos. AN ADMIN IS THE ONLY
+   PERSON THIS CAN BE ASKED OF, because nobody else is sent a film (`filmsFor_`, note 068) — a student's Find
+   has no films whether the mapper is there or not, so asking a student would pass with the fault in place.
+
+   THREE DOORS, EACH THE WAY A PERSON USES IT, AND THE SETUP PROVED FIRST (the admin's `DATA` holds the
+   seven): the title typed into Find's own search box, through its own input handler and debounce; every
+   other title and a word only a film's notes carry (`XY9`), asked of the filtered list; `What kind`'s chips
+   as the question page draws them, pressing `What for` → Learning first if it is asked, and the facet's own
+   answers over the whole list. THEN THE VIDEOS CARD FINDS THE SAME FILM, or this would pass on a payload
+   that had lost its films. */
+check('films are not in Find for an admin with films in the payload — not by title, not under What kind — and the videos card still finds one', async () => {
+  /* THE PROJECTS AND THE PRACTICALS, REAL, so `What kind` has answers of its own to draw — the fixture has no
+     library, and a Learning holding nothing but films would ask What kind only when the films are there,
+     which is the fault and not a setup. Through the real mapper, as the textbook journey does.
+     THE PRACTICALS AND NOT THE TEXTBOOKS SINCE THE SECOND FINDER (docs/history/329): the textbooks are a
+     resource and live in the Resources column, so on Find they left Learning with one kind — Projects —
+     and a question with one answer is skipped. This journey then failed asking for `Projects and
+     Resources` on a page that drew Year instead: it was written on the branch where Find still held the
+     resources. Practicals are Find's own sibling of Projects (`KIND_BUCKET`), so the page is What kind. */
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so Find had nothing to ask — NOT checked'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { practicals: read('practicals'), projects: read('projects') })));
+  const data = payload();
+  data.practicals = made.practicals || [];
+  data.projects = made.projects || [];
+  data.films = FILMS_;
+  data.filmsSync = { at: new Date(Date.now() - 2 * 3600e3).toISOString(), more: false, folder: 'Notflix',
+                     found: { films: 4, series: 1, documentaries: 1, placeholders: 1 } };
+  const { w } = boot({ payload: data, serve: u => (/data\/videos\.json/.test(u) ? [] : undefined) });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  if (!t || !t.STUFF || typeof w.stuffFiltered !== 'function') return ['Find\'s state is not exported to the journey — nothing was checked'];
+  t.USER(Object.assign({}, vidAdmin_));
+  if ((t.DATA().films || []).length !== FILMS_.length) return ['the setup: the admin’s DATA holds ' + (t.DATA().films || []).length + ' of ' + FILMS_.length + ' films, so their absence from Find proves nothing'];
+  const isFilm = x => x && (x.kind === 'film' || /^fm:/.test(String(x.key || '')) || FILMS_.some(f => f.title === x.name));
+  const strays = w.stuffItemsAll_().filter(isFilm);
+  if (strays.length) bad.push('Find holds ' + strays.length + ' item(s) made of the admin’s films: ' + strays.map(x => x.kind + ' "' + x.name + '"').join(', '));
+
+  /* ---- THE SEARCH BOX, TYPED INTO ---- */
+  t.go('stuff', false, true);
+  await wait(60);
+  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  w.paintStuff();
+  await wait(30);
+  const box = d.getElementById('stuff-q');
+  if (!box) return bad.concat(['the Find screen has no search box, so a search was NOT checked']);
+  const title = FILMS_[0].title;
+  box.value = title;
+  box.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await wait(260);
+  if (t.STUFF().q !== title) return bad.concat(['typing into Find’s box did not reach its search (q is ' + JSON.stringify(t.STUFF().q) + '), so NOT checked']);
+  const hit = w.stuffFiltered().filter(isFilm);
+  if (hit.length) bad.push('typing "' + title + '" into Find finds ' + hit.map(x => x.kind + ' "' + x.name + '"').join(', ') + ' — films are found in Games → Videos');
+  const drawn = [...d.querySelectorAll('#s-stuff .card h3')].filter(h => h.textContent.trim() === title).length;
+  if (drawn || d.querySelector('#s-stuff .card.film')) bad.push('Find draws a card for "' + title + '"');
+  FILMS_.slice(1).map(f => f.title).concat(['XY9', 'unfinished']).forEach(q => {
+    t.STUFF().q = q;
+    const got = w.stuffFiltered().filter(isFilm);
+    if (got.length) bad.push('searching Find for "' + q + '" finds ' + got.map(x => '"' + x.name + '"').join(', '));
+  });
+  box.value = ''; t.STUFF().q = '';
+
+  /* ---- WHAT KIND, AS THE QUESTION PAGE DRAWS IT ---- */
+  w.paintStuff();
+  await wait(30);
+  const picks = () => [...d.querySelectorAll('#s-stuff #stuff-groups [data-do="facet-pick"]')];
+  const learning = picks().find(b => b.dataset.field === 'forLabel' && b.dataset.value === 'Learning');
+  if (learning) { t.ACTIONS['facet-pick'](learning); await wait(30); }
+  const kinds = picks().filter(b => b.dataset.field === 'kindLabel').map(b => b.dataset.value);
+  if (kinds.indexOf('Projects') === -1 || kinds.indexOf('Practicals') === -1) bad.push('What kind was not drawn with Projects and Practicals (the page offers ' + (picks().map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'nothing') + '), so its chips were NOT checked');
+  else if (kinds.indexOf('Films') !== -1) bad.push('What kind offers "Films" to an admin: ' + kinds.join(' | '));
+  /* AND NOT IN THE OTHER FINDER EITHER: a film is not a resource, so the column the resources moved to
+     must not have become where the films went. */
+  if (typeof w.finderOf_ === 'function') {
+    const resList = w.inFinder_(w.finderOf_('res'), () => w.stuffItems());
+    if (resList.some(isFilm)) bad.push('the Resources column holds ' + resList.filter(isFilm).length + ' film(s)');
+  }
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const answers = kindFacet ? w.facetValues(w.stuffItems(), kindFacet).map(v => String(v.value)) : [];
+  if (!answers.length) bad.push('What kind has no answers over the whole list, so the facet was NOT checked');
+  else if (answers.indexOf('Films') !== -1) bad.push('over the whole list What kind answers "Films": ' + answers.join(' | '));
+  t.STUFF().filters.length = 0;
+
+  /* ---- AND THE VIDEOS CARD STILL FINDS IT ---- */
+  const v = await vidCard_(w, vidAdmin_);
+  if (!v.box) return bad.concat(['the videos card did not draw on the Games column, so where films ARE found was NOT checked']);
+  v.type('paper moon');
+  await wait(30);
+  if (v.titles().indexOf(title) === -1) bad.push('the videos card does not find "' + title + '" for "paper moon" — it lists ' + (v.titles().join(' | ') || 'nothing'));
   return bad;
 });
 
@@ -17355,7 +21438,9 @@ check('a reload puts Find back on the question: the column, the paper\'s chip an
   /* THE CHILD HAD BEEN WRITING FOR TWENTY MINUTES: the column was chosen long ago, and is left just now. */
   W.localStorage.setItem('familyTabAt', String(Date.now() - 20 * 60 * 1000));
   W.dispatchEvent(new W.Event('pagehide'));
-  const want = W.__t.PAGE.stuff;
+  /* THROUGH THE GETTER (`pg_`): `__t.PAGE.stuff` was undefined on both sides, so this compared nothing. */
+  const want = pg_(W.__t).stuff;
+  if (!(want > 0)) bad.push('the setup: Find is on page ' + want + ' before the reload, so keeping the page was NOT checked');
   const kept = keptStore_(W);
   const two = boot({ serve, before: fromStore_(kept) });
   const w = two.w;
@@ -17364,7 +21449,7 @@ check('a reload puts Find back on the question: the column, the paper\'s chip an
   if (w.__t.AT() !== 'stuff') bad.push('the reload opened on ' + w.__t.AT() + ', not Find');
   const f = JSON.stringify(w.__t.STUFF().filters);
   if (f !== JSON.stringify([{ field: 'paperId', value: row.paper_id }])) bad.push('the reload brought Find back with the chips ' + f);
-  if (w.__t.PAGE.stuff !== want) bad.push('the reload put Find on page ' + w.__t.PAGE.stuff + ', not the essay\'s ' + want);
+  if (pg_(w.__t).stuff !== want) bad.push('the reload put Find on page ' + pg_(w.__t).stuff + ', not the essay\'s ' + want);
   const box2 = w.document.querySelector('#s-stuff [data-do="qp-ans"][data-k="' + k + '"]');
   if (!box2) bad.push('after the reload the essay\'s box is not on the page in front');
   else if (box2.value !== RELOAD_ESSAY) bad.push('after the reload the essay\'s box holds ' + box2.value.length + ' characters');
@@ -18914,28 +22999,34 @@ check('signing in from signed out keeps Find’s chips, the card and its page �
    named on a signed-out phone if Find is kept (the review of the Bible, recorded in `signedOut_`), and one
    child signing in over another is the next person, not the same seat: both still clear the search and
    the chips, through the real Sign out tile and through `signedIn_`, the door every sign-in uses. */
-check('Find is still started again when an admin signs out from an admin-only shelf, and when another child signs in over the last', async () => {
+check('both finders are started again when an admin signs out from the admin-only shelf, and when another child signs in over the last', async () => {
   const bad = [];
   /* ---- AN ADMIN, ON THE BOOKS SHELF, SIGNS OUT ---- */
   {
     const { w } = boot({ before: win => { win.localStorage.setItem('familyUser', JSON.stringify({ name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk-a' })); } });
     await wait(300);
     const t = w.__t, d = w.document;
-    t.go('stuff', false, true);
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
-    t.STUFF().q = 'genesis';
-    w.paintStuff();
-    if (!/\bBooks\b/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('the setup: the admin’s chips do not name the Books shelf, so its going was NOT checked');
+    /* THE BOOKS SHELF IS ON THE RESOURCES COLUMN NOW (docs/history/329); Find holds a question of the
+       admin's own beside it, and both go. */
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().q = 'genesis';
+    w.paintFinder_('res');
+    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
+    t.STUFF().q = 'fractions';
+    if (!/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('the setup: the admin’s Resources chips do not name the Books shelf, so its going was NOT checked');
     t.ACTIONS.signout(d.createElement('button'));
     await wait(50);
-    t.go('stuff', false, true);
+    t.go('res', false, true);
     await wait(30);
     if (t.whoami()) bad.push('Sign out left somebody signed in');
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out from the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (/\bBooks\b/.test((d.getElementById('stuff-chips') || {}).textContent || '')) bad.push('signed out, Find’s chips still name the Books shelf');
-    /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — Find kept, and it holds nothing of the admin's. */
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin signed out from the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin signed out left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (/\bBooks\b/.test((d.getElementById('res-chips') || {}).textContent || '')) bad.push('signed out, the Resources chips still name the Books shelf');
+    /* AND THE NEXT CHILD SIGNING IN FROM THERE IS SIGNED IN FROM NOBODY — kept, and holding nothing of the admin's. */
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in after the admin signed out is handed the admin’s Find: ' + JSON.stringify(t.STUFF().filters));
+    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in after the admin signed out is handed the admin’s Resources: ' + JSON.stringify(t.RES().filters));
   }
   /* ---- ONE CHILD SIGNED IN, ANOTHER SIGNS IN OVER THEM ---- */
   {
@@ -18946,10 +23037,13 @@ check('Find is still started again when an admin signs out from an admin-only sh
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }];
     t.STUFF().q = 'fractions';
     w.paintStuff();
+    t.RES().filters = [{ field: 'shelf', value: 'Boxing' }];
+    t.RES().q = 'ali';
     if (typeof w.signedIn_ !== 'function') return bad.concat(['signedIn_ is not reachable — the switch was NOT checked']);
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
     if ((t.whoami() || {}).personId !== 'P12') return bad.concat(['the second child did not sign in: ' + JSON.stringify(t.whoami())]);
     if (t.STUFF().filters.length || t.STUFF().q) bad.push('a child signing in over Ada is handed Ada’s Find: ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
+    if (t.RES().filters.length || t.RES().q) bad.push('a child signing in over Ada is handed Ada’s Resources: ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
     /* THE SAME CHILD SIGNING IN AGAIN IS NOT A SWITCH: their Find stays. */
     t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }];
     w.signedIn_(Object.assign({ success: true }, KEEP_SOL_), 'sol');
@@ -19065,15 +23159,16 @@ check('a session that ends while a child types keeps Find for them to sign in ag
       reply: b => (b.action === 'sessionProbe' ? { error: 'Please sign in again.', why: 'signed-out' } : undefined) });
     await wait(300);
     const t = w.__t;
-    t.go('stuff', false, true);
-    t.STUFF().filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
-    t.STUFF().q = 'genesis';
-    w.paintStuff();
+    /* ON THE RESOURCES COLUMN, where the Books shelf is now (docs/history/329). */
+    t.go('res', false, true);
+    t.RES().filters = [{ field: 'shelf', value: 'Books' }];
+    t.RES().q = 'genesis';
+    w.paintFinder_('res');
     await w.api({ action: 'sessionProbe', personId: 'P001' });
     await wait(30);
     if (t.whoami()) return bad.concat(['the admin’s refused request did not sign the phone out — the admin case was NOT checked']);
-    if (t.STUFF().filters.length || t.STUFF().q) bad.push('an admin’s session ending on the Books shelf left Find holding ' + JSON.stringify(t.STUFF().filters) + ' "' + t.STUFF().q + '"');
-    if (t.STUFF().whose) bad.push('an admin’s dead session left STUFF.whose = ' + JSON.stringify(t.STUFF().whose));
+    if (t.RES().filters.length || t.RES().q) bad.push('an admin’s session ending on the Books shelf left Resources holding ' + JSON.stringify(t.RES().filters) + ' "' + t.RES().q + '"');
+    if (t.RES().whose || t.STUFF().whose) bad.push('an admin’s dead session left whose = ' + JSON.stringify([t.STUFF().whose, t.RES().whose]));
   }
   return bad;
 });
@@ -19144,7 +23239,10 @@ check('an answer typed signed out beats an older one on the account at sign-in, 
    sign-in, fifteen to thirty-five seconds on the wire — that lands after Sign out put the whole film list
    back on a signed-out phone, the Drive links with it (note 068), a moment after `signedOut_` had emptied
    it; and the signed-out funnel offered "Films", a chip a visitor could press and carry into the next
-   child's Find. Now a payload whose person has gone is not adopted, and one is asked for whoever is here. */
+   child's Find. Now a payload whose person has gone is not adopted, and one is asked for whoever is here.
+   THE SETUP ASKED THAT THE ADMIN'S FIND HELD THE FILMS, and Find holds none for anybody since 10 Oct — so
+   the setup is the admin's `DATA.films`, which is what the late payload would put back. "Films" is still
+   refused on the signed-out funnel: absent for a second reason now, and wrong for either. */
 check('an admin’s payload that lands after Sign out is not adopted, and the signed-out phone asks for its own', async () => {
   let hold = false, release = null;
   const adminPayload = () => Object.assign(payload(), { films: FILMS_ });
@@ -19160,7 +23258,8 @@ check('an admin’s payload that lands after Sign out is not adopted, and the si
   await wait(400);
   const t = w.__t, bad = [];
   const films = () => { try { return w.stuffItemsAll_().filter(x => x.kind === 'film').length; } catch (e) { return -1; } };
-  if (films() !== FILMS_.length) return ['the setup: the admin’s Find has ' + films() + ' of ' + FILMS_.length + ' films, so their going was NOT checked'];
+  if ((t.DATA().films || []).length !== FILMS_.length) return ['the setup: the admin’s DATA holds ' + (t.DATA().films || []).length + ' of ' + FILMS_.length + ' films, so their going was NOT checked'];
+  if (films() !== 0) bad.push('the admin’s Find has ' + films() + ' film(s) — films are not in Find for anybody');
   if (typeof w.load !== 'function') return ['load is not reachable — nothing was checked'];
   hold = true;
   w.load();
@@ -19427,7 +23526,153 @@ check('an ordering: the real 1F Q4 is tapped in order, sent, marked by its order
   return bad;
 });
 
+/* ---------- A CHILD IS HER FIRST NAME ON EVERY SCREEN, FOR EVERYBODY -------------------------------
+   THE OWNER, 10 OCT: *"also side note dont show children's last name."* (docs/history/333).
+
+   THE PAYLOADS ARE THE REAL BACKEND'S, NOT A FIXTURE. A fixture written to say "Wren" would prove only
+   that the phone draws what it is given — and the whole risk is what it is given. So the people, her
+   post, her reactions, her booking with her whole name in the events and in `for_children`, her
+   message to the admin and her family link go into the in-memory sheet of `check-gas-load.js`, each
+   visitor signs in through the real `verifyLogin`, the phone boots on the real `doGet` for that
+   visitor's token, and every POST it makes is answered by the real `doPost`. Then every screen and
+   every page of it is drawn, and her surname must be nowhere in the document — text, attributes,
+   anything — for a visitor, her tutor, another parent and an admin.
+
+   AND FOR HERSELF, ON A PHONE SIGNED IN BEFORE 10 OCT: `familyUser` still holding her whole name, the
+   way thirty days of sessions do. The first open asks `myProfile`, which carries her name as the server
+   says it now (`profileRefresh_`), so her You card and her greeting are her first name too. The one
+   place it may be is her own Settings, in the box that edits it — so for her, those boxes are left out
+   of the search and nothing else is.
+
+   AND JUNO, WHO TICKED TUTOR IN HER OWN SETTINGS (the review of 10 Oct). The tick is a request the
+   business has not answered (`listed` PENDING), so she is a child still — but the first version of the
+   rule asked `mainRole`, which called her a tutor, and her whole name was drawn under her comment for
+   a visitor, on her tutor's roster and on everybody's score board. She books and comments here, and her
+   surname is hunted on every screen beside Wren's. */
+const SUR_ = 'Quorrington';
+const SURS_ = [SUR_, 'Vandersloot'];
+function surnameWorld_() {
+  const { backend } = require('./check-gas-load.js');
+  const b = backend({ MailApp: { sendEmail() {}, getRemainingDailyQuota: () => 100 } });
+  const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+  const dmy = d => d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+  const base = { pin: '0000', verified: 'TRUE', listed: true, city: 'London', xp: 0, credits: 0 };
+  const P = (id, role, first, last, email, handle, extra) => Object.assign({ person_id: id, role, first_name: first,
+    last_name: last, email, handle }, base, extra || {});
+  b.seed('people', [
+    P('P-ADM', 'admin', 'Hal', 'Admin', 'admin@example.org', 'hal_kind40'),
+    P('P-TUT', 'tutor', 'Tam', 'Tutor', 'tutor@example.org', 'tam_kind41', { availability: 'm16,m17,sa10,sa11,sa12',
+      rate_per_hour: 20, max_students: 4, min_students: 1, age_min: 8, age_max: 16, dbs_checked: true }),
+    P('P-PAR', 'client', 'Pip', 'Ashdown', 'pip@example.org', 'pip_kind42'),
+    P('P-KID', 'student', 'Wren', SUR_, '', 'wren_kind43', { date_of_birth: '14/03/2014', high_score_flappy: 31 }),
+    /* A SECOND WREN, so the server's name for her is `Wren (@wren_kind43)` — and the phone must take that
+       from `myProfile` rather than stop at the first name it can work out for itself. */
+    P('P-KD2', 'student', 'Wren', 'Ollerby', '', 'wren_bold44'),
+    P('P-STU', 'student', 'Ned', 'Pell', 'ned@example.org', 'ned_kind45'),
+    P('P-OTH', 'client', 'Ola', 'Brisk', 'ola@example.org', 'ola_kind46'),
+    P('P-PEN', 'student', 'Juno', 'Vandersloot', 'juno@example.org', 'juno_kind47', { high_score_flappy: 12 }),
+  ]);
+  b.seed('family', [{ link_id: 'L1', parent_id: 'P-PAR', child_id: 'P-KID', child_typed: 'Wren ' + SUR_, state: 'accepted' }]);
+  b.seed('config', [{ key: 'max_open_requests', value: 20 }]);
+  b.seed('posts', [{ post_id: 'PO-1', author: 'Wren ' + SUR_, posted_by: 'Wren ' + SUR_, image: 'https://example.org/w.jpg',
+    caption: 'Wren ' + SUR_ + ' and the volcano', approved: 'TRUE', active: 'TRUE', posted_on: dmy(day(-1)) }]);
+  b.seed('post_reactions', [{ reaction_id: 'R1', post_id: 'PO-1', person_id: 'P-KID', emoji: '👍', reacted_on: dmy(day(-1)) }]);
+  b.seed('post_comments', [{ comment_id: 'C1', post_id: 'PO-1', person_id: 'P-KID', body: 'thank you', said_on: dmy(day(-1)), active: 'TRUE' }]);
+  const tk = {};
+  [['admin@example.org', 'P-ADM'], ['tutor@example.org', 'P-TUT'], ['pip@example.org', 'P-PAR'], ['wren_kind43', 'P-KID'],
+   ['ned@example.org', 'P-STU'], ['ola@example.org', 'P-OTH'], ['juno@example.org', 'P-PEN']].forEach(([who, id]) => {
+    const d = b.post({ action: 'verifyLogin', email: who, name: who, pin: '0000' });
+    if (d && d.success) tk[id] = d;
+  });
+  const as = (pid, body) => b.post(Object.assign({ token: tk[pid].token, name: tk[pid].name, personId: pid }, body));
+  /* HER SEAT, BOOKED BY HER PARENT FOR HER AS AN OLD PHONE DID (her whole name ticked), AND HER OWN. */
+  if (tk['P-PAR']) as('P-PAR', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'English', level: 'GCSE', day: 'Saturday',
+    time: '11:00', slots: 'sa11', location: 'Online', dates: dmy(day(41)), hours: 1, price: 30, kids: 'Wren ' + SUR_ });
+  if (tk['P-KID']) as('P-KID', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
+    time: '10:00', slots: 'sa10', location: 'Online', dates: dmy(day(40)), hours: 1, price: 30 });
+  if (tk['P-KID']) as('P-KID', { action: 'sendMessage', to: 'Hal Admin', toId: 'P-ADM', body: 'Can we do fractions?' });
+  /* JUNO TICKS TUTOR, AND IS LEFT WAITING — then books her own session and says a word on Wren's post. */
+  if (tk['P-PEN']) {
+    const t1 = as('P-PEN', { action: 'setMyRoles', roles: ['student', 'tutor'] });
+    const t2 = as('P-PEN', { action: 'createJob', requestedTutor: 'Tam Tutor', subject: 'Maths', level: 'GCSE', day: 'Saturday',
+      time: '12:00', slots: 'sa12', location: 'Online', dates: dmy(day(42)), hours: 1, price: 30 });
+    const t3 = as('P-PEN', { action: 'addComment', postId: 'PO-1', body: 'great volcano' });
+    if (!(t1 && t1.tutorPending) || !(t2 && t2.success) || !(t3 && t3.success)) tk.junoFailed = JSON.stringify([t1, t2, t3]).slice(0, 300);
+  }
+  return { b, tk };
+}
+check('a child is her first name on every screen: no surname drawn for a visitor, her tutor, another parent, an admin, or herself outside her own Settings boxes', async () => {
+  let world;
+  try { world = surnameWorld_(); } catch (e) { return ['the real backend could not be built, so NOTHING was drawn — ' + e.message]; }
+  const { b, tk } = world;
+  if (tk.junoFailed) return ['Juno could not tick Tutor, book and comment, so a pending tick was NOT asked — ' + tk.junoFailed];
+  if (Object.keys(tk).length < 7) return ['only ' + Object.keys(tk).join(', ') + ' could sign in, so most screens were NOT drawn — not a pass'];
+  const VIEW = [['a visitor', null], ['her tutor', 'P-TUT'], ['another parent', 'P-OTH'], ['an admin', 'P-ADM'], ['herself', 'P-KID']];
+  const bad = [];
+  for (const [who, pid] of VIEW) {
+    /* WHAT `familyUser` HOLDS: the real sign-in reply — and for her, that reply as a phone signed in
+       before 10 Oct kept it, her whole name in it. */
+    const user = pid ? JSON.parse(JSON.stringify(tk[pid])) : null;
+    if (pid === 'P-KID') user.name = 'Wren ' + SUR_;
+    const pay = b.get(pid ? { token: tk[pid].token } : {});
+    const { w, errs } = boot({ payload: pay, reply: body => b.post(body),
+      before: win => { if (user) win.localStorage.setItem('familyUser', JSON.stringify(user)); } });
+    for (let k = 0; k < 80 && !w.__t; k++) await wait(100);
+    const t = w.__t;
+    if (!t) { bad.push(who + ': the app did not finish loading'); continue; }
+    await wait(600); await woken_();
+    if (!!pid !== !!t.whoami()) { bad.push(who + ': the app reads this visitor as signed ' + (t.whoami() ? 'in' : 'out') + ' — NOT asked about'); continue; }
+    const seen = [];
+    let sawJuno = false;
+    const look = (where) => {
+      const root = w.document.documentElement.cloneNode(true);
+      /* HER OWN SETTINGS BOXES, AND NOTHING ELSE, are where her surname belongs. */
+      if (pid === 'P-KID') root.querySelectorAll('#s-settings input, #s-settings textarea').forEach(el => el.remove());
+      const html = root.outerHTML;
+      const m = html.match(new RegExp('.{0,70}(?:' + SURS_.join('|') + ').{0,40}', 'i'));
+      if (/Juno/.test(html)) sawJuno = true;
+      if (m) seen.push(where + ': …' + m[0].replace(/\s+/g, ' ') + '…');
+    };
+    let pages = 0;
+    for (const id of t.TABS.map(x => x.id)) {
+      try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw on go(): ' + e.message); continue; }
+      await wait(120); await woken_();
+      look(id);
+      /* A WINDOWED SCREEN HOLDS A FEW PAGES AT A TIME, so it is walked page by page. */
+      let n = 0;
+      try { n = t.pageCount(id) || 0; } catch (e) { n = 0; }
+      pages += Math.max(1, n);
+      if ((t.PAGE_KEEP || {})[id]) {
+        for (let p = 1; p < Math.min(n, 40); p++) { try { t.goPage(id, p, true); } catch (e) {} await wait(30); look(id + ' page ' + (p + 1)); }
+      }
+    }
+    if (pages < 12) bad.push(who + ': only ' + pages + ' pages were drawn — the walk did not reach the screens');
+    [...new Set(seen)].slice(0, 4).forEach(x => bad.push(who + ' is shown her surname on ' + x));
+    /* AND HER FIRST NAME IS THERE, where a screen names her — a rule that drew nobody would pass the above. */
+    const all = w.document.documentElement.outerHTML;
+    if (pid !== 'P-TUT' && !/Wren/.test(all)) bad.push(who + ': "Wren" is nowhere on any screen, so the screens that name her were NOT drawn — not a pass');
+    if (!sawJuno) bad.push(who + ': "Juno" is nowhere on any screen, so the screens that name the child who ticked Tutor were NOT drawn — not a pass');
+    if (pid === 'P-KID' && String((t.whoami() || {}).name) !== String(tk['P-KID'].name)) {
+      bad.push('herself: the phone calls her ' + JSON.stringify((t.whoami() || {}).name) + ' after `myProfile`, and the server calls her '
+        + JSON.stringify(tk['P-KID'].name) + ' — a session from before 10 Oct keeps the name it was signed in with for thirty days');
+    }
+    if (errs.length) bad.push(who + ': errors: ' + errs.slice(0, 3).join(' | '));
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
+/* `FLOW_PART=2/4` RUNS THE SECOND QUARTER, in roster order — for a machine where the whole file takes
+   longer than one shell may wait (four cores shared with other builders: the full run passed 600s on
+   10 Oct). Each part says which slice it ran, so four parts are seen to cover the lot. The suite never
+   sets it. */
+const FLOW_PART_ = /^(\d+)\/(\d+)$/.exec(process.env.FLOW_PART || '');
+if (FLOW_PART_) {
+  const k = Number(FLOW_PART_[1]), n = Number(FLOW_PART_[2]), all = checks.length;
+  const a = Math.floor((k - 1) * all / n), b = Math.floor(k * all / n);
+  checks.splice(0, all, ...checks.slice(a, b));
+  console.log('part ' + k + '/' + n + ': journeys ' + (a + 1) + '–' + b + ' of ' + all);
+}
 (async () => {
   let failed = 0;
   console.log('');

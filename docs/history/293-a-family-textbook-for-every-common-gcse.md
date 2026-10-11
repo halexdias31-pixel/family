@@ -1,5 +1,7 @@
 ## An @family. textbook for every common GCSE, bare bones, beside Statistics
 
+**Since 10 Oct the books are on the Resources column**, the second finder right of Find ([329](329-the-second-finder-carries-the-resources.md)); a book kept on Saved opens there on its card, the chapters a swipe up.
+
 **Asked for as** *"Add a maths and English language+lit gcse text book in like the stats one. Make it
 bare bones. Do physics and chemistry and biology too. Do geography too. Do any other common gcse
 subjects too. Keep bare bones for now. Just so we have it set up."*

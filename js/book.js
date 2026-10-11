@@ -768,6 +768,15 @@ function slotGrid() {
      tutor does not work from a Tuesday that was never offered, and the row moving under your thumb
      as you pick a venue is the same fault the dropdowns had before they started showing WHY an
      option does not fit instead of dropping it. */
+  /* ---------- `rows` IS STILL ALL SEVEN; `days` IS WHAT THE WEEK DRAWS ---------------------------
+     THE PARAGRAPH ABOVE LOST ONE ARGUMENT, TO THE OWNER, 10 Oct: *"availability of tutors should just
+     show the days they have an availibility up. no need to display monday if they dont have any hours
+     on monday."* Once a tutor is NAMED, a day they have ticked nothing on is left off the week — see
+     `days` below. Everything else the paragraph says still holds and is why the cut is that narrow:
+     an hour stays greyed rather than removed, a day the tutor works stays when every hour of it is
+     taken or the venue is shut (a different fact from not working it, and the one worth trying a
+     different week for), and choosing a VENUE never moves a row. `rows` keeps all seven for every
+     reader that looks a day up by its code. */
   /* THE SPAN IS `SLOT_HOURS` AND THE ARGUMENT FOR ITS TWO ENDS IS WRITTEN THERE — including why the
      late end cannot be pushed past `AVAIL_HOURS` without moving that first. */
   const hours = SLOT_HOURS;
@@ -783,13 +792,38 @@ function slotGrid() {
   }));
   const anyOpen = rows.some(r => r.hours.some(h => h.open));
 
+  /* ---------- THE DAYS THE WEEK DRAWS ---------------------------------------------------------------
+     A NAMED TUTOR'S WEEK IS THE DAYS THEY WORK: any day with an hour they ticked inside the span,
+     whatever has happened to that hour since (taught, or the venue shut). NO TUTOR — `No preference`,
+     or nobody chosen yet — keeps all seven: nobody's week is being shown, and the family is saying
+     when THEY can come. `tutorRow_` is null for both, so that is one test.
+
+     TWO WAYS A NAMED TUTOR STILL GETS ALL SEVEN, both so the week can carry its reason. Nothing ticked
+     at all (`tNone`) and ticks only outside the span both leave no day to draw — and `weekRows_` puts
+     `why` under the LAST row, so an empty week would lose the sentence saying why it is empty. Seven
+     greyed rows and the reason is what that tutor got before today.
+
+     ---------- AND A TICK ON A DAY THAT GOES IS FOUND, NOT LOST ----------------------------------------
+     CHOOSING A TUTOR NEVER UNTICKED ANYTHING, and that is how the form treats every hour that stops
+     being bookable: Monday 10:00 ticked under No preference, then Ada chosen, who does not teach
+     Mondays — the tick stays in `BOOKING.slots`, the cell draws lit-and-greyed (`on shut`, disabled),
+     its title says `not available`, the day's `× 1` and the When answer still count it, and
+     `createJob`'s `tutorHoursRefusal_` refuses it by name at the send. Dropping Monday's ROW would
+     hide that tick while the price still multiplied by it. So a day with a tick on it stays drawn
+     whether the tutor works it or not, exactly as it would have been before. */
+  const ticked = Array.isArray(BOOKING.slots) ? BOOKING.slots : [];
+  const works = r => haveT && r.hours.some(h => tAvail[h.code]);
+  const days = (t && rows.some(works))
+    ? rows.filter(r => works(r) || r.hours.some(h => ticked.indexOf(h.code) !== -1))
+    : rows;
+
   const why = anyOpen ? ''
     : tNone ? 'That tutor hasn\u2019t set their hours yet, so they cannot be booked by name. Choose No preference, or another tutor.'
     : !haveT && !haveV ? 'Nobody has set any hours yet.'
     : !haveT ? 'That venue is open, but the tutor has no hours set.'
     : !haveV ? 'The tutor has hours, but that venue has none set.'
     : 'The tutor’s hours and the venue’s do not overlap.';
-  return { rows, why, anyOpen };
+  return { rows, days, why, anyOpen };
 }
 
 /**
@@ -1261,6 +1295,9 @@ const BOOK_STEPS = [
 
   { id: 'loc', label: 'Where?', short: 'Venue',
     options: () => ['At home'].concat(bookableSpaces().map(x => x.label)),
+    /* THE ANSWER WRAPS. A room is "Venue — Room", and the three rooms of one building are the same
+       answer until its last word — see the note at the foot of `stepSelect_`. */
+    wrap: true,
     why: v => {
       const sp = spaceFor(v);
       /* The seat count is already chosen by now, so a room too small says so rather than
@@ -2635,15 +2672,40 @@ function stepSelect_(st) {
   /* DISABLED, NOT ABSENT. The row keeps its height, its label and its answer; only the pointer
      changes. A form whose rows come and go cannot be learnt. */
   const off = stepLocked_(st);
-  return `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
+  /* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off` on
+     the tutor step. The one already chosen is left pressable, so the row can show it. */
+  const noOf = o => st.off ? String(st.off(o) || '') : '';
+  const words = o => said(o) + (noOf(o) ? ' · ' + noOf(o) : '');
+  const blank = dup ? '\u2014' : (fb || '\u2014');
+  const sel = `<select class="bk-sel" id="${bkCtl_(st.id)}" data-do="book-set" data-step="${esc(st.id)}"
       ${off ? 'disabled' : ''} aria-label="${esc(st.label)}">
-    <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(dup ? '\u2014' : (fb || '\u2014'))}</option>
-    ${/* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off`
-          on the tutor step. The one already chosen is left pressable, so the row can show it. */''}
-    ${opts.map(o => { const no = st.off ? String(st.off(o) || '') : '';
-      return `<option value="${esc(o)}"${isOn(o) ? ' selected' : ''}${
-        no && !isOn(o) ? ' disabled' : ''}>${esc(said(o) + (no ? ' · ' + no : ''))}</option>`; }).join('')}
+    <option value=""${!v || !opts.some(isOn) ? ' selected' : ''}>${esc(blank)}</option>
+    ${opts.map(o => `<option value="${esc(o)}"${isOn(o) ? ' selected' : ''}${
+        noOf(o) && !isOn(o) ? ' disabled' : ''}>${esc(words(o))}</option>`).join('')}
   </select>`;
+  /* ---------- AN ANSWER TOLD APART BY ITS END IS DRAWN IN WORDS, WITH THE SELECT LAID OVER THEM -------
+     A SELECT CANNOT WRAP, and once a venue has rooms its answers are one string until the last word:
+     "Colliers Wood Library — Small room 1", "… — Small room 2", "… — Large room 1". In the 81px the
+     answer column has at 390 every one of them read "Colliers …" — on the form, and in the picture the
+     Share tile makes of it — so which room had been chosen was said by nothing but the rate beside it
+     (found by review, 10 Oct). Putting the room first does not rescue it: "Small room 1" and "Small
+     room 2" are both "Small roo…" in that width.
+
+     SO THE ROW SHOWS ITS ANSWER AS TEXT, which wraps the way a settled answer and a saved receipt
+     already do (`.bk-set`), and the select is still the control: laid exactly over the words, its own
+     letters unpainted, its arrow drawn — so a tap anywhere on the answer is a tap on the platform's own
+     dropdown (note 315), nothing stands in front of it, and the row's `<label for>` still reaches it.
+     The words are the chosen option's own text, from the one `words` the options are written with;
+     `aria-hidden`, because the select already says them to a screen reader. `drawBooker` runs on every
+     `change` (the listener over `book-set`), so the words are redrawn whenever the answer moves.
+
+     OPTED INTO BY THE STEP (`wrap`), not imposed on every row. The other answers on this card are told
+     apart by how they START — `No prefer…`, `Waiting li…` — and wrapping them would make a card already
+     called too long longer, to fix a fault they do not have. */
+  if (!st.wrap) return sel;
+  const picked = opts.filter(isOn).pop();
+  return `<span class="bk-face"><span class="bk-said" aria-hidden="true">${
+    esc(picked !== undefined ? words(picked) : blank)}</span>${sel}</span>`;
 }
 
 /* ---------- THE NOTE IS A ROW LIKE THE REST -------------------------------------------------------
@@ -3069,7 +3131,11 @@ function weekRows_(days, cell, opts) {
       + '<span class="slot-hours">' + d.hours.map(h => cell(h, d)).join('') + '</span>',
     /* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
        nobody works are different facts, which is the same reason a shut hour is greyed rather than
-       removed — but it does not need a thumb-sized row, because there is nothing on it to press. */
+       removed — but it does not need a thumb-sized row, because there is nothing on it to press.
+       ONE EXCEPTION, AND IT IS THE CALLER'S, NOT THIS BUILDER'S: once a tutor is named, a day they
+       do not work is not passed in at all (`days` in `slotGrid`; the owner, 10 Oct, *"no need to
+       display monday if they dont have any hours on monday"*). A day they work with every hour
+       taken, or the venue shut, still arrives here and still collapses. */
     shut: !!d.shut,
     off: !!o.off,
     /* ---------- ONE SENTENCE, UNDER THE LAST DAY --------------------------------------------------
@@ -3089,11 +3155,15 @@ function weekGrid_(days, cell, o) {
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
   return `<div class="slot-grid">
     ${slotHead_(cols)}
-    ${/* A DAY WITH NOTHING OPEN COLLAPSES. It is still drawn — a missing Wednesday and a Wednesday
-          nobody works are different facts, which is the same reason a shut hour is greyed rather
-          than removed — but it does not need a thumb-sized row, because there is nothing on it to
-          press. Four working days and three closed ones costs half what seven equal rows did. */''}
-    ${days.map(d => `<div class="slot-row${d.shut ? ' is-shut' : ''}">
+    ${/* ---------- NO DAY HERE COLLAPSES ANY MORE, SO THIS NO LONGER DRAWS ONE ------------------------
+          A DAY WITH NOTHING OPEN USED TO COLLAPSE to a thin `is-shut` row, and the tutor's card was
+          the one week built here that had such days. The owner, 10 Oct: *"no need to display monday
+          if they dont have any hours on monday"* — so the card leaves the day out (`profAvail_`), and
+          the Settings week draws all seven at full height because it is where a day GETS its hours:
+          a Monday that collapsed there would be a Monday you could not tick. With no caller left
+          passing `shut`, the class and its three rules went with it rather than waiting in the
+          stylesheet for a week nobody builds. The FORM's thin day is `weekRows_`'s, not this. */''}
+    ${days.map(d => `<div class="slot-row">
       ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell’s width — and Mo/Tu/
             We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
             T and S are each two days. */''}
@@ -3191,8 +3261,11 @@ function stepWeekRows_(st) {
   const g = slotGrid();
   const on = BOOKING.slots || [];
   const off = stepLocked_(st);
+  /* `g.days`, NOT `g.rows`: once a tutor is named, the days they work (and any day already holding a
+     tick) — see `days` in `slotGrid` for the rule and its two exceptions. The owner, 10 Oct: *"no
+     need to display monday if they dont have any hours on monday."* Nobody named, all seven. */
   return weekRows_(
-    g.rows.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open),
+    g.days.map(r => ({ label: r.label, hours: r.hours, shut: !r.hours.some(h => h.open),
                        /* THE TICKS THEMSELVES, counted where they are read. */
                        mul: r.hours.filter(h => on.indexOf(h.code) !== -1).length })),
     (h, d) => `<button class="hr${on.indexOf(h.code) !== -1 ? ' on' : ''}${
@@ -4048,9 +4121,22 @@ function bookBreakdown(L, foot) {
      `stepRows_` drops the other branch's questions on: the row must not be re-added here under the
      name the filter just removed, and one reader is what makes that impossible rather than
      remembered. It resolves to `isWaiting_()`, the one test the branch itself is taken on. */
+  /* ---------- A DAY THE WEEK LEFT OUT IS NOT A DAY TO INVENT ---------------------------------------
+     MONDAY TO SUNDAY ARE SPINE ROWS, so a day `stepWeekRows_` did not draw would come straight back
+     here as `Monday —`: the row the owner asked to go — *"no need to display monday if they dont have
+     any hours on monday"* — removed by the week and re-added by the spine two hundred lines down,
+     which is the round trip `ONLY_ON` already records for a branch-only step.
+
+     READ OFF THE ROWS THE WEEK ACTUALLY DREW, not worked out again from the tutor's hours. If any
+     day row is on the card, the days that are not were left out on purpose; if none is (no week on
+     this branch), nothing is marked and the spine fills as it always has. One reader of one
+     decision, so the two cannot disagree about which Monday is gone. */
+  const weekDrew = steps.filter(r => r.strip).map(r => r.k);
+  const weekLeft = {};
+  if (weekDrew.length) SLOT_DAYS.forEach(([, label]) => { if (weekDrew.indexOf(label) === -1) weekLeft[label] = true; });
   const rows = spineRows_(body
     .concat(leftover.filter(p => !placed[p.key]))
-    .concat([noteRow_()]), { on: bookOn_(), said: merged });
+    .concat([noteRow_()]), { on: bookOn_(), said: Object.assign({}, merged, weekLeft) });
   /* ---------- THE PICTURE IS DRAWN FROM THIS LIST, NOT FROM ITS OWN --------------------------------
      THE COMMENT ABOVE HAS SAID "ONE LIST, WALKED TWICE" SINCE IT WAS WRITTEN, AND IT WAS NOT TRUE.
      `receiptCanvas` called `breakdownRows(L)` again and drew whatever came back — the raw priced

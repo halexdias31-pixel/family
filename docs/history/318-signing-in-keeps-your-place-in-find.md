@@ -1,5 +1,7 @@
 ## Signing in keeps your place in Find: the same chips, the same card, the same page, and the answer moves to you
 
+**Since 10 Oct there are two finders** ([329](329-the-second-finder-carries-the-resources.md)): everything here holds for the Resources column too — its chips, words and page kept across a sign-in from nobody, cleared on Sign out and on a switch, and its place kept for a reload under `res:place` beside Find's `find:place`.
+
 **The owner, 9 Oct:** *"when the child writes something in an answer box then goes to sign in, it wipes
 their finder so they have to click all the way to get back there."*
 

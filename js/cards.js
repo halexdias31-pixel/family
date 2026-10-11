@@ -104,7 +104,10 @@ function passFor_(name) {
    the `kinds` tab ever puts a tutor back in it. */
 function meCard(given) {
   if (!USER) return '';
-  const face = pic(USER.photo || (USER.profile || {}).photo || '');
+  /* `USER.profile.photo` FIRST: it is what the picker writes the moment the server answers, where
+     `USER.photo` is the sign-in reply's copy — `pfpTake_` writes both now, but a remembered sign-in
+     from before it holds only the first. */
+  const face = String((USER.profile || {}).photo || USER.photo || '');
   /* ---------- CREDITS, E-MAIL AND WHERE MOVED TO THE SETTINGS COLUMN ----------------------------
      They were a second card under this one headed "Only you see this". Asked for as *"credits can
      stay in the column to the right along with email and where bit"* and *"remove the only you can
@@ -127,11 +130,13 @@ function meCard(given) {
 
   return `<div class="card is-widget">
     <div class="thing">
-      ${face
-        ? `<img class="thing-pic" src="${esc(face)}" alt="">`
-        : `<span class="thing-pic art">${avatarFor(USER.handle || USER.name, 52, USER.avatar)}</span>`}
+      ${/* THROUGH `personFace_` LIKE EVERY FACE. This drew the full wardrobe figure for no picture,
+            a face only you ever saw; with no picture it is the initial everybody else sees, and the
+            figure is a picture you choose (`photoPicker_`). */''}
+      ${personFace_({ pic: face, avatar: USER.avatar || '', handle: USER.handle, name: USER.name, personId: USER.personId },
+                    { cls: 'thing-pic', none: 'none', size: 52 })}
       <div class="thing-body">
-        <h3>${esc(USER.name)}</h3>
+        <h3>${esc(nameBesideHandle_(USER.name, USER.handle))}</h3>
         <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
         ${USER.handle ? `<p class="prof-handle">@${esc(USER.handle)}</p>` : ''}
       </div>
@@ -458,19 +463,45 @@ function profHeat_(names) {
    neither, so a parent choosing between two tutors had to start a booking with each to find out
    whether either worked Tuesdays.
 
-   `weekGrid_`, AND THE RECEIPT'S CELL. The same seven rows the booking form, the receipt and the
+   `weekGrid_`, AND THE RECEIPT'S CELL. The same day rows the booking form, the receipt and the
    tutor's own Settings week are drawn with, so a week on a card is not a fourth thing to learn; the
    cell is the receipt's look — lit or `shut` — on a `<span>`, because a card is read, not answered
    (see the note over the markup for what a disabled button cost).
 
-   A BUSY HOUR IS GREYED, NOT GOLD. It is an hour they said they can teach and somebody already has,
+   A BUSY HOUR IS NOT LIT GOLD. It is an hour they said they can teach and somebody already has,
    so offering it as open is the promise the booking grid would then break; `slotGrid` greys it for
-   the same reason. Its `title` says why, which is what the booking grid's cells do too.
+   the same reason. Its `title` says why, which is what the booking grid's cells do too — and on the
+   card it is also hatched, for the reason given at the end of this note.
 
-   A DAY WITH NOTHING TICKED COLLAPSES (`shut`, which `weekGrid_` draws as a thin row) and A TUTOR WITH
-   NOTHING TICKED GETS NOTHING — no caption, no empty week. Seventy-seven grey cells read as "never
-   available", which is not what an unfilled grid means: `slotGrid` treats it as "nobody has said",
-   and the card must not say something stronger than the booking will. */
+   A DAY WITH NOTHING TICKED IS NOT DRAWN, and A TUTOR WITH NOTHING TICKED GETS NO WEEK — the sentence
+   under the caption instead (see below). Seventy-seven grey cells read as "never available", which
+   is not what an unfilled grid means.
+
+   ---------- ONLY THE DAYS THEY WORK ----------------------------------------------------------------
+   THE OWNER, 10 Oct: *"availability of tutors should just show the days they have an availibility up.
+   no need to display monday if they dont have any hours on monday."* A day with nothing ticked was a
+   thin `shut` row, on the argument the booking grid makes — "a missing Wednesday and a Wednesday
+   nobody works are different facts". On a CARD that argument has nothing to stand on: the card is
+   read, nothing on it is pressed, and nobody reading "Available" down a tutor's card mistakes a
+   missing Wednesday for anything but a day they do not teach. Four thin rules of nothing under a
+   tutor who works three days was three-sevenths of the week spent saying no.
+
+   SO A DAY IS DRAWN WHEN IT HAS AN HOUR THEY TICKED INSIDE THE BOOKABLE SPAN, LIT OR ALREADY TAUGHT.
+   A taught hour keeps its day: it is still a day they work, which is the thing a parent comparing two
+   tutors wants to know. Days keep the week's order (`SLOT_DAYS`), and the hour ruler rides on
+   whichever day is first. See docs/history/325.
+
+   ---------- AND A TAUGHT HOUR HAS TO LOOK TAUGHT, OR ITS DAY IS A ROW OF NOTHING ------------------
+   THE FIRST CUT OF THIS SAID "the grey says the hour is gone", AND THERE WAS NO GREY. A taught hour
+   was `hr shut` — the same dark cell as an hour never ticked — with the difference in its `title`,
+   which a phone never shows. While every day was drawn that was a detail; once a day is drawn
+   BECAUSE of its ticked hours, a Thursday whose one ticked hour is taught came out as ten identical
+   empty cells, the very row the owner asked to drop. Found in the review's screenshot (ticked Thu 16
+   and Fri 10, teaching Thu 16). So the cell keeps `shut` — it cannot be booked — and `is-busy` gives
+   it its own look (`.prof-week .hr.is-busy`: a gold edge, hatched across), and ONE KEY under the
+   week says what the hatching means, drawn only when there is a taught hour to explain. The
+   sentence read aloud says it too, after the free hours: the week is `role="img"`, so the key's
+   words are not read and the label has to carry them. */
 function profAvail_(t) {
   if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
   /* ---------- NO `avail` KEY AT ALL IS NOT A TUTOR -----------------------------------------------
@@ -513,8 +544,22 @@ function profAvail_(t) {
       const code = p + String(h).padStart(2, '0');
       return { h, code, lit: !!on[code] && !busy[code], busy: !!on[code] && !!busy[code] };
     });
-    return { label, hours: cells, shut: !cells.some(c => c.lit || c.busy) };
-  });
+    return { label, hours: cells };
+  }).filter(d => d.hours.some(c => c.lit || c.busy));
+  /* ---------- TICKED, BUT NOT AT AN HOUR THAT CAN BE BOOKED ---------------------------------------
+     WITH THE EMPTY DAYS GONE, THIS TUTOR WOULD GET A CAPTION OVER NOTHING — or a header row of hour
+     numbers with no day under it. It happens: a seven o'clock tick made while the Settings grid ran
+     to seven is still in the sheet (`AVAIL_HOURS` stops at six now), and it is the only tick some
+     tutors have. They HAVE said when they work, so "hasn't set their hours" would be untrue; what is
+     true is the sentence the week's own `aria-label` already says when nothing in it is free. Drawn
+     in the warning ink like the one above, because a family is about to find the name bookable and
+     every hour of it grey. */
+  if (!days.length) {
+    return `<div class="prof-cap">Available</div>
+      <p class="prof-say prof-hid prof-nofree">No free hours this week.${typeof isAdmin === 'function' && isAdmin()
+          ? ' Every hour they have ticked is outside ' + hours[0] + ':00–' + hours[hours.length - 1]
+            + ':00, the hours a session can be booked at.' : ''}</p>`;
+  }
   /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS ---------------------------------------------
      THE FIRST VERSION USED `jobWeekRows_`'s `<button disabled>`, and `check/ui.js` listed every one
      of the 77 as a 17x12 tap target — 210 "known" rows at 320 alone, a report nobody would read past,
@@ -522,16 +567,22 @@ function profAvail_(t) {
      one; it keeps `.hr`'s look and is a `<span>`. A screen reader is given ONE sentence for the whole
      week instead of 77 cells — "Monday 16:00, 18:00; Tuesday 10:00…" — which is what a parent asking
      "when are they free" wants read out. */
-  const said = days.map(d => {
-    const hs = d.hours.filter(c => c.lit).map(c => c.h + ':00');
+  const hoursOn = which => days.map(d => {
+    const hs = d.hours.filter(which).map(c => c.h + ':00');
     return hs.length ? d.label + ' ' + hs.join(', ') : '';
   }).filter(Boolean).join('; ');
+  const said = hoursOn(c => c.lit);
+  /* THE TAUGHT HOURS, SAID AFTER THE FREE ONES — see the note over this function. A day drawn only
+     for a taught hour was silent to a screen reader while it took a row on screen. */
+  const taught = hoursOn(c => c.busy);
   return `<div class="prof-cap">Available</div>
     <div class="prof-week" data-avail="${ticked.length}" role="img"
-      aria-label="${esc(said ? 'Available ' + said : 'No free hours this week')}">${weekGrid_(days, (c, d) =>
+      aria-label="${esc((said ? 'Available ' + said : 'No free hours this week')
+        + (taught ? '. Already teaching ' + taught : ''))}">${weekGrid_(days, (c, d) =>
       `<span class="hr${c.lit ? ' on' : ' shut'}${c.busy ? ' is-busy' : ''}" data-code="${esc(c.code)}"
         title="${esc(d.label + ' ' + c.h + ':00' + (c.busy ? ' — already teaching' : ''))}"></span>`,
-      { chars: 3 })}</div>`;
+      { chars: 3 })}${taught
+        ? '<p class="prof-key"><span class="hr shut is-busy"></span>already teaching</p>' : ''}</div>`;
 }
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so
@@ -614,9 +665,13 @@ function findCard(x) {
           : `<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts
              them back on the site.</p>`) : ''}
       <div class="prof-top">
-        ${t.image
-          ? `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy">`
-          : `<span class="prof-pic prof-none">${esc((t.title || '?').slice(0, 1).toUpperCase())}</span>`}
+        ${/* THE FACE IS `personFace_` (links.js), THE ONE FUNCTION EVERY FACE GOES THROUGH: a photograph
+              as it always was, one of the ten pictures, the figure when the row carries it — the
+              owner, 10 Oct: *"…which allow you to use your avatar as a dp."* — or the initial. This
+              card is yours, a tutor's, your family's and everybody on an admin's column, so this one
+              line is most of the places a person's picture is seen. */''}
+        ${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title, personId: t.personId },
+                      { cls: 'prof-pic', none: 'prof-none', size: 52 })}
         <div class="prof-who">
           <span class="prof-name">${esc(t.title)}</span>
           ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL ---------------------
@@ -667,12 +722,14 @@ function findCard(x) {
             FOUR TO A ROW, because this card is somebody's CV rather than their feed: eight photographs
             are two rows of thumbnails a parent can take in at once, where the post grid's two-wide
             squares would be four rows — most of a phone — under a profile.
-            A TAP OPENS ONE IN PLACE, across the whole row, and a second tap puts it back. Not a sheet
-            and not a new tab, both of which the owner refuses; the picture grows where it is. */''}
+            AND THEY STAY SQUARES. A tap opened one across the whole row, and a second put it back; the
+            owner, 10 Oct: *"i dont like how you made it so people can enlarge a photo of tutor. the
+            extra ones"*. So a square is a picture and nothing else — a `<span>`, not a button, with
+            nothing to press and no "tap to see it bigger" read out, the same reason the week on this
+            card is spans (`profAvail_`): a cell that is not a control is not marked up as one. */''}
       ${Array.isArray(t.photos) && t.photos.length
         ? `<div class="prof-photos">${t.photos.slice(0, 8).map(u =>
-             `<button type="button" class="prof-shot" data-do="prof-shot" aria-label="Photo — tap to see it bigger"
-                aria-pressed="false"><img src="${esc(pic(u))}" alt="" loading="lazy"></button>`).join('')}</div>`
+             `<span class="prof-shot"><img src="${esc(pic(u))}" alt="" loading="lazy"></span>`).join('')}</div>`
         : ''}
       ${/* THE THREE ADJECTIVES OFF THE SHEET, AS BOLD WORDS AND NOT CHIPS. Asked for as "the
             adjectives for tutors shouldnt be like google chips. they should be like just bold words to
@@ -915,15 +972,5 @@ on('book-with', () => {
   paintStuff();
 });
 
-/* ONE PHOTOGRAPH BIGGER, IN ITS OWN ROW, and the others back to squares — two open at once would be
-   two full-width pictures and the grid gone. `aria-pressed` says which, because the only other sign
-   is the size. The card grows, and `paneWatch_` hears it and shrinks or scrolls the pane. */
-on('prof-shot', el => {
-  const grid = el.closest('.prof-photos');
-  const open = !el.classList.contains('is-big');
-  if (grid) grid.querySelectorAll('.prof-shot.is-big').forEach(b => {
-    b.classList.remove('is-big'); b.setAttribute('aria-pressed', 'false');
-  });
-  el.classList.toggle('is-big', open);
-  el.setAttribute('aria-pressed', open ? 'true' : 'false');
-});
+/* `on('prof-shot')` WAS HERE — a tutor's extra photograph opened across its row on a tap. Taken out
+   on request (10 Oct, `findCard`): the squares are pictures, not controls. */

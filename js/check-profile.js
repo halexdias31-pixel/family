@@ -624,6 +624,170 @@ let photos = 0;
   if (!/getPostFolder\(\)/.test(String(f.ev('getPhotoFolder_')))) bad.push('photo: getPhotoFolder_ no longer falls back to the posts folder');
 }
 
+/* 12b. ONE OF THE ELEVEN, THROUGH THE REAL `doPost` AND `doGet`.
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox dp
+   selector, which allow you to use your avatar as a dp."* The grid posts `savePhoto` with `choice`; the
+   `photo` cell takes the token. Asked of the sheet and of what `doGet` then sends:
+     · every one of the eleven is KEPT, exactly, on the asker's own row — and the backend's list is the
+       phone's list (`PFP_CHOICES` against `PFP_ART` in js/links.js), in order;
+     · anything that is neither one of the eleven nor (on `updateProfile`) a link is REFUSED with the
+       cell as it was — a link at the grid's door, an unknown picture, a bare name, markup;
+     · the face reaches others: a tutor's token on `tutors`, with the figure beside it ONLY when the
+       face is the figure;
+     · A CHILD'S PRIVACY IS UNCHANGED: a child's choice reaches their family and the admin, who already
+       see their face; the `students` list every student is sent carries exactly the keys it did, and
+       a stranger is sent nothing of them; a dressed child's photograph does not reach the feed. */
+let pictures = 0;
+{
+  const f = backend();
+  const kid = Object.assign({}, base, { person_id: 'P-K7', role: 'student', first_name: 'Kit', last_name: 'Kid',
+    handle: 'kit_kind07', email: 'kit7@example.org', avatar: 'skin:3|hair:curls|shirt:4',
+    photo: 'https://example.org/kit-face.jpg' });
+  const pal = Object.assign({}, base, { person_id: 'P-K8', role: 'student', first_name: 'Lou', last_name: 'Pal',
+    handle: 'lou_glad08', email: 'lou8@example.org', avatar: '' });
+  const mum = Object.assign({}, base, { person_id: 'P-C7', role: 'client', first_name: 'Mo', last_name: 'Kid',
+    handle: 'mo_warm07', email: 'mo7@example.org' });
+  const ada = Object.assign({}, tutor, { avatar: 'skin:1|hair:long|faceware:glasses' });
+  f.seed('people', [admin, ada, parent, kid, pal, mum]);
+  f.seed('family', [{ link_id: 'L-K7', parent_id: 'P-C7', child_id: 'P-K7', state: 'accepted' }]);
+  f.seed('posts', [{ post_id: 'PO-K7', author: 'Kit Kid', posted_by: 'Kit Kid', image: 'https://example.org/p.jpg',
+                     approved: 'APPROVED', active: 'TRUE' }]);
+  const tk = {};
+  [['P-T1', tutor.email], ['P-K7', kid.email], ['P-K8', pal.email], ['P-C7', mum.email], ['P-A1', admin.email]].forEach(([pid, em]) => {
+    const d = f.post({ action: 'verifyLogin', email: em, pin: '0000' });
+    if (d && d.success) tk[pid] = d; else bad.push('pictures: ' + pid + ' could not sign in — ' + JSON.stringify(d));
+  });
+  const choose = (pid, choice) => f.post({ action: 'savePhoto', token: tk[pid].token, name: tk[pid].name, personId: pid, choice });
+  const fresh = params => { f.ev('clearCache()'); f.ev('clearPayloadCache()'); return f.get(params); };
+  const CHOICES = f.ev('PFP_CHOICES');
+  /* THE TWO LISTS ARE ONE LIST. The phone's drawings are read out of js/links.js itself, by name. */
+  {
+    const src = require('fs').readFileSync(require('path').join(__dirname, 'links.js'), 'utf8');
+    const block = (src.match(/const PFP_ART = \{([\s\S]*?)\n\};/) || [])[1] || '';
+    const drawn = [...block.matchAll(/^  ([a-z]+): \{ name:/gm)].map(m => m[1]);
+    const phone = ['pfp:avatar'].concat(drawn.map(n => 'pfp:' + n));
+    if (!Array.isArray(CHOICES) || CHOICES.length !== 11) bad.push('pictures: the backend keeps ' + JSON.stringify(CHOICES) + ', wanted eleven tokens');
+    else if (JSON.stringify(phone) !== JSON.stringify(CHOICES)) bad.push('pictures: the phone draws ' + JSON.stringify(phone) + ' and the backend keeps ' + JSON.stringify(CHOICES) + ' — one list, in one order');
+  }
+  if (tk['P-T1'] && tk['P-K7'] && tk['P-C7'] && tk['P-K8'] && tk['P-A1'] && Array.isArray(CHOICES)) {
+    /* EVERY ONE IS KEPT, EXACTLY, AND THE FIGURE RIDES ONLY WITH THE FIGURE. */
+    CHOICES.forEach(c => {
+      const d = choose('P-T1', c);
+      if (!d || !d.success) { bad.push('pictures: the tutor\'s ' + c + ' was refused — ' + JSON.stringify(d)); return; }
+      if (d.photo !== c || f.row('P-T1').photo !== c) { bad.push('pictures: ' + c + ' came back "' + d.photo + '" and the cell holds "' + f.row('P-T1').photo + '"'); return; }
+      if (c === 'pfp:avatar' ? d.avatar !== ada.avatar : ('avatar' in d)) { bad.push('pictures: the reply to ' + c + ' carried avatar ' + JSON.stringify(d.avatar)); return; }
+      pictures++;
+    });
+    const loud = choose('P-T1', ' PFP:Owl ');
+    if (!loud.success || f.row('P-T1').photo !== 'pfp:owl') bad.push('pictures: " PFP:Owl " was not kept as pfp:owl — ' + JSON.stringify(loud) + ' / ' + f.row('P-T1').photo);
+    else pictures++;
+    /* ANYTHING ELSE, REFUSED WITH THE CELL AS IT WAS. A link at the GRID's door too — it takes a token. */
+    [['https://example.org/me.jpg', 'a link at the grid\'s door'], ['pfp:unicorn', 'a picture nobody drew'], ['pfp:', 'an empty token'],
+     ['fox', 'a bare name'], ['pfp:fox|pfp:owl', 'two tokens'], ['<svg onload=alert(1)>', 'markup']].forEach(([c, what]) => {
+      const was = f.row('P-T1').photo;
+      const d = choose('P-T1', c);
+      if (d && d.success) bad.push('pictures: ' + what + ' (' + c + ') was kept as a picture');
+      else if (f.row('P-T1').photo !== was || d.writes) bad.push('pictures: refusing ' + what + ' still wrote');
+      else pictures++;
+    });
+    const anon = f.post({ action: 'savePhoto', name: 'Ada Tutor', personId: 'P-T1', choice: 'pfp:fox' });
+    if (anon && anon.success) bad.push('pictures: a choice with no token was kept');
+    /* `updateProfile` — AN ADMIN'S EDITOR, THE OTHER DOOR TO THE CELL: a link, nothing or a token. */
+    const ed = photo => f.post({ action: 'updateProfile', token: tk['P-A1'].token, name: tk['P-A1'].name, personId: 'P-A1',
+      target: 'Ada Tutor', targetId: 'P-T1', fields: { photo } });
+    [['pfp:rocket', true], ['https://example.org/ada-new.jpg', true], ['', true], ['a photo of me smiling', false],
+     ['pfp:unicorn', false], ['javascript:alert(1)', false]].forEach(([v, ok]) => {
+      const was = f.row('P-T1').photo;
+      const d = ed(v);
+      if (ok && (!d.success || f.row('P-T1').photo !== v)) bad.push('pictures: the admin\'s editor could not keep "' + v + '" — ' + JSON.stringify(d));
+      else if (!ok && (d.success || f.row('P-T1').photo !== was)) bad.push('pictures: the admin\'s editor kept "' + v + '" as somebody\'s face');
+      else pictures++;
+    });
+
+    /* THE FACE REACHES OTHERS, AND THE FIGURE ONLY WITH THE FIGURE. */
+    choose('P-T1', 'pfp:avatar');
+    let row = (fresh({}).tutors || []).find(t => t.personId === 'P-T1');
+    if (!row || row.image !== 'pfp:avatar' || row.avatar !== ada.avatar) bad.push('pictures: a visitor was sent the tutor as ' + JSON.stringify(row && { image: row.image, avatar: row.avatar }) + ', wanted pfp:avatar and her figure');
+    else pictures++;
+    choose('P-T1', 'pfp:guitar');
+    row = (fresh({}).tutors || []).find(t => t.personId === 'P-T1');
+    if (!row || row.image !== 'pfp:guitar' || ('avatar' in row)) bad.push('pictures: after the guitar a visitor was sent ' + JSON.stringify(row && { image: row.image, avatar: row.avatar }) + ' — the figure must not ride with any other face');
+    else pictures++;
+
+    /* A CHILD. Before: what every student and a stranger are sent of them. */
+    const pupil = () => fresh({ token: tk['P-K8'].token });
+    const keysOf = d => JSON.stringify((d.students || []).map(r => Object.keys(r).sort().join(',')));
+    const beforeKeys = keysOf(pupil());
+    const feedFace = () => ((fresh({}).posts || []).find(p => p.id === 'PO-K7') || {});
+    /* A DRESSED CHILD'S PHOTOGRAPH NEVER REACHED THE FEED (the old line sent the wearable string in its
+       place) and does not now. */
+    const fp = feedFace();
+    if (fp.avatar === kid.photo || JSON.stringify(fp).indexOf('kit-face.jpg') !== -1) bad.push('pictures: a dressed child\'s photograph was put on the public feed — ' + JSON.stringify(fp));
+    else pictures++;
+    const k1 = choose('P-K7', 'pfp:avatar');
+    if (!k1.success || k1.avatar !== kid.avatar) bad.push('pictures: the child\'s figure was not kept — ' + JSON.stringify(k1));
+    const fam = (fresh({ token: tk['P-C7'].token }).family || []).find(x => x.personId === 'P-K7');
+    if (!fam || fam.image !== 'pfp:avatar' || fam.avatar !== kid.avatar) bad.push('pictures: the parent\'s card of the child is ' + JSON.stringify(fam) + ', wanted pfp:avatar with the figure');
+    else pictures++;
+    const all = (fresh({ token: tk['P-A1'].token }).everyone || []).find(x => x.personId === 'P-K7');
+    if (!all || all.image !== 'pfp:avatar' || all.avatar !== kid.avatar) bad.push('pictures: the admin\'s card of the child is ' + JSON.stringify(all) + ', wanted pfp:avatar with the figure');
+    else pictures++;
+    const afterKeys = keysOf(pupil());
+    const pupilBody = JSON.stringify(pupil());
+    if (afterKeys !== beforeKeys) bad.push('pictures: the students list every student is sent changed shape when a child chose a picture — ' + beforeKeys + ' became ' + afterKeys);
+    else if (/pfp:/.test(JSON.stringify(pupil().students || [])) || pupilBody.indexOf('kit-face.jpg') !== -1) bad.push('pictures: another student was sent the child\'s picture');
+    else pictures++;
+    const stranger = JSON.stringify(Object.assign({}, fresh({}), { posts: [] }));
+    if (stranger.indexOf('kit_kind07') !== -1 || stranger.indexOf('P-K7') !== -1) bad.push('pictures: a stranger was sent something of the child outside the feed');
+    else pictures++;
+    /* THE FEED: a token always (a fox, or the figure the old line already sent), never the photo. */
+    const ff = feedFace();
+    if (ff.avatar !== 'pfp:avatar' || ff.figure !== kid.avatar) bad.push('pictures: the child\'s post face is ' + JSON.stringify({ avatar: ff.avatar, figure: ff.figure }) + ', wanted pfp:avatar with the figure');
+    else pictures++;
+    choose('P-K7', 'pfp:fox');
+    const ff2 = feedFace();
+    if (ff2.avatar !== 'pfp:fox' || ('figure' in ff2)) bad.push('pictures: after the fox the child\'s post face is ' + JSON.stringify({ avatar: ff2.avatar, figure: ff2.figure }));
+    else pictures++;
+  }
+}
+/* 12b, AND A CHILD WITH A SECOND ROLE IS STILL A CHILD. Found by review on 10 Oct: the feed's guard asked
+   `toAppRole(mainRole(pp)) === 'kid'`, and `mainRole` ranks tutor and client above student — so a dressed
+   child who ticked Tutor in their own Settings (`setMyRoles`, self-serve, held PENDING and never listed)
+   became "tutor, student", and their photograph went out as their post face to every visitor, where the
+   old line had sent their wearable string. The cell above held `student` alone, so it stayed green. Asked
+   twice: the child's own tick through the real `doPost`, and a row the sheet already holds as
+   "student, client". Neither may put the photograph on the feed; the same child with no figure dressed
+   keeps exactly what the old line sent (their link), so the rule is no stricter than it was. */
+{
+  const f = backend();
+  const kit = Object.assign({}, base, { person_id: 'P-K9', role: 'student', first_name: 'Kit', last_name: 'Nine',
+    handle: 'kit_nine09', email: 'kit9@example.org', avatar: 'skin:3|hair:curls', photo: 'https://example.org/kit9-face.jpg' });
+  const kai = Object.assign({}, base, { person_id: 'P-K10', role: 'student, client', first_name: 'Kai', last_name: 'Ten',
+    handle: 'kai_ten10', email: 'kai10@example.org', avatar: 'skin:2', photo: 'https://example.org/kai10-face.jpg' });
+  const kim = Object.assign({}, base, { person_id: 'P-K11', role: 'student, tutor', first_name: 'Kim', last_name: 'Eleven',
+    handle: 'kim_elev11', email: 'kim11@example.org', avatar: '', photo: 'https://example.org/kim11-face.jpg' });
+  f.seed('people', [admin, kit, kai, kim]);
+  f.seed('posts', [['PO-K9', 'Kit Nine'], ['PO-K10', 'Kai Ten'], ['PO-K11', 'Kim Eleven']].map(([id, a]) => ({ post_id: id, author: a,
+    posted_by: a, image: 'https://example.org/p.jpg', approved: 'APPROVED', active: 'TRUE' })));
+  const face = id => { f.ev('clearCache()'); f.ev('clearPayloadCache()'); return ((f.get({}).posts || []).find(p => p.id === id) || {}); };
+  const lg = f.post({ action: 'verifyLogin', email: kit.email, pin: '0000' });
+  const tick = lg && lg.success
+    ? f.post({ action: 'setMyRoles', token: lg.token, name: lg.name, personId: 'P-K9', roles: ['student', 'tutor'] }) : null;
+  if (!tick || !tick.success || !/tutor/.test(String(f.row('P-K9').role))) {
+    bad.push('pictures: the dressed child could not tick Tutor, so the second-role case was NOT asked — ' + JSON.stringify(tick));
+  } else {
+    const k9 = face('PO-K9');
+    if (JSON.stringify(k9).indexOf('kit9-face.jpg') !== -1) bad.push('pictures: a dressed child who ticked Tutor ("' + f.row('P-K9').role + '") was put on the public feed by their photograph — ' + JSON.stringify({ avatar: k9.avatar }));
+    else pictures++;
+  }
+  const k10 = face('PO-K10');
+  if (JSON.stringify(k10).indexOf('kai10-face.jpg') !== -1) bad.push('pictures: a dressed child held as "student, client" was put on the public feed by their photograph — ' + JSON.stringify({ avatar: k10.avatar }));
+  else pictures++;
+  const k11 = face('PO-K11');
+  if (k11.avatar !== kim.photo) bad.push('pictures: a child with no figure dressed lost the face the old line sent them — ' + JSON.stringify({ avatar: k11.avatar }) + ', wanted their link');
+  else pictures++;
+}
+
 /* 13. YOUR ROLES, THROUGH THE REAL `doPost` AND `doGet`.
    ASKED FOR AS *"each account should have a widget in account settings which say what the roles are.
    they can be either a tutor or client or student. they can be tutor and client and student like
@@ -900,15 +1064,145 @@ let examDates = 0;
   } else bad.push('exam dates: somebody could not sign in');
 }
 
+/* 18. THE CARD: WHERE A TUTOR'S FIELDS ARE EDITED NOW, AND WHETHER EVERY ONE IS STILL SAVED (docs/history/330).
+   The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that respective
+   tutor."* The phone stopped drawing five Settings pages for anybody with a card and edits those fields on
+   the card instead; the server's groups did not change, because they are the write allow-list as well as the
+   layout. So this asks the PHONE'S OWN CODE — `CARD_SECTIONS`, `cardSettingsGroups_` and `cardChanged_`,
+   cut out of js/me.js by name and run over the real `PROFILE_GROUPS` — and then the real `doPost`:
+     · every field the card offers is one `updateProfile` lets a tutor write (a box nobody may write is a
+       Save that silently drops it), and the session length it does not offer is still one nobody may write;
+     · every field of the tutor groups is on the card or on a page Settings still draws — none is left with
+       no box, which is what "every field still saved for every role that may write it" comes to;
+     · the pages that go are exactly About you, Photos, the rate, Qualifications and the week;
+     · a card's Save, built by `cardChanged_` (what moved, the three packed cells whole), round-trips for the
+       tutor and for an admin on another tutor's card, and is refused to a tutor on somebody else's;
+     · `getProfile`, which fills an admin's form, is an admin's and nobody else's. */
+let cardRules = 0;
+{
+  const fs = require('fs'), path = require('path'), vm = require('vm');
+  let acorn = null;
+  try { acorn = require(path.join(__dirname, '..', 'node_modules', 'acorn')); } catch (e) {}
+  const meSrc = fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8');
+  const want = ['RETIRED_FIELDS_', 'CARD_SECTIONS', 'cardSent_', 'cardSections_', 'cardFields_', 'cardSettingsGroups_',
+                'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_'];
+  const got = {};
+  if (acorn) {
+    acorn.parse(meSrc, { ecmaVersion: 'latest' }).body.forEach(n => {
+      if (n.type === 'FunctionDeclaration' && want.indexOf(n.id.name) !== -1) got[n.id.name] = meSrc.slice(n.start, n.end);
+      if (n.type === 'VariableDeclaration') n.declarations.forEach(d => {
+        if (d.id && want.indexOf(d.id.name) !== -1) got[d.id.name] = 'const ' + meSrc.slice(d.start, d.end) + ';';
+      });
+    });
+  }
+  const lost = want.filter(k => !got[k]);
+  if (lost.length) bad.push('the card: ' + lost.join(', ') + ' could not be read out of js/me.js — the card was NOT checked');
+  else {
+    const groups = JSON.parse(JSON.stringify(b.ev('PROFILE_GROUPS')));
+    const editable = JSON.parse(JSON.stringify(b.ev('PROFILE_EDITABLE')));
+    const phone = vm.createContext({ DATA: { profileFields: groups } });
+    vm.runInContext(want.map(k => got[k]).join('\n') + '\nthis.__card = { CARD_SECTIONS, cardFields_, cardSettingsGroups_, cardChanged_ };', phone);
+    const card = phone.__card;
+    const rule = (ok, said) => { if (ok) cardRules++; else bad.push('the card: ' + said); };
+    const onCard = card.cardFields_();
+    const all = Object.keys(groups).reduce((a, g) => a.concat(groups[g]), []).filter(f => f !== 'library_note');
+    const named = [].concat(...card.CARD_SECTIONS.map(s => s.fields || []));
+    rule(named.every(f => editable.indexOf(f) !== -1), 'it names ' + named.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
+    rule(onCard.every(f => editable.indexOf(f) !== -1), 'it draws ' + onCard.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
+    /* SESSION LENGTH IS ON THE CARD AND WRITABLE (the review of 330: the brief listed it with the pricing
+       fields, and nobody could write it). Both halves, because either alone is the bug: a box the server drops,
+       or a writable field with no box anywhere. */
+    rule(['min_hours', 'max_hours'].every(f => editable.indexOf(f) !== -1 && onCard.indexOf(f) !== -1),
+      'session length is ' + (editable.indexOf('min_hours') === -1 ? 'not writable through updateProfile' : 'not on the card') + ' — the card\'s At a glance prints it, and a tutor has to be able to change it there');
+    const left = card.cardSettingsGroups_(groups);
+    const kept = Object.keys(left).reduce((a, g) => a.concat(left[g]), []);
+    const nowhere = all.filter(f => onCard.indexOf(f) === -1 && kept.indexOf(f) === -1);
+    rule(!nowhere.length, nowhere.join(', ') + ' is on neither the card nor a Settings page — a field a tutor may write with no box anywhere');
+    const twice = onCard.filter(f => kept.indexOf(f) !== -1);
+    rule(!twice.length, twice.join(', ') + ' is on the card and on Settings — two places to edit one field');
+    const gone = Object.keys(groups).filter(g => !left[g]).sort();
+    rule(JSON.stringify(gone) === JSON.stringify(['About you', 'Availability', 'Photos', 'Qualifications', 'Your rate and group size']),
+      'the pages Settings stops drawing are ' + JSON.stringify(gone));
+    rule(JSON.stringify(Object.keys(left)) === JSON.stringify(['Contact & address', 'Library cards'])
+         && left['Contact & address'].indexOf('venues_ok') === -1 && left['Contact & address'].indexOf('email') !== -1,
+      'the pages Settings still draws are ' + JSON.stringify(left));
+
+    /* THE TUTOR'S OWN CARD, THROUGH THE REAL `doPost`. Not the rate: the tutor moved it on a Settings page
+       above, so the month's clock is running — which is the point of `cardChanged_` sending only what moved. */
+    const t1 = b.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
+    const a1 = b.post({ action: 'verifyLogin', email: 'admin@example.org', pin: '0000' });
+    const profOf = pid => b.ev(`profileOf_(read(TAB.people).rows.find(r => r.person_id === ${JSON.stringify(pid)}))`);
+    const form = (base, change) => {
+      const now = {};
+      onCard.filter(f => f !== 'photo').forEach(f => { now[f] = String(base[f] == null ? '' : base[f]); });
+      Object.keys(now).forEach(f => { if (/^(m|tu|w|th|f|sa|su)\d\d$|_teach$|_spec$/.test(f)) now[f] = /^true$/i.test(now[f]) ? 'TRUE' : 'FALSE'; });
+      return Object.assign(now, change);
+    };
+    if (!t1.success || !a1.success) bad.push('the card: the tutor or the admin could not sign in');
+    else {
+      const base = profOf('P-T1');
+      const fields = card.cardChanged_(base, form(base, { headline: 'Edited on the card', favourite_colour: 'Teal',
+        sa14: 'TRUE', photos_2: 'https://example.org/third.jpg', qual_1_grade: 'A*' }));
+      const keys = Object.keys(fields);
+      rule(keys.filter(k => !/^(m|tu|w|th|f|sa|su)\d\d$|^photos_\d+$|^qual_\d+/.test(k)).sort().join(',') === 'favourite_colour,headline'
+           && keys.filter(k => /^(m|tu|w|th|f|sa|su)\d\d$/.test(k)).length === 70 && keys.filter(k => /^photos_\d+$/.test(k)).length === 8
+           && keys.filter(k => /^qual_\d+/.test(k)).length === 70,
+        'cardChanged_ built ' + keys.length + ' fields — wanted the two plain ones that moved and the three packed cells whole');
+      const d = b.post({ action: 'updateProfile', token: t1.token, name: t1.name, personId: 'P-T1', target: t1.name, targetId: 'P-T1', fields });
+      rule(d.success, 'the tutor\'s card Save was refused — ' + d.error);
+      const back = (b.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' }).profile) || {};
+      rule(back.headline === 'Edited on the card' && back.favourite_colour === 'Teal' && /^true$/i.test(String(back.sa14))
+           && /^true$/i.test(String(back.m09)) && back.photos_2 === 'https://example.org/third.jpg' && back.qual_1_grade === 'A*'
+           && back.qual_2 === base.qual_2 && back.photos_1 === base.photos_1,
+        'the tutor\'s card did not come back as saved: ' + JSON.stringify({ headline: back.headline, sa14: back.sa14, m09: back.m09, photos_2: back.photos_2, qual_1_grade: back.qual_1_grade, qual_2: back.qual_2 }));
+      /* HOW LONG A SESSION IS, FROM THE CARD: written; NOT under the month's clock, which is running — the
+         tutor moved the rate on a Settings page above, so a session length refused as "you changed what you
+         charge" would be the clock reaching a field that is not the quote; and `hoursRefusal_` refuses a range
+         nobody falls inside and a length off the list, writing nothing. */
+      const hrs = (ch) => b.post({ action: 'updateProfile', token: t1.token, name: t1.name, personId: 'P-T1', target: t1.name, targetId: 'P-T1',
+        fields: card.cardChanged_(profOf('P-T1'), form(profOf('P-T1'), ch)) });
+      const h1 = hrs({ min_hours: '2', max_hours: '3' });
+      rule(h1.success && String(b.row('P-T1').min_hours) === '2' && String(b.row('P-T1').max_hours) === '3',
+        'a tutor\'s session length from the card was not saved — ' + (h1.error || JSON.stringify([b.row('P-T1').min_hours, b.row('P-T1').max_hours])));
+      const h2 = hrs({ min_hours: '4', max_hours: '2' });
+      rule(!h2.success && /shortest session/.test(String(h2.error)) && String(b.row('P-T1').min_hours) === '2',
+        'a shortest session longer than the longest was not refused, or was written — ' + JSON.stringify(h2));
+      const h3 = hrs({ max_hours: '1.5' });
+      rule(!h3.success && /whole number of hours/.test(String(h3.error)) && String(b.row('P-T1').max_hours) === '3',
+        'a session length off the list was not refused, or was written — ' + JSON.stringify(h3));
+      const shown = (b.get({}).tutors || []).find(x => x.personId === 'P-T1') || {};
+      rule(shown.minHours === 2 && shown.maxHours === 3, 'doGet does not send the saved session length on the card: ' + JSON.stringify([shown.minHours, shown.maxHours]));
+      /* AN ADMIN ON THE TUTOR'S CARD: their row, not the admin's, and no profile handed back. */
+      const before = JSON.stringify(profOf('P-A1'));
+      const e = b.post({ action: 'updateProfile', token: a1.token, name: a1.name, personId: 'P-A1', target: 'Ada Tutor', targetId: 'P-T1',
+        fields: card.cardChanged_(profOf('P-T1'), form(profOf('P-T1'), { headline: 'Edited by the admin', rate_per_hour: '31' })) });
+      rule(e.success && e.profile === null, 'an admin\'s save of a tutor\'s card was refused or handed back a profile — ' + (e.error || JSON.stringify(e.profile && 'a profile')));
+      const row = b.row('P-T1');
+      rule(String(row.headline) === 'Edited by the admin' && String(row.rate_per_hour) === '31', 'the admin\'s save did not reach the tutor\'s row: ' + row.headline + ', ' + row.rate_per_hour);
+      rule(JSON.stringify(profOf('P-A1')) === before, 'an admin saving a tutor\'s card changed the admin\'s own row');
+      /* A TUTOR ON SOMEBODY ELSE'S CARD: refused, and nothing written. */
+      const t2 = b.post({ action: 'verifyLogin', email: 'tutor@example.org', pin: '0000' });
+      const no = b.post({ action: 'updateProfile', token: t2.token, name: t2.name, personId: 'P-T1', target: 'Hal Admin', targetId: 'P-A1', fields: { headline: 'Not mine' } });
+      rule(!no.success && !no.writes, 'a tutor saved the admin\'s card');
+      /* `getProfile` FILLS AN ADMIN'S FORM, AND IS NOBODY ELSE'S. */
+      const g = b.post({ action: 'getProfile', token: a1.token, name: a1.name, personId: 'P-A1', target: 'P-T1' });
+      rule(g.success && g.profile && Object.prototype.hasOwnProperty.call(g.profile, 'phone_cc') && g.profile.headline === 'Edited by the admin',
+        'getProfile did not hand the admin the tutor\'s whole form — ' + (g.error || 'no phone_cc'));
+      const gt = b.post({ action: 'getProfile', token: t2.token, name: t2.name, personId: 'P-T1', target: 'P-A1' });
+      rule(!gt.success && !gt.profile, 'a tutor was handed somebody else\'s form by getProfile');
+    }
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
-  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules
+  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   picture-choice rules held: ' + pictures + '   role rules held: ' + roleRules
   + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables
-  + '   exam-date rules held: ' + examDates);
+  + '   exam-date rules held: ' + examDates + '   card rules held: ' + cardRules);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);
 }
-console.log('OK — every settings page saves for every role, writes nothing when nothing changed, and reads back what was saved.');
+console.log('OK — every settings page saves for every role, writes nothing when nothing changed, and reads back what was saved; every field a tutor edits on their card is one they may write and has exactly one place.');

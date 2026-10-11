@@ -727,13 +727,20 @@ function signedOut_(opts) {
      a switch and starts again (`signedIn_`). AN ADMIN'S IS STILL CLEARED: theirs is the one question that
      can name a shelf only an admin is shown, which is the reason above.
      ONE DECIDER PER DOOR: `signedIn_` passes `keepFind`, `api()` passes `ended`; Sign out and a switch from
-     one person to another pass neither and clear Find. */
+     one person to another pass neither and clear Find.
+     ---------- AND THE SECOND FINDER, ON THE SAME RULE ------------------------------------------------------
+     THE RESOURCES ARE A COLUMN OF THEIR OWN NOW (docs/history/329) and the Books shelf went with them, so
+     the shelf the admin rule above was written about is in the second finder, not Find. Every finder's
+     state is kept, marked or cleared together, through `finderStates_` (find.js) — `typeof`, for the
+     reason `STUFF` is. */
   try {
-    if (typeof STUFF !== 'undefined') {
+    const states = typeof finderStates_ === 'function' ? finderStates_()
+                 : (typeof STUFF !== 'undefined' ? [STUFF] : []);
+    states.forEach(st => {
       if (opts.keepFind) { /* nobody → somebody: `signedIn_` keeps it, and says whose it is now */ }
-      else if (opts.ended && was && !wasAdmin) STUFF.whose = String(was.personId || was.name || '');
-      else { STUFF.q = ''; STUFF.filters = []; STUFF.whose = ''; }
-    }
+      else if (opts.ended && was && !wasAdmin) st.whose = String(was.personId || was.name || '');
+      else { st.q = ''; st.filters = []; st.whose = ''; }
+    });
   } catch (err) {}
   /* THE INBOX, AND THE POLL THAT FILLS IT. `MSG_ASKING` too: a reply still on its way is the last
      person's, and `loadMessages` drops it when it lands for somebody else. */
@@ -764,18 +771,21 @@ function signedOut_(opts) {
   /* ---------- AND THE FILMS, WHICH HAVE NO `for` CHECK AT ALL --------------------------------------
      `DATA.films` IS AN ADMIN'S WHOLE FILM LIST, Drive links included (note 068: the list is secret,
      and the links are the folder's only lock), and unlike the keys above nothing reading it asks
-     whose it is — the videos card and Find draw whatever is there, and the payload was the only
-     gate. Signing out does not reload the payload, so after an admin signed out on the family's
-     iPad the next person to pick it up found every film in Games → Videos and in Find, and a child
-     signing in after them saw the list until their own payload landed, fifteen to thirty-five
-     seconds later (found by the review of the Notflix sync, 9 Oct, through the real `signout`).
+     whose it is — the videos card draws whatever is there (Find did too, until the films left it on
+     10 Oct), and the payload was the only gate. Signing out does not reload the payload, so after an
+     admin signed out on the family's iPad the next person to pick it up found every film in Games →
+     Videos and in Find, and a child signing in after them saw the list until their own payload landed,
+     fifteen to thirty-five seconds later (found by the review of the Notflix sync, 9 Oct, through the
+     real `signout`).
      The sync made it worse by filling the list the moment an admin opens Games. So the films and
      the sync's stamp go with the admin; and the card's own note of whom it synced for, and the sync
      still in flight — whose reply `filmsSyncRun_` already drops for somebody who has gone, and which
      held would leave the next admin's Sync tile busy with a sync they never pressed. Find's memo is
      dropped as well, though today its key names the person and a sign-out rebuilds it anyway: it is
-     kept against `DATA` by identity and this is an edit in place, so the day the key stops naming
-     the person (the role has already left it) this is what keeps the films out of Find.
+     kept against `DATA` by identity and everything here is an edit in place — the stars above
+     included — so the day the key stops naming the person (the role has already left it) this is
+     what keeps the last person's lists out of Find. (It was written to keep the films out; Find has
+     none to keep out now.)
      The search typed into the videos box goes for the reason `STUFF.q` does above: it may be a
      title. `typeof`, because games.js and find.js load after this file. */
   try { DATA.films = []; delete DATA.filmsSync; } catch (e) {}
@@ -792,6 +802,9 @@ function signedOut_(opts) {
   /* AND THE PEN, AND THE WHITEBOARD ON A COLUMN THE REPAINT BELOW LEAVES STALE — the last person's
      board stayed armed under their key until Tools was next arrived at (`padWhoChanged_`, find.js). */
   try { if (typeof padWhoChanged_ === 'function') padWhoChanged_(); } catch (e) {}
+  /* AND WHICH FACE EACH SURFACE QUESTION WAS LEFT ON, box or drawing (`padFaceForget_`, find.js; 327). It is
+     kept by the drawing's own per-person key, so it is the person's, and goes with them as the stars do. */
+  try { if (typeof padFaceForget_ === 'function') padFaceForget_(); } catch (e) {}
   /* AND THE BOOKING FORM, which is the person's draft and not the next family's (`bookFollow_`, book.js;
      docs/history/317). `typeof`, because book.js loads after this file. */
   try { if (typeof bookFollow_ === 'function') bookFollow_(!!opts.quiet); } catch (e) {}
@@ -822,12 +835,15 @@ function signedIn_(d, typed) {
      these lines; `signedOut_` only does what it is told. */
   const fromNobody = !USER;
   const over = !fromNobody && (String(USER.personId || '') !== pid || !pid);
+  /* EVERY FINDER'S `whose` — `signedOut_` marks them together, so any one says it. */
+  const finders_ = () => (typeof finderStates_ === 'function' ? finderStates_()
+                         : (typeof STUFF !== 'undefined' ? [STUFF] : []));
   let whose = '';
-  try { whose = typeof STUFF !== 'undefined' ? String(STUFF.whose || '') : ''; } catch (e) {}
+  try { whose = String((finders_().find(st => st && st.whose) || {}).whose || ''); } catch (e) {}
   if (fromNobody) signedOut_({ quiet: true, keepFind: !whose || whose === pid });
   else if (over) signedOut_({ quiet: true });
   /* SIGNED IN, FIND IS THE PERSON'S OWN, and `USER` says whose — `whose` is only for while nobody is. */
-  try { if (typeof STUFF !== 'undefined') STUFF.whose = ''; } catch (e) {}
+  try { finders_().forEach(st => { st.whose = ''; }); } catch (e) {}
   /* THE REPLY, PLUS WHAT WE ALREADY KNEW — see `do-signin`. The handle when the row has no name. */
   USER = me;
   if (!USER.name) USER.name = me.handle || typed || '';
@@ -2687,13 +2703,29 @@ function settingsPages_() {
   const p = USER.profile || {};
   const readonly = DATA.profileReadonly || [];
 
+  /* ---------- A TUTOR WITH A CARD EDITS ON THE CARD, SO THOSE PAGES ARE NOT DRAWN HERE -------------
+     The owner, 10 Oct: *"all of this stuff should be editable directly on the tutors card for that
+     respective tutor. this centralises things so less widgets are required."* About you, Photos, the
+     rate, Qualifications and the week are every field of theirs the card draws (`CARD_SECTIONS`), so
+     for somebody whose card is on the You column those five pages are gone and Contact & address loses
+     the venues and the distance, which the card's map now edits. Asked of the FIELDS, not the titles —
+     the titles are the backend's to choose — and only of the tutor map: a parent's and a student's
+     pages are their own groups and do not change. NOTHING CHANGES ON THE SERVER: `PROFILE_GROUPS` is
+     the write allow-list as well as the layout (`PROFILE_EDITABLE`), so the groups stay exactly as they
+     are and the phone stops drawing them. A tutor with no card (not listed yet) keeps every page. */
+  const onCard = groups === DATA.profileFields && typeof cardHolds_ === 'function' && cardHolds_();
+  const shown = onCard ? cardSettingsGroups_(groups) : groups;
+
   /* ONE GROUP AT A TIME, THROUGH THE SAME WALK. `fieldsHtml` is handed `{ [g]: groups[g] }` rather
      than reimplemented per page — it is the one place that knows a group of hour codes is a week
      grid and everything else is a column of boxes, and a second walk here would be a second answer
      to that question. Its own note says so: "one walk now, so a group of hour codes becomes a
      timetable everywhere rather than only where somebody remembered." */
-  const pages = Object.keys(groups).map(g => setHeldSay_(`<div class="card">
-    <div class="me-form">${fieldsHtml({ [g]: groups[g] }, {
+  const pages = Object.keys(shown).map((g, n) => setHeldSay_(`<div class="card">
+    ${/* WHERE THE OTHER FIVE WENT, said once on the first card, because a page somebody used yesterday
+          is a page they will look for today. */
+      onCard && n === 0 ? `<p class="faint ce-moved">${esc(cardMovedSay_())}</p>` : ''}
+    <div class="me-form">${fieldsHtml({ [g]: shown[g] }, {
       /* A CARD'S TITLE IS AN `h3` — see the note over `fieldsHtml`. Each group is a card here, so
          the group's name IS that card's title rather than a divider inside it. */
       head: 'h3',
@@ -2710,10 +2742,10 @@ function settingsPages_() {
             is chosen, through the same `meSave_` — see `qualShelf_`. A Save at the foot of the card
             would be a second way to keep a change already kept, and the one somebody would wait to
             press. Only a card that is nothing but the shelf. */
-        (groups[g] || []).length && (groups[g] || []).every(isQualField_) ? ''
+        (shown[g] || []).length && (shown[g] || []).every(isQualField_) ? ''
         : `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}${
-            (groups[g] || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
-      ${(groups[g] || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
+            (shown[g] || []).indexOf('email') !== -1 && p.email_moving ? resendTile_() : ''}</div>`}
+      ${(shown[g] || []).indexOf('email') !== -1 ? movingNote_(p) : ''}
       <p class="faint me-said"></p></div>
   </div>`));
 
@@ -2822,11 +2854,14 @@ function settingsPages_() {
   if (tutorHeld_() || isAdmin()) pages.push(agreementCard_());
   if (isAdmin()) pages.push(cutCard_());
   if (mayJourney_()) pages.push(journeyCard_());
-  /* THE BUSINESS'S OWN PAPERWORK, LAST AND FOR AN ADMIN — see js/records.js. They were a widget on
-     the Tools column, moved here on request; appended for the wardrobe's reason above. */
-  if (typeof bizPages_ === 'function') pages.push(...bizPages_());
-  /* AND THE WEEKLY PARENT EMAIL, AFTER THEM AND FOR AN ADMIN — see js/digest.js. Appended for the
-     wardrobe's reason above. */
+  /* THE BUSINESS'S OWN PAPERWORK WAS HERE — five cards for an admin, between the journey card and the
+     weekly email — and is a column of its own now, the last one (`screen('biz')` in js/records.js;
+     *"the business checklist stuff should go in their own column at the end"*, 10 Oct). Taking five
+     pages out moves the two behind them for an admin, which the wardrobe's note warns of: `PAGE.settings`
+     is clamped to the pages there are (`paintPager`), so an admin who had been on one of the five comes
+     back to a real page — the last — and not to nothing. */
+  /* AND THE WEEKLY PARENT EMAIL, FOR AN ADMIN — see js/digest.js. Appended for the wardrobe's reason
+     above. */
   if (typeof digestPages_ === 'function') pages.push(...digestPages_());
   /* AND WHICH EMAILS YOU WANT, LAST OF ALL AND FOR EVERYBODY SIGNED IN — see `notifyCard_`. Appended for
      the wardrobe's reason above: a card put in front would move every page behind it, and `PAGE.settings`
@@ -3612,8 +3647,12 @@ function fieldHtml(name, value, o) {
      the draft could not reach; since 315 they are checkboxes in this card, so a reload between a tick
      and Save put every tick back -- the essay of 317 in a smaller box. The hidden answer carries the
      draft (`da`) and the ticks' `change` keeps it (below `fieldHtml`); `v` above is already the draft's,
-     so the boxes are drawn ticked from it. */
-  const keep = attr === 'data-me' && !ro && setDraftOk_(name);
+     so the boxes are drawn ticked from it.
+     `draft: false` IS THE CARD EDITOR'S (`cardEditHtml_`, below): its boxes are `data-me` so every
+     listener here hears them, and the whole card is ONE draft of its own (`cardKeep_`), keyed by whose
+     card it is — a box keeping a `set` draft as well would be a second copy, and on an admin's edit of
+     somebody else's card it would be the ADMIN's own field holding the other tutor's words. */
+  const keep = attr === 'data-me' && !ro && o.draft !== false && setDraftOk_(name);
   const saved = FIELD_IS_BOOL.test(name) ? (TRUEish_(v0) ? '1' : '0') : String(v0);
   const da = keep ? draftAttr_('set', name, saved) : '';
   const dv = keep ? draftVal_('set', name, saved) : saved;
@@ -3851,6 +3890,10 @@ const FIELD_ROWS = [
      `validations` carries `AGE_OPTIONS` from constants.gs, four to eighteen and then `Adults` — and a
      placeholder on a select is its empty option, so each reads `youngest` / `oldest` until chosen. */
   { fields: ['age_min', 'age_max'], cap: 'ages you teach', ph: ['youngest', 'oldest'], dash: true },
+  /* AND HOW LONG A SESSION IS, THE THIRD RANGE — two selects off `SESSION_OPTIONS` (constants.gs), whole
+     hours, the same `[ ] – [ ]`. Writable since docs/history/330; on the card's At a glance, where the card
+     prints it as `1–2 hours`. */
+  { fields: ['min_hours', 'max_hours'], cap: 'session, in hours', ph: ['shortest', 'longest'], dash: true },
 ];
 const ROW_LABEL = {
   years_experience: 'years teaching',
@@ -4295,7 +4338,9 @@ document.addEventListener('change', e => {
    once everything in it is saved: the save itself calls `load()`, and the repaint that follows would
    otherwise shut the line between one answer and the next. */
 const qualDirty_ = el => { const f = el && el.closest('.me-form'); if (f) f.dataset.dirty = '1'; };
-const qualClean_ = el => { const f = el && el.closest('.me-form'); if (f) delete f.dataset.dirty; };
+/* NOT ON A CARD BEING EDITED: there the line is one answer among the card's, and the card stays held
+   until its own Save or Cancel — a shut line is not a saved card. */
+const qualClean_ = el => { const f = el && el.closest('.me-form'); if (f && !f.closest('.card-ed')) delete f.dataset.dirty; };
 /* THE SLOT'S SEVEN VALUES, as they were last saved (`data-was`) and as the boxes hold them now. */
 function qualValues_(slot) {
   const out = {};
@@ -4333,9 +4378,15 @@ function qualRedraw_(shelf, over, open) {
   if (again) {
     qualOpen_(again);
     if (had) { try { again.querySelector('.q-line').focus({ preventScroll: true }); } catch (e) {} }
-  } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, 'settings'); } catch (e) {} }
+  } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(next)); } catch (e) {} }
+  /* ON A CARD BEING EDITED THE SHELF IS PART OF THE CARD'S ONE DRAFT, and a redraw is a change no
+     `input` reports — a line put back to the pool, a removal — so the draft is written again here. */
+  const ed = next.closest('.card-ed .me-form');
+  if (ed && typeof cardKeep_ === 'function') cardKeep_(ed);
   return next;
 }
+/* WHICH COLUMN THE SHELF IS ON — Settings, or the You column when it is a card's (`cardEditHtml_`). */
+const qualColumn_ = el => (el && el.closest && el.closest('#s-account') ? 'account' : 'settings');
 /* WHAT SHUTTING THE OPEN LINE PUTS BACK: its last saved answers — a save that failed said so under the
    card, and leaving its answer in a shut line would post it unseen with the next one — or, for a line
    never saved, nothing at all, so it goes back to the pool. */
@@ -4355,7 +4406,7 @@ function qualOpen_(slot) {
   if (line) line.setAttribute('aria-expanded', 'true');
   if (!slot.dataset.was) slot.dataset.was = JSON.stringify(slot.dataset.new ? qualBlank_(slot) : qualValues_(slot));
   qualDirty_(slot);
-  if (typeof placeCells === 'function') { try { placeCells('y', true, 0, 'settings'); } catch (e) {} }
+  if (typeof placeCells === 'function') { try { placeCells('y', true, 0, qualColumn_(slot)); } catch (e) {} }
 }
 /* THE LINE OPENS — and whatever else was open shuts first, as it was last saved. A second tap on the
    open line is the tick.
@@ -4410,6 +4461,13 @@ function qualDone_(slot) {
    the boxes stay locked, and the queued press runs only once the lock is off. */
 let QUAL_SAVING = null, QUAL_NEXT = null;
 function qualSave_(el) {
+  /* ---------- ON A CARD BEING EDITED, AN ANSWER IS KEPT, NOT SENT --------------------------------------
+     The shelf saves as it goes on Settings (note 284). On the card everything goes up together with the
+     card's one Save (`card-save`), so here an answer is written into the card's draft and the line is
+     told it was kept — `qualCommit_` and the bin carry on exactly as if the server had said yes, and a
+     reload draws the shelf from the draft. Without this, every pick on the card would post the card. */
+  const ed = el && el.closest && el.closest('.card-ed .me-form');
+  if (ed && typeof cardKeep_ === 'function') { ed.dataset.dirty = '1'; cardKeep_(ed); return Promise.resolve(true); }
   const p = meSave_(el);
   QUAL_SAVING = p;
   const clear = () => { if (QUAL_SAVING === p) QUAL_SAVING = null; };
@@ -4538,7 +4596,8 @@ function qualRemove_(el, slots, said) {
   const was = slots.map(qualValues_);
   slots.forEach(s => qualSet_(s, qualBlank_(s)));
   qualSave_(el).then(ok => {
-    if (ok) { toast(said); qualRedraw_(shelf); }
+    /* ON A CARD THE REMOVAL WAITS FOR ITS SAVE, so "Removed" would say what has not happened. */
+    if (ok) { if (!el.closest('.card-ed')) toast(said); qualRedraw_(shelf); }
     else slots.forEach((s, n) => qualSet_(s, was[n]));
   });
 }
@@ -4598,20 +4657,147 @@ function qualYears_(current) {
    shelf and the one somebody reads back digit by digit.
 
    NO `<h4>` PER CARD. A heading per library is three more lines of chrome on the group that could
-   not fit in the first place; the name box IS the heading, and its own caption says so. */
+   not fit in the first place; the name box IS the heading, and its own caption says so.
+
+   ---------- AND EACH ONE IS DRAWN AS THE CARD IT IS (docs/history/332) ----------------------------
+   THE OWNER, 10 Oct, with a screenshot of this page — three entries, each a name box with a PIN box
+   beside it and a number box under them: *"make each look like a card. with fake barcode."* So a slot
+   is a library card now, at a bank card's proportions (85.6 by 54, the ID-1 size most library cards
+   are printed at too) and on the PAPER palette, because it stands in for a thing you hold: `LIBRARY CARD`
+   small at the top left, the library's name large under it, the PIN small at the top right under its
+   own `PIN`, and along the bottom a barcode with the number printed under it, as on the real one.
+
+   THE THREE BOXES ARE STILL THE THREE BOXES. They sit ON the card, borderless and in its ink, so the
+   card is edited where it is read — there is no second view of it to keep in step. Every box is still
+   `fieldHtml`'s, with the same `data-me` name, so `meSave_` posts exactly the fifteen fields it always
+   did, `shelfSlots_` still decides which slots show and `Add another` still reveals the next, and the
+   draft rule is untouched: `setDraftOk_` still refuses every `libN_` box, because the PIN is on the card.
+   `spellcheck="false"` on all three because a red squiggle under a borough's name is not printed on
+   any card; `autocomplete="off"` on the number and the PIN, which are this card's and nobody else's.
+
+   EACH BOX KEEPS A NAME A SCREEN READER CAN SAY. The PIN's is its visible `PIN` caption — `fieldHtml`'s
+   own `<span>` inside its `<label>`, so the caption on the card and the name read out are one string.
+   The name and the number say what they are in their placeholders while empty and keep saying it
+   through an `aria-label` once filled, when the placeholder has gone. `LIBRARY CARD` names the whole
+   card as a group, so it is `aria-hidden` itself rather than read twice.
+
+   THE PIN'S PLACEHOLDER IS ONE SPACE, deliberately. Its caption already says `PIN`, and any hint
+   in the box — `0000`, four dots — reads on a card as a PIN somebody saved. The space is only there
+   so `:placeholder-shown` can draw the empty box's dashed line (style.css, `.lib-face`): the one box
+   on the card with no words in it while empty says "write here" without a border. The other two say
+   it in their placeholders. */
 function libraryShelf_(list, value) {
   const nums = [...new Set((list || []).filter(isLibraryCard_)
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
+  const quiet = 'spellcheck="false"';
   return `<div class="lib-shelf">${shelfSlots_(nums,
     i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']),
     (i, hide) => `
     <div class="lib-card"${hide ? ' hidden' : ''}>
-      <div class="lib-row">
-        ${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'), { placeholder: 'Library' })}
-        ${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'), { placeholder: 'PIN' })}
+      <div class="lib-face" role="group" aria-label="Library card ${esc(i)}">
+        <span class="lib-cap" aria-hidden="true">Library card</span>
+        <div class="lib-name">${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'),
+          { placeholder: 'Library name', extra: quiet + ' aria-label="Library name"' })}</div>
+        <div class="lib-pin">${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'),
+          { label: 'PIN', extra: quiet + ' autocomplete="off" placeholder=" "' })}</div>
+        ${libBars_(value('lib' + i + '_no'))}
+        <div class="lib-no">${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'),
+          { placeholder: 'Card number', extra: quiet + ' autocomplete="off" aria-label="Card number"' })}</div>
       </div>
-      ${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'), { placeholder: 'Card number' })}
     </div>`)}</div>`;
+}
+
+/* ---------- THE BARCODE IS A PICTURE OF ONE, AND NOT ONE ---------------------------------------------
+   *"with fake barcode"* — the owner's word, and it is meant. These bars are NOT a symbology: not
+   Codabar or Code 39 (what library cards commonly print), not EAN — no start and stop characters a
+   reader knows, no check digit, nothing a scanner at a library desk could decode. A barcode that only
+   LOOKED valid would be worse than a plainly fake one: somebody holding this page up to a self-service
+   kiosk is told nothing by a scan that fails. So it is decoration and is marked as such
+   (`aria-hidden`), and the number under it is the thing that is real.
+
+   WORKED OUT FROM THE NUMBER, so every card looks like its own and the same number always draws the
+   same bars. `hashOf` (core.js, FNV-1a) of the number seeds a xorshift stream, and the stream picks
+   each bar 1 to 4 modules wide and each gap 1 to 3, between two thin guard pairs, until the code is
+   about ninety modules long. One changed digit changes every bar, which is what makes three cards
+   on one page read as three. NO NUMBER is an even placeholder — two on, two off — drawn faint by the
+   stylesheet (`.is-blank`), so an empty card does not look as though it holds a number.
+
+   ONE `<path>`, because thirty-odd `<rect>`s per card is ninety elements on this page for one picture,
+   and `currentColor` so the ink is the card's (`--paper-ink`) and never a literal. The viewBox is the
+   modules across and one unit down, stretched to the box by `preserveAspectRatio="none"`;
+   `crispEdges` so a one-module bar is not smeared across two device pixels. */
+function libBarsOf_(no) {
+  const s = String(no ?? '').trim();
+  const w = [];
+  if (!s) { for (let i = 0; i < 24; i++) w.push(2, 2); w.pop(); return w; }
+  let h = hashOf(s) || 0x9e3779b9;
+  const next = n => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return 1 + (h % n); };
+  w.push(1, 1, 1, 2);
+  let at = 5;
+  while (at < 84) { const bar = next(4), gap = next(3); w.push(bar, gap); at += bar + gap; }
+  w.push(1, 1, 1);
+  return w;
+}
+function libBars_(no) {
+  const w = libBarsOf_(no);
+  let x = 0, d = '';
+  w.forEach((n, i) => { if (i % 2 === 0) d += 'M' + x + ' 0h' + n + 'v1h-' + n + 'z'; x += n; });
+  const blank = !String(no ?? '').trim();
+  return `<svg class="lib-bars${blank ? ' is-blank' : ''}" viewBox="0 0 ${x} 1" preserveAspectRatio="none"
+    shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path fill="currentColor" d="${d}"/></svg>`;
+}
+/* THE BARS FOLLOW THE NUMBER as it is typed, the photograph shelf's thumbnail one rule down: the card
+   is a preview of itself, so what is printed under the bars and the bars cannot disagree. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.lib-no input')) return;
+  const bars = t.closest('.lib-face') && t.closest('.lib-face').querySelector('.lib-bars');
+  if (bars) bars.outerHTML = libBars_(t.value);
+});
+
+/* ---------- AND A CARD GIVES UP ITS BLANK BAND BEFORE THE PAGE IS DRAWN SMALLER ----------------------
+   A FACE'S HEIGHT FOLLOWS ITS WIDTH, so the page is as tall as the column is wide, and the pane's fit
+   rule (`paneReach_`, find.js) answered every card past three by drawing the WHOLE page smaller —
+   boxes, tick and `Add another` with it. The review of 10 Oct measured it against 6758e2f, whose
+   two-row boxes drew five at full size at 390x844: four cards took the page to 81% there and five to
+   70% (the tick 36px, then 31px), and pressing `Add another` re-zoomed the page under the finger. At
+   1280x800 it was worse — a laptop's column is wide, so three cards were 81% and four scrolled at the
+   floor. Every one of those cards had the band between its name and its bars blank: 45px at 390,
+   68px at 1280.
+
+   SO THE CARDS GIVE THAT BAND BACK FIRST, as an essay's sheet gives its spare lines (`kpSheetFit_`):
+   called by `paneReach_` at zoom 1 before it measures, this narrows every face on the shelf by what
+   takes the page back inside its pane, never past where its blank band runs out. A NARROWER CARD AND
+   NOT A SHORTER ONE: `aspect-ratio` keeps the bank card's 85.6:54, so a face is shorter only by being
+   narrower, and its bars and name (in `cqw` of it) come down with it; it stays centred, and `Add
+   another` takes the cards' width (`--lib-w`, style.css). Whatever the bands cannot give is left to
+   the fit rule, as before — five cards at 390 are still drawn a little smaller, and 320x568 has
+   almost no band to give, so there the card still all but fills the width and the page is drawn at
+   the zoom 332 records. Nothing over: the property comes off and the card fills the column.
+
+   UP TO THREE PASSES, because the band grows as the card narrows — the bars are `15cqw` tall, so a
+   narrower card has shorter bars and a little more blank — and one pass sized from the full-width
+   band leaves some of it unspent. Each pass is one forced layout of this pane alone, and only a pane
+   holding a library card is asked. In a try: a shelf that cannot be measured keeps the column's width. */
+function libFit_(pane) {
+  try {
+    const first = pane.querySelector('.lib-face');
+    const shelf = first && first.closest('.lib-shelf');
+    if (!shelf) return;
+    shelf.style.removeProperty('--lib-w');
+    const faces = [...shelf.querySelectorAll('.lib-card:not([hidden]) > .lib-face')];
+    if (!faces.length || !(pane.clientHeight > 0)) return;
+    for (let pass = 0; pass < 3; pass++) {
+      const over = pane.scrollHeight - pane.clientHeight;
+      if (!(over > 2)) return;
+      const h = faces[0].getBoundingClientRect().height;
+      /* THE BLANK BAND IS THE FACE'S THIRD ROW, `minmax(0, 1fr)`; the computed track list is in px. */
+      const band = parseFloat(String(getComputedStyle(faces[0]).gridTemplateRows).split(/\s+/)[2]) || 0;
+      const give = Math.min(band, over / faces.length + 0.5);
+      if (!(h > 0) || !(give > 0.5)) return;
+      shelf.style.setProperty('--lib-w', ((h - give) * 85.6 / 54).toFixed(2) + 'px');
+    }
+  } catch (e) { /* the column's width stands */ }
 }
 
 /* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS ----------------------------
@@ -4627,15 +4813,23 @@ function libraryShelf_(list, value) {
    rewrite the card uses, so what previews is what will be drawn. */
 const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
 const isPhotos_ = list => (list || []).some(isPhotoField_);
-function photoShelf_(list, value) {
+/* `o.draft` IS PASSED THROUGH TO THE BOXES — the card editor keeps its own draft (`fieldHtml`'s note).
+   AND THE THUMBNAILS ARE FETCHED AT ONCE, NOT `loading="lazy"`. The owner, 10 Oct: *"these remain loading
+   untill i scroll to them. i dont like this"*. The shelf is drawn on a tutor's card being edited now
+   (docs/history/330), a form about two thousand pixels tall in a pane that scrolls, so the three thumbs
+   sat a screen and a half below the fold and were not even asked for until scrolled to — an empty square
+   beside a link, which reads as a broken picture rather than one on its way (measured at 320x568: three
+   thumbs at y 898–997, no request in three seconds). There are at most eight, each beside the link it
+   checks; "is this link a picture" is the shelf's whole point, and it is answered before the scroll. */
+function photoShelf_(list, value, o) {
   const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
   return `<div class="lib-shelf ph-shelf">${shelfSlots_(nums,
     i => shelfFilled_(value, ['photos_' + i]),
     (i, hide) => {
       const v = String(value('photos_' + i) || '').trim();
       return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
-        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" loading="lazy">` : ''}</span>
-        ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link',
+        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="">` : ''}</span>
+        ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link', draft: (o || {}).draft,
           extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}
       </div>`;
     })}</div>`;
@@ -4652,10 +4846,9 @@ document.addEventListener('input', e => {
 
 /* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED ---------------------------------------------
    A SQUARE PREVIEW, `Choose photo` AND `Remove`. The preview is what the picture will be — the
-   photograph cropped square, or with none the face you have without one: your wardrobe figure if you
-   have dressed it, the initial if not, which is the same letter the card draws. Square because a
-   photograph on this site is square (the camera's still, a post's grid, the photo shelf's
-   thumbnails); the card rounds it into its circle itself.
+   photograph cropped square, one of the pictures, your figure, or with none the initial, which is the
+   same letter the card draws. Square because a photograph on this site is square (the camera's still,
+   a post's grid, the photo shelf's thumbnails); the card rounds it into its circle itself.
 
    TILES, BECAUSE THIS IS A THING — your picture — and the two actions are actions ON it, not the
    buttons of a form: each saves itself, there is nothing to fill in first, and the card's own Save
@@ -4663,9 +4856,33 @@ document.addEventListener('input', e => {
    `Photos` side opens its own; `accept="image/*"` with no `capture`, so a phone offers the gallery
    AND the camera rather than forcing one.
 
-   ONE LINE UNDER THE ROW says what happened, the `.me-said` of every other card. */
-function photoPicker_(value) {
+   ---------- AND UNDER THEM, ELEVEN TO CHOOSE FROM, AS AN XBOX GAMERPIC PICKER HAS -------------------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* FIRST your own figure — drawn live by
+   `avatarFor`, so it is wearing whatever the wardrobe card has on it right now — THEN the ten
+   pictures (`PFP_ART`, links.js). For everybody: a student, a parent, a tutor and an admin all draw
+   this card, because every role's group list names `photo`.
+   A TAP SAVES AT ONCE, like Choose photo, and the card's Save does not touch it. A GOLD RING marks the
+   one in use. They are BUTTONS rather than tiles because they are the answer being chosen, not actions
+   on it — the keypad's keys and a multiple-choice question's options are the house's other two, and
+   the wardrobe's own squares a third.
+   44px EACH, IN PIXELS (CLAUDE.md: a fingertip is the same size on every screen): four to a row in a
+   320 card, six where there is room — see `.pfp-grid`.
+
+   ONE LINE UNDER THE GRID says what happened, the `.me-said` of every other card. `said` is what to
+   put there when the picker is redrawn after a save; left out, it says what the picture is now. */
+function photoPicker_(value, said) {
   const v = String(value('photo') || '').trim();
+  const kind = picKind_(v);
+  const chosen = (kind === 'basic' || kind === 'avatar') ? pfpChoice_(v) : '';
+  const me = USER || {};
+  const opt = n => {
+    const label = n === 'avatar' ? 'Your figure' : PFP_ART[n].name;
+    return `<button type="button" class="pfp-opt${chosen === n ? ' on' : ''}" data-do="pfp-choose" data-pic="${esc(n)}"
+      aria-pressed="${chosen === n ? 'true' : 'false'}" aria-label="${esc(label)}" title="${esc(label)}">${n === 'avatar'
+        ? avatarFor(me.handle || me.name, 40, me.avatar || '', { bust: true })
+        : pfpArt_(n, 40)}</button>`;
+  };
   return `<div class="pfp">
     <span class="pfp-face">${pfpFace_(v)}</span>
     <div class="pfp-side">
@@ -4673,21 +4890,53 @@ function photoPicker_(value) {
         ${tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' })}
         ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
       </div>
-      <p class="faint pfp-said">${v ? 'Your picture on your card.' : 'No picture yet — your card shows this instead.'}</p>
     </div>
+    <div class="pfp-grid" role="group" aria-label="Or choose a picture">${['avatar'].concat(Object.keys(PFP_ART)).map(opt).join('')}</div>
+    <p class="faint pfp-said">${esc(said || pfpSaid_(v))}</p>
     <input type="file" class="pfp-in" accept="image/*" hidden>
   </div>`;
 }
+/* WHAT THE PICTURE IS, IN A SENTENCE — the line's words at rest and after a save. */
+function pfpSaid_(v) {
+  const kind = picKind_(v);
+  if (kind === 'photo') return 'Your photo is your picture.';
+  if (kind === 'avatar') return 'Your figure is your picture, wearing whatever you dress it in.';
+  if (kind === 'basic') return 'The ' + PFP_ART[pfpChoice_(v)].name.toLowerCase() + ' is your picture.';
+  return 'No picture yet, so your card shows your initial. Choose one, or a photo.';
+}
+/* THE PREVIEW IS `personFace_` LIKE EVERY OTHER FACE, so what you see here is what everybody else's
+   card draws — which is why the wardrobe figure is no longer the preview of NO picture: that was a
+   face only you saw (the card has always drawn the initial), and your figure is now a picture you
+   can actually choose, in the grid, for everybody. */
 function pfpFace_(v) {
-  if (v) return `<img src="${esc(pic(v))}" alt="Your profile picture">`;
-  /* THE WARDROBE FIGURE ONLY IF IT HAS BEEN DRESSED. Every handle has a figure — `avatarConfig`
-     seeds one from the hash — but an undressed one is a stranger's face as far as its owner knows,
-     and the initial is what everybody else sees on the card. */
-  if (USER && USER.avatar && typeof avatarFor === 'function') {
-    return avatarFor(USER.handle || USER.name, 56, USER.avatar);
-  }
-  const who = (USER && ((USER.profile && USER.profile.first_name) || USER.name)) || '?';
-  return `<span class="pfp-none">${esc(String(who).trim().slice(0, 1).toUpperCase() || '?')}</span>`;
+  const me = USER || {};
+  return personFace_({ pic: v, personId: me.personId, avatar: me.avatar || '', handle: me.handle,
+                       name: (me.profile && me.profile.first_name) || me.name || '?' },
+                     { cls: 'pfp-pic', none: 'pfp-none', size: 88, alt: 'Your profile picture', eager: true });
+}
+/* THE RING FOLLOWS A TAP AT ONCE, and goes back where it was if the server says no. */
+function pfpRing_(box, name) {
+  if (!box) return;
+  box.querySelectorAll('.pfp-opt').forEach(b => {
+    const on = !!name && b.dataset.pic === name;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+/* ---------- A REFUSAL KEEPS THE OLD PICTURE AND SAYS SO ---------------------------------------------
+   `send_` has already written the server's own sentence on the line; this adds that nothing changed.
+   AND WHY, WHILE THE SERVER IS OLDER THAN THE PICTURES. A backend from before them answers a tapped
+   fox "That is not a picture. Choose a photo from your phone." — true of its own door, and baffling
+   under a fox. So when the payload's stamp is a date older than this build's, the line says the
+   pictures are waiting on the server rather than leaving somebody to tap all eleven. A stamp that is
+   not a date (the lab's `fixture`) is never called old. ONLY FOR A TAP IN THE GRID (`chose`): a refused
+   photograph or Remove is the old server's own door, and its own sentence already says why. */
+const PFP_SINCE = '2026-10-10-h-pictures';
+function pfpKept_(chose) {
+  const v = String((typeof DATA !== 'undefined' && DATA && DATA.version) || '');
+  const old = !!chose && /^\d{4}-\d\d-\d\d/.test(v) && v < PFP_SINCE;
+  return 'Your picture is unchanged.' + (old
+    ? ' The server has not been updated for the pictures yet; until it is, a photo still works.' : '');
 }
 
 /* ---------- SQUARE, AND SMALL ENOUGH TO POST ------------------------------------------------------
@@ -4724,20 +4973,28 @@ function pfpPrepare_(file) {
 }
 
 /* WHAT THE SERVER SAID THE PICTURE NOW IS, written everywhere this phone keeps it: your profile (what
-   the Settings page reads), the remembered sign-in (what the next visit reads before the network),
-   and any row of the payload that is you, so your own card on the You column changes too rather than
-   waiting for the next load. Then the picker is redrawn from it. */
-function pfpTake_(box, url) {
+   the Settings page reads), `USER.photo` (what your own card on the You column is built from when you
+   have no tutor row — it was never written here, so a parent's new picture stayed off their own card
+   until they signed in again), the remembered sign-in (what the next visit reads before the network),
+   and any row of the payload that is you, so your own card changes too rather than waiting for the
+   next load. A row whose face is now your figure carries your figure, as the server's `faceFig_` does,
+   and one that stopped being it loses it. Then the picker is redrawn from it, with `said` on its line,
+   and the You column is drawn again so your card is the new face when you swipe to it. */
+function pfpTake_(box, url, said) {
   if (!USER) return;
   USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
+  USER.photo = url;
   try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
-  ['tutors', 'people', 'students', 'clients'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
+  const fig = picKind_(url) === 'avatar';
+  ['tutors', 'people', 'students', 'clients', 'family', 'everyone'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
     if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
       if ('image' in r) r.image = url;
       if ('photo' in r) r.photo = url;
+      if (k !== 'students') { if (fig) r.avatar = USER.avatar || ''; else delete r.avatar; }
     }
   }));
-  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''));
+  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''), said);
+  try { if (typeof paint === 'function') paint('account'); } catch (e) {}
 }
 
 on('pfp-pick', el => {
@@ -4749,8 +5006,39 @@ on('pfp-remove', el => {
   if (!USER || !box) return;
   send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
         { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
-    .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture removed'); })
-    .catch(() => {});
+    .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Removed. ' + pfpSaid_(got)); toast('Picture removed'); })
+    .catch(() => { const said = box.querySelector('.pfp-said'); if (said) said.textContent += ' ' + pfpKept_(); });
+});
+/* ---------- ONE OF THE ELEVEN, TAPPED ----------------------------------------------------------------
+   `savePhoto` WITH `choice` — the same action as a photograph, because it is the same cell and the same
+   rule (your own row, by the token; `self` in `ACTION_ACCESS`). The preview and the ring move before
+   the reply, as a chosen photograph's preview does, so the choice is seen while it travels; a refusal
+   puts both back and the line says what the server said and that nothing changed. A tap on the one
+   already in use sends nothing. WHAT IS KEPT IS WHAT THE SERVER ANSWERS, not what was tapped — a reply
+   naming another picture is drawn as that picture and said, rather than the tap being believed. */
+on('pfp-choose', el => {
+  const box = el.closest('.pfp');
+  const name = String(el.dataset.pic || '');
+  if (!USER || !box || !pfpChoice_(PFP_PREFIX + name)) return;
+  const choice = PFP_PREFIX + name;
+  const said = box.querySelector('.pfp-said');
+  const was = String((USER.profile && USER.profile.photo) || '').trim();
+  if (pfpChoice_(was) === name) { if (said) said.textContent = 'Already chosen. ' + pfpSaid_(was); return; }
+  const face = box.querySelector('.pfp-face');
+  if (face) face.innerHTML = pfpFace_(choice);
+  pfpRing_(box, name);
+  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, choice },
+        { button: el, where: said, saying: 'Saving…', lock: box })
+    .then(d => {
+      const got = String((d && d.photo) || '');
+      pfpTake_(box, got, (pfpChoice_(got) === name ? 'Saved. ' : 'The server kept something else. ') + pfpSaid_(got));
+      toast('Picture saved');
+    })
+    .catch(() => {
+      if (face) face.innerHTML = pfpFace_(was);
+      pfpRing_(box, pfpChoice_(was));
+      if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_(true);
+    });
 });
 /* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
    `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
@@ -4767,15 +5055,19 @@ document.addEventListener('change', e => {
   pfpPrepare_(file).then(data => {
     if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
     /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server
-       refuses, the line says why and the old picture comes back with the redraw below. */
+       refuses, the line says why and the old picture comes back. The ring comes off the grid for the
+       same moment — a photograph is none of the eleven. */
     const face = box.querySelector('.pfp-face');
-    if (face) face.innerHTML = `<img src="${esc(data)}" alt="Your profile picture">`;
+    if (face) face.innerHTML = `<img class="pfp-pic" src="${esc(data)}" alt="Your profile picture">`;
+    pfpRing_(box, '');
     return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
                  { button: btn, where: said, saying: 'Saving…', lock: box })
-      .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture saved'); })
+      .then(d => { const got = (d && d.photo) || ''; pfpTake_(box, got, 'Saved. ' + pfpSaid_(got)); toast('Picture saved'); })
       .catch(() => {
         const was = (USER.profile && USER.profile.photo) || '';
         if (face) face.innerHTML = pfpFace_(was);
+        pfpRing_(box, pfpChoice_(was));
+        if (said) said.textContent = String(said.textContent || '').trim() + ' ' + pfpKept_();
       });
   });
 });
@@ -4972,12 +5264,7 @@ function meSave_(el) {
   /* ASKED OF EACH SLOT: its `qual_N` box (the subject's select) is the name that is saved, and any
      visible box with an answer in it is a qualification. Hidden boxes are skipped because Teach and
      Can teach are hidden and always hold a word. */
-  const nameless = [...box.querySelectorAll('.q-shelf .q-slot')].some(slot => {
-    const n = slot.querySelector('[data-me="qual_' + slot.dataset.slot + '"]');
-    return !(n && String(n.value || '').trim())
-      && [...slot.querySelectorAll('[data-me]')].some(b => b.type !== 'hidden' && String(b.value || '').trim());
-  });
-  if (nameless) { toast('Choose a subject for each qualification first — nothing was saved.'); return resolve(false); }
+  if (qualNameless_(box)) { toast(QUAL_NAMELESS_SAY_); return resolve(false); }
   /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE ------------------------------
      THE SIGN-IN REPLY SENT THE RAW CELLS FOR MONTHS, so every phone signed in before it was repaired
      holds a profile with no phone boxes, no birthday boxes and an empty qualification shelf — and a
@@ -5068,6 +5355,17 @@ function meSave_(el) {
   });
 }
 
+/* A QUALIFICATION WITH NO SUBJECT, ASKED OF A FORM — lifted out of `meSave_` so the card's own Save
+   (`card-save`) refuses exactly what a Settings card refuses, in the same words. */
+const QUAL_NAMELESS_SAY_ = 'Choose a subject for each qualification first — nothing was saved.';
+function qualNameless_(box) {
+  return [...box.querySelectorAll('.q-shelf .q-slot')].some(slot => {
+    const n = slot.querySelector('[data-me="qual_' + slot.dataset.slot + '"]');
+    return !(n && String(n.value || '').trim())
+      && [...slot.querySelectorAll('[data-me]')].some(b => b.type !== 'hidden' && String(b.value || '').trim());
+  });
+}
+
 /* ---------- "SAVED" SURVIVES THE REPAINT IT CAUSES ------------------------------------------------
    A Save that wrote something calls `load()`, and the repaint rebuilds the card — so the line
    under it that had just said "Saved" (or "You were patparent.") was back to its default within a
@@ -5091,17 +5389,31 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
    comparing each box with its `defaultValue`, because the qualification shelf and the
    several-of-a-list field keep their answer in a HIDDEN input, whose `value` and `defaultValue` are the same
    attribute: a comparison would call a picked subject clean. */
+/* AND THE BUSINESS COLUMN BY THE SAME RULE. Its five cards are `.me-form`s that moved out of Settings
+   (js/records.js) and they were kept by these lines there: `bizFillAll_` leaves a card with
+   `data-dirty` alone when the records land, and `paint` leaves the column alone while one is. Scoped
+   to `#s-settings` alone, a provider typed before the records arrived would have been written over by
+   them, and a payload landing would have redrawn the column under the typing. */
+const KEEP_FORMS_ = '#s-settings .me-form, #s-biz .me-form';
 document.addEventListener('input', e => {
-  const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
+  const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
 });
 document.addEventListener('change', e => {
-  const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
+  const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
 });
 function settingsKeep_(id) {
-  if (id !== 'settings' || !USER) return false;
-  const el = $('s-settings');
+  /* AND THE YOU COLUMN, WHILE A CARD ON IT IS BEING EDITED (`cardEditHtml_`) — the same rule for the
+     same reason: the payload landing, the inbox landing and `myProfile` landing each repaint it, and
+     a card rebuilt under the typing loses the caret, an open qualification line and an open list. Held
+     from the first keystroke until Save or Cancel, and while its Save is on the wire. */
+  if (id === 'account' && USER) {
+    const acc = $('s-account');
+    return !!(acc && acc.querySelector('.card-ed .me-form[data-dirty], .is-sending .card-ed'));
+  }
+  if ((id !== 'settings' && id !== 'biz') || !USER) return false;
+  const el = $('s-' + id);
   return !!(el && el.querySelector('.me-form[data-dirty], .me-form.is-sending'));
 }
 
@@ -5121,7 +5433,9 @@ function profileRefresh_(loud, onOld) {
   if (!USER || !USER.token || PROFILE_ASKING) return;
   PROFILE_ASKING = true;
   const askedAt = Date.now();
-  api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
+  /* RETURNED, so a caller waiting on a copy it can trust (the card editor, `cardFetch_`) knows when the
+     question has been answered either way — every other caller ignores it, as before. */
+  return api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
       /* ---------- AN ANSWER OLDER THAN WHAT THE PHONE NOW KNOWS IS NOT PAINTED -----------------------------
@@ -5164,18 +5478,34 @@ function profileRefresh_(loud, onOld) {
       /* `pendingEmail` RIDES WITH THE ROLE, for the role's reason: it decides which cards are drawn (the
          held make-child card, the line under your own card), and it goes stale the same way — the link
          opened on a laptop, the address proved by Google on another phone. */
-      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]);
+      /* ---------- AND THE NAMES, WHICH WENT STALE THE SAME WAY ---------------------------------------
+         THE OWNER, 10 OCT: *"also side note dont show children's last name."* The server calls a child by
+         their first name now (`nameFor_` in people.gs) — but a phone signed in before that kept the whole
+         name in `familyUser` for the thirty days a session lasts: a child's own name on their You card, a
+         parent's children in the booking form's "Which of your children?". `myProfile` carries the names
+         as the sign-in reply says them, so the first open after the deploy puts the first names over the
+         old ones; an older server sends none and this keeps what it had. A name that changed is a repaint,
+         like a role: it is on the card at the top of the column. */
+      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+        String(USER.name || ''), USER.children, USER.kids]);
       if (d.role) USER.role = d.role;
       if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
       if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
       if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
-      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]) !== roleWas;
+      if (d.name) USER.name = String(d.name);
+      ['children', 'kids', 'parents', 'siblings'].forEach(k => { if (Array.isArray(d[k])) USER[k] = d[k]; });
+      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || ''),
+        String(USER.name || ''), USER.children, USER.kids]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       /* BOTH THROUGH `landRepaint_` (shell.js), because this is a reply landing like the payload is: a
          select somebody has open, or a box they are in, is not rebuilt under them. Found by review on
          9 October — the favourite colour tapped, its list up, and this repaint took the select away. */
       const land = typeof landRepaint_ === 'function' ? landRepaint_ : (f => (f || repaint)());
       if (roleMoved) { try { land(); } catch (e) {} return; }
+      /* AND YOUR CARD, WHEN IT IS OPEN FOR EDITING — it is drawn from this copy (`cardEditHtml_`), and
+         one still waiting for a copy it can trust (`profileShapeOk_`) is drawn the moment this lands.
+         `paint` declines while the card holds typing (`settingsKeep_`). */
+      if (CARD_EDIT && CARD_EDIT.own) { try { land(() => paint('account')); } catch (e) {} }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
         try { land(() => { paint('settings'); placeCells('y', true, 0, 'settings'); }); } catch (e) {}
@@ -5295,3 +5625,564 @@ on('pin-save', el => {
    drawn round them for the post that replaces it to jump from. The same day the skeleton had been given a
    pill-round bar where the reactions' row of faces would be (docs/history/307) — the right shape for
    a look that no longer exists; the merge kept the removal, and the reactions keep their own row. */
+
+/* ==================================================================================================
+   YOUR CARD IS WHERE YOU EDIT IT  (docs/history/330)
+
+   THE OWNER, 10 Oct, with a screenshot of the Settings card "About you" beside one of their own card
+   on the You column: *"all of this stuff should be editable directly on the tutors card for that
+   respective tutor. this centralises things so less widgets are required."*
+
+   SO A TUTOR'S OWN CARD HAS AN `Edit` TILE, and pressing it turns the card into its own form IN
+   PLACE, section by section in the order the card reads: the picture, the name, the rate and class
+   sizes, the headline, the photographs, the three words, the facts at a glance, the qualifications,
+   where they tutor (the map redrawn from the ticks) and the week. ONE `Save` posts every field that
+   changed, through the same `updateProfile` every Settings card uses, in one request — and the card
+   is a card again with the new values. `Cancel` puts back what was there. The five Settings pages
+   that held these fields are not drawn for somebody with a card (`cardHolds_`, asked by
+   `settingsPages_`); the server's groups, which are also its write allow-list, are untouched.
+
+   AN ADMIN EDITS ANY TUTOR'S CARD THE SAME WAY, because `updateProfile` already lets an admin write
+   another person's row (`adminEditing` in dopost.gs) — nothing on the server changed for it. Their
+   form is filled from `getProfile` (admin-only), never from the payload's row: that row has no Teach
+   ticks, no favourite colour and three words with their places lost, and a Save built from it would
+   write those losses back. The one thing an admin cannot change there is the picture — `savePhoto`
+   writes the row the TOKEN resolves to, which would be the admin's own.
+
+   A THING HAS TILES, A FORM HAS BUTTONS: Edit, Save and Cancel are the card's tiles, because the card
+   is a thing; the boxes inside are the same `fieldHtml` boxes Settings drew, and the shelf, the
+   picker and the week are Settings' own widgets — one renderer each, wherever they are drawn.
+================================================================================================== */
+
+/* ---------- THE CARD'S SECTIONS, IN THE CARD'S ORDER, AND THE FIELDS EACH ONE EDITS -------------------
+   `fields` are named; `match` takes every field of that shape the backend sends, so the photographs,
+   the qualification shelf and the week are as long as the backend says, exactly as on Settings. A field
+   the backend does not send in `profileFields` is not drawn (`cardSections_`), so this cannot offer a
+   box the server would quietly drop. PURE DATA, because `check-profile.js` reads it out of this file and
+   asks the real backend whether every field in it is one a tutor and an admin may write.
+
+   THE CARD'S ORDER, NOT A FORM'S: the rate sits by the name and the photographs after the headline,
+   because that is where they are on the card — editing in place means each section is edited where it
+   is read. SESSION LENGTH IS IN AT A GLANCE, where the card prints it (`1+ hour`): it was a sentence
+   here saying "kept on the sheet", because `min_hours`/`max_hours` were in no group and so nobody could
+   write them; the review of docs/history/330 asked for the box, and the backend now lists them on the rate
+   page (`SESSION_FIELDS` in constants.gs — no clock, refused by `hoursRefusal_`). The favourite colour and the video are
+   not on the public card at all; they ride with the facts and the photographs, beside what they are
+   paired with on Settings (`FIELD_ROWS`), so nothing that page held is left without a box. Where they
+   tutor has no caption of its own: the map under the venues carries the card's `Tutors at` already. */
+const CARD_SECTIONS = [
+  { id: 'picture', fields: ['photo'] },
+  { id: 'name', fields: ['first_name', 'last_name'] },
+  { id: 'rate', cap: 'Rate and class size', fields: ['rate_per_hour', 'extra_seat_rate', 'min_students', 'max_students'] },
+  { id: 'headline', fields: ['headline'] },
+  { id: 'photos', cap: 'Photographs', fields: ['video'], match: /^photos_\d+$/ },
+  { id: 'words', fields: ['adjective_1', 'adjective_2', 'adjective_3'] },
+  { id: 'glance', cap: 'At a glance', fields: ['years_experience', 'favourite_colour', 'age_min', 'age_max', 'min_hours', 'max_hours'] },
+  { id: 'quals', cap: 'Qualifications', match: /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/ },
+  { id: 'where', fields: ['venues_ok', 'travel_km'] },
+  { id: 'week', cap: 'Available', match: /^(m|tu|w|th|f|sa|su)\d\d$/ },
+];
+/* WHERE THE PAGES WENT, said once at the top of Settings for somebody with a card. The column's name is
+   read off `TABS`, as the signed-out Settings card reads it, because "You" is a cell somebody can edit. */
+const cardMovedSay_ = () => 'Your name, picture, rate, photographs, qualifications, venues and hours are on your card now — Edit is under it on '
+  + (((typeof TABS !== 'undefined' && TABS.find(t => t.id === 'account')) || {}).label || 'You') + '.';
+
+/* EVERY FIELD THE BACKEND SAYS A TUTOR EDITS, in its order — the one list `cardSections_` filters. */
+function cardSent_() {
+  const g = (typeof DATA !== 'undefined' && DATA && DATA.profileFields) || {};
+  return [].concat(...Object.keys(g).map(k => g[k] || [])).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
+}
+function cardSections_() {
+  const sent = cardSent_();
+  return CARD_SECTIONS.map(s => Object.assign({}, s, {
+    list: (s.fields || []).filter(f => sent.indexOf(f) !== -1).concat(s.match ? sent.filter(f => s.match.test(f)) : []),
+  })).filter(s => s.list.length);
+}
+const cardFields_ = () => [].concat(...cardSections_().map(s => s.list));
+
+/* ---------- WHO HAS A CARD, AND WHAT SETTINGS STOPS DRAWING FOR THEM ------------------------------------
+   YOUR OWN ROW IN `DATA.tutors`, found by `mineIs_` — the test `accountPages_` finds your card with, so
+   the pages go exactly when there is a card to edit instead. Nobody else is sent an unlisted tutor, so a
+   tutor not yet listed has no row and keeps every Settings page: never a field with no box anywhere. */
+function cardMine_() {
+  if (typeof USER === 'undefined' || !USER || typeof mineIs_ !== 'function') return null;
+  return ((typeof DATA !== 'undefined' && DATA && DATA.tutors) || []).find(t => t && t.personId && mineIs_(t)) || null;
+}
+const cardHolds_ = () => !!USER && cardSent_().length > 0 && !!cardMine_();
+/* THE GROUPS WITH EVERY FIELD THE CARD EDITS TAKEN OUT, AND A GROUP LEFT EMPTY DROPPED — so About you,
+   Photos, the rate, Qualifications and the week go whole, and Contact & address keeps its own boxes. */
+function cardSettingsGroups_(groups) {
+  const on = new Set(cardFields_());
+  const out = {};
+  Object.keys(groups || {}).forEach(g => {
+    const left = (groups[g] || []).filter(f => !on.has(f));
+    if (left.length) out[g] = left;
+  });
+  return out;
+}
+
+/* ---------- WHICH CARD IS OPEN FOR EDITING ---------------------------------------------------------------
+   ONE AT A TIME, AND IT SURVIVES A RELOAD. *"Every box survives a reload"* (docs/history/317) — a reload
+   that put the card back to a card would leave what was typed in storage with nothing on the screen
+   saying so. So which card is open is remembered on the device (`familyCardEdit`, with whose phone it
+   was: a phone handed to somebody else opens nobody's editor), and what was typed is the card's draft
+   (`cardKeep_`). `base` is the copy of the row the form is drawn from — your own `USER.profile`, or for
+   an admin the `getProfile` answer. */
+let CARD_EDIT = null;
+/* WHOSE `familyCardEdit` WAS LAST READ — a person id, not a yes/no. It was a yes/no, read once a visit,
+   so a tutor who signed out in the middle of editing (Sign out is under the form — see `accountPages_`)
+   and back in on the same tab found their card shut, with the draft still waiting behind Edit; only a
+   reload opened it again. Read again whenever somebody else is signed in, so the same person signing
+   back in finds the card the way they left it, as a reload would. */
+let CARD_EDIT_READ = '';
+const CARD_EDIT_KEY = 'familyCardEdit';
+function cardEditFresh_(pid) {
+  const me = String((USER && USER.personId) || '');
+  return { who: me, pid: String(pid), own: !!me && String(pid) === me, base: null, asking: false, err: '' };
+}
+function cardEditNow_() {
+  if (typeof USER === 'undefined' || !USER) { CARD_EDIT = null; CARD_EDIT_READ = ''; return null; }
+  const me = String(USER.personId || '');
+  if (CARD_EDIT && CARD_EDIT.who !== me) CARD_EDIT = null;
+  if (!CARD_EDIT && CARD_EDIT_READ !== me) {
+    CARD_EDIT_READ = me;
+    try {
+      const k = JSON.parse(localStorage.getItem(CARD_EDIT_KEY) || 'null');
+      if (k && k.pid && k.who && k.who === me) {
+        CARD_EDIT = cardEditFresh_(k.pid);
+        if (typeof k.pic === 'string') CARD_EDIT.pic0 = k.pic;
+      }
+    } catch (e) {}
+  }
+  return CARD_EDIT;
+}
+/* `pic` IS THE PICTURE THE CARD WAS OPENED WITH, remembered beside which card is open so a Cancel after a
+   reload can still put it back (`card-cancel`, below). */
+function cardRemember_(e) {
+  const k = { who: e.who, pid: e.pid };
+  if (typeof e.pic0 === 'string') k.pic = e.pic0;
+  try { localStorage.setItem(CARD_EDIT_KEY, JSON.stringify(k)); } catch (x) {}
+}
+function cardForget_() { try { localStorage.removeItem(CARD_EDIT_KEY); } catch (x) {} }
+
+/* WHO MAY EDIT THIS CARD: the tutor whose row it is, or an admin — the same two `updateProfile` lets
+   through. A REAL TUTOR ROW, NOT A STAND-IN: a parent's own card is built from the sign-in reply
+   (`accountPages_`) and is not in `DATA.tutors`, so it is never offered an Edit it has nothing behind.
+   And only when the backend has said which fields a tutor edits — an older one draws no editor. */
+function cardMayEdit_(t) {
+  if (typeof USER === 'undefined' || !USER || !t || !t.personId || !cardSent_().length) return false;
+  if (!((DATA && DATA.tutors) || []).some(r => r && String(r.personId) === String(t.personId))) return false;
+  return String(t.personId) === String(USER.personId || '') || isAdmin();
+}
+function cardEditing_(t) {
+  const e = cardEditNow_();
+  return !!(e && t && t.personId && String(t.personId) === e.pid && cardMayEdit_(t));
+}
+/* ---------- THE EDIT TILE — `x.account` IS THE YOU COLUMN, the one place the editor is drawn
+   (`accountPages_`); the same tutor starred onto Saved or found in Find gets no door to a form that is not
+   there. Silver on somebody else's card, because it is an admin's power there, as the Listed switch is. */
+function cardEditTile_(x) {
+  const t = (x && x.row) || {};
+  if (!x || !x.account || !cardMayEdit_(t)) return '';
+  /* NOT ON THE CARD BEING EDITED. Your own card's row (Edit, Sign out, Send the link again) is drawn under
+     the form as well now, so Sign out is never taken away by editing — and Edit beside Save would be a
+     second door into the form it is already standing in. */
+  if (cardEditing_(t)) return '';
+  const own = String(t.personId) === String(USER.personId || '');
+  return tile_({ icon: 'edit', label: 'Edit', note: own ? 'your card' : 'their card', act: 'card-edit',
+                 tone: own ? '' : 'admin', data: { pid: t.personId } });
+}
+
+/* ---------- WHAT A BOX HOLDS, COMPARED THE WAY THE SERVER WILL READ IT ------------------------------------
+   An hour and a Teach tick are TRUE or blank on the row and TRUE or FALSE in the form; everything else is
+   the text, trimmed, which is what `meSave_` posts. */
+const CARD_BOOL_ = /^(m|tu|w|th|f|sa|su)\d\d$|^qual_\d+_(teach|spec)$/;
+function cardSame_(f, a, b) {
+  if (CARD_BOOL_.test(f)) return TRUEish_(a) === TRUEish_(b);
+  return String(a == null ? '' : a).trim() === String(b == null ? '' : b).trim();
+}
+/* EVERY BOX OF THE CARD'S FORM, as `meSave_` gathers a Settings card: a tick is TRUE or FALSE, and
+   `Something else…` not yet typed is no answer. */
+function cardFormVals_(form) {
+  const out = {};
+  form.querySelectorAll('[data-me]').forEach(b => {
+    if (b.disabled) return;
+    const v = b.type === 'checkbox' ? (b.checked ? 'TRUE' : 'FALSE') : String(b.value || '').trim();
+    out[b.dataset.me] = v === QUAL_OTHER ? '' : v;
+  });
+  return out;
+}
+/* ---------- WHAT CHANGED — AND THE THREE PACKED CELLS GO WHOLE ---------------------------------------------
+   *"Posts every changed field"*, and only those: an untouched rate is not sent, so it cannot start the
+   month's clock (`pricingRefusal_` fires only on a value that moves, and a value that is not sent cannot).
+   EXCEPT WHERE THE SERVER REBUILDS A WHOLE CELL FROM WHAT ARRIVES: `availGridIn` clears every hour not
+   sent, `photosIn` repacks the photographs from the boxes sent and `qualsIn` rewrites the person's rows on
+   the qualifications tab from the seventy boxes (`writeOwnRows_` deletes a row not sent). One hour ticked
+   and only that hour posted would be a week of one hour. So a change anywhere in one of those sends all of
+   it, which is what the Settings page for it always posted. */
+const CARD_HOUR_ = /^(m|tu|w|th|f|sa|su)\d\d$/;
+const CARD_WHOLE_ = [CARD_HOUR_, /^photos_\d+$/, /^qual_\d+(_\w+)?$/];
+function cardChanged_(base, now) {
+  const out = {};
+  const moved = Object.keys(now).filter(f => !cardSame_(f, now[f], base[f]));
+  moved.forEach(f => { out[f] = now[f]; });
+  CARD_WHOLE_.forEach(re => {
+    if (moved.some(f => re.test(f))) Object.keys(now).forEach(f => { if (re.test(f)) out[f] = now[f]; });
+  });
+  return out;
+}
+
+/* ---------- THE CARD'S DRAFT: ONE, FOR THE WHOLE CARD, KEYED BY WHOSE CARD IT IS --------------------------
+   317'S RULE, AT THE SIZE OF A CARD. Every box keeps what was typed (`draftKeep_`, data.js — so a store
+   that refuses it is said and held for the visit like any other draft), only what differs from the copy
+   the form was drawn from, each with the saved value it was typed over (`from`). Drawn again over a row
+   that has been saved elsewhere since, that box draws the newer saved value: the older edit does not win
+   over a newer save — the review of 317's "Samtown over Newtown", one card along.
+   ONE DRAFT AND NOT ONE A BOX: the qualification shelf and the week change several boxes from one press,
+   and an admin editing somebody else's card must never write into the ADMIN's own `set` drafts, whose
+   field names are the same. `card:<pid>`, under the signed-in person's own key, is neither. */
+function cardDraft_(pid) {
+  try { const s = draftRead_('card', pid); return s ? JSON.parse(s) : null; } catch (x) { return null; }
+}
+function cardValues_(e, base) {
+  const vals = Object.assign({}, base);
+  let held = 0;
+  const d = cardDraft_(e.pid);
+  if (d && d.v) {
+    Object.keys(d.v).forEach(f => {
+      if (d.from && Object.prototype.hasOwnProperty.call(d.from, f) && !cardSame_(f, d.from[f], base[f])) return;
+      vals[f] = d.v[f]; held++;
+    });
+  }
+  return { vals, held };
+}
+/* THE COPY EACH DRAWN FORM WAS DRAWN FROM, by a number on the form. The You column is drawn — and
+   counted, by the pager — more often than it is put on the screen, and `USER.profile` can be replaced
+   by `myProfile` while a card is held under typing; what a box is compared with has to be what that box
+   was drawn from, or an untouched box reads as changed. Forms no longer on the page are forgotten. */
+const CARD_DRAWN = new Map();
+let CARD_DRAW_N = 0;
+function cardDrawn_(base) {
+  const n = String(++CARD_DRAW_N);
+  CARD_DRAWN.set(n, base);
+  if (CARD_DRAWN.size > 8) {
+    const live = new Set([...document.querySelectorAll('.card-ed .me-form[data-draw]')].map(f => f.dataset.draw));
+    [...CARD_DRAWN.keys()].forEach(k => { if (k !== n && !live.has(k)) CARD_DRAWN.delete(k); });
+  }
+  return n;
+}
+function cardKeep_(form) {
+  const e = CARD_EDIT;
+  const card = form && form.closest('.card-ed');
+  const base = form && CARD_DRAWN.get(form.dataset.draw || '');
+  if (!e || !USER || !card || !base || card.dataset.pid !== e.pid) return;
+  const now = cardFormVals_(form), v = {}, from = {};
+  Object.keys(now).forEach(f => {
+    if (cardSame_(f, now[f], base[f])) return;
+    v[f] = now[f];
+    from[f] = base[f] == null ? '' : String(base[f]);
+  });
+  try {
+    if (Object.keys(v).length) draftKeep_('card', e.pid, JSON.stringify({ v, from }));
+    else draftDrop_('card', e.pid);
+  } catch (x) {}
+}
+
+/* ---------- THE COPY OF THE ROW THE FORM IS FILLED FROM ----------------------------------------------------
+   YOURS IS `USER.profile` — but only a copy `profileShapeOk_` trusts: the old sign-in reply's shape has an
+   empty shelf and no hours, and a form drawn from it would post those blanks the first time one shelf
+   answer moved. Not trusted, it is asked for again (`profileRefresh_`, which repaints this column when it
+   lands). SOMEBODY ELSE'S is `getProfile`, an admin's action, by their id. Until either arrives the card
+   shows the one loader (`loading_`), and Cancel is live. */
+function cardBaseNow_(e) {
+  if (!e) return null;
+  if (e.own) return profileShapeOk_() ? USER.profile : null;
+  return e.base;
+}
+function cardFetch_(e) {
+  if (!e || CARD_EDIT !== e || e.asking || e.err || cardBaseNow_(e)) return;
+  if (e.own) {
+    if (PROFILE_SERVER_OLD) { e.err = OLD_SERVER_SAY_; cardRepaint_(); return; }
+    const p = profileRefresh_(false, () => { e.err = OLD_SERVER_SAY_; });
+    if (!p) return;   /* one already on its way — its landing repaints this column */
+    e.asking = true;
+    p.then(() => {
+      e.asking = false;
+      if (CARD_EDIT !== e) return;
+      if (!cardBaseNow_(e) && !e.err) e.err = 'Your details did not arrive from the server, so there is nothing to edit yet. Cancel, and try again in a moment.';
+      cardRepaint_();
+    });
+    return;
+  }
+  e.asking = true;
+  api({ action: 'getProfile', name: USER.name, personId: USER.personId || '', target: e.pid })
+    .then(d => {
+      e.asking = false;
+      if (CARD_EDIT !== e) return;
+      /* `phone_cc` IS `profileShapeOk_`'s test, asked of their copy: an older `profileOf_` without the
+         expanded boxes is the same blank-shelf danger as an old copy of your own. */
+      if (d && d.success && d.profile && Object.prototype.hasOwnProperty.call(d.profile, 'phone_cc')) e.base = d.profile;
+      else e.err = (d && d.error) || OLD_SERVER_SAY_;
+      cardRepaint_();
+    }, () => {
+      e.asking = false;
+      if (CARD_EDIT !== e) return;
+      e.err = 'The server did not answer, so their details are not here to edit. Cancel, and try again in a moment.';
+      cardRepaint_();
+    });
+}
+function cardRepaint_() { try { paint('account'); } catch (x) {} }
+
+/* ---------- THE CARD, AS ITS OWN FORM ----------------------------------------------------------------------
+   THE CARD'S OWN CLOTHES — `.card.is-widget.is-prof`, the role as its label — with `· editing` beside the
+   role, so nobody mistakes the form for what parents see. One `.me-form`, so `send_` locks it whole and
+   the line under it is the line every Settings card has (`.me-said`), saying an unsaved edit the way
+   Settings says it (`SET_HELD_SAY`). Its tiles are drawn under it in the row the card's own tiles were in. */
+function cardEditHtml_(t) {
+  const e = cardEditNow_();
+  const pid = String(t.personId);
+  const head = `<h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))} <span class="ce-what">· editing</span></h3>`;
+  const base = cardBaseNow_(e);
+  if (!base) {
+    if (!e.err) setTimeout(() => cardFetch_(e), 0);
+    return `<div class="card is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}${
+      e.err ? `<p class="faint me-said">${esc(e.err)}</p>` : loading_()}</div>${cardEditTiles_(pid, true)}`;
+  }
+  const { vals, held } = cardValues_(e, base);
+  return `<div class="card is-widget is-prof card-ed" data-pid="${esc(pid)}">${head}
+    <div class="me-form" data-draw="${cardDrawn_(base)}">${cardEditForm_(t, e, vals)}
+      <p class="faint me-said">${held ? esc(SET_HELD_SAY) : ''}</p></div>
+  </div>${cardEditTiles_(pid, false)}`;
+}
+function cardEditTiles_(pid, saveOff) {
+  return `<div class="tile-row ce-tiles">${tile_({ icon: 'save', label: 'Save', note: 'every change', act: 'card-save',
+    off: !!saveOff, data: { pid } })}${tile_({ icon: 'close', label: 'Cancel', note: 'put it back', act: 'card-cancel',
+    data: { pid } })}</div>`;
+}
+/* EACH SECTION THROUGH THE WIDGET SETTINGS DREW IT WITH: `fieldRows_` lays the pairs side by side
+   (first and last name, the three words, years with the colour, the two ranges), the picture is
+   `photoPicker_` and saves itself, the photographs are `photoShelf_`, the qualifications the shelf, the
+   venues the several-of-a-list field with the card's own map under it, and the week `availGrid_` with all
+   seven days — the card shows only the days that have hours; a form has to offer the others. */
+function cardEditForm_(t, e, vals) {
+  const val = f => (vals[f] == null ? '' : vals[f]);
+  const ro = (DATA && DATA.profileReadonly) || [];
+  const box = (f, extra) => fieldHtml(f, val(f), Object.assign({ attr: 'data-me', label: ROW_LABEL[f],
+    options: fieldOptions_(f), readonly: ro.indexOf(f) !== -1, draft: false }, extra));
+  return cardSections_().map(s => {
+    const L = s.list;
+    const body = s.id === 'picture' ? (e.own ? photoPicker_(val) : cardFaceOnly_(t))
+      : s.id === 'photos' ? fieldRows_(L.filter(f => !isPhotoField_(f)), box) + (isPhotos_(L) ? photoShelf_(L, val, { draft: false }) : '')
+      : s.id === 'quals' ? qualShelf_(L, val)
+      : s.id === 'week' ? availGrid_(L, vals, ro, false)
+      : fieldRows_(L, box);
+    /* THE MAP REDRAWN FROM THE TICKS as they are ticked (the listener below), so the place a parent
+       will see is the place being chosen. */
+    const more = s.id === 'where' ? `<div class="ce-heat">${profHeat_(profList_(val('venues_ok')))}</div>` : '';
+    return `<div class="ce-sec" data-sec="${esc(s.id)}">${s.cap ? `<div class="prof-cap">${esc(s.cap)}</div>` : ''}${body}${more}</div>`;
+  }).join('');
+}
+/* SOMEBODY ELSE'S PICTURE, SHOWN AND NOT OFFERED — `savePhoto` writes the asker's own row.
+   THROUGH `personFace_` (links.js), AS EVERY FACE IS SINCE docs/history/324. This drew its own `<img>`
+   from `pic(t.image)`, which was right while the cell could only hold a link; it can hold `pfp:fox` or
+   `pfp:avatar` now, `pic()` passes a token through unchanged, and the admin's form showed a broken image
+   where the card beside it drew the fox (the review of docs/history/330, on the tree with fix-dp merged).
+   The same call `findCard` makes, so the form shows exactly the face the card does. */
+function cardFaceOnly_(t) {
+  const first = String(t.title || '').trim().split(/\s+/)[0] || 'They';
+  return `<div class="ce-pic">${personFace_({ pic: t.image, avatar: t.avatar, handle: t.handle, name: t.title,
+    personId: t.personId }, { cls: 'prof-pic', none: 'prof-none', size: 52, eager: true })}
+    <p class="faint ce-note">Only ${esc(first)} can change this picture, from their own card.</p></div>`;
+}
+/* ---------- WHAT IS ON THE CARD THE MOMENT IT IS SAVED ------------------------------------------------------
+   THE PAYLOAD IS THE LAST WORD AND IT IS SECONDS AWAY: `load()` follows every Save that wrote something,
+   and it replaces `DATA` whole. Until it lands the card would be drawn from the row as it was, under a
+   toast saying Saved — so the plain fields just saved are put on this phone's copy of the row in the
+   shapes `doGet` sends them (`description` quoted, the ages as `ageOut_` writes them). The qualifications
+   are not: what a tutor teaches is derived on the server (`teachesOf_`), and a guess at it here would be
+   a second, worse copy of that rule. They arrive with the payload. */
+function cardPatchRow_(pid, all, sent) {
+  const row = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === String(pid));
+  if (!row) return;
+  const has = k => Object.prototype.hasOwnProperty.call(sent, k);
+  const txt = v => String(v == null ? '' : v).trim();
+  const age = v => (/^\d+$/.test(txt(v)) ? Number(txt(v)) : txt(v));
+  if (has('first_name') || has('last_name')) row.title = (txt(all.first_name) + ' ' + txt(all.last_name)).trim() || row.title;
+  if (has('headline')) row.description = txt(all.headline) ? '"' + txt(all.headline) + '"' : '';
+  if (has('rate_per_hour')) row.rate = Number(all.rate_per_hour) || 0;
+  if (has('extra_seat_rate')) row.extraSeat = Number(all.extra_seat_rate) || 0;
+  if (has('min_students')) row.minStudents = Number(all.min_students) || 1;
+  if (has('max_students')) row.maxStudents = Number(all.max_students) || 0;
+  if (has('years_experience')) row.yrsExp = txt(all.years_experience);
+  if (has('age_min')) row.ageMin = age(all.age_min);
+  if (has('age_max')) row.ageMax = age(all.age_max);
+  /* `doGet`'s shapes: a blank shortest is one, a blank longest is no limit (0). */
+  if (has('min_hours')) row.minHours = Number(all.min_hours) || 1;
+  if (has('max_hours')) row.maxHours = Number(all.max_hours) || 0;
+  if (has('video')) row.mediaUrl = txt(all.video);
+  if (['adjective_1', 'adjective_2', 'adjective_3'].some(has)) {
+    row.tags = [all.adjective_1, all.adjective_2, all.adjective_3].map(txt).filter(Boolean);
+  }
+  if (Object.keys(sent).some(isPhotoField_)) {
+    row.photos = Object.keys(all).filter(isPhotoField_)
+      .sort((a, b) => Number(a.slice(7)) - Number(b.slice(7))).map(f => txt(all[f])).filter(Boolean);
+  }
+  if (has('venues_ok')) row.venues = profList_(all.venues_ok);
+  const hours = Object.keys(sent).filter(f => CARD_HOUR_.test(f));
+  if (hours.length) {
+    const a = Object.assign({}, row.avail || {});
+    hours.forEach(f => { a[f] = TRUEish_(sent[f]) ? 'TRUE' : ''; });
+    row.avail = a;
+  }
+}
+
+/* ---------- A QUALIFICATION WITH NO LEVEL IS NOT SENT EITHER --------------------------------------------------
+   On Settings a line is saved only once it has a subject AND a level (`qualCommit_`), so a line being added
+   with no level, or a saved line whose level was emptied, never reaches the server. On the card the shelf
+   keeps its answers for the one Save, which posts every box — so the same two are refused here, before
+   anything is sent, in the words the shelf uses. A line the sheet already holds with no level (a PGCE typed
+   in by hand) is not this: nothing on the card changed it, and refusing it would make the card unsaveable. */
+const CARD_LEVELLESS_SAY_ = 'Choose a level for each qualification first — nothing was saved.';
+function cardQualHole_(form, base) {
+  return [...form.querySelectorAll('.q-shelf .q-list .q-slot')].some(slot => {
+    const q = qualRead_(slot);
+    return !!q.subject && !q.level
+      && (!!slot.dataset.new || !!String(base['qual_' + slot.dataset.slot + '_level'] || '').trim());
+  });
+}
+
+/* ---------- AND THE CARD IS A CARD AGAIN -------------------------------------------------------------------- */
+function cardClose_(e, pane) {
+  try { draftDrop_('card', e.pid); } catch (x) {}
+  if (CARD_EDIT === e) CARD_EDIT = null;
+  cardForget_();
+  /* CLEAN FIRST, or `settingsKeep_` holds the column and the repaint that ends the edit never happens. */
+  (pane || document).querySelectorAll('.card-ed .me-form[data-dirty]').forEach(f => { delete f.dataset.dirty; });
+  cardRepaint_();
+}
+
+/* ---------- EDIT ------------------------------------------------------------------------------------------
+   ONE CARD AT A TIME. A card already holding typing is not thrown away for another: it says so, and
+   stays open, because the second editor could not even be drawn while the first holds the column. */
+on('card-edit', el => {
+  if (!USER) return;
+  const pid = String(el.dataset.pid || '');
+  const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === pid);
+  if (!t || !cardMayEdit_(t)) return;
+  const open = document.querySelector('#s-account .card-ed .me-form[data-dirty]');
+  const openPid = open && open.closest('.card-ed').dataset.pid;
+  if (openPid && openPid !== pid) { toast('Save or cancel the card you are editing first.'); return; }
+  if (CARD_EDIT && CARD_EDIT.pid === pid) return;
+  CARD_EDIT = cardEditFresh_(pid);
+  /* THE PICTURE IT OPENED WITH, so Cancel can put it back — see `card-cancel`. Your own card only: on
+     somebody else's the picture is shown and not offered (`cardFaceOnly_`). */
+  if (CARD_EDIT.own) CARD_EDIT.pic0 = cardPicNow_(t);
+  cardRemember_(CARD_EDIT);
+  cardRepaint_();
+});
+/* YOUR PICTURE AS THIS PHONE LAST KEPT IT — `USER.profile.photo`, which `pfpTake_` writes on every save,
+   else the sign-in reply's `USER.photo`, else your row's face. */
+function cardPicNow_(t) {
+  const p = (USER && USER.profile) || {};
+  const v = Object.prototype.hasOwnProperty.call(p, 'photo') ? p.photo
+    : (USER && USER.photo != null ? USER.photo : (t && t.image));
+  return String(v == null ? '' : v).trim();
+}
+
+/* ---------- SAVE: EVERY CHANGE, ONE REQUEST, THE EXISTING `updateProfile` ----------------------------------
+   `send_` locks the whole page while it is on the wire — the form, and Cancel beside Save — and writes a
+   refusal under the form. A refusal is the server's own sentence, and every refusal `updateProfile` makes
+   is made before it writes anything, so the card stays open holding what was typed, with nothing saved.
+   YOUR OWN SAVE TAKES THE SERVER'S READING OF YOUR ROW (`profile` in the reply), as a Settings Save does,
+   and a rename renames the session; an admin's save of somebody else's card is answered with no profile
+   and no name (`adminEditing`), and touches neither of the admin's. */
+on('card-save', el => {
+  const e = cardEditNow_();
+  const pane = el.closest('.pane');
+  const card = pane && pane.querySelector('.card-ed');
+  const form = card && card.querySelector('.me-form');
+  if (!e || !USER || !form || card.dataset.pid !== e.pid || String(el.dataset.pid || '') !== e.pid) return;
+  const said = form.querySelector('.me-said');
+  const base = CARD_DRAWN.get(form.dataset.draw || '');
+  if (!base) { cardRepaint_(); return; }
+  if (qualNameless_(form)) { toast(QUAL_NAMELESS_SAY_); if (said) said.textContent = QUAL_NAMELESS_SAY_; return; }
+  if (cardQualHole_(form, base)) { toast(CARD_LEVELLESS_SAY_); if (said) said.textContent = CARD_LEVELLESS_SAY_; return; }
+  const fields = cardChanged_(base, cardFormVals_(form));
+  if (!Object.keys(fields).length) { toast('Nothing had changed'); cardClose_(e, pane); return; }
+  const t = ((DATA && DATA.tutors) || []).find(r => r && String(r.personId) === e.pid) || {};
+  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
+          target: e.own ? USER.name : (t.title || ''), targetId: e.pid, fields },
+        { button: el, busy: 'Saving…', where: said, lock: pane })
+    .then(d => {
+      if (e.own) {
+        USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
+        if (d && d.name) USER.name = d.name;
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (x) {}
+      }
+      cardPatchRow_(e.pid, Object.assign({}, base, fields), fields);
+      toast((d && d.said) || 'Saved');
+      cardClose_(e, pane);
+      /* A SAVE THAT WROTE NOTHING LEAVES THE STORED PAYLOAD ALONE — see `meSave_`. */
+      if (!d || d.changed === undefined || d.changed > 0) { try { load(); } catch (x) {} }
+    })
+    .catch(() => { /* `send_` has written the refusal under the form, which is still open. */ });
+});
+
+/* ---------- CANCEL: WHAT WAS THERE COMES BACK — THE PICTURE TOO ----------------------------------------------
+   The draft goes and the card is drawn from the row again. Not while a Save is on the wire — the page is
+   locked then anyway, and a Cancel that raced the reply would say "put back" over a row that changed.
+
+   AND THE PICTURE, WHICH WAS THE ONE THING IT DID NOT PUT BACK. The chooser saves the moment a picture is
+   chosen (`savePhoto`, as on Settings — a photograph goes to Drive and the eleven are one tap), so Cancel
+   left the new face on the card and on the sheet under a tile whose note says "put it back" (the review of
+   docs/history/330: a photo chosen, Cancel, and the card, `USER.profile` and the sheet all held it). The
+   brief: Cancel *"puts back what was there"*. So the picture the card was opened with is remembered
+   (`pic0`, beside which card is open, so a reload does not lose it) and, if the face is not that any more,
+   it is written back — through `updateProfile`'s `photo`, because that one door takes all three things the
+   cell can hold (a link, nothing, one of the eleven tokens: `photoRefusal_` in core.gs), where `savePhoto`
+   takes a token or a file and could not put back a Drive link it once made. The page is locked while it
+   travels, as a Save locks it, and the Cancel tile wears `send_`'s ring — no sentence of its own (`loading_`'s
+   rule: a press already sent keeps the ring). Either way the card then closes, because Cancel was asked for: put back,
+   it says so; refused, the toast says that everything else is as it was and the picture is not, with the
+   server's own sentence, rather than claiming a put-back that did not happen. A picture still on its way
+   is waited for — a Cancel that overtook it would be put back over by it. */
+on('card-cancel', el => {
+  const e = cardEditNow_();
+  const pane = el.closest('.pane');
+  if (!e || (pane && pane.classList.contains('is-sending'))) return;
+  if (pane && pane.querySelector('.card-ed .pfp.is-sending')) { toast('Your picture is still saving — Cancel once it has.'); return; }
+  const was = typeof e.pic0 === 'string' ? e.pic0 : null;
+  if (!e.own || was == null || !USER || cardPicNow_() === was) { cardClose_(e, pane); return; }
+  const form = pane && pane.querySelector('.card-ed .me-form');
+  const said = form && form.querySelector('.me-said');
+  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '', target: USER.name,
+          targetId: e.pid, fields: { photo: was } },
+        { button: el, where: said, lock: pane })
+    .then(d => {
+      const got = (d && d.profile && d.profile.photo != null) ? String(d.profile.photo) : was;
+      if (d && d.profile) USER.profile = Object.assign({}, USER.profile || {}, d.profile);
+      pfpTake_(null, got);
+      cardClose_(e, pane);
+      toast('Put back as it was — your picture too');
+    })
+    .catch(() => {
+      const why = String((said && said.textContent) || '').trim();
+      cardClose_(e, pane);
+      toast('Everything else is put back, but not your picture' + (why ? ': ' + why : '.'));
+    });
+});
+
+/* ---------- EVERY BOX ON THE CARD: HELD, KEPT, AND THE MAP FOLLOWS THE TICKS ---------------------------------
+   AFTER the several-of-a-list listener above has written the venues' hidden answer, because it was
+   registered first. Dirty holds the column (`settingsKeep_`); `cardKeep_` writes the card's draft. */
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+  const t = e.target;
+  const form = t && t.closest && t.closest('.card-ed .me-form');
+  if (!form) return;
+  form.dataset.dirty = '1';
+  cardKeep_(form);
+  if (t.matches && t.matches('[data-many-of="venues_ok"]')) {
+    const box = form.querySelector('[data-me="venues_ok"]'), heat = form.querySelector('.ce-heat');
+    if (box && heat) heat.innerHTML = profHeat_(profList_(box.value));
+  }
+}));

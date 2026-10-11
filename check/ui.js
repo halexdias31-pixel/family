@@ -588,6 +588,145 @@ async function settled(page) {
   } catch (e) { /* a page that cannot answer is measured as it stands */ }
 }
 
+/* ---------- A DRAWN PICTURE IS ROUND, AND ITS OWN BOX MUST NOT CUT IT ----------------------------------
+   THE TEN PICTURES AND THE FIGURE'S BUST (`pfpArt_`, `avatarFor(…, { bust: true })`, links.js) are each a
+   circle that touches the edge of its own `<svg>` — the ground is r=24 in a 48 viewBox, the bust's clip
+   r=20 in a 40 one. An `<svg>` inside a page clips to its own box by default, and that clip is SNAPPED TO
+   THE PIXEL GRID while the circle is not: under `paneReach_`'s zoom (0.858 on a 320 Settings card) or at
+   a fractional column position, the snap lands a pixel inside the circle and the picture gets a flat
+   side. Found by review on 10 Oct: the fox, robot and guitar flat on the right, the football, guitar and
+   palette flat at the bottom, on the picker at 320 — and every rule here measured eleven fine buttons.
+   NO RULE ABOUT BOXES CAN SEE IT: the box is the right size, in the right place, and fully on the glass.
+   It is a question about pixels, so it is asked of pixels. The screen is photographed as it is, then
+   with each drawing's OWN clip lifted (`overflow: visible` on that `<svg>`, nothing else), then as it is
+   again; a pixel counts only where the two as-it-is pictures agree and the lifted one differs, so a
+   loader or a slide moving between the shots cannot be read as a cut. THE FRAME ROUND A FACE IS NOT
+   ASKED: `.prof-pic` and `.post-face` are round by design and clip to their own border, which is a
+   circle — it never makes a flat side. Only the drawings fully on the glass, in the column in front. */
+const FACE_SEL = 'svg.pfp-art, svg.avatar.is-bust';
+function drawnFaces(arg) {
+  const host = document.getElementById('s-' + arg.sid);
+  if (!host) return [];
+  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+  return [...host.querySelectorAll(arg.sel)].map(s => {
+    const r = s.getBoundingClientRect();
+    const frame = s.closest('.pfp-opt, .face-pic, .pfp-face') || s.parentElement;
+    const name = frame && frame.dataset && frame.dataset.pic ? 'the ' + frame.dataset.pic
+      : (s.classList.contains('is-bust') ? 'a figure' : 'a picture');
+    const where = frame ? String(frame.className).split(/\s+/)[0] : '';
+    return { x: r.left, y: r.top, w: r.width, h: r.height, name, where };
+  }).filter(f => f.w >= 8 && f.h >= 8 && f.x >= 0 && f.y >= 0 && f.x + f.w <= vw && f.y + f.h <= vh);
+}
+function facesCut(arg) {
+  const load = u => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = u; });
+  return Promise.all(arg.shots.map(s => load('data:image/png;base64,' + s))).then(imgs => {
+    const px = img => { const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+      return g.getImageData(0, 0, c.width, c.height).data; };
+    const [a, lifted, again] = imgs.map(px);
+    const W = imgs[0].naturalWidth, H = imgs[0].naturalHeight;
+    const dpr = W / document.documentElement.clientWidth;
+    const off = (p, q, i) => Math.max(Math.abs(p[i] - q[i]), Math.abs(p[i + 1] - q[i + 1]), Math.abs(p[i + 2] - q[i + 2]));
+    return arg.faces.map(f => {
+      let cut = 0;
+      const x0 = Math.max(0, Math.floor((f.x - 2) * dpr)), y0 = Math.max(0, Math.floor((f.y - 2) * dpr));
+      const x1 = Math.min(W, Math.ceil((f.x + f.w + 2) * dpr)), y1 = Math.min(H, Math.ceil((f.y + f.h + 2) * dpr));
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        const i = (y * W + x) * 4;
+        if (off(a, again, i) <= 8 && off(a, lifted, i) > 40) cut++;
+      }
+      return Object.assign({ cut }, f);
+    }).filter(f => f.cut > 2);
+  });
+}
+
+/* ---------- A WIDGET ON THE GLASS IS DRAWN, NOT WAITING TO BE STARTED ----------------------------------
+   THE OWNER, 10 Oct, with a screenshot at about 1194px: Settings in front, and the column beside it two
+   widget cards that were nothing but the gold dots and a star — *"these remain loading untill i scroll
+   to them. i dont like this"*. Every rule here measured the screen in front; the loader that stood for a
+   widget nobody had started was on the screen BESIDE it, which on a wide window is whole and readable,
+   and nothing asked. So: every widget's slot anywhere on the glass — whichever column — that still holds
+   the veil `widgetOnColumn_` draws over a widget not yet started (`aria-busy` with the loader as its
+   child). A widget's own wait inside its slot (the Videos card's list, the flyer's rooms) is a wait for
+   data and is `loadersOn`'s, not this.
+
+   ON THE GLASS MEANS MORE THAN 24px OF THE SLOT INSIDE `#screen` BOTH WAYS, in a column and a page that
+   are drawn (not `opacity: 0`, not `visibility: hidden`). 24 is `WIDE_EDGE`, the edge the wide layout
+   leaves past the last whole column: a phone's neighbour, or the 8px of card at the end of a 1280 row,
+   shows no widget, and a widget the layout cannot show is not one that should be running.
+
+   AFTER SETTLE AND THEN ASKED AGAIN FOR UP TO 3s, because a widget beside the one in front is started by
+   the same queue as a far one — one per task, behind the slide — and a loaded machine is late, not wrong.
+   One that has not started by then never will without somebody going to it.
+
+   ---------- AND THE OTHER WAY: A WIDGET RUNNING BESIDE THE COLUMN IN FRONT WITH NO SLOT ON THE GLASS ----------
+   FOUND BY THE REVIEW OF 331. The rule above only asked whether a slot on the glass was still veiled, so
+   starting too MUCH passed it: `glassNow_` (shell.js) lit a page if any pixel of the PAGE was in the
+   window, and at 1194 on Settings the flyer maker's page reached 75px into the window while its slot began
+   13px below it — only its star showed, and the widget was running. The review took the page test out of
+   `glassNow_` altogether (every page lit) and this rule, and all five journeys, stayed green while Chromium
+   ran three Tools widgets off the glass. So every entry of `TOOLS_ON` (arcade.js: the widget, the column it
+   was started on and its slot) whose column is not the one in front — the column in front starts all of its
+   widgets, by design — is measured by the same test as above, and one whose slot shows 24px or less of
+   itself on the glass either way, or is in no column at all (a paint threw its markup away), is a widget
+   running for nobody. Asked over the same 3s, because what leaves the glass is stopped once the slide has
+   settled, and on a loaded machine that is late too. */
+async function veiledOnGlass(page) {
+  try {
+    return await page.evaluate(async () => {
+      /* HOW MUCH OF A SLOT IS ON THE GLASS, across and down — nought for one in a column or a page that is
+         not drawn, or in no column at all. */
+      const shows = (sl, box) => {
+        const col = sl && sl.isConnected && sl.closest('.screen'), pg = col && sl.closest('.page');
+        if (!col) return { w: 0, h: 0, col: null };
+        const cs = getComputedStyle(col);
+        if (+cs.opacity === 0 || cs.visibility === 'hidden' || cs.display === 'none') return { w: 0, h: 0, col };
+        if (pg) { const ps = getComputedStyle(pg); if (+ps.opacity === 0 || ps.visibility === 'hidden') return { w: 0, h: 0, col }; }
+        const r = sl.getBoundingClientRect();
+        return { w: Math.min(r.right, box.right) - Math.max(r.left, box.left),
+                 h: Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top), col };
+      };
+      const look = () => {
+        const sc = document.getElementById('screen');
+        if (!sc) return { n: 0, left: [], beside: 0, off: [] };
+        const box = sc.getBoundingClientRect();
+        let n = 0;
+        const left = [];
+        document.querySelectorAll('#screen .widget-slot').forEach(sl => {
+          const { w, h, col } = shows(sl, box);
+          if (!col || w <= 24 || h <= 24) return;
+          n++;
+          if (sl.getAttribute('aria-busy') === 'true' && sl.querySelector(':scope > .loading')) {
+            left.push(col.id.slice(2) + ' #' + sl.id + ' (' + Math.round(w) + 'x' + Math.round(h) + 'px of it on the glass)');
+          }
+        });
+        /* `TOOLS_ON` and `AT` are `let`s of the app's own scripts, which an evaluation shares. */
+        let beside = 0;
+        const off = [];
+        try {
+          TOOLS_ON.forEach(e => {
+            if (!e || e.col === AT) return;
+            beside++;
+            const { w, h, col } = shows(e.slot, box);
+            if (col && w > 24 && h > 24) return;
+            off.push(e.col + ' #wgt-' + String(e.w && e.w.id) + (!col ? ' (its slot is in no column)'
+              : ' (' + Math.max(0, Math.round(w)) + 'x' + Math.max(0, Math.round(h)) + 'px of its slot on the glass)'));
+          });
+        } catch (err) { /* an app with no widgets running has nothing to say here */ }
+        return { n, left, beside, off };
+      };
+      const t0 = performance.now();
+      let r = look();
+      while ((r.left.length || r.off.length) && performance.now() - t0 < 3000) {
+        await new Promise(res => setTimeout(res, 100));
+        r = look();
+      }
+      return r;
+    });
+  } catch (e) { return { n: 0, left: [], beside: 0, off: [] }; }
+}
+
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
   const found = { overflow: [], hidden: [], offscreen: [], lifted: [], strays: [], shrunk: [],
@@ -1419,14 +1558,24 @@ function inspect(opts) {
      rather than a silence, because "no board was a mess" and "no board was found" both print no
      finding. */
   let boardsMeasured = 0;
+  /* AND HOW MANY DRAWN PICTURES WERE PHOTOGRAPHED FOR A CUT EDGE (`FACE_SEL`), for the same reason. */
+  let facesMeasured = 0;
   /* LOADERS, COUNTED LIKE BOARDS — a run that measured none and a run where every one passed print the
      same nothing. `loaderSizes[width]` collects each one's dot and gap, compared once the run is over:
      "the same size in every card" is a question across states, not inside one. */
   let loadersMeasured = 0, heldReleased = 0;
   const loaderSizes = {};
+  /* AND THE WIDGET SLOTS ON THE GLASS THE "NOT STARTED" RULE LOOKED AT, per width — see `veiledOnGlass`.
+     A count, so a run whose selector stopped matching says 0 rather than nothing. */
+  const slotsOnGlass = {};
+  /* AND THE WIDGETS RUNNING BESIDE THE COLUMN IN FRONT THE "STARTED OFF THE GLASS" RULE LOOKED AT, per
+     width, for the same reason. */
+  const runningBeside = {};
   /* AND HOW MANY CONTROLS THE EDGE RULE (4, in `inspect`) MEASURED, per subject, for the same reason: a
      keypad that never came up and a keypad whose every key passed print the same nothing. */
   const edgesMeasured = {};
+  /* AND THE REELS' SOUND TILES, counted for the same reason — see the measurement over `sound`. */
+  let soundMeasured = 0, soundHit = 0;
   const rows = [];
 
   /* ---------- ASK THE APP WHICH COLUMNS IT HAS, ONCE, BEFORE MEASURING ANY OF THEM ---------------
@@ -1623,10 +1772,21 @@ function inspect(opts) {
       /* DRIVEN THROUGH THE APP'S OWN FRONT DOOR. `go(id)` is what a tap calls, so anything it does
          on the way — remembering the page, painting neighbours — happens here too. A check that
          reaches past the app's navigation is checking a state the app cannot actually be in. */
+      /* ---------- A COLUMN THIS VISITOR IS NOT GIVEN IS NOT MEASURED IN THEIR NAME ---------------------
+         `biz` IS AN ADMIN'S (`columnsFor_`, shell.js; docs/history/334), and `go('biz')` for anybody else
+         lands on the front door — so `--screen=biz` for the signed-out visitor measured the FEED and
+         reported it as Business. Asked of the app's own row, asked again first (`columnsFor_`) because a
+         Settings state plays another role on this visitor's phone and a repaint inside it leaves the row
+         that role's: absent is a skip, said as one. */
       const went = await page.evaluate(sid => {
-        try { if (typeof go === 'function') { go(sid, false, true); return true; } } catch (e) {}
+        try {
+          if (typeof columnsFor_ === 'function') columnsFor_();
+          if (typeof TABS !== 'undefined' && !TABS.some(t => t.id === sid)) return 'absent';
+          if (typeof go === 'function') { go(sid, false, true); return true; }
+        } catch (e) {}
         return false;
       }, id);
+      if (went === 'absent') { rows.push({ width, id, as: who.as, skipped: 'not a column this visitor is given' }); continue; }
       if (!went) { rows.push({ width, id, as: who.as, skipped: 'no go()' }); continue; }
       await page.waitForTimeout(450);
 
@@ -1675,8 +1835,14 @@ function inspect(opts) {
             }
           }, String(state.expect));
           if (!got) {
+            /* AND WHY, WHEN THE STATE CAN SAY. A state that measures something over time inside the
+               page — a tap and the frames after it — knows what it saw, and "shows no …" alone sends
+               whoever reads this to a screenshot that cannot show a fault three frames long. */
+            const why = state.why ? await page.evaluate(src => {
+              try { return String((0, eval)('(' + src + ')')() || ''); } catch (e) { return ''; }
+            }, String(state.why)) : '';
             console.warn(`  ! "${label}" at ${width}px was entered and shows no ${state.wants} — `
-                       + `that state was NOT measured.`);
+                       + `that state was NOT measured.` + (why ? `\n      ${why}` : ''));
             failures++;
             continue;
           }
@@ -1719,6 +1885,13 @@ function inspect(opts) {
         }
 
         await settled(page);
+        /* WHATEVER COLUMN IT IS IN — see `veiledOnGlass`. Before the rest, so what they measure is the
+           glass with its widgets drawn. */
+        const veil = await veiledOnGlass(page);
+        slotsOnGlass[width] = (slotsOnGlass[width] || 0) + veil.n;
+        runningBeside[width] = (runningBeside[width] || 0) + (veil.beside || 0);
+        if (veil.left.length) rows.push({ width, id: label, as: who.as, unstarted: veil.left });
+        if ((veil.off || []).length) rows.push({ width, id: label, as: who.as, offGlass: veil.off });
         const { found, counted, guessed, edgeN } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
@@ -1766,6 +1939,126 @@ function inspect(opts) {
         }, id);
         if (tinted.length) rows.push({ width, id: label, as: who.as, tinted });
 
+        /* ---------- THE REELS' SOUND TILE, MEASURED ON THE PICTURE IT SITS ON ----------------------
+           THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* A tile on a
+           card is measured by the rules above like every other control; this one sits on a MOVING
+           PICTURE, which none of them can see. Rule 3 composites a colour down the chain of elements
+           behind it and a video's frame is not in that chain, so a mark in `--dim` on a white wall
+           measures as grey on the app's black and passes. So, per reel on the screen (note 323):
+             - it is `tile_`'s: `.tile` with one mark, no words drawn on it;
+             - at least MIN_TAP square, and wholly inside its slide;
+             - READABLE OVER ANY PICTURE: its plate composited over a white frame AND a black one,
+               the mark against each at 3:1 (WCAG 1.4.11, a graphic) — the frame is whatever the clip
+               is showing, so both ends are asked rather than the one that happens to be up;
+             - CLEAR OF THE REEL'S OTHER OVERLAYS: the ▶ disc a held reel draws (a pseudo-element, so
+               the slide is held for one synchronous read and let go), and any words on the slide;
+             - ON TOP, WHERE A FINGER LANDS: `elementFromPoint` at its centre is the tile or something
+               inside it. REVIEW, 10 OCT: every line above is a box and a colour, and none asks what is
+               PAINTED there — `.reel-sound { z-index: -1 }` put the tile under the clip, invisible and
+               impossible to press, and this printed "30 measured, nothing to report" over a shot with
+               no tile in it. A box is a layout position; only a hit test says it is the top thing.
+               ONLY ON THE CARD IN FRONT, AND ONLY WHERE IT CAN BE SEEN. `placeGrid` gives every page but
+               the focused one `pointer-events: none` inline, on purpose (shell.js, "the card in front,
+               not every column's current card"), so the next reel peeking up from below takes no press
+               by design and its first run here reported it as covered by `.screen`. And a pane clips
+               (the star at the foot of a widget, press.js), so a centre outside the viewport or any
+               ancestor that clips is not asked either. The page's INLINE style is read, not the tile's
+               computed one, so a tile that refuses presses itself is still asked. None asked on the
+               column is a finding: the reel in front always has its tile in view.
+           A dead Short hides its tile on purpose (`.reel:has(.feed-art.is-dead) .reel-sound`), so
+           one not drawn there is not a finding; one not drawn anywhere else is. NONE MEASURED ON THE
+           REELS COLUMN IS A FINDING TOO: it always has its clips. */
+        const sound = await page.evaluate(({ sid, minTap }) => {
+          const host = document.getElementById('s-' + sid);
+          const out = [];
+          let n = 0, hitN = 0;
+          if (!host || sid !== 'reel') return { out, n, hitN };
+          const rgba = s => {
+            const m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:\s*[\/,]\s*([\d.]+))?/.exec(s || '');
+            return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] == null ? 1 : +m[4] } : null;
+          };
+          const over = (f, g) => ({ r: f.r * f.a + g.r * (1 - f.a), g: f.g * f.a + g.g * (1 - f.a),
+                                    b: f.b * f.a + g.b * (1 - f.a), a: 1 });
+          const lum = c => {
+            const ch = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+            return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
+          };
+          const ratio = (p, q) => { const a = lum(p), b = lum(q); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+          const hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+          host.querySelectorAll('.reel').forEach(reel => {
+            const art = reel.querySelector('.feed-art');
+            const ar = (art || reel).getBoundingClientRect();
+            if (!ar.width || !ar.height) return;
+            const at = 'reel ' + reel.dataset.reel;
+            const el = reel.querySelector('[data-do="reel-sound"]');
+            const dead = !!(art && art.classList.contains('is-dead'));
+            if (!el) { out.push(`${at} has no Sound control`); return; }
+            const st = getComputedStyle(el);
+            if (st.display === 'none' || st.visibility === 'hidden') {
+              if (!dead) out.push(`${at}: the Sound tile is not drawn on a clip that can play`);
+              return;
+            }
+            n++;
+            if (!el.classList.contains('tile') || el.querySelectorAll('svg.tile-i').length !== 1 || el.textContent.trim())
+              out.push(`${at}: the Sound control is not a tile with one mark — <${el.tagName.toLowerCase()} class="${el.className}"> "${el.textContent.trim()}"`);
+            const r = el.getBoundingClientRect();
+            if (r.width < minTap || r.height < minTap) out.push(`${at}: the Sound tile is ${r.width.toFixed(1)}x${r.height.toFixed(1)}, under ${minTap}px`);
+            if (r.left < ar.left - 0.5 || r.right > ar.right + 0.5 || r.top < ar.top - 0.5 || r.bottom > ar.bottom + 0.5)
+              out.push(`${at}: the Sound tile spills out of its slide — ${[r.left, r.top, r.right, r.bottom].map(Math.round).join(',')} in ${[ar.left, ar.top, ar.right, ar.bottom].map(Math.round).join(',')}`);
+            /* ON TOP: what is painted at the tile's centre, asked only where it can be painted at all. */
+            let seen = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
+            for (let up = el.parentElement; up && up !== document.documentElement; up = up.parentElement) {
+              const us = getComputedStyle(up);
+              if (us.overflowX === 'visible' && us.overflowY === 'visible') continue;
+              const ur = up.getBoundingClientRect();
+              seen = { left: Math.max(seen.left, ur.left), top: Math.max(seen.top, ur.top),
+                       right: Math.min(seen.right, ur.right), bottom: Math.min(seen.bottom, ur.bottom) };
+            }
+            const mx = r.left + r.width / 2, my = r.top + r.height / 2;
+            const pg = el.closest('.page');
+            const front = !pg || pg.style.pointerEvents !== 'none';
+            if (front && mx > seen.left && mx < seen.right && my > seen.top && my < seen.bottom) {
+              hitN++;
+              const h = document.elementFromPoint(mx, my);
+              if (!h || !el.contains(h)) {
+                const nm = h ? '<' + h.tagName.toLowerCase() + (h.className && typeof h.className === 'string'
+                  ? ' class="' + h.className.trim().split(/\s+/).slice(0, 2).join(' ') + '"' : '') + '>' : 'nothing';
+                out.push(`${at}: the Sound tile is not the top thing at its own centre — ${nm} is, so a finger lands there and not on the tile `
+                         + (st.pointerEvents === 'none' ? '(the tile refuses presses: pointer-events none)' : '(the tile is drawn under it)'));
+              }
+            }
+            const plate = rgba(st.backgroundColor) || { r: 0, g: 0, b: 0, a: 0 };
+            const ink = rgba(st.color);
+            [['a white frame', { r: 255, g: 255, b: 255, a: 1 }], ['a black frame', { r: 0, g: 0, b: 0, a: 1 }]].forEach(([nm, g]) => {
+              const ground = over(plate, g);
+              const k = ink ? ratio(over(ink, ground), ground) : 0;
+              if (k < 3) out.push(`${at}: the Sound tile's mark is ${k.toFixed(2)}:1 on ${nm} (needs 3) — ink ${st.color} on plate ${st.backgroundColor}`);
+            });
+            /* THE ▶ OF A HELD REEL: held for one read, and let go before anything can paint. */
+            const was = reel.classList.contains('is-held');
+            if (!was) reel.classList.add('is-held');
+            const ps = getComputedStyle(reel, '::after');
+            const rr = reel.getBoundingClientRect();
+            const pw = parseFloat(ps.width) || 0, ph = parseFloat(ps.height) || 0;
+            if (!was) reel.classList.remove('is-held');
+            const cx = rr.left + rr.width / 2, cy = rr.top + rr.height / 2;
+            if (pw && hit(r, { left: cx - pw / 2, right: cx + pw / 2, top: cy - ph / 2, bottom: cy + ph / 2 }))
+              out.push(`${at}: the Sound tile overlaps the ▶ a held reel draws`);
+            reel.querySelectorAll('.feed-text, .feed-credit, .feed-yt-out').forEach(o => {
+              const os = getComputedStyle(o);
+              const orc = o.getBoundingClientRect();
+              if (os.display === 'none' || !orc.width || !orc.height || !o.textContent.trim()) return;
+              if (hit(r, orc)) out.push(`${at}: the Sound tile overlaps .${o.className.split(/\s+/)[0]} "${o.textContent.trim().slice(0, 24)}"`);
+            });
+          });
+          if (!n) out.push('the reel column drew no Sound tile to measure');
+          else if (!hitN) out.push('no Sound tile on the reel column was in view to hit-test — the reel in front always has one');
+          return { out, n, hitN };
+        }, { sid: id, minTap: MIN_TAP });
+        soundMeasured += sound.n;
+        soundHit += sound.hitN || 0;
+        if (sound.out.length) rows.push({ width, id: label, as: who.as, sound: sound.out });
+
         /* EVERY SQUARE OF EVERY BOARD ONE SIZE — see `BOARDS`. `getBoundingClientRect` and not
            `offsetWidth`, because a cell 24.72px wide and one 24.7px wide are one size and integer
            rounding would call them two; a translate (Connect 4's falling counter) moves a box
@@ -1798,6 +2091,33 @@ function inspect(opts) {
         boardsMeasured += boards.n;
         Object.keys(edgeN || {}).forEach(k => { edgesMeasured[k] = (edgesMeasured[k] || 0) + edgeN[k]; });
         if (boards.out.length) rows.push({ width, id: label, as: who.as, boards: boards.out });
+
+        /* EVERY DRAWN PICTURE ROUND — see `FACE_SEL`. Three photographs only where there is a drawing on
+           the glass, so a screen without one costs one question. AND NONE TO MEASURE IS NOT A PASS on
+           the picker's own states, which exist to put eleven of them in front of this. */
+        const faces = await page.evaluate(drawnFaces, { sid: id, sel: FACE_SEL });
+        if (faces.length) {
+          const shot = async () => (await page.screenshot()).toString('base64');
+          const asIs = await shot();
+          await page.evaluate(sel => {
+            const st = document.createElement('style'); st.id = 'ui-own-clip-lifted';
+            st.textContent = sel + ' { overflow: visible !important; }';
+            document.head.appendChild(st);
+            return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          }, FACE_SEL);
+          const lifted = await shot();
+          await page.evaluate(() => {
+            const st = document.getElementById('ui-own-clip-lifted'); if (st) st.remove();
+            return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          });
+          const again = await shot();
+          const cut = await page.evaluate(facesCut, { shots: [asIs, lifted, again], faces });
+          facesMeasured += faces.length;
+          if (cut.length) rows.push({ width, id: label, as: who.as, faceCut: cut.map(f =>
+            `${f.name} (${f.where}, ${f.w.toFixed(1)}px) loses ${f.cut} pixels of its circle to its own box`) });
+        } else if (/^your picture/.test(state.name || '')) {
+          rows.push({ width, id: label, as: who.as, faceCut: ['the picker drew no picture fully on the glass to measure'] });
+        }
 
         /* EVERY LOADER ON THE PAGE IN FRONT — see `loadersOn`. A state that holds a request and
            shows NO loader is a selector or a state that stopped reaching its subject, and says so. */
@@ -2046,7 +2366,13 @@ function inspect(opts) {
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.tinted || []).forEach(f => add('PICTURE NOT AS TAKEN', f, at));
     (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
+    (r.faceCut || []).forEach(f => add('A DRAWN PICTURE CUT BY ITS OWN BOX', f, at));
     (r.loaders || []).forEach(f => add('A WAIT THAT IS NOT THE ONE LOADER, OR MOVES ITS CARD', f, at));
+    (r.sound || []).forEach(f => add('THE REELS\' SOUND TILE ON ITS PICTURE', f, at));
+    (r.unstarted || []).forEach(f => add('A WIDGET ON THE GLASS NEVER STARTED',
+      `${f} still holds the loader that stands for "not started", 3s after the screen settled`, at));
+    (r.offGlass || []).forEach(f => add('A WIDGET OFF THE GLASS STARTED',
+      `${f} is running beside the column in front, 3s after the screen settled`, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
@@ -2109,6 +2435,9 @@ function inspect(opts) {
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
   console.log(`boards measured square by square: ${boardsMeasured}\n`);
+  console.log(`reel Sound tiles measured on their picture (a tile, ${MIN_TAP}px, inside the slide, 3:1 on white and on black, clear of the ▶): ${soundMeasured}, `
+              + `${soundHit} of them in view and hit-tested at their centre (the top thing there is the tile)\n`);
+  console.log(`drawn pictures photographed for a cut edge: ${facesMeasured}\n`);
   /* ONE DOT SIZE AND ONE GAP PER WIDTH, across every loader the run met. */
   Object.keys(loaderSizes).forEach(wd => {
     const kinds = [...new Set(loaderSizes[wd].map(x => x.dot + ' gap ' + x.gap))];
@@ -2123,6 +2452,10 @@ function inspect(opts) {
             + `measured again · whole pages waiting on a held payload, measured and let go: ${wholePagesHeld} · `
             + `sizes per width: ${Object.keys(loaderSizes).map(wd => wd + ' '
               + [...new Set(loaderSizes[wd].map(x => x.dot + '/' + x.gap))].join(',')).join(' · ') || 'none'}\n`);
+  console.log(`widget slots on the glass asked whether they had started: `
+            + (Object.keys(slotsOnGlass).map(wd => `${wd} ${slotsOnGlass[wd]}`).join(', ') || 'none') + '\n');
+  console.log(`widgets running beside the column in front asked whether their slot was on the glass: `
+            + (Object.keys(runningBeside).map(wd => `${wd} ${runningBeside[wd]}`).join(', ') || 'none') + '\n');
   console.log(`edges measured against what is behind them (WCAG 1.4.11, 3:1): `
             + Object.keys(edgesMeasured).map(k => `${k} ${edgesMeasured[k]}`).join(', ') + '\n');
   /* A SUBJECT THE RULE NEVER REACHED IS NOT A PASS. The Find screen's states put the answer bar, Send

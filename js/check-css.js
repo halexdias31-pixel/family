@@ -304,74 +304,153 @@ const present = c => new RegExp(c.replace(/[.*+?^${}()|[\]\\]/g, m => '\\' + m)
 const dead  = [...seenClass].filter(c => !IGNORE.has(c) && !present(c) && !maybeBuilt(c));
 const built = [...seenClass].filter(c => !IGNORE.has(c) && !present(c) && maybeBuilt(c));
 
-/* ---------- 6. THE SPLASHES: HIDDEN BY DEFAULT, SHOWN ONLY BY THEIR OWN STATE CLASS -------------
-   One loading animation shows and the others are not drawn. That is an invariant of this app rather
-   than a fact about CSS, so no general rule can find a breach of it — and a breach is what put two
-   splashes on the screen at once: `#splash-torch` set `display: grid` in its own rule, below the
-   one that hides all of them, and won by being later.
-
-   Stated as the rule it is: a splash may not have an opinion about whether it is visible. Only the
-   two rules that decide — the one that hides them all, and the one that shows the chosen one. */
+/* ---------- 6. THE LOADING SCREEN DRAWS ONLY WHAT THE BOOKS TEACH ----------------------------------
+   "delete all animations for loading which dont come from text books or arnt educational." — the
+   owner, 10 Oct. Thirteen inline splashes went that day — the tag, the readout, the torch, the tube,
+   the columns, the blocks, the ring and six calm ones (docs/history/322) — and the splash draws one of
+   the textbooks' animations from the copy the device kept, or, with nothing kept, the still name and
+   the app's one loader. Every way an inline splash could come back is silent, so each is named:
+     · IN THE MARKUP. `#splash` holds the picker and a closed list of its own parts — the still name
+       and its loader, the line said out loud, the slow line. Any other `splash-` id in index.html is
+       a splash drawn by the page, which is what went.
+     · IN THE PICKER. Its pool is the books' kept copy and nothing else. A `kinds` list again, or a
+       class it sets other than `is-an` (a book's drawing) and `is-still` (nothing kept), or one built
+       from what it picked (`'is-' + pick`, which is how an inline splash used to be chosen), is the
+       inline pool back.
+     · IN THE STYLESHEET. Every `#splash-` id a rule names is one of the parts and every `#splash.is-`
+       state is one of the two: a rule for `is-tide` is a rule for a splash that is gone, and the day
+       somebody puts it back it is a splash the sheet cannot retire.
+     · IN THE SHEET. data/settings/splashes.json is the owner's switch for each animation. A row of any
+       kind but proof or tool names a splash that does not exist — a switch wired to nothing.
+   AND THE STILL ONE HAS NO OPINION OF ITS OWN ABOUT WHETHER IT IS SHOWN. This section began as that
+   rule: `#splash-torch` set `display: grid` in its own rule, below the one that hid every splash, won
+   by being later, and two loading screens were drawn at once. So the only rules that say how
+   `#splash-still` is displayed are `#splash-still { display: none }` and `#splash.is-still
+   #splash-still` — else the still name is drawn over a book's animation. And the markup's own class is
+   `is-still`, so a browser that runs no script is shown the name and the loader too. */
 const splashBad = [];
 {
-  /* WHICH ONES ARE SPLASHES, taken from the rule that hides them rather than from every id that
-     happens to start with `splash-`. `#splash-line` and `#splash-mist` are PARTS of the tag, not
-     splashes of their own, and a check that guesses from a name prefix calls them faults — which
-     is the same "mostly wrong report" that made the last version of this unusable.
-     The hide rule is the list. If something is not in it, it is not one of these. */
-  const hideRule = rules.find(r => /^#splash-\w+(, #splash-\w+)+$/.test(r.sel)
-    && r.decls.some(d => d.prop === 'display' && d.val === 'none'));
-  const names = hideRule
-    ? hideRule.sel.split(',').map(x => x.trim().replace('#splash-', ''))
-    : [];
-  names.forEach(n => {
-    const own = rules.filter(r => r.sel === '#splash-' + n);
-    own.forEach(r => {
-      if (r.decls.some(d => d.prop.toLowerCase() === 'display')) {
-        splashBad.push('line ' + r.line + '  #splash-' + n + ' sets its own `display` — it will '
-          + 'fight the rule that hides the unchosen ones, and two splashes will show at once');
-      }
-    });
-    const shown = rules.some(r => /^#splash\.is-\w+ #splash-/.test(r.sel) && r.sel.endsWith('#splash-' + n));
-    if (!shown) splashBad.push('#splash-' + n + ' is never shown by any `.is-` rule — it can only '
-      + 'ever be hidden');
+  const PARTS = ['still', 'say', 'wait'];
+  const STATES = ['still', 'an'];
+  const page_ = fs.existsSync(path.join(dir, 'index.html')) ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8') : '';
+  if (!page_) splashBad.push('index.html could not be read — the loading screen was NOT checked');
+  const html_ = page_.replace(/<!--[\s\S]*?-->/g, '');
+  const ids = [...html_.matchAll(/\bid="splash-([\w-]+)"/g)].map(m => m[1]);
+  ids.filter(n => !PARTS.includes(n)).forEach(n => splashBad.push('index.html has `#splash-' + n + '` — a splash drawn by the page; the loading screen is a book\'s animation, or the still name and the loader, and nothing else'));
+  if (page_) PARTS.filter(n => !ids.includes(n)).forEach(n => splashBad.push('index.html has no `#splash-' + n + '` — a part of the loading screen is missing'));
+  const tag = (html_.match(/<div id="splash"[^>]*>/) || [''])[0];
+  if (tag && !/\sclass="is-still"/.test(tag)) splashBad.push('the splash opens as `' + tag + '` — its own class must be `is-still`, what a device with nothing kept and a browser running no script are shown');
+  const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(page_) || [])[1] || '';
+  const pickCode = pick.replace(/\/\*[\s\S]*?\*\//g, '');
+  if (page_ && !pick) splashBad.push('index.html has no <script id="pick-splash"> — the picker was NOT read');
+  if (/\bkinds\b/.test(pickCode)) splashBad.push('the picker has a `kinds` list again — an inline pool beside the books\' copy');
+  const set = [...pickCode.matchAll(/className\s*=\s*('[^']*'|"[^"]*")\s*(\+?)/g)];
+  set.forEach(m => {
+    const c = m[1].slice(1, -1);
+    if (m[2]) splashBad.push('the picker builds its class from what it picked (`className = ' + m[1] + ' + …`) — that is how an inline splash was chosen');
+    else if (!STATES.map(s => 'is-' + s).includes(c)) splashBad.push('the picker sets `' + c + '` — it draws a book\'s animation (`is-an`) or leaves the still one (`is-still`), and nothing else');
   });
-  /* ---------- THE HIDE LIST, THE PICKER'S LIST AND THE SHEET'S INLINE ROWS ARE ONE LIST ---------------
-     THE TEACHING SPLASHES LEFT THIS FILE FOR THE TEXTBOOKS (data/textbooks.json) and the picker draws
-     them from the copy a load keeps; what is still here is the brand, the two games and the calm ones.
-     Three places name those, and each one short is its own silent fault: a splash missing from the
-     picker's literal is never drawn, one missing from the hide list is drawn on top of every other,
-     and one missing from data/settings/splashes.json can never be retired. So they are one list. */
-  {
-    const page_ = fs.existsSync(path.join(dir, 'index.html')) ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8') : '';
-    const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(page_) || [])[1] || '';
-    const a = pick.indexOf("var kinds = ['tag'"), b = pick.indexOf('];', a);
-    const lit = a < 0 ? [] : [...pick.slice(a, b).replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/'([a-z0-9]+)'/g)].map(m => m[1]);
-    let sheet = [];
-    try {
-      sheet = JSON.parse(fs.readFileSync(path.join(dir, 'data', 'settings', 'splashes.json'), 'utf8'))
-        .filter(r => ['brand', 'game', 'calm'].includes(r.kind)).map(r => r.splash_id);
-    } catch (e) { splashBad.push('data/settings/splashes.json could not be read — the inline list was NOT compared with the sheet'); }
-    const hidden = names.map(n => n === 'nline' ? 'line' : n);
-    if (!lit.length) splashBad.push("the picker has no `var kinds = ['tag', …]` literal — the inline list was NOT compared");
-    const sameSet = (x, y) => x.slice().sort().join() === y.slice().sort().join();
-    if (lit.length && !sameSet(lit, hidden)) splashBad.push('the picker\'s list (' + lit.join(' ') + ') is not the hide list (' + hidden.join(' ') + ')');
-    if (sheet.length && !sameSet(sheet, hidden)) splashBad.push('the brand, game and calm rows of data/settings/splashes.json (' + sheet.join(' ') + ') are not the hide list (' + hidden.join(' ') + ')');
-  }
+  if (pick && !set.length) splashBad.push('the picker sets no class with a literal — what it may set was NOT checked');
+  rules.forEach(r => r.sel.split(',').map(s => s.trim()).forEach(s => {
+    for (const m of s.matchAll(/#splash-([\w-]+)/g)) {
+      if (!PARTS.includes(m[1])) splashBad.push('style.css line ' + r.line + '  ' + s + ' — a rule for `#splash-' + m[1] + '`, which is no part of the loading screen');
+    }
+    for (const m of s.matchAll(/#splash\.is-([\w-]+)/g)) {
+      if (!STATES.includes(m[1])) splashBad.push('style.css line ' + r.line + '  ' + s + ' — a rule for `is-' + m[1] + '`, a splash the picker can never choose');
+    }
+  }));
+  const HIDE = '#splash-still', SHOW = '#splash.is-still #splash-still';
+  rules.filter(r => r.decls.some(d => d.prop.toLowerCase() === 'display')
+      && r.sel.split(',').some(s => /#splash-still$/.test(s.trim()))).forEach(r => {
+    const disp = r.decls.filter(d => d.prop.toLowerCase() === 'display').map(d => d.val).pop();
+    if ((r.sel === HIDE && disp === 'none' && !r.cond) || (r.sel === SHOW && !r.cond)) return;
+    splashBad.push('style.css line ' + r.line + '  ' + r.sel + (r.cond ? ' (' + r.cond + ')' : '') + ' sets `display: ' + disp
+      + '` on the still splash — only `' + HIDE + ' { display: none }` and `' + SHOW + '` may, or the name is drawn over a book\'s animation');
+  });
+  if (!rules.some(r => r.sel === HIDE && !r.cond && r.decls.some(d => d.prop === 'display' && d.val === 'none'))) splashBad.push('nothing says `' + HIDE + ' { display: none }` — the still name would be drawn over every book\'s animation');
+  if (!rules.some(r => r.sel === SHOW && !r.cond && r.decls.some(d => d.prop === 'display' && d.val !== 'none'))) splashBad.push('nothing shows `#splash-still` under `is-still` — a first visit would be a black screen');
+  let sheet = null;
+  try { sheet = JSON.parse(fs.readFileSync(path.join(dir, 'data', 'settings', 'splashes.json'), 'utf8')); }
+  catch (e) { splashBad.push('data/settings/splashes.json could not be read — the sheet was NOT compared'); }
+  (sheet || []).filter(r => r.kind !== 'proof' && r.kind !== 'tool').forEach(r => splashBad.push('data/settings/splashes.json has "' + r.splash_id + '", kind "' + r.kind
+    + '" — every row is a teaching animation in a book (proof or tool); this one switches a splash that does not exist'));
   /* ---------- AND THE PICKER IS THE FIRST THING INSIDE IT ---------------------------------------
      IT RAN AFTER EVERY SPLASH'S MARKUP, in the script below the splash, so a thousand lines of markup
-     were parsed under the no-script default `is-tag` before the class was chosen — and a browser may
-     paint in between. First in `#splash`, the element exists and nothing paintable has been parsed.
-     Read off the file, comments out: the first element after `<div id="splash"` must be the picker. */
-  const page = fs.existsSync(path.join(dir, 'index.html'))
-    ? fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '') : '';
-  const at = page.search(/<div id="splash"[^>]*>/);
+     were parsed under the no-script default before the class was chosen — and a browser may paint in
+     between. First in `#splash`, the element exists and nothing paintable has been parsed. Read off
+     the file, comments out: the first element after `<div id="splash"` must be the picker. */
+  const at = html_.search(/<div id="splash"[^>]*>/);
   if (at < 0) splashBad.push('index.html has no `<div id="splash">` — the picker\'s place was NOT checked');
   else {
-    const first = (page.slice(at).replace(/^<div id="splash"[^>]*>/, '').match(/<[a-z][^>]*>/i) || [''])[0];
+    const first = (html_.slice(at).replace(/^<div id="splash"[^>]*>/, '').match(/<[a-z][^>]*>/i) || [''])[0];
     if (first !== '<script id="pick-splash">') splashBad.push('the first element inside #splash is `' + first.slice(0, 60)
-      + '`, not `<script id="pick-splash">` — the splash markup is parsed (and can be painted) under `is-tag` before the pick');
+      + '`, not `<script id="pick-splash">` — the splash markup is parsed (and can be painted) before the pick');
   }
+  /* ---------- AND NOTHING ELSE IN IT: WHAT `#splash` HOLDS IS A CLOSED LIST, NOT JUST ITS IDS ---------
+     THE RULE ABOVE CLOSED THE `splash-` IDS, and an inline splash does not need one. A decoration put
+     in `#splash` with a class and no id — `<svg class="tg-art">`, animated by `#splash.is-still
+     .tg-art` and hidden by `#splash.is-an .tg-art` — passed every check in the suite while it moved on
+     every first visit beside the loader: the very thing the owner asked to go, back under a name
+     nothing was looking for. So the splash's own children are held to the list of its parts, by
+     element and id, with no bare text between them; the still one's to the name and the loader, and
+     the name to its words. Read off the file with comments out and the picker's body blanked (it
+     writes markup in strings), counting depth, so a child's own insides are its business.
+     AND THE STYLESHEET MAY NOT DRAW ONE WITHOUT MARKUP. `#splash.is-still::before { content: '';
+     animation: … }` is an inline splash in two lines of CSS and no element at all, so a rule that
+     reaches into the loading screen — `#splash`, its parts, the name — gives nothing `content` and
+     runs no `animation`. The loader moves by its own block, which names none of them; a book's
+     drawing moves by its row's CSS, which is not in style.css. */
+  const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+  const flat = html_.replace(/(<script\b[^>]*>)[\s\S]*?(<\/script>)/gi, '$1$2');
+  /* THE DIRECT CHILDREN OF THE FIRST ELEMENT `open` MATCHES: each child's opening tag, and any text
+     that is not whitespace between them. */
+  const kidsOf = open => {
+    const m0 = open.exec(flat);
+    if (!m0) return null;
+    const re = /<(\/?)([a-z][\w-]*)\b[^>]*>/gi;
+    re.lastIndex = m0.index + m0[0].length;
+    const tags = [], text = [];
+    let depth = 0, last = re.lastIndex, m;
+    while ((m = re.exec(flat))) {
+      if (!depth && flat.slice(last, m.index).trim()) text.push(flat.slice(last, m.index).trim().slice(0, 40));
+      last = re.lastIndex;
+      if (m[1]) { if (!depth) break; depth--; continue; }
+      if (!depth) tags.push(m[0]);
+      if (!VOID.has(m[2].toLowerCase()) && !/\/>$/.test(m[0])) depth++;
+    }
+    return { tags, text };
+  };
+  const attr = (tag, a) => (new RegExp('\\s' + a + '="([^"]*)"').exec(tag) || [])[1] || '';
+  /* AN ELEMENT BY ITS ID WHERE IT HAS ONE, ELSE BY ITS CLASSES: `p#boot-slow`, `div.loading`. */
+  const named = tag => (/^<([a-z][\w-]*)/i.exec(tag) || [])[1].toLowerCase()
+    + (attr(tag, 'id') ? '#' + attr(tag, 'id') : attr(tag, 'class').trim() ? '.' + attr(tag, 'class').trim().split(/\s+/).join('.') : '');
+  const closed = (where, got, allowed, why) => {
+    if (!got) return;
+    got.tags.map(named).forEach((n, i, all) => {
+      if (!allowed.includes(n)) splashBad.push(where + ' holds `' + n + '` — ' + why);
+      else if (all.indexOf(n) !== i) splashBad.push(where + ' holds `' + n + '` twice');
+    });
+    got.text.forEach(t => splashBad.push(where + ' holds the bare text "' + t + '" — ' + why));
+  };
+  const SPLASH_KIDS = ['script#pick-splash', 'div#splash-still', 'p#splash-say', 'p#splash-wait', 'p#boot-slow'];
+  const kids = kidsOf(/<div id="splash"[^>]*>/);
+  if (page_ && !kids) splashBad.push('index.html has no `<div id="splash">` — what it holds was NOT checked');
+  closed('#splash', kids, SPLASH_KIDS, 'the loading screen is the picker, the still name and its loader, the line said out loud, the slow line and the boot caption, and nothing else; anything more is a splash drawn by the page, which is what went (docs/history/322)');
+  if (kids && kids.tags.length < SPLASH_KIDS.length) splashBad.push('#splash holds ' + kids.tags.length + ' elements, not its ' + SPLASH_KIDS.length + ' parts (' + kids.tags.map(named).join(' ') + ') — the closed list was NOT compared whole');
+  const still = kidsOf(/<div id="splash-still"[^>]*>/);
+  closed('#splash-still', still, ['p.sp-name', 'div.loading'], 'the still one is the name and the loader under it, and nothing else');
+  if (still && still.tags.map(named).join(' ') !== 'p.sp-name div.loading') splashBad.push('#splash-still holds ' + (still.tags.map(named).join(' ') || 'nothing') + ' — it is the name, then the loader under it');
+  const name = kidsOf(/<p class="sp-name"[^>]*>/);
+  if (name && name.tags.length) splashBad.push('the still name holds `' + name.tags.map(named).join(' ') + '` — it is the words @family. set plainly, and an element inside it is a decoration');
+  const INTO = /#splash\b|\.sp-name\b|#boot-slow\b/;
+  rules.forEach(r => {
+    if (!r.sel.split(',').some(sel => INTO.test(sel))) return;
+    r.decls.forEach(d => {
+      const k = d.prop.toLowerCase();
+      if (k === 'content') splashBad.push('style.css line ' + r.line + '  ' + r.sel + ' gives `content` — a thing drawn on the loading screen with no markup, which no check of the markup sees');
+      if ((k === 'animation' || k === 'animation-name') && !/^none\b/.test(d.val.trim())) splashBad.push('style.css line ' + r.line + '  ' + r.sel + ' runs `' + k + ': ' + d.val + '` — nothing on the loading screen animates but a book\'s drawing (its row\'s CSS) and the loader (its own block)');
+    });
+  });
 }
 
 /* ---------- 7. EVERYTHING TAPPABLE MUST LOOK TAPPABLE --------------------------------------------
@@ -438,6 +517,29 @@ const handTone = [];
     if (m && !/^(000000|ffffff)$/i.test(m[1])) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
   });
   if (!Object.keys(tok).length) handTone.push(':root holds no hex colour tokens this check can read — the tiles were NOT checked');
+  /* ---------- AND A WASH WITH A NAME IS A TOKEN TOO --------------------------------------------------
+     THE RULE ABOVE READ HEX TOKENS ONLY, and lets every black and white wash through on the argument
+     that `rgb(255 255 255 / .08)` is a press, not a colour. True of an anonymous wash; not of one
+     `:root` NAMES. `--over-wash` and `--over-edge` are the charcoal and the hairline a control wears
+     over a moving picture — one colour in three components, named because the third hand-written copy
+     is what review caught (note 319) — and the reels' Sound tile became the fourth wearer on 10 Oct
+     (`.tile.is-over`, note 323). Written out in a `.tile` rule it paints the same today and drifts the
+     day the wash is retuned, which is the `.tile.is-lead` fault in a different spelling.
+     SO A `.tile` DECLARATION MAY NOT SPELL OUT AN rgb()-VALUED `:root` TOKEN — the SAME channels and
+     the SAME alpha, which is what makes it that token rather than a wash of its own. An opaque pure
+     black or white is still not a token, by the argument above. Read off `:root`, so a wash named
+     tomorrow is covered tomorrow. */
+  const rgbKey = s => {
+    const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[\/,]\s*([\d.]+)(%?))?\s*\)$/.exec(String(s).trim());
+    if (!m) return null;
+    const a = m[4] == null ? 1 : parseFloat(m[4]) / (m[5] ? 100 : 1);
+    return [+m[1], +m[2], +m[3], +a.toFixed(3)].join(' ');
+  };
+  const wash = {};
+  (root ? root.decls : []).forEach(d => {
+    const k = /^--[\w-]+$/.test(d.prop) && rgbKey(d.val);
+    if (k && !/^(0 0 0|255 255 255) 1$/.test(k)) (wash[k] = wash[k] || []).push(d.prop);
+  });
   const hex = (a, b, c) => [a, b, c].map(n => (+n).toString(16).padStart(2, '0')).join('');
   rules.filter(r => /\.tile(?![\w-])/.test(r.sel)).forEach(r => r.decls.forEach(d => {
     if (/^--/.test(d.prop)) return;
@@ -448,7 +550,50 @@ const handTone = [];
       if (tok[h]) handTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + lit + '…` is '
         + tok[h].join(' / ') + ' written out — say `color-mix(in srgb, var(' + tok[h][0] + ') N%, transparent)`');
     });
+    for (const m of d.val.matchAll(/rgba?\([^)]*\)/g)) {
+      const k = rgbKey(m[0]);
+      if (k && wash[k]) handTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + m[0] + '` is '
+        + wash[k].join(' / ') + ' written out — say `var(' + wash[k][0] + ')`');
+    }
   }));
+}
+
+/* ---------- 7c. THE PICTURES' COLOURS ARE THE PICTURES' OWN ------------------------------------------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* The ten drawings (`PFP_ART` in
+   js/links.js) and the figure's round ground (`AV_BUST_GROUND`) carry colours that belong to those
+   drawings and to nothing else — CLAUDE.md: a colour that belongs to ONE component is defined on that
+   component, never offered to the whole stylesheet. So two ways to break it, both read here:
+     · A `--pfp-…` TOKEN ON `:root` — the fox's orange offered to every rule in the app.
+     · A `:root` TOKEN'S HEX SPELLED OUT IN A DRAWING — a paper cream, the gold, the ink. A picture
+       painted in the app's own colours stops being its own the day the palette moves (the `#f4f1e8`
+       find-and-replace across seventy declarations is what the paper tokens cost), and a picture in
+       PAPER cream would be the second paper CLAUDE.md forbids.
+   READ FROM THE FILE, and a file with no drawings in it is a failure rather than a pass: a check that
+   cannot find its subject must not be green. */
+const pfpTone = [];
+{
+  const linksSrc = (() => { try { return fs.readFileSync(path.join(dir, 'js', 'links.js'), 'utf8'); } catch (e) { return ''; } })();
+  const start = linksSrc.indexOf('const PFP_ART = {');
+  const end = start < 0 ? -1 : linksSrc.indexOf('\n};', start);
+  const ground = (/const AV_BUST_GROUND = '(#[0-9a-f]{6})'/i.exec(linksSrc) || [])[1];
+  if (start < 0 || end < 0) pfpTone.push('js/links.js has no `const PFP_ART = {…};` — the ten pictures were NOT checked');
+  else {
+    const art = linksSrc.slice(start, end) + (ground ? ' ' + ground : '');
+    const root = rules.find(r => r.sel === ':root' && !r.cond);
+    const tok = {};
+    (root ? root.decls : []).forEach(d => {
+      if (/^--pfp/i.test(d.prop)) pfpTone.push('style.css line ' + root.line + '  :root declares ' + d.prop + ' — a picture\'s colour offered to the whole app; it belongs in PFP_ART');
+      const m = /^--[\w-]+$/.test(d.prop) && /^#([0-9a-f]{6})\b/i.exec(d.val);
+      if (m) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
+    });
+    if (!Object.keys(tok).length) pfpTone.push(':root holds no hex colour tokens this check can read — the pictures were NOT checked');
+    const hexes = [...art.matchAll(/#([0-9a-f]{6})\b/gi)].map(m => m[1].toLowerCase());
+    if (hexes.length < 20) pfpTone.push('only ' + hexes.length + ' colours found in PFP_ART — the drawings were not read');
+    [...new Set(hexes)].forEach(h => {
+      if (tok[h]) pfpTone.push('js/links.js PFP_ART paints #' + h + ', which is ' + tok[h].join(' / ') + ' — a picture\'s colours are its own, never the app\'s or the paper\'s');
+    });
+  }
 }
 
 /* FIRST, because everything below it reads a file it assumes is well formed. A stylesheet with a
@@ -487,11 +632,12 @@ say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
 say('PROPERTIES THAT CONTRADICT EACH OTHER', clash);
 say('A TILE THAT WRITES A TOKEN\'S COLOUR OUT BY HAND — a literal cannot say which token it meant', handTone);
+say('A PROFILE PICTURE PAINTED IN THE APP\'S OWN COLOURS, OR ONE OFFERED TO IT — the ten are their own', pfpTone);
 /* SOFT: this is the one section that cannot prove its own findings — see `say` above. */
 say('CLASSES STYLED AND NOWHERE PRODUCED — no literal in the code could assemble these', dead, true);
 say('CLASSES A LITERAL COULD BE ASSEMBLING — ' + [...builtPrefix].sort().join(' ')
     + ' appear before a `+`, so these may well be live', built, true);
-say('A LOADING SPLASH THAT COULD SHOW WHEN IT WAS NOT CHOSEN', splashBad);
+say('A LOADING SCREEN THAT DRAWS WHAT NO BOOK TEACHES, OR SHOWS THE STILL ONE OVER A DRAWING', splashBad);
 say('A RULE WITH NOTHING IN IT', hollow);
 say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
 
@@ -499,57 +645,35 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
    The Pythagoras one shipped without the name on it — a lovely thing to look at that did not tell
    anybody whose app they had opened. It was noticed because somebody watched it, which is the wrong
    way to find out.
-   Every splash gets a random one-in-seven of somebody's first impression. All of them have to say
-   it, and the check is one line rather than seven pairs of eyes. */
+   TWO KINDS OF LOADING SCREEN ARE LEFT, AND BOTH MUST SAY IT. The still one, which a first visit gets,
+   says it in its own markup; a book's drawing carries no name — a chapter page has its book's — so the
+   picker signs it as it draws it. Read off the file with comments out, and as the words read on the
+   screen, tags out: "@family." split across elements is still the name on the glass. */
 {
   const html = path.join(dir, 'index.html');
   const nameless = [];
-  if (fs.existsSync(html)) {
-    const h = fs.readFileSync(html, 'utf8');
-    h.split(/<div id="splash-|<svg id="splash-/).slice(1).forEach(part => {
-      const name = part.slice(0, part.indexOf('"'));
-      if (name === 'say') return;                      // the screen-reader line, not a splash
-
-      /* COMMENTS STRIPPED FIRST, and the block cut at the comment that introduces the NEXT one.
-
-         Without this the check passed a splash with no name on it, because the block ran on into
-         the next splash's explanation — and that explanation happens to contain the word. So it was
-         reading somebody else's prose and calling it a pass, which is the worst kind of check:
-         one that is green for a reason unrelated to the thing it claims to be testing.
-
-         Found by breaking a splash on purpose and watching the check not notice. Worth doing to
-         every check at least once. */
-      /* COMMENTS OUT FIRST, THEN THE SPLIT. This cut at the first `<!-- ----------` and then stripped
-         comments — so a divider-styled comment INSIDE a splash truncated the body before its own
-         signature, and the check reported a missing `@family.` that was plainly in the markup. A
-         check that cries wolf about a fault that is not there is a check people learn to skip.
-         Stripping comments first means no comment of any shape can split a splash in half. */
-      let body = part.replace(/<!--[\s\S]*?-->/g, '');
-
-      /* Case-insensitively: the readout says it in capitals, and a check that flagged that would be
-         reporting a fault that is not there — which is how a report stops being read. */
-      /* AND AS IT READS ON THE SCREEN, tags and spaces out. The blocks splash spells the name one
-         letter to a block — `<i>@</i>` … `<i>.</i>` — so the raw markup never holds the word, and it
-         passed only because it was the LAST splash and its body ran on into `#splash-say`. The
-         boxing ring was added after it and the blocks went red for a fault that is not there. */
-      /* AND THE LAST SPLASH IS CUT AT `#splash-say`, which is a `<p>` and so not a split point: the
-         last one's body ran on into that line's own @family. and passed whatever it drew. */
-      body = body.split(/<p id="splash-say"/)[0];
-      const shown = body.replace(/<[^>]*>/g, '').replace(/\s+/g, '');
-      if (!/@family\./i.test(body) && !/@family\./i.test(shown)) {
-        nameless.push('#splash-' + name + ' never says @family. — a one-in-seven chance of a first '
-          + 'impression that does not name the app');
-      }
-    });
-  }
-  /* AND THE ONES THE PICKER DRAWS FROM THE BOOKS' COPY. A row's markup carries no name — a chapter
-     page has its book's — so the picker signs it as it draws it, and the line that does is the check. */
-  {
-    const h = fs.existsSync(html) ? fs.readFileSync(html, 'utf8') : '';
-    const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h) || [])[1] || '';
-    if (pick.indexOf(`insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>')`) < 0) {
-      nameless.push('the picker does not sign a drawing it takes from the books — `<div class="sp-sig">@family.</div>` is not added to it');
+  const h = fs.existsSync(html) ? fs.readFileSync(html, 'utf8') : '';
+  if (!h) nameless.push('index.html could not be read — whether the loading screen names the app was NOT checked');
+  const bare_ = h.replace(/<!--[\s\S]*?-->/g, '');
+  const a = bare_.indexOf('<div id="splash-still"');
+  /* TO ITS OWN CLOSING TAG, counted, so the name in `#splash-say` after it cannot pass for the still
+     one's — the fault this section's last version had twice, a block running on into the next. */
+  let still = '';
+  if (a >= 0) {
+    let depth = 0, i = a;
+    for (const m of bare_.slice(a).matchAll(/<(\/?)div\b[^>]*>/g)) {
+      depth += m[1] ? -1 : 1;
+      if (!depth) { i = a + m.index + m[0].length; break; }
     }
+    still = bare_.slice(a, i);
+  }
+  if (h && !still) nameless.push('index.html has no `#splash-still` — a first visit has no loading screen to name the app on');
+  else if (h && !/@family\./i.test(still.replace(/<[^>]*>/g, '').replace(/\s+/g, ''))) {
+    nameless.push('`#splash-still` never says @family. — every first visit is a loading screen that does not name the app');
+  }
+  const pick = (/<script id="pick-splash">([\s\S]*?)<\/script>/.exec(h) || [])[1] || '';
+  if (pick.indexOf(`insertAdjacentHTML('beforeend', '<div class="sp-sig">@family.</div>')`) < 0) {
+    nameless.push('the picker does not sign a drawing it takes from the books — `<div class="sp-sig">@family.</div>` is not added to it');
   }
   say('A LOADING SCREEN THAT DOES NOT SAY WHOSE APP IT IS', nameless);
 }
@@ -574,22 +698,12 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
    A REGISTRY RATHER THAN EVERY SPLASH, because 23 of the 39 still animate something else and most
    of them are fine (055 again). A splash joins this list when it is rebuilt as a loop. */
 {
-  const h = fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
-  /* THE MARKUP OF ONE SPLASH: from its opening tag to the next splash's, or to `#splash-say`, which
-     follows the last one. */
-  /* THREE OF THE FOUR ARE IN THE TEXTBOOKS NOW — the coin, the sieve and Bayes are rows of
-     data/textbooks.json, read through check-anims.js's one reader — and the blocks are still here.
-     A row's own CSS is its rules; the stylesheet's are the blocks'. */
+  /* ALL THREE ARE IN THE TEXTBOOKS — the coin, the sieve and Bayes are rows of data/textbooks.json,
+     read through check-anims.js's one reader, and a row's own CSS is its rules. The blocks were the
+     fourth and the last one in index.html; they taught nothing and went on 10 Oct with the other
+     inline splashes (docs/history/322), so there is no markup left here to cut a splash out of. */
   const { animRow } = require('./check-anims.js');
-  const markup = id => {
-    const row = animRow(id);
-    if (row) return row.html;
-    const a = h.search(new RegExp('<(div|svg) id="splash-' + id + '"'));
-    if (a < 0) return null;
-    const rest = h.slice(a + 10);
-    const b = rest.search(/<(div|svg|p) id="splash-/);
-    return h.slice(a, b < 0 ? h.length : a + 10 + b);
-  };
+  const markup = id => { const row = animRow(id); return row ? row.html : null; };
   /* KEYFRAMES BY NAME, read off the comment-blanked text so a keyframe described in prose is not a
      keyframe. Brace-matched, because a regex to the first `}` stops at the end of the first stop —
      the fault the brace check at the top of this file was written for. */
@@ -670,31 +784,6 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       }
       return bad;
     },
-    /* THE BLOCKS: THE COIN COMES OUT OF THE LAST ONE, THE LETTERS FROM BEHIND, AND SOMETHING HITS
-       THEM. The coin was pinned to the stage by `left: 50%` + 6.2rem while flexbox centred the
-       blocks, so it rose between the seventh and the eighth; inside the eighth it cannot drift. The
-       letters painted over the face because a child paints over its parent's background; the face
-       is `::before` with a z-index now, and a background back on `.mb-block` is that fault again.
-       And the runner is what bumps them — without it the rhythm is blocks twitching on their own. */
-    blocks: (m, R) => {
-      const bad = [];
-      const blocks = [...m.matchAll(/<span class="mb-block">([\s\S]*?)<\/span>/g)].map(x => x[1]);
-      if (blocks.length !== 8) bad.push(blocks.length + ' blocks — @family. is eight');
-      const holder = blocks.findIndex(b => /class="mb-coin"/.test(b));
-      if (holder !== blocks.length - 1) bad.push(holder < 0
-        ? 'the coin is not inside any block — positioned on the stage, it drifts off the last one'
-        : 'the coin is inside block ' + (holder + 1) + ', not the last one');
-      R.filter(r => r.sel === '.mb-block' && !r.cond).forEach(r => r.decls
-        .filter(d => /^background/.test(d.prop))
-        .forEach(d => bad.push('line ' + r.line + '  .mb-block paints its own ' + d.prop
-          + ' — the letter, its child, paints over that; the face belongs on `.mb-block::before`')));
-      if (!R.some(r => r.sel === '.mb-block::before' && r.decls.some(d => d.prop === 'z-index' && +d.val > 0))) {
-        bad.push('`.mb-block::before` has no positive z-index — the face is under the letter, '
-          + 'so the letter shows through the block instead of coming out from behind it');
-      }
-      if (!/class="mb-run"/.test(m)) bad.push('no runner (`.mb-run`) — nothing bumps the blocks');
-      return bad;
-    },
     /* BAYES IS RIGHT, RECOMPUTED FROM THE DOTS. tools/bayes.py writes a hundred people, each in one
        of the four cells of the table — by-tp, by-fn, by-fp, by-tn — with a gold circle if they have
        it and a ring if the test says so. A hand edit that moved one ring would still animate
@@ -756,7 +845,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   Object.keys(LOOPED).forEach(id => {
     const m = markup(id);
     const row = animRow(id);
-    if (!m) { loopBad.push('#splash-' + id + ' is not in index.html or data/textbooks.json — this check cannot see it'); return; }
+    if (!m) { loopBad.push('#splash-' + id + ' is not in data/textbooks.json — this check cannot see it'); return; }
     const classes = new Set();
     for (const c of m.matchAll(/class="([^"]+)"/g)) c[1].split(/\s+/).forEach(x => x && classes.add(x));
     /* A ROW'S RULES ARE ALL ITS OWN; the stylesheet's are found by the splash's id and classes. */

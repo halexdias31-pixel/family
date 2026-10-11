@@ -335,7 +335,7 @@ const NOTIFY_KINDS = {
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-10-g-schema-grid";
+const BACKEND_VERSION = "2026-10-11-m-merged";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -435,6 +435,11 @@ const SCHEMA = {
   people: [
     /* who they are */
     "person_id", "role", "first_name", "last_name", "handle", "handle_changed_at", "handle_was",
+    /* EVERY WHOLE NAME THEY HAVE HAD BEFORE, newest first — written by `updateProfile` when a name
+       changes, so a child whose surname was corrected after she booked is still recognised in what was
+       stored under the old one and called by her first name there too (`kidNamesIndex_`, people.gs; the
+       owner, 10 Oct: *"dont show children's last name"*). A safeguarding column, like `handle_was`. */
+    "name_was",
     /* how to reach them, and how they sign in */
     "email", "phone", "pin", "date_of_birth",
     /* A GROWN-UP'S ADDRESS, FOR A CHILD WHO HAS NONE — written by `register` when a child makes their
@@ -891,7 +896,12 @@ const SCHEMA = {
      two disagree the first time somebody didn't.
 
      Optional. A venue with no rooms behaves exactly as before, using its own cost_per_hour — so
-     you can describe Richmond properly without touching the other ten. */
+     you can describe Richmond properly without touching the other ten.
+
+     A BLANK CELL ON A ROOM IS ITS VENUE'S — rate, minimum, capacity and hours — and an explicit 0
+     rate is free on purpose. `roomTerms_` in booking.gs decides it once for everything that prices
+     or caps a room; a blank rate used to be sent as 0, which the site draws as "free". The names are
+     `ROOM_SLOTS` below. See docs/history/336. */
   rooms: [
     "room_id", "venue", "name", "rate_per_hour",
     "concession_rate", "min_capacity", "max_capacity", "availability",
@@ -1882,6 +1892,14 @@ const RENAMEABLE = [
    _row = its sheet row number so writes know where to go. Cached per request: doGet touches
    seven tabs and would otherwise re-read them. */
 const _cache = {};
+/* ---------- AND WHAT THE PEOPLE TAB SAYS ABOUT CHILDREN, WORKED OUT ONCE PER REQUEST ------------------
+   `kidMemo_` in people.gs: which rows are children, how many share each first name, and the net's
+   pattern (`kidNamesIndex_`). Beside `_cache` because it is made from `_cache`'s people rows, and dropped
+   by any write to that tab (`kidMemoDrop_`) — a reply is built after its writes, and a child renamed
+   by this very request must be recognised under the name the reply is about to carry. */
+let KID_MEMO_ = null;
+/* HOW MANY EARLIER WHOLE NAMES `name_was` KEEPS — `HANDLE_WAS_KEEP`'s number, for its reason. */
+const NAME_WAS_KEEP = 10;
 
 /* ---------- A WRITE THAT GOES NOWHERE -------------------------------------------------------------
    `setCell` returns false for a column that does not exist, and `addRow` drops a key it has no
@@ -1973,6 +1991,25 @@ const PHOTO_FIELDS = (() => {
   return out;
 })();
 const PHOTO_FIELD = /^photos_\d+$/;
+
+/* ---------- YOUR PICTURE CAN BE ONE OF OURS, OR YOUR OWN FIGURE --------------------------------------
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* So the `photo` cell holds one of three
+   things now: a link (an uploaded photograph, or one pasted by an admin — unchanged), nothing (the
+   initial), or one of the ELEVEN TOKENS below — `pfp:avatar` for your wardrobe figure, `pfp:fox` and
+   the rest for the ten pictures.
+
+   A TOKEN, NOT A PICTURE. The drawings live on the phone (`PFP_ART` in js/links.js), exactly as the
+   wardrobe's shapes do while this file holds the catalogue: a picture can be redrawn without a deploy,
+   and a cell holding SVG would be a public card drawing whatever markup somebody posted into it.
+   `pfp:` because no link starts that way, so a reader can never mistake one for the other.
+
+   THIS LIST IS THE ONLY ONE THE SERVER KEEPS, AND `check-profile.js` HOLDS IT EQUAL TO THE PHONE'S. A
+   picture added here and not drawn there would be a fox nobody can see; drawn there and not here, a
+   tap the server refuses. `photoChoice_` in core.gs is the one reader of it. */
+const PFP_PICTURES = ['fox', 'owl', 'cat', 'dino', 'robot', 'rocket', 'planet', 'football', 'guitar', 'palette'];
+const PFP_AVATAR = 'pfp:avatar';
+const PFP_CHOICES = [PFP_AVATAR].concat(PFP_PICTURES.map(p => 'pfp:' + p));
 
 /* ---------- UP TO TEN QUALIFICATIONS, AS FORTY FORM FIELDS OVER ONE CELL -----------------------
    THE LIBRARY SHELF'S ARRANGEMENT AGAIN, and one constant for the same reason: the field list, the
@@ -2504,6 +2541,22 @@ const AGE_FIELDS = ['age_min', 'age_max'];
 const AGE_OPTIONS = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18',
                      'Adults'];
 
+/* ---------- HOW LONG A SESSION WITH THEM IS, SHORTEST TO LONGEST — WRITABLE SINCE docs/history/330 -------
+   THE OWNER, 10 Oct, of a tutor's own card: *"all of this stuff should be editable directly on the tutors
+   card for that respective tutor."* The card's At a glance says `1+ hour` from these two columns, and they
+   were in no group — so nobody could write them through `updateProfile`, and the card editor could only say
+   "kept on the sheet". The review of 330 asked for the box, and `PROFILE_GROUPS` is the allow-list as well
+   as the layout, so the box is these two names in a group. ON THE RATE PAGE, BUT NOT IN `PRICING_FIELDS`:
+   a session's length is part of what a tutor offers, not part of the quote, so changing it starts no
+   month's clock — the age range's argument, one page along.
+   WHOLE HOURS, ONE TO SIX, AS A LIST THE FORM AND THE RULE BOTH READ — `AGE_OPTIONS`' shape and reason. The
+   booking form books whole hours (a run of ticked hours IS the session, book.js), so a half hour here
+   would promise a session nobody can book; and `hoursRefusal_` in people.gs refuses anything off the list
+   and a shortest longer than the longest. Blank longest is no upper limit (`1+ hour`), blank shortest is
+   one (`doGet`'s `N(r.min_hours) || 1`). STRINGS, because `validations` lists are strings. */
+const SESSION_FIELDS = ['min_hours', 'max_hours'];
+const SESSION_OPTIONS = ['1', '2', '3', '4', '5', '6'];
+
 /* ---------- WHAT A TUTOR/CLIENT MAY EDIT -----------------------------------------------------
    One list per role drives the edit form AND the write allow-list, so the two cannot drift.
    Anything not named here is unreachable by updateProfile — pin, role, xp and credits included. */
@@ -2552,7 +2605,8 @@ const PROFILE_GROUPS = {
      and an `Add another` under it. A tutor's only — a parent and a student keep `photo` on About
      you, because nobody browses their card. */
   'Photos': ['photo','video'].concat(PHOTO_FIELDS),
-  'Your rate and group size': PRICING_FIELDS,
+  /* THE QUOTE, THEN HOW LONG A SESSION IS — `SESSION_FIELDS`' note says why they share a page and not a clock. */
+  'Your rate and group size': PRICING_FIELDS.concat(SESSION_FIELDS),
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
   /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH -------------------------------
@@ -2636,7 +2690,8 @@ const FIELD_OPTIONS = {
    A field here is drawn as a select from THIS list whatever the `options` tab says, because a rule on
    the server refuses anything else — see `AGE_OPTIONS`. `doGet` merges these over the tab's lists, so
    the phone reads one map and cannot tell the two sources apart, which is the point. */
-const FIELD_FIXED = { age_min: AGE_OPTIONS, age_max: AGE_OPTIONS };
+const FIELD_FIXED = { age_min: AGE_OPTIONS, age_max: AGE_OPTIONS,
+                      min_hours: SESSION_OPTIONS, max_hours: SESSION_OPTIONS };
 /* `RESOURCE_OPTIONS` WAS AN ALIAS FOR `FIELD_OPTIONS`, kept because the resource form read it
    under that name. There is no resource form. `FIELD_OPTIONS` itself stays — it fills the tutor
    profile, the venue editor and every booking dropdown, and its `subject` / `exam_board` / `tier`

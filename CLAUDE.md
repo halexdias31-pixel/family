@@ -34,12 +34,25 @@ any name used but never declared. Run it after every change.
 | `js/shell.js` | **The runtime.** `screen(id, draw)` registers a screen, `go(id)` switches to one, `placeCells()` positions the panes, `toast()` speaks. 25 KB of code under 97 KB of comments. |
 | `js/data.js` | `API` (the Apps Script URL), `DATA`, `load()`'s state, the small helpers, `missingKeys()`. |
 | `js/boot.js` | Last file loaded. Draws the first screen, then calls `load()`. Nothing may go below it. |
-| `js/find.js` | The funnel — the app's main surface. Biggest file at 185 KB. |
+| `js/find.js` | The funnel — the app's main surface, and the engine of both finders (`FINDERS`, `inFinder_`). Biggest file at 1 MB. |
 | `js/book.js` | Sessions, seats, payment. |
 
-Twelve screens are registered, in `TAB_ORDER` (js/shell.js): `feed`, `booking`, `shop` (things for
-sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (the funnel — learning
-only now — and the root), `account`, `tools`, `games`, `saved`, `spotlight`, `settings`.
+Fifteen screens are registered (fourteen for anybody but an admin), in `TAB_ORDER` (js/shell.js):
+`feed`, `booking`, `shop` (things for sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (Find, the funnel —
+questions, answers, practicals, projects, bundles — and the root), `res` (Resources, the second finder,
+immediately right of Find: the textbooks, the boxers and their fights, the Bible), `account`, `tools`,
+`games`, `saved`, `spotlight`, `settings`, `progress` (a placeholder), and last, **for an admin only**,
+`biz` — the business records (insurance, tax, legal and data, safeguarding, money and company). A tab
+marked `admin: true` is left out of `TABS` for anybody else by `columnsFor_` in shell.js, which also
+makes its `<section>` for an admin and takes it away again — so it has none in index.html, and signing
+in or out adds or removes it without a reload.
+
+**Two finders, one engine** (docs/history/329). `stuff` and `res` are one funnel bound to two states:
+`inFinder_(F, fn)` in find.js parks one finder's `STUFF` and memos and puts the other's in their place,
+so the engine reads `STUFF` as it always did. **Outside a binding `STUFF` is Find's** — every other file
+and every check that writes it means Find. A timer, microtask, promise or `afterSlide_` job runs outside
+the binding and must capture its finder and bind again. Which kinds a finder carries is the kinds
+table's label (`Resources` → the second finder), so a kind relabelled in the sheet moves column.
 
 ### Layout, and why the checks are shaped the way they are
 
@@ -62,7 +75,7 @@ almost never writes to it directly.
   of `find.js` deliberately: editorial, changes often, changing it should not be a deploy.
 - **The teaching animations are rows of `data/textbooks.json`** — Pythagoras, the sieve, Bayes, the
   solar system and 24 more, each directly under the chapter it teaches (`anim`, `title`, `about`,
-  `html`, `css`). The chapter plays it on a page of its own; the loading screen draws a copy the
+  `html`, `css`). The chapter plays it on a page of its own, in the Resources column; the loading screen draws a copy the
   device kept from the last load (`splashSync_` in shell.js, read by the picker in index.html — one
   load behind). *"The source for the animations should be in text books"* — the owner, 8 Oct.
   **Each one has ONE source, and which it is depends on the drawing.** Thirteen are written by a
@@ -71,8 +84,13 @@ almost never writes to it directly.
   `tools/anim_row.py`): for those **the script is the source** — change it and re-run it, and never
   edit the row by hand, because the next run puts back everything the script writes and nothing
   notices but `check-anims.js`. For the other 15 **the row is the source**: edit it in place. Never
-  in `index.html` or `style.css`: those hold only the 13 splashes that teach nothing, and
-  `check-anims.js` fails on a teaching one left there. See docs/history/304.
+  in `index.html` or `style.css`: the loading screen there has no drawing of its own — the 13
+  splashes that taught nothing were deleted on 10 Oct (*"delete all animations for loading which dont
+  come from text books or arnt educational"*). With nothing kept (a first visit), the splash is the
+  name, still, with `loading_()`'s loader under it, written out by hand; `check-loading.js` holds
+  that copy to `loading_()` byte for byte, `check-css.js` keeps an inline splash out (what `#splash`
+  holds is a closed list), and `check-anims.js` fails on a teaching one left there. See
+  docs/history/304, 322.
 - Everything else — people, venues, jobs, pricing, posts, links, laws, landmarks, holidays — is a
   tab, listed in `TAB` in `backend/constants.gs` with the column list in `SCHEMA` beside it and the
   file it lives in in `WHERE`. **All three have to name it.** `TAB` without `WHERE` is a tab nothing
@@ -202,6 +220,7 @@ node js/check-const.js           # nothing declared `const` is assigned to. Two 
 node js/check-loading.js         # every wait is `loading_()`: no phrase, class or keyframe of its own
 node check/deploy.js             # after a push, does a browser that has the site run the new code
 node check/anims.js              # every textbook animation in its card at 320 and 390, still when asked
+node check/videos.js             # the videos card: the bar held as you type, one player, full screen on its side
 node check/ui.js                 # 9 screens x 5 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at

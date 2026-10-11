@@ -1,12 +1,21 @@
 /* ==================================================================================================
    BUSINESS RECORDS — insurance, tax, legal, safeguarding: the paperwork a tutoring business keeps.
 
-   PAGES OF THE SETTINGS COLUMN, FOR AN ADMIN AND NOBODY ELSE. They were a widget on the Tools column,
-   a register you added rows to. *"no the business stuff should not be on tools it should be on the
-   account settings column. only admin sees. also it should be like everything else, like e.g. public
-   liability insurance:________ then i have to enter that bit in."* So it is a FORM now, shaped like
-   every other settings page: a fixed list of things, each a caption with its boxes beside each other
-   (the library shelf's `.lib-row`), and one Save per page through `send_`.
+   A COLUMN OF THEIR OWN, THE LAST ONE, FOR AN ADMIN AND NOBODY ELSE. They were a widget on the Tools
+   column, a register you added rows to. *"no the business stuff should not be on tools it should be on
+   the account settings column. only admin sees. also it should be like everything else, like e.g.
+   public liability insurance:________ then i have to enter that bit in."* So it is a FORM, shaped like
+   every settings page: a fixed list of things, each a caption with its boxes beside each other (the
+   library shelf's `.lib-row`), and one Save per page through `send_`.
+
+   AND THEN OUT OF SETTINGS. *"the business checklist stuff should go in their own column at the end."*
+   (the owner, 10 Oct). Settings is about YOU — your details, your PIN, your emails — and five cards of
+   the business's insurance and tax at its foot were the one part of it that was not. So the same five
+   cards are `screen('biz')` below, the last column, drawn and saved exactly as they were; `bizStart_`
+   fires when the column is drawn for an admin (and again, harmlessly, on arrival). The column is in `TABS` for an admin only —
+   `columnsFor_` in shell.js leaves it out for anybody else, section and all (docs/history/334). A
+   card typed into is kept as it was on Settings: `.me-form[data-dirty]` and `settingsKeep_` (me.js)
+   cover this column too.
 
    A FIXED LIST RATHER THAN A REGISTER, and that is the whole of what changed. Each item has a slug
    (`pub_liability`) that is its `record_id` in the Ledger's `records` tab, so the tab keeps its shape
@@ -20,9 +29,11 @@
    the day an account was opened is in the past on purpose, and calling it overdue would be a red
    flag on something that is fine. `track: false` says which.
 
-   A POST AND NEVER THE PAYLOAD — see backend/records.gs. `listRecords` is asked once, when an admin
-   first arrives at the column (`bizStart_`, from `startScreen_`). Until it answers, Save refuses: a
-   page saved before the rows arrived would post six empty boxes over whatever the sheet holds.
+   A POST AND NEVER THE PAYLOAD — see backend/records.gs. `listRecords` is asked once, when the Business
+   column is first drawn for an admin (`bizStart_`, from `screen('biz')`; arriving asks too, and finds it
+   asked). Until it answers, Save
+   refuses: a page saved before the rows arrived would post six empty boxes over whatever the sheet
+   holds.
 ================================================================================================== */
 const BIZ_SOON_DAYS = 30;
 const BIZ_PAGES = [
@@ -127,11 +138,25 @@ function bizCard_(pg) {
 }
 
 /* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in
-   `ACTION_ACCESS` — but a page a non-admin cannot use is a page they should not have to swipe past. */
+   `ACTION_ACCESS` — but a page a non-admin cannot use is a page they should not have to swipe past.
+   Asked here as well as by `columnsFor_`, which already leaves the column out for them: a state that
+   plays a parent on an admin's phone (check/states.js) paints this column without a sign-out, and it
+   draws nothing rather than an admin's form for a parent. */
 function bizPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
   return BIZ_PAGES.map(bizCard_);
 }
+
+/* THE COLUMN, AND ITS RECORDS ASKED FOR AS SOON AS IT IS DRAWN FOR AN ADMIN — not when it is arrived at.
+   On a wide screen it sits beside Progress, on the glass, and asking only on arrival left its first card
+   under the loader for as long as nobody went there; the owner, of exactly that: *"these remain loading
+   untill i scroll to them. i dont like this"* (10 Oct, docs/history 331/334). `bizStart_` asks once and
+   is a no-op after, so a repaint asks nothing new; after the draw, not during it, so a POST is never
+   part of building the markup. Nothing on the column runs, so nothing is stopped on the way out. */
+screen('biz', () => {
+  if (typeof isAdmin === 'function' && isAdmin()) setTimeout(() => { try { bizStart_(); } catch (e) {} }, 0);
+  return pages('biz', bizPages_());
+});
 
 /* WHAT ARRIVED, WRITTEN INTO THE CARDS ALREADY ON THE PAGE rather than a repaint of the column. A
    repaint throws away every pane's fitted zoom and the column is re-measured a frame later; filling

@@ -221,9 +221,17 @@ const SUITE = [
      could not get an account, a PIN starting with 0 refused for ever and "Forgotten your PIN?"
      wiping whoever's handle was typed into it — under a green suite. Same backend, same harness. */
   { file: 'check-signin.js', what: 'a child with no email: made, registered, signed in by handle, a new PIN' },
+  /* *"also side note dont show children's last name."* — the owner, 10 Oct. ABSENT, NOT HIDDEN: through the
+     real backend, no payload, reply or email carries a child's surname for anybody — her own parent and an
+     admin included — and her own Settings still has it. */
+  { file: 'check-surnames.js', what: 'a child is her first name: no surname in any payload, reply or email, for anybody' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
+  /* A FACE AND A POLL VOTE ARE SET, NOT TOGGLED. A toggle per tap, each refused one undone on its own,
+     left the server holding a reaction the page had taken back (docs/history/335). `want` sent twice
+     is one row, a race's copies are cleared, the lock is taken, an old phone still toggles. */
+  { file: 'check-choice.js', what: 'a reaction and a vote set to what the phone asked, once, under the lock' },
   /* EVERY ANSWER SENT IS AN EVENT. *"if they submit a correct answer then change it and submit an
      incorrect answer, that's 2 events. And it will leave the latest event up"* — the owner, 9 Oct. A
      learner's record: a row per press, a retried press once, the person from the token, the answer as
@@ -252,6 +260,11 @@ const SUITE = [
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the
      scope Google asks for, and its token holds what the manifest lists. */
   { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },
+  /* THE ROOMS INSIDE A VENUE, THROUGH THE SAME BACKEND. *"colliers would library has 3 rooms within it
+     ... 2 have capacity for 4 kids and large one has capacity for 10 kids"* — the owner, 10 Oct, and not
+     a word about price. A blank rate was sent as 0, which this site draws as "free" and prices at
+     nothing; `roomTerms_` makes it the venue's, and this asks every reader that prices or caps a room. */
+  { file: 'check-rooms.js', what: 'rooms: a blank cell is the venue’s, an explicit 0 stays 0, the caps, the floor, a booking, the waiting list' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.
@@ -351,6 +364,15 @@ const SUITE = [
      320 and 390, and the cards beside it out of focus. No port to collide on: unset, `SWIPE_PORT`
      is 0 and the OS picks a free one. */
   { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
+  /* ---------- AND THE VIDEOS CARD UNDER A FINGER, A KEYBOARD AND A PHONE TURNED SIDEWAYS ---------------
+     *"at first all you see is a search bare ... you can click fullscreen to make it fullscreen"* (note
+     321). The review of 10 Oct found four faults between jsdom (no layout, no top layer) and `ui.js`
+     (one snapshot a state, no phone on its side): the bar jumping 128px under the typing finger, the
+     keyboard's Search key doing nothing, one tap building two players with the card starred, and the
+     app's own full screen at 844x390 guarded by nothing — its zoom rule deleted, every check stayed
+     green with the Exit tile at 31px. This asks all four in Chromium. No port to collide on: unset,
+     `VIDEOS_PORT` is 0 and the OS picks a free one. */
+  { file: 'check/videos.js',  what: 'the videos card: the bar held as you type, Search lets go, one player, full screen either way up', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
      `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
      visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own

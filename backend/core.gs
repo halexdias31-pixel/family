@@ -178,10 +178,25 @@ function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
   const c = t.headers.indexOf(field);
   if (c < 0) { missedWrite_(t, field); return false; }
+  value = kidNamesKept_(row[field], value, field);
   t.sheet.getRange(row._row, c + 1).setValue(cellSafe_(value));
   row[field] = value;              // read-after-write within this request now sees the truth
   POST_WROTE = true;               // the stored payload no longer matches the sheet
+  kidMemoDrop_(t);                 // a name on the people tab may just have changed
   return true;
+}
+
+/* ---------- WHAT THE NET SHORTENED ON THE WAY OUT IS NOT WRITTEN BACK SHORT ------------------------
+   THE OWNER, 10 OCT: *"dont show children's last name"* — so every reply goes through `kidNamesOff_`
+   (people.gs), and a caption, a notepad or a Settings box reaches the phone with a child's surname
+   taken out. Saved back as drawn, that text would go over the sheet's, and the surname would be gone
+   from the one place that keeps it (the review of 10 Oct: the admin pinned a post and its caption lost
+   the name; a parent added a line to her notepad and every line above it lost it). Here because these
+   two are the only functions that change a cell, as `jsonOut` is the only door out — a route written
+   next year cannot forget. A failure keeps what was sent: this must never cost the write. */
+function kidNamesKept_(have, want, field) {
+  if (typeof have !== 'string' || typeof want !== 'string' || !have || have === want) return want;
+  try { return kidNamesBack_(have, want, field); } catch (err) { return want; }
 }
 
 /* ---------- A STRING THAT STARTS LIKE A FORMULA IS WRITTEN AS TEXT --------------------------------
@@ -230,8 +245,11 @@ function setCells(t, row, values) {
   Object.keys(values || {}).forEach(f => {
     const c = t.headers.indexOf(f);
     if (c < 0) { missedWrite_(t, f); return; }
-    if (sameCell_(row[f], values[f])) return;
-    cells.push({ c: c, f: f, v: values[f] });
+    /* THE NET'S SHORTENING UNDONE FIRST (`kidNamesKept_`), so a box sent back as it was drawn is a box
+       that did not change, and is skipped like one. */
+    const v = kidNamesKept_(row[f], values[f], f);
+    if (sameCell_(row[f], v)) return;
+    cells.push({ c: c, f: f, v: v });
   });
   if (!cells.length) return [];
   cells.sort((a, b) => a.c - b.c);
@@ -245,6 +263,7 @@ function setCells(t, row, values) {
   });
   cells.forEach(x => { row[x.f] = x.v; });   // read-after-write within this request sees the truth
   POST_WROTE = true;                          // the stored payload no longer matches the sheet
+  kidMemoDrop_(t);                            // a name on the people tab may just have changed
   return cells.map(x => x.f);
 }
 
@@ -276,6 +295,7 @@ function addRow(t, obj) {
   POST_WROTE = true;               // the stored payload no longer matches the sheet
   const row = Object.assign({ _row: t.sheet.getLastRow() }, obj);
   t.rows.push(row);
+  kidMemoDrop_(t);
   return row;
 }
 
@@ -314,6 +334,7 @@ function delRow(t, row) {
     if (i >= 0) t.rows.splice(i, 1);
     t.rows.forEach(r => { if (r && r._row > at) r._row -= 1; });
   }
+  kidMemoDrop_(t);
   return true;
 }
 
@@ -368,6 +389,11 @@ function jsonOut(obj) {
         + '. Those columns are not in the sheet — deploy and reload, or run ensureSchema.';
     }
   }
+  /* NO CHILD'S SURNAME LEAVES BY THIS DOOR — the owner, 10 Oct: *"dont show children's last name."*
+     Every reply goes through here, so the net is here rather than in the two hundred and fifty
+     returns that would each have to remember it (`kidNamesOff_` in people.gs). A broken people tab
+     names no child, so a failure here has nothing to take out and must not cost the reply. */
+  try { if (obj && typeof obj === 'object') kidNamesOff_(obj); } catch (err) {}
   const body = JSON.stringify(obj);
   /* WRAPPED AND SERVED AS A SCRIPT, when a callback was asked for. The name is checked rather than
      trusted: it goes into a page as executable code, so anything but a plain identifier is refused
@@ -1153,6 +1179,42 @@ function photosList_(r) {
   return S(r.photos).split('|').map(x => x.trim())
     .filter((v, i, all) => /^https?:\/\//i.test(v) && v !== face && all.indexOf(v) === i)
     .slice(0, PHOTO_MAX);
+}
+
+/* ---------- THE FACE CELL: A LINK, NOTHING, OR ONE OF ELEVEN TOKENS — AND THIS IS THE ONE PLACE IT IS ASKED
+   THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like xbox
+   dp selector, which allow you to use your avatar as a dp."* `photo` keeps every link it ever held —
+   an uploaded photograph is a Drive address and an admin can still paste one — and gains the tokens
+   in `PFP_CHOICES` (constants.gs). Anything else is refused BY NAME, the `photosRefusal_` argument
+   above: every reader draws this cell, and a note typed into it is a broken face on a public card.
+
+   `photoChoice_` ANSWERS THE TOKEN OR NOTHING, trimmed and lower-cased, so `PFP:Fox ` from a hand in
+   the sheet reads the same as the phone's `pfp:fox` and nothing near-miss is ever kept as one.
+   `photoRefusal_` is what `updateProfile` asks of a `photo` it is sent; `savePhoto` asks `photoChoice_`
+   directly because its door takes a token and never a link (the picker sends none). One list, two
+   doors, one reader — a second regex for "is this a picture token" is the drift this file keeps
+   recording. */
+function photoChoice_(v) {
+  const s = S(v).trim().toLowerCase();
+  return PFP_CHOICES.indexOf(s) === -1 ? '' : s;
+}
+function photoRefusal_(v) {
+  const s = S(v).trim();
+  if (!s || /^https?:\/\/\S+$/i.test(s) || photoChoice_(s)) return '';
+  return 'Your picture must be a photo, one of the pictures, or your figure — "' + s.slice(0, 40)
+    + '" is none of them, so nothing was saved.';
+}
+/* ---------- AND WHEN THE FACE IS YOUR FIGURE, THE FIGURE GOES WITH IT, AND NOT OTHERWISE ----------------
+   `pfp:avatar` means "draw my wardrobe figure", which the phone cannot do for somebody else without
+   that person's `avatar` string. So a row that carries the face (a tutor, a family card, an admin's
+   people column, a post's author) carries the figure too — BUT ONLY WHEN IT IS THE FACE. Everybody
+   who chose a photograph or a fox sends exactly what they sent before; the only new thing on any
+   card is what its owner asked to show, to the people who could already see that person's picture.
+   A CHILD'S ROW ON `students` IS NOT ONE OF THESE: it carries no face at all, and nothing here adds one.
+   Returned as an object so a caller writes `Object.assign({...}, faceFig_(r))` and an empty answer
+   adds no key at all — absent and empty are different facts to the phone (`personFace_`). */
+function faceFig_(r) {
+  return photoChoice_(r && r.photo) === PFP_AVATAR ? { avatar: S(r.avatar) } : {};
 }
 
 /* ---------- THE VENUES A TUTOR IS HAPPY TO TEACH AT, WHICH THE VENUES TAB ALREADY RECORDED ---------

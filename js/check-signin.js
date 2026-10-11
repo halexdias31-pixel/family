@@ -498,7 +498,9 @@ let whoRules = 0;
       const reset = post(b, { action: 'resetPin', token: din.token, targetId: 'P-ELLA' });
       rule(!reset.success && S(cellOf('P-ELLA', 'pin')) === '0', 'a parent whose claim nobody answered could give the child a new PIN', reset);
       const fam = b.get({ token: din.token }).family || [];
-      rule(!fam.some(x => x.personId === 'P-ELLA') && fam.some(x => x.title === 'Ivy Brook'),
+      /* `Ivy`, NOT `Ivy Brook`: a child is their first name on every card, their own parent's included
+         (the owner, 10 Oct: *"dont show children's last name"* — `nameFor_`, check-surnames.js). */
+      rule(!fam.some(x => x.personId === 'P-ELLA') && fam.some(x => x.title === 'Ivy'),
         'the parent\'s family is not "the child they made, and not the one they only asked for"', fam);
     }
   }

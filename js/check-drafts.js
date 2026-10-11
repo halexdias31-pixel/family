@@ -69,9 +69,12 @@ const KEPT = [
   { file: 'me.js', has: 'createElement(input)',
     why: 'the qualification shelf\'s "Something else…" box — saved on its own `change` like the select it replaces',
     proof: [['me.js', /sel\.replaceWith\(box\)/], ['me.js', /qualCommit_\(slot\);/]] },
-  { file: 'find.js', has: 'id="stuff-q"',
-    why: 'Find\'s search — kept with Find\'s place for a reload (`findPlaceKeep_`), never on its own',
-    proof: [['find.js', /function findPlaceKeep_[\s\S]{0,900}?STUFF\.q/], ['shell.js', /findPlaceBack_\(\)/]] },
+  /* ONE BOX IN THE SOURCE FOR BOTH FINDERS — Find's `stuff-q` and the second finder's `res-q` are the
+     same template under the finder's id (`finderScreen_`, docs/history/329), and each is kept with its
+     own finder's place (`find:place`, `res:place`). */
+  { file: 'find.js', fn: 'finderScreen_', has: 'id="${F.id}-q"',
+    why: 'a finder\'s search (Find\'s `stuff-q`, the second finder\'s `res-q`) — kept with that finder\'s place for a reload (`findPlaceKeep_`), never on its own',
+    proof: [['find.js', /function findPlaceKeep_[\s\S]{0,900}?STUFF\.q/], ['find.js', /draftKeep_\(F\.place, 'place'/], ['shell.js', /findPlaceBack_\(\)/]] },
   { file: 'find.js', fn: 'paintDocket', has: 'dock-tick',
     why: 'a docket tick — saved the moment it is ticked (`docketSave`), and sent as the page goes',
     proof: [['find.js', /keepDue_\('docket', sendTodo\)/]] },
@@ -287,9 +290,28 @@ else if (!/^\s*if \(!keepAtRisk_\(\)\.length\) return;/.test(leave[1])) bad.push
 const others = FILES.filter(f => f !== 'data.js' && /addEventListener\(\s*'beforeunload'/.test(SRC[f]));
 if (others.length) bad.push('a second "Leave site?" in ' + others.join(', ') + ' — the one in data.js asks only when the work is in nothing but the page');
 
+/* ---------- AND THE CARD BEING EDITED, WHICH KEEPS ONE DRAFT FOR THE WHOLE CARD (docs/history/330) -----------
+   Its boxes are `fieldHtml`'s, `photoShelf_`'s, the qualification shelf's and the week's — sites the walk above
+   has already counted — drawn with `draft: false`, so none keeps a `set` draft of its own: on an admin's edit
+   of somebody else's card that would be the ADMIN's field holding the other tutor's words. The card keeps them
+   all as `card:<pid>` (`cardKeep_`). That keeping is invisible to the walk, so it is asked for here, by the
+   lines that do it: the listener, the write, the draw that reads it back, the shelf's answers kept rather than
+   posted, and the drop Save and Cancel both go through. A card typed into without these is a reload that
+   loses the card — the essay of 9 Oct, one widget along. */
+const me = SRC['me.js'] || '';
+[
+  [/\['input', 'change'\]\.forEach\(ev => document\.addEventListener\(ev, e => \{[\s\S]{0,160}closest\('\.card-ed \.me-form'\)[\s\S]{0,120}cardKeep_\(form\);/,
+   'a delegated input/change listener on the card being edited that calls `cardKeep_`'],
+  [/draftKeep_\('card', e\.pid, JSON\.stringify\(\{ v, from \}\)\)/, '`cardKeep_` writing the card\'s draft, each box with the saved value it was typed over'],
+  [/draftRead_\('card', pid\)/, 'the card drawn back from its draft (`cardDraft_`)'],
+  [/function qualSave_\(el\) \{[\s\S]{0,900}?cardKeep_\(ed\); return Promise\.resolve\(true\);/, 'the qualification shelf keeping an answer on a card rather than posting it (`qualSave_`)'],
+  [/function cardClose_\(e, pane\) \{\s*try \{ draftDrop_\('card', e\.pid\); \}/, 'Save and Cancel dropping the card\'s draft (`cardClose_`)'],
+  [/const keep = attr === 'data-me' && !ro && o\.draft !== false && setDraftOk_\(name\);/, '`fieldHtml` honouring `draft: false`, so a box on the card does not keep a `set` draft as well'],
+].forEach(([re, what]) => { if (!re.test(me)) bad.push('me.js has no ' + what + ' — a card typed into and reloaded loses what was typed'); });
+
 said.push(sites.length + ' boxes in ' + FILES.length + ' files: ' + count.answer + ' answer boxes (kpField_), ' + count.draft + ' drafts in '
   + surfaces.size + ' surfaces (' + [...surfaces].sort().join(', ') + '), ' + count.kept + ' kept by their own code, '
-  + count.exempt + ' exempt with a reason, ' + count.none + ' hidden or file');
+  + count.exempt + ' exempt with a reason, ' + count.none + ' hidden or file; and the card being edited, one draft for the whole card');
 
 console.log('');
 said.forEach(s => console.log('  ' + s));

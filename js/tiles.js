@@ -52,6 +52,15 @@
 
    `aria-hidden`, for the same reason. The word is already the accessible name, and a screen reader
    announcing "graphic, play" before it would be the second explanation all over again. */
+/* ---------- ONE SPEAKER, DRAWN ONCE, FOR THE THREE MARKS THAT HAVE ONE -----------------------------
+   Imposter's Listen (`speak`) and the two sound switches (`sound` and `mute`: the reels' Sound and
+   Imposter's Read aloud) are the same cone, and a
+   cone written out three times is three chances for one of them to sit a pixel lower than the others
+   -- the drift `.tile.is-lead` records for a colour, one layer down. The waves are shared for the
+   same reason: the mark on a reel playing aloud and the mark on Listen are the same picture of the
+   same thing, sound coming out. */
+const TILE_CONE_  = '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/>';
+const TILE_WAVES_ = '<path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/><path d="M14 4a6 6 0 0 1 0 9"/>';
 const TILE_ICONS = {
   play:  '<path d="M5 3.5v11l9-5.5z"/>',
   doc:   '<path d="M4.5 2.5h6l3 3v10h-9z"/><path d="M10.5 2.5v3.5h3"/>',
@@ -157,6 +166,11 @@ const TILE_ICONS = {
      the set as one more outline. */
   full:  '<path d="M2.5 6.5v-4h4"/><path d="M11.5 2.5h4v4"/>'
        + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
+  /* EXIT FULL SCREEN: the same four corners turned inward, the mark every video player puts on the
+     button that gives the screen back — the videos card's own full screen, where a phone has none for a
+     frame (note 321). The mirror of `full`, so the pair read as one switch. */
+  unfull: '<path d="M6.5 2.5v4h-4"/><path d="M11.5 2.5v4h4"/>'
+        + '<path d="M15.5 11.5h-4v4"/><path d="M2.5 11.5h4v4"/>',
   /* SYNC: two arrows chasing each other round a circle, the mark every phone puts on "fetch it again
      from where it really lives" — the videos card's Sync from Drive, which refills the films from the
      Notflix folder. Open paths at the set's 1.4, so it is one more outline beside Full screen. */
@@ -206,8 +220,36 @@ const TILE_ICONS = {
      can’t read can play. Like it will read it out for them." (8 Oct.) The mark every phone puts on its
      volume, because the children pressing it cannot read the word beside it: the cone and two arcs at
      the set's 1.4, open like the rest, so it reads as one more outline beside the eyes on Show and Hide. */
-  speak: '<path d="M2.5 6.5h3l4-3.5v11l-4-3.5h-3z"/><path d="M12 6.2a3.2 3.2 0 0 1 0 4.6"/>'
-       + '<path d="M14 4a6 6 0 0 1 0 9"/>',
+  speak: TILE_CONE_ + TILE_WAVES_,
+  /* ---------- THE REELS' SOUND, AND THE TWO DIFFER BY WHAT COMES OUT OF THE CONE -------------------
+     THE OWNER, 10 OCT: *"the sound on or off should be a tile like everything else."* It was the one
+     control on a reel that was still a `.btn` with a word in it (note 323).
+
+     A PAIR, THE PADLOCK'S ARGUMENT ABOVE: the same cone in both, and only what leaves it changes --
+     the two waves on a clip playing aloud, a slash and no waves on a muted one. Drawn any other way
+     the two read as two unrelated pictures and the switch has to be learnt twice.
+
+     AND EVERY SOUND SWITCH WEARS THE PAIR. Imposter's Read aloud was the other one, a pill with a knob,
+     and is the same tile now (`impAloudTile_`, games.js): a sound switch is learnt once in this app.
+     THE PICTURE IS THE STATE, since a tile has no word on it, so check-flow reads the DRAWING and not
+     only the class name: a `mute` drawn as `sound` is two names for one picture and passed every
+     check until review tried it (note 323).
+
+     EACH SAYS THE STATE IT IS IN, NOT THE ONE A PRESS MOVES TO, which is what the button's words did
+     ("Sound off" on a muted clip) and what every phone's video player draws: a crossed speaker over a
+     clip that is silent. `sound` is the same drawing as `speak` under its own name, so the stylesheet
+     and the checks can tell the reel's switch from Imposter's Listen -- two acts that share a picture.
+     THE SLASH RUNS CORNER TO CORNER across the cone and the space the waves left, so the muted mark is
+     as wide as the playing one and the tile does not look half empty in one of its two states. */
+  sound: TILE_CONE_ + TILE_WAVES_,
+  mute:  TILE_CONE_ + '<path d="M2.5 2.5 15.5 14.5"/>',
+  /* THE KEYS, FOR `Type` -- the face a question answered on a made-up surface turns back to its box with
+     (`q-draw` in find.js; the owner, 10 Oct: *"just leave it as an answer box like before but theres an
+     option to switch to drawing box"*). `pen` is the other face, so this had to say "type" in the same
+     outline: a keyboard, its frame, a row of keys and the space bar, open strokes at the set's 1.4 --
+     the mark for the site's own keypad, which is how a box is typed into here. */
+  type:  '<rect x="1.5" y="4" width="15" height="9.5" rx="1.5"/><path d="M4.5 7h1M8.5 7h1M12.5 7h1"/>'
+       + '<path d="M5.5 10.5h7"/>',
 };
 
 function tileIcon_(name) {
@@ -492,6 +534,10 @@ function tutorTiles_(x) {
     ${(USER && !isMe_(x)) ? tile_({ icon: 'chat', label: 'Message',
               note: 'a note to them', act: 'msg-open',
               data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
+    ${/* EDIT, FOR AN ADMIN, ON SOMEBODY ELSE'S CARD ON THE YOU COLUMN — `updateProfile` lets an admin write
+          another person's row, so the card turns into its form for them as a tutor's own does
+          (`cardEditTile_` in me.js decides; it draws nothing for anybody else, or anywhere else). */''}
+    ${typeof cardEditTile_ === 'function' ? cardEditTile_(x) : ''}
     ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
               label: t.listed === false ? 'Not listed' : 'Listed', tone: 'admin',
               on: t.listed !== false, act: 'set-listed',
@@ -660,7 +706,7 @@ function fightTiles_(x) {
 
    A LINK AND NOT A BUTTON, through `tile_`'s `href`, which draws the anchor with its `target` and
    `rel` — the same reason the fight's tile has no `act`. Nothing inside the app plays it, so it
-   should not pretend to; see `filmTiles_` for the same argument about Drive. */
+   should not pretend to — the argument the films' Drive tile made, before the films left Find. */
 function boxerTiles_(x) {
   const b = x.row || {};
   const name = String(b.name || x.name || '').trim();
@@ -669,21 +715,9 @@ function boxerTiles_(x) {
                  href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' boxing highlights') });
 }
 
-/* ---------- A FILM'S ONE DOOR, IN THE SAME ROW AS ITS STAR ------------------------------------------
-   IT WAS DRAWN INSIDE `filmCard_` AS A TILE ROW OF ITS OWN, which gave a film two rows of tiles and a
-   fight — the same shape, a thing with one Watch — one. Here it is the fight's tile one kind along.
-   A placeholder has no file, so it has no door; the card says why where the tile would have been.
-
-   NO `act`. `tile_` answers an absolute http(s) address with an `<a target="_blank">` and everything
-   else with a button — and that test is where it is so `check-surfaces` can see the address was
-   checked rather than assumed. A Drive link is the one exception the house style leaves open:
-   somebody's Drive is not this app and should not pretend to be. */
-function filmTiles_(x) {
-  const f = x.row || {};
-  if (f.placeholder || !f.url) return '';
-  return tile_({ icon: 'play', label: 'Watch',
-                 note: f.fileKind === 'folder' ? 'opens the folder' : 'opens in Drive', href: f.url });
-}
+/* `filmTiles_` WAS HERE — a film's Watch tile, a link out to Drive in the row under its Find card. It
+   went with the films (the owner, 10 Oct: *"films should not appear in the finder it cannot be found
+   there"*); a film is found in Games → Videos, whose row is its own door to Drive. */
 
 
 /* THE ONE ENTRY POINT the card builders call. A kind with nothing of its own still gets its admin
@@ -705,7 +739,9 @@ function cardTiles_(x) {
      margin, so the admin marks sit at the far end of the row with the whole gap between them and
      the trolley — further apart on a phone than they were stacked, where a bin sat directly beneath
      a trolley and a thumb travels vertically. The colour says the rest. */
-  const mine = favTile_(x) + cardActions_(x);
+  /* AND `Open`, for a resource drawn outside the second finder — on Saved, in the Spotlight — which is
+     where it now lives and where its chapters or bouts are (`finderOpenTile_`, docs/history/329). */
+  const mine = favTile_(x) + cardActions_(x) + finderOpenTile_(x);
   const admin = adminTiles_(x, x.topic || null);
   if (!mine && !admin) return '';
   return `<div class="tile-row">${mine}${admin}</div>`;
@@ -721,7 +757,6 @@ function cardActions_(x) {
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
   if (x.kind === 'boxer') return boxerTiles_(x);
-  if (x.kind === 'film') return filmTiles_(x);
   /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —
      `bibleTiles_` in find.js, which says nothing at all to anybody but an admin. */
   if (x.kind === 'bible') return typeof bibleTiles_ === 'function' ? bibleTiles_(x) : '';
@@ -733,7 +768,14 @@ function cardActions_(x) {
   /* AND "SEND THE LINK AGAIN" BESIDE IT while your own address is unproved — the paragraph under the
      row says why (`mailHeldNote_` in me.js, drawn by `accountPages_`). A thing about your account, so a
      tile in this row and not a button of its own. */
-  if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
+  /* AND EDIT FIRST, on a tutor's own card — the owner, 10 Oct: *"all of this stuff should be editable
+     directly on the tutors card"*. A pencil, and the card becomes its own form (`cardEditTile_`, me.js,
+     which draws nothing on a card that is not a tutor's row). That is not the `Your settings` tile the
+     note over `fightTiles_` records the owner asking to go (*"remove edit tile as they can already edit
+     their profile on the column to the right"*): that was a door to another column; this edits the card
+     in place, and the Settings pages it would have led to are gone (docs/history/330). */
+  if (x.kind === 'me') return (typeof cardEditTile_ === 'function' ? cardEditTile_(x) : '')
+    + tile_({ icon: 'out', label: 'Sign out', act: 'signout' })
     + (typeof pendingAddr_ === 'function' && pendingAddr_() && typeof resendTile_ === 'function' ? resendTile_() : '');
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ROW HOLDS THE STAR AND THE DAY YOU DID IT -- `questionTiles_` in find.js. It held the
@@ -744,7 +786,9 @@ function cardActions_(x) {
      multiple-choice options, which are the answer being given rather than things done to it. See
      `ansBox_`, `padWrap_` and `choiceBox_` in find.js. */
   /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION,
-     `Figure` -- which opens it over the card. A typed box carries it at its own end instead (`ansBox_`). */
+     `Figure` -- which opens it over the card. A typed box carries it at its own end instead (`ansBox_`).
+     AND `Draw` / `Type` WHERE IT IS ANSWERED ON A MADE-UP SURFACE -- the box and the drawing are one
+     answer's two faces on the card, and this tile swaps them (`ansArea_` in find.js, docs/history/327). */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an
