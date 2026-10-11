@@ -433,6 +433,12 @@ function boot(opts) {
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
       'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
       'star: k => FAVS.add(String(k)),' +
+      /* WHICH WIDGETS ARE RUNNING AND ON WHICH COLUMN'S COPY, WHICH ARE WAITING THEIR TURN, AND WHAT
+         THE LAST PLACEMENT SAID IS ON THE GLASS — three `let`s in arcade.js and shell.js, so only
+         functions built in this evaluation can read them (docs/history/331). */
+      'running: () => TOOLS_ON.map(e => ({ id: String(e.w.id), col: e.col })),' +
+      'waiting: () => TOOLS_WAIT.map(q => ({ id: String(q.w.id), col: q.col })),' +
+      'glass: () => ({ at: GLASS.at, cols: GLASS.cols.slice(), pages: GLASS.pages.slice() }),' +
       /* WHAT THE FIND SCREEN OFFERS AGAINST WHAT THE APP HOLDS, and the Saved column that reads the
          second. Two lists on purpose: a kind taken off Find must leave the first and stay in the
          second, or a starred thing vanishes from the one list whose job is to keep it. `doors` is
@@ -3231,7 +3237,10 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
 
   /* ---------- 2. OVER THE MARKUP: A COLUMN'S WIDGETS BEFORE THEY ARE STARTED ---------------------------
      The Tools column is drawn beside Games and not started — exactly the widgets the owner was
-     looking at. Each one with a `start` is veiled; arriving starts them and takes every veil off. */
+     looking at. Each one with a `start` is veiled; arriving starts them and takes every veil off.
+     ON A PHONE, which is what this harness is unless a journey says otherwise: there the column beside
+     is a 23px edge and nothing on it is started. On a wide window it is whole and its widgets on the
+     glass ARE started (docs/history/331) — the journeys after this one ask that. */
   const tools = a.w.document.getElementById('s-tools');
   const waiting = tools ? [...tools.querySelectorAll('.widget-slot[aria-busy="true"]')] : [];
   if (!waiting.length) bad.push('the Tools column, drawn and not started, has no widget waiting under the loader');
@@ -3273,6 +3282,325 @@ check('a widget waiting on its fetch shows the one loader and nothing else, and 
   if (card.querySelector('.loading') || (body && body.getAttribute('aria-busy'))) bad.push('the records came back and the Insurance card is still under the loader');
   const ref = card.querySelector('[data-biz="pub_liability"][data-k="reference"]');
   if (!ref || ref.value !== 'PL-000000') bad.push('the records came back and the box under the loader reads ' + JSON.stringify(ref && ref.value) + ', not PL-000000');
+  return bad;
+});
+
+/* ==================================================================================================
+   A WIDGET ON THE GLASS IS DRAWN, WHICHEVER COLUMN IT IS IN (docs/history/331)
+
+   THE OWNER, 10 Oct, with a screenshot at about 1194px — Settings in front, About you on it, and the
+   column beside it two widget cards that were the gold dots and a star: *"these remain loading untill
+   i scroll to them. i dont like this"*. Only the column in front ever started its widgets, and on a
+   wide window the columns beside it are whole cards (THE GRID SHOWS MORE OF ITSELF, shell.js).
+
+   THIS HARNESS IS A PHONE unless a journey makes it otherwise — `matchMedia` answers no to everything
+   and there is no layout — so these make it a 1194x827 window the way a browser is one: `innerWidth`
+   and `innerHeight` say so, `matchMedia('(min-width: 700px)')` answers from them, and a resize event
+   is what a window dragged narrower sends. With no layout every page is 0px tall at the column's
+   middle, so the glass is the column in front, every column beside it showing more than `WIDE_EDGE`
+   of its card, and down each the pages out to `glassRows_` (three) either side — which is still a
+   real question: page 4 of Tools and beyond is off it. `CSS.escape` is given to it as well, because
+   `$`'s "the copy on the screen in front" is written with it and jsdom has none, so a starred widget's
+   two copies could not otherwise be told apart.
+   AND THE COLUMNS IN THE ORDER THE SHEET GIVES THEM (`data/settings/columns.json`), the order the
+   owner's screenshot was in: Settings between You and Tools. The written fallback puts Settings at
+   the far end, beside nothing that runs. */
+const COLUMNS_ = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'settings', 'columns.json'), 'utf8'));
+const wideBoot_ = (opts) => {
+  opts = opts || {};
+  return boot(Object.assign({}, opts, {
+    payload: opts.payload || Object.assign(payload(), { columns: COLUMNS_ }),
+    before: win => {
+      let iw = 1194;
+      Object.defineProperty(win, 'innerWidth', { configurable: true, get: () => iw });
+      Object.defineProperty(win, 'innerHeight', { configurable: true, get: () => 827 });
+      win.__width = v => { iw = v; win.dispatchEvent(new win.Event('resize')); };
+      win.matchMedia = q => {
+        const m = /min-width:\s*(\d+)px/.exec(String(q));
+        return { matches: !!m && iw >= Number(m[1]), media: String(q), addEventListener() {}, removeEventListener() {} };
+      };
+      win.CSS = Object.assign({}, win.CSS, { escape: s => String(s).replace(/[^\w-]/g, c => '\\' + c) });
+      /* AND THE CALCULATOR'S PARTS FOUND IN TREE ORDER, as a browser finds them. jsdom's `getElementById`
+         hands back the copy of a duplicated id that was put in the document FIRST, not the one that
+         comes first in it — so after a column is drawn again its copy of a starred widget stops being
+         "the first one", and the journey below passed with the copy-finding half of `$` taken out
+         (tried: it drew into the right copy by the luck of which column had been redrawn). Only the
+         calculator's ids (`mc-…`, the widget it stars): a `querySelector` for every lookup made the whole
+         app so slow under jsdom that an arrival's `afterSlide_` outlived the journey's wait. */
+      const byId = win.document.getElementById.bind(win.document);
+      win.document.getElementById = id => {
+        if (!/^mc-/.test(String(id))) return byId(id);
+        try { return win.document.querySelector('#' + win.CSS.escape(String(id))); } catch (e) { return byId(id); }
+      };
+      if (typeof opts.before === 'function') opts.before(win);
+    },
+  }));
+};
+/* WHAT IS ON TOOLS: each widget's slot, whether its page is one the last placement put on the glass,
+   whether it still holds the loader that stands for "not started", and whether it is running there. */
+const toolsSlots_ = (w) => {
+  const t = w.__t, g = t.glass(), run = t.running();
+  return [...w.document.querySelectorAll('#s-tools .widget-slot')].map(sl => ({
+    id: sl.id.slice(4),
+    lit: g.pages.indexOf(sl.closest('.page')) !== -1,
+    veiled: sl.getAttribute('aria-busy') === 'true' || !!sl.querySelector(':scope > .loading'),
+    on: run.some(r => r.id === sl.id.slice(4) && r.col === 'tools'),
+  }));
+};
+const settle_ = async () => { await wait(LEAVE_MS); await woken_(); };
+/* AND WHAT A STEP IS ABOUT TO ASK, WAITED FOR — bounded, so a state that never comes still fails on what
+   was asked. At a load average of thirty-seven an arrival's `afterSlide_` outlived `woken_`'s eight
+   seconds once (measured here, 10 Oct): a late start, not a missing one. */
+const until_ = async (fn, ms) => { for (let k = 0; k < (ms || 15000) / 100; k++) { let ok = false; try { ok = fn(); } catch (e) {} if (ok) return; await wait(100); } };
+
+check('a wide window starts the widgets on the glass beside the column in front, and stops them when they leave it', async () => {
+  const { w } = wideBoot_();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
+  if (!calc) return ['there is no calculator on Tools to ask about'];
+  let stops = 0;
+  const realStop = calc.stop;
+  calc.stop = function () { stops++; return realStop ? realStop.apply(this, arguments) : undefined; };
+  t.go('settings', false, true);
+  await settle_();
+  await until_(() => toolsSlots_(w).filter(x => x.lit).every(x => x.on && !x.veiled));
+  const bad = [];
+  const g = t.glass();
+  if (t.AT() !== 'settings') return ['Settings did not come in front, so nothing was asked'];
+  if (g.cols.indexOf('tools') === -1) return ['at 1194 with Settings in front the glass is ' + JSON.stringify(g.cols) + ' — Tools is not on it, so nothing was asked (is the window wide? are the columns in the sheet\'s order?)'];
+  let s = toolsSlots_(w);
+  const lit = s.filter(x => x.lit), dark = s.filter(x => !x.lit);
+  if (!lit.length) return ['no Tools card is on the glass beside Settings, so nothing was asked'];
+  lit.filter(x => x.veiled).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Settings and still holds the loader — it was never started'));
+  lit.filter(x => !x.on).forEach(x => bad.push('#wgt-' + x.id + ' is on the glass beside Settings and is not running on Tools'));
+  /* AND ONLY THOSE. A column beside you is not a column you arrived at; what is off the glass on it waits. */
+  if (!dark.length) bad.push('every Tools card counted as on the glass, so whether it starts ONLY what is on it was not asked');
+  dark.filter(x => x.on).forEach(x => bad.push('#wgt-' + x.id + ' is off the glass on a column beside Settings and was started anyway'));
+  if (!lit.some(x => x.id === 'calculator')) bad.push('the calculator — the first Tools card — is not among the cards on the glass');
+  if (t.AT() !== 'settings') bad.push('the column in front moved to ' + t.AT() + ' — nobody went to Tools');
+  /* NARROWED TO A PHONE: the column beside is a 23px edge again, and what ran on it stops. */
+  const before = stops;
+  w.__width(390);
+  await wait(400); await woken_();
+  await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
+  const g2 = t.glass();
+  if (g2.cols.join() !== 'settings') bad.push('narrowed to 390 the glass is still ' + JSON.stringify(g2.cols) + ' — only Settings is on a phone\'s');
+  const still = t.running().filter(r => r.col === 'tools').map(r => r.id);
+  if (still.length) bad.push('narrowed to 390, ' + still.join(', ') + ' went on running on Tools, which is no longer on the glass');
+  if (stops === before) bad.push('narrowed to 390, the calculator\'s stop was never called');
+  /* AND WIDENED AGAIN, it is back on the glass and started again. */
+  w.__width(1194);
+  await wait(400); await woken_();
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
+  s = toolsSlots_(w);
+  if (!s.some(x => x.id === 'calculator' && x.on)) bad.push('widened back to 1194, the calculator beside Settings is not running again');
+  /* SWIPED OFF THE GLASS: You in front puts Tools two columns away, an 8px edge at 1194. */
+  const before2 = stops;
+  t.go('account', false, true);
+  await settle_();
+  await until_(() => !t.running().some(r => r.col === 'tools'), 5000);
+  const still2 = t.running().filter(r => r.col === 'tools').map(r => r.id);
+  if (t.glass().cols.indexOf('tools') !== -1) bad.push('with You in front, Tools still counts as on the glass at 1194: ' + JSON.stringify(t.glass().cols));
+  if (still2.length) bad.push('with You in front, ' + still2.join(', ') + ' went on running on Tools, two columns away and off the glass');
+  if (stops === before2) bad.push('going to You, the calculator\'s stop was never called');
+  return bad;
+});
+
+check('a starred widget on Tools and Saved is one widget: started once, and never stopped while a copy of it is on the glass', async () => {
+  const kid = { name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk-s' };
+  const { w } = wideBoot_({ before: win => {
+    try { win.localStorage.setItem('familyUser', JSON.stringify(kid)); win.localStorage.setItem('favs', JSON.stringify(['w:calculator'])); } catch (e) {}
+  } });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  const d = w.document;
+  const calc = t.widgetsOf('tool').find(x => String(x.id) === 'calculator');
+  if (!calc) return ['there is no calculator on Tools to ask about'];
+  /* FIND IS FAR FROM ALL THREE, so nothing of the calculator is running when the journey begins. */
+  t.go('stuff', false, true);
+  await settle_();
+  if (!d.querySelector('#s-saved #wgt-calculator')) return ['the starred calculator is not drawn on the Saved column, so nothing was asked'];
+  let starts = 0, stops = 0, most = 0;
+  const realStart = calc.start, realStop = calc.stop;
+  calc.start = function () { starts++; return realStart.apply(this, arguments); };
+  calc.stop = function () { stops++; return realStop ? realStop.apply(this, arguments) : undefined; };
+  const copies = () => { const n = t.running().filter(r => r.id === 'calculator'); most = Math.max(most, n.length); return n; };
+  const drawn = col => !!d.querySelector('#s-' + col + ' #wgt-calculator #mc-display .mc-caret');
+  const bad = [];
+  if (t.running().some(r => r.id === 'calculator')) return ['the calculator was already running with Find in front, so nothing was asked'];
+  /* GAMES IN FRONT: Tools on one side and Saved on the other, both whole, both with the calculator on the glass. */
+  t.go('games', false, true);
+  await settle_();
+  await until_(() => t.running().some(r => r.id === 'calculator'));
+  const g = t.glass();
+  if (g.cols.indexOf('tools') === -1 || g.cols.indexOf('saved') === -1) return ['with Games in front at 1194 the glass is ' + JSON.stringify(g.cols) + ' — Tools and Saved are not both on it, so nothing was asked'];
+  let on = copies();
+  if (starts !== 1) bad.push('with both of its copies on the glass the calculator was started ' + starts + ' time(s), not once');
+  if (on.length !== 1) bad.push('the calculator is running ' + on.length + ' time(s) at once: ' + JSON.stringify(on));
+  const veiled = [...d.querySelectorAll('.widget-slot')].filter(sl => sl.id === 'wgt-calculator' && sl.getAttribute('aria-busy') === 'true')
+    .map(sl => sl.closest('.screen').id);
+  if (veiled.length) bad.push('the calculator has started and its copy on ' + veiled.join(', ') + ' still holds the loader');
+  if (on[0] && !drawn(on[0].col)) bad.push('the calculator is running on ' + on[0].col + '\'s copy and that copy\'s display was never drawn');
+  /* TO TOOLS: the copy in front is the one it is running on, so nothing starts again — unless the column
+     was `STALE` and drawn again on the way in (a signed-in visitor's second reply repaints, and marks
+     every other column so), in which case what it ran in has gone and it is started once more, once. */
+  const startsAtTools = starts;
+  const slotWas = d.querySelector('#s-tools #wgt-calculator');
+  t.go('tools', false, true);
+  await settle_();
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'tools'));
+  on = copies();
+  const redrawn = d.querySelector('#s-tools #wgt-calculator') !== slotWas;
+  if (on.length !== 1 || on[0].col !== 'tools') bad.push('with Tools in front the calculator runs on ' + JSON.stringify(on) + ', not once on Tools');
+  if (!redrawn && starts !== startsAtTools) bad.push('arriving at Tools started the calculator again although it was already running on Tools\' copy, which was not redrawn');
+  if (redrawn && starts !== startsAtTools + 1) bad.push('arriving at Tools redrew its copy and started the calculator ' + (starts - startsAtTools) + ' time(s), not once');
+  /* TO SPOTLIGHT: Tools is three columns away, Saved beside — the copy that ran has left the glass and
+     the other is still on it, so it is started there, once. */
+  const s0 = starts, x0 = stops;
+  t.go('spotlight', false, true);
+  await settle_();
+  await until_(() => t.running().some(r => r.id === 'calculator' && r.col === 'saved'));
+  on = copies();
+  if (on.length !== 1 || on[0].col !== 'saved') bad.push('with Spotlight in front (Saved beside, Tools off the glass) the calculator runs on ' + JSON.stringify(on) + ', not on Saved');
+  if (starts - s0 !== 1 || stops - x0 !== 1) bad.push('moving to Spotlight stopped it ' + (stops - x0) + ' and started it ' + (starts - s0) + ' time(s) — once each, from the copy that left to the copy still there');
+  if (!drawn('saved')) bad.push('the calculator started on Saved\'s copy and that copy\'s display was never drawn — it drew into another copy');
+  /* BACK TO GAMES: Saved is still beside, so the copy it is running on never left — nothing stops. */
+  const s1 = starts, x1 = stops;
+  t.go('games', false, true);
+  await settle_();
+  on = copies();
+  if (stops !== x1) bad.push('back at Games the calculator was stopped although its copy on Saved never left the glass');
+  if (starts !== s1) bad.push('back at Games the calculator was started again although it was running on a copy still on the glass');
+  if (most > 1) bad.push('at one point the calculator was running ' + most + ' times at once');
+  calc.start = realStart; calc.stop = realStop;
+  return bad;
+});
+
+check('arriving at a column on a wide window leaves what already runs on it, and starts the rest one per task', async () => {
+  const { w } = wideBoot_();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('settings', false, true);
+  await settle_();
+  const bad = [];
+  const ws = t.widgetsOf('tool').filter(x => typeof x.start === 'function');
+  const runningBefore = new Set(t.running().filter(r => r.col === 'tools').map(r => r.id));
+  if (!runningBefore.size) return ['nothing was running on Tools beside Settings, so nothing was asked'];
+  /* THE SLOTS AS THEY ARE, because a column marked `STALE` is drawn again on the way in and what ran in
+     the old markup is rightly started again; only a widget whose slot is the same element must not be. */
+  const slotWas = {};
+  runningBefore.forEach(id => { slotWas[id] = w.document.querySelector('#s-tools #wgt-' + id); });
+  let n = 0, most = 0, booked = false;
+  const seen = {};
+  const real = new Map();
+  ws.forEach(x => {
+    const f = x.start;
+    real.set(x, f);
+    x.start = function () {
+      seen[x.id] = (seen[x.id] || 0) + 1; n++;
+      if (!booked) { booked = true; setTimeout(() => { most = Math.max(most, n); n = 0; booked = false; }, 0); }
+      return f.apply(this, arguments);
+    };
+  });
+  t.go('tools', false, true);
+  for (let k = 0; k < 150 && !(t.quiet() && ws.every(x => t.running().some(r => r.id === String(x.id)))); k++) await wait(100);
+  await wait(50);
+  const kept = [...runningBefore].filter(id => w.document.querySelector('#s-tools #wgt-' + id) === slotWas[id]);
+  if (!kept.length) bad.push('Tools was drawn again on the way in, so leaving what already ran was not asked');
+  kept.filter(id => seen[id]).forEach(id => bad.push('#wgt-' + id + ' was running beside Settings and arriving at Tools started it again (' + seen[id] + 'x) in the same slot'));
+  const never = ws.filter(x => !t.running().some(r => r.id === String(x.id) && r.col === 'tools')).map(x => x.id);
+  if (never.length) bad.push('arriving at Tools left ' + never.join(', ') + ' never started');
+  if (most > 3) bad.push(most + ' widgets started in one task on arrival — a swipe would wait behind every one');
+  const far = ws.filter(x => !runningBefore.has(String(x.id)));
+  if (!far.length) bad.push('every Tools widget was already running, so the far ones starting one per task was not asked');
+  ws.forEach(x => { x.start = real.get(x); });
+  return bad;
+});
+
+/* THE PAYLOAD'S LANDING EMPTIES EVERY COLUMN AND DRAWS IT AGAIN (`load`), so a widget that started beside
+   the column in front before it landed — drawing the one loader over the part of it that waits for the
+   payload — is running in markup that has just been thrown away. What was on the glass has to start
+   again in the new markup, or the new copy sits under the "not started" veil and the old one, drawn,
+   is gone: the owner's picture again, one payload later. */
+check('a widget beside the column in front that waits for the payload is drawn when it lands, without going there', async () => {
+  let release = null;
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 't' };
+  /* THE WRITTEN COLUMN ORDER, NOT THE SHEET'S: the payload is what carries the sheet's, and it is held. In
+     the written order Tools sits beside You. */
+  const { w } = wideBoot_({ payload: payload(),
+    serve: u => (u.indexOf('script.google.com') === -1 ? undefined : new Promise(r => { release = () => r(payload()); })),
+    before: win => { try { win.localStorage.setItem('familyUser', JSON.stringify(admin)); } catch (e) {} } });
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('account', false, true);
+  await settle_();
+  const bad = [];
+  if (!release) return ['the payload was never asked for, so nothing was held'];
+  if (t.glass().cols.indexOf('tools') === -1) return ['with You in front and the payload held the glass is ' + JSON.stringify(t.glass().cols) + ' — Tools is not beside it, so nothing was asked'];
+  const card = () => w.document.querySelector('#s-tools #wgt-flyers');
+  if (!card()) return ['an admin\'s Tools has no flyer maker, so nothing was asked'];
+  await until_(() => t.running().some(r => r.id === 'flyers' && r.col === 'tools'));
+  if (!t.running().some(r => r.id === 'flyers' && r.col === 'tools')) return ['the flyer maker beside You was never started, so its wait for the payload was not asked'];
+  if (!card().querySelector('.loading')) return ['the flyer maker beside You shows no loader with the payload held, so nothing was waiting'];
+  if (card().getAttribute('aria-busy') === 'true') bad.push('the flyer maker still holds the "not started" veil after it started');
+  const was = card();
+  release();
+  /* WAITED FOR UNTIL IT IS DRAWN, NOT UNTIL `quiet()`: the after-slide jobs run one per task from a
+     list `afterSlide_` has already emptied, so `quiet()` says yes while the restart is still in it. */
+  await until_(() => card() && card() !== was && !!card().querySelector('#fm-wrap .widget-squeeze'));
+  await woken_();
+  if (card() === was) bad.push('the payload landed and Tools was not drawn again, so starting the new markup was not asked');
+  if (card() && card().getAttribute('aria-busy') === 'true') bad.push('the payload landed, Tools was drawn again beside You, and the new flyer maker sits under the "not started" veil — only going to Tools would have started it');
+  else if (card() && card().querySelector('.loading')) bad.push('the payload landed and the flyer maker beside You still shows the loader');
+  /* AND DRAWN, NOT ONLY UNVEILED: a copy of a widget running elsewhere has its veil taken off too (one
+     widget, one start), so a missing veil alone would pass a flyer still running in the markup that was
+     thrown away. Its controls are drawn by its `start` and by nothing else. */
+  if (card() && !card().querySelector('#fm-wrap .widget-squeeze')) bad.push('the payload landed and the new flyer maker beside You was never started — its box is the empty markup');
+  if (t.running().filter(r => r.id === 'flyers').length !== 1) bad.push('after the payload the flyer maker is running ' + t.running().filter(r => r.id === 'flyers').length + ' time(s), not once');
+  if (t.AT() !== 'account') bad.push('the column in front moved to ' + t.AT());
+  return bad;
+});
+
+/* A COLUMN LEFT BEFORE ITS PLACEMENT HAS HAPPENED STARTS NOTHING MORE BEHIND IT. `go` moves `AT` at once and
+   the grid a frame later, and it is that placement which says what is on the glass and forgets what was
+   queued for a column that has left it (`widgetsGlass_`). Until 10 Oct `go` stopped everything itself,
+   synchronously; from the placement instead, a step of the queue landing in between would start a far
+   widget of the column just left, in the frame its slide begins. So the queue waits for the placement
+   (`GLASS.at`). Here the frame is held — `requestAnimationFrame` answers nothing — so the gap is as long
+   as the journey wants, and a phone, where the column left is off the glass the moment it is left. */
+check('a column left before its placement has happened starts nothing more of its widgets', async () => {
+  const { w } = boot();
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
+  const t = w.__t;
+  await wait(300);
+  t.go('tools', false, true);
+  await until_(() => t.waiting().filter(q => q.col === 'tools').length >= 3, 8000);
+  const queued = t.waiting().filter(q => q.col === 'tools').length;
+  if (queued < 3) return ['arriving at Tools left ' + queued + ' widget(s) queued, so a queue running behind a column change was not asked'];
+  const raf = w.requestAnimationFrame;
+  w.requestAnimationFrame = () => 0;
+  /* A FRAME ALREADY BOOKED STILL RUNS — let it, on Tools, before the column changes. */
+  await wait(60);
+  const before = t.running().filter(r => r.col === 'tools').length;
+  const left = t.waiting().filter(q => q.col === 'tools').length;
+  t.go('settings', false, true);
+  await wait(600);
+  const after = t.running().filter(r => r.col === 'tools').length;
+  const bad = [];
+  if (t.glass().at === 'settings') bad.push('Settings was placed although no frame could run, so the gap before the placement was not made and nothing was asked');
+  else if (!left) bad.push('nothing was left in the queue when Tools was left, so nothing was asked');
+  else if (after > before) bad.push((after - before) + ' Tools widget(s) were started after Tools was left and before its placement — the queue ran behind a column change');
+  w.requestAnimationFrame = raf;
+  w.placeCells('x');
+  await settle_();
+  await until_(() => !t.running().some(r => r.col === 'tools') && !t.waiting().some(q => q.col === 'tools'), 5000);
+  if (t.running().some(r => r.col === 'tools')) bad.push('once placed, Settings in front still has Tools widgets running: ' + t.running().filter(r => r.col === 'tools').map(r => r.id).join(', '));
+  if (t.waiting().some(q => q.col === 'tools')) bad.push('once placed, Settings in front still has Tools widgets queued to start');
   return bad;
 });
 
@@ -8957,6 +9285,17 @@ check('a retry that succeeds does not rebuild the box somebody is typing in, and
   if (at < 0) return ['the Tools column has no notepad to type in, so nothing was tested'];
   b.w.goPage('tools', at, true);
   await wait(300);
+  /* AND NOTHING IS TYPED UNTIL THE NOTEPAD HAS STARTED — its veil off, which `widgetUp_` does after its
+     `start`. The `start` writes the account's notes back into the box, and this journey writes its words
+     with `.value`, which no `input` event follows, so a start landing after them put back "". It did once
+     in ten on the commit before 10 Oct (docs/history/306 recorded it: "the notepad's start landing after
+     the journey had written into it") and four times in nine on the branch for note 331, with the
+     arrival's start landing at any moment in a two-second window: `quiet()` says yes while the
+     after-slide jobs are still running from the list `afterSlide_` has already emptied, so `woken_` was
+     no guard. A person cannot type into a box whose widget has not started — the veil is over it — so the
+     journey waits for exactly that. */
+  await woken_();
+  await until_(() => { const sl = d.querySelector('#s-tools #wgt-notepad'); return !!sl && !sl.getAttribute('aria-busy'); }, 8000);
   const box = d.getElementById('notepad');
   box.focus();
   box.value = 'half a thought';

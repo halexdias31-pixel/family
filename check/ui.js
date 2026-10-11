@@ -588,6 +588,61 @@ async function settled(page) {
   } catch (e) { /* a page that cannot answer is measured as it stands */ }
 }
 
+/* ---------- A WIDGET ON THE GLASS IS DRAWN, NOT WAITING TO BE STARTED ----------------------------------
+   THE OWNER, 10 Oct, with a screenshot at about 1194px: Settings in front, and the column beside it two
+   widget cards that were nothing but the gold dots and a star — *"these remain loading untill i scroll
+   to them. i dont like this"*. Every rule here measured the screen in front; the loader that stood for a
+   widget nobody had started was on the screen BESIDE it, which on a wide window is whole and readable,
+   and nothing asked. So: every widget's slot anywhere on the glass — whichever column — that still holds
+   the veil `widgetOnColumn_` draws over a widget not yet started (`aria-busy` with the loader as its
+   child). A widget's own wait inside its slot (the Videos card's list, the flyer's rooms) is a wait for
+   data and is `loadersOn`'s, not this.
+
+   ON THE GLASS MEANS MORE THAN 24px OF THE SLOT INSIDE `#screen` BOTH WAYS, in a column and a page that
+   are drawn (not `opacity: 0`, not `visibility: hidden`). 24 is `WIDE_EDGE`, the edge the wide layout
+   leaves past the last whole column: a phone's neighbour, or the 8px of card at the end of a 1280 row,
+   shows no widget, and a widget the layout cannot show is not one that should be running.
+
+   AFTER SETTLE AND THEN ASKED AGAIN FOR UP TO 3s, because a widget beside the one in front is started by
+   the same queue as a far one — one per task, behind the slide — and a loaded machine is late, not wrong.
+   One that has not started by then never will without somebody going to it. */
+async function veiledOnGlass(page) {
+  try {
+    return await page.evaluate(async () => {
+      const look = () => {
+        const sc = document.getElementById('screen');
+        if (!sc) return { n: 0, left: [] };
+        const box = sc.getBoundingClientRect();
+        let n = 0;
+        const left = [];
+        document.querySelectorAll('#screen .widget-slot').forEach(sl => {
+          const col = sl.closest('.screen'), pg = sl.closest('.page');
+          if (!col) return;
+          const cs = getComputedStyle(col);
+          if (+cs.opacity === 0 || cs.visibility === 'hidden' || cs.display === 'none') return;
+          if (pg) { const ps = getComputedStyle(pg); if (+ps.opacity === 0 || ps.visibility === 'hidden') return; }
+          const r = sl.getBoundingClientRect();
+          const w = Math.min(r.right, box.right) - Math.max(r.left, box.left);
+          const h = Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top);
+          if (w <= 24 || h <= 24) return;
+          n++;
+          if (sl.getAttribute('aria-busy') === 'true' && sl.querySelector(':scope > .loading')) {
+            left.push(col.id.slice(2) + ' #' + sl.id + ' (' + Math.round(w) + 'x' + Math.round(h) + 'px of it on the glass)');
+          }
+        });
+        return { n, left };
+      };
+      const t0 = performance.now();
+      let r = look();
+      while (r.left.length && performance.now() - t0 < 3000) {
+        await new Promise(res => setTimeout(res, 100));
+        r = look();
+      }
+      return r;
+    });
+  } catch (e) { return { n: 0, left: [] }; }
+}
+
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
   const found = { overflow: [], hidden: [], offscreen: [], lifted: [], strays: [], shrunk: [],
@@ -1424,6 +1479,9 @@ function inspect(opts) {
      "the same size in every card" is a question across states, not inside one. */
   let loadersMeasured = 0, heldReleased = 0;
   const loaderSizes = {};
+  /* AND THE WIDGET SLOTS ON THE GLASS THE "NOT STARTED" RULE LOOKED AT, per width — see `veiledOnGlass`.
+     A count, so a run whose selector stopped matching says 0 rather than nothing. */
+  const slotsOnGlass = {};
   /* AND HOW MANY CONTROLS THE EDGE RULE (4, in `inspect`) MEASURED, per subject, for the same reason: a
      keypad that never came up and a keypad whose every key passed print the same nothing. */
   const edgesMeasured = {};
@@ -1719,6 +1777,11 @@ function inspect(opts) {
         }
 
         await settled(page);
+        /* WHATEVER COLUMN IT IS IN — see `veiledOnGlass`. Before the rest, so what they measure is the
+           glass with its widgets drawn. */
+        const veil = await veiledOnGlass(page);
+        slotsOnGlass[width] = (slotsOnGlass[width] || 0) + veil.n;
+        if (veil.left.length) rows.push({ width, id: label, as: who.as, unstarted: veil.left });
         const { found, counted, guessed, edgeN } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
@@ -2047,6 +2110,8 @@ function inspect(opts) {
     (r.tinted || []).forEach(f => add('PICTURE NOT AS TAKEN', f, at));
     (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
     (r.loaders || []).forEach(f => add('A WAIT THAT IS NOT THE ONE LOADER, OR MOVES ITS CARD', f, at));
+    (r.unstarted || []).forEach(f => add('A WIDGET ON THE GLASS NEVER STARTED',
+      `${f} still holds the loader that stands for "not started", 3s after the screen settled`, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
@@ -2123,6 +2188,8 @@ function inspect(opts) {
             + `measured again · whole pages waiting on a held payload, measured and let go: ${wholePagesHeld} · `
             + `sizes per width: ${Object.keys(loaderSizes).map(wd => wd + ' '
               + [...new Set(loaderSizes[wd].map(x => x.dot + '/' + x.gap))].join(',')).join(' · ') || 'none'}\n`);
+  console.log(`widget slots on the glass asked whether they had started: `
+            + (Object.keys(slotsOnGlass).map(wd => `${wd} ${slotsOnGlass[wd]}`).join(', ') || 'none') + '\n');
   console.log(`edges measured against what is behind them (WCAG 1.4.11, 3:1): `
             + Object.keys(edgesMeasured).map(k => `${k} ${edgesMeasured[k]}`).join(', ') + '\n');
   /* A SUBJECT THE RULE NEVER REACHED IS NOT A PASS. The Find screen's states put the answer bar, Send

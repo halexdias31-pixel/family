@@ -418,8 +418,12 @@ function go(id, remember, instant) {
   /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves.
      Markup first, `start` second — an id cannot be found before the markup carrying it is in the
      document, which is why this is here and not inside the screen's own draw. */
-  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games' && AT !== 'saved'
-      && AT !== 'shop') toolsStop_();
+  /* `toolsStop_()` WAS HERE, for any column that was not one of the four — and it stopped every
+     widget in the app, including the ones on the column beside you that a wide window shows whole.
+     That is the loader the owner sent on 10 Oct (docs/history/331). Leaving is now asked of the
+     glass rather than of `AT`: the placement `placeCells('x')` above asks for says what is on it, and
+     `widgetsGlass_` (arcade.js) stops what has left — on a phone, everything not in front, exactly as
+     this line did, once the slide has settled rather than before it begins. */
   /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
@@ -1867,6 +1871,46 @@ function dragFast_(drag) {
    either side and the glass showed three, and an empty card sat on the glass of the owner's iPad. */
 const glassRows_ = () => (WIDE ? 3 : 2);
 
+/* ---------- WHICH CARDS ARE ON THE GLASS, SAID ONCE PER PLACEMENT -----------------------------------
+   ASKED FOR BY WHAT RUNS IN THEM. The owner, 10 Oct, on a 1194px window: *"these remain loading untill
+   i scroll to them. i dont like this"* — two widget cards on the column beside Settings, each the
+   loader and a star, because only the column in front ever started its widgets. `widgetsGlass_`
+   (arcade.js) starts what is on the glass and stops what has left it, and this is where "on the glass"
+   comes from, because this function is the one that put everything where it is.
+
+     · `cols` — the column in front, and on a wide window every column showing MORE of its card than
+       `WIDE_EDGE`, the edge the layout leaves past the last whole card on purpose: at 1194, 1280 and
+       1920 that edge is 8px of card, which shows no widget, and at 768 or 1700 it is 144–146px, which
+       shows a third of one. On a phone the neighbour is the 6% peek — a band of card edge — and is
+       not counted, so a phone runs what it always ran: the column in front.
+     · `pages` — down each of those columns, the pages whose card is inside the window where this
+       placement leaves it (the column's shift plus the page's own top and height), out to
+       `glassRows_` either side, the furthest this function draws.
+   READ IN THE PASS THAT IS ALREADY READING — after `columnShift_`'s layout and before a single write —
+   so it forces no layout of its own; never during a drag, when nothing is created or stopped and the
+   answer would be thrown away sixty times a second. `at` says which column in front it was worked
+   out for, so a column change asked for and not yet placed is not mistaken for it (`widgetsLater_`). */
+let GLASS = { at: null, cols: [], pages: [] };
+
+function glassNow_(hosts, ti, stepX) {
+  const out = { at: AT, cols: [], pages: [] };
+  const W = appWidth_();
+  const card = WIDE ? stepX - CELL_GAP : 0;
+  hosts.forEach(h => {
+    const dx = h.i - ti;
+    if (dx && !(WIDE && W / 2 + card / 2 - Math.abs(dx) * stepX > WIDE_EDGE)) return;
+    out.cols.push(h.id);
+    const H = h.host.clientHeight || innerHeight;
+    const at = PAGE[h.id] || 0;
+    h.host.querySelectorAll(':scope > .page').forEach((el, pos) => {
+      if (Math.abs(logIndex_(h.id, pos) - at) > glassRows_()) return;
+      const top = h.shift + el.offsetTop;
+      if (top < H && top + el.offsetHeight > 0) out.pages.push(el);
+    });
+  });
+  return out;
+}
+
 function placeGrid(instant, drag) {
   if (drag && dragFast_(drag)) return;
   DRAG_PLAN = null;
@@ -1932,6 +1976,8 @@ function placeGrid(instant, drag) {
   hosts.forEach(h => {
     h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0)) + (h.id === AT ? dyPx : 0);
   });
+  /* AND WHICH CARDS THAT LEAVES ON THE GLASS — see `GLASS`. Still in the reading pass. */
+  if (!drag) GLASS = glassNow_(hosts, ti, stepX);
   /* THE SETTLE, if this placement is the one a release asked for. The distance is the column that
      moves furthest along the swipe's axis, read off where the last placement put it — the drag's last
      position, written inline, so nothing is forced to lay out — against the one it is about to get. */
@@ -2192,6 +2238,14 @@ function placeNow_(which, instant, dragPx, id) {
      That is most of what made a sideways swipe feel heavy, and none of it was doing anything. They
      run when the drag ends, which is when the answer can have changed. */
   if (dragPx) return;
+
+  /* ---------- AND WHAT RUNS IN THE CARDS THIS LEFT ON THE GLASS ------------------------------------
+     A third sweep with the same reason to wait for the release: a widget on the glass is started and
+     one that has left it is stopped (`widgetsGlass_`, arcade.js, from `GLASS` above), and a finger
+     dragging a column across is neither — it may yet let go where it began. Starting is only ever
+     QUEUED from here, one per task behind the settle, and stopping is booked for after the slide, so
+     this placement's frame pays for a walk of a short list and nothing else. */
+  if (typeof widgetsGlass_ === 'function') widgetsGlass_();
 
   /* ---------- AND WHICH CARDS ARE TOO TALL FOR THE PANE THEY ARE IN ------------------------------
      `paneReach_` GIVES AN OVERFLOWING PANE `overflow-y: auto` so `scrollHost_` can scroll it from
