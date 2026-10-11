@@ -9,3 +9,5 @@ admin only, each item a caption with its boxes and a date, and one Save per page
 Save refuses until it has answered. The backend's `saveRecord`/`dropRecord` became one
 `saveRecordsPage`, `admin` in `ACTION_ACCESS`. `check-profile.js` saves and reads a page back;
 `check/states.js` has `the business records (insurance)`. Stamps are `2026-09-30-d-bizpages`.
+
+**Since 10 Oct they are not in Settings at all** — a column of their own, the last one, for an admin only: see [334](334-the-business-records-have-a-column.md).

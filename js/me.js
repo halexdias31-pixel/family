@@ -2825,11 +2825,14 @@ function settingsPages_() {
   if (tutorHeld_() || isAdmin()) pages.push(agreementCard_());
   if (isAdmin()) pages.push(cutCard_());
   if (mayJourney_()) pages.push(journeyCard_());
-  /* THE BUSINESS'S OWN PAPERWORK, LAST AND FOR AN ADMIN — see js/records.js. They were a widget on
-     the Tools column, moved here on request; appended for the wardrobe's reason above. */
-  if (typeof bizPages_ === 'function') pages.push(...bizPages_());
-  /* AND THE WEEKLY PARENT EMAIL, AFTER THEM AND FOR AN ADMIN — see js/digest.js. Appended for the
-     wardrobe's reason above. */
+  /* THE BUSINESS'S OWN PAPERWORK WAS HERE — five cards for an admin, between the journey card and the
+     weekly email — and is a column of its own now, the last one (`screen('biz')` in js/records.js;
+     *"the business checklist stuff should go in their own column at the end"*, 10 Oct). Taking five
+     pages out moves the two behind them for an admin, which the wardrobe's note warns of: `PAGE.settings`
+     is clamped to the pages there are (`paintPager`), so an admin who had been on one of the five comes
+     back to a real page — the last — and not to nothing. */
+  /* AND THE WEEKLY PARENT EMAIL, FOR AN ADMIN — see js/digest.js. Appended for the wardrobe's reason
+     above. */
   if (typeof digestPages_ === 'function') pages.push(...digestPages_());
   /* AND WHICH EMAILS YOU WANT, LAST OF ALL AND FOR EVERYBODY SIGNED IN — see `notifyCard_`. Appended for
      the wardrobe's reason above: a card put in front would move every page behind it, and `PAGE.settings`
@@ -5192,17 +5195,23 @@ const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Upda
    comparing each box with its `defaultValue`, because the qualification shelf and the
    several-of-a-list field keep their answer in a HIDDEN input, whose `value` and `defaultValue` are the same
    attribute: a comparison would call a picked subject clean. */
+/* AND THE BUSINESS COLUMN BY THE SAME RULE. Its five cards are `.me-form`s that moved out of Settings
+   (js/records.js) and they were kept by these lines there: `bizFillAll_` leaves a card with
+   `data-dirty` alone when the records land, and `paint` leaves the column alone while one is. Scoped
+   to `#s-settings` alone, a provider typed before the records arrived would have been written over by
+   them, and a payload landing would have redrawn the column under the typing. */
+const KEEP_FORMS_ = '#s-settings .me-form, #s-biz .me-form';
 document.addEventListener('input', e => {
-  const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
+  const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
 });
 document.addEventListener('change', e => {
-  const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
+  const f = e.target && e.target.closest && e.target.closest(KEEP_FORMS_);
   if (f) f.dataset.dirty = '1';
 });
 function settingsKeep_(id) {
-  if (id !== 'settings' || !USER) return false;
-  const el = $('s-settings');
+  if ((id !== 'settings' && id !== 'biz') || !USER) return false;
+  const el = $('s-' + id);
   return !!(el && el.querySelector('.me-form[data-dirty], .me-form.is-sending'));
 }
 

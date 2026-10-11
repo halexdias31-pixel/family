@@ -169,6 +169,26 @@ const TABS = [
      `<nav id="tabs">` in index.html), so like every icon here it is carried for `applyColumns_`
      and for whatever names a column next. */
   { id: 'progress', icon: '📈', label: 'Progress', title: 'Progress' },
+  /* ---------- AND THE BUSINESS'S OWN PAPERWORK, LAST, FOR AN ADMIN AND NOBODY ELSE -------------------
+     ASKED FOR AS "the business checklist stuff should go in their own column at the end." (10 Oct)
+     They were five pages at the foot of an admin's Settings (docs/history/207) — insurance, tax, legal
+     and data, safeguarding, money and company — drawn by `bizPages_` in records.js, which is what this
+     column draws now, unchanged.
+
+     A PLACE, by this table's test: nobody narrows "is the insurance due" down by answering a question,
+     and it is not about YOU, which is what the rest of Settings is.
+
+     `admin: true` IS THE ONE COLUMN THAT IS NOT EVERYBODY'S, and the rule that leaves it out is
+     `columnsFor_` below: for anybody else there is no entry in `TABS`, so no swipe stops on it, nothing
+     counts it, and no `<section>` names it — the section is made by code for an admin rather than
+     written into index.html, which every visitor's phone parses. A card is not a permission
+     (`listRecords` and `saveRecordsPage` are `admin` in `ACTION_ACCESS`); this is about a column a
+     non-admin should not have to swipe past, or find in the page.
+
+     APPENDED, because this table is append-only. `TAB_ORDER` and the last row of
+     `data/settings/columns.json` put it last. 📋 a clipboard, which is a checklist — the emoji half
+     of the row, like 📈 above; nothing draws it today. */
+  { id: 'biz', icon: '📋', label: 'Business', title: 'Business', admin: true },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -187,8 +207,79 @@ const TABS = [
 const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
                    'spotlight',
                    'settings',
-                   'progress'];
+                   'progress',
+                   'biz'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
+
+/* ---------- EVERY COLUMN THE BUILD HAS, AND THE ONES THIS VIEWER IS GIVEN ------------------------------
+   `TABS` WAS ONE LIST WITH TWO JOBS: what the app has, and what is in front of this person. With every
+   column everybody's those were the same list. `biz` is an admin's (above), so they are three now:
+
+     TABS_BUILT  every column this build can draw, in the code's order. Never changes after this line.
+     COLUMNS     the row the sheet asks for (`applyColumns_`), or the code's row until it has asked.
+     TABS        COLUMNS, less a column this viewer is not given. What everything else reads.
+
+   `TABS` STAYS THE ONE EVERYTHING READS, and stays the same array — the axis counts it, `go` searches
+   it, the neighbours are drawn from it — so nothing that reads it had to learn there is a viewer. */
+const TABS_BUILT = TABS.slice();
+const COLUMNS = TABS.slice();
+
+/* ---------- WHICH COLUMNS THIS VIEWER IS GIVEN — THE SMALLEST RULE THAT LEAVES ONE OUT ----------------
+   A COLUMN MARKED `admin` IS IN `TABS` ONLY WHILE AN ADMIN IS SIGNED IN, and its section is in the
+   document only then. Asked at boot, when the sheet's row lands, and at the head of every `repaint` —
+   which is what signing in, signing out, a session the server ended and a role changed in the sheet
+   all end in — so the column comes and goes without a reload.
+
+   NOBODY IS MOVED BY IT. Where you are is remembered by id (`AT`), not by index, so a column added or
+   taken away beside you leaves you on the column you were on; `repaint` places the row again after.
+   The one person it moves is the one standing ON the column that went — an admin whose session ended
+   under the records — and they go to the column on its left, where a swipe back would have taken
+   them, rather than to the front door: they are still holding the phone, and the toast tells them to
+   sign in again.
+
+   THE SECTION IS MADE HERE, NOT WRITTEN IN index.html. Every visitor's phone parses that file, and a
+   section parsed for everybody and taken away for most would still be in their document for the
+   moment between — and in its source for good. Empty when made, so `paintNeighbours` draws it the
+   way it draws any column it finds empty; taken out of the document whole when it goes.
+
+   A hoisted FUNCTION, because `repaint` (a const far below) and `applyColumns_` both call it. It
+   touches `AT` only once `AT` exists: the first call is after `let AT` below. */
+function columnsFor_() {
+  let admin = false;
+  try { admin = typeof isAdmin === 'function' && isAdmin(); } catch (e) { admin = false; }
+  const want = COLUMNS.filter(t => !t.admin || admin);
+  const changed = want.length !== TABS.length || want.some((t, i) => TABS[i] !== t);
+  if (changed) {
+    /* WHERE YOU ARE, IF IT IS THE COLUMN GOING — the nearest column left of it that stays. */
+    let at = null;
+    try { at = AT; } catch (e) { at = null; }
+    if (at && !want.some(t => t.id === at) && COLUMNS.some(t => t.id === at)) {
+      const i = COLUMNS.findIndex(t => t.id === at);
+      const left = COLUMNS.slice(0, i).reverse().find(t => want.indexOf(t) !== -1);
+      AT = (left || want.find(t => t.id === TAB_HOME) || want[0]).id;
+    }
+    TABS.length = 0;
+    want.forEach(t => TABS.push(t));
+  }
+  /* AND THE SECTIONS, every time — cheap, and it puts the document right even where `TABS` did not
+     change (the first call, when index.html has just been parsed). */
+  const host = typeof document !== 'undefined' && document.getElementById('screen');
+  if (!host) return changed;
+  TABS_BUILT.forEach(t => {
+    if (!t.admin) return;
+    const el = document.getElementById('s-' + t.id);
+    const mine = TABS.indexOf(t) !== -1;
+    if (mine && !el) {
+      const s = document.createElement('section');
+      s.className = 'screen hidden';
+      s.id = 's-' + t.id;
+      host.appendChild(s);
+    } else if (!mine && el) {
+      el.remove();
+    }
+  });
+  return changed;
+}
 
 /* ---------- AND THE SHEET DECIDES, ONCE THERE IS ONE ----------------------------------------------
    THE TABLE ABOVE IS NOW THE FALLBACK. `columns` in the Widget Settings sheet says which columns the
@@ -205,13 +296,19 @@ TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
    able to make the app unusable by being blank.
 
    `TABS` IS MUTATED RATHER THAN REPLACED, because everything else in this file holds a reference to
-   it — the axis counts it, `go` searches it, the neighbours are drawn from it. */
+   it — the axis counts it, `go` searches it, the neighbours are drawn from it.
+
+   AND IT IS WRITTEN THROUGH `COLUMNS` NOW, not straight into `TABS`: the sheet decides the row, and
+   `columnsFor_` decides which of it this viewer is given. `known` is every column the BUILD has
+   (`TABS_BUILT`) rather than what `TABS` holds — it was `TABS`, and `TABS` for a non-admin has no
+   `biz`, so the first payload a visitor's phone applied would have dropped the column from the row
+   for good, and an admin signing in on that phone afterwards would have been given nothing. */
 function applyColumns_() {
   const rows = (DATA && DATA.columns) || [];
   if (!rows.length) return;
 
   const known = {};
-  TABS.forEach(t => { known[t.id] = t; });
+  TABS_BUILT.forEach(t => { known[t.id] = t; });
 
   const want = rows.map(r => known[String(r.screen || '').trim()])
                    .filter(Boolean);
@@ -227,8 +324,9 @@ function applyColumns_() {
     if (String(r.icon  || '').trim()) t.icon  = String(r.icon).trim();
   });
 
-  TABS.length = 0;
-  want.forEach(t => TABS.push(t));
+  COLUMNS.length = 0;
+  want.forEach(t => COLUMNS.push(t));
+  columnsFor_();
 
   /* WHERE `AT` IS NOW. Somebody remembered on a column the sheet has just switched off would be on a
      screen that no longer exists, and `go` would silently send them home without saying why. */
@@ -302,6 +400,9 @@ let AT = TAB_HOME;
    SUSPENDED rather than closed — see the note over `watchBuild_` — so a window left open for three
    days still counts as one session and the flag would never expire. A stamp is a fact about time
    and does not care how the window got here. */
+/* THE VIEWER'S COLUMNS FIRST — `USER` is already read out of storage (data.js), so an admin reloading on
+   Business is put back on it, and anybody else's remembered `biz` is not a column and is let go. */
+try { columnsFor_(); } catch (e) {}
 try {
   const was = localStorage.getItem('familyTab');
   const when = Number(localStorage.getItem('familyTabAt') || 0);
@@ -562,9 +663,10 @@ function startScreen_(id, arriving) {
   /* AND A TEXTBOOK'S ANIMATION PLAYS ONLY ON FIND, ONLY ON THE PAGE IN FRONT — for EVERY screen, because
      arriving anywhere else is what pauses the one on Find. See `tbAnimWatch_` in find.js. */
   if (typeof tbAnimWatch_ === 'function') tbAnimWatch_();
-  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR THE FIRST TIME THE SETTINGS COLUMN IS REACHED — a
-     POST, once, and never the payload (see js/records.js). */
-  if (id === 'settings' && typeof bizStart_ === 'function') bizStart_();
+  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR THE FIRST TIME THEIR COLUMN IS REACHED — a POST,
+     once, and never the payload (see js/records.js). It was the Settings column until they moved to
+     their own (docs/history/334). */
+  if (id === 'biz' && typeof bizStart_ === 'function') bizStart_();
   /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on
      a thread is last month — so something has to say otherwise, once the markup exists. */
   if (id === 'dm' && typeof dmFoot_ === 'function') dmFoot_();
@@ -912,6 +1014,9 @@ function awaiting_() {
    part of it, and those cases now stand out as exceptions rather than looking like the norm.
 ================================================================================================== */
 const repaint = (instant) => {
+  /* 00. WHICH COLUMNS THERE ARE, for whoever is signed in now — every sign-in and sign-out ends here, so
+         an admin's column comes and goes with them, without a reload. See `columnsFor_`. */
+  try { columnsFor_(); } catch (e) {}
   /* 0. EVERY OTHER SCREEN IS NOW OUT OF DATE — see the note on `STALE`. Marked before painting, so
         the two that are about to be drawn for real clear their own mark on the way through. */
   TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
@@ -2366,6 +2471,10 @@ const PAGER = {
      the placeholder — and counted anyway rather than written as 1: the day it is built it will be
      a page per something, and a count kept here by hand is the fault every entry above records. */
   progress: () => (typeof progressCards_ === 'function' ? progressCards_().length : 1),
+  /* THE BUSINESS RECORDS, COUNTED FROM `bizPages_`, the list `screen('biz')` draws — five cards for an
+     admin. Nought for anybody else, and that is not the "column you cannot be on" the entries above
+     guard against: for anybody else there is no column (`columnsFor_`), so nothing asks. */
+  biz: () => (typeof bizPages_ === 'function' ? bizPages_().length : 0),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -2613,7 +2722,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0 };
+               saved: 0, settings: 0, spotlight: 0, shop: 0, progress: 0, biz: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.

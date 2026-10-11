@@ -1095,7 +1095,11 @@
   <!-- ONE SECTION PER TAB. The X axis reads its cells as `$('s-' + tab.id)`, so a tab without a
        section here places nothing and swipes to a blank screen — which is what shipped once, when
        TABS was pushed and this file was not. `TAB_ORDER` in shell.js decides the travelling order;
-       the order here does not matter. -->
+       the order here does not matter.
+       EXCEPT A COLUMN THAT IS NOT EVERYBODY'S: its section is made by `columnsFor_` in shell.js for
+       the one visitor it is for, and is not written here — this file is every visitor's document, and
+       a column one person may see should not be named in everybody else's. `check-doors.js` asks
+       both halves. -->
   <section class="screen hidden" id="s-feed"></section>
   <section class="screen hidden" id="s-booking"></section>
   <section class="screen hidden" id="s-shop"></section>

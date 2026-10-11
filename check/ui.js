@@ -1680,10 +1680,21 @@ function inspect(opts) {
       /* DRIVEN THROUGH THE APP'S OWN FRONT DOOR. `go(id)` is what a tap calls, so anything it does
          on the way — remembering the page, painting neighbours — happens here too. A check that
          reaches past the app's navigation is checking a state the app cannot actually be in. */
+      /* ---------- A COLUMN THIS VISITOR IS NOT GIVEN IS NOT MEASURED IN THEIR NAME ---------------------
+         `biz` IS AN ADMIN'S (`columnsFor_`, shell.js; docs/history/334), and `go('biz')` for anybody else
+         lands on the front door — so `--screen=biz` for the signed-out visitor measured the FEED and
+         reported it as Business. Asked of the app's own row, asked again first (`columnsFor_`) because a
+         Settings state plays another role on this visitor's phone and a repaint inside it leaves the row
+         that role's: absent is a skip, said as one. */
       const went = await page.evaluate(sid => {
-        try { if (typeof go === 'function') { go(sid, false, true); return true; } } catch (e) {}
+        try {
+          if (typeof columnsFor_ === 'function') columnsFor_();
+          if (typeof TABS !== 'undefined' && !TABS.some(t => t.id === sid)) return 'absent';
+          if (typeof go === 'function') { go(sid, false, true); return true; }
+        } catch (e) {}
         return false;
       }, id);
+      if (went === 'absent') { rows.push({ width, id, as: who.as, skipped: 'not a column this visitor is given' }); continue; }
       if (!went) { rows.push({ width, id, as: who.as, skipped: 'no go()' }); continue; }
       await page.waitForTimeout(450);
 

@@ -37,9 +37,13 @@ any name used but never declared. Run it after every change.
 | `js/find.js` | The funnel — the app's main surface. Biggest file at 185 KB. |
 | `js/book.js` | Sessions, seats, payment. |
 
-Twelve screens are registered, in `TAB_ORDER` (js/shell.js): `feed`, `booking`, `shop` (things for
+Fourteen screens are registered, in `TAB_ORDER` (js/shell.js): `feed`, `booking`, `shop` (things for
 sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (the funnel — learning
-only now — and the root), `account`, `tools`, `games`, `saved`, `spotlight`, `settings`.
+only now — and the root), `account`, `tools`, `games`, `saved`, `spotlight`, `settings`, `progress` (a
+placeholder), and last, **for an admin only**, `biz` — the business records (insurance, tax, legal and
+data, safeguarding, money and company). A tab marked `admin: true` is left out of `TABS` for anybody
+else by `columnsFor_` in shell.js, which also makes its `<section>` for an admin and takes it away
+again — so it has none in index.html, and signing in or out adds or removes it without a reload.
 
 ### Layout, and why the checks are shaped the way they are
 

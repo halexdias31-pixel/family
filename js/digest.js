@@ -26,7 +26,8 @@
    A THING, SO A TILE. The card is about one thing — the weekly email — and Preview is an action on it,
    which is the tile rule in CLAUDE.md; there is no form here for a button to belong to.
 
-   APPENDED LAST, after the business records, for the wardrobe's reason in `settingsPages_`:
+   APPENDED LAST, after the journey card (the business records were between them until they became a
+   column of their own, docs/history/334), for the wardrobe's reason in `settingsPages_`:
    `PAGE.settings` remembers where somebody was, and a card in front would move every index behind it.
 ================================================================================================== */
 /* `got` is the last answer, so the mode on the card is the server's once it has said, and the config
