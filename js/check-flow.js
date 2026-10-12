@@ -782,10 +782,13 @@ check('a YouTube Short is a reel: poster first, one muted nocookie player when r
   await wait(LEAVE_MS); await woken_();
   const host = d.querySelector('#s-reel');
   if (!host) return ['the Reels column did not draw'];
+  /* THIS SHORT, NOT ANY SHORT. There were one Short and two mp4s, so "the first `.feed-yt` ahead" was
+     this one; a second Short (12 Oct) made it a coin toss which this journey asked about, and the poster
+     line below names this id. A lap is as many pages as there are clips, read off the app's own deal. */
   const ytAway = () => [...host.querySelectorAll('.reel')]
-    .find(r => r.querySelector('.feed-yt') && Number(r.dataset.reel) > at());
-  /* DEALT TO THE PAGE IN FRONT, its next copy is one lap on — and turning one page appends that lap. */
-  if (!ytAway()) await turn(1);
+    .find(r => r.querySelector('.feed-yt[data-yt="jD2Yy_wCBLE"]') && Number(r.dataset.reel) > at());
+  /* DEALT TO THE PAGE IN FRONT, its next copy is one lap on — walked to, a page at a time. */
+  for (let k = 0; k < 12 && !ytAway(); k++) await turn(at() + 1);
   const reel = ytAway();
   if (!reel) return ['no slide in the Reels column holds the YouTube row: ' + [...host.querySelectorAll('.reel')].length + ' reels drawn'];
   const n = Number(reel.dataset.reel);
@@ -973,10 +976,13 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   t.go('reel', false, true);
   await wait(LEAVE_MS); await woken_();
   if (!d.querySelector('#s-reel')) return ['the Reels column did not draw'];
-  /* THE SHORT IS DEALT ONE CLIP IN THREE, at a random page per open. Its copies are a lap apart, and
-     if it was dealt to the page in front its next copy is drawn by the first turn. */
-  const ahead = () => [...d.querySelectorAll('#s-reel .reel')].find(r => r.querySelector('.feed-yt') && Number(r.dataset.reel) > at());
-  if (!ahead()) await turn(1);
+  /* THE SHORT IS DEALT ONCE A LAP, at a random page per open, and its copies are a lap apart. A LAP IS
+     EVERY CLIP ONCE — three pages while there were three clips, which this journey once wrote as `+ 3`
+     and which a fourth clip (12 Oct) broke: page n + 3 held another reel. So the lap is read off the
+     app's own deal, and the Short asked about is one id, not whichever `.feed-yt` comes first. */
+  const LAP = (typeof w.clipsNow_ === 'function' ? w.clipsNow_().length : 0) || 3;
+  const ahead = () => [...d.querySelectorAll('#s-reel .reel')].find(r => r.querySelector('.feed-yt[data-yt="jD2Yy_wCBLE"]') && Number(r.dataset.reel) > at());
+  for (let k = 0; k < 12 && !ahead(); k++) await turn(at() + 1);
   const first = ahead();
   if (!first) return ['no YouTube Short ahead in the Reels column to ask about'];
   const n = Number(first.dataset.reel);
@@ -997,19 +1003,19 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   if (reel.classList.contains('is-held')) bad.push('A: a tap on a Short that cannot play drew a ▶ over its door');
 
   /* B: NEVER ANSWERS, AND IS FLICKED ONE PAGE AWAY before the clock runs out. */
-  await reach(n + 3);
-  reel = reelAt(n + 3);
-  if (!reel || !reel.querySelector('.feed-yt')) return bad.concat(['the Short\'s next lap is not on page ' + (n + 3)]);
-  await turn(n + 4);
+  await reach(n + LAP);
+  reel = reelAt(n + LAP);
+  if (!reel || !reel.querySelector('.feed-yt')) return bad.concat(['the Short\'s next lap is not on page ' + (n + LAP)]);
+  await turn(n + LAP + 1);
   if (!reel.querySelector('iframe')) bad.push('B: the page next door lost its player — a flick back would reload it');
   ring('clock');
   if (!dead(reel)) bad.push('B: a player that said nothing for the whole clock, a page away when it ran out, was not given up on — no door when you flick back');
 
   /* C: ANSWERS, NEVER PLAYS, AND IS HELD WHEN THE CLOCK RUNS OUT — waits; the next ask winds a fresh clock. */
-  await reach(n + 6);
-  reel = reelAt(n + 6);
+  await reach(n + 2 * LAP);
+  reel = reelAt(n + 2 * LAP);
   const fc = reel && reel.querySelector('iframe');
-  if (!fc) return bad.concat(['the Short on page ' + (n + 6) + ' built no player']);
+  if (!fc) return bad.concat(['the Short on page ' + (n + 2 * LAP) + ' built no player']);
   hear(fc, { event: 'onReady' });
   tap(reel);
   ring('clock');
@@ -1021,10 +1027,10 @@ check('a YouTube Short that never answers ends at its door even held or a page a
   if (!dead(reel)) bad.push('C: a player asked to play for a whole clock that never played its first frame was not given up on');
 
   /* D: A LAP. Ended, unstarted, buffering, playing — the picture stays up through all of it. */
-  await reach(n + 9);
-  reel = reelAt(n + 9);
+  await reach(n + 3 * LAP);
+  reel = reelAt(n + 3 * LAP);
   const fd = reel && reel.querySelector('iframe');
-  if (!fd) return bad.concat(['the Short on page ' + (n + 9) + ' built no player']);
+  if (!fd) return bad.concat(['the Short on page ' + (n + 3 * LAP) + ' built no player']);
   const box = reel.querySelector('.feed-yt');
   hear(fd, { event: 'onReady' });
   hear(fd, { event: 'onStateChange', info: 1 });
