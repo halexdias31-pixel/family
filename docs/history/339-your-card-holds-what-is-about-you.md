@@ -442,3 +442,21 @@ every one was proved again from nothing, on a fresh export of the reviewed commi
 
 Two comments that still called the child forms' headings captions (`kidAddSec_`, the `.kid-sec` rule) were put right;
 the stylesheet's `--css-version` moved with it.
+
+**The browser half of the proof, again**: `check/ui.js` with `.kid-manage` out of `paneReach_`'s forms (320: both Manage
+states NOT measured), the headings put back as captions (390: the same two), Saved out of `KEEP_FORMS_` (390:
+`{"same":false,"val":"Merton"}`), and the tap exemption's scope switched off (account at 320: 23 wardrobe targets as
+TAP TARGET) — each red, the copy put back. Manage your child at 320, looked at: full size, both headings readable, the
+pane scrolling to Ask them.
+
+**The runs, on a machine at a load average of 20 to 44 all evening**: the 54 fast checks of `check-all` pass
+(`check-dead` the same 8 + 5 names as the base commit). `check-flow`, 339 journeys in four parts: 338 pass, and the one
+red — the taboo round, a games journey — passed run again alone. `check/ui.js` settings (150 combinations), tools (110),
+saved and account (155): nothing new; account's first run fell over on a 30s screenshot timeout and passed run again.
+`press.js` tools and saved pass; settings and account each failed only touch timings — the whiteboard's padlock tap, a
+star's press mark, a games flick, a tap on a question's picture — twice each, and **the reviewed commit failed the same
+padlock tap and more under the same load**. `cascade.js` passes. `swipe.js` was red three times on this tree with a
+different one to three REACH findings each time (wide-window mouse and keyboard reach beside Find, the drag-frame
+count), and red on the reviewed commit run beside it with two of the same; nothing it measures was touched here.
+`check-submissions.js` went red after 23:00 UTC — "last 2026-10-11, wanted 2026-10-12" — and is red the same way on
+the base commit: London's midnight comes an hour before the server clock's, a check fault of its own, not this note's.
