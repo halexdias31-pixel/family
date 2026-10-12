@@ -3945,7 +3945,8 @@ const STATES = {
         const form = pg && pg.querySelector('.card-ed .me-form');
         if (!form) return 0;
         const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
-        return secs === 'picture,name,rate,headline,photos,words,glance,quals,where,week'
+        /* YOUR FIGURE AFTER THE PICTURE AND YOUR HANDLE AFTER THE NAME, on your own card (docs/history/339). */
+        return secs === 'picture,figure,name,handle,rate,headline,photos,words,glance,quals,where,week'
           && !!form.querySelector('.pfp [data-do="pfp-pick"]')
           && form.querySelectorAll('.me-week .slot-row:not(.slot-head)').length === 7
           && form.querySelectorAll('.me-week .hr input[data-me]').length === 70
@@ -3976,7 +3977,7 @@ const STATES = {
           && !form.querySelector('img[loading="lazy"]')
           && !!form.querySelector('.ce-sec[data-sec="glance"] [data-me="min_hours"]') ? 1 : 0;
       },
-      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order, the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
+      wants: 'your card as its own form at full size in a pane that scrolls: every section in the card\'s order (the figure and the handle among them), the picture chooser, three photographs fetched at once, three qualifications, the session length, the map, all seven days of the week, Save and Cancel as tiles in reach at the foot of the pane, and Sign out under them' },
     /* ---------- AND ANOTHER TUTOR'S CARD, EDITED BY AN ADMIN ---------------------------------------------------
        Decision 3 of the brief: `updateProfile` already lets an admin write another person's row, so an admin's
        Edit on the fixture tutor opens the same form — filled from `getProfile`, which the lab's backend cannot
@@ -4016,25 +4017,343 @@ const STATES = {
           && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2 ? 1 : 0;
       },
       wants: 'the fixture tutor\'s card as a form for the admin: their headline in its box, their picture shown and not offered, the whole week, Save and Cancel' },
+    /* ---------- EVERYBODY'S OWN CARD, BEING EDITED — THE FIGURE AND THE HANDLE ON IT (docs/history/339) ---------------
+       THE OWNER, 11 Oct: *"the random name generator should be one of the editable things in the profile settings of
+       the profile card. your figure should also be in your profile card editing."* Edit on your own card is
+       everybody's now, and for somebody with no public card — the lab's admin, a parent, a student — the form is the
+       four sections their card prints: the picture, the figure (the wardrobe, which was the last page of Settings),
+       the name and the handle (Randomise, which was on Settings' Signing in card). Each is measured at every width,
+       as the visitor the lab has (an admin with no tutor row) and then as a parent and a student, by giving the
+       same visitor that role the way the exam-dates state on Settings does. `USER.profile` is filled the way
+       `myProfile` fills it (`phone_cc`), or the form waits for a copy it can trust. */
+    ...['', 'client', 'student'].map(role => ({
+      name: role === '' ? 'your own card, being edited, with no public card'
+        : (role === 'client' ? 'a parent\'s' : 'a student\'s') + ' own card, being edited',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: new Function('return (' + String(role => {
+        window.__CE_OWN = { role: USER.role, roles: USER.roles, profile: USER.profile, avatar: USER.avatar };
+        if (role) { USER.role = role; USER.roles = [role]; }
+        USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44', photo: '' });
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        CARD_EDIT.pic0 = ''; CARD_EDIT.fig0 = String(USER.avatar || '');
+        if (role) repaint(); else paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed .me-form'));
+        if (at < 0) throw new Error('your own card did not open for editing');
+        goPage('account', at, true);
+      }) + ')(' + JSON.stringify(role) + ');'),
+      leave: () => {
+        const w = window.__CE_OWN || {};
+        USER.role = w.role; USER.roles = w.roles; USER.profile = w.profile; USER.avatar = w.avatar; delete window.__CE_OWN;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const form = pg && pg.querySelector('.card-ed .me-form');
+        if (!form) return 0;
+        const secs = [...form.querySelectorAll('.ce-sec')].map(x => x.dataset.sec).join(',');
+        const fig = form.querySelector('.ce-sec[data-sec="figure"]'), hd = form.querySelector('.ce-sec[data-sec="handle"]');
+        const pane = form.closest('.pane');
+        return secs === 'picture,figure,name,handle'
+          && !!form.querySelector('.pfp [data-do="pfp-pick"]')
+          && !!fig && fig.querySelectorAll('.av-figure').length === 1 && !!fig.querySelector('[data-do="av-colour"]') && !!fig.querySelector('[data-do="av-pick"]')
+          && !!hd && (hd.querySelector('.handle-shown') || {}).textContent === (USER.handle || '')
+          && hd.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"]').length === 1 && !hd.querySelector('input, .btn')
+          && !!form.querySelector('[data-me="first_name"]') && !form.querySelector('[data-me="email"], [data-me="headline"], [data-me^="lib"]')
+          && pg.querySelectorAll('.ce-tiles .tile[data-do="card-save"], .ce-tiles .tile[data-do="card-cancel"]').length === 2
+          && !(form.closest('.card-ed').style.zoom && form.closest('.card-ed').style.zoom !== '1')
+          && !!pane && (pane.scrollHeight <= pane.clientHeight + 2 || getComputedStyle(pane).overflowY === 'auto')
+          && pg.querySelectorAll('[data-do="signout"]').length === 1 ? 4 : 0;
+      },
+      wants: 'your own card as its form, at full size in a pane that scrolls: the picture, your figure (the wardrobe), your name and your handle with Randomise and nothing to type, nothing else, Save and Cancel, and Sign out under them' })),
+
+    /* ---------- YOUR HANDLE, ON YOUR OWN CARD: SHOWN, WITH RANDOMISE, AND NO BOX ----------------------------------
+       ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise it but it will
+       follow that general name."* — and on 11 Oct, *"the random name generator should be one of the editable things in
+       the profile settings of the profile card"*, so it is the handle section of your own card's Edit, where the card
+       prints it under your name (it was on Settings' Signing in card). FOUR THINGS TOGETHER, because each on its own
+       passes a section that got one of the others wrong: exactly one shown handle and it is `USER.handle`, exactly one
+       `@` in front of it (the `@@ada` fault `check-handles.js` guards in the fixture), one Randomise TILE, and nothing to
+       type into — and a fifth, the line under it saying Cancel does not put the old one back, because the press saves at
+       once. The pane is scrolled so the section is on the glass, and that is asked too. */
+    { name: 'your handle, on your own card',
+      only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
+      enter: () => {
+        window.__CE_OWN = { profile: USER.profile };
+        USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed .ce-sec[data-sec="handle"]'));
+        if (at < 0) throw new Error('no handle section on your own card\'s Edit');
+        goPage('account', at, true);
+        const sec = pages[at].querySelector('.card-ed .ce-sec[data-sec="handle"]'), pane = sec.closest('.pane');
+        if (pane) pane.scrollTop += sec.getBoundingClientRect().top - pane.getBoundingClientRect().top - 12;
+      },
+      leave: () => {
+        USER.profile = (window.__CE_OWN || {}).profile; delete window.__CE_OWN;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const sec = pg && pg.querySelector('.card-ed .ce-sec[data-sec="handle"]');
+        if (!sec) return 0;
+        const shown = sec.querySelectorAll('.handle-shown');
+        const line = sec.querySelector('.handle-now');
+        const r = sec.getBoundingClientRect(), b = sec.closest('.pane').getBoundingClientRect();
+        return (shown.length === 1 && shown[0].textContent === USER.handle
+                && line && (line.textContent.match(/@/g) || []).length === 1
+                && sec.querySelectorAll('[data-do="handle-shuffle"]').length === 1
+                /* A TILE, NOT A BUTTON — *"a THING has tiles; a FORM has buttons"*, and the handle is a thing. */
+                && sec.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"] svg.tile-i-shuffle').length === 1
+                && !sec.querySelector('.btn, input, #handle-new, [data-do="handle-save"]')
+                && /Cancel does not put the old one back/.test((sec.querySelector('.handle-said') || {}).textContent || '')
+                && r.top >= b.top - 1 && r.top < b.bottom - 40
+                && !document.querySelector('#s-settings .handle-shown, #s-settings [data-do="handle-shuffle"]')) ? 1 : 0;
+      },
+      wants: 'the handle section of your own card\'s Edit on the glass: the handle shown once with one @, a Randomise tile with its mark, nothing to type into, the line saying Cancel does not undo it — and no handle on Settings' },
+
+    /* ---------- THE WARDROBE, ON YOUR OWN CARD — ONE SECTION, AND A PICK THAT REDRAWS IT -------------------------------
+       It was the last page of Settings, "Your figure", one card since *"should just be 1"*; on 11 Oct, *"your figure
+       should also be in your profile card editing"*, so it is the figure section of your own card's Edit, straight
+       under the picture. ONE section holding the swatches, all six slots and ONE figure; the pane scrolled to it, so it
+       is measured on the glass at every width. And a pick, the same tick as the press (`avatarSave` redraws before the
+       server answers; the lab's stub answers with the payload, which carries no `avatar`): the figure redrawn, the
+       picked item ringed, AND THE PICTURE'S "YOUR FIGURE" ONE SECTION UP REDRAWN WITH IT — the figure is what the
+       picture draws (docs/history/324), so the two must never disagree on one form. */
+    { name: 'the wardrobe, on your own card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__CE_OWN = { profile: USER.profile };
+        USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed .ce-sec[data-sec="figure"]'));
+        if (at < 0) throw new Error('no figure section on your own card\'s Edit');
+        goPage('account', at, true);
+        const sec = pages[at].querySelector('.card-ed .ce-sec[data-sec="figure"]'), pane = sec.closest('.pane');
+        if (pane) pane.scrollTop += sec.getBoundingClientRect().top - pane.getBoundingClientRect().top - 12;
+      },
+      leave: () => {
+        USER.profile = (window.__CE_OWN || {}).profile; delete window.__CE_OWN;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const sec = pg && pg.querySelector('.card-ed .ce-sec[data-sec="figure"]');
+        if (!sec) return 0;
+        const r = sec.getBoundingClientRect(), b = sec.closest('.pane').getBoundingClientRect();
+        return !!sec.querySelector('.av-card [data-do="av-pick"]') && !!sec.querySelector('.av-card [data-do="av-colour"]')
+          && document.querySelectorAll('#s-account .av-figure').length === 1
+          && r.top >= b.top - 1 && r.top < b.bottom - 40
+          && !document.querySelector('#s-settings .av-card, #s-settings [data-do="av-pick"]') ? 1 : 0;
+      },
+      wants: 'the figure section of your own card\'s Edit on the glass: the colours, every slot and one figure — and no wardrobe on Settings' },
+    { name: 'a pick redraws the figure, and the picture\'s "your figure" with it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__CE_OWN = { profile: USER.profile, avatar: USER.avatar };
+        USER.profile = Object.assign({}, USER.profile || {}, { phone_cc: '+44' });
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.card-ed [data-do="av-pick"]'));
+        if (at < 0) throw new Error('no wardrobe on your own card\'s Edit');
+        goPage('account', at, true);
+        /* THE PAGE BY INDEX, NOT BY `.page.on` — `goPage` sets that class through `paintPager`. */
+        const pg = pages[at];
+        const fig = pg.querySelector('.av-figure');
+        const was = fig ? fig.innerHTML : '';
+        const opt = pg.querySelector('.pfp-opt[data-pic="avatar"]');
+        const optWas = opt ? opt.innerHTML : '';
+        const pick = [...pg.querySelectorAll('[data-do="av-pick"]')]
+          .find(b => !b.classList.contains('on') && !b.classList.contains('locked') && b.dataset.slot === 'hair');
+        if (pick) pick.click();
+        /* READ IN THE SAME TICK AS THE PRESS — see the note above. */
+        const now = pg.querySelector('.av-figure');
+        const ringed = pick && pg.querySelector('[data-do="av-pick"][data-slot="' + pick.dataset.slot
+          + '"][data-id="' + pick.dataset.id + '"].on');
+        const optNow = pg.querySelector('.pfp-opt[data-pic="avatar"]');
+        window.__AV_MOVED = !!pick && !!now && !!was && now.innerHTML !== was && !!ringed
+          && !!optNow && !!optWas && optNow.innerHTML !== optWas;
+        const sec = pg.querySelector('.card-ed .ce-sec[data-sec="figure"]'), pane = sec && sec.closest('.pane');
+        if (pane) pane.scrollTop += sec.getBoundingClientRect().top - pane.getBoundingClientRect().top - 12;
+      },
+      leave: () => {
+        const w = window.__CE_OWN || {};
+        USER.profile = w.profile; USER.avatar = w.avatar; delete window.__CE_OWN;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => window.__AV_MOVED,
+      wants: 'a hairstyle picked in the figure section redraws the figure, rings the pick, and redraws the picture\'s "your figure" one section up' },
+    /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
+       *"everyone should have a profile picture selector widget in account settings"* — the picture section of
+       your own card's Edit since docs/history/339, for everybody, so these three states are the You column's. Seeded with a
+       picture already kept, so the preview is a photograph rather than the initial and `Remove` is
+       live: a square preview, `Choose photo` and `Remove` as tiles, the hidden file input that takes
+       images, and no link box. At four widths, because the preview sits beside two tap targets and
+       a line of text and is the one row on the card that could wrap at 320. */
+    { name: 'your picture, chosen',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'data/reels/archetest.jpg', phone_cc: '+44' });
+        /* ON YOUR OWN CARD'S EDIT, where the picker is since docs/history/339 — the form opened as Edit opens
+           it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
+        if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const face = box.querySelector('.pfp-face');
+        const r = face && face.getBoundingClientRect();
+        const rm = box.querySelector('.tile[data-do="pfp-remove"]');
+        const inp = box.querySelector('input.pfp-in[type="file"]');
+        return !!face.querySelector('img') && r.width > 40 && Math.abs(r.width - r.height) < 1
+          && !!box.querySelector('.tile[data-do="pfp-pick"]') && !!rm && !rm.disabled
+          && !!inp && inp.hidden && /image\/\*/.test(inp.accept)
+          && !pg.querySelector('[data-me="photo"]') ? 1 : 0;
+      },
+      wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
+    /* ---------- YOUR PICTURE, ONE OF ELEVEN — AT REST, AND WITH THE FOX CHOSEN ---------------------
+       THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like
+       xbox dp selector, which allow you to use your avatar as a dp."* The grid under the preview: your
+       figure first, then the ten, every one a 44px target or more, in one block that fits the card —
+       FOUR TO A ROW where the picker is under 294px wide (three rows) and SIX where it is not (two
+       rows), the line under the grid rather than beside the tiles. At rest nothing is ringed and the
+       preview is your initial; with the fox chosen the preview IS the fox, the gold ring is on it and
+       only it, and Remove is live because there is a picture to remove. Measured by `check/ui.js` at
+       every width for the tap targets, the contrast and the sideways scroll; asserted here for the
+       shape, because a grid of eleven that wraps 5-5-1 or runs off the card measures as eleven fine
+       buttons. */
+    { name: 'your picture, the eleven at rest',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: '', phone_cc: '+44' });
+        /* ON YOUR OWN CARD'S EDIT, where the picker is since docs/history/339 — the form opened as Edit opens
+           it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
+        if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const opts = [...box.querySelectorAll('.pfp-grid .pfp-opt')];
+        const b = box.getBoundingClientRect();
+        const grid = box.querySelector('.pfp-grid').getBoundingClientRect();
+        const said = box.querySelector('.pfp-said').getBoundingClientRect();
+        /* ZOOM: `paneReach_` may draw a tall card smaller to fit its pane, so a size is read in the
+           card's own pixels — the box's layout width over its drawn width. */
+        const z = box.offsetWidth ? b.width / box.offsetWidth : 1;
+        /* HOW MANY ON EACH ROW, not merely how many rows: 5, 5, 1 is three rows too, and it is the
+           orphan this layout exists to avoid. */
+        const tops = opts.map(o => Math.round(o.getBoundingClientRect().top / z));
+        const rows = [...new Set(tops)].map(t => tops.filter(x => x === t).length).join(',');
+        const big = opts.every(o => { const r = o.getBoundingClientRect(); return r.width / z >= 43.5 && r.height / z >= 43.5; });
+        return opts.length === 11 && opts[0].dataset.pic === 'avatar' && !!opts[0].querySelector('svg.avatar.is-bust')
+          && opts.slice(1).every(o => o.querySelector('svg.pfp-art'))
+          && !box.querySelector('.pfp-opt.on') && !!box.querySelector('.pfp-face .pfp-none')
+          && big && grid.right <= b.right + 0.5 && grid.left >= b.left - 0.5
+          && rows === (box.offsetWidth >= 294 ? '6,5' : '4,4,3')
+          && said.top >= grid.bottom - 1
+          && !!box.querySelector('.tile[data-do="pfp-remove"]') && box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 11 : 0;
+      },
+      wants: 'your figure then the ten pictures, each 44px or more, none ringed, the initial in the preview, 4/4/3 under 294px and 6/5 from it, the line under the grid, and Remove off' },
+    { name: 'your picture, the fox chosen',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'pfp:fox', phone_cc: '+44' });
+        /* ON YOUR OWN CARD'S EDIT, where the picker is since docs/history/339 — the form opened as Edit opens
+           it, and the copy it is drawn from shaped as `myProfile` sends it (`phone_cc`). */
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        CARD_EDIT = cardEditFresh_(USER.personId);
+        paint('account');
+        const at = [...document.querySelectorAll('#s-account .page')].findIndex(pg => pg.querySelector('.card-ed .pfp'));
+        if (at < 0) throw new Error('no picture picker on your own card\'s Edit');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        CARD_EDIT = null;
+        document.querySelectorAll('#s-account .card-ed .me-form').forEach(f => f.removeAttribute('data-dirty'));
+        repaint(true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const on = [...box.querySelectorAll('.pfp-opt.on')];
+        const face = box.querySelector('.pfp-face');
+        const r = face.getBoundingClientRect();
+        const art = face.querySelector('svg.pfp-art');
+        const ring = on[0] && getComputedStyle(on[0]).boxShadow;
+        return on.length === 1 && on[0].dataset.pic === 'fox' && on[0].getAttribute('aria-pressed') === 'true'
+          && !!ring && ring !== 'none'
+          && !!art && Math.abs(art.getBoundingClientRect().width - r.width) < 3
+          && /fox is your picture/i.test(box.querySelector('.pfp-said').textContent)
+          && !box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 1 : 0;
+      },
+      wants: 'the fox in the preview, filling it; the gold ring on the fox and nowhere else, pressed; the line saying the fox is your picture; Remove live' },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
      IT HAS THIRTEEN PAGES AND THE LAB HAD ONLY EVER SEEN THE FIRST. `check/ui.js` measures the page
-     a column opens on, so `About you` was the whole of Settings as far as this file was concerned
-     — and that column now also holds the library cards and the wardrobe card. Same fault as
-     the Find screen measured only on its first question, one column along: what was missing was
-     never a rule, it was a state.
+     a column opens on, so `About you` was the whole of Settings as far as this file was concerned.
+     Same fault as the Find screen measured only on its first question, one column along: what was
+     missing was never a rule, it was a state. (The library cards, the wardrobe, the handle and the
+     picture were pages here and are measured where they are now — Tools, and your own card's Edit on
+     the You column — since docs/history/339.)
 
-     THE WARDROBE IS FOUND BY ASKING THE DOM. A literal page number would drift the moment a
+     EVERY CARD IS FOUND BY ASKING THE DOM. A literal page number would drift the moment a
      deployment sends one `profileFields` group fewer, and a state that lands on the wrong page fails loudly
      through `expect` rather than measuring the wrong card in silence. */
   settings: [
     { name: '' },
-    /* ---------- YOUR CHILD'S ACCOUNT, MADE: THE SLIP ON THE CARD -----------------------------------------
-       *"so all kids can login easily with their handle and pin."* After "Make their account" the card
-       grows a paper slip with the handle and the PIN, held as `KID_MADE` for the signed-in parent. The
-       admin visitor holds the role the card is for, so it is drawn; the slip is set straight into the
-       state, as `kid-make` sets it, and the page holding the card is turned to. */
+    /* ---------- YOUR CHILD'S ACCOUNT, MADE: THE SLIP ON "MANAGE YOUR CHILD" -----------------------------------------
+       *"so all kids can login easily with their handle and pin."* After "Make their account" the make section of
+       "Manage your child" (one card since docs/history/339, the make and the add forms under the children linked to
+       you) grows a paper slip with the handle and the PIN, held as `KID_MADE` for the signed-in parent. The admin
+       visitor holds the role the card is for, so it is drawn; the slip is set straight into the state, as `kid-make`
+       sets it, and the page holding the card is turned to. The card is the tallest thing on the column with the slip
+       on it — both forms and the slip — so it is measured at every width. */
     { name: 'your child\'s account, made',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
       enter: () => {
@@ -4053,17 +4372,19 @@ const STATES = {
       leave: () => { KID_MADE = { pid: '', name: '', handle: '', pin: '' }; paint('settings'); },
       expect: () => {
         const pg = document.querySelector('#s-settings .page.on');
-        const slip = pg && pg.querySelector('.kid-make .pin-slip');
+        const slip = pg && pg.querySelector('.kid-manage .kid-make .pin-slip');
         return slip && slip.querySelectorAll('.pin-slip-v').length === 2
           && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
+          && pg.querySelectorAll('.kid-manage .kid-add [data-kid]').length === 2
           && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
       },
-      wants: 'the make card with its three boxes, and the slip: the handle and the PIN, neither running off it' },
+      wants: '"Manage your child" with the make form\'s three boxes, the slip — the handle and the PIN, neither running off it — and the add form\'s two boxes under it' },
     /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED ------------------------
        The PR #130 review: no child is put on an account until its address is confirmed (`confirmFirst_`
-       in people.gs), so a PENDING parent's Settings draws ONE card where the two child forms would be —
-       the sentence and "Send the link again". Seeded through `USER.pendingEmail`, which the sign-in reply
-       carries and the fixture visitor does not, with a long address that has no space in it. */
+       in people.gs), so a PENDING parent's "Manage your child" holds ONE sentence where the two child forms
+       would be — the address and "Send the link again". It was a card of its own drawn instead of two; it is
+       the same one card either way since docs/history/339. Seeded through `USER.pendingEmail`, which the
+       sign-in reply carries and the fixture visitor does not, with a long address that has no space in it. */
     { name: 'your child\'s account, held for the link',
       only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
       enter: () => {
@@ -4075,17 +4396,65 @@ const STATES = {
         if (at < 0) throw new Error('no held "Make your child\'s account" card on the settings column');
         goPage('settings', at, true);
       },
-      /* `repaint(true)`: one page becomes two again, so the column is placed afresh — see the family state. */
+      /* `repaint(true)`: the card's inside changes back, so the column is placed afresh — see the family state. */
       leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); },
       expect: () => {
         const pg = document.querySelector('#s-settings .page.on');
-        const card = pg && pg.querySelector('.kid-held');
+        const card = pg && pg.querySelector('.kid-manage .kid-held');
         return card && /philippa\.parentington-smythe\.family@example\.org/.test(card.textContent)
           && card.querySelectorAll('[data-do="resend-link"]').length === 1
           && !document.querySelector('#s-settings [data-kid-new], #s-settings [data-kid]')
           && card.scrollWidth <= card.clientWidth + 1 ? 2 : 0;
       },
       wants: 'one card naming the address to open the link from, with "Send the link again", and no child form anywhere on the column' },
+    /* ---------- MANAGE YOUR CHILD, WITH CHILDREN LINKED, AND WITH NONE (docs/history/339) ----------------------------
+       The owner, 11 Oct: *"chagne the add/make you child widget into one widget which is manage you child."* The card
+       opens with the children already linked to you — a face, a first name, a handle and New PIN at the end of each
+       line — and then the two forms. `DATA.family` is built by `doGet` for the signed-in person and the fixture cannot
+       carry it, so it is seeded as the family state on the You column seeds it, stamped as this visitor's: three
+       children, the longest first name and handle a line will hold, one face a photograph, one the fox and one an
+       initial. And with none linked, the one line that says so. */
+    ...[3, 0].map(n => ({
+      name: n ? 'Manage your child, three children linked' : 'Manage your child, none linked',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
+      enter: new Function('return (' + String(n => {
+        window.__KIDS_WAS = { family: DATA.family, familyFor: DATA.familyFor };
+        DATA.familyFor = USER.personId;
+        DATA.family = [
+          { personId: 'P-kid-1', title: 'Maximilian-Alexander', relation: 'child', handle: 'maximilian_conscientious42', image: 'data/reels/archetest.jpg' },
+          { personId: 'P-kid-2', title: 'Wren', relation: 'child', handle: 'wren_kind43', image: 'pfp:fox' },
+          { personId: 'P-kid-3', title: 'Ola', relation: 'child', handle: 'ola_brave07', image: '' },
+        ].slice(0, n);
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings > .page')].findIndex(pg => pg.querySelector('.kid-manage'));
+        if (at < 0) throw new Error('no "Manage your child" on the settings column');
+        goPage('settings', at, true);
+      }) + ')(' + n + ');'),
+      leave: () => { const k = window.__KIDS_WAS || {}; DATA.family = k.family; DATA.familyFor = k.familyFor; delete window.__KIDS_WAS; repaint(true); },
+      expect: new Function('return (' + String(n => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const card = pg && pg.querySelector('.kid-manage');
+        if (!card) return 0;
+        const rows = [...card.querySelectorAll('.kid-list .kid-row')];
+        const rowsOk = rows.length === n && rows.every(r => r.querySelectorAll('.tile[data-do="kid-pin"]').length === 1
+          && !!r.querySelector('.kid-face') && r.scrollWidth <= r.clientWidth + 1
+          && r.querySelector('.tile').getBoundingClientRect().right <= r.getBoundingClientRect().right + 0.5);
+        const none = /No child is linked to you yet/.test(card.textContent);
+        /* NEVER DRAWN SMALLER (the review of docs/history/339): two forms and a New PIN per child are there to be
+           typed into and pressed, so the card is at full size and its pane scrolls — `paneReach_`'s card-editor
+           rule. At 320x568 it was drawn at 70-84%, every control under 44px. And the two forms are headed in a
+           readable size, because the server's email sends a parent to find those words. */
+        const pane = card.closest('.pane');
+        const zoomed = !!pane && [...pane.children].some(k => Number(k.style.zoom || 1) < 1);
+        const heads = [...card.querySelectorAll('.kid-sec > .kid-h')];
+        const headsOk = heads.length === 2 && heads.every(h => parseFloat(getComputedStyle(h).fontSize) >= 12);
+        return rowsOk && (n ? !none : none) && !zoomed && headsOk
+          && card.querySelectorAll('.kid-make [data-kid-new]').length === 3 && card.querySelectorAll('.kid-add [data-kid]').length === 2
+          && card.scrollWidth <= card.clientWidth + 1 ? Math.max(1, n) : 0;
+      }) + ')(' + n + ');'),
+      wants: n ? '"Manage your child" at full size, listing three children, each a face, a first name and a handle with New PIN at the end of the line and nothing running off it, then both forms under headings of 12px or more'
+               : '"Manage your child" at full size, saying no child is linked yet, then both forms under headings of 12px or more' })),
     /* ---------- A NEW ADDRESS WAITING FOR ITS LINK, ON THE CONTACT CARD ----------------------------------
        Round three of the PR #130 review: a new address typed in Settings is not written until the account,
        signed in, opens the link sent to it (`authMove*_` in booking.gs). The box keeps the waiting address,
@@ -4147,228 +4516,13 @@ const STATES = {
         return pg.querySelectorAll('[data-me^="photos_"]').length === 8
           /* THE FACE IS THE PICKER NOW, NOT A LINK BOX — `photoPicker_`, and no `data-me="photo"` beside
              it, which the card's Save would post with the old address over a picture just chosen. */
-          && !!pg.querySelector('.pfp') && !pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
+          /* AND NO PICKER: the face is the picture section of your own card's Edit now (docs/history/339). */
+          && !pg.querySelector('.pfp') && !pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
           && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
           && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
           && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
       },
-      wants: 'the picture picker and the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
-    /* ---------- THREE, FOUR AND FIVE LIBRARY CARDS, DRAWN AS CARDS — `libraryShelf_` in me.js; docs/history/332 -----
-       THE OWNER, 10 Oct: *"make each look like a card. with fake barcode."* Seeded with invented libraries (the
-       longest name the shelf has ever been measured with among the first three, because the name is the box
-       that gives), the rest of the five slots empty. Asked of each card, at every width: its three boxes are ON
-       it; it is a bank card's shape (85.6:54, within 3%) and nothing inside it spills past that shape; the ink
-       of every box is 4.5:1 or better on the card's own paper, which `check/ui.js`'s text rule cannot ask
-       because a box's value is not a text node; and the bars are decoration (`aria-hidden`) and different on
-       every card. `Add another` is on the page while a slot is left to reveal, and not once all five show.
-
-       FOUR AND FIVE AS WELL AS THREE, BECAUSE THE CARD'S SHAPE IS WHAT MAKES THE PAGE TALL. A face's height
-       follows its width, so at the column's full width three cards were the most a 390x844 phone drew at full
-       size: the fit rule took four to 81% and five to its 70% floor there, and at 1280x800 three to 81% —
-       every card with a blank band between its name and its bars. The review of 10 Oct found this file seeded
-       three, so `check/ui.js` had never once drawn the page where it cost most. Now it draws all three counts.
-       And the cards give that band back first (`libFit_` in me.js, called by `paneReach_`): they narrow,
-       keeping the shape, until the page fits or the band runs out, and only the rest is drawn smaller. Asked
-       of every count, at every width: A PAGE DRAWN SMALLER HAS NO BLANK BAND LEFT ON ITS CARDS (3px of
-       slack for the last pass's rounding) — red before `libFit_`, when four cards at 390 were at 81% with
-       45px of blank on each and three at 1280 at 81% with 68; and the fit rule's own promise, that the page
-       is no smaller than the app's `PANE_ZOOM_MIN` and the tick is on the glass or the pane scrolls to it.
-       The cost that is left prints as `CARD DRAWN SMALLER TO FIT` with its percentage, beside every other
-       card that pays it.
-
-       WHY `new Function`: every state is carried into the page as its source and run there (the
-       notifications states below say so at length), so a closure over `n` would arrive empty. Each state is
-       the one source below with its count written in as a literal. */
-    ...(() => {
-      const enter = n => {
-        window.STATE_LIB_WAS = USER.profile;
-        const seed = [['Merton', '2000000000000'], ['Sutton Central', '2000000000001'],
-                      ['Wandsworth Town and Putney', '2000000000002'], ['Larkbridge', '2000000000003'],
-                      ['Fennmoor Green', '2000000000004']];
-        const cards = {};
-        for (let i = 1; i <= 5; i++) {
-          const s = i <= n ? seed[i - 1] : ['', ''];
-          cards['lib' + i + '_name'] = s[0]; cards['lib' + i + '_no'] = s[1]; cards['lib' + i + '_pin'] = i <= n ? '0000' : '';
-        }
-        USER.profile = Object.assign({}, USER.profile || {}, cards);
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.lib-face'));
-        if (at < 0) throw new Error('no library cards page on the settings column');
-        goPage('settings', at, true);
-      };
-      const expect = n => {
-        const pg = document.querySelector('#s-settings .page.on');
-        if (!pg) return 0;
-        const slots = pg.querySelectorAll('.lib-card').length;
-        const faces = [...pg.querySelectorAll('.lib-card:not([hidden]) > .lib-face')];
-        if (faces.length !== n || pg.querySelectorAll('[data-do="shelf-more"]').length !== (n < slots ? 1 : 0)) return 0;
-        const rgb = s => (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
-        const lum = c => c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
-          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
-        const ratio = (p, q) => { const a = lum(rgb(p)), b = lum(rgb(q)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
-        const bars = new Set();
-        const ok = faces.every(f => {
-          const r = f.getBoundingClientRect();
-          const paper = getComputedStyle(f).backgroundColor;
-          const boxes = [...f.querySelectorAll('input[data-me]')];
-          const svg = f.querySelector('svg.lib-bars');
-          if (svg) bars.add(svg.innerHTML);
-          return boxes.length === 3
-            && ['name', 'no', 'pin'].every(k => f.querySelector('input[data-me$="_' + k + '"]'))
-            && Math.abs(r.width / r.height - 85.6 / 54) < 0.03 * (85.6 / 54)
-            && f.scrollHeight <= f.clientHeight + 1 && f.scrollWidth <= f.clientWidth + 1
-            && boxes.every(b => ratio(getComputedStyle(b).color, paper) >= 4.5)
-            && !!svg && svg.getAttribute('aria-hidden') === 'true';
-        });
-        if (!ok || bars.size !== n) return 0;
-        /* THE FIT RULE'S PROMISE, read off the page rather than restated: no smaller than its floor, and the
-           tick on the glass or one scroll of the pane away. */
-        const pane = faces[0].closest('.pane'), tick = pg.querySelector('[data-do="me-save"]');
-        if (!pane || !tick || typeof PANE_ZOOM_MIN !== 'number') return 0;
-        const zoom = Math.min(1, ...[...pane.children].map(k => Number(k.style.zoom || 1)));
-        if (zoom < PANE_ZOOM_MIN - 0.001) return 0;
-        /* THE CARDS GAVE THEIR BLANK BAND BEFORE THE PAGE WAS DRAWN SMALLER — the face's third row. */
-        const band = parseFloat(String(getComputedStyle(faces[0]).gridTemplateRows).split(/\s+/)[2]) || 0;
-        if (zoom < 1 && band > 3) return 0;
-        const p = pane.getBoundingClientRect(), t = tick.getBoundingClientRect();
-        const seen = t.top >= p.top - 1 && t.bottom <= p.bottom + 1 && t.bottom <= innerHeight + 1;
-        const scrolls = pane.style.overflowY === 'auto' && pane.scrollHeight - pane.clientHeight > 2;
-        return seen || scrolls ? n : 0;
-      };
-      const word = { 3: 'three', 4: 'four', 5: 'five' };
-      return [3, 4, 5].map(n => ({
-        name: word[n] + ' library cards',
-        only: () => typeof USER !== 'undefined' && !!USER,
-        enter: new Function('return (' + String(enter) + ')(' + n + ');'),
-        leave: () => {
-          USER.profile = window.STATE_LIB_WAS; delete window.STATE_LIB_WAS;
-          document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-          paint('settings');
-        },
-        expect: new Function('return (' + String(expect) + ')(' + n + ');'),
-        wants: word[n] + ' library cards at a bank card\'s proportions, each with its name, PIN and number boxes on it in ink '
-          + '4.5:1 on its paper, different bars on each, ' + (n < 5 ? 'one Add another' : 'no Add another')
-          + ', no blank band left on a card if the page is drawn smaller, no smaller than PANE_ZOOM_MIN, and the tick '
-          + 'on the glass or one scroll away' }));
-    })(),
-    /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
-       *"everyone should have a profile picture selector widget in account settings"*. Seeded with a
-       picture already kept, so the preview is a photograph rather than the initial and `Remove` is
-       live: a square preview, `Choose photo` and `Remove` as tiles, the hidden file input that takes
-       images, and no link box. At four widths, because the preview sits beside two tap targets and
-       a line of text and is the one row on the card that could wrap at 320. */
-    { name: 'your picture, chosen',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        window.STATE_PFP_WAS = USER.profile;
-        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'data/reels/archetest.jpg' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
-        if (at < 0) throw new Error('no picture picker on the settings column');
-        goPage('settings', at, true);
-      },
-      leave: () => {
-        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        paint('settings');
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        const box = pg && pg.querySelector('.pfp');
-        if (!box) return 0;
-        const face = box.querySelector('.pfp-face');
-        const r = face && face.getBoundingClientRect();
-        const rm = box.querySelector('.tile[data-do="pfp-remove"]');
-        const inp = box.querySelector('input.pfp-in[type="file"]');
-        return !!face.querySelector('img') && r.width > 40 && Math.abs(r.width - r.height) < 1
-          && !!box.querySelector('.tile[data-do="pfp-pick"]') && !!rm && !rm.disabled
-          && !!inp && inp.hidden && /image\/\*/.test(inp.accept)
-          && !pg.querySelector('[data-me="photo"]') ? 1 : 0;
-      },
-      wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
-    /* ---------- YOUR PICTURE, ONE OF ELEVEN — AT REST, AND WITH THE FOX CHOSEN ---------------------
-       THE OWNER, 10 Oct: *"everybody profile picture selector should have 10 basic profile pics like
-       xbox dp selector, which allow you to use your avatar as a dp."* The grid under the preview: your
-       figure first, then the ten, every one a 44px target or more, in one block that fits the card —
-       FOUR TO A ROW where the picker is under 294px wide (three rows) and SIX where it is not (two
-       rows), the line under the grid rather than beside the tiles. At rest nothing is ringed and the
-       preview is your initial; with the fox chosen the preview IS the fox, the gold ring is on it and
-       only it, and Remove is live because there is a picture to remove. Measured by `check/ui.js` at
-       every width for the tap targets, the contrast and the sideways scroll; asserted here for the
-       shape, because a grid of eleven that wraps 5-5-1 or runs off the card measures as eleven fine
-       buttons. */
-    { name: 'your picture, the eleven at rest',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        window.STATE_PFP_WAS = USER.profile;
-        USER.profile = Object.assign({}, USER.profile || {}, { photo: '' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
-        if (at < 0) throw new Error('no picture picker on the settings column');
-        goPage('settings', at, true);
-      },
-      leave: () => {
-        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        paint('settings');
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        const box = pg && pg.querySelector('.pfp');
-        if (!box) return 0;
-        const opts = [...box.querySelectorAll('.pfp-grid .pfp-opt')];
-        const b = box.getBoundingClientRect();
-        const grid = box.querySelector('.pfp-grid').getBoundingClientRect();
-        const said = box.querySelector('.pfp-said').getBoundingClientRect();
-        /* ZOOM: `paneReach_` may draw a tall card smaller to fit its pane, so a size is read in the
-           card's own pixels — the box's layout width over its drawn width. */
-        const z = box.offsetWidth ? b.width / box.offsetWidth : 1;
-        /* HOW MANY ON EACH ROW, not merely how many rows: 5, 5, 1 is three rows too, and it is the
-           orphan this layout exists to avoid. */
-        const tops = opts.map(o => Math.round(o.getBoundingClientRect().top / z));
-        const rows = [...new Set(tops)].map(t => tops.filter(x => x === t).length).join(',');
-        const big = opts.every(o => { const r = o.getBoundingClientRect(); return r.width / z >= 43.5 && r.height / z >= 43.5; });
-        return opts.length === 11 && opts[0].dataset.pic === 'avatar' && !!opts[0].querySelector('svg.avatar.is-bust')
-          && opts.slice(1).every(o => o.querySelector('svg.pfp-art'))
-          && !box.querySelector('.pfp-opt.on') && !!box.querySelector('.pfp-face .pfp-none')
-          && big && grid.right <= b.right + 0.5 && grid.left >= b.left - 0.5
-          && rows === (box.offsetWidth >= 294 ? '6,5' : '4,4,3')
-          && said.top >= grid.bottom - 1
-          && !!box.querySelector('.tile[data-do="pfp-remove"]') && box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 11 : 0;
-      },
-      wants: 'your figure then the ten pictures, each 44px or more, none ringed, the initial in the preview, 4/4/3 under 294px and 6/5 from it, the line under the grid, and Remove off' },
-    { name: 'your picture, the fox chosen',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        window.STATE_PFP_WAS = USER.profile;
-        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'pfp:fox' });
-        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
-        paint('settings');
-        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
-        if (at < 0) throw new Error('no picture picker on the settings column');
-        goPage('settings', at, true);
-      },
-      leave: () => {
-        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
-        paint('settings');
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        const box = pg && pg.querySelector('.pfp');
-        if (!box) return 0;
-        const on = [...box.querySelectorAll('.pfp-opt.on')];
-        const face = box.querySelector('.pfp-face');
-        const r = face.getBoundingClientRect();
-        const art = face.querySelector('svg.pfp-art');
-        const ring = on[0] && getComputedStyle(on[0]).boxShadow;
-        return on.length === 1 && on[0].dataset.pic === 'fox' && on[0].getAttribute('aria-pressed') === 'true'
-          && !!ring && ring !== 'none'
-          && !!art && Math.abs(art.getBoundingClientRect().width - r.width) < 3
-          && /fox is your picture/i.test(box.querySelector('.pfp-said').textContent)
-          && !box.querySelector('.tile[data-do="pfp-remove"]').disabled ? 1 : 0;
-      },
-      wants: 'the fox in the preview, filling it; the gold ring on the fox and nowhere else, pressed; the line saying the fox is your picture; Remove live' },
+      wants: 'the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another — and no picture picker, which is on your own card' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only
@@ -4859,41 +5013,6 @@ const STATES = {
                      ? 3 : 0),
       wants: 'three date-of-birth boxes and no fourth box for the column itself' },
 
-    /* ---------- YOUR HANDLE: SHOWN, WITH RANDOMISE, AND NO BOX ---------------------------------------
-       ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise
-       it but it will follow that general name."* The Signing in card had a text box for the handle;
-       a box left behind beside the Randomise button would be a door to an action the server no longer
-       has (`changeHandle` is gone), and it would measure perfectly.
-
-       FOUR THINGS TOGETHER, because each on its own passes a card that got one of the others wrong:
-       exactly one shown handle and it is `USER.handle`, exactly one `@` in front of it (the `@@ada`
-       fault `check-handles.js` already guards in the fixture), one Randomise TILE, and nothing to
-       type into. Found by asking the DOM, like every other state on this column. */
-    { name: 'your handle',
-      only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
-      enter: () => {
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('.handle-shown'));
-        if (at < 0) throw new Error('no handle on the settings column');
-        goPage('settings', at, true);
-      },
-      expect: () => {
-        const pg = document.querySelector('#s-settings .page.on');
-        if (!pg) return 0;
-        const shown = pg.querySelectorAll('.handle-shown');
-        const line = pg.querySelector('.handle-now');
-        return (shown.length === 1 && shown[0].textContent === USER.handle
-                && line && (line.textContent.match(/@/g) || []).length === 1
-                && pg.querySelectorAll('[data-do="handle-shuffle"]').length === 1
-                /* A TILE, NOT A BUTTON — *"a THING has tiles; a FORM has buttons"*, and the handle is a
-                   thing. It was `.btn quiet` until 2 October; one inside a `.tile-row` with its mark
-                   is what `tile_` draws, so this fails if anybody writes the button back by hand. */
-                && pg.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"] svg.tile-i-shuffle').length === 1
-                && !pg.querySelector('.btn[data-do="handle-shuffle"]')
-                && !pg.querySelector('#handle-new, [data-do="handle-save"]')) ? 1 : 0;
-      },
-      wants: 'the handle shown once with one @, a Randomise tile with its mark, and no box to type a handle into' },
-
     /* ---------- THE TWO EXAM DATES, WHICH ONLY A STUDENT IS OFFERED ------------------------------
        ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
        big exam:_____."* The group is in `STUDENT_GROUPS` and in neither of the other two maps, which
@@ -5022,65 +5141,6 @@ const STATES = {
        qualification now — `the qualifications` above counts them — and `teaches_also` is derived
        from those on save, so there is no panel on this column to open. */
 
-    /* ---------- THE WARDROBE IS ONE CARD NOW, SO ONE STATE FINDS IT AND A SECOND PRESSES IT --------
-       It was four pages — Colours, then the six slots two at a time — and these two states found the
-       colour page and then the first slot page. *"should just be 1"*: one card holds the swatches, all
-       six slots and ONE figure, so both states land on the same page and ask different things of it. */
-    { name: 'the wardrobe',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('[data-do="av-colour"]'));
-        if (at < 0) throw new Error('no wardrobe card on the settings column');
-        goPage('settings', at, true);
-      },
-      /* ONE CARD: the swatches AND the slots on the same page, and ONE figure — the report was the
-         same picture drawn four times, so the count of figures is the assertion. */
-      expect: () => {
-        const pages = [...document.querySelectorAll('#s-settings .page')];
-        const pg = pages.find(p => p.querySelector('[data-do="av-colour"]'));
-        return pg && pg.querySelector('[data-do="av-pick"]')
-          && document.querySelectorAll('#s-settings .av-figure').length === 1
-          && pages.filter(p => p.querySelector('[data-do="av-pick"], [data-do="av-colour"]')).length === 1;
-      },
-      wants: 'one wardrobe card holding the colours, every slot and one figure' },
-
-    /* ---------- AND A PICK, WHICH IS WHERE THE DUPLICATE-ID FAULT LIVED -------------------------
-       WITH FOUR PAGES THE FIGURE WAS ON EVERY ONE, and as `id="av-figure"` `$()` handed `avatarSave`
-       the first — so a pick on one page redrew the figure on another. One card makes that impossible
-       rather than guarded, and the state stays because the immediate redraw is still the thing a
-       wardrobe is for: the item chosen is the first unlocked one that is not already worn, because
-       pressing the one already on is a save that changes nothing. */
-    { name: 'a pick redraws the figure',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        const pages = [...document.querySelectorAll('#s-settings .page')];
-        const at = pages.findIndex(pg => pg.querySelector('[data-do="av-pick"]'));
-        if (at < 0) throw new Error('no wardrobe card on the settings column');
-        goPage('settings', at, true);
-        /* THE PAGE BY INDEX, NOT BY `.page.on` — `goPage` sets that class through `paintPager`, and
-           reading it in the same tick finds the page the column was on before the turn. */
-        const pg = pages[at];
-        const fig = pg.querySelector('.av-figure');
-        const was = fig ? fig.innerHTML : '';
-        const pick = [...pg.querySelectorAll('[data-do="av-pick"]')]
-          .find(b => !b.classList.contains('on') && !b.classList.contains('locked'));
-        if (pick) pick.click();
-        /* READ IN THE SAME TICK AS THE PRESS. `avatarSave` redraws before the server answers, and
-           read later the answer is the stub's: `check/fixture.json` carries no `avatar` key, so the
-           figure would go back to the default and this would report the app broken for the
-           fixture's shape.
-           ASKED OF THE CARD AS IT NOW IS. `avatarSave` rebuilds the card's inside from `wardrobeCard_`
-           — so the ring, a bought item's lock and the credits line follow the look, not only the
-           figure — which means the figure read before the press is a detached element afterwards.
-           And the picked item must now carry the ring: that half is what the rebuild is for. */
-        const now = pg.querySelector('.av-figure');
-        const ringed = pick && pg.querySelector('[data-do="av-pick"][data-slot="' + pick.dataset.slot
-          + '"][data-id="' + pick.dataset.id + '"].on');
-        window.__AV_MOVED = !!now && !!was && now.innerHTML !== was && (!pick || !!ringed);
-      },
-      expect: () => window.__AV_MOVED,
-      wants: 'the figure on the wardrobe card redrawn by a pick made on it' },
   ],
 
   saved: [
@@ -5131,6 +5191,48 @@ const STATES = {
       leave: () => {
         (window.__keptKeys || []).forEach(k => { if (isFav(k)) toggleFav(k); });
         paint('saved');
+      } },
+    /* ---------- THE LIBRARY CARDS STARRED ONTO SAVED, TYPED INTO, AND A REPAINT (the review of docs/history/339) --------
+       A library card has no draft (its PIN is on it), so what keeps typing on the starred copy is the hold: Saved's
+       `.widget-slot .me-form` in `KEEP_FORMS_` marks it dirty, `settingsKeep_('saved')` holds the column, and a
+       repaint leaves the box — the same element, the same words. Asked HERE, in a browser, because check-flow
+       cannot reach a starred copy: jsdom has no `CSS.escape`, so `$('lib-box')` falls back to the first copy, the
+       one on Tools. Measured in the review with either half of the hold taken away: the box was replaced and said
+       "Merton", the sheet's copy, over what was typed. Starred, typed into once the Saved copy is drawn, repainted,
+       and what the box is and holds written down for `expect`. */
+    { name: 'the library cards starred, typed into, and the column repainted',
+      only: () => typeof USER !== 'undefined' && !!USER && widgetsOf_('tool').some(w => w.id === 'libcards'),
+      enter: () => {
+        const w = widgetsOf_('tool').find(x => x.id === 'libcards');
+        if (!isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        window.__LIB_SAVED = null;
+        repaint(true);
+        const at = [...document.querySelectorAll('#s-saved > .page')].findIndex(pg => pg.querySelector('#wgt-libcards'));
+        if (at < 0) throw new Error('the starred library cards are not on the Saved column');
+        goPage('saved', at, true);
+        const t0 = performance.now();
+        const type = () => {
+          const box = document.querySelector('#s-saved #wgt-libcards [data-me="lib1_name"]');
+          if (!box) { if (performance.now() - t0 < 2000) setTimeout(type, 100); else window.__LIB_SAVED = { drawn: false }; return; }
+          box.value = 'Typed on Saved';
+          box.dispatchEvent(new Event('input', { bubbles: true }));
+          repaint(true);
+          setTimeout(() => {
+            const now = document.querySelector('#s-saved #wgt-libcards [data-me="lib1_name"]');
+            window.__LIB_SAVED = { drawn: true, same: now === box, val: now && now.value };
+          }, 500);
+        };
+        setTimeout(type, 150);
+      },
+      expect: () => !!window.__LIB_SAVED && window.__LIB_SAVED.same === true && window.__LIB_SAVED.val === 'Typed on Saved',
+      why: () => JSON.stringify(window.__LIB_SAVED),
+      wants: 'the starred library cards on Saved keeping what was typed through a repaint — the same box, the same words',
+      leave: () => {
+        const w = widgetsOf_('tool').find(x => x.id === 'libcards');
+        document.querySelectorAll('#s-saved .widget-slot .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        if (w && isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
+        delete window.__LIB_SAVED;
+        repaint(true);
       } },
   ],
 
@@ -5825,6 +5927,110 @@ const STATES = {
         ansStore_(k, null);
         initWhiteboard();
       } },
+    /* ---------- THREE, FOUR AND FIVE LIBRARY CARDS, DRAWN AS CARDS — `libraryShelf_` in me.js; docs/history/332 -----
+       ON TOOLS SINCE docs/history/339 — *"move library card widget to the tools column."* — a widget card now, with its
+       star above the shelf, so the page is the shelf and a row taller than it was on Settings, and these three states
+       are the Tools column's. Everything they ask is what they asked of the Settings page.
+       THE OWNER, 10 Oct: *"make each look like a card. with fake barcode."* Seeded with invented libraries (the
+       longest name the shelf has ever been measured with among the first three, because the name is the box
+       that gives), the rest of the five slots empty. Asked of each card, at every width: its three boxes are ON
+       it; it is a bank card's shape (85.6:54, within 3%) and nothing inside it spills past that shape; the ink
+       of every box is 4.5:1 or better on the card's own paper, which `check/ui.js`'s text rule cannot ask
+       because a box's value is not a text node; and the bars are decoration (`aria-hidden`) and different on
+       every card. `Add another` is on the page while a slot is left to reveal, and not once all five show.
+
+       FOUR AND FIVE AS WELL AS THREE, BECAUSE THE CARD'S SHAPE IS WHAT MAKES THE PAGE TALL. A face's height
+       follows its width, so at the column's full width three cards were the most a 390x844 phone drew at full
+       size: the fit rule took four to 81% and five to its 70% floor there, and at 1280x800 three to 81% —
+       every card with a blank band between its name and its bars. The review of 10 Oct found this file seeded
+       three, so `check/ui.js` had never once drawn the page where it cost most. Now it draws all three counts.
+       And the cards give that band back first (`libFit_` in me.js, called by `paneReach_`): they narrow,
+       keeping the shape, until the page fits or the band runs out, and only the rest is drawn smaller. Asked
+       of every count, at every width: A PAGE DRAWN SMALLER HAS NO BLANK BAND LEFT ON ITS CARDS (3px of
+       slack for the last pass's rounding) — red before `libFit_`, when four cards at 390 were at 81% with
+       45px of blank on each and three at 1280 at 81% with 68; and the fit rule's own promise, that the page
+       is no smaller than the app's `PANE_ZOOM_MIN` and the tick is on the glass or the pane scrolls to it.
+       The cost that is left prints as `CARD DRAWN SMALLER TO FIT` with its percentage, beside every other
+       card that pays it.
+
+       WHY `new Function`: every state is carried into the page as its source and run there (the
+       notifications states below say so at length), so a closure over `n` would arrive empty. Each state is
+       the one source below with its count written in as a literal. */
+    ...(() => {
+      const enter = n => {
+        window.STATE_LIB_WAS = USER.profile;
+        const seed = [['Merton', '2000000000000'], ['Sutton Central', '2000000000001'],
+                      ['Wandsworth Town and Putney', '2000000000002'], ['Larkbridge', '2000000000003'],
+                      ['Fennmoor Green', '2000000000004']];
+        const cards = {};
+        for (let i = 1; i <= 5; i++) {
+          const s = i <= n ? seed[i - 1] : ['', ''];
+          cards['lib' + i + '_name'] = s[0]; cards['lib' + i + '_no'] = s[1]; cards['lib' + i + '_pin'] = i <= n ? '0000' : '';
+        }
+        USER.profile = Object.assign({}, USER.profile || {}, cards);
+        /* THE TOOLS WIDGET NOW (docs/history/339): its slot found by its id, the column turned to it, and every
+           copy drawn again from the seeded profile — `libCardsRedraw_` is what `myProfile` landing calls. */
+        document.querySelectorAll('#s-tools .widget-slot .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        const at = [...document.querySelectorAll('#s-tools > .page')].findIndex(pg => pg.querySelector('#wgt-libcards'));
+        if (at < 0) throw new Error('no library cards widget on the Tools column');
+        goPage('tools', at, true);
+        libCardsRedraw_();
+      };
+      const expect = n => {
+        const pg = document.querySelector('#s-tools .page.on');
+        if (!pg || !pg.querySelector('#wgt-libcards')) return 0;
+        const slots = pg.querySelectorAll('.lib-card').length;
+        const faces = [...pg.querySelectorAll('.lib-card:not([hidden]) > .lib-face')];
+        if (faces.length !== n || pg.querySelectorAll('[data-do="shelf-more"]').length !== (n < slots ? 1 : 0)) return 0;
+        const rgb = s => (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+        const lum = c => c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); })
+          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const ratio = (p, q) => { const a = lum(rgb(p)), b = lum(rgb(q)); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+        const bars = new Set();
+        const ok = faces.every(f => {
+          const r = f.getBoundingClientRect();
+          const paper = getComputedStyle(f).backgroundColor;
+          const boxes = [...f.querySelectorAll('input[data-me]')];
+          const svg = f.querySelector('svg.lib-bars');
+          if (svg) bars.add(svg.innerHTML);
+          return boxes.length === 3
+            && ['name', 'no', 'pin'].every(k => f.querySelector('input[data-me$="_' + k + '"]'))
+            && Math.abs(r.width / r.height - 85.6 / 54) < 0.03 * (85.6 / 54)
+            && f.scrollHeight <= f.clientHeight + 1 && f.scrollWidth <= f.clientWidth + 1
+            && boxes.every(b => ratio(getComputedStyle(b).color, paper) >= 4.5)
+            && !!svg && svg.getAttribute('aria-hidden') === 'true';
+        });
+        if (!ok || bars.size !== n) return 0;
+        /* THE FIT RULE'S PROMISE, read off the page rather than restated: no smaller than its floor, and the
+           tick on the glass or one scroll of the pane away. */
+        const pane = faces[0].closest('.pane'), tick = pg.querySelector('[data-do="me-save"]');
+        if (!pane || !tick || typeof PANE_ZOOM_MIN !== 'number') return 0;
+        const zoom = Math.min(1, ...[...pane.children].map(k => Number(k.style.zoom || 1)));
+        if (zoom < PANE_ZOOM_MIN - 0.001) return 0;
+        /* THE CARDS GAVE THEIR BLANK BAND BEFORE THE PAGE WAS DRAWN SMALLER — the face's third row. */
+        const band = parseFloat(String(getComputedStyle(faces[0]).gridTemplateRows).split(/\s+/)[2]) || 0;
+        if (zoom < 1 && band > 3) return 0;
+        const p = pane.getBoundingClientRect(), t = tick.getBoundingClientRect();
+        const seen = t.top >= p.top - 1 && t.bottom <= p.bottom + 1 && t.bottom <= innerHeight + 1;
+        const scrolls = pane.style.overflowY === 'auto' && pane.scrollHeight - pane.clientHeight > 2;
+        return seen || scrolls ? n : 0;
+      };
+      const word = { 3: 'three', 4: 'four', 5: 'five' };
+      return [3, 4, 5].map(n => ({
+        name: word[n] + ' library cards',
+        only: () => typeof USER !== 'undefined' && !!USER,
+        enter: new Function('return (' + String(enter) + ')(' + n + ');'),
+        leave: () => {
+          USER.profile = window.STATE_LIB_WAS; delete window.STATE_LIB_WAS;
+          document.querySelectorAll('#s-tools .widget-slot .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+          libCardsRedraw_();
+        },
+        expect: new Function('return (' + String(expect) + ')(' + n + ');'),
+        wants: word[n] + ' library cards at a bank card\'s proportions, each with its name, PIN and number boxes on it in ink '
+          + '4.5:1 on its paper, different bars on each, ' + (n < 5 ? 'one Add another' : 'no Add another')
+          + ', no blank band left on a card if the page is drawn smaller, no smaller than PANE_ZOOM_MIN, and the tick '
+          + 'on the glass or one scroll away' }));
+    })(),
   ],
 
   /* ---------- A HIGH-SCORE BOARD WITH SCORES ON IT ---------------------------------------------

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-12-imp-review";
+  --css-version: "2026-10-12-merge-cardset";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -922,7 +922,7 @@ input[aria-invalid="true"], input[aria-invalid="true"]:focus { border-color: var
    version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
    claiming it matched this. One selector, one caption style, and the row reads as one more field
    down the same column because it IS one. */
-label.field > span, .dob-cap, .handle-cap, .reg-cap, .many-cap, .notify-cap {
+label.field > span, .dob-cap, .reg-cap, .many-cap, .notify-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
@@ -932,22 +932,20 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* ---------- YOUR HANDLE, SHOWN RATHER THAN TYPED --------------------------------------------------
    There was a box here — `.handle-in`, an input with an `@` drawn in front of it — and it went with
    the typed handle: a handle is a first name and a virtue the server builds, and Randomise asks for
-   another word. What is left is a fact about you, so it is set like one: the caption the boxes
-   around it use (`.handle-cap` is in that rule's group, one style for every caption on the card)
-   and the handle at the size a box's value would be, so the card does not change rhythm where the
-   box used to be.
+   another word. What is left is a fact about you, so it is set like one, at the size a box's value
+   would be, so the form does not change rhythm where the box used to be.
 
-   `margin-top: 0` ON THE CAPTION BECAUSE IT IS A `<p>`, whose browser margin would put a line of
-   air between `Signing in` and the word under it that the PIN boxes' captions do not have.
-   `overflow-wrap: anywhere` because a handle is up to twenty characters with nothing to break at,
-   and a 320px card is the narrowest it is ever drawn on. The `@` is gold because that is how every
-   card draws a handle. */
-.handle-cap { margin-top: 0; }
+   ON YOUR OWN CARD'S EDIT NOW (`cardHandleHtml_`, docs/history/339), under the `Handle` caption every
+   section of that form has (`.prof-cap`); `.handle-cap` went with the Signing in card it captioned there.
+   `overflow-wrap: anywhere` because a handle is up to twenty characters with nothing to break at, and a
+   320px card is the narrowest it is ever drawn on. The `@` is gold because that is how every card draws a
+   handle. The line under Randomise had its margin written inline on Settings; it is the rule's now. */
 .handle-now {
   display: flex; align-items: baseline; gap: .15rem; margin: 0 0 .6rem;
   font-size: 1.05rem; color: var(--ink); overflow-wrap: anywhere; min-width: 0;
 }
 .handle-now > b { color: var(--gold); font-weight: 600; }
+.handle-said { margin: .6rem 0 0; }
 
 /* ---------- THE SIGN-IN SLIP: A HANDLE AND A PIN, HANDED TO SOMEBODY ON PAPER ---------------------------
    *"so all kids can login easily with their handle and pin."* What a parent is shown once, after making
@@ -6458,16 +6456,41 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    card's own sections and in its order — and the word beside the role saying the card is being edited,
    in gold, because a form that looked exactly like the public card would be read as the public card. */
 .card-ed .ce-what { color: var(--gold); }
-.ce-sec + .ce-sec { margin-top: .75rem; padding-top: .6rem; border-top: 1px solid var(--line-soft); }
+/* `.kid-sec` IS "MANAGE YOUR CHILD"'S SECTION (docs/history/339) — the children linked to you, then making an
+   account, then linking one — and it is drawn as the card editor's are, one hairline between sections, because
+   both are one card in sections and two looks for that would be two rules to keep in step. Its two forms are
+   headed and not captioned, below — the one way the two differ, and why. */
+.ce-sec + .ce-sec, .kid-sec + .kid-sec { margin-top: .75rem; padding-top: .6rem; border-top: 1px solid var(--line-soft); }
 .ce-sec > .prof-cap:first-child { margin-top: 0; }
+/* ITS TWO FORMS ARE HEADED, NOT CAPTIONED (the review of docs/history/339). "Make your child's account" and "Add
+   your child" are the words the confirmation email and `makeChild`'s refusal send a parent to find, and as the
+   card editor's `.prof-cap` they were its smallest text — 8px, faint, upper case. A heading one step under the
+   card's own title (`.card > h3`, 1rem), in ink, so they read as what they are: the two things this card does. */
+.kid-sec > .kid-h { margin: 0 0 .45rem; font-size: .9rem; font-weight: 600; letter-spacing: -.005em; color: var(--ink); }
 .ce-note { margin: .35rem 0 0; line-height: 1.35; }
 /* SOMEBODY ELSE'S PICTURE, ON AN ADMIN'S EDIT: the card's own circle, and why it is not offered. */
 .ce-pic { display: flex; gap: .7rem; align-items: center; }
 .ce-pic .ce-note { margin: 0; }
 /* THE MAP UNDER THE VENUES, redrawn from the ticks; nothing ticked is no map and no gap. */
 .ce-heat:empty { display: none; }
-/* WHERE THE FIVE PAGES WENT, once, at the top of Settings for somebody with a card. */
+/* WHERE THE PAGES WENT, once, at the top of Settings — for everybody since docs/history/339. */
 .ce-moved { margin: 0 0 .6rem; line-height: 1.35; }
+/* ---------- A CHILD LINKED TO YOU, ONE LINE EACH — `kidListSec_` in me.js (docs/history/339) --------------------
+   The face, the first name over the handle, and New PIN at the far end — a line of a list rather than a whole
+   card, because the child's own card is on the You column already and this is the list a parent manages from.
+   The face is the card's own circle a size down (`.prof-pic`'s line and fill, drawn through `personFace_`); the
+   name and the handle wrap rather than push the tile off a 320 card; the tile sits at the end of the line, its
+   own row's top margin taken off so it lines up with the name. */
+.kid-row { display: flex; align-items: center; gap: .6rem; }
+.kid-row + .kid-row { margin-top: .45rem; }
+.kid-face {
+  width: 36px; height: 36px; flex: none; object-fit: cover;
+  border-radius: 50%; border: 1px solid var(--line); background: var(--bg);
+}
+.kid-face.prof-none { font-size: .95rem; }
+.kid-who { display: flex; flex-direction: column; gap: .1rem; min-width: 0; flex: 1; margin: 0; overflow-wrap: anywhere; }
+.kid-row > .tile-row { margin: 0; flex: none; }
+.kid-none { margin: 0; }
 /* ---------- SAVE AND CANCEL STAY IN REACH: THE ROW IS STUCK TO THE FOOT OF THE PANE -----------------------
    ONE SAVE FOR THE WHOLE CARD, AND IT WAS UNDER THE WEEK — the form is every section of the card, about two
    thousand pixels at 320 and 390, so a tutor who changed their name scrolled past the photographs, the
@@ -10648,6 +10671,15 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   padding: .9rem;
   margin-bottom: var(--gap);
 }
+/* ---------- THE LIBRARY CARDS' WIDGET GIVES ITS FACES THE FRAME'S SIDES (docs/history/339) ----------------------
+   *"move library card widget to the tools column."* On Settings a face had the pane's whole width; in a widget it
+   sits inside the widget's own body as well, and that `.9rem` a side is what a bank card's shape could not spare at
+   320: a face's height has a floor (its two 44px boxes, the caption and the bars), and below about 223px wide the
+   floor wins over `aspect-ratio`, so the 85.6:54 card came out 214 by 138 — measured, 3% off the shape `check/states.js`
+   holds it to. The one widget whose height follows its width, so the one whose body is narrower at the sides;
+   the star, the title, the faces and the tick all keep one left edge. Three classes, so it wins on count and not
+   on the line below it. */
+.card.is-widget:has(.lib-shelf) { padding-left: .45rem; padding-right: .45rem; }
 .card.is-widget:last-child { margin-bottom: 0; }
 
 /* ---------- ONE REGION INSIDE A WIDGET GIVES UP ITS HEIGHT FIRST ---------------------------------

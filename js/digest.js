@@ -27,8 +27,8 @@
    which is the tile rule in CLAUDE.md; there is no form here for a button to belong to.
 
    APPENDED LAST, after the journey card (the business records were between them until they became a
-   column of their own, docs/history/334), for the wardrobe's reason in `settingsPages_`:
-   `PAGE.settings` remembers where somebody was, and a card in front would move every index behind it.
+   column of their own, docs/history/334), for the reason `settingsPages_` gives for every card after the
+   roles: `PAGE.settings` remembers where somebody was, and a card in front would move every index behind it.
 ================================================================================================== */
 /* `got` is the last answer, so the mode on the card is the server's once it has said, and the config
    row in the payload before that. */

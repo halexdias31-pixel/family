@@ -1,5 +1,7 @@
 ## Ten pictures and your own figure, chosen like an Xbox gamerpic, drawn by one function everywhere a face is
 
+**Since 11 Oct the picker and the wardrobe are sections of your own card's Edit**, for everybody, side by side — the figure the picture draws is dressed one section below it, and Cancel puts the look back ([339](339-your-card-holds-what-is-about-you.md)).
+
 **The owner, 10 Oct:** *"everybody profile picture selector should have 10 basic profile pics like xbox
 dp selector, which allow you to use your avatar as a dp."*
 

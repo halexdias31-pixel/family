@@ -1,5 +1,7 @@
 ## A handle is a first name, a virtue and a fresh number, in a random order
 
+**Since 11 Oct Randomise is on your own card**, not Settings' Signing in card — the `handle` section of its Edit; it still saves itself, and Cancel does not take it back ([339](339-your-card-holds-what-is-about-you.md)).
+
 **Asked for as "nobosy can actually change their handle specifically, they can just hit randomise.
 but it will always be like their first name, a virtuous adjective and random numbers and maybe an
 underscore. but all random order."** The first half was already true (222: no box, a Randomise

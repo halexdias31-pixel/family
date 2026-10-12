@@ -1,5 +1,7 @@
 ## A handle is a first name and a virtue, and nobody types one
 
+**Since 11 Oct the handle and its Randomise are on your own card** — the `handle` section of its Edit on the You column, saved the moment it is pressed, and Cancel does not take it back ([339](339-your-card-holds-what-is-about-you.md)).
+
 **Asked for as "handles should be there name and a virtuas describing word. they can randomise it
 but it will follow that general name."** `handleMake_` in people.gs builds `halex_kind`: the first
 name, an underscore, and one word off `HANDLE_ADJ`, which is thirty virtues and nothing else (kind,

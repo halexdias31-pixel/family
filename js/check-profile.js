@@ -1108,7 +1108,9 @@ let cardRules = 0;
   try { acorn = require(path.join(__dirname, '..', 'node_modules', 'acorn')); } catch (e) {}
   const meSrc = fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8');
   const want = ['RETIRED_FIELDS_', 'CARD_SECTIONS', 'cardSent_', 'cardSections_', 'cardFields_', 'cardSettingsGroups_',
-                'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_'];
+                'CARD_BOOL_', 'TRUEish_', 'cardSame_', 'CARD_HOUR_', 'CARD_WHOLE_', 'cardChanged_',
+                /* docs/history/339: the library cards' fields, which Settings takes off and Tools draws. */
+                'isLibraryCard_', 'notLibrary_', 'libFieldsOf_'];
   const got = {};
   if (acorn) {
     acorn.parse(meSrc, { ecmaVersion: 'latest' }).body.forEach(n => {
@@ -1124,7 +1126,7 @@ let cardRules = 0;
     const groups = JSON.parse(JSON.stringify(b.ev('PROFILE_GROUPS')));
     const editable = JSON.parse(JSON.stringify(b.ev('PROFILE_EDITABLE')));
     const phone = vm.createContext({ DATA: { profileFields: groups } });
-    vm.runInContext(want.map(k => got[k]).join('\n') + '\nthis.__card = { CARD_SECTIONS, cardFields_, cardSettingsGroups_, cardChanged_ };', phone);
+    vm.runInContext(want.map(k => got[k]).join('\n') + '\nthis.__card = { CARD_SECTIONS, cardFields_, cardSettingsGroups_, cardChanged_, cardSections_, notLibrary_, libFieldsOf_ };', phone);
     const card = phone.__card;
     const rule = (ok, said) => { if (ok) cardRules++; else bad.push('the card: ' + said); };
     const onCard = card.cardFields_();
@@ -1149,6 +1151,44 @@ let cardRules = 0;
     rule(JSON.stringify(Object.keys(left)) === JSON.stringify(['Contact & address', 'Library cards'])
          && left['Contact & address'].indexOf('venues_ok') === -1 && left['Contact & address'].indexOf('email') !== -1,
       'the pages Settings still draws are ' + JSON.stringify(left));
+
+    /* ---------- EVERYBODY'S OWN CARD, SETTINGS AND THE TOOLS COLUMN: EVERY FIELD IN EXACTLY ONE PLACE (docs/history/339) ----------
+       The owner, 11 Oct: *"move library card widget to the tools column … the random name generator should be one
+       of the editable things in the profile settings of the profile card. your figure should also be in your
+       profile card editing."* So for each of the three real maps, and for a tutor with a public card as well as
+       for somebody without one, the phone's own code is asked where each field is drawn now: on the card's Edit
+       (`cardSections_` as `ownCardSections_` calls it), on a Settings page (what `settingsPages_` keeps:
+       `notLibrary_(cardSettingsGroups_(groups, onCard))`), or on Tools (`libFieldsOf_`, what `initLibCards_`
+       draws). Every field the map lets that person write is in one of the three, none in two; the library
+       fields are exactly the server's `LIBRARY_FIELDS` and none is on Settings; the card offers your figure and
+       your handle, and to somebody with no public card only those, the picture and the name. */
+    const libs = JSON.parse(JSON.stringify(b.ev('LIBRARY_FIELDS'))).slice().sort();
+    const flat = g => Object.keys(g).reduce((a, k) => a.concat(g[k]), []).filter(f => f !== 'library_note');
+    const notLibrary_flat = g => Object.keys(g).reduce((a, k) => a.concat(g[k]), []);
+    const maps = { tutor: groups, client: JSON.parse(JSON.stringify(b.ev('CLIENT_GROUPS'))),
+                   student: JSON.parse(JSON.stringify(b.ev('STUDENT_GROUPS'))) };
+    const whose = [['tutor', false], ['tutor', true], ['client', true], ['student', true]];
+    whose.forEach(([role, bare]) => {
+      const G = maps[role], all = flat(G);
+      const who = role + (role === 'tutor' ? (bare ? ' with no public card' : ' with a public card') : '');
+      const secs = card.cardSections_({ own: true, sent: all, bare });
+      const onCardOwn = [].concat(...secs.map(x => x.list));
+      const kept = notLibrary_flat(card.notLibrary_(card.cardSettingsGroups_(G, onCardOwn)));
+      const tools = card.libFieldsOf_(G);
+      const nowhere = all.filter(f => onCardOwn.indexOf(f) === -1 && kept.indexOf(f) === -1 && tools.indexOf(f) === -1);
+      rule(!nowhere.length, 'a ' + who + ': ' + nowhere.join(', ') + ' is on neither their card, Settings nor Tools');
+      const twice = all.filter(f => [onCardOwn, kept, tools].filter(l => l.indexOf(f) !== -1).length > 1);
+      rule(!twice.length, 'a ' + who + ': ' + twice.join(', ') + ' is drawn in two places');
+      rule(JSON.stringify(tools.slice().sort()) === JSON.stringify(libs) && !kept.some(f => /^lib\d+_/.test(f)),
+        'a ' + who + '\'s library cards are ' + JSON.stringify(tools) + ' on Tools and ' + JSON.stringify(kept.filter(f => /^lib\d+_/.test(f))) + ' on Settings — wanted the server\'s fifteen on Tools and none on Settings');
+      rule(onCardOwn.every(f => editable.indexOf(f) !== -1), 'a ' + who + '\'s card offers ' + onCardOwn.filter(f => editable.indexOf(f) === -1).join(', ') + ', which updateProfile lets nobody write');
+      const ids = secs.map(x => x.id);
+      rule(ids.indexOf('figure') === ids.indexOf('picture') + 1 && ids.indexOf('handle') === ids.indexOf('name') + 1 && ids[0] === 'picture',
+        'a ' + who + '\'s card offers the sections ' + JSON.stringify(ids) + ' — wanted the figure straight after the picture and the handle straight after the name');
+      if (bare) rule(JSON.stringify(ids) === '["picture","figure","name","handle"]', 'a ' + who + '\'s card, which prints only a face and a name, offers ' + JSON.stringify(ids));
+    });
+    /* SOMEBODY ELSE'S CARD — an admin on a tutor's — offers neither your figure nor your handle. */
+    rule(!card.cardSections_().some(x => x.id === 'figure' || x.id === 'handle'), 'a card edited by somebody else offers the figure or the handle');
 
     /* THE TUTOR'S OWN CARD, THROUGH THE REAL `doPost`. Not the rate: the tutor moved it on a Settings page
        above, so the month's clock is running — which is the point of `cardChanged_` sending only what moved. */

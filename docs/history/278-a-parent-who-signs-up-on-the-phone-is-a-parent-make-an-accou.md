@@ -1,5 +1,7 @@
 ## A parent who signs up on the phone is a parent — "Make an account" asks who it is for
 
+**Since 11 Oct "Make your child's account" is a section of one card, "Manage your child"**, which keeps the caption the email names ([339](339-your-card-holds-what-is-about-you.md)).
+
 The owner, 5 October: *"audit the registration process and so on so all kids can login easily with
 their handle and pin."* The work is 273. Its independent walk found one gap it did not close: **a
 parent who made an account on the phone was written `student`.** Settings never drew "Make your

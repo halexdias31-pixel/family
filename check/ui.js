@@ -234,6 +234,8 @@ const VISITORS = [
                        profile: { first_name: 'Test', last_name: 'Admin',
                                   borough: 'Sutton', city: 'London',
                                   /* ---------- THREE LIBRARIES, BECAUSE THE SHELF DRAWS THREE ------
+                                     (The shelf is the library cards widget on Tools since
+                                     docs/history/339, drawn from this profile.)
                                      THE SEED HELD `library_card`/`library_pin`, which are the
                                      names from before the nine boxes became one cell — so it
                                      would have measured an EMPTY shelf, which is the fault this
@@ -324,14 +326,21 @@ const ACCEPTED_TAP = [
   + '`slot-row` or `slot-hours`, every cell is an ordinary tap, and `slot-row` is not even the '
   + 'element any more \u2014 a day is a row of the card. A sentence that outlived what it '
   + 'described, which is the shape this repository records under `.favwrap.is-fav`.' },
-  { cls: /^av-(sw|opt)\b/, why:
-    'THE WARDROBE IS ONE CARD NOW, AND ITS CONTROLS ARE SIZED SO IT IS. Asked for as *"the avatar '
-  + 'bit is split into like 4 widgets. should just be 1. make things smaller to fit on a screen if '
-  + 'need be."* It was four pages — Colours, then the six slots two at a time — because at 44px '
-  + 'every swatch and every drawing-with-its-name the whole wardrobe was 1517px against a 534px pane '
-  + 'at 320x568. One card fits only if the controls come down: 21px colour circles eight to a row, '
-  + 'and 29px squares holding the drawing alone, six to a row, which is the strip a 320px card has '
-  + 'beside its label column. Measured with the card rendered at 320x568: inside the pane.\n'
+  /* `onCardEdit`: ACCEPTED ONLY INSIDE A CARD'S EDITOR (`.card-ed`), the one place the wardrobe is drawn since
+     docs/history/339 — the review of it found this entry matching the class anywhere, so a swatch drawn somewhere
+     new would never have been measured. */
+  { cls: /^av-(sw|opt)\b/, onCardEdit: true, why:
+    'THE WARDROBE IS ONE SECTION OF YOUR OWN CARD\'S EDIT (docs/history/339), AND IT IS STILL THE ONE BLOCK THE OWNER '
+  + 'ASKED FOR. *"the avatar bit is split into like 4 widgets. should just be 1. make things smaller to fit on a screen '
+  + 'if need be."* It was four pages — Colours, then the six slots two at a time — because at 44px every swatch and '
+  + 'every drawing-with-its-name the whole wardrobe was 1517px against a 534px pane at 320x568: three screens. One '
+  + 'block fits on a screen only if the controls come down: 21px colour circles eight to a row, and 29px squares '
+  + 'holding the drawing alone, six to a row, which is the strip a 320px card has beside its label column.\n'
+  + '        THE FORM IT IS IN SCROLLS NOW (the card editor is never drawn smaller, `paneReach_`), so the pane is no '
+  + 'longer what it must fit — the SCREEN still is, which is what the owner said: measured in the review of 339, '
+  + 'the figure section is 458px tall at 320x568, the whole wardrobe on the glass at once in a pane of 532; at '
+  + '44px it would be three screens of one section to scroll through to dress one figure. Asked again by that '
+  + 'review, and kept, for the owner\'s reason.\n'
   + '        WHAT MAKES IT LIVEABLE is what makes an hour cell liveable: a wrong tap costs nothing you '
   + 'cannot undo with the next one. Picking the wrong brown is fixed by picking the right one, and a '
   + 'hat you did not mean is taken off by pressing the one you did. The ONE press that is not free '
@@ -1327,7 +1336,9 @@ function inspect(opts) {
       found.tinyTargets.push({ tag: tag.toLowerCase(),
         cls: String(el.className || '').split(/\s+/).filter(Boolean).slice(0, 2).join('.'),
         text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 28),
-        w: Math.round(r.width), h: Math.round(r.height) });
+        w: Math.round(r.width), h: Math.round(r.height),
+        /* WHETHER IT IS IN A CARD'S EDITOR — an `ACCEPTED_TAP` entry may be accepted there and nowhere else. */
+        onCardEdit: !!(el.closest && el.closest('.card-ed')) });
     }
   }
 
@@ -2413,7 +2424,7 @@ function inspect(opts) {
       + `with it — the trade the owner chose — so each is judged above at its own size, and this line `
       + `is how many cards pay it and by how much.`));
     (r.tinyTargets || []).forEach(t => {
-      const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || ''));
+      const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || '') && (!a.onCardEdit || t.onCardEdit));
       add(ok ? 'TAP TARGET (known)' : 'TAP TARGET',
         `<${t.tag}>${t.cls ? '.' + t.cls : ''} ${JSON.stringify(t.text)} is ${t.w}x${t.h}`, at,
         ok && ok.why);
